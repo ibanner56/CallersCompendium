@@ -200,7 +200,8 @@ final class SavedSearchSpec {
 
   /// The live panel state this spec describes, with every reference read
   /// through [map] (a merge's alias) and the text shown through [text]. Always
-  /// a fresh state, with fresh builder ids.
+  /// a fresh state, with fresh builder ids, marked
+  /// [CollectionPanelState.fromSavedSearch].
   CollectionPanelState toPanelState({
     SavedSearchIdMapper map = _keepId,
     SavedSearchTextCodec text = const SavedSearchTextCodec(),
@@ -395,6 +396,7 @@ CollectionPanelState _hydrate(
     sortDirection: m.containsKey('sortDirection')
         ? _enum(m['sortDirection'], SortDirection.values, 'sortDirection')
         : sort.searchSort.defaultDirection,
+    fromSavedSearch: true,
   );
   if (m.containsKey('facets')) _readFacets(m['facets'], state.facets, map);
   if (m.containsKey('byPhrase')) _readByPhrase(m['byPhrase'], state.byPhrase);

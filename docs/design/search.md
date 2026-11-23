@@ -909,7 +909,7 @@ tree. This section specifies the mapping; the widget shipped as
 | **Multiple facets selected** | `AndFilter([...leaves])` — the common case |
 | Advanced ▸ boolean group | `AndFilter` / `OrFilter` / `NotFilter` group nodes |
 | Advanced ▸ figure row | `FigureFilter(query)` with move + param + section pickers, or the **Any figure** chip (`BuilderFigure.isAnyFigure`, folding to `anyFigure`, with no move, section or params) |
-| Advanced ▸ tag row | `TagFilter(tagId)` — a tag picker offering the tags carried by a live dance; two rows in an all-of group AND their tags, as the facet's **All tags** does; rows can also mix with figure rows and sit under none-of. Against ContraDB (no tags) the **Has tag** entry is greyed out and naming the source, and choosing ContraDB takes existing tag rows out (`RemovedTagRows.take`, `OnlineSource.hidesAdvancedTags`) and returns them, with the tag picked, to the group and position they came from when the source no longer hides tags (online mode off, or another source); a group deleted meanwhile sends its rows to the top level, and clearing the search forgets them. The translator still refuses a tag as a safeguard. Wiping and greying out was the user's instruction on 2026-11-06, and so was restoring the rows afterwards ("I'd like a restore"), both in the agent session that wrote it; no issue or comment records them. Giving no notice when the rows are taken out is the implementing agent's choice and not yet ratified by the maintainer. |
+| Advanced ▸ tag row | `TagFilter(tagId)` — a tag picker offering the tags carried by a live dance (a row whose tag no live dance carries keeps it, as one more entry named from every tag or "Not in your library", #2325); two rows in an all-of group AND their tags, as the facet's **All tags** does; rows can also mix with figure rows and sit under none-of. Against ContraDB (no tags) the **Has tag** entry is greyed out and naming the source, and choosing ContraDB takes existing tag rows out (`RemovedTagRows.take`, `OnlineSource.hidesAdvancedTags`) and returns them, with the tag picked, to the group and position they came from when the source no longer hides tags (online mode off, or another source); a group deleted meanwhile sends its rows to the top level, and clearing the search forgets them. The translator still refuses a tag as a safeguard. Wiping and greying out was the user's instruction on 2026-11-06, and so was restoring the rows afterwards ("I'd like a restore"), both in the agent session that wrote it; no issue or comment records them. Giving no notice when the rows are taken out is the implementing agent's choice and not yet ratified by the maintainer. |
 | Advanced ▸ sequence row ("X then Y") | `ThenFilter(before, after)` — both operands are `FigureQuery` |
 
 - **Common case**: the facet chips compose into a flat `AndFilter` of leaves. No tree
@@ -982,7 +982,8 @@ months between it and the day of saving: the largest N whose window
 1**, so "since three weeks ago" saves as 1 month and a
 date in the future also as 1. The cutoff is recomputed from N every time the
 search runs. A saved N that is not a preset (1, 3, 6) is a valid window, and a panel that
-loads one must show it, since no preset chip is selected for it.
+loads one shows it as one more selected **Within** chip, "12 months, saved"
+(see *Opening a panel state* below).
 
 "Today" is the caller's own calendar day: `calendarDayAt(instantUtc, offset)`.
 A host reads both from a `SearchClock` and never calls `DateTime.now()` for it.
@@ -1061,6 +1062,65 @@ resolver reports the missing tag.
 Moves and sections are not references to records, and are not reported here: a
 move id the taxonomy does not know, or a By phrase section the dance form has no
 label for, is built as written.
+
+### Opening a panel state
+
+The Collection (`DanceListCommands.applyPanelState`) and the picker
+(`CollectionPicker.panelState`) can be handed a whole `CollectionPanelState` to
+show, by a saved search or by another feature. Either shows **exactly** that
+state, and nothing in it is silently dropped or left filtering out of sight:
+
+- **Every part is replaced**, including what **Clear all** leaves alone:
+  **Search in**, the sort and its direction (through `effectiveSort`, so a Best
+  match no longer offered becomes Title), and the Advanced tag rows a ContraDB
+  search had taken out. The sort is set directly, never as a user's choice:
+  the Collection's last-used sort is not written, and the opening-sort read
+  that runs after a picker mounts does not replace it. Online search is turned
+  off first, which returns ContraDB's taken tag rows to the old tree; they are
+  then forgotten, and only then is the tree replaced.
+- **The picker applies a request once.** The request is a
+  `CollectionPanelRequest`, marked applied by the first picker to take it, in
+  `initState` (a sheet built with it) or `didUpdateWidget` (the program
+  editor's inline picker, which stays mounted). A picker built again with the
+  same request, by a narrow/wide switch or a sheet opened again, starts afresh
+  instead of putting the search back; so the owner must keep the request in a
+  field, since one built in `build()` would be new, and applied, on every
+  rebuild. Each host takes the state's objects as its own.
+- **Every selected value has a chip.** A Filters section offers the values the
+  collection has, and every selected value besides: a level, author, tag,
+  source, form, formation, progression, status, meter, key, tune, custom-field
+  choice, a "not mixer" / "not mixed level", a rating outside 1–5, a Called /
+  Not called choice in a collection with no history, and a selection on a
+  custom field that is no longer offered as a filter. The names come from every
+  configured level, choreographer, tag and published source
+  (`CollectionData.allLevels`, `choreographerNames`, `allTagNames`,
+  `sourceTitles`); an id none of them knows reads "Not in your library".
+- **Selected tags are kept.** `FacetSelections.retainTags` drops a selected tag
+  no live dance carries, but not one the host opened with
+  (`keepSelectedTags`): a search for a tag nobody has used yet must find the
+  dances tagged later, not quietly find everything. A tag picked by hand is
+  dropped as before.
+- **A Within window outside 1/3/6 months** shows as its own selected chip,
+  "12 months", or "12 months, saved" when the state came from a saved search
+  (`CollectionPanelState.fromSavedSearch`).
+- **A By phrase section no dance has** still gets its row, and an Advanced
+  row's phrase no dance has stays its dropdown's value. An Advanced **Has
+  tag** row whose tag no live dance carries keeps it and shows it (named from
+  every tag, or "Not in your library"); it used to clear the tag a frame
+  later, widening the search with no sign.
+- **Untagged is a Tags selection.** A Tags section hidden in Settings that
+  holds only Untagged is shown, and hiding Tags clears Untagged too
+  (`hasSelectionFor` / `clearFacets`).
+- **A figure parameter no dropdown offers** (the rule the resolver uses, above)
+  is kept, shown as a notice "hands: not stated (not offered)" the user can
+  remove. Removing it silently, as the Advanced panel did before a tree could
+  be opened, would run a broader search than the one the resolver hands every
+  other feature.
+- A custom text or number filter's field shows the state's value, not the one
+  it showed before, and a clear or another state empties text that was no
+  value yet (a lone "-", Between's first bound, spaces). The field tells
+  those apart from a rebuild its own typing caused by the facets' identity
+  and `FacetSelections.clearCount`, a count kept in memory only.
 
 ## Performance
 

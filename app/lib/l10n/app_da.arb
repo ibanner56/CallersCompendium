@@ -4804,6 +4804,10 @@
   "@collectionFacetWithinMonths": {
     "x-sourceSha256": "66be719ed3455ce0c8690aabb3c822e941f268edc163a37a050194e1f6d12926"
   },
+  "collectionFacetWithinMonthsSaved": "{count, plural, =1{1 måned, gemt} other{{count} måneder, gemt}}",
+  "@collectionFacetWithinMonthsSaved": {
+    "x-sourceSha256": "e5c28ec8c3e855b65f5fa34934c782e7072929fddd7960b0195263ddf3a2670b"
+  },
   "collectionFacetWithinSince": "Siden en dato…",
   "@collectionFacetWithinSince": {
     "x-sourceSha256": "af507bf47251132ba4703a698935d64e15447d0ac82af7a649c56aeaba2b65a4"
@@ -4875,6 +4879,10 @@
   "collectionFacetAllHidden": "Alle filtre er skjult. Du kan vise dem igen under Indstillinger ▸ Standarder.",
   "@collectionFacetAllHidden": {
     "x-sourceSha256": "eec14e1a8c3ccd1c9f04b0b59373b768c4f5b28191e1c5d5263cc0e71bc07202"
+  },
+  "collectionFacetMissingValue": "Ikke i dit bibliotek",
+  "@collectionFacetMissingValue": {
+    "x-sourceSha256": "52e6640837ec2055afd1c0768ff09c3b4cff9dac7b6ff011c74c5f8d57ede77a"
   },
   "collectionFacetClear": "Ryd filtre",
   "@collectionFacetClear": {
@@ -5119,6 +5127,10 @@
   "collectionQueryAnyParam": "Vilkårlig {param}",
   "@collectionQueryAnyParam": {
     "x-sourceSha256": "768b0de301e56f0b42b07cb65a8700632abfe087fd187bfbff9111fd0173abdc"
+  },
+  "collectionQueryParamNotOffered": "{param}: {value} (tilbydes ikke)",
+  "@collectionQueryParamNotOffered": {
+    "x-sourceSha256": "bb8f76af8c64c3aa8c3bad4605d23ba12e2559ec4fa22745e4b2ea8a0ed3d68a"
   },
   "collectionBatchLevelUnspecified": "Uspecificeret (ryd)",
   "@collectionBatchLevelUnspecified": {
@@ -13493,5 +13505,73 @@
   "calendarClearFlagError": "Kunne ikke fjerne kalendermarkeringen. Prøv igen.",
   "@calendarClearFlagError": {
     "x-sourceSha256": "7f31c36bfec0eaa49ce85b3501658f5788167cceec31b4b23237b44fd80501ee"
+  },
+  "calendarOnStartupTitle": "Importér kalender, når appen starter",
+  "@calendarOnStartupTitle": {
+    "x-sourceSha256": "c7e7976b2cca7054a32ded2d9db81e98877e1fcecc0f53f2391a16d49455ea66"
+  },
+  "calendarOnStartupSubtitle": "Slået fra som standard. Når den er slået til, læser appen din kalender én gang ved hver start og siger intet, hvis det ikke lykkes.",
+  "@calendarOnStartupSubtitle": {
+    "x-sourceSha256": "e056a23296e3663767355547c664dfbc982910104dbd90b61d452b6325a06b2e"
+  },
+  "calendarStartupModeTitle": "Ved start",
+  "@calendarStartupModeTitle": {
+    "x-sourceSha256": "1e0ff8230be734239932417d849d117fbba4d6e1474502a4d5a4df1e5df99958"
+  },
+  "calendarStartupModeReport": "Meld nye begivenheder",
+  "@calendarStartupModeReport": {
+    "x-sourceSha256": "70e436309bfaf16f1fe7a0ffae975d60017ac233b079437eb9a96f5ba306c7e1"
+  },
+  "calendarStartupModeAdd": "Tilføj dem som udkast",
+  "@calendarStartupModeAdd": {
+    "x-sourceSha256": "2b65fa882c090cf0763ff21febb1e2f043159d91368cecb44ee8b4b352e1f28e"
+  },
+  "calendarStartupModeReportSubtitle": "Melder nye begivenheder; intet tilføjes, før du har gennemgået dem.",
+  "@calendarStartupModeReportSubtitle": {
+    "x-sourceSha256": "19b69452a18e130d89bdb29818ef74aa7b7536d55f64f4252a2b453ffe63777e"
+  },
+  "calendarStartupModeAddSubtitle": "Tilføjer nye begivenheder som programudkast, med Fortryd. Ændrede eller aflyste begivenheder bliver kun meldt.",
+  "@calendarStartupModeAddSubtitle": {
+    "x-sourceSha256": "c46a506d2bed5f309ed224b8a5c28a71ae6f0fb8caa4544ef556c2accaa3f954"
+  },
+  "calendarLastResultFailed": "Kunne ikke nå kalenderen ved start ({when})",
+  "@calendarLastResultFailed": {
+    "x-sourceSha256": "61b1f900991b944a3ffd641fbf2894a47c8b126d92c302610962fc5b4fc8eed1"
+  },
+  "calendarLastResultAdded": "Tjekket ved start {when}: {count, plural, =1{1 udkast tilføjet} other{{count} udkast tilføjet}}",
+  "@calendarLastResultAdded": {
+    "x-sourceSha256": "6c43cfcc9878b805367fb68a0535ec13f55441a994e4f9d8405b394139ce6865"
+  },
+  "calendarLastResultNew": "Tjekket ved start {when}: {count, plural, =0{ingen nye begivenheder} =1{1 ny begivenhed} other{{count} nye begivenheder}}",
+  "@calendarLastResultNew": {
+    "x-sourceSha256": "f2e253184432a0838b757716b96a1230a71c9704392c66f4aebdf4f7f4dd4552"
+  },
+  "calendarStartupFailureNotice": "{count, plural, other{Kalenderen kunne ikke nås de sidste {count} gange, appen startede.}}",
+  "@calendarStartupFailureNotice": {
+    "x-sourceSha256": "1c08c525abd1e631cfc904ec226be0df5cbd829e071e2044c9c6c36d0e6cc3f9"
+  },
+  "calendarStartupFailureHint": "Tjek kalenderadressen eller din forbindelse.",
+  "@calendarStartupFailureHint": {
+    "x-sourceSha256": "343be91960bc9ccfbdddda531b096feddbcab978c70c9541e3c0d3ccd7f7990d"
+  },
+  "calendarStartupNewEvents": "{count, plural, =1{1 ny begivenhed i din kalender.} other{{count} nye begivenheder i din kalender.}}",
+  "@calendarStartupNewEvents": {
+    "x-sourceSha256": "5e69184159efd2e49b4fd85ca64c4eb0131543f83390c3d92e46ad65e9d83803"
+  },
+  "calendarStartupChanges": "{count, plural, =1{1 ændring venter på dig.} other{{count} ændringer venter på dig.}}",
+  "@calendarStartupChanges": {
+    "x-sourceSha256": "d24b0d697433b60ad385afb2f9e1bbe7bb31a1c7bd7554c1941fb6327d5271d7"
+  },
+  "calendarStartupShow": "Vis",
+  "@calendarStartupShow": {
+    "x-sourceSha256": "0df6f1cad36c49da768a6efdcc2c4be102f5729f7381cb53e4ff8061d17eaeb6"
+  },
+  "calendarStartupReview": "Gennemgå",
+  "@calendarStartupReview": {
+    "x-sourceSha256": "aff0766a5290e117b8433c351bae7b7b23bed682b2369bd822d88a647cc58512"
+  },
+  "calendarLastResultError": "Kunne ikke importere fra kalenderen ved start ({when})",
+  "@calendarLastResultError": {
+    "x-sourceSha256": "a826d9f8828d360f373473072915ffe0c2fb4944f9b9e733a3e75a6f72591f5c"
   }
 }

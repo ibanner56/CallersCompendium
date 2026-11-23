@@ -4808,6 +4808,17 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String collectionFacetWithinMonthsSaved(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count måneder, gemt',
+      one: '1 måned, gemt',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get collectionFacetWithinSince => 'Siden en dato…';
 
   @override
@@ -4868,6 +4879,9 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get collectionFacetAllHidden =>
       'Alle filtre er skjult. Du kan vise dem igen under Indstillinger ▸ Standarder.';
+
+  @override
+  String get collectionFacetMissingValue => 'Ikke i dit bibliotek';
 
   @override
   String get collectionFacetClear => 'Ryd filtre';
@@ -5074,6 +5088,11 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String collectionQueryAnyParam(String param) {
     return 'Vilkårlig $param';
+  }
+
+  @override
+  String collectionQueryParamNotOffered(String param, String value) {
+    return '$param: $value (tilbydes ikke)';
   }
 
   @override
@@ -14008,4 +14027,104 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get calendarClearFlagError =>
       'Kunne ikke fjerne kalendermarkeringen. Prøv igen.';
+
+  @override
+  String get calendarOnStartupTitle => 'Importér kalender, når appen starter';
+
+  @override
+  String get calendarOnStartupSubtitle =>
+      'Slået fra som standard. Når den er slået til, læser appen din kalender én gang ved hver start og siger intet, hvis det ikke lykkes.';
+
+  @override
+  String get calendarStartupModeTitle => 'Ved start';
+
+  @override
+  String get calendarStartupModeReport => 'Meld nye begivenheder';
+
+  @override
+  String get calendarStartupModeAdd => 'Tilføj dem som udkast';
+
+  @override
+  String get calendarStartupModeReportSubtitle =>
+      'Melder nye begivenheder; intet tilføjes, før du har gennemgået dem.';
+
+  @override
+  String get calendarStartupModeAddSubtitle =>
+      'Tilføjer nye begivenheder som programudkast, med Fortryd. Ændrede eller aflyste begivenheder bliver kun meldt.';
+
+  @override
+  String calendarLastResultFailed(String when) {
+    return 'Kunne ikke nå kalenderen ved start ($when)';
+  }
+
+  @override
+  String calendarLastResultAdded(String when, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count udkast tilføjet',
+      one: '1 udkast tilføjet',
+    );
+    return 'Tjekket ved start $when: $_temp0';
+  }
+
+  @override
+  String calendarLastResultNew(String when, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nye begivenheder',
+      one: '1 ny begivenhed',
+      zero: 'ingen nye begivenheder',
+    );
+    return 'Tjekket ved start $when: $_temp0';
+  }
+
+  @override
+  String calendarStartupFailureNotice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Kalenderen kunne ikke nås de sidste $count gange, appen startede.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarStartupFailureHint =>
+      'Tjek kalenderadressen eller din forbindelse.';
+
+  @override
+  String calendarStartupNewEvents(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nye begivenheder i din kalender.',
+      one: '1 ny begivenhed i din kalender.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarStartupChanges(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ændringer venter på dig.',
+      one: '1 ændring venter på dig.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarStartupShow => 'Vis';
+
+  @override
+  String get calendarStartupReview => 'Gennemgå';
+
+  @override
+  String calendarLastResultError(String when) {
+    return 'Kunne ikke importere fra kalenderen ved start ($when)';
+  }
 }

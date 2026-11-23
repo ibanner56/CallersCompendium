@@ -7328,6 +7328,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 month} other{{count} months}}'**
   String collectionFacetWithinMonths(int count);
 
+  /// Selected time-window chip in the Calling history filter for a window of {count} calendar months that none of the 1/3/6-month choices offers, shown when the window came from a saved search. Without a saved search the chip reads like collectionFacetWithinMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 month, saved} other{{count} months, saved}}'**
+  String collectionFacetWithinMonthsSaved(int count);
+
   /// Time-window choice in the Calling history filter that opens a date picker: calls on or after the chosen date count.
   ///
   /// In en, this message translates to:
@@ -7435,6 +7441,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All filters are hidden. You can show them again in Settings ▸ Defaults.'**
   String get collectionFacetAllHidden;
+
+  /// Label of a selected filter chip (a level, author, tag or source) whose item no longer exists, e.g. it was deleted after a search naming it was saved. The chip stays so the filter can be seen and removed.
+  ///
+  /// In en, this message translates to:
+  /// **'Not in your library'**
+  String get collectionFacetMissingValue;
 
   /// Button that clears all active facet filters.
   ///
@@ -7801,6 +7813,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Any {param}'**
   String collectionQueryAnyParam(String param);
+
+  /// Removable notice on an Advanced search figure row: the row asks for a figure parameter value that the parameter's dropdown does not offer (it came in with a saved search). The value still narrows the search until the user removes it.
+  ///
+  /// In en, this message translates to:
+  /// **'{param}: {value} (not offered)'**
+  String collectionQueryParamNotOffered(String param, String value);
 
   /// Batch set-level option that clears (unsets) the level on the selected dances.
   ///
@@ -20482,6 +20500,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t clear the calendar flag. Try again.'**
   String get calendarClearFlagError;
+
+  /// Switch in Settings ▸ Program ▸ Calendar, off by default: read the calendar once each time the app starts.
+  ///
+  /// In en, this message translates to:
+  /// **'Import calendar when the app starts'**
+  String get calendarOnStartupTitle;
+
+  /// Subtitle of the start-up calendar import switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Off by default. When on, the app reads your calendar once each time it starts, and says nothing if it can\'t.'**
+  String get calendarOnStartupSubtitle;
+
+  /// Setting that chooses what the start-up calendar import does with new events.
+  ///
+  /// In en, this message translates to:
+  /// **'At startup'**
+  String get calendarStartupModeTitle;
+
+  /// Option of the At startup setting (the default): only say how many new events there are.
+  ///
+  /// In en, this message translates to:
+  /// **'Report new events'**
+  String get calendarStartupModeReport;
+
+  /// Option of the At startup setting: create draft programs for new events.
+  ///
+  /// In en, this message translates to:
+  /// **'Add them as drafts'**
+  String get calendarStartupModeAdd;
+
+  /// Subtitle of the At startup setting when Report new events is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Tells you about new events; nothing is added until you review them.'**
+  String get calendarStartupModeReportSubtitle;
+
+  /// Subtitle of the At startup setting when Add them as drafts is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds new events as draft programs, with Undo. Changed or canceled events are only reported.'**
+  String get calendarStartupModeAddSubtitle;
+
+  /// Settings line: the last start-up calendar import failed. {when} is a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach the calendar at startup ({when})'**
+  String calendarLastResultFailed(String when);
+
+  /// Settings line: the last start-up calendar import added drafts. {when} is a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Checked at startup {when}: {count, plural, =1{1 draft added} other{{count} drafts added}}'**
+  String calendarLastResultAdded(String when, int count);
+
+  /// Settings line: the last start-up calendar import's result. {when} is a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Checked at startup {when}: {count, plural, =0{no new events} =1{1 new event} other{{count} new events}}'**
+  String calendarLastResultNew(String when, int count);
+
+  /// Quiet notice in Settings after several start-up calendar imports in a row failed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, other{The calendar couldn\'t be reached the last {count} times the app started.}}'**
+  String calendarStartupFailureNotice(int count);
+
+  /// Hint under the repeated-failure notice.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the calendar address, or your connection.'**
+  String get calendarStartupFailureHint;
+
+  /// Message after a start-up calendar import in Report mode found new events.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 new event in your calendar.} other{{count} new events in your calendar.}}'**
+  String calendarStartupNewEvents(int count);
+
+  /// Message part after a start-up calendar import found changed or canceled events, which it never applies.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 change needs you.} other{{count} changes need you.}}'**
+  String calendarStartupChanges(int count);
+
+  /// Button in the start-up calendar message: open a draft it added.
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get calendarStartupShow;
+
+  /// Button in the start-up calendar message: open the import review with what it found.
+  ///
+  /// In en, this message translates to:
+  /// **'Review'**
+  String get calendarStartupReview;
+
+  /// Settings line: the last start-up calendar import reached the calendar but could not read it or add the drafts. {when} is a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t import from the calendar at startup ({when})'**
+  String calendarLastResultError(String when);
 }
 
 class _AppLocalizationsDelegate

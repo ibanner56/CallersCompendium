@@ -4872,6 +4872,17 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String collectionFacetWithinMonthsSaved(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count mois, enregistrés',
+      one: '1 mois, enregistré',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get collectionFacetWithinSince => 'Depuis une date…';
 
   @override
@@ -4932,6 +4943,9 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get collectionFacetAllHidden =>
       'Tous les filtres sont masqués. Vous pouvez les afficher à nouveau dans Réglages ▸ Valeurs par défaut.';
+
+  @override
+  String get collectionFacetMissingValue => 'Absent de votre bibliothèque';
 
   @override
   String get collectionFacetClear => 'Effacer les filtres';
@@ -5139,6 +5153,11 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String collectionQueryAnyParam(String param) {
     return 'N’importe quel $param';
+  }
+
+  @override
+  String collectionQueryParamNotOffered(String param, String value) {
+    return '$param : $value (non proposé)';
   }
 
   @override
@@ -14154,4 +14173,105 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get calendarClearFlagError =>
       'Impossible de retirer le signalement du calendrier. Réessayez.';
+
+  @override
+  String get calendarOnStartupTitle =>
+      'Importer le calendrier au démarrage de l’app';
+
+  @override
+  String get calendarOnStartupSubtitle =>
+      'Désactivé par défaut. Activé, l’app lit votre calendrier une fois à chaque démarrage, sans rien signaler en cas d’échec.';
+
+  @override
+  String get calendarStartupModeTitle => 'Au démarrage';
+
+  @override
+  String get calendarStartupModeReport => 'Signaler les nouveaux événements';
+
+  @override
+  String get calendarStartupModeAdd => 'Les ajouter comme brouillons';
+
+  @override
+  String get calendarStartupModeReportSubtitle =>
+      'Signale les nouveaux événements ; rien n’est ajouté avant que vous ne les examiniez.';
+
+  @override
+  String get calendarStartupModeAddSubtitle =>
+      'Ajoute les nouveaux événements comme programmes brouillons, avec Annuler. Les événements modifiés ou annulés sont seulement signalés.';
+
+  @override
+  String calendarLastResultFailed(String when) {
+    return 'Calendrier injoignable au démarrage ($when)';
+  }
+
+  @override
+  String calendarLastResultAdded(String when, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count brouillons ajoutés',
+      one: '1 brouillon ajouté',
+    );
+    return 'Vérifié au démarrage le $when : $_temp0';
+  }
+
+  @override
+  String calendarLastResultNew(String when, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nouveaux événements',
+      one: '1 nouvel événement',
+      zero: 'aucun nouvel événement',
+    );
+    return 'Vérifié au démarrage le $when : $_temp0';
+  }
+
+  @override
+  String calendarStartupFailureNotice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Le calendrier était injoignable lors des $count derniers démarrages de l’app.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarStartupFailureHint =>
+      'Vérifiez l’adresse du calendrier ou votre connexion.';
+
+  @override
+  String calendarStartupNewEvents(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nouveaux événements dans votre calendrier.',
+      one: '1 nouvel événement dans votre calendrier.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarStartupChanges(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count modifications vous attendent.',
+      one: '1 modification vous attend.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarStartupShow => 'Afficher';
+
+  @override
+  String get calendarStartupReview => 'Examiner';
+
+  @override
+  String calendarLastResultError(String when) {
+    return 'Impossible d’importer depuis le calendrier au démarrage ($when)';
+  }
 }

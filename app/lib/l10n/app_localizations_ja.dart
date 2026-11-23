@@ -4584,6 +4584,16 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String collectionFacetWithinMonthsSaved(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countか月(保存済み)',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get collectionFacetWithinSince => '日付以降…';
 
   @override
@@ -4640,6 +4650,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get collectionFacetAllHidden => 'すべてのフィルターが非表示です。設定 ▸ 既定値で再表示できます。';
+
+  @override
+  String get collectionFacetMissingValue => 'ライブラリにありません';
 
   @override
   String get collectionFacetClear => 'フィルターをクリア';
@@ -4844,6 +4857,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String collectionQueryAnyParam(String param) {
     return '任意の$param';
+  }
+
+  @override
+  String collectionQueryParamNotOffered(String param, String value) {
+    return '$param: $value(選択肢にありません)';
   }
 
   @override
@@ -13463,4 +13481,98 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get calendarClearFlagError => 'カレンダーのフラグを消せませんでした。もう一度お試しください。';
+
+  @override
+  String get calendarOnStartupTitle => 'アプリ起動時にカレンダーをインポート';
+
+  @override
+  String get calendarOnStartupSubtitle =>
+      '初期設定はオフです。オンにすると、起動のたびにカレンダーを1回読み取ります。読み取れなくても何も表示しません。';
+
+  @override
+  String get calendarStartupModeTitle => '起動時';
+
+  @override
+  String get calendarStartupModeReport => '新しい予定を知らせる';
+
+  @override
+  String get calendarStartupModeAdd => '下書きとして追加';
+
+  @override
+  String get calendarStartupModeReportSubtitle =>
+      '新しい予定を知らせます。確認するまで何も追加されません。';
+
+  @override
+  String get calendarStartupModeAddSubtitle =>
+      '新しい予定を下書きプログラムとして追加します（元に戻せます）。変更・キャンセルされた予定は知らせるだけです。';
+
+  @override
+  String calendarLastResultFailed(String when) {
+    return '起動時にカレンダーに接続できませんでした（$when）';
+  }
+
+  @override
+  String calendarLastResultAdded(String when, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '下書きを$count件追加',
+    );
+    return '起動時に確認（$when）: $_temp0';
+  }
+
+  @override
+  String calendarLastResultNew(String when, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '新しい予定が$count件',
+      zero: '新しい予定はありません',
+    );
+    return '起動時に確認（$when）: $_temp0';
+  }
+
+  @override
+  String calendarStartupFailureNotice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '直近$count回の起動でカレンダーに接続できませんでした。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarStartupFailureHint => 'カレンダーのアドレスか接続を確認してください。';
+
+  @override
+  String calendarStartupNewEvents(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'カレンダーに新しい予定が$count件あります。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarStartupChanges(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '確認が必要な変更が$count件あります。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarStartupShow => '表示';
+
+  @override
+  String get calendarStartupReview => '確認';
+
+  @override
+  String calendarLastResultError(String when) {
+    return '起動時にカレンダーからインポートできませんでした（$when）';
+  }
 }

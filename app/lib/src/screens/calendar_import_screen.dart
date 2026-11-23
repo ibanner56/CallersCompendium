@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/calendar_import.dart';
 import '../data/calendar_import_settings.dart';
+import '../data/calendar_startup.dart' show resetCalendarStartupFailures;
 import '../data/date_format_scope.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
@@ -30,7 +31,23 @@ typedef CalendarFeedFetcher = Future<String> Function(String url);
 /// **Import** creates the ticked drafts and pops with their ids; the caller of
 /// this screen offers **Undo**.
 class CalendarImportScreen extends StatefulWidget {
-  const CalendarImportScreen({super.key, this.fetcher, this.toLocal});
+  const CalendarImportScreen({
+    super.key,
+    this.fetcher,
+    this.toLocal,
+    this.prefetchedBody,
+    this.prefetchedUrl,
+  });
+
+  /// The address [prefetchedBody] came from. The body is used only while the
+  /// saved address is still that one: after an address change, it would
+  /// preview the wrong calendar.
+  final String? prefetchedUrl;
+
+  /// A feed the startup run already fetched (#2353): the preview is built
+  /// from it on open, with no second fetch. **Fetch events** still fetches
+  /// afresh.
+  final String? prefetchedBody;
 
   /// Test seam; defaults to [fetchCalendarFeed].
   final CalendarFeedFetcher? fetcher;
@@ -80,6 +97,12 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
       _addressController.text = settings.feedUrl ?? '';
       _phase = _Phase.idle;
     });
+    final body = widget.prefetchedBody;
+    if (body != null &&
+        widget.prefetchedUrl != null &&
+        widget.prefetchedUrl == settings.feedUrl) {
+      await _fetch(prefetched: body);
+    }
   }
 
   @override
@@ -88,7 +111,7 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
     super.dispose();
   }
 
-  Future<void> _fetch() async {
+  Future<void> _fetch({String? prefetched}) async {
     final l10n = AppLocalizations.of(context);
     final repos = RepositoriesScope.of(context);
     final address = _addressController.text.trim();
@@ -104,13 +127,16 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
     try {
       if (address != (_settings.feedUrl ?? '')) {
         await repos.settings.set(kCalendarFeedUrlKey, address);
+        // A new address starts the startup run's failure count afresh.
+        await resetCalendarStartupFailures(repos.settings);
         _settings = CalendarImportSettings(
           feedUrl: address,
           windowMonths: _settings.windowMonths,
           titleFilter: _settings.titleFilter,
         );
       }
-      final body = await (widget.fetcher ?? fetchCalendarFeed)(address);
+      final body =
+          prefetched ?? await (widget.fetcher ?? fetchCalendarFeed)(address);
       final now = clock.now();
       final preview = await buildCalendarImportPreview(
         repos,

@@ -4804,6 +4804,10 @@
   "@collectionFacetWithinMonths": {
     "x-sourceSha256": "66be719ed3455ce0c8690aabb3c822e941f268edc163a37a050194e1f6d12926"
   },
+  "collectionFacetWithinMonthsSaved": "{count, plural, other{{count}か月(保存済み)}}",
+  "@collectionFacetWithinMonthsSaved": {
+    "x-sourceSha256": "e5c28ec8c3e855b65f5fa34934c782e7072929fddd7960b0195263ddf3a2670b"
+  },
   "collectionFacetWithinSince": "日付以降…",
   "@collectionFacetWithinSince": {
     "x-sourceSha256": "af507bf47251132ba4703a698935d64e15447d0ac82af7a649c56aeaba2b65a4"
@@ -4875,6 +4879,10 @@
   "collectionFacetAllHidden": "すべてのフィルターが非表示です。設定 ▸ 既定値で再表示できます。",
   "@collectionFacetAllHidden": {
     "x-sourceSha256": "eec14e1a8c3ccd1c9f04b0b59373b768c4f5b28191e1c5d5263cc0e71bc07202"
+  },
+  "collectionFacetMissingValue": "ライブラリにありません",
+  "@collectionFacetMissingValue": {
+    "x-sourceSha256": "52e6640837ec2055afd1c0768ff09c3b4cff9dac7b6ff011c74c5f8d57ede77a"
   },
   "collectionFacetClear": "フィルターをクリア",
   "@collectionFacetClear": {
@@ -5119,6 +5127,10 @@
   "collectionQueryAnyParam": "任意の{param}",
   "@collectionQueryAnyParam": {
     "x-sourceSha256": "768b0de301e56f0b42b07cb65a8700632abfe087fd187bfbff9111fd0173abdc"
+  },
+  "collectionQueryParamNotOffered": "{param}: {value}(選択肢にありません)",
+  "@collectionQueryParamNotOffered": {
+    "x-sourceSha256": "bb8f76af8c64c3aa8c3bad4605d23ba12e2559ec4fa22745e4b2ea8a0ed3d68a"
   },
   "collectionBatchLevelUnspecified": "未指定（クリア）",
   "@collectionBatchLevelUnspecified": {
@@ -13493,5 +13505,73 @@
   "calendarClearFlagError": "カレンダーのフラグを消せませんでした。もう一度お試しください。",
   "@calendarClearFlagError": {
     "x-sourceSha256": "7f31c36bfec0eaa49ce85b3501658f5788167cceec31b4b23237b44fd80501ee"
+  },
+  "calendarOnStartupTitle": "アプリ起動時にカレンダーをインポート",
+  "@calendarOnStartupTitle": {
+    "x-sourceSha256": "c7e7976b2cca7054a32ded2d9db81e98877e1fcecc0f53f2391a16d49455ea66"
+  },
+  "calendarOnStartupSubtitle": "初期設定はオフです。オンにすると、起動のたびにカレンダーを1回読み取ります。読み取れなくても何も表示しません。",
+  "@calendarOnStartupSubtitle": {
+    "x-sourceSha256": "e056a23296e3663767355547c664dfbc982910104dbd90b61d452b6325a06b2e"
+  },
+  "calendarStartupModeTitle": "起動時",
+  "@calendarStartupModeTitle": {
+    "x-sourceSha256": "1e0ff8230be734239932417d849d117fbba4d6e1474502a4d5a4df1e5df99958"
+  },
+  "calendarStartupModeReport": "新しい予定を知らせる",
+  "@calendarStartupModeReport": {
+    "x-sourceSha256": "70e436309bfaf16f1fe7a0ffae975d60017ac233b079437eb9a96f5ba306c7e1"
+  },
+  "calendarStartupModeAdd": "下書きとして追加",
+  "@calendarStartupModeAdd": {
+    "x-sourceSha256": "2b65fa882c090cf0763ff21febb1e2f043159d91368cecb44ee8b4b352e1f28e"
+  },
+  "calendarStartupModeReportSubtitle": "新しい予定を知らせます。確認するまで何も追加されません。",
+  "@calendarStartupModeReportSubtitle": {
+    "x-sourceSha256": "19b69452a18e130d89bdb29818ef74aa7b7536d55f64f4252a2b453ffe63777e"
+  },
+  "calendarStartupModeAddSubtitle": "新しい予定を下書きプログラムとして追加します（元に戻せます）。変更・キャンセルされた予定は知らせるだけです。",
+  "@calendarStartupModeAddSubtitle": {
+    "x-sourceSha256": "c46a506d2bed5f309ed224b8a5c28a71ae6f0fb8caa4544ef556c2accaa3f954"
+  },
+  "calendarLastResultFailed": "起動時にカレンダーに接続できませんでした（{when}）",
+  "@calendarLastResultFailed": {
+    "x-sourceSha256": "61b1f900991b944a3ffd641fbf2894a47c8b126d92c302610962fc5b4fc8eed1"
+  },
+  "calendarLastResultAdded": "起動時に確認（{when}）: {count, plural, other{下書きを{count}件追加}}",
+  "@calendarLastResultAdded": {
+    "x-sourceSha256": "6c43cfcc9878b805367fb68a0535ec13f55441a994e4f9d8405b394139ce6865"
+  },
+  "calendarLastResultNew": "起動時に確認（{when}）: {count, plural, =0{新しい予定はありません} other{新しい予定が{count}件}}",
+  "@calendarLastResultNew": {
+    "x-sourceSha256": "f2e253184432a0838b757716b96a1230a71c9704392c66f4aebdf4f7f4dd4552"
+  },
+  "calendarStartupFailureNotice": "{count, plural, other{直近{count}回の起動でカレンダーに接続できませんでした。}}",
+  "@calendarStartupFailureNotice": {
+    "x-sourceSha256": "1c08c525abd1e631cfc904ec226be0df5cbd829e071e2044c9c6c36d0e6cc3f9"
+  },
+  "calendarStartupFailureHint": "カレンダーのアドレスか接続を確認してください。",
+  "@calendarStartupFailureHint": {
+    "x-sourceSha256": "343be91960bc9ccfbdddda531b096feddbcab978c70c9541e3c0d3ccd7f7990d"
+  },
+  "calendarStartupNewEvents": "{count, plural, other{カレンダーに新しい予定が{count}件あります。}}",
+  "@calendarStartupNewEvents": {
+    "x-sourceSha256": "5e69184159efd2e49b4fd85ca64c4eb0131543f83390c3d92e46ad65e9d83803"
+  },
+  "calendarStartupChanges": "{count, plural, other{確認が必要な変更が{count}件あります。}}",
+  "@calendarStartupChanges": {
+    "x-sourceSha256": "d24b0d697433b60ad385afb2f9e1bbe7bb31a1c7bd7554c1941fb6327d5271d7"
+  },
+  "calendarStartupShow": "表示",
+  "@calendarStartupShow": {
+    "x-sourceSha256": "0df6f1cad36c49da768a6efdcc2c4be102f5729f7381cb53e4ff8061d17eaeb6"
+  },
+  "calendarStartupReview": "確認",
+  "@calendarStartupReview": {
+    "x-sourceSha256": "aff0766a5290e117b8433c351bae7b7b23bed682b2369bd822d88a647cc58512"
+  },
+  "calendarLastResultError": "起動時にカレンダーからインポートできませんでした（{when}）",
+  "@calendarLastResultError": {
+    "x-sourceSha256": "a826d9f8828d360f373473072915ffe0c2fb4944f9b9e733a3e75a6f72591f5c"
   }
 }
