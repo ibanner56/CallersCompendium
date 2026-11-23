@@ -730,7 +730,7 @@ nothing in it to lose.
   shows no rows until it can.
 - **Phrases** (English dances) — choose **Name the phrases** to give the
   tune's parts their own names instead: one row each for A, B and C, with
-  its **Bars**, its **Beats to the bar** and whether it plays **Once** or
+  its **Bars**, its **Beats per bar** and whether it plays **Once** or
   **Twice**, the repeat straight after it. A=4 played twice and B=8 played once
   labels the figures A1, A2 and B; A=4, B=4 and C=8 each once labels them A, B
   and C. A phrase's beats to the bar start as the dance's **Meter** gives them
