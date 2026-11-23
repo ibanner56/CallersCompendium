@@ -1304,10 +1304,16 @@ recommendation; the answer is quoted.
    maintainer rejected a written meter per phrase (`A[3/4]:`), which would have
    changed the stored text and needed its own ruling for older builds. Each
    named phrase's row sets its beats to the bar, the figures count in bars
-   phrase by phrase (§5.5), and the Meter field stays free text: a Meter
-   that states one meter sets every phrase's beats only when it now states
-   other beats to the bar than before (a recommendation of the author's, which
-   the maintainer accepted), and a Meter that names two meters sets none.
+   phrase by phrase (§5.5), and the Meter field stays free text. A Meter that
+   states one meter sets every phrase's beats only when it now states other
+   beats to the bar than before (the author's recommendation, which the
+   maintainer accepted on 22 November 2026), and a Meter that names two
+   meters sets none. On 23 November 2026, shown that typing a Meter a
+   character at a time would still reach a structure that differs, the
+   maintainer ruled that a Meter never rewrites phrases that differ in beats
+   to the bar, and that Name phrases keeps such a structure's own beats.
+   Rejected: rewriting whenever the stated beats change, which a keystroke
+   such as the "3" of "3/4 and 6/8" triggers.
 9. **Other titles and the Barnes reference** (22 November 2026). After a
    comparison with another ECD collection, the maintainer answered:
    "Alternate titles would be useful generally", and asked for "a

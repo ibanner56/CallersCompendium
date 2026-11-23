@@ -8796,14 +8796,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorPhrasesHelp =>
-      'Name each part of the tune A, B or C, give its bars, and say whether it plays once or twice. A phrase played twice is labeled A1 and A2.';
+      'Name each part of the tune A, B or C, give its bars and the beats in each bar, and say whether it plays once or twice. A phrase played twice is labeled A1 and A2.';
 
   @override
   String get danceEditorPhrasesAdd => 'Add phrase';
 
   @override
   String danceEditorPhrasesInvalid(int max) {
-    return 'Give each phrase from 1 to $max bars. Until then the dance keeps its last valid phrases, and Save saves those.';
+    return 'Give each phrase from 1 to $max bars and from 1 to $max beats to the bar. Until then the dance keeps its last valid phrases, and Save saves those.';
   }
 
   @override
@@ -8818,7 +8818,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String danceEditorPhraseBeatsPerBarLabel(String name) {
-    return 'Beats to the bar in $name';
+    return '$name beats a bar';
   }
 
   @override

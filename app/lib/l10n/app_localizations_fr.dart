@@ -8936,14 +8936,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get danceEditorPhrasesHelp =>
-      'Nommez chaque partie de l’air A, B ou C, indiquez ses mesures et si elle est jouée une ou deux fois. Une phrase jouée deux fois est notée A1 et A2.';
+      'Nommez chaque partie de l’air A, B ou C, indiquez ses mesures et les temps de chaque mesure, et si elle est jouée une ou deux fois. Une phrase jouée deux fois est notée A1 et A2.';
 
   @override
   String get danceEditorPhrasesAdd => 'Ajouter une phrase';
 
   @override
   String danceEditorPhrasesInvalid(int max) {
-    return 'Donnez à chaque phrase de 1 à $max mesures. D’ici là, la danse garde ses dernières phrases valides, et Enregistrer enregistre celles-ci.';
+    return 'Donnez à chaque phrase de 1 à $max mesures et de 1 à $max temps par mesure. D’ici là, la danse garde ses dernières phrases valides, et Enregistrer enregistre celles-ci.';
   }
 
   @override
@@ -8958,7 +8958,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String danceEditorPhraseBeatsPerBarLabel(String name) {
-    return 'Temps par mesure de $name';
+    return '$name temps par mesure';
   }
 
   @override

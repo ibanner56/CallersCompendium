@@ -8618,17 +8618,17 @@
   "@danceEditorPhrasesTitle": {
     "x-sourceSha256": "076bcf6aae77baad87996fdcdd36b513bb44458288adb5cf5d1b4827c4d40fb9"
   },
-  "danceEditorPhrasesHelp": "Benenne jeden Teil der Melodie mit A, B oder C, gib seine Takte an und wähle, ob er einmal oder zweimal gespielt wird. Eine zweimal gespielte Phrase heißt A1 und A2.",
+  "danceEditorPhrasesHelp": "Benenne jeden Teil der Melodie mit A, B oder C, gib seine Takte und die Schläge pro Takt an und wähle, ob er einmal oder zweimal gespielt wird. Eine zweimal gespielte Phrase heißt A1 und A2.",
   "@danceEditorPhrasesHelp": {
-    "x-sourceSha256": "edebc10c51273964bc9a05c909981b77787dce7a2b475a83725c526777f92c91"
+    "x-sourceSha256": "59b4c9c0ce8ed07afd9066db4a03b9a025a7b9b485c8e34bea1e40e3c1a0a012"
   },
   "danceEditorPhrasesAdd": "Phrase hinzufügen",
   "@danceEditorPhrasesAdd": {
     "x-sourceSha256": "523c6e63a15b0cd78bb315d87053f141d1ae58f5ecb7c344ff3892e50a9d9833"
   },
-  "danceEditorPhrasesInvalid": "Gib jeder Phrase 1 bis {max} Takte. Bis dahin behält der Tanz seine letzten gültigen Phrasen, und Speichern speichert diese.",
+  "danceEditorPhrasesInvalid": "Gib jeder Phrase 1 bis {max} Takte und 1 bis {max} Schläge pro Takt. Bis dahin behält der Tanz seine letzten gültigen Phrasen, und Speichern speichert diese.",
   "@danceEditorPhrasesInvalid": {
-    "x-sourceSha256": "a3cba7054af95cf515f04202ae1426f98e82977fb78851c6ea4b2ed8ee4f6a53"
+    "x-sourceSha256": "6a5a586f9cbb1f72717649e174712444f7076e149f73331b7ce56c8c2b3c371b"
   },
   "danceEditorPhraseBarsLabel": "Takte in {name}",
   "@danceEditorPhraseBarsLabel": {
@@ -8638,9 +8638,9 @@
   "@danceEditorPhraseBarsRange": {
     "x-sourceSha256": "bfa7cdf134bbeb548cd4f923b76b40b9d9f16882792d502e0657e9e611bcdbf5"
   },
-  "danceEditorPhraseBeatsPerBarLabel": "Schläge pro Takt in {name}",
+  "danceEditorPhraseBeatsPerBarLabel": "{name} Schläge pro Takt",
   "@danceEditorPhraseBeatsPerBarLabel": {
-    "x-sourceSha256": "6dabd9f720e145405c99e68e75bdf89dc4ea0620d905b439ac668a118ab0efcc"
+    "x-sourceSha256": "31a19fb8c9896b41685fa34f411f35b5aee28658b4664e1097fc55029f74f7dc"
   },
   "danceEditorPhraseBeatsPerBarRange": "1 bis {max}",
   "@danceEditorPhraseBeatsPerBarRange": {

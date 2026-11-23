@@ -11562,7 +11562,7 @@
   "@danceEditorPhrasesTitle": {
     "description": "Heading above an English dance's named phrases (A, B, C), one row each."
   },
-  "danceEditorPhrasesHelp": "Name each part of the tune A, B or C, give its bars, and say whether it plays once or twice. A phrase played twice is labeled A1 and A2.",
+  "danceEditorPhrasesHelp": "Name each part of the tune A, B or C, give its bars and the beats in each bar, and say whether it plays once or twice. A phrase played twice is labeled A1 and A2.",
   "@danceEditorPhrasesHelp": {
     "description": "Help under the Phrases heading in an English dance's editor. A, B, C, A1 and A2 are phrase labels of English country dance music and stay as written."
   },
@@ -11570,9 +11570,9 @@
   "@danceEditorPhrasesAdd": {
     "description": "Button that adds a named phrase (the next unused of A, B, C) to an English dance's phrases. Hidden when all three are used."
   },
-  "danceEditorPhrasesInvalid": "Give each phrase from 1 to {max} bars. Until then the dance keeps its last valid phrases, and Save saves those.",
+  "danceEditorPhrasesInvalid": "Give each phrase from 1 to {max} bars and from 1 to {max} beats to the bar. Until then the dance keeps its last valid phrases, and Save saves those.",
   "@danceEditorPhrasesInvalid": {
-    "description": "Error under an English dance's named phrases when a bar count is empty, zero or above {max}, or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.",
+    "description": "Error under an English dance's named phrases when a bar count or a beats-to-the-bar count is empty, zero or above {max}, or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.",
     "placeholders": {
       "max": {
         "type": "int",
@@ -11600,7 +11600,7 @@
       }
     }
   },
-  "danceEditorPhraseBeatsPerBarLabel": "Beats to the bar in {name}",
+  "danceEditorPhraseBeatsPerBarLabel": "{name} beats a bar",
   "@danceEditorPhraseBeatsPerBarLabel": {
     "description": "Label of the number field for how many beats one bar of one named phrase of an English dance has, as in 3 for a phrase in 3/4 and 2 for one in 6/8. The name is A, B or C, a phrase label of English country dance music.",
     "placeholders": {

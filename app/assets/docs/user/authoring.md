@@ -739,9 +739,12 @@ nothing in it to lose.
   6/8: the dance is then counted in bars phrase by phrase (see
   [English dances are timed in bars](#english-dances-are-timed-in-bars)).
   Changing the **Meter** to one that now states other beats to the bar sets
-  every phrase to them, keeping each one's bars; a Meter that still states the
-  same beats (a word added after `3/4`), or names two meters (`3/4 and 6/8`),
-  leaves the phrases' beats as they are. Each phrase has 1 to 1000 bars and 1
+  every phrase to them, keeping each one's bars, but only while the phrases
+  all have the same beats to the bar: phrases that differ are never rewritten
+  from the Meter. A Meter that still states the same beats (a word added after
+  `3/4`), or names two meters (`3/4 and 6/8`), leaves them as they are too.
+  **Name the phrases** on a structure that differs keeps each part's own beats.
+  Each phrase has 1 to 1000 bars and 1
   to 1000 beats to the bar; while one is left empty or past that, the dance
   keeps its last valid phrases, and **Save** saves those.
   Remove every phrase to go back to unnamed phrases: the standard A1 A2 B1

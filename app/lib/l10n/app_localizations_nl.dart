@@ -8886,14 +8886,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorPhrasesHelp =>
-      'Benoem elk deel van de melodie A, B of C, geef het aantal maten en kies of het één of twee keer gespeeld wordt. Een frase die twee keer gespeeld wordt, heet A1 en A2.';
+      'Benoem elk deel van de melodie A, B of C, geef het aantal maten en de tellen per maat, en kies of het één of twee keer gespeeld wordt. Een frase die twee keer gespeeld wordt, heet A1 en A2.';
 
   @override
   String get danceEditorPhrasesAdd => 'Frase toevoegen';
 
   @override
   String danceEditorPhrasesInvalid(int max) {
-    return 'Geef elke frase 1 tot $max maten. Tot dan houdt de dans zijn laatste geldige frasen, en Opslaan slaat die op.';
+    return 'Geef elke frase 1 tot $max maten en 1 tot $max tellen per maat. Tot dan houdt de dans zijn laatste geldige frasen, en Opslaan slaat die op.';
   }
 
   @override
@@ -8908,7 +8908,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String danceEditorPhraseBeatsPerBarLabel(String name) {
-    return 'Tellen per maat in $name';
+    return '$name tellen per maat';
   }
 
   @override

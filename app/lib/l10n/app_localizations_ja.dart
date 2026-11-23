@@ -8474,14 +8474,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorPhrasesHelp =>
-      '曲の各部分にA、B、Cの名前を付け、小節数と、1回演奏するか2回演奏するかを指定します。2回演奏するフレーズはA1、A2と表示されます。';
+      '曲の各部分にA、B、Cの名前を付け、小節数と1小節の拍数、そして1回演奏するか2回演奏するかを指定します。2回演奏するフレーズはA1、A2と表示されます。';
 
   @override
   String get danceEditorPhrasesAdd => 'フレーズを追加';
 
   @override
   String danceEditorPhrasesInvalid(int max) {
-    return '各フレーズの小節数を1から$maxで入力してください。それまでは最後の有効なフレーズが保たれ、保存するとそれが保存されます。';
+    return '各フレーズの小節数と1小節の拍数を、それぞれ1から$maxで入力してください。それまでは最後の有効なフレーズが保たれ、保存するとそれが保存されます。';
   }
 
   @override

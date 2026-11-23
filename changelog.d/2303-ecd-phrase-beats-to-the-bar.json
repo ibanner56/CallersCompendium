@@ -6,7 +6,7 @@
       "Each named phrase of an English dance has a Beats to the bar field beside its Bars, so a tune that changes meter, such as an A in 3/4 and a B in 6/8, can be set up without typing the phrase structure by hand. The dance is then counted in bars phrase by phrase."
     ],
     "changed": [
-      "Editing an English dance's Meter sets every named phrase's beats to the bar only when the Meter now states other beats to the bar than it did. A word added after \"3/4\", or a Meter that names two meters such as \"3/4 and 6/8\", no longer resets the beats you set for each phrase."
+      "Editing an English dance's Meter no longer resets the beats to the bar you set for each phrase. It sets them only when every phrase has the same beats and the Meter now states other beats than it did; phrases that differ, a word added after \"3/4\", or a Meter that names two meters such as \"3/4 and 6/8\" leave them alone."
     ]
   }
 }
