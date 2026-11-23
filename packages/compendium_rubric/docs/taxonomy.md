@@ -2695,17 +2695,19 @@ To be defined later with worked examples.
   centre to the line they left before this figure runs — and that is the same rule that evicts
   the other role when `who` arrives to take its place. So `in:false` is a positional identity,
   and `in:true` is well defined regardless of who was in the centre beforehand.
-- **preconditions:** with `in:true`, every occupied rank must hold exactly two dancers, exactly
-  one of them in `who` — otherwise `unresolvableDancerSet`, per the capacity argument above.
+- **preconditions:** with `in:true`, every rank of an active hands four must hold exactly two
+  dancers, exactly one of them in `who` — otherwise `unresolvableDancerSet`, per the capacity
+  argument above. A couple standing out at an end is outside every hands four and does not step
+  in (`fundamentals.md` §10.3.2: no figure's transform touches it).
   Refusing rather than approximating is deliberate: guessing would strand a dancer in a line that
   is not theirs.
-- **effect:** each rank's `who` dancer moves to `c2`. `c2` is **exact — no offset** (see
+- **effect:** each active rank's `who` dancer moves to `c2`. `c2` is **exact — no offset** (see
   `form_long_waves` for why).
 - **normalization:** none on entry beyond §8.5.4.
 - **facing (output):** each mover faces **the direction they travelled** — from `c0` across-east,
   from `c4` across-west. This alternates down the set for free, because consecutive ranks step in
   from opposite lines, so nothing is invented. Non-movers keep their facing.
-- **interaction scope:** the whole set.
+- **interaction scope:** every active hands four.
 - **h4 contribution** (D7): 0.
 - **progression-eligible:** no.
 - **sources:** CallersCompendium taxonomy `form_a_long_wave` MoveDef.

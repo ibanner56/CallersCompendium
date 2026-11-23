@@ -567,7 +567,17 @@ final class FormALongWave extends Operation {
   Result<List<({DancerId mover, int row, int from})>, OpError> _steppingIn(
     Formation formation,
   ) {
-    final rows = <int>{for (final state in formation.dancers.values) state.row};
+    // Only the active hands fours: a couple standing out at an end is outside
+    // every band, and no figure's transform touches it
+    // (`docs/fundamentals.md` §10.3.2). Stepping its dancer in as well left
+    // them in the centre of a row the next settle does not cover, and the
+    // other role's step then landed on them.
+    final rows = <int>{
+      for (final band in handsFourBands(formation)) ...[
+        band.topRow,
+        band.bottomRow,
+      ],
+    };
     final steps = <({DancerId mover, int row, int from})>[];
     for (final row in rows.toList()..sort()) {
       final ids = formation.dancersInRow(row);

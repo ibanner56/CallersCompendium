@@ -303,15 +303,20 @@ reported as `unstructured`, an import-pipeline problem, not as a deferral.
 
 ## Known crashes
 
-The tables and headline above were measured before the change below, so they
+The tables and headline above were measured before the changes below, so they
 still count three crashes.
 
-One dance currently escapes the operation error channel and throws a cell
-collision:
+No dance currently escapes the operation error channel.
 
-| Caller's Box id | Dance | Collision | Current attribution |
-| ---: | --- | --- | --- |
-| 9779 | Gypsy for Chris & Sara | `r0,c2` | Separate centre-cell collision in a dance containing long-wave and simultaneous-figure choreography; exact operation not yet isolated |
+*Gypsy for Chris & Sara* (9779) used to collide at `r0,c2`. It opens with a
+slide left, which leaves a couple standing out in each end row, and
+`form_a_long_wave` stepped the standing-out dancers into the centre too. The
+next settle does not cover those rows, so the other role's step-in landed on
+them. `form_a_long_wave` now steps in only the dancers of active hands fours,
+as `fundamentals.md` §10.3.2 already required of every figure. Measured on the
+Caller's Box mirror against `rubric` at `f18e1b68`: the dance now refuses at
+its later allemande, 9 dances that refused or mismatched now compile (1 in the
+core set: *Toward Your Partner*), and none is lost.
 
 *The Digital Divide* (12771) and *Road to Rochester* (4292) used to collide at
 `r0,c0` inside `give_and_take`: both takers of one hands four stood on the same
