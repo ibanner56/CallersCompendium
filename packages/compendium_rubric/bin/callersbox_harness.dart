@@ -237,7 +237,15 @@ void _writeFailureReport(
   List<FailureDiagnosis> diagnoses,
   Set<String> coreIds,
 ) {
-  final directory = Directory(dir)..createSync(recursive: true);
+  final directory = Directory(dir);
+  try {
+    directory.createSync(recursive: true);
+  } on FileSystemException catch (error) {
+    // After the summary, so the run's own result is already printed; the
+    // exit code stays the run's.
+    stderr.writeln('error: --report $dir: ${error.message}');
+    return;
+  }
   String at(String name) => '${directory.path}${Platform.pathSeparator}$name';
   final headline =
       'in scope ${report.compiled}/${report.inScope} '

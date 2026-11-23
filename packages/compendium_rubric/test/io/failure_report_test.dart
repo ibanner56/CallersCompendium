@@ -29,24 +29,17 @@ Future<core.StructuredDraft> _draft(Map<String, Object?> record) async {
 }
 
 /// [draft]'s bridge with the progression assumed on figure [k] instead.
-BridgedDance _flaggedAt(core.StructuredDraft draft, int k) {
-  final record = bridgeCoreDance(draft.dance).record;
-  final figures = (record['figures']! as List).cast<Map<String, Object?>>();
-  return BridgedDance(
-    record: {
-      ...record,
-      'figures': [
-        for (var i = 0; i < figures.length; i++)
-          {
-            for (final entry in figures[i].entries)
-              if (entry.key != 'progression') entry.key: entry.value,
-            if (i == k) 'progression': true,
-          },
-      ],
-    },
-    assumedProgressionAt: k,
-  );
-}
+BridgedDance _flaggedAt(core.StructuredDraft draft, int k) =>
+    withProgressionAt(bridgeCoreDance(draft.dance), k);
+
+/// A mismatch verdict for [draft] with the progression assumed on figure 2.
+DanceRun _mismatchRun(core.StructuredDraft draft) => DanceRun(
+  title: draft.dance.title,
+  outcome: DanceOutcome.mismatch,
+  sourceId: '14948',
+  label: 't',
+  assumedProgressionAt: 1,
+);
 
 DanceRun _run(String detail) => DanceRun(
   title: 't',
@@ -136,6 +129,38 @@ void main() {
       );
     });
 
+    test('a double progression that progressed once is one short', () {
+      final double = Dance(
+        formation: dance.formation,
+        success: const ProgressionCriterion(count: 2),
+        figures: dance.figures,
+      );
+      final start = double.instantiate();
+      expect(
+        classifyMismatch(
+          double,
+          Mismatch(
+            actual: const ProgressionCriterion().expected(start),
+            expected: double.success.expected(start),
+          ),
+        ),
+        MismatchClass.oneProgressionShort,
+      );
+    });
+
+    test('two dancers in each other\'s places is elsewhere', () {
+      final expected = dance.success.expected(input);
+      final [a, b, ...] = expected.dancers.keys.toList();
+      final swapped = expected.withUpdates({
+        a: expected.stateOf(a).copyWith(position: expected.stateOf(b).position),
+        b: expected.stateOf(b).copyWith(position: expected.stateOf(a).position),
+      });
+      expect(
+        classifyMismatch(dance, landing(swapped)),
+        MismatchClass.elsewhere,
+      );
+    });
+
     test('right places with the wrong numbers is numbersOnly', () {
       final expected = dance.success.expected(input);
       final flipped = expected.withUpdates({
@@ -157,20 +182,13 @@ void main() {
     test('a misplaced progression is traced, classified and hinted', () async {
       final draft = await _draft(_fixture());
       final bridged = _flaggedAt(draft, 1);
-      final run = DanceRun(
-        title: draft.dance.title,
-        outcome: DanceOutcome.mismatch,
-        sourceId: '14948',
-        label: 't',
-        assumedProgressionAt: 1,
-      );
+      final run = _mismatchRun(draft);
       final diagnosis = diagnoseFailure(draft, run, bridged: bridged);
       final last = diagnosis.figures.length - 1;
 
       // Moved off figure 2, the progression compiles again on the last
       // figure, where the published dance has it.
       expect(diagnosis.placementHint, contains(last));
-      expect(diagnosis.placementHint, isNot(contains(1)));
 
       // Every figure ran: the start plus one step each.
       expect(diagnosis.trace, hasLength(diagnosis.figures.length + 1));
@@ -219,11 +237,61 @@ void main() {
     });
   });
 
+  test('a phrase with no figure list is skipped, as the adapter skips it', () {
+    final record = _fixture();
+    record['phrases'] = [
+      ...(record['phrases']! as List),
+      {'name': 'X', 'figures': 'not a list'},
+    ];
+    expect(sourcePhrases(jsonEncode(record)).map((p) => p.$1), [
+      'A1',
+      'A2',
+      'B1',
+      'B2',
+    ]);
+  });
+
+  test('the summary groups by cause and counts the focus set', () {
+    FailureDiagnosis refusal(String id, String detail) => FailureDiagnosis(
+      run: DanceRun(
+        title: id,
+        outcome: DanceOutcome.figureRefused,
+        sourceId: id,
+        label: id,
+        detail: detail,
+        assumedProgressionAt: 3,
+      ),
+      signature: failureSignature(_run(detail)),
+      figures: const ['a', 'b', 'c', 'd'],
+      placementHint: id == '1' ? const [1, 2] : const [],
+    );
+    final summary = summarizeFailures(
+      [
+        refusal('1', 'figure 2 (swing) whoMismatch: L-A and R-B are not ones'),
+        refusal('2', 'figure 4 (swing) whoMismatch: L-C and R-D are not ones'),
+        refusal('3', 'figure 1 (hey) whoMismatch: X is elsewhere'),
+      ],
+      coreIds: {'2'},
+    );
+    expect(
+      summary,
+      contains(
+        '| 2 | 1 | 1 | (swing) whoMismatch: X and X are not ones | 1, 2 |',
+      ),
+    );
+    expect(
+      summary,
+      contains('| 1 | 0 | 0 | (hey) whoMismatch: X is elsewhere | 3 |'),
+    );
+    expect(summary, contains('1 of 3 in-scope failures that parsed'));
+    expect(summary, contains('- 1 on a middle figure'));
+  });
+
   test('report.js is one global holding valid JSON', () async {
     final draft = await _draft(_fixture());
     final diagnosis = diagnoseFailure(
       draft,
-      runCoreDance(draft),
+      _mismatchRun(draft),
       bridged: _flaggedAt(draft, 1),
     );
     final script = failureReportScript(

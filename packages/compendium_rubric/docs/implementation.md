@@ -712,9 +712,10 @@ otherwise.
 
 `--report <dir>` adds a **failure report** for working on the failures rather
 than counting them (`io/failure_report.dart`). Every dance that mismatched,
-refused, crashed or did not parse is re-run figure by figure through
-`FigureFold` on the same primary bridge the verdict came from, and written to
-`<dir>`:
+refused or crashed is re-run figure by figure through `FigureFold` on the same
+primary bridge the verdict came from; one that did not parse is reported with
+its figures and the figure the parse error names, but no trace. All are
+written to `<dir>`:
 
 - `failures.jsonl`, one record per dance: the source's phrases as written, the
   figures as danced, the set after every figure up to the one that refused,

@@ -98,7 +98,6 @@ ol.figs li { overflow-wrap: anywhere; }
 ol.figs li.failed { color: var(--bad); font-weight: 600; }
 ol.figs li.assumed::after { content: "  ← progression assumed"; color: var(--accent); font-family: var(--sans); }
 ol.figs li.hint::after { content: "  ← compiles with progression here"; color: var(--good); font-family: var(--sans); }
-ol.figs li.assumed.hint::after { content: "  ← progression assumed (and compiles)"; }
 .trace { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; }
 .step { flex: 0 0 auto; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
 .step.failed { border-color: var(--bad); background: var(--bad-soft); }
@@ -140,6 +139,8 @@ ul.plain { margin: 0; padding-left: 1.2em; font-family: var(--mono); font-size: 
   if (!data) { $('detail').innerHTML = '<div class="empty">report.js did not load. Keep it beside this page.</div>'; return; }
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const dances = data.dances;
+  // A dance's route: its Caller's Box id, or its position when it has none.
+  dances.forEach((d, i) => { d.key = d.id == null ? 'n' + i : String(d.id); });
   $('headline').textContent = data.headline || '';
   if (!data.hasCore) $('coreLabel').hidden = true;
   [...new Set(dances.map((d) => d.outcome))].sort().forEach((o) => {
@@ -176,12 +177,12 @@ ul.plain { margin: 0; padding-left: 1.2em; font-family: var(--mono); font-size: 
   function renderDances() {
     const list = filtered().filter((d) => cause === null || d.signature === cause);
     $('dancesHead').textContent = `Dances (${list.length})`;
-    $('dances').innerHTML = list.length ? list.slice(0, 600).map((d) => `<button class="item dance-item" data-id="${esc(d.id)}" aria-current="${current === d}">
+    $('dances').innerHTML = list.length ? list.slice(0, 600).map((d) => `<button class="item dance-item" data-key="${esc(d.key)}" aria-current="${current === d}">
       <span>${esc(d.title)} <span class="legend">#${esc(d.id)}</span></span>
       <span>${d.core ? '<span class="tag core">core</span> ' : ''}${d.placementHint && d.placementHint.length ? '<span class="tag">placement</span>' : ''}</span></button>`).join('') +
       (list.length > 600 ? `<div class="empty">Showing 600 of ${list.length}. Narrow the filters to see the rest.</div>` : '')
       : '<div class="empty">No dances match these filters.</div>';
-    $('dances').querySelectorAll('.item').forEach((b) => b.onclick = () => { location.hash = 'd' + b.dataset.id; });
+    $('dances').querySelectorAll('.item').forEach((b) => b.onclick = () => { location.hash = 'd' + encodeURIComponent(b.dataset.key); });
   }
 
   function gridHtml(rows, marks) {
@@ -217,6 +218,7 @@ ul.plain { margin: 0; padding-left: 1.2em; font-family: var(--mono); font-size: 
         ${hint.size ? `<span class="tag">compiles with progression on ${[...hint].map((i) => i + 1).join(', ')}</span>` : (d.placementHint ? '<span class="legend">No other progression placement compiles.</span>' : '')}
       </div></div>
       ${d.detail ? `<div class="why">${esc(d.detail)}</div>` : ''}
+      ${d.diagnosisError ? `<div class="why">Re-running this dance for the report failed: ${esc(d.diagnosisError)}</div>` : ''}
       <div class="cols"><div><h3>Caller's Box lines</h3><div class="phrase">${phrases}</div></div>
         <div><h3>Danced as</h3><ol class="figs">${figs}</ol></div></div>
       ${steps.length ? `<div><h3>The set after each figure</h3><p class="legend">Top of the set is row 0. L = lark, R = robin, then couple number and couple letter; the arrow is facing, * is standing out. Underlined dancers moved in that figure.</p><div class="trace">${steps.join('')}</div></div>` : ''}
@@ -224,10 +226,10 @@ ul.plain { margin: 0; padding-left: 1.2em; font-family: var(--mono); font-size: 
   }
 
   function render() {
-    renderCauses(); renderDances();
-    const id = location.hash.startsWith('#d') ? location.hash.slice(2) : null;
-    current = id ? dances.find((d) => String(d.id) === id) || null : null;
-    renderDetail(current);
+    let key = null;
+    try { key = location.hash.startsWith('#d') ? decodeURIComponent(location.hash.slice(2)) : null; } catch (_) {}
+    current = key ? dances.find((d) => d.key === key) || null : null;
+    renderCauses(); renderDances(); renderDetail(current);
   }
   ['scope', 'outcome', 'coreOnly', 'hintOnly'].forEach((id) => $(id).onchange = () => { cause = null; render(); });
   $('q').oninput = render;

@@ -115,6 +115,7 @@ class FailureDiagnosis {
     this.actual,
     this.offDancers = const [],
     this.placementHint,
+    this.diagnosisError,
   });
 
   final DanceRun run;
@@ -149,6 +150,10 @@ class FailureDiagnosis {
   /// the progression, or the dance never parsed).
   final List<int>? placementHint;
 
+  /// Set when re-running the dance for this diagnosis threw; everything but
+  /// [run] and [signature] is then empty.
+  final String? diagnosisError;
+
   Map<String, Object?> toJson({bool core = false}) => {
     'id': run.sourceId,
     'title': run.title,
@@ -178,6 +183,7 @@ class FailureDiagnosis {
     if (actual != null) 'actual': actual,
     if (offDancers.isNotEmpty) 'offDancers': offDancers,
     if (placementHint != null) 'placementHint': placementHint,
+    if (diagnosisError != null) 'diagnosisError': diagnosisError,
   };
 }
 
@@ -219,13 +225,41 @@ Future<List<(DanceRun, FailureDiagnosis?)>> diagnoseCallersBoxPayload(
       ));
       continue;
     }
-    final run = runCoreDance(draft, label: label);
-    results.add((
-      run,
-      diagnosedOutcomes.contains(run.outcome)
-          ? diagnoseFailure(draft, run)
-          : null,
-    ));
+    final DanceRun run;
+    try {
+      run = runCoreDance(draft, label: label);
+    } on Exception catch (error) {
+      // As [runCallersBoxPayload] does, so the two agree on every run.
+      results.add((
+        DanceRun(
+          title: label,
+          outcome: DanceOutcome.adapterFailed,
+          sourceId: record.externalId,
+          label: label,
+          detail: '$error',
+        ),
+        null,
+      ));
+      continue;
+    }
+    if (!diagnosedOutcomes.contains(run.outcome)) {
+      results.add((run, null));
+      continue;
+    }
+    FailureDiagnosis diagnosis;
+    try {
+      diagnosis = diagnoseFailure(draft, run);
+    } catch (error) {
+      // A diagnosis must never end the sweep or change its result: a dance
+      // that crashed the compiler can crash a re-run of it too. Deliberately
+      // unfiltered, for the reason [runCoreDance] gives for its own catch.
+      diagnosis = FailureDiagnosis(
+        run: run,
+        signature: failureSignature(run),
+        diagnosisError: '$error',
+      );
+    }
+    results.add((run, diagnosis));
   }
   return results;
 }
@@ -249,11 +283,15 @@ FailureDiagnosis diagnoseFailure(
   final reading = bridged ?? bridgeCoreDance(dance);
   final parsed = parseDance(reading.record);
   if (parsed is! Ok<Dance, DanceParseError>) {
+    // Never compiled, so there is no trace; the parse error names the figure
+    // as `figures[N]` when one figure is to blame.
+    final at = RegExp(r'figures\[(\d+)\]').firstMatch(run.detail ?? '');
     return FailureDiagnosis(
       run: run,
       signature: signature,
       phrases: phrases,
       figures: figures,
+      failedAt: at == null ? null : int.parse(at.group(1)!),
     );
   }
   final compiled = parsed.value;
@@ -338,23 +376,11 @@ FailureDiagnosis diagnoseFailure(
 ///
 /// Diagnostic only: see the library comment.
 List<int> placementHint(BridgedDance bridged) {
-  final record = bridged.record;
-  final figures = (record['figures']! as List).cast<Map<String, Object?>>();
+  final count = (bridged.record['figures']! as List).length;
   final compiling = <int>[];
-  for (var k = 0; k < figures.length; k++) {
+  for (var k = 0; k < count; k++) {
     if (k == bridged.assumedProgressionAt) continue;
-    final moved = {
-      ...record,
-      'figures': [
-        for (var i = 0; i < figures.length; i++)
-          {
-            for (final entry in figures[i].entries)
-              if (entry.key != 'progression') entry.key: entry.value,
-            if (i == k) 'progression': true,
-          },
-      ],
-    };
-    final parsed = parseDance(moved);
+    final parsed = parseDance(withProgressionAt(bridged, k).record);
     if (parsed is! Ok<Dance, DanceParseError>) continue;
     try {
       if (compile(parsed.value) is Compiled) compiling.add(k);
@@ -363,6 +389,29 @@ List<int> placementHint(BridgedDance bridged) {
     }
   }
   return compiling;
+}
+
+/// [bridged] with the progression flag on top-level figure [index] alone,
+/// as though that were the figure assumed. Builds new maps throughout, so
+/// [bridged] is left as it was.
+BridgedDance withProgressionAt(BridgedDance bridged, int index) {
+  final record = bridged.record;
+  final figures = (record['figures']! as List).cast<Map<String, Object?>>();
+  return BridgedDance(
+    record: {
+      ...record,
+      'figures': [
+        for (var i = 0; i < figures.length; i++)
+          {
+            for (final entry in figures[i].entries)
+              if (entry.key != 'progression') entry.key: entry.value,
+            if (i == index) 'progression': true,
+          },
+      ],
+    },
+    warnings: bridged.warnings,
+    assumedProgressionAt: index,
+  );
 }
 
 /// How [mismatch] missed, judged against [dance]'s own criterion.
@@ -417,10 +466,12 @@ List<(String, List<String>)> sourcePhrases(String payload) {
   if (phrases is! List) return const [];
   return [
     for (final phrase in phrases)
-      if (phrase is Map)
+      // Skipped exactly as the adapter skips them, so a malformed phrase
+      // cannot fail the report of a dance the adapter read.
+      if (phrase is Map && phrase['figures'] is List)
         (
           '${phrase['name'] ?? ''}',
-          [for (final line in phrase['figures'] as List? ?? const []) '$line'],
+          [for (final line in phrase['figures'] as List) '$line'],
         ),
   ];
 }
@@ -514,24 +565,26 @@ String summarizeFailures(
 
   final hinted = inScope.where((d) => d.placementHint?.isNotEmpty ?? false);
   final tried = inScope.where((d) => d.placementHint != null);
+  final assumed = inScope.where((d) => d.run.assumedProgressionAt != null);
   buffer
     ..writeln('## Progression placement')
     ..writeln()
     ..writeln(
-      '${hinted.length} of ${tried.length} in-scope failures with an assumed '
-      'progression compile when the flag is moved to another figure'
+      '${hinted.length} of ${tried.length} in-scope failures that parsed with '
+      'an assumed progression compile when the flag is moved to another figure'
       '${withCore ? ' (${hinted.where(isCore).length} core)' : ''}. '
-      'Diagnostic only: the scored run never tries other placements.',
+      '${assumed.length - tried.length} more assumed one but never parsed, so '
+      'were not tried. Diagnostic only: the scored run never tries other '
+      'placements. By the earliest figure that compiles:',
     )
     ..writeln();
   final byPlace = <String, int>{};
   for (final d in hinted) {
-    final hint = d.placementHint!;
-    final last = d.figures.length - 1;
-    final place = hint.contains(0)
-        ? 'first figure'
-        : hint.contains(last)
-        ? 'last figure'
+    final earliest = d.placementHint!.first;
+    final place = earliest == 0
+        ? 'the first figure'
+        : earliest == d.figures.length - 1
+        ? 'the last figure'
         : 'a middle figure';
     byPlace[place] = (byPlace[place] ?? 0) + 1;
   }
