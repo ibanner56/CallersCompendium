@@ -8915,14 +8915,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get danceEditorPhrasesHelp =>
-      'Benenne jeden Teil der Melodie mit A, B oder C, gib seine Takte an und wähle, ob er einmal oder zweimal gespielt wird. Eine zweimal gespielte Phrase heißt A1 und A2.';
+      'Benenne jeden Teil der Melodie mit A, B oder C, gib seine Takte und die Schläge pro Takt an und wähle, ob er einmal oder zweimal gespielt wird. Eine zweimal gespielte Phrase heißt A1 und A2.';
 
   @override
   String get danceEditorPhrasesAdd => 'Phrase hinzufügen';
 
   @override
   String danceEditorPhrasesInvalid(int max) {
-    return 'Gib jeder Phrase 1 bis $max Takte. Bis dahin behält der Tanz seine letzten gültigen Phrasen, und Speichern speichert diese.';
+    return 'Gib jeder Phrase 1 bis $max Takte und 1 bis $max Schläge pro Takt. Bis dahin behält der Tanz seine letzten gültigen Phrasen, und Speichern speichert diese.';
   }
 
   @override
@@ -8932,6 +8932,16 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String danceEditorPhraseBarsRange(int max) {
+    return '1 bis $max';
+  }
+
+  @override
+  String danceEditorPhraseBeatsPerBarLabel(String name) {
+    return 'Schläge pro Takt in $name';
+  }
+
+  @override
+  String danceEditorPhraseBeatsPerBarRange(int max) {
     return '1 bis $max';
   }
 
