@@ -4,7 +4,8 @@ import '../storage/calling_history_scope.dart' show CallingHistoryTracking;
 import '../sync/sync_record_kind.dart';
 import '../taxonomy/figure_param_domain.dart';
 import '../taxonomy/taxonomy.dart';
-import '../taxonomy/user_figure_use.dart' show userFigureRefKey;
+import '../taxonomy/user_figure_use.dart'
+    show userFigureReferenceKeys, userFigureRefKey;
 import 'builder_nodes.dart';
 import 'collection_panel_state.dart';
 import 'collection_search_state.dart';
@@ -102,6 +103,7 @@ class SavedSearchContext {
     this.userFigureIds = const {},
     this.customFieldDefs = const [],
     this.aliases = const {},
+    this.text = const SavedSearchTextCodec(),
   });
 
   /// The caller's calendar day, `DateTime.utc(y, m, d)` ([calendarDayAt]).
@@ -132,6 +134,12 @@ class SavedSearchContext {
   /// search that a peer edited with a merged-away id is read as the survivor.
   /// Built once per run; chains are followed here.
   final Map<SyncRecordKind, Map<String, String>> aliases;
+
+  /// How stored search text is shown: [savedSearchTextCodec] for the active
+  /// dialect. A host must pass it, so the filter is built from the text the
+  /// panel would hold and compiled the way the panel's is; left at the default,
+  /// the stored canonical text goes to the compiler as typed.
+  final SavedSearchTextCodec text;
 }
 
 /// Resolves [spec] to a [DanceFilter] against [context], or reports what it
@@ -142,7 +150,10 @@ ResolvedSavedSearch resolveSavedSearch(
 ) {
   final CollectionPanelState state;
   try {
-    state = spec.toPanelState(map: (kind, id) => _alias(context, kind, id));
+    state = spec.toPanelState(
+      map: (kind, id) => _alias(context, kind, id),
+      text: context.text,
+    );
   } on Object {
     return const UnresolvableSavedSearch([
       MissingReference(MissingReferenceKind.invalid, 'saved search'),
@@ -295,16 +306,20 @@ void _operand(
   }
 }
 
-/// A stored figure param is judged by the rule the panel uses: it must be in
-/// the param's **selectable** domain ([figureParamSelectableChoices]), so a
-/// stored `unspecified` is refused here as the Advanced panel refuses it.
+/// A stored figure param is judged by what the Advanced panel can show and
+/// clear: it must be a param the move declares (and an alias does not pin) with
+/// a closed domain, holding a value in the **selectable** domain
+/// ([figureParamSelectableChoices]). Anything else would narrow the search
+/// with no control to clear it: a stored `unspecified`, a param a newer
+/// taxonomy dropped, or a free-valued param the panel never renders. A move the
+/// taxonomy does not know cannot be judged and is built as written.
 void _figure(
   BuilderFigure fig,
   SavedSearchContext c,
   Set<MissingReference> out,
 ) {
   if (fig.isAnyFigure) return;
-  final moveId = fig.move;
+  final moveId = fig.move?.trim();
   final move = moveId == null ? null : c.taxonomy.resolve(moveId);
   final pinned =
       (moveId == null ? null : c.taxonomy.aliases[moveId]?.pinnedParams) ??
@@ -318,16 +333,20 @@ void _figure(
       }
       continue;
     }
-    final spec = move?.params[e.key];
-    if (spec == null || pinned.containsKey(e.key)) continue;
-    final domain = figureParamChoices(spec);
-    if (domain == null) continue;
-    if (value is! String ||
+    // The other keys of a use of a figure of your own are its arguments.
+    if (userFigureReferenceKeys.contains(e.key)) continue;
+    if (move == null) continue;
+    final spec = move.params[e.key];
+    final domain = spec == null || pinned.containsKey(e.key)
+        ? null
+        : figureParamChoices(spec);
+    if (domain == null ||
+        value is! String ||
         !figureParamSelectableChoices(domain).contains(value)) {
       out.add(
         MissingReference(
           MissingReferenceKind.figureParam,
-          '${move!.id}.${e.key}=$value',
+          '${move.id}.${e.key}=$value',
         ),
       );
     }

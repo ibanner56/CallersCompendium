@@ -51,14 +51,14 @@ class FixedSearchClock extends SearchClock {
 /// The largest whole number of months N whose window
 /// (`calendarMonthsBefore(today, N)`) does not start before [since], and at
 /// least 1: "since three weeks ago" is saved as 1 month, never as "today
-/// only", and a date in the future is also 1. (Decided by the maintainer, #2325:
-/// floor, minimum 1.)
+/// only", and a date in the future is also 1. (Floor rather than round, so the
+/// saved window is never wider than the date picked, except for that minimum.)
 int monthsBackFromDate(DateTime since, DateTime today) {
   final day = DateTime.utc(since.year, since.month, since.day);
   var months = (today.year - day.year) * 12 + today.month - day.month;
-  // The estimate is an upper bound: counting one month fewer than the calendar
-  // gap is always enough, because the window for that many months starts in
-  // the month before [since]'s.
+  // The month gap is an upper bound on N: a window of one month more starts
+  // in the month before [since]'s, so before it. At most one step back is
+  // needed, when the day of month is earlier than [since]'s.
   while (months > 1 && calendarMonthsBefore(today, months).isBefore(day)) {
     months--;
   }

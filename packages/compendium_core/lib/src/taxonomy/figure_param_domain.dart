@@ -64,8 +64,8 @@ bool paramAdmitsUnspecified(ParamSpec spec) =>
 /// must not start disagreeing about what a param can hold.
 ///
 /// **Do not collapse this into [figureParamChoices].** The two look like one
-/// function split for no reason — the facet calls them together and nothing
-/// else calls this one — but folding the filter into the domain function
+/// function split for no reason — the facet and the saved-search resolver call
+/// them together and little else calls this one — but folding the filter into the domain function
 /// silently reintroduces the exact defect PR #746 fixed: the facet would offer
 /// LESS than the declared domain while [ParamSpec.validate] kept accepting what
 /// it no longer offered, and the figure editor would lose the value it needs to

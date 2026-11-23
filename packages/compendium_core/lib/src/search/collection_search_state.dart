@@ -121,8 +121,9 @@ class FacetSelections {
   ///
   /// It resets to `true` whenever a second tag is added, so AND is the default
   /// each time the choice first matters; a third or later tag keeps whatever
-  /// the user chose. It is not saved: like every other facet selection it
-  /// lasts as long as the search it belongs to.
+  /// the user chose. The panel does not remember it: like every other facet
+  /// selection it lasts as long as the search it belongs to, unless a saved
+  /// search stores it (`SavedSearchSpec`).
   bool tagsMatchAll = true;
 
   /// Selects or deselects the tag [id]. Returns whether anything changed.
@@ -249,7 +250,9 @@ class FacetSelections {
   /// `true`, because [buildCollectionFilter] filters on `false` too.
   ///
   /// When adding a facet, add it to [isEmpty], [clear], [hasSelectionFor],
-  /// [clearFacets] and here.
+  /// [clearFacets], here, and to the saved-search codec (`_encodeFacets` and
+  /// `_readFacets` in `saved_search.dart`), or a saved search silently leaves it
+  /// out.
   int get activeCount =>
       forms.length +
       formations.length +

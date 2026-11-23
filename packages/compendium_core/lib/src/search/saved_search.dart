@@ -13,8 +13,7 @@ import 'search_sort.dart';
 
 /// The settings-key prefix of one saved search: `saved_search:<id>`. One
 /// settings value per saved search, so two devices that each add one offline
-/// keep both. Classified in the privacy registry (shareable, the user's own
-/// configuration).
+/// keep both. (Its privacy classification is added with the code that stores it.)
 const String savedSearchKeyPrefix = 'saved_search:';
 
 /// The format version this build writes and reads.
@@ -72,7 +71,7 @@ class SavedSearchTextCodec {
 ///
 /// It stores the panel state, **not** a compiled filter: a compiled filter
 /// would freeze the computed recency cutoff and the settings-derived calling
-/// history fields (decided by the maintainer, #2325). It stores a history
+/// history fields (#2325). It stores a history
 /// window as a *distance* in calendar months, never as a date.
 final class SavedSearchSpec {
   SavedSearchSpec._(this._json);
@@ -106,7 +105,7 @@ final class SavedSearchSpec {
     try {
       if (json is! Map) return const SavedSearchDecoded.bad('not an object');
       final frozen = _freeze(json) as Map<String, Object?>;
-      if (jsonEncode(frozen).length > savedSearchMaxBytes) {
+      if (utf8.encode(jsonEncode(frozen)).length > savedSearchMaxBytes) {
         return const SavedSearchDecoded.bad('too large');
       }
       // Reading is the validation: hydrating once proves every field.
@@ -163,6 +162,14 @@ final class SavedSearch {
     return SavedSearchDecoded.ok(SavedSearch(id: id, name: name, spec: value));
   }
 }
+
+/// Whether the compiler reads the search text through the active dialect for
+/// [scope]. **All fields** and **Figures** do (canonical form); **Title** and
+/// **Author** match only the typed word, so a dialect never changes what they
+/// find, and canonicalizing their text would only change which titles and
+/// names match.
+bool _readsDialect(FullTextScope scope) =>
+    scope == FullTextScope.omni || scope == FullTextScope.figure;
 
 // ---------------------------------------------------------------------------
 // Reading (also the validation).
@@ -267,13 +274,15 @@ CollectionPanelState _hydrate(
   final sort = m.containsKey('sort')
       ? _enum(m['sort'], CollectionSort.values, 'sort')
       : CollectionSort.title;
+  final scope = m.containsKey('scope')
+      ? _enum(m['scope'], FullTextScope.values, 'scope')
+      : FullTextScope.omni;
+  final stored = m.containsKey('text')
+      ? _str(m['text'], 'text', allowEmpty: true)
+      : '';
   final state = CollectionPanelState(
-    text: m.containsKey('text')
-        ? text.display(_str(m['text'], 'text', allowEmpty: true))
-        : '',
-    scope: m.containsKey('scope')
-        ? _enum(m['scope'], FullTextScope.values, 'scope')
-        : FullTextScope.omni,
+    text: _readsDialect(scope) ? text.display(stored) : stored,
+    scope: scope,
     sort: sort,
     sortDirection: m.containsKey('sortDirection')
         ? _enum(m['sortDirection'], SortDirection.values, 'sortDirection')
@@ -281,8 +290,8 @@ CollectionPanelState _hydrate(
   );
   if (m.containsKey('facets')) _readFacets(m['facets'], state.facets, map);
   if (m.containsKey('byPhrase')) _readByPhrase(m['byPhrase'], state.byPhrase);
-  final advanced = m['advanced'];
-  if (advanced != null) {
+  if (m.containsKey('advanced')) {
+    final advanced = m['advanced'];
     final budget = _Budget();
     final root = _readNode(advanced, 1, budget, map, 'advanced');
     if (root is! BuilderGroup) _bad('advanced', 'root is not a group');
@@ -399,8 +408,13 @@ void _readFacets(Object? v, FacetSelections f, SavedSearchIdMapper map) {
     for (final e in fields('choiceValues').entries) {
       final at = 'facets.choiceValues.${e.key}';
       final values = {for (final x in _list(e.value, at)) _str(x, at)};
-      f.choiceValues[map(SyncRecordKind.customFieldDef, _str(e.key, at))] =
-          values;
+      // Two ids read as one (a merged-away field) keep both fields' choices.
+      f.choiceValues
+          .putIfAbsent(
+            map(SyncRecordKind.customFieldDef, _str(e.key, at)),
+            () => <String>{},
+          )
+          .addAll(values);
     }
   }
   if (m.containsKey('booleanValues')) {
@@ -589,7 +603,7 @@ Map<String, Object?> _encode(
   DateTime today,
   SavedSearchTextCodec text,
 ) {
-  final canonical = text.canonicalize(s.text);
+  final canonical = _readsDialect(s.scope) ? text.canonicalize(s.text) : s.text;
   final facets = _encodeFacets(s.facets, today);
   final byPhrase = _encodeByPhrase(s.byPhrase);
   return {
@@ -603,6 +617,8 @@ Map<String, Object?> _encode(
     if (s.advanced.children.isNotEmpty) 'advanced': _encodeNode(s.advanced),
   };
 }
+
+List<String> _sortedKeys(Map<String, Object?> m) => m.keys.toList()..sort();
 
 List<String> _sortedNames(Iterable<Enum> values) =>
     [for (final e in values) e.name]..sort();
@@ -636,24 +652,30 @@ Map<String, Object?> _encodeFacets(FacetSelections f, DateTime today) {
     if (f.musicalKeys.isNotEmpty) 'musicalKeys': ids(f.musicalKeys),
     if (f.choiceValues.values.any((v) => v.isNotEmpty))
       'choiceValues': {
-        for (final e in f.choiceValues.entries)
-          if (e.value.isNotEmpty) e.key: ids(e.value),
+        for (final k in _sortedKeys(f.choiceValues))
+          if (f.choiceValues[k]!.isNotEmpty) k: ids(f.choiceValues[k]!),
       },
-    if (f.booleanValues.isNotEmpty) 'booleanValues': Map.of(f.booleanValues),
+    if (f.booleanValues.isNotEmpty)
+      'booleanValues': {
+        for (final k in _sortedKeys(f.booleanValues)) k: f.booleanValues[k],
+      },
     if (f.textValues.values.any((v) => v.isEffective))
       'textValues': {
-        for (final e in f.textValues.entries)
-          if (e.value.isEffective)
-            e.key: {'op': e.value.op.name, 'value': e.value.value},
+        for (final k in _sortedKeys(f.textValues))
+          if (f.textValues[k]!.isEffective)
+            k: {
+              'op': f.textValues[k]!.op.name,
+              'value': f.textValues[k]!.value,
+            },
       },
     if (f.numberValues.values.any((v) => v.isEffective))
       'numberValues': {
-        for (final e in f.numberValues.entries)
-          if (e.value.isEffective)
-            e.key: {
-              'op': e.value.op.name,
-              'lo': e.value.lo,
-              if (e.value.hi != null) 'hi': e.value.hi,
+        for (final k in _sortedKeys(f.numberValues))
+          if (f.numberValues[k]!.isEffective)
+            k: {
+              'op': f.numberValues[k]!.op.name,
+              'lo': f.numberValues[k]!.lo,
+              'hi': ?f.numberValues[k]!.hi,
             },
       },
   };
@@ -661,8 +683,8 @@ Map<String, Object?> _encodeFacets(FacetSelections f, DateTime today) {
 
 Map<String, Object?> _encodeByPhrase(ByPhraseSelections b) {
   Map<String, Object?> side(Map<String, List<String>> m) => {
-    for (final e in m.entries)
-      if (e.value.isNotEmpty) e.key: List<String>.of(e.value),
+    for (final k in _sortedKeys(m))
+      if (m[k]!.isNotEmpty) k: List<String>.of(m[k]!),
   };
   final match = side(b.match);
   final exclude = side(b.exclude);

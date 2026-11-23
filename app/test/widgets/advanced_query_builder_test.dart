@@ -729,7 +729,7 @@ void main() {
 // ---------------------------------------------------------------------------
 // The "has figure" param dropdowns: domain, and how it is presented
 //
-// `figureParamChoices` (app/lib/src/search/facet_labels.dart) is the third
+// `figureParamChoices` (compendium_core, `figure_param_domain.dart`) is the third
 // consumer of the `ParamSpec.kind` + `ParamSpec.choices` contract, after the
 // figure param editor and `ParamSpec.validate` (both taught the same rule by
 // issue #726 / PR #736). It hardcoded the vocabulary for five kinds, so a spec

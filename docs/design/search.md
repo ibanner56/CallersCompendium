@@ -957,8 +957,9 @@ immutable JSON value:
   "advanced": { "t": "group", "kind": "all", "children": [ { "t": "tag", "tagId": "…" }, … ] } }
 ```
 
-- Enums are stored by `name`; id sets are sorted, so the bytes depend only on
-  the search. Builder row ids are session counters and are **never stored**;
+- Enums are stored by `name`; id sets and the keys of every id-keyed map are
+  sorted, so the bytes depend only on the search. (`historyVenueLabel`, the chip
+  text, is display-only and not stored: it is looked up again on load.) Builder row ids are session counters and are **never stored**;
   they are minted again on load.
 - `tagsMatchAll` and the sort **direction** are stored, though the panel does not
   persist them on its own: leaving them out would change which dances a saved
@@ -972,7 +973,7 @@ filter's window as `historyMonths` or `historySince`; the spec stores
 `historyMonths` only. A chosen date is saved as the whole number of calendar
 months between it and the day of saving: the largest N whose window
 (`calendarMonthsBefore(today, N)`) does not start before the date, **at least
-1** (maintainer decision), so "since three weeks ago" saves as 1 month and a
+1**, so "since three weeks ago" saves as 1 month and a
 date in the future also as 1. The cutoff is recomputed from N every time the
 search runs. A saved N that is not a preset (1, 3, 6) is a valid window, and a panel that
 loads one must show it, since no preset chip is selected for it.
@@ -985,7 +986,7 @@ a window counted from the UTC day would start a day early.
 **Reading is strict and never throws.** `SavedSearchSpec.decode` returns the
 spec or why it is unreadable. An unknown version, key, type or enum name, a row
 nested deeper than 8, more than 200 rows, a string over 500 characters or a
-value over 64 KiB (all far under the sync server's own limits) is *unreadable*:
+value over 64 KiB of UTF-8 (all far under the sync server's own limits) is *unreadable*:
 it is listed as needing attention and never partly applied. A value from a newer
 build (`v` above this build's) is unreadable for the same reason.
 
@@ -1000,7 +1001,14 @@ typed in and shown in the active dialect (`savedSearchTextCodec`, the same
 chain" means the same dances after a switch to a dialect with other role words.
 Figure criteria are already canonical move ids. Loading shows
 `renderFreeText(stored)`, which capitalizes the first letter; a search ignores
-case.
+case. Only the scopes whose compiler reads the dialect are canonicalized:
+**All fields** and **Figures**. **Title** and **Author** match the typed word
+alone, a dialect never changes what they find, and their text is stored as
+typed (canonicalizing "ladies chain" to `role2s chain` would stop it matching a
+title that says "Ladies Chain"). Under **All fields** the typed form also
+matches the verbatim columns (titles, authors, notes), and a reload shows the
+dialect's word for a role, so that part of the match follows the word shown
+rather than the one first typed.
 
 ### The resolver
 
@@ -1018,9 +1026,11 @@ that is missing. **A missing reference is never dropped:** dropping a leaf
 broadens an AND, narrows an OR and, under **None of**, inverts. Reported are a
 deleted tag, author, source, level, venue record or custom field; a custom field
 whose type changed (it would refuse to build) or whose choice was removed; a
-figure of your own that was deleted; and a figure parameter outside its
-**selectable** domain (`figureParamSelectableChoices`, so a stored `unspecified`
-is refused as the Advanced panel refuses it). A typed venue (`text:` key) names
+figure of your own that was deleted; and a figure parameter the
+Advanced panel could not show and clear: one the move does not declare (or an
+alias pins), one without a closed domain, or one outside the **selectable**
+domain (`figureParamSelectableChoices`, so a stored `unspecified` is refused as
+the panel refuses it). A typed venue (`text:` key) names
 no record and is never missing. Ids are read through the aliases first
 (`id_aliases`, losing id to surviving id, chains followed, a cycle left as it was
 and reported), so a saved search that a peer edited with a merged-away id reads

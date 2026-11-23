@@ -892,15 +892,385 @@ void main() {
         expect(canonicalizeText(shown, Dialect.leadsFollows), 'role1s chain');
       },
     );
+  });
 
-    test('without canonicalizing, a saved "robins" changes meaning', () {
-      // The naive version (store as typed) is what the codec exists to avoid:
-      // read under another dialect, the stored word means something else.
-      expect(canonicalizeText('robins chain', swapped), 'role1s chain');
-      expect(
-        canonicalizeText('robins chain', Dialect.canonical),
-        isNot('role1s chain'),
+  group('what the compiler sees: the resolved search is the panel\'s search', () {
+    final dialect = Dialect.larksRobins;
+    final renderer = FigureRenderer(contraTaxonomy);
+    final codec = savedSearchTextCodec(
+      saveDialect: dialect,
+      showDialect: dialect,
+      enrichment: SearchEnrichment.empty,
+      renderer: renderer,
+    );
+    final compiler = FilterCompiler(
+      dialect,
+      SearchEnrichment.empty,
+      contraTaxonomy,
+    );
+
+    List<Object?> binds(DanceFilter f) => compiler.compile(f).binds;
+
+    DanceFilter resolved(CollectionPanelState panel) {
+      final spec = SavedSearchSpec.fromPanelState(
+        panel,
+        today: today,
+        text: codec,
+      ).value!;
+      final r = resolveSavedSearch(
+        spec,
+        SavedSearchContext(today: today, taxonomy: contraTaxonomy, text: codec),
       );
+      return (r as ResolvedFilter).filter;
+    }
+
+    for (final scope in [FullTextScope.title, FullTextScope.author]) {
+      test('${scope.name} text is stored as typed and compiles as typed', () {
+        final panel = CollectionPanelState(text: 'ladies chain', scope: scope);
+        final spec = SavedSearchSpec.fromPanelState(
+          panel,
+          today: today,
+          text: codec,
+        ).value!;
+        // A title that says "Ladies Chain" must still match.
+        expect(spec.toJson()['text'], 'ladies chain');
+        expect(binds(resolved(panel)), binds(filterOf(panel)));
+      });
+    }
+
+    test('Figures text is stored canonical and compiles the same', () {
+      final panel = CollectionPanelState(
+        text: 'ladies chain',
+        scope: FullTextScope.figure,
+      );
+      final spec = SavedSearchSpec.fromPanelState(
+        panel,
+        today: today,
+        text: codec,
+      ).value!;
+      expect(spec.toJson()['text'], 'role2s chain');
+      expect(binds(resolved(panel)), binds(filterOf(panel)));
+    });
+
+    test(
+      'All fields: the resolved search is what the reloaded panel searches',
+      () {
+        final panel = CollectionPanelState(text: 'ladies chain');
+        final spec = SavedSearchSpec.fromPanelState(
+          panel,
+          today: today,
+          text: codec,
+        ).value!;
+        final reloaded = spec.toPanelState(text: codec);
+        // Not the text first typed ("ladies"), but the word the dialect shows for
+        // the role, which is what the panel holds after loading.
+        expect(reloaded.text.toLowerCase(), 'robins chain');
+        expect(binds(resolved(panel)), binds(filterOf(reloaded)));
+      },
+    );
+
+    test('All fields text is stored canonical', () {
+      final panel = CollectionPanelState(text: 'ladies chain');
+      final spec = SavedSearchSpec.fromPanelState(
+        panel,
+        today: today,
+        text: codec,
+      ).value!;
+      expect(spec.toJson()['text'], 'role2s chain');
+    });
+  });
+
+  group('more of the format', () {
+    test('false flags are stored (the filter acts on false too)', () {
+      final s = CollectionPanelState();
+      s.facets.mixedLevel = false;
+      s.facets.mixer = false;
+      final back = SavedSearchSpec.decode(
+        viaJson(specOf(s).toJson()),
+      ).value!.toPanelState();
+      expect(back.facets.mixedLevel, isFalse);
+      expect(back.facets.mixer, isFalse);
+      expect(describeFilter(filterOf(back)), describeFilter(filterOf(s)));
+    });
+
+    test('every custom field operator round-trips', () {
+      final s = CollectionPanelState();
+      s.facets.textValues['note'] = const TextFacetState(
+        op: CustomFieldOp.equals,
+        value: 'x',
+      );
+      for (final op in [CustomFieldOp.eq, CustomFieldOp.lt, CustomFieldOp.gt]) {
+        s.facets.numberValues['num'] = NumberFacetState(op: op, lo: 2.5);
+        final back = SavedSearchSpec.decode(
+          viaJson(specOf(s).toJson()),
+        ).value!.toPanelState();
+        expect(back.facets.numberValues['num']!.op, op);
+        expect(back.facets.numberValues['num']!.lo, 2.5);
+        expect(back.facets.textValues['note']!.op, CustomFieldOp.equals);
+      }
+    });
+
+    test('bytes do not depend on the order maps were filled', () {
+      CollectionPanelState build(List<String> keys) {
+        final s = CollectionPanelState();
+        for (final k in keys) {
+          s.facets.booleanValues[k] = true;
+          s.facets.choiceValues[k] = {'b', 'a'};
+          s.facets.textValues[k] = const TextFacetState(
+            op: CustomFieldOp.contains,
+            value: 'v',
+          );
+          s.facets.numberValues[k] = const NumberFacetState(
+            op: CustomFieldOp.eq,
+            lo: 1,
+          );
+          s.byPhrase.match[k] = ['swing'];
+          s.byPhrase.exclude[k] = ['star'];
+        }
+        return s;
+      }
+
+      expect(
+        jsonEncode(specOf(build(['x', 'y', 'z'])).toJson()),
+        jsonEncode(specOf(build(['z', 'x', 'y'])).toJson()),
+      );
+    });
+
+    test('exactly 200 rows are readable, 201 are not', () {
+      Map<String, Object?> rows(int n) => {
+        'v': 1,
+        'advanced': {
+          't': 'group',
+          'kind': 'all',
+          // The root is one row.
+          'children': [
+            for (var i = 0; i < n - 1; i++) {'t': 'tag', 'tagId': 'a$i'},
+          ],
+        },
+      };
+      expect(SavedSearchSpec.decode(rows(200)).isOk, isTrue);
+      expect(SavedSearchSpec.decode(rows(201)).isOk, isFalse);
+    });
+
+    test('the size limit counts bytes, not characters', () {
+      // 28,000 characters but 84,000 bytes of UTF-8.
+      final json = {
+        'v': 1,
+        'facets': {'tunes': List.filled(200, '€' * 140)},
+      };
+      expect(SavedSearchSpec.decode(json).isOk, isFalse);
+    });
+
+    test('"advanced": null is unreadable, like every other null', () {
+      expect(SavedSearchSpec.decode({'v': 1, 'advanced': null}).isOk, isFalse);
+    });
+
+    test('two field ids read as one keep both fields\' choices', () {
+      final spec = SavedSearchSpec.decode({
+        'v': 1,
+        'facets': {
+          'choiceValues': {
+            'L': ['easy'],
+            'S': ['hard'],
+          },
+        },
+      }).value!;
+      final state = spec.toPanelState(
+        map: (kind, id) =>
+            kind == SyncRecordKind.customFieldDef && id == 'L' ? 'S' : id,
+      );
+      expect(state.facets.choiceValues, {
+        'S': {'easy', 'hard'},
+      });
+    });
+
+    test('random damage inside a valid search never throws', () {
+      final random = Random(2326);
+      Object? damage() => [
+        null,
+        -1,
+        3.5,
+        true,
+        '',
+        'x' * 600,
+        <Object?>[],
+        <String, Object?>{},
+        'nope',
+      ][random.nextInt(9)];
+
+      // Replaces one random value, anywhere in the tree, with damage.
+      Object? hit(Object? node, int budget) {
+        if (node is Map &&
+            node.isNotEmpty &&
+            budget > 0 &&
+            random.nextInt(3) > 0) {
+          final keys = node.keys.toList();
+          final k = keys[random.nextInt(keys.length)];
+          return {...node, k: hit(node[k], budget - 1)};
+        }
+        if (node is List &&
+            node.isNotEmpty &&
+            budget > 0 &&
+            random.nextInt(3) > 0) {
+          final copy = List<Object?>.of(node);
+          final i = random.nextInt(copy.length);
+          copy[i] = hit(copy[i], budget - 1);
+          return copy;
+        }
+        return damage();
+      }
+
+      final base = viaJson(specOf(rich()).toJson());
+      var reachedInnerReader = 0;
+      for (var i = 0; i < 4000; i++) {
+        final value = hit(base, 6);
+        late SavedSearchDecoded<SavedSearchSpec> r;
+        expect(() => r = SavedSearchSpec.decode(value), returnsNormally);
+        // The damage landed inside the object, past the key and version checks.
+        if (!r.isOk && !r.problem!.startsWith('saved search')) {
+          reachedInnerReader++;
+        }
+        if (r.isOk) {
+          // Whatever still reads must also resolve without throwing.
+          expect(
+            () => resolveSavedSearch(r.value!, context()),
+            returnsNormally,
+          );
+        }
+      }
+      expect(reachedInnerReader, greaterThan(1000));
+    });
+  });
+
+  group('more references', () {
+    SavedSearchContext ctx({
+      Set<String> userFigures = const {'uf1'},
+      List<CustomFieldDef>? fields,
+      Map<SyncRecordKind, Map<String, String>> aliases = const {},
+    }) => SavedSearchContext(
+      today: today,
+      taxonomy: contraTaxonomy,
+      tagIds: const {'t1'},
+      authorIds: const {'a1'},
+      sourceIds: const {'s1'},
+      levelIds: const {'l1'},
+      venueIds: const {'v1'},
+      userFigureIds: userFigures,
+      customFieldDefs: fields ?? defs,
+      aliases: aliases,
+    );
+
+    Set<String> names(ResolvedSavedSearch r) => {
+      for (final m in (r as UnresolvableSavedSearch).missing)
+        '${m.kind.name}:${m.id}',
+    };
+
+    test('a figure of your own inside a "then" operand group', () {
+      final s = CollectionPanelState();
+      s.advanced.children.add(
+        BuilderThen(
+          before: BuilderFigure(move: 'swing'),
+          after: BuilderFigureGroup(
+            kind: GroupKind.none,
+            children: [
+              BuilderFigure(
+                move: 'customMove',
+                params: {userFigureRefKey: 'gone'},
+              ),
+            ],
+          ),
+        ),
+      );
+      expect(names(resolveSavedSearch(specOf(s), ctx())), {'userFigure:gone'});
+      expect(
+        resolveSavedSearch(specOf(s), ctx(userFigures: const {'gone'})),
+        isA<ResolvedFilter>(),
+      );
+    });
+
+    test('a param the move does not declare, or that has no closed domain', () {
+      final s = CollectionPanelState();
+      s.advanced.children
+        ..add(BuilderFigure(move: 'allemande', params: {'nonsense': 'x'}))
+        ..add(BuilderFigure(move: 'swing', params: {'beats': '8'}));
+      expect(names(resolveSavedSearch(specOf(s), ctx())), {
+        'figureParam:allemande.nonsense=x',
+        'figureParam:swing.beats=8',
+      });
+    });
+
+    test(
+      'a move written with stray spaces is judged as the filter reads it',
+      () {
+        final s = CollectionPanelState();
+        s.advanced.children.add(
+          BuilderFigure(move: ' allemande ', params: {'hand': 'sideways'}),
+        );
+        expect(names(resolveSavedSearch(specOf(s), ctx())), {
+          'figureParam:allemande.hand=sideways',
+        });
+      },
+    );
+
+    test('a text and a number field that are gone', () {
+      final s = CollectionPanelState();
+      s.facets
+        ..textValues['gone-t'] = const TextFacetState(
+          op: CustomFieldOp.contains,
+          value: 'x',
+        )
+        ..numberValues['gone-n'] = const NumberFacetState(
+          op: CustomFieldOp.eq,
+          lo: 1,
+        );
+      expect(names(resolveSavedSearch(specOf(s), ctx())), {
+        'customField:gone-t',
+        'customField:gone-n',
+      });
+    });
+
+    test('every kind of reference is read through its own aliases', () {
+      final s = CollectionPanelState();
+      s.facets
+        ..authorIds.add('A-old')
+        ..sourceIds.add('S-old')
+        ..levels.add('L-old')
+        ..callStatuses.add(false)
+        ..setHistoryVenue(VenueKey.record('V-old'))
+        ..booleanValues['F-old'] = true;
+      final r = resolveSavedSearch(
+        specOf(s),
+        ctx(
+          aliases: {
+            SyncRecordKind.choreographer: {'A-old': 'a1'},
+            SyncRecordKind.publishedSource: {'S-old': 's1'},
+            SyncRecordKind.difficultyLevel: {'L-old': 'l1'},
+            SyncRecordKind.venue: {'V-old': 'v1'},
+            SyncRecordKind.customFieldDef: {'F-old': 'teach'},
+          },
+        ),
+      );
+      expect(r, isA<ResolvedFilter>());
+      final f = (r as ResolvedFilter).state.facets;
+      expect(f.authorIds, {'a1'});
+      expect(f.sourceIds, {'s1'});
+      expect(f.levels, {'l1'});
+      expect(f.historyVenue, VenueKey.record('v1'));
+      expect(f.booleanValues.keys, ['teach']);
+    });
+
+    test('an alias of one kind is not applied to another', () {
+      final s = CollectionPanelState();
+      s.facets.authorIds.add('X');
+      final r = resolveSavedSearch(
+        specOf(s),
+        ctx(
+          aliases: {
+            SyncRecordKind.tag: {'X': 'a1'},
+          },
+        ),
+      );
+      expect(names(r), {'author:X'});
     });
   });
 }
