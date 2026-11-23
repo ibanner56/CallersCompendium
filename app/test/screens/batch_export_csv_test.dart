@@ -1,8 +1,5 @@
 import 'package:compendium_app/src/data/backup_document.dart'
-    show
-        defaultBackupCodecRunner,
-        runBackupCodecInline,
-        runBackupCodecOnIsolate;
+    show defaultBackupCodecRunner, runBackupCodecOnIsolate;
 import 'package:compendium_app/src/export/csv_export.dart';
 import 'package:compendium_app/src/export/share_file.dart';
 import 'package:compendium_core/compendium_core.dart';
