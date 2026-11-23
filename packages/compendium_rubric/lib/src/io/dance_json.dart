@@ -250,6 +250,7 @@ int _statedPlaces(_Params p, String move, int fallback) {
 /// That is reported rather than skipped: silently dropping a figure would
 /// change the dance and then cheerfully compare it against the oracle.
 const Map<String, _FigureBuilder> _registry = {
+  'arch_and_dive': _buildArchAndDive,
   'allemande': _buildAllemande,
   'balance': _buildBalance,
   'balance_the_ring': _buildBalanceTheRing,
@@ -259,6 +260,7 @@ const Map<String, _FigureBuilder> _registry = {
   'california_twirl': _buildCaliforniaTwirl,
   'chain': _buildChain,
   'circle': _buildCircle,
+  'contra_corners': _buildContraCorners,
   'courtesy_turn': _buildCourtesyTurn,
   'cross_trails': _buildCrossTrails,
   'do_si_do': _buildDoSiDo,
@@ -484,6 +486,15 @@ Operation _buildStarPromenade(_Params p) => StarPromenade(
 
 // Taxonomy v20: both default to `unspecified`, which this parser reads as
 // absent, so an unstated pair or sense is carried as null.
+// Taxonomy default `twos` (the arch couple).
+Operation _buildArchAndDive(_Params p) =>
+    ArchAndDive(who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.twos));
+
+Operation _buildContraCorners(_Params p) => ContraCorners(
+  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.ones),
+  custom: p.optionalString(['custom']) ?? '',
+);
+
 Operation _buildButterflyWhirl(_Params p) => ButterflyWhirl(
   who: p.optionalEnum(['who'], WhoSet.fromKey),
   direction: p.optionalEnum(['direction'], SpinDirection.fromKey),

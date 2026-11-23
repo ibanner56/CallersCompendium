@@ -165,22 +165,20 @@ void main() {
     test('names an unbuilt figure instead of skipping it', () {
       // Silently dropping a figure would change the dance and then compare the
       // result against the oracle anyway, reporting a confident wrong answer.
-      // `contra_corners` is a genuinely held figure (`docs/taxonomy.md`, Held
-      // table): the prior verifier's implementation is a no-op and the
-      // Compendium models it as a free-text container, so it has no single
-      // fixed permutation to build.
+      // `dolphin_hey` is a genuinely held figure (`docs/taxonomy.md`, Held
+      // table): it needs a rule for a pair weaving as one place in the line.
       final error = _parseErr('''
 {
   "title": "T",
   "form": "contra",
   "formation": { "shape": "dupleImproper", "detail": "improper" },
   "progression": "single",
-  "figures": [ { "move": "contra_corners", "params": { "who": "neighbors" } } ]
+  "figures": [ { "move": "dolphin_hey", "params": {} } ]
 }
 ''');
 
       expect(error.path, 'figures[0].move');
-      expect(error.message, contains('contra_corners'));
+      expect(error.message, contains('dolphin_hey'));
     });
 
     test('Poetry in Motion parses now that its figures are built', () {
