@@ -74,6 +74,12 @@
 > denominator grew from 4,970 to 5,104), and the core set from 435 to 458, with
 > no previously compiling dance lost. All 120 new passes are duple improper or
 > Becket; 17 dances that refused now mismatch.
+>
+> **Hall round trips (2026-11-23)** follow Hudson's ruling that a lead out
+> immediately followed by a lead back moves nobody else. Against `rubric` at
+> `29402576` they took the count from 3,245 to 3,253 compiled in scope (the
+> denominator grew from 5,102 to 5,111), with the core set unchanged at 459
+> and no previously compiling dance lost or changed.
 
 The compiler implements 53 canonical figures. Twenty-eight have no deliberately
 deferred parameter values, 25 have an implemented core with explicit
@@ -223,6 +229,10 @@ from this table because the compiler never ran against them. **Pass rate** is
   one. They take `moving:center` or `outsides`, `facing:forward`, and the
   `none` or `turnAlone` enders; leads by `partners`, ending `turnCouple`, and
   the rest stay deferred.
+- A lead out immediately followed by the same leaders' lead back is a round
+  trip (user-ruled 2026-11-23): nobody else moves, and the leaders end where
+  they started, or in their partner's place after a `turnCouple`. Role-set
+  leaders cannot trade, so their `turnCouple` stays deferred.
 - The `cozy`, `cloverleaf`, `threadNeedle`, and `rightHandHigh` enders remain
   deferred.
 

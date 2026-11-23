@@ -99,7 +99,48 @@ sealed class HallFigure extends Operation {
     required this.moving,
     required this.facing,
     required this.ender,
+    this.returnLeg,
+    this.isReturnLeg = false,
   });
+
+  /// The lead back that immediately follows this lead out, when the two are
+  /// danced as one round trip (see [pairedWith]). `null` otherwise.
+  final HallFigure? returnLeg;
+
+  /// Whether this is the lead back of a round trip, whose movement the lead
+  /// out already danced (see [pairedWith]).
+  final bool isReturnLeg;
+
+  /// This figure with [back] as its lead back.
+  HallFigure _withLegs({HallFigure? returnLeg, bool isReturnLeg = false});
+
+  /// Whether [out] and [back] are a lead out immediately followed by a lead
+  /// back: the same leaders, led by part of the set, travelling opposite ways.
+  static bool areRoundTrip(Operation out, Operation back) =>
+      out is HallFigure &&
+      back is HallFigure &&
+      out._ledByPart &&
+      back._ledByPart &&
+      out.returnLeg == null &&
+      !out.isReturnLeg &&
+      back.returnLeg == null &&
+      !back.isReturnLeg &&
+      out.who == back.who &&
+      out.travel != back.travel;
+
+  /// The lead out of a round trip whose lead back is [back].
+  ///
+  /// **User-ruled (2026-11-23):** a lead down immediately followed by a lead
+  /// back up (or the reverse) does not move the other dancers. They stay in
+  /// place, and the leaders return to where they started, or to their
+  /// partner's place if the leaders traded on the way. The lead out dances the
+  /// whole round trip; the lead back ([asReturnLeg]) then moves nobody. Both
+  /// keep their own line in the dance, so diagnostics still point at the
+  /// figure the record names.
+  HallFigure pairedWith(HallFigure back) => _withLegs(returnLeg: back);
+
+  /// This figure as the lead back of a round trip (see [pairedWith]).
+  HallFigure get asReturnLeg => _withLegs(isReturnLeg: true);
 
   /// Which dancers travel: the whole hands four, or leaders named by
   /// membership (see [_leadPlan]).
@@ -241,8 +282,152 @@ sealed class HallFigure extends Operation {
         );
       });
 
+  /// Whether a round trip trades the leaders: each `turnCouple` ender wheels
+  /// the couple, so an odd number of them leaves each leader on the side their
+  /// partner started on.
+  bool _roundTripTrades(HallFigure back) =>
+      [ender, back.ender].where((e) => e == HallEnder.turnCouple).length.isOdd;
+
+  /// The leaders of a round trip, checked against what the ruling covers.
+  ///
+  /// Refused as deferred ([ErrorKind.unsupportedParam]) rather than guessed,
+  /// each the agent's call: leaders not named by membership; `moving: all`;
+  /// `facing` other than `forward`; an ender other than `none`, `turnAlone`
+  /// or `turnCouple`; a trade led by a role set, which names no couple to
+  /// trade. A trade whose leader has no leading partner in its hands four is
+  /// [ErrorKind.unresolvableDancerSet].
+  Result<List<DancerId>, OpError> _roundTripLeaders(
+    Formation formation,
+    HallFigure back,
+  ) {
+    final label = '$name then ${back.name} who:${who.key}';
+    if (!_passerMemberships.contains(who)) {
+      return Err(
+        OpError(
+          ErrorKind.unsupportedParam,
+          '$label is deferred: only leaders named by membership (ones, twos, '
+          'role1s, role2s) are built',
+        ),
+      );
+    }
+    for (final leg in [this, back]) {
+      if (leg.moving == HallMoving.all) {
+        return Err(
+          OpError(
+            ErrorKind.unsupportedParam,
+            '$label: ${leg.name} moving:all is deferred: part of the set '
+            'leads, so it travels down the center or the outsides',
+          ),
+        );
+      }
+      if (leg.facing != HallFacing.forward) {
+        return Err(
+          OpError(
+            ErrorKind.unsupportedParam,
+            '$label: ${leg.name} facing:${leg.facing.key} is deferred',
+          ),
+        );
+      }
+      if (leg.ender != HallEnder.none &&
+          leg.ender != HallEnder.turnAlone &&
+          leg.ender != HallEnder.turnCouple) {
+        return Err(
+          OpError(
+            ErrorKind.unsupportedParam,
+            '$label: ${leg.name} ender:${leg.ender.key} is deferred',
+          ),
+        );
+      }
+    }
+    final trades = _roundTripTrades(back);
+    if (trades && who != WhoSet.ones && who != WhoSet.twos) {
+      return Err(
+        OpError(
+          ErrorKind.unsupportedParam,
+          '$label trades the leaders with a turnCouple, but ${who.key} names '
+          'no couple to trade; deferred',
+        ),
+      );
+    }
+    final leaders = <DancerId>[];
+    for (final band in handsFourBands(formation)) {
+      final inBand = [
+        ...formation.dancersInRow(band.topRow),
+        ...formation.dancersInRow(band.bottomRow),
+      ];
+      final bandLeaders = [
+        for (final id in inBand)
+          if (whoIncludes(formation, id, who)) id,
+      ];
+      if (trades) {
+        for (final id in bandLeaders) {
+          final partner = bandLeaders.where(
+            (other) => other != id && other.coupleIndex == id.coupleIndex,
+          );
+          if (partner.length != 1) {
+            return Err(
+              OpError(
+                ErrorKind.unresolvableDancerSet,
+                '$label trades the leaders with a turnCouple, but $id has no '
+                'leading partner in the hands four at rows '
+                '${band.topRow}-${band.bottomRow}',
+              ),
+            );
+          }
+        }
+      }
+      leaders.addAll(bandLeaders);
+    }
+    if (leaders.isEmpty) {
+      return Err(
+        OpError(
+          ErrorKind.unresolvableDancerSet,
+          '$label: no ${who.key} stands in an active hands four',
+        ),
+      );
+    }
+    return Ok(leaders);
+  }
+
+  /// Dances a lead out and its lead [back] as one round trip: nobody else
+  /// moves, and the leaders end where they started, or traded with their
+  /// partner (see [pairedWith]).
+  ///
+  /// Leaders finish facing the way the lead back travelled, reversed when it
+  /// ended with a turn *(agent's call: the facing is the lead back's own)*.
+  Result<Formation, OpError> _performRoundTrip(
+    Formation formation,
+    HallFigure back,
+  ) => _roundTripLeaders(formation, back).map((leaders) {
+    final turned =
+        back.ender == HallEnder.turnAlone || back.ender == HallEnder.turnCouple;
+    final facing = turned ? back.travel.reversed : back.travel;
+    final trades = _roundTripTrades(back);
+    final changes = <DancerId, DancerState>{};
+    for (final id in leaders) {
+      var position = formation.stateOf(id).position;
+      if (trades) {
+        final partner = leaders.firstWhere(
+          (other) => other != id && other.coupleIndex == id.coupleIndex,
+        );
+        position = formation.stateOf(partner).position;
+      }
+      changes[id] = formation
+          .stateOf(id)
+          .copyWith(position: position, facing: facing);
+    }
+    return formation.withUpdates(changes);
+  });
+
   @override
   OpError? checkPreconditions(Formation formation) {
+    if (isReturnLeg) return null;
+    if (returnLeg case final back?) {
+      return switch (_roundTripLeaders(formation, back)) {
+        Ok() => null,
+        Err(:final error) => error,
+      };
+    }
     if (_ledByPart) {
       return switch (_leadPlan(formation)) {
         Ok() => null,
@@ -372,7 +557,7 @@ sealed class HallFigure extends Operation {
   @override
   Iterable<Warning> lint(Formation formation) {
     // A partial lead forms no line of four and gathers nobody.
-    if (_ledByPart) return const [];
+    if (_ledByPart || isReturnLeg) return const [];
     for (final band in handsFourBands(formation)) {
       final row = lineOfFourRow(formation, band);
       if (row == null) continue;
@@ -394,6 +579,8 @@ sealed class HallFigure extends Operation {
 
   @override
   Result<Formation, OpError> perform(Formation formation) {
+    if (isReturnLeg) return Ok(formation);
+    if (returnLeg case final back?) return _performRoundTrip(formation, back);
     if (_ledByPart) return _performLead(formation);
 
     // Phase 1 - gather. `swing where:sides` verbatim. It is self-limiting: a
@@ -447,15 +634,23 @@ sealed class HallFigure extends Operation {
       other.who == who &&
       other.moving == moving &&
       other.facing == facing &&
-      other.ender == ender;
+      other.ender == ender &&
+      other.returnLeg == returnLeg &&
+      other.isReturnLeg == isReturnLeg;
 
   @override
-  int get hashCode => Object.hash(name, who, moving, facing, ender);
+  int get hashCode =>
+      Object.hash(name, who, moving, facing, ender, returnLeg, isReturnLeg);
 
   @override
-  String toString() => _ledByPart
-      ? '$name(${who.key}, ${moving.key}, ${facing.key}, ender: ${ender.key})'
-      : '$name(${facing.key}, ender: ${ender.key})';
+  String toString() {
+    final base = _ledByPart
+        ? '$name(${who.key}, ${moving.key}, ${facing.key}, ender: ${ender.key})'
+        : '$name(${facing.key}, ender: ${ender.key})';
+    if (isReturnLeg) return '$base [lead back]';
+    if (returnLeg != null) return '$base [round trip]';
+    return base;
+  }
 }
 
 /// `down_the_hall` — the line travels **down** the hall.
@@ -465,7 +660,20 @@ final class DownTheHall extends HallFigure {
     super.moving = HallMoving.all,
     super.facing = HallFacing.forward,
     super.ender = HallEnder.turnCouple,
+    super.returnLeg,
+    super.isReturnLeg,
   });
+
+  @override
+  DownTheHall _withLegs({HallFigure? returnLeg, bool isReturnLeg = false}) =>
+      DownTheHall(
+        who: who,
+        moving: moving,
+        facing: facing,
+        ender: ender,
+        returnLeg: returnLeg,
+        isReturnLeg: isReturnLeg,
+      );
 
   @override
   String get name => 'down_the_hall';
@@ -484,7 +692,20 @@ final class UpTheHall extends HallFigure {
     super.moving = HallMoving.all,
     super.facing = HallFacing.forward,
     super.ender = HallEnder.circle,
+    super.returnLeg,
+    super.isReturnLeg,
   });
+
+  @override
+  UpTheHall _withLegs({HallFigure? returnLeg, bool isReturnLeg = false}) =>
+      UpTheHall(
+        who: who,
+        moving: moving,
+        facing: facing,
+        ender: ender,
+        returnLeg: returnLeg,
+        isReturnLeg: isReturnLeg,
+      );
 
   @override
   String get name => 'up_the_hall';

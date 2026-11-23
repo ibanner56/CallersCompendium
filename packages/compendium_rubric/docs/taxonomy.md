@@ -2492,11 +2492,30 @@ To be defined later with worked examples.
   - **diagnostics:** the `oneSidedHall` lint pairs a partial lead like any other hall figure, so
     a lead down returned by a `cast` up still warns, and a partial lead can pair with a
     whole-hands-four figure. Not revisited *(agent's call: the lint's rule is unchanged)*.
+  - **A round trip** *(user-ruled 2026-11-23)*: a lead out **immediately** followed by the same
+    leaders' lead back (down then up, or up then down) does not move the other dancers. They stay
+    in place, and the leaders return to where they started, or to their partner's place if the
+    leaders traded on the way. The parser pairs the two adjacent top-level figures: the lead out
+    dances the whole trip and the lead back moves nobody, and each keeps its own line, flag and
+    diagnostics. Not cast-like, so it needs nobody to pass and works in Becket, where the ones
+    share a column.
+    - The leaders trade when the trip has an odd number of `turnCouple` enders (each wheels the
+      couple). Only `ones` and `twos` name couples, so a trade led by a role set is deferred, and
+      a leader with no leading partner in its hands four is `UnresolvableDancerSet`.
+    - Leaders finish facing the lead back's travel, reversed if it ended with a turn *(agent's
+      call)*.
+    - Otherwise the limits of a single lead apply to both legs (membership `who`, `moving`
+      `center` or `outsides`, `facing: forward`), plus `turnCouple` as an ender; everything else
+      is deferred *(agent's call)*.
+    - A figure between the two leads (e.g. "ones lead down, balance, lead up") leaves each lead
+      cast-like on its own, as above: the ruling covers a lead back that immediately follows.
   - **known gap:** the Caller's Box import does not carry how far the leaders go ("past N1;N2"
-    is dropped), so a lead written as passing two couples is read as one place. Most such
-    leads are followed by a cast of two places, which is deferred, but five corpus dances
-    compile on the one-place reading although their text leads past two couples (see
-    `status.md`). Carrying the count belongs to the import (`compendium_core`).
+    is dropped). A single lead written as passing two couples is read as one place; most such
+    leads are followed by a cast of two places, which is deferred. Five corpus dances that lead
+    past two couples compile: each is now a round trip, so how far the leaders went no longer
+    matters. Three of them (Caller's Box 6470, 1292, 18267) come back past fewer couples than
+    they went, and the round trip reads that as a full return, per the ruling. Carrying the
+    count belongs to the import (`compendium_core`).
   - **corpus note (2026-11-23, `rubric` at `ee39d32f`):** see `status.md`.
 
 ### `up_the_hall`
