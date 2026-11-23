@@ -239,3 +239,8 @@ const String kSyncExcludeImportsKey = 'sync_exclude_imports';
 /// the status surface and used for the approaching-expiry warning. Device-local,
 /// never synced and never backed up.
 const String kSyncLastSuccessAtKey = 'sync_last_success_at';
+
+/// Key used to persist the Experimental "Repertoire" switch (#2357). Stored as
+/// a bool; absent/unset means off (`false`), so Collection's More actions menu
+/// offers no Repertoire item.
+const String kShowRepertoireDashboardKey = 'show_repertoire_dashboard';

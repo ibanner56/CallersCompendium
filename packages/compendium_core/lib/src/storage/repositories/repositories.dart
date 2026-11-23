@@ -23,6 +23,7 @@ import 'difficulty_level_repository.dart';
 import 'program_repository.dart';
 import 'published_source_repository.dart';
 import 'reference_edit_repository.dart';
+import 'repertoire_repository.dart';
 import 'settings_repository.dart';
 import 'sync_local_repository.dart';
 import 'tag_repository.dart';
@@ -311,6 +312,10 @@ class CompendiumRepositories {
       return switched;
     });
   }
+
+  /// Read-only collection and calling-history aggregates for the Repertoire
+  /// page (#2357).
+  late final RepertoireRepository repertoire = RepertoireRepository(db);
 
   /// The user's notes on shipped figures (#709).
   final FigureNoteRepository figureNotes;

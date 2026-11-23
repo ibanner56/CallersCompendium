@@ -26,6 +26,7 @@ import '../data/calling_history_tracking_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/seed_service.dart' show kBabyRoseSeedDanceId;
+import '../data/show_repertoire_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
@@ -37,6 +38,7 @@ import '../search/collection_opening_sort.dart';
 import '../search/collection_query_labels.dart';
 import '../search/collection_selection.dart';
 import '../search/dance_detail_data.dart';
+import '../search/repertoire_drill_down.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
@@ -73,6 +75,7 @@ import '../sync/sync_scope.dart';
 import '../widgets/sync_now_action.dart';
 import '../screens/custom_fields_screen.dart';
 import '../screens/recently_deleted_screen.dart';
+import 'repertoire_screen.dart';
 import 'dance_detail_screen.dart';
 import 'dance_editor_screen.dart';
 import 'dance_reimport_flow.dart';
@@ -224,6 +227,7 @@ enum _CollectionCompactAction {
   batchSelect,
   manageCustomFields,
   recentlyDeleted,
+  repertoire,
   sortDirection,
 }
 
@@ -2474,7 +2478,7 @@ class _DanceListScreenState extends State<DanceListScreen>
   }
 
   /// The ⋮ menu: always holds Select dances, Manage custom fields and Recently
-  /// deleted, plus whichever of the [_CollectionBarGlyph]s did not fit on the
+  /// deleted, Repertoire while its Experimental switch is on (#2357), plus whichever of the [_CollectionBarGlyph]s did not fit on the
   /// bar ([onBar] is what did). Sorting is left out while [hasDances] is false,
   /// as on the bar.
   Widget _buildMoreActions(
@@ -2483,6 +2487,7 @@ class _DanceListScreenState extends State<DanceListScreen>
     required bool hasDances,
   }) {
     final tags = _data?.tags ?? const <Tag>[];
+    final showRepertoire = ShowRepertoireScope.of(context);
     return PopupMenuButton<Object>(
       key: const ValueKey('collection-more-actions'),
       tooltip: l10n.danceMoreActions,
@@ -2502,6 +2507,8 @@ class _DanceListScreenState extends State<DanceListScreen>
           _openCustomFields();
         } else if (action == _CollectionCompactAction.recentlyDeleted) {
           _openRecentlyDeleted();
+        } else if (action == _CollectionCompactAction.repertoire) {
+          _openRepertoire();
         }
       },
       itemBuilder: (context) => [
@@ -2529,6 +2536,14 @@ class _DanceListScreenState extends State<DanceListScreen>
           value: _CollectionCompactAction.recentlyDeleted,
           child: Text(l10n.collectionRecentlyDeletedTooltip),
         ),
+        // Experimental (#2357): only while Settings ▸ Experimental ▸
+        // Repertoire is on. A pushed page, never a navigation destination.
+        if (showRepertoire)
+          PopupMenuItem<Object>(
+            key: const ValueKey('collection-repertoire'),
+            value: _CollectionCompactAction.repertoire,
+            child: Text(l10n.collectionRepertoireMenuItem),
+          ),
         if (hasDances && !onBar.contains(_CollectionBarGlyph.sort)) ...[
           const PopupMenuDivider(),
           PopupMenuItem<Object>(
@@ -2834,6 +2849,43 @@ class _DanceListScreenState extends State<DanceListScreen>
     ).push(MaterialPageRoute<void>(builder: (_) => const CustomFieldsScreen()));
     // Reload so newly-created/edited fields show up as facets.
     if (mounted) await _boot();
+  }
+
+  /// Opens the Repertoire page (#2357). A row there that stands for a set of
+  /// dances comes back as a [RepertoireDrillDown], applied as this list's
+  /// search.
+  Future<void> _openRepertoire() async {
+    final drillDown = await Navigator.of(context).push<RepertoireDrillDown>(
+      MaterialPageRoute<RepertoireDrillDown>(
+        builder: (_) => const RepertoireScreen(),
+      ),
+    );
+    if (drillDown != null && mounted) _applyRepertoireDrillDown(drillDown);
+  }
+
+  /// Replaces the search with [drillDown] (#2357): clears the text, every
+  /// facet, By phrase and Advanced, as Clear all does, then applies the
+  /// drill-down's selections, so the list shows the dances the tapped number
+  /// counted. Online mode is left: the numbers are the local library's.
+  void _applyRepertoireDrillDown(RepertoireDrillDown drillDown) {
+    _debounceTimer?.cancel();
+    _searchSeq++;
+    _onlineSeq++;
+    setState(() {
+      _ftsScope = _localFtsScope;
+      _onlineEnabled = false;
+      _onlineResults = const [];
+      _onlineError = null;
+      _onlineSearching = false;
+      _ftsController.clear();
+      _facets.clear();
+      _byPhrase.clear();
+      _advancedRoot.children.clear();
+      _removedTags.clear();
+      _advancedRoot.kind = GroupKind.all;
+      drillDown.applyTo(_facets, _advancedRoot);
+    });
+    _runSearch();
   }
 
   Future<void> _openRecentlyDeleted() async {

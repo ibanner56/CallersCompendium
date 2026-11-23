@@ -12213,5 +12213,177 @@
   "exportCallingCardsBiggerThanPaper": "Ces fiches sont plus grandes que le papier : chacune a donc été imprimée en plus petit, une par page.",
   "@exportCallingCardsBiggerThanPaper": {
     "x-sourceSha256": "b72cf3ae14970e26d9ca98cdea00c2c9a23b004b7d9084777486e2730750cbd6"
+  },
+  "collectionRepertoireMenuItem": "Répertoire",
+  "@collectionRepertoireMenuItem": {
+    "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
+  },
+  "repertoireTitle": "Répertoire",
+  "@repertoireTitle": {
+    "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
+  },
+  "repertoireLoadError": "Impossible de calculer votre répertoire",
+  "@repertoireLoadError": {
+    "x-sourceSha256": "a377018354f04a0476bcfdd92e5356014441e33da976d52a148c063a68409455"
+  },
+  "repertoirePeriodLabel": "Période",
+  "@repertoirePeriodLabel": {
+    "x-sourceSha256": "6e795d4d3cc21c5ca8349ab5e917482197aa612d1a218f9e9411467db73242bb"
+  },
+  "repertoirePeriodAllTime": "Depuis toujours",
+  "@repertoirePeriodAllTime": {
+    "x-sourceSha256": "9755c8d7d44a62589c873ca19a4119a594b98fbf3744cda4eb14b87a199765cb"
+  },
+  "repertoirePeriodMonths": "{count, plural, =1{Le dernier mois} other{Les {count} derniers mois}}",
+  "@repertoirePeriodMonths": {
+    "x-sourceSha256": "a09e4dfbc620510b7de3ecf77e578fd3ba0ed50a6ce0a4b086c1aa4a212d3507"
+  },
+  "repertoirePeriodSinceDate": "Depuis une date…",
+  "@repertoirePeriodSinceDate": {
+    "x-sourceSha256": "af507bf47251132ba4703a698935d64e15447d0ac82af7a649c56aeaba2b65a4"
+  },
+  "repertoirePeriodSince": "Depuis le {date}",
+  "@repertoirePeriodSince": {
+    "x-sourceSha256": "1550794b36af0a945ddc65d95c16fbde42d2df500d5f3a232f5b1138e9b299f1"
+  },
+  "repertoireTypeLabel": "Type de danse",
+  "@repertoireTypeLabel": {
+    "x-sourceSha256": "2c004974318a3075ebadbd65e39bd0efc9bd6b1eee3f8a9c679d5c669b326ce0"
+  },
+  "repertoireTypeAll": "Tous les types",
+  "@repertoireTypeAll": {
+    "x-sourceSha256": "f10988e79e8d9a49f45a71ecf3f4ebe143a96eb9d83272156ab54101b3777046"
+  },
+  "repertoireSummary": "Appels sur cette période : {calls}. Danses appelées : {called} sur {total}.",
+  "@repertoireSummary": {
+    "x-sourceSha256": "4a7cbbf7c87e3bc46500abc1affb3190fd2f410e54fa5e6c41b9b31665ea822f"
+  },
+  "repertoireMostCalledHeader": "Les plus appelées",
+  "@repertoireMostCalledHeader": {
+    "x-sourceSha256": "f2aff79f46e584591a4f0b1fcd3131e043212b0bbb4ea84d3dae766272a149de"
+  },
+  "repertoireLeastCalledHeader": "Les moins appelées (parmi celles que vous avez appelées)",
+  "@repertoireLeastCalledHeader": {
+    "x-sourceSha256": "c842c2a0183d8447f0a70e0c59646aaf2d9d3c8684b451d857353e23329781c8"
+  },
+  "repertoireLeastCalledAllShown": "Toutes les danses appelées sur cette période figurent déjà dans Les plus appelées.",
+  "@repertoireLeastCalledAllShown": {
+    "x-sourceSha256": "5cb02281254a6fab6493c5d267f1c1f8cea8776c7876b01ef0a823e494e82def"
+  },
+  "repertoireNoCalls": "Aucun appel compté sur cette période.",
+  "@repertoireNoCalls": {
+    "x-sourceSha256": "86745f9130fff2ca0d915327740923a147bd5234bbbf4eb3192173031b0f9858"
+  },
+  "repertoireDanceCalls": "{count, plural, =1{appelée une fois} other{appelée {count} fois}}",
+  "@repertoireDanceCalls": {
+    "x-sourceSha256": "45189eb3c35920001f632a177ba87dc00a38fabca66625eaf78b54446abb5f8f"
+  },
+  "repertoireDanceSemantics": "{title} : {count, plural, =1{appelée une fois} other{appelée {count} fois}}",
+  "@repertoireDanceSemantics": {
+    "x-sourceSha256": "f5ea6abe5e2415a57e19493b7734fcaf50fe98414349c428ef84e8214cf4d705"
+  },
+  "repertoireNeverCalledHeader": "Jamais appelées",
+  "@repertoireNeverCalledHeader": {
+    "x-sourceSha256": "a523b2ac225d3979beb78fe0272ba337772b159e4932f6e27b7df2bce6384a42"
+  },
+  "repertoireNeverCalledLabel": "Jamais appelées",
+  "@repertoireNeverCalledLabel": {
+    "x-sourceSha256": "a523b2ac225d3979beb78fe0272ba337772b159e4932f6e27b7df2bce6384a42"
+  },
+  "repertoireOfDances": "{count} danses sur {total}",
+  "@repertoireOfDances": {
+    "x-sourceSha256": "76615ee1ce72d60b9f878a4576a3b3ab25c37de1a722d0ecd18aea33eb731899"
+  },
+  "repertoireNeverCalledSemantics": "Jamais appelées : {count} danses sur {total}",
+  "@repertoireNeverCalledSemantics": {
+    "x-sourceSha256": "8194a4a6d9fb05db1e0551fe07e9158a44c3c7cc32984263a953a5d72a630267"
+  },
+  "repertoireNeverCalledDanceSemantics": "{title} : jamais appelée",
+  "@repertoireNeverCalledDanceSemantics": {
+    "x-sourceSha256": "5bb809f2149949c9ea5bf93daf9e454396da8da208e4cf8c10633fd5172b36c6"
+  },
+  "repertoireNotCalledInPeriodLabel": "Non appelées sur cette période",
+  "@repertoireNotCalledInPeriodLabel": {
+    "x-sourceSha256": "42ec0ae23e760c9a9c39f25eb38afcb3acb55ad830325a40247c450600734b78"
+  },
+  "repertoireNotCalledInPeriodSemantics": "Non appelées sur cette période : {count} danses sur {total}",
+  "@repertoireNotCalledInPeriodSemantics": {
+    "x-sourceSha256": "b889fd2f0f3ceeaa6ffd2345ee4532176a77216570a8b17879b8f472e80b81d6"
+  },
+  "repertoireFigureHeader": "Fréquence des figures",
+  "@repertoireFigureHeader": {
+    "x-sourceSha256": "1f1265b6c299fb7fc1f01ad509e58f9d75476b89505d29a7433fd0befe8e6443"
+  },
+  "repertoireNoFigures": "Aucune de ces danses n'a de figures saisies.",
+  "@repertoireNoFigures": {
+    "x-sourceSha256": "5c7385dadaa29516f1c99a78658d745b5febfea33156da79906bf887323bca0e"
+  },
+  "repertoireFigureValue": "dans {dances} danses sur {total} ({percent} %) · {calls, plural, =1{1 appel} other{{calls} appels}}",
+  "@repertoireFigureValue": {
+    "x-sourceSha256": "427959c91687de4ae08a3efef81f129115e22eeeb1a98aecc65bb219f34a59f2"
+  },
+  "repertoireFigureSemantics": "{move} : dans {dances} danses sur {total}, {percent} pour cent ; {calls, plural, =1{1 appel} other{{calls} appels}} sur cette période",
+  "@repertoireFigureSemantics": {
+    "x-sourceSha256": "b0911685dfaa28d6fe4fd6587bfa6632fd8c7e7447a82a0db9131880913281d0"
+  },
+  "repertoireShowAll": "Tout afficher ({count})",
+  "@repertoireShowAll": {
+    "x-sourceSha256": "a6c3860c56d7523fe43cfc166f3034d023eeac5491f722aba74922d03dca769d"
+  },
+  "repertoireShowFewer": "Afficher moins",
+  "@repertoireShowFewer": {
+    "x-sourceSha256": "255beb6510e7827d37ec1cd22d080f910888ae00f29374dd9545c8b3d1fce43a"
+  },
+  "repertoireAuthorsHeader": "Auteurs que vous appelez",
+  "@repertoireAuthorsHeader": {
+    "x-sourceSha256": "03a08a6177689c82fcc0a1cfe404363104f2eb53ccb83e2165947969bb41d94b"
+  },
+  "repertoireAuthorsSummary": "{count, plural, =0{Aucun auteur appelé sur cette période.} =1{1 auteur appelé sur cette période.} other{{count} auteurs appelés sur cette période.}}",
+  "@repertoireAuthorsSummary": {
+    "x-sourceSha256": "d2660bfb610f85406c90d761e3f01e3e6e8b58d9eae6849930f84759364cbfd0"
+  },
+  "repertoireShareValue": "{calls, plural, =1{1 appel} other{{calls} appels}} ({percent} %)",
+  "@repertoireShareValue": {
+    "x-sourceSha256": "b61b0042e986ce34f28b386ed7868e08cee4a26c6bac14c0809b05c8a63dbfcb"
+  },
+  "repertoireShareSemantics": "{label} : {calls, plural, =1{1 appel} other{{calls} appels}}, {percent} pour cent des appels sur cette période",
+  "@repertoireShareSemantics": {
+    "x-sourceSha256": "044bc4d54d2dcc9d96418d86f9ab95849c79e5edf4710e7c4e8f1da8db2de573"
+  },
+  "repertoireFormationHeader": "Répartition des formations",
+  "@repertoireFormationHeader": {
+    "x-sourceSha256": "098683a99bcce20ab162bb7af93ac6ad456eaaa455ec58235f5ec5e5cda68739"
+  },
+  "repertoireVenuesHeader": "Répétitions par lieu",
+  "@repertoireVenuesHeader": {
+    "x-sourceSha256": "9b0640ebefe0b4e62b8d63d8948a9d88593e9cea25c1fd35b25a6e6b82ea841f"
+  },
+  "repertoireNoRepeats": "Aucune danse n'a été appelée plus d'une fois dans un même lieu sur cette période.",
+  "@repertoireNoRepeats": {
+    "x-sourceSha256": "1ee83c14c00d9965edff9c7d2113aeaf23c7269f09a54b529b010feb074062cd"
+  },
+  "repertoireVenueUnnamed": "Lieu sans nom",
+  "@repertoireVenueUnnamed": {
+    "x-sourceSha256": "d05aef5da8914bd969562f34dd344d7251dd248c6e2cf2674efd76ee9f84704b"
+  },
+  "repertoireVenueRepeats": "{count, plural, =1{1 danse répétée} other{{count} danses répétées}}",
+  "@repertoireVenueRepeats": {
+    "x-sourceSha256": "826159fbea4aac34da9274535e7f110d30128adbf08c0a99f39adf72d185c3cf"
+  },
+  "repertoireVenueSemantics": "{venue} : {count, plural, =1{1 danse appelée plus d'une fois} other{{count} danses appelées plus d'une fois}}",
+  "@repertoireVenueSemantics": {
+    "x-sourceSha256": "6ac25c6d56b7afe142098842bf969c16f8b147d1d7c2172c1dd1e492c9d467f2"
+  },
+  "settingsExperimentalRepertoireHeader": "Répertoire",
+  "@settingsExperimentalRepertoireHeader": {
+    "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
+  },
+  "settingsExperimentalShowRepertoireTitle": "Répertoire",
+  "@settingsExperimentalShowRepertoireTitle": {
+    "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
+  },
+  "settingsExperimentalShowRepertoireSubtitle": "Ajoute Répertoire au menu Plus d'actions de la Collection : vos danses les plus et les moins appelées, celles que vous n'avez jamais appelées, la fréquence des figures, les auteurs, les formations et les répétitions par lieu.",
+  "@settingsExperimentalShowRepertoireSubtitle": {
+    "x-sourceSha256": "f537bb665c51db4ea2f7bebe359ced80907a25a71ab9fee34cf7c48159b6e946"
   }
 }

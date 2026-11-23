@@ -126,6 +126,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kCapitalizeFiguresKey,
     kShowGlossaryKey,
     kShowCustomFiguresKey,
+    kShowRepertoireDashboardKey,
     kConfirmBeforeDeleteKey,
     kSetListColorCodingKey,
     kShowPerformedTogglesKey,

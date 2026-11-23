@@ -137,6 +137,7 @@ final Map<String, DataClassification> settingsClassifications = {
   'capitalize_figures': _preference,
   'show_glossary': _preference,
   'show_custom_figures': _preference,
+  'show_repertoire_dashboard': _preference,
   'calling_card_print': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.appUser,

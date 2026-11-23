@@ -185,6 +185,33 @@ String? callingHistoryVenueText(String? venue) {
   return trimmed.replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
 }
 
+/// Returns every gate that decides whether a slot is a counted call, as one SQL
+/// fragment over the `program_slots` alias [slotTable] and the `programs` alias
+/// [programTable]: performed-only when [performedOnly], the alternate rule
+/// ([callingHistoryAlternateClause]), "Require an event date"
+/// ([callingHistoryEventDateClause]) and the host-caller scope
+/// ([callingHistoryCallerClause]; [caller] already normalized by
+/// [normalizeCallingHistoryCaller]). The query still adds
+/// `programTable.deleted_at IS NULL` itself.
+///
+/// The ONE composition shared by the dance-detail history, the delete
+/// confirm's count and the repertoire aggregates, so they agree on which slots
+/// count. When [caller] is set the fragment binds it once, as a parameter.
+///
+/// [slotTable] and [programTable] are internal, trusted SQL aliases, never
+/// user input.
+String callingHistoryCountedSlotClause({
+  required String slotTable,
+  required String programTable,
+  required bool performedOnly,
+  required bool requireEventDate,
+  required String? caller,
+}) =>
+    '${performedOnly ? 'AND $slotTable.performed_at IS NOT NULL ' : ''}'
+    '${callingHistoryAlternateClause(slotTable: slotTable)}'
+    '${callingHistoryEventDateClause(requireEventDate: requireEventDate, programTable: programTable)}'
+    '${callingHistoryCallerClause(caller, callerColumn: '$programTable.caller')}';
+
 /// Returns the event-date rule for a calling-history query over the `programs`
 /// alias [programTable] (for example `programs` or `p`), or the empty string
 /// when [requireEventDate] is false.

@@ -12663,4 +12663,239 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get exportCallingCardsBiggerThanPaper =>
       'Disse kort er større end papiret, så hvert kort blev udskrevet mindre, ét pr. side.';
+
+  @override
+  String get collectionRepertoireMenuItem => 'Repertoire';
+
+  @override
+  String get repertoireTitle => 'Repertoire';
+
+  @override
+  String get repertoireLoadError => 'Dit repertoire kunne ikke beregnes';
+
+  @override
+  String get repertoirePeriodLabel => 'Periode';
+
+  @override
+  String get repertoirePeriodAllTime => 'Hele perioden';
+
+  @override
+  String repertoirePeriodMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Seneste $count måneder',
+      one: 'Seneste måned',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get repertoirePeriodSinceDate => 'Siden en dato…';
+
+  @override
+  String repertoirePeriodSince(String date) {
+    return 'Siden $date';
+  }
+
+  @override
+  String get repertoireTypeLabel => 'Danseform';
+
+  @override
+  String get repertoireTypeAll => 'Alle former';
+
+  @override
+  String repertoireSummary(int calls, int called, int total) {
+    return 'Kald i denne periode: $calls. Danse kaldt: $called af $total.';
+  }
+
+  @override
+  String get repertoireMostCalledHeader => 'Oftest kaldt';
+
+  @override
+  String get repertoireLeastCalledHeader =>
+      'Sjældnest kaldt (af dem, du har kaldt)';
+
+  @override
+  String get repertoireLeastCalledAllShown =>
+      'Alle danse, du har kaldt i denne periode, står allerede under Oftest kaldt.';
+
+  @override
+  String get repertoireNoCalls => 'Ingen talte kald i denne periode.';
+
+  @override
+  String repertoireDanceCalls(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'kaldt $count gange',
+      one: 'kaldt én gang',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireDanceSemantics(String title, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'kaldt $count gange',
+      one: 'kaldt én gang',
+    );
+    return '$title: $_temp0';
+  }
+
+  @override
+  String get repertoireNeverCalledHeader => 'Aldrig kaldt';
+
+  @override
+  String get repertoireNeverCalledLabel => 'Aldrig kaldt';
+
+  @override
+  String repertoireOfDances(int count, int total) {
+    return '$count af $total danse';
+  }
+
+  @override
+  String repertoireNeverCalledSemantics(int count, int total) {
+    return 'Aldrig kaldt: $count af $total danse';
+  }
+
+  @override
+  String repertoireNeverCalledDanceSemantics(String title) {
+    return '$title: aldrig kaldt';
+  }
+
+  @override
+  String get repertoireNotCalledInPeriodLabel => 'Ikke kaldt i denne periode';
+
+  @override
+  String repertoireNotCalledInPeriodSemantics(int count, int total) {
+    return 'Ikke kaldt i denne periode: $count af $total danse';
+  }
+
+  @override
+  String get repertoireFigureHeader => 'Figurhyppighed';
+
+  @override
+  String get repertoireNoFigures =>
+      'Ingen af disse danse har indtastede figurer.';
+
+  @override
+  String repertoireFigureValue(int dances, int total, int percent, int calls) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls kald',
+      one: '1 kald',
+    );
+    return 'i $dances af $total danse ($percent %) · $_temp0';
+  }
+
+  @override
+  String repertoireFigureSemantics(
+    String move,
+    int dances,
+    int total,
+    int percent,
+    int calls,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls kald',
+      one: '1 kald',
+    );
+    return '$move: i $dances af $total danse, $percent procent; $_temp0 i denne periode';
+  }
+
+  @override
+  String repertoireShowAll(int count) {
+    return 'Vis alle $count';
+  }
+
+  @override
+  String get repertoireShowFewer => 'Vis færre';
+
+  @override
+  String get repertoireAuthorsHeader => 'Forfattere, du kalder';
+
+  @override
+  String repertoireAuthorsSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count forfattere kaldt i denne periode.',
+      one: '1 forfatter kaldt i denne periode.',
+      zero: 'Ingen forfatter kaldt i denne periode.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireShareValue(int calls, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls kald',
+      one: '1 kald',
+    );
+    return '$_temp0 ($percent %)';
+  }
+
+  @override
+  String repertoireShareSemantics(String label, int calls, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls kald',
+      one: '1 kald',
+    );
+    return '$label: $_temp0, $percent procent af kaldene i denne periode';
+  }
+
+  @override
+  String get repertoireFormationHeader => 'Formationer';
+
+  @override
+  String get repertoireVenuesHeader => 'Gentagelser pr. spillested';
+
+  @override
+  String get repertoireNoRepeats =>
+      'Ingen dans blev kaldt mere end én gang på samme spillested i denne periode.';
+
+  @override
+  String get repertoireVenueUnnamed => 'Unavngivet spillested';
+
+  @override
+  String repertoireVenueRepeats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danse gentaget',
+      one: '1 dans gentaget',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireVenueSemantics(String venue, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danse kaldt mere end én gang',
+      one: '1 dans kaldt mere end én gang',
+    );
+    return '$venue: $_temp0';
+  }
+
+  @override
+  String get settingsExperimentalRepertoireHeader => 'Repertoire';
+
+  @override
+  String get settingsExperimentalShowRepertoireTitle => 'Repertoire';
+
+  @override
+  String get settingsExperimentalShowRepertoireSubtitle =>
+      'Tilføjer Repertoire til Samlingens menu Flere handlinger: dine oftest og sjældnest kaldte danse, hvad du aldrig har kaldt, figurhyppighed, forfattere, formationer og gentagelser pr. spillested.';
 }

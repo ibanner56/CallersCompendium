@@ -1592,16 +1592,19 @@ class ProgramRepository {
   /// [_callingHistoryRows] and [danceCountLosingHistory], so the count a delete
   /// confirm shows (LIFE-6) is the number of dances whose history actually
   /// lists the program. [caller] is already normalized. The caller still adds
-  /// `programs.deleted_at IS NULL`.
+  /// `programs.deleted_at IS NULL`. The repertoire aggregates use the same
+  /// composition, [callingHistoryCountedSlotClause].
   String _historyScopeSql({
     required bool performedOnly,
     required bool requireEventDate,
     required String? caller,
-  }) =>
-      '${performedOnly ? 'AND program_slots.performed_at IS NOT NULL ' : ''}'
-      '$_alternateClause'
-      '${_eventDateClause(requireEventDate)}'
-      '${_callerClause(caller)}';
+  }) => callingHistoryCountedSlotClause(
+    slotTable: 'program_slots',
+    programTable: 'programs',
+    performedOnly: performedOnly,
+    requireEventDate: requireEventDate,
+    caller: caller,
+  );
 
   /// How many distinct dances would lose [programId] from their calling
   /// history if it were deleted (LIFE-6): the dances for which

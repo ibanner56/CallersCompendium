@@ -12736,4 +12736,239 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get exportCallingCardsBiggerThanPaper =>
       'Deze kaarten zijn groter dan het papier, dus elke kaart is kleiner afgedrukt, één per pagina.';
+
+  @override
+  String get collectionRepertoireMenuItem => 'Repertoire';
+
+  @override
+  String get repertoireTitle => 'Repertoire';
+
+  @override
+  String get repertoireLoadError => 'Je repertoire kon niet worden berekend';
+
+  @override
+  String get repertoirePeriodLabel => 'Periode';
+
+  @override
+  String get repertoirePeriodAllTime => 'Altijd';
+
+  @override
+  String repertoirePeriodMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Afgelopen $count maanden',
+      one: 'Afgelopen maand',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get repertoirePeriodSinceDate => 'Sinds een datum…';
+
+  @override
+  String repertoirePeriodSince(String date) {
+    return 'Sinds $date';
+  }
+
+  @override
+  String get repertoireTypeLabel => 'Danssoort';
+
+  @override
+  String get repertoireTypeAll => 'Alle soorten';
+
+  @override
+  String repertoireSummary(int calls, int called, int total) {
+    return 'Keer gebeld in deze periode: $calls. Dansen gebeld: $called van $total.';
+  }
+
+  @override
+  String get repertoireMostCalledHeader => 'Vaakst gebeld';
+
+  @override
+  String get repertoireLeastCalledHeader =>
+      'Minst gebeld (van wat je hebt gebeld)';
+
+  @override
+  String get repertoireLeastCalledAllShown =>
+      'Elke dans die je in deze periode hebt gebeld, staat al onder Vaakst gebeld.';
+
+  @override
+  String get repertoireNoCalls => 'Niets gebeld in deze periode.';
+
+  @override
+  String repertoireDanceCalls(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count keer gebeld',
+      one: 'één keer gebeld',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireDanceSemantics(String title, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count keer gebeld',
+      one: 'één keer gebeld',
+    );
+    return '$title: $_temp0';
+  }
+
+  @override
+  String get repertoireNeverCalledHeader => 'Nooit gebeld';
+
+  @override
+  String get repertoireNeverCalledLabel => 'Nooit gebeld';
+
+  @override
+  String repertoireOfDances(int count, int total) {
+    return '$count van $total dansen';
+  }
+
+  @override
+  String repertoireNeverCalledSemantics(int count, int total) {
+    return 'Nooit gebeld: $count van $total dansen';
+  }
+
+  @override
+  String repertoireNeverCalledDanceSemantics(String title) {
+    return '$title: nooit gebeld';
+  }
+
+  @override
+  String get repertoireNotCalledInPeriodLabel => 'Niet gebeld in deze periode';
+
+  @override
+  String repertoireNotCalledInPeriodSemantics(int count, int total) {
+    return 'Niet gebeld in deze periode: $count van $total dansen';
+  }
+
+  @override
+  String get repertoireFigureHeader => 'Hoe vaak figuren voorkomen';
+
+  @override
+  String get repertoireNoFigures =>
+      'Geen van deze dansen heeft ingevoerde figuren.';
+
+  @override
+  String repertoireFigureValue(int dances, int total, int percent, int calls) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls keer gebeld',
+      one: '1 keer gebeld',
+    );
+    return 'in $dances van $total dansen ($percent%) · $_temp0';
+  }
+
+  @override
+  String repertoireFigureSemantics(
+    String move,
+    int dances,
+    int total,
+    int percent,
+    int calls,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls keer gebeld',
+      one: '1 keer gebeld',
+    );
+    return '$move: in $dances van $total dansen, $percent procent; $_temp0 in deze periode';
+  }
+
+  @override
+  String repertoireShowAll(int count) {
+    return 'Alle $count tonen';
+  }
+
+  @override
+  String get repertoireShowFewer => 'Minder tonen';
+
+  @override
+  String get repertoireAuthorsHeader => 'Auteurs die je belt';
+
+  @override
+  String repertoireAuthorsSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count auteurs gebeld in deze periode.',
+      one: '1 auteur gebeld in deze periode.',
+      zero: 'Geen auteur gebeld in deze periode.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireShareValue(int calls, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls keer gebeld',
+      one: '1 keer gebeld',
+    );
+    return '$_temp0 ($percent%)';
+  }
+
+  @override
+  String repertoireShareSemantics(String label, int calls, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls keer gebeld',
+      one: '1 keer gebeld',
+    );
+    return '$label: $_temp0, $percent procent van wat in deze periode is gebeld';
+  }
+
+  @override
+  String get repertoireFormationHeader => 'Formaties';
+
+  @override
+  String get repertoireVenuesHeader => 'Herhalingen per locatie';
+
+  @override
+  String get repertoireNoRepeats =>
+      'Geen dans is in deze periode meer dan één keer op dezelfde locatie gebeld.';
+
+  @override
+  String get repertoireVenueUnnamed => 'Naamloze locatie';
+
+  @override
+  String repertoireVenueRepeats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen herhaald',
+      one: '1 dans herhaald',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireVenueSemantics(String venue, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dansen meer dan één keer gebeld',
+      one: '1 dans meer dan één keer gebeld',
+    );
+    return '$venue: $_temp0';
+  }
+
+  @override
+  String get settingsExperimentalRepertoireHeader => 'Repertoire';
+
+  @override
+  String get settingsExperimentalShowRepertoireTitle => 'Repertoire';
+
+  @override
+  String get settingsExperimentalShowRepertoireSubtitle =>
+      'Voegt Repertoire toe aan het menu Meer acties van de Collectie: je vaakst en minst gebelde dansen, wat je nooit hebt gebeld, hoe vaak figuren voorkomen, auteurs, formaties en herhalingen per locatie.';
 }

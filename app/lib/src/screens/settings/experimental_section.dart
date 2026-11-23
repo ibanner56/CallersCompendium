@@ -7,6 +7,7 @@ import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/show_custom_figures_scope.dart';
 import '../../data/show_glossary_scope.dart';
+import '../../data/show_repertoire_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/collapsible_section.dart';
 import '../../widgets/section_header.dart';
@@ -35,6 +36,7 @@ class ExperimentalSection extends StatelessWidget {
           child: Text(l10n.settingsExperimentalPlaceholder),
         ),
         const _GlossarySection(),
+        const _RepertoireSection(),
         const CallingCardSection(),
         DeviceSyncSection(backupSaver: backupSaver),
         const DeveloperOptionsSection(),
@@ -115,6 +117,40 @@ class _GlossarySection extends StatelessWidget {
                 : null,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The Repertoire section (#2357): a switch that adds a Repertoire item to
+/// Collection's More actions menu. It adds no navigation destination.
+class _RepertoireSection extends StatelessWidget {
+  const _RepertoireSection();
+
+  Future<void> _onChanged(BuildContext context, bool value) async {
+    // Flip the live notifier first so Collection's menu updates at once, then
+    // persist.
+    ShowRepertoireScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kShowRepertoireDashboardKey, value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final show = ShowRepertoireScope.of(context);
+    return CollapsibleSection(
+      sectionKey: const ValueKey('repertoire-section'),
+      title: l10n.settingsExperimentalRepertoireHeader,
+      expanded: show,
+      child: SwitchListTile(
+        key: const ValueKey('experimental-show-repertoire'),
+        secondary: const Icon(Icons.insights_outlined),
+        value: show,
+        onChanged: (value) => _onChanged(context, value),
+        title: Text(l10n.settingsExperimentalShowRepertoireTitle),
+        subtitle: Text(l10n.settingsExperimentalShowRepertoireSubtitle),
+        isThreeLine: true,
       ),
     );
   }

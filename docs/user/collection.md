@@ -722,6 +722,52 @@ so anything else you have edited in the meantime stays as it is. Selected rows a
 with a checkmark and a colored bar down the row's left edge — never color alone —
 so the selection is clear however you are reading the screen.
 
+## See your repertoire at a glance
+
+**Repertoire** is an experimental, read-only summary of what you call. Turn it
+on in [Settings ▸ Experimental ▸ Repertoire](./settings.md#repertoire); then
+choose **Repertoire** from the **More actions** (⋮) menu in the Collection
+toolbar. It opens as its own page, and **Back** returns to the Collection.
+
+At the top, choose a **Period**: **All time**, **Last month**, **Last 3
+months**, **Last 6 months**, or **Since a date…** for a longer season. These
+are the same windows as **Within** in
+[Filter by calling history](#filter-by-calling-history). If your collection has
+more than one type of dance, **Dance type** narrows the page to **Contra**,
+**English (ECD)** or **Square**. Neither choice is saved: the page opens on
+**All time** and every type each time.
+
+The page has these sections:
+
+- **Most called** and **Least called (of those you have called)**: the ten
+  dances called most, and the ten called least among those you called at all,
+  in the period. A dance is never in both lists.
+- **Never called**: how many dances you have never called at all, whatever the
+  period, with the first few titles. With a period chosen,
+  **Not called in this period** also counts the dances with no call in it,
+  never-called ones included.
+- **Figure frequency**: for each move, how many dances of that type contain it,
+  and how many calls in the period were of such a dance. A dance counts once
+  per move, however often the move appears in it. Each type is listed
+  separately, and **Show all** lists every move.
+- **Authors you call**: how many authors' dances you called in the
+  period, and each author's calls with their share of all calls. A dance with
+  two authors counts for both.
+- **Formation mix**: calls in the period by formation.
+- **Repeats per venue**: each venue where you called a dance more than once in
+  the period, and those dances.
+
+A call here is exactly what **called ×N** on a Collection row counts, under the
+[Calling history settings](./settings.md#calling-history): if a row says
+"called ×3", **All time** shows 3 for that dance. A period counts calls the way
+**Within** does.
+
+Select a dance to open it. Select any other row and the Collection shows the
+dances behind it, as a search you can change: **Never called** applies
+**Not called**; a move applies that type and a **Has figure** row in
+**Advanced**; an author, formation or venue applies that filter with
+**Called** and the period. Whatever you had searched for before is replaced.
+
 ## Jump straight to a dance or program
 
 Anywhere in the app except Perform mode, the **Search** button in the
