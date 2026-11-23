@@ -1328,6 +1328,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       payText: _payController.text.trim(),
       payCurrency: _effectivePayCurrency,
       times: _times,
+      // What this editor last took from storage, so a restore can tell the
+      // person's edits from values that were merely loaded. Only for a stored
+      // program: a new one has nothing stored to fall back on.
+      timesBaseline: _existing == null ? null : _timesBaseline,
+      venueIdBaseline: _venueIdBaseline,
+      hasVenueIdBaseline: _existing != null,
       slots: List.unmodifiable(_renumber(_slots)),
     );
   }
@@ -1745,12 +1751,30 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _eventDate = draft.eventDate;
         // A draft from before the times existed never captured them: keep the
         // program's current times instead of reading the absence as a clear.
-        _times = draft.hasTimes
-            ? draft.times
-            : (_existing == null
+        // A time the person did not change before the draft was written takes
+        // what is stored now, so one synced since is not put back to the
+        // draft's stale copy; their own edits come back. A draft that did
+        // not record its baseline restores as written.
+        final existing = _existing;
+        final draftBaseline = draft.timesBaseline;
+        _times = !draft.hasTimes
+            ? (existing == null
                   ? const ProgramTimes()
-                  : ProgramTimes.of(_existing!));
-        _venueId = draft.venueId;
+                  : ProgramTimes.of(existing))
+            : (existing == null || draftBaseline == null)
+            ? draft.times
+            : ProgramTimes.merge(
+                baseline: draftBaseline,
+                local: draft.times,
+                stored: ProgramTimes.of(existing),
+              );
+        // The venue link follows the same rule.
+        _venueId =
+            existing != null &&
+                draft.hasVenueIdBaseline &&
+                draft.venueId == draft.venueIdBaseline
+            ? existing.venueId
+            : draft.venueId;
         _linkedVenue = null;
         _status = draft.status;
         _hideAlternates = draft.hideAlternates;
@@ -1771,7 +1795,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     // Resolve the linked venue's display name off the restore path. This only
     // refreshes the read-only simple-mode fallback hint; it does not re-arm
     // autosave, and the on-disk draft is left intact.
-    final restoredVenueId = draft.venueId;
+    final restoredVenueId = _venueId;
     if (restoredVenueId != null) _refreshLinkedVenue(restoredVenueId);
   }
 

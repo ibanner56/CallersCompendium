@@ -10,6 +10,8 @@ import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/venue_entity_mode_scope.dart';
+import 'package:compendium_app/src/editor/program_editor_draft_codec.dart';
+import 'package:compendium_app/src/editor/program_times.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
 
@@ -299,6 +301,147 @@ void main() {
     final saved = (await repos.programs.getById('p1'))!;
     expect(saved.slots.single.performedAt, isNull, reason: 'Undo applied');
     expect(saved.startMinute, 20 * 60, reason: 'the pick was not reverted');
+  });
+
+  // A draft written before a sync landed must not put that sync's changes
+  // back: only what the person changed before the draft was written returns.
+  group('restoring a draft after a sync changed the program', () {
+    Future<Program> restoreAndSave(
+      WidgetTester tester,
+      CompendiumRepositories repos,
+      ProgramEditorDraft draft,
+    ) async {
+      await repos.settings.set(
+        programEditorDraftKey('p1'),
+        encodeProgramDraft(draft),
+      );
+      await _pumpEditor(tester, repos);
+      await tester.tap(find.byKey(const ValueKey('program-draft-restore')));
+      await tester.pumpAndSettle();
+      await _save(tester);
+      return (await repos.programs.getById('p1'))!;
+    }
+
+    ProgramEditorDraft draft({
+      required ProgramTimes times,
+      ProgramTimes? timesBaseline,
+      String? venueId,
+      String? venueIdBaseline,
+      bool hasVenueIdBaseline = false,
+    }) => ProgramEditorDraft(
+      title: 'Barn Dance',
+      notes: '',
+      status: ProgramStatus.draft,
+      hideAlternates: false,
+      venueId: venueId,
+      times: times,
+      timesBaseline: timesBaseline,
+      venueIdBaseline: venueIdBaseline,
+      hasVenueIdBaseline: hasVenueIdBaseline,
+      slots: const [],
+    );
+
+    testWidgets('an untouched time takes the synced value; an edited one '
+        'comes back', (tester) async {
+      final repos = openTestRepositories();
+      // Stored now: synced from another device after the draft was written.
+      await repos.programs.create(_program(start: 20 * 60, end: 23 * 60));
+      // The draft: loaded start 19:00 and end 22:00, changed only the end.
+      final saved = await restoreAndSave(
+        tester,
+        repos,
+        draft(
+          times: const ProgramTimes(start: 19 * 60, end: 22 * 60 + 30),
+          timesBaseline: const ProgramTimes(start: 19 * 60, end: 22 * 60),
+        ),
+      );
+      expect(saved.startMinute, 20 * 60, reason: 'synced, not edited');
+      expect(saved.endMinute, 22 * 60 + 30, reason: 'the person\'s edit');
+    });
+
+    testWidgets('an untouched venue link takes the synced one; an edited one '
+        'comes back', (tester) async {
+      final repos = openTestRepositories();
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));
+      await repos.venues.upsert(Venue(id: 'v2', name: 'Town Hall'));
+      await repos.venues.upsert(Venue(id: 'v3', name: 'Barn'));
+      await repos.programs.create(_program(venueId: 'v2'));
+      final untouched = await restoreAndSave(
+        tester,
+        repos,
+        draft(
+          times: const ProgramTimes(),
+          timesBaseline: const ProgramTimes(),
+          venueId: 'v1',
+          venueIdBaseline: 'v1',
+          hasVenueIdBaseline: true,
+        ),
+      );
+      expect(untouched.venueId, 'v2', reason: 'synced, not edited');
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      final repos2 = openTestRepositories();
+      await repos2.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));
+      await repos2.venues.upsert(Venue(id: 'v2', name: 'Town Hall'));
+      await repos2.venues.upsert(Venue(id: 'v3', name: 'Barn'));
+      await repos2.programs.create(_program(venueId: 'v2'));
+      final edited = await restoreAndSave(
+        tester,
+        repos2,
+        draft(
+          times: const ProgramTimes(),
+          timesBaseline: const ProgramTimes(),
+          venueId: 'v3',
+          venueIdBaseline: 'v1',
+          hasVenueIdBaseline: true,
+        ),
+      );
+      expect(edited.venueId, 'v3', reason: 'the person\'s edit');
+    });
+
+    testWidgets('end to end: the editor\'s own autosaved draft records the '
+        'baseline', (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program(start: 19 * 60, end: 22 * 60));
+      await _pumpEditor(tester, repos, use24Hour: true);
+      await _typeTime(tester, 'end', 22, 30);
+      // Let the debounced autosave write the draft, then leave unsaved.
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      expect(await repos.settings.get(programEditorDraftKey('p1')), isNotNull);
+
+      // Another device changes the start; sync applies it.
+      final stored = (await repos.programs.getById('p1'))!;
+      await repos.programs.updateAndReadBack(
+        stored.copyWith(
+          startMinute: 20 * 60,
+          updatedAt: DateTime.utc(2026, 10, 30),
+        ),
+      );
+
+      await _pumpEditor(tester, repos, use24Hour: true);
+      await tester.tap(find.byKey(const ValueKey('program-draft-restore')));
+      await tester.pumpAndSettle();
+      await _save(tester);
+      final saved = (await repos.programs.getById('p1'))!;
+      expect(saved.startMinute, 20 * 60, reason: 'synced, not edited');
+      expect(saved.endMinute, 22 * 60 + 30, reason: 'the person\'s edit');
+    });
+
+    testWidgets('a draft that recorded no baseline restores as written', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program(start: 20 * 60));
+      final saved = await restoreAndSave(
+        tester,
+        repos,
+        draft(times: const ProgramTimes(start: 19 * 60)),
+      );
+      expect(saved.startMinute, 19 * 60);
+    });
   });
 
   group('summary', () {

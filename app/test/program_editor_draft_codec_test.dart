@@ -193,4 +193,59 @@ void main() {
       );
     });
   });
+
+  group('restore baselines', () {
+    ProgramEditorDraft draft({
+      ProgramTimes? timesBaseline,
+      String? venueIdBaseline,
+      bool hasVenueIdBaseline = false,
+    }) => ProgramEditorDraft(
+      title: 'T',
+      notes: '',
+      status: ProgramStatus.draft,
+      hideAlternates: false,
+      timesBaseline: timesBaseline,
+      venueIdBaseline: venueIdBaseline,
+      hasVenueIdBaseline: hasVenueIdBaseline,
+      slots: const [],
+    );
+
+    test('round-trip, a null venue baseline included', () {
+      final decoded = decodeProgramDraft(
+        encodeProgramDraft(
+          draft(
+            timesBaseline: const ProgramTimes(start: 1170),
+            hasVenueIdBaseline: true,
+          ),
+        ),
+      );
+      expect(decoded.timesBaseline, const ProgramTimes(start: 1170));
+      expect(decoded.hasVenueIdBaseline, isTrue);
+      expect(decoded.venueIdBaseline, isNull);
+    });
+
+    test('not recorded stays not recorded', () {
+      final encoded = encodeProgramDraft(draft());
+      expect(encoded, isNot(contains('timesBaseline')));
+      expect(encoded, isNot(contains('venueIdBaseline')));
+      final decoded = decodeProgramDraft(encoded);
+      expect(decoded.timesBaseline, isNull);
+      expect(decoded.hasVenueIdBaseline, isFalse);
+    });
+
+    test('a malformed baseline time is rejected', () {
+      expect(
+        () => decodeProgramDraft({
+          'v': 1,
+          'title': 'T',
+          'notes': '',
+          'status': 'draft',
+          'hideAlternates': false,
+          'timesBaseline': {'end': 1440},
+          'slots': <Object?>[],
+        }),
+        throwsFormatException,
+      );
+    });
+  });
 }
