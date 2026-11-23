@@ -54,10 +54,15 @@ enum GateDirection {
 /// into this move; there is deliberately no separate figure for it.
 ///
 /// Three parameters name dancers and they are **not** interchangeable. `who`
-/// and `whom` say which side backs up and which walks forward, and are
-/// descriptive for the net position. It is `pair` — a third axis — that selects
-/// the *gating pairs*. When `pair` is absent, dancers pair by shared column,
-/// the default hands-four adjacency.
+/// and `whom` say which side backs up and which walks forward, and on a whole
+/// or half turn are descriptive for the net position. It is `pair` — a third
+/// axis — that selects the *gating pairs* there. When `pair` is absent, dancers
+/// pair by shared column, the default hands-four adjacency.
+///
+/// A **fractional** gate differs on both counts: its gating pairs are fixed by
+/// the shape (the sides of a ring, or the halves of a line of four), `pair` is
+/// only checked against them, and on a `mirror` gate the forward dancer
+/// (`whom`, or the one not in `who`) decides the sense (see [_quarterPlan]).
 ///
 /// The ending facing is **stored data**, not derived. CallersCompendium
 /// withdrew its absolute end-facing derivation as unsound: an absolute cardinal
@@ -75,15 +80,19 @@ final class Gate extends Operation {
     this.face,
   });
 
-  /// The side that extends a hand and backs up — the pivot. Descriptive.
-  /// `null` is the upstream `unspecified` sentinel.
+  /// The side that extends a hand and backs up — the pivot. Descriptive on a
+  /// whole or half turn; on a fractional `mirror` gate it decides the sense
+  /// when [whom] is absent. `null` is the upstream `unspecified` sentinel.
   final WhoSet? who;
 
-  /// The side that walks forward. Descriptive; `null` is `unspecified`.
+  /// The side that walks forward. Descriptive on a whole or half turn; on a
+  /// fractional `mirror` gate it decides the sense. `null` is `unspecified`.
   final WhoSet? whom;
 
-  /// The pairing the gate is danced with. **This selects the gating pairs.**
-  /// `null` falls back to pairing by shared column.
+  /// The pairing the gate is danced with. On a whole or half turn **this
+  /// selects the gating pairs**, and `null` falls back to pairing by shared
+  /// column. On a fractional gate the shape fixes the pairs and this is only
+  /// checked against them.
   final WhoSet? pair;
 
   /// The rotation sense. No net-position effect at whole or half turns.
@@ -93,7 +102,10 @@ final class Gate extends Operation {
   ///
   /// `null` is the upstream `unspecified` sentinel, and it is **refused**: the
   /// taxonomy makes the amount the sole determinant of where dancers end, so
-  /// assuming one would silently compile a different dance.
+  /// assuming one would silently compile a different dance. The one exception
+  /// is a bare gate (nothing else stated) standing in a line of four: that is
+  /// how a "hand cast" arrives, and it closes the line the way `bendTheLine`
+  /// does (user-ruled; see [_isBareHandCast]).
   final double? turn;
 
   /// The ending facing, when the source states one. Authoritative when present.

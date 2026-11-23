@@ -2099,13 +2099,15 @@ To be defined later with worked examples.
 - **params** (meets CallersCompendium baseline
   `{who, whom, pair, direction, travel, endFacing, beats}`):
   - `who` — dancer set. **The side that extends a hand and backs up** (the pivot / inside of the
-    arc). **Descriptive** for net position (see effect).
+    arc). **Descriptive** for net position on a whole or half turn (see effect).
   - `whom` — dancer set. **The side that walks forward** (the outside of the arc). **Descriptive**
-    for net position.
+    for net position on a whole or half turn. On a fractional `mirror` gate the forward dancer
+    (`whom`, or the one not in `who`) **decides the sense** (see effect).
   - `pair` — dancer relationship, a `who`-style value (e.g. `neighbors`, `partners`,
     `role1s`/`role2s`). A **third axis**: the *pairing the gate is danced with*, not which side
-    moves. **Selects the gating pairs** — see effect. Optional; when absent the default pairing
-    applies.
+    moves. **Selects the gating pairs** on a whole or half turn — see effect. Optional; when
+    absent the default pairing applies. On a fractional gate the shape fixes the pairs and `pair`
+    is only checked against them.
   - `direction` — enum {`clockwise`, `counterclockwise`, `mirror`}. `mirror` = a two-couple gate in
     which the roles rotate in **opposite** senses (this is why it is not a plain spin direction).
     **No net-position effect** for whole or half turns (a 180° rotation lands the same either way).
@@ -2118,7 +2120,8 @@ To be defined later with worked examples.
 - **effect:** first resolve the **gating pairs**, then apply `turn`.
   - **Pairing.** If `pair` is **specified**, each gating pair is a `who`-side dancer and the
     `whom`-side dancer holding that relationship with them — this **may override** the default. If
-    `pair` is **unspecified**, pair dancers by **shared column** (the default hands-four adjacency).
+    `pair` is **unspecified**, pair dancers by **shared column** (the default hands-four adjacency). This pairing
+    governs whole and half turns; a fractional turn gates the halves of its shape (below).
   - **`turn` = whole number** (1, 2, …) → **no-op**. Each pair returns to where it started.
   - **`turn` = half** (½, 1½, …) → **swap the two members of each gating pair**. The swap *axis*
     falls out of where the paired dancers currently stand:
