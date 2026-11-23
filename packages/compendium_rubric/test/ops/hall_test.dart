@@ -184,8 +184,11 @@ void main() {
       }
     });
 
-    test('a scoping narrower than the whole hands four is refused', () {
-      final error = applyErr(const DownTheHall(who: WhoSet.ones), base());
+    test('a pair relation as the leaders is refused', () {
+      final error = applyErr(
+        const DownTheHall(who: WhoSet.partners, moving: HallMoving.center),
+        base(),
+      );
       expect(error.kind, ErrorKind.unsupportedParam);
     });
   });
