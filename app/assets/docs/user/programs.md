@@ -260,8 +260,9 @@ the end again. The new dance is always a primary: **before** puts it ahead of
 the slot's alternates as well, and **after** puts it after the last of them, so
 it never becomes, or splits up, another dance's alternates. Choosing either
 from an alternate's menu gives the same place as from its primary's. If the
-slot is an alternate with no dance above it, choosing **Add a dance before**
-turns that alternate into a dance of its own. A break or note slot counts on
+slot is one of a run of alternates at the top of the program, with no dance
+above them, choosing **Add a dance before** turns the first of them into a
+dance of its own, and the rest become its alternates. A break or note slot counts on
 its own. Screen readers announce where the dance went:
 *Added Rory O'More before Chorus Jig*. To put a note or a break in the middle,
 add it and then move it.
