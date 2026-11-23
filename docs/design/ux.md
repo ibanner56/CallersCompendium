@@ -363,7 +363,14 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 - Zero destructive actions reachable; exit via deliberate gesture/button with
   confirm by default (Settings › Program › Performance). Optional: per-slot timer/clock display.
 - On-the-fly: reorder remaining slots, insert from quick-search, add ad-hoc
-  note — all in an "adjust" sheet, never disturbing the reading view.
+  note, swap the current or an upcoming dance — all in an "adjust" sheet,
+  never disturbing the reading view.
+- Swap a dance (#2346): the swap sheet opens already searched, with Keep chips
+  seeded from the dance (same formation, this level or easier, same type in a
+  mixed program, not already in the program, and figures with same-phrase and
+  with-what-comes-before refinements). Defaults are a setting; the slot's
+  alternates are listed first; two taps with the defaults; the swapped-out
+  dance becomes an alternate; Undo restores the slot exactly.
 
 ### 6. Settings
 - **Dialect manager**: named dialects, preset picker, role/move term editor

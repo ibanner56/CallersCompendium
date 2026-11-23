@@ -855,7 +855,9 @@ An [alternate](./glossary.md#alt) counts only once you mark that slot
 performed, whichever way you choose. Listing a dance as a fallback is not
 calling it: if Hull's Victory is the alternate to Chorus Jig and you call Chorus
 Jig, only Chorus Jig's count goes up. Mark Hull's Victory performed too if you
-called it instead, or as well.
+called it instead, or as well. When you
+[swap a dance](./perform.md#swap-a-dance) in Perform, the dance you swapped out
+becomes an alternate in the same way, so it is not counted unless you mark it.
 
 Adding a dance to a program that is already **Performed** does not mark the
 new slot performed, because only the change to Performed stamps the slots. By

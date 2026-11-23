@@ -244,7 +244,9 @@ From it you can:
 - **reorder the remaining slots** (with a drag handle or move up / move down
   buttons);
 - **insert a dance** with **Insert dance from search**;
-- **add an ad-hoc note or break**; and
+- **add an ad-hoc note or break**;
+- **swap a dance** for another that keeps what matters (see
+  [Swap a dance](#swap-a-dance)); and
 - **mark the current slot performed** (choose it again to clear the mark).
 
 An inserted dance and an ad-hoc note both land right after the current slot, so
@@ -270,6 +272,44 @@ only slots marked performed, this is where you mark them — see
 
 This sheet belongs to program Perform. Performing a single dance has nothing to
 reorder, so it has no adjust sheet.
+
+### Swap a dance
+
+When the floor isn't ready for the dance you planned, swap it. **Swap this
+dance** in the adjust sheet swaps the dance you are calling, and the swap
+button on each upcoming dance's row swaps that one. Swap is not offered on a
+dance you have marked performed, on a note or break, or on a slot before the
+current one. Swapping an upcoming dance leaves you on the card you are reading.
+
+The swap sheet opens already searched. Its **Keep** choices come from the dance
+you are swapping:
+
+- **Same formation**, such as Becket;
+- **This level or easier**, the dance's level and every easier one;
+- **Same type** (contra or English), offered only when the program mixes types;
+- **Not already in tonight's program**; and
+- **Figures to keep**: each of the dance's figures, with the phrase it is in.
+  Keep one and **In the same phrase** appears for it, and, when a single
+  figure comes right before it, **With what comes before it**, which asks for
+  that figure right before it too.
+
+Every Keep choice but the figures starts on; you can change which ones in
+[Settings ▸ Program ▸ Perform mode ▸ Swap a dance](./settings.md#perform-mode).
+The results change as you turn choices on and off, with no Search button. The
+slot's own [alternates](./glossary.md#alt) are listed first, under **Your
+alternates**, whatever the Keep choices, and the dance you are swapping is never
+listed. **More filters** opens the full search panels with the same choices
+already set, so you can change them there or add others.
+
+Tap a dance to swap it in. The slot keeps its note, guest caller and planned
+times; only the dance changes. The dance you swapped out becomes the slot's
+first alternate, so it stays in the program but does not count as called (see
+[calling history](./programs.md#track-what-you-have-called)). Choosing one of
+your alternates trades the two dances. **Undo** puts the slot back exactly as it
+was. The swap searches only your collection, never online.
+
+For an English dance, Same formation is not offered, and its figures can be
+kept but without the two phrase choices. The swap sheet says so.
 
 ## Screen readers and verbose figures
 

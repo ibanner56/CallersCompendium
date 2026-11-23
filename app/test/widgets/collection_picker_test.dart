@@ -426,6 +426,47 @@ class _PagedContraDb extends ContraDbOnline {
 }
 
 void main() {
+  // #2346: a host can leave dances out of the results, and a change to that
+  // set alone searches again.
+  testWidgets('excludedDanceIds leaves dances out, and a new set re-runs the '
+      'search', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'a', title: 'Alpha Reel'));
+    await repos.dances.create(_dance(id: 'b', title: 'Beta Reel'));
+    final data = await CollectionData.load(repos);
+    final excluded = ValueNotifier<Set<String>>({'a'});
+    addTearDown(excluded.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: RepositoriesScope(
+            repositories: repos,
+            child: ValueListenableBuilder<Set<String>>(
+              valueListenable: excluded,
+              builder: (context, ids, _) => CollectionPicker(
+                data: data,
+                dialect: Dialect.larksRobins,
+                enrichment: SearchEnrichment.empty,
+                excludedDanceIds: ids,
+                onAddDance: (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Alpha Reel'), findsNothing);
+    expect(find.text('Beta Reel'), findsOneWidget);
+
+    excluded.value = {'b'};
+    await tester.pumpAndSettle();
+    expect(find.text('Alpha Reel'), findsOneWidget);
+    expect(find.text('Beta Reel'), findsNothing);
+  });
+
   // Issue #1420: the picker builds its own FacetPanel, so the Tunes facet has
   // to be wired here separately from the Collection screen.
   testWidgets('the Tunes facet narrows the picker list (#1420)', (

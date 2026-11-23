@@ -18,8 +18,8 @@ import 'perform_swap_sheet.dart';
 
 /// The non-destructive in-event "adjust" sheet for Performance mode
 /// (`docs/design/ux.md` §5: "reorder remaining slots, insert from quick-search,
-/// add ad-hoc note — all in an 'adjust' sheet, never disturbing the reading
-/// view"). Also lets the caller mark the current slot performed
+/// add ad-hoc note, swap the current or an upcoming dance — all in an
+/// 'adjust' sheet, never disturbing the reading view"). Also lets the caller mark the current slot performed
 /// (`ProgramSlot.performedAt`), and swap the dance being called or an upcoming
 /// one for another (**Swap**, #2346): never a dance already called, that is a
 /// slot before the current one or one marked performed.
