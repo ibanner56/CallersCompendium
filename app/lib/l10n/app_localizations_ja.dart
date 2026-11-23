@@ -7813,6 +7813,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'このダンスは小節で数えていますが拍子の記載がないため、1小節を2拍として数えました。カウントを確認してください。';
 
   @override
+  String get importIssueBarsMeterMixed =>
+      'このダンスは小節で数えていますが、小節の長さが異なる拍子が記載されているため、1小節を2拍として数えました。カウントを確認してください。';
+
+  @override
   String get importIssueUnmappedType =>
       'ダンスの種類を認識できませんでした。コントラとしてインポートし、ノートに保持しました。';
 

@@ -1,0 +1,14 @@
+{
+  "id": "2365-cc-mixed-meter",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A Caller's Companion English dance whose Music names meters of different bar lengths, such as \"Meter: 3/4 and 6/8\", keeps them all as its Meter and counts each bar as 2 beats, and the import review says so."
+    ]
+  },
+  "core": {
+    "added": [
+      "`ccMusicMeterAndKey` reads every meter in a Music text, keeping meters of different bars as written (which `ecdBeatsPerBar` reads as stating none), and `mapCallersCompanionDance` notes bars counted under them with `cc_bars_meter_mixed`."
+    ]
+  }
+}

@@ -8191,6 +8191,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Deze dans telt in maten maar vermeldt geen maatsoort, dus elke maat is als 2 tellen geteld. Controleer de tellingen.';
 
   @override
+  String get importIssueBarsMeterMixed =>
+      'Deze dans telt in maten maar vermeldt maatsoorten met verschillende maatlengtes, dus elke maat is als 2 tellen geteld. Controleer de tellingen.';
+
+  @override
   String get importIssueUnmappedType =>
       'Een danstype werd niet herkend; geïmporteerd als contra en bewaard in de notities.';
 

@@ -8147,6 +8147,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Dansen tæller i takter, men angiver ingen taktart, så hver takt blev talt som 2 slag. Tjek dens tællinger.';
 
   @override
+  String get importIssueBarsMeterMixed =>
+      'Dansen tæller i takter, men nævner taktarter med forskellig taktlængde, så hver takt blev talt som 2 slag. Tjek dens tællinger.';
+
+  @override
   String get importIssueUnmappedType =>
       'En dansetype blev ikke genkendt; importeret som en contra og bevaret i noterne.';
 
