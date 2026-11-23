@@ -383,6 +383,29 @@ void main() {
       expect(warnings.single.message, contains('up_the_hall'));
     });
 
+    test('a hall figure inside a container is paired too', () {
+      // Down the hall inside a modifier, back up on its own line: a matched
+      // pair, so no warning.
+      const modifier = FiguresInOrder([
+        DownTheHall(),
+        RollAway(whom: WhoSet.partners),
+      ], name: 'modifier');
+      expect(warningsFor([modifier, const UpTheHall()]), isEmpty);
+
+      // One left unmatched inside a container is named and placed at the
+      // container.
+      final warnings = warningsFor([
+        const Petronella(),
+        const Meanwhile([
+          UpTheHall(who: WhoSet.ones),
+          RollAway(whom: WhoSet.partners),
+        ]),
+      ]);
+      expect(warnings, hasLength(1));
+      expect(warnings.single.opIndex, 1);
+      expect(warnings.single.message, contains('up_the_hall'));
+    });
+
     test('a dance with no hall figures is silent', () {
       expect(warningsFor([const Petronella()]), isEmpty);
     });

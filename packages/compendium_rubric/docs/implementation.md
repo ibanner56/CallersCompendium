@@ -56,7 +56,7 @@ lib/
       geometry.dart             bands, groupings, waiting-out, rings, travel direction
     ops/
       operation.dart            sealed Operation base + `part` directives for every figure
-      figures/*.dart            29 part files, one family each (containers.dart: modifier, meanwhile, nested sequence)
+      figures/*.dart            30 part files, one family each (containers.dart: modifier, meanwhile, nested sequence)
       params.dart               shared param enums (Hand, WhoSet, Direction, ...)
       who.dart                  who-set resolution + cross-hands-four refusal
       transforms.dart           reusable state transforms (swaps, reflections, waves)
@@ -773,7 +773,7 @@ rest cannot pass for the wrong reason.
 
 ## 15. Current state and known debt
 
-- **1,295 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,296 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

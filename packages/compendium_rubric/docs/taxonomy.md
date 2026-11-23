@@ -532,7 +532,8 @@ exactly as it would be on a line of its own. Implemented in `lib/src/ops/figures
   is their sum, `reachAfter` their widest reach, and `dancerSets` all of theirs (so a child
   naming shadows sizes the set). Lint warnings are the main figure's for a modifier and every
   part's for a meanwhile; a modifier's later children start from states that exist only part-way
-  through and are not linted *(agent's call)*.
+  through and are not linted *(agent's call)*. The dance-level `oneSidedHall` lint pairs a hall
+  figure inside a container like one on its own line, and places its warning at the container.
 - **Couple-`who` `orbit` is unchanged.** A meanwhile runs each part as that part already runs,
   so an orbit by `ones` or `twos` keeps the swap rule recorded under `orbit` and its caveat.
 
