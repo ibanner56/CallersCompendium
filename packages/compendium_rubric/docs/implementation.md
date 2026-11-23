@@ -648,6 +648,18 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > N2, W1 with N1", "Heads with N2", "face N2 M2") is not a mention. Notes inside
 > a container count, as params do *(agent's call)*.
 >
+> **Later progressions follow N3 and N4** *(user-ruled 2026-11-23: "N3 marks
+> the second", "N4 marks a third")*. On the same retry, a Double dance also
+> flags its second progression by the first mention of the third neighbours
+> after the first progression, and a Triple (or longer) its third by the first
+> mention of the fourth (`laterNeighborsProgressionIndex`). The reading is the
+> N2 one: a `thirdNeighbors` param or a "with N3" note puts it on the figure
+> before, "face N3" on that figure, a note-only mention followed by a nearer
+> neighbour set again is an excursion, and a clause about only some dancers
+> does not count. Each must fall after the progression before it. The engine
+> already dances several flags (`progressionCount`, `reachAfter`); only the
+> bridge was placing one. Positional placement never adds a second.
+>
 > This stays inside rule 5 because the landmark comes from the *record*: it reads
 > figure parameters and notes, exactly as the positional rule reads formation and
 > move names. Nothing looks at where the dancers ended up. It is also not a search —
@@ -834,7 +846,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,429 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,443 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,
