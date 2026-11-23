@@ -116,6 +116,8 @@ class _ProgramTemplatesSettingsRowsState
           dropdownBuilder: (expanded) => AppDropdownField<String?>(
             key: const ValueKey('defaults-program-template-default'),
             compact: true,
+            // The list grows with the user's own templates.
+            filterable: true,
             fillWidth: expanded,
             value: templates.defaultId,
             onChanged: _templates == null ? null : _setDefault,
@@ -149,6 +151,7 @@ Future<String?> _askName(
 }) async {
   final name = await showDialog<String>(
     context: context,
+    animationStyle: AppMotion.styleFor(context),
     builder: (_) => _TemplateNameDialog(title: title, initial: initial),
   );
   return name == null || name.isEmpty ? null : name;

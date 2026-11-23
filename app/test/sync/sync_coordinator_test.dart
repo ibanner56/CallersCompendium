@@ -7902,6 +7902,8 @@ void main() {
       expect(SyncCapabilityPolicy.build.advertised, {
         SyncCapabilities.glossaryV1,
         SyncCapabilities.glossaryV2,
+        // Program templates (#2337) are covered by their own rollout test.
+        SyncCapabilities.programTemplatesV1,
       });
       expect(SyncCapabilityPolicy.build.gatedRecordKinds, {
         SyncRecordKind.glossaryEntry: SyncCapabilities.glossaryV1,
@@ -7911,6 +7913,8 @@ void main() {
         'show_custom_figures': SyncCapabilities.glossaryV1,
         'compound_shorthands': SyncCapabilities.glossaryV1,
         'user_figure_shorthands': SyncCapabilities.glossaryV2,
+        'program_template_order': SyncCapabilities.programTemplatesV1,
+        'program_template_default': SyncCapabilities.programTemplatesV1,
       });
       expect(SyncCapabilityPolicy.build.gatedGlossaryEntryKinds, {
         'term': SyncCapabilities.glossaryV2,
@@ -8436,6 +8440,7 @@ void main() {
         'capabilities': [
           SyncCapabilities.glossaryV1,
           SyncCapabilities.glossaryV2,
+          SyncCapabilities.programTemplatesV1,
         ],
       }, reason: 'this build advertises the capabilities');
 
