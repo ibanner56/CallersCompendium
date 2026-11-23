@@ -3224,6 +3224,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wenn diese Option aktiviert ist, werden gültige Änderungen während der Arbeit gespeichert, sodass beim Verlassen des Editors nicht gefragt wird, ob sie verworfen werden sollen. Deaktiviere sie, um Programme ausdrücklich zu speichern.';
 
   @override
+  String get settingsProgramShowPayTitle => 'Gage anzeigen';
+
+  @override
+  String get settingsProgramShowPaySubtitle =>
+      'Wenn deaktiviert, blenden Programmeditor und Übersicht die Gage aus. Bereits eingetragene Gagen bleiben erhalten und erscheinen wieder, wenn du dies erneut aktivierst.';
+
+  @override
   String get settingsMatrixColumnsHeader => 'Matrixspalten';
 
   @override

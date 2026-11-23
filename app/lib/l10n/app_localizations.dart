@@ -4876,6 +4876,18 @@ abstract class AppLocalizations {
   /// **'When on, valid changes are saved as you work, so leaving the editor does not ask whether to discard them. Turn off to save programs explicitly.'**
   String get settingsProgramAutoCommitSubtitle;
 
+  /// Title of the Settings > Program > Programs switch that shows or hides each program's Pay field in the editor and its pay line on the summary. On by default.
+  ///
+  /// In en, this message translates to:
+  /// **'Show pay'**
+  String get settingsProgramShowPayTitle;
+
+  /// Subtitle of the Show pay switch: turning it off only hides pay in the program editor and summary; stored pay is never cleared.
+  ///
+  /// In en, this message translates to:
+  /// **'When off, the program editor and summary hide pay. Pay already entered is kept, and shows again when you turn this back on.'**
+  String get settingsProgramShowPaySubtitle;
+
   /// Header for the Program settings editor that reorders, renames, and removes program-matrix columns.
   ///
   /// In en, this message translates to:

@@ -463,6 +463,7 @@ final Map<String, DataClassification> settingsClassifications = {
   'history_order_ignore_undated': _preference,
   'history_order_ignore_unperformed': _preference,
   'show_performed_toggles': _preference,
+  'show_program_pay': _preference,
   'track_history_for_all_callers': _preference,
   'venue_call_count': _preference,
 

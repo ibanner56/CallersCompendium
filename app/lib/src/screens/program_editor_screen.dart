@@ -21,6 +21,7 @@ import '../data/program_auto_commit_scope.dart';
 import '../data/program_dialect.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
+import '../data/show_program_pay_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
 import '../data/callersbox_online.dart';
@@ -209,6 +210,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// The pay amount as typed (a plain decimal in [_payCurrency]); empty means
   /// no pay is recorded (issue #1418).
   final _payController = TextEditingController();
+
+  /// Whether the Show pay setting is on ([ShowProgramPayScope], issue #2355),
+  /// read in [didChangeDependencies] so the save and draft paths, which run
+  /// outside build, see the live value.
+  bool _showPay = true;
 
   /// The ISO 4217 code chosen for the pay; `null` until the person or a loaded
   /// program picks one, in which case the locale's default applies.
@@ -719,6 +725,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       }
     }
     _defaultPayCurrency = defaultPayCurrency(Localizations.localeOf(context));
+    _showPay = ShowProgramPayScope.of(context);
     // Read the active dialect if a scope is present; tolerate its absence
     // (e.g. narrow embedded tests) with a sensible default.
     final scope = context
@@ -1053,6 +1060,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _payCurrency != baselineCurrency;
   }
 
+  /// Whether pay is hidden by the Show pay setting (issue #2355) and the pay
+  /// input still holds what this editor loaded, so a save or draft must keep
+  /// the program's stored pay rather than read it from the input.
+  ///
+  /// A pay change typed before pay was hidden is not held back: it is the
+  /// person's input and is saved like any other edit.
+  bool get _payHeldBack {
+    if (_showPay) return false;
+    final existing = _existing;
+    if (existing != null) return !_payEditedSince(existing);
+    return _payController.text.trim().isEmpty && _payCurrency == null;
+  }
+
   /// Loads [program] into the editor. When [payBaseline] is given (an Undo
   /// rebase of a live editor) and the person has changed the pay input since
   /// that baseline, the raw pay text and currency are kept: [program] carries a
@@ -1253,6 +1273,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       status: _status,
       hideAlternates: _hideAlternates,
       dialectName: _dialectName,
+      // Pay hidden and untouched: write the draft without pay, so restoring
+      // it keeps the program's pay as stored then, not this copy (#2355).
+      hasPay: !_payHeldBack,
       payText: _payController.text.trim(),
       payCurrency: _effectivePayCurrency,
       slots: List.unmodifiable(_renumber(_slots)),
@@ -2808,6 +2831,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       // blocked separately (see _save), and an export should not flicker to
       // "no pay" while the person is mid-typing.
       final pay = _parsedPay();
+      // Pay hidden and untouched (#2355): the base's pay rides through
+      // exactly, never re-read from the hidden input.
+      final keepPay = _payHeldBack;
       return base.copyWith(
         title: title,
         eventDate: _eventDate,
@@ -2827,9 +2853,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         hideAlternates: _hideAlternates,
         dialectName: _dialectName,
         clearDialectName: _dialectName == null,
-        payMinorUnits: pay.units,
-        payCurrency: pay.units == null ? null : pay.currency,
-        clearPay: pay.isEmpty,
+        payMinorUnits: keepPay ? null : pay.units,
+        payCurrency: keepPay || pay.units == null ? null : pay.currency,
+        clearPay: !keepPay && pay.isEmpty,
         slots: _renumber(_slots),
       );
     } catch (_) {
@@ -2865,6 +2891,20 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (before != null && venueId == _venueIdBaseline) {
       venueId = before.venueId;
     }
+    // Pay hidden and untouched (#2355): write the pay as stored now, so a
+    // change that reached it while this editor was open (sync, another
+    // window) is not overwritten by a copy the person cannot see. The input
+    // follows, so the adopted result does not read as a pay edit.
+    var payMinorUnits = draft.payMinorUnits;
+    var payCurrency = draft.payCurrency;
+    if (before != null && _payHeldBack) {
+      payMinorUnits = before.payMinorUnits;
+      payCurrency = before.payCurrency;
+      if (payMinorUnits != existing?.payMinorUnits ||
+          payCurrency != existing?.payCurrency) {
+        _setPayFrom(before);
+      }
+    }
     final persisted = Program(
       id: existing?.id ?? uuidV4(),
       title: draft.title,
@@ -2878,8 +2918,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       status: draft.status,
       hideAlternates: draft.hideAlternates,
       dialectName: draft.dialectName,
-      payMinorUnits: draft.payMinorUnits,
-      payCurrency: draft.payCurrency,
+      payMinorUnits: payMinorUnits,
+      payCurrency: payCurrency,
       slots: draft.slots,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
@@ -4516,8 +4556,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   border: const OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: AppSpacing.md),
-              _buildPayField(l10n),
+              // Hidden by Show pay (#2355), except once it holds an amount
+              // that does not parse: that blocks saving, so the person must
+              // be able to see and fix it, and it stays shown while they do.
+              if (_showPay || _revealHiddenPay()) ...[
+                const SizedBox(height: AppSpacing.md),
+                _buildPayField(l10n),
+              ],
               const SizedBox(height: AppSpacing.md),
               AppDropdownField<ProgramStatus>(
                 key: const ValueKey('program-status'),
@@ -4572,6 +4617,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       ],
     );
   }
+
+  /// Whether [_buildPayField] shows while Show pay is off: from the first
+  /// build that finds an unparseable amount, for the rest of this editor's
+  /// life, so the field does not vanish as the amount is corrected.
+  bool _hiddenPayRevealed = false;
+
+  bool _revealHiddenPay() =>
+      _hiddenPayRevealed = _hiddenPayRevealed || _parsedPay().isInvalid;
 
   /// Pay amount plus currency selector (issue #1418). The amount is a plain
   /// decimal in the selected currency; invalid text shows an error and blocks

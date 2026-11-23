@@ -106,6 +106,7 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'require_performed_for_history' =>
     l10n.settingsGeneralRequirePerformedForHistoryTitle,
   'show_performed_toggles' => l10n.settingsGeneralShowPerformedTogglesTitle,
+  'show_program_pay' => l10n.settingsProgramShowPayTitle,
   'set_list_color_coding' => l10n.settingsAppearanceSetListColorTitle,
   'shorthand_mappings' => l10n.settingsDefaultsFigureShorthandsTitle,
   'compound_shorthands' => l10n.shorthandsCompoundTitle,
