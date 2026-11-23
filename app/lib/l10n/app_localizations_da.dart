@@ -10509,6 +10509,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get shorthandsUserFigureSyncLabel => 'Forkortelser til nye figurer';
 
   @override
+  String get syncSavedSearchLabel => 'Gemt søgning';
+
+  @override
   String get shorthandsCompoundIntro =>
       'Når fri tekstindtastning er slået til, tilføjer du en af dine egne figurer med de værdier, der er valgt her, ved at skrive en af disse kortformer som en hel linje, mens du redigerer en dans.';
 

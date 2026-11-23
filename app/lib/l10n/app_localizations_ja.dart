@@ -10107,6 +10107,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get shorthandsUserFigureSyncLabel => '新しいフィギュア用のショートハンド';
 
   @override
+  String get syncSavedSearchLabel => '保存した検索';
+
+  @override
   String get shorthandsCompoundIntro =>
       'フリーテキスト入力がオンのとき、ダンスの編集中にこれらのいずれかを1行だけ入力すると、ここで選んだ値で自分のフィギュアが追加されます。';
 

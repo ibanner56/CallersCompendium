@@ -10166,6 +10166,10 @@
   "@shorthandsUserFigureSyncLabel": {
     "x-sourceSha256": "0d3bbcab1f6e886cc37a28859a00354f3bbc29474f53b2d49120becbf6b6b5fe"
   },
+  "syncSavedSearchLabel": "Gemt søgning",
+  "@syncSavedSearchLabel": {
+    "x-sourceSha256": "b0e17e59d9f6e5bc3e78c1a3e9b9d40c3238a69046c0726a97282e9e03a14703"
+  },
   "shorthandsCompoundIntro": "Når fri tekstindtastning er slået til, tilføjer du en af dine egne figurer med de værdier, der er valgt her, ved at skrive en af disse kortformer som en hel linje, mens du redigerer en dans.",
   "@shorthandsCompoundIntro": {
     "x-sourceSha256": "80090b751b53b2c67b417cdeed684cb8b14db7c4fa9ea70f67e05421fec4f587"

@@ -10571,6 +10571,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get shorthandsUserFigureSyncLabel => 'Afkortingen voor nieuwe figuren';
 
   @override
+  String get syncSavedSearchLabel => 'Opgeslagen zoekopdracht';
+
+  @override
   String get shorthandsCompoundIntro =>
       'Als vrije tekstinvoer aan staat, voegt het typen van een van deze afkortingen als hele regel tijdens het bewerken van een dans een van je eigen figuren toe, met de waarden die hier zijn gekozen.';
 

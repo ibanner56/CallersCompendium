@@ -14002,6 +14002,10 @@
   "@shorthandsUserFigureSyncLabel": {
     "description": "The name of the setting holding the shorthands for the user's own new figures (#1023), in sync notices and the sync conflict view. A new figure is one with its own wording, as opposed to a combination of built-in figures."
   },
+  "syncSavedSearchLabel": "Saved search",
+  "@syncSavedSearchLabel": {
+    "description": "The name of a saved search (#2325), a setting a device syncs under its own key, in sync notices and the sync conflict view."
+  },
   "shorthandsCompoundIntro": "With Free-text entry on, typing one of these as a whole line while you edit a dance adds one of your own figures, with the values chosen here.",
   "@shorthandsCompoundIntro": {
     "description": "Explains the compound shorthands section."

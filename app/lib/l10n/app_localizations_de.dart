@@ -10605,6 +10605,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get shorthandsUserFigureSyncLabel => 'Abkürzungen für neue Figuren';
 
   @override
+  String get syncSavedSearchLabel => 'Gespeicherte Suche';
+
+  @override
   String get shorthandsCompoundIntro =>
       'Wenn die Freitexteingabe an ist, fügt das Eintippen einer dieser Abkürzungen als ganze Zeile beim Bearbeiten eines Tanzes eine deiner eigenen Figuren mit den hier gewählten Werten ein.';
 
