@@ -140,6 +140,119 @@ void main() {
     });
   });
 
+  group('a stated sense, from a line of four', () {
+    test('clockwise a quarter: each half wheels the same way', () {
+      final after = applyOk(
+        const Gate(direction: GateDirection.clockwise, turn: 0.25),
+        lineDown(),
+      );
+      expect(after.toRolesNotation(), ['R1-A . . . R2-B', 'L2-B . . . L1-A']);
+      expect(after.dancers.values.map((d) => d.facing).toSet(), {
+        Facing.acrossWest,
+      });
+    });
+
+    test('counter-clockwise a quarter is the mirror image', () {
+      final after = applyOk(
+        const Gate(direction: GateDirection.counterclockwise, turn: 0.25),
+        lineDown(),
+      );
+      expect(after.toRolesNotation(), ['L2-B . . . L1-A', 'R1-A . . . R2-B']);
+      expect(after.dancers.values.map((d) => d.facing).toSet(), {
+        Facing.acrossEast,
+      });
+    });
+
+    test('a mirror three quarters with the ends forward ends facing out', () {
+      final after = applyOk(
+        const Gate(
+          direction: GateDirection.mirror,
+          whom: WhoSet.ones,
+          turn: 0.75,
+        ),
+        lineDown(),
+      );
+      expect(after.toRolesNotation(), ['R1-A . . . L1-A', 'L2-B . . . R2-B']);
+      expect(facingAt(after, 0, 0), Facing.acrossWest);
+      expect(facingAt(after, 1, 0), Facing.acrossWest);
+      expect(facingAt(after, 0, 4), Facing.acrossEast);
+      expect(facingAt(after, 1, 4), Facing.acrossEast);
+    });
+  });
+
+  group('which bands a fractional gate turns', () {
+    const onesForward = Gate(
+      direction: GateDirection.mirror,
+      whom: WhoSet.ones,
+      turn: 1.25,
+    );
+
+    test('every complete hands four turns', () {
+      final after = applyOk(
+        onesForward,
+        di(const [
+          'R1-A . . . L1-A',
+          'L2-B . . . R2-B',
+          'R1-C . . . L1-C',
+          'L2-D . . . R2-D',
+        ]),
+      );
+      expect(after.toRolesNotation(), [
+        'L2-B R1-A . L1-A R2-B',
+        '. . . . .',
+        'L2-D R1-C . L1-C R2-D',
+        '. . . . .',
+      ]);
+    });
+
+    test('a band short a couple is left where it stands', () {
+      final after = applyOk(
+        onesForward,
+        di(const [
+          'R1-A . . . L1-A',
+          'L2-B . . . R2-B',
+          'R1-C . . . L1-C',
+          '. . . . .',
+        ]),
+      );
+      expect(after.toRolesNotation(), [
+        'L2-B R1-A . L1-A R2-B',
+        '. . . . .',
+        'R1-C . . . L1-C',
+        '. . . . .',
+      ]);
+    });
+
+    test('a line whose pairs face opposite ways is refused', () {
+      final mixed = applyOk(const TurnAlone(who: WhoSet.ones), lineDown());
+      final error = applyErr(const Gate(), mixed);
+      expect(error.kind, ErrorKind.unresolvableDancerSet);
+      expect(error.detail, contains('by the way each pair faces'));
+    });
+
+    test('a line off the usual columns is refused, not a crash', () {
+      final error = applyErr(
+        const Gate(),
+        di(const ['R1-A L2-B L1-A R2-B .', '. . . . .']),
+      );
+      expect(error.kind, ErrorKind.unresolvableDancerSet);
+    });
+
+    test('face:along is still refused', () {
+      final error = applyErr(
+        const Gate(
+          direction: GateDirection.mirror,
+          whom: WhoSet.ones,
+          turn: 1.25,
+          face: GateFace.along,
+        ),
+        base(),
+      );
+      expect(error.kind, ErrorKind.unsupportedParam);
+      expect(error.detail, contains('names no single direction'));
+    });
+  });
+
   group('a stated face on a fractional gate', () {
     const out = Gate(
       direction: GateDirection.mirror,
@@ -173,6 +286,23 @@ void main() {
       final viaGate = applyOk(const Gate(), lineDown());
       final viaBend = applyOk(
         const DownTheHall(ender: HallEnder.bendTheLine),
+        base(),
+      );
+      expect(viaGate.toRolesNotation(), viaBend.toRolesNotation());
+      for (final id in viaGate.dancers.keys) {
+        expect(
+          viaGate.stateOf(id).facing,
+          viaBend.stateOf(id).facing,
+          reason: '$id',
+        );
+      }
+    });
+
+    test('an up-facing line closes where the up_the_hall ender does', () {
+      final line = applyOk(const UpTheHall(ender: HallEnder.none), base());
+      final viaGate = applyOk(const Gate(), line);
+      final viaBend = applyOk(
+        const UpTheHall(ender: HallEnder.bendTheLine),
         base(),
       );
       expect(viaGate.toRolesNotation(), viaBend.toRolesNotation());

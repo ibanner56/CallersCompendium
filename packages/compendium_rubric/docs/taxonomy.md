@@ -2144,7 +2144,13 @@ To be defined later with worked examples.
     `bendTheLine`**: the ends walk forward, so each half wheels into its side of the ring facing
     in. *(User-ruled 2026-11-23.)* Read as a gate, that is the centres walking forward ¾, which
     lands exactly where the ends walking forward ¼ does. A bare gate anywhere else is still
-    refused.
+    refused. The gate closes the line by the way it **faces**, while the `bendTheLine` ender
+    closes it by the way it **travelled**; the two agree for every line that faces its travel,
+    which is every hand cast in the corpus. After a `facing: backward` hall figure they would
+    differ, and the gate follows the ends walking forward *(agent's call, not ruled)*.
+  - **Shapes, either case.** A band short a couple (an end of the set) is left where it stands,
+    as a half gate leaves it. A line whose pairs do not face the same way side by side (after
+    `turn_alone` on the ends, say), or that stands off columns 0, 1, 3 and 4, is refused.
   - Role, number, and couple identity travel with each dancer.
 - **normalization:** none — the gate ends where the rotation puts each dancer.
 - **facing (output):**

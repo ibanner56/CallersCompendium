@@ -271,7 +271,7 @@ void main() {
       expect(error.kind, ErrorKind.unsupportedParam);
     });
 
-    test('a quarter gate is deferred', () {
+    test('a quarter gate with no direction is refused', () {
       final error = applyErr(const Gate(turn: 0.25), base());
       expect(error.kind, ErrorKind.unsupportedParam);
     });

@@ -131,6 +131,13 @@ final class Gate extends Operation {
   @override
   OpError? checkPreconditions(Formation formation) {
     final amount = turn;
+    if (face == GateFace.along) {
+      return const OpError(
+        ErrorKind.unsupportedParam,
+        'gate face:along names no single direction across the set and is '
+        'deferred',
+      );
+    }
     if (amount == null && _isBareHandCast) {
       return switch (_quarterPlan(formation)) {
         Ok() => null,
@@ -150,14 +157,6 @@ final class Gate extends Operation {
         Err(:final error) => error,
       };
     }
-    if (face == GateFace.along) {
-      return const OpError(
-        ErrorKind.unsupportedParam,
-        'gate face:along names no single direction across the set and is '
-        'deferred',
-      );
-    }
-
     final pairs = _gatingPairs(formation);
     if (pairs.isEmpty && handsFourBands(formation).isNotEmpty) {
       return OpError(
@@ -254,6 +253,30 @@ final class Gate extends Operation {
     for (final band in handsFourBands(formation)) {
       final lineRow = lineOfFourRow(formation, band);
       final List<_GateHalf> halves;
+      final inBand = [
+        ...formation.dancersInRow(band.topRow),
+        ...formation.dancersInRow(band.bottomRow),
+      ];
+      if (inBand.length < 4) {
+        // A band short a couple, as at an end of the set, is left where it
+        // stands, as a half gate and the ring rotations leave it.
+        continue;
+      }
+      if (lineRow != null &&
+          const [
+            0,
+            1,
+            3,
+            4,
+          ].any((col) => formation.dancerAt(Position(lineRow, col)) == null)) {
+        return Err(
+          OpError(
+            ErrorKind.unresolvableDancerSet,
+            '$_label turns a line of four standing on columns 0, 1, 3 and 4, '
+            'but the line at row $lineRow stands elsewhere',
+          ),
+        );
+      }
       if (lineRow != null) {
         halves = [
           for (final (west, east) in const [(0, 1), (3, 4)])
@@ -277,21 +300,23 @@ final class Gate extends Operation {
         return Err(
           OpError(
             ErrorKind.unresolvableDancerSet,
-            'gate turn: $turn turns a complete hands four into a line of four '
+            '$_label turns a complete hands four into a line of four '
             'or a line back into a ring, but rows ${band.topRow}/'
             '${band.bottomRow} hold neither',
           ),
         );
       }
 
-      for (final half in halves) {
-        if (half.facing case Facing.up || Facing.down) continue;
-        if (lineRow == null) continue;
+      for (final half in lineRow == null ? const <_GateHalf>[] : halves) {
+        final fa = formation.stateOf(half.a).facing;
+        final fb = formation.stateOf(half.b).facing;
+        if (fa == fb && (fa == Facing.up || fa == Facing.down)) continue;
         return Err(
           OpError(
             ErrorKind.unresolvableDancerSet,
-            'gate turn: $turn turns a line of four by the way it faces, but '
-            '${half.a} and ${half.b} face neither up nor down the hall',
+            '$_label turns a line of four by the way each pair faces, side by '
+            'side, but ${half.a} faces ${fa.label} and ${half.b} faces '
+            '${fb.label}',
           ),
         );
       }
@@ -303,7 +328,7 @@ final class Gate extends Operation {
             return Err(
               OpError(
                 ErrorKind.whoMismatch,
-                'gate pair:${stated.key} turn: $turn gates the two halves of '
+                '$_label pair:${stated.key} gates the two halves of '
                 'the hands four, but ${half.a} and ${half.b} are not '
                 '${stated.key}',
               ),
@@ -345,7 +370,7 @@ final class Gate extends Operation {
             return Err(
               OpError(
                 ErrorKind.unsupportedParam,
-                'gate turn: $turn face:${statedFace.key} disagrees with where the '
+                '$_label face:${statedFace.key} disagrees with where the '
                 'turn leaves $id facing (${spot.facing.label})',
               ),
             );
@@ -410,6 +435,10 @@ final class Gate extends Operation {
     }
     return Ok(half.clockwiseMoves(walkers.single));
   }
+
+  /// How refusals name this gate: its turn, or "hand cast" when bare.
+  String get _label =>
+      turn == null ? 'hand cast (a bare gate)' : 'gate turn: $turn';
 
   /// A gate with nothing stated at all, which is how a bare "hand cast"
   /// arrives: read as closing a line of four the way `bendTheLine` does.

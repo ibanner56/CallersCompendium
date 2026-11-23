@@ -250,9 +250,8 @@ from this table because the compiler never ran against them. **Pass rate** is
 - `slice` supports `by: couple` with a straight or diagonal return; `by: dancer`
   and `return: none` are deferred.
 - `gate` turns a fractional amount (¼, ¾, 1¼) only between a complete hands
-  four and a line of four, and only when both halves end facing the same way
-  (a mirror gate, or a stated sense that agrees); a same-sense gate from the
-  ring, which makes a two-faced line, stays deferred. An unstated turn is
+  four and a line of four; a landing that would be a two-faced line (what a
+  same-sense gate from the ring makes) stays deferred. An unstated turn is
   refused except for a bare hand cast closing a line of four, which lands as
   `bendTheLine` does. `face:along` is refused.
 - `long_lines` requires `goBack:true`.
