@@ -3179,7 +3179,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsProgramShowPaySubtitle =>
-      'When off, the program editor and summary hide pay. Pay already entered is kept, and shows again when you turn this back on.';
+      'When off, the program editor and summary hide pay, and the programs spreadsheet leaves it out. Pay already entered is kept, and shows again when you turn this back on.';
 
   @override
   String get settingsMatrixColumnsHeader => 'Matrix columns';

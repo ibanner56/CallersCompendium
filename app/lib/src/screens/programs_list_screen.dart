@@ -1103,17 +1103,26 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
 
   /// Exports the programs this list shows, in its order: the current view,
   /// with archived programs only while "Show archived" is on.
-  Future<void> _exportCsv() => exportProgramsCsv(
-    context,
-    programIds: [
-      for (final p in _sortedPrograms(
-        ignoreLeadingArticles: SortIgnoreArticlesScope.of(context),
-      ))
-        p.id,
-    ],
-    delivery: widget.csvExportDelivery,
-    source: 'programs_list_screen._exportCsv',
-  );
+  Future<void> _exportCsv() {
+    // The share sheet's anchor, as in [_exportCalendar]: the list's own rect
+    // stands in for the ⋮ button, which the menu has closed by now.
+    final box = context.findRenderObject() as RenderBox?;
+    final origin = box != null && box.hasSize
+        ? box.localToGlobal(Offset.zero) & box.size
+        : null;
+    return exportProgramsCsv(
+      context,
+      programIds: [
+        for (final p in _sortedPrograms(
+          ignoreLeadingArticles: SortIgnoreArticlesScope.of(context),
+        ))
+          p.id,
+      ],
+      delivery: widget.csvExportDelivery,
+      origin: origin,
+      source: 'programs_list_screen._exportCsv',
+    );
+  }
 
   Widget _buildCompactMoreActions(AppLocalizations l10n) {
     return PopupMenuButton<_ProgramsCompactAction>(

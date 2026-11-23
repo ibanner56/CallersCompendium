@@ -255,7 +255,7 @@ The file leaves out what is private to you: the program's **Pay**, its
 **Perform dialect**, whether you [archived](./programs.md#create-and-manage-programs)
 it, and the star **rating** on each dance. Those stay on your own devices and in
 your [backup](./backup-portability.md), and still move with Device Sync. A
-program you archived arrives unarchived, so it shows in the other caller's list. Pay is never part of the shared set-list text or PDF either; apart from your backup, the only export that carries it is the [programs spreadsheet](#export-programs-as-a-spreadsheet).
+program you archived arrives unarchived, so it shows in the other caller's list. Pay is never part of the shared set-list text or PDF either; apart from your backup, the only export that carries it is the [programs spreadsheet](#export-programs-as-a-spreadsheet-csv).
 
 On Linux the system has no file share sheet, so this action is labeled **Save
 program file…** and saves the file through the system dialog instead.
@@ -373,7 +373,7 @@ as a shared dance, with one exception: **it includes your star ratings**. See
 [What stays private](#what-stays-private). It is not a backup, and the app
 cannot restore from it.
 
-### Export programs as a spreadsheet
+## Export programs as a spreadsheet (CSV)
 
 To keep a list of your gigs in a spreadsheet, open the **Programs** list's
 **More actions** menu (⋮) and choose **Export programs as CSV**. It exports the
@@ -387,6 +387,9 @@ number of dances, and the dances in order, one per line, with alternates marked
 **Alternate**. Event dates are written as year-month-day (for example
 `2026-03-01`), so any spreadsheet reads them as dates, and the pay amount uses
 a decimal point. Alternates a program hides are left out, as in its set list.
+Like the dances spreadsheet, the file always uses commas and UTF-8 whatever
+your region, and a title or note that starts like a formula gets an apostrophe
+in front so the spreadsheet shows it as text.
 
 The programs spreadsheet follows the same privacy rules as a shared program,
 with one exception: **it includes your pay**, because it is your own record of
@@ -524,7 +527,7 @@ thing asks you first.
   in a [backup](./backup-portability.md). The spreadsheets are the exceptions:
   the [dances spreadsheet (CSV)](#export-dances-as-a-spreadsheet-csv) includes
   your star ratings, and the
-  [programs spreadsheet](#export-programs-as-a-spreadsheet) includes your pay,
+  [programs spreadsheet](#export-programs-as-a-spreadsheet-csv) includes your pay,
   unless you have turned off **Show pay**.
 
 - **Your notes on your own figures.** A shared file or code carries each of

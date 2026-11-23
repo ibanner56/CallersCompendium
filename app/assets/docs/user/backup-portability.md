@@ -288,7 +288,7 @@ Four related features are easy to mix up:
   for dances, and your pay for programs) and can't be restored, so it is no
   substitute for a backup. See
   [Export dances as a spreadsheet](./sharing.md#export-dances-as-a-spreadsheet-csv)
-  and [Export programs as a spreadsheet](./sharing.md#export-programs-as-a-spreadsheet).
+  and [Export programs as a spreadsheet](./sharing.md#export-programs-as-a-spreadsheet-csv).
 - **Importing** brings dances in from other apps and sources — such as
   The Caller's Box, ContraDB, or another Caller's Compendium file — and
   *merges* them alongside what you already have. See

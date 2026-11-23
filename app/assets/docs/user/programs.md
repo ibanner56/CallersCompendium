@@ -483,9 +483,9 @@ A program carries the details of its event:
   program's summary but never in the shared set list, the PDF, or a program
   file you share. Apart from your [backup](./backup-portability.md), the one
   export that includes it is the
-  [programs spreadsheet](./sharing.md#export-programs-as-a-spreadsheet), your
+  [programs spreadsheet](./sharing.md#export-programs-as-a-spreadsheet-csv), your
   own record of your gigs. If you don't track pay, turn off **Show pay** in
-  [Settings › Program › Programs](./settings.md#programs) to hide it in the
+  [Settings ▸ Program ▸ Programs](./settings.md#programs) to hide it in the
   editor, on the summary and in the programs spreadsheet; pay already entered
   is kept;
 - a **Status** — **Draft**, **Finalized**, or **Performed** — shown on the
@@ -740,7 +740,7 @@ leaves it out unless you tick it.
 To get several programs into a spreadsheet at once — date, venue, caller,
 band, pay and the dances — use **Export programs as CSV** in the **Programs**
 list's **More actions** menu (⋮); see
-[Export programs as a spreadsheet](./sharing.md#export-programs-as-a-spreadsheet).
+[Export programs as a spreadsheet](./sharing.md#export-programs-as-a-spreadsheet-csv).
 
 [Share, print & export](./sharing.md#share-a-program) covers all of this in
 detail, including what a shared bundle contains and what never leaves your

@@ -3048,7 +3048,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsProgramShowPaySubtitle =>
-      'オフにすると、プログラムのエディターと概要で報酬が非表示になります。入力済みの報酬は保持され、再びオンにすると表示されます。';
+      'オフにすると、プログラムのエディターと概要で報酬が非表示になり、プログラムの表計算ファイルにも含まれません。入力済みの報酬は保持され、再びオンにすると表示されます。';
 
   @override
   String get settingsMatrixColumnsHeader => 'マトリクスの列';

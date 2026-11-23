@@ -247,7 +247,7 @@ details are handled when you export.
   saved; an amount that isn't a valid number stays visible so you can fix it.
   A sync conflict still compares pay, so two versions that differ only in pay
   don't look the same. While pay is hidden, the
-  [programs spreadsheet](./sharing.md#export-programs-as-a-spreadsheet) leaves
+  [programs spreadsheet](./sharing.md#export-programs-as-a-spreadsheet-csv) leaves
   pay out too, and its export dialog says so.
 
 - **Matrix columns** — opens a dedicated editor for the columns of the

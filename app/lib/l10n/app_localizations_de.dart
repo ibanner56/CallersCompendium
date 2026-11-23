@@ -3227,7 +3227,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsProgramShowPaySubtitle =>
-      'Wenn deaktiviert, blenden Programmeditor und Übersicht die Gage aus. Bereits eingetragene Gagen bleiben erhalten und erscheinen wieder, wenn du dies erneut aktivierst.';
+      'Wenn deaktiviert, blenden Programmeditor und Übersicht die Gage aus, und die Programmtabelle lässt sie weg. Bereits eingetragene Gagen bleiben erhalten und erscheinen wieder, wenn du dies erneut aktivierst.';
 
   @override
   String get settingsMatrixColumnsHeader => 'Matrixspalten';

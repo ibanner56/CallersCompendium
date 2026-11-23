@@ -59,6 +59,7 @@ void main() {
     payCurrency: currency,
     hideAlternates: hideAlternates,
     archivedAt: DateTime.utc(2026, 4, 1),
+    calendarEventKey: 'MY-SECRET-CALENDAR-KEY',
     slots:
         slots ??
         [
@@ -171,8 +172,11 @@ void main() {
       expect(csvRecords(csv).single[en.csvColumnVenue], 'Grange Hall');
     });
 
-    test('the Perform dialect never appears', () {
-      expect(build([program()]), isNot(contains('MY-SECRET-DIALECT')));
+    test('the Perform dialect and the calendar event key never appear', () {
+      final csv = build([program()]);
+      expect(csv, isNot(contains('MY-SECRET-DIALECT')));
+      expect(csv, isNot(contains('MY-SECRET-CALENDAR-KEY')));
+      expect(sanitizeProgramForCsv(program()).calendarEventKey, isNull);
     });
   });
 
