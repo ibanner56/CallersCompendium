@@ -49,6 +49,7 @@ const Map<String, Operation> defaults = {
   'california_twirl': CaliforniaTwirl(),
   'chain': Chain(who: WhoSet.role2s),
   'circle': Circle(turn: CircleDirection.left, places: 3),
+  'circular_hey': CircularHey(),
   'contra_corners': ContraCorners(),
   'courtesy_turn': CourtesyTurn(),
   'cross_trails': CrossTrails(),

@@ -1880,6 +1880,57 @@ To be defined later with worked examples.
   hand-trace confirmation (square through 4 returns home; 2 = diagonal); CallersCompendium taxonomy
   `square_through` MoveDef.
 
+### `circular_hey`
+
+- **summary:** A square through without hands (also "square hey"): the four dancers of a ring
+  weave around it, passing alternate shoulders. `changes` counts the passes.
+- **params** (meets CallersCompendium baseline `{who, changes, shoulder, who2, where, beats}`):
+  - `who` — dancer set, default `neighbors`. The pairs that pass first.
+  - `changes` — int [1–10], default 4. Number of passes; effective net = `changes mod 4`.
+  - `shoulder` — side, default right. The first pass's shoulder; **no position effect**.
+  - `who2` — dancer set, default unspecified. The pairs that pass second. **Checked, not
+    moved by**: when stated (and `changes` ≥ 2) it must name the two pairs standing on the
+    other axis after the first pass, or the figure refuses (`WhoMismatch`). A `who2` reaching
+    another hands four (`nextNeighbors` and the other distance sets, `everyone`) is deferred
+    (`UnsupportedParam`), and `shadows` is deferred at parse time: only `who` chooses the band
+    phase.
+  - `where` — direction, default `across`. **Descriptive**, and not linted: the first axis is
+    read from where the `who` pairs stand, because the Caller's Box records almost never state
+    `where` and the import fills `across` even where neighbours stand along the set, so a
+    contradiction warning would fire on ordinary records.
+  - `beats` — int, default 12 (taxonomy v36 maps changes to beats: 1→2, 2→4, 3→8, 4→12, 5+→16).
+- **preconditions:** `changes` ≥ 1 (`UnsupportedParam` otherwise). In every hands four,
+  exactly two `who` pairs, each standing along the set (one column) or each across it (one
+  row), the same way in every band. Anything else (`everyone`, one pair, a diagonal pair, a
+  mix) is refused (`UnresolvableDancerSet`). So `who: ones`, `twos` or a role set, which name
+  one pair, are refused rather than read as implying the other pair *(agent's call)*.
+- **effect:** each change swaps the two dancers passing, as a pull-by does. The `who` pairs pass
+  first, on the axis they stand on, then the other pairs of the ring on the other axis,
+  alternating. Net by `p = changes mod 4`:
+  - `p==1` → the swap on the first axis (neighbours in duple improper: **row swap**).
+  - `p==2` → **diagonal swap**: each dancer to the opposite corner.
+  - `p==3` → the swap on the second axis (neighbours first: **column swap**).
+  - `p==0` (the full circuit) → **no-op**.
+  - *Worked check:* from the base ring `R1-A . . . L1-A / L2-B . . . R2-B`, neighbours first,
+    3 changes land `L1-A . . . R1-A / R2-B . . . L2-B`. In Becket, where neighbours stand
+    across, the first pass is the column swap.
+- **normalization:** none.
+- **facing (output):** one change keeps facing, since everyone walked straight through. More
+  changes leave it **flexible**: each pass turned the dancers to face the next, which is
+  `square_through`'s contract too.
+- **interaction scope:** within the hands four (a named reach such as `nextNeighbors` re-bands
+  first, as for any named set).
+- **h4 contribution** (D7): 0.
+- **progression-eligible:** yes (not its own progression).
+- **corpus note (2026-11-23, `rubric` at `5f683503`):** 10 Caller's Box dances stopped at this
+  figure before it was built. 6 now compile. One refuses before the hey is reached. The other 3
+  (4099, 4101, 18890) dance a full-circuit hey and then refuse at the very next figure, an
+  `N2` swing or mad robin, with a `nextNeighbors` `whoMismatch`. Why is not yet diagnosed.
+- **sources:** CallersCompendium taxonomy `circular_hey` MoveDef and its figure definition ("a
+  square through without hands … four brings everyone home"); **the agent's reading
+  (2026-11-23), not yet ruled**: each change is a swap with the dancer passed, the axis is read
+  from the formation, `shoulder` and `where` move nobody, and `who2` is checked.
+
 ### `pass_by`
 
 - **summary:** A shoulder pass — the `who` pair walk forward and **pass by (given shoulder),

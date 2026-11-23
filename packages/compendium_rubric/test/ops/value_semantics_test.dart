@@ -261,6 +261,13 @@ void main() {
     'who': const ArchAndDive(who: WhoSet.ones),
   });
 
+  checkValueSemantics(const CircularHey(), const CircularHey(), {
+    'who': const CircularHey(who: WhoSet.partners),
+    'changes': const CircularHey(changes: 3),
+    'shoulder': const CircularHey(shoulder: Hand.left),
+    'who2': const CircularHey(who2: WhoSet.partners),
+    'where': const CircularHey(where: Direction.along),
+  });
   checkValueSemantics(const ContraCorners(), const ContraCorners(), {
     'who': const ContraCorners(who: WhoSet.twos),
     'custom': const ContraCorners(custom: 'same-role'),
