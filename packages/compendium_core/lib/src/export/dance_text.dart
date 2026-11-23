@@ -192,7 +192,7 @@ List<String> danceCardFigureLines(
   final cardDialect = content.dialect;
   final lines = <String>[];
   final sectioned = deriveSections(content.figures, dance.phraseStructure);
-  final beatsPerBar = danceBeatsPerBar(
+  final timing = barTimingFor(
     dance.form,
     dance.phraseStructure,
     meter: dance.meter,
@@ -204,7 +204,7 @@ List<String> danceCardFigureLines(
             cardDialect,
           )
         : renderer.renderSummary(sf.figure, cardDialect);
-    final beatsLabel = labels.count(sf.figure.beats, beatsPerBar);
+    final beatsLabel = labels.count(sf.figure.beats, timing, sf.startBeat);
     final marker = sf.figure.progression ? ' ¶' : '';
     lines.add('${sf.label}  $text ($beatsLabel)$marker');
     final note = sf.figure.note?.trim();

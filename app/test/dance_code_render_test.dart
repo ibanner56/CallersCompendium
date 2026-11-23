@@ -53,34 +53,60 @@ DanceCodeShown _planOfLength(int length) {
   return planDanceLink('$danceLinkPrefix$body') as DanceCodeShown;
 }
 
+/// The pale floor of the raised brand mark's badge (`FLOOR` in
+/// `tools/brand/generate_raised_mark.py`).
+const _floor = (0xE5, 0xE8, 0xEE);
+
 class _Seen {
-  _Seen(this.text, this.tilePixels, this.warmPixels);
+  _Seen(this.text, this.floorPixels, this.artPixels);
 
   /// What a QR decoder read from the pixels, or null if it found nothing.
   final String? text;
 
-  /// Pixels in the brand tile's dark navy (`BrandMark.brandBackground`), and
-  /// in the warm oranges of the dancers: proof the mark's art really painted,
-  /// not just its white clear zone.
-  final int tilePixels;
-  final int warmPixels;
+  /// Pixels in the badge's floor tone: proof the badge painted.
+  final int floorPixels;
+
+  /// Pixels in the badge's middle that are clearly not floor: the raised
+  /// mark's dark face, edges and shadow. Proof the artwork is there, not just
+  /// its floor.
+  final int artPixels;
 }
 
-Future<_Seen> _read(RenderRepaintBoundary boundary, double density) async {
+Future<_Seen> _read(
+  RenderRepaintBoundary boundary,
+  double density,
+  Rect? badge,
+) async {
   final image = await boundary.toImage(pixelRatio: density);
   final data = (await image.toByteData())!;
   final pixels = Int32List(image.width * image.height);
-  var tile = 0;
-  var warm = 0;
+  // The badge in device pixels, and its middle (the rim shading is left out).
+  final whole = badge == null
+      ? Rect.zero
+      : Rect.fromLTRB(
+          badge.left * density,
+          badge.top * density,
+          badge.right * density,
+          badge.bottom * density,
+        );
+  final middle = whole.deflate(whole.shortestSide * 0.2);
+  var floor = 0;
+  var art = 0;
   for (var i = 0; i < pixels.length; i++) {
     final r = data.getUint8(i * 4);
     final g = data.getUint8(i * 4 + 1);
     final b = data.getUint8(i * 4 + 2);
     pixels[i] = (0xFF << 24) | (r << 16) | (g << 8) | b;
-    if ((r - 0x1E).abs() < 6 && (g - 0x2A).abs() < 6 && (b - 0x38).abs() < 6) {
-      tile++;
-    }
-    if (r > 220 && g > 120 && g < 200 && b < 140) warm++;
+    if (badge == null) continue;
+    final x = (i % image.width).toDouble();
+    final y = (i ~/ image.width).toDouble();
+    final off = [
+      (r - _floor.$1).abs(),
+      (g - _floor.$2).abs(),
+      (b - _floor.$3).abs(),
+    ].reduce((a, b) => a > b ? a : b);
+    if (whole.contains(Offset(x, y)) && off <= 3) floor++;
+    if (middle.contains(Offset(x, y)) && off >= 8) art++;
   }
   final bitmap = BinaryBitmap(
     HybridBinarizer(RGBLuminanceSource(image.width, image.height, pixels)),
@@ -91,7 +117,7 @@ Future<_Seen> _read(RenderRepaintBoundary boundary, double density) async {
   } catch (_) {
     text = null;
   }
-  return _Seen(text, tile, warm);
+  return _Seen(text, floor, art);
 }
 
 Future<_Seen> _look(
@@ -127,18 +153,20 @@ Future<_Seen> _look(
   await tester.pumpAndSettle();
 
   final boundary = tester.renderObject<RenderRepaintBoundary>(find.byKey(key));
-  // The mark is an SVG asset, read from the bundle on a real clock: look until
-  // it has painted (when this plan carries one), up to a deadline.
+  // The badge is an image asset, read from the bundle on a real clock: look
+  // until it has painted (when this plan carries one), up to a deadline.
   final deadline = DateTime.now().add(const Duration(seconds: 15));
+  final badgeFinder = find.byKey(const ValueKey('dance-code-mark'));
   _Seen? seen;
   do {
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 50)),
     );
     await tester.pump();
-    seen = await tester.runAsync(() => _read(boundary, density));
+    final badge = tester.any(badgeFinder) ? tester.getRect(badgeFinder) : null;
+    seen = await tester.runAsync(() => _read(boundary, density, badge));
   } while (plan.withMark &&
-      seen!.tilePixels < 5000 &&
+      seen!.floorPixels < 1000 &&
       DateTime.now().isBefore(deadline));
   return seen!;
 }
@@ -157,8 +185,11 @@ void main() {
     expect(unbranded.withMark, isFalse);
     final seen = await _look(tester, unbranded);
     expect(seen.text, unbranded.link);
-    expect(seen.tilePixels, 0, reason: 'no mark on a lower level');
-    expect(seen.warmPixels, 0);
+    expect(seen.floorPixels, 0, reason: 'no badge on a lower level');
+    expect(seen.artPixels, 0);
+    // The pixel counts look inside the badge's own box; also say it is not in
+    // the tree at all.
+    expect(find.byKey(const ValueKey('dance-code-mark')), findsNothing);
   });
 
   testWidgets('the real dance shows with the mark and still reads back', (
@@ -167,8 +198,13 @@ void main() {
     expect(seed.withMark, isTrue);
     final seen = await _look(tester, seed);
     expect(seen.text, seed.link);
-    expect(seen.tilePixels, greaterThan(5000), reason: 'the mark painted');
-    expect(seen.warmPixels, greaterThan(100));
+    // Measured on this render: about 7,700 floor and 5,500 art pixels.
+    expect(seen.floorPixels, greaterThan(3000), reason: 'the badge painted');
+    expect(
+      seen.artPixels,
+      greaterThan(2000),
+      reason: 'the raised mark painted',
+    );
     expect(decodeDanceLink(seen.text!), _seedBundle());
   });
 
@@ -187,7 +223,8 @@ void main() {
     expect(densest.version, 40);
     final seen = await _look(tester, densest);
     expect(seen.text, densest.link);
-    expect(seen.tilePixels, greaterThan(5000));
+    expect(seen.floorPixels, greaterThan(3000));
+    expect(seen.artPixels, greaterThan(2000));
   });
 
   testWidgets('it reads back on a 2.625x phone screen too', (tester) async {
@@ -200,24 +237,26 @@ void main() {
       density: 2.625,
     );
     expect(seen.text, seed.link);
-    expect(seen.tilePixels, greaterThan(5000));
+    expect(seen.floorPixels, greaterThan(3000));
+    expect(seen.artPixels, greaterThan(2000));
   });
 
   testWidgets('the mark has room to spare: a much larger one still reads', (
     tester,
   ) async {
-    // The shipped size is 18%; a mark at 30% still decodes. A decoder is not
-    // a phone camera, so this is margin in a software reader, not a promise.
-    final seen = await _look(tester, seed, markFraction: 0.30);
+    // The shipped clear zone is 20% of the code's width; at 35% it still
+    // decodes. A decoder is not a phone camera, so this is margin in a
+    // software reader, not a promise.
+    final seen = await _look(tester, seed, markFraction: 0.35);
     expect(seen.text, seed.link);
   });
 
   testWidgets('a mark enlarged past what the code can lose is not read', (
     tester,
   ) async {
-    // Shows this test can fail: the same code with the mark at 45% of its
-    // width has lost too much to be decoded.
-    final seen = await _look(tester, seed, markFraction: 0.45);
+    // Shows this test can fail: the same code with the clear zone at 55% of
+    // its width has lost too much to be decoded.
+    final seen = await _look(tester, seed, markFraction: 0.55);
     expect(seen.text, isNull);
   });
 }

@@ -94,6 +94,10 @@ const _programFields = [
   SyncWireField('payCurrency', ['programs.pay_currency']),
   SyncWireField('archivedAt', ['programs.archived_at']),
   SyncWireField('calendarEventKey', ['programs.calendar_event_key']),
+  SyncWireField('startMinute', ['programs.start_minute']),
+  SyncWireField('endMinute', ['programs.end_minute']),
+  SyncWireField('lessonMinute', ['programs.lesson_minute']),
+  SyncWireField('arrivalMinute', ['programs.arrival_minute']),
   SyncWireField('calendarEventFingerprint', [
     'programs.calendar_event_fingerprint',
   ]),

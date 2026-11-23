@@ -376,6 +376,23 @@ class Programs extends Table {
   /// last for the same column-order reason as [archivedAt].
   TextColumn get calendarEventKey => text().nullable()();
 
+  /// When the dance starts, as minutes after midnight (`0`–`1439`), a
+  /// wall-clock time at the hall with no time zone (schema v42, #2350).
+  /// `null` (every program before v42) means not recorded. Like the three
+  /// times after it, declared after [calendarEventKey] so a migrated database and a
+  /// fresh one get the same column order.
+  IntColumn get startMinute => integer().nullable()();
+
+  /// When the dance ends, as minutes after midnight; earlier than
+  /// [startMinute] means the next day.
+  IntColumn get endMinute => integer().nullable()();
+
+  /// When the beginner lesson starts, as minutes after midnight.
+  IntColumn get lessonMinute => integer().nullable()();
+
+  /// When the caller needs to be at the hall, as minutes after midnight.
+  IntColumn get arrivalMinute => integer().nullable()();
+
   /// What the calendar import last wrote from the event (#2354, schema v42):
   /// a per-field hash of its title, date and first location segment.
   TextColumn get calendarEventFingerprint => text().nullable()();

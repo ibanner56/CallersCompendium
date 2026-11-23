@@ -271,6 +271,11 @@ Set<String>? syncUserVisibleFields(SyncRecordKind kind) => switch (kind) {
     'payMinorUnits',
     'payCurrency',
     'archivedAt',
+    // The times (#2350): a differing time is shown, never settled silently.
+    'startMinute',
+    'endMinute',
+    'lessonMinute',
+    'arrivalMinute',
     // Shown on the Programs list and the summary (#2354).
     'calendarFlag',
   },

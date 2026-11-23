@@ -39,3 +39,22 @@ Future<DateTime?> showAppDatePicker({
     },
   );
 }
+
+/// Flutter's time picker, opened like [showAppDatePicker]: the same
+/// [TimePickerDialog] Flutter's time-picker helper builds, but through
+/// [showDialog] with [AppMotion.styleFor], so it respects the in-app Reduce
+/// motion switch, and with [uncappedDialogBuilder] so it can grow with the
+/// text scale. Its 12- or 24-hour dial follows the platform setting, as the
+/// helper's does. Used for a program's times (#2350).
+Future<TimeOfDay?> showAppTimePicker({
+  required BuildContext context,
+  required TimeOfDay initialTime,
+  String? helpText,
+}) => showDialog<TimeOfDay>(
+  context: context,
+  animationStyle: AppMotion.styleFor(context),
+  builder: (context) => uncappedDialogBuilder(
+    context,
+    TimePickerDialog(initialTime: initialTime, helpText: helpText),
+  ),
+);

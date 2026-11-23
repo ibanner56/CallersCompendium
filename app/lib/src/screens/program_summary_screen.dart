@@ -11,6 +11,7 @@ import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/refresh_coalescer.dart';
+import '../data/program_times_text.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/callersbox_online.dart';
@@ -1164,6 +1165,12 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             child: _summaryRow(Icons.category_outlined, formsLabel),
           ),
         if (dateLabel != null) _summaryRow(Icons.event_outlined, dateLabel),
+        // The times line under the date (#2350); shown with no date too.
+        if (programTimesSummary(program, l10n) case final times?)
+          KeyedSubtree(
+            key: const ValueKey('program-summary-times'),
+            child: _summaryRow(Icons.schedule_outlined, times),
+          ),
         if (resolveVenueLabel(program, _venuesById) case final venueLabel?)
           _summaryRow(Icons.place_outlined, venueLabel),
         if (program.band != null)

@@ -282,12 +282,25 @@ the typed text and every trashed program untouched.
 The program editor writes `venueId` only if the person changed it since the editor
 loaded or last saved; otherwise the stored value stands, so a link made while an
 editor was open (this offer, or sync) is not undone by that editor's next save.
+A restored autosave draft follows the same rule: the draft records the link and
+times the editor had loaded, and on restore an unchanged one takes the stored
+value, so a sync that landed after the draft was written survives it.
+
+A venue's free-text `time` (a Caller's Companion field such as "7:30–10:30pm")
+is the series' usual schedule, edited on the venue. A program's own times
+(`startMinute` and the others, below) are a different thing: when one evening
+happens. The program editor shows a linked venue's `time` as a hint beside the
+program's time fields, but never parses it into them, and nothing writes from
+a program back to the venue (#2350). The set-list PDF's venue block leaves the
+venue's `time` out when the program has a `startMinute` or `endMinute`, so the
+page does not give two answers to when the dance runs.
 
 ### Program & ProgramSlot
 | Program | ProgramSlot |
 |---|---|
 | id, title | id, programId, position |
 | eventDate?, venue?, venueId?, notes | danceId? (nullable → free-text slot: break, waltz, announcement) |
+| startMinute?, endMinute?, lessonMinute?, arrivalMinute? (minutes after midnight, 0–1439) | |
 | band?, caller?, dancerLevel? | text? (used when danceId null, or per-slot caller note) |
 | status: draft/finalized/performed | isAlt: bool (alternate dance, decided at event time) |
 | createdAt/updatedAt/deletedAt | guestCaller?, walkthroughMinutes?, danceMinutes? (structured, not folded into `text`) |
@@ -303,6 +316,18 @@ their own slots too when a set has several callers, #1976), and
 structured rather than buried in the free-text `text` note (each is `>= 0`).
 Callers' Companion's legacy `SetItem.Time` total maps to `danceMinutes`; the
 combined planned length is the sum of non-null values.
+
+`startMinute`, `endMinute`, `lessonMinute` and `arrivalMinute` (schema v42,
+#2350) are optional times of day on `eventDate`: when the dance starts and
+ends, when the beginner lesson starts, and when the caller needs to be at the
+hall. Each is a whole number of minutes after midnight (the constructor rejects
+anything outside 0–1439), a wall-clock time at the hall with **no time zone**,
+and each can be set without an `eventDate`. An `endMinute` earlier than
+`startMinute` means the next day (`endsNextDay`); an equal one does not. They
+sync and travel in backups and program share files as integers, and stay
+integers (sync-spec §6.9). `arrivalMinute` is the caller's own logistics
+(subject `appUser` in the privacy registry): the set-list text and PDF leave it
+out, though program share files keep it.
 
 `venueId` (schema v14) optionally links a program to a reusable [Venue](#venue)
 alongside the free-text `venue` label; the two persist independently (see Venue
@@ -320,7 +345,8 @@ and never deletes one.
 
 Duplicate-program = deep copy of slots, as a Draft with performed marks, pay,
 event date and calendar event key cleared (a copy is for a different event;
-LIFE-7). The
+LIFE-7). The times are kept: the date changes between events, but the
+schedule usually does not. The
 programming matrix is a **view**
 computed from structured figures (no manual "elements" checklist — the fix for
 CC's biggest weakness).

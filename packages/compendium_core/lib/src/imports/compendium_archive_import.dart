@@ -178,6 +178,13 @@ ArchiveProgramsResult buildArchivePrograms(
         dialectName: program.dialectName,
         payMinorUnits: program.payMinorUnits,
         payCurrency: program.payCurrency,
+        // The times are kept, Arrive by included: the date changes between
+        // events but the schedule usually does not, and a guest caller
+        // receiving the program needs to know when to arrive (#2350).
+        startMinute: program.startMinute,
+        endMinute: program.endMinute,
+        lessonMinute: program.lessonMinute,
+        arrivalMinute: program.arrivalMinute,
         // Not archived: the share bundles strip `archivedAt`, and a program
         // received from someone else belongs in the receiver's list anyway.
         slots: slots,
@@ -1152,6 +1159,10 @@ class CompendiumArchiveImporter {
     dialectName: src.dialectName,
     payMinorUnits: src.payMinorUnits,
     payCurrency: src.payCurrency,
+    startMinute: src.startMinute,
+    endMinute: src.endMinute,
+    lessonMinute: src.lessonMinute,
+    arrivalMinute: src.arrivalMinute,
     slots: src.slots,
     createdAt: createdAt,
     updatedAt: src.updatedAt,

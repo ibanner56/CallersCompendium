@@ -85,7 +85,8 @@ direction the list opens with, see
   also right-click the row) to reuse last month's shape
   as a starting point. The copy starts as a **Draft** with no performed marks,
   no pay and no event date, so it doesn't put a second entry on last month's
-  date into your calling history. Give it the new date when you know it.
+  date into your calling history. Give it the new date when you know it. It
+  keeps the start, end, lesson and arrival [times](#times).
 - **Archive** a program you're done with but want to keep, from the same menu.
   It leaves the list (an **Undo** option appears) but is not deleted: it never
   expires, it still counts in your
@@ -402,6 +403,10 @@ open that program, the app offers the draft back — **Restore** to pick up
 where you left off, or **Discard** to start from the last saved version. Drafts
 stay on your device; they are never uploaded, shared, or included in backups.
 
+If another of your devices changed the program's [times](#times) or its linked
+venue after the draft was saved, **Restore** keeps those changes for anything
+you hadn't changed in the draft; only your own edits come back.
+
 Each new program keeps its own draft, so two new programs never overwrite each
 other's. If a new program you never saved left one behind, the next new
 program you start offers it back by its title (the one you saved last, if
@@ -507,6 +512,10 @@ skip it: there is nothing left of it to send.
 A program carries the details of its event:
 
 - **Event date**, **Venue**, and **Notes**;
+- four optional **times** under **More details**: **Start time** and **End
+  time** for the dance, **Beginner lesson** for a lesson before it, and
+  **Arrive by** for when you need to be at the hall (see
+  [Times](#times) below);
 - program-level **Band**, **Caller**, and **Dancer level**;
 - **Pay**, an amount and currency under **More details**, shown on the
   program's summary but never in the shared set list, the PDF, or a program
@@ -540,6 +549,39 @@ programs with a typed venue can be linked to a matching record, so calling
 history counts them as one hall: the app offers this (**Link earlier
 programs?**) when you turn the setting on or add the venue; see
 [Settings ▸ Program ▸ Venues](./settings.md#venues).
+
+#### Times
+
+Each time is optional. Tap **Set** beside it to choose a time, **Change** to
+pick another, or the clear button to remove it. They are times of day at the
+hall, with no time zone: a 7:30 PM start stays 7:30 PM wherever your device
+is. They show in your language's 12- or 24-hour clock, and you can set them
+before you know the date.
+
+- An **End time** earlier than the **Start time** means the dance ends after
+  midnight. The editor says **Ends the next day**, and the summary adds
+  "(next day)".
+- The program's summary shows the times on one line under the date, such as
+  "Lesson 7:00 PM · Dance 7:30 PM–10:30 PM · Arrive by 6:30 PM". Times you
+  left empty are left out.
+- When the program is linked to a saved venue whose **Time** is filled in,
+  the editor shows that text under the times as a hint ("Venue's usual
+  time: …"). It is the series' usual schedule, written however you typed it
+  on the venue, so the app never reads it into the fields, and changing a
+  program's times never changes the venue.
+- **Duplicate** keeps all four times: the date changes from one event to the
+  next, but the schedule usually does not.
+- The shared set list and the PDF show the start and end times beside the
+  date and the lesson time below it, but never **Arrive by**: that is your
+  own logistics. When the program has a start or end time, the PDF's venue
+  details leave out the venue's usual **Time**, so the page gives one answer
+  to when the dance runs. The matrix PDF shows the start and end beside its
+  date too. A program file you share keeps all four, so a guest caller you
+  send it to knows when to arrive. See [Sharing](./sharing.md).
+- A [calendar file](./sharing.md#put-programs-in-your-calendar) uses the start
+  and end times for the event, so it shows at the right time instead of all
+  day, and its notes give the lesson and **Arrive by** times: it is for your
+  own calendar.
 
 If you often play the same role, set a default caller or band in
 [Settings ▸ Defaults](./settings.md#program-defaults) and new programs will

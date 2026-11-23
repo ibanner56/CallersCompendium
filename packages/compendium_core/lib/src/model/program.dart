@@ -251,6 +251,10 @@ class Program {
     this.dialectName,
     this.payMinorUnits,
     this.payCurrency,
+    this.startMinute,
+    this.endMinute,
+    this.lessonMinute,
+    this.arrivalMinute,
     List<ProgramSlot> slots = const [],
     required this.createdAt,
     required this.updatedAt,
@@ -284,6 +288,25 @@ class Program {
         'payCurrency',
         'must be three uppercase ASCII letters (ISO 4217)',
       );
+    }
+    _checkMinuteOfDay(startMinute, 'startMinute');
+    _checkMinuteOfDay(endMinute, 'endMinute');
+    _checkMinuteOfDay(lessonMinute, 'lessonMinute');
+    _checkMinuteOfDay(arrivalMinute, 'arrivalMinute');
+  }
+
+  /// The number of minutes in a day: a time of day is `0` (midnight) to
+  /// `minutesPerDay - 1` (11:59 pm).
+  static const int minutesPerDay = 24 * 60;
+
+  /// Whether [minute] is a time of day this model accepts: a whole number of
+  /// minutes after midnight, `0`–`1439`.
+  static bool isValidMinuteOfDay(int minute) =>
+      minute >= 0 && minute < minutesPerDay;
+
+  static void _checkMinuteOfDay(int? minute, String name) {
+    if (minute != null && !isValidMinuteOfDay(minute)) {
+      throw ArgumentError.value(minute, name, 'must be 0-1439');
     }
   }
 
@@ -347,6 +370,45 @@ class Program {
   /// ISO 4217 code (three uppercase letters) that [payMinorUnits] is
   /// denominated in; `null` exactly when [payMinorUnits] is.
   final String? payCurrency;
+
+  /// When the dance starts, as minutes after midnight (`0`–`1439`), or `null`
+  /// when not recorded (the default, and every program before schema v42).
+  ///
+  /// [startMinute], [endMinute], [lessonMinute] and [arrivalMinute] are
+  /// wall-clock times at the hall on [eventDate], with **no time zone**: a
+  /// 7:30 pm start stays 7:30 pm wherever the device is. Each is optional on
+  /// its own, and each can be set without an [eventDate]. An [endMinute]
+  /// earlier than [startMinute] means the next day ([endsNextDay]).
+  final int? startMinute;
+
+  /// When the dance ends, as minutes after midnight; see [startMinute].
+  final int? endMinute;
+
+  /// When the beginner lesson before the dance starts, as minutes after
+  /// midnight; see [startMinute].
+  final int? lessonMinute;
+
+  /// When the caller needs to be at the hall, as minutes after midnight; see
+  /// [startMinute]. The caller's own logistics: it travels in Device Sync,
+  /// backups and program share files, but the set-list text and PDF leave it
+  /// out.
+  final int? arrivalMinute;
+
+  /// Whether the dance ends on the day after it starts: both [startMinute]
+  /// and [endMinute] are set and the end is earlier than the start. An end
+  /// equal to the start is the same day.
+  bool get endsNextDay {
+    final start = startMinute;
+    final end = endMinute;
+    return start != null && end != null && end < start;
+  }
+
+  /// Whether any of the four times is set.
+  bool get hasTimes =>
+      startMinute != null ||
+      endMinute != null ||
+      lessonMinute != null ||
+      arrivalMinute != null;
 
   /// Slots, always ordered by position.
   final List<ProgramSlot> slots;
@@ -750,6 +812,10 @@ class Program {
     String? dialectName,
     int? payMinorUnits,
     String? payCurrency,
+    int? startMinute,
+    int? endMinute,
+    int? lessonMinute,
+    int? arrivalMinute,
     List<ProgramSlot>? slots,
     DateTime? updatedAt,
     DateTime? deletedAt,
@@ -771,6 +837,10 @@ class Program {
     bool clearCalendarEventKey = false,
     bool clearCalendarFlag = false,
     bool clearPay = false,
+    bool clearStartMinute = false,
+    bool clearEndMinute = false,
+    bool clearLessonMinute = false,
+    bool clearArrivalMinute = false,
     bool clearProvenance = false,
   }) => Program(
     id: id,
@@ -787,6 +857,14 @@ class Program {
     dialectName: clearDialectName ? null : (dialectName ?? this.dialectName),
     payMinorUnits: clearPay ? null : (payMinorUnits ?? this.payMinorUnits),
     payCurrency: clearPay ? null : (payCurrency ?? this.payCurrency),
+    startMinute: clearStartMinute ? null : (startMinute ?? this.startMinute),
+    endMinute: clearEndMinute ? null : (endMinute ?? this.endMinute),
+    lessonMinute: clearLessonMinute
+        ? null
+        : (lessonMinute ?? this.lessonMinute),
+    arrivalMinute: clearArrivalMinute
+        ? null
+        : (arrivalMinute ?? this.arrivalMinute),
     slots: slots ?? this.slots,
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -809,7 +887,7 @@ class Program {
   );
 
   /// Deep copy for "duplicate program": fresh ids everywhere, draft status,
-  /// performance history and event date cleared. [newSlotId] mints an id per
+  /// performance history, event date and pay cleared; the times are kept. [newSlotId] mints an id per
   /// copied slot.
   /// Provenance is dropped (the copy is the user's own record, not an import),
   /// mirroring [Dance.duplicate]. The copy is never archived: it is for a new
@@ -838,6 +916,12 @@ class Program {
     dialectName: dialectName,
     // Pay is deliberately not copied: it belongs to one event, and a duplicate
     // is for a different one.
+    // The times are copied: the date changes between events, but the
+    // schedule usually does not (#2350).
+    startMinute: startMinute,
+    endMinute: endMinute,
+    lessonMinute: lessonMinute,
+    arrivalMinute: arrivalMinute,
     slots: [
       for (final s in slots)
         ProgramSlot(
@@ -919,6 +1003,10 @@ class Program {
       other.dialectName == dialectName &&
       other.payMinorUnits == payMinorUnits &&
       other.payCurrency == payCurrency &&
+      other.startMinute == startMinute &&
+      other.endMinute == endMinute &&
+      other.lessonMinute == lessonMinute &&
+      other.arrivalMinute == arrivalMinute &&
       _listEq.equals(other.slots, slots) &&
       other.createdAt == createdAt &&
       other.updatedAt == updatedAt &&

@@ -627,6 +627,27 @@ final Map<String, DataClassification> fieldClassifications = {
         'meaningless without it, so it carries the same classification, '
         'including the share-file omission (sanitizeProgramForShare).',
   ),
+  // When the public event happens (#2350), like programs.event_date: the
+  // dance's start and end, and the beginner lesson before it.
+  'programs.start_minute': _choreography,
+  'programs.end_minute': _choreography,
+  'programs.lesson_minute': _choreography,
+  'programs.arrival_minute': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'When the caller needs to be at the hall for the program (#2350), as '
+        'minutes after midnight. Unlike the other three times it is about '
+        'the caller, not the public event, so the subject is the app user; '
+        'it is a time of day, not a location, so non-personal. Egress: '
+        'Device Sync and backups carry it, and so do program share files, '
+        'because a guest caller receiving the program needs it too (issue '
+        'drafting call, approved with #2350). The set-list text and the PDF '
+        'leave it out: they are made for other people, and the maintainer '
+        'ruled that Arrive by stays out of the PDF but in the caller\'s own '
+        'calendar export (2026-11-22, #2350), whose event notes carry it.',
+  ),
   'programs.created_at': _recordStamp,
   'programs.updated_at': _recordStamp,
   'programs.deleted_at': const DataClassification(

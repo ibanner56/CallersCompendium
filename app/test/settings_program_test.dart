@@ -381,7 +381,7 @@ void main() {
       ),
       (
         'settings-share-set-list-date-venue',
-        'Include date and venue when sharing a set list',
+        'Include date, times and venue when sharing a set list',
         kShareSetListIncludeDateVenueKey,
       ),
     ]) {

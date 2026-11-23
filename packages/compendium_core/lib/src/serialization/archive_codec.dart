@@ -964,6 +964,10 @@ Program _programFromJson(Map<String, Object?> m) => Program(
   dialectName: _strOrNull(m, 'dialectName'),
   payMinorUnits: _payMinorUnitsOrNull(m),
   payCurrency: _payCurrencyOrNull(m),
+  startMinute: _minuteOfDayOrNull(m, 'startMinute'),
+  endMinute: _minuteOfDayOrNull(m, 'endMinute'),
+  lessonMinute: _minuteOfDayOrNull(m, 'lessonMinute'),
+  arrivalMinute: _minuteOfDayOrNull(m, 'arrivalMinute'),
   slots: _programSlotsFromJson(m['slots']),
   provenance: m['provenance'] == null
       ? null
@@ -1128,6 +1132,17 @@ int? _payMinorUnitsOrNull(Map<String, Object?> m) {
     throw const FormatException(
       '"payMinorUnits" and "payCurrency" must appear together',
     );
+  }
+  return v;
+}
+
+/// A program time ([key]): minutes after midnight, an integer from 0 to 1439
+/// (the [Program] invariant), so a body that breaks it is rejected as
+/// malformed rather than reaching the constructor.
+int? _minuteOfDayOrNull(Map<String, Object?> m, String key) {
+  final v = _intOrNull(m, key);
+  if (v != null && !Program.isValidMinuteOfDay(v)) {
+    throw FormatException('"$key" must be 0-1439');
   }
   return v;
 }

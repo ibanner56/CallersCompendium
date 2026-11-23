@@ -1910,6 +1910,106 @@ void main() {
     },
   );
 
+  group('v41 -> v42 upgrade (program times, #2350)', () {
+    const timeColumns = [
+      'start_minute',
+      'end_minute',
+      'lesson_minute',
+      'arrival_minute',
+    ];
+    Future<Set<String>> programColumns(DatabaseConnectionUser db) async => {
+      for (final row
+          in await db
+              .customSelect("SELECT name FROM pragma_table_info('programs')")
+              .get())
+        row.read<String>('name'),
+    };
+
+    test('adds the four times as NULL and keeps every program', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        41,
+      );
+      await historical.customSelect('SELECT 1').get();
+      expect(
+        (await programColumns(historical)).intersection(timeColumns.toSet()),
+        isEmpty,
+        reason: 'a v41 database has no time columns',
+      );
+      await historical.customStatement(
+        "INSERT INTO programs (id, title, event_date, notes, status, "
+        "hide_alternates, created_at, updated_at) "
+        "VALUES ('p1', 'Keep', 1700000000, 'n', 'finalized', 0, 1700000000, "
+        "1700000100)",
+      );
+      await historical.close();
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      expect(await programColumns(db), containsAll(timeColumns));
+      // The same column order as a database created fresh at v42, which
+      // schema_verification_test does not check (it compares by name).
+      Future<List<String>> orderedColumns(DatabaseConnectionUser d) async => [
+        for (final row
+            in await d
+                .customSelect(
+                  "SELECT name FROM pragma_table_info('programs') ORDER BY cid",
+                )
+                .get())
+          row.read<String>('name'),
+      ];
+      final fresh = CompendiumDatabase(NativeDatabase.memory());
+      addTearDown(fresh.close);
+      await fresh.customSelect('SELECT 1').get();
+      expect(await orderedColumns(db), await orderedColumns(fresh));
+      final program = await ProgramRepository(db).getById('p1');
+      expect(program, isNotNull);
+      expect(program!.title, 'Keep');
+      expect(program.eventDate, isNotNull);
+      expect(program.startMinute, isNull);
+      expect(program.endMinute, isNull);
+      expect(program.lessonMinute, isNull);
+      expect(program.arrivalMinute, isNull);
+      expect(
+        program.updatedAt,
+        DateTime.fromMillisecondsSinceEpoch(1700000100 * 1000, isUtc: true),
+        reason:
+            'the migration must not touch updated_at, or sync would '
+            'republish every program',
+      );
+    });
+
+    test('is idempotent over a column that already exists', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        41,
+      );
+      await historical.customSelect('SELECT 1').get();
+      await historical.close();
+      raw.execute('ALTER TABLE programs ADD COLUMN start_minute INTEGER NULL');
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      expect(await programColumns(db), containsAll(timeColumns));
+    });
+  });
+
   group('v40 -> v41 upgrade (cited-id lookup indexes, #1935)', () {
     const indexes = {
       'dance_authors_choreographer_id',

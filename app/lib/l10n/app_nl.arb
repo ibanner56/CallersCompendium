@@ -3152,9 +3152,9 @@
   "@settingsSharingCallerBandTitle": {
     "x-sourceSha256": "308a779b71082f687e4319814675f46518d5780ce4a384ae37dcb890c2967622"
   },
-  "settingsSharingDateVenueTitle": "Datum en locatie opnemen bij het delen van een setlijst",
+  "settingsSharingDateVenueTitle": "Datum, tijden en locatie opnemen bij het delen van een setlijst",
   "@settingsSharingDateVenueTitle": {
-    "x-sourceSha256": "57270596e3bcf982854d1c961104e7dc319644ed19c257ed507f1514447267a7"
+    "x-sourceSha256": "0bdefd454436cdc84383ec043e627dae0ecebc5d62436b74852defd633e74991"
   },
   "settingsSharingSubtitle": "Geldt voor het delen of kopiëren van de setlijst. Het hele programma delen als .ccshare- of JSON-bestand bevat altijd alles.",
   "@settingsSharingSubtitle": {
@@ -5852,6 +5852,66 @@
   "@programsClearEventDate": {
     "x-sourceSha256": "fc604a4a62627deac4ccdda9785d3718f764affb01fa1bbaa6fce93e3e61040c"
   },
+  "programsStartTimeLabel": "Begintijd",
+  "@programsStartTimeLabel": {
+    "x-sourceSha256": "babe9dda85036fe480faadf99290ce8da4f49bbb3da4dfc332e43254a21c8b07"
+  },
+  "programsEndTimeLabel": "Eindtijd",
+  "@programsEndTimeLabel": {
+    "x-sourceSha256": "2e46006a5eebb262c2357ad3266dc848f5733b58a30ea4a12c357533f0dab6ba"
+  },
+  "programsLessonTimeLabel": "Beginnersles",
+  "@programsLessonTimeLabel": {
+    "x-sourceSha256": "4165c709e149de4646527ce4d79a59f23d4f0e56738b1ef53a894d944121b76b"
+  },
+  "programsArrivalTimeLabel": "Aanwezig om",
+  "@programsArrivalTimeLabel": {
+    "x-sourceSha256": "47c0746171edd7515575d4dc8f40c21e3ddbf86be75a4bed4bb233e301fd1b4f"
+  },
+  "programsNoTimeSet": "Niet ingesteld",
+  "@programsNoTimeSet": {
+    "x-sourceSha256": "4895f73177ab5d67c30c183a49d2477e014a2ef69b65150762d17e877f4f5b95"
+  },
+  "programsSetTime": "Instellen",
+  "@programsSetTime": {
+    "x-sourceSha256": "b6f6f3ad07b3c05fa0bbbbf2e3d257ff1e3e31a83efbe2c9369cd008594f94e0"
+  },
+  "programsChangeTime": "Wijzigen",
+  "@programsChangeTime": {
+    "x-sourceSha256": "c0bf75bd78bf9572596720d596bd5a20a5b9145cde0fe50dec1e783cb184d69b"
+  },
+  "programsSetTimeFor": "{field} instellen",
+  "@programsSetTimeFor": {
+    "x-sourceSha256": "98fcb02953bebbb7a135cf0b8f7c96dede3649450c91105bafce43eed88ee1a1"
+  },
+  "programsChangeTimeFor": "{field} wijzigen",
+  "@programsChangeTimeFor": {
+    "x-sourceSha256": "b8abd919ebefcde22d9e9804d06037d6c417624d2591656b07c5bfdf022ed3ef"
+  },
+  "programsClearTime": "{field} wissen",
+  "@programsClearTime": {
+    "x-sourceSha256": "156a8b55d71448fdefcbe2d9c2978570e27450bf55776538ee7554cbb41b2f16"
+  },
+  "programsTimeNextDay": "Eindigt de volgende dag",
+  "@programsTimeNextDay": {
+    "x-sourceSha256": "95b8ec8624718b6d5ed9657c3ec32032004dd3f566c12a744d5ba11b630b7384"
+  },
+  "programsVenueUsualTimeHint": "Gebruikelijke tijd van de locatie: {time}",
+  "@programsVenueUsualTimeHint": {
+    "x-sourceSha256": "9eb71af24d89196669c70897a007c5859b42047f5055806281f4711a089a8509"
+  },
+  "programsSummaryLessonTime": "Les {time}",
+  "@programsSummaryLessonTime": {
+    "x-sourceSha256": "5464b4eb6dbfd02566ac3665818c9d589d5738123879648a7c4922d82dc8c28f"
+  },
+  "programsSummaryDanceTime": "Dans {times}",
+  "@programsSummaryDanceTime": {
+    "x-sourceSha256": "930705dc31d449a2dd2e4c042420ec86e30c4aabca9817643e57ae39ddda11ff"
+  },
+  "programsSummaryArriveBy": "Aanwezig om {time}",
+  "@programsSummaryArriveBy": {
+    "x-sourceSha256": "3415443ccf03494c405ef8f00334141a0990530e70da6be7b82ad10e551d3552"
+  },
   "programsVenueLabel": "Locatie",
   "@programsVenueLabel": {
     "x-sourceSha256": "aea1b15df626f337de5eb359dd6f7651b9f25a39ddb515b6ab765e1167456d87"
@@ -7041,6 +7101,22 @@
   "exportPageOfPages": "Pagina {page} van {pages}",
   "@exportPageOfPages": {
     "x-sourceSha256": "240ab6d8dc2cbb5ede8e1e708f5812d1129644348c3a28d3aaf8d5b97a4cfaef"
+  },
+  "exportLabelLesson": "Les",
+  "@exportLabelLesson": {
+    "x-sourceSha256": "6e2b26d9de4033b952bd242f69b798420ee887151b937f394efc23252c78af74"
+  },
+  "exportTimeRange": "{start}–{end}",
+  "@exportTimeRange": {
+    "x-sourceSha256": "83b39cc8e4486d715890d3c3664a1e4a7443f2ff680ce67ef0ee2844eceae285"
+  },
+  "exportEndsAt": "tot {end}",
+  "@exportEndsAt": {
+    "x-sourceSha256": "c18a1209ddea9969439cf6c222f8b58fb3608d37e857d6be2b04f82024aca9dc"
+  },
+  "exportNextDay": "{times} (volgende dag)",
+  "@exportNextDay": {
+    "x-sourceSha256": "534d2dc19feab4f2332c8173ce707f0450802b6b966c2f7a0fa2c51bd22d297c"
   },
   "exportLabelVenue": "Locatie",
   "@exportLabelVenue": {

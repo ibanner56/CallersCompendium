@@ -2338,7 +2338,7 @@ ECD dance.
   a date), or meters of different bars in one text (`2/4 and 3/4`) count 2
   and say it was not stated. Where the dance's phrase structure gives one beats per bar, that is
   the fallback for an unstated meter (`ecdMeterForBars`: `4*8*3` reads as
-  `3/4`, a `4*8*6` one as `6/2`), as for the editor's bar timing (`BarTimingScope.beatsPerBarFor`,
+  `3/4`, a `4*8*6` one as `6/2`), as for the editor's bar timing (`barTimingFor`,
   which takes the meter first too). Where the phrases of a structure differ in
   beats per bar (`A:2*4*3 + B:1*8*2`, #2303) the meter text does not count it:
   `BarTiming.byPhrase` counts each bar as long as the phrase it starts in, from
