@@ -746,8 +746,12 @@ nothing in it to lose.
   **Name the phrases** on a structure that differs keeps each part's own beats
   where its parts group into named phrases.
   Each phrase has 1 to 1000 bars and 1
-  to 1000 beats to the bar; while one is left empty or past that, the dance
-  keeps its last valid phrases, and **Save** saves those.
+  to 12 beats to the bar (12 is the most a meter can name); while one is left
+  empty or past that, the dance keeps its last valid phrases, and **Save**
+  saves those. That includes a phrase typed earlier with more than 12 beats to
+  the bar: it shows the error and its text is kept until you set that phrase's
+  beats (or change the **Meter** so that it states other beats, which sets
+  every phrase's, as above).
   Remove every phrase to go back to unnamed phrases: the standard A1 A2 B1
   B2, counted in the dance's meter. You can also
   type names into the **Phrase structure** field (`A:2*4*2 + B:1*8*2`);

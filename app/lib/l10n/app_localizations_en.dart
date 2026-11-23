@@ -8818,8 +8818,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorPhrasesAdd => 'Add phrase';
 
   @override
-  String danceEditorPhrasesInvalid(int max) {
-    return 'Give each phrase from 1 to $max bars and from 1 to $max beats to the bar. Until then the dance keeps its last valid phrases, and Save saves those.';
+  String danceEditorPhrasesInvalid(int maxBars, int maxBeats) {
+    return 'Give each phrase from 1 to $maxBars bars and from 1 to $maxBeats beats to the bar. Until then the dance keeps its last valid phrases, and Save saves those.';
   }
 
   @override
