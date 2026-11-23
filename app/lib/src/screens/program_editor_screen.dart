@@ -1061,16 +1061,25 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   /// Whether pay is hidden by the Show pay setting (issue #2355) and the pay
-  /// input still holds what this editor loaded, so a save or draft must keep
-  /// the program's stored pay rather than read it from the input.
+  /// input still says what [_existing] holds, so a save or draft must keep the
+  /// program's stored pay rather than read it from the input.
+  ///
+  /// Compared by value, not by text: after an auto-commit [_existing] is the
+  /// stored program while the input keeps what was typed (`250` against a
+  /// stored `250.00`, or no chosen currency against a stored one), and that
+  /// must not read as an edit. With no pay, a chosen currency is no pay either.
   ///
   /// A pay change typed before pay was hidden is not held back: it is the
   /// person's input and is saved like any other edit.
   bool get _payHeldBack {
     if (_showPay) return false;
+    final pay = _parsedPay();
+    if (pay.isInvalid) return false;
     final existing = _existing;
-    if (existing != null) return !_payEditedSince(existing);
-    return _payController.text.trim().isEmpty && _payCurrency == null;
+    final storedUnits = existing?.payMinorUnits;
+    final storedCurrency = existing?.payCurrency;
+    if (pay.isEmpty) return storedUnits == null || storedCurrency == null;
+    return pay.units == storedUnits && pay.currency == storedCurrency;
   }
 
   /// Loads [program] into the editor. When [payBaseline] is given (an Undo
@@ -2831,9 +2840,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       // blocked separately (see _save), and an export should not flicker to
       // "no pay" while the person is mid-typing.
       final pay = _parsedPay();
-      // Pay hidden and untouched (#2355): the base's pay rides through
-      // exactly, never re-read from the hidden input.
-      final keepPay = _payHeldBack;
       return base.copyWith(
         title: title,
         eventDate: _eventDate,
@@ -2853,9 +2859,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         hideAlternates: _hideAlternates,
         dialectName: _dialectName,
         clearDialectName: _dialectName == null,
-        payMinorUnits: keepPay ? null : pay.units,
-        payCurrency: keepPay || pay.units == null ? null : pay.currency,
-        clearPay: !keepPay && pay.isEmpty,
+        payMinorUnits: pay.units,
+        payCurrency: pay.units == null ? null : pay.currency,
+        clearPay: pay.isEmpty,
         slots: _renumber(_slots),
       );
     } catch (_) {
@@ -2893,18 +2899,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     }
     // Pay hidden and untouched (#2355): write the pay as stored now, so a
     // change that reached it while this editor was open (sync, another
-    // window) is not overwritten by a copy the person cannot see. The input
-    // follows, so the adopted result does not read as a pay edit.
-    var payMinorUnits = draft.payMinorUnits;
-    var payCurrency = draft.payCurrency;
-    if (before != null && _payHeldBack) {
-      payMinorUnits = before.payMinorUnits;
-      payCurrency = before.payCurrency;
-      if (payMinorUnits != existing?.payMinorUnits ||
-          payCurrency != existing?.payCurrency) {
-        _setPayFrom(before);
-      }
-    }
+    // window) is not overwritten by a copy the person cannot see. Once the
+    // write lands the input follows it (below), so the adopted result does
+    // not read as a pay edit.
+    final holdPay = before != null && _payHeldBack;
+    final payMinorUnits = holdPay ? before.payMinorUnits : draft.payMinorUnits;
+    final payCurrency = holdPay ? before.payCurrency : draft.payCurrency;
     final persisted = Program(
       id: existing?.id ?? uuidV4(),
       title: draft.title,
@@ -2934,6 +2934,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         persisted,
         keepStoredArchivedAt: true,
       );
+      // Still hidden and untouched across the write: show the input what was
+      // written. An edit typed in the meantime is left alone.
+      if (holdPay && mounted && _payHeldBack) _setPayFrom(stored);
       _adoptStoredVenueId(sent: draft.venueId, stored: stored.venueId);
       return stored;
     }

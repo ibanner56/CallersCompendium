@@ -37,14 +37,15 @@ final _title = find.byKey(const ValueKey('program-title'));
 Future<void> _pumpEditor(
   WidgetTester tester,
   CompendiumRepositories repos,
-  ValueNotifier<bool> showPay,
-) async {
+  ValueNotifier<bool> showPay, {
+  bool autoCommit = false,
+}) async {
   await tester.binding.setSurfaceSize(const Size(800, 1400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
   addTearDown(dialect.dispose);
-  final autoCommit = ValueNotifier<bool>(false);
-  addTearDown(autoCommit.dispose);
+  final autoCommitNotifier = ValueNotifier<bool>(autoCommit);
+  addTearDown(autoCommitNotifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
@@ -54,7 +55,7 @@ Future<void> _pumpEditor(
         child: ActiveDialectScope(
           notifier: dialect,
           child: ProgramAutoCommitScope(
-            notifier: autoCommit,
+            notifier: autoCommitNotifier,
             child: ShowProgramPayScope(notifier: showPay, child: child!),
           ),
         ),
@@ -148,6 +149,47 @@ void main() {
       expect(saved.payMinorUnits, 7500);
       expect(saved.payCurrency, 'EUR');
     });
+
+    for (final typed in ['250', '250.00']) {
+      testWidgets('after auto-saving pay typed as "$typed", hiding pay keeps '
+          'the next auto-save from overwriting pay changed elsewhere', (
+        tester,
+      ) async {
+        final repos = openTestRepositories();
+        await repos.programs.create(
+          _program(payMinorUnits: null, payCurrency: null),
+        );
+        final showPay = _showPay(true);
+        await _pumpEditor(tester, repos, showPay, autoCommit: true);
+        await _expandMoreDetails(tester);
+        // The currency is left at the locale default, never picked.
+        await tester.enterText(_payField, typed);
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
+        final committed = (await repos.programs.getById('p1'))!;
+        expect(
+          (committed.payMinorUnits, committed.payCurrency),
+          (25000, 'USD'),
+        );
+
+        showPay.value = false;
+        await tester.pumpAndSettle();
+        await repos.programs.update(
+          committed.copyWith(
+            payMinorUnits: 30000,
+            payCurrency: 'EUR',
+            updatedAt: DateTime.utc(2026, 1, 3),
+          ),
+        );
+        await tester.enterText(_title, 'Renamed');
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
+
+        final saved = (await repos.programs.getById('p1'))!;
+        expect(saved.title, 'Renamed');
+        expect((saved.payMinorUnits, saved.payCurrency), (30000, 'EUR'));
+      });
+    }
 
     testWidgets('a pay change typed before pay was hidden is still saved', (
       tester,

@@ -9,7 +9,10 @@ export 'settings_keys.dart' show kShowProgramPayKey;
 /// Pay amount and currency, and the program summary shows a pay line. When
 /// `false`, both are hidden. Hiding is display-only: a program's stored pay is
 /// never cleared or changed by it, and a save from the editor while it is off
-/// keeps the stored amount and currency. Descendants that call
+/// keeps the stored amount and currency, unless the person changed pay before
+/// it was hidden (that change is saved) or the field holds an amount that does
+/// not parse (the editor shows the field again so it can be fixed).
+/// Descendants that call
 /// [ShowProgramPayScope.of] rebuild automatically when the setting changes.
 ///
 /// Use [ShowProgramPayScope.notifierOf] when you need to *change* the setting
