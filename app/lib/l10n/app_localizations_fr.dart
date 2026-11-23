@@ -13153,7 +13153,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSuggestionsEnabledSubtitle =>
-      'Ajoute Suggéré au menu Trier de la liste de danses de l’éditeur de programme. Les danses sont classées pour la fin du programme, avec la raison.';
+      'Ajoute Suggéré au menu Trier des listes de danses de l’éditeur de programme. Les danses sont classées pour la place de la nouvelle danse, avec la raison.';
 
   @override
   String get settingsSuggestionsEditorTitle =>
@@ -13317,6 +13317,42 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String suggestionReasonPhraseOverlapNext(String move) {
     return '$move dans la même phrase que la danse suivante';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapAfterDance(String move, String dance) {
+    return '$move sur les mêmes temps que $dance, juste avant';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapBeforeDance(String move, String dance) {
+    return '$move sur les mêmes temps que $dance, juste après';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapAfterDance(String move, String dance) {
+    return '$move dans la même phrase que $dance, juste avant';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapBeforeDance(String move, String dance) {
+    return '$move dans la même phrase que $dance, juste après';
+  }
+
+  @override
+  String suggestionReasonSameFormationAfterDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation, comme $dance, juste avant';
+  }
+
+  @override
+  String suggestionReasonSameFormationBeforeDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation, comme $dance, juste après';
   }
 
   @override

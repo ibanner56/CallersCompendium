@@ -1,0 +1,23 @@
+{
+  "id": "2344-suggest-mid-program",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Experimental: Suggested now also orders the dances while you add a dance before or after a slot, and in Replace…, for that place in the program: it compares each dance with the dances on both sides (a break between them still separates them), reads the difficulty curve at that point of the evening, and leaves the dance you are replacing out of the comparison.",
+      "A suggestion's reason names the dance it compares with and which side it is on, such as Same partner swing beats as Chorus Jig, after it."
+    ],
+    "changed": [
+      "In Replace…, the Called and Not called filters and the Last called sort no longer count the program you are building as calling history, as in the add-dance list."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add SuggestionPosition (atEnd, inserting, replacing): the slots before and after where a dance will go, and whether it takes an alternate's place.",
+      "SuggestionRequest takes candidateIsAlternate, and SuggestionReason carries neighborDanceId, the neighbour an overlap or formation reason compares with.",
+      "Add ProgramMatrix.collidingNeighborRowIndices, the neighbours a move collides with."
+    ],
+    "changed": [
+      "rankSuggestions reads the difficulty curve at the position (before an alternate's primary when the candidate takes an alternate's place), and an overlap reason names the neighbour the move collides with rather than the first neighbour that has the move."
+    ]
+  }
+}
