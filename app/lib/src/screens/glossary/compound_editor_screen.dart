@@ -254,24 +254,25 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   /// one dialect is stored as if it were typed in another.
   void _formChanged(String form) {
     final from = _dialect(context);
+    // The wording is read while the form still is the one it was written
+    // for: its conditions are checked against that form's groups of dancers.
+    final storedWording = _template.text.trim().isEmpty
+        ? null
+        : _templateCheck(from).stored;
     _form = form;
     final to = ActiveDialectScope.of(context).forForm(_danceForm);
-    if (from != to) _reshowFields(from, to);
+    if (from != to) _reshowFields(from, to, storedWording);
     _shownDialect = to;
     _changed();
   }
 
-  void _reshowFields(Dialect from, Dialect to) {
+  void _reshowFields(Dialect from, Dialect to, String? storedWording) {
     String entryText(String text) => text.isEmpty
         ? text
         : _renderer.renderFreeText(canonicalizeGlossaryText(text, from), to);
     String noteText(String text) => text.isEmpty
         ? text
         : _renderer.renderFreeText(canonicalizeText(text, from), to);
-    // The wording is read before anything it tests is shown again.
-    final storedWording = _template.text.trim().isEmpty
-        ? null
-        : _templateCheck(from).stored;
     _name.text = entryText(_name.text);
     _definition.text = entryText(_definition.text);
     _description.text = entryText(_description.text);
@@ -297,12 +298,16 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
 
     reshowNotes(_drafts);
     final vocabulary = _templateVocabulary(to);
-    _template.text = storedWording == null
-        ? entryText(_template.text)
-        : wordingForEditing(storedWording, vocabulary);
-    _shownTemplate = storedWording == null
+    // The wording's literal words move too; its conditions and slots are kept.
+    final movedWording = storedWording == null
         ? null
-        : (stored: storedWording, shown: _template.text);
+        : mapUserFigureTemplateText(storedWording, entryText);
+    _template.text = movedWording == null
+        ? entryText(_template.text)
+        : wordingForEditing(movedWording, vocabulary);
+    _shownTemplate = movedWording == null
+        ? null
+        : (stored: movedWording, shown: _template.text);
     _readTemplate = _shownTemplate;
     _templateWords = _wordsOf(vocabulary);
   }

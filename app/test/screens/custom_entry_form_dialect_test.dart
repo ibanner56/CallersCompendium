@@ -248,6 +248,131 @@ void main() {
     });
   });
 
+  group('the figure editor, every field', () {
+    // One figure with its words in every field the editor re-shows: a wording
+    // with a condition and a role word, and a flag's label.
+    const template =
+        "[{?if who is 'neighbors'}role1s zoom{?else}{who} zoom][ {fast}]";
+    UserGlossaryEntry full(String form) => UserGlossaryEntry(
+      id: 'z',
+      kindName: UserGlossaryEntryKind.customFigure.name,
+      name: 'role1s zoom',
+      definition: 'role1s zoom around.',
+      description: 'role1s zoom, then step.',
+      keywords: const ['role1s zoom'],
+      notes: 'role1s zoom note.',
+      payload: {
+        'form': form,
+        'template': template,
+        'defaultBeats': 8,
+        'params': [
+          {'key': 'who', 'kind': 'dancerSet'},
+          {'key': 'fast', 'kind': 'flag', 'label': 'role1s who'},
+        ],
+      },
+      createdAt: DateTime.utc(2026, 11, 20),
+    );
+
+    Future<void> pickForm(WidgetTester tester, String label) async {
+      // The list builds only what is near the screen: back to the top first.
+      await tester.drag(find.byType(ListView).first, const Offset(0, 5000));
+      await tester.pumpAndSettle();
+      await pickDropdownEntry(
+        tester,
+        find.byKey(const ValueKey('glossary-entry-form')),
+        label,
+      );
+      await tester.drag(find.byType(ListView).first, const Offset(0, 3000));
+      await tester.pumpAndSettle();
+    }
+
+    /// The field's text, scrolled to first: the editor's list builds only
+    /// what is near the screen.
+    Future<String> field(WidgetTester tester, String key) async {
+      final finder = find.byKey(ValueKey(key));
+      await tester.scrollUntilVisible(
+        finder,
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      return tester.widget<TextField>(finder).controller!.text;
+    }
+
+    Future<void> expectEveryFieldIn(
+      WidgetTester tester,
+      String Function(String) shown,
+    ) async {
+      // Scrolled back to the top first, so each field is reached downwards.
+      await tester.drag(find.byType(ListView).first, const Offset(0, 5000));
+      await tester.pumpAndSettle();
+      expect(await field(tester, 'compound-name'), shown('role1s zoom'));
+      expect(
+        await field(tester, 'compound-definition'),
+        shown('role1s zoom around.'),
+      );
+      expect(
+        await field(tester, 'compound-description'),
+        shown('role1s zoom, then step.'),
+      );
+      expect(await field(tester, 'compound-keywords'), shown('role1s zoom'));
+      expect(await field(tester, 'compound-notes'), shown('role1s zoom note.'));
+      expect(
+        await field(tester, 'user-figure-param-1-label'),
+        shown('role1s who'),
+      );
+      expect(
+        await field(tester, 'user-figure-wording'),
+        contains(shown('role1s zoom')),
+      );
+    }
+
+    for (final (from, to, fromLabel, toLabel, fromShown, toShown)
+        in <
+          (
+            String,
+            String,
+            String,
+            String,
+            String Function(String),
+            String Function(String),
+          )
+        >[
+          ('contra', 'ecd', 'Contra', 'English (ECD)', inContra, inEnglish),
+          ('ecd', 'contra', 'English (ECD)', 'Contra', inEnglish, inContra),
+        ]) {
+      testWidgets('re-shows every field and the wording $from to $to, and '
+          'stores them as written', (tester) async {
+        expectDialectsDiffer('role1s zoom');
+        expectDialectsDiffer('role1s who');
+        final repos = await pumpScreen(
+          tester,
+          CompoundEditorScreen(initial: full(from)),
+        );
+        // `fromLabel` is only the dropdown's own text for the starting form.
+        expect(fromLabel, isNotEmpty);
+        await expectEveryFieldIn(tester, fromShown);
+        await pickForm(tester, toLabel);
+        await tester.drag(find.byType(ListView).first, const Offset(0, 3000));
+        await tester.pumpAndSettle();
+        await expectEveryFieldIn(tester, toShown);
+
+        await tester.tap(find.byKey(const ValueKey('compound-editor-save')));
+        await tester.pumpAndSettle();
+        final saved = (await tester.runAsync(
+          () => repos.userGlossary.getById('z'),
+        ))!;
+        // Canonical in storage whichever dialect it was shown in, and the
+        // wording's condition survives the move.
+        final figure = decodeUserFigureDefinition(saved.payload)!;
+        expect(figure.template, template);
+        expect(figure.form, to);
+        expect(figure.params.last.label, 'role1s who');
+        expect(saved.keywords, ['role1s zoom']);
+        expect(saved.notes, 'role1s zoom note.');
+      });
+    }
+  });
+
   group('a sync conflict on an entry of your own', () {
     String payloadOf(String form) => canonicalJson(
       UserFigureDefinition(
