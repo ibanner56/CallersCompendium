@@ -48,7 +48,8 @@ final class CircularHey extends Operation {
   /// The shoulder of the first pass. Styling; no positional effect.
   final Hand shoulder;
 
-  /// The pairs that pass second, when the record names them. Descriptive.
+  /// The pairs that pass second, when the record names them. Checked against
+  /// the ring after the first pass (see above); moves nobody.
   final WhoSet? who2;
 
   /// The record's direction for the first pass. Descriptive (see above).
