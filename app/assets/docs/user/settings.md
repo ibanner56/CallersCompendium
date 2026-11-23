@@ -595,9 +595,11 @@ default.
 
 Choose which details appear when you share, copy, or export a program or dance:
 **Authors**, **Formation**, **Level**, **Mixer**, **Status**, **Phrase**,
-**Calling notes**, **Walkthrough**, **Tunes**, **Hook**, and **Sources**.
-Everything except tunes, the hook and sources is shown by default; those three
-are hidden until you turn them on. See
+**Calling notes**, **Walkthrough**, **Tunes**, **Hook**, **Sources**, and
+**Meter, key and Barnes**. Everything except tunes, the hook and sources is
+shown by default; those three are hidden until you turn them on. If you had
+changed this list before **Meter, key and Barnes** was added, it starts off.
+See
 [Choose which dance fields appear](./sharing.md#choose-which-dance-fields-appear).
 
 ### Collection filters
@@ -1106,6 +1108,7 @@ with is:
 ```text
 title size=16 bold width=3 | formation size=8 right width=2
 authors size=8 | level size=8 right
+music size=8
 rule color=#b64545 thickness=1.5
 figures size=10 highlight
 space 4
@@ -1113,7 +1116,8 @@ notes size=8 lines=4
 ```
 
 That reads: the title, large and bold, with the formation to its right; the
-authors, with the level to their right; a red line; the figures, with the
+authors, with the level to their right; the tune's meter, key and Barnes
+reference, for a dance that has them; a red line; the figures, with the
 move in bold dark red, the dancers in bold and amounts such as ½ or 3 places in
 blue-gray; a small gap; then up to four lines of calling notes.
 
@@ -1137,8 +1141,10 @@ Beside the text, the editor shows:
 Changes are saved as you type. **Reset to default** (after asking) puts the
 layout above back.
 
-The blocks are `title`, `authors`, `formation`, `level`, `meta` (formation,
-level, mixer, status and phrase on one line), `figures`, `notes` (calling
+The blocks are `title`, `authors` (with the year the dance was composed, and
+who interpreted it and when), `formation`, `level`, `meta` (formation, level,
+mixer, status and phrase on one line), `music` (the meter and key, and the
+Barnes reference, on one line), `figures`, `notes` (calling
 notes), `walkthrough`, `hook`, `tunes`, `sources`, `program` and `number` (a
 program's title, and the dance's number in its set list, or **Alternate**), `text`
 (your own words in quotes, like `text "Called by me"`), `rule` (a line across),

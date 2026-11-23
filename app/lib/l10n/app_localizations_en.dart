@@ -2731,6 +2731,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDefaultsShareFieldsSources => 'Sources';
 
   @override
+  String get settingsDefaultsShareFieldsMusic => 'Meter, key and Barnes';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'Collection filters';
 
   @override
@@ -12536,7 +12539,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get callingCardHelpBlockTitle => 'The dance\'s title.';
 
   @override
-  String get callingCardHelpBlockAuthors => 'Who wrote the dance.';
+  String get callingCardHelpBlockAuthors =>
+      'Who wrote the dance and when, then who interpreted it and when.';
 
   @override
   String get callingCardHelpBlockFormation =>
@@ -12548,6 +12552,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get callingCardHelpBlockMeta =>
       'Formation, level, mixer, status and phrase on one line, each with its label.';
+
+  @override
+  String get callingCardHelpBlockMusic =>
+      'The tune\'s meter and key, and its Barnes reference, on one line.';
 
   @override
   String get callingCardHelpBlockFigures =>

@@ -646,13 +646,15 @@ menu:
   calendar (.ics)** on the Programs list.
 
 A set list is titles, event details, and slot notes by default, with each
-dance's author shown next to its title if you have authors turned on.
+dance's author shown next to its title if you have authors turned on, and its
+meter and key if you have **Meter, key and Barnes** turned on.
 Settings ▸ Defaults lets you choose other dance fields too, but they only
 appear on the richer per-dance card, not the numbered set-list line itself —
 see
 [Choose which dance fields appear](./sharing.md#choose-which-dance-fields-appear).
 When you share, copy, or export as PDF the app asks **"Include figures?"** —
-choose **Set list only** to keep titles, notes, and the author, or
+choose **Set list only** to keep titles, notes, the author, and the meter and
+key, or
 **Set list and figures** to append a full card for each dance, showing every
 selected field alongside its figures, after the set list. A dance with no
 structured figures still gets a card when it has calling notes, a walkthrough,

@@ -2753,6 +2753,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsDefaultsShareFieldsSources => 'Kilder';
 
   @override
+  String get settingsDefaultsShareFieldsMusic => 'Taktart, toneart og Barnes';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'Samlingsfiltre';
 
   @override
@@ -12585,7 +12588,8 @@ class AppLocalizationsDa extends AppLocalizations {
   String get callingCardHelpBlockTitle => 'Dansens titel.';
 
   @override
-  String get callingCardHelpBlockAuthors => 'Hvem der har skrevet dansen.';
+  String get callingCardHelpBlockAuthors =>
+      'Hvem der har skrevet dansen og hvornår, derefter hvem der har fortolket den og hvornår.';
 
   @override
   String get callingCardHelpBlockFormation =>
@@ -12597,6 +12601,10 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get callingCardHelpBlockMeta =>
       'Formation, niveau, mixer, status og frase på én linje, hver med sin etiket.';
+
+  @override
+  String get callingCardHelpBlockMusic =>
+      'Melodiens taktart og toneart samt Barnes-henvisningen på én linje.';
 
   @override
   String get callingCardHelpBlockFigures =>

@@ -176,6 +176,7 @@ class _CallingCardLayoutEditorScreenState
       number: '3',
       labels: (
         authorNames: [l10n.callingCardSampleAuthor],
+        interpreterNames: const [],
         formationLabel: formationDisplayLabel(
           l10n,
           dance.formation,
@@ -582,6 +583,7 @@ class _CallingCardLayoutEditorScreenState
     (['formation'], l10n.callingCardHelpBlockFormation),
     (['level'], l10n.callingCardHelpBlockLevel),
     (['meta'], l10n.callingCardHelpBlockMeta),
+    (['music'], l10n.callingCardHelpBlockMusic),
     (['figures'], l10n.callingCardHelpBlockFigures),
     (['notes'], l10n.callingCardHelpBlockNotes),
     (['walkthrough'], l10n.callingCardHelpBlockWalkthrough),

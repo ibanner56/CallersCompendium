@@ -4188,6 +4188,12 @@ abstract class AppLocalizations {
   /// **'Sources'**
   String get settingsDefaultsShareFieldsSources;
 
+  /// Label for the share-field toggle that prints a dance's tune details: its meter and key (time signature and musical key of the tune) and its Barnes reference (where the tune is printed in the Barnes books of English dance tunes). On by default. 'Barnes' is a name and stays as is.
+  ///
+  /// In en, this message translates to:
+  /// **'Meter, key and Barnes'**
+  String get settingsDefaultsShareFieldsMusic;
+
   /// Section header for the preference that chooses which filters appear in the Collection page's Filters panel and the dance picker (#1419).
   ///
   /// In en, this message translates to:
@@ -18410,7 +18416,7 @@ abstract class AppLocalizations {
   /// Help: what the authors block prints.
   ///
   /// In en, this message translates to:
-  /// **'Who wrote the dance.'**
+  /// **'Who wrote the dance and when, then who interpreted it and when.'**
   String get callingCardHelpBlockAuthors;
 
   /// Help: what the formation block prints.
@@ -18430,6 +18436,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Formation, level, mixer, status and phrase on one line, each with its label.'**
   String get callingCardHelpBlockMeta;
+
+  /// Help: what the music block prints: the tune's meter (time signature) and key, and the Barnes reference (where the tune is printed in the Barnes books). 'Barnes' is a name and stays as is.
+  ///
+  /// In en, this message translates to:
+  /// **'The tune\'s meter and key, and its Barnes reference, on one line.'**
+  String get callingCardHelpBlockMusic;
 
   /// Help: what the figures block prints.
   ///

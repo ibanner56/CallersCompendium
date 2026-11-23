@@ -2794,6 +2794,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsDefaultsShareFieldsSources => 'Sources';
 
   @override
+  String get settingsDefaultsShareFieldsMusic => 'Mesure, tonalité et Barnes';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader =>
       'Filtres de la collection';
 
@@ -12724,7 +12727,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get callingCardHelpBlockTitle => 'Le titre de la danse.';
 
   @override
-  String get callingCardHelpBlockAuthors => 'Qui a écrit la danse.';
+  String get callingCardHelpBlockAuthors =>
+      'Qui a écrit la danse et quand, puis qui l’a interprétée et quand.';
 
   @override
   String get callingCardHelpBlockFormation =>
@@ -12736,6 +12740,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get callingCardHelpBlockMeta =>
       'Formation, niveau, mixer, statut et phrase sur une ligne, chacun avec son libellé.';
+
+  @override
+  String get callingCardHelpBlockMusic =>
+      'La mesure et la tonalité de l’air, ainsi que sa référence Barnes, sur une ligne.';
 
   @override
   String get callingCardHelpBlockFigures =>

@@ -2767,6 +2767,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDefaultsShareFieldsSources => 'Bronnen';
 
   @override
+  String get settingsDefaultsShareFieldsMusic =>
+      'Maatsoort, toonsoort en Barnes';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'Collectiefilters';
 
   @override
@@ -12657,7 +12661,8 @@ class AppLocalizationsNl extends AppLocalizations {
   String get callingCardHelpBlockTitle => 'De titel van de dans.';
 
   @override
-  String get callingCardHelpBlockAuthors => 'Wie de dans heeft geschreven.';
+  String get callingCardHelpBlockAuthors =>
+      'Wie de dans heeft geschreven en wanneer, daarna wie hem heeft geïnterpreteerd en wanneer.';
 
   @override
   String get callingCardHelpBlockFormation =>
@@ -12669,6 +12674,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get callingCardHelpBlockMeta =>
       'Opstelling, niveau, mixer, status en frase op één regel, elk met zijn label.';
+
+  @override
+  String get callingCardHelpBlockMusic =>
+      'De maatsoort en toonsoort van het deuntje en de Barnes-verwijzing op één regel.';
 
   @override
   String get callingCardHelpBlockFigures =>

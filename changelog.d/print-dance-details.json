@@ -1,0 +1,19 @@
+{
+  "id": "print-dance-details",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Shared, copied and printed dance cards now show the year a dance was composed beside its authors, such as \"Pat Shaw (1951)\", and who interpreted it and when, such as \"Interpreted by Cecil Sharp (1916)\". This prints with the authors.",
+      "Shared, copied and printed dance cards and calling cards now show the tune's meter and key and its Barnes reference. A set list shows each dance's meter and key. A new **Meter, key and Barnes** choice in Settings ▸ Defaults turns this on or off. It is on for a new install, and off if you had already changed that list.",
+      "Calling card layouts have a new `music` block for the meter, key and Barnes reference, and the default layout prints it under the authors."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add `DanceShareField.music`, on by default, gating a dance card's meter, key and Barnes lines (`DanceCardContent.musicLines`).",
+      "Add `DanceCardContent.creditLines` (authors with the composed year, interpreters with the interpreted year) and an `interpreterNames` input to `DanceCardContent.build` and `danceToPlainText`.",
+      "Add a `tuneDetailsFor` resolver to `programToPlainText` and `programSlotLine`, printing a slot's meter and key in its details.",
+      "Add credit and tune-detail label functions to `DanceExportLabels`."
+    ]
+  }
+}

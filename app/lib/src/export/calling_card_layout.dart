@@ -36,6 +36,7 @@ enum CallingCardBlockKind {
   formation,
   level,
   meta,
+  music,
   figures,
   notes,
   walkthrough,
@@ -220,6 +221,7 @@ const String kDefaultCallingCardLayout = '''
 # Put | between blocks to place them side by side.
 title size=16 bold width=3 | formation size=8 right width=2
 authors size=8 | level size=8 right
+music size=8
 rule color=#b64545 thickness=1.5
 figures size=10 highlight
 space 4
