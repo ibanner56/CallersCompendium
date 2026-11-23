@@ -537,6 +537,73 @@ void main() {
         expect((after.startMinute, after.endMinute), (null, null));
       });
 
+      group('a UTC (Z) event read in another time zone', () {
+        // Imported at UTC-4, read again at UTC+1: the same instant reads
+        // 19:00-22:00 on 20 June there and 00:00-03:00 on 21 June here.
+        DateTime west(DateTime u) => u.subtract(const Duration(hours: 4));
+        DateTime east(DateTime u) => u.add(const Duration(hours: 1));
+        String utc(String start, String end) => _cal([
+          ['UID:z', 'DTSTART:$start', 'DTEND:$end', 'SUMMARY:Contra Z'],
+        ]);
+        Future<CalendarImportPreview> read(
+          CompendiumRepositories repos,
+          String body,
+          DateTime Function(DateTime) toLocal,
+        ) => buildCalendarImportPreview(
+          repos,
+          body: body,
+          settings: const CalendarImportSettings(),
+          today: _today,
+          toLocal: toLocal,
+        );
+        Future<void> importAt(
+          CompendiumRepositories repos,
+          String body,
+          DateTime Function(DateTime) toLocal,
+        ) async {
+          final preview = await read(repos, body, toLocal);
+          await commitCalendarImport(
+            repos,
+            chosen: [
+              for (final e in preview.entries)
+                if (e.tickedByDefault) e,
+            ],
+            untitledTitle: 'Untitled event',
+            now: _t0,
+          );
+        }
+
+        test('an unchanged event is not offered as a change', () async {
+          final repos = openTestRepositories();
+          final body = utc('20300620T230000Z', '20300621T020000Z');
+          await importAt(repos, body, west);
+          final p = await _only(repos);
+          expect((p.startMinute, p.endMinute), (19 * 60, 22 * 60));
+          final preview = await read(repos, body, east);
+          expect(preview.changes.where(calendarOfferVisible), isEmpty);
+        });
+
+        test('a real change is offered, read in this time zone', () async {
+          final repos = openTestRepositories();
+          await importAt(
+            repos,
+            utc('20300620T230000Z', '20300621T020000Z'),
+            west,
+          );
+          // An hour later in the calendar: 01:00-04:00 on 21 June here.
+          final preview = await read(
+            repos,
+            utc('20300621T000000Z', '20300621T030000Z'),
+            east,
+          );
+          final offer = preview.changes.single;
+          expect(
+            (offer.start, offer.end, offer.candidate.startMinute),
+            (true, true, 60),
+          );
+        });
+      });
+
       Future<void> workOn(CompendiumRepositories repos, {int? start}) async {
         final p = await _only(repos);
         await repos.programs.update(

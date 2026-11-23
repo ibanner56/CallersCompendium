@@ -594,6 +594,7 @@ class CalendarImportCandidate {
     this.endMinute,
     this.venueLabel,
     this.exportedProgramId,
+    this.asWritten,
   });
 
   /// [calendarEventKey] of the event's `UID` and recurrence id.
@@ -626,13 +627,23 @@ class CalendarImportCandidate {
   /// calendar export, #2351): that program id.
   final String? exportedProgramId;
 
-  /// [calendarEventFingerprint] of this event as it is now.
+  /// The date, start and end as the calendar writes them, before a `Z`
+  /// (UTC) time is moved to the reader's local time: for a `Z` event, the
+  /// UTC date and minutes; otherwise the same as [date], [startMinute] and
+  /// [endMinute]. Null means the same as those. Only the fingerprint uses
+  /// it, so the same event read in another time zone, or on a device in
+  /// another zone that syncs the program, is not taken for a changed one.
+  final ({DateTime date, int? startMinute, int? endMinute})? asWritten;
+
+  /// [calendarEventFingerprint] of this event as it is now, from
+  /// [asWritten]: it changes only when the event does, whatever the
+  /// reader's time zone.
   String get fingerprint => calendarEventFingerprint(
     title: title,
-    date: date,
+    date: asWritten?.date ?? date,
     venueLabel: venueLabel,
-    startMinute: startMinute,
-    endMinute: endMinute,
+    startMinute: asWritten == null ? startMinute : asWritten!.startMinute,
+    endMinute: asWritten == null ? endMinute : asWritten!.endMinute,
   );
 }
 
@@ -788,6 +799,9 @@ CalendarImportPlan planCalendarImport(
   ) {
     if (e.isCancelled) return;
     final (startMinute, endMinute) = _eventMinutes(e, start, localOf);
+    // The same reading with no time-zone move, for the fingerprint (#2354).
+    DateTime asIs(DateTime utc) => utc;
+    final (writtenStart, writtenEnd) = _eventMinutes(e, start, asIs);
     final title = _clean(e.summary) ?? '';
     if (filter != null &&
         filter.isNotEmpty &&
@@ -805,6 +819,11 @@ CalendarImportPlan planCalendarImport(
         exportedProgramId: e.uid.endsWith(programCalendarUidSuffix)
             ? e.uid.substring(0, e.uid.length - programCalendarUidSuffix.length)
             : null,
+        asWritten: (
+          date: start.localDate(asIs),
+          startMinute: writtenStart,
+          endMinute: writtenEnd,
+        ),
       ),
     );
   }
