@@ -947,7 +947,9 @@ class ImportPipeline {
               // in this library. No resolved credit keeps the dance's.
               plan.draft.dance.copyWith(authorIds: authorIds ?? const []),
               updatedAt: now,
-              provenance: prov,
+              // A record that records no provenance leaves the dance's own,
+              // as an edit by hand does.
+              provenance: prov ?? existing.provenance,
               alsoTitleAndCredit: plan.verdict.alsoTitleAndCredit,
             ),
           );
@@ -979,7 +981,7 @@ class ImportPipeline {
             interpreterIds: interpreterIds,
             createdAt: existing.createdAt,
             updatedAt: now,
-            provenance: prov,
+            provenance: prov ?? existing.provenance,
             keepFrom: existing,
           );
           await _dances.update(dance);
@@ -1500,8 +1502,11 @@ class ImportPipeline {
         choreographyFingerprintForDance(b),
       );
 
-  Provenance _provenanceFrom(StructuredDraft draft, DateTime now) {
+  /// The provenance row a commit writes for [draft], or `null` when its record
+  /// records none ([RawRecord.recordsProvenance], #2329).
+  Provenance? _provenanceFrom(StructuredDraft draft, DateTime now) {
     final raw = draft.raw;
+    if (!raw.recordsProvenance) return null;
     return Provenance(
       source: raw.source,
       externalId: raw.externalId,

@@ -13781,4 +13781,105 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsExperimentalShowRepertoireSubtitle =>
       'Adds Repertoire to Collection\'s More actions menu: your most and least called dances, what you\'ve never called, figure frequency, authors, formations and repeats per venue.';
+
+  @override
+  String get importSourceLabelCsv => 'Your own spreadsheet (CSV)';
+
+  @override
+  String get importCsvPickFile => 'Choose a CSV file…';
+
+  @override
+  String get importCsvSaveAsHint =>
+      'In your spreadsheet, choose File ▸ Save As (or Download) and pick \"CSV UTF-8\", then choose that file here.';
+
+  @override
+  String get importCsvMapTitle => 'Map columns';
+
+  @override
+  String get importCsvMapIntro =>
+      'Choose what each column holds. Columns set to Ignore are left out. Nothing is added until you review and confirm.';
+
+  @override
+  String get importCsvSeparatorLabel => 'Separator';
+
+  @override
+  String get importCsvSeparatorComma => 'Comma (,)';
+
+  @override
+  String get importCsvSeparatorSemicolon => 'Semicolon (;)';
+
+  @override
+  String get importCsvSeparatorTab => 'Tab';
+
+  @override
+  String get importCsvFirstRowHeader => 'The first row names the columns';
+
+  @override
+  String importCsvColumnFallback(int number) {
+    return 'Column $number';
+  }
+
+  @override
+  String get importCsvTargetIgnore => 'Ignore';
+
+  @override
+  String importCsvTargetPhrase(String phrase) {
+    return 'Figures, $phrase';
+  }
+
+  @override
+  String importCsvTargetNewField(String type) {
+    return 'New custom field ($type)';
+  }
+
+  @override
+  String importCsvTargetExistingField(String name) {
+    return 'Custom field: $name';
+  }
+
+  @override
+  String get importCsvNeedsTitle =>
+      'Choose the column that holds each dance\'s title.';
+
+  @override
+  String get importCsvContinue => 'Continue';
+
+  @override
+  String get importCsvPreviewHeading => 'First rows';
+
+  @override
+  String get importCsvNotUtf8 =>
+      'This file isn\'t saved as UTF-8 text, so accented letters would come in wrong. In your spreadsheet, save it again as \"CSV UTF-8\" and choose that file.';
+
+  @override
+  String get importCsvTooLarge =>
+      'This file is too large to import. Split it into smaller files.';
+
+  @override
+  String importCsvTooManyRows(int limit) {
+    return 'This file has more than $limit rows. Split it into smaller files.';
+  }
+
+  @override
+  String importCsvTooManyColumns(int limit) {
+    return 'A row in this file has more than $limit columns.';
+  }
+
+  @override
+  String importCsvCellTooLong(int limit) {
+    return 'A cell in this file is longer than $limit characters.';
+  }
+
+  @override
+  String get importCsvUnterminatedQuote =>
+      'This file has a quoted cell that never ends, so it can\'t be read.';
+
+  @override
+  String importCsvLargeBatch(int count) {
+    return 'This file has $count rows. Reviewing them may take a while.';
+  }
+
+  @override
+  String get importCsvNoRows =>
+      'This file has no rows of dances, only the column names.';
 }

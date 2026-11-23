@@ -20224,6 +20224,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Adds Repertoire to Collection\'s More actions menu: your most and least called dances, what you\'ve never called, figure frequency, authors, formations and repeats per venue.'**
   String get settingsExperimentalShowRepertoireSubtitle;
+
+  /// Import source label: a CSV file the person saved from their own spreadsheet (Excel, Numbers, LibreOffice or Google Sheets).
+  ///
+  /// In en, this message translates to:
+  /// **'Your own spreadsheet (CSV)'**
+  String get importSourceLabelCsv;
+
+  /// Button on the import screen that opens the file picker for a CSV spreadsheet file.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a CSV file…'**
+  String get importCsvPickFile;
+
+  /// Help text under the CSV import source explaining how to get a CSV file out of a spreadsheet program.
+  ///
+  /// In en, this message translates to:
+  /// **'In your spreadsheet, choose File ▸ Save As (or Download) and pick \"CSV UTF-8\", then choose that file here.'**
+  String get importCsvSaveAsHint;
+
+  /// Heading of the import step where the person says what each spreadsheet column holds.
+  ///
+  /// In en, this message translates to:
+  /// **'Map columns'**
+  String get importCsvMapTitle;
+
+  /// Explanation at the top of the map-columns step of a CSV import.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what each column holds. Columns set to Ignore are left out. Nothing is added until you review and confirm.'**
+  String get importCsvMapIntro;
+
+  /// Label of the dropdown that chooses which character separates the columns of a CSV file.
+  ///
+  /// In en, this message translates to:
+  /// **'Separator'**
+  String get importCsvSeparatorLabel;
+
+  /// Separator choice: comma.
+  ///
+  /// In en, this message translates to:
+  /// **'Comma (,)'**
+  String get importCsvSeparatorComma;
+
+  /// Separator choice: semicolon, which Excel uses in many European languages.
+  ///
+  /// In en, this message translates to:
+  /// **'Semicolon (;)'**
+  String get importCsvSeparatorSemicolon;
+
+  /// Separator choice: tab character.
+  ///
+  /// In en, this message translates to:
+  /// **'Tab'**
+  String get importCsvSeparatorTab;
+
+  /// Switch on the map-columns step: whether the first row of the CSV holds column names rather than a dance.
+  ///
+  /// In en, this message translates to:
+  /// **'The first row names the columns'**
+  String get importCsvFirstRowHeader;
+
+  /// Name shown for a CSV column that has no header. {number} counts from 1.
+  ///
+  /// In en, this message translates to:
+  /// **'Column {number}'**
+  String importCsvColumnFallback(int number);
+
+  /// Dropdown choice: leave this CSV column out of the import.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignore'**
+  String get importCsvTargetIgnore;
+
+  /// Dropdown choice: this CSV column holds the figures of one phrase, such as A1 or B2.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures, {phrase}'**
+  String importCsvTargetPhrase(String phrase);
+
+  /// Dropdown choice: create a new custom field of this type from the column. {type} is a custom field type such as Number.
+  ///
+  /// In en, this message translates to:
+  /// **'New custom field ({type})'**
+  String importCsvTargetNewField(String type);
+
+  /// Dropdown choice: put this column into one of the person's existing custom fields. {name} is the field's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom field: {name}'**
+  String importCsvTargetExistingField(String name);
+
+  /// Shown on the map-columns step while no column, or more than one, is set to Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the column that holds each dance\'s title.'**
+  String get importCsvNeedsTitle;
+
+  /// Button that moves from the map-columns step to the review of the planned dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get importCsvContinue;
+
+  /// Heading above the preview of the first few rows of the CSV file.
+  ///
+  /// In en, this message translates to:
+  /// **'First rows'**
+  String get importCsvPreviewHeading;
+
+  /// Error when a CSV file is in an old encoding such as Windows-1252 instead of UTF-8.
+  ///
+  /// In en, this message translates to:
+  /// **'This file isn\'t saved as UTF-8 text, so accented letters would come in wrong. In your spreadsheet, save it again as \"CSV UTF-8\" and choose that file.'**
+  String get importCsvNotUtf8;
+
+  /// Error when a CSV file is larger than the import allows.
+  ///
+  /// In en, this message translates to:
+  /// **'This file is too large to import. Split it into smaller files.'**
+  String get importCsvTooLarge;
+
+  /// Error when a CSV file has too many rows.
+  ///
+  /// In en, this message translates to:
+  /// **'This file has more than {limit} rows. Split it into smaller files.'**
+  String importCsvTooManyRows(int limit);
+
+  /// Error when a row of a CSV file has too many columns.
+  ///
+  /// In en, this message translates to:
+  /// **'A row in this file has more than {limit} columns.'**
+  String importCsvTooManyColumns(int limit);
+
+  /// Error when one cell of a CSV file is too long.
+  ///
+  /// In en, this message translates to:
+  /// **'A cell in this file is longer than {limit} characters.'**
+  String importCsvCellTooLong(int limit);
+
+  /// Error when a CSV file has an opening double quote with no closing one.
+  ///
+  /// In en, this message translates to:
+  /// **'This file has a quoted cell that never ends, so it can\'t be read.'**
+  String get importCsvUnterminatedQuote;
+
+  /// Warning on the map-columns step when a CSV file has many rows.
+  ///
+  /// In en, this message translates to:
+  /// **'This file has {count} rows. Reviewing them may take a while.'**
+  String importCsvLargeBatch(int count);
+
+  /// Shown on the map-columns step of a CSV import when the file has a header row but no dance rows (or only blank ones).
+  ///
+  /// In en, this message translates to:
+  /// **'This file has no rows of dances, only the column names.'**
+  String get importCsvNoRows;
 }
 
 class _AppLocalizationsDelegate

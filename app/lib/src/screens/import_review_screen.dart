@@ -49,6 +49,7 @@ import '../published_collections/published_collection_manifest.dart';
 import '../published_collections/published_collection_service.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_shapes.dart';
+import 'import_csv_mapping.dart';
 import '../theme/destructive_button_style.dart';
 import '../widgets/app_dropdown_field.dart';
 
@@ -263,7 +264,9 @@ class ImportReviewScreen extends StatefulWidget {
 typedef ArchiveMapDecoder =
     ArchiveReadResult Function(Map<String, Object?> root);
 
-enum _Phase { input, planning, review, committing }
+/// [mapping] is the spreadsheet import's map-columns step (#2329), between
+/// [input] and [planning].
+enum _Phase { input, mapping, planning, review, committing }
 
 /// The action the user chose (or that was defaulted) for one record.
 enum _ActionKind { create, reimport, link, duplicate, skip, variation }
@@ -350,9 +353,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   bool _picking = false;
   bool _fetching = false;
 
-  /// The bytes of a picked binary payload for a byte source (Caller's Companion
-  /// `.USR`), or `null` when none is chosen / the source is text-based. Byte
-  /// sources plan/commit from these bytes instead of [_pasteController]'s text.
+  /// The bytes of a picked file for a byte source (Caller's Companion `.USR`,
+  /// or a spreadsheet), or `null` when none is chosen / the source is
+  /// text-based. Byte sources plan/commit from these bytes instead of
+  /// [_pasteController]'s text (a spreadsheet through its decoded text).
   Uint8List? _payloadBytes;
 
   /// The archive [_plan] read from a Caller's Companion `.USR` (without its
@@ -541,6 +545,20 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   bool _payloadFromFile = false;
 
   _Phase _phase = _Phase.input;
+
+  /// A spreadsheet import's decoded text, once its file has been read
+  /// ([decodeCsvBytes]); the map-columns step reads it.
+  String? _csvText;
+
+  /// The caller's custom fields, offered as targets on the map-columns step.
+  List<CustomFieldDef> _csvFields = const [];
+
+  /// The caller's configured difficulty levels, for a Level column.
+  List<DifficultyLevel> _csvLevels = const [];
+
+  /// The column mapping the caller confirmed. Planning and committing a
+  /// spreadsheet use it; going back to the input step clears it.
+  CsvImportMapping? _csvMapping;
 
   ImportBatchResult? _batch;
   List<_RowChoice> _choices = const [];
@@ -781,6 +799,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         setState(() {
           _payloadBytes = usrBytes;
           _usrArchive = null;
+          // A new file is mapped afresh (#2329).
+          _csvMapping = null;
+          _csvText = null;
         });
         return;
       }
@@ -844,8 +865,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     });
   }
 
-  /// Picks the raw bytes of a binary payload for a byte source (Caller's
-  /// Companion `.USR`). Uses the screen-level [ImportReviewScreen.bytePicker]
+  /// Picks the raw bytes of a file for a byte source (Caller's Companion
+  /// `.USR`, or a spreadsheet). Uses the screen-level [ImportReviewScreen.bytePicker]
   /// test seam when provided, else the selected source's own
   /// [ImportSource.bytePicker].
   Future<void> _chooseUsrFile() async {
@@ -860,6 +881,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       setState(() {
         _payloadBytes = bytes;
         _usrArchive = null;
+        // A new file is mapped afresh (#2329).
+        _csvMapping = null;
+        _csvText = null;
       });
     } on ImportFileTooLargeException catch (e, stackTrace) {
       logCaughtError(
@@ -1068,6 +1092,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _bundleMemoText = null;
       return _planTitleList(payload);
     }
+    // A spreadsheet is mapped column by column before it is planned (#2329).
+    if (_selected.kind == ImportSourceKind.csv && _csvMapping == null) {
+      return _openCsvMapping(bytes!);
+    }
     // A Caller's Companion library often types its English dances "Contra", so
     // the person is asked once per file (ADR-006 W6, Hudson 2026-11-19).
     // Closing the question plans nothing.
@@ -1097,9 +1125,16 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         difficultyLevels: _repos.difficultyLevels,
       );
       final index = await pipeline.buildDedupeIndex();
-      // Byte sources (Caller's Companion `.USR`) carry the raw file on
+      // A spreadsheet carries its decoded text and its column mapping; the
+      // other byte source (Caller's Companion `.USR`) carries the raw file on
       // `options['bytes']`; text sources carry the pasted/fetched payload.
-      final request = _isByteSource
+      final csvMapping = _csvMapping;
+      final request = _selected.kind == ImportSourceKind.csv
+          ? ImportRequest(
+              payload: _csvText,
+              options: {CsvAdapter.mappingOption: csvMapping!},
+            )
+          : _isByteSource
           ? ImportRequest(
               options: {
                 'bytes': bytes!,
@@ -1186,6 +1221,39 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         _phase = _Phase.review;
       });
     }
+  }
+
+  /// Reads a picked spreadsheet and opens the map-columns step (#2329). A
+  /// file that is too large or not UTF-8 is refused here with its own message,
+  /// and nothing is planned.
+  Future<void> _openCsvMapping(Uint8List bytes) async {
+    final String text;
+    try {
+      text = decodeCsvBytes(bytes);
+    } on CsvReadException catch (e, stackTrace) {
+      logCaughtErrorTypeOnly(
+        e,
+        stackTrace,
+        source: 'import_review_screen._openCsvMapping',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          key: const ValueKey('import-csv-unreadable'),
+          content: Text(csvReadFailureMessage(AppLocalizations.of(context), e)),
+        ),
+      );
+      return;
+    }
+    final fields = await _repos.customFieldDefs.listAll();
+    final levels = await _repos.difficultyLevels.listAll();
+    if (!mounted) return;
+    setState(() {
+      _csvText = text;
+      _csvFields = fields;
+      _csvLevels = levels;
+      _phase = _Phase.mapping;
+    });
   }
 
   /// Plans a pasted list of dance titles (issue #823): each title is matched
@@ -1378,6 +1446,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _pasteController.clear();
     }
     _phase = _Phase.input;
+    _csvMapping = null;
+    _csvText = null;
     _batch = null;
     _titleList = null;
     _programLineOfRow = const [];
@@ -1839,6 +1909,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       difficultyLevels: _repos.difficultyLevels,
     );
     final isUsr = _selected.adapterFactory() is CallersCompanionUsrAdapter;
+    // A spreadsheet row carries placeholder tag and field ids that only the
+    // CSV importer resolves (#2329); a plain pipeline commit would be refused.
+    final csvMapping = _selected.adapterFactory() is CsvAdapter
+        ? _csvMapping
+        : null;
     try {
       final rowBatch = ImportBatchResult(records: [plan]);
       final now = DateTime.now().toUtc();
@@ -1861,6 +1936,20 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               resolutions: resolutions,
               defaultTagIds: defaultTagIds,
             )
+          : csvMapping != null
+          ? (await CsvImporter(
+                  pipeline,
+                  _repos.tags,
+                  _repos.customFieldDefs,
+                ).commit(
+                  rowBatch,
+                  mapping: csvMapping,
+                  now: now,
+                  newId: uuidV4,
+                  resolutions: resolutions,
+                  defaultTagIds: defaultTagIds,
+                ))
+                .session
           : await pipeline.commit(
               rowBatch,
               now: now,
@@ -2042,6 +2131,32 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             source: 'import_review_screen._maybeAddTerms',
           );
         }
+      } else if (adapter is CsvAdapter) {
+        final importer = CsvImporter(
+          pipeline,
+          _repos.tags,
+          _repos.customFieldDefs,
+        );
+        final mapping = _csvMapping;
+        if (mapping == null) {
+          throw StateError('Committing a spreadsheet that was never mapped.');
+        }
+        final result = await importer.commit(
+          commitBatch,
+          mapping: mapping,
+          now: DateTime.now().toUtc(),
+          newId: uuidV4,
+          resolutions: resolutions,
+          defaultTagIds: await resolveDefaultImportTagIds(_repos),
+          onProgress: _onCommitProgress,
+        );
+        if (!mounted) return;
+        setState(() => _phase = _Phase.review);
+        await _showResult(
+          session: result.session,
+          skipped: skipped,
+          onUndo: () => importer.undo(result),
+        );
       } else if (adapter is PublishedCollectionAdapter) {
         final metadata = adapter.metadata;
         final importer = PublishedCollectionImporter(pipeline);
@@ -2910,6 +3025,16 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ),
         body: switch (_phase) {
           _Phase.input => _buildInput(context),
+          _Phase.mapping => CsvMappingStep(
+            text: _csvText!,
+            fields: _csvFields,
+            levels: _csvLevels,
+            onContinue: (mapping) {
+              _csvMapping = mapping;
+              _plan();
+            },
+            onBack: () => setState(_resetToInput),
+          ),
           _Phase.planning => _buildPlanning(context),
           _Phase.committing => _buildCommitting(context),
           _Phase.review => _buildReview(context),
@@ -3103,13 +3228,21 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 4),
-          Text(l10n.importReviewUsrSubtitle),
+          Text(
+            _selected.kind == ImportSourceKind.csv
+                ? l10n.importCsvSaveAsHint
+                : l10n.importReviewUsrSubtitle,
+          ),
           const SizedBox(height: 16),
           OutlinedButton.icon(
             key: const ValueKey('import-choose-usr-file'),
             onPressed: busy ? null : _chooseUsrFile,
             icon: const Icon(Icons.folder_open_outlined),
-            label: Text(l10n.importReviewChooseUsr),
+            label: Text(
+              _selected.kind == ImportSourceKind.csv
+                  ? l10n.importCsvPickFile
+                  : l10n.importReviewChooseUsr,
+            ),
           ),
           if (_payloadBytes != null)
             Padding(
@@ -4131,7 +4264,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
     details.add(
       l10n.importReviewMetadataSource(
-        provenanceSourceLabel(l10n, draft.raw.source),
+        // A spreadsheet row records no provenance (#2329); its in-memory
+        // source label would misname it, so name the spreadsheet instead.
+        draft.raw.recordsProvenance
+            ? provenanceSourceLabel(l10n, draft.raw.source)
+            : l10n.importSourceLabelCsv,
       ),
     );
     return Padding(

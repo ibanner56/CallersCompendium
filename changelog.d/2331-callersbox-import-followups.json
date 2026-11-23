@@ -1,0 +1,16 @@
+{
+  "id": "2331-callersbox-import-followups",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "A single file promenade along the set always shows which way it goes, for example \"single file promenade counterclockwise along\", and that wording reads back as the same promenade when you type it in.",
+      "Caller's Box dances read the hand-holds written on a \"form long wave\" line, like \"(P2L, P3R, women face in)\", the same way as on the balance after it. A balance that names different holds than its forming line stays as text instead of losing one line's holds.",
+      "\"Balance long wave for all in center\" after a Caller's Box \"form long wave\" now keeps both lines as text, instead of showing a long wave in the center that only some dancers form."
+    ]
+  },
+  "core": {
+    "changed": [
+      "The Caller's Box dialect reads the holds on a `form long wave` line through the decoder the long-wave balance uses, refuses a balance whose holds disagree, joins two consecutive forming lines, and keeps a bare long wave and a `for all` balance as text. The single-file promenade display states its rotation along the set, and ContraDB's reader reads it back."
+    ]
+  }
+}
