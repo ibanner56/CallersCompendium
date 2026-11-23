@@ -8,8 +8,8 @@
 >
 > **Stale since the taxonomy-v40 sync.** `main` was merged again at `a5281105`
 > (taxonomy v40), which changed what an omitted parameter means for eleven
-> moves (v37's `courtesy_turn` and v38's ten; `arch_and_dive` among them is not
-> implemented here), made `long_lines` an alias of `forward_and_back` (v39),
+> moves (v37's `courtesy_turn` and v38's ten; `arch_and_dive` among them was not
+> implemented then), made `long_lines` an alias of `forward_and_back` (v39),
 > added `hand_cast` as an alias of `gate` (v40), and added five moves this
 > compiler defers (`circular_hey`, `trade_the_wave`, `starburst`,
 > `hey_for_three`, `cast`), on top of many Caller's Box adapter changes. The

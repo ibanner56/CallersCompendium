@@ -44,6 +44,26 @@ void main() {
     });
   });
 
+  test('who is descriptive: it names no set to reach for', () {
+    // A named set would otherwise re-band the set before the swap.
+    expect(const ArchAndDive(who: WhoSet.nextNeighbors).dancerSets, isEmpty);
+    expect(
+      applyOk(const ArchAndDive(who: WhoSet.nextNeighbors), di(base)),
+      applyOk(const ArchAndDive(), di(base)),
+    );
+  });
+
+  test('swaps the rows of every hands four', () {
+    final two = startingFormation(FormationType.dupleImproper, handsFour: 2);
+    final after = applyOk(const ArchAndDive(), two);
+    for (final entry in after.dancers.entries) {
+      final from = two.stateOf(entry.key).position;
+      final band = from.row ~/ 2 * 2;
+      expect(entry.value.position.col, from.col);
+      expect(entry.value.position.row, band + (1 - (from.row - band)));
+    }
+  });
+
   test('is progression-eligible, and not its own progression', () {
     expect(const ArchAndDive().progressionEligible, isTrue);
     expect(const ArchAndDive().isItsOwnProgression, isFalse);

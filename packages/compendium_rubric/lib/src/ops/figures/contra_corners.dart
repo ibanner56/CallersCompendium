@@ -9,17 +9,17 @@ part of '../operation.dart';
 /// two actives swapping places, and nobody else moving.
 ///
 /// `who` names the actives (the ones by default). In every hands four it must
-/// name exactly one pair, standing across the set from each other, which is
-/// where a contra corners starts. Anything else is refused rather than
-/// guessed. *(The across-the-set check is the agent's call, 2026-11-22, not
-/// yet ruled.)*
+/// name exactly one pair; anything else (no actives, or a `who` such as
+/// `partners` that names two pairs) has no single couple to swap and is
+/// refused rather than guessed.
 ///
 /// `custom` is the record's own note on the variation ("same-role",
 /// "opposite-role", …). It is carried for fidelity. It does not change the
 /// landing: whichever corners are turned, they turn once around.
 ///
-/// The actives' facing is left as it was (flexible). Facing is only ever a
-/// warning here.
+/// The actives end facing each other, as ruled: each faces across the set
+/// toward the other's column, or along it toward the other's row when they
+/// share a column. Facing is only ever a warning here.
 final class ContraCorners extends Operation {
   const ContraCorners({this.who = WhoSet.ones, this.custom = ''});
 
@@ -54,19 +54,7 @@ final class ContraCorners extends Operation {
           ),
         );
       }
-      final pair = pairs.single;
-      final a = formation.stateOf(pair.a).position;
-      final b = formation.stateOf(pair.b).position;
-      if (a.row != b.row) {
-        return Err(
-          OpError(
-            ErrorKind.unresolvableDancerSet,
-            'contra_corners starts with the actives facing each other across '
-            'the set, but ${pair.a} and ${pair.b} are in different rows',
-          ),
-        );
-      }
-      actives.add(pair);
+      actives.add(pairs.single);
     }
     return Ok(actives);
   }
@@ -80,7 +68,21 @@ final class ContraCorners extends Operation {
 
   @override
   Result<Formation, OpError> perform(Formation formation) =>
-      _actives(formation).map((pairs) => swapPairs(formation, pairs));
+      _actives(formation).map(
+        (pairs) => swapPairs(
+          formation,
+          pairs,
+          facing: (before, after, other) => _toward(after, other),
+        ),
+      );
+
+  /// The facing from [from] toward [to].
+  static Facing _toward(Position from, Position to) {
+    if (from.col != to.col) {
+      return to.col > from.col ? Facing.acrossEast : Facing.acrossWest;
+    }
+    return to.row > from.row ? Facing.down : Facing.up;
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -90,5 +92,7 @@ final class ContraCorners extends Operation {
   int get hashCode => Object.hash(name, who, custom);
 
   @override
-  String toString() => 'contra_corners(${who.key})';
+  String toString() => custom.isEmpty
+      ? 'contra_corners(${who.key})'
+      : 'contra_corners(${who.key}, $custom)';
 }

@@ -1466,6 +1466,14 @@ To be defined later with worked examples.
 - **h4 contribution** (D7): 0.
 - **progression-eligible:** yes (not its own progression: a flag adds the usual
   end-normalization).
+- **known limit (2026-11-23, not ruled):** the swap is unconditional, so after a figure that
+  has already moved the couples along the set it can move them back. After `up_the_hall` with
+  its default `ender: circle`, for example, the ones are already below, and the arch lifts
+  them again; the next neighbour swing then refuses. On a line of four it moves the whole
+  line. On the corpus at `rubric` `11b1860a`, 115 dances stopped at this figure before it was
+  built: 34 now compile, 20 compile to the wrong progression (16 of those with the bridge
+  assuming the arch is the progression), 59 refuse at a later figure and 2 still name
+  another unbuilt figure.
 - **sources:** user rulings (row swap; 2026-11-22 on `who` and progression); ContraDanceVerifier
   row swap; CallersCompendium taxonomy `arch_and_dive` MoveDef (`who` default `twos`).
 
@@ -1480,24 +1488,26 @@ To be defined later with worked examples.
     "opposite-role", …). Carried for fidelity; it does not change the landing, since whichever
     corners are turned, they turn once around and end home.
   - `beats` — int, default 16.
-- **preconditions:** exactly one `who` pair in each hands four, standing across the set from
-  each other (in one row), which is where contra corners starts. Anything else is refused
-  (`UnresolvableDancerSet`) rather than guessed. *(The across-the-set check is the agent's
-  call, not yet ruled.)*
+- **preconditions:** exactly one `who` pair in each hands four. Anything else is refused
+  (`UnresolvableDancerSet`) rather than guessed. Where the pair stands is not checked: the
+  ruling fixes the landing (each in the other's place), not the start.
 - **effect:** the two actives in each hands four **swap places**; the corners do not move.
   *Worked check:* from the base ring `R1-A . . . L1-A / L2-B . . . R2-B`, ones active land
   `L1-A . . . R1-A / L2-B . . . R2-B`.
 - **normalization:** none.
-- **facing (output):** unchanged (flexible). The actives end in the centre facing each other,
-  which the grid does not hold as a separate place.
+- **facing (output):** the two actives **face each other** (across the set when they stand in
+  one row, along it when they share a column); the corners keep their facing. The grid does
+  not hold "in the centre" as a separate place, so the actives sit in each other's side
+  places.
 - **interaction scope:** within the hands four for positions (the corners on the far
   diagonal turn once around and end home).
 - **h4 contribution** (D7): 0.
 - **progression-eligible:** no.
-- **corpus note (2026-11-22):** of the 42 Caller's Box dances this figure unblocked, 2
-  compile. Of the rest, 32 refuse at a `swing` with `whoMismatch` (typically "ones swing" or
-  "twos swing", which a side swing pairs by column while the actives stand across the set) and
-  5 at this figure's own `who` check; the rest stop at other figures.
+- **corpus note (2026-11-23, `rubric` at `11b1860a`):** 43 Caller's Box dances stopped at
+  this figure before it was built; one still names another unbuilt figure. Of the other 42, 2
+  compile. 33 refuse at a `swing` with `whoMismatch` (typically "ones swing" or "twos swing",
+  which a side swing pairs by column while the actives stand across the set), 4 at this
+  figure's own `who` check, and 3 at other figures.
 - **sources:** user ruling 2026-11-22; CallersCompendium taxonomy `contra_corners` MoveDef. The
   prior verifier's `TryContraCorners` is a no-op and was not followed.
 

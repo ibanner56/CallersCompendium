@@ -45,13 +45,32 @@ void main() {
       );
     });
 
-    test('actives standing along the set have no partner across', () {
-      // The ones share a column here, not a row.
-      final error = applyErr(
-        const ContraCorners(),
-        di(const ['R1-A . . . L2-B', 'L1-A . . . R2-B']),
+    test('the actives end facing each other across the set', () {
+      final after = applyOk(const ContraCorners(), di(base));
+      // L1-A landed in the west column and R1-A in the east one.
+      expect(
+        after.stateOf(const DancerId(0, Role.lark)).facing,
+        Facing.acrossEast,
       );
-      expect(error.kind, ErrorKind.unresolvableDancerSet);
+      expect(
+        after.stateOf(const DancerId(0, Role.robin)).facing,
+        Facing.acrossWest,
+      );
+      // The corners keep whatever facing they had.
+      expect(
+        after.stateOf(const DancerId(1, Role.lark)).facing,
+        di(base).stateOf(const DancerId(1, Role.lark)).facing,
+      );
+    });
+
+    test('actives sharing a side swap along it and face each other', () {
+      // Becket: partners share a column.
+      final becket = startingFormation(FormationType.becketCw, handsFour: 1);
+      expect(becket.toRolesNotation(), ['L2-B . . . R1-A', 'R2-B . . . L1-A']);
+      final after = applyOk(const ContraCorners(), becket);
+      expect(after.toRolesNotation(), ['L2-B . . . L1-A', 'R2-B . . . R1-A']);
+      expect(after.stateOf(const DancerId(0, Role.lark)).facing, Facing.down);
+      expect(after.stateOf(const DancerId(0, Role.robin)).facing, Facing.up);
     });
 
     test('a who naming two pairs has no single active couple', () {
@@ -60,6 +79,7 @@ void main() {
         di(base),
       );
       expect(error.kind, ErrorKind.unresolvableDancerSet);
+      expect(error.detail, contains('exactly one partners pair'));
     });
   });
 }

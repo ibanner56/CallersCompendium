@@ -22,8 +22,10 @@ final class ArchAndDive extends Operation {
   @override
   String get name => 'arch_and_dive';
 
+  /// Empty on purpose: `who` is descriptive (user-ruled), so it must not
+  /// re-band the set or reach along it the way a named set otherwise would.
   @override
-  Iterable<WhoSet?> get dancerSets => [who];
+  Iterable<WhoSet?> get dancerSets => const [];
 
   @override
   bool get progressionEligible => true;
