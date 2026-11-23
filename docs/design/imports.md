@@ -1558,7 +1558,8 @@ filled it, is appended to the calling notes as
 `Column: value` with a `csv_value_kept_in_notes` issue. A number cell goes through
 `parseCsvNumber`: in a `;`-separated sheet `,` is the decimal mark and `.` or a
 space groups thousands (`1.234,5`, `1.000` is 1000, `1,000` is 1), a value that
-is neither that nor a plain number (`1,234.5`) is kept in the notes; any other
+is neither that nor a plain number (`1,234.5`) is kept in the notes (a first
+group starting with 0 is not a group, so `0.500` is a half); any other
 separator reads as `parseFiniteNumber` does, because a value alone cannot say
 whether `1.000` is one or a thousand. A cell for an existing choice field matches its
 option by `csvFold` over `normalizeShareableText`, so case, edge space, invisible
@@ -1566,7 +1567,9 @@ characters and Unicode form do not matter, and the field's own option is
 written. Only a new **choice** field's values are spelled as the repository
 stores an option, trimmed again and clamped to the choice length after that
 (NFC can lengthen a cell) at commit, and one with nothing visible left is
-neither an option nor a value (a column of such cells makes no field); a new
+neither an option nor a value (a column of such cells makes no field), and
+such a cell is an empty cell in the adapter too, so it fills nothing and is not
+kept in the notes; a new
 text field's are stored whole. A new-field column counts as the field commit will give it:
 an existing field of the same type and folded label (`CsvImporter` reuses the
 first such), else the field every new column of that label and type shares, as

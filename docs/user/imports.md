@@ -311,7 +311,8 @@ How the values come in:
   a comma is the decimal mark and a dot or a space groups thousands, so `3,5` is
   3.5 and `1.000` is one thousand. A number the app can't read either way, such
   as `1,234.5` in such a sheet, goes into the calling notes rather than being
-  guessed.
+  guessed. A number with a dot that doesn't fit that pattern, such as `1.5` or
+  `0.500` (a leading 0 is never a thousands group), is read as a decimal.
 - A choice field takes the option you already have whatever case, surrounding
   space or accent form the cell uses (`café` typed as `e` plus an accent still
   matches `café`). A cell with nothing visible in it adds no option.
