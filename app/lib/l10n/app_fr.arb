@@ -8582,6 +8582,46 @@
   "@danceEditorPhraseRemove": {
     "x-sourceSha256": "ac53653b0502a2963db64c69011dbd463efc6e80b1d2020418209439d3e33e52"
   },
+  "danceEditorPhraseRowsHelp": "Chaque ligne est une suite de phrases identiques : leur nombre, les mesures de chacune et les temps d’une mesure. La structure de phrase ci-dessous suit les lignes.",
+  "@danceEditorPhraseRowsHelp": {
+    "x-sourceSha256": "6f0ab175d6660a4825350727f257f4d9a04f8d9236ec55aaba61f64f41cd7dca"
+  },
+  "danceEditorPhraseRowsPhrasesLabel": "Phrases",
+  "@danceEditorPhraseRowsPhrasesLabel": {
+    "x-sourceSha256": "076bcf6aae77baad87996fdcdd36b513bb44458288adb5cf5d1b4827c4d40fb9"
+  },
+  "danceEditorPhraseRowsBarsLabel": "Mesures par phrase",
+  "@danceEditorPhraseRowsBarsLabel": {
+    "x-sourceSha256": "895f6d494f86d0cea1bc369363139d049887e92231cafacc0a11d56157c3940e"
+  },
+  "danceEditorPhraseRowsBeatsLabel": "Temps par mesure",
+  "@danceEditorPhraseRowsBeatsLabel": {
+    "x-sourceSha256": "f9a399427d599a2a2fb742a9c24c04063e09494590e492f5e00fe36775770c5e"
+  },
+  "danceEditorPhraseRowsRange": "1 à {max}",
+  "@danceEditorPhraseRowsRange": {
+    "x-sourceSha256": "bfa7cdf134bbeb548cd4f923b76b40b9d9f16882792d502e0657e9e611bcdbf5"
+  },
+  "danceEditorPhraseRowsAdd": "Ajouter une ligne",
+  "@danceEditorPhraseRowsAdd": {
+    "x-sourceSha256": "1868a8dd78ad959415c742898477ab2848e5dfd80205604c86b9acc80a7e7bdf"
+  },
+  "danceEditorPhraseRowsRemove": "Retirer la ligne {number}",
+  "@danceEditorPhraseRowsRemove": {
+    "x-sourceSha256": "5d1e14b6c4353c8b98e78ebd9904ec2da1cfd0312165096b4e426a686372bba8"
+  },
+  "danceEditorPhraseRowsInvalid": "Saisissez dans chaque champ un nombre entier de 1 à {max}, dans une structure qui n’est pas trop longue. D’ici là, la dernière structure de phrase valide est conservée.",
+  "@danceEditorPhraseRowsInvalid": {
+    "x-sourceSha256": "136099aeff18e01fd168bc79ef22b4d6f416ab4f52bacc44c997852a7e31de66"
+  },
+  "danceEditorPhraseRowsSummary": "{labels} · {beats, plural, =1{1 temps} other{{beats} temps}}",
+  "@danceEditorPhraseRowsSummary": {
+    "x-sourceSha256": "20214a3d4f5e9106147b26c337e5e7e79c565f84e9d2fd7add17b4345dbd5627"
+  },
+  "danceEditorPhraseRowsDisabledNote": "Ces lignes montrent la dernière structure de phrase valide. Corrigez la structure de phrase ci-dessous pour les modifier de nouveau.",
+  "@danceEditorPhraseRowsDisabledNote": {
+    "x-sourceSha256": "ed2891c29ccd52f3beb3972e5ea4c77a1f0c609bd7375a8a9a50df9aa1e48423"
+  },
   "danceEditorFiguresSection": "Figures",
   "@danceEditorFiguresSection": {
     "x-sourceSha256": "f2f410e7009e9a31dcc7c971e662285f4071150ef1e211f76e838efb35082d1e"

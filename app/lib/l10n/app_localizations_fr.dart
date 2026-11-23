@@ -8899,6 +8899,52 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get danceEditorPhraseRowsHelp =>
+      'Chaque ligne est une suite de phrases identiques : leur nombre, les mesures de chacune et les temps d’une mesure. La structure de phrase ci-dessous suit les lignes.';
+
+  @override
+  String get danceEditorPhraseRowsPhrasesLabel => 'Phrases';
+
+  @override
+  String get danceEditorPhraseRowsBarsLabel => 'Mesures par phrase';
+
+  @override
+  String get danceEditorPhraseRowsBeatsLabel => 'Temps par mesure';
+
+  @override
+  String danceEditorPhraseRowsRange(int max) {
+    return '1 à $max';
+  }
+
+  @override
+  String get danceEditorPhraseRowsAdd => 'Ajouter une ligne';
+
+  @override
+  String danceEditorPhraseRowsRemove(int number) {
+    return 'Retirer la ligne $number';
+  }
+
+  @override
+  String danceEditorPhraseRowsInvalid(int max) {
+    return 'Saisissez dans chaque champ un nombre entier de 1 à $max, dans une structure qui n’est pas trop longue. D’ici là, la dernière structure de phrase valide est conservée.';
+  }
+
+  @override
+  String danceEditorPhraseRowsSummary(String labels, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats temps',
+      one: '1 temps',
+    );
+    return '$labels · $_temp0';
+  }
+
+  @override
+  String get danceEditorPhraseRowsDisabledNote =>
+      'Ces lignes montrent la dernière structure de phrase valide. Corrigez la structure de phrase ci-dessous pour les modifier de nouveau.';
+
+  @override
   String get danceEditorFiguresSection => 'Figures';
 
   @override
