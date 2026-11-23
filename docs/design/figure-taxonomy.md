@@ -2339,6 +2339,22 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     edit syncs. Every dancer token added before (v38's corners, v39's single
     dancers) has the same exposure. The maintainer accepted this for the beta
     (2026-11-19), so no guard is added.
+  - **`form_long_waves` holds both hands and may leave the facing unstated**
+    (issue #2331, the maintainer's rulings of 2026-11-23). The Caller's Box
+    writes `Balance long wave (N2R,N1L, women face in)`: next neighbors by
+    the right, neighbors by the left, women facing in. `whom2` (default
+    `unspecified`) is the pair held by the hand opposite `whomHand`, so it has
+    no hand of its own; the display reads "next neighbor by the right,
+    neighbor by the left, …". `who` now admits `unspecified` (its default
+    stays `role1s`, so ContraDB imports and new figures read as before), for
+    the bare `form long wave` that states long waves but not who faces in;
+    that facing then renders nothing, and the canonical text is the bare
+    `form long waves`. `who` offers no manual Clear, as `promenade.direction`
+    does not: a stated facing is not returned to "not stated" by hand. The
+    same rulings read a bare TCB `form long wave` as `form_long_waves` —
+    forming a long wave in the center (`form long wave in center`,
+    `form_a_long_wave`) is a different figure — and fold its balance into it,
+    across a phrase boundary too; see `docs/design/imports.md`.
   - Migration: none, and no rebuild: a new move and alias, nothing renamed or
     removed, so no stored figure changes and every canonical text stays as it
     was. **Older devices (v39)** show a synced `cast` as the bare word "cast"

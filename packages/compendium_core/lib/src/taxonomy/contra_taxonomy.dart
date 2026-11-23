@@ -1515,8 +1515,8 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // exists solely to keep "circle" a matchable FTS token — this widens
         // that same device to also keep the TCB source's own wording
         // ("single file promenade clockwise …") searchable, since the
-        // recognizer that stores `turn:'left'` for it lives at
-        // `callersbox_figure_dialect.dart:1316-1365`.
+        // recognizer that stores `direction:'left'` for it is
+        // `_singleFileCircleRecognizer` in `callersbox_figure_dialect.dart`.
         'singleFile': ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
@@ -1779,10 +1779,20 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // renderer's `others` fallback stays as defence in depth (it is still
         // right for a wildcard `*` or out-of-domain imported data); this makes
         // the empty-set case unreachable from the model itself.
+        //
+        // v40 (#2331): the domain also admits the `unspecified` sentinel, for
+        // The Caller's Box's bare `form long wave`, which states long waves
+        // but not who faces in. The sentinel names no pair, so the display
+        // states no facing at all rather than an empty "other" pair; the
+        // default stays `role1s`, so a figure that omits `who` (every ContraDB
+        // import, every new figure in the editor) reads exactly as before.
+        // No manual Clear: like `promenade.direction`, returning a stated
+        // facing to "not stated" is not an editing action.
         'who': ParamSpec(
           ParamKind.dancerSet,
           defaultValue: 'role1s',
-          choices: _invertiblePairs,
+          choices: [..._invertiblePairs, ParamVocab.unspecified],
+          allowManualClear: false,
         ),
         // v21 (#295): TCB states which pair you hold and by which hand —
         // `Balance long wave (NR, women face in)` = neighbors by the right.
@@ -1798,6 +1808,17 @@ final Taxonomy contraTaxonomy = Taxonomy(
           ParamKind.handedness,
           defaultValue: ParamVocab.unspecified,
           choices: _handOrUnspecified,
+        ),
+        // v40 (#2331): the pair held by the OTHER hand. TCB writes both hands
+        // of a long wave — `Balance long wave (N2R,N1L, women face in)` = next
+        // neighbors by the right and neighbors by the left — so `whom2` takes
+        // the second pair; its hand is the opposite of `whomHand`, which is why
+        // it carries no hand of its own. `unspecified` (the default) renders
+        // nothing, so a figure without it reads as before.
+        'whom2': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _pairOrUnspecified,
         ),
         // v21 (#295): TCB writes "balance an existing long wave" as its own
         // line; the CallersBox importer maps such a line onto THIS move with

@@ -448,14 +448,15 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
     description:
         'A call borrowed from English country dance: a hey for four with one fewer dancer and one fewer loop, each of the three weaving alone. The dancer who starts passes the named dancer by the named shoulder, then each dancer passes the next by the other shoulder, looping around the ends until all three are home. The figure names who starts it, whom they pass first, and by which shoulder. In some variants a couple weaves together as one of the three; the dolphin hey is one of these. A full hey for three usually takes 16 beats.',
   ),
-  // TCB "Long wave", "Balance wave".
+  // TCB "form long wave" (bare), "Balance long wave", "Balance wave" (#2331).
   'form_long_waves': FigureDefinition(
     definition:
         'Dancers along each side of the set join hands in a long wave, alternating facing into and out of the set.',
     description:
-        'The figure names who faces in and can name who holds which hand. As a formation it takes no beats on its own; with a balance it usually takes 4.',
+        'The figure can name who faces in, and whom each dancer holds by each hand. As a formation it takes no beats on its own; with a balance it usually takes 4.',
   ),
-  // TCB "Long wave" (a single long wave in the center); renderer.dart
+  // TCB "form long wave in center" (a single long wave in the center);
+  // renderer.dart
   // `form_a_long_wave` (in: the named dancers dance in; out: the other
   // dancers dance out of the center).
   // Note: no written reference describes the in/out options; the text

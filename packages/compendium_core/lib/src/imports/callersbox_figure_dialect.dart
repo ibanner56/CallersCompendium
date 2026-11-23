@@ -92,6 +92,12 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     // other entry here, so its position is not correctness-critical.
     _tcbCast,
     _walkForwardAnnotation,
+    // #2331: TCB's bare `form long wave` is the side-of-set long waves, not
+    // the single wave in the centre that `form long wave in center` names.
+    // Anchored on the whole line, so it never claims a line another entry
+    // here reads; listed before `_bracketAnnotation`, which would otherwise
+    // claim `form long wave [M1 with N2, …]` through the shared recognizer.
+    _tcbBareLongWave,
     _chainAnnotation,
     _starPromenadeAnnotation,
     _promenadeAnnotation,
@@ -1793,6 +1799,65 @@ final RegExp _promenadeAnchor = RegExp(
   r'\bpromenades?\b',
   caseSensitive: false,
 );
+
+// --- Bare long wave (#2331) -------------------------------------------------
+
+/// TCB's bare `form long wave` (no `in center`, no article): the long waves
+/// along the sides of the set, so `form_long_waves`, with `who` the
+/// [ParamVocab.unspecified] sentinel because the line does not say who faces
+/// in. Maintainer ruling (#2331): forming a long wave IN THE CENTRE is a
+/// different figure (`form_a_long_wave`), and the two must not be conflated —
+/// the shared `_formLongWave` reads both spellings as the centre wave, which
+/// is right for `form long wave in center` and for ContraDB's own `form a long
+/// wave`, so this lives in the TCB dialect only.
+///
+/// A balance line after it supplies the facing and the hands (the adapter's
+/// trailing-balance fold), and a balance that says `in center` turns it back
+/// into the centre wave (the adapter's in-centre follower rule).
+///
+/// Annotations: prose (`(release right hands)`) is kept as the note, by the
+/// same lowercase shape rule as [_proseAnnotation]. A people-code annotation
+/// (`(P2L,P3R, women face in)`) or any square bracket (`[M1 with N2, W1 with
+/// N1]`) states holds this figure would not carry, so the line stays custom
+/// rather than lose them.
+FigureMatch? _tcbBareLongWave(String scrubbed) {
+  final words = _stripAnnotations(scrubbed.toLowerCase())
+      .split(_wsRe)
+      .where((w) => w.isNotEmpty)
+      .toList();
+  if (words.length != 3 ||
+      words[0] != 'form' ||
+      words[1] != 'long' ||
+      words[2] != 'wave') {
+    return null;
+  }
+  if (scrubbed.contains('[') || scrubbed.contains(']')) {
+    return const FigureMatch.customFallback();
+  }
+  final annotations = _parenAnnotations(scrubbed);
+  final notes = <String>[];
+  for (final body in annotations) {
+    final codeShaped = body
+        .split(',')
+        .map((f) => f.trim())
+        .any(_bareLongWaveCodeField.hasMatch);
+    if (codeShaped ||
+        !_annotationBodyHasLowercase(body) ||
+        _looksLikePerRoleBody(body)) {
+      return const FigureMatch.customFallback();
+    }
+    notes.add(body);
+  }
+  return FigureMatch(
+    'form_long_waves',
+    params: const {'who': ParamVocab.unspecified},
+    note: _joinAnnotations(notes),
+  );
+}
+
+/// One people-code-plus-hand field of a TCB annotation (`P2L`, `N1R`, `SR`,
+/// `P-1R`), the shape that names a hold. Anchored and bounded.
+final RegExp _bareLongWaveCodeField = RegExp(r'^[A-Za-z]{1,2}-?\d{0,2}[RL]$');
 
 // --- Single-file circle recognition (taxonomy v27, issue #840 / #749) --------
 

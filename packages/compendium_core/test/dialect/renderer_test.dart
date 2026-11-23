@@ -3538,6 +3538,59 @@ void main() {
           'form long waves - larks facing in, robins facing out',
         );
       });
+
+      test('both hands: whom2 is held by the hand opposite whomHand (#2331)', () {
+        expect(
+          renderer.render(
+            Figure(
+              move: 'form_long_waves',
+              params: {
+                'who': 'role2s',
+                'whom': 'nextNeighbors',
+                'whomHand': 'right',
+                'whom2': 'neighbors',
+                'balance': true,
+              },
+            ),
+            larks,
+          ),
+          'form long waves - next neighbor by the right, neighbor by the '
+          'left, robins facing in, larks facing out - and balance',
+        );
+      });
+
+      test('whom2 is not shown without a stated whomHand', () {
+        expect(
+          renderer.render(
+            Figure(
+              move: 'form_long_waves',
+              params: {'who': 'role2s', 'whom2': 'neighbors'},
+            ),
+            larks,
+          ),
+          'form long waves - robins facing in, larks facing out',
+        );
+      });
+
+      test('an unstated who states no facing, and leaves no dangling dash', () {
+        Figure lw(Map<String, Object?> params) => Figure(
+          move: 'form_long_waves',
+          params: {'who': ParamVocab.unspecified, ...params},
+        );
+        expect(renderer.render(lw({}), larks), 'form long waves');
+        expect(
+          renderer.render(lw({'balance': true}), larks),
+          'form long waves - and balance',
+        );
+        expect(
+          renderer.render(
+            lw({'whom': 'neighbors', 'whomHand': 'left'}),
+            larks,
+          ),
+          'form long waves - neighbor by the left',
+        );
+        expect(renderer.renderCanonical(lw({})), 'form long waves');
+      });
     });
 
     group('form_a_long_wave (ContraDB formALongWaveWords)', () {

@@ -82,6 +82,50 @@ void main() {
       expect(f.note, isNull);
     });
 
+    test('reads both hands (#2331)', () {
+      final f = only(
+        'form long waves - next neighbor by the right, neighbor by the left, '
+        'role2s facing in, role1s facing out - and balance',
+      );
+      expect(f.move, 'form_long_waves');
+      expect(f.params, {
+        'whom': 'nextNeighbors',
+        'whomHand': 'right',
+        'whom2': 'neighbors',
+        'who': 'role2s',
+        'balance': true,
+      });
+      expect(f.note, isNull);
+    });
+
+    test('a hold with no facing reads back an unstated facing (#2331)', () {
+      final f = only(
+        'form long waves - next neighbor by the right, neighbor by the left '
+        '- and balance',
+      );
+      expect(f.params, {
+        'whom': 'nextNeighbors',
+        'whomHand': 'right',
+        'whom2': 'neighbors',
+        'who': ParamVocab.unspecified,
+        'balance': true,
+      });
+    });
+
+    test('a second hold by the same hand is not this wording', () {
+      final f = only(
+        'form long waves - next neighbor by the right, neighbor by the right, '
+        'role2s facing in, role1s facing out',
+      );
+      expect(f.params.containsKey('whom2'), isFalse);
+    });
+
+    test('the bare move name keeps its ContraDB meaning', () {
+      final f = only('form long waves');
+      expect(f.move, 'form_long_waves');
+      expect(f.params.containsKey('who'), isFalse);
+    });
+
     test('an "other" pair the display would not derive is not read', () {
       final f = only('form long waves - ones facing in, role2s facing out');
       // ContraDB's reader takes the move and keeps the clause as the note.
