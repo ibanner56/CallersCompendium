@@ -652,6 +652,62 @@ void main() {
           expect((offer.date, offer.start, offer.end), (false, true, true));
         });
 
+        for (final (label, importedAs) in [
+          ('a timed', ['DTSTART:20300620T233000Z', 'DTEND:20300621T013000Z']),
+          ('an all-day', ['DTSTART;VALUE=DATE:20300620']),
+        ]) {
+          test(
+            'a caller\'s edited date is not offered back when $label '
+            'event\'s UTC start crosses UTC midnight on the same local day',
+            () async {
+              final repos = openTestRepositories();
+              await importAt(
+                repos,
+                _cal([
+                  ['UID:z', ...importedAs, 'SUMMARY:Contra Z'],
+                ]),
+                west,
+              );
+              final p = await _only(repos);
+              await repos.programs.update(
+                p.copyWith(
+                  eventDate: DateTime.utc(2030, 6, 21),
+                  updatedAt: _t0.add(const Duration(hours: 1)),
+                ),
+              );
+              // 00:30Z on 21 June is 20:30 on 20 June at UTC-4.
+              final later = utc('20300621T003000Z', '20300621T023000Z');
+              final offer = (await read(repos, later, west)).changes.single;
+              expect((offer.date, offer.start), (false, true));
+            },
+          );
+        }
+
+        test(
+          'a caller\'s edited date is not offered back when an evening '
+          'start moves back across UTC midnight on the same local day',
+          () async {
+            final repos = openTestRepositories();
+            // 00:30Z on 21 June is 20:30 on 20 June at UTC-4.
+            await importAt(
+              repos,
+              utc('20300621T003000Z', '20300621T023000Z'),
+              west,
+            );
+            final p = await _only(repos);
+            await repos.programs.update(
+              p.copyWith(
+                eventDate: DateTime.utc(2030, 6, 21),
+                updatedAt: _t0.add(const Duration(hours: 1)),
+              ),
+            );
+            // Back to 19:30 on 20 June: 23:30Z, the day before in UTC.
+            final earlier = utc('20300620T233000Z', '20300621T013000Z');
+            final offer = (await read(repos, earlier, west)).changes.single;
+            expect((offer.date, offer.start), (false, true));
+          },
+        );
+
         test('a real change is offered, read in this time zone', () async {
           final repos = openTestRepositories();
           await importAt(

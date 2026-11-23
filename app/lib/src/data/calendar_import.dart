@@ -304,11 +304,12 @@ CalendarChangeOffer? _changeOffer(
   final startDiffers = c.startMinute != program.startMinute;
   final endDiffers = c.endMinute != program.endMinute;
   final title = titleDiffers && (upstream?.title ?? true);
-  // A UTC event's fingerprint holds its UTC date, so a new start can move
-  // the local date while the UTC date stays. Then the date is offered only
-  // if the event's own local date moved, not merely because it differs from
-  // a date the caller edited. A floating or TZID event's date part is its
-  // local date already.
+  // A UTC event's fingerprint holds its UTC date and minutes, which can
+  // move while the local date stays (an evening start crossing UTC
+  // midnight), or stay while it moves. So for a UTC event the date is
+  // offered only when the event's own local date moved, not merely because
+  // it differs from a date the caller edited. A floating or TZID event's
+  // date part is its local date already.
   bool localDateMoved() {
     final before = calendarFingerprintLocalDate(stored, c, toLocal);
     return before == null || before != c.date;
@@ -317,8 +318,9 @@ CalendarChangeOffer? _changeOffer(
   final date =
       dateDiffers &&
       (upstream == null ||
-          upstream.date ||
-          (c.startsInUtc && upstream.start && localDateMoved()));
+          (c.startsInUtc
+              ? (upstream.date || upstream.start) && localDateMoved()
+              : upstream.date));
   final venue = venueDiffers && (upstream?.venue ?? true);
   final start = startDiffers && (upstream?.start ?? true);
   final end = endDiffers && (upstream?.end ?? true);

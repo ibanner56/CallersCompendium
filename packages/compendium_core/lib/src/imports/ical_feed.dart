@@ -720,39 +720,42 @@ String calendarEventFingerprint({
 String _fingerprintHash(String s) =>
     sha256.convert(utf8.encode(s)).toString().substring(0, 16);
 
-/// The local date [now]'s event started on when [stored] was written, for a
-/// UTC event whose UTC date has not changed since (#2354): its start minute
-/// is one of 1,440, so it is found from the stored hash, then read through
-/// [toLocal] on that UTC date. An event that was all-day then started on its
-/// written date, which is the same date. Null when that cannot be told: no
-/// readable fingerprint, not a UTC event now, or a changed UTC date.
+/// The local date [now]'s event started on when [stored] was written, if
+/// that was within a day of [now]'s local date, for a UTC event (#2354).
+/// A UTC event's fingerprint holds its UTC date and minutes, which can move
+/// while its local date stays, and the other way round, so the caller asks
+/// this whether the local date moved.
 ///
-/// A UTC event's fingerprint holds its UTC date, so a new start can move the
-/// local date while the UTC date stays; this says whether it did.
+/// An old local date equal to [now]'s has a UTC date within a day of it, so
+/// those three dates are tried against the stored date part. On a match,
+/// the start minute (one of 1,440) is found from its hash and read through
+/// [toLocal]; an event that was all-day then started on its written date.
+/// Null when it cannot be told, including when the old date was further
+/// away: then the local date moved.
 DateTime? calendarFingerprintLocalDate(
   String? stored,
   CalendarImportCandidate now,
   DateTime Function(DateTime utc) toLocal,
 ) {
   final parts = _fingerprintParts(stored);
-  final written = now.asWritten;
-  if (parts == null || written == null || !now.startsInUtc) return null;
-  if (parts[1] != _fingerprintParts(now.fingerprint)![1]) return null;
-  // All-day then: its date was written as is, and the date part matches.
-  if (parts[3] == _fingerprintHash('')) return written.date;
-  int? minute;
-  for (var m = 0; m < 24 * 60; m++) {
-    if (_fingerprintHash('$m') == parts[3]) {
-      minute = m;
-      break;
+  if (parts == null || !now.startsInUtc) return null;
+  for (final offset in const [-1, 0, 1]) {
+    final day = now.date.add(Duration(days: offset));
+    if (_fingerprintHash('${day.year}-${day.month}-${day.day}') != parts[1]) {
+      continue;
     }
+    // All-day then: its date was written as is.
+    if (parts[3] == _fingerprintHash('')) return day;
+    for (var m = 0; m < 24 * 60; m++) {
+      if (_fingerprintHash('$m') != parts[3]) continue;
+      final local = toLocal(
+        DateTime.utc(day.year, day.month, day.day, m ~/ 60, m % 60),
+      );
+      return DateTime.utc(local.year, local.month, local.day);
+    }
+    return null;
   }
-  if (minute == null) return null;
-  final d = written.date;
-  final local = toLocal(
-    DateTime.utc(d.year, d.month, d.day, minute ~/ 60, minute % 60),
-  );
-  return DateTime.utc(local.year, local.month, local.day);
+  return null;
 }
 
 /// Which of title, date, location, start and end differ between two
