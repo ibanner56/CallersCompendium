@@ -45,6 +45,7 @@
 /// role words read the same way.
 library;
 
+import '../model/bar_timing.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
 import '../taxonomy/ecd_taxonomy.dart';
@@ -102,7 +103,9 @@ const int _maxSteps = kMaxSequenceFigures;
 /// A line that starts with a bar range (`1-4 partners set`, `(5-8) …`,
 /// `A1 1-4 …`, [splitEcdBarRange]) is read without it, and takes its count
 /// from it over [beats] and over any count the words give: its bars times the
-/// beats in a bar of [meter] ([ecdBeatsPerBar], 2 when [meter] does not say).
+/// beats in a bar of [meter] ([ecdBeatsPerBar], 2 when [meter] does not say),
+/// or with [timing] counted from [startBeat] by the phrase each bar falls in
+/// ([ecdBarCount]).
 /// A line whose rest also states a count in beats ([ecdRestStatesBeats]) is
 /// kept as custom, so that count stays in its words, and so is one that goes
 /// on to further ranges (`(5-8) X (9-12) Y`), counted across all of them. A
@@ -116,10 +119,17 @@ Figure? parseEcdFigureLine(
   int? ringDancers,
   String Function(String)? scrub,
   String? meter,
+  BarTiming? timing,
+  int startBeat = 0,
 }) {
   var safeBeats = beats < 0 ? 0 : beats;
   var lineText = rawText;
-  final bars = ecdBarCount(rawText, meter: meter);
+  final bars = ecdBarCount(
+    rawText,
+    meter: meter,
+    timing: timing,
+    startBeat: startBeat,
+  );
   if (bars != null) {
     // The bars are the count (Hudson: "take them and use them"), over a
     // count the line was given or a custom line kept, so a re-check counts
