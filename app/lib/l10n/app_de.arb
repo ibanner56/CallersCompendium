@@ -8642,9 +8642,9 @@
   "@danceEditorPhrasesAdd": {
     "x-sourceSha256": "523c6e63a15b0cd78bb315d87053f141d1ae58f5ecb7c344ff3892e50a9d9833"
   },
-  "danceEditorPhrasesInvalid": "Gib jeder Phrase 1 bis {max} Takte und 1 bis {max} Schläge pro Takt. Bis dahin behält der Tanz seine letzten gültigen Phrasen, und Speichern speichert diese.",
+  "danceEditorPhrasesInvalid": "Gib jeder Phrase 1 bis {maxBars} Takte und 1 bis {maxBeats} Schläge pro Takt. Bis dahin behält der Tanz seine letzten gültigen Phrasen, und Speichern speichert diese.",
   "@danceEditorPhrasesInvalid": {
-    "x-sourceSha256": "6a5a586f9cbb1f72717649e174712444f7076e149f73331b7ce56c8c2b3c371b"
+    "x-sourceSha256": "60dd2d6400c5d2c89e8e962b7cfc1af7f11c5f4b02ff6d74414f6dc608e7e8de"
   },
   "danceEditorPhraseBarsLabel": "Takte in {name}",
   "@danceEditorPhraseBarsLabel": {

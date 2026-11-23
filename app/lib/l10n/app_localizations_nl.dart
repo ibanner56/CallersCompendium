@@ -8908,8 +8908,8 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorPhrasesAdd => 'Frase toevoegen';
 
   @override
-  String danceEditorPhrasesInvalid(int max) {
-    return 'Geef elke frase 1 tot $max maten en 1 tot $max tellen per maat. Tot dan houdt de dans zijn laatste geldige frasen, en Opslaan slaat die op.';
+  String danceEditorPhrasesInvalid(int maxBars, int maxBeats) {
+    return 'Geef elke frase 1 tot $maxBars maten en 1 tot $maxBeats tellen per maat. Tot dan houdt de dans zijn laatste geldige frasen, en Opslaan slaat die op.';
   }
 
   @override

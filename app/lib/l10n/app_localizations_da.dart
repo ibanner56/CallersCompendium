@@ -8855,8 +8855,8 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorPhrasesAdd => 'Tilføj frase';
 
   @override
-  String danceEditorPhrasesInvalid(int max) {
-    return 'Giv hver frase fra 1 til $max takter og fra 1 til $max slag i takten. Indtil da beholder dansen sine sidste gyldige fraser, og Gem gemmer dem.';
+  String danceEditorPhrasesInvalid(int maxBars, int maxBeats) {
+    return 'Giv hver frase fra 1 til $maxBars takter og fra 1 til $maxBeats slag i takten. Indtil da beholder dansen sine sidste gyldige fraser, og Gem gemmer dem.';
   }
 
   @override

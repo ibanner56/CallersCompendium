@@ -119,19 +119,15 @@ class _Row {
 
   /// The bars typed, or null when they are not a whole number from 1 to
   /// [PhraseStructure.maxComponentNumber].
-  int? get barCount => _count(bars);
+  int? get barCount => _count(bars, PhraseStructure.maxComponentNumber);
 
   /// The beats to the bar typed, or null when they are not a whole number from
-  /// 1 to [PhraseStructure.maxComponentNumber].
-  int? get beatsPerBar => _count(beats);
+  /// 1 to [ecdMaxBeatsPerBar].
+  int? get beatsPerBar => _count(beats, ecdMaxBeatsPerBar);
 
-  static int? _count(TextEditingController controller) {
+  static int? _count(TextEditingController controller, int max) {
     final value = int.tryParse(controller.text.trim());
-    return value == null ||
-            value < 1 ||
-            value > PhraseStructure.maxComponentNumber
-        ? null
-        : value;
+    return value == null || value < 1 || value > max ? null : value;
   }
 
   void dispose() {
@@ -305,6 +301,7 @@ class _NamedPhrasesEditorState extends State<NamedPhrasesEditor> {
               child: Text(
                 l10n.danceEditorPhrasesInvalid(
                   PhraseStructure.maxComponentNumber,
+                  ecdMaxBeatsPerBar,
                 ),
                 key: const ValueKey('named-phrases-invalid'),
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -381,15 +378,13 @@ class _NamedPhrasesEditorState extends State<NamedPhrasesEditor> {
         inputFormatters: [
           FilteringTextInputFormatter.digitsOnly,
           LengthLimitingTextInputFormatter(
-            '${PhraseStructure.maxComponentNumber}'.length,
+            '$ecdMaxBeatsPerBar'.length,
           ),
         ],
         decoration: InputDecoration(
           labelText: l10n.danceEditorPhraseBeatsPerBarLabel(row.name),
           errorText: row.beatsPerBar == null
-              ? l10n.danceEditorPhraseBeatsPerBarRange(
-                  PhraseStructure.maxComponentNumber,
-                )
+              ? l10n.danceEditorPhraseBeatsPerBarRange(ecdMaxBeatsPerBar)
               : null,
           errorMaxLines: 2,
         ),
