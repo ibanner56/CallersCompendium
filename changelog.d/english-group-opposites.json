@@ -1,0 +1,14 @@
+{
+  "id": "english-group-opposites",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "In a figure of your own made for English, the \"other\" slot of a group of dancers now has a value for four pairs of English's groups: the top and the bottom, the ends and the middles, the left file and the right file, and the first and second diagonals. Before, it was empty for all of them, and a wording that tests it could not tell them apart. Every other English group, such as the couples or the actives, still has none. The wording of an existing dance's line changes when it is next shown; an older version of the app keeps showing the line as it was."
+    ]
+  },
+  "core": {
+    "changed": [
+      "ParamOpposites.of gives the dancerSet and dancerPair values top, bottom, ends, middles, leftFile, rightFile, firstDiagonals and secondDiagonals their opposite (_englishPairs, inside _dancerOpposite). ParamVocab.pairInverse is unchanged, and none of the eight is in ParamVocab.dancerSets, so contra, square and unknown forms are unaffected."
+    ]
+  }
+}

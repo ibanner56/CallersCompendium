@@ -22,8 +22,9 @@ enum OppositeCoverage {
 /// kind or a new vocabulary value cannot be added without deciding its
 /// opposite. Pair inversion is not restated: it is [invertPairDancerSet], the
 /// single source of truth the renderer and importers already share. On top of
-/// it, `partners` is opposed by `neighbors` and every neighbor-series token
-/// is opposed by `partners`.
+/// it, `partners` is opposed by `neighbors`, every neighbor-series token is
+/// opposed by `partners`, and four pairs of English's own groups are opposed
+/// to each other ([_englishPairs]).
 ///
 /// The `unspecified` sentinel is its own opposite — "not stated" stays not
 /// stated — so a kind keeps its coverage when a slot opts into it.
@@ -73,19 +74,41 @@ abstract final class ParamOpposites {
   }
 
   /// A dancer set's opposite: the pair [invertPairDancerSet] names, else the
-  /// partner/neighbor swap. `partners` ↔ `neighbors`, and every other member
-  /// of the neighbor series ([_neighborSeries]) is opposed by `partners`, so
+  /// partner/neighbor swap, else one of English's own pairs
+  /// ([_englishPairs]). `partners` ↔ `neighbors`, and every other member of
+  /// the neighbor series ([_neighborSeries]) is opposed by `partners`, so
   /// "other who" always offers the partner whichever neighbor was chosen.
   ///
   /// The swap is deliberately not an involution: `nextNeighbors` →
   /// `partners` → `neighbors`. The renderer's other-pair wording and the
   /// importers keep using [invertPairDancerSet], which still declines these
-  /// tokens. A custom figure's opposite slot (`{otherWho}`) renders this swap.
+  /// tokens, and English's pairs. A custom figure's opposite slot
+  /// (`{otherWho}`) renders this swap.
   static String? _dancerOpposite(String value) {
     if (value == 'partners') return 'neighbors';
     if (_neighborSeries.contains(value)) return 'partners';
-    return invertPairDancerSet(value);
+    return _englishPairs[value] ?? invertPairDancerSet(value);
   }
+
+  /// The pairs among the groups only English has (`ecdSelectors`): the top
+  /// and the bottom of the set, its ends and its middles, the left-hand and
+  /// the right-hand file, and the two diagonals. The maintainer chose these
+  /// four (#2294 follow-up); ADR-006 names no opposite for any English group,
+  /// so every other one, such as `couples` or `actives`, has none.
+  ///
+  /// None of these tokens is in [ParamVocab.dancerSets], which a figure made
+  /// for contra, square or an unknown form validates against, so no contra
+  /// value can reach them.
+  static const Map<String, String> _englishPairs = {
+    'top': 'bottom',
+    'bottom': 'top',
+    'ends': 'middles',
+    'middles': 'ends',
+    'leftFile': 'rightFile',
+    'rightFile': 'leftFile',
+    'firstDiagonals': 'secondDiagonals',
+    'secondDiagonals': 'firstDiagonals',
+  };
 
   static const Set<String> _neighborSeries = {
     'neighbors',
