@@ -341,6 +341,18 @@ String glossaryEntryForm(Object? payload) {
   return defaultGlossaryEntryForm;
 }
 
+/// The dance form a glossary entry's [payload] is for: the form it names
+/// ([glossaryEntryForm]), or contra for a payload that names none or a form
+/// this build does not know (#2294). What an entry is shown in: its own
+/// form's dialect, and what it is checked against: its own form's figures.
+DanceForm glossaryEntryDanceForm(Object? payload) {
+  final name = glossaryEntryForm(payload);
+  for (final form in DanceForm.values) {
+    if (form.name == name) return form;
+  }
+  return DanceForm.contra;
+}
+
 /// The payload key of a term's source citation (#1023): where the term comes
 /// from, as free text (a Caller's Companion term's `Source`, such as "Give
 /// and Take - Larry Jennings"), kept as written.
