@@ -4292,10 +4292,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
-  /// The narrow-screen dance picker sheet. With [insertion] (#2339) it is
-  /// titled with the target and closes on the first dance chosen, which lands
-  /// there; closing it without a pick ends the insertion. Without one it stays
-  /// open so callers can add several dances, each at the end.
   /// The program, as the add-dance picker needs it (history-filters Q3,
   /// #2343): its id, its venue as calling history keys it, and, when the
   /// picker adds at the end ([atEnd]), its slots for Suggested. An insertion
@@ -4308,13 +4304,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       programId: _existing?.id ?? widget.programId,
       venueId: venueId,
       venue: typed.isEmpty ? null : typed,
+      // As the venue hint names it; with no name to show, the picker falls
+      // back to the hint's own words.
       venueLabel: venueId != null
-          ? (_linkedVenue?.name ?? (typed.isEmpty ? null : typed))
+          ? (_linkedVenue?.displayName ?? (typed.isEmpty ? null : typed))
           : (typed.isEmpty ? null : typed),
       slots: atEnd ? List.unmodifiable(_slots) : null,
     );
   }
 
+  /// The narrow-screen dance picker sheet. With [insertion] (#2339) it is
+  /// titled with the target and closes on the first dance chosen, which lands
+  /// there; closing it without a pick ends the insertion. Without one it stays
+  /// open so callers can add several dances, each at the end.
   Future<void> _openPickerSheet({_SlotInsertion? insertion}) async {
     final data = _data;
     if (data == null) {

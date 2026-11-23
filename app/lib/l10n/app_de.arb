@@ -12534,6 +12534,22 @@
   "@suggestionReasonEnglishNotCovered": {
     "x-sourceSha256": "1f7a61a11e7374574001ba884a5325e7684ac7cd6b582d91f1410490294b105e"
   },
+  "suggestionReasonPhraseOverlapPrevious": "{move} in derselben Phrase wie im Tanz davor",
+  "@suggestionReasonPhraseOverlapPrevious": {
+    "x-sourceSha256": "ae0f63779f2e9a527f5016a620527135a4cffc5404737a947b6ffe0396539b85"
+  },
+  "suggestionReasonPhraseOverlapNext": "{move} in derselben Phrase wie im Tanz danach",
+  "@suggestionReasonPhraseOverlapNext": {
+    "x-sourceSha256": "2f1291f7cc84eaed2809534ec7e5d2abdaa2bba20b9625624f2132b5dcbd3194"
+  },
+  "suggestionReasonAlreadyInProgram": "Schon in diesem Programm",
+  "@suggestionReasonAlreadyInProgram": {
+    "x-sourceSha256": "f99872aa4d82f914408cba53f419d396218e55ec34b2757febfd2835fde9027c"
+  },
+  "suggestionRankingFailed": "Die Tänze konnten nicht gereiht werden, daher stehen sie in der üblichen Reihenfolge.",
+  "@suggestionRankingFailed": {
+    "x-sourceSha256": "ae87a3733ad619e5b00d28e9773478450262580c320cc1bd93c111863577bdf5"
+  },
   "suggestionWhyTooltip": "Warum {title} hier vorgeschlagen wird",
   "@suggestionWhyTooltip": {
     "x-sourceSha256": "d14e1ed761542a5fa726d1c12b7d56e8a02e684c830cf430d30d356feb762fb1"

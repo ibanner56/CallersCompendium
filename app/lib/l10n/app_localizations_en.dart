@@ -12940,6 +12940,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'Suggestions don\'t cover English dances yet';
 
   @override
+  String suggestionReasonPhraseOverlapPrevious(String move) {
+    return '$move in the same phrase as the previous dance';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapNext(String move) {
+    return '$move in the same phrase as the next dance';
+  }
+
+  @override
+  String get suggestionReasonAlreadyInProgram => 'Already in this program';
+
+  @override
+  String get suggestionRankingFailed =>
+      'Couldn\'t rank these dances, so they\'re in their usual order.';
+
+  @override
   String suggestionWhyTooltip(String title) {
     return 'Why $title is suggested here';
   }

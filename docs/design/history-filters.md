@@ -367,7 +367,8 @@ so nothing in the picker reads the program's date. Rejected: passing it anyway
   and typed venue as above, plus the venue's display name and, when the picker
   adds at the end, the program's slots. The builder's two add-dance mounts pass
   it; Replace… and `perform_adjust_sheet.dart` do not yet. The picker now also
-  passes the id as `currentProgramId` to its Called filter (N1-6). The Not
+  passes the id as `currentProgramId` to its Called filter and its Last called
+  sort (N1-6), in those two mounts only. The Not
   called here chip, the marker and the other H3 pieces are still not built.
 - It defaults to null, so B14's stable constructor API still holds, and all five
   mounts compile unchanged.

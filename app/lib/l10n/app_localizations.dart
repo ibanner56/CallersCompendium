@@ -19031,6 +19031,30 @@ abstract class AppLocalizations {
   /// **'Suggestions don\'t cover English dances yet'**
   String get suggestionReasonEnglishNotCovered;
 
+  /// Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the previous dance. {move} is the matrix column's name.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} in the same phrase as the previous dance'**
+  String suggestionReasonPhraseOverlapPrevious(String move);
+
+  /// Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the next dance. {move} is the matrix column's name.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} in the same phrase as the next dance'**
+  String suggestionReasonPhraseOverlapNext(String move);
+
+  /// Suggestion reason: the dance is already in the program being built, so the Suggested order puts it last (it is not removed).
+  ///
+  /// In en, this message translates to:
+  /// **'Already in this program'**
+  String get suggestionReasonAlreadyInProgram;
+
+  /// Notice in the program builder's dance picker when the Suggested sort is chosen but ranking failed; the list shows in its plain order.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t rank these dances, so they\'re in their usual order.'**
+  String get suggestionRankingFailed;
+
   /// Tooltip and screen-reader label of the Why? button on a row in the Suggested order.
   ///
   /// In en, this message translates to:

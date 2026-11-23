@@ -871,6 +871,36 @@ _RoutedDance _routeDance(
   UserFigureCatalog userFigures, {
   int? section,
   int? alternateGroup,
+}) => _routeFigures(
+  danceId: dance.id,
+  title: dance.title,
+  structure: dance.phraseStructure,
+  danceFigures: switch (dance.figuresSource) {
+    DecodedFigures(:final figures) => figures,
+    // Nothing to read: an undecodable transcription contributes no figures.
+    UnreadableFigures() => const <Figure>[],
+  },
+  formation: dance.formation,
+  tax: tax,
+  config: config,
+  userFigures: userFigures,
+  section: section,
+  alternateGroup: alternateGroup,
+);
+
+/// [_routeDance] over the parts of a dance it reads, for a caller that holds
+/// only those ([buildMatrixRowFromFigures]).
+_RoutedDance _routeFigures({
+  required String danceId,
+  required String title,
+  required PhraseStructure structure,
+  required List<Figure> danceFigures,
+  required Formation formation,
+  required Taxonomy tax,
+  required MatrixColumnConfig config,
+  required UserFigureCatalog userFigures,
+  int? section,
+  int? alternateGroup,
 }) {
   final compoundIds = {for (final compound in config.compound) compound.id};
   final rowMoves = <String>{};
@@ -886,12 +916,6 @@ _RoutedDance _routeDance(
   // such figure as A1 and producing false collisions). A figure is labelled
   // by the phrase it *starts* in; every figure (custom included) advances the
   // beat cursor so later figures land in the right phrase/position.
-  final structure = dance.phraseStructure;
-  final danceFigures = switch (dance.figuresSource) {
-    DecodedFigures(:final figures) => figures,
-    // Nothing to read: an undecodable transcription contributes no figures.
-    UnreadableFigures() => const <Figure>[],
-  };
   var beat = 0;
   for (final figure in danceFigures) {
     final key = columnKeyForFigure(figure, tax, config, userFigures);
@@ -934,8 +958,8 @@ _RoutedDance _routeDance(
   }
   return (
     row: MatrixRow(
-      danceId: dance.id,
-      title: dance.title,
+      danceId: danceId,
+      title: title,
       firstMoveId: danceFigures.isEmpty
           ? null
           : columnKeyForFigure(danceFigures.first, tax, config, userFigures),
@@ -944,7 +968,7 @@ _RoutedDance _routeDance(
       beatSpansByMove: beatSpans,
       section: section,
       alternateGroup: alternateGroup,
-      formation: dance.formation,
+      formation: formation,
     ),
     columnKeys: columnKeys,
     hasCustom: hasCustom,
@@ -970,6 +994,33 @@ MatrixRow buildMatrixRow(
   taxonomy ?? shippedTaxonomies.anyForm,
   config,
   userFigures,
+  section: section,
+  alternateGroup: alternateGroup,
+).row;
+
+/// [buildMatrixRow] for a dance known only by the parts a row reads: its id,
+/// phrase structure, figures and formation. Suggestions (#2343) send these to
+/// another isolate instead of whole dances.
+MatrixRow buildMatrixRowFromFigures({
+  required String danceId,
+  required List<Figure> figures,
+  PhraseStructure phraseStructure = PhraseStructure.standard,
+  Formation formation = const Formation(FormationShape.dupleImproper),
+  String title = '',
+  Taxonomy? taxonomy,
+  int? section,
+  int? alternateGroup,
+  MatrixColumnConfig config = MatrixColumnConfig.empty,
+  UserFigureCatalog userFigures = UserFigureCatalog.empty,
+}) => _routeFigures(
+  danceId: danceId,
+  title: title,
+  structure: phraseStructure,
+  danceFigures: figures,
+  formation: formation,
+  tax: taxonomy ?? shippedTaxonomies.anyForm,
+  config: config,
+  userFigures: userFigures,
   section: section,
   alternateGroup: alternateGroup,
 ).row;

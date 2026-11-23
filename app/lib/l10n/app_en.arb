@@ -17489,6 +17489,32 @@
   "@suggestionReasonEnglishNotCovered": {
     "description": "Reason on an English dance in the Suggested order: English dances are listed after the ranked ones, in the plain order."
   },
+  "suggestionReasonPhraseOverlapPrevious": "{move} in the same phrase as the previous dance",
+  "@suggestionReasonPhraseOverlapPrevious": {
+    "description": "Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the previous dance. {move} is the matrix column's name.",
+    "placeholders": {
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonPhraseOverlapNext": "{move} in the same phrase as the next dance",
+  "@suggestionReasonPhraseOverlapNext": {
+    "description": "Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the next dance. {move} is the matrix column's name.",
+    "placeholders": {
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonAlreadyInProgram": "Already in this program",
+  "@suggestionReasonAlreadyInProgram": {
+    "description": "Suggestion reason: the dance is already in the program being built, so the Suggested order puts it last (it is not removed)."
+  },
+  "suggestionRankingFailed": "Couldn't rank these dances, so they're in their usual order.",
+  "@suggestionRankingFailed": {
+    "description": "Notice in the program builder's dance picker when the Suggested sort is chosen but ranking failed; the list shows in its plain order."
+  },
   "suggestionWhyTooltip": "Why {title} is suggested here",
   "@suggestionWhyTooltip": {
     "description": "Tooltip and screen-reader label of the Why? button on a row in the Suggested order.",

@@ -66,8 +66,12 @@ void main() {
   }) => rankSuggestions(
     SuggestionRequest(
       slotsBefore: slots ?? slotsFor(program),
-      programDances: {for (final d in program) d.id: d},
-      candidates: candidates,
+      programDances: {
+        for (final d in program) d.id: SuggestionCandidate.fromDance(d),
+      },
+      candidates: [
+        for (final d in candidates) SuggestionCandidate.fromDance(d),
+      ],
       settings: settings,
       today: today,
       collisionMode: mode,
@@ -161,10 +165,44 @@ void main() {
         mode: MatrixCollisionMode.phrase,
       );
       expect(order(phrase), ['elsewhere', 'same-phrase']);
+      // Said as a phrase, not beats, under the phrase rule.
       expect(
         kinds(of(phrase, 'same-phrase')),
-        contains(SuggestionReasonKind.beatOverlap),
+        allOf(
+          contains(SuggestionReasonKind.phraseOverlap),
+          isNot(contains(SuggestionReasonKind.beatOverlap)),
+        ),
       );
+    });
+
+    test('an exact beat overlap is said as beats, and as a phrase under the '
+        'phrase rule', () {
+      final overlapping = dance('overlap', [
+        fig('do_si_do', 16),
+        fig('swing', 16),
+      ]);
+      for (final (mode, kind, other) in [
+        (
+          MatrixCollisionMode.exactBeats,
+          SuggestionReasonKind.beatOverlap,
+          SuggestionReasonKind.phraseOverlap,
+        ),
+        (
+          MatrixCollisionMode.phrase,
+          SuggestionReasonKind.phraseOverlap,
+          SuggestionReasonKind.beatOverlap,
+        ),
+      ]) {
+        final r = rank(
+          program: [previous],
+          candidates: [overlapping],
+          settings: only(SuggestionFactor.matrixVariety),
+          mode: mode,
+        );
+        final reasons = kinds(of(r, 'overlap'));
+        expect(reasons, contains(kind), reason: mode.name);
+        expect(reasons, isNot(contains(other)), reason: mode.name);
+      }
     });
 
     test('a break separates the candidate from the dance before it, as in '
@@ -512,14 +550,79 @@ void main() {
     });
   });
 
+  group('a dance already in the program', () {
+    final inProgram = dance('in', [fig('petronella', 16)]);
+    final other = dance('other', [fig('circle', 16), fig('swing', 16)]);
+
+    test('sinks below every other dance, says why, and is never called "never '
+        'called here"', () {
+      // Without the check, "in" wins: it reads as never called here (the
+      // venue history leaves this program out), and "other" was called here
+      // last week.
+      final r = rank(
+        program: [dance('first', const []), inProgram],
+        candidates: [inProgram, other],
+        hasVenue: true,
+        calledHere: {'other': DateTime.utc(2026, 11, 16)},
+      );
+      expect(order(r), ['other', 'in']);
+      final ranked = of(r, 'in');
+      expect(ranked.ranked, isTrue, reason: 'reordered, never filtered');
+      expect(ranked.headline.first.kind, SuggestionReasonKind.alreadyInProgram);
+      expect(ranked.score, lessThan(of(r, 'other').score));
+      expect(
+        kinds(ranked),
+        isNot(contains(SuggestionReasonKind.neverCalledHere)),
+      );
+      expect(
+        kinds(of(r, 'other')),
+        isNot(contains(SuggestionReasonKind.alreadyInProgram)),
+      );
+    });
+
+    test('with every factor off it is still below the others', () {
+      var settings = SuggestionSettings.defaults;
+      for (final f in SuggestionFactor.values) {
+        settings = settings.withWeight(f, SuggestionWeight.off);
+      }
+      final r = rank(
+        program: [inProgram],
+        candidates: [inProgram, other],
+        settings: settings,
+      );
+      expect(order(r), ['other', 'in']);
+    });
+  });
+
+  test('a candidate carries only what the scorer reads', () {
+    final full = Dance(
+      id: 'd',
+      title: 'Title',
+      hook: 'A hook',
+      callingNotes: 'Notes',
+      form: DanceForm.square,
+      formation: const Formation(FormationShape.becketCw),
+      difficultyLevelId: 'intermediate',
+      figures: [fig('swing', 16)],
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    final c = SuggestionCandidate.fromDance(full);
+    expect(c.id, 'd');
+    expect(c.form, DanceForm.square);
+    expect(c.formation.shape, FormationShape.becketCw);
+    expect(c.difficultyLevelId, 'intermediate');
+    expect(c.figures.single.move, 'swing');
+  });
+
   test('the request can be sent to another isolate', () async {
     final request = SuggestionRequest(
       slotsBefore: [ProgramSlot(id: 's', position: 0, danceId: 'p')],
       programDances: {
-        'p': dance('p', [fig('swing', 16)]),
+        'p': SuggestionCandidate.fromDance(dance('p', [fig('swing', 16)])),
       },
       candidates: [
-        dance('c', [fig('swing', 16)]),
+        SuggestionCandidate.fromDance(dance('c', [fig('swing', 16)])),
       ],
       settings: SuggestionSettings.defaults,
       today: today,

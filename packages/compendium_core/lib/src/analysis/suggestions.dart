@@ -18,8 +18,10 @@ import 'package:meta/meta.dart';
 import '../model/dance.dart';
 import '../model/difficulty_level.dart';
 import '../model/enums.dart';
-import '../model/figure.dart' show customMove;
+import '../model/figure.dart' show Figure, customMove;
+import '../model/figure_source.dart';
 import '../model/formation.dart';
+import '../model/phrase_structure.dart';
 import '../model/program.dart';
 import '../search/collection_search_state.dart' show calendarMonthsBefore;
 import '../taxonomy/taxonomy.dart';
@@ -27,6 +29,7 @@ import '../taxonomy/user_figure_use.dart';
 import 'matrix_column_config.dart';
 import 'program_matrix.dart';
 import 'suggestion_settings.dart';
+import 'suggestion_worker.dart' show SuggestionWorker;
 
 /// Which side of the position a neighbour is on.
 enum SuggestionNeighbor { previous, next }
@@ -38,9 +41,17 @@ enum SuggestionReasonKind {
   newMoves,
 
   /// The move [SuggestionReason.moveKey] (a matrix column key) overlaps the
-  /// [SuggestionReason.neighbor]'s beats, by the matrix's alert rule; with
-  /// [SuggestionReason.count] colliding moves in all.
+  /// [SuggestionReason.neighbor]'s beats, by the matrix's exact-beat alert
+  /// rule; with [SuggestionReason.count] colliding moves in all.
   beatOverlap,
+
+  /// As [beatOverlap], under the matrix's phrase rule ("Flag exact beat overlap
+  /// only" off): the move starts in the same phrase as in the neighbour.
+  phraseOverlap,
+
+  /// The dance is already in this program. Not a factor: a fixed, strong
+  /// effect, so a dance already called tonight sinks without being removed.
+  alreadyInProgram,
 
   /// Same formation family as the [SuggestionReason.neighbor].
   sameFormationAsNeighbor,
@@ -159,8 +170,51 @@ class RankedSuggestion {
   }
 }
 
-/// Everything [rankSuggestions] reads. Plain data, so it can be sent to
-/// another isolate.
+/// The parts of a dance the scorer reads, and nothing else: what crosses to
+/// the ranking isolate for each candidate and program dance, instead of a
+/// whole [Dance] with its notes, tunes, custom fields and other text.
+@immutable
+class SuggestionCandidate {
+  const SuggestionCandidate({
+    required this.id,
+    this.form = DanceForm.contra,
+    this.formation = const Formation(FormationShape.dupleImproper),
+    this.difficultyLevelId,
+    this.phraseStructure = PhraseStructure.standard,
+    this.figures = const [],
+    this.revision = 0,
+  });
+
+  /// The projection of [dance]. A transcription that cannot be decoded has no
+  /// figures here, as the matrix reads it.
+  factory SuggestionCandidate.fromDance(Dance dance) => SuggestionCandidate(
+    id: dance.id,
+    form: dance.form,
+    formation: dance.formation,
+    difficultyLevelId: dance.difficultyLevelId,
+    phraseStructure: dance.phraseStructure,
+    figures: switch (dance.figuresSource) {
+      DecodedFigures(:final figures) => figures,
+      UnreadableFigures() => const <Figure>[],
+    },
+    revision: dance.updatedAt.microsecondsSinceEpoch,
+  );
+
+  final String id;
+  final DanceForm form;
+  final Formation formation;
+  final String? difficultyLevelId;
+  final PhraseStructure phraseStructure;
+  final List<Figure> figures;
+
+  /// Which version of the dance this is (its `updatedAt`, from [fromDance]).
+  /// A [SuggestionWorker] already holding this id at this revision is not sent
+  /// it again.
+  final int revision;
+}
+
+/// Everything [rankSuggestions] reads. Plain data, and only what the scorer
+/// needs ([SuggestionCandidate]), so it is cheap to send to another isolate.
 @immutable
 class SuggestionRequest {
   const SuggestionRequest({
@@ -188,10 +242,12 @@ class SuggestionRequest {
 
   /// The dances the slots refer to, by id. A slot whose dance is missing reads
   /// as a dance with no figures, as the matrix shows a deleted one.
-  final Map<String, Dance> programDances;
+  final Map<String, SuggestionCandidate> programDances;
 
   /// The dances to rank, in the plain order they are shown in. Ties keep it.
-  final List<Dance> candidates;
+  /// A candidate already in the program is ranked too, low
+  /// ([SuggestionReasonKind.alreadyInProgram]): ranking never filters.
+  final List<SuggestionCandidate> candidates;
 
   final SuggestionSettings settings;
 
@@ -221,6 +277,24 @@ class SuggestionRequest {
   /// docs/design/history-filters.md Q2). A dance absent was never called
   /// there.
   final Map<String, DateTime?> calledHere;
+
+  /// This request with [candidates] in place of its own.
+  SuggestionRequest withCandidates(List<SuggestionCandidate> candidates) =>
+      SuggestionRequest(
+        slotsBefore: slotsBefore,
+        slotsAfter: slotsAfter,
+        programDances: programDances,
+        candidates: candidates,
+        settings: settings,
+        today: today,
+        collisionMode: collisionMode,
+        taxonomy: taxonomy,
+        matrixConfig: matrixConfig,
+        userFigures: userFigures,
+        levels: levels,
+        hasVenue: hasVenue,
+        calledHere: calledHere,
+      );
 }
 
 /// The result: every candidate once, ranked ones first (best first), then the
@@ -232,13 +306,10 @@ class SuggestionRanking {
   final List<RankedSuggestion> order;
 }
 
-/// A dance the scorer stands in for a slot whose dance is missing.
-Dance _missingDance(String id) => Dance(
-  id: id,
-  title: id,
-  createdAt: DateTime.utc(1970),
-  updatedAt: DateTime.utc(1970),
-);
+/// The effect of [SuggestionReasonKind.alreadyInProgram]. Every factor at
+/// A lot can give a dance at most +5.4 or −12 in all, so −20 puts such a
+/// dance below every dance not in the program however the factors are set.
+const double alreadyInProgramEffect = -20;
 
 /// A formation family: Becket clockwise and counter-clockwise are one.
 String _formationFamily(FormationShape shape) => switch (shape) {
@@ -305,9 +376,14 @@ class _Scorer {
         _candidateGroup = groups[i];
         continue;
       }
+      _programDanceIds.add(danceId);
       final dance = request.programDances[danceId];
-      final row = buildMatrixRow(
-        dance ?? _missingDance(danceId),
+      final row = buildMatrixRowFromFigures(
+        danceId: danceId,
+        figures: dance?.figures ?? const [],
+        phraseStructure: dance?.phraseStructure ?? PhraseStructure.standard,
+        formation:
+            dance?.formation ?? const Formation(FormationShape.dupleImproper),
         taxonomy: _taxonomy,
         section: sections[i],
         alternateGroup: groups[i],
@@ -387,7 +463,10 @@ class _Scorer {
 
   /// The program's other dances, in row order; null where a slot's dance is
   /// missing (its row has no figures, and it has no formation or level).
-  final _otherDances = <Dance?>[];
+  final _otherDances = <SuggestionCandidate?>[];
+
+  /// Every dance id the program's slots hold, before and after the position.
+  final _programDanceIds = <String>{};
   final _programMoves = <String>{};
   final _formationCounts = <String, int>{};
   final _neighborFamilies = <String, SuggestionNeighbor>{};
@@ -401,13 +480,22 @@ class _Scorer {
   double? _meanLevel;
   late final DateTime _venueCutoff;
 
-  RankedSuggestion score(Dance dance) {
+  RankedSuggestion score(SuggestionCandidate dance) {
     final reasons = <SuggestionReason>[];
     final notes = <SuggestionReason>[];
+    final inProgram = _programDanceIds.contains(dance.id);
+    if (inProgram) {
+      reasons.add(
+        const SuggestionReason(
+          SuggestionReasonKind.alreadyInProgram,
+          effect: alreadyInProgramEffect,
+        ),
+      );
+    }
     _variety(dance, reasons);
     _formation(dance, reasons);
     _curve(dance, reasons);
-    _venue(dance, reasons, notes);
+    _venue(dance, reasons, notes, inProgram: inProgram);
     reasons.sort((a, b) => b.effect.abs().compareTo(a.effect.abs()));
     final total = reasons.fold<double>(0, (sum, r) => sum + r.effect);
     return RankedSuggestion(
@@ -453,12 +541,15 @@ class _Scorer {
   /// Variety on the matrix: moves no other dance uses raise it; a move that
   /// overlaps a neighbour's beats, under the matrix's own alert rule, lowers
   /// it.
-  void _variety(Dance dance, List<SuggestionReason> into) {
+  void _variety(SuggestionCandidate dance, List<SuggestionReason> into) {
     const factor = SuggestionFactor.matrixVariety;
     if (_settings.matrixVariety == SuggestionWeight.off) return;
     if (_otherDances.isEmpty) return;
-    final row = buildMatrixRow(
-      dance,
+    final row = buildMatrixRowFromFigures(
+      danceId: dance.id,
+      figures: dance.figures,
+      phraseStructure: dance.phraseStructure,
+      formation: dance.formation,
       taxonomy: _taxonomy,
       section: _candidateSection,
       alternateGroup: _candidateGroup,
@@ -490,7 +581,9 @@ class _Scorer {
       _add(
         into,
         factor,
-        SuggestionReasonKind.beatOverlap,
+        request.collisionMode == MatrixCollisionMode.phrase
+            ? SuggestionReasonKind.phraseOverlap
+            : SuggestionReasonKind.beatOverlap,
         -(0.6 * colliding.length).clamp(0, 1).toDouble(),
         count: colliding.length,
         moveKey: first.key,
@@ -513,7 +606,7 @@ class _Scorer {
 
   /// Formation balance: not the neighbour's formation, and not one the
   /// program already has many of; a formation new to the program is a plus.
-  void _formation(Dance dance, List<SuggestionReason> into) {
+  void _formation(SuggestionCandidate dance, List<SuggestionReason> into) {
     const factor = SuggestionFactor.formationBalance;
     if (_settings.formationBalance == SuggestionWeight.off) return;
     if (_otherDances.isEmpty) return;
@@ -576,7 +669,7 @@ class _Scorer {
   int get _plannedAfter => Program.plannedDanceCountOf(request.slotsAfter);
 
   /// Difficulty curve: close to the level the chosen shape wants here.
-  void _curve(Dance dance, List<SuggestionReason> into) {
+  void _curve(SuggestionCandidate dance, List<SuggestionReason> into) {
     const factor = SuggestionFactor.difficultyCurve;
     if (_settings.difficultyCurve == SuggestionWeight.off) return;
     final position = _levelPositions[dance.difficultyLevelId];
@@ -601,10 +694,11 @@ class _Scorer {
   /// Recent calls at this venue: a call inside the window lowers it; a dance
   /// not called here within it is a plus.
   void _venue(
-    Dance dance,
+    SuggestionCandidate dance,
     List<SuggestionReason> into,
-    List<SuggestionReason> notes,
-  ) {
+    List<SuggestionReason> notes, {
+    required bool inProgram,
+  }) {
     const factor = SuggestionFactor.venueRecency;
     if (_settings.venueRecency == SuggestionWeight.off) return;
     if (!request.hasVenue) {
@@ -617,7 +711,11 @@ class _Scorer {
       return;
     }
     if (!request.calledHere.containsKey(dance.id)) {
-      _add(into, factor, SuggestionReasonKind.neverCalledHere, 0.3);
+      // [calledHere] leaves this program out, so a dance already in it would
+      // read as never called here: it has its own, stronger reason instead.
+      if (!inProgram) {
+        _add(into, factor, SuggestionReasonKind.neverCalledHere, 0.3);
+      }
       return;
     }
     final last = request.calledHere[dance.id];

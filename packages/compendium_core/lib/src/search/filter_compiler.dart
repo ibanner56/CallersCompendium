@@ -119,26 +119,6 @@ String _figureMatchWithoutRoleTokens(String table, {required bool prefix}) =>
     "AND (${prefix ? "' ' || " : ''}$_figuresTextWithoutRoleTokens) "
     "LIKE ? ESCAPE '\\')";
 
-/// Compiles a [DanceFilter] tree into a single parameterized `SELECT id FROM
-/// dances …` (`docs/design/search.md` "SQL compilation").
-///
-/// Injection-safe by construction: every user value is a bind variable; only
-/// an allow-list of column names, operators and JSON key paths is ever
-/// interpolated (JSON keys are validated at [FigureLeaf] construction).
-///
-/// Dialect canonicalization happens at this boundary, once, before any bind is
-/// produced: full-text queries and role-valued figure params are run through
-/// [canonicalizeText], and move names are mapped back through the active
-/// dialect's move substitutions (except a built-in move id, which binds as
-/// given: see [_canonicalizeMove]) — mirroring how data was canonicalized on the
-/// way in, so a dialect user's query matches the canonical tokens stored in
-/// the derived indexes.
-///
-/// An optional [SearchEnrichment] adds always-on, dialect-agnostic reverse
-/// synonyms drawn from the union of every saved dialect, so search resolves a
-/// term configured in any saved dialect — not just the active one — exactly as
-/// the built-in legacy synonyms already do. The active dialect (and legacy
-/// synonyms) always win where they overlap the enrichment.
 /// The conditions, after `p.deleted_at IS NULL`, that select the slots a
 /// [CalledFilter] counts, over the `program_slots` alias `ps` joined to the
 /// `programs` alias `p`: the alternate rule, [CalledFilter.performedOnly],
@@ -200,6 +180,13 @@ String calledSlotConditionsSql(CalledFilter filter, List<Object?> binds) {
       '$scopes';
 }
 
+/// Checks a [CalledFilter.since] cutoff and returns it as its bind.
+///
+/// The cutoff must be a calendar date stored the way an event date is,
+/// UTC midnight, so a dated program compares `event_date >= cutoff`
+/// exactly. A local or mid-day value would shift the boundary by the
+/// device's offset, so it is rejected in every build, as an out-of-range
+/// [RatingFilter] is.
 DateTime _calledSince(DateTime since) {
   if (!since.isUtc ||
       since != DateTime.utc(since.year, since.month, since.day)) {
@@ -212,6 +199,26 @@ DateTime _calledSince(DateTime since) {
   return since;
 }
 
+/// Compiles a [DanceFilter] tree into a single parameterized `SELECT id FROM
+/// dances …` (`docs/design/search.md` "SQL compilation").
+///
+/// Injection-safe by construction: every user value is a bind variable; only
+/// an allow-list of column names, operators and JSON key paths is ever
+/// interpolated (JSON keys are validated at [FigureLeaf] construction).
+///
+/// Dialect canonicalization happens at this boundary, once, before any bind is
+/// produced: full-text queries and role-valued figure params are run through
+/// [canonicalizeText], and move names are mapped back through the active
+/// dialect's move substitutions (except a built-in move id, which binds as
+/// given: see [_canonicalizeMove]) — mirroring how data was canonicalized on the
+/// way in, so a dialect user's query matches the canonical tokens stored in
+/// the derived indexes.
+///
+/// An optional [SearchEnrichment] adds always-on, dialect-agnostic reverse
+/// synonyms drawn from the union of every saved dialect, so search resolves a
+/// term configured in any saved dialect — not just the active one — exactly as
+/// the built-in legacy synonyms already do. The active dialect (and legacy
+/// synonyms) always win where they overlap the enrichment.
 class FilterCompiler {
   FilterCompiler([
     Dialect? dialect,
@@ -941,14 +948,6 @@ class FilterCompiler {
         return 'v.value_text IN ($placeholders)';
     }
   }
-
-  /// Checks a [CalledFilter.since] cutoff and returns it as its bind.
-  ///
-  /// The cutoff must be a calendar date stored the way an event date is,
-  /// UTC midnight, so a dated program compares `event_date >= cutoff`
-  /// exactly. A local or mid-day value would shift the boundary by the
-  /// device's offset, so it is rejected in every build, as an out-of-range
-  /// [RatingFilter] is.
 
   /// Compiles a [LevelFilter] against the configured difficulty vocabulary.
   ///

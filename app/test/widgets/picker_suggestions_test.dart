@@ -95,7 +95,7 @@ class _Harness {
 Future<_Harness> _pump(
   WidgetTester tester,
   CompendiumRepositories repos, {
-  required _SpyRanker ranker,
+  required _SpyRanker? ranker,
   bool enabled = true,
   required PickerProgramContext? programContext,
 }) async {
@@ -127,7 +127,7 @@ Future<_Harness> _pump(
                 enrichment: SearchEnrichment.empty,
                 onAddDance: added.add,
                 programContext: programContext,
-                rankSuggestions: ranker.call,
+                rankSuggestions: ranker?.call,
                 clock: const _FixedClock(),
               ),
             ),
@@ -390,5 +390,153 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('a failed ranking keeps the plain order and says so', (
+    tester,
+  ) async {
+    final repos = await _seed();
+    final ranker = _SpyRanker()
+      ..answer = (_) => Future.error(StateError('worker lost'));
+    await _pump(tester, repos, ranker: ranker, programContext: _context);
+    await _chooseSuggested(tester);
+
+    expect(ranker.requests, hasLength(1));
+    expect(_titles(tester), ['Alpha', 'Bravo', 'Charlie', 'Zulu']);
+    final notice = find.byKey(const ValueKey('picker-suggested-failed'));
+    expect(notice, findsOneWidget);
+    expect(
+      find.descendant(
+        of: notice,
+        matching: find.text(
+          "Couldn't rank these dances, so they're in their usual order.",
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    // Another sort clears it.
+    await _openSortMenu(tester);
+    await tester.tap(find.text('Title').last);
+    await tester.pumpAndSettle();
+    expect(notice, findsNothing);
+  });
+
+  testWidgets('a linked venue with no name to show reads as "a saved venue", '
+      'never as a blank', (tester) async {
+    final repos = await _seed();
+    final ranker = _SpyRanker()
+      ..answer = (request) async => SuggestionRanking([
+        for (final c in request.candidates)
+          RankedSuggestion(
+            danceId: c.id,
+            score: 0,
+            ranked: true,
+            reasons: const [
+              SuggestionReason(
+                SuggestionReasonKind.neverCalledHere,
+                factor: SuggestionFactor.venueRecency,
+                effect: 0.9,
+              ),
+            ],
+          ),
+      ]);
+    await _pump(
+      tester,
+      repos,
+      ranker: ranker,
+      programContext: PickerProgramContext(
+        programId: 'p1',
+        venueId: 'venue-1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'in-program')],
+      ),
+    );
+    await _chooseSuggested(tester);
+    expect(ranker.requests.single.hasVenue, isTrue);
+    expect(find.text('Never called at a saved venue'), findsNWidgets(4));
+    expect(find.textContaining('Never called at ·'), findsNothing);
+  });
+
+  testWidgets('the phrase-rule overlap and the already-in-program reasons have '
+      'their own words', (tester) async {
+    final repos = await _seed();
+    final ranker = _SpyRanker()
+      ..answer = (request) async => SuggestionRanking([
+        for (final c in request.candidates)
+          RankedSuggestion(
+            danceId: c.id,
+            score: 0,
+            ranked: true,
+            reasons: const [
+              SuggestionReason(
+                SuggestionReasonKind.alreadyInProgram,
+                effect: alreadyInProgramEffect,
+              ),
+              SuggestionReason(
+                SuggestionReasonKind.phraseOverlap,
+                factor: SuggestionFactor.matrixVariety,
+                effect: -1,
+                count: 1,
+                moveKey: 'circle',
+                neighbor: SuggestionNeighbor.previous,
+              ),
+            ],
+          ),
+      ]);
+    await _pump(tester, repos, ranker: ranker, programContext: _context);
+    await _chooseSuggested(tester);
+    expect(
+      find.textContaining(
+        RegExp(
+          r'^Already in this program · .+ in the same phrase as the previous '
+          r'dance$',
+        ),
+      ),
+      findsNWidgets(4),
+    );
+  });
+
+  testWidgets('the add-dance picker\'s Last called sort leaves out the program '
+      'being built, as its Called filter does', (tester) async {
+    final repos = await _seed();
+    Program program(String id, String danceId, int month) => Program(
+      id: id,
+      title: id,
+      eventDate: DateTime.utc(2026, month),
+      slots: [ProgramSlot(id: '$id-s', position: 0, danceId: danceId)],
+      createdAt: DateTime.utc(2026),
+      updatedAt: DateTime.utc(2026),
+    );
+    // "Charlie" was called in March; "Bravo" only in the program being built.
+    await repos.programs.create(program('march', 'c', 3));
+    await repos.programs.create(program('p1', 'b', 5));
+    await _pump(tester, repos, ranker: _SpyRanker(), programContext: _context);
+
+    await _openSortMenu(tester);
+    await tester.tap(find.text('Last called').last);
+    await tester.pumpAndSettle();
+    expect(_titles(tester).first, 'Charlie');
+  });
+
+  testWidgets('with no ranker given, the picker ranks on its own worker '
+      'isolate', (tester) async {
+    final repos = await _seed();
+    await _pump(tester, repos, ranker: null, programContext: _context);
+    await _openSortMenu(tester);
+    await tester.tap(find.byKey(const ValueKey('sort-suggested')));
+    await tester.pump();
+    // The worker is a real isolate: give it real time.
+    for (var i = 0; i < 100 && _reasonLines.evaluate().isEmpty; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pump();
+    }
+    expect(_reasonLines, findsNWidgets(4));
+    // "Zulu" is the program's only dance: it is already in the program.
+    expect(_titles(tester).last, 'Zulu');
+    expect(find.textContaining('Already in this program'), findsOneWidget);
+    // Close the picker: the worker stops with it.
+    await tester.pumpWidget(const SizedBox());
   });
 }

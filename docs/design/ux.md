@@ -263,7 +263,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   inserting before/after a slot, never in Replace… and never in Collection).
   It ranks the current results for the next slot off the UI thread; until the
   ranking arrives the plain order shows with the header spinner and rows stay
-  tappable. It is never the opening sort, hides the direction arrow (a ranking
+  tappable; if ranking fails, the plain order stays with an inline notice
+  (info icon and text) above the list. A dance already in the program sinks
+  to the bottom with the reason "Already in this program", never removed. It is never the opening sort, hides the direction arrow (a ranking
   has no direction) and lasts until another sort or the picker closes. Each
   ranked row carries a one-line reason (the top one or two, lightbulb icon,
   text not colour) and a **Why?** icon button whose dialog (AppMotion

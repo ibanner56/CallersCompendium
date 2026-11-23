@@ -90,7 +90,7 @@ class CollectionPicker extends StatefulWidget {
     this.onPreviewOnlineEnded,
     this.onViewOnlineDetails,
     this.programContext,
-    this.rankSuggestions = rankSuggestionsOffUiThread,
+    this.rankSuggestions,
     this.clock = const SearchClock(),
   });
 
@@ -183,8 +183,10 @@ class CollectionPicker extends StatefulWidget {
   /// (N1-6), and its slots, when set, make Suggested available.
   final PickerProgramContext? programContext;
 
-  /// Ranks for Suggested. A test seam: the app ranks on a background isolate.
-  final SuggestionRanker rankSuggestions;
+  /// Ranks for Suggested. A test seam: when null, as in the app, the picker
+  /// ranks on a [SuggestionWorker] of its own, which keeps the candidates it
+  /// was sent so a re-rank after an add sends only the program and ids.
+  final SuggestionRanker? rankSuggestions;
 
   /// Where "today" comes from, for the venue window. A test seam.
   final SearchClock clock;
@@ -276,7 +278,10 @@ class _CollectionPickerState extends State<CollectionPicker> {
   Map<String, RankedSuggestion> _rankById = const {};
   List<DanceListEntry>? _rankedFor;
   bool _rankPending = false;
+  // The last ranking failed: the plain order shows, with a notice.
+  bool _rankFailed = false;
   int _rankSeq = 0;
+  SuggestionWorker? _worker;
   bool _suggestionsEnabled = false;
   SuggestionSettingsRead _suggestionSettings = (
     settings: SuggestionSettings.defaults,
@@ -369,6 +374,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     _rankById = const {};
     _rankedFor = null;
     _rankPending = false;
+    _rankFailed = false;
     _rankSeq++;
   }
 
@@ -463,6 +469,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     }
     _confirmTimers.clear();
     _ftsController.dispose();
+    _worker?.dispose();
     super.dispose();
   }
 
@@ -552,6 +559,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         performedOnly: _requirePerformedForHistory,
         requireEventDate: _requireEventDateForHistory,
         tracking: _tracking,
+        currentProgramId: widget.programContext?.programId,
       );
       if (!mounted || seq != _searchSeq) return;
       final choreographerNamesOverride = {
@@ -673,14 +681,20 @@ class _CollectionPickerState extends State<CollectionPicker> {
         );
         if (!mounted || seq != _rankSeq) return;
       }
-      final ranking = await widget.rankSuggestions(
+      final rank =
+          widget.rankSuggestions ?? (_worker ??= SuggestionWorker()).rank;
+      final ranking = await rank(
         SuggestionRequest(
           slotsBefore: slots,
           programDances: {
             for (final id in slots.map((slot) => slot.danceId).nonNulls)
-              id: ?_latestDanceFor(id, data),
+              if (_latestDanceFor(id, data) case final dance?)
+                id: SuggestionCandidate.fromDance(dance),
           },
-          candidates: [for (final entry in results) entry.dance],
+          candidates: [
+            for (final entry in results)
+              SuggestionCandidate.fromDance(entry.dance),
+          ],
           settings: settings,
           today: widget.clock.today(),
           collisionMode: _exactBeatCollision
@@ -700,12 +714,16 @@ class _CollectionPickerState extends State<CollectionPicker> {
         _rankById = {for (final r in ranking.order) r.danceId: r};
         _rankedFor = results;
         _rankPending = false;
+        _rankFailed = false;
       });
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'collection_picker._rank');
       if (!mounted || seq != _rankSeq) return;
-      // The plain order stays: ranking only ever reorders.
-      setState(() => _rankPending = false);
+      // The plain order stays, and says so: ranking only ever reorders.
+      setState(() {
+        _rankPending = false;
+        _rankFailed = true;
+      });
     }
   }
 
@@ -1466,6 +1484,41 @@ class _CollectionPickerState extends State<CollectionPicker> {
     }
     final shown = _shownResults;
     final labels = _rankById.isEmpty ? null : _reasonLabels(context);
+    final list = _buildResultRows(shown, labels);
+    if (!(_suggested && _rankFailed)) return list;
+    return SliverMainAxisGroup(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            key: const ValueKey('picker-suggested-failed'),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline, size: 18),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    l10n.suggestionRankingFailed,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        list,
+      ],
+    );
+  }
+
+  Widget _buildResultRows(
+    List<DanceListEntry> shown,
+    SuggestionReasonLabels? labels,
+  ) {
+    final l10n = AppLocalizations.of(context);
     return SliverList.builder(
       itemCount: shown.length,
       itemBuilder: (context, index) {

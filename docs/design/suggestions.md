@@ -12,8 +12,13 @@ off by default. The user-facing description is in
 - **Core** (`packages/compendium_core/lib/src/analysis/`): a pure-Dart scorer,
   `rankSuggestions(SuggestionRequest) → SuggestionRanking`, and the stored
   settings, `SuggestionSettings` with `readSuggestionSettings` and
-  `isValidStoredSuggestionSettings`. The request is plain data so the app can
-  send it to another isolate.
+  `isValidStoredSuggestionSettings`. The request carries each dance as a
+  `SuggestionCandidate`, only what the scorer reads (id, form, formation,
+  level, phrase structure, figures and a revision), not the whole `Dance`
+  with its notes, tunes and custom fields. `SuggestionCandidate.fromDance`
+  makes one. The request takes slots before and after the position, so a
+  later caller can rank for a point inside the program (#2344) or another
+  host (#2348) with the same shape.
 - **App**: the picker takes an optional `PickerProgramContext` (the
   history-filters Q3 shape: program id, linked venue id, typed venue, plus the
   venue's display name and the program's slots). Only the builder's add-dance
@@ -24,11 +29,22 @@ off by default. The user-facing description is in
   never in the Collection's sorts (`availableCollectionSorts` is unchanged),
   the picker never opens in it, and it lasts until another sort is chosen or
   the picker closes.
-- **Off the UI thread**: the picker calls `Isolate.run` with the request. Until
-  the ranking comes back the list shows in the plain order, with the header's
+- **Off the UI thread**: the picker ranks on a `SuggestionWorker`, a
+  long-lived isolate of its own, started the first time Suggested is chosen
+  and stopped when the picker closes. Sending a message copies it on the
+  calling isolate, and copying 20,000 dances' figures in one message held the
+  UI thread for about 0.5 s (measured with `Isolate.run`, the first
+  implementation). So the worker keeps every candidate it has been sent, by
+  id and revision (the dance's `updatedAt`); it is sent only candidates it
+  does not hold at that revision, 250 to a message with a turn of the event
+  loop between messages, and then the request with the candidates as ids. A
+  re-rank after a dance is added sends only the program and the ids. Until the
+  ranking comes back the list shows in the plain order, with the header's
   spinner, and every row still adds on tap. A newer search, a context change
   or leaving Suggested drops a ranking still in flight. A failed ranking is
-  logged and leaves the plain order.
+  logged and leaves the plain order, with a short notice above the list
+  ("Couldn't rank these dances, so they're in their usual order.") until the
+  next ranking succeeds or another sort is chosen.
 
 ## Factors
 
@@ -50,7 +66,9 @@ results. The UI shows no numbers.
   with the candidate appended. It therefore honors
   `matrix_exact_beat_collision` (exact beats or phrase) and the matrix's notion
   of neighbours: alternates of one slot are not neighbours of each other, and a
-  break or note between two dances separates them.
+  break or note between two dances separates them. The reason follows the
+  setting: "Same swing beats as the previous dance" under exact beats,
+  "Swing in the same phrase as the previous dance" under the phrase rule.
 - **Formation** treats Becket clockwise and counter-clockwise as one family.
 - **Difficulty curve** uses the shipped levels' positions. *Build up, then ease
   off* rises from the easiest level to the hardest at 70% of an evening of 12
@@ -66,7 +84,19 @@ results. The UI shows no numbers.
   calendar months back from today (`calendarMonthsBefore`). A dance called there
   only in undated programs is in no window and is not moved. A program with no
   venue skips the factor and every dance carries the note "skipped, because the
-  program has no venue".
+  program has no venue". The reasons name the venue as the builder shows it;
+  a linked venue with no name to show (not loaded yet, or deleted, with
+  nothing typed) reads "a saved venue", the builder's own fallback.
+
+**Already in this program.** A candidate the program already holds (in any
+slot, before or after the position) is ranked, never removed, with the reason
+"Already in this program" and a fixed effect of −20, outside the factors and
+their weights. Every factor at A lot can move a dance by at most +5.4 or −12 in
+all, so such a dance sorts below every dance not in the program. It gets no
+"Never called at …" reason: the venue history leaves the program being built
+out (N1-6), so without this it would read as never called there. *Rejected:*
+leaving it unmarked, which ranked a dance already called tonight near the top
+as never called at the venue.
 
 The shipped defaults are: Variety on the matrix **A lot**, Formation balance
 **A little**, Difficulty curve **A little** with *Build up, then ease off*, and
@@ -132,7 +162,19 @@ an object `factors` and a list `preferences` (each when present); for version
 `benchmark/search_benchmark.dart` ranks all 20,000 seeded dances (the same
 synthetic collection the search queries use) after a 10-dance program, with
 the shipped defaults (every factor on) and a venue history for every tenth
-dance. The median of 5 runs was about 0.5 s on
-the development container; the benchmark fails above 5 s. Ranking runs in
-another isolate, so this is time to a reordered list, not UI jank. A picker
-search is normally far smaller than the whole collection.
+dance, through a `SuggestionWorker` as the picker does: building the request
+(the per-candidate projection), sending it, ranking and returning. It reports
+the longest stretch the calling isolate went without a turn of its event loop
+meanwhile, which is what a dropped frame would be. Medians of 5 runs on the
+development container:
+
+| | Build the request | Longest block | Total |
+| --- | --- | --- | --- |
+| First rank (a new worker, every candidate sent) | about 5 ms | about 27 ms | about 0.7 s |
+| Re-rank after an add (candidates already held) | about 3 ms | about 7 ms | about 0.45 s |
+
+The longest block is mostly receiving the ranking back (20,000 results with
+their reasons), not sending. Sending the same request in one `Isolate.run`
+message blocked the calling isolate for about 0.57 s. The benchmark fails
+when the first rank's total passes 5 s. A picker search is normally far
+smaller than the whole collection.

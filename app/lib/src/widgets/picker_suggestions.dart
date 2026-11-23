@@ -1,5 +1,3 @@
-import 'dart:isolate';
-
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -77,16 +75,10 @@ class PickerProgramContext {
       a == null ? b == null : b != null && listEquals(a, b);
 }
 
-/// Ranks a [SuggestionRequest]: [rankSuggestionsOffUiThread] in the app, a
-/// spy in tests.
+/// Ranks a [SuggestionRequest]. The picker uses a [SuggestionWorker] of its
+/// own unless a test passes one of these.
 typedef SuggestionRanker =
     Future<SuggestionRanking> Function(SuggestionRequest request);
-
-/// Ranks on a short-lived background isolate, so ranking the whole collection
-/// never holds up a frame.
-Future<SuggestionRanking> rankSuggestionsOffUiThread(
-  SuggestionRequest request,
-) => Isolate.run(() => rankSuggestions(request));
 
 /// What a reason's words need from the picker: how to name a move, the
 /// venue, and a date.
@@ -119,7 +111,11 @@ class SuggestionReasonLabels {
       dialect: dialect,
       matrixConfig: matrixConfig,
       userFigures: userFigures,
-      venueLabel: venueLabel ?? '',
+      // A venue key with no name to show (a linked record not loaded yet, or
+      // deleted, and nothing typed) reads as the builder's own hint does.
+      venueLabel: venueLabel != null && venueLabel.trim().isNotEmpty
+          ? venueLabel
+          : l10n.programsVenueLinkedHintFallbackName,
       formatDate: (date) => formatEventDate(date, dateFormat, material, l10n),
     );
   }
@@ -158,6 +154,14 @@ class SuggestionReasonLabels {
         next
             ? l10n.suggestionReasonBeatOverlapNext(_move(reason.moveKey!))
             : l10n.suggestionReasonBeatOverlapPrevious(_move(reason.moveKey!)),
+      SuggestionReasonKind.phraseOverlap =>
+        next
+            ? l10n.suggestionReasonPhraseOverlapNext(_move(reason.moveKey!))
+            : l10n.suggestionReasonPhraseOverlapPrevious(
+                _move(reason.moveKey!),
+              ),
+      SuggestionReasonKind.alreadyInProgram =>
+        l10n.suggestionReasonAlreadyInProgram,
       SuggestionReasonKind.sameFormationAsNeighbor =>
         next
             ? l10n.suggestionReasonSameFormationNext(formation)

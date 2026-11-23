@@ -12478,6 +12478,22 @@ class AppLocalizationsJa extends AppLocalizations {
   String get suggestionReasonEnglishNotCovered => '提案はまだイングリッシュ・ダンスに対応していません';
 
   @override
+  String suggestionReasonPhraseOverlapPrevious(String move) {
+    return '$moveが前のダンスと同じフレーズ';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapNext(String move) {
+    return '$moveが次のダンスと同じフレーズ';
+  }
+
+  @override
+  String get suggestionReasonAlreadyInProgram => 'すでにこのプログラムにあります';
+
+  @override
+  String get suggestionRankingFailed => 'ダンスを並べ替えられなかったため、通常の順序で表示しています。';
+
+  @override
   String suggestionWhyTooltip(String title) {
     return '$titleがここで提案される理由';
   }

@@ -130,4 +130,25 @@ void main() {
     expect(latest.keys.toSet(), {'old', 'recent'});
     expect(latest.keys.toSet(), (await dances.search(filter)).toSet());
   });
+
+  test('the Last called sort leaves out currentProgramId, as the Called '
+      'filter does', () async {
+    await seed();
+    // "old" was last called in March outside the program being built, which
+    // has it on 28 November; "recent" was called on 3 October.
+    Future<List<String>> lastCalled({String? currentProgramId}) =>
+        dances.search(
+          const CalledFilter(called: true),
+          sort: SearchSort.lastCalled,
+          currentProgramId: currentProgramId,
+        );
+    final counting = await lastCalled();
+    expect(
+      counting.indexOf('old'),
+      lessThan(counting.indexOf('recent')),
+      reason: 'the program being built makes "old" the latest',
+    );
+    final leavingOut = await lastCalled(currentProgramId: 'being-built');
+    expect(leavingOut.indexOf('recent'), lessThan(leavingOut.indexOf('old')));
+  });
 }

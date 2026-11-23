@@ -1077,8 +1077,9 @@ out entirely. There are no numbers to tune.
 
 - **Variety on the matrix** — favors dances with moves the program hasn't
   used yet, and keeps away from a move on the same beats as the dance before
-  (or the same phrase, if
-  [Flag exact beat overlap only](#programs) is off), the same thing the
+  (or in the same phrase, if
+  [Flag exact beat overlap only](#programs) is off, and the reason says
+  which), the same thing the
   [programming matrix](./programs.md#check-your-evening-with-the-matrix) flags.
   A break between two dances means they are not next to each other.
 - **Formation balance** — keeps away from the formation of the dance before,
