@@ -135,33 +135,71 @@ class _SearchFieldWithScopeState extends State<SearchFieldWithScope> {
   }
 }
 
+/// The picker's **Suggested** entry in [CollectionSortMenuButton] (#2343).
+///
+/// Suggested is not a [CollectionSort]: it ranks against a program, so only
+/// the program builder's picker offers it, and Collection's menu
+/// ([availableCollectionSorts]) never can.
+class SuggestedSortChoice {
+  const SuggestedSortChoice({required this.selected, required this.onSelected});
+
+  /// Whether Suggested is the current order (then [CollectionSortMenuButton]'s
+  /// `sort` is only the plain order underneath it).
+  final bool selected;
+  final VoidCallback onSelected;
+}
+
 /// The sort menu: one entry per [sorts] (see [availableCollectionSorts]), with
-/// [sort] marked as current.
+/// [sort] marked as current, and, when [suggested] is given, a last
+/// **Suggested** entry.
 class CollectionSortMenuButton extends StatelessWidget {
   const CollectionSortMenuButton({
     super.key,
     required this.sort,
     required this.sorts,
     required this.onSelected,
+    this.suggested,
   });
 
   final CollectionSort sort;
   final List<CollectionSort> sorts;
   final ValueChanged<CollectionSort> onSelected;
+  final SuggestedSortChoice? suggested;
+
+  /// The menu value of the Suggested entry.
+  static const Object _suggestedValue = 'suggested';
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return PopupMenuButton<CollectionSort>(
-      tooltip: l10n.collectionSortByTooltip(collectionSortLabel(l10n, sort)),
-      initialValue: sort,
+    final suggested = this.suggested;
+    final suggestedSelected = suggested?.selected ?? false;
+    return PopupMenuButton<Object>(
+      tooltip: l10n.collectionSortByTooltip(
+        suggestedSelected
+            ? l10n.collectionSortSuggested
+            : collectionSortLabel(l10n, sort),
+      ),
+      initialValue: suggestedSelected ? _suggestedValue : sort,
       icon: const Icon(Icons.sort),
-      onSelected: onSelected,
+      onSelected: (value) {
+        if (value is CollectionSort) {
+          onSelected(value);
+        } else {
+          suggested?.onSelected();
+        }
+      },
       itemBuilder: (context) => [
         for (final option in sorts)
-          PopupMenuItem(
+          PopupMenuItem<Object>(
             value: option,
             child: Text(collectionSortLabel(l10n, option)),
+          ),
+        if (suggested != null)
+          PopupMenuItem<Object>(
+            key: const ValueKey('sort-suggested'),
+            value: _suggestedValue,
+            child: Text(l10n.collectionSortSuggested),
           ),
       ],
     );

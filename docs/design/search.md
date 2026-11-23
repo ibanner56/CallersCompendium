@@ -1078,6 +1078,10 @@ in-memory scans.
    runner's variance doesn't flake the build (generous absolute threshold,
    with the real regression signal being the reported median).
 
+The picker's **Suggested** order (#2343) is not a query: it ranks the results
+a query returned, off the UI thread. Its benchmark case and timing are in
+[suggestions.md](suggestions.md#performance).
+
 ## Open questions
 
 Flagged for coordinator/user input before 3.2b:
