@@ -208,8 +208,6 @@ FigureMatch? _amountAlternativeAnnotation(String scrubbed) {
   if (hits.length > 1) return FigureMatch.customFallback();
   final hit = hits.single;
   final first = hit.group(2)!;
-  // `1/0` is not an amount.
-  if (_zeroDenominatorRe.hasMatch(first)) return FigureMatch.customFallback();
   final before = scrubbed.substring(0, hit.start).trimRight();
   final after = scrubbed.substring(hit.end).trimLeft();
   final withAmount = [
@@ -239,8 +237,6 @@ FigureMatch? _tcbReadWithout(String text, FigureMatch? Function(String) skip) {
     recognitionNormalize: _tcbRecognitionNormalize,
   );
 }
-
-final RegExp _zeroDenominatorRe = RegExp(r'/0+$');
 
 /// A `(…)` whose body opens with `<amount> or <amount>`, then either ends or
 /// continues after a `,`/`;`. Group 1 is the body, group 2 the first amount.
