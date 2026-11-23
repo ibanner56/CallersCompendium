@@ -473,6 +473,12 @@ authority. Implementation notes:
   neither shape is a wave.
 - `RoryOMore` refuses on geometry it cannot express, using
   `unresolvableDancerSet` *(user-ruled: no new error kind)*.
+- Danced from the side lines with each pair facing across its band,
+  `RoryOMore` first forms the short wave its slide implies (slide right from
+  the right-hand wave, slide left from the left-hand one) through
+  `FormShortWaves`, then slides *(user-ruled 2026-11-23)*. Many records start
+  in or form that wave and the import does not carry it. A couple standing
+  out neither steps in nor slides (§10.3.2).
 
 > **Trap.** `waveOffsetColumn` returns **0 displacement for across-facing** and
 > silently holds off-grid values. Both are deliberate no-ops in context and both
@@ -781,7 +787,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,320 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,325 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

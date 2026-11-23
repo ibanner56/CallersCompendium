@@ -865,6 +865,9 @@ final class RoryOMore extends Operation {
     for (final id in formation.dancers.keys) {
       if (!whoIncludes(formation, id, who)) continue;
       final state = formation.stateOf(id);
+      // A couple standing out at an end is outside every hands four, and no
+      // figure's transform touches it (`docs/fundamentals.md` §10.3.2).
+      if (state.waitingOut) continue;
       final target = _landing(formation, state);
       if (target == null) {
         return Err<Map<DancerId, Position>, OpError>(
@@ -908,20 +911,68 @@ final class RoryOMore extends Operation {
     return Ok<Map<DancerId, Position>, OpError>(landings);
   }
 
-  @override
-  OpError? checkPreconditions(Formation formation) =>
-      _slides(formation).errorOrNull;
+  /// [formation] with the wave the slide implies already formed, when the
+  /// dancers are not standing in one.
+  ///
+  /// Many Caller's Box records start in (or form) a wave the import does not
+  /// carry, so the set reaches the slide on its side lines. A dancer can slide
+  /// only toward the hand they hold, so the slide names the wave: slide right
+  /// is danced from the right-hand wave (ends giving right, the centre pair
+  /// left), slide left from the left-hand one. *(User-ruled 2026-11-23.)*
+  ///
+  /// Reached only when every dancer of an active hands four is on a side line
+  /// (`c0` or `c4`, so nobody stands in a wave offset) and each pair already
+  /// looks at the other across their band, the top row down and the bottom row
+  /// up: the facing `form_short_waves` needs, so nobody is turned. A couple
+  /// standing out is left alone (§10.3.2). Every hands-four dancer steps into
+  /// the wave whatever [who] names, because the whole hands four stands in it;
+  /// [who] still chooses who slides. Who ends in the centre follows from the
+  /// hand, as it does for `form_short_waves` (§8.5.1), so the centre and side
+  /// pairs are not checked against a role here.
+  Formation _waved(Formation formation) {
+    final bands = handsFourBands(formation);
+    if (bands.isEmpty) return formation;
+    for (final band in bands) {
+      for (final (row, facing) in [
+        (band.topRow, Facing.down),
+        (band.bottomRow, Facing.up),
+      ]) {
+        for (final id in formation.dancersInRow(row)) {
+          final state = formation.stateOf(id);
+          if (state.col != 0 && state.col != kColumnCount - 1) {
+            return formation;
+          }
+          if (state.facing != facing) return formation;
+        }
+      }
+    }
+    final formed = FormShortWaves(
+      center: WhoSet.everyone,
+      centerHand: slide == Hand.right ? Hand.left : Hand.right,
+      sides: WhoSet.everyone,
+    ).apply(formation);
+    return switch (formed) {
+      Ok(:final value) => value,
+      // No complete hands four to build in: left as it stands, so the slide
+      // reports why it cannot move rather than this step hiding it.
+      Err() => formation,
+    };
+  }
 
   @override
-  Result<Formation, OpError> perform(Formation formation) =>
-      _slides(formation).map(
-        (landings) => formation.withUpdates({
-          for (final entry in landings.entries)
-            entry.key: formation
-                .stateOf(entry.key)
-                .copyWith(position: entry.value),
-        }),
-      );
+  OpError? checkPreconditions(Formation formation) =>
+      _slides(_waved(formation)).errorOrNull;
+
+  @override
+  Result<Formation, OpError> perform(Formation formation) {
+    final waved = _waved(formation);
+    return _slides(waved).map(
+      (landings) => waved.withUpdates({
+        for (final entry in landings.entries)
+          entry.key: waved.stateOf(entry.key).copyWith(position: entry.value),
+      }),
+    );
+  }
 
   @override
   bool operator ==(Object other) =>

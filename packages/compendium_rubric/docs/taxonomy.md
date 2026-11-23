@@ -2740,6 +2740,18 @@ To be defined later with worked examples.
   walks a dancer off the end of the matrix, so the grid boundary refuses it and no separate
   reading of the wave's handedness is needed. From the canonical wave a left slide fails; from the
   slid position a right slide fails and a left slide returns everyone home.
+- **from the side lines:** when every dancer of an active hands four is in `c0` or `c4` (nobody
+  stands in a wave) and each pair already looks at the other across its band (top row down,
+  bottom row up — the facing `form_short_waves` needs, so nobody is turned), the figure first
+  forms the short wave its slide implies: `slide: right` from the right-hand wave (ends giving
+  right, the centre pair left), `slide: left` from the left-hand one. Who ends in the centre
+  follows from the hand and is not checked against a role. The whole hands four steps into the
+  wave whatever `who` names; `who` still chooses who slides *(agent's call)*. Then it slides as
+  below. *(User-ruled 2026-11-23: many Caller's Box records start in or form that wave and the
+  import does not carry it; a dancer can slide only toward the hand they hold, so the slide names
+  the wave.)* A set already in a wave is slid as it stands.
+- **standing out:** a couple standing out at an end neither steps into the wave nor slides
+  (`fundamentals.md` §10.3.2).
 - **preconditions** (all `unresolvableDancerSet`):
   - Any slider would land **off the grid** → refused. This is the handedness rule above, and it is
     a refusal rather than a silent hold on purpose: a figure that quietly moved nobody is the one
@@ -2751,7 +2763,7 @@ To be defined later with worked examples.
   so normalizing the offsets away before it ran would delete its entire subject. It is on that
   list alongside `balance`, `stand_still` and a quarter-amount `allemande`.
 - **effect:** the landings computed above, applied together.
-- **interaction scope:** the whole set (waves span bands).
+- **interaction scope:** the whole set except a couple standing out (waves span bands).
 - **h4 contribution** (D7): 0.
 - **progression-eligible:** no.
 - **sources:** user worked examples — all four short-wave cases (right and left from both the

@@ -345,7 +345,14 @@ committed Caller's Box corpus is deliberately one dance.
 - `turn_as_couples` has one attempted example, so its nominal 100% rate is not
   meaningful.
 - `rory_o_more` is now recognized in 74 attempted dances. Only four compile;
-  its 55 direct refusals are a newly visible implementation hotspot.
+  its 55 direct refusals are a newly visible implementation hotspot. (Since
+  2026-11-23 a Rory O'More danced from the side lines first forms the wave its
+  slide implies, *user-ruled*. Measured on the Caller's Box mirror against
+  `rubric` at `29402576`, together with the figure no longer sliding a couple
+  standing out (§10.3.2): 45 dances that refused now compile (14 in the core
+  set), 2 that refused now mismatch (*Mistletoe*, 15972, and *Mongoose
+  Stomp*, 18142, both with the progression assumed at a later figure), and
+  none is lost. The table above is not re-counted.)
 
 ## Validation and refresh
 

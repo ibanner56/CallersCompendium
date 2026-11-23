@@ -133,11 +133,81 @@ void main() {
   });
 
   group('rory_o_more needs a wave', () {
-    test('a settled set refuses both slides', () {
-      // Everyone faces along the hall from the side lines, so the whole first
-      // line would step off the west edge and the whole other off the east.
-      expect(err(rightSlide, start()).kind, ErrorKind.unresolvableDancerSet);
-      expect(err(leftSlide, start()).kind, ErrorKind.unresolvableDancerSet);
+    // User-ruled 2026-11-23: danced from the side lines, facing along the hall,
+    // the slide names the wave it is danced from, which is formed first.
+    test('from the sides, a slide right forms the right-hand wave first', () {
+      expect(
+        ok(rightSlide, start()).toRolesNotation(),
+        ok(rightSlide, shortWave()).toRolesNotation(),
+      );
+    });
+
+    test('and a slide left forms the left-hand wave first', () {
+      final leftWave = ok(
+        const FormShortWaves(center: WhoSet.role1s, centerHand: Hand.right),
+        start(),
+      );
+      expect(
+        ok(leftSlide, start()).toRolesNotation(),
+        ok(leftSlide, leftWave).toRolesNotation(),
+      );
+      // The two slides land in different places, so neither test above can
+      // pass by both readings forming the same wave.
+      expect(
+        ok(leftSlide, start()).toRolesNotation(),
+        isNot(ok(rightSlide, start()).toRolesNotation()),
+      );
+    });
+
+    test('a set already in a wave is slid as it stands, not re-formed', () {
+      // The canonical right-hand wave cannot slide left; re-forming the
+      // left-hand wave first would hide that.
+      expect(err(leftSlide, shortWave()).kind, ErrorKind.unresolvableDancerSet);
+    });
+
+    test('nobody is turned to make the wave', () {
+      // Everyone faces down: the bottom row would have to about-face to join
+      // the wave, which no record said, so the slide refuses as before.
+      final down = start().withUpdates({
+        for (final entry in start().dancers.entries)
+          entry.key: entry.value.copyWith(facing: Facing.down),
+      });
+      expect(err(rightSlide, down).kind, ErrorKind.unresolvableDancerSet);
+    });
+
+    test('a couple standing out at an end does not slide or step in', () {
+      // §10.3.2: outside every hands four, untouched by any figure. Rows 0
+      // and 3 stand out facing in; the one hands four between them faces
+      // across its band, ready for the wave.
+      final two = start(handsFour: 2);
+      final set = two.withUpdates({
+        for (final entry in two.dancers.entries)
+          entry.key: entry.value.copyWith(
+            waitingOut: entry.value.row == 0 || entry.value.row == 3,
+            facing: entry.value.row <= 1 ? Facing.down : Facing.up,
+          ),
+      });
+      expect(handsFourBands(set).map((b) => (b.topRow, b.bottomRow)), [(1, 2)]);
+      final slid = ok(rightSlide, set);
+      for (final id in set.dancers.keys) {
+        final before = set.stateOf(id);
+        if (!before.waitingOut) continue;
+        expect(slid.stateOf(id), before, reason: '$id is standing out');
+      }
+      // The hands four itself did dance the figure.
+      expect(slid.dancersInRow(1).map((id) => slid.stateOf(id).position.col), [
+        0,
+        3,
+      ]);
+    });
+
+    test('dancers on the sides facing across are not given a short wave', () {
+      // Facing across, their sides are ranks: the long-wave slide, along the
+      // set, with nobody leaving the side lines.
+      final slid = ok(rightSlide, longWaves());
+      for (final state in slid.dancers.values) {
+        expect(state.col, anyOf(0, kColumnCount - 1));
+      }
     });
 
     test('a dancer with no settled facing has no side to slide toward', () {
