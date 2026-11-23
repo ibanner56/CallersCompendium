@@ -338,7 +338,7 @@ void main() {
     });
 
     test('twos at the ends of a line of four do not swing in that row', () {
-      final line = di(const ['L1-A R2-B . L2-B R1-A', '. . . . .']);
+      final line = di(const ['R2-B L1-A . R1-A L2-B', '. . . . .']);
       final after = applyOk(const Swing(who: WhoSet.twos), line);
       for (final id in line.dancers.keys) {
         expect(after.stateOf(id), line.stateOf(id), reason: '$id');
