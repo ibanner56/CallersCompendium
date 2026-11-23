@@ -139,6 +139,79 @@ String _figureMatchWithoutRoleTokens(String table, {required bool prefix}) =>
 /// term configured in any saved dialect — not just the active one — exactly as
 /// the built-in legacy synonyms already do. The active dialect (and legacy
 /// synonyms) always win where they overlap the enrichment.
+/// The conditions, after `p.deleted_at IS NULL`, that select the slots a
+/// [CalledFilter] counts, over the `program_slots` alias `ps` joined to the
+/// `programs` alias `p`: the alternate rule, [CalledFilter.performedOnly],
+/// [CalledFilter.requireEventDate], the caller, then the venue, recency and
+/// current-program scopes. Each starts with ` AND `. Appends their binds to
+/// [binds] in the same order. [CalledFilter.called] is the caller's to apply.
+///
+/// [FilterCompiler] compiles a [CalledFilter] with it, and suggestions read
+/// each dance's latest call at a venue with it
+/// (`ProgramRepository.latestCallByDance`, #2343), so "called here" means one
+/// thing in both.
+String calledSlotConditionsSql(CalledFilter filter, List<Object?> binds) {
+  final CalledFilter(
+    :callerFilter,
+    :performedOnly,
+    :requireEventDate,
+    :tracking,
+    :venue,
+    :since,
+    :currentProgramId,
+  ) = filter;
+  final caller = normalizeCallingHistoryCaller(callerFilter);
+  if (caller != null) binds.add(caller);
+  final performed = performedOnly ? ' AND ps.performed_at IS NOT NULL' : '';
+  final eventDate = requireEventDate
+      ? ' ${callingHistoryEventDateClause(requireEventDate: true, programTable: 'p').trimRight()}'
+      : '';
+  final callerClause = caller == null
+      ? ''
+      : ' ${callingHistoryCallerClause(caller, callerColumn: 'p.caller').trimRight()}';
+  // The scopes narrow the slots the rules above select, so a negated
+  // scope is "no counted slot at V", never "a slot not at V". They
+  // follow the caller clause in the SQL, so their binds follow its bind.
+  final scopes = StringBuffer();
+  if (venue != null) {
+    if (venue.venueId case final venueId?) {
+      scopes.write(' AND p.venue_id = ?');
+      binds.add(venueId);
+    } else {
+      scopes.write(
+        ' AND p.venue_id IS NULL'
+        ' AND $callingHistoryVenueKeySqlFunction(p.venue) = ?',
+      );
+      binds.add(venue.typedVenue);
+    }
+  }
+  if (since != null) {
+    scopes.write(
+      ' AND ${callingHistoryRecencyDateSql(slotTable: 'ps', programTable: 'p', requireEventDate: tracking.recencyRequireEventDate, requirePerformed: tracking.recencyRequirePerformed)} >= ?',
+    );
+    binds.add(_calledSince(since));
+  }
+  if (currentProgramId != null) {
+    scopes.write(' AND p.id <> ?');
+    binds.add(currentProgramId);
+  }
+  return ' ${callingHistoryAlternateClause(slotTable: 'ps').trimRight()}'
+      '$performed$eventDate$callerClause'
+      '$scopes';
+}
+
+DateTime _calledSince(DateTime since) {
+  if (!since.isUtc ||
+      since != DateTime.utc(since.year, since.month, since.day)) {
+    throw ArgumentError.value(
+      since,
+      'CalledFilter.since',
+      'must be a UTC calendar date, DateTime.utc(y, m, d)',
+    );
+  }
+  return since;
+}
+
 class FilterCompiler {
   FilterCompiler([
     Dialect? dialect,
@@ -402,60 +475,12 @@ class FilterCompiler {
       case MixerFilter(:final mixer):
         binds.add(mixer ? 1 : 0);
         return 'mixer = ?';
-      case CalledFilter(
-        :final called,
-        :final callerFilter,
-        :final performedOnly,
-        :final requireEventDate,
-        :final tracking,
-        :final venue,
-        :final since,
-        :final currentProgramId,
-      ):
-        final caller = normalizeCallingHistoryCaller(callerFilter);
-        if (caller != null) binds.add(caller);
-        final performed = performedOnly
-            ? ' AND ps.performed_at IS NOT NULL'
-            : '';
-        final eventDate = requireEventDate
-            ? ' ${callingHistoryEventDateClause(requireEventDate: true, programTable: 'p').trimRight()}'
-            : '';
-        final callerClause = caller == null
-            ? ''
-            : ' ${callingHistoryCallerClause(caller, callerColumn: 'p.caller').trimRight()}';
-        // The scopes narrow the slots the rules above select, so a negated
-        // scope is "no counted slot at V", never "a slot not at V". They
-        // follow the caller clause in the SQL, so their binds follow its bind.
-        final scopes = StringBuffer();
-        if (venue != null) {
-          if (venue.venueId case final venueId?) {
-            scopes.write(' AND p.venue_id = ?');
-            binds.add(venueId);
-          } else {
-            scopes.write(
-              ' AND p.venue_id IS NULL'
-              ' AND $callingHistoryVenueKeySqlFunction(p.venue) = ?',
-            );
-            binds.add(venue.typedVenue);
-          }
-        }
-        if (since != null) {
-          scopes.write(
-            ' AND ${callingHistoryRecencyDateSql(slotTable: 'ps', programTable: 'p', requireEventDate: tracking.recencyRequireEventDate, requirePerformed: tracking.recencyRequirePerformed)} >= ?',
-          );
-          binds.add(_calledSince(since));
-        }
-        if (currentProgramId != null) {
-          scopes.write(' AND p.id <> ?');
-          binds.add(currentProgramId);
-        }
+      case CalledFilter(:final called):
         final exists =
             'EXISTS (SELECT 1 FROM program_slots ps '
             'JOIN programs p ON p.id = ps.program_id '
             'WHERE ps.dance_id = dances.id AND p.deleted_at IS NULL'
-            ' ${callingHistoryAlternateClause(slotTable: 'ps').trimRight()}'
-            '$performed$eventDate$callerClause'
-            '$scopes)';
+            '${calledSlotConditionsSql(filter, binds)})';
         return called ? exists : 'NOT ($exists)';
       case RatingFilter(:final minimum):
         // Defensive: construction already asserts this, but never trust the
@@ -924,17 +949,6 @@ class FilterCompiler {
   /// exactly. A local or mid-day value would shift the boundary by the
   /// device's offset, so it is rejected in every build, as an out-of-range
   /// [RatingFilter] is.
-  DateTime _calledSince(DateTime since) {
-    if (!since.isUtc ||
-        since != DateTime.utc(since.year, since.month, since.day)) {
-      throw ArgumentError.value(
-        since,
-        'CalledFilter.since',
-        'must be a UTC calendar date, DateTime.utc(y, m, d)',
-      );
-    }
-    return since;
-  }
 
   /// Compiles a [LevelFilter] against the configured difficulty vocabulary.
   ///
