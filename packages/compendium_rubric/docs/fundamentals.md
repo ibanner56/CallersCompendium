@@ -393,7 +393,10 @@ Two consequences worth spelling out, because both are load-bearing:
 **A line of four is not a wave.** Both shapes occupy `{c0, c1, c3, c4}`, so they have to be
 told apart, and the discriminator is the row count: a line of four puts all four dancers of a
 band in **one** row and leaves the other empty (§8.1), while a wave leaves **two per row**. A
-band holding a line is skipped untouched. `c2` is never used by a line, so a centre dancer is
+band holding a line is skipped untouched, and so is any single row holding four dancers even
+when the band's other row is occupied: a wave never puts more than two in a row (three for a
+centre wave), and a line formed beside a still-occupied row, as at an end of the set in Garden
+Gate (Caller's Box #18216), must not be collapsed. `c2` is never used by a line, so a centre dancer is
 unambiguously a long wave — and they return to **the side column their rank has left free**,
 which is well defined precisely because a centre wave is role-scoped (§8.5.5).
 
