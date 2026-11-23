@@ -1856,6 +1856,21 @@ FigureMatch? _promenade(String text) {
   final params = <String, Object?>{'who': who ?? 'everyone'};
   if (singleFile) {
     params['singleFile'] = true;
+    // The app's own display states the rotation before the direction,
+    // `single file promenade counterclockwise along` (#2121 read-back, #2331
+    // follow-up). Read it only when a direction follows: a bare `single file
+    // promenade clockwise` is TCB's single-file circle, and stays that.
+    final spinSave = s.pos;
+    final spin = switch (s.peek()) {
+      final w? when w == 'clockwise' || w == 'counterclockwise' => w,
+      _ => null,
+    };
+    if (spin != null) s.take();
+    if (spin != null && _direction(s.peek()) != null) {
+      params['direction'] = spin;
+    } else {
+      s.reset(spinSave);
+    }
     // Consume a bare direction token (`along` or `across`) immediately after
     // `promenade` so `where` is captured from the source text.
     final dir = _direction(s.peek());
