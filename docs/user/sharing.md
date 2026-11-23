@@ -188,6 +188,15 @@ list (text)**, **Copy set list**, or **Export / print PDF**, the app asks
   walkthrough, a hook or a published source and you've selected that field; a dance with nothing to show
   beneath its title gets no card.
 
+A program's [times](./programs.md#times) appear in the set list too: the
+dance's start and end beside the date, such as "7:30 PM–10:30 PM", with
+"(next day)" when it ends after midnight, and the **Beginner lesson** on its
+own line. **Arrive by** never appears in the set list or the PDF: it is your
+own logistics. When the program has a start or end time, the PDF's venue
+details leave out the venue's usual **Time**. A program file you share (**Share program and dances**, or
+**Export as JSON file**) keeps all four times, so a guest caller you send it
+to knows when to arrive.
+
 If none of the program's dances have anything to put on a card — no structured
 figures, and no selected calling notes, walkthrough, hook or published source —
 the question is skipped and the export proceeds as set-list-only automatically.
@@ -423,10 +432,16 @@ for a JSON file. Open the file with your calendar app, or import it there.
 Each program becomes one calendar event:
 
 - **Title:** the program's title.
-- **When:** the program's date, as an all-day event.
+- **When:** the program's date, from its [start time](./programs.md#times) to
+  its end time when you've set them, or as an all-day event when it has no
+  start time. The times are local to the hall, so your calendar shows them at
+  that clock time wherever you are. An end earlier than the start ends the next
+  day; with a start and no end, the event has no end time. An end with no
+  start makes an all-day event, and its notes give the end time.
 - **Where:** the venue's name — a linked venue's name, or the venue you typed.
-- **Notes:** the program's status (Draft, Finalized or Performed), and a linked
-  venue's time, if it has one.
+- **Notes:** the program's status (Draft, Finalized or Performed); the
+  beginner lesson and **Arrive by** times, if you've set them; and a linked
+  venue's time, if it has one and the program has no start time.
 
 **The venue's street address is yours to include.** If a chosen program is
 linked to a venue with an address, the app asks first:

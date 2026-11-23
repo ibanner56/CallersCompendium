@@ -5,6 +5,7 @@ import 'package:compendium_app/src/export/share_sanitization.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../support/l10n_harness.dart';
@@ -21,6 +22,10 @@ Program _program({
   DateTime? archivedAt,
   DateTime? deletedAt,
   DateTime? updatedAt,
+  int? start,
+  int? end,
+  int? lesson,
+  int? arrival,
 }) => Program(
   id: id,
   title: title,
@@ -36,6 +41,10 @@ Program _program({
   deletedAt: deletedAt,
   createdAt: _now,
   updatedAt: updatedAt ?? _now,
+  startMinute: start,
+  endMinute: end,
+  lessonMinute: lesson,
+  arrivalMinute: arrival,
 );
 
 /// A venue with every address part and two contacts, each value distinctive
@@ -102,6 +111,9 @@ String? _location(String ics) {
 
 void main() {
   final l10n = lookupAppLocalizations(const Locale('en'));
+  // The times are formatted with intl's DateFormat, whose symbols the app
+  // loads through Flutter's localizations; a plain test loads them here.
+  setUpAll(() => initializeDateFormatting('en'));
 
   String build(
     List<Program> programs, {
@@ -234,8 +246,49 @@ void main() {
     expect('BEGIN:VEVENT'.allMatches(ics), hasLength(2));
     expect(ics, contains('UID:a@callers-compendium'));
     expect(ics, contains('UID:b@callers-compendium'));
-    // Before #2350, a program has no time of day: all-day events.
+    // A program with no start time is an all-day event.
     expect(ics, contains('DTSTART;VALUE=DATE:20261205'));
+  });
+
+  group('the program\'s times (#2350)', () {
+    test('a start and end make a timed event in floating local time', () {
+      final ics = _unfolded(build([_program(start: 1170, end: 1350)]));
+      expect(ics, contains('DTSTART:20261205T193000\r\n'));
+      expect(ics, contains('DTEND:20261205T223000\r\n'));
+      expect(ics, isNot(contains('VALUE=DATE')));
+    });
+
+    test('an end before the start ends the next day', () {
+      final ics = _unfolded(build([_program(start: 1260, end: 60)]));
+      expect(ics, contains('DTSTART:20261205T210000\r\n'));
+      expect(ics, contains('DTEND:20261206T010000\r\n'));
+    });
+
+    test('a start alone has no DTEND', () {
+      final ics = _unfolded(build([_program(start: 1170)]));
+      expect(ics, contains('DTSTART:20261205T193000\r\n'));
+      expect(ics, isNot(contains('DTEND')));
+    });
+
+    test('an end alone stays all-day, with the end in DESCRIPTION', () {
+      final ics = _unfolded(build([_program(end: 1350)]));
+      expect(ics, contains('DTSTART;VALUE=DATE:20261205'));
+      expect(
+        _plain(ics).replaceAll('\u202f', ' '),
+        contains('Dance until 10:30 PM'),
+      );
+    });
+
+    test('the lesson and Arrive by go in DESCRIPTION, and a start replaces '
+        'the venue\'s usual time there', () {
+      final ics = _plain(
+        build([
+          _program(venueId: 'v1', start: 1170, lesson: 1140, arrival: 1110),
+        ]),
+      ).replaceAll('\u202f', ' ');
+      expect(ics, contains(r'Lesson 7:00 PM · Arrive by 6:30 PM'));
+      expect(ics, isNot(contains('8–11 pm')));
+    });
   });
 
   test('re-exporting an edited program keeps its UID and raises SEQUENCE', () {

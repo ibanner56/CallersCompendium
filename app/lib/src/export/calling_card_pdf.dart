@@ -605,17 +605,23 @@ class _CardBuilder {
     // if any count is no whole number of half bars, the whole card stays in
     // beats.
     final dance = entry.dance;
-    final perBar = danceBeatsPerBar(
+    final barTiming = barTimingFor(
       dance.form,
       dance.phraseStructure,
       meter: dance.meter,
     );
-    final beatsPerBar =
-        perBar != null &&
-            content.figures.every(
-              (f) => f.beats <= 0 || barsText(f.beats, perBar) != null,
+    // Each count reads from where its figure starts, so where the phrases
+    // differ in beats per bar it is in the bars of its own phrase.
+    final timing =
+        barTiming != null &&
+            sections.every(
+              (section) => section.every(
+                (sf) =>
+                    sf.figure.beats <= 0 ||
+                    barTiming.barsTextAt(sf.startBeat, sf.figure.beats) != null,
+              ),
             )
-        ? perBar
+        ? barTiming
         : null;
     final rows = <pw.Widget>[];
     for (var i = 0; i < sections.length; i++) {
@@ -652,7 +658,7 @@ class _CardBuilder {
                 crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                 children: [
                   for (final sf in section)
-                    _figureLine(b, sf.figure, beatsPerBar),
+                    _figureLine(b, sf.figure, timing, sf.startBeat),
                 ],
               ),
             ),
@@ -666,18 +672,21 @@ class _CardBuilder {
     );
   }
 
-  /// A figure's count as the card's count column shows it: its bars where
-  /// the card is counted in bars of [beatsPerBar] beats, else its beats, and
-  /// nothing for a figure with no count.
-  static String _countText(Figure figure, int? beatsPerBar) {
+  /// A figure's count as the card's count column shows it: its bars, counted
+  /// from where it starts ([startBeat]), where the card is counted in bars by
+  /// [timing], else its beats, and nothing for a figure with no count.
+  static String _countText(Figure figure, BarTiming? timing, int startBeat) {
     if (figure.beats <= 0) return '';
-    final bars = beatsPerBar == null
-        ? null
-        : barsText(figure.beats, beatsPerBar);
-    return bars ?? '${figure.beats}';
+    final bars = timing?.barsTextAt(startBeat, figure.beats);
+    return bars?.text ?? '${figure.beats}';
   }
 
-  pw.Widget _figureLine(CallingCardBlock b, Figure figure, int? beatsPerBar) {
+  pw.Widget _figureLine(
+    CallingCardBlock b,
+    Figure figure,
+    BarTiming? timing,
+    int startBeat,
+  ) {
     final s = b.size;
     final marker = figure.progression ? ' ¶' : '';
     final note = figure.note?.trim() ?? '';
@@ -690,7 +699,7 @@ class _CardBuilder {
             pw.SizedBox(
               width: s * 1.6,
               child: pw.Text(
-                _countText(figure, beatsPerBar),
+                _countText(figure, timing, startBeat),
                 textAlign: pw.TextAlign.right,
                 style: pw.TextStyle(
                   fontSize: s * 0.8,

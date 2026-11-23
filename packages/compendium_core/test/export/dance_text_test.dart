@@ -523,6 +523,40 @@ void main() {
       expect(text, contains('(8 beats)'));
     });
 
+    test('a tune whose phrases differ reads each figure in the bars of its '
+        'own phrase', () {
+      // A:2*4*3 + B:1*8*2: figures of 18 beats (6 bars of 3), then 10 across
+      // the change (3 + 3 + 2 + 2: 4 bars), then 4 beats from 28 (2 bars).
+      final text = render(
+        ecd(phrase: 'A:2*4*3 + B:1*8*2').copyWith(
+          figures: [
+            Figure(move: 'ecd_siding', params: const {'beats': 18}),
+            Figure(move: 'ecd_circle', params: const {'beats': 10}),
+            Figure(move: 'ecd_turn_single', params: const {'beats': 4}),
+          ],
+        ),
+      );
+      expect(text, contains('(6 bars)'));
+      expect(text, contains('(4 bars)'));
+      expect(text, contains('(2 bars)'));
+      expect(text, isNot(contains('beats')));
+    });
+
+    test('a Meter that states one meter does not override phrases that '
+        'differ', () {
+      final text = render(
+        ecd(meter: '3/4', phrase: 'A:2*4*3 + B:1*8*2').copyWith(
+          figures: [
+            Figure(move: 'ecd_siding', params: const {'beats': 12}),
+            Figure(move: 'ecd_circle', params: const {'beats': 12}),
+            Figure(move: 'ecd_turn_single', params: const {'beats': 8}),
+          ],
+        ),
+      );
+      // 8 beats from 24 are 4 bars of 2, not 2⅔ bars of 3.
+      expect('(4 bars)'.allMatches(text).length, 3);
+    });
+
     test('a contra dance stays in beats', () {
       final text = render(
         dance(
@@ -542,13 +576,27 @@ void main() {
   group('DanceExportLabels.count', () {
     const labels = DanceExportLabels();
     test('bars with a bar, beats without one', () {
-      expect(labels.count(8, 2), '4 bars');
-      expect(labels.count(0, 2), '0 bars');
-      expect(labels.count(2, 2), '1 bar');
-      expect(labels.count(1, 2), '½ bar');
-      expect(labels.count(3, 2), '1½ bars');
-      expect(labels.count(8, null), '8 beats');
-      expect(labels.count(4, 3), '4 beats');
+      const two = BarTiming.fixed(2);
+      expect(labels.count(8, two, 0), '4 bars');
+      expect(labels.count(0, two, 0), '0 bars');
+      expect(labels.count(2, two, 0), '1 bar');
+      expect(labels.count(1, two, 0), '½ bar');
+      expect(labels.count(3, two, 0), '1½ bars');
+      expect(labels.count(8, null, 0), '8 beats');
+      expect(labels.count(4, const BarTiming.fixed(3), 0), '4 beats');
+    });
+
+    test('counts from where the figure starts where the phrases differ', () {
+      final mixed = BarTiming.byPhrase(
+        PhraseStructure.parse('A:2*4*3 + B:1*8*2'),
+      );
+      expect(labels.count(12, mixed, 0), '4 bars');
+      expect(labels.count(8, mixed, 24), '4 bars');
+      // Bars at 18 (3), 21 (3), 24 (2), 26 (2).
+      expect(labels.count(10, mixed, 18), '4 bars');
+      expect(labels.count(9, mixed, 18), '3½ bars');
+      expect(labels.count(1, mixed, 24), '½ bar');
+      expect(labels.count(4, mixed, 0), '4 beats');
     });
   });
 }

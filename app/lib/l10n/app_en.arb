@@ -4030,9 +4030,9 @@
   "@settingsSharingCallerBandTitle": {
     "description": "Title of the toggle that includes the caller and band when a set list is shared."
   },
-  "settingsSharingDateVenueTitle": "Include date and venue when sharing a set list",
+  "settingsSharingDateVenueTitle": "Include date, times and venue when sharing a set list",
   "@settingsSharingDateVenueTitle": {
-    "description": "Title of the toggle that includes the date and venue when a set list is shared."
+    "description": "Title of the toggle that includes the date, the program's start, end and lesson times, and the venue when a set list is shared."
   },
   "settingsSharingSubtitle": "Applies to sharing or copying the set list. Sharing the whole program as a .ccshare or JSON file always includes everything.",
   "@settingsSharingSubtitle": {
@@ -7529,6 +7529,101 @@
   "@programsClearEventDate": {
     "description": "Tooltip for the button that clears the program's event date."
   },
+  "programsStartTimeLabel": "Start time",
+  "@programsStartTimeLabel": {
+    "description": "Field label in the program editor for when the dance starts (a time of day). Optional."
+  },
+  "programsEndTimeLabel": "End time",
+  "@programsEndTimeLabel": {
+    "description": "Field label in the program editor for when the dance ends (a time of day). Optional; earlier than the start time means the next day."
+  },
+  "programsLessonTimeLabel": "Beginner lesson",
+  "@programsLessonTimeLabel": {
+    "description": "Field label in the program editor for when the beginner lesson before the dance starts (a time of day). Optional."
+  },
+  "programsArrivalTimeLabel": "Arrive by",
+  "@programsArrivalTimeLabel": {
+    "description": "Field label in the program editor for when the caller needs to be at the hall (a time of day). Optional; the caller's own logistics, not printed on the shared set list."
+  },
+  "programsNoTimeSet": "Not set",
+  "@programsNoTimeSet": {
+    "description": "Shown in a program time field (start, end, lesson or arrive by) when no time has been chosen."
+  },
+  "programsSetTime": "Set",
+  "@programsSetTime": {
+    "description": "Button that opens the time picker for a program time field that has no time yet. Short: it sits beside the time, with up to two time fields to a row."
+  },
+  "programsChangeTime": "Change",
+  "@programsChangeTime": {
+    "description": "Button that opens the time picker to change a program time that is already set."
+  },
+  "programsSetTimeFor": "Set {field}",
+  "@programsSetTimeFor": {
+    "description": "Screen-reader label for the button that sets a program time, naming the field, e.g. 'Set Start time'.",
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "programsChangeTimeFor": "Change {field}",
+  "@programsChangeTimeFor": {
+    "description": "Screen-reader label for the button that changes a program time, naming the field, e.g. 'Change Start time'.",
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "programsClearTime": "Clear {field}",
+  "@programsClearTime": {
+    "description": "Tooltip for the button that clears a program time, naming the field, e.g. 'Clear Start time'.",
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "programsTimeNextDay": "Ends the next day",
+  "@programsTimeNextDay": {
+    "description": "Helper text under the program's end time when it is earlier than the start time, so the dance ends after midnight."
+  },
+  "programsVenueUsualTimeHint": "Venue's usual time: {time}",
+  "@programsVenueUsualTimeHint": {
+    "description": "Hint under the program's time fields showing the linked venue's usual schedule, as the caller typed it on the venue (free text, e.g. '7:30-10:30pm'). It is not read into the fields.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "programsSummaryLessonTime": "Lesson {time}",
+  "@programsSummaryLessonTime": {
+    "description": "Part of the times line on the program summary: when the beginner lesson starts, e.g. 'Lesson 7:00 PM'.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "programsSummaryDanceTime": "Dance {times}",
+  "@programsSummaryDanceTime": {
+    "description": "Part of the times line on the program summary: when the dance starts and ends, e.g. 'Dance 7:30 PM-10:30 PM'. {times} is already formatted and may end with '(next day)'.",
+    "placeholders": {
+      "times": {
+        "type": "String"
+      }
+    }
+  },
+  "programsSummaryArriveBy": "Arrive by {time}",
+  "@programsSummaryArriveBy": {
+    "description": "Part of the times line on the program summary: when the caller needs to be at the hall, e.g. 'Arrive by 6:30 PM'.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "programsVenueLabel": "Venue",
   "@programsVenueLabel": {
     "description": "Field label for the program's venue in the editor."
@@ -9305,6 +9400,40 @@
       },
       "pages": {
         "type": "int"
+      }
+    }
+  },
+  "exportLabelLesson": "Lesson",
+  "@exportLabelLesson": {
+    "description": "Label for the beginner lesson's time on an exported set list (text and PDF), followed by the label separator and the time, e.g. 'Lesson: 7:00 PM'."
+  },
+  "exportTimeRange": "{start}–{end}",
+  "@exportTimeRange": {
+    "description": "A dance's start and end time as one phrase on an exported set list and the program summary, e.g. '7:30 PM–10:30 PM'. Both are already formatted.",
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
+  "exportEndsAt": "until {end}",
+  "@exportEndsAt": {
+    "description": "A dance's end time on an exported set list and the program summary when no start time is recorded, e.g. 'until 10:30 PM'.",
+    "placeholders": {
+      "end": {
+        "type": "String"
+      }
+    }
+  },
+  "exportNextDay": "{times} (next day)",
+  "@exportNextDay": {
+    "description": "Marks a dance's times as ending the next day (the end time is earlier than the start), e.g. '7:30 PM–1:00 AM (next day)'.",
+    "placeholders": {
+      "times": {
+        "type": "String"
       }
     }
   },

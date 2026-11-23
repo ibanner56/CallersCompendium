@@ -3228,7 +3228,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSharingDateVenueTitle =>
-      'Inclure la date et le lieu lors du partage d\'une liste de danses';
+      'Inclure la date, les horaires et le lieu lors du partage d\'une liste de danses';
 
   @override
   String get settingsSharingSubtitle =>
@@ -5870,6 +5870,65 @@ class AppLocalizationsFr extends AppLocalizations {
   String get programsClearEventDate => 'Effacer la date de l’événement';
 
   @override
+  String get programsStartTimeLabel => 'Heure de début';
+
+  @override
+  String get programsEndTimeLabel => 'Heure de fin';
+
+  @override
+  String get programsLessonTimeLabel => 'Cours débutants';
+
+  @override
+  String get programsArrivalTimeLabel => 'Arrivée avant';
+
+  @override
+  String get programsNoTimeSet => 'Non définie';
+
+  @override
+  String get programsSetTime => 'Définir';
+
+  @override
+  String get programsChangeTime => 'Modifier';
+
+  @override
+  String programsSetTimeFor(String field) {
+    return 'Définir : $field';
+  }
+
+  @override
+  String programsChangeTimeFor(String field) {
+    return 'Modifier : $field';
+  }
+
+  @override
+  String programsClearTime(String field) {
+    return 'Effacer : $field';
+  }
+
+  @override
+  String get programsTimeNextDay => 'Se termine le lendemain';
+
+  @override
+  String programsVenueUsualTimeHint(String time) {
+    return 'Horaire habituel du lieu : $time';
+  }
+
+  @override
+  String programsSummaryLessonTime(String time) {
+    return 'Cours $time';
+  }
+
+  @override
+  String programsSummaryDanceTime(String times) {
+    return 'Bal $times';
+  }
+
+  @override
+  String programsSummaryArriveBy(String time) {
+    return 'Arrivée avant $time';
+  }
+
+  @override
   String get programsVenueLabel => 'Lieu';
 
   @override
@@ -7155,6 +7214,24 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String exportPageOfPages(int page, int pages) {
     return 'Page $page sur $pages';
+  }
+
+  @override
+  String get exportLabelLesson => 'Cours';
+
+  @override
+  String exportTimeRange(String start, String end) {
+    return '$start–$end';
+  }
+
+  @override
+  String exportEndsAt(String end) {
+    return 'jusqu’à $end';
+  }
+
+  @override
+  String exportNextDay(String times) {
+    return '$times (lendemain)';
   }
 
   @override

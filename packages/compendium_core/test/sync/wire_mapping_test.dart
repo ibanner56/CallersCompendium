@@ -886,6 +886,10 @@ const _valuePairs = <String, List<Object?>>{
     'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
   ],
+  'programs.start_minute': [1170, 1171],
+  'programs.end_minute': [1350, 1351],
+  'programs.lesson_minute': [1140, 1141],
+  'programs.arrival_minute': [1110, 1111],
   'program_slots.position': [0, 1],
   'program_slots.is_alt': [false, true],
   'program_slots.is_purged_dance': [false, true],
@@ -1149,6 +1153,10 @@ class _Fixture {
     dialectName: _str('programs.dialect_name'),
     payMinorUnits: _int('programs.pay_minor_units'),
     payCurrency: _str('programs.pay_currency'),
+    startMinute: _int('programs.start_minute'),
+    endMinute: _int('programs.end_minute'),
+    lessonMinute: _int('programs.lesson_minute'),
+    arrivalMinute: _int('programs.arrival_minute'),
     slots: [
       ProgramSlot(
         id: _str('program_slots.id'),

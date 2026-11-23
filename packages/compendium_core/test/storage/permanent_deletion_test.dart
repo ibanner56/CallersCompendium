@@ -347,6 +347,10 @@ void main() {
           payMinorUnits: 15000,
           payCurrency: 'USD',
           archivedAt: created,
+          startMinute: 1170,
+          endMinute: 1350,
+          lessonMinute: 1140,
+          arrivalMinute: 1110,
           slots: [ProgramSlot(id: 'slot-$id', position: 0, danceId: 'd-$id')],
           provenance: Provenance(
             source: ProvenanceSource.callersCompanion,
@@ -398,6 +402,10 @@ void main() {
         expect(row.payMinorUnits, isNull);
         expect(row.payCurrency, isNull);
         expect(row.archivedAt, isNull);
+        expect(row.startMinute, isNull);
+        expect(row.endMinute, isNull);
+        expect(row.lessonMinute, isNull);
+        expect(row.arrivalMinute, isNull);
         expect(row.updatedAt.toUtc(), now);
         expect(row.existenceAt!.isAfter(before.existenceAt!), isTrue);
         expect(await count('program_slots', 'program_id', 'p1'), 0);
