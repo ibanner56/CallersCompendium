@@ -133,15 +133,18 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
 /// The TCB front-end's veto: every line one of these rejects goes straight to
 /// the custom fallback (see [FigureFrontEnd.declineToCustom]).
 bool _tcbDeclineToCustom(String scrubbed) =>
-    _declineSingleFileCircle(scrubbed) || _declineRoleSplitAmount(scrubbed);
+    _declineSingleFileCircle(scrubbed) ||
+    _declineRoleSplitAmount(scrubbed) ||
+    _declineAmountAlternative(scrubbed);
 
 /// Vetoes a line that states a DIFFERENT turn amount per role in a
 /// parenthetical: `Same-role neighbor allemande left (M 1 & 1/2, W 2)`.
 ///
 /// No move models a per-role amount, the shape rule in [_proseAnnotation]
 /// drops the all-uppercase body, and the move's `travel` then falls back to its
-/// taxonomy default (`1`) — so the structured figure would render an amount
-/// neither role dances and lose the one each does. Custom keeps the line.
+/// taxonomy default (1½ for an allemande) — so the structured figure would
+/// render an amount neither role dances and lose the one each does. Custom
+/// keeps the line.
 ///
 /// Scoped to the bare-role form (`M <amount>, W <amount>`). The couple-coded
 /// form (`M1+W2 1 & 1/4, W1+M2 3/4`) is listed as correctly skipped by
@@ -154,6 +157,30 @@ bool _declineRoleSplitAmount(String scrubbed) =>
 /// fraction, or `<whole> & <fraction>`. Anchored, no unbounded nesting.
 final RegExp _roleSplitAmountRe = RegExp(
   r'^[MW]\s+(?:\d+\s*&\s*)?\d+(?:/\d+)?\s*,\s*[MW]\s+(?:\d+\s*&\s*)?\d+(?:/\d+)?$',
+);
+
+/// Vetoes a line whose parenthetical opens with a CHOICE of amounts:
+/// `Men allemande right (1 or 2)`, `Ones allemande right (1/2 or 1 & 1/2)`,
+/// `Partner allemande right (1 or 1 & 1/2, until men face down)` (#2331).
+///
+/// No move models a choice of amounts. Structured, the line keeps the words
+/// only as a note (via [_proseAnnotation]) while the move's own amount param
+/// falls back to its taxonomy default, so the figure would state an amount the
+/// source never chose (an allemande renders 1½). Custom keeps the line.
+///
+/// Not subject- or move-specific, like [_declineRoleSplitAmount]. Only digit
+/// amounts are read; glyph, decimal and word amounts (`1½ or 2`, `once or
+/// twice`) are not in the corpus and are left alone. An annotation that merely
+/// contains `or` (`(or LLFB)`) does not open with an amount and is unaffected.
+bool _declineAmountAlternative(String scrubbed) =>
+    _parenAnnotations(scrubbed).any(_amountAlternativeRe.hasMatch);
+
+/// `<amount> or <amount>` at the start of an annotation body, then either the
+/// end of the body or a `,`/`;` and whatever follows. An amount is a whole
+/// number, a fraction, or `<whole> & <fraction>`. Anchored, no unbounded
+/// nesting; the body itself is already length-capped by [_parenAnnotationRe].
+final RegExp _amountAlternativeRe = RegExp(
+  r'^(?:\d+\s*&\s*)?\d+(?:/\d+)?\s+or\s+(?:\d+\s*&\s*)?\d+(?:/\d+)?\s*(?:$|[,;])',
 );
 
 /// Parses a compound figure line, splitting it on TOP-LEVEL `;` separators and

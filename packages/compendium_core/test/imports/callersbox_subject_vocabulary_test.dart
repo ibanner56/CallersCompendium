@@ -1,5 +1,9 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
+
+import '../figures_support.dart';
 
 /// The Caller's Box subject vocabulary: same-role neighbors and the S-prefix
 /// shadow codes.
@@ -77,7 +81,7 @@ void main() {
 
   group('a per-role turn amount keeps the line custom', () {
     // No move models a per-role amount; structuring would render the
-    // allemande's default travel (1), which neither role dances.
+    // allemande's default travel (1½), which neither role dances.
     for (final line in const [
       'Same-role neighbor allemande left (M 1 & 1/2, W 2)',
       'Same-role neighbor allemande left (M 1 & 1/4, W 1 & 3/4)',
@@ -92,6 +96,69 @@ void main() {
         expect(f.params['text'], contains('M 1'));
       });
     }
+  });
+
+  group('an amount alternative keeps the line custom (#2331)', () {
+    // `(1 or 2)` states two amounts; no move models a choice of amounts, and
+    // structuring keeps the words only as a note while `travel` falls back to
+    // the allemande's default 1½, which the line never says.
+    for (final line in const [
+      // Corpus wording (dances 14635, 12070/12071, 3417, 5031).
+      'Men allemande right (1 or 2)',
+      'Neighbor allemande right (1 or 2)',
+      'Ones allemande right (1/2 or 1 & 1/2)',
+      'Partner allemande right (1 or 1 & 1/2, until men face down)',
+      // Not corpus wording: a stated amount beside the alternative.
+      'Neighbor allemande left 1 (1 or 2)',
+    ]) {
+      test('"$line" stays custom with its text intact', () {
+        final f = parse(line);
+        expect(f.isCustom, isTrue);
+        expect(f.params['text'], contains(' or '));
+      });
+    }
+
+    test('through the importer: dance 14635 A2 keeps the line as text', () async {
+      final payload = jsonEncode({
+        'ID': '14635',
+        'Name': 'Composition 90',
+        'Permission': 'full',
+        'phrases': [
+          {
+            'name': 'A2',
+            'figures': [
+              '(8) Men do a right-hand ladies chain to partner',
+              '(8) Men allemande right (1 or 2)',
+            ],
+          },
+        ],
+      });
+      final adapter = CallersBoxAdapter();
+      final discovered = await adapter.discover(
+        ImportRequest(payload: payload),
+      );
+      final raw = await adapter.fetch(discovered.single);
+      final figures = figuresOf(adapter.parse(raw).dance);
+      expect(figures.last.isCustom, isTrue);
+      expect(figures.last.params['text'], 'role1s allemande right (1 or 2)');
+      expect(figures.fold<int>(0, (a, f) => a + f.beats), 16);
+    });
+
+    test('a ;-compound holding one stays whole-line custom, either order', () {
+      for (final line in const [
+        'Circle right 3/4; Men allemande right (1 or 2)',
+        'Men allemande right (1 or 2); face out',
+      ]) {
+        final figures = parseFigureLines(
+          line,
+          beats: 8,
+          frontEnd: tcbFigureFrontEnd,
+        );
+        expect(figures, hasLength(1), reason: line);
+        expect(figures.single.isCustom, isTrue, reason: line);
+        expect(figures.single.beats, 8, reason: line);
+      }
+    });
   });
 
   group('an "or" annotation that is not an amount alternative', () {
