@@ -624,8 +624,8 @@ couples** (one per line), so "the row-0 couple" needed a referent.
 
 The two ends are evaluated separately; one may normalize while the other skips.
 
-**In Becket, when both ends would skip, the progression is held, not spent** *(user-ruled
-2026-11-23)*. A Becket dance progresses on the obvious move — a diagonal `chain` or a
+**When both ends would skip, the progression is held, not spent** *(user-ruled 2026-11-23,
+for Becket; extended to every formation the same day)*. A Becket dance progresses on the obvious move — a diagonal `chain` or a
 `pass_through` along the set — but those send only some dancers on: after The Judge's
 left-diagonal ladies chain the robins have reached the next hands four while their partners
 have not, so no couple stands whole at either end. A change-over there would do nothing and
@@ -639,9 +639,14 @@ brings a couple to an end, the change-over never runs and the compile says so wi
 an end the change-over would only have cleared waiting-out marks, which the comparison does not
 read. `FigureFold` is the one place this is threaded.
 
-Three limits, each the *agent's call (2026-11-23)*: holding is **Becket only** (the ruling was
-about Becket, and in Duple Improper a misplaced flag should still fail rather than be carried
-forward); a figure that is its own progression (`slide_along_set`) or that reached along the
+Holding applies in **every formation** *(user-ruled 2026-11-23)*: on any diagonal figure the end
+pair with no partner pair on that diagonal stays put, whatever the formation, and the test is
+only whether a whole couple stands at an end. The cost, measured when this was ruled, is that a
+flag a figure or two early can be carried to a later figure that finishes it rather than fail:
+*Once More With Feeling* (Caller's Box #14948) compiles flagged on either petronella, and *The
+Baby Rose* flagged on its partner swing. On the Caller's Box corpus it changed no dance's outcome.
+
+Two limits, each the *agent's call (2026-11-23)*: a figure that is its own progression (`slide_along_set`) or that reached along the
 set is never held; and a later flagged figure that runs its own change-over **overtakes** a
 held progression, which is then given up and reported with the same warning, since finishing it
 afterwards would retire the couples that figure had just sent out.

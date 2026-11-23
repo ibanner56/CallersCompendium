@@ -33,7 +33,10 @@
 > held until one gets there (both user-ruled). Measured against `rubric` at
 > `e88bc9ce`: 2,795 to 2,843 compiled in scope (49 gained, 1 lost: *More
 > Summer Haze*, whose pass through along goes to the previous neighbours), and
-> the core set from 397 to 410.
+> the core set from 397 to 410. Holding was then extended to every formation
+> (user-ruled the same day). Against `rubric` at `ee39d32f` that changed no
+> dance's outcome (3,031 compiled in scope, core set 435): 21 dances that
+> already mismatched gain a `heldProgressionUnfinished` warning.
 >
 > **`circular_hey` (2026-11-23)** is built on the agent's reading of the core
 > definition, not yet ruled. Against `rubric` at `5f683503` it took the count

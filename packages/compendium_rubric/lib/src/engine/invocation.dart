@@ -67,9 +67,9 @@ class OperationInvocation {
   /// only stand together at the ends a figure or two later. Run there, the
   /// change-over would mark nobody and the progression would be lost. Held,
   /// it finishes on the first later figure that leaves a whole couple at an
-  /// end; see [finishHeldProgression] and `FigureFold`. *(User-ruled,
-  /// 2026-11-23, for Becket.)* Whether to call this rather than [apply] is
-  /// `FigureFold`'s decision: it holds in Becket only.
+  /// end; see [finishHeldProgression] and `FigureFold`. *(User-ruled
+  /// 2026-11-23, in every formation: on any diagonal figure the end pair with
+  /// no partner pair on that diagonal stays put.)*
   ///
   /// When the result's `held` is `true`, its formation is the figure's own
   /// transform with no change-over applied, and the caller owes one

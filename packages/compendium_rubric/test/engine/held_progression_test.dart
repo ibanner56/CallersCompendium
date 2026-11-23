@@ -50,7 +50,7 @@ void main() {
 
     test('the chain holds and the second petronella finishes it', () {
       final dance = progressingOn('the_judge', _chain);
-      final fold = FigureFold(holdsProgressions: true);
+      final fold = FigureFold();
       var state = dance.instantiate();
       final waitingAfter = <int, int>{};
       for (var i = 0; i < dance.figures.length; i++) {
@@ -97,7 +97,7 @@ void main() {
       // ones already standing out. A change-over still has work to do there
       // (it brings them back in), so finding only them is no reason to hold.
       final dance = progressingOn('the_judge', _chain);
-      final fold = FigureFold(holdsProgressions: true);
+      final fold = FigureFold();
       var state = dance.instantiate();
       for (var i = 0; i < dance.figures.length; i++) {
         state =
@@ -165,7 +165,7 @@ void main() {
               ? OperationInvocation(figure.operation, progression: true)
               : figure,
       ];
-      final fold = FigureFold(holdsProgressions: true);
+      final fold = FigureFold();
       var state = judge.instantiate();
       final waiting = <int>[];
       for (var i = 0; i < figures.length; i++) {
@@ -181,21 +181,38 @@ void main() {
     });
   });
 
-  group('Duple Improper never holds', () {
-    test('a flag with nobody at an end is spent where it stands', () {
-      // Holding was ruled for Becket. A Duple Improper golden flagged one
-      // figure early must still fail rather than be carried forward. (Two
-      // figures early: one early happens to land on the oracle anyway.)
+  group('Duple Improper holds too (user-ruled 2026-11-23)', () {
+    test('a flag with nobody at an end waits for a couple there', () {
+      // Holding does not depend on the formation: only on whether a whole
+      // couple stands at an end. The Baby Rose flagged on its partner balance
+      // and swing, two figures early, leaves nobody whole at an end; the flag
+      // is held and its change-over runs once a later figure brings a couple
+      // there.
       final golden = _golden('the_baby_rose');
       final flagged = [
         for (final (i, figure) in (golden['figures']! as List<Object?>).indexed)
           if ((figure! as Map<String, Object?>)['progression'] == true) i,
       ];
       expect(flagged, hasLength(1));
-      final result = compile(
-        progressingOn('the_baby_rose', flagged.single - 2),
-      );
-      expect(result, isNot(isA<Compiled>()), reason: '$result');
+      final early = flagged.single - 2;
+      final dance = progressingOn('the_baby_rose', early);
+      expect(dance.formation, FormationType.dupleImproper);
+
+      final fold = FigureFold();
+      var state = dance.instantiate();
+      final heldAfter = <int, List<int>>{};
+      for (var i = 0; i < dance.figures.length; i++) {
+        state =
+            (fold.step(dance.figures[i], state, index: i)
+                    as Ok<Formation, OpError>)
+                .value;
+        heldAfter[i] = fold.unfinished;
+      }
+      expect(heldAfter[early], [early], reason: 'held at the flagged figure');
+      expect(fold.unfinished, isEmpty, reason: 'and finished later');
+
+      final result = compile(dance);
+      expect(result, isA<Compiled>(), reason: '$result');
     });
   });
 }

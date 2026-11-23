@@ -78,9 +78,7 @@ void expectCompiles(Dance dance, List<String> expectedTrace) {
   final result = compile(dance);
   if (result is! Compiled) {
     var state = dance.instantiate();
-    final fold = FigureFold(
-      holdsProgressions: dance.formation.couplesShareColumn,
-    );
+    final fold = FigureFold();
     final buffer = StringBuffer('${dance.name} did not compile: $result\n');
     buffer.writeln('start: ${state.toRolesNotation()}');
     for (var i = 0; i < dance.figures.length; i++) {
@@ -171,9 +169,7 @@ void main() {
         ],
       ];
       final dance = theBabyRose();
-      final fold = FigureFold(
-        holdsProgressions: dance.formation.couplesShareColumn,
-      );
+      final fold = FigureFold();
       var state = dance.instantiate();
       for (var i = 0; i < dance.figures.length; i++) {
         state =
@@ -271,9 +267,7 @@ void main() {
         ],
       ];
       final dance = theJudge();
-      final fold = FigureFold(
-        holdsProgressions: dance.formation.couplesShareColumn,
-      );
+      final fold = FigureFold();
       var state = dance.instantiate();
       for (var i = 0; i < dance.figures.length; i++) {
         state =

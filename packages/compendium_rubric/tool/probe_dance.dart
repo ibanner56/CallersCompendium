@@ -44,9 +44,7 @@ void main(List<String> args) {
           .value;
   print('${dance.name}  (${dance.requiredHandsFour} hands four)');
   var state = dance.instantiate();
-  final fold = FigureFold(
-    holdsProgressions: dance.formation.couplesShareColumn,
-  );
+  final fold = FigureFold();
   print('\nstart');
   render(state);
 
