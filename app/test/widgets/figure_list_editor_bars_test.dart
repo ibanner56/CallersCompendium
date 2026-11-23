@@ -435,6 +435,29 @@ void main() {
     });
   });
 
+  testWidgets('a sequence longer than a phrase reads the message in beats '
+      'where its count is not whole bars, so the two are never mixed', (
+    tester,
+  ) async {
+    // A stated span of 25 beats (entered in beats, or imported) is no whole
+    // number of half bars in 3/4, while the phrase of 24 beats is 8 bars.
+    final drafts = [
+      FigureDraft(
+        sequenceFigures: [_step('ecd_lead', 12), _step('ecd_set', 12)],
+      )..setSequenceSpan(25),
+    ];
+    await _pump(tester, drafts);
+    await _open(tester, 0);
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey('figure-0-sequence-over-phrase')),
+          )
+          .data,
+      'This sequence is 25 beats, longer than one phrase (24 beats).',
+    );
+  });
+
   group('the Bars field reads and refuses a count as it always did for a tune '
       'in one meter', () {
     // What the field did with one bar length, frozen here: the largest count
