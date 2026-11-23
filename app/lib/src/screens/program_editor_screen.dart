@@ -4893,11 +4893,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
-  /// Opens the system time picker for [field], starting from its current
-  /// time, or 7:30 pm for an unset one.
+  /// Opens the platform's Material time picker for [field], starting from its
+  /// current time, or 7:30 pm ([kDefaultPickerMinute]) for an unset one.
   Future<void> _pickTime(ProgramTimeField field) async {
     final current = _times[field] ?? kDefaultPickerMinute;
-    final picked = await showTimePicker(
+    final picked = await showAppTimePicker(
       context: context,
       initialTime: TimeOfDay(hour: current ~/ 60, minute: current % 60),
       helpText: programTimeFieldLabel(AppLocalizations.of(context), field),

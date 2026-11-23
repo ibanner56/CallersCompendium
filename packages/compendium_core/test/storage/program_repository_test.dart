@@ -399,6 +399,31 @@ void main() {
       expect(cleared.payCurrency, isNull);
     });
 
+    test('round-trips each time, and clears it (#2350)', () async {
+      final program = sampleProgram().copyWith(
+        startMinute: 1170,
+        endMinute: 60,
+        lessonMinute: 0,
+        arrivalMinute: 1439,
+      );
+      await repo.create(program);
+      final loaded = (await repo.getById(program.id))!;
+      expect(loaded.startMinute, 1170);
+      expect(loaded.endMinute, 60);
+      expect(loaded.lessonMinute, 0);
+      expect(loaded.arrivalMinute, 1439);
+      expect(loaded, program);
+
+      await repo.update(
+        loaded.copyWith(clearStartMinute: true, clearArrivalMinute: true),
+      );
+      final cleared = (await repo.getById(program.id))!;
+      expect(cleared.startMinute, isNull);
+      expect(cleared.endMinute, 60);
+      expect(cleared.lessonMinute, 0);
+      expect(cleared.arrivalMinute, isNull);
+    });
+
     test('pay defaults to null when unset', () async {
       await repo.create(sampleProgram());
       final loaded = (await repo.getById('p1'))!;
