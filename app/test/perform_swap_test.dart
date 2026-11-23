@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
@@ -136,11 +138,17 @@ Future<_Harness> _pump(
   int initialGroup = 1,
   Object? storedDefaults,
   Set<String> hiddenFacets = const {},
+  SettingsRepository Function(CompendiumDatabase db)? settings,
 }) async {
   tester.view.physicalSize = const Size(1400, 2400);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  final repos = openTestRepositories();
+  final db = openWidgetTestDatabase();
+  final repos = CompendiumRepositories(
+    db,
+    contraTaxonomy,
+    settings: settings?.call(db),
+  );
   for (final d in [
     ..._programDances,
     ...(extra ?? [_match, _harder, _improper, _noHey, _alt]),
@@ -204,6 +212,19 @@ Finder _pick(String id) => _inSwap(find.byKey(ValueKey('picker-add-$id')));
 
 FilterChip _chip(WidgetTester tester, String key) =>
     tester.widget<FilterChip>(_inSwap(find.byKey(ValueKey(key))));
+
+/// Settings whose reads of the Swap a dance defaults wait for [release].
+class _HeldSwapSettings extends SettingsRepository {
+  _HeldSwapSettings(super.db);
+
+  final release = Completer<void>();
+
+  @override
+  Future<Object?> get(String key) async {
+    if (key == kPerformSwapDefaultsKey) await release.future;
+    return super.get(key);
+  }
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -638,6 +659,26 @@ void main() {
     expect(_chip(tester, 'swap-keep-level').selected, isTrue);
     expect(_tile('improper'), findsOneWidget, reason: 'another formation');
     expect(_tile('harder'), findsNothing, reason: 'level is still kept');
+  });
+
+  testWidgets('a second tap on Swap while the defaults are read opens one '
+      'sheet', (tester) async {
+    late _HeldSwapSettings held;
+    await _pump(tester, settings: (db) => held = _HeldSwapSettings(db));
+    await _openAdjust(tester);
+    final swap = find.byKey(const ValueKey('adjust-swap-current'));
+    await tester.ensureVisible(swap);
+    await tester.pumpAndSettle();
+    await tester.tap(swap);
+    await tester.pump();
+    await tester.tap(swap);
+    await tester.pump();
+    held.release.complete();
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('adjust-swap-sheet'), skipOffstage: false),
+      findsOneWidget,
+    );
   });
 
   testWidgets('a Keep item turned off in Swap a dance defaults opens off', (

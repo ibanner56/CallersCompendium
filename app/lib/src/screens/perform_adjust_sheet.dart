@@ -299,6 +299,21 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
   /// with the Keep items Settings ▸ Program ▸ Perform mode ▸ Swap a dance
   /// starts on.
   Future<void> _openSwap(String slotId) async {
+    // The settings read leaves the Swap buttons live for a moment: a second
+    // tap then must not open a second sheet.
+    if (_swapOpen) return;
+    _swapOpen = true;
+    try {
+      await _showSwap(slotId);
+    } finally {
+      _swapOpen = false;
+    }
+  }
+
+  /// Whether a swap sheet is opening or open.
+  bool _swapOpen = false;
+
+  Future<void> _showSwap(String slotId) async {
     final repos = RepositoriesScope.of(context);
     var defaults = PerformSwapDefaults.defaults;
     try {
