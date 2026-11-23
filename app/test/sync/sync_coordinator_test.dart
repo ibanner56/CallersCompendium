@@ -8417,10 +8417,7 @@ void main() {
       ]) {
         final (result, transport) = await pass(recorded);
         expect(publishedSettings(transport), contains('theme_mode'));
-        expect(
-          publishedSettings(transport).intersection(swapKeys),
-          isEmpty,
-        );
+        expect(publishedSettings(transport).intersection(swapKeys), isEmpty);
         for (final c in swapDefaults) {
           expect(uploaded(transport), isNot(contains(c.wireHash)));
         }
