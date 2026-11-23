@@ -220,6 +220,33 @@ void main() {
           contains(startsWith('pass_the_ocean states no sides')),
         );
       });
+
+      test('pass_the_ocean reads the centre on the wave it lands in', () {
+        // Before the pass the robins stand on the centre diagonal; after it,
+        // the larks do, so the default (role2s) fails only on the landed wave.
+        const ocean = PassTheOcean(
+          centerHand: Hand.left,
+          center: null,
+          sides: WhoSet.partners,
+        );
+        final across = di(const ['R1-A . . . L2-B', 'L1-A . . . R2-B']);
+        final facingAcross = across.withUpdates({
+          for (final entry in across.dancers.entries)
+            entry.key: entry.value.copyWith(
+              facing: entry.value.col == 0
+                  ? Facing.acrossEast
+                  : Facing.acrossWest,
+            ),
+        });
+        expect(ocean.apply(facingAcross), isA<Ok<Formation, OpError>>());
+        expect(
+          ocean.lint(facingAcross).map((w) => w.detail),
+          contains(
+            'pass_the_ocean states no center, and L-B and L-A end in the '
+            'middle, not role2s; the wave forms with them',
+          ),
+        );
+      });
     });
 
     test('the offset is read from facing, not from role', () {
