@@ -13425,4 +13425,8 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get calendarClearFlag => 'Retirer le signalement du calendrier';
+
+  @override
+  String get calendarClearFlagError =>
+      'Impossible de retirer le signalement du calendrier. Réessayez.';
 }

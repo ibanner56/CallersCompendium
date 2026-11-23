@@ -13360,4 +13360,8 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get calendarClearFlag => 'Agendamarkering wissen';
+
+  @override
+  String get calendarClearFlagError =>
+      'De agendamarkering kon niet worden gewist. Probeer het opnieuw.';
 }

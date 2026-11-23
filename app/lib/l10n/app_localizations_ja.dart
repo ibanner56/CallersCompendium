@@ -12755,4 +12755,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get calendarClearFlag => 'カレンダーのフラグを消す';
+
+  @override
+  String get calendarClearFlagError => 'カレンダーのフラグを消せませんでした。もう一度お試しください。';
 }

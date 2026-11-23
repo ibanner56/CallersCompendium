@@ -700,7 +700,6 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     widget.onNavigateTo(copy.id);
   }
 
-  /// Archives the program and leaves this view, as Delete does, with an Undo.
   /// "Clear calendar flag" (#2354): removes the label, edits nothing else.
   /// The next calendar import sets it again if the event is still cancelled
   /// or gone.
@@ -716,11 +715,12 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         source: 'program_summary_screen._clearCalendarFlag',
       );
       messenger.showSnackBar(
-        SnackBar(content: Text(l10n.calendarSettingsSaveError)),
+        SnackBar(content: Text(l10n.calendarClearFlagError)),
       );
     }
   }
 
+  /// Archives the program and leaves this view, as Delete does, with an Undo.
   Future<void> _archive() async {
     final source = _program;
     if (source == null || _archiving || _deleting) return;

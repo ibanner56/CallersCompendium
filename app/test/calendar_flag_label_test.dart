@@ -27,11 +27,12 @@ void main() {
   Future<CompendiumRepositories> pump(
     WidgetTester tester,
     String flag,
-    Widget home,
-  ) async {
+    Widget home, {
+    CompendiumRepositories? using,
+  }) async {
     await tester.binding.setSurfaceSize(const Size(800, 1200));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    final repos = openTestRepositories();
+    final repos = using ?? openTestRepositories();
     await repos.programs.create(_program(flag));
     final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
     addTearDown(dialect.dispose);
@@ -93,5 +94,27 @@ void main() {
     expect(stored.calendarEventKey, calendarEventKey('a', ''));
     expect(find.byKey(const ValueKey('clear-calendar-flag')), findsNothing);
     semantics.dispose();
+  });
+
+  testWidgets('a Clear calendar flag that cannot save says so, as a program '
+      'error, not a setting one', (tester) async {
+    final failing = openTestRepositoriesWithFailingPrograms();
+    failing.programs.failWrites = false;
+    await pump(
+      tester,
+      calendarFlagCancelled,
+      const ProgramSummaryScreen(programId: 'p1'),
+      using: failing.repos,
+    );
+    failing.programs.failWrites = true;
+    await tester.tap(find.byKey(const ValueKey('clear-calendar-flag')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text("Couldn't clear the calendar flag. Try again."),
+      findsOneWidget,
+    );
+    expect(find.text("Couldn't save that setting. Try again."), findsNothing);
+    final stored = (await failing.repos.programs.getById('p1'))!;
+    expect(stored.calendarFlag, calendarFlagCancelled);
   });
 }

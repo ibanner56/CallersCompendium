@@ -569,8 +569,6 @@ class CalendarImportCandidate {
 class CalendarImportPlan {
   const CalendarImportPlan({
     required this.candidates,
-    this.presentKeys = const {},
-    this.cancelledKeys = const {},
     this.knownKeys = const {},
     this.cancelledAnywhereKeys = const {},
     this.canJudgeMissing = false,
@@ -582,22 +580,17 @@ class CalendarImportPlan {
   /// In date order.
   final List<CalendarImportCandidate> candidates;
 
-  /// The keys of every event in range and not cancelled, whatever the title
-  /// filter (#2354): an event the filter hides is still in the calendar.
-  final Set<String> presentKeys;
-
-  /// The keys of every event in range whose `STATUS` is `CANCELLED`: a
-  /// single event, an occurrence of a cancelled series, or a cancelled
-  /// override of one occurrence.
-  final Set<String> cancelledKeys;
-
   /// Every event the feed holds and does not cancel, whatever its date or
-  /// the title filter: single events and overrides at any date, and a
-  /// readable series' occurrences from 31 days back to a day past the window.
-  /// A program whose key is here is not gone, wherever its event moved.
+  /// the title filter (#2354): single events and overrides at any date, and
+  /// a readable series' occurrences from 31 days back to a day past the
+  /// window, less those its `EXDATE` removes. A program whose key is here is
+  /// not gone, wherever its event moved.
   final Set<String> knownKeys;
 
-  /// Like [knownKeys], for cancelled events.
+  /// Like [knownKeys], for cancelled events: a single event, an occurrence of
+  /// a cancelled series, or a cancelled override of one occurrence. An
+  /// occurrence its series' `EXDATE` removes is in neither set, so it reads
+  /// as gone rather than canceled.
   final Set<String> cancelledAnywhereKeys;
 
   /// Whether the feed was read whole: not truncated, no repeating rule the
@@ -699,18 +692,10 @@ CalendarImportPlan planCalendarImport(
 
   final candidates = <CalendarImportCandidate>[];
   final unreadable = <String>[];
-  final presentKeys = <String>{};
-  final cancelledKeys = <String>{};
 
   void offer(ICalEvent e, String recurrenceId, DateTime date) {
     final key = calendarEventKey(e.uid, recurrenceId);
-    // Recorded before the title filter: an event the filter hides is still in
-    // the calendar, so it must not read as gone (#2354).
-    if (e.isCancelled) {
-      cancelledKeys.add(key);
-      return;
-    }
-    presentKeys.add(key);
+    if (e.isCancelled) return;
     final title = _clean(e.summary) ?? '';
     if (filter != null &&
         filter.isNotEmpty &&
@@ -761,8 +746,7 @@ CalendarImportPlan planCalendarImport(
     }
     final start = e.start.writtenDate;
     final until = rule.until;
-    final exdates = {for (final x in e.exdates) x.writtenDate};
-    final exTexts = {for (final x in e.exdates) x.text};
+    final removed = _removedByExdate(e);
     final seriesOverrides = overrides[e.uid] ?? const {};
     final placed = <String>{};
     // The walk is on written dates; a `Z` series can land a day either side
@@ -777,10 +761,7 @@ CalendarImportPlan planCalendarImport(
     )) {
       final occurrence = e.start.onDate(d);
       final rid = occurrence.text;
-      if (exTexts.contains(rid) ||
-          (e.exdates.any((x) => x.isDate) && exdates.contains(d))) {
-        continue;
-      }
+      if (removed(d, rid)) continue;
       final override = seriesOverrides[rid];
       if (override != null) {
         placed.add(rid);
@@ -804,7 +785,9 @@ CalendarImportPlan planCalendarImport(
   // filter, so a program whose event only moved is never taken for gone.
   // Single events and overrides at any date; a readable series' occurrences
   // from 31 days back to a day past the window (a program's own date can have
-  // been edited away from its occurrence's).
+  // been edited away from its occurrence's), less the dates its `EXDATE`
+  // removes, which the offer walk above skips too: a deleted occurrence is
+  // gone. A moved one is an override, known by its own recurrence id.
   final knownKeys = <String>{};
   final cancelledAnywhere = <String>{};
   void know(ICalEvent e, String recurrenceId) {
@@ -820,6 +803,7 @@ CalendarImportPlan planCalendarImport(
       know(e, '');
     } else if (ICalRecurrence.tryParse(e.rrule!) case final rule?) {
       final until = rule.until;
+      final removed = _removedByExdate(e);
       for (final d in rule.datesThrough(
         e.start.writtenDate,
         windowEnd.add(const Duration(days: 1)),
@@ -828,14 +812,13 @@ CalendarImportPlan planCalendarImport(
             until == null ||
             e.start.onDate(d)._sortKey <= _untilKey(until, e.start, localOf),
       )) {
-        know(e, e.start.onDate(d).text);
+        final rid = e.start.onDate(d).text;
+        if (!removed(d, rid)) know(e, rid);
       }
     }
   }
   return CalendarImportPlan(
     candidates: candidates,
-    presentKeys: presentKeys,
-    cancelledKeys: cancelledKeys,
     knownKeys: knownKeys,
     cancelledAnywhereKeys: cancelledAnywhere,
     canJudgeMissing:
@@ -844,6 +827,23 @@ CalendarImportPlan planCalendarImport(
     skippedNoUid: feed.skippedNoUid,
     truncated: feed.truncated,
   );
+}
+
+/// Whether a series' `EXDATE` removes the occurrence on written date `d`,
+/// whose recurrence id is `rid`. Shared by the offer walk and the known-keys
+/// walk of [planCalendarImport], which must agree (#2354): an occurrence one
+/// offers and the other forgets would be wrongly flagged gone, and one it
+/// skips and the other knows would never be. An occurrence is removed when
+/// an `EXDATE` matches its text exactly or, once any `EXDATE` is a `DATE`,
+/// when one falls on its written date. A `DATE-TIME` `EXDATE` written in
+/// another form from `DTSTART` (UTC against a `TZID` start) matches nothing,
+/// which keeps the occurrence: never a false "gone".
+bool Function(DateTime d, String rid) _removedByExdate(ICalEvent e) {
+  if (e.exdates.isEmpty) return (_, _) => false;
+  final anyDate = e.exdates.any((x) => x.isDate);
+  final days = {for (final x in e.exdates) x.writtenDate};
+  final texts = {for (final x in e.exdates) x.text};
+  return (d, rid) => texts.contains(rid) || (anyDate && days.contains(d));
 }
 
 /// `UNTIL` as a key comparable with an occurrence written like [start]. A

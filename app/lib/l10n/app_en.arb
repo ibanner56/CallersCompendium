@@ -17831,5 +17831,9 @@
   "calendarClearFlag": "Clear calendar flag",
   "@calendarClearFlag": {
     "description": "Button on a program's summary that removes its calendar flag."
+  },
+  "calendarClearFlagError": "Couldn't clear the calendar flag. Try again.",
+  "@calendarClearFlagError": {
+    "description": "Snack bar when Clear calendar flag on a program's summary could not save the program."
   }
 }

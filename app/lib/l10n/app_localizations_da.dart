@@ -13282,4 +13282,8 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get calendarClearFlag => 'Fjern kalendermarkering';
+
+  @override
+  String get calendarClearFlagError =>
+      'Kunne ikke fjerne kalendermarkeringen. Prøv igen.';
 }

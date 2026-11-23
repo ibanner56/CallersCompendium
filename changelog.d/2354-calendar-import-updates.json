@@ -11,7 +11,7 @@
   },
   "core": {
     "added": [
-      "Add Program.calendarEventFingerprint, calendarWrittenAt and calendarFlag (schema v42) with isUntouchedCalendarDraft, their archive codec, sync wire fields and privacy classifications; calendarEventFingerprint and calendarFingerprintChanges; and the present and cancelled event keys of a CalendarImportPlan."
+      "Add Program.calendarEventFingerprint, calendarWrittenAt and calendarFlag (schema v42) with isUntouchedCalendarDraft, their archive codec, sync wire fields and privacy classifications; calendarEventFingerprint and calendarFingerprintChanges; and CalendarImportPlan.knownKeys, cancelledAnywhereKeys and canJudgeMissing, which tell a moved event from one that is canceled or gone."
     ]
   }
 }

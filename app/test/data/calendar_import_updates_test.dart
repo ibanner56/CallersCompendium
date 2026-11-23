@@ -353,6 +353,49 @@ void main() {
     );
   });
 
+  group('an occurrence deleted with EXDATE is flagged gone', () {
+    for (final (label, start, exdate) in [
+      (
+        'all-day series',
+        'DTSTART;VALUE=DATE:20300601',
+        'EXDATE;VALUE=DATE:20300622',
+      ),
+      ('timed series', 'DTSTART:20300601T190000', 'EXDATE:20300622T190000'),
+      (
+        'timed series, whole-day EXDATE',
+        'DTSTART:20300601T190000',
+        'EXDATE;VALUE=DATE:20300622',
+      ),
+      ('UTC series', 'DTSTART:20300601T170000Z', 'EXDATE:20300622T170000Z'),
+    ]) {
+      test(label, () async {
+        final repos = openTestRepositories();
+        final series = [
+          'UID:w',
+          start,
+          'RRULE:FREQ=WEEKLY;BYDAY=SA',
+          'SUMMARY:Weekly',
+        ];
+        await _importNew(repos, _cal([series]));
+        // The 22 June occurrence (day 7) is deleted in the calendar.
+        final preview = await _preview(
+          repos,
+          _cal([
+            [...series, exdate],
+          ]),
+        );
+        final gone = [
+          for (final f in preview.flagChanges)
+            if (f.flag != null) f,
+        ];
+        expect(gone, hasLength(1));
+        expect(gone.single.flag, calendarFlagMissing);
+        final date = gone.single.program.eventDate!;
+        expect((date.year, date.month, date.day), (2030, 6, 22));
+      });
+    }
+  });
+
   test('a feed not read whole flags nothing as gone', () async {
     final repos = openTestRepositories();
     await _importNew(repos, _original);

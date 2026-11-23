@@ -12837,5 +12837,9 @@
   "calendarClearFlag": "Retirer le signalement du calendrier",
   "@calendarClearFlag": {
     "x-sourceSha256": "70492bc4421a39eea800e78cf5094663b514956d23a55ba55a7df62e35749f87"
+  },
+  "calendarClearFlagError": "Impossible de retirer le signalement du calendrier. Réessayez.",
+  "@calendarClearFlagError": {
+    "x-sourceSha256": "7f31c36bfec0eaa49ce85b3501658f5788167cceec31b4b23237b44fd80501ee"
   }
 }

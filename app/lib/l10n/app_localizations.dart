@@ -19486,6 +19486,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear calendar flag'**
   String get calendarClearFlag;
+
+  /// Snack bar when Clear calendar flag on a program's summary could not save the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t clear the calendar flag. Try again.'**
+  String get calendarClearFlagError;
 }
 
 class _AppLocalizationsDelegate

@@ -13230,4 +13230,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get calendarClearFlag => 'Clear calendar flag';
+
+  @override
+  String get calendarClearFlagError =>
+      'Couldn\'t clear the calendar flag. Try again.';
 }
