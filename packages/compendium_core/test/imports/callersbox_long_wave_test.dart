@@ -628,6 +628,29 @@ void main() {
       expect(_total(figures), 32);
     });
 
+    test('an already-folded line with a "for all in center" balance: the '
+        'wave stays, the balance stays text', () async {
+      // Not corpus wording (review N1). Without the follower's `for all`
+      // check, the wave turned into the centre wave and the balance folded
+      // into it, dropping `for all`.
+      final figures = await _import({
+        'A1': [
+          '(4) Partner balance',
+          '(4) Partner swing; form long wave',
+          '(4) Balance long wave for all in center',
+          '(4) Neighbor allemande right 1',
+        ],
+      });
+      expect(figures.map((f) => f.move), [
+        'swing',
+        'form_long_waves',
+        'custom',
+        'allemande',
+      ]);
+      expect(figures[2].params['text'], 'Balance long wave for all in center');
+      expect(_total(figures), 16);
+    });
+
     test(
       'a line already folded into stays as it is; the balance stays text',
       () async {

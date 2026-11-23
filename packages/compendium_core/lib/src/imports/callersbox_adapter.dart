@@ -1635,6 +1635,9 @@ class CallersBoxAdapter implements SourceAdapter {
   /// centre-wave fold then decides the pair.
   static Figure _inCenterFollower(Figure wave, Figure balance) {
     if (!_isBareLongWave(wave) || !_isBalanceWaveLine(balance)) return wave;
+    // `for all … in center` is not the centre wave some dancers form; the wave
+    // stays as it is, and the fold refuses the balance (#2331 follow-up).
+    if (_isForAllBalance(balance)) return wave;
     final words = _figureWords(balance).map(_stripEdgePunctuation).toList();
     var inCenter = false;
     for (var i = 0; i + 1 < words.length; i++) {
@@ -1667,8 +1670,9 @@ class CallersBoxAdapter implements SourceAdapter {
   /// the wave itself is not yet in [out] (the in-phrase merge); otherwise it
   /// is [out]'s last figure (the cross-phrase fold). Returns false, changing
   /// nothing, when the follower is not a `for all` balance-wave line or the
-  /// line's figures cannot be found intact; the fold then refuses the `for
-  /// all` balance by itself, so the balance still stays text.
+  /// line's figures cannot be found intact; the in-centre follower then leaves
+  /// the wave as it is and the fold refuses the `for all` balance, so the
+  /// balance still stays text, `in center` or not.
   static bool _keepForAllWaveLineAsText(
     List<Figure> out,
     Figure wave,
@@ -1676,13 +1680,7 @@ class CallersBoxAdapter implements SourceAdapter {
     Map<Figure, _WaveLine> waveLines, {
     bool pending = false,
   }) {
-    if (!_isBareLongWave(wave) || !_isBalanceWaveLine(balance)) return false;
-    final words = _figureWords(balance).map(_stripEdgePunctuation).toList();
-    var forAll = false;
-    for (var i = 0; i + 1 < words.length; i++) {
-      if (words[i] == 'for' && words[i + 1] == 'all') forAll = true;
-    }
-    if (!forAll) return false;
+    if (!_isBareLongWave(wave) || !_isForAllBalance(balance)) return false;
     final line = waveLines[wave];
     if (line == null || !identical(line.figures.last, wave)) return false;
     final placed = pending ? line.figures.length - 1 : line.figures.length;
@@ -1696,6 +1694,16 @@ class CallersBoxAdapter implements SourceAdapter {
       ..removeRange(out.length - placed, out.length)
       ..add(line.asText);
     return true;
+  }
+
+  /// A balance-wave line that says `for all`.
+  static bool _isForAllBalance(Figure balance) {
+    if (!_isBalanceWaveLine(balance)) return false;
+    final words = _figureWords(balance).map(_stripEdgePunctuation).toList();
+    for (var i = 0; i + 1 < words.length; i++) {
+      if (words[i] == 'for' && words[i + 1] == 'all') return true;
+    }
+    return false;
   }
 
   /// Whether a custom figure's text carries a `()` or `[]` annotation.
