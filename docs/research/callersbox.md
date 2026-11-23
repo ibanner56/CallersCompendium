@@ -673,7 +673,9 @@ three real families needs a taxonomy move:
 | 3 | bare / qualified / diagonal | rest | left `custom` |
 
 Group 1a's exact wordings: `Women walk forward; form long wave in center` x70,
-`Men …` x66, `Ones …` x4, `Women walk forward; form long wave` x1,
+`Men …` x66, `Ones …` x4, `Women walk forward; form long wave` x1 (since #2331
+a bare `form long wave` is the side-of-set long waves, not the centre wave the
+walk-forward fold absorbs into, so this one line stays custom),
 `… form long wave [with phantoms]` x1 (`[…]` is stripped for recognition, so
 this one line loses its bracket exactly as a standalone
 `Form long wave [with phantoms]` line already does — noted for #729's audit).

@@ -180,8 +180,10 @@ void main() {
         sf('clockwise', 'thirdNeighbors'),
         'around the major set',
       ),
-      'Single file promenade counterclockwise around the major set to shadow':
-          (sf('counterclockwise', 'shadows'), 'around the major set'),
+      'Single file promenade counterclockwise around the major set to shadow': (
+        sf('counterclockwise', 'shadows'),
+        'around the major set',
+      ),
       // Dance 18433: no destination.
       'Single file promenade counterclockwise around the major set': (
         sf('counterclockwise'),
@@ -218,28 +220,34 @@ void main() {
       );
     });
 
-    test('with no destination the default rotation is not shown (v30 rule)', () {
-      // Stored and canonical keep `counterclockwise`; the display silences a
-      // default turn when no destination is stated, as for every promenade.
-      final f = _single(
-        'Single file promenade counterclockwise around the major set',
-      );
-      expect(f.params['direction'], 'counterclockwise');
-      expect(
-        FigureRenderer(contraTaxonomy).render(f, Dialect.canonical),
-        'single file promenade along',
-      );
-    });
+    test(
+      'with no destination the default rotation is not shown (v30 rule)',
+      () {
+        // Stored and canonical keep `counterclockwise`; the display silences a
+        // default turn when no destination is stated, as for every promenade.
+        final f = _single(
+          'Single file promenade counterclockwise around the major set',
+        );
+        expect(f.params['direction'], 'counterclockwise');
+        expect(
+          FigureRenderer(contraTaxonomy).render(f, Dialect.canonical),
+          'single file promenade along',
+        );
+      },
+    );
 
-    test('"; women turn around" stays a note on the promenade (dance 3266)', () {
-      final figures = _parse(
-        'Single file promenade clockwise around the major set; women turn '
-        'around',
-      );
-      expect(figures, hasLength(1));
-      expect(figures.single.move, 'promenade');
-      expect(figures.single.note, contains('role2s turn around'));
-    });
+    test(
+      '"; women turn around" stays a note on the promenade (dance 3266)',
+      () {
+        final figures = _parse(
+          'Single file promenade clockwise around the major set; women turn '
+          'around',
+        );
+        expect(figures, hasLength(1));
+        expect(figures.single.move, 'promenade');
+        expect(figures.single.note, contains('role2s turn around'));
+      },
+    );
 
     for (final line in const [
       // Dance 3208: a destination that names no dancer set.
@@ -258,11 +266,14 @@ void main() {
       });
     }
 
-    test('a single-file promenade NOT around the major set is still a circle', () {
-      final f = _single('Single file promenade clockwise 3/4');
-      expect(f.move, 'circle');
-      expect(f.params['places'], 3);
-    });
+    test(
+      'a single-file promenade NOT around the major set is still a circle',
+      () {
+        final f = _single('Single file promenade clockwise 3/4');
+        expect(f.move, 'circle');
+        expect(f.params['places'], 3);
+      },
+    );
 
     test('through the importer: dance 18240 A1', () async {
       final payload = jsonEncode({

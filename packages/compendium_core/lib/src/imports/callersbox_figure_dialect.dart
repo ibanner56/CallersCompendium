@@ -39,11 +39,11 @@ import 'while_container.dart';
 /// `()`/`[]` recognition-only annotation strip. Pass this as the `frontEnd` to
 /// [parseFigureLine]/[parseFigureLines] to recognize the full TCB dialect.
 ///
-/// **Pre-recognizer ordering.** The first seventeen entries (through
+/// **Pre-recognizer ordering.** The first nineteen entries (through
 /// `_singleFileCircleRecognizer`) all anchor on a move keyword, and all
 /// require a successful resolution to their own move, so in most cases
-/// order is not correctness-critical.  Four overlapping anchor pairs each
-/// resolve safely without a fixed ordering:
+/// order is not correctness-critical.  Four overlapping anchor groups each
+/// resolve safely:
 ///
 /// 1. `_balanceHandAnnotation` and `_balancePairHandAnnotation` share the
 ///    `\bbalance\b` anchor but match mutually exclusive annotation shapes:
@@ -57,10 +57,13 @@ import 'while_container.dart';
 ///    declines it.  Listed star-first so the ordering reads the way the
 ///    precedence works.
 ///
-/// 3. `_promenadeAnnotation` / `_singleFileCircleRecognizer`: `promenade`
-///    can match a single-file circle line, but `_promenadeAnnotation`
-///    declines it because the full "single file promenade …" phrase does
-///    not resolve to `promenade`.  Listed specific-first.
+/// 3. `_singleFileWholeSetPromenade` / `_promenadeAnnotation` /
+///    `_singleFileCircleRecognizer`: all three can match a `single file
+///    promenade` line. The first claims only `… clockwise|counterclockwise
+///    around the major set` (#2331) and is listed first, because the third
+///    would read that line as a circle. `_promenadeAnnotation` declines every
+///    single-file line, because the shared recognizer cannot read the full
+///    "single file promenade …" phrase as `promenade`.  Listed specific-first.
 ///
 /// 4. `_handBalanceSquareThrough` shares `square through` with
 ///    `_squareThroughPassList` and `balance` with `_balanceHandAnnotation`, but
@@ -94,9 +97,10 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     _walkForwardAnnotation,
     // #2331: TCB's bare `form long wave` is the side-of-set long waves, not
     // the single wave in the centre that `form long wave in center` names.
-    // Anchored on the whole line, so it never claims a line another entry
-    // here reads; listed before `_bracketAnnotation`, which would otherwise
-    // claim `form long wave [M1 with N2, …]` through the shared recognizer.
+    // Anchored on the whole line, so no other move-anchored entry here claims
+    // the same line. Its position IS correctness-critical in one direction: it
+    // must stay before `_bracketAnnotation`, which would otherwise claim
+    // `form long wave [M1 with N2, …]` through the shared recognizer.
     _tcbBareLongWave,
     _chainAnnotation,
     _starPromenadeAnnotation,
@@ -113,7 +117,9 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     // so the general `;`-run consume sees a structured result rather than raw
     // text when this fires. Listed after `_promenadeAnnotation` — the anchor
     // overlaps (`promenade`), but this fires on the FULL phrase including
-    // "single file" prefix, so it does not claim plain promenade lines.
+    // "single file" prefix, so it does not claim plain promenade lines — and
+    // after `_singleFileWholeSetPromenade`, which claims the whole-set lines
+    // (`… around the major set`, #2331) this would read as a circle.
     //
     // Places amounts that are not fractions at all (an improper `5/3`, a
     // denominator past 16) are handled by [_declineSingleFileCircle] BEFORE
@@ -907,7 +913,7 @@ const String _walkForwardPassThroughMove = 'form_short_waves';
 /// an inline count drifts silently the next time the mirror is re-pulled and
 /// cannot state its own population filter.)
 ///
-/// - **`form long wave …` → absorb (group 1a).** Emit ONLY
+/// - **`form long wave in center` → absorb (group 1a).** Emit ONLY
 ///   the wave figure and DROP the travel clause. That is not data loss:
 ///   `form_a_long_wave.in` defaults to `true` and the renderer's entry for the
 ///   move reads "`<who>` dance in to a long wave in the center", so the
@@ -1613,9 +1619,11 @@ FigureMatch? _chainAnnotation(String scrubbed) {
 /// ContraDB dialect fills. On a line that DOES state `along`, the clause
 /// renders, so the words are consumed rather than printed twice.
 ///
-/// Counter-rotating single-file lines (`Single file promenade around the major
-/// set to N3 (role1s cw in center, …)`) are untouched: the shared recognizer
-/// does not read `single file`, so they never resolve to `promenade` here.
+/// Single-file lines never resolve to `promenade` here: the shared recognizer
+/// does not read `single file`. A `clockwise`/`counterclockwise` one around
+/// the major set is [_singleFileWholeSetPromenade]'s (#2331, listed first); a
+/// counter-rotating one (`Single file promenade around the major set to N3
+/// (role1s cw in center, …)`) stays custom.
 FigureMatch? _promenadeAnnotation(String scrubbed) {
   if (!_promenadeAnchor.hasMatch(scrubbed)) return null;
   final annotations = _annotations(scrubbed);
@@ -1826,10 +1834,9 @@ final RegExp _promenadeAnchor = RegExp(
 /// N1]`) states holds this figure would not carry, so the line stays custom
 /// rather than lose them.
 FigureMatch? _tcbBareLongWave(String scrubbed) {
-  final words = _stripAnnotations(scrubbed.toLowerCase())
-      .split(_wsRe)
-      .where((w) => w.isNotEmpty)
-      .toList();
+  final words = _stripAnnotations(
+    scrubbed.toLowerCase(),
+  ).split(_wsRe).where((w) => w.isNotEmpty).toList();
   if (words.length != 3 ||
       words[0] != 'form' ||
       words[1] != 'long' ||
@@ -1860,8 +1867,8 @@ FigureMatch? _tcbBareLongWave(String scrubbed) {
   );
 }
 
-/// One people-code-plus-hand field of a TCB annotation (`P2L`, `N1R`, `SR`,
-/// `P-1R`), the shape that names a hold. Anchored and bounded.
+/// One people-code-plus-hand field of a TCB annotation (P2L, N1R, SR, P-1R),
+/// the shape that names a hold. Anchored and bounded.
 final RegExp _bareLongWaveCodeField = RegExp(r'^[A-Za-z]{1,2}-?\d{0,2}[RL]$');
 
 // --- Single-file promenade around the major set (#2331) ---------------------
@@ -1907,7 +1914,10 @@ FigureMatch? _singleFileWholeSetPromenade(String scrubbed) {
   if (annotations.any(_counterRotationRe.hasMatch)) {
     return const FigureMatch.customFallback();
   }
-  final bare = rest.replaceAll(_parenRe, ' ').replaceAll(_bracketRe, ' ').trim();
+  final bare = rest
+      .replaceAll(_parenRe, ' ')
+      .replaceAll(_bracketRe, ' ')
+      .trim();
 
   String? destination;
   if (bare.isNotEmpty) {
@@ -1965,7 +1975,9 @@ final RegExp _counterRotationRe = RegExp(
 
 /// TCB writes a single-file circulation around the ring as a promenade with a
 /// rotation direction: `Single file promenade clockwise` (= circle left) and
-/// `Single file promenade counterclockwise` (= circle right).
+/// `Single file promenade counterclockwise` (= circle right). The same words
+/// followed by `around the major set` are a whole-set travel, not a ring, and
+/// are [_singleFileWholeSetPromenade]'s (#2331), listed before this one.
 ///
 /// **Mapping to taxonomy.** These map to `circle` with `direction: 'left'` /
 /// `direction: 'right'` and `singleFile: true`. The choice of `circle` (not

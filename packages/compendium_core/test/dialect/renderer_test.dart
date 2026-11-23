@@ -3539,25 +3539,28 @@ void main() {
         );
       });
 
-      test('both hands: whom2 is held by the hand opposite whomHand (#2331)', () {
-        expect(
-          renderer.render(
-            Figure(
-              move: 'form_long_waves',
-              params: {
-                'who': 'role2s',
-                'whom': 'nextNeighbors',
-                'whomHand': 'right',
-                'whom2': 'neighbors',
-                'balance': true,
-              },
+      test(
+        'both hands: whom2 is held by the hand opposite whomHand (#2331)',
+        () {
+          expect(
+            renderer.render(
+              Figure(
+                move: 'form_long_waves',
+                params: {
+                  'who': 'role2s',
+                  'whom': 'nextNeighbors',
+                  'whomHand': 'right',
+                  'whom2': 'neighbors',
+                  'balance': true,
+                },
+              ),
+              larks,
             ),
-            larks,
-          ),
-          'form long waves - next neighbor by the right, neighbor by the '
-          'left, robins facing in, larks facing out - and balance',
-        );
-      });
+            'form long waves - next neighbor by the right, neighbor by the '
+            'left, robins facing in, larks facing out - and balance',
+          );
+        },
+      );
 
       test('whom2 is not shown without a stated whomHand', () {
         expect(
@@ -3583,10 +3586,7 @@ void main() {
           'form long waves - and balance',
         );
         expect(
-          renderer.render(
-            lw({'whom': 'neighbors', 'whomHand': 'left'}),
-            larks,
-          ),
+          renderer.render(lw({'whom': 'neighbors', 'whomHand': 'left'}), larks),
           'form long waves - neighbor by the left',
         );
         expect(renderer.renderCanonical(lw({})), 'form long waves');

@@ -118,31 +118,34 @@ void main() {
       });
     }
 
-    test('through the importer: dance 14635 A2 keeps the line as text', () async {
-      final payload = jsonEncode({
-        'ID': '14635',
-        'Name': 'Composition 90',
-        'Permission': 'full',
-        'phrases': [
-          {
-            'name': 'A2',
-            'figures': [
-              '(8) Men do a right-hand ladies chain to partner',
-              '(8) Men allemande right (1 or 2)',
-            ],
-          },
-        ],
-      });
-      final adapter = CallersBoxAdapter();
-      final discovered = await adapter.discover(
-        ImportRequest(payload: payload),
-      );
-      final raw = await adapter.fetch(discovered.single);
-      final figures = figuresOf(adapter.parse(raw).dance);
-      expect(figures.last.isCustom, isTrue);
-      expect(figures.last.params['text'], 'role1s allemande right (1 or 2)');
-      expect(figures.fold<int>(0, (a, f) => a + f.beats), 16);
-    });
+    test(
+      'through the importer: dance 14635 A2 keeps the line as text',
+      () async {
+        final payload = jsonEncode({
+          'ID': '14635',
+          'Name': 'Composition 90',
+          'Permission': 'full',
+          'phrases': [
+            {
+              'name': 'A2',
+              'figures': [
+                '(8) Men do a right-hand ladies chain to partner',
+                '(8) Men allemande right (1 or 2)',
+              ],
+            },
+          ],
+        });
+        final adapter = CallersBoxAdapter();
+        final discovered = await adapter.discover(
+          ImportRequest(payload: payload),
+        );
+        final raw = await adapter.fetch(discovered.single);
+        final figures = figuresOf(adapter.parse(raw).dance);
+        expect(figures.last.isCustom, isTrue);
+        expect(figures.last.params['text'], 'role1s allemande right (1 or 2)');
+        expect(figures.fold<int>(0, (a, f) => a + f.beats), 16);
+      },
+    );
 
     test('a ;-compound holding one stays whole-line custom, either order', () {
       for (final line in const [

@@ -102,7 +102,10 @@ void main() {
     test('"Women walk forward; form long wave" (dance 130) stays text', () {
       // The walk-forward fold reads only the centre wave, whose subject is who
       // dances in; nothing says who faces in at the sides.
-      expect(parse('Women walk forward; form long wave').single.isCustom, isTrue);
+      expect(
+        parse('Women walk forward; form long wave').single.isCustom,
+        isTrue,
+      );
     });
   });
 
@@ -211,7 +214,10 @@ void main() {
     test('a bare "Balance long wave" folds in as the balance alone', () async {
       // Not corpus wording.
       final figures = await _import({
-        'A1': ['(8) Neighbor do-si-do; form long wave', '(4) Balance long wave'],
+        'A1': [
+          '(8) Neighbor do-si-do; form long wave',
+          '(4) Balance long wave',
+        ],
       });
       _expectLongWaves(figures.last, {
         'who': _unspecified,
@@ -311,7 +317,10 @@ void main() {
       // Not corpus wording: the 1-code shape of the 86 cross-phrase pairs.
       final figures = await _import({
         'A1': ['(8) Ladies chain', '(8) Neighbor do-si-do; form long wave'],
-        'A2': ['(4) Balance long wave (NR, women face in)', '(12) Partner swing'],
+        'A2': [
+          '(4) Balance long wave (NR, women face in)',
+          '(12) Partner swing',
+        ],
       });
       expect(figures.map((f) => f.move), [
         'chain',
@@ -342,22 +351,25 @@ void main() {
   });
 
   group('an in-center balance after a bare wave: the follower decides', () {
-    test('dance 10465 A1: Women … in center folds into the centre wave', () async {
-      final figures = await _import({
-        'A1': [
-          '(8) In long lines, go forward and back',
-          '(4) Women allemande left 1 & 1/4; form long wave',
-          '(4) Women balance long wave in center',
-        ],
-      });
-      expect(figures.map((f) => f.move), [
-        'long_lines',
-        'allemande',
-        'form_a_long_wave',
-      ]);
-      expect(figures.last.params['balance'], isTrue);
-      expect(figures.last.params['beats'], 4);
-    });
+    test(
+      'dance 10465 A1: Women … in center folds into the centre wave',
+      () async {
+        final figures = await _import({
+          'A1': [
+            '(8) In long lines, go forward and back',
+            '(4) Women allemande left 1 & 1/4; form long wave',
+            '(4) Women balance long wave in center',
+          ],
+        });
+        expect(figures.map((f) => f.move), [
+          'long_lines',
+          'allemande',
+          'form_a_long_wave',
+        ]);
+        expect(figures.last.params['balance'], isTrue);
+        expect(figures.last.params['beats'], 4);
+      },
+    );
 
     test('dance 5771 B2: Men … in center is refused, the wave still turns '
         'into the centre wave', () async {
@@ -411,22 +423,28 @@ void main() {
       expect(_total(figures), 32);
     });
 
-    test('dance 8066: across a phrase, Ones … in center (1R) is refused', () async {
-      final figures = await _import({
-        'A1': ['(8) Neighbor do-si-do', '(8) Ones do-si-do 1 & 1/4; form long wave'],
-        'A2': [
-          '(4) Ones balance long wave in center (1R)',
-          '(4) Ones balance long wave in center (1R)',
-          '(4) Ones allemande right 3/4',
-          '(4) Neighbor allemande left 1',
-        ],
-      });
-      expect(figures[2].move, 'form_a_long_wave');
-      expect(figures[2].params, isEmpty);
-      expect(figures[3].isCustom, isTrue);
-      expect(figures.any((f) => f.move == 'form_long_waves'), isFalse);
-      expect(_total(figures), 32);
-    });
+    test(
+      'dance 8066: across a phrase, Ones … in center (1R) is refused',
+      () async {
+        final figures = await _import({
+          'A1': [
+            '(8) Neighbor do-si-do',
+            '(8) Ones do-si-do 1 & 1/4; form long wave',
+          ],
+          'A2': [
+            '(4) Ones balance long wave in center (1R)',
+            '(4) Ones balance long wave in center (1R)',
+            '(4) Ones allemande right 3/4',
+            '(4) Neighbor allemande left 1',
+          ],
+        });
+        expect(figures[2].move, 'form_a_long_wave');
+        expect(figures[2].params, isEmpty);
+        expect(figures[3].isCustom, isTrue);
+        expect(figures.any((f) => f.move == 'form_long_waves'), isFalse);
+        expect(_total(figures), 32);
+      },
+    );
   });
 
   group('a standalone balance with both hands', () {
