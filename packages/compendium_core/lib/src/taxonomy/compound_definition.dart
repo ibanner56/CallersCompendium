@@ -281,7 +281,7 @@ Set<Object>? allowedValues(
       accepted = slotDomain;
     } else {
       // Every value whose opposite the slot takes.
-      final universe = _universe(param.kind, spec);
+      final universe = _universe(param.kind, spec, definition.form);
       accepted = {
         for (final value in universe ?? const <Object>{})
           if (ParamOpposites.of(param.kind, value) case final Object opposite
@@ -292,18 +292,21 @@ Set<Object>? allowedValues(
     if (accepted == null) continue; // free text constrains nothing
     allowed = allowed == null ? {...accepted} : allowed.intersection(accepted);
   }
-  return allowed ?? _universe(param.kind, null);
+  return allowed ?? _universe(param.kind, null, definition.form);
 }
 
 /// Every value of [kind] a slot could hold: its shared vocabulary with the
-/// `unspecified` sentinel, or [spec]'s own domain for a move-specific kind.
-Set<Object>? _universe(ParamKind kind, ParamSpec? spec) {
+/// `unspecified` sentinel, or [spec]'s own domain for a move-specific kind. A
+/// group of dancers takes the groups of [form], the combination's own, as a
+/// figure of your own made for that form does ([userFigureDancerChoices],
+/// #2294).
+Set<Object>? _universe(ParamKind kind, ParamSpec? spec, String form) {
   final wide = ParamSpec(
     kind,
     defaultValue: null,
     choices: switch (kind) {
       ParamKind.dancerSet || ParamKind.dancerPair => [
-        ...ParamVocab.dancerSets,
+        ...(userFigureDancerChoices(form) ?? ParamVocab.dancerSets),
         ParamVocab.unspecified,
       ],
       ParamKind.handedness ||
