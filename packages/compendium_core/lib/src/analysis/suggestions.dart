@@ -5,10 +5,11 @@
 /// the builder picker's current results. The factors, their effects and the
 /// shipped weights are described in `docs/design/suggestions.md`.
 ///
-/// The position is given as the program's slots before it and after it, so a
-/// later caller can rank for a point inside the program (#2344) without a new
-/// scorer; the builder ranks for the end, with every slot before and none
-/// after.
+/// The position is given as the program's slots before it and after it: the
+/// builder ranks for the end with every slot before and none after, for an
+/// add before or after a slot with the slots on either side of the new dance,
+/// and for **Replace…** with the slots on either side of the slot being
+/// replaced, which is in neither (#2344). One scorer serves every position.
 ///
 /// Ranking only reorders. Every candidate comes back, once.
 library;
@@ -41,8 +42,9 @@ enum SuggestionReasonKind {
   newMoves,
 
   /// The move [SuggestionReason.moveKey] (a matrix column key) overlaps the
-  /// [SuggestionReason.neighbor]'s beats, by the matrix's exact-beat alert
-  /// rule; with [SuggestionReason.count] colliding moves in all.
+  /// beats of the neighbour [SuggestionReason.neighborDanceId], on the
+  /// [SuggestionReason.neighbor] side, by the matrix's exact-beat alert rule;
+  /// with [SuggestionReason.count] colliding moves in all.
   beatOverlap,
 
   /// As [beatOverlap], under the matrix's phrase rule ("Flag exact beat overlap
@@ -53,7 +55,9 @@ enum SuggestionReasonKind {
   /// scored, and is listed after every other dance, whatever its form.
   alreadyInProgram,
 
-  /// Same formation family as the [SuggestionReason.neighbor].
+  /// Same formation family as the neighbour
+  /// [SuggestionReason.neighborDanceId], on the [SuggestionReason.neighbor]
+  /// side.
   sameFormationAsNeighbor,
 
   /// The program already has [SuggestionReason.count] dances in this
@@ -103,6 +107,7 @@ class SuggestionReason {
     this.moveKey,
     this.formation,
     this.neighbor,
+    this.neighborDanceId,
     this.date,
   });
 
@@ -116,6 +121,13 @@ class SuggestionReason {
   final String? moveKey;
   final FormationShape? formation;
   final SuggestionNeighbor? neighbor;
+
+  /// The neighbour a [SuggestionReasonKind.beatOverlap],
+  /// [SuggestionReasonKind.phraseOverlap] or
+  /// [SuggestionReasonKind.sameFormationAsNeighbor] reason compares with: the
+  /// first such dance on the [neighbor] side (one of several when that side is
+  /// a group of alternates), so the reason can name it (#2344).
+  final String? neighborDanceId;
   final DateTime? date;
 
   /// Whether this reason moved the dance (a note does not).
@@ -131,11 +143,20 @@ class SuggestionReason {
       other.moveKey == moveKey &&
       other.formation == formation &&
       other.neighbor == neighbor &&
+      other.neighborDanceId == neighborDanceId &&
       other.date == date;
 
   @override
-  int get hashCode =>
-      Object.hash(kind, factor, effect, count, moveKey, formation, neighbor);
+  int get hashCode => Object.hash(
+    kind,
+    factor,
+    effect,
+    count,
+    moveKey,
+    formation,
+    neighbor,
+    neighborDanceId,
+  );
 
   @override
   String toString() => 'SuggestionReason(${kind.name}, $effect)';
@@ -233,6 +254,93 @@ class SuggestionCandidate {
   final int revision;
 }
 
+/// Where in a program a dance would go: the slots before and after it, and
+/// whether it takes an alternate's place. The three ways the builder asks for
+/// suggestions (#2343, #2344) each make one, so the split is worked out in one
+/// place and a later host (#2348) can reuse it.
+@immutable
+class SuggestionPosition {
+  const SuggestionPosition({
+    required this.slotsBefore,
+    this.slotsAfter = const [],
+    this.isAlternate = false,
+  });
+
+  /// After every slot: adding at the end of the program.
+  factory SuggestionPosition.atEnd(List<ProgramSlot> slots) =>
+      SuggestionPosition(slotsBefore: List.unmodifiable(slots));
+
+  /// Where a dance added before ([after] false) or after ([after] true) the
+  /// alternate group holding the slot at [index] lands, by the rule the
+  /// builder adds it with ([Program.insertSlotAtGroupBoundary], #2339):
+  /// before the group's primary or after its last alternate, as a primary. A
+  /// leading run of orphaned alternates that the add would promote is given
+  /// as promoted.
+  factory SuggestionPosition.inserting(
+    List<ProgramSlot> slots,
+    int index, {
+    required bool after,
+  }) {
+    const placeholderId = '\u0000suggestion-position';
+    final inserted = Program.insertSlotAtGroupBoundary(
+      slots,
+      index,
+      ProgramSlot(id: placeholderId, position: 0, danceId: placeholderId),
+      after: after,
+    );
+    final at = inserted.indexWhere((slot) => slot.id == placeholderId);
+    return SuggestionPosition(
+      slotsBefore: List.unmodifiable(inserted.sublist(0, at)),
+      slotsAfter: List.unmodifiable(inserted.sublist(at + 1)),
+    );
+  }
+
+  /// The place of the slot at [index], for **Replace…**: every other slot,
+  /// on its side. The slot itself is in neither list, so its current dance is
+  /// not a neighbour of the candidates and does not count as already in the
+  /// program (unless another slot holds it): replacing a dance with itself
+  /// changes nothing the caller cannot see.
+  factory SuggestionPosition.replacing(List<ProgramSlot> slots, int index) {
+    RangeError.checkValidIndex(index, slots, 'index');
+    return SuggestionPosition(
+      slotsBefore: List.unmodifiable(slots.sublist(0, index)),
+      slotsAfter: List.unmodifiable(slots.sublist(index + 1)),
+      isAlternate: slots[index].isAlt,
+    );
+  }
+
+  /// See [SuggestionRequest.slotsBefore].
+  final List<ProgramSlot> slotsBefore;
+
+  /// See [SuggestionRequest.slotsAfter].
+  final List<ProgramSlot> slotsAfter;
+
+  /// See [SuggestionRequest.candidateIsAlternate].
+  final bool isAlternate;
+
+  @override
+  bool operator ==(Object other) =>
+      other is SuggestionPosition &&
+      other.isAlternate == isAlternate &&
+      _sameSlots(other.slotsBefore, slotsBefore) &&
+      _sameSlots(other.slotsAfter, slotsAfter);
+
+  @override
+  int get hashCode => Object.hash(
+    isAlternate,
+    Object.hashAll(slotsBefore),
+    Object.hashAll(slotsAfter),
+  );
+
+  static bool _sameSlots(List<ProgramSlot> a, List<ProgramSlot> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+}
+
 /// Everything [rankSuggestions] reads. Plain data, and only what the scorer
 /// needs ([SuggestionCandidate]), so it is cheap to send to another isolate.
 @immutable
@@ -251,14 +359,27 @@ class SuggestionRequest {
     this.levels = const [],
     this.hasVenue = false,
     this.calledHere = const {},
+    this.candidateIsAlternate = false,
   });
 
   /// The program's slots before the position, in order (every slot, for the
-  /// end of the program).
+  /// end of the program). For **Replace…**, the slots before the one being
+  /// replaced.
   final List<ProgramSlot> slotsBefore;
 
-  /// The program's slots after the position (none, for the end).
+  /// The program's slots after the position (none, for the end). For
+  /// **Replace…**, the slots after the one being replaced: that slot is in
+  /// neither list, so its current dance is not compared with, and is not
+  /// "already in this program" unless another slot holds it.
   final List<ProgramSlot> slotsAfter;
+
+  /// Whether the candidate takes an alternate's place ([ProgramSlot.isAlt]):
+  /// true only for **Replace…** on an alternate. The candidate then belongs
+  /// to the alternate group that ends [slotsBefore], so that group's dances
+  /// are alternatives to it, not neighbours, as in the matrix; and the curve
+  /// reads that group's place in the evening. A new dance added before or
+  /// after a slot is always a primary (`Program.insertSlotAtGroupBoundary`).
+  final bool candidateIsAlternate;
 
   /// The dances the slots refer to, by id. A slot whose dance is missing reads
   /// as a dance with no figures, as the matrix shows a deleted one.
@@ -314,6 +435,7 @@ class SuggestionRequest {
         levels: levels,
         hasVenue: hasVenue,
         calledHere: calledHere,
+        candidateIsAlternate: candidateIsAlternate,
       );
 }
 
@@ -407,6 +529,7 @@ class _Scorer {
         id: candidateId,
         position: request.slotsBefore.length,
         danceId: candidateId,
+        isAlt: request.candidateIsAlternate,
       ),
       ...request.slotsAfter,
     ];
@@ -474,7 +597,7 @@ class _Scorer {
       if (dance == null) continue;
       _neighborFamilies.putIfAbsent(
         _formationFamily(dance.formation.shape),
-        () => neighbor,
+        () => (neighbor, probe.rows[r].danceId),
       );
     }
 
@@ -487,7 +610,19 @@ class _Scorer {
       _minLevel = sorted.first;
       _maxLevel = sorted.last;
     }
-    _plannedBefore = Program.plannedDanceCountOf(request.slotsBefore);
+    // The curve reads the candidate's place in the evening: the planned
+    // dances before its alternate group (for an alternate, before its
+    // primary), and the evening's length counting it only when it is itself
+    // a planned dance.
+    var groupStart = candidateSlot;
+    while (groupStart > 0 && groups[groupStart - 1] == _candidateGroup) {
+      groupStart--;
+    }
+    _plannedBefore = Program.plannedDanceCountOf(slots.take(groupStart));
+    _plannedLength =
+        Program.plannedDanceCountOf(request.slotsBefore) +
+        Program.plannedDanceCountOf(request.slotsAfter) +
+        (slots[candidateSlot].isPlannedDance ? 1 : 0);
     final known = [
       for (final dance in _otherDances.nonNulls)
         ?positions[dance.difficultyLevelId],
@@ -519,7 +654,7 @@ class _Scorer {
   bool isInProgram(String danceId) => _programDanceIds.contains(danceId);
   final _programMoves = <String>{};
   final _formationCounts = <String, int>{};
-  final _neighborFamilies = <String, SuggestionNeighbor>{};
+  final _neighborFamilies = <String, (SuggestionNeighbor, String)>{};
   int _candidateRow = 0;
   int? _candidateSection;
   int? _candidateGroup;
@@ -527,6 +662,7 @@ class _Scorer {
   int _minLevel = 0;
   int _maxLevel = 0;
   int _plannedBefore = 0;
+  int _plannedLength = 1;
   double? _meanLevel;
   late final DateTime _venueCutoff;
 
@@ -561,6 +697,7 @@ class _Scorer {
     String? moveKey,
     FormationShape? formation,
     SuggestionNeighbor? neighbor,
+    String? neighborDanceId,
     DateTime? date,
   }) {
     final effect = raw * _settings.weightOf(factor).multiplier;
@@ -574,6 +711,7 @@ class _Scorer {
         moveKey: moveKey,
         formation: formation,
         neighbor: neighbor,
+        neighborDanceId: neighborDanceId,
         date: date,
       ),
     );
@@ -602,20 +740,15 @@ class _Scorer {
       rows: [..._rowsBefore, row, ..._rowsAfter],
       collisionMode: request.collisionMode,
     );
-    final colliding = <String, SuggestionNeighbor>{};
+    // Each colliding move, with the first neighbour it collides with (the
+    // dance before, then the dance after; within a side, a group's primary
+    // before its alternates).
+    final colliding = <String, int>{};
     for (final key in row.beatSpansByMove.keys) {
-      if (!matrix.isCollisionOnMove(_candidateRow, key)) continue;
-      // Which side collided: the first neighbour that holds the move.
-      var side = SuggestionNeighbor.previous;
-      for (final r in matrix.neighborRowIndices(_candidateRow)) {
-        if (matrix.rows[r].beatSpansByMove.containsKey(key)) {
-          side = r < _candidateRow
-              ? SuggestionNeighbor.previous
-              : SuggestionNeighbor.next;
-          break;
-        }
-      }
-      colliding[key] = side;
+      final first = matrix
+          .collidingNeighborRowIndices(_candidateRow, key)
+          .firstOrNull;
+      if (first != null) colliding[key] = first;
     }
     if (colliding.isNotEmpty) {
       final first = colliding.entries.first;
@@ -628,7 +761,10 @@ class _Scorer {
         -(0.6 * colliding.length).clamp(0, 1).toDouble(),
         count: colliding.length,
         moveKey: first.key,
-        neighbor: first.value,
+        neighbor: first.value < _candidateRow
+            ? SuggestionNeighbor.previous
+            : SuggestionNeighbor.next,
+        neighborDanceId: matrix.rows[first.value].danceId,
       );
     }
     final fresh = row.presentMoveIds
@@ -653,15 +789,15 @@ class _Scorer {
     if (_otherDances.isEmpty) return;
     final shape = dance.formation.shape;
     final family = _formationFamily(shape);
-    final neighbor = _neighborFamilies[family];
-    if (neighbor != null) {
+    if (_neighborFamilies[family] case (final side, final danceId)) {
       _add(
         into,
         factor,
         SuggestionReasonKind.sameFormationAsNeighbor,
         -0.6,
         formation: shape,
-        neighbor: neighbor,
+        neighbor: side,
+        neighborDanceId: danceId,
       );
     }
     final count = _formationCounts[family] ?? 0;
@@ -697,7 +833,7 @@ class _Scorer {
         // An evening of about [_nominalEvening] dances, or this one's length
         // when it is already longer: rise to the hardest level at 70% of the
         // way, then ease to the middle by the last dance.
-        final planned = _plannedBefore + 1 + _plannedAfter;
+        final planned = _plannedLength;
         final length = planned > _nominalEvening ? planned : _nominalEvening;
         final t = _plannedBefore / (length - 1);
         final f = t <= 0.7 ? t / 0.7 : 1 - (t - 0.7) / 0.3 * 0.5;
@@ -706,8 +842,6 @@ class _Scorer {
   }
 
   static const int _nominalEvening = 12;
-
-  int get _plannedAfter => Program.plannedDanceCountOf(request.slotsAfter);
 
   /// Difficulty curve: close to the level the chosen shape wants here.
   void _curve(SuggestionCandidate dance, List<SuggestionReason> into) {
