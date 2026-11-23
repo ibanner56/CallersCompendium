@@ -402,7 +402,10 @@ the moves — inside your dances. It works by stacking up rows and groups:
    pick long lines to find those). While **Custom Figures** is on, your own
    new figures are offered too, marked as yours and listed before the built-in
    moves unless you type a move's exact name, which comes first; picking one finds
-   the dances that use it. A use that shows its stored line instead of your
+   the dances that use it. Each is named, and found by typing, in the dialect of
+   the type it was made for, so one made for English reads in your English
+   dialect while the moves beside it read in your contra dialect; two figures of
+   different types that read alike are told apart by their type. A use that shows its stored line instead of your
    figure's wording is not found this way — one changed on another device, one
    with a choice the figure no longer has, or one of a figure you have deleted
    — but its line is still found by the search bar.

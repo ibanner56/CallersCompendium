@@ -1,0 +1,9 @@
+{
+  "id": "advanced-search-figure-dialects",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "In the dance list's Advanced search, a Has figure row names your own figures, offers them and finds them by typing in the dialect of the type each was made for, as the Glossary shows them: a figure made for English reads in your English dialect, not your contra dialect. Two figures of different types that read alike are told apart by their type. The moves beside them still read in your contra dialect, and nothing changes while your dialects are the same."
+    ]
+  }
+}
