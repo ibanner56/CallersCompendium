@@ -86,6 +86,7 @@ class SuggestionReasonLabels {
     required this.venueLabel,
     required this.formatDate,
     this.danceTitle,
+    this.dialectForColumn,
   });
 
   /// Reads the date format and localizations from [context].
@@ -97,6 +98,7 @@ class SuggestionReasonLabels {
     required UserFigureCatalog userFigures,
     required String? venueLabel,
     String? Function(String danceId)? danceTitle,
+    Dialect Function(MatrixColumn column)? dialectForColumn,
   }) {
     final l10n = AppLocalizations.of(context);
     final dateFormat = DateFormatScope.of(context);
@@ -114,6 +116,7 @@ class SuggestionReasonLabels {
           : l10n.programsVenueLinkedHintFallbackName,
       formatDate: (date) => formatEventDate(date, dateFormat, material, l10n),
       danceTitle: danceTitle,
+      dialectForColumn: dialectForColumn,
     );
   }
 
@@ -130,17 +133,25 @@ class SuggestionReasonLabels {
   /// the reason then says "the previous dance" or "the next dance".
   final String? Function(String danceId)? danceTitle;
 
-  String _move(String key) => matrixColumnLabel(
-    matrixColumnForKey(
+  /// The dialect a column is named in, when it is not [dialect]: the one the
+  /// program matrix names the same column in, so a reason and the column it
+  /// points at read alike (#2294). Null names every column in [dialect].
+  final Dialect Function(MatrixColumn column)? dialectForColumn;
+
+  String _move(String key) {
+    final column = matrixColumnForKey(
       key,
       taxonomy: taxonomy,
       config: matrixConfig,
       userFigures: userFigures,
-    ),
-    taxonomy,
-    dialect,
-    config: matrixConfig,
-  );
+    );
+    return matrixColumnLabel(
+      column,
+      taxonomy,
+      dialectForColumn?.call(column) ?? dialect,
+      config: matrixConfig,
+    );
+  }
 
   /// The sentence for [reason].
   String text(SuggestionReason reason) {
