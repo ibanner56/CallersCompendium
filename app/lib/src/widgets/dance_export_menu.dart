@@ -154,7 +154,7 @@ class DanceExportMenu extends StatelessWidget {
       case _ExportAction.shareBundle:
         await actions.shareBundle(messenger, l10n, origin: origin);
       case _ExportAction.showCode:
-        await actions.showCode(navigator, messenger, l10n, origin: origin);
+        await actions.showCode(navigator, messenger, l10n);
       case _ExportAction.copyText:
         await actions.copyText(messenger, l10n);
       case _ExportAction.shareJson:

@@ -7,12 +7,12 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../diagnostics/error_log.dart';
 
 /// Keeps the device screen awake for the lifetime of a Perform view
-/// (`docs/design/ux.md` §5; ROADMAP 5.2), or of any other view that must stay
-/// readable while it is held up: the Show code screen uses it too. A caller often props a tablet across
+/// (`docs/design/ux.md` §5; ROADMAP 5.2). A caller often props a tablet across
 /// the room, so the screen must not auto-sleep while a large-print reading view
 /// is on screen — and normal sleep behavior must resume the moment it leaves.
+/// The Show code screen, held up for someone to read, uses it too.
 ///
-/// Mix into a Perform screen's [State] alongside [WidgetsBindingObserver]:
+/// Mix into a screen's [State] alongside [WidgetsBindingObserver]:
 ///
 /// ```dart
 /// class _MyScreenState extends State<MyScreen>

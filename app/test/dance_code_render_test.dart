@@ -66,17 +66,47 @@ class _Seen {
   final int warmPixels;
 }
 
+Future<_Seen> _read(RenderRepaintBoundary boundary, double density) async {
+  final image = await boundary.toImage(pixelRatio: density);
+  final data = (await image.toByteData())!;
+  final pixels = Int32List(image.width * image.height);
+  var tile = 0;
+  var warm = 0;
+  for (var i = 0; i < pixels.length; i++) {
+    final r = data.getUint8(i * 4);
+    final g = data.getUint8(i * 4 + 1);
+    final b = data.getUint8(i * 4 + 2);
+    pixels[i] = (0xFF << 24) | (r << 16) | (g << 8) | b;
+    if ((r - 0x1E).abs() < 6 && (g - 0x2A).abs() < 6 && (b - 0x38).abs() < 6) {
+      tile++;
+    }
+    if (r > 220 && g > 120 && g < 200 && b < 140) warm++;
+  }
+  final bitmap = BinaryBitmap(
+    HybridBinarizer(RGBLuminanceSource(image.width, image.height, pixels)),
+  );
+  String? text;
+  try {
+    text = QRCodeReader().decode(bitmap).text;
+  } catch (_) {
+    text = null;
+  }
+  return _Seen(text, tile, warm);
+}
+
 Future<_Seen> _look(
   WidgetTester tester,
   DanceCodeShown plan, {
   double? markFraction,
   Brightness brightness = Brightness.light,
+  Size logicalSize = const Size(800, 1200),
+  double density = 1,
 }) async {
-  // One logical pixel per device pixel, so the decoder sees exactly what the
-  // screen paints.
+  // The picture is taken at the screen's own density, so the decoder sees
+  // exactly the device pixels the screen would paint.
   tester.view
-    ..physicalSize = const Size(800, 1200)
-    ..devicePixelRatio = 1;
+    ..physicalSize = logicalSize * density
+    ..devicePixelRatio = density;
   addTearDown(tester.view.reset);
   final key = GlobalKey();
   await tester.pumpWidget(
@@ -95,42 +125,21 @@ Future<_Seen> _look(
     ),
   );
   await tester.pumpAndSettle();
-  // The mark is an SVG asset, read from the bundle on a real clock.
-  await tester.runAsync(
-    () => Future<void>.delayed(const Duration(milliseconds: 300)),
-  );
-  await tester.pump();
 
   final boundary = tester.renderObject<RenderRepaintBoundary>(find.byKey(key));
-  final seen = await tester.runAsync(() async {
-    final image = await boundary.toImage();
-    final data = (await image.toByteData())!;
-    final pixels = Int32List(image.width * image.height);
-    var tile = 0;
-    var warm = 0;
-    for (var i = 0; i < pixels.length; i++) {
-      final r = data.getUint8(i * 4);
-      final g = data.getUint8(i * 4 + 1);
-      final b = data.getUint8(i * 4 + 2);
-      pixels[i] = (0xFF << 24) | (r << 16) | (g << 8) | b;
-      if ((r - 0x1E).abs() < 6 &&
-          (g - 0x2A).abs() < 6 &&
-          (b - 0x38).abs() < 6) {
-        tile++;
-      }
-      if (r > 220 && g > 120 && g < 200 && b < 140) warm++;
-    }
-    final bitmap = BinaryBitmap(
-      HybridBinarizer(RGBLuminanceSource(image.width, image.height, pixels)),
+  // The mark is an SVG asset, read from the bundle on a real clock: look until
+  // it has painted (when this plan carries one), up to a deadline.
+  final deadline = DateTime.now().add(const Duration(seconds: 15));
+  _Seen? seen;
+  do {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
     );
-    String? text;
-    try {
-      text = QRCodeReader().decode(bitmap).text;
-    } catch (_) {
-      text = null;
-    }
-    return _Seen(text, tile, warm);
-  });
+    await tester.pump();
+    seen = await tester.runAsync(() => _read(boundary, density));
+  } while (plan.withMark &&
+      seen!.tilePixels < 5000 &&
+      DateTime.now().isBefore(deadline));
   return seen!;
 }
 
@@ -179,6 +188,28 @@ void main() {
     final seen = await _look(tester, densest);
     expect(seen.text, densest.link);
     expect(seen.tilePixels, greaterThan(5000));
+  });
+
+  testWidgets('it reads back on a 2.625x phone screen too', (tester) async {
+    // Not every screen is 1x or 3x: modules are whole device pixels at this
+    // density as well.
+    final seen = await _look(
+      tester,
+      seed,
+      logicalSize: const Size(412, 915),
+      density: 2.625,
+    );
+    expect(seen.text, seed.link);
+    expect(seen.tilePixels, greaterThan(5000));
+  });
+
+  testWidgets('the mark has room to spare: a much larger one still reads', (
+    tester,
+  ) async {
+    // The shipped size is 18%; a mark at 30% still decodes. A decoder is not
+    // a phone camera, so this is margin in a software reader, not a promise.
+    final seen = await _look(tester, seed, markFraction: 0.30);
+    expect(seen.text, seed.link);
   });
 
   testWidgets('a mark enlarged past what the code can lose is not read', (

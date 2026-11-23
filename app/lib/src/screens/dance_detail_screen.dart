@@ -883,12 +883,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ),
           PopupMenuItem<void>(
             key: const ValueKey('overflow-show-code'),
-            onTap: () => exportActions.showCode(
-              navigator,
-              messenger,
-              l10n,
-              origin: centerOrigin,
-            ),
+            onTap: () => exportActions.showCode(navigator, messenger, l10n),
             child: ListTile(
               leading: const Icon(Icons.qr_code_2),
               title: Text(l10n.exportShowCode),

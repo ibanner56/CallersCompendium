@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -8,7 +10,7 @@ import 'brand_mark.dart';
 
 /// How much of the code's width the brand mark covers (#2334). The issue asks
 /// for about 15 to 20%. Only a level H code (30% of it can be lost) is drawn
-/// with the mark, and `dance_code_view_test.dart` decodes a rendered one to
+/// with the mark, and `dance_code_render_test.dart` decodes a rendered one to
 /// show it still scans.
 const double kDanceCodeMarkFraction = 0.18;
 
@@ -17,6 +19,11 @@ const double _clearZoneFactor = 1.18;
 
 /// A QR code needs a quiet zone of at least this many modules on each side.
 const int _quietZoneModules = 4;
+
+/// A code is dark modules on a light card, in every theme: scanners expect it,
+/// and a dark theme would invert it. These are deliberately not theme colours.
+const Color _codeLight = Colors.white;
+const Color _codeDark = Colors.black;
 
 /// A dance shown as a full-screen QR code to hold up for another caller
 /// (#2334): the code, the brand mark in its middle when the plan allows one,
@@ -66,11 +73,14 @@ class _DanceCodeScreenState extends State<DanceCodeScreen>
                       final available = constraints.biggest.shortestSide;
                       final span = plan.moduleCount + 2 * _quietZoneModules;
                       // Whole device pixels per module: a scanner reads a
-                      // blurred edge worse than a crisp one.
-                      final modulePixels = (available * dpr / span)
-                          .floor()
-                          .clamp(1, 1 << 20);
-                      final module = modulePixels / dpr;
+                      // blurred edge worse than a crisp one. (Where is the
+                      // card? `_CodePainter` snaps that to a whole pixel.) If
+                      // not even one pixel per module fits, the window is too
+                      // small to scan from anyway: fit the code to it.
+                      final wholePixels = (available * dpr / span).floor();
+                      final module = wholePixels >= 1
+                          ? wholePixels / dpr
+                          : available / span;
                       final side = module * span;
                       return Semantics(
                         label: l10n.danceCodeSemanticLabel(widget.title),
@@ -132,7 +142,7 @@ class _CodeCard extends StatelessWidget {
     final codeSide = module * plan.moduleCount;
     final mark = markFraction == null ? null : codeSide * markFraction!;
     return ColoredBox(
-      color: Colors.white,
+      color: _codeLight,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -146,7 +156,7 @@ class _CodeCard extends StatelessWidget {
               width: mark * _clearZoneFactor,
               height: mark * _clearZoneFactor,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: _codeLight,
                 borderRadius: BorderRadius.circular(mark * 0.12),
               ),
             ),
@@ -187,6 +197,20 @@ Path _modulePath(DanceCodeShown plan) {
   return path;
 }
 
+/// How far to move a canvas, in its own units, so its origin lands on a whole
+/// device pixel. [transform] is the canvas's transform, taken to be a scale
+/// and a translation (as Flutter's is for ordinary layout).
+@visibleForTesting
+Offset pixelSnapShift(Float64List transform) {
+  final scaleX = transform[0];
+  final scaleY = transform[5];
+  if (scaleX == 0 || scaleY == 0) return Offset.zero;
+  return Offset(
+    (transform[12].roundToDouble() - transform[12]) / scaleX,
+    (transform[13].roundToDouble() - transform[13]) / scaleY,
+  );
+}
+
 class _CodePainter extends CustomPainter {
   _CodePainter(this.modules, this.module, this.quietZone);
 
@@ -196,14 +220,17 @@ class _CodePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Wherever layout put the card, start on a whole device pixel: the module
+    // size is whole pixels, so then every edge is too.
+    final shift = pixelSnapShift(canvas.getTransform());
     canvas
+      ..translate(shift.dx, shift.dy)
       ..translate(quietZone * module, quietZone * module)
       ..scale(module);
-    // No anti-aliasing: every edge sits on a whole device pixel.
     canvas.drawPath(
       modules,
       Paint()
-        ..color = Colors.black
+        ..color = _codeDark
         ..isAntiAlias = false,
     );
   }
@@ -224,8 +251,9 @@ class DanceCodeTooLongScreen extends StatelessWidget {
 
   final String title;
 
-  /// Starts the dance-file share or save.
-  final VoidCallback onShareFile;
+  /// Starts the dance-file share or save, given where on screen the button is
+  /// (the share sheet of an iPad or a Mac anchors to it).
+  final void Function(Rect? origin) onShareFile;
 
   @override
   Widget build(BuildContext context) {
@@ -254,18 +282,27 @@ class DanceCodeTooLongScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
-                  FilledButton.icon(
-                    key: const ValueKey('dance-code-share-file'),
-                    onPressed: onShareFile,
-                    icon: Icon(
-                      unsupported
-                          ? Icons.save_alt_outlined
-                          : Icons.share_outlined,
-                    ),
-                    label: Text(
-                      unsupported
-                          ? l10n.exportSaveDanceBundle
-                          : l10n.exportShareDanceBundle,
+                  Builder(
+                    builder: (context) => FilledButton.icon(
+                      key: const ValueKey('dance-code-share-file'),
+                      onPressed: () {
+                        final box = context.findRenderObject() as RenderBox?;
+                        onShareFile(
+                          box != null && box.hasSize
+                              ? box.localToGlobal(Offset.zero) & box.size
+                              : null,
+                        );
+                      },
+                      icon: Icon(
+                        unsupported
+                            ? Icons.save_alt_outlined
+                            : Icons.share_outlined,
+                      ),
+                      label: Text(
+                        unsupported
+                            ? l10n.exportSaveDanceBundle
+                            : l10n.exportShareDanceBundle,
+                      ),
                     ),
                   ),
                 ],

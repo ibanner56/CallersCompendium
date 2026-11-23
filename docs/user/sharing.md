@@ -138,6 +138,10 @@ the same privacy rules: authors' private details are removed (see
 sharing** turned off are left out, and your star rating and your notes on your
 own figures stay on your devices.
 
+Opening a code inside Caller's Compendium itself is not available yet. For now,
+another phone's camera app reads the code and shows the link as text; to hand a
+dance to another Caller's Compendium user, use **Share dance file**.
+
 A short dance is drawn with the Caller's Compendium logo in the middle. A longer
 one is drawn without it, because the logo would cover too much of a code that
 full. A dance too long for any code (a long walkthrough is the usual reason)

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/export/dance_code.dart';
@@ -11,6 +12,7 @@ import 'package:compendium_app/src/widgets/dance_export_menu.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'support/fake_wakelock.dart';
 import 'support/l10n_harness.dart';
@@ -90,6 +92,7 @@ Dance _dance({String title = 'Rory O\'More', String walkthrough = ''}) => Dance(
 DanceExportActions _actions(
   Dance dance, {
   ShareInvoker? shareInvoker,
+  BundleFileWriter? bundleFileWriter,
   JsonExportDelivery? jsonExportDelivery,
 }) => DanceExportActions(
   dance: dance,
@@ -102,6 +105,7 @@ DanceExportActions _actions(
   customFieldsById: {'f1': _sharedField, 'f2': _hiddenField},
   userFigureFor: (id) => id == 'u1' ? _userFigure : null,
   shareInvoker: shareInvoker,
+  bundleFileWriter: bundleFileWriter,
   jsonExportDelivery: jsonExportDelivery,
   now: () => _now,
 );
@@ -207,7 +211,10 @@ void main() {
       expect(dance.rating, 4);
       expect(unfiltered, contains('"rating":4'));
 
-      // None of them is in the code.
+      // None of them is in the code. The figure note is the weakest probe: the
+      // archive encoder never writes a user figure's notes in any mode, so no
+      // bypass of `_buildBundle` could put it back. It guards one thing, the
+      // share-mode encoder starting to emit notes, and has no control above.
       for (final secret in [_email, _city, _hiddenFieldValue, _figureNote]) {
         expect(carried, isNot(contains(secret)), reason: secret);
       }
@@ -271,6 +278,9 @@ void main() {
 
       expect(find.byType(DanceCodeScreen), findsNothing);
       expect(find.byKey(const ValueKey('dance-code-too-long')), findsOneWidget);
+      // On Linux there is no file share sheet, so the button says Save.
+      expect(find.text('Save dance file…'), findsOneWidget);
+      expect(find.text('Share dance file'), findsNothing);
       expect(saved, isEmpty, reason: 'nothing is shared until asked');
 
       await tester.tap(find.byKey(const ValueKey('dance-code-share-file')));
@@ -279,11 +289,45 @@ void main() {
       expect(saved, ['A_very_long_dance.ccshare']);
     });
 
+    testWidgets('the too-long notice shares the file from its own button', (
+      tester,
+    ) async {
+      final shares = <ShareParams>[];
+      await _pumpHost(
+        tester,
+        _actions(
+          _dance(title: 'Long one', walkthrough: _incompressible(20000)),
+          shareInvoker: (params) async => shares.add(params),
+          bundleFileWriter: (json, fileName) async =>
+              XFile.fromData(Uint8List(0), name: fileName),
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('go')));
+      await tester.pumpAndSettle();
+      expect(find.text('Share dance file'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('dance-code-share-file')));
+      await tester.pumpAndSettle();
+
+      expect(shares, hasLength(1));
+      // The share sheet anchors to the button the user pressed, not to where
+      // the Export button was on the screen before.
+      expect(
+        shares.single.sharePositionOrigin,
+        tester.getRect(find.byKey(const ValueKey('dance-code-share-file'))),
+      );
+    });
+
     testWidgets('makes no HTTP client while the code shows', (tester) async {
       final overrides = _CountingHttpOverrides();
       final previous = HttpOverrides.current;
       HttpOverrides.global = overrides;
       addTearDown(() => HttpOverrides.global = previous);
+
+      // Control: the counter does see a client being made.
+      HttpClient().close();
+      expect(overrides.clients, 1);
+      overrides.clients = 0;
 
       await _pumpHost(tester, _actions(_dance()));
       await tester.tap(find.byKey(const ValueKey('go')));
@@ -330,37 +374,95 @@ void main() {
       expect(wakelock.toggles, isEmpty);
     });
 
-    for (final size in const [Size(360, 780), Size(412, 915)]) {
-      testWidgets('fits a ${size.width.toInt()} wide phone at 2x text with a '
-          'long title', (tester) async {
+    // Real phones are not all 3x: 2.625 and 1.75 are common Android densities.
+    for (final (size, dpr) in const [
+      (Size(360, 780), 3.0),
+      (Size(412, 915), 2.625),
+      (Size(360, 640), 1.75),
+    ]) {
+      testWidgets('fits a ${size.width.toInt()} wide phone at ${dpr}x density '
+          'and 2x text with a long title', (tester) async {
         tester.view
-          ..physicalSize = size * 3
-          ..devicePixelRatio = 3;
+          ..physicalSize = size * dpr
+          ..devicePixelRatio = dpr;
         addTearDown(tester.view.reset);
         tester.platformDispatcher.textScaleFactorTestValue = 2.0;
         addTearDown(tester.platformDispatcher.clearAllTestValues);
         final handle = tester.ensureSemantics();
+        try {
+          final title = 'A dance with a really quite long title ' * 6;
+          await _pumpHost(tester, _actions(_dance(title: title)));
+          await tester.tap(find.byKey(const ValueKey('go')));
+          await tester.pumpAndSettle();
 
-        final title = 'A dance with a really quite long title ' * 6;
-        await _pumpHost(tester, _actions(_dance(title: title)));
-        await tester.tap(find.byKey(const ValueKey('go')));
-        await tester.pumpAndSettle();
-
-        expect(tester.takeException(), isNull);
-        final code = tester.getSize(find.byKey(const ValueKey('dance-code')));
-        expect(code.width, code.height, reason: 'a code is a square');
-        expect(code.width, lessThanOrEqualTo(size.width));
-        // Every module is a whole number of device pixels wide.
-        final plan = tester
-            .widget<DanceCodeScreen>(find.byType(DanceCodeScreen))
-            .plan;
-        final span = plan.moduleCount + 8;
-        final modulePixels = code.width * 3 / span;
-        expect(modulePixels, closeTo(modulePixels.roundToDouble(), 1e-6));
-        expect(find.bySemanticsLabel('QR code for $title'), findsOneWidget);
-        handle.dispose();
+          expect(tester.takeException(), isNull);
+          final code = tester.getSize(find.byKey(const ValueKey('dance-code')));
+          expect(code.width, code.height, reason: 'a code is a square');
+          expect(code.width, lessThanOrEqualTo(size.width));
+          // Every module is a whole number of device pixels wide.
+          final plan = tester
+              .widget<DanceCodeScreen>(find.byType(DanceCodeScreen))
+              .plan;
+          final span = plan.moduleCount + 8;
+          final modulePixels = code.width * dpr / span;
+          expect(modulePixels, closeTo(modulePixels.roundToDouble(), 1e-6));
+          expect(find.bySemanticsLabel('QR code for $title'), findsOneWidget);
+        } finally {
+          handle.dispose();
+        }
       });
     }
+  });
+
+  group('a window too small to scan from', () {
+    testWidgets('still draws a square code that stays inside it', (
+      tester,
+    ) async {
+      // Narrower than one device pixel per module: nothing could scan this,
+      // but the screen must not overflow or draw a lopsided code.
+      tester.view
+        ..physicalSize = const Size(120, 400)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await _pumpHost(tester, _actions(_dance()));
+      await tester.tap(find.byKey(const ValueKey('go')));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final code = tester.getSize(find.byKey(const ValueKey('dance-code')));
+      expect(code.width, code.height);
+      expect(code.width, lessThanOrEqualTo(120 - 32));
+    });
+  });
+
+  group('pixel snapping', () {
+    // A canvas whose origin is at (tx, ty) device pixels, scaled by `scale`.
+    Float64List transform(double tx, double ty, double scale) =>
+        (Matrix4.translationValues(
+          tx,
+          ty,
+          0,
+        )..scaleByDouble(scale, scale, 1, 1)).storage;
+
+    test('moves a fractional origin onto a whole device pixel', () {
+      for (final (tx, ty, scale) in const [
+        (10.4, 20.5, 2.625),
+        (0.5, 0.5, 1.0),
+        (133.5, 47.25, 3.0),
+        (7.9, 3.1, 1.75),
+      ]) {
+        final shift = pixelSnapShift(transform(tx, ty, scale));
+        final snappedX = tx + shift.dx * scale;
+        final snappedY = ty + shift.dy * scale;
+        expect(snappedX, closeTo(snappedX.roundToDouble(), 1e-9));
+        expect(snappedY, closeTo(snappedY.roundToDouble(), 1e-9));
+        expect(shift.dx.abs() * scale, lessThanOrEqualTo(0.5 + 1e-9));
+      }
+    });
+
+    test('leaves a whole-pixel origin where it is', () {
+      expect(pixelSnapShift(transform(12, 30, 3)), Offset.zero);
+    });
   });
 
   group('where it is offered', () {

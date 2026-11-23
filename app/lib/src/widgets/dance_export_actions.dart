@@ -222,9 +222,8 @@ class DanceExportActions {
   Future<void> showCode(
     NavigatorState navigator,
     ScaffoldMessengerState messenger,
-    AppLocalizations l10n, {
-    Rect? origin,
-  }) => guardExport(messenger, l10n.exportShowCodeError, () async {
+    AppLocalizations l10n,
+  ) => guardExport(messenger, l10n.exportShowCodeError, () async {
     final bundle = _buildBundle(extension: danceShareBundleExtension);
     final plan = planDanceCode(bundle.json);
     await navigator.push(
@@ -233,7 +232,8 @@ class DanceExportActions {
           DanceCodeShown() => DanceCodeScreen(plan: plan, title: dance.title),
           DanceCodeTooLong() => DanceCodeTooLongScreen(
             title: dance.title,
-            onShareFile: () => shareBundle(messenger, l10n, origin: origin),
+            onShareFile: (origin) =>
+                shareBundle(messenger, l10n, origin: origin),
           ),
         },
       ),
