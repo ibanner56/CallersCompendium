@@ -685,4 +685,28 @@ void main() {
       expect([for (final m in mappings.mappings) m.token], ['sw']);
     });
   });
+
+  group('a figure\'s form on its view (#2294)', () {
+    test('is read from the stored payload, so a broken figure has one', () {
+      final catalog = UserFigureCatalog.fromEntries([
+        entry(
+          id: 'ok',
+          payload: const {
+            'form': 'ecd',
+            'template': '{move}',
+            'defaultBeats': 4,
+            'params': <Object?>[],
+          },
+        ),
+        // A payload that no longer decodes still names its form.
+        entry(id: 'broken', payload: const {'form': 'ecd', 'template': 3}),
+        entry(id: 'none', payload: const {'template': 3}),
+      ]);
+      expect(catalog['ok']!.form, DanceForm.ecd);
+      expect(catalog['ok']!.definition, isNotNull);
+      expect(catalog['broken']!.form, DanceForm.ecd);
+      expect(catalog['broken']!.definition, isNull);
+      expect(catalog['none']!.form, DanceForm.contra);
+    });
+  });
 }

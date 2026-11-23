@@ -167,8 +167,8 @@ void main() {
     );
   });
 
-  testWidgets('an English entry of the user\'s reads the same in the list as '
-      'in its detail', (tester) async {
+  testWidgets('an English entry of the user\'s reads in English\'s dialect, in '
+      'the list and in its detail (#2294)', (tester) async {
     await pump(
       tester,
       entries: [
@@ -192,18 +192,25 @@ void main() {
       'role1s turn their corners.',
       Dialect.larksRobins,
     );
-    // A control: English words the role differently.
+    final english = renderer.renderFreeText(
+      'role1s turn their corners.',
+      Dialect.canonical,
+    );
+    // A control: the two dialects word the role differently, so the reading
+    // below can tell them apart.
+    expect(english, isNot(contra));
     expect(
-      renderer.renderFreeText('role1s turn their corners.', Dialect.canonical),
-      isNot(contra),
+      find.descendant(of: row, matching: find.textContaining(english)),
+      findsOneWidget,
     );
     expect(
       find.descendant(of: row, matching: find.textContaining(contra)),
-      findsOneWidget,
+      findsNothing,
     );
 
     await tester.tap(row);
     await tester.pumpAndSettle();
-    expect(find.textContaining(contra), findsWidgets);
+    expect(find.textContaining(english), findsWidgets);
+    expect(find.textContaining(contra), findsNothing);
   });
 }

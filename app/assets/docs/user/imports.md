@@ -342,7 +342,7 @@ below.
 
 A file made by a **newer version** of Caller's Compendium can still be reviewed
 and imported, but this version only understands the details it already knows
-about. The review then shows one warning, *"This file was made by a newer version
+about. The review then shows one warning, *"This was made by a newer version
 of Caller's Compendium. Update the app before importing, or some details may be
 left out."* Update the app first if you want everything that file carries.
 
@@ -351,6 +351,38 @@ either the file isn't a share file or text the app can read (another app
 saved it as text in a different encoding: save it again as UTF-8), or the file
 can't be opened
 (another app is using it, or it is on a drive that isn't connected).
+
+### Open a dance someone shows you as a code
+
+Another caller can show you a dance as a QR code on their screen
+(**Show code**, described in
+[Share, print & export](./sharing.md#show-a-dance-as-a-code)). To add it to your
+collection:
+
+1. Point your phone's own camera app at the code: the iPhone **Camera**, or the
+   Android camera or **Google Lens**.
+2. Tap the link it offers. Caller's Compendium opens on the dance in the same
+   review as a file someone sends you (see
+   [Review before anything changes](#review-before-anything-changes)).
+3. Review and commit. Nothing is added until you do, and **Undo** removes it
+   afterwards.
+
+Caller's Compendium itself never uses the camera, and opening a code needs no
+network.
+
+If your camera app shows the link but won't open it, copy the link, open
+**Import…**, and paste it into the URL field (then choose **Fetch**) or into the
+text field (then choose **Review import**). That works on a computer too, if
+someone sends you the link as text. The link is read on your device; nothing
+is fetched.
+
+If the app can't read a code, it says why and nothing is imported: a code made
+by a **newer version** of Caller's Compendium asks you to update the app, and a
+code that is damaged or was read only in part says so. So does a code that
+isn't a dance code, or one with no dances or programs in it. Ask for the code
+again, or for **Share dance file** instead. A code made by a newer version whose dance
+this version can read still opens, with the same newer-version warning as a
+file.
 
 ### Open a shared program someone sent you
 

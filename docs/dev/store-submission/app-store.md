@@ -154,7 +154,10 @@ Internal testing (≤100 teammates, instant) is already live. "Open beta" is
 - [x] **Privacy string / permission mismatch** — we request no runtime permissions
   (no camera/mic/location/contacts), so there should be **no `NS*UsageDescription`
   prompts**. Confirm none are triggered; if a plugin adds one, add the matching
-  `Info.plist` purpose string or the build is rejected.
+  `Info.plist` purpose string or the build is rejected. A dance's QR code is
+  read by the system **Camera** app, not by ours: it opens the app through the
+  `ccdance` URL scheme in `Info.plist` (#2335), which needs no permission and no
+  review note.
 - [x] **Support URL / privacy URL must resolve** — dead links are an easy reject.
 - [x] **Missing privacy manifest (ITMS-91053)** — App Store Connect refuses a
   build whose own code uses a *required-reason API* without declaring it. Both

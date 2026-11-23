@@ -1,3 +1,4 @@
+import '../search/saved_search.dart' show savedSearchKeyPrefix;
 import 'sync_record_kind.dart';
 
 /// The settings-key prefix of a device's capability record (#709):
@@ -28,6 +29,11 @@ abstract final class SyncCapabilities {
   /// [glossaryV1] reads such an entry as one it cannot use, so they wait for
   /// every device to understand this too.
   static const String glossaryV2 = 'glossary.v2';
+
+  /// The user's saved searches (#2325), one settings value each under
+  /// `saved_search:`. An older build keeps such a value whole but cannot read
+  /// it, so they wait for every device to understand them.
+  static const String savedSearchesV1 = 'savedSearches.v1';
 
   /// Program templates (#2337): one settings value per template
   /// (`program_template:<id>`), their order and the default template. An
@@ -95,6 +101,12 @@ final class SyncCapabilityPolicy {
   /// attached to the store advertises it, and until then a device that
   /// doesn't is named in a held-back notice (sync-spec §6.15).
   ///
+  /// [SyncCapabilities.savedSearchesV1] (#2325) gates the user's saved searches
+  /// (every `saved_search:` key). It is gated but **not yet advertised**: the
+  /// capability is advertised only once the whole feature, sync included, is in
+  /// the build, as for glossary.v2 before #1023 completed. Until then this
+  /// build publishes none, and nothing writes one.
+  ///
   /// [SyncCapabilities.programTemplatesV1] (#2337) gates every program
   /// template (by its key prefix), the templates' order and the default
   /// template, and this build advertises it. The legacy Starting program key
@@ -124,6 +136,7 @@ final class SyncCapabilityPolicy {
     },
     gatedSettingKeyPrefixes: {
       'program_template:': SyncCapabilities.programTemplatesV1,
+      savedSearchKeyPrefix: SyncCapabilities.savedSearchesV1,
     },
     gatedGlossaryEntryKinds: {
       'term': SyncCapabilities.glossaryV2,

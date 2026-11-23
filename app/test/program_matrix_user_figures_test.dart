@@ -130,4 +130,119 @@ void main() {
       findsOneWidget,
     );
   });
+  testWidgets('a figure of your own made for English is named in English\'s '
+      'dialect, though a contra dance uses it (#2294)', (tester) async {
+    final english = UserGlossaryEntry(
+      id: 'zoom-id',
+      kindName: UserGlossaryEntryKind.customFigure.name,
+      name: 'role1s zoom',
+      definition: 'A zoom.',
+      description: 'Fast.',
+      payload: const {
+        'form': 'ecd',
+        'template': '{move}',
+        'defaultBeats': 8,
+        'params': <Object?>[],
+      },
+      createdAt: now,
+    );
+    final repos = openTestRepositories();
+    await tester.runAsync(() async {
+      await repos.userGlossary.upsert(english);
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Zoomy',
+          figures: [
+            userFigureUseFigure(
+              id: 'zoom-id',
+              args: const {},
+              text: 'role1s zoom',
+              beats: 8,
+            ),
+          ],
+          formation: const Formation(FormationShape.dupleImproper),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+    });
+    final userFigures = UserFiguresController(repos.userGlossary);
+    addTearDown(userFigures.dispose);
+    unawaited(userFigures.start());
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    // The two dialects word the first role differently, so the column's
+    // reading tells which one named it.
+    final dialects = ValueNotifier(
+      DialectsByForm({
+        DanceForm.contra: Dialect.larksRobins,
+        DanceForm.ecd: Dialect.canonical,
+      }),
+    );
+    final autoCommit = ValueNotifier(false);
+    final glossary = ValueNotifier(true);
+    final custom = ValueNotifier(true);
+    for (final n in <ChangeNotifier>[dialects, autoCommit, glossary, custom]) {
+      addTearDown(n.dispose);
+    }
+    await tester.binding.setSurfaceSize(const Size(1200, 2000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope.byForm(
+            dialects: dialects,
+            child: ProgramAutoCommitScope(
+              notifier: autoCommit,
+              child: ShowGlossaryScope(
+                notifier: glossary,
+                child: ShowCustomFiguresScope(
+                  notifier: custom,
+                  child: UserFiguresScope(
+                    controller: userFigures,
+                    child: child!,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        home: ProgramEditorScreen(programId: 'p1', onSaved: (_) {}),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+
+    final renderer = FigureRenderer(contraTaxonomy);
+    final inEnglish = renderer.renderFreeText('role1s zoom', Dialect.canonical);
+    final inContra = renderer.renderFreeText(
+      'role1s zoom',
+      Dialect.larksRobins,
+    );
+    // A control: the column's text can only be one of these.
+    expect(inEnglish, isNot(inContra));
+    final table = find.byKey(const ValueKey('program-matrix-table'));
+    expect(
+      find.descendant(of: table, matching: find.text(inEnglish)),
+      findsOneWidget,
+      reason: 'named in its own form\'s dialect',
+    );
+    expect(
+      find.descendant(of: table, matching: find.text(inContra)),
+      findsNothing,
+    );
+  });
 }

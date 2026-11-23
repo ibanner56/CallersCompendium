@@ -93,12 +93,20 @@ void main() {
         SyncCapabilities.programTemplatesV1,
         SyncCapabilities.suggestionsV1,
       });
+      // Saved searches (#2325) are gated but not yet advertised: a
+      // capability is advertised only once the whole feature is in the build,
+      // so this build publishes none and nothing writes one.
       expect(build.gatedCapabilities, {
         SyncCapabilities.glossaryV1,
         SyncCapabilities.glossaryV2,
         SyncCapabilities.programTemplatesV1,
+        SyncCapabilities.savedSearchesV1,
         SyncCapabilities.suggestionsV1,
       });
+      expect(
+        build.advertised,
+        isNot(contains(SyncCapabilities.savedSearchesV1)),
+      );
     });
 
     test('rollout: with no record from any peer, every peer holds each '
@@ -108,6 +116,8 @@ void main() {
         SyncCapabilities.glossaryV2: {'a', 'b'},
         SyncCapabilities.programTemplatesV1: {'a', 'b'},
         SyncCapabilities.suggestionsV1: {'a', 'b'},
+        // Not advertised by this build, so closed with no device to name.
+        SyncCapabilities.savedSearchesV1: <String>{},
       });
     });
 
@@ -121,6 +131,7 @@ void main() {
       };
       expect(closedBeside(['a', 'b'], {'a': previous, 'b': previous}), {
         SyncCapabilities.suggestionsV1: {'a', 'b'},
+        SyncCapabilities.savedSearchesV1: <String>{},
       });
     });
 
@@ -155,13 +166,42 @@ void main() {
       );
     });
 
-    test('with every peer advertising what the build does, all are open', () {
+    test('gates every saved_search: key on savedSearches.v1', () {
+      for (final key in ['saved_search:abc', 'saved_search:x:y']) {
+        expect(
+          build.capabilityFor(SyncRecordKind.setting, key),
+          SyncCapabilities.savedSearchesV1,
+          reason: key,
+        );
+      }
+      // Only the prefix, and only settings.
+      for (final key in ['saved_search', 'saved_searches:abc', 'theme_mode']) {
+        expect(
+          build.capabilityFor(SyncRecordKind.setting, key),
+          isNot(SyncCapabilities.savedSearchesV1),
+          reason: key,
+        );
+      }
+      expect(
+        build.capabilityFor(SyncRecordKind.dance, 'saved_search:abc'),
+        isNull,
+      );
+    });
+
+    test('a saved search is shareable user configuration', () {
+      final c = classifySettingsKey('${savedSearchKeyPrefix}abc');
+      expect(c?.egress, EgressClass.shareable);
+      expect(c?.subject, DataSubject.appUser);
+    });
+
+    test('with every peer advertising what the build does, the advertised '
+        'capabilities are open and saved searches stay closed', () {
       expect(
         closedBeside(
           ['a', 'b'],
           {'a': build.advertised, 'b': build.advertised},
         ),
-        isEmpty,
+        {SyncCapabilities.savedSearchesV1: <String>{}},
       );
     });
   });

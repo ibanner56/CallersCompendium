@@ -658,4 +658,18 @@ void main() {
       expect(hand.specIn('contra').choices, isNull);
     });
   });
+
+  group('glossaryEntryDanceForm (#2294)', () {
+    test('is the form a payload names, else contra', () {
+      expect(glossaryEntryDanceForm({'form': 'ecd'}), DanceForm.ecd);
+      expect(glossaryEntryDanceForm({'form': 'square'}), DanceForm.square);
+      expect(glossaryEntryDanceForm({'form': 'contra'}), DanceForm.contra);
+      // None named, one a later build adds, and one that is not a payload.
+      expect(glossaryEntryDanceForm(const {}), DanceForm.contra);
+      expect(glossaryEntryDanceForm({'form': 'future'}), DanceForm.contra);
+      expect(glossaryEntryDanceForm({'form': 3}), DanceForm.contra);
+      expect(glossaryEntryDanceForm('ecd'), DanceForm.contra);
+      expect(glossaryEntryDanceForm(null), DanceForm.contra);
+    });
+  });
 }
