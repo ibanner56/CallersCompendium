@@ -8,6 +8,7 @@ import '../model/dance.dart';
 import '../model/tag.dart';
 import '../storage/repositories/custom_field_repository.dart';
 import '../storage/repositories/tag_repository.dart';
+import '../storage/shareable_text.dart';
 import 'callers_companion_user_fields.dart' show ccUserFieldKeyForLabel;
 import 'csv_adapter.dart';
 import 'dedupe.dart';
@@ -187,7 +188,7 @@ class CsvImporter {
       final type = column.newFieldType!;
       final label = column.newFieldLabel!.trim();
       final choices = type == CustomFieldType.choice
-          ? {for (final v in values) ?normalizeChoiceOption(v.toString())}
+          ? {for (final v in values) ?_choiceOption(v.toString())}
           : const <String>{};
       // A field of this name and type already there (made by an earlier
       // commit from this sheet, such as Import and edit on one row, an
@@ -255,7 +256,7 @@ class CsvImporter {
   }
 
   /// [dance] with its placeholders replaced. Only a new *choice* field's
-  /// values are normalized as its options were ([normalizeChoiceOption]); a
+  /// values are normalized as its options were ([_choiceOption]); a
   /// text field keeps its value whole.
   Dance _rewrite(
     Dance dance,
@@ -279,9 +280,18 @@ class CsvImporter {
           CustomFieldValue(
             fieldId: id,
             value: choicePlaceholders.contains(v.fieldId) && v.value is String
-                ? (normalizeChoiceOption(v.value as String) ?? v.value)
+                ? (_choiceOption(v.value as String) ?? v.value)
                 : v.value,
           ),
     ],
   );
 }
+
+/// A cell's value as an option of a new choice field, spelled as the
+/// repository stores one ([normalizeShareableText] over
+/// [normalizeChoiceOption]), so an option the field already has is matched
+/// whatever the cell's Unicode form, and a row's value equals its option.
+String? _choiceOption(String raw) => switch (normalizeChoiceOption(raw)) {
+  final option? => normalizeShareableText(option),
+  null => null,
+};

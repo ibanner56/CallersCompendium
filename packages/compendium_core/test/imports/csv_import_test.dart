@@ -616,6 +616,63 @@ void main() {
       });
     });
 
+    test('three new choice columns of one name make one field with every '
+        'option', () async {
+      const cols = [
+        CsvColumnMapping(CsvColumnTarget.title),
+        CsvColumnMapping.newCustomField('Mood', CustomFieldType.choice),
+        CsvColumnMapping.newCustomField('Mood', CustomFieldType.choice),
+        CsvColumnMapping.newCustomField('Mood', CustomFieldType.choice),
+      ];
+      final batch = await plan(
+        'Title,M1,M2,M3\r\nA,a,,\r\nB,,b,\r\nC,,,c\r\n',
+        mapping(',', cols: cols),
+      );
+      final result = await importer.commit(
+        batch,
+        mapping: mapping(',', cols: cols),
+        now: now,
+        newId: _ids(),
+      );
+      expect(result.session.records.where((r) => r.error != null), isEmpty);
+      expect((await fields.listAll()).single.choices, ['a', 'b', 'c']);
+    });
+
+    test('a choice value in another Unicode form matches the option the '
+        'field has', () async {
+      const nfc = 'caf\u00e9';
+      const nfd = 'cafe\u0301';
+      final _ = await fields.upsert(
+        CustomFieldDef(
+          id: 'f-mood',
+          key: 'mood',
+          label: 'Mood',
+          type: CustomFieldType.choice,
+          choices: const [nfc],
+        ),
+      );
+      const cols = [
+        CsvColumnMapping(CsvColumnTarget.title),
+        CsvColumnMapping.newCustomField('Mood', CustomFieldType.choice),
+      ];
+      final m = CsvImportMapping(
+        separator: ',',
+        hasHeader: true,
+        columns: cols,
+        existingFields: {for (final f in await fields.listAll()) f.id: f},
+      );
+      final batch = await plan('Title,Mood\r\nA,$nfd\r\n', m);
+      final result = await importer.commit(
+        batch,
+        mapping: m,
+        now: now,
+        newId: _ids(),
+      );
+      expect(result.session.records.where((r) => r.error != null), isEmpty);
+      expect((await fields.listAll()).single.choices, [nfc]);
+      expect((await dances.listAll()).single.customFields.single.value, nfc);
+    });
+
     test('a new text field keeps a long value whole', () async {
       const cols = [
         CsvColumnMapping(CsvColumnTarget.title),
