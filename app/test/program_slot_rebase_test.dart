@@ -188,7 +188,11 @@ void main() {
     );
     final result = rebaseSlotEdits(
       before: [_slot('a'), _slot('b')],
-      after: [_slot('a'), _slot('b').copyWith(danceId: 'new'), kept],
+      after: [
+        _slot('a'),
+        _slot('b').copyWith(danceId: 'new'),
+        kept,
+      ],
       onto: [_slot('a'), _slot('b')],
     );
     expect(_ids(result), ['a', 'b', 'kept']);
