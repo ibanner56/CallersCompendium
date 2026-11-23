@@ -41,7 +41,8 @@ not touch the sheet's Undo (F11 owns it), the Save/New/header conventions
 
 `showAddToProgramSheet` (`app/lib/src/widgets/add_to_program_sheet.dart`) has
 two callers: the Collection row's menu
-(`app/lib/src/screens/dance_list_screen.dart:3123`) and the dance detail screen
+(`_DanceListScreenState._buildDanceRow` in
+`app/lib/src/screens/dance_list_screen.dart`) and the dance detail screen
 (`DanceDetailScreen._addToProgram` in `app/lib/src/screens/dance_detail_screen.dart`). Both pass a dance id and
 title.
 

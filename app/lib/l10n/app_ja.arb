@@ -13125,5 +13125,177 @@
   "exportCsvPayHiddenNotice": "報酬は設定で非表示になっているため、含まれません。含めるには、設定 ▸ プログラムで「報酬を表示」をオンにしてください。",
   "@exportCsvPayHiddenNotice": {
     "x-sourceSha256": "7211fa66aebc90d9f812f84eb5311ec7ce3c9492040b40a47ae3cce07f2f9e6d"
+  },
+  "collectionRepertoireMenuItem": "レパートリー",
+  "@collectionRepertoireMenuItem": {
+    "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
+  },
+  "repertoireTitle": "レパートリー",
+  "@repertoireTitle": {
+    "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
+  },
+  "repertoireLoadError": "レパートリーを集計できませんでした",
+  "@repertoireLoadError": {
+    "x-sourceSha256": "a377018354f04a0476bcfdd92e5356014441e33da976d52a148c063a68409455"
+  },
+  "repertoirePeriodLabel": "期間",
+  "@repertoirePeriodLabel": {
+    "x-sourceSha256": "6e795d4d3cc21c5ca8349ab5e917482197aa612d1a218f9e9411467db73242bb"
+  },
+  "repertoirePeriodAllTime": "全期間",
+  "@repertoirePeriodAllTime": {
+    "x-sourceSha256": "9755c8d7d44a62589c873ca19a4119a594b98fbf3744cda4eb14b87a199765cb"
+  },
+  "repertoirePeriodMonths": "{count, plural, =1{過去1か月} other{過去{count}か月}}",
+  "@repertoirePeriodMonths": {
+    "x-sourceSha256": "a09e4dfbc620510b7de3ecf77e578fd3ba0ed50a6ce0a4b086c1aa4a212d3507"
+  },
+  "repertoirePeriodSinceDate": "日付以降…",
+  "@repertoirePeriodSinceDate": {
+    "x-sourceSha256": "af507bf47251132ba4703a698935d64e15447d0ac82af7a649c56aeaba2b65a4"
+  },
+  "repertoirePeriodSince": "{date}以降",
+  "@repertoirePeriodSince": {
+    "x-sourceSha256": "1550794b36af0a945ddc65d95c16fbde42d2df500d5f3a232f5b1138e9b299f1"
+  },
+  "repertoireTypeLabel": "ダンスの種類",
+  "@repertoireTypeLabel": {
+    "x-sourceSha256": "2c004974318a3075ebadbd65e39bd0efc9bd6b1eee3f8a9c679d5c669b326ce0"
+  },
+  "repertoireTypeAll": "すべての種類",
+  "@repertoireTypeAll": {
+    "x-sourceSha256": "f10988e79e8d9a49f45a71ecf3f4ebe143a96eb9d83272156ab54101b3777046"
+  },
+  "repertoireSummary": "この期間のコール数：{calls}。コールしたダンス：{total}件中{called}件。",
+  "@repertoireSummary": {
+    "x-sourceSha256": "4a7cbbf7c87e3bc46500abc1affb3190fd2f410e54fa5e6c41b9b31665ea822f"
+  },
+  "repertoireMostCalledHeader": "コール回数が多い",
+  "@repertoireMostCalledHeader": {
+    "x-sourceSha256": "f2aff79f46e584591a4f0b1fcd3131e043212b0bbb4ea84d3dae766272a149de"
+  },
+  "repertoireLeastCalledHeader": "コール回数が少ない（コールしたダンスのうち）",
+  "@repertoireLeastCalledHeader": {
+    "x-sourceSha256": "c842c2a0183d8447f0a70e0c59646aaf2d9d3c8684b451d857353e23329781c8"
+  },
+  "repertoireLeastCalledAllShown": "この期間にコールしたダンスは、すべて「コール回数が多い」に表示されています。",
+  "@repertoireLeastCalledAllShown": {
+    "x-sourceSha256": "5cb02281254a6fab6493c5d267f1c1f8cea8776c7876b01ef0a823e494e82def"
+  },
+  "repertoireNoCalls": "この期間にカウントされたコールはありません。",
+  "@repertoireNoCalls": {
+    "x-sourceSha256": "86745f9130fff2ca0d915327740923a147bd5234bbbf4eb3192173031b0f9858"
+  },
+  "repertoireDanceCalls": "{count, plural, =1{1回コール} other{{count}回コール}}",
+  "@repertoireDanceCalls": {
+    "x-sourceSha256": "45189eb3c35920001f632a177ba87dc00a38fabca66625eaf78b54446abb5f8f"
+  },
+  "repertoireDanceSemantics": "{title}：{count, plural, =1{1回コール} other{{count}回コール}}",
+  "@repertoireDanceSemantics": {
+    "x-sourceSha256": "f5ea6abe5e2415a57e19493b7734fcaf50fe98414349c428ef84e8214cf4d705"
+  },
+  "repertoireNeverCalledHeader": "一度もコールされていない",
+  "@repertoireNeverCalledHeader": {
+    "x-sourceSha256": "a523b2ac225d3979beb78fe0272ba337772b159e4932f6e27b7df2bce6384a42"
+  },
+  "repertoireNeverCalledLabel": "一度もコールされていない",
+  "@repertoireNeverCalledLabel": {
+    "x-sourceSha256": "a523b2ac225d3979beb78fe0272ba337772b159e4932f6e27b7df2bce6384a42"
+  },
+  "repertoireOfDances": "{total}件中{count}件のダンス",
+  "@repertoireOfDances": {
+    "x-sourceSha256": "76615ee1ce72d60b9f878a4576a3b3ab25c37de1a722d0ecd18aea33eb731899"
+  },
+  "repertoireNeverCalledSemantics": "一度もコールされていない：{total}件中{count}件のダンス",
+  "@repertoireNeverCalledSemantics": {
+    "x-sourceSha256": "8194a4a6d9fb05db1e0551fe07e9158a44c3c7cc32984263a953a5d72a630267"
+  },
+  "repertoireNeverCalledDanceSemantics": "{title}：一度もコールされていない",
+  "@repertoireNeverCalledDanceSemantics": {
+    "x-sourceSha256": "5bb809f2149949c9ea5bf93daf9e454396da8da208e4cf8c10633fd5172b36c6"
+  },
+  "repertoireNotCalledInPeriodLabel": "この期間に未コール",
+  "@repertoireNotCalledInPeriodLabel": {
+    "x-sourceSha256": "42ec0ae23e760c9a9c39f25eb38afcb3acb55ad830325a40247c450600734b78"
+  },
+  "repertoireNotCalledInPeriodSemantics": "この期間に未コール：{total}件中{count}件のダンス",
+  "@repertoireNotCalledInPeriodSemantics": {
+    "x-sourceSha256": "b889fd2f0f3ceeaa6ffd2345ee4532176a77216570a8b17879b8f472e80b81d6"
+  },
+  "repertoireFigureHeader": "フィギュアの出現頻度",
+  "@repertoireFigureHeader": {
+    "x-sourceSha256": "1f1265b6c299fb7fc1f01ad509e58f9d75476b89505d29a7433fd0befe8e6443"
+  },
+  "repertoireNoFigures": "これらのダンスにはフィギュアが入力されていません。",
+  "@repertoireNoFigures": {
+    "x-sourceSha256": "5c7385dadaa29516f1c99a78658d745b5febfea33156da79906bf887323bca0e"
+  },
+  "repertoireFigureValue": "{total}件中{dances}件のダンス（{percent}%）・{calls, plural, =1{1回コール} other{{calls}回コール}}",
+  "@repertoireFigureValue": {
+    "x-sourceSha256": "427959c91687de4ae08a3efef81f129115e22eeeb1a98aecc65bb219f34a59f2"
+  },
+  "repertoireFigureSemantics": "{move}：{total}件中{dances}件のダンス、{percent}パーセント。この期間に{calls, plural, =1{1回コール} other{{calls}回コール}}",
+  "@repertoireFigureSemantics": {
+    "x-sourceSha256": "b0911685dfaa28d6fe4fd6587bfa6632fd8c7e7447a82a0db9131880913281d0"
+  },
+  "repertoireShowAll": "すべて表示（{count}件）",
+  "@repertoireShowAll": {
+    "x-sourceSha256": "a6c3860c56d7523fe43cfc166f3034d023eeac5491f722aba74922d03dca769d"
+  },
+  "repertoireShowFewer": "表示を減らす",
+  "@repertoireShowFewer": {
+    "x-sourceSha256": "255beb6510e7827d37ec1cd22d080f910888ae00f29374dd9545c8b3d1fce43a"
+  },
+  "repertoireAuthorsHeader": "コールしている作者",
+  "@repertoireAuthorsHeader": {
+    "x-sourceSha256": "03a08a6177689c82fcc0a1cfe404363104f2eb53ccb83e2165947969bb41d94b"
+  },
+  "repertoireAuthorsSummary": "{count, plural, =0{この期間にコールした作者はいません。} =1{この期間に1人の作者のダンスをコールしました。} other{この期間に{count}人の作者のダンスをコールしました。}}",
+  "@repertoireAuthorsSummary": {
+    "x-sourceSha256": "d2660bfb610f85406c90d761e3f01e3e6e8b58d9eae6849930f84759364cbfd0"
+  },
+  "repertoireShareValue": "{calls, plural, =1{1回コール} other{{calls}回コール}}（{percent}%）",
+  "@repertoireShareValue": {
+    "x-sourceSha256": "b61b0042e986ce34f28b386ed7868e08cee4a26c6bac14c0809b05c8a63dbfcb"
+  },
+  "repertoireShareSemantics": "{label}：{calls, plural, =1{1回コール} other{{calls}回コール}}、この期間のコールの{percent}パーセント",
+  "@repertoireShareSemantics": {
+    "x-sourceSha256": "044bc4d54d2dcc9d96418d86f9ab95849c79e5edf4710e7c4e8f1da8db2de573"
+  },
+  "repertoireFormationHeader": "フォーメーションの内訳",
+  "@repertoireFormationHeader": {
+    "x-sourceSha256": "098683a99bcce20ab162bb7af93ac6ad456eaaa455ec58235f5ec5e5cda68739"
+  },
+  "repertoireVenuesHeader": "会場ごとの繰り返し",
+  "@repertoireVenuesHeader": {
+    "x-sourceSha256": "9b0640ebefe0b4e62b8d63d8948a9d88593e9cea25c1fd35b25a6e6b82ea841f"
+  },
+  "repertoireNoRepeats": "この期間に同じ会場で2回以上コールされたダンスはありません。",
+  "@repertoireNoRepeats": {
+    "x-sourceSha256": "1ee83c14c00d9965edff9c7d2113aeaf23c7269f09a54b529b010feb074062cd"
+  },
+  "repertoireVenueUnnamed": "名前のない会場",
+  "@repertoireVenueUnnamed": {
+    "x-sourceSha256": "d05aef5da8914bd969562f34dd344d7251dd248c6e2cf2674efd76ee9f84704b"
+  },
+  "repertoireVenueRepeats": "{count, plural, =1{1件のダンスを繰り返し} other{{count}件のダンスを繰り返し}}",
+  "@repertoireVenueRepeats": {
+    "x-sourceSha256": "826159fbea4aac34da9274535e7f110d30128adbf08c0a99f39adf72d185c3cf"
+  },
+  "repertoireVenueSemantics": "{venue}：{count, plural, =1{1件のダンスを2回以上コール} other{{count}件のダンスを2回以上コール}}",
+  "@repertoireVenueSemantics": {
+    "x-sourceSha256": "6ac25c6d56b7afe142098842bf969c16f8b147d1d7c2172c1dd1e492c9d467f2"
+  },
+  "settingsExperimentalRepertoireHeader": "レパートリー",
+  "@settingsExperimentalRepertoireHeader": {
+    "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
+  },
+  "settingsExperimentalShowRepertoireTitle": "レパートリー",
+  "@settingsExperimentalShowRepertoireTitle": {
+    "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
+  },
+  "settingsExperimentalShowRepertoireSubtitle": "コレクションの「その他のアクション」メニューに「レパートリー」を追加します。コール回数が多いダンスと少ないダンス、一度もコールしていないダンス、フィギュアの出現頻度、作者、フォーメーション、会場ごとの繰り返しを表示します。",
+  "@settingsExperimentalShowRepertoireSubtitle": {
+    "x-sourceSha256": "f537bb665c51db4ea2f7bebe359ced80907a25a71ab9fee34cf7c48159b6e946"
   }
 }

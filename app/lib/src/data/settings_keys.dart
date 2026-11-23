@@ -240,6 +240,11 @@ const String kSyncExcludeImportsKey = 'sync_exclude_imports';
 /// never synced and never backed up.
 const String kSyncLastSuccessAtKey = 'sync_last_success_at';
 
+/// Key used to persist the Experimental "Repertoire" switch (#2357). Stored as
+/// a bool; absent/unset means off (`false`), so Collection's More actions menu
+/// offers no Repertoire item.
+const String kShowRepertoireDashboardKey = 'show_repertoire_dashboard';
+
 /// Key used to persist the "Show pay" Programs setting (issue #2355). Stored as
 /// a bool; absent/unset means on (`true`), so the program editor's Pay field
 /// and the summary's pay line show. Off hides both; it is display-only and

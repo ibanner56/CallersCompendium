@@ -13677,4 +13677,241 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get exportCsvPayHiddenNotice =>
       'Die Gage ist in den Einstellungen ausgeblendet und fehlt daher. Schalte „Gage anzeigen“ unter Einstellungen ▸ Programm ein, um sie aufzunehmen.';
+
+  @override
+  String get collectionRepertoireMenuItem => 'Repertoire';
+
+  @override
+  String get repertoireTitle => 'Repertoire';
+
+  @override
+  String get repertoireLoadError =>
+      'Dein Repertoire konnte nicht ermittelt werden';
+
+  @override
+  String get repertoirePeriodLabel => 'Zeitraum';
+
+  @override
+  String get repertoirePeriodAllTime => 'Gesamter Zeitraum';
+
+  @override
+  String repertoirePeriodMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Letzte $count Monate',
+      one: 'Letzter Monat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get repertoirePeriodSinceDate => 'Seit einem Datum…';
+
+  @override
+  String repertoirePeriodSince(String date) {
+    return 'Seit $date';
+  }
+
+  @override
+  String get repertoireTypeLabel => 'Tanzart';
+
+  @override
+  String get repertoireTypeAll => 'Alle Arten';
+
+  @override
+  String repertoireSummary(int calls, int called, int total) {
+    return 'Aufrufe in diesem Zeitraum: $calls. Aufgerufene Tänze: $called von $total.';
+  }
+
+  @override
+  String get repertoireMostCalledHeader => 'Am häufigsten aufgerufen';
+
+  @override
+  String get repertoireLeastCalledHeader =>
+      'Am seltensten aufgerufen (unter den aufgerufenen)';
+
+  @override
+  String get repertoireLeastCalledAllShown =>
+      'Jeder Tanz, den du in diesem Zeitraum aufgerufen hast, steht schon unter „Am häufigsten aufgerufen“.';
+
+  @override
+  String get repertoireNoCalls => 'Keine gezählten Aufrufe in diesem Zeitraum.';
+
+  @override
+  String repertoireDanceCalls(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count-mal aufgerufen',
+      one: 'einmal aufgerufen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireDanceSemantics(String title, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count-mal aufgerufen',
+      one: 'einmal aufgerufen',
+    );
+    return '$title: $_temp0';
+  }
+
+  @override
+  String get repertoireNeverCalledHeader => 'Nie aufgerufen';
+
+  @override
+  String get repertoireNeverCalledLabel => 'Nie aufgerufen';
+
+  @override
+  String repertoireOfDances(int count, int total) {
+    return '$count von $total Tänzen';
+  }
+
+  @override
+  String repertoireNeverCalledSemantics(int count, int total) {
+    return 'Nie aufgerufen: $count von $total Tänzen';
+  }
+
+  @override
+  String repertoireNeverCalledDanceSemantics(String title) {
+    return '$title: nie aufgerufen';
+  }
+
+  @override
+  String get repertoireNotCalledInPeriodLabel =>
+      'In diesem Zeitraum nicht aufgerufen';
+
+  @override
+  String repertoireNotCalledInPeriodSemantics(int count, int total) {
+    return 'In diesem Zeitraum nicht aufgerufen: $count von $total Tänzen';
+  }
+
+  @override
+  String get repertoireFigureHeader => 'Häufigkeit der Figuren';
+
+  @override
+  String get repertoireNoFigures =>
+      'Keiner dieser Tänze hat eingetragene Figuren.';
+
+  @override
+  String repertoireFigureValue(int dances, int total, int percent, int calls) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls Aufrufe',
+      one: '1 Aufruf',
+    );
+    return 'in $dances von $total Tänzen ($percent %) · $_temp0';
+  }
+
+  @override
+  String repertoireFigureSemantics(
+    String move,
+    int dances,
+    int total,
+    int percent,
+    int calls,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls Aufrufe',
+      one: '1 Aufruf',
+    );
+    return '$move: in $dances von $total Tänzen, $percent Prozent; $_temp0 in diesem Zeitraum';
+  }
+
+  @override
+  String repertoireShowAll(int count) {
+    return 'Alle $count anzeigen';
+  }
+
+  @override
+  String get repertoireShowFewer => 'Weniger anzeigen';
+
+  @override
+  String get repertoireAuthorsHeader => 'Autoren, die du aufrufst';
+
+  @override
+  String repertoireAuthorsSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Autoren in diesem Zeitraum aufgerufen.',
+      one: '1 Autor in diesem Zeitraum aufgerufen.',
+      zero: 'Kein Autor in diesem Zeitraum aufgerufen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireShareValue(int calls, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls Aufrufe',
+      one: '1 Aufruf',
+    );
+    return '$_temp0 ($percent %)';
+  }
+
+  @override
+  String repertoireShareSemantics(String label, int calls, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls Aufrufe',
+      one: '1 Aufruf',
+    );
+    return '$label: $_temp0, $percent Prozent der Aufrufe in diesem Zeitraum';
+  }
+
+  @override
+  String get repertoireFormationHeader => 'Formationen';
+
+  @override
+  String get repertoireVenuesHeader => 'Wiederholungen je Veranstaltungsort';
+
+  @override
+  String get repertoireNoRepeats =>
+      'In diesem Zeitraum wurde kein Tanz an einem Veranstaltungsort mehr als einmal aufgerufen.';
+
+  @override
+  String get repertoireVenueUnnamed => 'Unbenannter Veranstaltungsort';
+
+  @override
+  String repertoireVenueRepeats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tänze wiederholt',
+      one: '1 Tanz wiederholt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireVenueSemantics(String venue, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Tänze mehr als einmal aufgerufen',
+      one: '1 Tanz mehr als einmal aufgerufen',
+    );
+    return '$venue: $_temp0';
+  }
+
+  @override
+  String get settingsExperimentalRepertoireHeader => 'Repertoire';
+
+  @override
+  String get settingsExperimentalShowRepertoireTitle => 'Repertoire';
+
+  @override
+  String get settingsExperimentalShowRepertoireSubtitle =>
+      'Fügt dem Menü „Weitere Aktionen“ der Sammlung „Repertoire“ hinzu: deine am häufigsten und seltensten aufgerufenen Tänze, was du nie aufgerufen hast, Häufigkeit der Figuren, Autoren, Formationen und Wiederholungen je Veranstaltungsort.';
 }
