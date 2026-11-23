@@ -87,6 +87,11 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  # A standard QR decoder for one test (#2334): it reads the pixels of a
+  # rendered Show code screen, so the test shows the brand mark in the middle
+  # still leaves a code a scanner can read. Pure Dart; dev-only, so it does not
+  # ship in the app.
+  zxing2: ^0.2.4
   path_provider_platform_interface: ^2.1.3
   plugin_platform_interface: ^2.1.8
   url_launcher_platform_interface: ^2.3.2

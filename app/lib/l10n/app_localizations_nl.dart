@@ -6835,6 +6835,25 @@ class AppLocalizationsNl extends AppLocalizations {
   String get exportSaveDanceBundle => 'Dansbestand opslaan…';
 
   @override
+  String get exportShowCode => 'Code tonen';
+
+  @override
+  String get exportShowCodeError =>
+      'De code kon niet worden getoond. Je dans is ongewijzigd. Probeer het opnieuw.';
+
+  @override
+  String get danceCodeScreenTitle => 'Danscode';
+
+  @override
+  String danceCodeSemanticLabel(String title) {
+    return 'QR-code voor $title';
+  }
+
+  @override
+  String get danceCodeTooLong =>
+      'Deze dans is te lang om als code te delen. Deel de dans in plaats daarvan als bestand.';
+
+  @override
   String get exportCopyDance => 'Dans kopiëren';
 
   @override
