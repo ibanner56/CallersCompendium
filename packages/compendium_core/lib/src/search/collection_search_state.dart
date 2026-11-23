@@ -495,6 +495,10 @@ DanceFilter? orGroup(List<DanceFilter> leaves) => switch (leaves.length) {
 ///
 /// [defs] supplies the custom-field definitions the facet selections refer to
 /// (needed to build the typed [CustomFieldFilter] leaves).
+///
+/// [currentProgramId] is passed to the [CalledFilter], so a program being built
+/// never counts as its own history (N1-6). Collection leaves it null; no app
+/// caller sets it yet (the picker's program context is not built).
 DanceFilter buildCollectionFilter({
   required String ftsText,
   required FacetSelections facets,
@@ -507,6 +511,7 @@ DanceFilter buildCollectionFilter({
   bool requireEventDate = false,
   CallingHistoryTracking tracking = CallingHistoryTracking.defaults,
   DateTime? today,
+  String? currentProgramId,
 }) {
   final branches = <DanceFilter>[];
 
@@ -541,6 +546,7 @@ DanceFilter buildCollectionFilter({
         tracking: tracking,
         venue: facets.historyVenue,
         since: facets.historyCutoff(today ?? DateTime.now()),
+        currentProgramId: currentProgramId,
       ),
     ]);
   }
