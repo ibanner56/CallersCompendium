@@ -5,6 +5,7 @@ import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -54,10 +55,10 @@ void main() {
   }
 
   CsvColumnMapping? columnValue(WidgetTester tester, int i) => tester
-      .widget<DropdownButton<CsvColumnMapping>>(
+      .widget<AppDropdownField<CsvColumnMapping>>(
         find.byKey(ValueKey('csv-column-$i')),
       )
-      .value;
+      .initialValue;
 
   testWidgets('maps the columns, lets one be ignored, and imports what the '
       'review confirms, with no provenance', (tester) async {
@@ -72,7 +73,7 @@ void main() {
     expect(find.byKey(const ValueKey('csv-mapping')), findsOneWidget);
     expect(
       tester
-          .widget<DropdownButtonFormField<String>>(
+          .widget<AppDropdownField<String>>(
             find.byKey(const ValueKey('csv-separator')),
           )
           .initialValue,
@@ -96,7 +97,8 @@ void main() {
     // Ignore the notes column.
     await tester.tap(find.byKey(const ValueKey('csv-column-2')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Ignore').last);
+    // Ignore is the first choice.
+    await tester.tap(find.byKey(const ValueKey('csv-column-2-option-0')));
     await tester.pumpAndSettle();
     expect(columnValue(tester, 2), CsvColumnMapping.ignore);
 

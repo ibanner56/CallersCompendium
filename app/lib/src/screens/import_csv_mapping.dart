@@ -5,6 +5,9 @@ import '../../l10n/app_localizations.dart';
 import '../data/csv_import_mapping.dart';
 import '../data/import_error_labels.dart';
 import '../theme/app_spacing.dart';
+import '../widgets/app_dropdown_field.dart';
+import 'custom_fields_screen.dart' show customFieldTypeLabel;
+import '../diagnostics/error_log.dart';
 
 /// Above this many dance rows the step warns that review may take a while, as
 /// a large shared bundle does (`kSharedBundleSoftCapEntities`).
@@ -22,6 +25,23 @@ const int kCsvLargeBatchRows = 500;
 ///
 /// Built to be reused by the plain-text import (#2330): it knows only the
 /// text and the caller's custom fields, and hands back a [CsvImportMapping].
+/// The dropdown label for [mapping].
+String csvTargetLabel(
+  AppLocalizations l10n,
+  CsvColumnMapping mapping,
+  Map<String, CustomFieldDef> fields,
+) => switch (mapping.target) {
+  CsvColumnTarget.ignore => l10n.importCsvTargetIgnore,
+  CsvColumnTarget.figurePhrase => l10n.importCsvTargetPhrase(mapping.phrase!),
+  CsvColumnTarget.customField => l10n.importCsvTargetExistingField(
+    fields[mapping.customFieldId]?.label ?? mapping.customFieldId!,
+  ),
+  CsvColumnTarget.newCustomField => l10n.importCsvTargetNewField(
+    customFieldTypeLabel(l10n, mapping.newFieldType!),
+  ),
+  final t => csvTargetHeaderNames(l10n)[t]!.first,
+};
+
 class CsvMappingStep extends StatefulWidget {
   const CsvMappingStep({
     super.key,
@@ -75,7 +95,10 @@ class _CsvMappingStepState extends State<CsvMappingStep> {
     try {
       _rows = readCsv(widget.text, separator: _separator);
       _error = null;
-    } on CsvReadException catch (e) {
+    } on CsvReadException catch (e, stackTrace) {
+      // Shown on this step as its own message; the type is logged, never the
+      // file's content (it is the caller's data).
+      logCaughtErrorTypeOnly(e, stackTrace, source: 'import_csv_mapping._read');
       _rows = const [];
       _error = e;
     }
@@ -138,26 +161,20 @@ class _CsvMappingStepState extends State<CsvMappingStep> {
         const SizedBox(height: AppSpacing.xs),
         Text(l10n.importCsvMapIntro),
         const SizedBox(height: AppSpacing.md),
-        DropdownButtonFormField<String>(
+        AppDropdownField<String>(
           key: const ValueKey('csv-separator'),
-          initialValue: _separator,
+          value: _separator,
           decoration: InputDecoration(labelText: l10n.importCsvSeparatorLabel),
-          items: [
-            DropdownMenuItem(
-              value: ',',
-              child: Text(l10n.importCsvSeparatorComma),
-            ),
-            DropdownMenuItem(
+          entries: [
+            AppDropdownEntry(value: ',', label: l10n.importCsvSeparatorComma),
+            AppDropdownEntry(
               value: ';',
-              child: Text(l10n.importCsvSeparatorSemicolon),
+              label: l10n.importCsvSeparatorSemicolon,
             ),
-            DropdownMenuItem(
-              value: '\t',
-              child: Text(l10n.importCsvSeparatorTab),
-            ),
+            AppDropdownEntry(value: '\t', label: l10n.importCsvSeparatorTab),
           ],
           onChanged: (value) {
-            if (value == null || value == _separator) return;
+            if (value == _separator) return;
             setState(() {
               _separator = value;
               _read(detectHeader: true);
@@ -307,17 +324,21 @@ class _ColumnRow extends StatelessWidget {
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-          DropdownButton<CsvColumnMapping>(
+          AppDropdownField<CsvColumnMapping>(
             key: ValueKey('csv-column-$index'),
-            isExpanded: true,
             value: shown,
-            items: [
-              for (final c in choices)
-                DropdownMenuItem(value: c, child: Text(labelOf(c))),
+            // Some thirty targets, plus the caller's custom fields: typing
+            // narrows them.
+            filterable: true,
+            entries: [
+              for (final (j, c) in choices.indexed)
+                AppDropdownEntry(
+                  key: ValueKey('csv-column-$index-option-$j'),
+                  value: c,
+                  label: labelOf(c),
+                ),
             ],
-            onChanged: (m) {
-              if (m != null) onChanged(m);
-            },
+            onChanged: onChanged,
           ),
         ],
       ),

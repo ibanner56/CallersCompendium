@@ -1,7 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../screens/custom_fields_screen.dart' show customFieldTypeLabel;
 import '../export/export_labels_l10n.dart';
 import '../search/facet_labels.dart';
 
@@ -44,26 +43,12 @@ const List<CsvColumnTarget> _plainTargets = [
   CsvColumnTarget.figures,
 ];
 
-/// The dropdown label for [mapping].
-String csvTargetLabel(
-  AppLocalizations l10n,
-  CsvColumnMapping mapping,
-  Map<String, CustomFieldDef> fields,
-) => switch (mapping.target) {
-  CsvColumnTarget.ignore => l10n.importCsvTargetIgnore,
-  CsvColumnTarget.figurePhrase => l10n.importCsvTargetPhrase(mapping.phrase!),
-  CsvColumnTarget.customField => l10n.importCsvTargetExistingField(
-    fields[mapping.customFieldId]?.label ?? mapping.customFieldId!,
-  ),
-  CsvColumnTarget.newCustomField => l10n.importCsvTargetNewField(
-    customFieldTypeLabel(l10n, mapping.newFieldType!),
-  ),
-  final t => _plainNames(l10n)[t]!.first,
-};
-
-/// The header names each plain target answers to in one language: first the
+/// The header names each plain target answers to in one language (the first
+/// is its dropdown label): first the
 /// export's own column heading (#2332), then the editor's label.
-Map<CsvColumnTarget, List<String>> _plainNames(AppLocalizations l10n) => {
+Map<CsvColumnTarget, List<String>> csvTargetHeaderNames(
+  AppLocalizations l10n,
+) => {
   CsvColumnTarget.title: [
     l10n.csvColumnTitle,
     l10n.danceEditorTitleRequiredLabel,
@@ -108,7 +93,7 @@ CsvColumnMapping? csvTargetForHeader(
   final folded = csvFold(header);
   if (folded.isEmpty) return null;
   for (final l10n in languages) {
-    for (final MapEntry(:key, :value) in _plainNames(l10n).entries) {
+    for (final MapEntry(:key, :value) in csvTargetHeaderNames(l10n).entries) {
       if (value.any((name) => csvFold(name) == folded)) {
         return CsvColumnMapping(key);
       }

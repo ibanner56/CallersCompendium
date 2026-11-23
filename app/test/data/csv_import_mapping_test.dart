@@ -2,6 +2,8 @@ import 'dart:ui' show Locale;
 
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/csv_import_mapping.dart';
+import 'package:compendium_app/src/screens/import_csv_mapping.dart'
+    show csvTargetLabel;
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
