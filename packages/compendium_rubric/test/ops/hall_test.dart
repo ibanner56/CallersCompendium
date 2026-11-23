@@ -1,5 +1,7 @@
 import 'package:compendium_rubric/compendium_rubric.dart';
 import 'package:test/test.dart';
+import 'package:compendium_rubric/src/ops/transforms.dart'
+    show normalizeWaveOffsets;
 
 Formation di(List<String> rows) =>
     parseRolesNotation(rows, type: FormationType.dupleImproper);
@@ -160,6 +162,73 @@ void main() {
       );
       final back = applyOk(const UpTheHall(ender: HallEnder.none), down);
       expect(back.toRolesNotation(), down.toRolesNotation());
+    });
+  });
+
+  group('a couple facing along the hall walks into the line '
+      '(user-chosen 2026-11-23)', () {
+    // After "Ones swing" the ones face down toward the twos.
+    Formation onesSwung() => applyOk(
+      const Swing(who: WhoSet.ones),
+      di(const ['L1-A . . . R1-A', 'L2-B . . . R2-B']),
+    );
+
+    test('the ones step into the middle of the twos\' row', () {
+      final after = applyOk(
+        const DownTheHall(ender: HallEnder.none),
+        onesSwung(),
+      );
+      // The maintainer's order: twos on the ends, ones in the middle. A line
+      // facing down stands in its band's top row (fundamentals §8.1).
+      expect(after.toRolesNotation(), ['L2-B R1-A . L1-A R2-B', '. . . . .']);
+      expect(after.dancers.values.map((d) => d.facing).toSet(), {Facing.down});
+    });
+
+    test('bend the line then leaves the twos above the ones', () {
+      final down = applyOk(
+        const DownTheHall(ender: HallEnder.turnAlone),
+        onesSwung(),
+      );
+      final back = applyOk(const UpTheHall(ender: HallEnder.bendTheLine), down);
+      expect(back.toRolesNotation(), ['L2-B . . . R2-B', 'R1-A . . . L1-A']);
+    });
+
+    test('going up, the couple facing up walks in instead', () {
+      // The ones face down, away from the travel, so they stay; the twos,
+      // facing up toward the ones, walk into the ones' row (agent's call: the
+      // mirror case). The swing leaves the twos flexible, so face them up.
+      final swung = onesSwung();
+      final twosUp = swung.withUpdates({
+        for (final id in swung.dancersInRow(1))
+          id: swung.stateOf(id).copyWith(facing: Facing.up),
+      });
+      final after = applyOk(const UpTheHall(ender: HallEnder.none), twosUp);
+      expect(after.toRolesNotation(), [
+        '. . . . .',
+        'R1-A L2-B . R2-B L1-A',
+      ], reason: 'ones on the ends, twos in the middle, facing up');
+      expect(after.dancers.values.map((d) => d.facing).toSet(), {Facing.up});
+    });
+
+    test('dancers who are not partners do not walk', () {
+      final set = di(const ['R1-A . . . L2-B', 'L1-A . . . R2-B']);
+      final facing = set.withUpdates({
+        for (final id in set.dancersInRow(0))
+          id: set.stateOf(id).copyWith(facing: Facing.down),
+      });
+      final after = applyOk(const DownTheHall(ender: HallEnder.none), facing);
+      // The swing gather's column-pair order, not the walk-in order.
+      expect(after.toRolesNotation(), ['R1-A L1-A . R2-B L2-B', '. . . . .']);
+    });
+  });
+
+  group('settling wave offsets', () {
+    test('a row holding four dancers is a line, not a wave', () {
+      final set = di(const ['R1-B . . . L1-B', 'L2-D R1-A . L1-A R2-D']);
+      expect(
+        normalizeWaveOffsets(set).toRolesNotation(),
+        set.toRolesNotation(),
+      );
     });
   });
 

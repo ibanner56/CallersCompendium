@@ -603,13 +603,15 @@ sealed class HallFigure extends Operation {
     if (returnLeg case final back?) return _performRoundTrip(formation, back);
     if (_ledByPart) return _performLead(formation);
 
-    // Phase 1 - gather. `swing where:sides` verbatim. It is self-limiting: a
+    // Phase 1 - gather. A couple already facing the other along the hall
+    // walks forward into the middle of that couple's row; every other band
+    // gathers by `swing where:sides` verbatim. The swing is self-limiting: a
     // band already standing as a line has no side column holding two dancers,
     // so the swing leaves it alone and the conditionality falls out.
     final gathered = Swing(
       who: WhoSet.everyone,
       face: _gatherFace,
-    ).apply(formation);
+    ).apply(_stepIntoLine(formation));
     if (gathered case Err(:final error)) return Err(error);
     final lined = (gathered as Ok<Formation, OpError>).value;
 
@@ -645,6 +647,76 @@ sealed class HallFigure extends Operation {
       }
     }
     return Ok(lined.withUpdates(changes));
+  }
+
+  /// The gather for a band in which one couple faces the other along the
+  /// hall, as the ones do after swinging in their own row: the facing couple
+  /// walks forward into the middle of the other couple's row, each beside the
+  /// dancer on their own side, and the line faces [_gatherFace].
+  ///
+  /// So "Ones swing" then "in a line of four, go down the hall" lines up
+  /// twos on the ends and ones in the middle: from the improper start the
+  /// line is `L2-B R1-A . L1-A R2-B` in the twos' row *(user-ruled
+  /// 2026-11-23, the maintainer's own grid)*. The same walk applies to the
+  /// twos after their own-row swing *(agent's call: the mirror case)*.
+  ///
+  /// A band qualifies only when one row holds a couple (partners) alone on
+  /// the two side lines, both facing the other row and the line's ending
+  /// facing ([_gatherFace], which is against the travel for `backward`), and
+  /// the other row holds a pair alone on the side lines. The pair's facing
+  /// is not checked; walkers whose facing is flexible never qualify. Every
+  /// other band is left for the swing gather.
+  Formation _stepIntoLine(Formation formation) {
+    final changes = <DancerId, DancerState>{};
+    final facing = _gatherFace == FaceDirection.down ? Facing.down : Facing.up;
+    for (final band in handsFourBands(formation)) {
+      for (final (from, to) in [
+        (band.topRow, band.bottomRow),
+        (band.bottomRow, band.topRow),
+      ]) {
+        final toward = to > from ? Facing.down : Facing.up;
+        // Only the couple already facing the way the line will face walks.
+        if (toward != facing) continue;
+        final walkers = _sidePair(formation, from);
+        final standers = _sidePair(formation, to);
+        if (walkers == null || standers == null) continue;
+        if (formation.stateOf(walkers.west).facing != toward ||
+            formation.stateOf(walkers.east).facing != toward) {
+          continue;
+        }
+        if (!whoMatches(
+          formation,
+          walkers.west,
+          walkers.east,
+          WhoSet.partners,
+        )) {
+          continue;
+        }
+        changes[walkers.west] = formation
+            .stateOf(walkers.west)
+            .copyWith(position: Position(to, 1), facing: facing);
+        changes[walkers.east] = formation
+            .stateOf(walkers.east)
+            .copyWith(position: Position(to, kColumnCount - 2), facing: facing);
+        for (final id in [standers.west, standers.east]) {
+          changes[id] = formation.stateOf(id).copyWith(facing: facing);
+        }
+        break;
+      }
+    }
+    return changes.isEmpty ? formation : formation.withUpdates(changes);
+  }
+
+  /// The two dancers alone in [row], one on each side line, or `null`.
+  static ({DancerId west, DancerId east})? _sidePair(
+    Formation formation,
+    int row,
+  ) {
+    if (formation.dancersInRow(row).length != 2) return null;
+    final west = formation.dancerAt(Position(row, 0));
+    final east = formation.dancerAt(Position(row, kColumnCount - 1));
+    if (west == null || east == null) return null;
+    return (west: west, east: east);
   }
 
   @override

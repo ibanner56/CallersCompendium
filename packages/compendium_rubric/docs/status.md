@@ -47,6 +47,22 @@
 > previously compiling dance lost. 8 dances that refused now mismatch and 3
 > that mismatched now refuse.
 >
+> **The swung couple walks into the line (2026-11-23)**: a hall figure's
+> gather now walks a couple facing the other along the hall into the middle
+> of that couple's row (the maintainer's choice of a positional guess, since
+> the import drops the stated order). Against `rubric` at `1d5a62bd` it took
+> the count from 3,779 to 3,835 of 5,119 compiled in scope (73.8% to 74.9%),
+> and the core set from 512 to 515; 10095 Mallomars, which the maintainer
+> flagged, now compiles. Six dances that compiled no longer do. Three were
+> expected: 3475 and 13043 (Merry Dance, whose opening line wants the ones on
+> the ends) and 7387 Jackson Four, which now progresses at its bend the line,
+> ahead of the assumed progression. Three are not yet explained: 17577
+> Topsy-Turvy and 5502 The New Flow (a hand cast follows the line) and 2109
+> Penguin Quits (its bend the line leaves the twos below the ones, where the
+> next figure's "[with N2]" wants them above). A line formed in one row of a
+> band whose other row is still occupied is no longer collapsed as a wave (it
+> crashed Garden Gate).
+>
 > **"Twos swing" (2026-11-23)**: the twos swing in their own row and finish
 > facing up, toward the ones (user-ruled). Against `rubric` at `080d9f1c` it
 > took the count from 3,761 to 3,779 of 5,119 compiled in scope (73.5% to

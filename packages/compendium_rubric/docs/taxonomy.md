@@ -793,8 +793,9 @@ To be defined later with worked examples.
       these dancers, or the next h4's when `progression:true`), the up/down result is finessed
       into the `sides` line-of-four form. **The line-of-four side of this is now settled** —
       see §8.1 of `fundamentals.md` and `down_the_hall`: the hall figures **gather** a non-line
-      input using this same column-pair rule, so a `where:center` result that is not already a
-      line is simply gathered by the following figure. What remains open here is only the
+      input using this same column-pair rule (or, for a couple facing the other along the hall,
+      the walk-in rule there), so a `where:center` result that is not already a line is simply
+      gathered by the following figure. What remains open here is only the
       `where:center` placement itself.
   - **"Ones swing" — built for `who: ones`** *(user-ruled 2026-11-23)*. Caller's Box writes it
     with no `where`, so it arrives as `where: sides`. When every active hands four has its ones
@@ -2438,6 +2439,23 @@ To be defined later with worked examples.
   pair** collapses into the two-cell segment on its own side — c0-pair → `{c0, c1}`, c4-pair →
   `{c3, c4}`, `c2` left empty — in the facing-derived row, normalized lark-left/robin-right
   relative to the **ending facing** (§7). This is the `swing` `where:sides` rule verbatim.
+
+  **Except when a couple faces the other along the hall** *(user-chosen 2026-11-23)*. When
+  one row of the h4 holds a couple (partners) alone on the side lines, both already facing
+  toward the other row and the way the line will end up facing (the travel, unless it goes
+  `facing: backward`), and the other row holds a pair alone on the side lines, the facing couple **walks forward into the middle of the other row**, each
+  beside the dancer on their own side, and everyone faces the travel. After "Ones swing"
+  (ones facing down, toward the twos) "go down the hall" lines up twos on the ends and ones in
+  the middle — the maintainer's own grid, `L2-B R1-A . L1-A R2-B`, written Caller's Box style
+  as "W2-M1-W1-M2" read from the east. The import drops that stated order, so the rule reads
+  it from where the dancers stand and face. This was the maintainer's pick of a positional
+  guess over carrying the order through the import, knowing a set that starts facing along
+  the hall (a Caller's Box improper start) now gathers this way too: "Merry Dance"'s opening
+  "(M1-W2-M2-W1)" line, which wants the ones on the ends, is the known casualty. The twos
+  facing up and walking into the ones' row going up the hall is the mirror case *(agent's
+  call)*. The standing pair's facing is not checked, a couple whose facing is flexible (as
+  the twos are after "Ones swing") never walks, and in each h4 the first qualifying couple
+  walks *(agent's calls)*.
 
   > ⚠️ **The gather is conditional, and must be.** If it re-ran on a line that already exists,
   > it would silently re-normalize it — and `turnAlone` would be erased by the `up_the_hall`
