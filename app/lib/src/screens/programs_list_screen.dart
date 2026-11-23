@@ -1008,6 +1008,13 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     final programs = _programs;
     if (programs == null) return;
     final venuesById = _venuesById;
+    // The share sheet's anchor, captured before any await: on iPad,
+    // share_plus needs a non-zero origin for its popover. The list's own
+    // rect stands in for the ⋮ button, which the menu has closed by now.
+    final box = context.findRenderObject() as RenderBox?;
+    final origin = box != null && box.hasSize
+        ? box.localToGlobal(Offset.zero) & box.size
+        : null;
     final now = clock.now();
     final candidates = calendarExportCandidates(
       programs,
@@ -1032,7 +1039,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                 ? programCalendarFileName(chosen.single)
                 : calendarMultiFileName,
             subject: l10n.exportCalendarPickTitle,
-            sharePositionOrigin: null,
+            sharePositionOrigin: origin,
           ),
       source: 'programs_list_screen._exportCalendar',
     );

@@ -615,8 +615,10 @@ menu:
   named `.json` so a device without the app can still open it. **Save** opens
   your system's save dialog; canceling it saves nothing.
 - **Export / print PDF** — builds a PDF and opens your system's print dialog.
-- **Add to calendar (.ics)** — for a program with a date, writes a calendar
-  file your calendar app can open, with a choice to **Save** or **Share**. To
+- **Add to calendar (.ics)** — for a saved program with a date, writes a
+  calendar file your calendar app can open, with a choice to **Save** or
+  **Share**. In the builder it appears once the program is saved, and not while
+  it has unsaved changes. To
   put several programs in one file, use **More actions** (⋮) ▸ **Export
   calendar (.ics)** on the Programs list.
 

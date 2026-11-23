@@ -160,7 +160,7 @@ with a date:
 | **Copy set list** | Puts the set list text on your clipboard, and confirms with "Set list copied to clipboard." |
 | **Export as JSON file** | Opens a choice to **Save**, **Copy raw JSON**, **Share**, or **Cancel**. The same package is named `.json` for a recipient who doesn't have the app, or when you want to read the file yourself |
 | **Export / print PDF** | Builds a PDF set list and opens your system's print dialog |
-| **Add to calendar (.ics)** | Only when the program has an event date. Writes a calendar file for your calendar app — see [Put programs in your calendar](#put-programs-in-your-calendar) |
+| **Add to calendar (.ics)** | Only when the program has an event date and, in the builder, once it is saved. Writes a calendar file for your calendar app — see [Put programs in your calendar](#put-programs-in-your-calendar) |
 
 With **Print calling cards** turned on in Settings ▸ Experimental ▸ Calling
 cards, there is one more: **Print calling cards**, one small card for each of the program's dances — see
@@ -327,7 +327,9 @@ A calendar file (`.ics`) puts your gigs in the calendar app you already use, so
 you don't type them in twice. There are two ways to make one:
 
 - **One program:** open it and choose **Export ▸ Add to calendar (.ics)**. It is
-  offered for any program with an event date, past or upcoming.
+  offered for any saved program with an event date, past or upcoming. In the
+  builder it appears once the program is saved, and not while it has unsaved
+  changes: the file names the program as it is stored.
 - **Several programs:** on the Programs list, choose **More actions** (⋮) ▸
   **Export calendar (.ics)**. A checklist shows your upcoming programs — dated
   today or later, not archived — all ticked. Turn on **Show past programs** to

@@ -11,6 +11,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'support/l10n_harness.dart';
 import 'support/test_repositories.dart';
@@ -175,6 +176,38 @@ void main() {
         });
       });
     }
+
+    testWidgets('Share from the list passes the share sheet an anchor', (
+      tester,
+    ) async {
+      final saved = isBundleShareUnsupported;
+      isBundleShareUnsupported = () => false;
+      addTearDown(() => isBundleShareUnsupported = saved);
+      await withClock(fixed, () async {
+        final repos = await seed();
+        Rect? anchor;
+        await pump(
+          tester,
+          repos,
+          CalendarExportDelivery(
+            choicePicker: (_) async => CalendarExportChoice.share,
+            fileWriter: (ics, name) async => XFile('/tmp/$name'),
+            shareInvoker: (params) async => anchor = params.sharePositionOrigin,
+          ),
+          compact: false,
+        );
+        await tester.tap(find.byKey(const ValueKey('programs-more-actions')));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('programs-export-calendar')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('calendar-picker-export')));
+        await tester.pumpAndSettle();
+        expect(anchor, isNotNull);
+        expect(anchor!.isEmpty, isFalse, reason: 'iPad needs a non-zero rect');
+      });
+    });
 
     testWidgets('cancelling the checklist writes nothing', (tester) async {
       await withClock(fixed, () async {
