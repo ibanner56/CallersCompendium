@@ -309,6 +309,13 @@ Map<String, Object?> archiveProgramToJson(
   // envelope like archivedAt. Share files never carry it: the share bundles
   // strip it (`sanitizeProgramForShare`).
   if (p.calendarEventKey != null) 'calendarEventKey': p.calendarEventKey,
+  // The calendar import's change tracking (#2354): only when set, stamped by
+  // the backup envelope, stripped from share files, like the key.
+  if (p.calendarEventFingerprint != null)
+    'calendarEventFingerprint': p.calendarEventFingerprint,
+  if (p.calendarWrittenAt != null)
+    'calendarWrittenAt': archiveIso(p.calendarWrittenAt!),
+  if (p.calendarFlag != null) 'calendarFlag': p.calendarFlag,
   'slots': [
     for (final s in p.slots)
       archiveProgramSlotToJson(s, includeOptionalFields: includeOptionalFields),

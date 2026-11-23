@@ -311,7 +311,12 @@ above) so switching venue-entry modes is lossless.
 `calendarEventKey` (schema v42) is set on a program a calendar import created:
 a SHA-256 digest of the event's `UID` and recurrence id, never the `UID`, so the
 next import (on any of the caller's devices, since it syncs) does not offer the
-event again. It is not shown anywhere, and share files drop it.
+event again. It is not shown anywhere, and share files drop it. With it the
+import keeps `calendarEventFingerprint` and `calendarWrittenAt` (#2354), to
+tell what changed upstream and whether the caller has touched the draft since,
+and `calendarFlag` (`cancelled`/`missing`), a label shown on the Programs list
+and the summary. The import never edits a program without the caller's tick
+and never deletes one.
 
 Duplicate-program = deep copy of slots, as a Draft with performed marks, pay,
 event date and calendar event key cleared (a copy is for a different event;

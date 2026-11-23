@@ -13297,4 +13297,67 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get csvColumnBarnes => 'Barnes-verwijzing';
+
+  @override
+  String calendarImportUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programma\'s bijgewerkt uit je agenda.',
+      one: '1 programma bijgewerkt uit je agenda.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportReviewed =>
+      'Agenda gecontroleerd. Er is niets toegevoegd of gewijzigd.';
+
+  @override
+  String calendarChangeDate(String before, String after) {
+    return 'Datum: $before → $after';
+  }
+
+  @override
+  String calendarChangeTitle(String before, String after) {
+    return 'Titel: $before → $after';
+  }
+
+  @override
+  String calendarChangeVenue(String before, String after) {
+    return 'Locatie: $before → $after';
+  }
+
+  @override
+  String get calendarImportUpdatedHeader => 'Bijgewerkt in je agenda';
+
+  @override
+  String get calendarImportChangedHeader => 'Gewijzigd in je agenda';
+
+  @override
+  String get calendarImportChangedBody =>
+      'Je hebt aan deze programma\'s gewerkt, dus er verandert niets tenzij je het aanvinkt.';
+
+  @override
+  String get calendarImportFlaggedHeader =>
+      'Geannuleerd of verdwenen uit je agenda';
+
+  @override
+  String get calendarImportFlaggedBody =>
+      'Deze programma\'s blijven zoals ze zijn en krijgen een label. Archiveer of verwijder ze zelf als je ze niet meer nodig hebt.';
+
+  @override
+  String get calendarFlagCancelled => 'Geannuleerd in je agenda';
+
+  @override
+  String get calendarFlagMissing => 'Niet meer in je agenda';
+
+  @override
+  String get calendarFlagOther => 'Gemarkeerd door je agenda';
+
+  @override
+  String get calendarFlagFieldLabel => 'Agendamarkering';
+
+  @override
+  String get calendarClearFlag => 'Agendamarkering wissen';
 }

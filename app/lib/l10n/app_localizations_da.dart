@@ -13220,4 +13220,66 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get csvColumnBarnes => 'Barnes-henvisning';
+
+  @override
+  String calendarImportUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programmer opdateret fra din kalender.',
+      one: '1 program opdateret fra din kalender.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportReviewed =>
+      'Kalenderen er tjekket. Intet blev tilføjet eller ændret.';
+
+  @override
+  String calendarChangeDate(String before, String after) {
+    return 'Dato: $before → $after';
+  }
+
+  @override
+  String calendarChangeTitle(String before, String after) {
+    return 'Titel: $before → $after';
+  }
+
+  @override
+  String calendarChangeVenue(String before, String after) {
+    return 'Spillested: $before → $after';
+  }
+
+  @override
+  String get calendarImportUpdatedHeader => 'Opdateret i din kalender';
+
+  @override
+  String get calendarImportChangedHeader => 'Ændret i din kalender';
+
+  @override
+  String get calendarImportChangedBody =>
+      'Du har arbejdet på disse programmer, så intet ændres, medmindre du sætter flueben.';
+
+  @override
+  String get calendarImportFlaggedHeader => 'Aflyst eller væk fra din kalender';
+
+  @override
+  String get calendarImportFlaggedBody =>
+      'Disse programmer forbliver, som de er, og bliver markeret. Arkivér eller slet dem selv, hvis du ikke længere har brug for dem.';
+
+  @override
+  String get calendarFlagCancelled => 'Aflyst i din kalender';
+
+  @override
+  String get calendarFlagMissing => 'Ikke længere i din kalender';
+
+  @override
+  String get calendarFlagOther => 'Markeret af din kalender';
+
+  @override
+  String get calendarFlagFieldLabel => 'Kalendermarkering';
+
+  @override
+  String get calendarClearFlag => 'Fjern kalendermarkering';
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
@@ -37,6 +38,8 @@ import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/program_export_menu.dart';
+import '../data/calendar_import.dart' show clearCalendarFlag;
+import '../widgets/calendar_flag_label.dart';
 import '../widgets/program_status_chip.dart';
 import 'dance_detail_screen.dart';
 import 'dance_reimport_flow.dart';
@@ -698,6 +701,26 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   }
 
   /// Archives the program and leaves this view, as Delete does, with an Undo.
+  /// "Clear calendar flag" (#2354): removes the label, edits nothing else.
+  /// The next calendar import sets it again if the event is still cancelled
+  /// or gone.
+  Future<void> _clearCalendarFlag(Program program) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    try {
+      await clearCalendarFlag(_repos, program, now: clock.now().toUtc());
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'program_summary_screen._clearCalendarFlag',
+      );
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.calendarSettingsSaveError)),
+      );
+    }
+  }
+
   Future<void> _archive() async {
     final source = _program;
     if (source == null || _archiving || _deleting) return;
@@ -1111,6 +1134,22 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             child: Align(
               alignment: AlignmentDirectional.centerStart,
               child: ProgramArchivedChip(),
+            ),
+          ),
+        if (program.calendarFlag != null)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: AppSpacing.xs,
+              children: [
+                CalendarFlagLabel(program: program),
+                TextButton(
+                  key: const ValueKey('clear-calendar-flag'),
+                  onPressed: () => _clearCalendarFlag(program),
+                  child: Text(AppLocalizations.of(context).calendarClearFlag),
+                ),
+              ],
             ),
           ),
         if (widget.prominentPerform) ...[

@@ -13167,4 +13167,67 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get csvColumnBarnes => 'Barnes reference';
+
+  @override
+  String calendarImportUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programs updated from your calendar.',
+      one: '1 program updated from your calendar.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportReviewed =>
+      'Calendar checked. Nothing was added or changed.';
+
+  @override
+  String calendarChangeDate(String before, String after) {
+    return 'Date: $before → $after';
+  }
+
+  @override
+  String calendarChangeTitle(String before, String after) {
+    return 'Title: $before → $after';
+  }
+
+  @override
+  String calendarChangeVenue(String before, String after) {
+    return 'Venue: $before → $after';
+  }
+
+  @override
+  String get calendarImportUpdatedHeader => 'Updated in your calendar';
+
+  @override
+  String get calendarImportChangedHeader => 'Changed in your calendar';
+
+  @override
+  String get calendarImportChangedBody =>
+      'You\'ve worked on these programs, so nothing changes unless you tick it.';
+
+  @override
+  String get calendarImportFlaggedHeader =>
+      'Canceled or gone from your calendar';
+
+  @override
+  String get calendarImportFlaggedBody =>
+      'These programs are kept as they are and labeled. Archive or delete them yourself if you no longer need them.';
+
+  @override
+  String get calendarFlagCancelled => 'Canceled in your calendar';
+
+  @override
+  String get calendarFlagMissing => 'No longer in your calendar';
+
+  @override
+  String get calendarFlagOther => 'Flagged by your calendar';
+
+  @override
+  String get calendarFlagFieldLabel => 'Calendar flag';
+
+  @override
+  String get calendarClearFlag => 'Clear calendar flag';
 }

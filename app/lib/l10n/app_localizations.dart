@@ -19396,6 +19396,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Barnes reference'**
   String get csvColumnBarnes;
+
+  /// Snack bar part after a calendar import updated existing programs from calendar changes. Offers Undo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 program updated from your calendar.} other{{count} programs updated from your calendar.}}'**
+  String calendarImportUpdated(int count);
+
+  /// Snack bar after a calendar import in which only flags or bookkeeping were written: no program was added or updated.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar checked. Nothing was added or changed.'**
+  String get calendarImportReviewed;
+
+  /// A program's date as it is and as the calendar now has it, in the calendar import review.
+  ///
+  /// In en, this message translates to:
+  /// **'Date: {before} → {after}'**
+  String calendarChangeDate(String before, String after);
+
+  /// A program's title as it is and as the calendar now has it, in the calendar import review.
+  ///
+  /// In en, this message translates to:
+  /// **'Title: {before} → {after}'**
+  String calendarChangeTitle(String before, String after);
+
+  /// A program's venue as it is and as the calendar now has it, in the calendar import review.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue: {before} → {after}'**
+  String calendarChangeVenue(String before, String after);
+
+  /// Heading over changed calendar events whose draft program the user has not touched; ticked by default.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated in your calendar'**
+  String get calendarImportUpdatedHeader;
+
+  /// Heading over changed calendar events whose program the user has worked on; unticked by default.
+  ///
+  /// In en, this message translates to:
+  /// **'Changed in your calendar'**
+  String get calendarImportChangedHeader;
+
+  /// Body under the Changed in your calendar heading.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve worked on these programs, so nothing changes unless you tick it.'**
+  String get calendarImportChangedBody;
+
+  /// Heading over imported programs whose event was cancelled or is no longer in the calendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Canceled or gone from your calendar'**
+  String get calendarImportFlaggedHeader;
+
+  /// Body under the cancelled-or-gone heading.
+  ///
+  /// In en, this message translates to:
+  /// **'These programs are kept as they are and labeled. Archive or delete them yourself if you no longer need them.'**
+  String get calendarImportFlaggedBody;
+
+  /// Label on a program whose calendar event was cancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Canceled in your calendar'**
+  String get calendarFlagCancelled;
+
+  /// Label on a program whose calendar event is no longer in the calendar.
+  ///
+  /// In en, this message translates to:
+  /// **'No longer in your calendar'**
+  String get calendarFlagMissing;
+
+  /// Label on a program carrying a calendar flag this version does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'Flagged by your calendar'**
+  String get calendarFlagOther;
+
+  /// Field name for a program's calendar flag when comparing two versions in a sync conflict.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar flag'**
+  String get calendarFlagFieldLabel;
+
+  /// Button on a program's summary that removes its calendar flag.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear calendar flag'**
+  String get calendarClearFlag;
 }
 
 class _AppLocalizationsDelegate

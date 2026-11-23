@@ -229,6 +229,9 @@ void main() {
         title: 'Contra A',
         eventDate: DateTime.utc(2030, 6, 20),
         calendarEventKey: key,
+        calendarEventFingerprint: 'v1:0000000000000000:1:2',
+        calendarWrittenAt: DateTime.utc(2030),
+        calendarFlag: calendarFlagMissing,
         createdAt: DateTime.utc(2030),
         updatedAt: DateTime.utc(2030),
       ),
@@ -248,6 +251,10 @@ void main() {
     final saved = (await repos.programs.getById('p1'))!;
     expect(saved.title, 'Contra A, planned');
     expect(saved.calendarEventKey, key);
+    expect(saved.calendarEventFingerprint, 'v1:0000000000000000:1:2');
+    expect(saved.calendarWrittenAt, DateTime.utc(2030));
+    expect(saved.calendarFlag, calendarFlagMissing);
+    expect(saved.isUntouchedCalendarDraft, isFalse, reason: 'an edit');
   });
 
   testWidgets('editing the address in Settings saves it, and the dialog closes '

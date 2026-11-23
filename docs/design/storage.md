@@ -912,6 +912,18 @@ steps that can still fire are v40 onward.
   because v3 had not shipped). Added by the same `from < 42` step, guarded on
   `pragma_table_info`. No data rewritten, no derived rebuild.
 
+  Also in v42, before it shipped: the calendar import's change tracking
+  (#2354). Adds three nullable `programs` columns: `calendar_event_fingerprint`
+  (`Program.calendarEventFingerprint`, per-field truncated hashes of the
+  event's title, date and first location segment as last imported),
+  `calendar_written_at` (`Program.calendarWrittenAt`, the `updated_at` the
+  import last wrote; a Draft whose `updated_at` still equals it is
+  "untouched") and `calendar_flag` (`Program.calendarFlag`: `cancelled`,
+  `missing` or NULL, a free string decoded leniently so a later value never
+  refuses the program). All three sync, are kept in backups (envelope v3, as
+  for the key), and are stripped from share files; clearing the key clears
+  them. Same step, same guards; no data rewritten.
+
 ## The delete model
 
 Every syncable kind — dances, programs, choreographers, tags, published

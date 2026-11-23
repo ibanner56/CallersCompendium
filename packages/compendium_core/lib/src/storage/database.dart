@@ -807,7 +807,9 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   ///
   /// Also `programs.calendar_event_key` (calendar import, #2352), nullable, so
   /// no existing program is taken for an imported one. It joined v42 while
-  /// v42 was unreleased, the same way.
+  /// v42 was unreleased, the same way. So did the calendar import's change
+  /// tracking (#2354): `calendar_event_fingerprint`, `calendar_written_at`
+  /// and `calendar_flag`, all nullable.
   ///
   /// The live-schema checks only keep the step idempotent.
   Future<void> _ensureV42Schema(Migrator m) async {
@@ -843,6 +845,17 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       for (final row in programColumns) row.read<String>('name'),
     }.contains(programs.calendarEventKey.name)) {
       await m.addColumn(programs, programs.calendarEventKey);
+    }
+    for (final column in [
+      programs.calendarEventFingerprint,
+      programs.calendarWrittenAt,
+      programs.calendarFlag,
+    ]) {
+      if (!{
+        for (final row in programColumns) row.read<String>('name'),
+      }.contains(column.name)) {
+        await m.addColumn(programs, column);
+      }
     }
   }
 

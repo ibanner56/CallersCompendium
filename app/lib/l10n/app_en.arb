@@ -17742,5 +17742,94 @@
   "csvColumnBarnes": "Barnes reference",
   "@csvColumnBarnes": {
     "description": "Column heading in an exported dances CSV spreadsheet: where an English country dance appears in the Barnes books."
+  },
+  "calendarImportUpdated": "{count, plural, =1{1 program updated from your calendar.} other{{count} programs updated from your calendar.}}",
+  "@calendarImportUpdated": {
+    "description": "Snack bar part after a calendar import updated existing programs from calendar changes. Offers Undo.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarImportReviewed": "Calendar checked. Nothing was added or changed.",
+  "@calendarImportReviewed": {
+    "description": "Snack bar after a calendar import in which only flags or bookkeeping were written: no program was added or updated."
+  },
+  "calendarChangeDate": "Date: {before} → {after}",
+  "@calendarChangeDate": {
+    "description": "A program's date as it is and as the calendar now has it, in the calendar import review.",
+    "placeholders": {
+      "before": {
+        "type": "String"
+      },
+      "after": {
+        "type": "String"
+      }
+    }
+  },
+  "calendarChangeTitle": "Title: {before} → {after}",
+  "@calendarChangeTitle": {
+    "description": "A program's title as it is and as the calendar now has it, in the calendar import review.",
+    "placeholders": {
+      "before": {
+        "type": "String"
+      },
+      "after": {
+        "type": "String"
+      }
+    }
+  },
+  "calendarChangeVenue": "Venue: {before} → {after}",
+  "@calendarChangeVenue": {
+    "description": "A program's venue as it is and as the calendar now has it, in the calendar import review.",
+    "placeholders": {
+      "before": {
+        "type": "String"
+      },
+      "after": {
+        "type": "String"
+      }
+    }
+  },
+  "calendarImportUpdatedHeader": "Updated in your calendar",
+  "@calendarImportUpdatedHeader": {
+    "description": "Heading over changed calendar events whose draft program the user has not touched; ticked by default."
+  },
+  "calendarImportChangedHeader": "Changed in your calendar",
+  "@calendarImportChangedHeader": {
+    "description": "Heading over changed calendar events whose program the user has worked on; unticked by default."
+  },
+  "calendarImportChangedBody": "You've worked on these programs, so nothing changes unless you tick it.",
+  "@calendarImportChangedBody": {
+    "description": "Body under the Changed in your calendar heading."
+  },
+  "calendarImportFlaggedHeader": "Canceled or gone from your calendar",
+  "@calendarImportFlaggedHeader": {
+    "description": "Heading over imported programs whose event was cancelled or is no longer in the calendar."
+  },
+  "calendarImportFlaggedBody": "These programs are kept as they are and labeled. Archive or delete them yourself if you no longer need them.",
+  "@calendarImportFlaggedBody": {
+    "description": "Body under the cancelled-or-gone heading."
+  },
+  "calendarFlagCancelled": "Canceled in your calendar",
+  "@calendarFlagCancelled": {
+    "description": "Label on a program whose calendar event was cancelled."
+  },
+  "calendarFlagMissing": "No longer in your calendar",
+  "@calendarFlagMissing": {
+    "description": "Label on a program whose calendar event is no longer in the calendar."
+  },
+  "calendarFlagOther": "Flagged by your calendar",
+  "@calendarFlagOther": {
+    "description": "Label on a program carrying a calendar flag this version does not know."
+  },
+  "calendarFlagFieldLabel": "Calendar flag",
+  "@calendarFlagFieldLabel": {
+    "description": "Field name for a program's calendar flag when comparing two versions in a sync conflict."
+  },
+  "calendarClearFlag": "Clear calendar flag",
+  "@calendarClearFlag": {
+    "description": "Button on a program's summary that removes its calendar flag."
   }
 }

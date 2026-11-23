@@ -925,6 +925,31 @@ class Programs extends Table with TableInfo {
     requiredDuringInsert: false,
     $customConstraints: 'NULL',
   );
+  late final GeneratedColumn<String> calendarEventFingerprint =
+      GeneratedColumn<String>(
+        'calendar_event_fingerprint',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        $customConstraints: 'NULL',
+      );
+  late final GeneratedColumn<int> calendarWrittenAt = GeneratedColumn<int>(
+    'calendar_written_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<String> calendarFlag = GeneratedColumn<String>(
+    'calendar_flag',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -947,6 +972,9 @@ class Programs extends Table with TableInfo {
     existenceAt,
     archivedAt,
     calendarEventKey,
+    calendarEventFingerprint,
+    calendarWrittenAt,
+    calendarFlag,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;

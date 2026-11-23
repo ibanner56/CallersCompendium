@@ -12695,4 +12695,64 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get csvColumnBarnes => 'Barnes 掲載箇所';
+
+  @override
+  String calendarImportUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'カレンダーからプログラムを$count件更新しました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportReviewed => 'カレンダーを確認しました。追加や変更はありません。';
+
+  @override
+  String calendarChangeDate(String before, String after) {
+    return '日付: $before → $after';
+  }
+
+  @override
+  String calendarChangeTitle(String before, String after) {
+    return 'タイトル: $before → $after';
+  }
+
+  @override
+  String calendarChangeVenue(String before, String after) {
+    return '会場: $before → $after';
+  }
+
+  @override
+  String get calendarImportUpdatedHeader => 'カレンダーで更新された予定';
+
+  @override
+  String get calendarImportChangedHeader => 'カレンダーで変更された予定';
+
+  @override
+  String get calendarImportChangedBody =>
+      'これらのプログラムは編集済みのため、チェックを入れない限り何も変わりません。';
+
+  @override
+  String get calendarImportFlaggedHeader => 'カレンダーでキャンセルされた、または削除された予定';
+
+  @override
+  String get calendarImportFlaggedBody =>
+      'これらのプログラムはそのまま残り、ラベルが付きます。不要になったら自分でアーカイブまたは削除してください。';
+
+  @override
+  String get calendarFlagCancelled => 'カレンダーでキャンセル済み';
+
+  @override
+  String get calendarFlagMissing => 'カレンダーにもうありません';
+
+  @override
+  String get calendarFlagOther => 'カレンダーによるフラグ';
+
+  @override
+  String get calendarFlagFieldLabel => 'カレンダーのフラグ';
+
+  @override
+  String get calendarClearFlag => 'カレンダーのフラグを消す';
 }

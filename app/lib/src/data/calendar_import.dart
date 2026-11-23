@@ -53,12 +53,40 @@ class CalendarImportPreview {
     this.unreadableSeries = const [],
     this.skippedNoUid = 0,
     this.truncated = false,
+    this.changes = const [],
+    this.flagChanges = const [],
+    this.stillFlagged = const [],
   });
 
   final List<CalendarImportEntry> entries;
   final List<String> unreadableSeries;
   final int skippedNoUid;
   final bool truncated;
+
+  /// Programs whose event changed in the calendar (#2354), in date order.
+  final List<CalendarChangeOffer> changes;
+
+  /// Flags the import sets or clears when the caller presses Import (#2354).
+  final List<CalendarFlagChange> flagChanges;
+
+  /// Programs already flagged that stay flagged.
+  final List<Program> stillFlagged;
+
+  /// Programs that are, or on Import will be, flagged: for information only.
+  List<CalendarFlagChange> get flagged => [
+    for (final f in flagChanges)
+      if (f.flag != null) f,
+    for (final p in stillFlagged)
+      CalendarFlagChange(program: p, flag: p.calendarFlag),
+  ];
+
+  /// Whether Import has something to write with no box ticked: a flag to
+  /// set or clear, or a change the caller saw and left unticked (recorded so
+  /// it is not offered again). An offer with nothing to show is recorded only
+  /// alongside such a write, so a review with nothing to show never rewrites
+  /// every program.
+  bool get hasPendingWrites =>
+      flagChanges.isNotEmpty || changes.any(calendarOfferVisible);
 
   int get offeredCount => entries.where((e) => e.offered).length;
 
@@ -93,7 +121,9 @@ Future<CalendarImportPreview> buildCalendarImportPreview(
     for (final c in plan.candidates) ?c.exportedProgramId,
   ]);
   final venuesByFolded = <String, List<Venue>>{};
+  final venueNames = <String, String>{};
   for (final venue in await repos.venues.listAll()) {
+    venueNames[venue.id] = venue.name;
     final folded = _venueFold(venue.name);
     if (folded != null) (venuesByFolded[folded] ??= []).add(venue);
   }
@@ -130,11 +160,306 @@ Future<CalendarImportPreview> buildCalendarImportPreview(
       ),
     );
   }
+  // #2354: what changed upstream for programs already imported, and which
+  // ones the calendar cancelled or no longer has. Nothing is written here.
+  final candidatesByKey = <String, CalendarImportCandidate>{};
+  for (final c in plan.candidates) {
+    // The first of a duplicated event, as the entries above keep it.
+    candidatesByKey.putIfAbsent(c.eventKey, () => c);
+  }
+  final stillFlagged = <Program>[];
+  final changes = <CalendarChangeOffer>[];
+  final flagChanges = <CalendarFlagChange>[];
+  final day0 = DateTime.utc(today.year, today.month, today.day);
+  final horizonEnd = day0.add(const Duration(days: iCalRepeatHorizonDays));
+  for (final program in await repos.programs.listAll()) {
+    final key = program.calendarEventKey;
+    if (key == null) continue;
+    final String? targetFlag;
+    if (plan.cancelledAnywhereKeys.contains(key)) {
+      targetFlag = calendarFlagCancelled;
+    } else if (plan.knownKeys.contains(key)) {
+      // Still in the calendar, wherever it moved.
+      targetFlag = null;
+    } else if (plan.canJudgeMissing &&
+        _withinHorizon(program.eventDate, day0, horizonEnd)) {
+      targetFlag = calendarFlagMissing;
+    } else {
+      // Not judged: outside the range read in full, or the feed was not read
+      // whole. Left as it is.
+      targetFlag = program.calendarFlag;
+    }
+    if (targetFlag != program.calendarFlag) {
+      flagChanges.add(CalendarFlagChange(program: program, flag: targetFlag));
+    } else if (targetFlag != null) {
+      stillFlagged.add(program);
+    }
+    final candidate = candidatesByKey[key];
+    if (candidate == null) continue;
+    final offer = _changeOffer(
+      program,
+      candidate,
+      venueIdFor,
+      (id) => venueNames[id],
+    );
+    if (offer != null) changes.add(offer);
+  }
+  changes.sort((a, b) => a.candidate.date.compareTo(b.candidate.date));
   return CalendarImportPreview(
     entries: entries,
     unreadableSeries: plan.unreadableSeries,
     skippedNoUid: plan.skippedNoUid,
     truncated: plan.truncated,
+    changes: changes,
+    flagChanges: flagChanges,
+    stillFlagged: stillFlagged,
+  );
+}
+
+/// "No longer in the calendar" is judged only for a program dated from today
+/// up to [iCalRepeatHorizonDays] ahead: the range in which single events and
+/// every occurrence of a repeating series are both read in full. A program
+/// outside it is never reported gone, so one whose event moved out of range is
+/// left alone (#2354).
+bool _withinHorizon(DateTime? date, DateTime day0, DateTime end) =>
+    date != null && !date.isBefore(day0) && !date.isAfter(end);
+
+/// An upstream change to a program a calendar import created (#2354).
+class CalendarChangeOffer {
+  const CalendarChangeOffer({
+    required this.program,
+    required this.candidate,
+    required this.untouched,
+    required this.title,
+    required this.date,
+    required this.venue,
+    this.shownVenue,
+    this.venueId,
+  });
+
+  /// The venue the program shows now: its linked record's name, else its
+  /// typed label. The "before" side of a venue change.
+  final String? shownVenue;
+
+  /// The program as stored now.
+  final Program program;
+
+  /// The event as it is now.
+  final CalendarImportCandidate candidate;
+
+  /// [Program.isUntouchedCalendarDraft]: the offer starts ticked. Otherwise
+  /// it starts unticked. Either way only the fields that changed upstream,
+  /// and differ from the program now, are offered.
+  final bool untouched;
+
+  /// Which fields the offer would change; each differs from the program now.
+  final bool title;
+  final bool date;
+  final bool venue;
+
+  /// The saved venue record the new location matches, if one does.
+  final String? venueId;
+}
+
+/// A flag a calendar import sets (or, with a null [flag], clears) on Import.
+class CalendarFlagChange {
+  const CalendarFlagChange({required this.program, required this.flag});
+
+  final Program program;
+  final String? flag;
+}
+
+CalendarChangeOffer? _changeOffer(
+  Program program,
+  CalendarImportCandidate c,
+  String? Function(String? label) venueIdFor,
+  String? Function(String id) venueName,
+) {
+  final stored = program.calendarEventFingerprint;
+  if (stored == c.fingerprint) return null;
+  final upstream = calendarFingerprintChanges(stored, c.fingerprint);
+  // With no usable fingerprint (a program imported before #2354), compare
+  // the program's own values: it is treated as worked on.
+  final untouched = upstream != null && program.isUntouchedCalendarDraft;
+  final newTitle = c.title.trim().isEmpty ? null : c.title;
+  final titleDiffers = newTitle != null && newTitle != program.title;
+  final dateDiffers = c.date != program.eventDate;
+  // The venue the caller sees: a linked record's name, else the typed label.
+  final shownVenue = program.venueId == null
+      ? program.venue
+      : (venueName(program.venueId!) ?? program.venue);
+  final venueDiffers = (c.venueLabel ?? '') != (shownVenue ?? '');
+  final title = titleDiffers && (upstream?.title ?? true);
+  final date = dateDiffers && (upstream?.date ?? true);
+  final venue = venueDiffers && (upstream?.venue ?? true);
+  if (!title && !date && !venue) {
+    // Changed upstream to what the program already says: nothing to offer,
+    // but the new fingerprint is recorded on the next Import.
+    return CalendarChangeOffer(
+      program: program,
+      candidate: c,
+      untouched: untouched,
+      title: false,
+      date: false,
+      venue: false,
+    );
+  }
+  return CalendarChangeOffer(
+    program: program,
+    candidate: c,
+    untouched: untouched,
+    title: title,
+    date: date,
+    venue: venue,
+    shownVenue: shownVenue,
+    venueId: venueIdFor(c.venueLabel),
+  );
+}
+
+/// Whether [offer] has anything to show the caller.
+bool calendarOfferVisible(CalendarChangeOffer offer) =>
+    offer.title || offer.date || offer.venue;
+
+/// The stamp a calendar import writes: [now] at the store's one-second
+/// precision, and after [prior] so the write wins last-writer-wins.
+DateTime calendarWriteStamp(DateTime now, DateTime prior) {
+  final whole = DateTime.fromMillisecondsSinceEpoch(
+    now.toUtc().millisecondsSinceEpoch ~/ 1000 * 1000,
+    isUtc: true,
+  );
+  final next = prior.add(storedTimestampTick);
+  return whole.isAfter(prior) ? whole : next;
+}
+
+/// Writes what the caller chose in the review (#2354): the ticked offers in
+/// [accepted] update their programs, every other offer only records the
+/// event's new fingerprint (so it is offered again only if the event changes
+/// again), and every flag change is applied. Nothing is deleted or archived.
+///
+/// Each program is re-read first and skipped if it changed since the review
+/// was built (another pane, or Device Sync): the review described the older
+/// version. If a write fails, the ones already made are put back before the
+/// error is rethrown. Returns what it wrote, for Undo
+/// ([undoCalendarUpdates]).
+Future<List<CalendarUpdateRecord>> applyCalendarUpdates(
+  CompendiumRepositories repos, {
+  required CalendarImportPreview preview,
+  required Set<String> accepted,
+  required DateTime now,
+}) async {
+  final before = <String, Program>{};
+  final after = <String, Program>{};
+  Program current(Program p) => after[p.id] ?? p;
+  void stage(Program original, Program updated) {
+    before.putIfAbsent(original.id, () => original);
+    after[original.id] = updated;
+  }
+
+  final otherWrites = preview.hasPendingWrites;
+  for (final offer in preview.changes) {
+    final visible = calendarOfferVisible(offer);
+    final take = visible && accepted.contains(offer.program.id);
+    // An offer the caller saw is recorded, ticked or not; one with nothing
+    // to show only rides along with some other write.
+    if (!visible && !otherWrites) continue;
+    final p = current(offer.program);
+    final c = offer.candidate;
+    var next = p.copyWith(calendarEventFingerprint: c.fingerprint);
+    if (take) {
+      next = next.copyWith(
+        title: offer.title ? c.title : null,
+        eventDate: offer.date ? c.date : null,
+        venue: offer.venue ? c.venueLabel : null,
+        clearVenue: offer.venue && c.venueLabel == null,
+        // The caller ticked "Venue: old → new", so the venue they see
+        // becomes the new one: linked to the record it matches, or unlinked.
+        venueId: offer.venue ? offer.venueId : null,
+        clearVenueId: offer.venue && offer.venueId == null,
+      );
+    }
+    stage(offer.program, next);
+  }
+  for (final change in preview.flagChanges) {
+    final p = current(change.program);
+    stage(
+      change.program,
+      change.flag == null
+          ? p.copyWith(clearCalendarFlag: true)
+          : p.copyWith(calendarFlag: change.flag),
+    );
+  }
+  final written = <CalendarUpdateRecord>[];
+  try {
+    for (final entry in after.entries) {
+      final original = before[entry.key]!;
+      final stored = await repos.programs.getById(original.id);
+      if (stored == null || stored.updatedAt != original.updatedAt) continue;
+      final stamp = calendarWriteStamp(now, stored.updatedAt);
+      await repos.programs.update(
+        entry.value.copyWith(
+          updatedAt: stamp,
+          // The import's own write keeps an untouched draft untouched.
+          calendarWrittenAt: original.isUntouchedCalendarDraft ? stamp : null,
+        ),
+      );
+      written.add(CalendarUpdateRecord(before: original, stamp: stamp));
+    }
+  } catch (_) {
+    // diagnostics: silent — rethrown below; logged at the UI boundary.
+    await undoCalendarUpdates(repos, written, now: now);
+    rethrow;
+  }
+  return written;
+}
+
+/// Puts back the programs [applyCalendarUpdates] changed, as they were, with
+/// a new stamp. A program the caller had not touched stays untouched. One
+/// changed again since (another pane, or Device Sync) is left alone: putting
+/// the old version back would lose that change.
+Future<void> undoCalendarUpdates(
+  CompendiumRepositories repos,
+  List<CalendarUpdateRecord> records, {
+  required DateTime now,
+}) async {
+  for (final record in records) {
+    final original = record.before;
+    final stored = await repos.programs.getById(original.id);
+    // Still the version the import wrote, or leave it.
+    if (stored == null || stored.updatedAt != record.stamp) continue;
+    final stamp = calendarWriteStamp(now, stored.updatedAt);
+    await repos.programs.update(
+      original.copyWith(
+        updatedAt: stamp,
+        calendarWrittenAt: original.isUntouchedCalendarDraft ? stamp : null,
+      ),
+    );
+  }
+}
+
+/// One program a calendar import updated: as it was, and the stamp written.
+class CalendarUpdateRecord {
+  const CalendarUpdateRecord({required this.before, required this.stamp});
+
+  final Program before;
+  final DateTime stamp;
+}
+
+/// Clears [program]'s calendar flag (the summary's "Clear calendar flag").
+Future<void> clearCalendarFlag(
+  CompendiumRepositories repos,
+  Program program, {
+  required DateTime now,
+}) async {
+  // The stored version, not the screen's copy, which may be older.
+  final stored = await repos.programs.getById(program.id);
+  if (stored == null || stored.calendarFlag == null) return;
+  final stamp = calendarWriteStamp(now, stored.updatedAt);
+  await repos.programs.update(
+    stored.copyWith(
+      clearCalendarFlag: true,
+      updatedAt: stamp,
+      calendarWrittenAt: stored.isUntouchedCalendarDraft ? stamp : null,
+    ),
   );
 }
 
@@ -160,6 +485,8 @@ Future<List<String>> commitCalendarImport(
   final band = await _defaultText(repos, kDefaultProgramBandKey);
   final template = await _startingTemplate(repos);
   final created = <String>[];
+  // At the store's precision, so the untouched test compares equal values.
+  final stamp = calendarWriteStamp(now, DateTime.utc(1970));
   try {
     for (final entry in chosen) {
       final c = entry.candidate;
@@ -184,8 +511,10 @@ Future<List<String>> commitCalendarImport(
               ),
           ],
           calendarEventKey: c.eventKey,
-          createdAt: now,
-          updatedAt: now,
+          calendarEventFingerprint: c.fingerprint,
+          calendarWrittenAt: stamp,
+          createdAt: stamp,
+          updatedAt: stamp,
         ),
       );
       created.add(id);

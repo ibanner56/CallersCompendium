@@ -556,12 +556,24 @@ class CalendarImportCandidate {
   /// For an event whose `UID` is `<id>@callers-compendium` (this app's
   /// calendar export, #2351): that program id.
   final String? exportedProgramId;
+
+  /// [calendarEventFingerprint] of this event as it is now.
+  String get fingerprint => calendarEventFingerprint(
+    title: title,
+    date: date,
+    venueLabel: venueLabel,
+  );
 }
 
 /// What a feed offers for import, before it is compared with the collection.
 class CalendarImportPlan {
   const CalendarImportPlan({
     required this.candidates,
+    this.presentKeys = const {},
+    this.cancelledKeys = const {},
+    this.knownKeys = const {},
+    this.cancelledAnywhereKeys = const {},
+    this.canJudgeMissing = false,
     this.unreadableSeries = const [],
     this.skippedNoUid = 0,
     this.truncated = false,
@@ -570,12 +582,71 @@ class CalendarImportPlan {
   /// In date order.
   final List<CalendarImportCandidate> candidates;
 
+  /// The keys of every event in range and not cancelled, whatever the title
+  /// filter (#2354): an event the filter hides is still in the calendar.
+  final Set<String> presentKeys;
+
+  /// The keys of every event in range whose `STATUS` is `CANCELLED`: a
+  /// single event, an occurrence of a cancelled series, or a cancelled
+  /// override of one occurrence.
+  final Set<String> cancelledKeys;
+
+  /// Every event the feed holds and does not cancel, whatever its date or
+  /// the title filter: single events and overrides at any date, and a
+  /// readable series' occurrences from 31 days back to a day past the window.
+  /// A program whose key is here is not gone, wherever its event moved.
+  final Set<String> knownKeys;
+
+  /// Like [knownKeys], for cancelled events.
+  final Set<String> cancelledAnywhereKeys;
+
+  /// Whether the feed was read whole: not truncated, no repeating rule the
+  /// app cannot read, no event whose start it could not read. Only then can
+  /// an event's absence mean it is gone.
+  final bool canJudgeMissing;
+
   /// Titles of repeating events whose rule the import cannot read. They are
   /// not imported, and never guessed.
   final List<String> unreadableSeries;
 
   final int skippedNoUid;
   final bool truncated;
+}
+
+/// What a calendar import last wrote from an event (#2354): its title, date
+/// and first location segment, each as a 16-hex-digit SHA-256 prefix, joined
+/// as `v1:<title>:<date>:<location>`. Kept per field so a later import can
+/// say which of them changed upstream. A hash rather than the values: all
+/// three are already stored on the program, which the caller may edit.
+String calendarEventFingerprint({
+  required String title,
+  required DateTime date,
+  String? venueLabel,
+}) {
+  String h(String s) =>
+      sha256.convert(utf8.encode(s)).toString().substring(0, 16);
+  final d = '${date.year}-${date.month}-${date.day}';
+  return 'v1:${h(title)}:${h(d)}:${h(venueLabel ?? '')}';
+}
+
+/// Which of title, date and location differ between two fingerprints
+/// ([calendarEventFingerprint]). Null when either is missing or not one this
+/// build reads: the caller then knows nothing about what changed.
+({bool title, bool date, bool venue})? calendarFingerprintChanges(
+  String? before,
+  String after,
+) {
+  final a = _fingerprintParts(before);
+  final b = _fingerprintParts(after);
+  if (a == null || b == null) return null;
+  return (title: a[0] != b[0], date: a[1] != b[1], venue: a[2] != b[2]);
+}
+
+List<String>? _fingerprintParts(String? f) {
+  if (f == null) return null;
+  final parts = f.split(':');
+  if (parts.length != 4 || parts.first != 'v1') return null;
+  return parts.sublist(1);
 }
 
 /// The stored key for an event: SHA-256 of its `UID`, a newline, and its
@@ -628,9 +699,18 @@ CalendarImportPlan planCalendarImport(
 
   final candidates = <CalendarImportCandidate>[];
   final unreadable = <String>[];
+  final presentKeys = <String>{};
+  final cancelledKeys = <String>{};
 
   void offer(ICalEvent e, String recurrenceId, DateTime date) {
-    if (e.isCancelled) return;
+    final key = calendarEventKey(e.uid, recurrenceId);
+    // Recorded before the title filter: an event the filter hides is still in
+    // the calendar, so it must not read as gone (#2354).
+    if (e.isCancelled) {
+      cancelledKeys.add(key);
+      return;
+    }
+    presentKeys.add(key);
     final title = _clean(e.summary) ?? '';
     if (filter != null &&
         filter.isNotEmpty &&
@@ -639,7 +719,7 @@ CalendarImportPlan planCalendarImport(
     }
     candidates.add(
       CalendarImportCandidate(
-        eventKey: calendarEventKey(e.uid, recurrenceId),
+        eventKey: key,
         title: title,
         date: date,
         venueLabel: _clean(e.location?.split(',').first),
@@ -668,9 +748,9 @@ CalendarImportPlan planCalendarImport(
       if (inRange(date, windowEnd)) offer(e, '', date);
       continue;
     }
-    if (e.isCancelled) continue;
     final rule = ICalRecurrence.tryParse(rrule);
     if (rule == null) {
+      if (e.isCancelled) continue;
       final title = _clean(e.summary) ?? '';
       if (filter == null ||
           filter.isEmpty ||
@@ -719,8 +799,47 @@ CalendarImportPlan planCalendarImport(
     }
   }
   candidates.sort((a, b) => a.date.compareTo(b.date));
+
+  // #2354: every event the feed holds, whatever its date or the title
+  // filter, so a program whose event only moved is never taken for gone.
+  // Single events and overrides at any date; a readable series' occurrences
+  // from 31 days back to a day past the window (a program's own date can have
+  // been edited away from its occurrence's).
+  final knownKeys = <String>{};
+  final cancelledAnywhere = <String>{};
+  void know(ICalEvent e, String recurrenceId) {
+    final key = calendarEventKey(e.uid, recurrenceId);
+    (e.isCancelled ? cancelledAnywhere : knownKeys).add(key);
+  }
+
+  for (final e in feed.events) {
+    final rid = e.recurrenceId;
+    if (rid != null) {
+      know(e, rid.text);
+    } else if (e.rrule == null) {
+      know(e, '');
+    } else if (ICalRecurrence.tryParse(e.rrule!) case final rule?) {
+      final until = rule.until;
+      for (final d in rule.datesThrough(
+        e.start.writtenDate,
+        windowEnd.add(const Duration(days: 1)),
+        from: day0.subtract(const Duration(days: 31)),
+        beforeOrAtUntil: (d) =>
+            until == null ||
+            e.start.onDate(d)._sortKey <= _untilKey(until, e.start, localOf),
+      )) {
+        know(e, e.start.onDate(d).text);
+      }
+    }
+  }
   return CalendarImportPlan(
     candidates: candidates,
+    presentKeys: presentKeys,
+    cancelledKeys: cancelledKeys,
+    knownKeys: knownKeys,
+    cancelledAnywhereKeys: cancelledAnywhere,
+    canJudgeMissing:
+        !feed.truncated && unreadable.isEmpty && feed.skippedNoStart == 0,
     unreadableSeries: unreadable,
     skippedNoUid: feed.skippedNoUid,
     truncated: feed.truncated,

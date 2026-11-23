@@ -1855,8 +1855,20 @@ void main() {
         await db.customSelect('SELECT 1').get();
 
         expect(await programColumns(db), contains('calendar_event_key'));
+        // #2354's change tracking joined the same step.
+        expect(
+          await programColumns(db),
+          containsAll([
+            'calendar_event_fingerprint',
+            'calendar_written_at',
+            'calendar_flag',
+          ]),
+        );
         final program = await ProgramRepository(db).getById('p1');
         expect(program!.calendarEventKey, isNull);
+        expect(program.calendarEventFingerprint, isNull);
+        expect(program.calendarWrittenAt, isNull);
+        expect(program.calendarFlag, isNull);
         expect(
           program.updatedAt,
           DateTime.fromMillisecondsSinceEpoch(1700000100 * 1000, isUtc: true),
@@ -1876,6 +1888,13 @@ void main() {
         raw.execute(
           'ALTER TABLE programs ADD COLUMN calendar_event_key TEXT NULL',
         );
+        raw.execute(
+          'ALTER TABLE programs ADD COLUMN calendar_event_fingerprint TEXT NULL',
+        );
+        raw.execute(
+          'ALTER TABLE programs ADD COLUMN calendar_written_at INTEGER NULL',
+        );
+        raw.execute('ALTER TABLE programs ADD COLUMN calendar_flag TEXT NULL');
 
         final db = CompendiumDatabase(
           NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
