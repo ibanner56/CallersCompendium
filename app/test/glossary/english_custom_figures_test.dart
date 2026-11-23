@@ -92,5 +92,71 @@ void main() {
         isEmpty,
       );
     });
+
+    group(
+      'a name only one form\'s dialect gives a word of its own (#2294)',
+      () {
+        // Contra words the roles "larks"; English gives `swing` the name
+        // "zebra", which contra's dialect does not have.
+        final contraDialect = Dialect.larksRobins;
+        final english = Dialect.canonical.copyWith(moves: {'swing': 'zebra'});
+        Iterable<Dialect> dialectsFor(Object? payload) => [
+          glossaryEntryDanceForm(payload) == DanceForm.ecd
+              ? english
+              : contraDialect,
+        ];
+        Set<String> taken(UserGlossaryEntry figure, {bool perForm = true}) =>
+            importedFiguresWithTakenNames(
+              [
+                UserFigureImportItem(
+                  incoming: figure,
+                  kind: UserFigureImportKind.add,
+                ),
+              ],
+              live: const [],
+              dialects: const [],
+              dialectsFor: perForm ? dialectsFor : (_) => [contraDialect],
+            );
+
+        test('controls: only English\'s dialect has the name', () {
+          final english1 = figureNamed('e', 'zebra', DanceForm.ecd);
+          // The Glossary flags it with its form's dialect and not without.
+          expect(
+            resolveCustomGlossary([
+              english1,
+            ], dialectsFor: dialectsFor).single.renameNeeded,
+            isTrue,
+          );
+          expect(
+            resolveCustomGlossary(
+              [english1],
+              dialects: [contraDialect],
+            ).single.renameNeeded,
+            isFalse,
+          );
+        });
+
+        test(
+          'an English figure so named is taken, as the Glossary reads it',
+          () {
+            expect(taken(figureNamed('e', 'zebra', DanceForm.ecd)), {'e'});
+          },
+        );
+
+        test('a contra figure so named is not', () {
+          expect(taken(figureNamed('c', 'zebra', DanceForm.contra)), isEmpty);
+        });
+
+        test(
+          'read with contra\'s dialect only, the English figure was not',
+          () {
+            expect(
+              taken(figureNamed('e', 'zebra', DanceForm.ecd), perForm: false),
+              isEmpty,
+            );
+          },
+        );
+      },
+    );
   });
 }

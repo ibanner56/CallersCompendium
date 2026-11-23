@@ -154,7 +154,7 @@ void main() {
               onPromoteAlternate: (_, _) {},
               onRemove: (_) {},
               onCreateDance: (_) {},
-              onPickReplacementDance: () async => 'd2',
+              onPickReplacementDance: (_) async => 'd2',
             ),
           ),
         ),

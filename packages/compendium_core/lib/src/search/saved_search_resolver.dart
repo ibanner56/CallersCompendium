@@ -132,7 +132,9 @@ class SavedSearchContext {
 
   /// Losing id → surviving id, by kind, as `id_aliases` holds them. A saved
   /// search that a peer edited with a merged-away id is read as the survivor.
-  /// Built once per run; chains are followed here.
+  /// A host builds it once per run, from one read
+  /// (`SyncLocalRepository.aliasMaps`), never per reference; chains are
+  /// followed here.
   final Map<SyncRecordKind, Map<String, String>> aliases;
 
   /// How stored search text is shown: [savedSearchTextCodec] for the active

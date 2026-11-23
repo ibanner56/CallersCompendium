@@ -2627,15 +2627,17 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       return null;
     }
     if (!mounted) return null;
-    final dialects = [
-      ?ActiveDialectScope.maybeOf(context)?.forForm(DanceForm.contra),
-      ...?DialectLibraryScope.maybeOf(context)?.allCustomDialects,
-    ];
+    // As the Glossary checks them: the user's own dialects, and each
+    // figure's own form's active dialect (#2294).
+    final byForm = ActiveDialectScope.maybeOf(context);
     final tokens = ShorthandMappingsScope.tokensOf(context);
     final nameTaken = importedFiguresWithTakenNames(
       items,
       live: live,
-      dialects: dialects,
+      dialects: [...?DialectLibraryScope.maybeOf(context)?.allCustomDialects],
+      dialectsFor: (payload) => [
+        ?byForm?.forForm(glossaryEntryDanceForm(payload)),
+      ],
       shorthandTokens: tokens,
     );
     final choices = await Navigator.of(context).push<UserFigureImportChoices>(

@@ -257,18 +257,21 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   also exposes a visible, keyboard-operable **View details** action that opens
   an explicitly closable, read-only preview; short taps keep their add/import
   behavior.
-- Suggested (#2343, Experimental, off by default): with Settings ▸
-  Experimental ▸ Suggestions on, the add-dance picker's Sort menu ends with
-  **Suggested** while the picker adds at the end of the program (not while
-  inserting before/after a slot, never in Replace… and never in Collection).
-  It ranks the current results for the next slot off the UI thread; until the
-  ranking arrives the plain order shows with the header spinner and rows stay
-  tappable; if ranking fails, the plain order stays with an inline notice
+- Suggested (#2343, #2344, Experimental, off by default): with Settings ▸
+  Experimental ▸ Suggestions on, the builder's pickers' Sort menu ends with
+  **Suggested** (never in Collection). It ranks the current results off the UI
+  thread for where the dance will go: the end of the program, the place a
+  pending add before/after a slot lands, or the slot Replace… fills (that
+  slot's dance left out). Until the ranking for the current place arrives the
+  plain order shows with the header spinner and rows stay tappable, also after
+  the place moves (an insertion started or cancelled), so a ranking is never
+  shown for a place it was not made for; if ranking fails, the plain order stays with an inline notice
   (info icon and text) above the list. A dance already in the program sinks
   to the bottom with the reason "Already in this program", never removed. It is never the opening sort, hides the direction arrow (a ranking
   has no direction) and lasts until another sort or the picker closes. Each
   ranked row carries a one-line reason (the top one or two, lightbulb icon,
-  text not colour) and a **Why?** icon button whose dialog (AppMotion
+  text not colour; a neighbour reason names the dance and the side, "…as
+  *Chorus Jig*, after it") and a **Why?** icon button whose dialog (AppMotion
   animation) lists every reason as "Raises it" / "Lowers it" with an arrow
   icon. Settings ▸ Experimental ▸ Suggestions holds the toggle and **What
   suggestions look for**: Off / A little / A lot per factor as segmented

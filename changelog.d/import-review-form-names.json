@@ -1,0 +1,9 @@
+{
+  "id": "import-review-form-names",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "When you import figures of someone else's, the note that a figure's name is taken now checks the dialect of the type the figure is made for, as the Glossary does. An English figure whose name your English dialect already gives to a figure is now said to be taken before you add it, not only marked Rename needed afterwards, and one whose name only your contra dialect gives to a figure is no longer said to be taken, as the Glossary does not mark it either."
+    ]
+  }
+}
