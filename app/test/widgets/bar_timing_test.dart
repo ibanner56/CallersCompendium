@@ -35,68 +35,79 @@ void main() {
     });
   });
 
-  group('BarTimingScope.beatsPerBarFor', () {
+  group('barTimingFor', () {
+    const ecd = DanceForm.ecd;
+
     test('an English dance in one meter is timed in its bars', () {
       expect(
-        BarTimingScope.beatsPerBarFor(
-          DanceForm.ecd,
-          PhraseStructure.parse('3*8*3'),
-        ),
-        3,
+        barTimingFor(ecd, PhraseStructure.parse('3*8*3')),
+        const BarTiming.fixed(3),
       );
     });
 
     test('a stated meter is the rule; with none, the phrase structure', () {
       expect(
-        BarTimingScope.beatsPerBarFor(
-          DanceForm.ecd,
-          PhraseStructure.standard,
-          meter: '3/2',
-        ),
-        3,
+        barTimingFor(ecd, PhraseStructure.standard, meter: '3/2'),
+        const BarTiming.fixed(3),
       );
       expect(
-        BarTimingScope.beatsPerBarFor(
-          DanceForm.ecd,
-          PhraseStructure.parse('4*8*3'),
-          meter: '6/8',
-        ),
-        2,
+        barTimingFor(ecd, PhraseStructure.parse('4*8*3'), meter: '6/8'),
+        const BarTiming.fixed(2),
       );
       expect(
-        BarTimingScope.beatsPerBarFor(
-          DanceForm.ecd,
-          PhraseStructure.parse('4*8*3'),
-          meter: 'a jig',
-        ),
-        3,
+        barTimingFor(ecd, PhraseStructure.parse('4*8*3'), meter: 'a jig'),
+        const BarTiming.fixed(3),
       );
-      // A tune whose parts differ stays in beats, whatever the meter says.
+    });
+
+    test('a tune whose parts differ is timed by phrase, whatever the meter '
+        'states (#2303)', () {
+      final mixed = PhraseStructure.parse('2*8*3+2*8*2');
+      expect(barTimingFor(ecd, mixed, meter: '3/4'), BarTiming.byPhrase(mixed));
+      expect(barTimingFor(ecd, mixed), BarTiming.byPhrase(mixed));
+    });
+
+    test('contra keeps beats, with phrases that differ or not', () {
       expect(
-        BarTimingScope.beatsPerBarFor(
-          DanceForm.ecd,
-          PhraseStructure.parse('2*8*3+2*8*2'),
-          meter: '3/4',
-        ),
+        barTimingFor(DanceForm.contra, PhraseStructure.parse('3*8*3')),
+        isNull,
+      );
+      expect(
+        barTimingFor(DanceForm.contra, PhraseStructure.parse('2*8*3+2*8*2')),
         isNull,
       );
     });
 
-    test('contra, and a tune whose parts differ in meter, keep beats', () {
-      expect(
-        BarTimingScope.beatsPerBarFor(
-          DanceForm.contra,
-          PhraseStructure.parse('3*8*3'),
-        ),
-        isNull,
-      );
-      expect(
-        BarTimingScope.beatsPerBarFor(
-          DanceForm.ecd,
-          PhraseStructure.parse('2*8*3+2*8*2'),
-        ),
-        isNull,
-      );
-    });
+    test(
+      'a tune in one meter is timed as danceBeatsPerBar always timed it',
+      () {
+        for (final phrase in [
+          '',
+          '4*8*2',
+          '4*8*3',
+          '4*8*4',
+          '2*8*6',
+          '4*8*16',
+        ]) {
+          for (final meter in [
+            '',
+            '2/2',
+            '3/2',
+            '3/4',
+            '6/8',
+            '9/8',
+            'a jig',
+          ]) {
+            final structure = PhraseStructure.parse(phrase);
+            final perBar = danceBeatsPerBar(ecd, structure, meter: meter);
+            expect(
+              barTimingFor(ecd, structure, meter: meter),
+              perBar == null ? isNull : BarTiming.fixed(perBar),
+              reason: '"$phrase" in "$meter"',
+            );
+          }
+        }
+      },
+    );
   });
 }

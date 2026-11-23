@@ -27,7 +27,7 @@ List<pw.Widget> buildFigureWidgets(
     UnreadableFigures() => const <Figure>[],
   }, dance.phraseStructure);
   // An English dance is counted in bars, as on screen (ADR-006 §5.5).
-  final beatsPerBar = danceBeatsPerBar(
+  final timing = barTimingFor(
     dance.form,
     dance.phraseStructure,
     meter: dance.meter,
@@ -56,7 +56,7 @@ List<pw.Widget> buildFigureWidgets(
             dialect,
           )
         : renderer.renderSummary(sf.figure, dialect);
-    final beatsLabel = labels.count(sf.figure.beats, beatsPerBar);
+    final beatsLabel = labels.count(sf.figure.beats, timing, sf.startBeat);
     final marker = sf.figure.progression ? ' ¶' : '';
     widgets.add(
       pw.Padding(
