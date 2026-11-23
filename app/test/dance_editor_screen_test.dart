@@ -2940,10 +2940,11 @@ void main() {
         'one title per line with blanks and repeats dropped', (tester) async {
       final repos = openTestRepositories();
       await repos.dances.create(
-        _dance(
-          id: 'd1',
-          title: 'Money Musk',
-        ).copyWith(alternateTitles: ['Monymusk'], barnesReference: 'NiB'),
+        _dance(id: 'd1', title: 'Money Musk').copyWith(
+          form: DanceForm.ecd,
+          alternateTitles: ['Monymusk'],
+          barnesReference: 'NiB',
+        ),
       );
       await _pumpEditor(tester, repos, danceId: 'd1');
       await _expandMoreDetails(tester);
@@ -2997,11 +2998,31 @@ void main() {
       expect(saved!.alternateTitles, shown);
     });
 
+    testWidgets('only an English dance has a Barnes reference field', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Money Musk'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await _expandMoreDetails(tester);
+
+      expect(
+        find.byKey(const ValueKey('alternate-titles-field')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('barnes-reference-field')),
+        findsNothing,
+      );
+    });
+
     testWidgets('the Barnes reference stops at its bound in code units, so '
         'characters outside the Basic Multilingual Plane are not cut on '
         'save', (tester) async {
       final repos = openTestRepositories();
-      await repos.dances.create(_dance(id: 'd1', title: 'Money Musk'));
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Money Musk').copyWith(form: DanceForm.ecd),
+      );
       await _pumpEditor(tester, repos, danceId: 'd1');
       await _expandMoreDetails(tester);
 
@@ -3225,6 +3246,45 @@ void main() {
       // Meter, key and credits are kept whatever the form.
       expect(saved.meter, '3/2');
       expect(saved.interpreterIds, ['pat']);
+    });
+
+    testWidgets('switching an English dance to contra hides its Barnes '
+        'reference and saves it cleared; switching back first keeps it', (
+      tester,
+    ) async {
+      Future<Dance?> saveAfter(List<String> forms) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(
+          _dance(
+            id: 'd1',
+            title: 'Money Musk',
+          ).copyWith(form: DanceForm.ecd, barnesReference: 'BIII p. 92'),
+        );
+        await _pumpEditor(tester, repos, danceId: 'd1');
+        final barnes = find.byKey(const ValueKey('barnes-reference-field'));
+        expect(barnes, findsOneWidget);
+        for (final label in forms) {
+          await tester.tap(find.byKey(const ValueKey('form-field')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(label).last);
+          await tester.pumpAndSettle();
+        }
+        if (forms.last == 'Contra') {
+          await _expandMoreDetails(tester);
+          expect(barnes, findsNothing);
+        }
+        await tester.tap(find.byKey(const ValueKey('save-dance')));
+        await tester.pumpAndSettle();
+        return repos.dances.getById('d1');
+      }
+
+      final cleared = await saveAfter(['Contra']);
+      expect(cleared!.form, DanceForm.contra);
+      expect(cleared.barnesReference, '');
+
+      final kept = await saveAfter(['Contra', 'English (ECD)']);
+      expect(kept!.form, DanceForm.ecd);
+      expect(kept.barnesReference, 'BIII p. 92');
     });
   });
 
