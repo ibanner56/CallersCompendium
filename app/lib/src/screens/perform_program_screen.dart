@@ -177,7 +177,7 @@ class PerformProgramScreen extends StatefulWidget {
   /// opening screen's collection snapshot.
   final Map<String, Dance> danceOverrides;
 
-  /// Fresh author names paired with [danceOverrides].
+  /// Fresh author and interpreter names paired with [danceOverrides].
   final Map<String, String> authorNameOverrides;
 
   /// Group index to open at (defaults to the first group).
@@ -821,8 +821,14 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     authorNames: _authorNamesFor(dance),
   );
 
-  List<String> _authorNamesFor(Dance dance) => [
-    for (final id in dance.authorIds)
+  List<String> _authorNamesFor(Dance dance) => _namesFor(dance.authorIds);
+
+  /// The names of [dance]'s interpreters, resolved as its authors' are.
+  List<String> _interpreterNamesFor(Dance dance) =>
+      _namesFor(dance.interpreterIds);
+
+  List<String> _namesFor(List<String> ids) => [
+    for (final id in ids)
       if (widget.authorNameOverrides[id] ?? widget.data.choreographerNames[id]
           case final String name)
         name,
@@ -1922,6 +1928,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           textScale: _textScale,
           autoSize: _autoSize,
           authorNames: _authorNamesFor(dance),
+          interpreterNames: _interpreterNamesFor(dance),
           difficultyLevel: _difficultyLevelFor(dance),
           fitScaleCache: _fitScaleCache,
           scrollController: _cardScroll,
@@ -1981,8 +1988,9 @@ class DeletedSlotDances {
   /// For [PerformProgramScreen.danceOverrides].
   final Map<String, Dance> dances;
 
-  /// For [PerformProgramScreen.authorNameOverrides]: names of the authors of
-  /// [dances], including choreographers that are soft-deleted themselves.
+  /// For [PerformProgramScreen.authorNameOverrides]: names of the authors and
+  /// interpreters of [dances], including choreographers that are soft-deleted
+  /// themselves.
   final Map<String, String> authorNames;
 
   /// Whether the dance read failed, so [dances] is empty because nothing was
@@ -1991,13 +1999,13 @@ class DeletedSlotDances {
 }
 
 /// Soft-deleted dances behind [slots], keyed by id, with the names of their
-/// authors, for [PerformProgramScreen.danceOverrides] and
+/// authors and interpreters, for [PerformProgramScreen.danceOverrides] and
 /// [PerformProgramScreen.authorNameOverrides]. [CollectionData] excludes
 /// deleted dances, so without this a slot whose dance sits in Recently deleted
 /// would lose its figures mid-program; and it excludes deleted choreographers,
-/// so a deleted dance's deleted author would lose their credit line. Ids
-/// already in [data] are not duplicated, and purged ids are absent from the
-/// result. Authors already named by [data] are left to it.
+/// so a deleted dance's deleted author or interpreter would lose their credit
+/// line. Ids already in [data] are not duplicated, and purged ids are absent
+/// from the result. People already named by [data] are left to it.
 ///
 /// Every program surface that resolves a slot's dance uses this, so a trashed
 /// dance reads the same in Perform, the builder's slot list and matrix
@@ -2040,7 +2048,7 @@ Future<DeletedSlotDances> resolveDeletedSlotDances(
   final authorNames = <String, String>{};
   final missingAuthors = {
     for (final dance in resolved.values)
-      for (final id in dance.authorIds)
+      for (final id in [...dance.authorIds, ...dance.interpreterIds])
         if (!data.choreographerNames.containsKey(id)) id,
   };
   if (missingAuthors.isNotEmpty) {

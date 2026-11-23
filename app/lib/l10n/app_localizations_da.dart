@@ -4213,6 +4213,31 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorMusicalKeyHint => 'f.eks. g-mol';
 
   @override
+  String danceAuthorsWithYear(String names, String year) {
+    return '$names ($year)';
+  }
+
+  @override
+  String danceComposedYear(String year) {
+    return 'Komponeret i $year';
+  }
+
+  @override
+  String danceInterpretedBy(String names) {
+    return 'Fortolket af $names';
+  }
+
+  @override
+  String danceInterpretedByWithYear(String names, String year) {
+    return 'Fortolket af $names ($year)';
+  }
+
+  @override
+  String danceInterpretedYear(String year) {
+    return 'Fortolket i $year';
+  }
+
+  @override
   String danceMeterValue(String meter) {
     return 'Taktart: $meter';
   }

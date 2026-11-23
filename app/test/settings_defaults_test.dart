@@ -29,7 +29,6 @@ import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.dart';
 import 'package:compendium_app/src/data/walkthrough_snippet_library_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
-import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/search/program_sort.dart';
 import 'package:compendium_app/src/widgets/collection_picker.dart';
 

@@ -44,6 +44,7 @@ class PerformDanceScreen extends StatefulWidget {
     required this.dance,
     required this.renderer,
     this.authorNames = const [],
+    this.interpreterNames = const [],
     this.difficultyLevel,
   });
 
@@ -52,8 +53,12 @@ class PerformDanceScreen extends StatefulWidget {
   final DifficultyLevel? difficultyLevel;
 
   /// Resolved author display names (the detail screen already resolves these
-  /// from choreographer ids). Rendered under the title when non-empty.
+  /// from choreographer ids). Rendered under the title with the composed year.
   final List<String> authorNames;
+
+  /// Resolved names of the dance's interpreters, shown on their own line under
+  /// the authors.
+  final List<String> interpreterNames;
 
   @override
   State<PerformDanceScreen> createState() => _PerformDanceScreenState();
@@ -607,6 +612,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
                         textScale: _textScale,
                         autoSize: _autoSize,
                         authorNames: widget.authorNames,
+                        interpreterNames: widget.interpreterNames,
                         difficultyLevel: widget.difficultyLevel,
                         scrollController: _cardScroll,
                       ),
