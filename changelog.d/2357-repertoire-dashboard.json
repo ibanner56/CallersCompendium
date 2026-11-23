@@ -1,0 +1,14 @@
+{
+  "id": "2357-repertoire-dashboard",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Experimental: a read-only Repertoire page, turned on in Settings ▸ Experimental and opened from the Collection's More actions menu. It shows your most and least called dances, what you have never called, figure frequency by dance type, the authors you call, your formation mix and the dances repeated at each venue, for all time, the last 1, 3 or 6 months, or since a date. Its counts match called ×N, and selecting a row shows those dances in the Collection."
+    ]
+  },
+  "core": {
+    "added": [
+      "RepertoireRepository (CompendiumRepositories.repertoire) computes the Repertoire page's aggregates with a fixed number of SQL GROUP BY queries, and callingHistoryCountedSlotClause is the one shared composition of the counted-slot gates."
+    ]
+  }
+}
