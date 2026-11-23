@@ -96,8 +96,10 @@ final class FormShortWaves extends Operation {
   /// `petronella`'s flag and `swing`'s `prefix`.
   final bool balance;
 
-  /// Who the source says ends in the two centre cells. Verified, not trusted.
-  final WhoSet center;
+  /// Who the source says ends in the two centre cells. Verified, not trusted;
+  /// `null` when the source did not say, and then not refused but reported as
+  /// [WarningKind.unstatedPairing] *(user-ruled 2026-11-23)*.
+  final WhoSet? center;
 
   /// The hand the centre pair joins — **not** the hand the wave is named for,
   /// which is the outer join alternation makes its opposite (§8.5.1).
@@ -117,8 +119,10 @@ final class FormShortWaves extends Operation {
   /// behaviour rather than an invented one.
   final Hand? centerHand;
 
-  /// Who the source says the facing pairs are. Verified, not trusted.
-  final WhoSet sides;
+  /// Who the source says the facing pairs are. Verified, not trusted; `null`
+  /// when the source did not say, and then not refused but reported as
+  /// [WarningKind.unstatedPairing] *(user-ruled 2026-11-23)*.
+  final WhoSet? sides;
 
   @override
   String get name => 'form_short_waves';
@@ -136,6 +140,8 @@ final class FormShortWaves extends Operation {
     if (stated != null) {
       return stated == Hand.right ? Hand.left : Hand.right;
     }
+    final center = this.center;
+    if (center == null) return Hand.right;
     for (final entry in _corneredBands(formation)) {
       final withRight = _centrePair(entry.corners, Hand.right);
       final withLeft = _centrePair(entry.corners, Hand.left);
@@ -202,7 +208,60 @@ final class FormShortWaves extends Operation {
   }
 
   @override
-  Iterable<Warning> lint(Formation formation) {
+  Iterable<Warning> lint(Formation formation) => [
+    ..._facingLint(formation),
+    ...unstatedPairingLint(formation),
+  ];
+
+  /// The default each verify-only parameter stands for when the source states
+  /// none: `sides: neighbors`, `center: role2s` (`docs/taxonomy.md`).
+  static const _defaultSides = WhoSet.neighbors;
+  static const _defaultCenter = WhoSet.role2s;
+
+  /// An [WarningKind.unstatedPairing] warning when [sides] or [center] was not
+  /// stated and its default does not hold in [formation]. A stated one that
+  /// fails is refused by [checkPreconditions] instead.
+  Iterable<Warning> unstatedPairingLint(Formation formation) {
+    if (sides != null && center != null) return const [];
+    final hand = _outerHand(formation);
+    for (final entry in _corneredBands(formation)) {
+      final corners = entry.corners;
+      if (sides == null) {
+        for (final pair in [
+          (a: corners.topWest, b: corners.bottomWest),
+          (a: corners.topEast, b: corners.bottomEast),
+        ]) {
+          if (whoMatches(formation, pair.a, pair.b, _defaultSides)) continue;
+          return [
+            Warning(
+              WarningKind.unstatedPairing,
+              detail:
+                  '$name states no sides, and ${pair.a} and ${pair.b}, the '
+                  'pair standing face to face, are not '
+                  '${_defaultSides.key}; the wave forms with them',
+            ),
+          ];
+        }
+      }
+      if (center == null) {
+        final centre = _centrePair(corners, hand);
+        if (!whoMatches(formation, centre.a, centre.b, _defaultCenter)) {
+          return [
+            Warning(
+              WarningKind.unstatedPairing,
+              detail:
+                  '$name states no center, and ${centre.a} and ${centre.b} '
+                  'end in the middle, not ${_defaultCenter.key}; the wave '
+                  'forms with them',
+            ),
+          ];
+        }
+      }
+    }
+    return const [];
+  }
+
+  Iterable<Warning> _facingLint(Formation formation) {
     for (final entry in _corneredBands(formation)) {
       for (final dancer in _placements(
         entry.band,
@@ -251,7 +310,9 @@ final class FormShortWaves extends Operation {
         (a: corners.topWest, b: corners.bottomWest),
         (a: corners.topEast, b: corners.bottomEast),
       ];
+      final sides = this.sides;
       for (final pair in facingPairs) {
+        if (sides == null) break;
         if (whoMatches(formation, pair.a, pair.b, sides)) continue;
         return OpError(
           ErrorKind.whoMismatch,
@@ -261,6 +322,8 @@ final class FormShortWaves extends Operation {
         );
       }
       final centre = _centrePair(corners, hand);
+      final center = this.center;
+      if (center == null) continue;
       if (whoMatches(formation, centre.a, centre.b, center)) continue;
       return OpError(
         ErrorKind.whoMismatch,
@@ -302,8 +365,8 @@ final class FormShortWaves extends Operation {
 
   @override
   String toString() =>
-      'form_short_waves(${dir.key}, center: ${center.key} by '
-      '${centerHand?.key ?? 'unspecified'}, sides: ${sides.key})';
+      'form_short_waves(${dir.key}, center: ${center?.key ?? 'unstated'} by '
+      '${centerHand?.key ?? 'unspecified'}, sides: ${sides?.key ?? 'unstated'})';
 }
 
 /// `form_long_waves` — the two side lines become waves running along the set
@@ -693,15 +756,19 @@ final class PassTheOcean extends Operation {
   /// Whether the wave is balanced once formed. No end-state effect.
   final bool balance;
 
-  /// Who the source says ends in the two centre cells. Verified, not trusted.
-  final WhoSet center;
+  /// Who the source says ends in the two centre cells. Verified, not trusted;
+  /// `null` when the source did not say, and then not refused but reported as
+  /// [WarningKind.unstatedPairing] *(user-ruled 2026-11-23)*.
+  final WhoSet? center;
 
   /// The hand the centre pair joins. See [FormShortWaves.centerHand] — `null`
   /// is the upstream `unspecified` sentinel, not a missing value.
   final Hand? centerHand;
 
-  /// Who the source says the facing pairs are. Verified, not trusted.
-  final WhoSet sides;
+  /// Who the source says the facing pairs are. Verified, not trusted; `null`
+  /// when the source did not say, and then not refused but reported as
+  /// [WarningKind.unstatedPairing] *(user-ruled 2026-11-23)*.
+  final WhoSet? sides;
 
   @override
   String get name => 'pass_the_ocean';
@@ -725,17 +792,26 @@ final class PassTheOcean extends Operation {
         if (entry.value.facing.isConcrete && !entry.value.facing.isAcross)
           entry.key,
     ];
-    if (wrongWay.isEmpty) return const [];
     return [
-      Warning(
-        WarningKind.facingPrecondition,
-        detail:
-            'pass_the_ocean passes across the hall, but '
-            '${wrongWay.length} dancer(s) were facing along it '
-            '(${wrongWay.first} and others); they turn across before passing',
-      ),
+      if (wrongWay.isNotEmpty)
+        Warning(
+          WarningKind.facingPrecondition,
+          detail:
+              'pass_the_ocean passes across the hall, but '
+              '${wrongWay.length} dancer(s) were facing along it '
+              '(${wrongWay.first} and others); they turn across before '
+              'passing',
+        ),
+      // The wave is formed after the pass, so its pairing is read there.
+      ..._wave.unstatedPairingLint(_passed(formation)),
     ];
   }
+
+  /// The set after the pass, turned to the facing the wave forms from.
+  static Formation _passed(Formation formation) => mapBandFacing(
+    reflectBands(formation, columns: true),
+    (id, state, band) => state.row == band.topRow ? Facing.down : Facing.up,
+  );
 
   @override
   Result<Formation, OpError> perform(Formation formation) {
