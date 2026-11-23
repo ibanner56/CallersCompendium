@@ -68,9 +68,9 @@ const int kMaxMeanwhileSides = 6;
 const int kMaxModifierFigures = kMaxMeanwhileSides;
 
 /// Maximum number of children a [sequenceMove] container may hold. Lower than
-/// the other containers' cap because a sequence must also fit in one phrase
-/// (`PhraseStructure.longestPhraseBeats`): four figures already divide 16
-/// beats into fours.
+/// the other containers' cap because a sequence must also fit in the phrase
+/// it starts in (`PhraseStructure.phraseBeatsAt`): four figures already divide
+/// 16 beats into fours.
 const int kMaxSequenceFigures = 4;
 
 /// The child cap for the container kind [move]: [kMaxSequenceFigures] for a

@@ -225,24 +225,19 @@ void main() {
     });
   });
 
-  group('PhraseStructure.longestPhraseStart', () {
-    test('is where the longest phrase starts', () {
-      // A is 12 beats, B is 16.
-      expect(PhraseStructure.parse('A:2*4*3 + B:1*8*2').longestPhraseStart, 24);
-      expect(PhraseStructure.parse('A:1*8*2 + B:1*4*2').longestPhraseStart, 0);
-      expect(PhraseStructure.standard.longestPhraseStart, 0);
-    });
-
-    test('is the first of phrases tied for longest that agree in bars', () {
-      expect(PhraseStructure.parse('A:1*8*2 + B:1*8*2').longestPhraseStart, 0);
-    });
-
-    test('is null where phrases tied for longest differ in bars', () {
-      // Both are 16 beats: 8 bars of 2, and 4 bars of 4.
-      expect(
-        PhraseStructure.parse('A:1*8*2 + B:1*4*4').longestPhraseStart,
-        isNull,
-      );
+  group('PhraseStructure.phraseBeatsAt and phraseStartAt', () {
+    test('give the phrase that plays at a beat, wrapping past the end', () {
+      final structure = PhraseStructure.parse('A:2*4*3 + B:1*8*2');
+      // A1 0-11, A2 12-23, B 24-39; then A1 again from 40.
+      expect(structure.phraseBeatsAt(0), 12);
+      expect(structure.phraseBeatsAt(23), 12);
+      expect(structure.phraseBeatsAt(24), 16);
+      expect(structure.phraseBeatsAt(41), 12);
+      expect(structure.phraseStartAt(0), 0);
+      expect(structure.phraseStartAt(17), 12);
+      expect(structure.phraseStartAt(39), 24);
+      expect(structure.phraseStartAt(45), 40);
+      expect(() => structure.phraseStartAt(-1), throwsArgumentError);
     });
   });
 
@@ -287,6 +282,26 @@ void main() {
       expect(issue.data['startBeat'], 6);
       expect(issue.data['limit'], 12);
       expect(issue.data['limitStart'], 0);
+    });
+
+    test('a sequence in B is limited by B, read from where B starts', () {
+      // A1 and A2 are 12 beats each; B, from 24, is 8 beats. A 10-beat
+      // sequence fits an A phrase but not B.
+      final issues = <ValidationIssue>[];
+      deriveSections(
+        [
+          step(24),
+          Figure.sequence(figures: [step(5), step(5)], beats: 10),
+        ],
+        structure,
+        issues: issues,
+      );
+      final issue = issues.singleWhere(
+        (i) => i.code == 'sequence_exceeds_phrase',
+      );
+      expect(issue.data['startBeat'], 24);
+      expect(issue.data['limit'], 8);
+      expect(issue.data['limitStart'], 24);
     });
 
     test('a sequence inside a meanwhile starts with the meanwhile', () {

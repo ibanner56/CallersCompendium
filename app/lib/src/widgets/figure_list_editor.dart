@@ -285,8 +285,8 @@ class FigureListEditor extends StatefulWidget {
   final ValueChanged<FigureDraft>? onGroupWithNextAsModifier;
 
   /// Groups [draft] with the following row as a sequence container. Offered
-  /// only while the two rows' counts together fit in one phrase of
-  /// [phraseStructure].
+  /// only while the two rows' counts together fit in the phrase of
+  /// [phraseStructure] the first row starts in.
   final ValueChanged<FigureDraft>? onGroupWithNextAsSequence;
 
   /// Collapses a meanwhile group back to a plain figure (#593): called when a
@@ -1024,18 +1024,14 @@ class _FigureListEditorState extends State<FigureListEditor>
     // `sectionStart` marks the first figure of each section so the label gutter
     // only prints at section boundaries (like figure_table.dart's headers),
     // while the keyed label widget stays present on every row.
-    // Where each row starts, for the bars of a tune whose phrases differ in
-    // beats per bar ([FigureStartScope]); the rows of a nested editor start
-    // where the group they are in does. Only a dance timed in bars reads it.
+    // Where each row starts ([FigureStartScope]): the phrase a sequence there
+    // must fit, and the bars of a tune whose phrases differ in beats per bar.
+    // The rows of a nested editor start where the group they are in does.
     final starts = <String, int>{};
-    // A tune in one bar length reads a count the same wherever it starts.
-    if (BarTimingScope.maybeOf(context) case final scope?
-        when !scope.timing.isFixed) {
-      var start = FigureStartScope.startOf(context);
-      for (final draft in drafts) {
-        starts[draft.id] = start;
-        if (draft.savesAsFigure) start += draft.beats;
-      }
+    var start = FigureStartScope.startOf(context);
+    for (final draft in drafts) {
+      starts[draft.id] = start;
+      if (draft.savesAsFigure) start += draft.beats;
     }
     final labels = <String, String?>{};
     final sectionStart = <String, bool>{};
@@ -1075,7 +1071,10 @@ class _FigureListEditorState extends State<FigureListEditor>
             UserFiguresScope.catalogOf(context),
           );
 
-    final sequenceBeatLimit = widget.phraseStructure.longestPhraseBeats;
+    // The most a sequence starting at [draft] may hold: the phrase it starts
+    // in.
+    int sequenceBeatLimit(FigureDraft draft) =>
+        widget.phraseStructure.phraseBeatsAt(starts[draft.id]!);
     // Resolves a "group with next as [kind]" action for row [i]: null (menu
     // item hidden) when there is no next row or the two cannot form [kind].
     VoidCallback? groupWithNext(
@@ -1089,7 +1088,7 @@ class _FigureListEditorState extends State<FigureListEditor>
               kind,
               drafts[i],
               drafts[i + 1],
-              sequenceBeatLimit: sequenceBeatLimit,
+              sequenceBeatLimit: sequenceBeatLimit(drafts[i]),
             )
         ? null
         : () => action(drafts[i]);
@@ -1101,7 +1100,7 @@ class _FigureListEditorState extends State<FigureListEditor>
         action == null ||
             !draft.canConvertContainerTo(
               kind,
-              sequenceBeatLimit: sequenceBeatLimit,
+              sequenceBeatLimit: sequenceBeatLimit(draft),
             )
         ? null
         : () => action(draft);
@@ -1114,7 +1113,7 @@ class _FigureListEditorState extends State<FigureListEditor>
         index: i,
         totalCount: drafts.length,
         draft: draft,
-        startBeat: starts[draft.id] ?? 0,
+        startBeat: starts[draft.id]!,
         label: labels[draft.id],
         showLabel: sectionStart[draft.id] ?? false,
         taxonomy: widget.taxonomy,
@@ -1707,7 +1706,7 @@ class _FigureDraftCard extends StatefulWidget {
   final VoidCallback? onUngroupContainer;
 
   /// The enclosing dance's phrase structure: a sequence's steps must fit in
-  /// one of its phrases ([PhraseStructure.longestPhraseBeats]).
+  /// the phrase it starts in ([PhraseStructure.phraseBeatsAt] at [startBeat]).
   final PhraseStructure phraseStructure;
   final String keyPrefix;
 
@@ -3021,10 +3020,10 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     return scope.withUntimed(false, child: child);
   }
 
-  /// A sequence's [length] and the longest phrase's [limit], for the message
-  /// that the first is longer than the second: each in the bars of the part of
-  /// the tune it falls in (the sequence from where it starts, the limit from
-  /// where that phrase does, [PhraseStructure.longestPhraseStart]), as the
+  /// A sequence's [length] and the [limit] of the phrase it starts in, for the
+  /// message that the first is longer than the second: each in the bars of the
+  /// part of the tune it falls in (the sequence from where it starts, the limit
+  /// from where its phrase does, [PhraseStructure.phraseStartAt]), as the
   /// dance's warning reads them. Both read in bars only if both come to whole
   /// or half bars, else both in beats, so the message never mixes the two.
   (String, String) _overPhraseLabels(
@@ -3034,14 +3033,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   ) {
     final l10n = AppLocalizations.of(context);
     final timing = BarTimingScope.maybeOf(context)?.timing;
-    final limitStart = widget.phraseStructure.longestPhraseStart;
-    final lengthBars = timing?.barsTextAt(
-      FigureStartScope.startOf(context),
-      length,
+    final start = FigureStartScope.startOf(context);
+    final lengthBars = timing?.barsTextAt(start, length);
+    final limitBars = timing?.barsTextAt(
+      widget.phraseStructure.phraseStartAt(start),
+      limit,
     );
-    final limitBars = limitStart == null
-        ? null
-        : timing?.barsTextAt(limitStart, limit);
     if (lengthBars == null || limitBars == null) {
       return (l10n.danceFigureBeats(length), l10n.danceFigureBeats(limit));
     }
@@ -3137,8 +3134,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   /// Expanded editor for a structural container draft. A meanwhile or
   /// modifier shows one shared Beats field (the container's single count —
   /// never per-child); a sequence instead shows its total, the sum of its
-  /// steps' own Beats fields, and a warning once that total is longer than a
-  /// phrase of [_FigureDraftCard.phraseStructure]. An English sequence timed
+  /// steps' own Beats fields, and a warning once that total is longer than the
+  /// phrase of [_FigureDraftCard.phraseStructure] it starts in. An English sequence timed
   /// in bars ([BarTimingScope]) shows its own span field instead
   /// ([_buildSequenceSpan]). Then come each ordered child
   /// editor, an add-child control (capped at the kind's
@@ -3156,19 +3153,13 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final isSequence = kind == sequenceMove;
     final keyPrefix = '${widget.keyPrefix}-${widget.index}';
     final cap = maxContainerChildren(kind);
-    final beatLimit = widget.phraseStructure.longestPhraseBeats;
+    // A sequence fits the phrase it starts in.
+    final beatLimit = widget.phraseStructure.phraseBeatsAt(widget.startBeat);
     final childStarts = childStartBeatsOfDraft(
       draft,
       FigureStartScope.startOf(context),
     );
-    // With a span of its own, a sequence may take another untimed step
-    // however much of the phrase the span fills: only its timed steps count.
-    final phraseFull =
-        isSequence &&
-        (draft.sequenceSpanStated
-                ? sides.fold(0, (sum, step) => sum + step.beats)
-                : draft.beats) >=
-            beatLimit;
+    final phraseFull = isSequence && _beatsTowardPhrase(draft) >= beatLimit;
     String childLabel(int i) => isModifier
         ? i == 0
               ? l10n.danceEditorModifierCoreLabel
@@ -3381,8 +3372,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                                       drafts: [sides[i]],
                                       taxonomy: widget.taxonomy,
                                       // Labels and totals are hidden below, but a
-                                      // nested sequence still fits one phrase of
-                                      // this dance.
+                                      // nested sequence still fits the phrase
+                                      // of this dance it starts in.
                                       phraseStructure: widget.phraseStructure,
                                       dialect: widget.dialect,
                                       mixer: widget.mixer,
@@ -3514,15 +3505,25 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     widget.onChanged();
   }
 
+  /// The beats of sequence [draft] that count toward its phrase: all of
+  /// them, or, with a span of its own, only its steps' (an untimed step counts
+  /// none), so a spanned sequence may take another untimed step however much
+  /// of the phrase its span fills.
+  static int _beatsTowardPhrase(FigureDraft draft) => draft.sequenceSpanStated
+      ? draft.containerChildren!.fold(0, (sum, step) => sum + step.beats)
+      : draft.beats;
+
   /// Appends a fresh blank child, capped at the kind's [maxContainerChildren]
-  /// and, for a sequence, refused once its steps fill a phrase — the add
-  /// button is already hidden then, so this is a defensive no-op guard.
+  /// and, for a sequence, refused once its steps fill the phrase it starts in
+  /// ([_beatsTowardPhrase]) — the add button is already hidden then, by the
+  /// same count, so this is a defensive no-op guard.
   void _addSide() {
     final draft = widget.draft;
     final sides = draft.containerChildren!;
     if (sides.length >= maxContainerChildren(draft.containerKind!)) return;
     if (draft.isSequenceGroup &&
-        draft.beats >= widget.phraseStructure.longestPhraseBeats) {
+        _beatsTowardPhrase(draft) >=
+            widget.phraseStructure.phraseBeatsAt(widget.startBeat)) {
       return;
     }
     sides.add(FigureDraft());
@@ -3605,7 +3606,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         widget.draft.beats -
         nested.beats +
         children.fold(0, (sum, child) => sum + child.beats);
-    return beats <= widget.phraseStructure.longestPhraseBeats;
+    return beats <= widget.phraseStructure.phraseBeatsAt(widget.startBeat);
   }
 
   void _ungroupNestedContainer(

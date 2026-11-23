@@ -82,6 +82,7 @@ import 'src/data/capitalize_figures_scope.dart';
 import 'src/data/show_custom_figures_scope.dart';
 import 'src/data/calling_card_settings_scope.dart';
 import 'src/data/show_glossary_scope.dart';
+import 'src/data/show_repertoire_scope.dart';
 import 'src/data/suggestions_scope.dart';
 import 'src/data/decimal_turns_scope.dart';
 import 'src/data/canonical_discouraged_terms_scope.dart';
@@ -697,6 +698,12 @@ class _CompendiumAppState extends State<CompendiumApp>
   );
   final _showCustomFiguresNotifier = PreferenceNotifier<bool>(
     key: kShowCustomFiguresKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _showRepertoireNotifier = PreferenceNotifier<bool>(
+    key: kShowRepertoireDashboardKey,
     defaultValue: false,
     decode: (Object? v) => v is bool ? v : false,
     encode: (v) => v,
@@ -1405,6 +1412,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _capitalizeFiguresNotifier,
     _showGlossaryNotifier,
     _showCustomFiguresNotifier,
+    _showRepertoireNotifier,
     _suggestionsEnabledNotifier,
     _suggestionSettingsNotifier,
     _callingCardSettingsNotifier,
@@ -2353,6 +2361,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _capitalizeFiguresNotifier.dispose();
     _showGlossaryNotifier.dispose();
     _showCustomFiguresNotifier.dispose();
+    _showRepertoireNotifier.dispose();
     _suggestionsEnabledNotifier.dispose();
     _suggestionSettingsNotifier.dispose();
     _callingCardSettingsNotifier.dispose();
@@ -3029,6 +3038,8 @@ class _CompendiumAppState extends State<CompendiumApp>
       notifier: _showCustomFiguresNotifier,
       child: child,
     ),
+    (child) =>
+        ShowRepertoireScope(notifier: _showRepertoireNotifier, child: child),
     (child) => SuggestionsEnabledScope(
       notifier: _suggestionsEnabledNotifier,
       child: child,

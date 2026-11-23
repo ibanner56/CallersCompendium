@@ -218,7 +218,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**264 columns**: 183 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 31 personal data by category.
+**267 columns**: 186 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 31 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -380,7 +380,10 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `programs` | `archived_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | When the caller archived the program (schema v42); NULL means not archived. A lifecycle stamp like programs.deleted_at, classified the same way: it says when the program left the list, not anything about a person. Egress: own devices and backups yes, share files no (the maintainer chose "sync and backups keep it, share files drop it" when archiving was added, 2026-11-18, recorded in #2218; sanitizeProgramForShare), so a recipient always gets an unarchived program. Kept shareable because deviceLocal would stop sync. |
 | `programs` | `arrival_minute` | `dpv:NonPersonalData` | NonPersonalData | app user | shareable | When the caller needs to be at the hall for the program (#2350), as minutes after midnight. Unlike the other three times it is about the caller, not the public event, so the subject is the app user; it is a time of day, not a location, so non-personal. Egress: Device Sync and backups carry it, and so do program share files, because a guest caller receiving the program needs it too (issue drafting call, approved with #2350). The set-list text and the PDF leave it out: they are made for other people, and the maintainer ruled that Arrive by stays out of the PDF but in the caller's own calendar export (2026-11-22, #2350), whose event notes carry it. |
 | `programs` | `band` | `pd:Name` | Identifying → Name | third party | shareable | Performer credit for a public event. CONTESTED — see the performer-names section of docs/dev/data-classification.md. |
+| `programs` | `calendar_event_fingerprint` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | What the calendar import last wrote from an event (#2354, schema v42): truncated hashes of its title, date, first location segment, and start and end times, all of which are already stored on the program. Shareable so another device applies the same untouched test; stripped from share files (sanitizeProgramForShare), since a recipient has no such calendar. Classification proposed by Claude and approved with the issue (maintainer, issue review, 2026-11-22). |
 | `programs` | `calendar_event_key` | `dpv:PersonalData` | PersonalData | third party | shareable | The calendar event a program was imported from (#2352, schema v42): a SHA-256 digest of the event's UID and recurrence id, never the UID itself; NULL for a program not imported from a calendar. Possibly personal and third-party because UIDs are minted by whoever's calendar software created the event: most are opaque, but some generators build them from an email address or host name, and a digest of such a value is pseudonymous, still personal data. Storing the digest means the address itself is never stored. Shareable so Device Sync carries it and the caller's other devices do not offer the same event again; kept in the caller's own backups; stripped from share files (sanitizeProgramForShare), like pay, since a recipient has no use for it. Classification proposed by Claude and approved with the issue (maintainer, issue review, 2026-11-22). |
+| `programs` | `calendar_flag` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Why the calendar flags the program (#2354, schema v42): cancelled, missing, or NULL. A label about the program, not a person. Shareable so the flag shows on every device; stripped from share files (sanitizeProgramForShare), since a recipient has no such calendar. Classified like choreography fields, as the issue proposed and the maintainer approved (issue review, 2026-11-22). |
+| `programs` | `calendar_written_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | The updated_at the calendar import last wrote (#2354, schema v42), classified like the record stamps: it says when, not who. Shareable so another device applies the same untouched test; stripped from share files (sanitizeProgramForShare). |
 | `programs` | `caller` | `pd:Name` | Identifying → Name | third party | shareable | Performer credit for a public event. CONTESTED — see the performer-names section of docs/dev/data-classification.md. |
 | `programs` | `created_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `programs` | `dancer_level` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
@@ -491,7 +494,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**135 settings keys**: 89 shareable, 13 device-local, 31 device-scoped, 1 protocol-identifier, 1 store-address. 5 personal data by category.
+**136 settings keys**: 90 shareable, 13 device-local, 31 device-scoped, 1 protocol-identifier, 1 store-address. 5 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -605,6 +608,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `show_performed_toggles` | `dpv:NonPersonalData` | app user | shareable |  |
 | `show_program_pay` | `dpv:NonPersonalData` | app user | shareable |  |
 | `show_program_slot_caller_notes` | `dpv:NonPersonalData` | app user | shareable |  |
+| `show_repertoire_dashboard` | `dpv:NonPersonalData` | app user | shareable |  |
 | `soft_delete_retention_days` | `dpv:NonPersonalData` | app user | shareable |  |
 | `sort_ignore_articles` | `dpv:NonPersonalData` | app user | shareable |  |
 | `suggestion_settings` | `dpv:NonPersonalData` | app user | shareable | The user's chosen weights for the program builder's Suggested sort (Off / A little / A lot per factor, the difficulty curve's shape and the venue window), plus a reserved list of preferences that will hold saved-search ids. How the user likes dances suggested, the same on every device, so it travels like any preference. Ranking reads calling history and venues locally and stores nothing. |

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../widgets/calendar_flag_label.dart' show calendarFlagLabel;
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
@@ -257,6 +258,7 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'endMinute': l10n.programsEndTimeLabel,
         'lessonMinute': l10n.programsLessonTimeLabel,
         'arrivalMinute': l10n.programsArrivalTimeLabel,
+        'calendarFlag': l10n.calendarFlagFieldLabel,
       },
       SyncRecordKind.choreographer => {
         'name': l10n.syncConflictFieldName,
@@ -1199,6 +1201,8 @@ class SyncConflictComparison extends StatelessWidget {
             for (final link in value as List)
               if (link is Map) _linkText(l10n, link),
           ].join('; ');
+        case 'calendarFlag':
+          return calendarFlagLabel(l10n, value as String?);
         case 'eventDate':
           return formatEventDate(
             syncConflictCalendarDate(value as String),

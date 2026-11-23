@@ -5007,7 +5007,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String danceEditorSequenceOverPhraseTimed(String length, String limit) {
-    return 'このシーケンスは$lengthで、1フレーズ（$limit）より長くなっています。';
+    return 'このシーケンスは$lengthで、始まるフレーズ（$limit）より長くなっています。';
   }
 
   @override
@@ -8494,8 +8494,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorPhrasesAdd => 'フレーズを追加';
 
   @override
-  String danceEditorPhrasesInvalid(int max) {
-    return '各フレーズの小節数と1小節の拍数を、それぞれ1から$maxで入力してください。それまでは最後の有効なフレーズが保たれ、保存するとそれが保存されます。';
+  String danceEditorPhrasesInvalid(int maxBars, int maxBeats) {
+    return '各フレーズの小節数は1から$maxBars、1小節の拍数は1から$maxBeatsで入力してください。それまでは最後の有効なフレーズが保たれ、保存するとそれが保存されます。';
   }
 
   @override
@@ -8899,7 +8899,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String validationSequenceExceedsPhrase(int position, int actual, int limit) {
-    return 'フィギュア$positionのシーケンスは$actual拍で、1フレーズ（$limit拍）より長くなっています。';
+    return 'フィギュア$positionのシーケンスは$actual拍で、始まるフレーズ（$limit拍）より長くなっています。';
   }
 
   @override
@@ -8922,7 +8922,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String actual,
     String limit,
   ) {
-    return 'フィギュア$positionのシーケンスは$actualで、1フレーズ（$limit）より長くなっています。';
+    return 'フィギュア$positionのシーケンスは$actualで、始まるフレーズ（$limit）より長くなっています。';
   }
 
   @override
@@ -9555,12 +9555,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String danceEditorSequenceOverPhrase(int beats, int limit) {
-    return 'このシーケンスは$beats拍で、1フレーズ（$limit拍）より長くなっています。';
+    return 'このシーケンスは$beats拍で、始まるフレーズ（$limit拍）より長くなっています。';
   }
 
   @override
   String danceEditorSequencePhraseFull(int limit) {
-    return 'これらのフィギュアで1フレーズ（$limit拍）が埋まっています。';
+    return 'これらのフィギュアで、始まるフレーズ（$limit拍）が埋まっています。';
   }
 
   @override
@@ -13172,4 +13172,402 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsPerformSwapNewerVersion =>
       'この設定は新しいバージョンのアプリで保存されたため、ここでは変更できません。変更するにはアプリを更新してください。';
+
+  @override
+  String get collectionRepertoireMenuItem => 'レパートリー';
+
+  @override
+  String get repertoireTitle => 'レパートリー';
+
+  @override
+  String get repertoireLoadError => 'レパートリーを集計できませんでした';
+
+  @override
+  String get repertoirePeriodLabel => '期間';
+
+  @override
+  String get repertoirePeriodAllTime => '全期間';
+
+  @override
+  String repertoirePeriodMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '過去$countか月',
+      one: '過去1か月',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get repertoirePeriodSinceDate => '日付以降…';
+
+  @override
+  String repertoirePeriodSince(String date) {
+    return '$date以降';
+  }
+
+  @override
+  String get repertoireTypeLabel => 'ダンスの種類';
+
+  @override
+  String get repertoireTypeAll => 'すべての種類';
+
+  @override
+  String repertoireSummary(int calls, int called, int total) {
+    return 'この期間のコール数：$calls。コールしたダンス：$total件中$called件。';
+  }
+
+  @override
+  String get repertoireMostCalledHeader => 'コール回数が多い';
+
+  @override
+  String get repertoireLeastCalledHeader => 'コール回数が少ない（コールしたダンスのうち）';
+
+  @override
+  String get repertoireLeastCalledAllShown =>
+      'この期間にコールしたダンスは、すべて「コール回数が多い」に表示されています。';
+
+  @override
+  String get repertoireNoCalls => 'この期間にカウントされたコールはありません。';
+
+  @override
+  String repertoireDanceCalls(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count回コール',
+      one: '1回コール',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireDanceSemantics(String title, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count回コール',
+      one: '1回コール',
+    );
+    return '$title：$_temp0';
+  }
+
+  @override
+  String get repertoireNeverCalledHeader => '一度もコールされていない';
+
+  @override
+  String get repertoireNeverCalledLabel => '一度もコールされていない';
+
+  @override
+  String repertoireOfDances(int count, int total) {
+    return '$total件中$count件のダンス';
+  }
+
+  @override
+  String repertoireNeverCalledSemantics(int count, int total) {
+    return '一度もコールされていない：$total件中$count件のダンス';
+  }
+
+  @override
+  String repertoireNeverCalledDanceSemantics(String title) {
+    return '$title：一度もコールされていない';
+  }
+
+  @override
+  String get repertoireNotCalledInPeriodLabel => 'この期間に未コール';
+
+  @override
+  String repertoireNotCalledInPeriodSemantics(int count, int total) {
+    return 'この期間に未コール：$total件中$count件のダンス';
+  }
+
+  @override
+  String get repertoireFigureHeader => 'フィギュアの出現頻度';
+
+  @override
+  String get repertoireNoFigures => 'これらのダンスにはフィギュアが入力されていません。';
+
+  @override
+  String repertoireFigureValue(int dances, int total, int percent, int calls) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls回コール',
+      one: '1回コール',
+    );
+    return '$total件中$dances件のダンス（$percent%）・$_temp0';
+  }
+
+  @override
+  String repertoireFigureSemantics(
+    String move,
+    int dances,
+    int total,
+    int percent,
+    int calls,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls回コール',
+      one: '1回コール',
+    );
+    return '$move：$total件中$dances件のダンス、$percentパーセント。この期間に$_temp0';
+  }
+
+  @override
+  String repertoireShowAll(int count) {
+    return 'すべて表示（$count件）';
+  }
+
+  @override
+  String get repertoireShowFewer => '表示を減らす';
+
+  @override
+  String get repertoireAuthorsHeader => 'コールしている作者';
+
+  @override
+  String repertoireAuthorsSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'この期間に$count人の作者のダンスをコールしました。',
+      one: 'この期間に1人の作者のダンスをコールしました。',
+      zero: 'この期間にコールした作者はいません。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireShareValue(int calls, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls回コール',
+      one: '1回コール',
+    );
+    return '$_temp0（$percent%）';
+  }
+
+  @override
+  String repertoireShareSemantics(String label, int calls, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls回コール',
+      one: '1回コール',
+    );
+    return '$label：$_temp0、この期間のコールの$percentパーセント';
+  }
+
+  @override
+  String get repertoireFormationHeader => 'フォーメーションの内訳';
+
+  @override
+  String get repertoireVenuesHeader => '会場ごとの繰り返し';
+
+  @override
+  String get repertoireNoRepeats => 'この期間に同じ会場で2回以上コールされたダンスはありません。';
+
+  @override
+  String get repertoireVenueUnnamed => '名前のない会場';
+
+  @override
+  String repertoireVenueRepeats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスを繰り返し',
+      one: '1件のダンスを繰り返し',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireVenueSemantics(String venue, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスを2回以上コール',
+      one: '1件のダンスを2回以上コール',
+    );
+    return '$venue：$_temp0';
+  }
+
+  @override
+  String get settingsExperimentalRepertoireHeader => 'レパートリー';
+
+  @override
+  String get settingsExperimentalShowRepertoireTitle => 'レパートリー';
+
+  @override
+  String get settingsExperimentalShowRepertoireSubtitle =>
+      'コレクションの「その他のアクション」メニューに「レパートリー」を追加します。コール回数が多いダンスと少ないダンス、一度もコールしていないダンス、フィギュアの出現頻度、作者、フォーメーション、会場ごとの繰り返しを表示します。';
+
+  @override
+  String get importSourceLabelCsv => '自分の表計算ファイル（CSV）';
+
+  @override
+  String get importCsvPickFile => 'CSV ファイルを選択…';
+
+  @override
+  String get importCsvSaveAsHint =>
+      '表計算アプリで［ファイル］▸［名前を付けて保存］（または［ダウンロード］）を選び、「CSV UTF-8」を選んでから、そのファイルをここで選択してください。';
+
+  @override
+  String get importCsvMapTitle => '列の割り当て';
+
+  @override
+  String get importCsvMapIntro =>
+      '各列の内容を選んでください。「無視」にした列は取り込まれません。確認して確定するまで何も追加されません。';
+
+  @override
+  String get importCsvSeparatorLabel => '区切り文字';
+
+  @override
+  String get importCsvSeparatorComma => 'カンマ（,）';
+
+  @override
+  String get importCsvSeparatorSemicolon => 'セミコロン（;）';
+
+  @override
+  String get importCsvSeparatorTab => 'タブ';
+
+  @override
+  String get importCsvFirstRowHeader => '1 行目は列名';
+
+  @override
+  String importCsvColumnFallback(int number) {
+    return '列 $number';
+  }
+
+  @override
+  String get importCsvTargetIgnore => '無視';
+
+  @override
+  String importCsvTargetPhrase(String phrase) {
+    return 'フィギュア、$phrase';
+  }
+
+  @override
+  String importCsvTargetNewField(String type) {
+    return '新しいカスタムフィールド（$type）';
+  }
+
+  @override
+  String importCsvTargetExistingField(String name) {
+    return 'カスタムフィールド：$name';
+  }
+
+  @override
+  String get importCsvNeedsTitle => '各ダンスのタイトルが入っている列を選んでください。';
+
+  @override
+  String get importCsvContinue => '続ける';
+
+  @override
+  String get importCsvPreviewHeading => '最初の行';
+
+  @override
+  String get importCsvNotUtf8 =>
+      'このファイルは UTF-8 テキストで保存されていないため、アクセント付きの文字が正しく取り込まれません。表計算アプリで「CSV UTF-8」として保存し直し、そのファイルを選択してください。';
+
+  @override
+  String get importCsvTooLarge => 'このファイルは大きすぎて取り込めません。小さなファイルに分けてください。';
+
+  @override
+  String importCsvTooManyRows(int limit) {
+    return 'このファイルには $limit 行を超える行があります。小さなファイルに分けてください。';
+  }
+
+  @override
+  String importCsvTooManyColumns(int limit) {
+    return 'このファイルのある行には $limit を超える列があります。';
+  }
+
+  @override
+  String importCsvCellTooLong(int limit) {
+    return 'このファイルのあるセルは $limit 文字を超えています。';
+  }
+
+  @override
+  String get importCsvUnterminatedQuote =>
+      'このファイルには終わりのない引用符付きのセルがあるため、読み込めません。';
+
+  @override
+  String importCsvLargeBatch(int count) {
+    return 'このファイルには $count 行あります。確認に時間がかかることがあります。';
+  }
+
+  @override
+  String get importCsvNoRows => 'このファイルには列名だけで、ダンスの行がありません。';
+
+  @override
+  String calendarImportUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'カレンダーからプログラムを$count件更新しました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportReviewed => 'カレンダーを確認しました。追加や変更はありません。';
+
+  @override
+  String calendarChangeDate(String before, String after) {
+    return '日付: $before → $after';
+  }
+
+  @override
+  String calendarChangeTitle(String before, String after) {
+    return 'タイトル: $before → $after';
+  }
+
+  @override
+  String calendarChangeTime(String before, String after) {
+    return '時刻: $before → $after';
+  }
+
+  @override
+  String calendarChangeVenue(String before, String after) {
+    return '会場: $before → $after';
+  }
+
+  @override
+  String get calendarImportUpdatedHeader => 'カレンダーで更新された予定';
+
+  @override
+  String get calendarImportChangedHeader => 'カレンダーで変更された予定';
+
+  @override
+  String get calendarImportChangedBody =>
+      'これらのプログラムは編集済みのため、チェックを入れない限り何も変わりません。';
+
+  @override
+  String get calendarImportFlaggedHeader => 'カレンダーでキャンセルされた、または削除された予定';
+
+  @override
+  String get calendarImportFlaggedBody =>
+      'これらのプログラムはそのまま残り、ラベルが付きます。不要になったら自分でアーカイブまたは削除してください。';
+
+  @override
+  String get calendarFlagCancelled => 'カレンダーでキャンセル済み';
+
+  @override
+  String get calendarFlagMissing => 'カレンダーにもうありません';
+
+  @override
+  String get calendarFlagOther => 'カレンダーによるフラグ';
+
+  @override
+  String get calendarFlagFieldLabel => 'カレンダーのフラグ';
+
+  @override
+  String get calendarClearFlag => 'カレンダーのフラグを消す';
+
+  @override
+  String get calendarClearFlagError => 'カレンダーのフラグを消せませんでした。もう一度お試しください。';
 }

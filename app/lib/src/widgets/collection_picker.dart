@@ -94,6 +94,7 @@ class CollectionPicker extends StatefulWidget {
     this.onPreviewOnlineEnded,
     this.onViewOnlineDetails,
     this.programContext,
+    this.excludedDanceIds = const {},
     this.rankSuggestions,
     this.clock = const SearchClock(),
     this.initialQuery,
@@ -193,6 +194,11 @@ class CollectionPicker extends StatefulWidget {
   /// slots out of every calling-history filter here (N1-6), and its position,
   /// when set, makes Suggested available and is what Suggested ranks for.
   final PickerProgramContext? programContext;
+
+  /// Dances this picker never lists, such as the dance a Replace… would
+  /// replace: choosing it would change nothing. Applied to the local results
+  /// before Suggested ranks them, so they are never ranked either.
+  final Set<String> excludedDanceIds;
 
   /// Ranks for Suggested. A test seam: when null, as in the app, the picker
   /// ranks on a [SuggestionWorker] of its own, which keeps the candidates it

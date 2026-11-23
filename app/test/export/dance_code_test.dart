@@ -155,7 +155,9 @@ void main() {
         // The fixture must really sit between the H and Q limits.
         // Well inside the H..Q band, not at an edge of it.
         expect(bytes, inInclusiveRange(1324, 1613));
-        final plan = planDanceCode(json);
+        // Past the shipped cap's own limits too, so lift the cap to the QR
+        // maximum: this test is about the level ladder.
+        final plan = planDanceCode(json, maxVersion: 40);
         expect(plan, isA<DanceCodeShown>());
         plan as DanceCodeShown;
         expect(plan.level, DanceCodeLevel.quartile);
@@ -171,6 +173,45 @@ void main() {
         (plan as DanceCodeTooLong).linkBytes,
         greaterThan(DanceCodeLevel.low.byteCapacity),
       );
+    });
+  });
+
+  group('the shipped version cap', () {
+    // Literals, from the capacity table at each version: a code of version 35
+    // holds 983 bytes at H, 1,283 at Q, 1,809 at M and 2,303 at L. Not derived
+    // from the constant under test.
+    test('is 35, the largest version the maintainer saw read', () {
+      expect(kMaxDanceCodeVersion, 35);
+    });
+
+    test('the seed dance keeps the mark under it', () {
+      final plan = planDanceCode(_bundle()) as DanceCodeShown;
+      expect(plan.level, DanceCodeLevel.high);
+      expect(plan.version, lessThanOrEqualTo(35));
+    });
+
+    test('a link takes the strongest level that fits version 35', () {
+      const fits = {
+        983: DanceCodeLevel.high,
+        984: DanceCodeLevel.quartile,
+        1283: DanceCodeLevel.quartile,
+        1284: DanceCodeLevel.medium,
+        1809: DanceCodeLevel.medium,
+        1810: DanceCodeLevel.low,
+        2303: DanceCodeLevel.low,
+      };
+      for (final e in fits.entries) {
+        final plan = planDanceLink(_linkOfLength(e.key)) as DanceCodeShown;
+        expect(plan.level, e.value, reason: '${e.key} bytes');
+        expect(plan.version, lessThanOrEqualTo(35), reason: '${e.key} bytes');
+      }
+    });
+
+    test('a link past what version 35 holds at L is too long', () {
+      // It would fit a version 40 code (2,953 bytes at L), which no longer
+      // draws.
+      expect(planDanceLink(_linkOfLength(2304)), isA<DanceCodeTooLong>());
+      expect(planDanceLink(_linkOfLength(2953)), isA<DanceCodeTooLong>());
     });
   });
 
@@ -210,13 +251,19 @@ void main() {
       };
       for (final level in DanceCodeLevel.values) {
         expect(level.byteCapacity, capacity[level], reason: '$level');
-        final atCap = planDanceLink(_linkOfLength(capacity[level]!));
+        final atCap = planDanceLink(
+          _linkOfLength(capacity[level]!),
+          maxVersion: 40,
+        );
         expect(atCap, isA<DanceCodeShown>(), reason: '$level at capacity');
         // The strongest level that fits is used, so a link of exactly this
         // level's capacity is at this level.
         expect((atCap as DanceCodeShown).level, level);
         expect(atCap.version, 40);
-        final over = planDanceLink(_linkOfLength(capacity[level]! + 1));
+        final over = planDanceLink(
+          _linkOfLength(capacity[level]! + 1),
+          maxVersion: 40,
+        );
         if (level == DanceCodeLevel.low) {
           expect(over, isA<DanceCodeTooLong>());
         } else {
@@ -231,7 +278,7 @@ void main() {
 
     test('a version cap moves a code to a lower level, never over the cap', () {
       final json = _bundle();
-      final unlimited = planDanceCode(json) as DanceCodeShown;
+      final unlimited = planDanceCode(json, maxVersion: 40) as DanceCodeShown;
       // The seed needs version 31 at H.
       expect(unlimited.version, greaterThan(1));
       final capped = planDanceCode(json, maxVersion: unlimited.version);
@@ -249,7 +296,9 @@ void main() {
 
     test('the module grid has the finder and timing patterns of a QR code', () {
       for (final length in [100, 778, 1201, 1273, 1663, 2331, 2953]) {
-        final plan = planDanceLink(_linkOfLength(length)) as DanceCodeShown;
+        final plan =
+            planDanceLink(_linkOfLength(length), maxVersion: 40)
+                as DanceCodeShown;
         final n = plan.moduleCount;
         // Timing patterns alternate along row 6 and column 6, dark first,
         // between the finder patterns. A grid rebuilt with the wrong module
@@ -299,7 +348,8 @@ void main() {
       test('${level.name}: both format-information copies read back, '
           'and the dark module is in place', () {
         final plan =
-            planDanceLink(_linkOfLength(level.byteCapacity)) as DanceCodeShown;
+            planDanceLink(_linkOfLength(level.byteCapacity), maxVersion: 40)
+                as DanceCodeShown;
         expect(plan.level, level);
         final n = plan.moduleCount;
         var down = 0; // copy along the left column, reading downwards

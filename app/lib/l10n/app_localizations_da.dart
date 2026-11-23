@@ -5246,7 +5246,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String danceEditorSequenceOverPhraseTimed(String length, String limit) {
-    return 'Denne sekvens varer $length, længere end én frase ($limit).';
+    return 'Denne sekvens varer $length, længere end frasen, den starter i ($limit).';
   }
 
   @override
@@ -8855,8 +8855,8 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorPhrasesAdd => 'Tilføj frase';
 
   @override
-  String danceEditorPhrasesInvalid(int max) {
-    return 'Giv hver frase fra 1 til $max takter og fra 1 til $max slag i takten. Indtil da beholder dansen sine sidste gyldige fraser, og Gem gemmer dem.';
+  String danceEditorPhrasesInvalid(int maxBars, int maxBeats) {
+    return 'Giv hver frase fra 1 til $maxBars takter og fra 1 til $maxBeats slag i takten. Indtil da beholder dansen sine sidste gyldige fraser, og Gem gemmer dem.';
   }
 
   @override
@@ -9269,7 +9269,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String validationSequenceExceedsPhrase(int position, int actual, int limit) {
-    return 'En sekvens i figur $position er $actual slag, længere end én frase ($limit slag).';
+    return 'En sekvens i figur $position er $actual slag, længere end frasen, den starter i ($limit slag).';
   }
 
   @override
@@ -9292,7 +9292,7 @@ class AppLocalizationsDa extends AppLocalizations {
     String actual,
     String limit,
   ) {
-    return 'En sekvens i figur $position varer $actual, længere end én frase ($limit).';
+    return 'En sekvens i figur $position varer $actual, længere end frasen, den starter i ($limit).';
   }
 
   @override
@@ -9948,12 +9948,12 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String danceEditorSequenceOverPhrase(int beats, int limit) {
-    return 'Denne sekvens er $beats slag, længere end én frase ($limit slag).';
+    return 'Denne sekvens er $beats slag, længere end frasen, den starter i ($limit slag).';
   }
 
   @override
   String danceEditorSequencePhraseFull(int limit) {
-    return 'Disse figurer fylder én frase ($limit slag).';
+    return 'Disse figurer fylder frasen, de starter i ($limit slag).';
   }
 
   @override
@@ -13709,4 +13709,411 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsPerformSwapNewerVersion =>
       'Disse valg blev gemt af en nyere version af appen og kan ikke ændres her. Opdater appen for at ændre dem.';
+
+  @override
+  String get collectionRepertoireMenuItem => 'Repertoire';
+
+  @override
+  String get repertoireTitle => 'Repertoire';
+
+  @override
+  String get repertoireLoadError => 'Dit repertoire kunne ikke beregnes';
+
+  @override
+  String get repertoirePeriodLabel => 'Periode';
+
+  @override
+  String get repertoirePeriodAllTime => 'Hele perioden';
+
+  @override
+  String repertoirePeriodMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Seneste $count måneder',
+      one: 'Seneste måned',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get repertoirePeriodSinceDate => 'Siden en dato…';
+
+  @override
+  String repertoirePeriodSince(String date) {
+    return 'Siden $date';
+  }
+
+  @override
+  String get repertoireTypeLabel => 'Danseform';
+
+  @override
+  String get repertoireTypeAll => 'Alle former';
+
+  @override
+  String repertoireSummary(int calls, int called, int total) {
+    return 'Kald i denne periode: $calls. Danse kaldt: $called af $total.';
+  }
+
+  @override
+  String get repertoireMostCalledHeader => 'Oftest kaldt';
+
+  @override
+  String get repertoireLeastCalledHeader =>
+      'Sjældnest kaldt (af dem, du har kaldt)';
+
+  @override
+  String get repertoireLeastCalledAllShown =>
+      'Alle danse, du har kaldt i denne periode, står allerede under Oftest kaldt.';
+
+  @override
+  String get repertoireNoCalls => 'Ingen talte kald i denne periode.';
+
+  @override
+  String repertoireDanceCalls(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'kaldt $count gange',
+      one: 'kaldt én gang',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireDanceSemantics(String title, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'kaldt $count gange',
+      one: 'kaldt én gang',
+    );
+    return '$title: $_temp0';
+  }
+
+  @override
+  String get repertoireNeverCalledHeader => 'Aldrig kaldt';
+
+  @override
+  String get repertoireNeverCalledLabel => 'Aldrig kaldt';
+
+  @override
+  String repertoireOfDances(int count, int total) {
+    return '$count af $total danse';
+  }
+
+  @override
+  String repertoireNeverCalledSemantics(int count, int total) {
+    return 'Aldrig kaldt: $count af $total danse';
+  }
+
+  @override
+  String repertoireNeverCalledDanceSemantics(String title) {
+    return '$title: aldrig kaldt';
+  }
+
+  @override
+  String get repertoireNotCalledInPeriodLabel => 'Ikke kaldt i denne periode';
+
+  @override
+  String repertoireNotCalledInPeriodSemantics(int count, int total) {
+    return 'Ikke kaldt i denne periode: $count af $total danse';
+  }
+
+  @override
+  String get repertoireFigureHeader => 'Figurhyppighed';
+
+  @override
+  String get repertoireNoFigures =>
+      'Ingen af disse danse har indtastede figurer.';
+
+  @override
+  String repertoireFigureValue(int dances, int total, int percent, int calls) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls kald',
+      one: '1 kald',
+    );
+    return 'i $dances af $total danse ($percent %) · $_temp0';
+  }
+
+  @override
+  String repertoireFigureSemantics(
+    String move,
+    int dances,
+    int total,
+    int percent,
+    int calls,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls kald',
+      one: '1 kald',
+    );
+    return '$move: i $dances af $total danse, $percent procent; $_temp0 i denne periode';
+  }
+
+  @override
+  String repertoireShowAll(int count) {
+    return 'Vis alle $count';
+  }
+
+  @override
+  String get repertoireShowFewer => 'Vis færre';
+
+  @override
+  String get repertoireAuthorsHeader => 'Forfattere, du kalder';
+
+  @override
+  String repertoireAuthorsSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count forfattere kaldt i denne periode.',
+      one: '1 forfatter kaldt i denne periode.',
+      zero: 'Ingen forfatter kaldt i denne periode.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireShareValue(int calls, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls kald',
+      one: '1 kald',
+    );
+    return '$_temp0 ($percent %)';
+  }
+
+  @override
+  String repertoireShareSemantics(String label, int calls, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls kald',
+      one: '1 kald',
+    );
+    return '$label: $_temp0, $percent procent af kaldene i denne periode';
+  }
+
+  @override
+  String get repertoireFormationHeader => 'Formationer';
+
+  @override
+  String get repertoireVenuesHeader => 'Gentagelser pr. spillested';
+
+  @override
+  String get repertoireNoRepeats =>
+      'Ingen dans blev kaldt mere end én gang på samme spillested i denne periode.';
+
+  @override
+  String get repertoireVenueUnnamed => 'Unavngivet spillested';
+
+  @override
+  String repertoireVenueRepeats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danse gentaget',
+      one: '1 dans gentaget',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireVenueSemantics(String venue, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danse kaldt mere end én gang',
+      one: '1 dans kaldt mere end én gang',
+    );
+    return '$venue: $_temp0';
+  }
+
+  @override
+  String get settingsExperimentalRepertoireHeader => 'Repertoire';
+
+  @override
+  String get settingsExperimentalShowRepertoireTitle => 'Repertoire';
+
+  @override
+  String get settingsExperimentalShowRepertoireSubtitle =>
+      'Tilføjer Repertoire til Samlingens menu Flere handlinger: dine oftest og sjældnest kaldte danse, hvad du aldrig har kaldt, figurhyppighed, forfattere, formationer og gentagelser pr. spillested.';
+
+  @override
+  String get importSourceLabelCsv => 'Dit eget regneark (CSV)';
+
+  @override
+  String get importCsvPickFile => 'Vælg en CSV-fil …';
+
+  @override
+  String get importCsvSaveAsHint =>
+      'Vælg i dit regnearksprogram Filer ▸ Gem som (eller Download) og »CSV UTF-8«, og vælg så den fil her.';
+
+  @override
+  String get importCsvMapTitle => 'Tilknyt kolonner';
+
+  @override
+  String get importCsvMapIntro =>
+      'Vælg, hvad hver kolonne indeholder. Kolonner sat til Ignorer udelades. Intet tilføjes, før du har gennemset og bekræftet.';
+
+  @override
+  String get importCsvSeparatorLabel => 'Skilletegn';
+
+  @override
+  String get importCsvSeparatorComma => 'Komma (,)';
+
+  @override
+  String get importCsvSeparatorSemicolon => 'Semikolon (;)';
+
+  @override
+  String get importCsvSeparatorTab => 'Tabulator';
+
+  @override
+  String get importCsvFirstRowHeader => 'Første række navngiver kolonnerne';
+
+  @override
+  String importCsvColumnFallback(int number) {
+    return 'Kolonne $number';
+  }
+
+  @override
+  String get importCsvTargetIgnore => 'Ignorer';
+
+  @override
+  String importCsvTargetPhrase(String phrase) {
+    return 'Figurer, $phrase';
+  }
+
+  @override
+  String importCsvTargetNewField(String type) {
+    return 'Nyt brugerdefineret felt ($type)';
+  }
+
+  @override
+  String importCsvTargetExistingField(String name) {
+    return 'Brugerdefineret felt: $name';
+  }
+
+  @override
+  String get importCsvNeedsTitle =>
+      'Vælg den kolonne, der indeholder hver dans\' titel.';
+
+  @override
+  String get importCsvContinue => 'Fortsæt';
+
+  @override
+  String get importCsvPreviewHeading => 'Første rækker';
+
+  @override
+  String get importCsvNotUtf8 =>
+      'Denne fil er ikke gemt som UTF-8-tekst, så bogstaver med accenter ville komme forkert ind. Gem den igen som »CSV UTF-8« i dit regnearksprogram, og vælg den fil.';
+
+  @override
+  String get importCsvTooLarge =>
+      'Denne fil er for stor til at importere. Del den op i mindre filer.';
+
+  @override
+  String importCsvTooManyRows(int limit) {
+    return 'Denne fil har mere end $limit rækker. Del den op i mindre filer.';
+  }
+
+  @override
+  String importCsvTooManyColumns(int limit) {
+    return 'En række i denne fil har mere end $limit kolonner.';
+  }
+
+  @override
+  String importCsvCellTooLong(int limit) {
+    return 'En celle i denne fil er længere end $limit tegn.';
+  }
+
+  @override
+  String get importCsvUnterminatedQuote =>
+      'Denne fil har en celle i anførselstegn, der aldrig slutter, så den kan ikke læses.';
+
+  @override
+  String importCsvLargeBatch(int count) {
+    return 'Denne fil har $count rækker. Gennemgangen kan tage et stykke tid.';
+  }
+
+  @override
+  String get importCsvNoRows =>
+      'Denne fil har ingen rækker med danse, kun kolonnenavnene.';
+
+  @override
+  String calendarImportUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programmer opdateret fra din kalender.',
+      one: '1 program opdateret fra din kalender.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportReviewed =>
+      'Kalenderen er tjekket. Intet blev tilføjet eller ændret.';
+
+  @override
+  String calendarChangeDate(String before, String after) {
+    return 'Dato: $before → $after';
+  }
+
+  @override
+  String calendarChangeTitle(String before, String after) {
+    return 'Titel: $before → $after';
+  }
+
+  @override
+  String calendarChangeTime(String before, String after) {
+    return 'Tid: $before → $after';
+  }
+
+  @override
+  String calendarChangeVenue(String before, String after) {
+    return 'Spillested: $before → $after';
+  }
+
+  @override
+  String get calendarImportUpdatedHeader => 'Opdateret i din kalender';
+
+  @override
+  String get calendarImportChangedHeader => 'Ændret i din kalender';
+
+  @override
+  String get calendarImportChangedBody =>
+      'Du har arbejdet på disse programmer, så intet ændres, medmindre du sætter flueben.';
+
+  @override
+  String get calendarImportFlaggedHeader => 'Aflyst eller væk fra din kalender';
+
+  @override
+  String get calendarImportFlaggedBody =>
+      'Disse programmer forbliver, som de er, og bliver markeret. Arkivér eller slet dem selv, hvis du ikke længere har brug for dem.';
+
+  @override
+  String get calendarFlagCancelled => 'Aflyst i din kalender';
+
+  @override
+  String get calendarFlagMissing => 'Ikke længere i din kalender';
+
+  @override
+  String get calendarFlagOther => 'Markeret af din kalender';
+
+  @override
+  String get calendarFlagFieldLabel => 'Kalendermarkering';
+
+  @override
+  String get calendarClearFlag => 'Fjern kalendermarkering';
+
+  @override
+  String get calendarClearFlagError =>
+      'Kunne ikke fjerne kalendermarkeringen. Prøv igen.';
 }

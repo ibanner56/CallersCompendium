@@ -39,7 +39,9 @@ import 'while_container.dart';
 /// `()`/`[]` recognition-only annotation strip. Pass this as the `frontEnd` to
 /// [parseFigureLine]/[parseFigureLines] to recognize the full TCB dialect.
 ///
-/// **Pre-recognizer ordering.** The first nineteen entries (through
+/// **Pre-recognizer ordering.** `_amountAlternativeAnnotation` is first: it
+/// writes a `(1 or 2)` line's first amount into the line and reads the result
+/// through every other entry. The next nineteen entries (through
 /// `_singleFileCircleRecognizer`) all anchor on a move keyword, and all
 /// require a successful resolution to their own move, so in most cases
 /// order is not correctness-critical.  Four overlapping anchor groups each
@@ -80,6 +82,9 @@ import 'while_container.dart';
 /// claims whatever the bespoke decoders left behind.
 final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
   preRecognizers: [
+    // #2331 follow-up: `(1 or 2)` writes the first amount into the line and
+    // reads the result through every other entry here, so it is listed first.
+    _amountAlternativeAnnotation,
     _hey,
     _circulate,
     _waveBalanceCirculate,
@@ -150,9 +155,7 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
 /// The TCB front-end's veto: every line one of these rejects goes straight to
 /// the custom fallback (see [FigureFrontEnd.declineToCustom]).
 bool _tcbDeclineToCustom(String scrubbed) =>
-    _declineSingleFileCircle(scrubbed) ||
-    _declineRoleSplitAmount(scrubbed) ||
-    _declineAmountAlternative(scrubbed);
+    _declineSingleFileCircle(scrubbed) || _declineRoleSplitAmount(scrubbed);
 
 /// Vetoes a line that states a DIFFERENT turn amount per role in a
 /// parenthetical: `Same-role neighbor allemande left (M 1 & 1/2, W 2)`.
@@ -176,28 +179,74 @@ final RegExp _roleSplitAmountRe = RegExp(
   r'^[MW]\s+(?:\d+\s*&\s*)?\d+(?:/\d+)?\s*,\s*[MW]\s+(?:\d+\s*&\s*)?\d+(?:/\d+)?$',
 );
 
-/// Vetoes a line whose parenthetical opens with a CHOICE of amounts:
-/// `Men allemande right (1 or 2)`, `Ones allemande right (1/2 or 1 & 1/2)`,
-/// `Partner allemande right (1 or 1 & 1/2, until men face down)` (#2331).
+/// Reads a parenthetical that opens with a CHOICE of amounts — `Men allemande
+/// right (1 or 2)`, `Ones allemande right (1/2 or 1 & 1/2)`, `Partner allemande
+/// right (1 or 1 & 1/2, until men face down)` — as the FIRST amount, with the
+/// whole parenthetical kept as the note (#2331 follow-up). Either amount is
+/// correct; the maintainer ruled (2026-11-23) that the figure takes the first
+/// and the note says the other also works. The note keeps the source's own
+/// words, `1 or 2`.
 ///
-/// No move models a choice of amounts. Structured, the line keeps the words
-/// only as a note (via [_proseAnnotation]) while the move's own amount param
-/// falls back to its taxonomy default, so the figure would state an amount the
-/// source never chose (an allemande renders 1½). Custom keeps the line.
+/// The first amount is written into the line where the parenthetical stood,
+/// and the line is then read through every other TCB pre-recognizer and the
+/// shared grammar, so the amount lands in whichever param that move reads it
+/// into (`travel` for an allemande or a two-hand turn).
 ///
-/// Not subject- or move-specific, like [_declineRoleSplitAmount]. Only digit
-/// amounts are read; glyph, decimal and word amounts (`1½ or 2`, `once or
-/// twice`) are not in the corpus and are left alone. An annotation that merely
-/// contains `or` (`(or LLFB)`) does not open with an amount and is unaffected.
-bool _declineAmountAlternative(String scrubbed) =>
-    _parenAnnotations(scrubbed).any(_amountAlternativeRe.hasMatch);
+/// The amount is read in the move's own unit: `Circle left (1 or 2)` is once
+/// around, 4 places. No move models a choice, so a line whose move does not
+/// take the amount — it already states one, or it has no amount param (`C1
+/// corner promenade counterclockwise (3/8 or 5/8)`) — goes to custom.
+/// Structured with the choice only as a note, it would render the move's
+/// default amount, one the source never offered (an allemande renders 1½).
+///
+/// Not subject- or move-specific. Only digit amounts are read; glyph, decimal
+/// and word amounts (`1½ or 2`, `once or twice`) are not in the corpus and are
+/// left alone. An annotation that merely contains `or` (`(or LLFB)`) does not
+/// open with an amount and is unaffected.
+FigureMatch? _amountAlternativeAnnotation(String scrubbed) {
+  final hits = _amountAlternativeParenRe.allMatches(scrubbed).take(2).toList();
+  if (hits.isEmpty) return null;
+  // Two choices on one line: no single reading. Keep the words.
+  if (hits.length > 1) return FigureMatch.customFallback();
+  final hit = hits.single;
+  final first = hit.group(2)!;
+  final before = scrubbed.substring(0, hit.start).trimRight();
+  final after = scrubbed.substring(hit.end).trimLeft();
+  final withAmount = [
+    before,
+    first,
+    after,
+  ].where((s) => s.isNotEmpty).join(' ');
 
-/// `<amount> or <amount>` at the start of an annotation body, then either the
-/// end of the body or a `,`/`;` and whatever follows. An amount is a whole
-/// number, a fraction, or `<whole> & <fraction>`. Anchored, no unbounded
-/// nesting; the body itself is already length-capped by [_parenAnnotationRe].
-final RegExp _amountAlternativeRe = RegExp(
-  r'^(?:\d+\s*&\s*)?\d+(?:/\d+)?\s+or\s+(?:\d+\s*&\s*)?\d+(?:/\d+)?\s*(?:$|[,;])',
+  final inner = _tcbReadWithout(withAmount, _amountAlternativeAnnotation);
+  // A line with no place for the amount does not read with it written in —
+  // `allemande left 1 1`, `swing 1`, `promenade 3/8` all fail the grammar —
+  // so it stays text rather than take the move's default.
+  if (inner == null || inner.forceCustom) return FigureMatch.customFallback();
+  return _withAnnotationNote(inner, hit.group(1)!.trim());
+}
+
+/// Reads [text] through every TCB pre-recognizer except [skip], then the
+/// shared grammar, as [_tcbCast] does for its remainder.
+FigureMatch? _tcbReadWithout(String text, FigureMatch? Function(String) skip) {
+  for (final pre in tcbFigureFrontEnd.preRecognizers) {
+    if (identical(pre, skip)) continue;
+    final m = pre(text);
+    if (m != null) return m;
+  }
+  return recognizeSharedFigureLine(
+    text,
+    recognitionNormalize: _tcbRecognitionNormalize,
+  );
+}
+
+/// A `(…)` whose body opens with `<amount> or <amount>`, then either ends or
+/// continues after a `,`/`;`. Group 1 is the body, group 2 the first amount.
+/// An amount is a whole number, a fraction, or `<whole> & <fraction>`.
+/// Anchored on the parenthesis, no unbounded nesting; the body is capped at
+/// 120 characters like [_parenAnnotationRe].
+final RegExp _amountAlternativeParenRe = RegExp(
+  r'\((\s*((?:\d+\s*&\s*)?\d+(?:/\d+)?)\s+or\s+(?:\d+\s*&\s*)?\d+(?:/\d+)?\s*(?:[,;][^()]{0,100})?)\)',
 );
 
 /// Parses a compound figure line, splitting it on TOP-LEVEL `;` separators and
@@ -1830,9 +1879,12 @@ final RegExp _promenadeAnchor = RegExp(
 ///
 /// Annotations: prose (`(release right hands)`) is kept as the note, by the
 /// same lowercase shape rule as [_proseAnnotation]. A people-code annotation
-/// (`(P2L,P3R, women face in)`) or any square bracket (`[M1 with N2, W1 with
-/// N1]`) states holds this figure would not carry, so the line stays custom
-/// rather than lose them.
+/// states the holds, and reads exactly as on a long-wave balance (#2331
+/// follow-up, maintainer: "we just talked about what the annotations mean"):
+/// `(P2L, P3R, women face in)` → partners by the left, next partners by the
+/// right, role2s facing in ([tcbLongWaveHolds]). A code annotation that does
+/// not decode, or a square bracket (`[M1 with N2, W1 with N1]`, which names no
+/// hand), keeps the line custom rather than lose it.
 FigureMatch? _tcbBareLongWave(String scrubbed) {
   final words = _stripAnnotations(
     scrubbed.toLowerCase(),
@@ -1848,24 +1900,98 @@ FigureMatch? _tcbBareLongWave(String scrubbed) {
   }
   final annotations = _parenAnnotations(scrubbed);
   final notes = <String>[];
+  Map<String, Object?>? holds;
   for (final body in annotations) {
     final codeShaped = body
         .split(',')
         .map((f) => f.trim())
         .any(_bareLongWaveCodeField.hasMatch);
-    if (codeShaped ||
-        !_annotationBodyHasLowercase(body) ||
-        _looksLikePerRoleBody(body)) {
+    if (codeShaped) {
+      // One hold annotation, decoded whole, or the line stays custom.
+      if (holds != null) return const FigureMatch.customFallback();
+      holds = tcbLongWaveHolds(body, facingRequired: false);
+      if (holds == null) return const FigureMatch.customFallback();
+      continue;
+    }
+    if (!_annotationBodyHasLowercase(body) || _looksLikePerRoleBody(body)) {
       return const FigureMatch.customFallback();
     }
     notes.add(body);
   }
   return FigureMatch(
     'form_long_waves',
-    params: const {'who': ParamVocab.unspecified},
+    params: holds ?? const {'who': ParamVocab.unspecified},
     note: _joinAnnotations(notes),
   );
 }
+
+/// The long-wave holds a TCB annotation states, as `form_long_waves` params,
+/// or null when it is not exactly that shape (#2331):
+///
+/// * `<pair><H>` — the pair held by hand H: `whom`, `whomHand`;
+/// * `<pair><H>, <pair'><H'>` — the pair held by the other hand too, `whom2`:
+///   the hands must be opposite and the pairs different;
+/// * either, then `<role> face in` — who faces in, `who`.
+///
+/// Fields in source order: the first pair is `whom`. A pair is a relationship
+/// people code from [tcbPassPeople] (`N`, `N2`, `P3`, `S`, …), never a role or
+/// couple code (`M`, `W`, `1`, `2`), which names a wave's centre, not a hold
+/// along the side. Roles reach here already scrubbed (`women face in` →
+/// `role2s face in`). With [facingRequired] false (a forming line) a missing
+/// facing is `who: unspecified`; a balance line must state it.
+Map<String, Object?>? tcbLongWaveHolds(
+  String annotation, {
+  bool facingRequired = true,
+}) {
+  final parts = annotation
+      .toLowerCase()
+      .split(',')
+      .map((p) => p.trim())
+      .where((p) => p.isNotEmpty)
+      .toList();
+  if (parts.isEmpty || parts.length > 3) return null;
+  final facing = _longWaveFacingRe.firstMatch(parts.last);
+  final codes = facing == null ? parts : parts.sublist(0, parts.length - 1);
+  if (facing == null && facingRequired) return null;
+  if (codes.isEmpty || codes.length > 2) return null;
+  final first = _longWaveHold(codes.first);
+  if (first == null) return null;
+  String? whom2;
+  if (codes.length == 2) {
+    final second = _longWaveHold(codes.last);
+    if (second == null ||
+        second.hand == first.hand ||
+        second.who == first.who) {
+      return null;
+    }
+    whom2 = second.who;
+  }
+  return {
+    'whom': first.who,
+    'whomHand': first.hand,
+    'whom2': ?whom2,
+    'who': facing?.group(1) ?? ParamVocab.unspecified,
+  };
+}
+
+({String who, String hand})? _longWaveHold(String field) {
+  final m = _longWaveHoldRe.firstMatch(field);
+  if (m == null) return null;
+  final code = m.group(1)!;
+  if (_longWaveRoleCodes.contains(code)) return null;
+  final who = tcbPassPeople[code];
+  if (who == null) return null;
+  return (who: who, hand: m.group(2) == 'r' ? 'right' : 'left');
+}
+
+/// The role and couple codes: a wave's centre, never a long wave's hold.
+const Set<String> _longWaveRoleCodes = {'m', 'w', '1', '2'};
+
+/// A people code plus a trailing `r`/`l` hand (lowercased). Anchored, bounded.
+final RegExp _longWaveHoldRe = RegExp(r'^([a-z0-9]{1,3})([rl])$');
+
+/// `<role> face in`, roles already scrubbed. Anchored.
+final RegExp _longWaveFacingRe = RegExp(r'^(role1s|role2s|ones|twos) face in$');
 
 /// One people-code-plus-hand field of a TCB annotation (P2L, N1R, SR, P-1R),
 /// the shape that names a hold. Anchored and bounded.

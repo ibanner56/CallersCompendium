@@ -904,7 +904,7 @@ useful thing you can send.
 ## Experimental
 
 The **Experimental** section holds features that are still in development —
-today, that's the **Glossary**, **Suggestions**, **Calling cards**, **Device Sync** and **Developer options**. Anything here can change
+today, that's the **Glossary**, **Repertoire**, **Suggestions**, **Calling cards**, **Device Sync** and **Developer options**. Anything here can change
 before it becomes a regular setting. Each feature sits in its own section: select its heading to
 open or close it.
 
@@ -1119,6 +1119,18 @@ notes to make room, then try again. Shortening or deleting is always allowed.
 Figures and notes that arrive from another device with Device Sync, or from a
 backup you restore, are always kept, even if they take you past the limit; you
 can then edit them down but not add more.
+
+### Repertoire
+
+**Repertoire** adds a **Repertoire** item to the **More actions** (⋮) menu in
+the Collection toolbar. It is **off by default**. It opens a read-only page of
+your most and least called dances, what you have never called, figure
+frequency, the authors you call, your formation mix, and dances
+repeated at a venue; see
+[See your repertoire at a glance](./collection.md#see-your-repertoire-at-a-glance).
+It adds nothing to the navigation, and it stores nothing: the numbers are
+worked out each time you open the page, under the
+[Calling history](#calling-history) settings.
 
 ### Suggestions
 

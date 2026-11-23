@@ -265,6 +265,69 @@ A few honest notes:
 - Even if nothing turns out to be importable, you still get the answer to
   "which of these do I already have?" — that list is worth having on its own.
 
+## Bring in your own spreadsheet
+
+If you keep your dances in a spreadsheet — a title, an author, a formation, a
+column of figures, some notes — you can bring them in without retyping them.
+
+1. In Excel, Numbers, LibreOffice or Google Sheets, save the sheet as a
+   [CSV file](./glossary.md#csv-file): choose **File ▸ Save As** (or
+   **Download**) and pick **CSV UTF-8**.
+2. Open **Settings**, choose **General**, choose **Import…**, and set the source
+   to **Your own spreadsheet (CSV)**. Choosing a `.csv` file with **Import…**
+   switches to it for you.
+3. Choose the file with **Choose a CSV file…**, then **Continue**.
+4. **Map the columns.** The app shows each column with a few of its values and
+   asks what it holds:
+   - Title (needed: **Continue** waits until one column is the title);
+   - Authors, Type, Formation, Progression, Level, Status, Mixer, Tags, Tunes,
+     Meter, Key, Hook, Calling notes or Walkthrough;
+   - **Figures**, either one column with one figure per line (or several
+     separated by `;`), or one column per phrase (**Figures, A1**, **Figures,
+     A2** and so on);
+   - one of your [custom fields](./glossary.md#custom-field), or a **new custom
+     field** of the type you choose, named after the column;
+   - **Ignore**, to leave the column out.
+
+   A column whose first-row name matches a field, in the app's language or in
+   English, is chosen for you; you can change any of them. The app also works
+   out what separates the columns (a comma, or the semicolon Excel uses in
+   Danish, German, French and Dutch) and whether the first row names the
+   columns; change either if it guessed wrong.
+5. Review and commit, as for any import (see
+   [Review before anything changes](#review-before-anything-changes)).
+
+How the values come in:
+
+- **Figures** are read the way the app reads typed figures. A line it can't
+  read comes in as an unrecognized figure with your words, never dropped.
+- **Authors** are matched to the authors you already have, or added.
+  Several in one cell can be separated by commas or "and".
+- **Tags** are separated by commas, matched to your tags by name, and added
+  when new. Your **Import defaults** tags are added too.
+- **Level** is matched to your difficulty levels by name.
+- A value that doesn't fit its field — a formation or level the app doesn't
+  know, or text in a number field — goes into the dance's **calling notes**,
+  with a note on the review row, so nothing is lost.
+- When two columns are set to the same field, the first value that fits fills
+  it and the other goes into the calling notes. A new custom field counts as
+  one of yours with the same name and type, and two new ones with the same
+  name and type are one field. Two columns for the same phrase of **Figures**
+  are both kept, one after the other.
+- A dance from your own spreadsheet records **no source**, just like one you
+  typed in. If you import the same file again, the dances you already have show
+  up as possible matches by title and author, and default to **Skip**.
+
+A spreadsheet the app exported (see
+[Export dances as a spreadsheet](./sharing.md#export-dances-as-a-spreadsheet-csv))
+comes back in with its columns already chosen.
+
+If the file can't be read, the app says why and nothing is imported: it isn't
+saved as UTF-8 (save it again as **CSV UTF-8**), it is too large, it has more
+than 20,000 rows or more than 200 columns, a cell is longer than 65,536
+characters, or a quoted cell never ends. A file with more than 500 rows is
+fine, but the app mentions that reviewing it may take a while.
+
 ## Import a Caller's Compendium file
 
 Dances shared as a **Caller's Compendium** file (the app's own `.json` or
@@ -754,7 +817,9 @@ source you pick:
 
 1. **Choose a source and give it something to read** — pick the source, then add
    a file, paste text, or enter a URL or ID. (Paste a recognized web address and
-   the app selects the matching source for you.)
+   the app selects the matching source for you.) For your own spreadsheet you
+   then **map the columns**, saying what each one holds (see
+   [Bring in your own spreadsheet](#bring-in-your-own-spreadsheet)).
 2. **See the plan** — the app reads the material without changing anything and
    lists every dance it found, with a sense of how much of each dance it could
    turn into structured figures versus keep as plain text, plus any notes about

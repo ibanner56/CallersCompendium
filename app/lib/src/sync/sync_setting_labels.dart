@@ -115,6 +115,7 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'user_figure_shorthands' => l10n.shorthandsUserFigureSyncLabel,
   'show_glossary' => l10n.settingsExperimentalShowGlossaryTitle,
   'show_custom_figures' => l10n.settingsExperimentalShowCustomFiguresTitle,
+  'show_repertoire_dashboard' => l10n.settingsExperimentalShowRepertoireTitle,
   'suggestions_enabled' => l10n.settingsSuggestionsEnabledTitle,
   'suggestion_settings' => l10n.settingsSuggestionsEditorTitle,
   'calling_card_print' => l10n.settingsCallingCardsHeader,

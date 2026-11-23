@@ -137,6 +137,7 @@ final Map<String, DataClassification> settingsClassifications = {
   'capitalize_figures': _preference,
   'show_glossary': _preference,
   'show_custom_figures': _preference,
+  'show_repertoire_dashboard': _preference,
   // Experimental Suggestions (#2343): the toggle, and what the builder's
   // Suggested sort looks for.
   'suggestions_enabled': _preference,

@@ -97,7 +97,7 @@ void main() {
       });
       // Saved searches (#2325) are gated but not yet advertised: a
       // capability is advertised only once the whole feature is in the build,
-      // so this build publishes none and nothing writes one.
+      // so this build publishes none and nothing creates one.
       expect(build.gatedCapabilities, {
         SyncCapabilities.glossaryV1,
         SyncCapabilities.glossaryV2,

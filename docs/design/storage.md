@@ -929,6 +929,20 @@ steps that can still fire are v40 onward.
   rather than drop them. A Caller's Companion re-import keeps a program's
   times, since a `.USR` file has none. Added by the same `from < 42` step,
   after `calendar_event_key`, each only if absent. No data rewritten, no derived rebuild.
+  Also in v42, before it shipped: the calendar import's change tracking
+  (#2354). Adds three nullable `programs` columns: `calendar_event_fingerprint`
+  (`Program.calendarEventFingerprint`, per-field truncated hashes of the
+  event's title, date, first location segment, and start and end times as
+  last imported, `v2:`; for a UTC event the date and times as written, the
+  date marked as UTC, so a reader in another time zone sees no change),
+  `calendar_written_at` (`Program.calendarWrittenAt`, the `updated_at` the
+  import last wrote; a Draft whose `updated_at` still equals it is
+  "untouched") and `calendar_flag` (`Program.calendarFlag`: `cancelled`,
+  `missing` or NULL, a free string decoded leniently so a later value never
+  refuses the program). All three sync, are kept in backups (envelope v3, as
+  for the key), and are stripped from share files; clearing the key clears
+  them. Added by the same step, after the times, each only if absent; no data
+  rewritten.
 
 ## The delete model
 
