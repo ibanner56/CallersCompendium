@@ -37,7 +37,7 @@ String _seedBundle() {
 /// A pseudo-random link of exactly [length] characters, so a code fills a
 /// version (a repeated character would compress nothing but also look like
 /// nothing a scanner sees in a real dance).
-DanceCodeShown _planOfLength(int length) {
+DanceCodeShown _planOfLength(int length, {int maxVersion = 35}) {
   var state = 13579;
   const alphabet =
       'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
@@ -50,7 +50,8 @@ DanceCodeShown _planOfLength(int length) {
         })(),
       ),
   ]);
-  return planDanceLink('$danceLinkPrefix$body') as DanceCodeShown;
+  return planDanceLink('$danceLinkPrefix$body', maxVersion: maxVersion)
+      as DanceCodeShown;
 }
 
 /// The pale floor of the raised brand mark's badge (`FLOOR` in
@@ -215,10 +216,29 @@ void main() {
     expect(seen.text, seed.link);
   });
 
-  testWidgets('the densest code that carries the mark reads back', (
+  testWidgets('the densest code the app shows with the mark reads back', (
     tester,
   ) async {
-    final densest = _planOfLength(DanceCodeLevel.high.byteCapacity);
+    // The shipped cap is version 35, which holds 983 bytes at level H.
+    final densest = _planOfLength(983);
+    expect(densest.withMark, isTrue);
+    expect(densest.version, 35);
+    final seen = await _look(tester, densest);
+    expect(seen.text, densest.link);
+    expect(seen.floorPixels, greaterThan(3000));
+    expect(seen.artPixels, greaterThan(2000));
+  });
+
+  testWidgets('even a version 40 code with the mark reads back in the test', (
+    tester,
+  ) async {
+    // Not a code the app shows (the cap is 35); it keeps the mark's size
+    // honest against the densest code the encoder can make, which is what a
+    // raised cap would meet.
+    final densest = _planOfLength(
+      DanceCodeLevel.high.byteCapacity,
+      maxVersion: 40,
+    );
     expect(densest.withMark, isTrue);
     expect(densest.version, 40);
     final seen = await _look(tester, densest);

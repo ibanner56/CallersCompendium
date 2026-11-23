@@ -150,7 +150,9 @@ wording, saved unchanged, reads as the default line. Imported
   shows every field again in the new form's dialect when the form changes. Some
   surfaces stay on contra's dialect: Settings (the defaults' figure lists and
   their links to a figure's own defaults, the card and matrix-column layouts,
-  and the program templates' dance picker) and import review's name checks.
+  and the program templates' dance picker) and the parts of import review that
+  name a plain shorthand or a term. Import review's check that a shared
+  figure's name is taken follows the figure's own form, as the Glossary's does.
   The dance list's advanced search names a figure of your own in the list's
   dialect, whatever its form. So do the reasons the dance picker gives for a
   suggestion ("overlaps with ..."): `SuggestionReasonLabels` takes the picker's

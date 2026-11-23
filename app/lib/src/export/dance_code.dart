@@ -45,17 +45,21 @@ const int danceLinkVersion = 1;
 const String _danceLinkScheme = 'ccdance://';
 
 /// The largest QR version (1 to 40, 4 modules wider each step) the app will
-/// draw. 40 is the QR maximum, so this adds no restriction yet.
+/// draw: 35, which is 157 by 157 modules.
 ///
-/// PROVISIONAL: the intended value comes from scanning real codes on real
-/// phones, which has not been done. A code near version 40 (177 by 177
-/// modules) is hard to scan from a phone screen. The seed dance already needs
-/// version 31 at level H, so a value below 31 would stop it showing the mark.
-const int kMaxDanceCodeVersion = 40;
+/// Set from the maintainer's scan of real codes on a phone screen: a version
+/// 35 code read, and a version 40 one (177 by 177) was uncertain. 35 is the
+/// largest version known to read, not a measured edge, so versions 36 to 39
+/// may read too; raising the cap needs the same scan. At this cap a level H
+/// code with the mark holds a link of up to 983 bytes, so the seed dance
+/// (version 31 at H) keeps the mark, and a link past 2,303 bytes is
+/// [DanceCodeTooLong] even at level L.
+const int kMaxDanceCodeVersion = 35;
 
 /// The longest link [decodeDanceLink] reads, in characters. A bound on hostile
 /// input, with slack over the longest link a code can hold: the code's payload
-/// is the whole link, and a version 40 code at level L holds 2,953 bytes.
+/// is the whole link, and a code at [kMaxDanceCodeVersion] holds at most 2,303
+/// bytes (level L; a version 40 code would hold 2,953).
 /// [encodeDanceLink] on its own can return a longer link for a large dance;
 /// [planDanceCode] reports such a dance as [DanceCodeTooLong].
 const int kMaxDanceLinkLength = 4096;
