@@ -4,7 +4,7 @@
   "app": {
     "added": [
       "A dance can now carry other titles it goes by, one per line under More details. The dance page shows them under its title, and searching by Title or All fields finds the dance by any of them.",
-      "A dance can now record where its tune is printed in the Barnes books, book and page in one line, such as BIII p. 92, or NiB when it's not in them. It sits with the meter and key, shows on the dance page, and All fields search finds it.",
+      "A dance can now record where its tune is printed in the Barnes books, book and page in one line, such as BIII p. 92, or NiB when it's not in them. It sits with the meter and key, shows on the dance page and its Perform card, and All fields search finds it.",
       "Backups, share files and Device Sync carry both. An older version of the app can't restore a backup that holds them."
     ],
     "data_migrations": [

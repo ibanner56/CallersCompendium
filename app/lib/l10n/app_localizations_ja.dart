@@ -4064,6 +4064,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String danceBarnesValue(String reference) {
+    return 'Barnes：$reference';
+  }
+
+  @override
   String danceMeterValue(String meter) {
     return '拍子：$meter';
   }
