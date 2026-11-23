@@ -386,7 +386,9 @@ A program carries the details of its event:
 - program-level **Band**, **Caller**, and **Dancer level**;
 - **Pay**, an amount and currency under **More details**, shown on the
   program's summary but never in the shared set list, the PDF, or a program
-  file you share;
+  file you share. If you don't track pay, turn off **Show pay** in
+  [Settings › Program › Programs](./settings.md#programs) to hide it in the
+  editor and on the summary; pay already entered is kept;
 - a **Status** — **Draft**, **Finalized**, or **Performed** — shown on the
   Programs list. Saving a change to **Performed** marks every unmarked dance
   in the program performed, except alternates, and that writes calling
