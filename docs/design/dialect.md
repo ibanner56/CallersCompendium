@@ -155,11 +155,14 @@ wording, saved unchanged, reads as the default line. Imported
   figure's name is taken follows the figure's own form, as the Glossary's does.
   The dance list's advanced search names a figure of your own in the list's
   dialect, whatever its form. The reasons the dance picker gives for a
-  suggestion ("Same ... beats as the previous dance") name a column as the
-  program matrix does, through `matrixColumnDialect`, so a reason and its
-  column read alike; the picker has no matrix to say which dances use a
-  figure with no prefix, so that figure reads in the form of the program's
-  dances when they are all of one form, and in contra's otherwise. Program-wide
+  suggestion ("Same ... beats as the previous dance") name a column through the
+  same rule as the program matrix, `matrixColumnDialect`: a figure of your own,
+  and an `ecd_` or `sq_` figure, read in the dialect of their own form, as the
+  column does. The picker has no matrix to say which dances use a figure with
+  no prefix, so that figure reads in the form of the program's dances when they
+  are all of one form, and in contra's otherwise; in a program that mixes
+  forms, its column may still read in the form of the dances using it where the
+  reason reads in contra's. Program-wide
   text and the switch screen's names for the app's figure, which is always one
   of contra's, read in contra's dialect. Plain shorthands are matched against contra's figures only, and read
   in contra's dialect.

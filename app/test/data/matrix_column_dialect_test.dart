@@ -117,6 +117,47 @@ void main() {
     });
   });
 
+  group('every kind of figure column is read by the same rule', () {
+    test('a split column and an unknown one, prefixed or not', () {
+      const split = MatrixColumn(
+        moveId: 'swing:left',
+        kind: MatrixColumnKind.split,
+        baseMoveId: 'swing',
+        variant: 'left',
+      );
+      const unknownEnglish = MatrixColumn(
+        moveId: 'ecd_unheard_of',
+        kind: MatrixColumnKind.unknown,
+      );
+      const unknownPlain = MatrixColumn(
+        moveId: 'unheard_of',
+        kind: MatrixColumnKind.unknown,
+      );
+      expect(read(split, usedBy: {DanceForm.ecd}), english);
+      expect(read(unknownEnglish, usedBy: {DanceForm.contra}), english);
+      expect(read(unknownPlain, usedBy: {DanceForm.square}), square);
+      expect(read(unknownPlain), fallback);
+    });
+
+    test('a dance that is not loaded has no form, alone or among others', () {
+      expect(read(known('swing'), usedBy: {null}), fallback);
+      expect(read(known('swing'), usedBy: {DanceForm.ecd, null}), fallback);
+    });
+
+    test('a column of your own that is not a figure key reads in the '
+        'fallback', () {
+      const notKey = MatrixColumn(
+        moveId: 'not-a-figure-key',
+        kind: MatrixColumnKind.userFigure,
+        label: 'mine',
+      );
+      expect(
+        read(notKey, figures: {'not-a-figure-key': DanceForm.ecd}),
+        fallback,
+      );
+    });
+  });
+
   test('a custom column reads in the fallback', () {
     expect(
       read(

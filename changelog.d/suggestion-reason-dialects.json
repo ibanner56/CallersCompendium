@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "With Suggestions on, the reason a dance is suggested (\"Same swing beats as the previous dance\") names a figure in the same dialect as its column in the program matrix: a figure of your own, or an English or square figure, in the dialect of its own type, rather than always your contra dialect. Nothing changes while your dialects are the same."
+      "With Suggestions on, the reason a dance is suggested (\"Same swing beats as the previous dance\") names a figure of your own, or an English or square figure, in the dialect of its own type, as its column in the program matrix does, rather than always in your contra dialect. A figure of the app's own that has no type prefix reads in the type of the program's dances when they are all one type. Nothing changes while your dialects are the same."
     ]
   }
 }
