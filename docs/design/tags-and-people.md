@@ -704,8 +704,8 @@ should drop the name.
 
 - **Where.** The key is defined in the app (`kDefaultImportTagNamesKey` in `display_defaults.dart`), so
   the rewrite runs in the app's controller, inside the same
-  `repos.transaction` as the core operation, as `_undoBatchTag` does
-  (`dance_list_screen.dart:1520-1538`). Moving the key into core is the
+  `repos.transaction` as the core operation, as `_undoBatchTag` in
+  `dance_list_screen.dart` does. Moving the key into core is the
   rejected alternative: the setting would gain nothing, and two packages
   would gain a coupling.
 - **Delete drops the name.** Today a name with no live tag is ignored at

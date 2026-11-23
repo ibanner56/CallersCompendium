@@ -56,6 +56,15 @@ import '../taxonomy/user_figure_use.dart';
 /// sharing flags.
 enum ArchiveSerializationMode { share, backup }
 
+/// Whether [field] and its values leave the device in [mode]: always in a
+/// backup, and in a share only when the field's **Include in sharing** is on
+/// ([CustomFieldDef.shareable], #780).
+///
+/// The one rule for custom fields in every export: the archive encoder and the
+/// dances CSV (#2332) both ask it, so they cannot keep two lists.
+bool customFieldLeavesIn(CustomFieldDef field, ArchiveSerializationMode mode) =>
+    mode == ArchiveSerializationMode.backup || field.shareable;
+
 /// Serializes [archive] to a canonical JSON string using [mode].
 String encodeArchive(
   CompendiumArchive archive, {
@@ -78,7 +87,7 @@ Map<String, Object?> archiveToJson(
   // for both the field-def list and each dance's value list.
   final excludedFieldIds = {
     for (final f in archive.customFields)
-      if (mode == ArchiveSerializationMode.share && !f.shareable) f.id,
+      if (!customFieldLeavesIn(f, mode)) f.id,
   };
   // Share mode never writes `deletedTags`, so they must not raise the stamp.
   final requiredVersion = requiredSchemaVersion(
@@ -127,7 +136,7 @@ Map<String, Object?> archiveToJson(
       ],
     'customFields': [
       for (final f in _sortedById(archive.customFields, (f) => f.id))
-        if (mode == ArchiveSerializationMode.backup || f.shareable)
+        if (customFieldLeavesIn(f, mode))
           archiveCustomFieldDefToJson(
             f,
             includeShareable: mode == ArchiveSerializationMode.backup,

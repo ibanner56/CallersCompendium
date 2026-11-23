@@ -729,6 +729,15 @@
   "@userFigureSwitchConfirmDefaults": {
     "description": "Added to the dialog confirming a switch to the app's figure (#1023) when the user's default figure lists in Settings use their figure."
   },
+  "userFigureSwitchConfirmKeepsWording": "Any use of a group of dancers that {name} doesn't have keeps its wording instead.",
+  "@userFigureSwitchConfirmKeepsWording": {
+    "description": "Added to the dialog confirming a switch to the app's figure {name} (#2294) when the user's figure is for English country dance, whose groups of dancers (the ends, the top) contra's figures lack: a dance that uses one of them keeps the wording it has instead of switching.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "userFigureSwitchConfirmShorthands": "{count, plural, =1{Its shorthand will insert {name}.} other{Its {count} shorthands will insert {name}.}}",
   "@userFigureSwitchConfirmShorthands": {
     "description": "Added to the dialog confirming a switch to the app's figure {name} (#1023) when the user has shorthands for their figure.",
@@ -11623,6 +11632,74 @@
       }
     }
   },
+  "danceEditorPhraseRowsHelp": "Each row is a run of equal phrases: how many there are, the bars in each, and the beats in a bar. The phrase structure below changes with the rows.",
+  "@danceEditorPhraseRowsHelp": {
+    "description": "Help under the heading of the phrase-structure rows in a contra or square dance's editor. Each row is one part of the phrase structure text. The text field below the rows shows the same structure. Also used for the default phrase structure in Settings."
+  },
+  "danceEditorPhraseRowsPhrasesLabel": "Phrases",
+  "@danceEditorPhraseRowsPhrasesLabel": {
+    "description": "Label of the number field for how many equal phrases one row of a contra or square dance's phrase structure has. Also used for the default phrase structure in Settings."
+  },
+  "danceEditorPhraseRowsBarsLabel": "Bars per phrase",
+  "@danceEditorPhraseRowsBarsLabel": {
+    "description": "Label of the number field for how many bars of music each phrase of one row of a contra or square dance's phrase structure has. Also used for the default phrase structure in Settings."
+  },
+  "danceEditorPhraseRowsBeatsLabel": "Beats per bar",
+  "@danceEditorPhraseRowsBeatsLabel": {
+    "description": "Label of the number field for how many beats are in a bar in one row of a contra or square dance's phrase structure, such as 2 for a reel or 3 for a slip jig. Also used for the default phrase structure in Settings."
+  },
+  "danceEditorPhraseRowsRange": "1 to {max}",
+  "@danceEditorPhraseRowsRange": {
+    "description": "Short error under a number field of the phrase-structure rows in a contra or square dance when it is empty, zero or too large: the numbers it may hold. Also used for the default phrase structure in Settings.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "example": "1000"
+      }
+    }
+  },
+  "danceEditorPhraseRowsAdd": "Add row",
+  "@danceEditorPhraseRowsAdd": {
+    "description": "Button that adds a row to the phrase-structure rows of a contra or square dance. Also used for the default phrase structure in Settings."
+  },
+  "danceEditorPhraseRowsRemove": "Remove row {number}",
+  "@danceEditorPhraseRowsRemove": {
+    "description": "Tooltip of the button that removes one row from the phrase-structure rows of a contra or square dance. The number counts the rows from 1. Also used for the default phrase structure in Settings.",
+    "placeholders": {
+      "number": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "danceEditorPhraseRowsInvalid": "Give each field a whole number from 1 to {max}, in a structure that is not too long. Until then the last valid phrase structure is kept.",
+  "@danceEditorPhraseRowsInvalid": {
+    "description": "Error under the phrase-structure rows of a contra or square dance when a number is empty, zero or above {max}, or the structure is too long. The phrase structure is kept as it was until it is fixed, and anything that saves it saves that kept structure. Also used for the default phrase structure in Settings.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "example": "1000"
+      }
+    }
+  },
+  "danceEditorPhraseRowsSummary": "{labels} · {beats, plural, =1{1 beat} other{{beats} beats}}",
+  "@danceEditorPhraseRowsSummary": {
+    "description": "One line under the phrase-structure rows of a contra or square dance: the labels the phrases get, such as A1 A2 B1 B2 (a long list ends with an ellipsis), then the beats in all. The labels are music-phrase labels and stay as written. Also used for the default phrase structure in Settings.",
+    "placeholders": {
+      "labels": {
+        "type": "String",
+        "example": "A1 A2 B1 B2"
+      },
+      "beats": {
+        "type": "int",
+        "example": "64"
+      }
+    }
+  },
+  "danceEditorPhraseRowsDisabledNote": "These rows show the last valid phrase structure. Fix the phrase structure below to edit them again.",
+  "@danceEditorPhraseRowsDisabledNote": {
+    "description": "Note under the phrase-structure rows of a contra or square dance while the phrase structure text below them is not valid, or holds phrase names that only an English dance keeps. The rows are disabled until it is. Also used for the default phrase structure in Settings."
+  },
   "danceEditorFiguresSection": "Figures",
   "@danceEditorFiguresSection": {
     "description": "Section heading for the editable figure list in the dance editor."
@@ -12167,6 +12244,20 @@
       },
       "pickerForm": {
         "type": "String"
+      }
+    }
+  },
+  "validationFigureCrossesPhrase": "Figure {position} runs past the end of {label}. In a square dance, the calls of each phrase should fill it exactly.",
+  "@validationFigureCrossesPhrase": {
+    "description": "Editor warning on a square dance for a figure whose beats run past the end of a phrase, so that phrase's calls do not fill it exactly (traditional squares are phrased call by call). {position} is the figure's number in the dance. {label} is the phrase's name from the dance's phrase structure, such as 'A1'.",
+    "placeholders": {
+      "position": {
+        "type": "int",
+        "example": "3"
+      },
+      "label": {
+        "type": "String",
+        "example": "A1"
       }
     }
   },
@@ -17644,5 +17735,141 @@
   "calendarPullNowSubtitle": "Read the calendar and choose events to add as draft programs.",
   "@calendarPullNowSubtitle": {
     "description": "Subtitle of the Pull now settings item."
+  },
+  "collectionExportCsv": "Export as CSV",
+  "@collectionExportCsv": {
+    "description": "Collection selection-mode overflow menu item that exports the selected dances as a CSV spreadsheet file."
+  },
+  "settingsExportDancesCsvTitle": "Export dances as a spreadsheet",
+  "@settingsExportDancesCsvTitle": {
+    "description": "Title of the Settings > General > Backup & restore row that exports every dance as a CSV spreadsheet file."
+  },
+  "settingsExportDancesCsvSubtitle": "Every dance in your collection, as a CSV file for Excel, Numbers or Google Sheets. It follows the sharing rules, plus your star ratings. It is not a backup and can't be restored.",
+  "@settingsExportDancesCsvSubtitle": {
+    "description": "Subtitle of the Settings row that exports every dance as a CSV spreadsheet. 'Sharing rules' are what the app leaves out of shared files (for example an author's email)."
+  },
+  "settingsExportDancesCsvAction": "Export",
+  "@settingsExportDancesCsvAction": {
+    "description": "Button label on the Settings row that exports every dance as a CSV spreadsheet."
+  },
+  "exportCsvDialogTitle": "Export a spreadsheet (CSV)",
+  "@exportCsvDialogTitle": {
+    "description": "Title of the dialog that asks how to deliver an exported CSV spreadsheet file."
+  },
+  "exportCsvDialogMessage": "Save the file, or share it with another app. It opens in Excel, Numbers, LibreOffice or Google Sheets.",
+  "@exportCsvDialogMessage": {
+    "description": "Message of the dialog that asks how to deliver an exported CSV spreadsheet file."
+  },
+  "exportCsvSavedGeneric": "Spreadsheet saved.",
+  "@exportCsvSavedGeneric": {
+    "description": "Snackbar confirming a CSV spreadsheet was saved when the platform does not report a file name."
+  },
+  "exportCsvSaveError": "Couldn't save this spreadsheet. Try again.",
+  "@exportCsvSaveError": {
+    "description": "Snackbar when saving an exported CSV spreadsheet fails."
+  },
+  "exportCsvShareError": "Couldn't share this spreadsheet. Try again.",
+  "@exportCsvShareError": {
+    "description": "Snackbar when sharing an exported CSV spreadsheet fails."
+  },
+  "exportCsvError": "Couldn't make this spreadsheet. Try again.",
+  "@exportCsvError": {
+    "description": "Snackbar when reading the data for, or building, a CSV spreadsheet export fails."
+  },
+  "csvDancesFileStem": "dances",
+  "@csvDancesFileStem": {
+    "description": "Start of the file name of an exported dances CSV spreadsheet, before the date (for example dances_2026-11-23.csv). Lower case; a single word if possible."
+  },
+  "csvColumnTitle": "Title",
+  "@csvColumnTitle": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the dance title."
+  },
+  "csvColumnAuthors": "Authors",
+  "@csvColumnAuthors": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the dance's authors (choreographers)."
+  },
+  "csvColumnInterpreters": "Interpreted by",
+  "@csvColumnInterpreters": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the people who interpreted (reconstructed) a historical dance."
+  },
+  "csvColumnForm": "Type",
+  "@csvColumnForm": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the dance type, such as contra or English country. Matches the dance editor's Type field."
+  },
+  "csvColumnFormation": "Formation",
+  "@csvColumnFormation": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the dance formation."
+  },
+  "csvColumnProgression": "Progression",
+  "@csvColumnProgression": {
+    "description": "Column heading in an exported dances CSV spreadsheet: how the dance progresses (single, double, and so on)."
+  },
+  "csvColumnLevel": "Level",
+  "@csvColumnLevel": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the difficulty level."
+  },
+  "csvColumnMixedLevel": "Mixed level",
+  "@csvColumnMixedLevel": {
+    "description": "Column heading in an exported dances CSV spreadsheet: whether the dance spans the difficulty scale (Yes or No)."
+  },
+  "csvColumnMixer": "Mixer",
+  "@csvColumnMixer": {
+    "description": "Column heading in an exported dances CSV spreadsheet: whether dancers change partners each time through (Yes or No)."
+  },
+  "csvColumnStatus": "Status",
+  "@csvColumnStatus": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the dance's status, such as active or retired."
+  },
+  "csvColumnRating": "Rating",
+  "@csvColumnRating": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the star rating, 1 to 5, empty when unrated."
+  },
+  "csvColumnTags": "Tags",
+  "@csvColumnTags": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the dance's tags."
+  },
+  "csvColumnTunes": "Tunes",
+  "@csvColumnTunes": {
+    "description": "Column heading in an exported dances CSV spreadsheet: suggested tunes."
+  },
+  "csvColumnMeter": "Meter",
+  "@csvColumnMeter": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the musical meter, such as 6/8."
+  },
+  "csvColumnKey": "Key",
+  "@csvColumnKey": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the musical key."
+  },
+  "csvColumnSources": "Published sources",
+  "@csvColumnSources": {
+    "description": "Column heading in an exported dances CSV spreadsheet: books or collections the dance is published in, with page and number."
+  },
+  "csvColumnHook": "Hook",
+  "@csvColumnHook": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the one-line reason to call the dance."
+  },
+  "csvColumnCallingNotes": "Calling notes",
+  "@csvColumnCallingNotes": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the caller's notes."
+  },
+  "csvColumnWalkthrough": "Walkthrough",
+  "@csvColumnWalkthrough": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the step-by-step walkthrough."
+  },
+  "csvColumnFigures": "Figures",
+  "@csvColumnFigures": {
+    "description": "Column heading in an exported dances CSV spreadsheet: the dance's figures, one per line."
+  },
+  "csvColumnComposed": "Composed",
+  "@csvColumnComposed": {
+    "description": "Column heading in an exported dances CSV spreadsheet: when the dance was composed, as a year or a date."
+  },
+  "csvColumnInterpreted": "Interpreted in",
+  "@csvColumnInterpreted": {
+    "description": "Column heading in an exported dances CSV spreadsheet: when a historical dance was interpreted (reconstructed), as a year or a date."
+  },
+  "csvColumnBarnes": "Barnes reference",
+  "@csvColumnBarnes": {
+    "description": "Column heading in an exported dances CSV spreadsheet: where an English country dance appears in the Barnes books."
   }
 }

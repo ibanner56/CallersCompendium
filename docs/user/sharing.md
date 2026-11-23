@@ -343,6 +343,45 @@ one when you are:
 Either file imports back into the app the same way, so nothing is lost by
 choosing one over the other.
 
+## Export dances as a spreadsheet (CSV)
+
+To get your dances into Excel, Numbers, LibreOffice or Google Sheets, export
+them as a [CSV file](./glossary.md#csv-file): a plain table with one row per
+dance.
+
+- **Some dances:** in the Collection, select them (see
+  [Change many dances at once](./collection.md#change-many-dances-at-once)),
+  then choose **More batch actions** ▸ **Export as CSV**. It exports exactly
+  the dances you selected, including any the current search hides.
+- **Every dance:** **Settings ▸ General ▸ Backup & restore ▸ Export dances as
+  a spreadsheet**.
+
+Then choose **Save** or **Share**, or **Cancel** to export nothing. On Linux
+the second button reads **Save as…** instead of **Share** and saves the file
+through the system dialog, because there is no file share sheet to open.
+
+Each row holds the dance's title, authors and when it was composed, who
+interpreted it and when, type, formation, progression, level, whether it is a
+mixed-level dance and a mixer, status, your star **rating** (empty when
+unrated), tags, tunes, meter, key, its Barnes reference (English dances),
+published sources, hook, calling notes, walkthrough and figures, then one
+column for each custom field with **Include in sharing** on. Dates are written
+as a year, year-month or year-month-day, as precisely as you know them (for
+example `1951`, `1951-03` or `1951-03-14`). The figures are in one cell, one
+per line with their phrase labels, worded in your active
+[dialect](./dialects.md) exactly as the dance's text export words them.
+
+The file is the same wherever you are: the columns are always separated by
+commas, and the text is UTF-8, so accented and Japanese text shows correctly.
+The column headings are in the app's language. A title or note that starts
+like a spreadsheet formula (with `=`, `+`, `-` or `@`) gets an apostrophe in
+front, so the spreadsheet shows it as text instead of running it.
+
+A CSV is a file you might send to anyone, so it follows the same privacy rules
+as a shared dance, with one exception: **it includes your star ratings**. See
+[What stays private](#what-stays-private). It is not a backup, and the app
+cannot restore from it.
+
 ## Put programs in your calendar
 
 A calendar file (`.ics`) puts your gigs in the calendar app you already use, so
@@ -457,8 +496,9 @@ convenience and does not narrow the export — every move column prints.
 
 ## What stays private
 
-Exports are a privacy boundary, and the app treats them as one. Some things never
-leave, and one thing asks you first.
+Exports are a privacy boundary, and the app treats them as one. Some things are
+left out of everything you share, with the one exception noted below, and one
+thing asks you first.
 
 ### Never included
 
@@ -469,8 +509,11 @@ leave, and one thing asks you first.
 
 - **Your pay, Perform dialect, archived state and star ratings.** A program
   file leaves out the program's **Pay**, its **Perform dialect** and whether you
-  archived it, and every share file or code leaves out your star rating of a dance. They stay on your devices, still move with
-  Device Sync, and are kept in a [backup](./backup-portability.md).
+  archived it, and every share file or code leaves out your star rating of a
+  dance. They stay on your devices, still move with Device Sync, and are kept
+  in a [backup](./backup-portability.md). The one exception is the
+  [dances spreadsheet (CSV)](#export-dances-as-a-spreadsheet-csv), which
+  includes your star ratings.
 
 - **Your notes on your own figures.** A shared file or code carries each of
   [your own new figures](./authoring.md#your-own-figures) its dances use, but
@@ -539,10 +582,10 @@ They are different tools for different jobs:
 
 | | Share / export | [Backup](./backup-portability.md) |
 |---|---|---|
-| **Covers** | One dance, or one program | Everything: dances, programs, venues, authors, dialects, themes, custom fields, and settings |
+| **Covers** | One dance, one program, or the dances you choose as a spreadsheet | Everything: dances, programs, venues, authors, dialects, themes, custom fields, and settings |
 | **Meant for** | Handing to another person | Keeping safe, or moving to your own new device |
-| **Privacy** | Private contact details stripped or opt-in; your pay, dialect and star ratings left out | Complete — it is your own data, unredacted |
-| **Where** | The **Export** menu on a dance or program | **Settings ▸ General ▸ Export a backup** |
+| **Privacy** | Private contact details stripped or opt-in; your pay, dialect and star ratings left out (the dances spreadsheet keeps the ratings) | Complete — it is your own data, unredacted |
+| **Where** | The **Export** menu on a dance or program; **Export as CSV** for selected dances | **Settings ▸ General ▸ Export a backup** |
 
 The **Include in sharing** setting on a custom field applies to share/export
 files sent to other people. Your own backup remains complete, including fields

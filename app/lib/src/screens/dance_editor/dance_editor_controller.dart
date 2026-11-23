@@ -1217,7 +1217,12 @@ class DanceEditorController extends ChangeNotifier {
       _phraseStructure = PhraseStructure.parse(phraseController.text);
       final issues = <ValidationIssue>[];
       final figures = _figures;
-      deriveSections(figures, _phraseStructure, issues: issues);
+      deriveSections(
+        figures,
+        _phraseStructure,
+        issues: issues,
+        checkPhraseFill: _form == DanceForm.square,
+      );
       for (final (index, figure) in figures.indexed) {
         _flagSequenceSpans(figure, index + 1, issues);
       }
@@ -2654,7 +2659,8 @@ class DanceEditorController extends ChangeNotifier {
     return perBar.stated ? perBar.beatsPerBar : null;
   }
 
-  /// Sets the phrase structure text, as the named phrases write it. A
+  /// Sets the phrase structure text, as the named phrases (English dances) or
+  /// the phrase rows (other forms) write it. A
   /// [typed] change (a bar count, or the meter) is debounced into one undo
   /// step with the typing around it; any other is its own undo step.
   void setPhraseStructureText(String raw, {bool typed = true}) {

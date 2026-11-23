@@ -359,7 +359,12 @@ class Dance {
     final issues = <ValidationIssue>[];
     switch (figuresSource) {
       case DecodedFigures(:final figures):
-        deriveSections(figures, phraseStructure, issues: issues);
+        deriveSections(
+          figures,
+          phraseStructure,
+          issues: issues,
+          checkPhraseFill: form == DanceForm.square,
+        );
       // Nothing to derive, and deliberately no issue raised: `validate` reports
       // warnings about content the user can act on in the editor, and an
       // undecodable transcription is not that. Telling the user about it is its

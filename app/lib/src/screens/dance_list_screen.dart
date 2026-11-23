@@ -77,7 +77,9 @@ import 'dance_detail_screen.dart';
 import 'dance_editor_screen.dart';
 import 'dance_reimport_flow.dart';
 import 'published_collection_navigation.dart';
+import '../export/csv_export.dart';
 import '../widgets/adaptive_fab.dart';
+import '../widgets/dances_csv_export_action.dart';
 
 /// Collection screen: browse and search the dance library
 /// (`docs/design/ux.md` §1). A unified full-text search bar, a one-tap facet
@@ -122,6 +124,7 @@ class DanceListScreen extends StatefulWidget {
     this.selectedOnlineId,
     this.callersBoxOnline,
     this.contraDbOnline,
+    this.csvExportDelivery = const CsvExportDelivery(),
   });
 
   /// Called with the tapped dance's id when the split-pane shell needs to
@@ -164,6 +167,9 @@ class DanceListScreen extends StatefulWidget {
   /// The ContraDB online search + direct-import service. Injected in tests with
   /// a seam-backed instance; defaults to a network-backed [ContraDbOnline].
   final ContraDbOnline? contraDbOnline;
+
+  /// Delivers the selection's **Export as CSV** file (#2332); a test seam.
+  final CsvExportDelivery csvExportDelivery;
 
   @override
   State<DanceListScreen> createState() => _DanceListScreenState();
@@ -216,6 +222,7 @@ enum _BatchMoreAction {
   addTunes,
   clearTunes,
   editCustomField,
+  exportCsv,
   delete,
 }
 
@@ -1920,6 +1927,19 @@ class _DanceListScreenState extends State<DanceListScreen>
     );
   }
 
+  /// Exports the selected dances as a CSV spreadsheet (#2332): exactly the
+  /// selection, including dances the current search hides. Selection mode
+  /// stays open, since nothing changed.
+  Future<void> _batchExportCsv() {
+    if (_selection.isEmpty) return Future.value();
+    return exportDancesCsv(
+      context,
+      danceIds: _selection.snapshot(),
+      delivery: widget.csvExportDelivery,
+      source: 'dance_list_screen._batchExportCsv',
+    );
+  }
+
   /// Sets the star rating on the selected dances via the batched,
   /// single-transaction [DanceRepository.setRatingForMany] (parallel to
   /// [_batchSetLevel]). Captures prior per-dance ratings for Undo.
@@ -2731,6 +2751,8 @@ class _DanceListScreenState extends State<DanceListScreen>
                 _batchClearTunes();
               case _BatchMoreAction.editCustomField:
                 _batchCustomField();
+              case _BatchMoreAction.exportCsv:
+                _batchExportCsv();
               case _BatchMoreAction.delete:
                 _batchDelete();
             }
@@ -2777,6 +2799,15 @@ class _DanceListScreenState extends State<DanceListScreen>
               value: _BatchMoreAction.editCustomField,
               enabled: canAct,
               child: Text(l10n.collectionEditCustomField),
+            ),
+            // Export changes nothing, so it has its own group after the
+            // edits (`bulk-selection.md`, "Selection bar layout").
+            const PopupMenuDivider(),
+            PopupMenuItem(
+              key: const ValueKey('batch-export-csv'),
+              value: _BatchMoreAction.exportCsv,
+              enabled: canAct,
+              child: Text(l10n.collectionExportCsv),
             ),
             // Delete is last, in its own group and the error colour, so it
             // never sits beside an edit (`bulk-selection.md`, Q4 "Delete").
