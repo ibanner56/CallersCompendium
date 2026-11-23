@@ -49,12 +49,15 @@ updated**, or **Event date**, and the arrow beside it to flip the direction. To 
 direction the list opens with, see
 [Settings ▸ Defaults](./settings.md#display-defaults).
 
-- **Start one** with **New program**. If you have set up a **Starting program**
-  template in [Settings ▸ Defaults](./settings.md#program-defaults), the new
-  program begins with the template's dances and notes in order (any dance you
-  have since deleted is left out). The template applies only here — not to
-  imported or duplicated programs, or to **Create a new program with this
-  dance**.
+- **Start one** with **New program**. If you have set up [program
+  templates](./settings.md#program-defaults) in Settings ▸ Defaults, the new
+  program begins with a template's dances and notes in order (any dance you
+  have since deleted is left out). With two or more templates, **New program**
+  first asks which one to start from — your **Default template** is listed
+  first and marked — or **Blank program**; with one template or none it opens
+  the builder straight away, using the Default template. Templates apply only
+  here — not to imported or duplicated programs, programs someone shared with
+  you, or **Create a new program with this dance**.
 - **Import one** from the **Import program** menu (the import icon in the
   **Programs** toolbar), which offers two sources — **From title list** (paste a
   set list you already have) and **From ContraDB** (pull an event straight from
