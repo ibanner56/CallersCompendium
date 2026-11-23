@@ -352,10 +352,19 @@ final Map<String, DataClassification> settingsClassifications = {
     subject: DataSubject.appUser,
     egress: EgressClass.shareable,
     note:
-        'User-authored semantic slot template for manually created programs. '
-        'It contains selected dance references and caller notes, so it travels '
-        'with the user preference in local backups.',
+        'Legacy user-authored semantic slot template for manually created '
+        'programs (the Starting program). No longer written: it is shown as '
+        'the first program template and copied into one at the user\'s first '
+        'change to their templates (#2337), and left in place so a device on '
+        'an older build keeps it. It contains selected dance '
+        'references and caller notes, so it travels with the user preference '
+        'in local backups.',
   ),
+  // Program templates (#2337): the templates' order (a list of template ids)
+  // and the default template's id (or `blank`). The templates themselves are
+  // the `program_template:` prefix below.
+  'program_template_order': _preference,
+  'program_template_default': _preference,
   'auto_size_perform_cards': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.appUser,
@@ -576,6 +585,18 @@ final Map<String, DataClassification> settingsPrefixClassifications = {
         'Transient program-editor autosave draft, keyed per program '
         '(program_editor_draft:<id>, or program_editor_draft:new:<editor id> '
         'for a program not yet saved). Same rationale as editor_draft:.',
+  ),
+  // One program template per key (#2337), keyed by the template's id.
+  'program_template:': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'A user-authored program template (program_template:<id>): its name '
+        'and an ordered list of slots — dance references, caller notes, '
+        'breaks and free text, which can contain whatever the caller types. '
+        'The user\'s own planning data; it syncs to their devices and travels '
+        'in local backups, like the Starting program it replaces.',
   ),
   // Each sync device's capability record (#709): which sync capabilities its
   // build understands, so a device holds back data a peer could not read.
