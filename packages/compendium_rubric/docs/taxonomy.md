@@ -192,7 +192,7 @@ Precondition/error kinds accumulated as figures are defined:
 | `anchorMismatch` | a **descriptive anchor** contradicts the arrangement the figure produced — `form_long_waves` naming a `whom`/`hand` hold the wave it forms cannot offer. An anchor states a fact the figure does not need in order to run, so the figure runs unchanged and only the description is at fault. Anchors are still worth carrying: they **disambiguate** (a record naming the hold but not the pair has said everything needed) and they **corroborate** (a claim about the arrangement can be checked rather than trusted). **State-dependent**, raised by the operation and stamped by the engine. *(User-ruled.)* |
 | `unrecognizedFormation` | a record declares a starting formation shape this compiler does not model (`"other"` is already in the corpus). Read as **Duple Improper** rather than refused: the shape vocabulary is owned upstream and grows, and the declared type does less work than its name suggests — it fixes the starting matrix and never tracks where the dancers stand (`architecture.md` §3.2), so a dance whose own opening figures establish its arrangement is fully determined regardless. **Raised at parse time**, not by any figure, and carried on the `Dance` so the compile it belongs to reports it — the first diagnostic that is not an observation about a formation at all. *(User-ruled.)* |
 | `assumedProgression` | an **import bridge** (the Caller's Box) assumed which figure progresses, because the source has nowhere to say. Raised whenever the assumption is made, including when the dance compiles. *(User-ruled.)* |
-| `heldProgressionUnfinished` | a **Becket** progression was held because no couple stood whole at an end when its figure finished, and its change-over never ran: no later unflagged figure brought a couple to an end, or a later flagged figure overtook it (`fundamentals.md` §10.2.1). Raised by the engine after the last figure. *(User-ruled hold, 2026-11-23; the warning is the agent's call.)* |
+| `heldProgressionUnfinished` | a progression was held because no couple stood whole at an end when its figure finished, and its change-over never ran: no later unflagged figure brought a couple to an end, or a later flagged figure overtook it (`fundamentals.md` §10.2.1). Raised by the engine after the last figure. *(User-ruled hold, 2026-11-23, in every formation; the warning is the agent's call.)* |
 
 ---
 
@@ -518,7 +518,7 @@ exactly as it would be on a line of its own. Implemented in `lib/src/ops/figures
   together and is danced in order, like a modifier. Having no main figure, it is its own
   progression if any child is *(agent's call)*.
 - **A flagged modifier is progressed as one figure** (known limit): the change-over runs after
-  its last modifier, and a Becket hold is judged on the state the modifiers leave. Splitting the
+  its last modifier, and whether to hold is judged on the state the modifiers leave. Splitting the
   flag's effects at the main figure would need the engine to see inside the container. The two
   readings differ most when a modifier reaches another hands four, which no importer writes.
 - **Import checks look inside containers.** A Caller's Box promenade with no `where` inside a

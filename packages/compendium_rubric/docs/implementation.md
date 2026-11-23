@@ -67,7 +67,7 @@ lib/
       sizing.dart               computeHandsFour
       success_criterion.dart    the oracle
       end_normalization.dart    §10.2 progression end behaviour
-      figure_fold.dart          FigureFold — threads figures, holds Becket progressions
+      figure_fold.dart          FigureFold — threads figures, holds progressions with nobody at an end
       compile_result.dart       sealed Compiled / Mismatch / CompileError
       result.dart               Result<T, E> — Ok / Err
     io/
@@ -153,12 +153,11 @@ behind §3.5's equality rule.
 1. seed warnings   <- dance.warnings (parse-time) + _oneSidedHallWarnings (dance-level pre-scan)
 2. refuse          <- _unperformedProgression: claims a progression, flags none
 3. size + build    <- dance.requiredHandsFour, then dance.instantiate()
-4. fold            <- FigureFold(holdsProgressions: Becket); for each figure:
+4. fold            <- FigureFold(); for each figure:
                         a. figure.operation.lint(state)  -> warnings, stamped with opIndex
                         b. fold.step(figure, state, index:)
-                             Becket: figure.applyHolding(...) -- a flagged figure with no whole
+                             figure.applyHolding(...) -- a flagged figure with no whole
                                couple at either end is HELD (no change-over yet)
-                             else:   figure.apply(...)
                              then, if this figure is flagged and ran its own change-over:
                                any held progression is overtaken (given up, reported)
                              else, if a progression is held:
@@ -398,7 +397,7 @@ index.
 | `anchorMismatch` | figure lint | a descriptive param contradicts the derived arrangement |
 | `unrecognizedFormation` | **the parser** | unknown shape; falls back to `dupleImproper` |
 | `assumedProgression` | **an import bridge** | the source flagged no progression, so one was assumed (§10.1) |
-| `heldProgressionUnfinished` | engine (`FigureFold`) | a held Becket progression's change-over never ran |
+| `heldProgressionUnfinished` | engine (`FigureFold`) | a held progression's change-over never ran |
 
 Three rules about warnings:
 

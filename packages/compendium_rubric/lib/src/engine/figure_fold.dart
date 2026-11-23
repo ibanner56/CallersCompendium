@@ -15,20 +15,19 @@ import 'result.dart';
 /// **Holding** (`docs/fundamentals.md` §10.2.1, user-ruled 2026-11-23). A
 /// progression-flagged figure that leaves no whole couple at either end has
 /// nobody to step out yet: a Becket dance progressing on a diagonal `chain` or
-/// a `pass_through` along the set is the type case. Its change-over is held
+/// a `pass_through` along the set is the type case in Becket; in Duple Improper
+/// it is a circle or swing that leaves partners split across rows. Its change-over is held
 /// ([OperationInvocation.applyHolding]) and runs after the first later figure
 /// that brings a whole couple to an end. The progression still counts at the
 /// flagged figure, so the distance sets measure from it.
 ///
-/// Holding applies to **Becket** only ([holdsProgressions]). The ruling was
-/// made about Becket progressions; in Duple Improper a flag that finds nobody
-/// at an end is still spent where it stands, so a misplaced flag there is not
-/// quietly moved to a later figure. *(Agent's call, 2026-11-23.)*
+/// Holding applies in **every formation** *(user-ruled 2026-11-23)*: the test
+/// is only whether a whole couple stands at an end, which does not depend on
+/// the formation. The cost is that a flag placed early, sometimes several
+/// figures early, can be carried to a later figure that finishes it rather than
+/// failing (`docs/fundamentals.md` §10.2.1 has the measurement).
 class FigureFold {
-  FigureFold({required this.holdsProgressions});
-
-  /// Whether a progression with nobody at an end is held rather than spent.
-  final bool holdsProgressions;
+  FigureFold();
 
   /// Progressions performed so far, counted at the figures that were flagged.
   int get progressions => _progressions;
@@ -53,11 +52,7 @@ class FigureFold {
     Formation state, {
     required int index,
   }) {
-    final outcome = holdsProgressions
-        ? figure.applyHolding(state, progressions: progressions)
-        : figure
-              .apply(state, progressions: progressions)
-              .map((next) => (formation: next, held: false));
+    final outcome = figure.applyHolding(state, progressions: progressions);
     return outcome.map((value) {
       var next = value.formation;
       if (value.held) {

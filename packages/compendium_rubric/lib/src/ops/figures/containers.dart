@@ -73,7 +73,7 @@ sealed class _Container extends Operation {
 /// anywhere in it carries the dancers on *(agent's call)*.
 ///
 /// **Known limit.** A flagged modifier is progressed as one figure: the
-/// change-over runs after the last modifier, and a Becket hold is judged on the
+/// change-over runs after the last modifier, and whether to hold is judged on the
 /// state the modifiers leave, not on the main figure's. Splitting the flag's
 /// effects at the main figure would need the engine to see inside the
 /// container. No importer writes a modifier whose modifiers reach another

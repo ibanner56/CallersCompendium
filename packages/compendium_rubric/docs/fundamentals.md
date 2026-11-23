@@ -624,8 +624,8 @@ couples** (one per line), so "the row-0 couple" needed a referent.
 
 The two ends are evaluated separately; one may normalize while the other skips.
 
-**In Becket, when both ends would skip, the progression is held, not spent** *(user-ruled
-2026-11-23)*. A Becket dance progresses on the obvious move — a diagonal `chain` or a
+**When both ends would skip, the progression is held, not spent** *(user-ruled 2026-11-23,
+for Becket; extended to every formation the same day)*. A Becket dance progresses on the obvious move — a diagonal `chain` or a
 `pass_through` along the set — but those send only some dancers on: after The Judge's
 left-diagonal ladies chain the robins have reached the next hands four while their partners
 have not, so no couple stands whole at either end. A change-over there would do nothing and
@@ -639,9 +639,18 @@ brings a couple to an end, the change-over never runs and the compile says so wi
 an end the change-over would only have cleared waiting-out marks, which the comparison does not
 read. `FigureFold` is the one place this is threaded.
 
-Three limits, each the *agent's call (2026-11-23)*: holding is **Becket only** (the ruling was
-about Becket, and in Duple Improper a misplaced flag should still fail rather than be carried
-forward); a figure that is its own progression (`slide_along_set`) or that reached along the
+Holding applies in **every formation** *(user-ruled 2026-11-23)*: the test is only whether a
+whole couple stands at an end, which does not depend on the formation. In Becket the type case
+is a diagonal figure, where the end pair with no partner pair on that diagonal stays put; in
+Duple Improper it is a circle, do si do or swing that leaves partners split across rows. The
+cost is that a flag placed early can be carried to a later figure that finishes it rather than
+fail, sometimes several figures early. Moving each golden's flag to every figure, twelve
+goldens accept two or three more placements than before: *The Baby Rose* compiles flagged on any
+figure from its circle onward (four figures early), *Once More With Feeling* (Caller's Box
+#14948) on either petronella. On the Caller's Box corpus, where the importer places the flag by
+rule, it changed no dance's outcome.
+
+Two limits, each the *agent's call (2026-11-23)*: a figure that is its own progression (`slide_along_set`) or that reached along the
 set is never held; and a later flagged figure that runs its own change-over **overtakes** a
 held progression, which is then given up and reported with the same warning, since finishing it
 afterwards would retire the couples that figure had just sent out.
@@ -717,8 +726,10 @@ buys two things:
 
 A useful consequence, with one caveat: the canonical Duple Improper **starting** formation
 (§11) is already end-normalized in the **matrix** — position, number and facing all stand. Its
-*waiting-out* state is not, and should not be: in Duple Improper every row holds a whole
-couple, so the end rows always qualify for marking (§10.3.2). Normalization only ever runs
+*waiting-out* state is not, and should not be: in the Duple Improper start every row holds a
+whole couple, so the end rows qualify for marking (§10.3.2). Mid-dance that need not hold (a
+circle or a swing can leave partners split across rows), which is when a progression is held
+(§10.2.1). Normalization only ever runs
 behind an explicit progression flag (§10.1), so a start state is never passed through it.
 
 ### 10.3 Governing rule — where the hands four begin
@@ -812,7 +823,8 @@ swaps A and D and leaves B and C exactly where they stand; the change-over is wh
 into a hands four — with D.
 
 > **The marking rule is deliberately positional**, not "is this couple already in a complete
-> band?" In Duple Improper *every* row holds a whole couple, so an end row always qualifies. The
+> band?" In a settled Duple Improper set *every* row holds a whole couple, so an end row
+> qualifies. The
 > tempting refinement — skip an end couple that already sits in a complete band — would break
 > §10.5, where B is banded with A and nonetheless waits out. Normalization only ever runs behind
 > an explicit progression flag (§10.1), so a start state is never passed through it.

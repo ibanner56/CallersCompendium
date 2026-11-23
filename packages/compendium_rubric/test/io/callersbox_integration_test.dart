@@ -155,10 +155,11 @@ void main() {
     test('the compile is discriminating, not a rubber stamp', () async {
       // The mutation this whole file exists to catch: if the compiler accepted
       // any progression placement, "it compiled" would assert nothing at all
-      // about the choreography. Six of the seven placements must fail — and the
-      // one that succeeds must be the one the rule picks. This is a Duple
-      // Improper dance, so no progression is held: a flag that finds nobody at
-      // an end is spent where it stands.
+      // about the choreography. Five of the seven placements must fail. The
+      // two that succeed are the final petronella, which the rule picks, and
+      // the first one: a flag there finds nobody whole at an end, so it is
+      // held and finishes on the second petronella (user-ruled 2026-11-23:
+      // holding applies in every formation).
       final dance = (await _draft()).dance;
       final outcomes = <int, DanceOutcome>{};
       for (var index = 0; index < decodedFigures(dance)!.length; index++) {
@@ -189,10 +190,11 @@ void main() {
           .toList();
       expect(
         compiling,
-        [6],
+        [5, 6],
         reason:
-            'only the final petronella — the line the source annotates '
-            '"face next" — leaves the set progressed; got $outcomes',
+            'only the petronellas leave the set progressed: the final one, '
+            'the line the source annotates "face next", and the first, whose '
+            'held change-over the second finishes; got $outcomes',
       );
     });
 

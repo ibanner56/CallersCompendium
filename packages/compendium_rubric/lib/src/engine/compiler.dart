@@ -128,9 +128,7 @@ CompileResult compile(Dance dance) {
   final input = dance.instantiate();
 
   var state = input;
-  final fold = FigureFold(
-    holdsProgressions: dance.formation.couplesShareColumn,
-  );
+  final fold = FigureFold();
   for (var index = 0; index < dance.figures.length; index++) {
     final figure = dance.figures[index];
     // Linted against the state the figure is handed, before it runs -- a
