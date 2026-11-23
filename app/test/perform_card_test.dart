@@ -900,4 +900,86 @@ void main() {
       expect(find.byKey(const ValueKey('perform-interpreters')), findsNothing);
     });
   });
+
+  group('Barnes reference', () {
+    Future<void> pumpCard(
+      WidgetTester tester,
+      Dance dance, {
+      bool canonicalDiscouragedTerms = false,
+    }) async {
+      final c = await _controllerWith(null);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: CanonicalDiscouragedTermsScope(
+              notifier: ValueNotifier<bool>(canonicalDiscouragedTerms),
+              child: FormationColorsScope(
+                controller: c,
+                child: PerformCard(
+                  dance: dance,
+                  renderer: _renderer,
+                  dialect: Dialect.larksRobins,
+                  textScale: 1.0,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    String? barnesRow(WidgetTester tester) => tester
+        .widget<Text>(
+          find.descendant(
+            of: find.byKey(const ValueKey('perform-barnes-reference')),
+            matching: find.byType(Text),
+          ),
+        )
+        .data;
+
+    testWidgets('shows the reference on its own labelled row', (tester) async {
+      await pumpCard(tester, _dance().copyWith(barnesReference: 'BIII p. 92'));
+      expect(
+        tester
+            .widget<Text>(
+              find.descendant(
+                of: find.byKey(const ValueKey('perform-barnes-reference')),
+                matching: find.byType(Text),
+              ),
+            )
+            .data,
+        'Barnes: BIII p. 92',
+      );
+    });
+
+    testWidgets('trims the typed value', (tester) async {
+      await pumpCard(
+        tester,
+        _dance().copyWith(barnesReference: ' BIII p. 92 '),
+      );
+      expect(barnesRow(tester), 'Barnes: BIII p. 92');
+    });
+
+    testWidgets('renders a discouraged term in the value canonically', (
+      tester,
+    ) async {
+      await pumpCard(
+        tester,
+        _dance().copyWith(barnesReference: 'Gypsy p. 4'),
+        canonicalDiscouragedTerms: true,
+      );
+      expect(barnesRow(tester), 'Barnes: Shoulder round p. 4');
+      expect(find.textContaining('Gypsy'), findsNothing);
+    });
+
+    testWidgets('has no row when the reference is blank', (tester) async {
+      await pumpCard(tester, _dance().copyWith(barnesReference: '  '));
+      expect(
+        find.byKey(const ValueKey('perform-barnes-reference')),
+        findsNothing,
+      );
+    });
+  });
 }

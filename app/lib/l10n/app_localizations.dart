@@ -6646,6 +6646,12 @@ abstract class AppLocalizations {
   /// **'Interpreted {year}'**
   String danceInterpretedYear(String year);
 
+  /// On the Perform card: where the dance's tune is printed in the Barnes books (a set of English country dance tune books), labelled. {reference} is free text the caller typed with the book and page, such as BIII p. 92 or NiB. Keep 'Barnes' as is: it is the books' name.
+  ///
+  /// In en, this message translates to:
+  /// **'Barnes: {reference}'**
+  String danceBarnesValue(String reference);
+
   /// On the dance detail screen and the Perform card: the dance's written meter (time signature), labelled. {meter} is free text the caller typed, such as 3/2 or 6/8. Shown beside the key, separated by a middle dot.
   ///
   /// In en, this message translates to:
