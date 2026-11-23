@@ -721,7 +721,10 @@ open this group. You can override any of them per dance, and
   dance. **Type** can also be **Last used**, so a new dance starts as the type of
   the last new dance you saved. Until you save one, it starts as contra.
 - **Default phrase structure** — leave blank for the standard 4×16 A1 A2 B1 B2, or
-  set your own.
+  set your own, as rows of phrases, bars per phrase and beats per bar or by
+  writing it in the field under them. English phrase names
+  (`A:2*8*2 + B:1*8*2`) go in the field; the rows don't show for a default
+  that has them, and are dimmed if you type them.
 - **Starting figures** — the figures a new dance begins with; defaults to eight
   stand stills of eight beats each, or to none while **Free-text entry** is on.
   Clear it for a blank new dance.
@@ -920,9 +923,16 @@ new dance starts as (the **Type** default for new dances, which can be
 **Last used**), until you choose one yourself. English figures and square
 calls don't have definitions yet. Your own figures and terms are listed under
 the type they were made for. One you add is made for the type shown. Copying an English
-figure as one of your own makes it an English figure, though it offers
-contra's groups of dancers for now, so English-only ones such as ends or top
-can't be chosen in it yet.
+figure as one of your own makes it an English figure, and it offers English's
+groups of dancers, such as the ends or the top.
+
+Versions of the app from before English figures offered English's groups of
+dancers can't read an English figure of yours whose default, or a condition in
+whose wording, names a group only English has, such as the ends or the top. On
+a device that hasn't been updated, that figure is marked **Needs repair**,
+though it is kept as it is, and a dance that uses it shows the wording the line
+last had. Repairing it there drops that default or condition, and the change
+then syncs to your other devices, so update the device instead.
 
 Names, definitions and examples of the built-in figures follow your active
 [dialect](dialects.md) for the type shown, so role words read the way you call
@@ -1054,7 +1064,9 @@ The Glossary lists them too, when it is shown. While it is on:
   yours becomes, and which of its values each of your options becomes; where a
   name matches, it is chosen for you. An option can become any parameter that
   takes words, such as a hand or who; any other parameter, one of the same
-  kind that takes all its values. A places parameter can also become a plain
+  kind that takes all its values. A group of dancers is measured against the
+  app's figure's groups, which are contra's, whatever type your figure is made
+  for. A places parameter can also become a plain
   number, which takes every count places can; the count then reads without
   the word "places". Two of yours can't become the same one.
   Every one must be chosen, so a parameter the app's figure has nothing for
@@ -1066,7 +1078,9 @@ The Glossary lists them too, when it is shown. While it is on:
   your figure no longer has, or whose name another shorthand also has, stays
   as it is). A line whose wording was edited in an older version of the app,
   or that holds a value your figure no longer has, keeps its wording as plain
-  text, and dances in Recently deleted keep the line each last stored. As with
+  text, and so does a line of an English figure that holds a group of dancers
+  only English has, such as the ends or the top; the confirmation says so.
+  Dances in Recently deleted keep the line each last stored. As with
   deleting, each dialect's name and wording for your figure, and its column in
   **Matrix columns**, are removed: the app's figure has its own.
 

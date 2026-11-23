@@ -572,6 +572,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'Dine standardfigurer bruger den også og skifter på samme måde.';
 
   @override
+  String userFigureSwitchConfirmKeepsWording(String name) {
+    return 'Enhver brug af en dansergruppe, som $name ikke har, beholder i stedet sin ordlyd.';
+  }
+
+  @override
   String userFigureSwitchConfirmShorthands(int count, String name) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -8791,6 +8796,52 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get danceEditorPhraseRowsHelp =>
+      'Hver række er en serie ens fraser: hvor mange der er, takterne i hver og slagene i en takt. Frastrukturen nedenfor ændres sammen med rækkerne.';
+
+  @override
+  String get danceEditorPhraseRowsPhrasesLabel => 'Fraser';
+
+  @override
+  String get danceEditorPhraseRowsBarsLabel => 'Takter pr. frase';
+
+  @override
+  String get danceEditorPhraseRowsBeatsLabel => 'Slag pr. takt';
+
+  @override
+  String danceEditorPhraseRowsRange(int max) {
+    return '1 til $max';
+  }
+
+  @override
+  String get danceEditorPhraseRowsAdd => 'Tilføj række';
+
+  @override
+  String danceEditorPhraseRowsRemove(int number) {
+    return 'Fjern række $number';
+  }
+
+  @override
+  String danceEditorPhraseRowsInvalid(int max) {
+    return 'Angiv et helt tal fra 1 til $max i hvert felt, i en struktur der ikke er for lang. Indtil da bevares den sidste gyldige frastruktur.';
+  }
+
+  @override
+  String danceEditorPhraseRowsSummary(String labels, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats slag',
+      one: '1 slag',
+    );
+    return '$labels · $_temp0';
+  }
+
+  @override
+  String get danceEditorPhraseRowsDisabledNote =>
+      'Rækkerne viser den sidste gyldige frastruktur. Ret frastrukturen nedenfor for at redigere dem igen.';
+
+  @override
   String get danceEditorFiguresSection => 'Figurer';
 
   @override
@@ -9178,6 +9229,11 @@ class AppLocalizationsDa extends AppLocalizations {
       one: '1 figur er',
     );
     return 'Dette er en $danceForm-dans, men $_temp0 fra $figureForm. De beholdes som de er, men figurvælgeren tilbyder kun $pickerForm-figurer.';
+  }
+
+  @override
+  String validationFigureCrossesPhrase(int position, String label) {
+    return 'Figur $position går ud over slutningen af $label. I en squaredans bør kaldene i hver frase fylde den helt ud.';
   }
 
   @override

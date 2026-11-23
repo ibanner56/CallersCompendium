@@ -575,6 +575,11 @@ class AppLocalizationsNl extends AppLocalizations {
       'Je standaardfiguren gebruiken hem ook en worden op dezelfde manier overgezet.';
 
   @override
+  String userFigureSwitchConfirmKeepsWording(String name) {
+    return 'Elk gebruik van een groep dansers die $name niet heeft, behoudt in plaats daarvan zijn tekst.';
+  }
+
+  @override
   String userFigureSwitchConfirmShorthands(int count, String name) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -8844,6 +8849,52 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get danceEditorPhraseRowsHelp =>
+      'Elke rij is een reeks gelijke frasen: hoeveel het er zijn, de maten in elke frase en de beats in een maat. De fraseopbouw hieronder verandert mee met de rijen.';
+
+  @override
+  String get danceEditorPhraseRowsPhrasesLabel => 'Frasen';
+
+  @override
+  String get danceEditorPhraseRowsBarsLabel => 'Maten per frase';
+
+  @override
+  String get danceEditorPhraseRowsBeatsLabel => 'Beats per maat';
+
+  @override
+  String danceEditorPhraseRowsRange(int max) {
+    return '1 tot $max';
+  }
+
+  @override
+  String get danceEditorPhraseRowsAdd => 'Rij toevoegen';
+
+  @override
+  String danceEditorPhraseRowsRemove(int number) {
+    return 'Rij $number verwijderen';
+  }
+
+  @override
+  String danceEditorPhraseRowsInvalid(int max) {
+    return 'Vul in elk veld een geheel getal van 1 tot $max in, in een structuur die niet te lang is. Tot dan blijft de laatste geldige fraseopbouw behouden.';
+  }
+
+  @override
+  String danceEditorPhraseRowsSummary(String labels, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats beats',
+      one: '1 beat',
+    );
+    return '$labels · $_temp0';
+  }
+
+  @override
+  String get danceEditorPhraseRowsDisabledNote =>
+      'Deze rijen tonen de laatste geldige fraseopbouw. Corrigeer de fraseopbouw hieronder om ze weer te bewerken.';
+
+  @override
   String get danceEditorFiguresSection => 'Figuren';
 
   @override
@@ -9235,6 +9286,11 @@ class AppLocalizationsNl extends AppLocalizations {
       one: '1 figuur komt',
     );
     return 'Dit is een $danceForm-dans, maar $_temp0 uit $figureForm. Ze blijven zoals ze zijn, maar de figuurkiezer biedt alleen $pickerForm-figuren aan.';
+  }
+
+  @override
+  String validationFigureCrossesPhrase(int position, String label) {
+    return 'Figuur $position loopt door tot voorbij het einde van $label. In een squaredans horen de calls van elke frase die precies te vullen.';
   }
 
   @override

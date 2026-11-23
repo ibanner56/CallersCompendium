@@ -28,6 +28,7 @@ import '../../widgets/lingo_text_editing_controller.dart';
 import 'name_picker.dart';
 import '../../widgets/app_dropdown_field.dart';
 import 'named_phrases_editor.dart';
+import 'phrase_groups_editor.dart';
 import 'source_citations_editor.dart';
 import '../../theme/app_shapes.dart';
 
@@ -467,6 +468,16 @@ class DanceEditorForm extends StatelessWidget {
                   NamedPhrasesEditor(
                     structure: controller.typedPhraseStructure,
                     beatsPerBar: controller.statedBeatsPerBar,
+                    onChanged: controller.setPhraseStructureText,
+                  ),
+                // A form whose phrases are not named (contra, square) reads
+                // and sets its phrase structure as rows over the same text;
+                // the formula field below stays beside them (#2304).
+                if (!controller.offersNamedPhrases)
+                  PhraseGroupsEditor(
+                    key: const ValueKey('phrase-groups'),
+                    title: l10n.danceEditorPhraseStructureLabel,
+                    structure: controller.typedPhraseStructure,
                     onChanged: controller.setPhraseStructureText,
                   ),
                 if (!controller.offersNamedPhrases ||

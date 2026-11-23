@@ -64,7 +64,7 @@ void main() {
         'Phrase: ABC (A 4 bars, B 4 bars, C 8 bars)',
       );
       expect(phrase('A:1*1*4'), 'Phrase: A (A 1 bar)');
-      // Not named: printed as stored (issue #2304 tracks contra's).
+      // Not named: printed as stored, as the formula the editor's rows write.
       expect(phrase(' 2*8*2 + 2*10*2 '), 'Phrase: 2*8*2 + 2*10*2');
     });
 
