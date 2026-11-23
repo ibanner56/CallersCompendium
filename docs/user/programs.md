@@ -296,7 +296,11 @@ behind your back, and never deletes one because of your calendar.
   not offered again unless the event changes again.
 - **Canceled or gone from your calendar** — an event marked canceled, or one
   that is no longer in the calendar. An event that only moved, however far, is
-  not gone. "No longer in the calendar" is judged only for programs dated from
+  not gone, and neither is one date of a repeating event moved on its own. But
+  if you change the time of a whole repeating event, or change "this and
+  following" events, your calendar app counts the new times as new events: the
+  programs already imported for the old times are labeled **No longer in your
+  calendar**, and the new times are offered as new drafts. "No longer in the calendar" is judged only for programs dated from
   today up to 30 days ahead, and only when the app could read the whole
   calendar (not when it holds repeating events the app can't read, or more
   events than the app reads). The

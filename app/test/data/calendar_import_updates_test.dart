@@ -396,6 +396,34 @@ void main() {
     }
   });
 
+  test('a whole series retimed counts as new: its imported programs read as '
+      'gone and the new times are offered', () async {
+    final repos = openTestRepositories();
+    List<String> series(String start) => [
+      'UID:w',
+      start,
+      'RRULE:FREQ=WEEKLY;BYDAY=SA',
+      'SUMMARY:Weekly',
+    ];
+    final imported = await _importNew(
+      repos,
+      _cal([series('DTSTART:20300601T190000')]),
+    );
+    expect(imported, isNotEmpty);
+    final preview = await _preview(
+      repos,
+      _cal([series('DTSTART:20300601T193000')]),
+    );
+    expect(
+      preview.flagChanges.where((f) => f.flag == calendarFlagMissing),
+      hasLength(imported.length),
+    );
+    expect(
+      preview.entries.where((e) => e.state == CalendarEntryState.fresh),
+      hasLength(imported.length),
+    );
+  });
+
   test('a feed not read whole flags nothing as gone', () async {
     final repos = openTestRepositories();
     await _importNew(repos, _original);
