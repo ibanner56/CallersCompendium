@@ -559,7 +559,11 @@ other points below are this ADR's proposal.
   the number of phrases, bars per phrase and beats per bar for each part of
   the tune: for example `4*8*3` for four 8-bar phrases in triple time. A
   tune whose meter changes is several components joined with `+`, and so
-  is a dance in several parts (§12, F4). A figure can last half a bar only
+  is a dance in several parts (§12, F4). Each bar is as long as the part of
+  the tune it starts in, so a figure's bars are counted from where it starts,
+  and one that runs across a change of meter counts each bar by its own part
+  (#2303; a count that is not a whole number of half bars where it falls stays
+  in beats). A figure can last half a bar only
   where half a bar is a whole number of beats, so not in triple time (Q16).
   The written meter and key are kept in their own fields (§12, F3).
 - **Bar ranges are derived.** "Bars 1–4" and phrase labels (A1, B2) come from
@@ -1310,7 +1314,9 @@ recommendation; the answer is quoted.
    Barnes reference was for every form, the answer was "ECD only": the
    `Dance` constructor clears it for any other form
    (`formHasBarnesReference`), as it clears the improper flag (point 2), so
-   a dance moved off ECD loses it. Also kept: an import that links over an
+   a dance moved off ECD loses it when saved. Asked whether it should
+   instead be kept hidden in case the dance moves back, the answer was
+   "Clear it" (23 November 2026). Also kept: an import that links over an
    existing dance keeps its other titles and Barnes reference when the
    record carries none (the record's form still applies). Implementer's
    calls, not yet ratified: a fresh-attach sync merge unions other titles and takes

@@ -583,6 +583,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'Vos figures par défaut l\'utilisent aussi et passent de la même façon.';
 
   @override
+  String userFigureSwitchConfirmKeepsWording(String name) {
+    return 'Toute utilisation d\'un groupe de danseurs absent de $name conserve sa formulation.';
+  }
+
+  @override
   String userFigureSwitchConfirmShorthands(int count, String name) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -3223,7 +3228,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSharingDateVenueTitle =>
-      'Inclure la date et le lieu lors du partage d\'une liste de danses';
+      'Inclure la date, les horaires et le lieu lors du partage d\'une liste de danses';
 
   @override
   String get settingsSharingSubtitle =>
@@ -3250,7 +3255,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsProgramShowPaySubtitle =>
-      'Lorsque cette option est désactivée, l’éditeur et le résumé du programme masquent le cachet. Un cachet déjà saisi est conservé et réapparaît lorsque vous la réactivez.';
+      'Lorsque cette option est désactivée, l’éditeur, le résumé et le tableur des programmes masquent le cachet. Un cachet déjà saisi est conservé et réapparaît lorsque vous la réactivez.';
 
   @override
   String get settingsMatrixColumnsHeader => 'Colonnes de la matrice';
@@ -5865,6 +5870,65 @@ class AppLocalizationsFr extends AppLocalizations {
   String get programsClearEventDate => 'Effacer la date de l’événement';
 
   @override
+  String get programsStartTimeLabel => 'Heure de début';
+
+  @override
+  String get programsEndTimeLabel => 'Heure de fin';
+
+  @override
+  String get programsLessonTimeLabel => 'Cours débutants';
+
+  @override
+  String get programsArrivalTimeLabel => 'Arrivée avant';
+
+  @override
+  String get programsNoTimeSet => 'Non définie';
+
+  @override
+  String get programsSetTime => 'Définir';
+
+  @override
+  String get programsChangeTime => 'Modifier';
+
+  @override
+  String programsSetTimeFor(String field) {
+    return 'Définir : $field';
+  }
+
+  @override
+  String programsChangeTimeFor(String field) {
+    return 'Modifier : $field';
+  }
+
+  @override
+  String programsClearTime(String field) {
+    return 'Effacer : $field';
+  }
+
+  @override
+  String get programsTimeNextDay => 'Se termine le lendemain';
+
+  @override
+  String programsVenueUsualTimeHint(String time) {
+    return 'Horaire habituel du lieu : $time';
+  }
+
+  @override
+  String programsSummaryLessonTime(String time) {
+    return 'Cours $time';
+  }
+
+  @override
+  String programsSummaryDanceTime(String times) {
+    return 'Bal $times';
+  }
+
+  @override
+  String programsSummaryArriveBy(String time) {
+    return 'Arrivée avant $time';
+  }
+
+  @override
   String get programsVenueLabel => 'Lieu';
 
   @override
@@ -7150,6 +7214,24 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String exportPageOfPages(int page, int pages) {
     return 'Page $page sur $pages';
+  }
+
+  @override
+  String get exportLabelLesson => 'Cours';
+
+  @override
+  String exportTimeRange(String start, String end) {
+    return '$start–$end';
+  }
+
+  @override
+  String exportEndsAt(String end) {
+    return 'jusqu’à $end';
+  }
+
+  @override
+  String exportNextDay(String times) {
+    return '$times (lendemain)';
   }
 
   @override
@@ -8894,6 +8976,52 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get danceEditorPhraseRowsHelp =>
+      'Chaque ligne est une suite de phrases identiques : leur nombre, les mesures de chacune et les temps d’une mesure. La structure de phrase ci-dessous suit les lignes.';
+
+  @override
+  String get danceEditorPhraseRowsPhrasesLabel => 'Phrases';
+
+  @override
+  String get danceEditorPhraseRowsBarsLabel => 'Mesures par phrase';
+
+  @override
+  String get danceEditorPhraseRowsBeatsLabel => 'Temps par mesure';
+
+  @override
+  String danceEditorPhraseRowsRange(int max) {
+    return '1 à $max';
+  }
+
+  @override
+  String get danceEditorPhraseRowsAdd => 'Ajouter une ligne';
+
+  @override
+  String danceEditorPhraseRowsRemove(int number) {
+    return 'Retirer la ligne $number';
+  }
+
+  @override
+  String danceEditorPhraseRowsInvalid(int max) {
+    return 'Saisissez dans chaque champ un nombre entier de 1 à $max, dans une structure qui n’est pas trop longue. D’ici là, la dernière structure de phrase valide est conservée.';
+  }
+
+  @override
+  String danceEditorPhraseRowsSummary(String labels, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats temps',
+      one: '1 temps',
+    );
+    return '$labels · $_temp0';
+  }
+
+  @override
+  String get danceEditorPhraseRowsDisabledNote =>
+      'Ces lignes montrent la dernière structure de phrase valide. Corrigez la structure de phrase ci-dessous pour les modifier de nouveau.';
+
+  @override
   String get danceEditorFiguresSection => 'Figures';
 
   @override
@@ -9292,6 +9420,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String validationFigureCrossesPhrase(int position, String label) {
+    return 'La figure $position dépasse la fin de $label. Dans un square dance, les appels de chaque phrase doivent la remplir exactement.';
+  }
+
+  @override
   String validationIncompleteFigure(int position) {
     return 'La figure $position n’est pas complète : Enregistrer la laisse de côté.';
   }
@@ -9405,9 +9538,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get danceEditorChooseHint => 'Choisir…';
-
-  @override
-  String get figureParamSearchDancersHint => 'Rechercher des danseurs';
 
   @override
   String danceEditorCreateQuotedName(String name) {
@@ -12987,6 +13117,210 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible d’enregistrer cette modification de vos modèles. Réessayez.';
 
   @override
+  String get settingsSuggestionsHeader => 'Suggestions';
+
+  @override
+  String get settingsSuggestionsEnabledTitle => 'Suggérer la danse suivante';
+
+  @override
+  String get settingsSuggestionsEnabledSubtitle =>
+      'Ajoute Suggéré au menu Trier de la liste de danses de l’éditeur de programme. Les danses sont classées pour la fin du programme, avec la raison.';
+
+  @override
+  String get settingsSuggestionsEditorTitle =>
+      'Ce que regardent les suggestions';
+
+  @override
+  String get settingsSuggestionsEditorSubtitle =>
+      'Choisissez l’importance de chaque critère quand des danses sont suggérées.';
+
+  @override
+  String get suggestionFactorMatrixVarietyTitle => 'Variété dans la matrice';
+
+  @override
+  String get suggestionFactorMatrixVarietyHelp =>
+      'Privilégie les danses avec des figures que le programme n’a pas encore utilisées. Évite les figures sur les mêmes temps que la danse précédente.';
+
+  @override
+  String get suggestionFactorFormationBalanceTitle =>
+      'Équilibre des formations';
+
+  @override
+  String get suggestionFactorFormationBalanceHelp =>
+      'Évite la formation de la danse précédente et celles que le programme compte déjà en nombre.';
+
+  @override
+  String get suggestionFactorDifficultyCurveTitle => 'Courbe de difficulté';
+
+  @override
+  String get suggestionFactorDifficultyCurveHelp =>
+      'Fait suivre à la difficulté de la soirée une forme choisie.';
+
+  @override
+  String get suggestionFactorVenueRecencyTitle => 'Appels récents dans ce lieu';
+
+  @override
+  String get suggestionFactorVenueRecencyHelp =>
+      'Évite les danses appelées récemment dans le lieu du programme. Un programme sans lieu ignore ce critère.';
+
+  @override
+  String get suggestionWeightOff => 'Désactivé';
+
+  @override
+  String get suggestionWeightALittle => 'Un peu';
+
+  @override
+  String get suggestionWeightALot => 'Beaucoup';
+
+  @override
+  String suggestionWeightSemantic(String factor) {
+    return 'Importance de $factor';
+  }
+
+  @override
+  String get suggestionCurveShapeLabel => 'Forme';
+
+  @override
+  String get suggestionCurveBuildThenEase => 'Monter, puis relâcher';
+
+  @override
+  String get suggestionCurveEven => 'Régulière';
+
+  @override
+  String get suggestionsResetDefaults => 'Rétablir les valeurs par défaut';
+
+  @override
+  String get suggestionsResetDone =>
+      'Les suggestions reprennent les critères par défaut.';
+
+  @override
+  String get suggestionsNewerVersion =>
+      'Ces choix ont été enregistrés par une version plus récente de l’application et ne peuvent pas être modifiés ici. Mettez l’application à jour pour les modifier.';
+
+  @override
+  String get collectionSortSuggested => 'Suggéré';
+
+  @override
+  String suggestionReasonNewMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nouvelles figures ce soir',
+      one: 'Une nouvelle figure ce soir',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapPrevious(String move) {
+    return '$move sur les mêmes temps que la danse précédente';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapNext(String move) {
+    return '$move sur les mêmes temps que la danse suivante';
+  }
+
+  @override
+  String suggestionReasonSameFormationPrevious(String formation) {
+    return '$formation, comme la danse précédente';
+  }
+
+  @override
+  String suggestionReasonSameFormationNext(String formation) {
+    return '$formation, comme la danse suivante';
+  }
+
+  @override
+  String suggestionReasonFormationCommon(int count, String formation) {
+    return 'Déjà $count danses en $formation ce soir';
+  }
+
+  @override
+  String suggestionReasonFirstFormation(String formation) {
+    return '$formation : la première ce soir';
+  }
+
+  @override
+  String get suggestionReasonFitsCurve =>
+      'Correspond à la courbe de difficulté ici';
+
+  @override
+  String get suggestionReasonHarderThanCurve =>
+      'Plus difficile que ce que veut la courbe ici';
+
+  @override
+  String get suggestionReasonEasierThanCurve =>
+      'Plus facile que ce que veut la courbe ici';
+
+  @override
+  String suggestionReasonCalledHereRecently(String venue, String date) {
+    return 'Appelée à $venue le $date';
+  }
+
+  @override
+  String suggestionReasonNotCalledHereSince(String venue, String date) {
+    return 'Pas appelée à $venue depuis le $date';
+  }
+
+  @override
+  String suggestionReasonNeverCalledHere(String venue) {
+    return 'Jamais appelée à $venue';
+  }
+
+  @override
+  String get suggestionReasonVenueSkipped =>
+      'Appels récents dans ce lieu : ignoré, car le programme n’a pas de lieu';
+
+  @override
+  String get suggestionReasonNoFactor =>
+      'Aucun critère n’a déplacé cette danse';
+
+  @override
+  String get suggestionReasonEnglishNotCovered =>
+      'Les suggestions ne couvrent pas encore les danses anglaises';
+
+  @override
+  String suggestionReasonPhraseOverlapPrevious(String move) {
+    return '$move dans la même phrase que la danse précédente';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapNext(String move) {
+    return '$move dans la même phrase que la danse suivante';
+  }
+
+  @override
+  String get suggestionReasonAlreadyInProgram => 'Déjà dans ce programme';
+
+  @override
+  String get suggestionRankingFailed =>
+      'Impossible de classer ces danses : elles sont dans leur ordre habituel.';
+
+  @override
+  String suggestionWhyTooltip(String title) {
+    return 'Pourquoi $title est suggérée ici';
+  }
+
+  @override
+  String suggestionWhyTitle(String title) {
+    return 'Pourquoi $title';
+  }
+
+  @override
+  String suggestionWhyRaises(String reason) {
+    return 'La fait monter : $reason';
+  }
+
+  @override
+  String suggestionWhyLowers(String reason) {
+    return 'La fait descendre : $reason';
+  }
+
+  @override
+  String get figureParamSearchDancersHint => 'Rechercher des danseurs';
+
+  @override
   String get exportAddToCalendar => 'Ajouter au calendrier (.ics)';
 
   @override
@@ -13306,6 +13640,46 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get csvColumnBarnes => 'Référence Barnes';
+
+  @override
+  String get programsExportCsv => 'Exporter les programmes en CSV';
+
+  @override
+  String get csvProgramsFileStem => 'programmes';
+
+  @override
+  String get csvColumnEventDate => 'Date de l’événement';
+
+  @override
+  String get csvColumnVenue => 'Lieu';
+
+  @override
+  String get csvColumnCaller => 'Caller';
+
+  @override
+  String get csvColumnBand => 'Orchestre';
+
+  @override
+  String get csvColumnDancerLevel => 'Niveau des danseurs';
+
+  @override
+  String get csvColumnPayAmount => 'Cachet';
+
+  @override
+  String get csvColumnPayCurrency => 'Devise';
+
+  @override
+  String get csvColumnNotes => 'Notes';
+
+  @override
+  String get csvColumnDanceCount => 'Nombre de danses';
+
+  @override
+  String get csvColumnDances => 'Danses';
+
+  @override
+  String get exportCsvPayHiddenNotice =>
+      'Le cachet est masqué dans les Paramètres, il est donc omis. Activez « Afficher le cachet » dans Paramètres ▸ Programme pour l’inclure.';
 
   @override
   String get collectionRepertoireMenuItem => 'Répertoire';

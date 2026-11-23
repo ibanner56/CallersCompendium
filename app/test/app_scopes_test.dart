@@ -27,6 +27,7 @@ import 'package:compendium_app/src/data/capitalize_figures_scope.dart';
 import 'package:compendium_app/src/data/calling_card_settings_scope.dart';
 import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
 import 'package:compendium_app/src/data/show_repertoire_scope.dart';
+import 'package:compendium_app/src/data/suggestions_scope.dart';
 import 'package:compendium_app/src/data/user_figures_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
 import 'package:compendium_app/src/data/decimal_turns_scope.dart';
@@ -99,6 +100,8 @@ const _expectedAppScopeTypes = <Type>[
   ShowGlossaryScope,
   ShowCustomFiguresScope,
   ShowRepertoireScope,
+  SuggestionsEnabledScope,
+  SuggestionSettingsScope,
   CallingCardSettingsScope,
   AggressiveBeatsUpdateScope,
   ConfirmBeforeDeleteScope,

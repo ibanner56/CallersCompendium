@@ -85,7 +85,8 @@ direction the list opens with, see
   also right-click the row) to reuse last month's shape
   as a starting point. The copy starts as a **Draft** with no performed marks,
   no pay and no event date, so it doesn't put a second entry on last month's
-  date into your calling history. Give it the new date when you know it.
+  date into your calling history. Give it the new date when you know it. It
+  keeps the start, end, lesson and arrival [times](#times).
 - **Archive** a program you're done with but want to keep, from the same menu.
   It leaves the list (an **Undo** option appears) but is not deleted: it never
   expires, it still counts in your
@@ -354,6 +355,41 @@ show its details in the picker pane; letting go puts the pane back. On a narrow
 screen, details open on top of the picker, so your search is still there when
 you close them.
 
+### Let the app suggest the next dance
+
+*Experimental.* With **Suggest the next dance** on in
+[Settings ▸ Experimental ▸ Suggestions](./settings.md#suggestions), the picker's
+**Sort** menu has one more choice, **Suggested**. It orders the dances the
+picker is showing (your search and filters still decide which ones) by how well
+each would fit as the next dance at the end of your program, best first. It
+looks at variety on the [matrix](#check-your-evening-with-the-matrix), the
+balance of formations, the difficulty of the evening, and when you last called
+each dance at the program's venue, as much as you chose under
+**What suggestions look for**.
+
+Each dance shows a short line under its details with the one or two things that
+moved it most, such as *Never called at the Grange · Same swing beats as the
+previous dance*. Select the question mark on a row to see why that dance is
+suggested there: every reason, each marked as raising or lowering it.
+
+- The picker always opens in your usual order. Suggested lasts until you
+  choose another sort or close the picker, and re-orders as you search or add
+  dances.
+- Ordering takes a moment on a large collection. Meanwhile the list shows in
+  its plain order with a spinner by the count, and you can add dances as usual.
+- Suggested is only offered when the dance will go at the end of the program:
+  not while you are adding a dance before or after a slot, nor when you replace
+  a slot's dance.
+- English dances aren't covered yet. They are listed after the ordered
+  dances, in their usual order, and say so.
+- A dance already in the program stays in the list but goes to the very
+  bottom, after the English dances, marked *Already in this program*. Any
+  type of dance goes there, English included. Dances there keep their usual
+  order.
+- If the dances can't be ordered, the list stays in its usual order and says
+  so above the first dance.
+- Nothing is saved by suggesting: it only changes the order of the list.
+
 ### Save your program
 
 Choose **Save** at the end of the top bar to keep your changes; it is there
@@ -372,6 +408,10 @@ program you were building when the app closed isn't lost. The next time you
 open that program, the app offers the draft back — **Restore** to pick up
 where you left off, or **Discard** to start from the last saved version. Drafts
 stay on your device; they are never uploaded, shared, or included in backups.
+
+If another of your devices changed the program's [times](#times) or its linked
+venue after the draft was saved, **Restore** keeps those changes for anything
+you hadn't changed in the draft; only your own edits come back.
 
 Each new program keeps its own draft, so two new programs never overwrite each
 other's. If a new program you never saved left one behind, the next new
@@ -478,12 +518,20 @@ skip it: there is nothing left of it to send.
 A program carries the details of its event:
 
 - **Event date**, **Venue**, and **Notes**;
+- four optional **times** under **More details**: **Start time** and **End
+  time** for the dance, **Beginner lesson** for a lesson before it, and
+  **Arrive by** for when you need to be at the hall (see
+  [Times](#times) below);
 - program-level **Band**, **Caller**, and **Dancer level**;
 - **Pay**, an amount and currency under **More details**, shown on the
   program's summary but never in the shared set list, the PDF, or a program
-  file you share. If you don't track pay, turn off **Show pay** in
-  [Settings › Program › Programs](./settings.md#programs) to hide it in the
-  editor and on the summary; pay already entered is kept;
+  file you share. Apart from your [backup](./backup-portability.md), the one
+  export that includes it is the
+  [programs spreadsheet](./sharing.md#export-programs-as-a-spreadsheet-csv), your
+  own record of your gigs. If you don't track pay, turn off **Show pay** in
+  [Settings ▸ Program ▸ Programs](./settings.md#programs) to hide it in the
+  editor, on the summary and in the programs spreadsheet; pay already entered
+  is kept;
 - a **Status** — **Draft**, **Finalized**, or **Performed** — shown on the
   Programs list. Saving a change to **Performed** marks every unmarked dance
   in the program performed, except alternates, and that writes calling
@@ -511,6 +559,39 @@ programs with a typed venue can be linked to a matching record, so calling
 history counts them as one hall: the app offers this (**Link earlier
 programs?**) when you turn the setting on or add the venue; see
 [Settings ▸ Program ▸ Venues](./settings.md#venues).
+
+#### Times
+
+Each time is optional. Tap **Set** beside it to choose a time, **Change** to
+pick another, or the clear button to remove it. They are times of day at the
+hall, with no time zone: a 7:30 PM start stays 7:30 PM wherever your device
+is. They show in your language's 12- or 24-hour clock, and you can set them
+before you know the date.
+
+- An **End time** earlier than the **Start time** means the dance ends after
+  midnight. The editor says **Ends the next day**, and the summary adds
+  "(next day)".
+- The program's summary shows the times on one line under the date, such as
+  "Lesson 7:00 PM · Dance 7:30 PM–10:30 PM · Arrive by 6:30 PM". Times you
+  left empty are left out.
+- When the program is linked to a saved venue whose **Time** is filled in,
+  the editor shows that text under the times as a hint ("Venue's usual
+  time: …"). It is the series' usual schedule, written however you typed it
+  on the venue, so the app never reads it into the fields, and changing a
+  program's times never changes the venue.
+- **Duplicate** keeps all four times: the date changes from one event to the
+  next, but the schedule usually does not.
+- The shared set list and the PDF show the start and end times beside the
+  date and the lesson time below it, but never **Arrive by**: that is your
+  own logistics. When the program has a start or end time, the PDF's venue
+  details leave out the venue's usual **Time**, so the page gives one answer
+  to when the dance runs. The matrix PDF shows the start and end beside its
+  date too. A program file you share keeps all four, so a guest caller you
+  send it to knows when to arrive. See [Sharing](./sharing.md).
+- A [calendar file](./sharing.md#put-programs-in-your-calendar) uses the start
+  and end times for the event, so it shows at the right time instead of all
+  day, and its notes give the lesson and **Arrive by** times: it is for your
+  own calendar.
 
 If you often play the same role, set a default caller or band in
 [Settings ▸ Defaults](./settings.md#program-defaults) and new programs will
@@ -732,6 +813,11 @@ a [venue](./glossary.md#venue) with contact people recorded, the PDF, JSON, and
 contacts, and leave them out unless you say otherwise. A venue's street address
 is never included in any export except a calendar file, which asks first and
 leaves it out unless you tick it.
+
+To get several programs into a spreadsheet at once — date, venue, caller,
+band, pay and the dances — use **Export programs as CSV** in the **Programs**
+list's **More actions** menu (⋮); see
+[Export programs as a spreadsheet](./sharing.md#export-programs-as-a-spreadsheet-csv).
 
 [Share, print & export](./sharing.md#share-a-program) covers all of this in
 detail, including what a shared bundle contains and what never leaves your

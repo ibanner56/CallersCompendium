@@ -56,6 +56,9 @@ const DeepCollectionEquality _deepEq = DeepCollectionEquality();
 ///   and the ECD formation shapes (ADR-006 §12, F2 and F3), its interpreters,
 ///   its `alternateTitles` and its `barnesReference`. Stamped only when a
 ///   dance carries one of them. See [archiveSchemaVersionEcdDanceFields].
+///   Also a program's times, `startMinute`, `endMinute`, `lessonMinute` and
+///   `arrivalMinute` (#2350), which joined v8 while it was unreleased. See
+///   [archiveSchemaVersionProgramTimes].
 ///
 /// **Not versioned:** a shared archive's `userFigures` section, the
 /// definitions of the user's own new figures its dances use (#1023, see
@@ -150,6 +153,21 @@ const int archiveSchemaVersionDeletedTags = 7;
 /// byte-identically.
 const int archiveSchemaVersionEcdDanceFields = 8;
 
+/// The envelope version a program's times are stamped under: `startMinute`,
+/// `endMinute`, `lessonMinute` and `arrivalMinute` (#2350, schema v42).
+///
+/// No build up to 0.10.0 reads them, so without a stamp it would restore or
+/// import the program without its times and report success. They travel in
+/// program share files as well as backups, so the stamp is the core archive's
+/// rather than the backup envelope's: a share file is warned about (or, on a
+/// build before the share intake stopped refusing newer archives, refused)
+/// instead of losing them silently. Stamped only when a program has a time.
+///
+/// The same number as [archiveSchemaVersionEcdDanceFields] on purpose: both
+/// joined v8 before it was released, and no released build reads either, so
+/// a separate number would protect no extra build.
+const int archiveSchemaVersionProgramTimes = 8;
+
 /// Whether [dance] carries anything only a v8 reader understands
 /// ([archiveSchemaVersionEcdDanceFields]).
 bool _hasEcdDanceFields(Dance dance) =>
@@ -195,6 +213,9 @@ int requiredSchemaVersion(
   // order or a lower version will shadow a higher one.
   if (archive.dances.any(_hasEcdDanceFields)) {
     return archiveSchemaVersionEcdDanceFields;
+  }
+  if (archive.programs.any((p) => p.hasTimes)) {
+    return archiveSchemaVersionProgramTimes;
   }
   if (includeDeletedTags && archive.deletedTags.isNotEmpty) {
     return archiveSchemaVersionDeletedTags;

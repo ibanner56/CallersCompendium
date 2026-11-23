@@ -28,6 +28,7 @@ import '../../widgets/lingo_text_editing_controller.dart';
 import 'name_picker.dart';
 import '../../widgets/app_dropdown_field.dart';
 import 'named_phrases_editor.dart';
+import 'phrase_groups_editor.dart';
 import 'source_citations_editor.dart';
 import '../../theme/app_shapes.dart';
 
@@ -469,6 +470,16 @@ class DanceEditorForm extends StatelessWidget {
                     beatsPerBar: controller.statedBeatsPerBar,
                     onChanged: controller.setPhraseStructureText,
                   ),
+                // A form whose phrases are not named (contra, square) reads
+                // and sets its phrase structure as rows over the same text;
+                // the formula field below stays beside them (#2304).
+                if (!controller.offersNamedPhrases)
+                  PhraseGroupsEditor(
+                    key: const ValueKey('phrase-groups'),
+                    title: l10n.danceEditorPhraseStructureLabel,
+                    structure: controller.typedPhraseStructure,
+                    onChanged: controller.setPhraseStructureText,
+                  ),
                 if (!controller.offersNamedPhrases ||
                     controller.typedPhraseStructure?.isNamed != true ||
                     controller.phraseFocusNode.hasFocus)
@@ -632,11 +643,7 @@ class DanceEditorForm extends StatelessWidget {
                   const SizedBox(height: AppSpacing.md),
                   WarningsCard(
                     warnings: controller.warnings,
-                    beatsPerBar: BarTimingScope.beatsPerBarFor(
-                      controller.form,
-                      controller.phraseStructure,
-                      meter: controller.meterController.text,
-                    ),
+                    timing: _barTiming,
                   ),
                 ],
               ],
@@ -746,17 +753,22 @@ class DanceEditorForm extends StatelessWidget {
   BarTiming? get _barTimingForBars =>
       barTimingForMixedMeter(controller.form, controller.phraseStructure);
 
-  /// [child] timed in bars where the dance is ([BarTimingScope.beatsPerBarFor]):
-  /// an English dance whose tune has one meter throughout.
+  /// How the dance counts its figures in bars ([barTimingFor]), or null where
+  /// it is timed in beats.
+  BarTiming? get _barTiming => barTimingFor(
+    controller.form,
+    controller.phraseStructure,
+    meter: controller.meterController.text,
+  );
+
+  /// [child] timed in bars where the dance is ([barTimingFor]): an English
+  /// dance, by one bar length where its tune has one meter and by each
+  /// phrase's own where the phrases differ in beats per bar.
   Widget _withBarTiming(Widget child) {
-    final beatsPerBar = BarTimingScope.beatsPerBarFor(
-      controller.form,
-      controller.phraseStructure,
-      meter: controller.meterController.text,
-    );
-    return beatsPerBar == null
+    final timing = _barTiming;
+    return timing == null
         ? child
-        : BarTimingScope(beatsPerBar: beatsPerBar, child: child);
+        : BarTimingScope(timing: timing, child: child);
   }
 
   /// The Authors label and picker.

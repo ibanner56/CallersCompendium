@@ -65,7 +65,9 @@ class ProgramCalendarEvent {
   final String? statusLabel;
 
   /// An already-formatted line for the beginner-lesson and arrival times
-  /// ("Beginner lesson 7:00 pm · Arrive by 6:30 pm"), when either is set.
+  /// ("Beginner lesson 7:00 pm · Arrive by 6:30 pm"), when either is set. The
+  /// app also puts an end time here when there is no [start], since an
+  /// all-day event has nowhere else to carry it.
   final String? scheduleLine;
 
   /// The linked venue's free-text time. Written only when there is no

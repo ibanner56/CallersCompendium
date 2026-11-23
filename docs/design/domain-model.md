@@ -282,12 +282,25 @@ the typed text and every trashed program untouched.
 The program editor writes `venueId` only if the person changed it since the editor
 loaded or last saved; otherwise the stored value stands, so a link made while an
 editor was open (this offer, or sync) is not undone by that editor's next save.
+A restored autosave draft follows the same rule: the draft records the link and
+times the editor had loaded, and on restore an unchanged one takes the stored
+value, so a sync that landed after the draft was written survives it.
+
+A venue's free-text `time` (a Caller's Companion field such as "7:30–10:30pm")
+is the series' usual schedule, edited on the venue. A program's own times
+(`startMinute` and the others, below) are a different thing: when one evening
+happens. The program editor shows a linked venue's `time` as a hint beside the
+program's time fields, but never parses it into them, and nothing writes from
+a program back to the venue (#2350). The set-list PDF's venue block leaves the
+venue's `time` out when the program has a `startMinute` or `endMinute`, so the
+page does not give two answers to when the dance runs.
 
 ### Program & ProgramSlot
 | Program | ProgramSlot |
 |---|---|
 | id, title | id, programId, position |
 | eventDate?, venue?, venueId?, notes | danceId? (nullable → free-text slot: break, waltz, announcement) |
+| startMinute?, endMinute?, lessonMinute?, arrivalMinute? (minutes after midnight, 0–1439) | |
 | band?, caller?, dancerLevel? | text? (used when danceId null, or per-slot caller note) |
 | status: draft/finalized/performed | isAlt: bool (alternate dance, decided at event time) |
 | createdAt/updatedAt/deletedAt | guestCaller?, walkthroughMinutes?, danceMinutes? (structured, not folded into `text`) |
@@ -304,6 +317,18 @@ structured rather than buried in the free-text `text` note (each is `>= 0`).
 Callers' Companion's legacy `SetItem.Time` total maps to `danceMinutes`; the
 combined planned length is the sum of non-null values.
 
+`startMinute`, `endMinute`, `lessonMinute` and `arrivalMinute` (schema v42,
+#2350) are optional times of day on `eventDate`: when the dance starts and
+ends, when the beginner lesson starts, and when the caller needs to be at the
+hall. Each is a whole number of minutes after midnight (the constructor rejects
+anything outside 0–1439), a wall-clock time at the hall with **no time zone**,
+and each can be set without an `eventDate`. An `endMinute` earlier than
+`startMinute` means the next day (`endsNextDay`); an equal one does not. They
+sync and travel in backups and program share files as integers, and stay
+integers (sync-spec §6.9). `arrivalMinute` is the caller's own logistics
+(subject `appUser` in the privacy registry): the set-list text and PDF leave it
+out, though program share files keep it.
+
 `venueId` (schema v14) optionally links a program to a reusable [Venue](#venue)
 alongside the free-text `venue` label; the two persist independently (see Venue
 above) so switching venue-entry modes is lossless.
@@ -315,7 +340,8 @@ event again. It is not shown anywhere, and share files drop it.
 
 Duplicate-program = deep copy of slots, as a Draft with performed marks, pay,
 event date and calendar event key cleared (a copy is for a different event;
-LIFE-7). The
+LIFE-7). The times are kept: the date changes between events, but the
+schedule usually does not. The
 programming matrix is a **view**
 computed from structured figures (no manual "elements" checklist — the fix for
 CC's biggest weakness).
@@ -363,7 +389,10 @@ URLs. (Every settings key is classified in
   contra's, since a move ID with no form prefix is a contra move in a dance
   of any form (ADR-006 §5.1). Until a form ships its own, it is contra's.
 - Beats ≥ 0; per-phrase overflow is a **warning**, not an error (real dances
-  bend phrasing; choreography validation is a later milestone).
+  bend phrasing; choreography validation is a later milestone). A square
+  dance also warns of each figure that runs past the end of a phrase
+  (`figure_crosses_phrase`), since traditional squares are phrased call by
+  call (ADR-007 §5.3); contra and English dances do not.
 - ProgramSlot requires at least one of `danceId` or `text` to be non-null;
   both may be set simultaneously (`text` is a per-slot caller note when a
   dance is attached, or the full slot content for free-text slots like breaks).

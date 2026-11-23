@@ -309,6 +309,15 @@ Map<String, Object?> archiveProgramToJson(
   // envelope like archivedAt. Share files never carry it: the share bundles
   // strip it (`sanitizeProgramForShare`).
   if (p.calendarEventKey != null) 'calendarEventKey': p.calendarEventKey,
+  // The times (#2350): only when set, for the same wire-hash reason. Each is
+  // minutes after midnight, and stays an integer for good (sync-spec §6.9).
+  // Stamped by the core archive version (`archiveSchemaVersionProgramTimes`),
+  // which share files carry too, so an older reader warns or refuses rather
+  // than dropping them.
+  if (p.startMinute != null) 'startMinute': p.startMinute,
+  if (p.endMinute != null) 'endMinute': p.endMinute,
+  if (p.lessonMinute != null) 'lessonMinute': p.lessonMinute,
+  if (p.arrivalMinute != null) 'arrivalMinute': p.arrivalMinute,
   'slots': [
     for (final s in p.slots)
       archiveProgramSlotToJson(s, includeOptionalFields: includeOptionalFields),

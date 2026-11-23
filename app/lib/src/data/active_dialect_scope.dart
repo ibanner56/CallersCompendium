@@ -45,12 +45,13 @@ class ActiveDialectScope extends InheritedNotifier<Listenable> {
     return scope._read();
   }
 
-  /// Contra's dialect, for a surface that is still built on contra's
-  /// taxonomy alone, with no dance or form of its own to pick by: figures of
-  /// your own (their list, detail and compound editor), shorthands, parts of
-  /// import review, and the figure and layout defaults in Settings. Each
-  /// moves to the form it shows when it gains a form of its own (ADR-006
-  /// implementation plan, W5 to W7). Registers a rebuild dependency.
+  /// Contra's dialect, for a surface that is built on contra's taxonomy alone
+  /// and has no dance, form or entry of its own to pick by: the figure and
+  /// layout defaults in Settings, parts of import review, the matrix columns'
+  /// and calling cards' settings, a plain shorthand (which stands for a contra
+  /// move), and the name of the contra figure a figure of your own switches to.
+  /// A surface that shows an entry of your own picks the dialect of the
+  /// entry's form from [of] instead (#2294). Registers a rebuild dependency.
   static Dialect contraOf(BuildContext context) =>
       of(context).forForm(DanceForm.contra);
 

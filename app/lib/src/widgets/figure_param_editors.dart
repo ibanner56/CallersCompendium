@@ -198,7 +198,8 @@ class FigureParamEditor extends StatelessWidget {
             fieldKey: _key,
             label: l10n.danceEditorBarsLabel,
             beats: value is int ? value! as int : null,
-            beatsPerBar: bars.beatsPerBar,
+            timing: bars.timing,
+            startBeat: FigureStartScope.startOf(context),
             allowsUntimed: bars.allowsUntimed,
             onChanged: onChanged,
           );

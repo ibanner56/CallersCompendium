@@ -902,6 +902,12 @@ abstract class AppLocalizations {
   /// **'Your default figures use it too, and switch the same way.'**
   String get userFigureSwitchConfirmDefaults;
 
+  /// Added to the dialog confirming a switch to the app's figure {name} (#2294) when the user's figure is for English country dance, whose groups of dancers (the ends, the top) contra's figures lack: a dance that uses one of them keeps the wording it has instead of switching.
+  ///
+  /// In en, this message translates to:
+  /// **'Any use of a group of dancers that {name} doesn\'t have keeps its wording instead.'**
+  String userFigureSwitchConfirmKeepsWording(String name);
+
   /// Added to the dialog confirming a switch to the app's figure {name} (#1023) when the user has shorthands for their figure.
   ///
   /// In en, this message translates to:
@@ -4840,10 +4846,10 @@ abstract class AppLocalizations {
   /// **'Include caller and band when sharing a set list'**
   String get settingsSharingCallerBandTitle;
 
-  /// Title of the toggle that includes the date and venue when a set list is shared.
+  /// Title of the toggle that includes the date, the program's start, end and lesson times, and the venue when a set list is shared.
   ///
   /// In en, this message translates to:
-  /// **'Include date and venue when sharing a set list'**
+  /// **'Include date, times and venue when sharing a set list'**
   String get settingsSharingDateVenueTitle;
 
   /// Subtitle shared by the three set-list sharing toggles, saying they do not affect sharing the whole program.
@@ -4876,16 +4882,16 @@ abstract class AppLocalizations {
   /// **'When on, valid changes are saved as you work, so leaving the editor does not ask whether to discard them. Turn off to save programs explicitly.'**
   String get settingsProgramAutoCommitSubtitle;
 
-  /// Title of the Settings > Program > Programs switch that shows or hides each program's Pay field in the editor and its pay line on the summary. On by default.
+  /// Title of the Settings > Program > Programs switch that shows or hides each program's Pay field in the editor, its pay line on the summary and its pay columns in the programs CSV export. On by default.
   ///
   /// In en, this message translates to:
   /// **'Show pay'**
   String get settingsProgramShowPayTitle;
 
-  /// Subtitle of the Show pay switch: turning it off only hides pay in the program editor and summary; stored pay is never cleared.
+  /// Subtitle of the Show pay switch: turning it off hides pay in the program editor, on the summary and in the programs CSV export; stored pay is never cleared.
   ///
   /// In en, this message translates to:
-  /// **'When off, the program editor and summary hide pay. Pay already entered is kept, and shows again when you turn this back on.'**
+  /// **'When off, the editor, summary and programs spreadsheet hide pay. Pay already entered is kept, and shows again when you turn this back on.'**
   String get settingsProgramShowPaySubtitle;
 
   /// Header for the Program settings editor that reorders, renames, and removes program-matrix columns.
@@ -8902,6 +8908,96 @@ abstract class AppLocalizations {
   /// **'Clear event date'**
   String get programsClearEventDate;
 
+  /// Field label in the program editor for when the dance starts (a time of day). Optional.
+  ///
+  /// In en, this message translates to:
+  /// **'Start time'**
+  String get programsStartTimeLabel;
+
+  /// Field label in the program editor for when the dance ends (a time of day). Optional; earlier than the start time means the next day.
+  ///
+  /// In en, this message translates to:
+  /// **'End time'**
+  String get programsEndTimeLabel;
+
+  /// Field label in the program editor for when the beginner lesson before the dance starts (a time of day). Optional.
+  ///
+  /// In en, this message translates to:
+  /// **'Beginner lesson'**
+  String get programsLessonTimeLabel;
+
+  /// Field label in the program editor for when the caller needs to be at the hall (a time of day). Optional; the caller's own logistics, not printed on the shared set list.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrive by'**
+  String get programsArrivalTimeLabel;
+
+  /// Shown in a program time field (start, end, lesson or arrive by) when no time has been chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get programsNoTimeSet;
+
+  /// Button that opens the time picker for a program time field that has no time yet. Short: it sits beside the time, with up to two time fields to a row.
+  ///
+  /// In en, this message translates to:
+  /// **'Set'**
+  String get programsSetTime;
+
+  /// Button that opens the time picker to change a program time that is already set.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get programsChangeTime;
+
+  /// Screen-reader label for the button that sets a program time, naming the field, e.g. 'Set Start time'.
+  ///
+  /// In en, this message translates to:
+  /// **'Set {field}'**
+  String programsSetTimeFor(String field);
+
+  /// Screen-reader label for the button that changes a program time, naming the field, e.g. 'Change Start time'.
+  ///
+  /// In en, this message translates to:
+  /// **'Change {field}'**
+  String programsChangeTimeFor(String field);
+
+  /// Tooltip for the button that clears a program time, naming the field, e.g. 'Clear Start time'.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear {field}'**
+  String programsClearTime(String field);
+
+  /// Helper text under the program's end time when it is earlier than the start time, so the dance ends after midnight.
+  ///
+  /// In en, this message translates to:
+  /// **'Ends the next day'**
+  String get programsTimeNextDay;
+
+  /// Hint under the program's time fields showing the linked venue's usual schedule, as the caller typed it on the venue (free text, e.g. '7:30-10:30pm'). It is not read into the fields.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue\'s usual time: {time}'**
+  String programsVenueUsualTimeHint(String time);
+
+  /// Part of the times line on the program summary: when the beginner lesson starts, e.g. 'Lesson 7:00 PM'.
+  ///
+  /// In en, this message translates to:
+  /// **'Lesson {time}'**
+  String programsSummaryLessonTime(String time);
+
+  /// Part of the times line on the program summary: when the dance starts and ends, e.g. 'Dance 7:30 PM-10:30 PM'. {times} is already formatted and may end with '(next day)'.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance {times}'**
+  String programsSummaryDanceTime(String times);
+
+  /// Part of the times line on the program summary: when the caller needs to be at the hall, e.g. 'Arrive by 6:30 PM'.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrive by {time}'**
+  String programsSummaryArriveBy(String time);
+
   /// Field label for the program's venue in the editor.
   ///
   /// In en, this message translates to:
@@ -10713,6 +10809,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Page {page} of {pages}'**
   String exportPageOfPages(int page, int pages);
+
+  /// Label for the beginner lesson's time on an exported set list (text and PDF), followed by the label separator and the time, e.g. 'Lesson: 7:00 PM'.
+  ///
+  /// In en, this message translates to:
+  /// **'Lesson'**
+  String get exportLabelLesson;
+
+  /// A dance's start and end time as one phrase on an exported set list and the program summary, e.g. '7:30 PM–10:30 PM'. Both are already formatted.
+  ///
+  /// In en, this message translates to:
+  /// **'{start}–{end}'**
+  String exportTimeRange(String start, String end);
+
+  /// A dance's end time on an exported set list and the program summary when no start time is recorded, e.g. 'until 10:30 PM'.
+  ///
+  /// In en, this message translates to:
+  /// **'until {end}'**
+  String exportEndsAt(String end);
+
+  /// Marks a dance's times as ending the next day (the end time is earlier than the start), e.g. '7:30 PM–1:00 AM (next day)'.
+  ///
+  /// In en, this message translates to:
+  /// **'{times} (next day)'**
+  String exportNextDay(String times);
 
   /// Heading for the venue detail block on an exported set-list PDF.
   ///
@@ -13024,6 +13144,66 @@ abstract class AppLocalizations {
   /// **'Remove phrase {name}'**
   String danceEditorPhraseRemove(String name);
 
+  /// Help under the heading of the phrase-structure rows in a contra or square dance's editor. Each row is one part of the phrase structure text. The text field below the rows shows the same structure. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Each row is a run of equal phrases: how many there are, the bars in each, and the beats in a bar. The phrase structure below changes with the rows.'**
+  String get danceEditorPhraseRowsHelp;
+
+  /// Label of the number field for how many equal phrases one row of a contra or square dance's phrase structure has. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Phrases'**
+  String get danceEditorPhraseRowsPhrasesLabel;
+
+  /// Label of the number field for how many bars of music each phrase of one row of a contra or square dance's phrase structure has. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Bars per phrase'**
+  String get danceEditorPhraseRowsBarsLabel;
+
+  /// Label of the number field for how many beats are in a bar in one row of a contra or square dance's phrase structure, such as 2 for a reel or 3 for a slip jig. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Beats per bar'**
+  String get danceEditorPhraseRowsBeatsLabel;
+
+  /// Short error under a number field of the phrase-structure rows in a contra or square dance when it is empty, zero or too large: the numbers it may hold. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'1 to {max}'**
+  String danceEditorPhraseRowsRange(int max);
+
+  /// Button that adds a row to the phrase-structure rows of a contra or square dance. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Add row'**
+  String get danceEditorPhraseRowsAdd;
+
+  /// Tooltip of the button that removes one row from the phrase-structure rows of a contra or square dance. The number counts the rows from 1. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove row {number}'**
+  String danceEditorPhraseRowsRemove(int number);
+
+  /// Error under the phrase-structure rows of a contra or square dance when a number is empty, zero or above {max}, or the structure is too long. The phrase structure is kept as it was until it is fixed, and anything that saves it saves that kept structure. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Give each field a whole number from 1 to {max}, in a structure that is not too long. Until then the last valid phrase structure is kept.'**
+  String danceEditorPhraseRowsInvalid(int max);
+
+  /// One line under the phrase-structure rows of a contra or square dance: the labels the phrases get, such as A1 A2 B1 B2 (a long list ends with an ellipsis), then the beats in all. The labels are music-phrase labels and stay as written. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'{labels} · {beats, plural, =1{1 beat} other{{beats} beats}}'**
+  String danceEditorPhraseRowsSummary(String labels, int beats);
+
+  /// Note under the phrase-structure rows of a contra or square dance while the phrase structure text below them is not valid, or holds phrase names that only an English dance keeps. The rows are disabled until it is. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'These rows show the last valid phrase structure. Fix the phrase structure below to edit them again.'**
+  String get danceEditorPhraseRowsDisabledNote;
+
   /// Section heading for the editable figure list in the dance editor.
   ///
   /// In en, this message translates to:
@@ -13665,6 +13845,12 @@ abstract class AppLocalizations {
     String pickerForm,
   );
 
+  /// Editor warning on a square dance for a figure whose beats run past the end of a phrase, so that phrase's calls do not fill it exactly (traditional squares are phrased call by call). {position} is the figure's number in the dance. {label} is the phrase's name from the dance's phrase structure, such as 'A1'.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure {position} runs past the end of {label}. In a square dance, the calls of each phrase should fill it exactly.'**
+  String validationFigureCrossesPhrase(int position, String label);
+
   /// Dance-editor warning (AUTH-2): the figure row at {position} (1-based, counting the rows of the figure list) is not complete, such as a group (meanwhile, modifier or sequence) with fewer than two of its figures filled in, a modifier group with no Core, or a row with no move that holds a walkthrough step, so saving the dance leaves it out. 'Save' is the editor's Save button (commonSave).
   ///
   /// In en, this message translates to:
@@ -13842,12 +14028,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose…'**
   String get danceEditorChooseHint;
-
-  /// Hint in the search box of the open list of dancers a figure names (its Who field), which narrows the list.
-  ///
-  /// In en, this message translates to:
-  /// **'Search dancers'**
-  String get figureParamSearchDancersHint;
 
   /// Type-ahead option label for creating a new item with the typed name/title.
   ///
@@ -18815,6 +18995,300 @@ abstract class AppLocalizations {
   /// **'Couldn\'t save that change to your templates. Try again.'**
   String get programTemplateSaveError;
 
+  /// Header of the Suggestions group in the Experimental settings section (#2343).
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions'**
+  String get settingsSuggestionsHeader;
+
+  /// Title of the switch that turns on the Suggested sort in the program builder's dance list.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest the next dance'**
+  String get settingsSuggestionsEnabledTitle;
+
+  /// Subtitle of the Suggest the next dance switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds Suggested to the Sort menu of the program builder\'s dance list. It orders the dances for the end of the program and says why.'**
+  String get settingsSuggestionsEnabledSubtitle;
+
+  /// Title of the row, and of the screen it opens, where the user chooses how much each suggestion factor counts.
+  ///
+  /// In en, this message translates to:
+  /// **'What suggestions look for'**
+  String get settingsSuggestionsEditorTitle;
+
+  /// Subtitle of the What suggestions look for row.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how much each thing counts when dances are suggested.'**
+  String get settingsSuggestionsEditorSubtitle;
+
+  /// Name of the suggestion factor that favours moves the program has not used yet and avoids moves on the same beats as the neighbouring dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Variety on the matrix'**
+  String get suggestionFactorMatrixVarietyTitle;
+
+  /// Explanation under the Variety on the matrix factor in the suggestions editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Favor dances with moves the program hasn\'t used yet. Avoid moves on the same beats as the dance before.'**
+  String get suggestionFactorMatrixVarietyHelp;
+
+  /// Name of the suggestion factor that avoids repeating formations.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation balance'**
+  String get suggestionFactorFormationBalanceTitle;
+
+  /// Explanation under the Formation balance factor in the suggestions editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Avoid the formation of the dance before, and formations the program already has many of.'**
+  String get suggestionFactorFormationBalanceHelp;
+
+  /// Name of the suggestion factor that fits dance difficulty to a chosen shape over the evening.
+  ///
+  /// In en, this message translates to:
+  /// **'Difficulty curve'**
+  String get suggestionFactorDifficultyCurveTitle;
+
+  /// Explanation under the Difficulty curve factor in the suggestions editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit the difficulty of the evening to a shape.'**
+  String get suggestionFactorDifficultyCurveHelp;
+
+  /// Name of the suggestion factor that avoids dances called recently at the program's venue.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent calls at this venue'**
+  String get suggestionFactorVenueRecencyTitle;
+
+  /// Explanation under the Recent calls at this venue factor in the suggestions editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Avoid dances called recently at the program\'s venue. A program with no venue skips this.'**
+  String get suggestionFactorVenueRecencyHelp;
+
+  /// Weight choice for a suggestion factor: it does not count at all. Also the curve shape choice that turns the difficulty curve off.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get suggestionWeightOff;
+
+  /// Weight choice for a suggestion factor: it counts a little.
+  ///
+  /// In en, this message translates to:
+  /// **'A little'**
+  String get suggestionWeightALittle;
+
+  /// Weight choice for a suggestion factor: it counts a lot.
+  ///
+  /// In en, this message translates to:
+  /// **'A lot'**
+  String get suggestionWeightALot;
+
+  /// Screen-reader label of the Off / A little / A lot choice for one suggestion factor.
+  ///
+  /// In en, this message translates to:
+  /// **'How much {factor} counts'**
+  String suggestionWeightSemantic(String factor);
+
+  /// Label of the difficulty curve's shape choice in the suggestions editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Shape'**
+  String get suggestionCurveShapeLabel;
+
+  /// Difficulty curve shape: start easy, build to the hardest dances about two thirds of the way in, then ease off.
+  ///
+  /// In en, this message translates to:
+  /// **'Build up, then ease off'**
+  String get suggestionCurveBuildThenEase;
+
+  /// Difficulty curve shape: stay close to the level of the dances already in the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Even'**
+  String get suggestionCurveEven;
+
+  /// Button in the suggestions editor that restores the shipped choices.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to defaults'**
+  String get suggestionsResetDefaults;
+
+  /// Snackbar after Reset to defaults in the suggestions editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions look for the default things again.'**
+  String get suggestionsResetDone;
+
+  /// Notice in the suggestions editor when the stored choices come from a newer app version; the editor is read-only then.
+  ///
+  /// In en, this message translates to:
+  /// **'These choices were saved by a newer version of the app, so they can\'t be changed here. Update the app to change them.'**
+  String get suggestionsNewerVersion;
+
+  /// Sort choice in the program builder's dance list, offered when Suggestions is on: the dances ordered for the end of the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested'**
+  String get collectionSortSuggested;
+
+  /// Suggestion reason: the dance brings moves no other dance in the program uses.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{A new move for tonight} other{{count} new moves for tonight}}'**
+  String suggestionReasonNewMoves(int count);
+
+  /// Suggestion reason: a move lands on the same beats as in the previous dance (the matrix's collision rule). {move} is the matrix column's name, such as partner swing.
+  ///
+  /// In en, this message translates to:
+  /// **'Same {move} beats as the previous dance'**
+  String suggestionReasonBeatOverlapPrevious(String move);
+
+  /// Suggestion reason: a move lands on the same beats as in the next dance. {move} is the matrix column's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Same {move} beats as the next dance'**
+  String suggestionReasonBeatOverlapNext(String move);
+
+  /// Suggestion reason: the dance is in the same formation as the previous one.
+  ///
+  /// In en, this message translates to:
+  /// **'{formation}, like the previous dance'**
+  String suggestionReasonSameFormationPrevious(String formation);
+
+  /// Suggestion reason: the dance is in the same formation as the next one.
+  ///
+  /// In en, this message translates to:
+  /// **'{formation}, like the next dance'**
+  String suggestionReasonSameFormationNext(String formation);
+
+  /// Suggestion reason: the program already has many dances in this formation. {count} is at least 3.
+  ///
+  /// In en, this message translates to:
+  /// **'Already {count} {formation} dances tonight'**
+  String suggestionReasonFormationCommon(int count, String formation);
+
+  /// Suggestion reason: no other dance in the program is in this formation.
+  ///
+  /// In en, this message translates to:
+  /// **'{formation}: the first tonight'**
+  String suggestionReasonFirstFormation(String formation);
+
+  /// Suggestion reason: the dance's level fits the chosen difficulty curve at this point of the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Fits the difficulty curve here'**
+  String get suggestionReasonFitsCurve;
+
+  /// Suggestion reason: the dance's level is above what the difficulty curve wants at this point.
+  ///
+  /// In en, this message translates to:
+  /// **'Harder than the difficulty curve wants here'**
+  String get suggestionReasonHarderThanCurve;
+
+  /// Suggestion reason: the dance's level is below what the difficulty curve wants at this point.
+  ///
+  /// In en, this message translates to:
+  /// **'Easier than the difficulty curve wants here'**
+  String get suggestionReasonEasierThanCurve;
+
+  /// Suggestion reason: the dance was called at this program's venue within the chosen window.
+  ///
+  /// In en, this message translates to:
+  /// **'Called at {venue} on {date}'**
+  String suggestionReasonCalledHereRecently(String venue, String date);
+
+  /// Suggestion reason: the dance was last called at this venue before the chosen window, on {date}.
+  ///
+  /// In en, this message translates to:
+  /// **'Not called at {venue} since {date}'**
+  String suggestionReasonNotCalledHereSince(String venue, String date);
+
+  /// Suggestion reason: the dance has never been called at this program's venue.
+  ///
+  /// In en, this message translates to:
+  /// **'Never called at {venue}'**
+  String suggestionReasonNeverCalledHere(String venue);
+
+  /// Note in a suggestion's Why? list when the program has no venue, so the venue factor could not be used.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent calls at this venue: skipped, because the program has no venue'**
+  String get suggestionReasonVenueSkipped;
+
+  /// Suggestion reason when no factor raised or lowered the dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing it looks for moved this dance'**
+  String get suggestionReasonNoFactor;
+
+  /// Reason on an English dance in the Suggested order: English dances are listed after the ranked ones, in the plain order.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions don\'t cover English dances yet'**
+  String get suggestionReasonEnglishNotCovered;
+
+  /// Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the previous dance. {move} is the matrix column's name.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} in the same phrase as the previous dance'**
+  String suggestionReasonPhraseOverlapPrevious(String move);
+
+  /// Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the next dance. {move} is the matrix column's name.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} in the same phrase as the next dance'**
+  String suggestionReasonPhraseOverlapNext(String move);
+
+  /// Suggestion reason: the dance is already in the program being built, so the Suggested order puts it last (it is not removed).
+  ///
+  /// In en, this message translates to:
+  /// **'Already in this program'**
+  String get suggestionReasonAlreadyInProgram;
+
+  /// Notice in the program builder's dance picker when the Suggested sort is chosen but ranking failed; the list shows in its plain order.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t rank these dances, so they\'re in their usual order.'**
+  String get suggestionRankingFailed;
+
+  /// Tooltip and screen-reader label of the Why? button on a row in the Suggested order.
+  ///
+  /// In en, this message translates to:
+  /// **'Why {title} is suggested here'**
+  String suggestionWhyTooltip(String title);
+
+  /// Title of the dialog listing every factor that moved a dance in the Suggested order.
+  ///
+  /// In en, this message translates to:
+  /// **'Why {title}'**
+  String suggestionWhyTitle(String title);
+
+  /// Screen-reader label of a reason in the Why? dialog that moved the dance up.
+  ///
+  /// In en, this message translates to:
+  /// **'Raises it: {reason}'**
+  String suggestionWhyRaises(String reason);
+
+  /// Screen-reader label of a reason in the Why? dialog that moved the dance down.
+  ///
+  /// In en, this message translates to:
+  /// **'Lowers it: {reason}'**
+  String suggestionWhyLowers(String reason);
+
+  /// Hint in the search box of the open list of dancers a figure names (its Who field), which narrows the list.
+  ///
+  /// In en, this message translates to:
+  /// **'Search dancers'**
+  String get figureParamSearchDancersHint;
+
   /// Program export-menu item: save or share the program as an iCalendar (.ics) file so a calendar app shows it. Shown only when the program has an event date.
   ///
   /// In en, this message translates to:
@@ -19324,6 +19798,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Barnes reference'**
   String get csvColumnBarnes;
+
+  /// Programs list overflow menu item that exports the programs in the current view as a CSV spreadsheet file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export programs as CSV'**
+  String get programsExportCsv;
+
+  /// Start of the file name of an exported programs CSV spreadsheet, before the date (for example programs_2026-11-23.csv). Lower case; a single word if possible.
+  ///
+  /// In en, this message translates to:
+  /// **'programs'**
+  String get csvProgramsFileStem;
+
+  /// Column heading in an exported programs CSV spreadsheet: the date of the event.
+  ///
+  /// In en, this message translates to:
+  /// **'Event date'**
+  String get csvColumnEventDate;
+
+  /// Column heading in an exported programs CSV spreadsheet: the venue's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue'**
+  String get csvColumnVenue;
+
+  /// Column heading in an exported programs CSV spreadsheet: the event's caller.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller'**
+  String get csvColumnCaller;
+
+  /// Column heading in an exported programs CSV spreadsheet: the band playing the event.
+  ///
+  /// In en, this message translates to:
+  /// **'Band'**
+  String get csvColumnBand;
+
+  /// Column heading in an exported programs CSV spreadsheet: the event's overall dancer level.
+  ///
+  /// In en, this message translates to:
+  /// **'Dancer level'**
+  String get csvColumnDancerLevel;
+
+  /// Column heading in an exported programs CSV spreadsheet: what the caller was paid, as a number.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay'**
+  String get csvColumnPayAmount;
+
+  /// Column heading in an exported programs CSV spreadsheet: the currency of the pay, such as USD.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get csvColumnPayCurrency;
+
+  /// Column heading in an exported programs CSV spreadsheet: the program's notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get csvColumnNotes;
+
+  /// Column heading in an exported programs CSV spreadsheet: how many dances the program has, not counting alternates.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of dances'**
+  String get csvColumnDanceCount;
+
+  /// Column heading in an exported programs CSV spreadsheet: the program's dances in order, one per line, alternates marked.
+  ///
+  /// In en, this message translates to:
+  /// **'Dances'**
+  String get csvColumnDances;
+
+  /// Shown in the export dialog of the programs CSV spreadsheet while the Show pay setting is off: the file has no pay columns. 'Show pay' is the setting's name (settingsProgramShowPayTitle).
+  ///
+  /// In en, this message translates to:
+  /// **'Pay is hidden in Settings, so it is left out. Turn on Show pay in Settings ▸ Program to include it.'**
+  String get exportCsvPayHiddenNotice;
 
   /// Collection More actions menu item that opens the Repertoire page (#2357, Experimental).
   ///

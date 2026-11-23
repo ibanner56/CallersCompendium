@@ -545,6 +545,11 @@ class AppLocalizationsJa extends AppLocalizations {
       '既定のフィギュアもこのフィギュアを使っており、同じように切り替わります。';
 
   @override
+  String userFigureSwitchConfirmKeepsWording(String name) {
+    return '$name にないダンサーのグループを使っている箇所は、切り替わらず現在の表現のまま残ります。';
+  }
+
+  @override
   String userFigureSwitchConfirmShorthands(int count, String name) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -3023,7 +3028,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSharingCallerBandTitle => 'セットリストを共有するときにコーラーとバンドを含める';
 
   @override
-  String get settingsSharingDateVenueTitle => 'セットリストを共有するときに日付と会場を含める';
+  String get settingsSharingDateVenueTitle => 'セットリストを共有するときに日付、時刻、会場を含める';
 
   @override
   String get settingsSharingSubtitle =>
@@ -3048,7 +3053,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsProgramShowPaySubtitle =>
-      'オフにすると、プログラムのエディターと概要で報酬が非表示になります。入力済みの報酬は保持され、再びオンにすると表示されます。';
+      'オフにすると、エディター・概要・プログラムの表計算ファイルで報酬が非表示になります。入力済みの報酬は保持され、再びオンにすると表示されます。';
 
   @override
   String get settingsMatrixColumnsHeader => 'マトリクスの列';
@@ -5542,6 +5547,65 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsClearEventDate => 'イベント日をクリア';
 
   @override
+  String get programsStartTimeLabel => '開始時刻';
+
+  @override
+  String get programsEndTimeLabel => '終了時刻';
+
+  @override
+  String get programsLessonTimeLabel => '初心者レッスン';
+
+  @override
+  String get programsArrivalTimeLabel => '到着時刻';
+
+  @override
+  String get programsNoTimeSet => '未設定';
+
+  @override
+  String get programsSetTime => '設定';
+
+  @override
+  String get programsChangeTime => '変更';
+
+  @override
+  String programsSetTimeFor(String field) {
+    return '$fieldを設定';
+  }
+
+  @override
+  String programsChangeTimeFor(String field) {
+    return '$fieldを変更';
+  }
+
+  @override
+  String programsClearTime(String field) {
+    return '$fieldをクリア';
+  }
+
+  @override
+  String get programsTimeNextDay => '翌日に終了';
+
+  @override
+  String programsVenueUsualTimeHint(String time) {
+    return '会場の通常の時間：$time';
+  }
+
+  @override
+  String programsSummaryLessonTime(String time) {
+    return 'レッスン $time';
+  }
+
+  @override
+  String programsSummaryDanceTime(String times) {
+    return 'ダンス $times';
+  }
+
+  @override
+  String programsSummaryArriveBy(String time) {
+    return '到着 $time';
+  }
+
+  @override
   String get programsVenueLabel => '会場';
 
   @override
@@ -6780,6 +6844,24 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String exportPageOfPages(int page, int pages) {
     return '$page / $pages ページ';
+  }
+
+  @override
+  String get exportLabelLesson => 'レッスン';
+
+  @override
+  String exportTimeRange(String start, String end) {
+    return '$start～$end';
+  }
+
+  @override
+  String exportEndsAt(String end) {
+    return '$endまで';
+  }
+
+  @override
+  String exportNextDay(String times) {
+    return '$times（翌日）';
   }
 
   @override
@@ -8432,6 +8514,52 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get danceEditorPhraseRowsHelp =>
+      '各行は、同じ長さのフレーズの並びです。フレーズの数、各フレーズの小節数、1小節の拍数を指定します。下のフレーズ構造は行に合わせて変わります。';
+
+  @override
+  String get danceEditorPhraseRowsPhrasesLabel => 'フレーズ数';
+
+  @override
+  String get danceEditorPhraseRowsBarsLabel => 'フレーズごとの小節数';
+
+  @override
+  String get danceEditorPhraseRowsBeatsLabel => '1小節の拍数';
+
+  @override
+  String danceEditorPhraseRowsRange(int max) {
+    return '1〜$max';
+  }
+
+  @override
+  String get danceEditorPhraseRowsAdd => '行を追加';
+
+  @override
+  String danceEditorPhraseRowsRemove(int number) {
+    return '$number行目を削除';
+  }
+
+  @override
+  String danceEditorPhraseRowsInvalid(int max) {
+    return '各欄に1から$maxまでの整数を入力してください。長すぎる構造にはできません。それまでは最後の有効なフレーズ構造が保たれます。';
+  }
+
+  @override
+  String danceEditorPhraseRowsSummary(String labels, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats拍',
+      one: '1拍',
+    );
+    return '$labels · $_temp0';
+  }
+
+  @override
+  String get danceEditorPhraseRowsDisabledNote =>
+      'これらの行には最後の有効なフレーズ構造が表示されています。再び編集するには、下のフレーズ構造を修正してください。';
+
+  @override
   String get danceEditorFiguresSection => 'フィギュア';
 
   @override
@@ -8812,6 +8940,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String validationFigureCrossesPhrase(int position, String label) {
+    return 'フィギュア$positionが$labelの終わりを越えています。スクエアダンスでは、各フレーズのコールがそのフレーズをちょうど埋めるようにします。';
+  }
+
+  @override
   String validationIncompleteFigure(int position) {
     return 'フィギュア$positionは未完成のため、保存しても含まれません。';
   }
@@ -8920,9 +9053,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorChooseHint => '選択…';
-
-  @override
-  String get figureParamSearchDancersHint => 'ダンサーを検索';
 
   @override
   String danceEditorCreateQuotedName(String name) {
@@ -12337,6 +12467,199 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programTemplateSaveError => 'テンプレートへの変更を保存できませんでした。もう一度お試しください。';
 
   @override
+  String get settingsSuggestionsHeader => '提案';
+
+  @override
+  String get settingsSuggestionsEnabledTitle => '次のダンスを提案';
+
+  @override
+  String get settingsSuggestionsEnabledSubtitle =>
+      'プログラム作成画面のダンス一覧の「並べ替え」メニューに「おすすめ順」を追加します。プログラムの最後に入れるダンスを並べ、その理由を示します。';
+
+  @override
+  String get settingsSuggestionsEditorTitle => '提案で考慮すること';
+
+  @override
+  String get settingsSuggestionsEditorSubtitle =>
+      'ダンスを提案するときに、それぞれをどれだけ重視するかを選びます。';
+
+  @override
+  String get suggestionFactorMatrixVarietyTitle => 'マトリクスの多様さ';
+
+  @override
+  String get suggestionFactorMatrixVarietyHelp =>
+      'プログラムでまだ使っていない動きのあるダンスを優先します。前のダンスと同じ拍の動きは避けます。';
+
+  @override
+  String get suggestionFactorFormationBalanceTitle => '隊形のバランス';
+
+  @override
+  String get suggestionFactorFormationBalanceHelp =>
+      '前のダンスと同じ隊形や、プログラムにすでに多い隊形を避けます。';
+
+  @override
+  String get suggestionFactorDifficultyCurveTitle => '難易度の流れ';
+
+  @override
+  String get suggestionFactorDifficultyCurveHelp => '夜全体の難易度を選んだ形に合わせます。';
+
+  @override
+  String get suggestionFactorVenueRecencyTitle => 'この会場での最近のコール';
+
+  @override
+  String get suggestionFactorVenueRecencyHelp =>
+      'プログラムの会場で最近コールしたダンスを避けます。会場のないプログラムではこの項目を使いません。';
+
+  @override
+  String get suggestionWeightOff => 'オフ';
+
+  @override
+  String get suggestionWeightALittle => '少し';
+
+  @override
+  String get suggestionWeightALot => '強く';
+
+  @override
+  String suggestionWeightSemantic(String factor) {
+    return '$factorの重み';
+  }
+
+  @override
+  String get suggestionCurveShapeLabel => '形';
+
+  @override
+  String get suggestionCurveBuildThenEase => '徐々に上げて、最後は落ち着かせる';
+
+  @override
+  String get suggestionCurveEven => '一定';
+
+  @override
+  String get suggestionsResetDefaults => '既定に戻す';
+
+  @override
+  String get suggestionsResetDone => '提案で考慮することを既定に戻しました。';
+
+  @override
+  String get suggestionsNewerVersion =>
+      'この設定は新しいバージョンのアプリで保存されたため、ここでは変更できません。変更するにはアプリを更新してください。';
+
+  @override
+  String get collectionSortSuggested => 'おすすめ順';
+
+  @override
+  String suggestionReasonNewMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '今夜初めての動きが$countつ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapPrevious(String move) {
+    return '$moveが前のダンスと同じ拍';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapNext(String move) {
+    return '$moveが次のダンスと同じ拍';
+  }
+
+  @override
+  String suggestionReasonSameFormationPrevious(String formation) {
+    return '$formation（前のダンスと同じ）';
+  }
+
+  @override
+  String suggestionReasonSameFormationNext(String formation) {
+    return '$formation（次のダンスと同じ）';
+  }
+
+  @override
+  String suggestionReasonFormationCommon(int count, String formation) {
+    return '今夜はすでに$formationが$count曲';
+  }
+
+  @override
+  String suggestionReasonFirstFormation(String formation) {
+    return '$formation：今夜初めて';
+  }
+
+  @override
+  String get suggestionReasonFitsCurve => 'ここでの難易度の流れに合う';
+
+  @override
+  String get suggestionReasonHarderThanCurve => 'ここでは難易度の流れより難しい';
+
+  @override
+  String get suggestionReasonEasierThanCurve => 'ここでは難易度の流れより易しい';
+
+  @override
+  String suggestionReasonCalledHereRecently(String venue, String date) {
+    return '$dateに$venueでコール済み';
+  }
+
+  @override
+  String suggestionReasonNotCalledHereSince(String venue, String date) {
+    return '$date以来$venueでコールしていない';
+  }
+
+  @override
+  String suggestionReasonNeverCalledHere(String venue) {
+    return '$venueでコールしたことがない';
+  }
+
+  @override
+  String get suggestionReasonVenueSkipped =>
+      'この会場での最近のコール：プログラムに会場がないため使っていません';
+
+  @override
+  String get suggestionReasonNoFactor => 'どの項目もこのダンスの順位を変えていません';
+
+  @override
+  String get suggestionReasonEnglishNotCovered => '提案はまだイングリッシュ・ダンスに対応していません';
+
+  @override
+  String suggestionReasonPhraseOverlapPrevious(String move) {
+    return '$moveが前のダンスと同じフレーズ';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapNext(String move) {
+    return '$moveが次のダンスと同じフレーズ';
+  }
+
+  @override
+  String get suggestionReasonAlreadyInProgram => 'すでにこのプログラムにあります';
+
+  @override
+  String get suggestionRankingFailed => 'ダンスを並べ替えられなかったため、通常の順序で表示しています。';
+
+  @override
+  String suggestionWhyTooltip(String title) {
+    return '$titleがここで提案される理由';
+  }
+
+  @override
+  String suggestionWhyTitle(String title) {
+    return '$titleの理由';
+  }
+
+  @override
+  String suggestionWhyRaises(String reason) {
+    return '順位を上げる：$reason';
+  }
+
+  @override
+  String suggestionWhyLowers(String reason) {
+    return '順位を下げる：$reason';
+  }
+
+  @override
+  String get figureParamSearchDancersHint => 'ダンサーを検索';
+
+  @override
   String get exportAddToCalendar => 'カレンダーに追加（.ics）';
 
   @override
@@ -12639,6 +12962,46 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get csvColumnBarnes => 'Barnes 掲載箇所';
+
+  @override
+  String get programsExportCsv => 'プログラムをCSVでエクスポート';
+
+  @override
+  String get csvProgramsFileStem => 'プログラム';
+
+  @override
+  String get csvColumnEventDate => 'イベント日';
+
+  @override
+  String get csvColumnVenue => '会場';
+
+  @override
+  String get csvColumnCaller => 'コーラー';
+
+  @override
+  String get csvColumnBand => 'バンド';
+
+  @override
+  String get csvColumnDancerLevel => 'ダンサーレベル';
+
+  @override
+  String get csvColumnPayAmount => '報酬';
+
+  @override
+  String get csvColumnPayCurrency => '通貨';
+
+  @override
+  String get csvColumnNotes => 'ノート';
+
+  @override
+  String get csvColumnDanceCount => 'ダンス数';
+
+  @override
+  String get csvColumnDances => 'ダンス';
+
+  @override
+  String get exportCsvPayHiddenNotice =>
+      '報酬は設定で非表示になっているため、含まれません。含めるには、設定 ▸ プログラムで「報酬を表示」をオンにしてください。';
 
   @override
   String get collectionRepertoireMenuItem => 'レパートリー';

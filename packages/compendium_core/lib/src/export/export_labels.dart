@@ -20,7 +20,7 @@
 /// English defaults are the single source of truth mirrored into `app_en.arb`.
 library;
 
-import '../model/bar_count.dart';
+import '../model/bar_timing.dart';
 
 String _englishBeats(int beats) => '$beats ${beats == 1 ? 'beat' : 'beats'}';
 
@@ -51,6 +51,12 @@ String _englishMusicalKey(String key) => 'Key: $key';
 String _englishBarnes(String reference) => 'Barnes: $reference';
 
 String _englishPageOf(int page, int pages) => 'Page $page of $pages';
+
+String _englishTimeRange(String start, String end) => '$start–$end';
+
+String _englishEndsAt(String end) => 'until $end';
+
+String _englishNextDay(String times) => '$times (next day)';
 
 String _englishOmittedCaption(int count) =>
     '$count free-text ${count == 1 ? 'slot' : 'slots'} '
@@ -140,15 +146,15 @@ class DanceExportLabels {
   /// such as `Figures:`: [labelSeparator] without a trailing space.
   String heading(String label) => '$label${labelSeparator.trimRight()}';
 
-  /// A figure's count of [beats] as an export shows it: in bars of
-  /// [beatsPerBar] beats for a dance timed in bars ([danceBeatsPerBar]), or in
-  /// beats where [beatsPerBar] is null or the count is not a whole number of
-  /// half bars, as the editor shows it.
-  String count(int beats, int? beatsPerBar) {
-    final text = beatsPerBar == null ? null : barsText(beats, beatsPerBar);
-    return text == null
+  /// A figure's count of [beats] as an export shows it: in bars, counted from
+  /// where the figure starts ([startBeat]) by [timing], for a dance timed in
+  /// bars ([barTimingFor]), or in beats where [timing] is null or the count is
+  /// not a whole number of half bars, as the editor shows it.
+  String count(int beats, BarTiming? timing, int startBeat) {
+    final counted = timing?.barsTextAt(startBeat, beats);
+    return counted == null
         ? this.beats(beats)
-        : bars(text, beats * 2 ~/ beatsPerBar!);
+        : bars(counted.text, counted.halfBars);
   }
 
   /// Page footer of the dance PDF, e.g. `"Page 2 of 3"`.
@@ -209,6 +215,10 @@ class ProgramExportLabels {
     this.by = _englishBy,
     this.labelSeparator = ': ',
     this.pageOf = _englishPageOf,
+    this.lesson = 'Lesson',
+    this.timeRange = _englishTimeRange,
+    this.endsAt = _englishEndsAt,
+    this.nextDay = _englishNextDay,
   });
 
   final String band;
@@ -252,6 +262,20 @@ class ProgramExportLabels {
 
   /// Page footer of the set-list PDF, e.g. `"Page 2 of 3"`.
   final String Function(int page, int pages) pageOf;
+
+  /// Label of the beginner lesson's time, as in `Lesson: 7:00 PM` (#2350).
+  final String lesson;
+
+  /// A dance's start and end time as one phrase, e.g. `"7:30 PM–10:30 PM"`;
+  /// both arguments are already formatted.
+  final String Function(String start, String end) timeRange;
+
+  /// A dance's end time when no start is recorded, e.g. `"until 10:30 PM"`.
+  final String Function(String end) endsAt;
+
+  /// [timeRange]'s result marked as ending the next day, e.g.
+  /// `"7:30 PM–1:00 AM (next day)"`.
+  final String Function(String times) nextDay;
 }
 
 /// Labels and fixed captions for the Programming Matrix PDF

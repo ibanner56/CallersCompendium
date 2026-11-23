@@ -572,6 +572,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'Dine standardfigurer bruger den også og skifter på samme måde.';
 
   @override
+  String userFigureSwitchConfirmKeepsWording(String name) {
+    return 'Enhver brug af en dansergruppe, som $name ikke har, beholder i stedet sin ordlyd.';
+  }
+
+  @override
   String userFigureSwitchConfirmShorthands(int count, String name) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -3176,7 +3181,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSharingDateVenueTitle =>
-      'Medtag dato og sted, når en sætliste deles';
+      'Medtag dato, tidspunkter og sted, når en sætliste deles';
 
   @override
   String get settingsSharingSubtitle =>
@@ -3203,7 +3208,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsProgramShowPaySubtitle =>
-      'Når den er slået fra, skjuler programeditoren og oversigten honoraret. Honorar, der allerede er indtastet, bevares og vises igen, når du slår den til igen.';
+      'Når den er slået fra, skjuler editoren, oversigten og programregnearket honoraret. Honorar, der allerede er indtastet, bevares og vises igen, når du slår den til igen.';
 
   @override
   String get settingsMatrixColumnsHeader => 'Matrixkolonner';
@@ -5795,6 +5800,65 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsClearEventDate => 'Ryd begivenhedsdato';
 
   @override
+  String get programsStartTimeLabel => 'Starttid';
+
+  @override
+  String get programsEndTimeLabel => 'Sluttid';
+
+  @override
+  String get programsLessonTimeLabel => 'Begynderundervisning';
+
+  @override
+  String get programsArrivalTimeLabel => 'Ankomst senest';
+
+  @override
+  String get programsNoTimeSet => 'Ikke angivet';
+
+  @override
+  String get programsSetTime => 'Angiv';
+
+  @override
+  String get programsChangeTime => 'Skift';
+
+  @override
+  String programsSetTimeFor(String field) {
+    return 'Angiv $field';
+  }
+
+  @override
+  String programsChangeTimeFor(String field) {
+    return 'Skift $field';
+  }
+
+  @override
+  String programsClearTime(String field) {
+    return 'Ryd $field';
+  }
+
+  @override
+  String get programsTimeNextDay => 'Slutter dagen efter';
+
+  @override
+  String programsVenueUsualTimeHint(String time) {
+    return 'Spillestedets sædvanlige tid: $time';
+  }
+
+  @override
+  String programsSummaryLessonTime(String time) {
+    return 'Undervisning $time';
+  }
+
+  @override
+  String programsSummaryDanceTime(String times) {
+    return 'Dans $times';
+  }
+
+  @override
+  String programsSummaryArriveBy(String time) {
+    return 'Ankomst senest $time';
+  }
+
+  @override
   String get programsVenueLabel => 'Spillested';
 
   @override
@@ -7067,6 +7131,24 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String exportPageOfPages(int page, int pages) {
     return 'Side $page af $pages';
+  }
+
+  @override
+  String get exportLabelLesson => 'Undervisning';
+
+  @override
+  String exportTimeRange(String start, String end) {
+    return '$start–$end';
+  }
+
+  @override
+  String exportEndsAt(String end) {
+    return 'til $end';
+  }
+
+  @override
+  String exportNextDay(String times) {
+    return '$times (dagen efter)';
   }
 
   @override
@@ -8791,6 +8873,52 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get danceEditorPhraseRowsHelp =>
+      'Hver række er en serie ens fraser: hvor mange der er, takterne i hver og slagene i en takt. Frastrukturen nedenfor ændres sammen med rækkerne.';
+
+  @override
+  String get danceEditorPhraseRowsPhrasesLabel => 'Fraser';
+
+  @override
+  String get danceEditorPhraseRowsBarsLabel => 'Takter pr. frase';
+
+  @override
+  String get danceEditorPhraseRowsBeatsLabel => 'Slag pr. takt';
+
+  @override
+  String danceEditorPhraseRowsRange(int max) {
+    return '1 til $max';
+  }
+
+  @override
+  String get danceEditorPhraseRowsAdd => 'Tilføj række';
+
+  @override
+  String danceEditorPhraseRowsRemove(int number) {
+    return 'Fjern række $number';
+  }
+
+  @override
+  String danceEditorPhraseRowsInvalid(int max) {
+    return 'Angiv et helt tal fra 1 til $max i hvert felt, i en struktur der ikke er for lang. Indtil da bevares den sidste gyldige frastruktur.';
+  }
+
+  @override
+  String danceEditorPhraseRowsSummary(String labels, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats slag',
+      one: '1 slag',
+    );
+    return '$labels · $_temp0';
+  }
+
+  @override
+  String get danceEditorPhraseRowsDisabledNote =>
+      'Rækkerne viser den sidste gyldige frastruktur. Ret frastrukturen nedenfor for at redigere dem igen.';
+
+  @override
   String get danceEditorFiguresSection => 'Figurer';
 
   @override
@@ -9181,6 +9309,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String validationFigureCrossesPhrase(int position, String label) {
+    return 'Figur $position går ud over slutningen af $label. I en squaredans bør kaldene i hver frase fylde den helt ud.';
+  }
+
+  @override
   String validationIncompleteFigure(int position) {
     return 'Figur $position er ikke færdig, så Gem udelader den.';
   }
@@ -9292,9 +9425,6 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorChooseHint => 'Vælg…';
-
-  @override
-  String get figureParamSearchDancersHint => 'Søg i dansere';
 
   @override
   String danceEditorCreateQuotedName(String name) {
@@ -12846,6 +12976,208 @@ class AppLocalizationsDa extends AppLocalizations {
       'Ændringen af dine skabeloner kunne ikke gemmes. Prøv igen.';
 
   @override
+  String get settingsSuggestionsHeader => 'Forslag';
+
+  @override
+  String get settingsSuggestionsEnabledTitle => 'Foreslå den næste dans';
+
+  @override
+  String get settingsSuggestionsEnabledSubtitle =>
+      'Tilføjer Foreslået til menuen Sortér i programbyggerens danseliste. Den ordner danserne til slutningen af programmet og fortæller hvorfor.';
+
+  @override
+  String get settingsSuggestionsEditorTitle => 'Hvad forslag tager hensyn til';
+
+  @override
+  String get settingsSuggestionsEditorSubtitle =>
+      'Vælg, hvor meget hver ting tæller, når der foreslås danse.';
+
+  @override
+  String get suggestionFactorMatrixVarietyTitle => 'Variation i matrixen';
+
+  @override
+  String get suggestionFactorMatrixVarietyHelp =>
+      'Foretræk danse med figurer, programmet ikke har brugt endnu. Undgå figurer på de samme slag som dansen før.';
+
+  @override
+  String get suggestionFactorFormationBalanceTitle => 'Balance i formationer';
+
+  @override
+  String get suggestionFactorFormationBalanceHelp =>
+      'Undgå formationen fra dansen før og formationer, programmet allerede har mange af.';
+
+  @override
+  String get suggestionFactorDifficultyCurveTitle => 'Sværhedskurve';
+
+  @override
+  String get suggestionFactorDifficultyCurveHelp =>
+      'Lad aftenens sværhedsgrad følge en form.';
+
+  @override
+  String get suggestionFactorVenueRecencyTitle =>
+      'Nylige danse på dette spillested';
+
+  @override
+  String get suggestionFactorVenueRecencyHelp =>
+      'Undgå danse, der for nylig er kaldt på programmets spillested. Et program uden spillested springer dette over.';
+
+  @override
+  String get suggestionWeightOff => 'Fra';
+
+  @override
+  String get suggestionWeightALittle => 'Lidt';
+
+  @override
+  String get suggestionWeightALot => 'Meget';
+
+  @override
+  String suggestionWeightSemantic(String factor) {
+    return 'Hvor meget $factor tæller';
+  }
+
+  @override
+  String get suggestionCurveShapeLabel => 'Form';
+
+  @override
+  String get suggestionCurveBuildThenEase => 'Byg op, og tag så af';
+
+  @override
+  String get suggestionCurveEven => 'Jævn';
+
+  @override
+  String get suggestionsResetDefaults => 'Nulstil til standard';
+
+  @override
+  String get suggestionsResetDone =>
+      'Forslag tager igen hensyn til standardvalgene.';
+
+  @override
+  String get suggestionsNewerVersion =>
+      'Disse valg blev gemt af en nyere version af appen og kan ikke ændres her. Opdater appen for at ændre dem.';
+
+  @override
+  String get collectionSortSuggested => 'Foreslået';
+
+  @override
+  String suggestionReasonNewMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nye figurer i aften',
+      one: 'En ny figur i aften',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapPrevious(String move) {
+    return 'Samme slag til $move som i dansen før';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapNext(String move) {
+    return 'Samme slag til $move som i dansen efter';
+  }
+
+  @override
+  String suggestionReasonSameFormationPrevious(String formation) {
+    return '$formation ligesom dansen før';
+  }
+
+  @override
+  String suggestionReasonSameFormationNext(String formation) {
+    return '$formation ligesom dansen efter';
+  }
+
+  @override
+  String suggestionReasonFormationCommon(int count, String formation) {
+    return 'Allerede $count danse i $formation i aften';
+  }
+
+  @override
+  String suggestionReasonFirstFormation(String formation) {
+    return '$formation: den første i aften';
+  }
+
+  @override
+  String get suggestionReasonFitsCurve => 'Passer til sværhedskurven her';
+
+  @override
+  String get suggestionReasonHarderThanCurve =>
+      'Sværere end sværhedskurven vil have her';
+
+  @override
+  String get suggestionReasonEasierThanCurve =>
+      'Lettere end sværhedskurven vil have her';
+
+  @override
+  String suggestionReasonCalledHereRecently(String venue, String date) {
+    return 'Kaldt på $venue den $date';
+  }
+
+  @override
+  String suggestionReasonNotCalledHereSince(String venue, String date) {
+    return 'Ikke kaldt på $venue siden $date';
+  }
+
+  @override
+  String suggestionReasonNeverCalledHere(String venue) {
+    return 'Aldrig kaldt på $venue';
+  }
+
+  @override
+  String get suggestionReasonVenueSkipped =>
+      'Nylige danse på dette spillested: sprunget over, fordi programmet ikke har et spillested';
+
+  @override
+  String get suggestionReasonNoFactor =>
+      'Intet af det, forslag tager hensyn til, flyttede denne dans';
+
+  @override
+  String get suggestionReasonEnglishNotCovered =>
+      'Forslag dækker endnu ikke engelske danse';
+
+  @override
+  String suggestionReasonPhraseOverlapPrevious(String move) {
+    return '$move i samme frase som i dansen før';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapNext(String move) {
+    return '$move i samme frase som i dansen efter';
+  }
+
+  @override
+  String get suggestionReasonAlreadyInProgram => 'Allerede i dette program';
+
+  @override
+  String get suggestionRankingFailed =>
+      'Dansene kunne ikke rangeres, så de står i deres sædvanlige rækkefølge.';
+
+  @override
+  String suggestionWhyTooltip(String title) {
+    return 'Hvorfor $title foreslås her';
+  }
+
+  @override
+  String suggestionWhyTitle(String title) {
+    return 'Hvorfor $title';
+  }
+
+  @override
+  String suggestionWhyRaises(String reason) {
+    return 'Rykker den op: $reason';
+  }
+
+  @override
+  String suggestionWhyLowers(String reason) {
+    return 'Rykker den ned: $reason';
+  }
+
+  @override
+  String get figureParamSearchDancersHint => 'Søg i dansere';
+
+  @override
   String get exportAddToCalendar => 'Føj til kalender (.ics)';
 
   @override
@@ -13164,6 +13496,46 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get csvColumnBarnes => 'Barnes-henvisning';
+
+  @override
+  String get programsExportCsv => 'Eksportér programmer som CSV';
+
+  @override
+  String get csvProgramsFileStem => 'programmer';
+
+  @override
+  String get csvColumnEventDate => 'Begivenhedsdato';
+
+  @override
+  String get csvColumnVenue => 'Spillested';
+
+  @override
+  String get csvColumnCaller => 'Caller';
+
+  @override
+  String get csvColumnBand => 'Band';
+
+  @override
+  String get csvColumnDancerLevel => 'Danserniveau';
+
+  @override
+  String get csvColumnPayAmount => 'Honorar';
+
+  @override
+  String get csvColumnPayCurrency => 'Valuta';
+
+  @override
+  String get csvColumnNotes => 'Noter';
+
+  @override
+  String get csvColumnDanceCount => 'Antal danse';
+
+  @override
+  String get csvColumnDances => 'Danse';
+
+  @override
+  String get exportCsvPayHiddenNotice =>
+      'Honoraret er skjult i Indstillinger, så det er udeladt. Slå »Vis honorar« til under Indstillinger ▸ Program for at tage det med.';
 
   @override
   String get collectionRepertoireMenuItem => 'Repertoire';

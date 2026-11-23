@@ -1647,6 +1647,108 @@ void main() {
     expect(find.byKey(const ValueKey('defaults-dance-phrase')), findsOneWidget);
   });
 
+  group('default phrase structure rows (#2304)', () {
+    String? rowText(WidgetTester tester, int row, String name) => tester
+        .widget<TextField>(find.byKey(ValueKey('phrase-row-$row-$name')))
+        .controller
+        ?.text;
+
+    Future<CompendiumRepositories> pumpWith(
+      WidgetTester tester, {
+      String? stored,
+    }) async {
+      final repos = openTestRepositories();
+      if (stored != null) {
+        await repos.settings.set(kDefaultDancePhraseStructureKey, stored);
+      }
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+      await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
+      return repos;
+    }
+
+    testWidgets('a stored default shows as rows once it is read', (
+      tester,
+    ) async {
+      await pumpWith(tester, stored: '3*8*2 + 1*4*2');
+      expect(rowText(tester, 0, 'phrases'), '3');
+      expect(rowText(tester, 1, 'bars'), '4');
+    });
+
+    testWidgets('a blank default is the standard structure, one row', (
+      tester,
+    ) async {
+      await pumpWith(tester);
+      expect(rowText(tester, 0, 'phrases'), '4');
+      expect(rowText(tester, 0, 'bars'), '8');
+      expect(rowText(tester, 0, 'beats'), '2');
+    });
+
+    testWidgets('a row edit saves the default and shows in the field', (
+      tester,
+    ) async {
+      final repos = await pumpWith(tester, stored: '3*8*2 + 1*4*2');
+      await tester.enterText(
+        find.byKey(const ValueKey('phrase-row-1-bars')),
+        '6',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        await repos.settings.get(kDefaultDancePhraseStructureKey),
+        '3*8*2 + 1*6*2',
+      );
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('defaults-dance-phrase')),
+            )
+            .controller
+            ?.text,
+        '3*8*2 + 1*6*2',
+      );
+    });
+
+    testWidgets('an empty number says so without mentioning a dance or Save, '
+        'which Settings has neither of', (tester) async {
+      final repos = await pumpWith(tester, stored: '2*8*2');
+      await tester.enterText(
+        find.byKey(const ValueKey('phrase-row-0-bars')),
+        '',
+      );
+      await tester.pumpAndSettle();
+      final message = tester
+          .widget<Text>(find.byKey(const ValueKey('phrase-rows-invalid')))
+          .data!;
+      expect(message, isNot(contains('Save')));
+      expect(message, isNot(contains('dance')));
+      expect(
+        await repos.settings.get(kDefaultDancePhraseStructureKey),
+        '2*8*2',
+      );
+    });
+
+    testWidgets('a default with phrase names is left to the field', (
+      tester,
+    ) async {
+      final repos = await pumpWith(tester, stored: 'A:2*8*2 + B:1*8*2');
+      expect(find.byKey(const ValueKey('phrase-rows')), findsNothing);
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('defaults-dance-phrase')),
+            )
+            .controller
+            ?.text,
+        'A:2*8*2 + B:1*8*2',
+      );
+      expect(
+        await repos.settings.get(kDefaultDancePhraseStructureKey),
+        'A:2*8*2 + B:1*8*2',
+      );
+    });
+  });
+
   testWidgets('Dance-authoring controls show historical defaults when unset', (
     tester,
   ) async {

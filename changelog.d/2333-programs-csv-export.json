@@ -1,0 +1,9 @@
+{
+  "id": "2333-programs-csv-export",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can export your programs as a spreadsheet (CSV): in the Programs list, choose More actions ▸ Export programs as CSV. Each row is one program, with its date, venue name, caller, band, dancer level, pay, notes and dances. It exports the programs the list is showing, archived ones only while Show archived is on. Apart from a backup, it is the one export that includes your pay, and it leaves pay out while Show pay is off; like a shared program, it leaves out the venue's address and contacts and the program's Perform dialect."
+    ]
+  }
+}

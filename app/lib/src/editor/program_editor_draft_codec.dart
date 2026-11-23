@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 
+import 'program_times.dart';
+
 /// Settings-table key prefix for the program editor's transient autosave drafts.
 ///
 /// Draft keys are dynamic ([programEditorDraftKey]:
@@ -82,6 +84,11 @@ class ProgramEditorDraft {
     this.payText = '',
     this.payCurrency,
     this.hasPay = true,
+    this.times = const ProgramTimes(),
+    this.hasTimes = true,
+    this.timesBaseline,
+    this.venueIdBaseline,
+    this.hasVenueIdBaseline = false,
     required this.slots,
   });
 
@@ -145,6 +152,34 @@ class ProgramEditorDraft {
   /// bump.
   final bool hasPay;
 
+  /// The program's start, end, lesson and arrival times (#2350). Only
+  /// meaningful when [hasTimes] is true.
+  final ProgramTimes times;
+
+  /// Whether this draft recorded the times at all. Drafts written before
+  /// #2350 carry no `times` key, which must read as "never captured"
+  /// (restoring keeps the program's current times), not as "the user cleared
+  /// them". Decoded from key presence, so it needs no draft version bump.
+  final bool hasTimes;
+
+  /// The times the editor had last taken from the stored program when this
+  /// draft was written, or `null` when the draft did not record them (one
+  /// written before this was added, or for a program never saved). Restore
+  /// uses it to tell the person's edits from untouched values: an untouched
+  /// time takes what is stored now, so a time synced after the draft was
+  /// written is not overwritten (the same rule a save follows).
+  final ProgramTimes? timesBaseline;
+
+  /// The venue link the editor had last taken from the stored program when
+  /// this draft was written; only meaningful when [hasVenueIdBaseline] is
+  /// true, since `null` is a real value (no link). Restore treats an untouched
+  /// [venueId] as [timesBaseline] treats an untouched time.
+  final String? venueIdBaseline;
+
+  /// Whether this draft recorded [venueIdBaseline]. Decoded from key
+  /// presence, so it needs no draft version bump.
+  final bool hasVenueIdBaseline;
+
   /// The in-progress slot list (position-ordered).
   final List<ProgramSlot> slots;
 }
@@ -170,6 +205,12 @@ class ProgramEditorDraft {
 ///   "payText": "250.00",    // as typed; "" = no pay. Absent in older drafts,
 ///                           // and while Show pay hides an unedited field
 ///   "payCurrency": "USD",   // omitted when the locale default applies
+///   "times": {"start": 1170, "end": 1350}, // minutes after midnight; unset
+///                           // ones omitted, {} = none. Absent in older drafts
+///   "timesBaseline": {"start": 1170}, // the stored times the editor loaded;
+///                           // omitted when not recorded
+///   "venueIdBaseline": null, // the stored venue link the editor loaded; key
+///                           // omitted when not recorded
 ///   "slots": [
 ///     {"id":"...", "position":0, "danceId":"...", "isAlt":false},
 ///     {"id":"...", "position":1, "text":"Break", "isPurgedDance":false, "isAlt":false}
@@ -197,6 +238,17 @@ String encodeProgramDraft(ProgramEditorDraft draft) {
     if (draft.hasPay) 'payText': draft.payText,
     if (draft.hasPay && draft.payCurrency != null)
       'payCurrency': draft.payCurrency,
+    if (draft.hasTimes)
+      'times': {
+        for (final field in ProgramTimeField.values)
+          field.name: ?draft.times[field],
+      },
+    if (draft.timesBaseline case final baseline?)
+      'timesBaseline': {
+        for (final field in ProgramTimeField.values)
+          field.name: ?baseline[field],
+      },
+    if (draft.hasVenueIdBaseline) 'venueIdBaseline': draft.venueIdBaseline,
     'slots': [for (final s in draft.slots) _slotToJson(s)],
   });
 }
@@ -271,8 +323,38 @@ ProgramEditorDraft decodeProgramDraft(Object? value) {
     payText: _str(json, 'payText'),
     payCurrency: _strOrNull(json, 'payCurrency'),
     hasPay: json.containsKey('payText'),
+    times: _parseTimes(json['times']),
+    hasTimes: json.containsKey('times'),
+    // A null value reads as not recorded, like a missing key: the encoder
+    // never writes one, and an empty baseline must not pass for a real one.
+    timesBaseline: json['timesBaseline'] == null
+        ? null
+        : _parseTimes(json['timesBaseline'], key: 'timesBaseline'),
+    venueIdBaseline: _strOrNull(json, 'venueIdBaseline'),
+    hasVenueIdBaseline: json.containsKey('venueIdBaseline'),
     slots: _parseSlots(json['slots']),
   );
+}
+
+/// The draft's `times` object: each present field an integer minute of the
+/// day (`0`–`1439`); unknown keys are ignored.
+ProgramTimes _parseTimes(Object? raw, {String key = 'times'}) {
+  if (raw == null) return const ProgramTimes();
+  if (raw is! Map) {
+    throw FormatException('program draft.$key must be an object: $raw');
+  }
+  var times = const ProgramTimes();
+  for (final field in ProgramTimeField.values) {
+    final value = raw[field.name];
+    if (value == null) continue;
+    if (value is! int || !Program.isValidMinuteOfDay(value)) {
+      throw FormatException(
+        'program draft.$key.${field.name} must be 0-1439: $value',
+      );
+    }
+    times = times.withField(field, value);
+  }
+  return times;
 }
 
 // ---------------------------------------------------------------------------

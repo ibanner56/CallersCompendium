@@ -1,0 +1,27 @@
+{
+  "id": "2343-suggest-next-dance",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Experimental: turn on Suggest the next dance in Settings ▸ Experimental ▸ Suggestions to add Suggested to the Sort menu of the program builder's dance list. It orders the dances for the end of the program by variety on the matrix, formation balance, the difficulty curve and recent calls at the program's venue, and each dance says why, with Why? listing every reason. It is off by default, and the list still opens in your usual order.",
+      "What suggestions look for, in the same section, sets how much each of those counts (Off, A little or A lot), the shape of the difficulty curve and how far back recent calls go, with Reset to defaults.",
+      "English dances aren't covered by suggestions yet: they are listed after the ordered dances and say so.",
+      "A dance already in the program, English included, stays in the Suggested list but goes to the very bottom, after the English dances, marked Already in this program.",
+      "Both Suggestions settings are in your backup, and sync to your other devices once every device in the store has a version of the app that knows them."
+    ],
+    "changed": [
+      "In the program builder's add-dance list (not Replace dance), the Called and Not called filters and the Last called sort no longer count the program you are building as calling history."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add rankSuggestions, SuggestionRequest (with withCandidates), SuggestionRanking, RankedSuggestion, SuggestionReason, SuggestionReasonKind, SuggestionNeighbor and alreadyInProgramEffect: a pure-Dart scorer for the next dance of a program.",
+      "Add SuggestionSettings, SuggestionSettingsRead, SuggestionWeight, SuggestionFactor, DifficultyCurveShape, VenueRecencyWindow, suggestionSettingsVersion, readSuggestionSettings and isValidStoredSuggestionSettings for the stored suggestion_settings value.",
+      "Add SuggestionCandidate (with SuggestionCandidate.fromDance), the part of a dance the scorer reads, and SuggestionWorker with SuggestionRankSuperseded: a long-lived isolate that ranks, keeps the candidates it was sent, and ranks only the newest call. SuggestionWorkerInbox is its worker side, public for tests.",
+      "Add buildMatrixRow, buildMatrixRowFromFigures, matrixColumnForKey, ProgramMatrix.isCollisionOnMove and ProgramMatrix.neighborRowIndices.",
+      "Add calledSlotConditionsSql, the slot conditions a CalledFilter counts, shared by the filter compiler and ProgramRepository.latestCallByDance, the newest call per dance under a CalledFilter.",
+      "DanceRepository.search takes currentProgramId, which leaves that program's slots out of the Last called sort as a CalledFilter's currentProgramId does.",
+      "Add the suggestions.v1 sync capability (SyncCapabilities.suggestionsV1), gating suggestions_enabled and suggestion_settings, and classify both keys in the settings privacy registry."
+    ]
+  }
+}

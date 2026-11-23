@@ -605,11 +605,19 @@ for whole bars instead. The app still works in beats underneath. A bar holds
 the beats of the dance's **Meter**: 2/2, 2/4, 6/8 and 6/4 have two, 3/2, 3/4,
 9/8 and 9/4 three, 4/4, 12/8 and 12/4 four, so in 3/2 two bars are 6 beats. With no meter the
 phrase structure says, so `4*8*3` (four 8-bar phrases of three beats) makes 2
-bars 6 beats too. A tune whose parts have different numbers of beats to the bar
-keeps its figures in beats, since one count of bars would mean different
-lengths in different parts. The dance's page and Perform show bars too, and so
+bars 6 beats too. A tune whose phrases have different numbers of beats to the
+bar (`A:2*4*3 + B:1*8*2`, an A in 3/4 and a B in 6/8) counts each bar by the
+phrase it starts in, whatever the Meter says, and from where its figure
+starts: the two bars at the end of an A and the first two of a B are 3 + 3 + 2
++ 2 beats, and the field shows them as 4 bars. A count that is not a whole
+number of half bars where it falls shows in beats. The count is stored in
+beats when you enter it, so a figure that ends up in another phrase, because a
+figure before it was lengthened or removed, is read there: in the bars of that
+phrase, or in beats where it no longer comes to whole or half bars. The dance's page and Perform show bars too, and so
 do the dance's warnings, its calling card, and its figures when you share, copy
-or print it, alone or with a program.
+or print it, alone or with a program. A calling card prints bare numbers, so if
+any count on it is not a whole number of half bars, the whole card stays in
+beats.
 
 An English sequence can also take its bars as a whole, as in "A, B and C in
 bars 1–4". Fill in **Bars for all** at the top of the sequence, and leave the
@@ -640,6 +648,12 @@ dance whose beats do not add up, and sometimes that is the honest transcription.
 A saved dance whose beats do not add up shows the same warning above its figures
 on the dance's page, because the section labels (A1, A2, B1, B2) are then worked
 out from the wrong total. Perform and printing do not show it.
+
+In a square dance, **Warnings**, in the editor and on the dance's page, also
+names a figure that starts in one phrase and runs past its end, such as a
+16-beat promenade starting halfway through A1: the calls of each phrase should
+fill it exactly. A figure that starts at the top of a phrase and fills whole
+phrases, such as a 32-beat promenade across A1 and A2, is fine.
 
 The Total counts only rows that will be saved. A group that is not complete yet,
 such as a meanwhile group with one side filled in, is left out, and so is a row
@@ -701,6 +715,21 @@ nothing in it to lose.
 - **Phrase structure** — leave it blank for the standard A1 A2 B1 B2, or write
   your own (the field suggests `6*8*2` as an example). The app checks that what you
   write is a valid structure, and uses it for the beat count above.
+  A contra or square dance also shows it as rows above the field, one for each
+  run of equal phrases: **Phrases** (how many), **Bars per phrase** and **Beats
+  per bar**. `8*8*2` is one row, 8 phrases of 8 bars with 2 beats in a bar;
+  `3*8*2 + 1*4*2` is two, three 8-bar phrases and then one of 4 bars; a slip
+  jig has 3 beats in a bar. **Add row** adds another run, and **×** removes a
+  row. A line under the rows lists the labels the phrases get and the beats in
+  all: 8 phrases are labeled A1 A2 B1 B2 C1 C2 D1 D2, so a tune played twice
+  carries on to C and D. Each number is 1 to 1000; while one is left empty or
+  past that, the dance keeps its last valid structure, and **Save** saves that.
+  The rows and the field show the same structure, so you can use either; a
+  row with a number missing waits for it, and the structure stays as it was.
+  While what you type in the field can't be read as a structure, or has phrase
+  names (which only an English dance keeps), the rows stay as they were and are
+  dimmed until it can. A dance that opens with a structure that can't be read
+  shows no rows until it can.
 - **Phrases** (English dances) — choose **Name the phrases** to give the
   tune's parts their own names instead: one row each for A, B and C, with
   its **Bars** and whether it plays **Once** or **Twice**, the repeat
@@ -920,7 +949,10 @@ as:
 
 - **Type**, **Formation**, and **Progression** — what a new dance begins with.
 - **Default phrase structure** — seeded into new dances; blank means the standard
-  4×16 (A1 A2 B1 B2).
+  4×16 (A1 A2 B1 B2). It is set as the same rows as a contra or square dance's
+  **Phrase structure**, with the field under them. Phrase names
+  (`A:2*8*2 + B:1*8*2`, for English dances) go in the field; the rows don't
+  show for a default that has them, and are dimmed if you type them.
 - **Starting figures** — the figures a new dance starts with. It defaults to
   eight stand stills of eight beats each, or to no figures while **Free-text
   entry** is on; clear it for a completely blank dance.

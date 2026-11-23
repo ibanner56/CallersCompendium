@@ -613,7 +613,11 @@ final Map<String, DataClassification> fieldClassifications = {
         'the app omits it from program share files and Export JSON '
         '(maintainer decision R2-out2-export, 2026-10-30; '
         'sanitizeProgramForShare). It is never part of the shared set-list '
-        'text or PDF. Kept shareable rather than deviceLocal because '
+        'text or PDF. Besides the backup, the one export that carries it is '
+        'the programs CSV export (#2333; sanitizeProgramForCsv), by ruling 2 '
+        '(maintainer, feature triage, 2026-11-22), and only while the caller '
+        'shows pay (show_program_pay, #2355). Kept shareable rather than '
+        'deviceLocal because '
         'deviceLocal means never serialised and would stop sync. Sync can '
         'still reach another person when a store is shared (ADR-004 '
         'storeAddress), so "travels in sync" is not "stays on my devices".',
@@ -625,7 +629,29 @@ final Map<String, DataClassification> fieldClassifications = {
     note:
         'ISO 4217 code that programs.pay_minor_units is denominated in; '
         'meaningless without it, so it carries the same classification, '
-        'including the share-file omission (sanitizeProgramForShare).',
+        'including the share-file omission (sanitizeProgramForShare) and '
+        'the programs CSV export that carries it (#2333).',
+  ),
+  // When the public event happens (#2350), like programs.event_date: the
+  // dance's start and end, and the beginner lesson before it.
+  'programs.start_minute': _choreography,
+  'programs.end_minute': _choreography,
+  'programs.lesson_minute': _choreography,
+  'programs.arrival_minute': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'When the caller needs to be at the hall for the program (#2350), as '
+        'minutes after midnight. Unlike the other three times it is about '
+        'the caller, not the public event, so the subject is the app user; '
+        'it is a time of day, not a location, so non-personal. Egress: '
+        'Device Sync and backups carry it, and so do program share files, '
+        'because a guest caller receiving the program needs it too (issue '
+        'drafting call, approved with #2350). The set-list text and the PDF '
+        'leave it out: they are made for other people, and the maintainer '
+        'ruled that Arrive by stays out of the PDF but in the caller\'s own '
+        'calendar export (2026-11-22, #2350), whose event notes carry it.',
   ),
   'programs.created_at': _recordStamp,
   'programs.updated_at': _recordStamp,

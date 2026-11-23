@@ -500,8 +500,9 @@ DanceFilter? orGroup(List<DanceFilter> leaves) => switch (leaves.length) {
 /// (needed to build the typed [CustomFieldFilter] leaves).
 ///
 /// [currentProgramId] is passed to the [CalledFilter], so a program being built
-/// never counts as its own history (N1-6). Collection leaves it null; no app
-/// caller sets it yet (the picker's program context is not built).
+/// never counts as its own history (N1-6). Collection leaves it null; the
+/// program builder's add-dance picker passes the program it is editing
+/// (#2343).
 DanceFilter buildCollectionFilter({
   required String ftsText,
   required FacetSelections facets,

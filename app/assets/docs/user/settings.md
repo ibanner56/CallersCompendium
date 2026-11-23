@@ -246,7 +246,9 @@ details are handled when you export.
   If you had changed a pay amount just before hiding it, that change is still
   saved; an amount that isn't a valid number stays visible so you can fix it.
   A sync conflict still compares pay, so two versions that differ only in pay
-  don't look the same.
+  don't look the same. While pay is hidden, the
+  [programs spreadsheet](./sharing.md#export-programs-as-a-spreadsheet-csv) leaves
+  pay out too, and its export dialog says so.
 
 - **Matrix columns** — opens a dedicated editor for the columns of the
   [programming matrix](./programs.md#check-your-evening-with-the-matrix). These
@@ -282,8 +284,9 @@ one off.
   which is also the subject line of the share.
 - **Include caller and band when sharing a set list** (on) — the **Band** and
   **Caller** lines.
-- **Include date and venue when sharing a set list** (on) — the date and venue
-  line.
+- **Include date, times and venue when sharing a set list** (on) — the line
+  with the date, the dance's start and end times and the venue, and the
+  beginner lesson's time. **Arrive by** is never in a shared set list.
 
 They don't change what is shared when you share the whole program as a
 `.ccshare` or JSON file: that file always carries the full program.
@@ -719,7 +722,10 @@ open this group. You can override any of them per dance, and
   dance. **Type** can also be **Last used**, so a new dance starts as the type of
   the last new dance you saved. Until you save one, it starts as contra.
 - **Default phrase structure** — leave blank for the standard 4×16 A1 A2 B1 B2, or
-  set your own.
+  set your own, as rows of phrases, bars per phrase and beats per bar or by
+  writing it in the field under them. English phrase names
+  (`A:2*8*2 + B:1*8*2`) go in the field; the rows don't show for a default
+  that has them, and are dimmed if you type them.
 - **Starting figures** — the figures a new dance begins with; defaults to eight
   stand stills of eight beats each, or to none while **Free-text entry** is on.
   Clear it for a blank new dance.
@@ -890,7 +896,7 @@ useful thing you can send.
 ## Experimental
 
 The **Experimental** section holds features that are still in development —
-today, that's the **Glossary**, **Repertoire**, **Calling cards**, **Device Sync** and **Developer options**. Anything here can change
+today, that's the **Glossary**, **Repertoire**, **Suggestions**, **Calling cards**, **Device Sync** and **Developer options**. Anything here can change
 before it becomes a regular setting. Each feature sits in its own section: select its heading to
 open or close it.
 
@@ -918,14 +924,25 @@ new dance starts as (the **Type** default for new dances, which can be
 **Last used**), until you choose one yourself. English figures and square
 calls don't have definitions yet. Your own figures and terms are listed under
 the type they were made for. One you add is made for the type shown. Copying an English
-figure as one of your own makes it an English figure, though it offers
-contra's groups of dancers for now, so English-only ones such as ends or top
-can't be chosen in it yet.
+figure as one of your own makes it an English figure, and it offers English's
+groups of dancers, such as the ends or the top.
+
+Versions of the app from before English figures offered English's groups of
+dancers can't read an English figure of yours whose default, or a condition in
+whose wording, names a group only English has, such as the ends or the top. On
+a device that hasn't been updated, that figure is marked **Needs repair**,
+though it is kept as it is, and a dance that uses it shows the wording the line
+last had. Repairing it there drops that default or condition, and the change
+then syncs to your other devices, so update the device instead.
 
 Names, definitions and examples of the built-in figures follow your active
 [dialect](dialects.md) for the type shown, so role words read the way you call
-them. Your own figures and terms read in your contra dialect for now, whatever
-their type. The built-in
+them. Your own figures, combinations and terms read in the dialect of the type
+they were made for, and a shorthand reads in the dialect of the type of the
+figure it stands for; a shorthand whose figure is gone reads in your contra
+dialect. A few places still name them in the dialect of the screen you are on,
+not of their type: the dance list's advanced search and the reasons the dance
+picker gives for a suggestion. The built-in
 figures come with the app, and turning the Glossary off only removes it from
 the navigation; your notes are kept, and come back when you turn it on again.
 The built-in definitions and descriptions are in English whatever language the
@@ -1052,7 +1069,9 @@ The Glossary lists them too, when it is shown. While it is on:
   yours becomes, and which of its values each of your options becomes; where a
   name matches, it is chosen for you. An option can become any parameter that
   takes words, such as a hand or who; any other parameter, one of the same
-  kind that takes all its values. A places parameter can also become a plain
+  kind that takes all its values. A group of dancers is measured against the
+  app's figure's groups, which are contra's, whatever type your figure is made
+  for. A places parameter can also become a plain
   number, which takes every count places can; the count then reads without
   the word "places". Two of yours can't become the same one.
   Every one must be chosen, so a parameter the app's figure has nothing for
@@ -1064,7 +1083,9 @@ The Glossary lists them too, when it is shown. While it is on:
   your figure no longer has, or whose name another shorthand also has, stays
   as it is). A line whose wording was edited in an older version of the app,
   or that holds a value your figure no longer has, keeps its wording as plain
-  text, and dances in Recently deleted keep the line each last stored. As with
+  text, and so does a line of an English figure that holds a group of dancers
+  only English has, such as the ends or the top; the confirmation says so.
+  Dances in Recently deleted keep the line each last stored. As with
   deleting, each dialect's name and wording for your figure, and its column in
   **Matrix columns**, are removed: the app's figure has its own.
 
@@ -1103,13 +1124,66 @@ It adds nothing to the navigation, and it stores nothing: the numbers are
 worked out each time you open the page, under the
 [Calling history](#calling-history) settings.
 
+### Suggestions
+
+**Suggest the next dance** adds **Suggested** to the **Sort** menu of the
+collection picker in the program builder. It is **off by default**, and the
+section starts closed while it is off. Suggested orders the dances for the end
+of the program you are building, and each dance says why it is where it is.
+See [Let the app suggest the next dance](./programs.md#let-the-app-suggest-the-next-dance).
+Turning it off takes Suggested out of the menu, and a picker that is open goes
+back to its plain order.
+
+**What suggestions look for** opens a screen with one row for each thing
+suggestions weigh up. Each has **Off**, **A little** or **A lot**: Off leaves it
+out entirely. There are no numbers to tune.
+
+- **Variety on the matrix** — favors dances with moves the program hasn't
+  used yet, and keeps away from a move on the same beats as the dance before
+  (or in the same phrase, if
+  [Flag exact beat overlap only](#programs) is off, and the reason says
+  which), the same thing the
+  [programming matrix](./programs.md#check-your-evening-with-the-matrix) flags.
+  A break between two dances means they are not next to each other.
+- **Formation balance** — keeps away from the formation of the dance before,
+  and from formations the program already has many of.
+- **Difficulty curve** — fits the difficulty of the evening to a **Shape**:
+  **Build up, then ease off** (easy at the start, building to your hardest
+  dances about two-thirds of the way through a dozen-dance evening, then easing
+  back to the middle), **Even** (dances near the program's usual level), or
+  **Off**. It uses each dance's **Difficulty**; a dance with none set
+  is not moved by it.
+- **Recent calls at this venue** — keeps away from dances called recently at
+  the program's venue, **Within** 1, 3 or 6 months, and favors ones not called
+  there for a while. A call counts the same way as in the Collection's
+  [calling history filter](./collection.md#filter-by-calling-history), with your
+  [Recency and history order](#recency-and-history-order) settings, and the
+  program you are building never counts as its own history. A program with no
+  venue skips this, and says so.
+
+The shipped defaults are: Variety on the matrix **A lot**, Formation balance
+**A little**, Difficulty curve **A little** with **Build up, then ease off**, and
+Recent calls at this venue **A lot** within **3 months**. **Reset to defaults**
+puts every choice back to these, and is grayed out while they are already the
+defaults.
+
+Both settings are in your [backup](#backup--restore), and sync with
+[Device Sync](#device-sync) once every device connected to your store has a
+version of the app that knows them (see
+[New kinds of data wait for every device](#new-kinds-of-data-wait-for-every-device)).
+If a newer version of the app saved these choices in a way this version can't
+read, the screen shows the defaults with a note, and can't be changed until you
+update, so nothing this version doesn't understand is overwritten. Suggestions
+use the defaults meanwhile.
+
 ### Calling cards
 
 A calling card is one dance on a small card — a 3 × 5 index card unless you
 choose otherwise — to hold while you call: the title, with the formation
 beside it and the authors under it, then the figures phrase by phrase (A1, A2, B1, B2) with
-their beats (bars for an English dance, unless one of its figures is not a whole
-number of half bars, when the whole card stays in beats), then your calling
+their beats (bars for an English dance, each counted from where its figure
+starts, unless one of its figures is not a whole number of half bars, when the
+whole card stays in beats), then your calling
 notes. The design comes from
 [Contra Card](https://github.com/Yona-Appletree/contra-card), a tool by
 caller Yona Appletree.

@@ -12,46 +12,61 @@ enum CsvExportChoice { save, share }
 
 /// Opens the CSV delivery choice dialog.
 typedef CsvChoicePicker =
-    Future<CsvExportChoice?> Function(BuildContext context);
+    Future<CsvExportChoice?> Function(BuildContext context, {String? notice});
 
 /// Shows the CSV delivery choice: **Save**, **Share** and **Cancel**. Where
 /// the share sheet cannot carry files ([isBundleShareUnsupported], Linux) the
 /// Share button reads **Save as…** and saves through the system dialog, as the
 /// JSON export's does. Dismissing the dialog returns `null`, which callers
 /// treat as Cancel.
-Future<CsvExportChoice?> showCsvExportChoiceDialog(BuildContext context) =>
-    showDialog<CsvExportChoice>(
-      context: context,
-      builder: (context) {
-        final l10n = AppLocalizations.of(context);
-        return AlertDialog(
-          title: Text(l10n.exportCsvDialogTitle),
-          content: Text(l10n.exportCsvDialogMessage),
-          actions: [
-            TextButton(
-              key: const ValueKey('csv-export-save'),
-              onPressed: () => Navigator.of(context).pop(CsvExportChoice.save),
-              child: Text(l10n.exportJsonSave),
-            ),
-            TextButton(
-              key: const ValueKey('csv-export-share'),
-              onPressed: () => Navigator.of(context).pop(CsvExportChoice.share),
-              child: Text(
-                isBundleShareUnsupported()
-                    ? l10n.exportJsonSaveAs
-                    : l10n.exportJsonShare,
-              ),
-            ),
-            TextButton(
-              key: const ValueKey('csv-export-cancel'),
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(l10n.exportJsonCancel),
-            ),
+///
+/// [notice], when given, is shown under the message: the programs CSV uses it
+/// to say that pay is left out because **Show pay** is off (#2333).
+Future<CsvExportChoice?> showCsvExportChoiceDialog(
+  BuildContext context, {
+  String? notice,
+}) => showDialog<CsvExportChoice>(
+  context: context,
+  builder: (context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(l10n.exportCsvDialogTitle),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.exportCsvDialogMessage),
+          if (notice != null) ...[
+            const SizedBox(height: 12),
+            Text(notice, key: const ValueKey('csv-export-notice')),
           ],
-        );
-      },
-      animationStyle: AppMotion.styleFor(context),
+        ],
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('csv-export-save'),
+          onPressed: () => Navigator.of(context).pop(CsvExportChoice.save),
+          child: Text(l10n.exportJsonSave),
+        ),
+        TextButton(
+          key: const ValueKey('csv-export-share'),
+          onPressed: () => Navigator.of(context).pop(CsvExportChoice.share),
+          child: Text(
+            isBundleShareUnsupported()
+                ? l10n.exportJsonSaveAs
+                : l10n.exportJsonShare,
+          ),
+        ),
+        TextButton(
+          key: const ValueKey('csv-export-cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.exportJsonCancel),
+        ),
+      ],
     );
+  },
+  animationStyle: AppMotion.styleFor(context),
+);
 
 /// Saves a CSV through the native Save As (desktop) or document-save (mobile)
 /// dialog, typed as CSV. A `null` result means the user cancelled.
@@ -88,6 +103,7 @@ class CsvExportDelivery {
   final BundleFileWriter? fileWriter;
 
   /// Asks how to deliver [csv], then saves or shares it as [fileName].
+  /// [notice] is passed to the choice dialog ([showCsvExportChoiceDialog]).
   ///
   /// Each branch runs under [guardExport] with its own failure message, so a
   /// failure is logged and shown rather than escaping. [source] tags the
@@ -100,8 +116,12 @@ class CsvExportDelivery {
     required String subject,
     required Rect? sharePositionOrigin,
     required String source,
+    String? notice,
   }) async {
-    final choice = await (choicePicker ?? showCsvExportChoiceDialog)(context);
+    final choice = await (choicePicker ?? showCsvExportChoiceDialog)(
+      context,
+      notice: notice,
+    );
     if (choice == null || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);

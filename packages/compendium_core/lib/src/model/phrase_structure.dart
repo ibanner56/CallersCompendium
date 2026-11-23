@@ -244,6 +244,25 @@ class PhraseStructure {
         component.beatsPerPhrase > longest ? component.beatsPerPhrase : longest,
   );
 
+  /// The beat at which the longest phrase ([longestPhraseBeats]) starts, so
+  /// that its length reads in the bars of its own part of the tune; null where
+  /// phrases tied for longest differ in bars, which no one bar length reads.
+  int? get longestPhraseStart {
+    final longest = longestPhraseBeats;
+    int? start;
+    int? bars;
+    var offset = 0;
+    for (final component in components) {
+      if (component.beatsPerPhrase == longest) {
+        if (bars != null && bars != component.bars) return null;
+        start ??= offset;
+        bars = component.bars;
+      }
+      offset += component.totalBeats;
+    }
+    return start;
+  }
+
   /// The persisted representation (`""` for standard).
   final String raw;
 
@@ -320,7 +339,8 @@ class PhraseStructure {
   /// numbers, so finer timing goes in a note instead. Whole bars are always
   /// accepted. Only the meter at [atBeat] is read: a span that starts in one
   /// part of the tune and runs into a part in another meter is judged by the
-  /// part it starts in.
+  /// part it starts in. ([BarTiming.beatsForHalfBars] counts each of a span's
+  /// bars by the part it starts in; this reads only the first.)
   int? beatsForHalfBars(int halfBars, {int atBeat = 0}) {
     if (halfBars < 0) {
       throw ArgumentError.value(halfBars, 'halfBars', 'must be >= 0');
@@ -502,14 +522,23 @@ class SectionedFigure {
 /// warning. The editor will not add a step or form a sequence past a phrase,
 /// but it does not block editing a step's move or beats, or the phrase
 /// structure, so this is what flags a sequence left too long.
+///
+/// With [checkPhraseFill], each top-level figure that runs past the end of a
+/// phrase also adds a [figureCrossesPhraseCode] warning: the calls of that
+/// phrase do not fill it exactly. Traditional squares are phrased call by
+/// call, so ADR-007 §5.3 asks for this check on square dances; contra and
+/// English dances leave it off, because a figure across a phrase line is
+/// ordinary there (a balance and swing that starts mid-phrase).
 List<SectionedFigure> deriveSections(
   List<Figure> figures,
   PhraseStructure structure, {
   List<ValidationIssue>? issues,
+  bool checkPhraseFill = false,
 }) {
   final result = <SectionedFigure>[];
   var beat = 0;
   for (var i = 0; i < figures.length; i++) {
+    final startBeat = beat;
     result.add(
       SectionedFigure(
         index: i,
@@ -518,10 +547,15 @@ List<SectionedFigure> deriveSections(
         label: labelForFigure(beat, figures[i].beats, structure),
       ),
     );
+    if (issues != null && checkPhraseFill) {
+      _flagPhraseCrossing(figures[i], i, beat, structure, issues);
+    }
     // One list element → one beat advance. For a container this is the
     // shared count, counted once (no double-count from its children).
     beat += figures[i].beats;
-    if (issues != null) _flagLongSequences(figures[i], i, structure, issues);
+    if (issues != null) {
+      _flagLongSequences(figures[i], i, startBeat, structure, issues);
+    }
   }
   if (issues != null && figures.isNotEmpty && beat != structure.totalBeats) {
     issues.add(
@@ -540,6 +574,58 @@ List<SectionedFigure> deriveSections(
   return result;
 }
 
+/// The beats at which each child of [container] starts, [containerStart] being
+/// the container's own start: a sequence's steps one after another, and a
+/// meanwhile's sides and a modifier's parts all with the container.
+List<int> childStartBeats(Figure container, int containerStart) {
+  var start = containerStart;
+  return [
+    for (final child in container.subFigures)
+      () {
+        final childStart = start;
+        if (container.isSequence) start += child.beats;
+        return childStart;
+      }(),
+  ];
+}
+
+/// The [ValidationIssue.code] of a figure that runs past the end of a phrase,
+/// so that phrase's calls do not fill it ([deriveSections] with
+/// `checkPhraseFill`). Its data holds the figure's 1-based `position` and the
+/// `label` of the phrase it runs past.
+const String figureCrossesPhraseCode = 'figure_crosses_phrase';
+
+/// Adds a [figureCrossesPhraseCode] warning when [figure], starting at
+/// [start], runs past the end of a phrase: one per figure, for the first
+/// phrase it crosses. A figure that ends exactly on a phrase line fills it,
+/// and so does one that starts and ends on phrase lines, however many phrases
+/// it takes (a 32-beat promenade from the top of A1 fills A1 and A2).
+void _flagPhraseCrossing(
+  Figure figure,
+  int index,
+  int start,
+  PhraseStructure structure,
+  List<ValidationIssue> issues,
+) {
+  final end = start + figure.beats;
+  if (structure.isPhraseBoundary(start) && structure.isPhraseBoundary(end)) {
+    return;
+  }
+  for (var b = start + 1; b < end; b++) {
+    if (!structure.isPhraseBoundary(b)) continue;
+    final label = structure.labelAtBeat(b - 1);
+    issues.add(
+      ValidationIssue(
+        severity: ValidationSeverity.warning,
+        code: figureCrossesPhraseCode,
+        message: 'figure ${index + 1} runs past the end of $label',
+        data: {'position': index + 1, 'label': label},
+      ),
+    );
+    return;
+  }
+}
+
 /// Whether [sequence], a `sequence` container, is counted longer than one
 /// phrase of [structure] ([PhraseStructure.longestPhraseBeats]). False for any
 /// other figure.
@@ -549,6 +635,7 @@ bool sequenceExceedsPhrase(Figure sequence, PhraseStructure structure) =>
 void _flagLongSequences(
   Figure figure,
   int index,
+  int startBeat,
   PhraseStructure structure,
   List<ValidationIssue> issues,
 ) {
@@ -564,12 +651,20 @@ void _flagLongSequences(
           'position': index + 1,
           'actual': figure.beats,
           'limit': structure.longestPhraseBeats,
+          // Where the sequence starts, and where the phrase that is the limit
+          // does, so each reads in the bars of its own part of the tune. The
+          // phrase's start is absent where phrases tied for longest differ in
+          // bars.
+          'startBeat': startBeat,
+          'limitStart': ?structure.longestPhraseStart,
         },
       ),
     );
   }
   if (!figure.isContainer) return;
-  for (final child in figure.subFigures) {
-    _flagLongSequences(child, index, structure, issues);
+  final starts = childStartBeats(figure, startBeat);
+  final children = figure.subFigures;
+  for (var i = 0; i < children.length; i++) {
+    _flagLongSequences(children[i], index, starts[i], structure, issues);
   }
 }

@@ -1184,6 +1184,42 @@ void main() {
     expect(loaded.payCurrency, 'USD');
   });
 
+  test(
+    'imports carry every program time, Arrive by included (#2350)',
+    () async {
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        programs: [
+          Program(
+            id: 'orig-times',
+            title: 'Spring Fling',
+            eventDate: DateTime.utc(2026, 5, 1),
+            startMinute: 1170,
+            endMinute: 1350,
+            lessonMinute: 1140,
+            arrivalMinute: 1110,
+            createdAt: DateTime.utc(2026, 4, 1),
+            updatedAt: DateTime.utc(2026, 4, 1),
+          ),
+        ],
+      );
+      await importer.import(
+        encodeArchive(archive),
+        archive,
+        now: now,
+        newId: sequentialIds('first'),
+        newSlotId: sequentialIds('first-slot'),
+      );
+      final loaded = (await programs.listAll()).single;
+      expect(loaded.startMinute, 1170);
+      expect(loaded.endMinute, 1350);
+      expect(loaded.lessonMinute, 1140);
+      expect(loaded.arrivalMinute, 1110);
+      // The sender's date is still cleared; only the schedule travels.
+      expect(loaded.eventDate, isNull);
+    },
+  );
+
   test('unresolved dance placeholder preserves any existing note', () async {
     final program = Program(
       id: 'orig-p1',
