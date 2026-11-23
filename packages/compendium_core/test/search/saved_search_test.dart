@@ -903,6 +903,14 @@ void main() {
       expect(SavedSearch.decodeAsStored('x', json).isOk, isFalse);
     });
 
+    test('a value with no id is unreadable, as stored or not', () {
+      final json = viaJson(search('Easy mixers').toJson());
+      for (final id in ['', '  ']) {
+        expect(SavedSearch.decode(id, json).isOk, isFalse, reason: '"$id"');
+        expect(SavedSearch.decodeAsStored(id, json).isOk, isFalse);
+      }
+    });
+
     test('an ordinary value reads the same either way', () {
       final json = viaJson(search('Easy mixers').toJson());
       expect(SavedSearch.decodeAsStored('x', json).value!.name, 'Easy mixers');

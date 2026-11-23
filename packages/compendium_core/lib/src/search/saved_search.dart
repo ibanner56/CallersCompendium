@@ -177,6 +177,8 @@ final class SavedSearch {
 
   /// Reads the value stored for [id]. Never throws.
   static SavedSearchDecoded<SavedSearch> decode(String id, Object? json) {
+    // The id is the key's suffix, so a key with none names no saved search.
+    if (id.trim().isEmpty) return const SavedSearchDecoded.bad('no id');
     if (json is! Map) return const SavedSearchDecoded.bad('not an object');
     final name = json['name'];
     if (name is! String ||

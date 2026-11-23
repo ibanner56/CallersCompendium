@@ -117,9 +117,7 @@ class SavedSearchRepository {
     for (final key in keys) {
       final id = key.substring(savedSearchKeyPrefix.length);
       final value = await _settings.get(key);
-      final read = id.isEmpty
-          ? const SavedSearchDecoded<SavedSearch>.bad('no id')
-          : SavedSearch.decode(id, value);
+      final read = SavedSearch.decode(id, value);
       stored.add(
         read.value != null
             ? StoredSavedSearch.readable(read.value!)

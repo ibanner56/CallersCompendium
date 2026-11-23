@@ -305,6 +305,13 @@ _backupSettingPrefixValidators = {
         value,
       ) !=
       null,
+  // One saved search per key (#2325): read with the codec that wrote it, as it
+  // will be stored, which never throws and rejects an empty id, so a crafted
+  // backup cannot restore a value the app would then have to defend against.
+  savedSearchKeyPrefix: (key, value) => SavedSearch.decodeAsStored(
+    key.substring(savedSearchKeyPrefix.length),
+    value,
+  ).isOk,
 };
 bool _isNonNegativeInt(Object? v) => v is int && v >= 0;
 bool _isUndoPromptSeconds(Object? v) =>
@@ -331,15 +338,6 @@ bool _isValidMatrixColumnConfig(Object? v) =>
 /// forward-compatible keys through unchanged (see [_backupSettingValidators]).
 /// Never throws: the whole point is that no restored value can abort the apply.
 bool? validateBackupSettingValue(String key, Object? value) {
-  // A saved search is one settings value per key under a prefix: read it with
-  // the codec that wrote it, which never throws, so a crafted backup cannot
-  // restore a value the app would then have to defend against.
-  if (key.startsWith(savedSearchKeyPrefix)) {
-    return SavedSearch.decodeAsStored(
-      key.substring(savedSearchKeyPrefix.length),
-      value,
-    ).isOk;
-  }
   final validator = _backupSettingValidators[key];
   if (validator != null) return validator(value);
   String? prefix;

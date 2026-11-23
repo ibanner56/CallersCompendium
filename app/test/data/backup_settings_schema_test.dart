@@ -549,6 +549,16 @@ void main() {
         );
       });
 
+      test('a key with no id is rejected, however good the value', () {
+        for (final key in ['saved_search:', 'saved_search:  ']) {
+          expect(
+            validateBackupSettingValue(key, good.toJson()),
+            isFalse,
+            reason: '"$key"',
+          );
+        }
+      });
+
       test(
         'anything the codec cannot read is rejected, not passed through',
         () {
