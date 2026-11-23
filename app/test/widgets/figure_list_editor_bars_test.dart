@@ -44,7 +44,7 @@ class _HostState extends State<_Host> {
       child: Scaffold(
         body: SingleChildScrollView(
           child: BarTimingScope(
-            beatsPerBar: widget.beatsPerBar,
+            timing: BarTiming.fixed(widget.beatsPerBar),
             child: FigureListEditor(
               drafts: widget.drafts,
               taxonomy: shippedTaxonomies.forForm(DanceForm.ecd),

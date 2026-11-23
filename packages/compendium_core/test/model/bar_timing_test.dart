@@ -35,6 +35,11 @@ void main() {
     });
   });
 
+  test('only one bar length for the whole tune is fixed', () {
+    expect(const BarTiming.fixed(3).isFixed, isTrue);
+    expect(timing.isFixed, isFalse);
+  });
+
   group('BarTiming.beatsPerBarAt', () {
     test('is the beats per bar of the phrase the bar starts in', () {
       expect(

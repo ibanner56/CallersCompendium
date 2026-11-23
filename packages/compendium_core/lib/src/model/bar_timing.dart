@@ -31,6 +31,10 @@ class BarTiming {
   final int? _fixed;
   final PhraseStructure? _structure;
 
+  /// Whether every bar is as long as every other, so that a count reads the
+  /// same wherever it starts.
+  bool get isFixed => _fixed != null;
+
   /// Beats in the bar that starts at [beat].
   int beatsPerBarAt(int beat) =>
       _fixed ?? _structure!.componentAtBeat(beat).beatsPerBar;

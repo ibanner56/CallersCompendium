@@ -1217,9 +1217,18 @@ class DanceEditorController extends ChangeNotifier {
       _phraseStructure = PhraseStructure.parse(phraseController.text);
       final issues = <ValidationIssue>[];
       final figures = _figures;
-      deriveSections(figures, _phraseStructure, issues: issues);
+      final sections = deriveSections(
+        figures,
+        _phraseStructure,
+        issues: issues,
+      );
       for (final (index, figure) in figures.indexed) {
-        _flagSequenceSpans(figure, index + 1, issues);
+        _flagSequenceSpans(
+          figure,
+          index + 1,
+          sections[index].startBeat,
+          issues,
+        );
       }
       final rowOfFigure = [
         for (final (row, draft) in figureDrafts.indexed)
@@ -1250,10 +1259,12 @@ class DanceEditorController extends ChangeNotifier {
   }
 
   /// Adds an English sequence's span issue ([ecdSequenceSpanIssue]) for
-  /// [figure], the dance's figure at [position], and any sequence inside it.
+  /// [figure], the dance's figure at [position] starting at [startBeat], and
+  /// any sequence inside it.
   void _flagSequenceSpans(
     Figure figure,
     int position,
+    int startBeat,
     List<ValidationIssue> issues,
   ) {
     if (ecdSequenceSpanIssue(figure, _form) case final issue?) {
@@ -1262,13 +1273,17 @@ class DanceEditorController extends ChangeNotifier {
           severity: issue.severity,
           code: issue.code,
           message: issue.message,
-          data: {...issue.data, 'position': position},
+          // Where the sequence starts, so its counts read in the bars of the
+          // phrase it falls in.
+          data: {...issue.data, 'position': position, 'startBeat': startBeat},
         ),
       );
     }
     if (!figure.isContainer) return;
-    for (final child in figure.subFigures) {
-      _flagSequenceSpans(child, position, issues);
+    final children = figure.subFigures;
+    final starts = childStartBeats(figure, startBeat);
+    for (var i = 0; i < children.length; i++) {
+      _flagSequenceSpans(children[i], position, starts[i], issues);
     }
   }
 

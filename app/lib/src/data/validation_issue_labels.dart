@@ -50,22 +50,24 @@ const String otherFormFiguresValidationCode = 'other_form_figures';
 /// substitution is for: the dialect editor names a figure of your own by its
 /// name rather than its `userFigure:<id>` key (#1023).
 ///
-/// [beatsPerBar], when given, is the bar of a dance timed in bars
-/// ([danceBeatsPerBar]): its counts then read in bars, as its figures do,
-/// where every count in the message is a whole number of half bars.
+/// [timing], when given, is how a dance timed in bars counts them
+/// ([barTimingFor]): its counts then read in bars, as its figures do, where
+/// every count in the message is a whole number of half bars. Each count reads
+/// from where it starts: a total from the start of the dance, a sequence's
+/// from the sequence's `startBeat`, and a phrase's length from the start of
+/// that phrase (`limitStart`), so that where the phrases differ in beats per
+/// bar each reads in the bars of its own part of the tune.
 String validationIssueMessage(
   AppLocalizations l10n,
   ValidationIssue issue, {
   String Function(String key)? keyLabel,
-  int? beatsPerBar,
-  // Red-run stub: accepted, not yet read.
   BarTiming? timing,
 }) {
   final localized = _localizedValidation(
     l10n,
     issue,
     keyLabel ?? (k) => k,
-    beatsPerBar,
+    timing,
   );
   if (localized != null) return localized;
   // No specific localization (unknown code, or expected structured data
@@ -84,20 +86,27 @@ String? _localizedValidation(
   AppLocalizations l10n,
   ValidationIssue issue,
   String Function(String key) keyLabel,
-  int? beatsPerBar,
+  BarTiming? timing,
 ) {
   final data = issue.data;
-  // The counts as bars ("32 bars"), or null to read them in beats: without
-  // a bar, or where any of them is no whole number of half bars.
-  List<String>? inBars(List<int> counts) {
-    if (beatsPerBar == null) return null;
-    final texts = [
-      for (final beats in counts)
-        if (barsText(beats, beatsPerBar) case final bars?)
-          l10n.danceFigureBars(bars, beats * 2 ~/ beatsPerBar),
-    ];
-    return texts.length == counts.length ? texts : null;
+  // The counts as bars ("32 bars"), each from where it starts, or null to
+  // read them in beats: without a timing, or where any of them is no whole
+  // number of half bars, so that one message never mixes the two.
+  List<String>? inBars(List<({int? start, int beats})> counts) {
+    if (timing == null) return null;
+    String? one(int? start, int beats) {
+      if (start == null) return null;
+      final bars = timing.barsTextAt(start, beats);
+      return bars == null
+          ? null
+          : l10n.danceFigureBars(bars.text, bars.halfBars);
+    }
+
+    final texts = [for (final (:start, :beats) in counts) one(start, beats)];
+    return texts.contains(null) ? null : [...texts.nonNulls];
   }
+
+  int startOf(Object? start) => start is int ? start : 0;
 
   switch (issue.code) {
     case 'phrase_overflow':
@@ -105,7 +114,8 @@ String? _localizedValidation(
       final actual = data['actual'];
       final expected = data['expected'];
       if (actual is! int || expected is! int) return null;
-      if (inBars([actual, expected]) case [final a, final e]) {
+      if (inBars([(start: 0, beats: actual), (start: 0, beats: expected)])
+          case [final a, final e]) {
         return l10n.validationPhraseCountMismatch(a, e);
       }
       return l10n.validationPhraseBeatMismatch(actual, expected);
@@ -117,7 +127,20 @@ String? _localizedValidation(
       final actual = data['actual'];
       final limit = data['limit'];
       if (position is! int || actual is! int || limit is! int) return null;
-      if (inBars([actual, limit]) case [final a, final l]) {
+      // The limit is a phrase's length: it reads from where that phrase
+      // starts. Where the data gives none, a tune in one meter reads it
+      // anywhere, and one whose phrases tied for longest differ in bars reads
+      // in beats.
+      final limitStart = data['limitStart'] is int
+          ? data['limitStart'] as int
+          : timing != null && timing.isFixed
+          ? 0
+          : null;
+      if (inBars([
+            (start: startOf(data['startBeat']), beats: actual),
+            (start: limitStart, beats: limit),
+          ])
+          case [final a, final l]) {
         return l10n.validationSequenceExceedsPhraseCount(position, a, l);
       }
       return l10n.validationSequenceExceedsPhrase(position, actual, limit);
@@ -127,7 +150,12 @@ String? _localizedValidation(
       final expected = data['expected'];
       if (position is! int || actual is! int || expected is! int) return null;
       final noRoom = data['allTimed'] == false;
-      if (inBars([actual, expected]) case [final a, final e]) {
+      final start = startOf(data['startBeat']);
+      if (inBars([
+            (start: start, beats: actual),
+            (start: start, beats: expected),
+          ])
+          case [final a, final e]) {
         return noRoom
             ? l10n.validationSequenceSpanNoRoomCount(position, a, e)
             : l10n.validationSequenceSpanMismatchCount(position, a, e);

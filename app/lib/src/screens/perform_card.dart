@@ -1241,29 +1241,36 @@ class _Figures extends StatelessWidget {
         ];
       }
       children.add(
-        _FigureRow(
-          text: canonicalDiscouragedTerms
-              ? renderer.renderSummaryWithCanonicalDiscouragedTerms(
-                  sf.figure,
-                  dialect,
-                  decimals: decimals,
-                )
-              : renderer.renderSummary(sf.figure, dialect, decimals: decimals),
-          mainSpans: mainSpans,
-          verboseText: canonicalDiscouragedTerms
-              ? renderer.renderSummaryWithCanonicalDiscouragedTerms(
-                  sf.figure,
-                  dialect,
-                  verbose: true,
-                )
-              : renderer.renderSummary(sf.figure, dialect, verbose: true),
-          beats: sf.figure.beats,
-          progression: sf.figure.progression,
-          noteSpans: noteSpans,
-          isImportGap:
-              sf.figure.isCustom &&
-              sf.figure.customOrigin == CustomOrigin.importGap,
-          chromeScale: chromeScale,
+        FigureStartScope(
+          startBeat: sf.startBeat,
+          child: _FigureRow(
+            text: canonicalDiscouragedTerms
+                ? renderer.renderSummaryWithCanonicalDiscouragedTerms(
+                    sf.figure,
+                    dialect,
+                    decimals: decimals,
+                  )
+                : renderer.renderSummary(
+                    sf.figure,
+                    dialect,
+                    decimals: decimals,
+                  ),
+            mainSpans: mainSpans,
+            verboseText: canonicalDiscouragedTerms
+                ? renderer.renderSummaryWithCanonicalDiscouragedTerms(
+                    sf.figure,
+                    dialect,
+                    verbose: true,
+                  )
+                : renderer.renderSummary(sf.figure, dialect, verbose: true),
+            beats: sf.figure.beats,
+            progression: sf.figure.progression,
+            noteSpans: noteSpans,
+            isImportGap:
+                sf.figure.isCustom &&
+                sf.figure.customOrigin == CustomOrigin.importGap,
+            chromeScale: chromeScale,
+          ),
         ),
       );
     }

@@ -632,11 +632,7 @@ class DanceEditorForm extends StatelessWidget {
                   const SizedBox(height: AppSpacing.md),
                   WarningsCard(
                     warnings: controller.warnings,
-                    beatsPerBar: BarTimingScope.beatsPerBarFor(
-                      controller.form,
-                      controller.phraseStructure,
-                      meter: controller.meterController.text,
-                    ),
+                    timing: _barTiming,
                   ),
                 ],
               ],
@@ -746,17 +742,22 @@ class DanceEditorForm extends StatelessWidget {
   BarTiming? get _barTimingForBars =>
       barTimingForMixedMeter(controller.form, controller.phraseStructure);
 
-  /// [child] timed in bars where the dance is ([BarTimingScope.beatsPerBarFor]):
-  /// an English dance whose tune has one meter throughout.
+  /// How the dance counts its figures in bars ([barTimingFor]), or null where
+  /// it is timed in beats.
+  BarTiming? get _barTiming => barTimingFor(
+    controller.form,
+    controller.phraseStructure,
+    meter: controller.meterController.text,
+  );
+
+  /// [child] timed in bars where the dance is ([barTimingFor]): an English
+  /// dance, by one bar length where its tune has one meter and by each
+  /// phrase's own where the phrases differ in beats per bar.
   Widget _withBarTiming(Widget child) {
-    final beatsPerBar = BarTimingScope.beatsPerBarFor(
-      controller.form,
-      controller.phraseStructure,
-      meter: controller.meterController.text,
-    );
-    return beatsPerBar == null
+    final timing = _barTiming;
+    return timing == null
         ? child
-        : BarTimingScope(beatsPerBar: beatsPerBar, child: child);
+        : BarTimingScope(timing: timing, child: child);
   }
 
   /// The Authors label and picker.
