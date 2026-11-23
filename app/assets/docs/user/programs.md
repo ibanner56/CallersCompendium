@@ -525,9 +525,13 @@ A program carries the details of its event:
 - program-level **Band**, **Caller**, and **Dancer level**;
 - **Pay**, an amount and currency under **More details**, shown on the
   program's summary but never in the shared set list, the PDF, or a program
-  file you share. If you don't track pay, turn off **Show pay** in
-  [Settings › Program › Programs](./settings.md#programs) to hide it in the
-  editor and on the summary; pay already entered is kept;
+  file you share. Apart from your [backup](./backup-portability.md), the one
+  export that includes it is the
+  [programs spreadsheet](./sharing.md#export-programs-as-a-spreadsheet-csv), your
+  own record of your gigs. If you don't track pay, turn off **Show pay** in
+  [Settings ▸ Program ▸ Programs](./settings.md#programs) to hide it in the
+  editor, on the summary and in the programs spreadsheet; pay already entered
+  is kept;
 - a **Status** — **Draft**, **Finalized**, or **Performed** — shown on the
   Programs list. Saving a change to **Performed** marks every unmarked dance
   in the program performed, except alternates, and that writes calling
@@ -809,6 +813,11 @@ a [venue](./glossary.md#venue) with contact people recorded, the PDF, JSON, and
 contacts, and leave them out unless you say otherwise. A venue's street address
 is never included in any export except a calendar file, which asks first and
 leaves it out unless you tick it.
+
+To get several programs into a spreadsheet at once — date, venue, caller,
+band, pay and the dances — use **Export programs as CSV** in the **Programs**
+list's **More actions** menu (⋮); see
+[Export programs as a spreadsheet](./sharing.md#export-programs-as-a-spreadsheet-csv).
 
 [Share, print & export](./sharing.md#share-a-program) covers all of this in
 detail, including what a shared bundle contains and what never leaves your

@@ -355,7 +355,9 @@ class Program {
   /// (the default, and every program before schema v38). Never negative; set
   /// together with [payCurrency] or not at all. Private to the caller's own
   /// bookkeeping but shareable across their devices and in archives; it is not
-  /// part of the shared program text or PDF.
+  /// part of the shared program text, PDF or share files. Besides the caller's
+  /// own backup, the programs CSV export (#2333) is the one export that
+  /// carries it.
   final int? payMinorUnits;
 
   /// ISO 4217 code (three uppercase letters) that [payMinorUnits] is

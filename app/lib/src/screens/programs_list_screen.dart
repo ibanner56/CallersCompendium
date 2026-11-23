@@ -37,7 +37,9 @@ import 'program_editor_screen.dart';
 import 'perform_program_screen.dart' show PerformResumeStore;
 import 'program_summary_screen.dart';
 import 'recently_deleted_screen.dart';
+import '../export/csv_export.dart';
 import '../widgets/adaptive_fab.dart';
+import '../widgets/programs_csv_export_action.dart';
 
 /// The program-import sources offered by the Programs list "Import" menu.
 enum _ProgramImportSource { plaintext, contraDb, calendar }
@@ -48,6 +50,7 @@ enum _ProgramsCompactAction {
   importCalendar,
   exportCalendar,
   toggleArchived,
+  exportCsv,
   recentlyDeleted,
 }
 
@@ -82,7 +85,11 @@ class ProgramsListScreen extends StatefulWidget {
     this.isActive = true,
     this.onSelectedProgramHidden,
     this.calendarExportDelivery,
+    this.csvExportDelivery = const CsvExportDelivery(),
   });
+
+  /// Delivers the **Export programs as CSV** file (#2333); a test seam.
+  final CsvExportDelivery csvExportDelivery;
 
   final void Function(String programId)? onSelectProgram;
 
@@ -983,10 +990,12 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                   _ProgramsCompactAction.toggleArchived =>
                     _toggleShowArchived(),
                   _ProgramsCompactAction.exportCalendar => _exportCalendar(),
+                  _ProgramsCompactAction.exportCsv => _exportCsv(),
                   _ => _openRecentlyDeleted(),
                 },
                 itemBuilder: (context) => [
                   _exportCalendarMenuItem(l10n),
+                  _exportCsvMenuItem(l10n),
                   _showArchivedMenuItem(l10n),
                   PopupMenuItem(
                     key: const ValueKey('programs-recently-deleted'),
@@ -1079,6 +1088,42 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     ),
   );
 
+  /// "Export programs as CSV" (#2333), just above "Show archived", whose
+  /// choice decides whether archived programs are in the file ("Show
+  /// archived" keeps its place just above "Recently deleted"). Off while the
+  /// view lists no program.
+  PopupMenuItem<_ProgramsCompactAction> _exportCsvMenuItem(
+    AppLocalizations l10n,
+  ) => PopupMenuItem(
+    key: const ValueKey('programs-export-csv'),
+    value: _ProgramsCompactAction.exportCsv,
+    enabled: _visiblePrograms.isNotEmpty,
+    child: Text(l10n.programsExportCsv),
+  );
+
+  /// Exports the programs this list shows, in its order: the current view,
+  /// with archived programs only while "Show archived" is on.
+  Future<void> _exportCsv() {
+    // The share sheet's anchor, as in [_exportCalendar]: the list's own rect
+    // stands in for the ⋮ button, which the menu has closed by now.
+    final box = context.findRenderObject() as RenderBox?;
+    final origin = box != null && box.hasSize
+        ? box.localToGlobal(Offset.zero) & box.size
+        : null;
+    return exportProgramsCsv(
+      context,
+      programIds: [
+        for (final p in _sortedPrograms(
+          ignoreLeadingArticles: SortIgnoreArticlesScope.of(context),
+        ))
+          p.id,
+      ],
+      delivery: widget.csvExportDelivery,
+      origin: origin,
+      source: 'programs_list_screen._exportCsv',
+    );
+  }
+
   Widget _buildCompactMoreActions(AppLocalizations l10n) {
     return PopupMenuButton<_ProgramsCompactAction>(
       key: const ValueKey('programs-more-actions'),
@@ -1096,6 +1141,8 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
             _exportCalendar();
           case _ProgramsCompactAction.toggleArchived:
             _toggleShowArchived();
+          case _ProgramsCompactAction.exportCsv:
+            _exportCsv();
           case _ProgramsCompactAction.recentlyDeleted:
             _openRecentlyDeleted();
         }
@@ -1115,6 +1162,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
           child: Text(l10n.importProgramFromCalendar),
         ),
         _exportCalendarMenuItem(l10n),
+        _exportCsvMenuItem(l10n),
         _showArchivedMenuItem(l10n),
         PopupMenuItem(
           key: const ValueKey('programs-recently-deleted'),
