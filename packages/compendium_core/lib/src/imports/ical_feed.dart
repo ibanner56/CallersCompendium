@@ -584,9 +584,11 @@ class CalendarImportPlan {
   /// the title filter (#2354): single events and overrides at any date, and
   /// a readable series' occurrences from 31 days back to a day past the
   /// window, less those its `EXDATE` removes. A program whose key is here is
-  /// not gone, wherever its event or its one occurrence moved. A series whose
-  /// own `DTSTART` time or `UID` changes (retimed, or split "this and
-  /// following") gives its occurrences new keys, so their programs are not.
+  /// not gone, wherever its event or its one occurrence moved. A series'
+  /// occurrence is known by its `UID` and its written date and time, so a
+  /// series moved to another day or time, or split "this and following" (a
+  /// new `UID`), gives its occurrences new keys, and their programs are not
+  /// known; a changed rule keeps the keys of the dates it still has.
   final Set<String> knownKeys;
 
   /// Like [knownKeys], for cancelled events: a single event, an occurrence of
@@ -785,8 +787,8 @@ CalendarImportPlan planCalendarImport(
 
   // #2354: every event the feed holds, whatever its date or the title
   // filter, so a program whose event, or one occurrence of it, only moved is
-  // never taken for gone. (A whole series retimed or split gets new keys;
-  // see [CalendarImportPlan.knownKeys].)
+  // never taken for gone. (A whole series moved, re-ruled or split gets new
+  // keys; see [CalendarImportPlan.knownKeys].)
   // Single events and overrides at any date; a readable series' occurrences
   // from 31 days back to a day past the window (a program's own date can have
   // been edited away from its occurrence's), less the dates its `EXDATE`

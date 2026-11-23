@@ -396,32 +396,88 @@ void main() {
     }
   });
 
-  test('a whole series retimed counts as new: its imported programs read as '
-      'gone and the new times are offered', () async {
-    final repos = openTestRepositories();
-    List<String> series(String start) => [
-      'UID:w',
-      start,
-      'RRULE:FREQ=WEEKLY;BYDAY=SA',
+  group('a whole series changed: the dates it no longer has read as gone, '
+      'and its new dates are offered', () {
+    // The injected today is Saturday 15 June 2030; the first import takes
+    // the five Saturdays through day 30: 15, 22, 29 June, 6 and 13 July.
+    List<String> weekly(String uid, List<String> when) => [
+      'UID:$uid',
+      ...when,
       'SUMMARY:Weekly',
     ];
-    final imported = await _importNew(
-      repos,
-      _cal([series('DTSTART:20300601T190000')]),
-    );
-    expect(imported, isNotEmpty);
-    final preview = await _preview(
-      repos,
-      _cal([series('DTSTART:20300601T193000')]),
-    );
-    expect(
-      preview.flagChanges.where((f) => f.flag == calendarFlagMissing),
-      hasLength(imported.length),
-    );
-    expect(
-      preview.entries.where((e) => e.state == CalendarEntryState.fresh),
-      hasLength(imported.length),
-    );
+    final original = weekly('w', [
+      'DTSTART:20300601T190000',
+      'RRULE:FREQ=WEEKLY;BYDAY=SA',
+    ]);
+    for (final (label, feed, goneCount, freshCount) in [
+      (
+        'moved to another time',
+        [
+          weekly('w', [
+            'DTSTART:20300601T193000',
+            'RRULE:FREQ=WEEKLY;BYDAY=SA',
+          ]),
+        ],
+        5,
+        5,
+      ),
+      (
+        // Fridays 21 June to 12 July.
+        'moved to another day',
+        [
+          weekly('w', [
+            'DTSTART:20300607T190000',
+            'RRULE:FREQ=WEEKLY;BYDAY=FR',
+          ]),
+        ],
+        5,
+        4,
+      ),
+      (
+        // Every other Saturday from 1 June keeps 15 and 29 June and 13 July.
+        'repeating less often',
+        [
+          weekly('w', [
+            'DTSTART:20300601T190000',
+            'RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=SA',
+          ]),
+        ],
+        2,
+        0,
+      ),
+      (
+        // "This and following" from 29 June: the old series ends on 22 June,
+        // and a new UID carries the same times on.
+        'split "this and following"',
+        [
+          weekly('w', [
+            'DTSTART:20300601T190000',
+            'RRULE:FREQ=WEEKLY;BYDAY=SA;UNTIL=20300622T235959',
+          ]),
+          weekly('w2', [
+            'DTSTART:20300629T190000',
+            'RRULE:FREQ=WEEKLY;BYDAY=SA',
+          ]),
+        ],
+        3,
+        3,
+      ),
+    ]) {
+      test(label, () async {
+        final repos = openTestRepositories();
+        final imported = await _importNew(repos, _cal([original]));
+        expect(imported, hasLength(5));
+        final preview = await _preview(repos, _cal(feed));
+        expect(
+          preview.flagChanges.where((f) => f.flag == calendarFlagMissing),
+          hasLength(goneCount),
+        );
+        expect(
+          preview.entries.where((e) => e.state == CalendarEntryState.fresh),
+          hasLength(freshCount),
+        );
+      });
+    }
   });
 
   test('a feed not read whole flags nothing as gone', () async {

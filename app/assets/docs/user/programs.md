@@ -295,13 +295,16 @@ behind your back, and never deletes one because of your calendar.
 - If you leave an offer unticked, the program stays as it is, and the change is
   not offered again unless the event changes again.
 - **Canceled or gone from your calendar** — an event marked canceled, or one
-  that is no longer in the calendar. An event that only moved, however far, is
-  not gone, and neither is one date of a repeating event moved on its own. But
-  if you change the time of a whole repeating event, or change "this and
-  following" events, your calendar app counts the new times as new events: the
-  programs already imported for the old times are labeled **No longer in your
-  calendar**, and the new times are offered as new drafts. "No longer in the calendar" is judged only for programs dated from
-  today up to 30 days ahead, and only when the app could read the whole
+  that is no longer in the calendar. A one-off event that only moved, however
+  far, is not gone, and neither is one date of a repeating event moved on its
+  own. Changing a repeating event as a whole is different, because the app
+  knows each of its dates by its day and time. If you move the whole event to
+  another day or time, or change "this and following" events, the programs
+  already imported for the old dates are labeled **No longer in your
+  calendar**, and the new dates are offered as new drafts. If it repeats less
+  often, only the dates it drops are labeled. "No longer in the calendar" is
+  judged only for programs dated from today up to 30 days ahead, and only when
+  the app could read the whole
   calendar (not when it holds repeating events the app can't read, or more
   events than the app reads). The
   program is kept as it is and, when you choose **Import**, labeled **Canceled
