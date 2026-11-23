@@ -30,6 +30,7 @@ import 'package:compendium_app/src/widgets/app_bar_text_action.dart';
 import 'package:compendium_app/src/widgets/collection_picker.dart';
 import 'package:compendium_app/src/widgets/online_result_tile.dart';
 import 'package:compendium_app/src/widgets/online_search_toggle.dart';
+import 'package:compendium_app/src/widgets/picker_suggestions.dart';
 import 'package:compendium_app/src/widgets/program_export_menu.dart'
     show PdfLayouter, ProgramExportMenu;
 import 'package:compendium_app/src/widgets/program_slot_list_editor.dart';
@@ -5831,6 +5832,76 @@ void main() {
       FocusManager.instance.primaryFocus?.context?.widget,
       isNot(isA<EditableText>()),
     );
+  });
+
+  // --- The picker's program context (#2343) ----------------------------------
+
+  PickerProgramContext? contextOf(WidgetTester tester, String pickerKey) =>
+      tester
+          .widget<CollectionPicker>(find.byKey(ValueKey(pickerKey)))
+          .programContext;
+
+  testWidgets('the add-dance pickers get the program, its venue and its '
+      'slots; Replace dance gets no program context (#2343)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.dances.create(_dance(id: 'd2', title: 'Petronella Reel'));
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        venue: 'The Grange',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    var context = contextOf(tester, 'inline-picker');
+    expect(context?.programId, 'p1');
+    expect(context?.venue, 'The Grange');
+    expect(context?.venueLabel, 'The Grange');
+    expect(context?.slots?.map((s) => s.danceId), ['d1']);
+
+    await tester.tap(find.byKey(const ValueKey('picker-add-d2')));
+    await tester.pumpAndSettle();
+    context = contextOf(tester, 'inline-picker');
+    expect(context?.slots?.map((s) => s.danceId), ['d1', 'd2']);
+
+    await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit slot'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('slot-edit-replace-dance')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('replace-picker')), findsOneWidget);
+    expect(contextOf(tester, 'replace-picker'), isNull);
+  });
+
+  testWidgets('the sheet picker gets the program and its slots (#2343)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      size: const Size(600, 2000),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('add-dance-slot')));
+    await tester.pumpAndSettle();
+    final context = contextOf(tester, 'sheet-picker');
+    expect(context?.programId, 'p1');
+    expect(context?.venue, isNull);
+    expect(context?.slots?.map((s) => s.danceId), ['d1']);
   });
 
   testWidgets('free-text and break slots contribute no dance counts (#796)', (

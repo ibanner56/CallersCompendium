@@ -362,6 +362,14 @@ chip and no marker.
 carries no event date, because N1-4 = (b) counts every window back from today,
 so nothing in the picker reads the program's date. Rejected: passing it anyway
 "in case", which is an unused parameter.
+- *Update, #2343:* the picker's `PickerProgramContext` exists now, for
+  Suggested ([suggestions.md](suggestions.md)). It carries the id, `venueId`
+  and typed venue as above, plus the venue's display name and, when the picker
+  adds at the end, the program's slots. The builder's two add-dance mounts pass
+  it; Replace… and `perform_adjust_sheet.dart` do not yet. The picker now also
+  passes the id as `currentProgramId` to its Called filter and its Last called
+  sort (N1-6), in those two mounts only. The Not
+  called here chip, the marker and the other H3 pieces are still not built.
 - It defaults to null, so B14's stable constructor API still holds, and all five
   mounts compile unchanged.
 - Four of the mounts are edited to pass it:
@@ -477,7 +485,7 @@ These hold on every surface.
 
 **When the section shows:**
 - The whole section stays hidden when nothing has been called
-  (`collection_picker.dart:844-851`, `docs/design/search.md:164-166`). Every
+  (`FacetPanel.hasCallingHistory`, `docs/design/search.md:164-166`). Every
   dance is then uncalled, so a scope cannot change the result.
 - The section's active count includes each active scope, so the Filters badge
   never hides an active narrowing.

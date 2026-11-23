@@ -41,6 +41,13 @@ abstract final class SyncCapabilities {
   /// these keys whole without using them; they wait so a peer is never shown
   /// a "template" it cannot apply.
   static const String programTemplatesV1 = 'programTemplates.v1';
+
+  /// Suggestions (#2343): the Experimental Suggestions toggle
+  /// (`suggestions_enabled`) and what suggestions look for
+  /// (`suggestion_settings`). An older build has no Suggested sort, so it
+  /// would keep both keys without using them; they wait so a peer never
+  /// holds a setting it cannot show or edit.
+  static const String suggestionsV1 = 'suggestions.v1';
 }
 
 /// What this build understands and what it holds back until every attached
@@ -104,11 +111,15 @@ final class SyncCapabilityPolicy {
   /// template (by its key prefix), the templates' order and the default
   /// template, and this build advertises it. The legacy Starting program key
   /// is not gated: older builds read it, and it is no longer written.
+  ///
+  /// [SyncCapabilities.suggestionsV1] (#2343) gates the Suggestions toggle
+  /// and its settings, and this build advertises it.
   static const SyncCapabilityPolicy build = SyncCapabilityPolicy(
     advertised: {
       SyncCapabilities.glossaryV1,
       SyncCapabilities.glossaryV2,
       SyncCapabilities.programTemplatesV1,
+      SyncCapabilities.suggestionsV1,
     },
     gatedRecordKinds: {
       SyncRecordKind.glossaryEntry: SyncCapabilities.glossaryV1,
@@ -120,6 +131,8 @@ final class SyncCapabilityPolicy {
       'user_figure_shorthands': SyncCapabilities.glossaryV2,
       'program_template_order': SyncCapabilities.programTemplatesV1,
       'program_template_default': SyncCapabilities.programTemplatesV1,
+      'suggestions_enabled': SyncCapabilities.suggestionsV1,
+      'suggestion_settings': SyncCapabilities.suggestionsV1,
     },
     gatedSettingKeyPrefixes: {
       'program_template:': SyncCapabilities.programTemplatesV1,

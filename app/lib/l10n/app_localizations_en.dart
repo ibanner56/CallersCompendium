@@ -9388,9 +9388,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorChooseHint => 'Choose…';
 
   @override
-  String get figureParamSearchDancersHint => 'Search dancers';
-
-  @override
   String danceEditorCreateQuotedName(String name) {
     return 'Create \"$name\"';
   }
@@ -12928,6 +12925,207 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get programTemplateSaveError =>
       'Couldn\'t save that change to your templates. Try again.';
+
+  @override
+  String get settingsSuggestionsHeader => 'Suggestions';
+
+  @override
+  String get settingsSuggestionsEnabledTitle => 'Suggest the next dance';
+
+  @override
+  String get settingsSuggestionsEnabledSubtitle =>
+      'Adds Suggested to the Sort menu of the program builder\'s dance list. It orders the dances for the end of the program and says why.';
+
+  @override
+  String get settingsSuggestionsEditorTitle => 'What suggestions look for';
+
+  @override
+  String get settingsSuggestionsEditorSubtitle =>
+      'Choose how much each thing counts when dances are suggested.';
+
+  @override
+  String get suggestionFactorMatrixVarietyTitle => 'Variety on the matrix';
+
+  @override
+  String get suggestionFactorMatrixVarietyHelp =>
+      'Favor dances with moves the program hasn\'t used yet. Avoid moves on the same beats as the dance before.';
+
+  @override
+  String get suggestionFactorFormationBalanceTitle => 'Formation balance';
+
+  @override
+  String get suggestionFactorFormationBalanceHelp =>
+      'Avoid the formation of the dance before, and formations the program already has many of.';
+
+  @override
+  String get suggestionFactorDifficultyCurveTitle => 'Difficulty curve';
+
+  @override
+  String get suggestionFactorDifficultyCurveHelp =>
+      'Fit the difficulty of the evening to a shape.';
+
+  @override
+  String get suggestionFactorVenueRecencyTitle => 'Recent calls at this venue';
+
+  @override
+  String get suggestionFactorVenueRecencyHelp =>
+      'Avoid dances called recently at the program\'s venue. A program with no venue skips this.';
+
+  @override
+  String get suggestionWeightOff => 'Off';
+
+  @override
+  String get suggestionWeightALittle => 'A little';
+
+  @override
+  String get suggestionWeightALot => 'A lot';
+
+  @override
+  String suggestionWeightSemantic(String factor) {
+    return 'How much $factor counts';
+  }
+
+  @override
+  String get suggestionCurveShapeLabel => 'Shape';
+
+  @override
+  String get suggestionCurveBuildThenEase => 'Build up, then ease off';
+
+  @override
+  String get suggestionCurveEven => 'Even';
+
+  @override
+  String get suggestionsResetDefaults => 'Reset to defaults';
+
+  @override
+  String get suggestionsResetDone =>
+      'Suggestions look for the default things again.';
+
+  @override
+  String get suggestionsNewerVersion =>
+      'These choices were saved by a newer version of the app, so they can\'t be changed here. Update the app to change them.';
+
+  @override
+  String get collectionSortSuggested => 'Suggested';
+
+  @override
+  String suggestionReasonNewMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count new moves for tonight',
+      one: 'A new move for tonight',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapPrevious(String move) {
+    return 'Same $move beats as the previous dance';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapNext(String move) {
+    return 'Same $move beats as the next dance';
+  }
+
+  @override
+  String suggestionReasonSameFormationPrevious(String formation) {
+    return '$formation, like the previous dance';
+  }
+
+  @override
+  String suggestionReasonSameFormationNext(String formation) {
+    return '$formation, like the next dance';
+  }
+
+  @override
+  String suggestionReasonFormationCommon(int count, String formation) {
+    return 'Already $count $formation dances tonight';
+  }
+
+  @override
+  String suggestionReasonFirstFormation(String formation) {
+    return '$formation: the first tonight';
+  }
+
+  @override
+  String get suggestionReasonFitsCurve => 'Fits the difficulty curve here';
+
+  @override
+  String get suggestionReasonHarderThanCurve =>
+      'Harder than the difficulty curve wants here';
+
+  @override
+  String get suggestionReasonEasierThanCurve =>
+      'Easier than the difficulty curve wants here';
+
+  @override
+  String suggestionReasonCalledHereRecently(String venue, String date) {
+    return 'Called at $venue on $date';
+  }
+
+  @override
+  String suggestionReasonNotCalledHereSince(String venue, String date) {
+    return 'Not called at $venue since $date';
+  }
+
+  @override
+  String suggestionReasonNeverCalledHere(String venue) {
+    return 'Never called at $venue';
+  }
+
+  @override
+  String get suggestionReasonVenueSkipped =>
+      'Recent calls at this venue: skipped, because the program has no venue';
+
+  @override
+  String get suggestionReasonNoFactor =>
+      'Nothing it looks for moved this dance';
+
+  @override
+  String get suggestionReasonEnglishNotCovered =>
+      'Suggestions don\'t cover English dances yet';
+
+  @override
+  String suggestionReasonPhraseOverlapPrevious(String move) {
+    return '$move in the same phrase as the previous dance';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapNext(String move) {
+    return '$move in the same phrase as the next dance';
+  }
+
+  @override
+  String get suggestionReasonAlreadyInProgram => 'Already in this program';
+
+  @override
+  String get suggestionRankingFailed =>
+      'Couldn\'t rank these dances, so they\'re in their usual order.';
+
+  @override
+  String suggestionWhyTooltip(String title) {
+    return 'Why $title is suggested here';
+  }
+
+  @override
+  String suggestionWhyTitle(String title) {
+    return 'Why $title';
+  }
+
+  @override
+  String suggestionWhyRaises(String reason) {
+    return 'Raises it: $reason';
+  }
+
+  @override
+  String suggestionWhyLowers(String reason) {
+    return 'Lowers it: $reason';
+  }
+
+  @override
+  String get figureParamSearchDancersHint => 'Search dancers';
 
   @override
   String get exportAddToCalendar => 'Add to calendar (.ics)';

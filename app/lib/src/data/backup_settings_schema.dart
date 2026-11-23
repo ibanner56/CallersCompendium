@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart'
     show
         MatrixColumnConfig,
         SavedSearch,
+        isValidStoredSuggestionSettings,
         savedSearchKeyPrefix,
         shareableTextNormalisationScopeKey;
 
@@ -21,6 +22,8 @@ import 'calendar_import_settings.dart'
 import 'calling_card_settings_scope.dart'
     show CallingCardSettings, kCallingCardSettingsKey;
 import 'show_glossary_scope.dart' show kShowGlossaryKey;
+import 'suggestions_scope.dart'
+    show kSuggestionSettingsKey, kSuggestionsEnabledKey;
 import 'display_defaults.dart'
     show
         kCanonicalDiscouragedTermsKey,
@@ -143,6 +146,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kCapitalizeFiguresKey,
     kShowGlossaryKey,
     kShowCustomFiguresKey,
+    kSuggestionsEnabledKey,
     kConfirmBeforeDeleteKey,
     kSetListColorCodingKey,
     kShowPerformedTogglesKey,
@@ -277,6 +281,10 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // restore is a trust boundary, so a value it would have to repair is
   // dropped here rather than persisted.
   kCallingCardSettingsKey: CallingCardSettings.isWellFormed,
+  // What suggestions look for (#2343): a JSON object with a version. A
+  // version-1 value must use only known choices; a newer one is kept as it
+  // stands, since this build keeps it without reading it.
+  kSuggestionSettingsKey: isValidStoredSuggestionSettings,
 };
 
 bool _isBool(Object? v) => v is bool;

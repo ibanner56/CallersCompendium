@@ -11,6 +11,8 @@ import 'package:compendium_app/src/data/backup_service.dart'
 import 'package:compendium_app/src/data/backup_settings_schema.dart';
 import 'package:compendium_app/src/data/calling_card_settings_scope.dart';
 import 'package:compendium_app/src/export/calling_card_layout.dart';
+import 'package:compendium_app/src/data/suggestions_scope.dart'
+    show kSuggestionSettingsKey, kSuggestionsEnabledKey;
 import 'package:compendium_app/src/data/seed_service.dart'
     show kInitialSeedCompletedKey;
 import 'package:compendium_app/src/data/display_defaults.dart'
@@ -41,6 +43,7 @@ import 'package:compendium_core/compendium_core.dart'
         MatrixColumnConfig,
         SavedSearch,
         SavedSearchSpec,
+        SuggestionSettings,
         settingsClassifications,
         settingsPrefixClassifications,
         shareableTextNormalisationScopeKey;
@@ -442,6 +445,62 @@ void main() {
           reason: key,
         );
       }
+    });
+
+    test('suggestions (#2343): the toggle a bool, the settings a value this '
+        'build can keep', () {
+      expect(validateBackupSettingValue(kSuggestionsEnabledKey, true), isTrue);
+      expect(validateBackupSettingValue(kSuggestionsEnabledKey, 'on'), isFalse);
+      bool valid(Object? value) =>
+          validateBackupSettingValue(kSuggestionSettingsKey, value)!;
+      expect(valid(const SuggestionSettings().toJson()), isTrue);
+      expect(valid({'version': 1}), isTrue, reason: 'missing parts default');
+      expect(
+        valid({
+          'version': 1,
+          'factors': {
+            'someLaterFactor': {'weight': 'aLot'},
+          },
+          'preferences': [
+            {'savedSearchId': 's1'},
+          ],
+        }),
+        isTrue,
+        reason: 'unknown entries are kept',
+      );
+      expect(
+        valid({'version': 2, 'factors': <String, Object?>{}}),
+        isTrue,
+        reason: 'a newer version is kept as it stands',
+      );
+      expect(valid('nope'), isFalse);
+      expect(
+        valid({'factors': <String, Object?>{}}),
+        isFalse,
+        reason: 'no version',
+      );
+      expect(
+        valid({
+          'version': 1,
+          'factors': {
+            'matrixVariety': {'weight': 'loads'},
+          },
+        }),
+        isFalse,
+      );
+      expect(
+        valid({
+          'version': 1,
+          'factors': {
+            'venueRecency': {'window': '2y'},
+          },
+        }),
+        isFalse,
+      );
+      expect(
+        valid({'version': 1, 'preferences': <String, Object?>{}}),
+        isFalse,
+      );
     });
 
     test('program-matrix column config (#935): only a codec-parseable Map', () {

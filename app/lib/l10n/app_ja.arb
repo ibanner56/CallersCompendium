@@ -9234,10 +9234,6 @@
   "@danceEditorChooseHint": {
     "x-sourceSha256": "7ca41615c19be38d63b5defd85e2db57712e18014c8d9e985f449245c0fdabc4"
   },
-  "figureParamSearchDancersHint": "ダンサーを検索",
-  "@figureParamSearchDancersHint": {
-    "x-sourceSha256": "1cdb21a9c736e3bc9e88c5bcc9a28a50c318e243475c3cc00b9e60e284d1c917"
-  },
   "danceEditorCreateQuotedName": "「{name}」を作成",
   "@danceEditorCreateQuotedName": {
     "x-sourceSha256": "61beb570b064beafe58096897e5b92cac6e071d27dbe3157ecced2593d7bcbc2"
@@ -12517,6 +12513,202 @@
   "programTemplateSaveError": "テンプレートへの変更を保存できませんでした。もう一度お試しください。",
   "@programTemplateSaveError": {
     "x-sourceSha256": "ccd2779aa982c2a20d48a6c1edb35883736c674d626a6cc6981d3465ce6b44d0"
+  },
+  "settingsSuggestionsHeader": "提案",
+  "@settingsSuggestionsHeader": {
+    "x-sourceSha256": "16c1d601fc66950402ca8d54257acea0f5d21be1e00b9eb99224e436da66c950"
+  },
+  "settingsSuggestionsEnabledTitle": "次のダンスを提案",
+  "@settingsSuggestionsEnabledTitle": {
+    "x-sourceSha256": "d872df21f53748993e2c03eb283c92a6f90b0457b9c462a68aa29e685eb4ae0e"
+  },
+  "settingsSuggestionsEnabledSubtitle": "プログラム作成画面のダンス一覧の「並べ替え」メニューに「おすすめ順」を追加します。プログラムの最後に入れるダンスを並べ、その理由を示します。",
+  "@settingsSuggestionsEnabledSubtitle": {
+    "x-sourceSha256": "c8ba45ca4ba6a61e90aa0d9effcee74aac0a4a8cdf9c2bc0d3965f8a5af82e2a"
+  },
+  "settingsSuggestionsEditorTitle": "提案で考慮すること",
+  "@settingsSuggestionsEditorTitle": {
+    "x-sourceSha256": "5859a799e7233f4a514956f7dc4ed8e54d2f54a2c8ad0b123a83872d2b580f0f"
+  },
+  "settingsSuggestionsEditorSubtitle": "ダンスを提案するときに、それぞれをどれだけ重視するかを選びます。",
+  "@settingsSuggestionsEditorSubtitle": {
+    "x-sourceSha256": "e63e9bbaa5d32e39be5cd0ede5a33da96633842c462f674d11c7bc53fabcc9cf"
+  },
+  "suggestionFactorMatrixVarietyTitle": "マトリクスの多様さ",
+  "@suggestionFactorMatrixVarietyTitle": {
+    "x-sourceSha256": "88d5967f0dfdfd8d240e4ea431c9442c4225f500e117e0f8585d546523ada039"
+  },
+  "suggestionFactorMatrixVarietyHelp": "プログラムでまだ使っていない動きのあるダンスを優先します。前のダンスと同じ拍の動きは避けます。",
+  "@suggestionFactorMatrixVarietyHelp": {
+    "x-sourceSha256": "d24a8fb5e03bc9371ce6c64750efafeb8b4c1b66e8c6502c5d6fc0e182c0c130"
+  },
+  "suggestionFactorFormationBalanceTitle": "隊形のバランス",
+  "@suggestionFactorFormationBalanceTitle": {
+    "x-sourceSha256": "948e1d3e1cdc9b6021bfc1d18583bd5255d779d66b6c2775b82975a76199e3b3"
+  },
+  "suggestionFactorFormationBalanceHelp": "前のダンスと同じ隊形や、プログラムにすでに多い隊形を避けます。",
+  "@suggestionFactorFormationBalanceHelp": {
+    "x-sourceSha256": "6a8cdbd5cb6482373bb9474f3e88ef810f87eb8106168e5959d11d46cd71a73f"
+  },
+  "suggestionFactorDifficultyCurveTitle": "難易度の流れ",
+  "@suggestionFactorDifficultyCurveTitle": {
+    "x-sourceSha256": "4a38a5939478265a79fca166121abdf403e5886ca2d1145c63bafe808b072d88"
+  },
+  "suggestionFactorDifficultyCurveHelp": "夜全体の難易度を選んだ形に合わせます。",
+  "@suggestionFactorDifficultyCurveHelp": {
+    "x-sourceSha256": "8a9942835d3a0e09b9c5078cdd6b82aec808c295d8de61f82ce70adee0ca0c94"
+  },
+  "suggestionFactorVenueRecencyTitle": "この会場での最近のコール",
+  "@suggestionFactorVenueRecencyTitle": {
+    "x-sourceSha256": "695ce122f13868364f32404dc8bf658286a18a8168914591881880a5b45cfc88"
+  },
+  "suggestionFactorVenueRecencyHelp": "プログラムの会場で最近コールしたダンスを避けます。会場のないプログラムではこの項目を使いません。",
+  "@suggestionFactorVenueRecencyHelp": {
+    "x-sourceSha256": "11b30f2796d45e9bac0ab91ea99dc57051f6b699cec686c046501ad8881c5a1b"
+  },
+  "suggestionWeightOff": "オフ",
+  "@suggestionWeightOff": {
+    "x-sourceSha256": "ca7981b46ecf2c1787b6d76d81d9fd7fa0ca95842e2fcc2a452869891a9334d1"
+  },
+  "suggestionWeightALittle": "少し",
+  "@suggestionWeightALittle": {
+    "x-sourceSha256": "165286e61f3d02f31e9b3533bb92e67855afdabaaeee1291e46ae4c982877901"
+  },
+  "suggestionWeightALot": "強く",
+  "@suggestionWeightALot": {
+    "x-sourceSha256": "adaa1c6c368329b2c8e1554e09844639548cac2ccd1be03dcaf4ba4e60f6367d"
+  },
+  "suggestionWeightSemantic": "{factor}の重み",
+  "@suggestionWeightSemantic": {
+    "x-sourceSha256": "b8fd8736cdf40483c965b17c9ee799be65c657574d39cc116272524e9da794db"
+  },
+  "suggestionCurveShapeLabel": "形",
+  "@suggestionCurveShapeLabel": {
+    "x-sourceSha256": "e0e492707f85ff1f9c23155494a54382b52bf34888091adc7a6bb338ef78f88d"
+  },
+  "suggestionCurveBuildThenEase": "徐々に上げて、最後は落ち着かせる",
+  "@suggestionCurveBuildThenEase": {
+    "x-sourceSha256": "b29455576cc7d256924c757cdc6d07db12360d84261857df00ef6025039ae4f4"
+  },
+  "suggestionCurveEven": "一定",
+  "@suggestionCurveEven": {
+    "x-sourceSha256": "8c29bf34483dc157c14ffb531c5084c879af19ec75069d4e1a14033013ece963"
+  },
+  "suggestionsResetDefaults": "既定に戻す",
+  "@suggestionsResetDefaults": {
+    "x-sourceSha256": "e240e635ff6dce4ff2ac0b90a84889cff420f2c9a56014543e78f366681820db"
+  },
+  "suggestionsResetDone": "提案で考慮することを既定に戻しました。",
+  "@suggestionsResetDone": {
+    "x-sourceSha256": "4e15a1a889b5b652479fce49e62fe8b623db35cfe5d1654e4593f9d6b7b3758b"
+  },
+  "suggestionsNewerVersion": "この設定は新しいバージョンのアプリで保存されたため、ここでは変更できません。変更するにはアプリを更新してください。",
+  "@suggestionsNewerVersion": {
+    "x-sourceSha256": "2a254caa1dda5cf8027427ef99d36604519c94756e9c61a2cb19eab1795d7376"
+  },
+  "collectionSortSuggested": "おすすめ順",
+  "@collectionSortSuggested": {
+    "x-sourceSha256": "93b63bab4c3a28d73a8bb83bcdfdcc5f6ddecfc8fc702296ca159d94c5dc6e53"
+  },
+  "suggestionReasonNewMoves": "{count, plural, other{今夜初めての動きが{count}つ}}",
+  "@suggestionReasonNewMoves": {
+    "x-sourceSha256": "d30adb9fb62f77dd9b437bb8e74f8c330309adb5b6c666d05fe8dd072badb774"
+  },
+  "suggestionReasonBeatOverlapPrevious": "{move}が前のダンスと同じ拍",
+  "@suggestionReasonBeatOverlapPrevious": {
+    "x-sourceSha256": "98dbbf51a76968d255834a53751d1cd9aaef7854b3d0482afc84f05435307a47"
+  },
+  "suggestionReasonBeatOverlapNext": "{move}が次のダンスと同じ拍",
+  "@suggestionReasonBeatOverlapNext": {
+    "x-sourceSha256": "cd82c9531aa73e40f07dc5d3d332c4de7386a6a53e02b7120e76022d105fd51f"
+  },
+  "suggestionReasonSameFormationPrevious": "{formation}（前のダンスと同じ）",
+  "@suggestionReasonSameFormationPrevious": {
+    "x-sourceSha256": "1524d718b21dc5d5f69f0944c1f54aebccff5f6d7e44462e53f8a02c09d9bbb8"
+  },
+  "suggestionReasonSameFormationNext": "{formation}（次のダンスと同じ）",
+  "@suggestionReasonSameFormationNext": {
+    "x-sourceSha256": "ed1cf3b11c58d2d2adde6abc152475bf6fd33974771e8895feb00c80d22f4e82"
+  },
+  "suggestionReasonFormationCommon": "今夜はすでに{formation}が{count}曲",
+  "@suggestionReasonFormationCommon": {
+    "x-sourceSha256": "6bc09eb615b172653df47e416117f9991bee94269f477040aa27834d52bdc5d7"
+  },
+  "suggestionReasonFirstFormation": "{formation}：今夜初めて",
+  "@suggestionReasonFirstFormation": {
+    "x-sourceSha256": "ef3625bb4abefc67d96f7b8d1ec7d438f2745445592d8c0c3c2a31ffe4718fc5"
+  },
+  "suggestionReasonFitsCurve": "ここでの難易度の流れに合う",
+  "@suggestionReasonFitsCurve": {
+    "x-sourceSha256": "9093f0fd6d659f0546c7e9ac15363a9e67311a9c8487ec26801979958f9adb4e"
+  },
+  "suggestionReasonHarderThanCurve": "ここでは難易度の流れより難しい",
+  "@suggestionReasonHarderThanCurve": {
+    "x-sourceSha256": "2417f844ebef05b6cb5e783d964e5e1a3aa7beee07ca3ac9a7968ff6e8edfebc"
+  },
+  "suggestionReasonEasierThanCurve": "ここでは難易度の流れより易しい",
+  "@suggestionReasonEasierThanCurve": {
+    "x-sourceSha256": "0ec02fe61e2576ea49c5ab923aa6507e3cf8ab1f5bd49da2a5f47f8709500794"
+  },
+  "suggestionReasonCalledHereRecently": "{date}に{venue}でコール済み",
+  "@suggestionReasonCalledHereRecently": {
+    "x-sourceSha256": "af5572c0e82afa15c2d3f95f515a934ac7c8afc2d5cbece3a6e57e5f71cb7436"
+  },
+  "suggestionReasonNotCalledHereSince": "{date}以来{venue}でコールしていない",
+  "@suggestionReasonNotCalledHereSince": {
+    "x-sourceSha256": "e466d0974ce9f1bd4e09e69e485c46539a2a3f9757a46f31f6415e47df5b9788"
+  },
+  "suggestionReasonNeverCalledHere": "{venue}でコールしたことがない",
+  "@suggestionReasonNeverCalledHere": {
+    "x-sourceSha256": "6e54fa550b125ed9913ef8406f6d1336d4f2053ec4c82061cc7975d9b1d3e797"
+  },
+  "suggestionReasonVenueSkipped": "この会場での最近のコール：プログラムに会場がないため使っていません",
+  "@suggestionReasonVenueSkipped": {
+    "x-sourceSha256": "6318d52f775093d02881f6acbfdacc1261194ea878aaa6cc88e635ca2fb9273b"
+  },
+  "suggestionReasonNoFactor": "どの項目もこのダンスの順位を変えていません",
+  "@suggestionReasonNoFactor": {
+    "x-sourceSha256": "98c897aaa9a6b27dab345d6740bfd06a79823527d88ecdd4df52f5ac9698e0c8"
+  },
+  "suggestionReasonEnglishNotCovered": "提案はまだイングリッシュ・ダンスに対応していません",
+  "@suggestionReasonEnglishNotCovered": {
+    "x-sourceSha256": "1f7a61a11e7374574001ba884a5325e7684ac7cd6b582d91f1410490294b105e"
+  },
+  "suggestionReasonPhraseOverlapPrevious": "{move}が前のダンスと同じフレーズ",
+  "@suggestionReasonPhraseOverlapPrevious": {
+    "x-sourceSha256": "ae0f63779f2e9a527f5016a620527135a4cffc5404737a947b6ffe0396539b85"
+  },
+  "suggestionReasonPhraseOverlapNext": "{move}が次のダンスと同じフレーズ",
+  "@suggestionReasonPhraseOverlapNext": {
+    "x-sourceSha256": "2f1291f7cc84eaed2809534ec7e5d2abdaa2bba20b9625624f2132b5dcbd3194"
+  },
+  "suggestionReasonAlreadyInProgram": "すでにこのプログラムにあります",
+  "@suggestionReasonAlreadyInProgram": {
+    "x-sourceSha256": "f99872aa4d82f914408cba53f419d396218e55ec34b2757febfd2835fde9027c"
+  },
+  "suggestionRankingFailed": "ダンスを並べ替えられなかったため、通常の順序で表示しています。",
+  "@suggestionRankingFailed": {
+    "x-sourceSha256": "ae87a3733ad619e5b00d28e9773478450262580c320cc1bd93c111863577bdf5"
+  },
+  "suggestionWhyTooltip": "{title}がここで提案される理由",
+  "@suggestionWhyTooltip": {
+    "x-sourceSha256": "d14e1ed761542a5fa726d1c12b7d56e8a02e684c830cf430d30d356feb762fb1"
+  },
+  "suggestionWhyTitle": "{title}の理由",
+  "@suggestionWhyTitle": {
+    "x-sourceSha256": "6280a28f7d2357ce6c0e8e4fec811b9a25a28bf7d923215675cb2a8b97c3bc91"
+  },
+  "suggestionWhyRaises": "順位を上げる：{reason}",
+  "@suggestionWhyRaises": {
+    "x-sourceSha256": "9f26550fbd5aed9bd1a79391b5dd2084b3f157d10311033c8c386482717b18ef"
+  },
+  "suggestionWhyLowers": "順位を下げる：{reason}",
+  "@suggestionWhyLowers": {
+    "x-sourceSha256": "4d30ec73dfb3cce121d9a0280961912b0763722e858621a128ea683c19df4a98"
+  },
+  "figureParamSearchDancersHint": "ダンサーを検索",
+  "@figureParamSearchDancersHint": {
+    "x-sourceSha256": "1cdb21a9c736e3bc9e88c5bcc9a28a50c318e243475c3cc00b9e60e284d1c917"
   },
   "exportAddToCalendar": "カレンダーに追加（.ics）",
   "@exportAddToCalendar": {

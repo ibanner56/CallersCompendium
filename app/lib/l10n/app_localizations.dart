@@ -14029,12 +14029,6 @@ abstract class AppLocalizations {
   /// **'Choose…'**
   String get danceEditorChooseHint;
 
-  /// Hint in the search box of the open list of dancers a figure names (its Who field), which narrows the list.
-  ///
-  /// In en, this message translates to:
-  /// **'Search dancers'**
-  String get figureParamSearchDancersHint;
-
   /// Type-ahead option label for creating a new item with the typed name/title.
   ///
   /// In en, this message translates to:
@@ -19006,6 +19000,300 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t save that change to your templates. Try again.'**
   String get programTemplateSaveError;
+
+  /// Header of the Suggestions group in the Experimental settings section (#2343).
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions'**
+  String get settingsSuggestionsHeader;
+
+  /// Title of the switch that turns on the Suggested sort in the program builder's dance list.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest the next dance'**
+  String get settingsSuggestionsEnabledTitle;
+
+  /// Subtitle of the Suggest the next dance switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds Suggested to the Sort menu of the program builder\'s dance list. It orders the dances for the end of the program and says why.'**
+  String get settingsSuggestionsEnabledSubtitle;
+
+  /// Title of the row, and of the screen it opens, where the user chooses how much each suggestion factor counts.
+  ///
+  /// In en, this message translates to:
+  /// **'What suggestions look for'**
+  String get settingsSuggestionsEditorTitle;
+
+  /// Subtitle of the What suggestions look for row.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how much each thing counts when dances are suggested.'**
+  String get settingsSuggestionsEditorSubtitle;
+
+  /// Name of the suggestion factor that favours moves the program has not used yet and avoids moves on the same beats as the neighbouring dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Variety on the matrix'**
+  String get suggestionFactorMatrixVarietyTitle;
+
+  /// Explanation under the Variety on the matrix factor in the suggestions editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Favor dances with moves the program hasn\'t used yet. Avoid moves on the same beats as the dance before.'**
+  String get suggestionFactorMatrixVarietyHelp;
+
+  /// Name of the suggestion factor that avoids repeating formations.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation balance'**
+  String get suggestionFactorFormationBalanceTitle;
+
+  /// Explanation under the Formation balance factor in the suggestions editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Avoid the formation of the dance before, and formations the program already has many of.'**
+  String get suggestionFactorFormationBalanceHelp;
+
+  /// Name of the suggestion factor that fits dance difficulty to a chosen shape over the evening.
+  ///
+  /// In en, this message translates to:
+  /// **'Difficulty curve'**
+  String get suggestionFactorDifficultyCurveTitle;
+
+  /// Explanation under the Difficulty curve factor in the suggestions editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit the difficulty of the evening to a shape.'**
+  String get suggestionFactorDifficultyCurveHelp;
+
+  /// Name of the suggestion factor that avoids dances called recently at the program's venue.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent calls at this venue'**
+  String get suggestionFactorVenueRecencyTitle;
+
+  /// Explanation under the Recent calls at this venue factor in the suggestions editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Avoid dances called recently at the program\'s venue. A program with no venue skips this.'**
+  String get suggestionFactorVenueRecencyHelp;
+
+  /// Weight choice for a suggestion factor: it does not count at all. Also the curve shape choice that turns the difficulty curve off.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get suggestionWeightOff;
+
+  /// Weight choice for a suggestion factor: it counts a little.
+  ///
+  /// In en, this message translates to:
+  /// **'A little'**
+  String get suggestionWeightALittle;
+
+  /// Weight choice for a suggestion factor: it counts a lot.
+  ///
+  /// In en, this message translates to:
+  /// **'A lot'**
+  String get suggestionWeightALot;
+
+  /// Screen-reader label of the Off / A little / A lot choice for one suggestion factor.
+  ///
+  /// In en, this message translates to:
+  /// **'How much {factor} counts'**
+  String suggestionWeightSemantic(String factor);
+
+  /// Label of the difficulty curve's shape choice in the suggestions editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Shape'**
+  String get suggestionCurveShapeLabel;
+
+  /// Difficulty curve shape: start easy, build to the hardest dances about two thirds of the way in, then ease off.
+  ///
+  /// In en, this message translates to:
+  /// **'Build up, then ease off'**
+  String get suggestionCurveBuildThenEase;
+
+  /// Difficulty curve shape: stay close to the level of the dances already in the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Even'**
+  String get suggestionCurveEven;
+
+  /// Button in the suggestions editor that restores the shipped choices.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to defaults'**
+  String get suggestionsResetDefaults;
+
+  /// Snackbar after Reset to defaults in the suggestions editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions look for the default things again.'**
+  String get suggestionsResetDone;
+
+  /// Notice in the suggestions editor when the stored choices come from a newer app version; the editor is read-only then.
+  ///
+  /// In en, this message translates to:
+  /// **'These choices were saved by a newer version of the app, so they can\'t be changed here. Update the app to change them.'**
+  String get suggestionsNewerVersion;
+
+  /// Sort choice in the program builder's dance list, offered when Suggestions is on: the dances ordered for the end of the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested'**
+  String get collectionSortSuggested;
+
+  /// Suggestion reason: the dance brings moves no other dance in the program uses.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{A new move for tonight} other{{count} new moves for tonight}}'**
+  String suggestionReasonNewMoves(int count);
+
+  /// Suggestion reason: a move lands on the same beats as in the previous dance (the matrix's collision rule). {move} is the matrix column's name, such as partner swing.
+  ///
+  /// In en, this message translates to:
+  /// **'Same {move} beats as the previous dance'**
+  String suggestionReasonBeatOverlapPrevious(String move);
+
+  /// Suggestion reason: a move lands on the same beats as in the next dance. {move} is the matrix column's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Same {move} beats as the next dance'**
+  String suggestionReasonBeatOverlapNext(String move);
+
+  /// Suggestion reason: the dance is in the same formation as the previous one.
+  ///
+  /// In en, this message translates to:
+  /// **'{formation}, like the previous dance'**
+  String suggestionReasonSameFormationPrevious(String formation);
+
+  /// Suggestion reason: the dance is in the same formation as the next one.
+  ///
+  /// In en, this message translates to:
+  /// **'{formation}, like the next dance'**
+  String suggestionReasonSameFormationNext(String formation);
+
+  /// Suggestion reason: the program already has many dances in this formation. {count} is at least 3.
+  ///
+  /// In en, this message translates to:
+  /// **'Already {count} {formation} dances tonight'**
+  String suggestionReasonFormationCommon(int count, String formation);
+
+  /// Suggestion reason: no other dance in the program is in this formation.
+  ///
+  /// In en, this message translates to:
+  /// **'{formation}: the first tonight'**
+  String suggestionReasonFirstFormation(String formation);
+
+  /// Suggestion reason: the dance's level fits the chosen difficulty curve at this point of the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Fits the difficulty curve here'**
+  String get suggestionReasonFitsCurve;
+
+  /// Suggestion reason: the dance's level is above what the difficulty curve wants at this point.
+  ///
+  /// In en, this message translates to:
+  /// **'Harder than the difficulty curve wants here'**
+  String get suggestionReasonHarderThanCurve;
+
+  /// Suggestion reason: the dance's level is below what the difficulty curve wants at this point.
+  ///
+  /// In en, this message translates to:
+  /// **'Easier than the difficulty curve wants here'**
+  String get suggestionReasonEasierThanCurve;
+
+  /// Suggestion reason: the dance was called at this program's venue within the chosen window.
+  ///
+  /// In en, this message translates to:
+  /// **'Called at {venue} on {date}'**
+  String suggestionReasonCalledHereRecently(String venue, String date);
+
+  /// Suggestion reason: the dance was last called at this venue before the chosen window, on {date}.
+  ///
+  /// In en, this message translates to:
+  /// **'Not called at {venue} since {date}'**
+  String suggestionReasonNotCalledHereSince(String venue, String date);
+
+  /// Suggestion reason: the dance has never been called at this program's venue.
+  ///
+  /// In en, this message translates to:
+  /// **'Never called at {venue}'**
+  String suggestionReasonNeverCalledHere(String venue);
+
+  /// Note in a suggestion's Why? list when the program has no venue, so the venue factor could not be used.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent calls at this venue: skipped, because the program has no venue'**
+  String get suggestionReasonVenueSkipped;
+
+  /// Suggestion reason when no factor raised or lowered the dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing it looks for moved this dance'**
+  String get suggestionReasonNoFactor;
+
+  /// Reason on an English dance in the Suggested order: English dances are listed after the ranked ones, in the plain order.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions don\'t cover English dances yet'**
+  String get suggestionReasonEnglishNotCovered;
+
+  /// Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the previous dance. {move} is the matrix column's name.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} in the same phrase as the previous dance'**
+  String suggestionReasonPhraseOverlapPrevious(String move);
+
+  /// Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the next dance. {move} is the matrix column's name.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} in the same phrase as the next dance'**
+  String suggestionReasonPhraseOverlapNext(String move);
+
+  /// Suggestion reason: the dance is already in the program being built, so the Suggested order puts it last (it is not removed).
+  ///
+  /// In en, this message translates to:
+  /// **'Already in this program'**
+  String get suggestionReasonAlreadyInProgram;
+
+  /// Notice in the program builder's dance picker when the Suggested sort is chosen but ranking failed; the list shows in its plain order.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t rank these dances, so they\'re in their usual order.'**
+  String get suggestionRankingFailed;
+
+  /// Tooltip and screen-reader label of the Why? button on a row in the Suggested order.
+  ///
+  /// In en, this message translates to:
+  /// **'Why {title} is suggested here'**
+  String suggestionWhyTooltip(String title);
+
+  /// Title of the dialog listing every factor that moved a dance in the Suggested order.
+  ///
+  /// In en, this message translates to:
+  /// **'Why {title}'**
+  String suggestionWhyTitle(String title);
+
+  /// Screen-reader label of a reason in the Why? dialog that moved the dance up.
+  ///
+  /// In en, this message translates to:
+  /// **'Raises it: {reason}'**
+  String suggestionWhyRaises(String reason);
+
+  /// Screen-reader label of a reason in the Why? dialog that moved the dance down.
+  ///
+  /// In en, this message translates to:
+  /// **'Lowers it: {reason}'**
+  String suggestionWhyLowers(String reason);
+
+  /// Hint in the search box of the open list of dancers a figure names (its Who field), which narrows the list.
+  ///
+  /// In en, this message translates to:
+  /// **'Search dancers'**
+  String get figureParamSearchDancersHint;
 
   /// Program export-menu item: save or share the program as an iCalendar (.ics) file so a calendar app shows it. Shown only when the program has an event date.
   ///

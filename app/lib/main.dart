@@ -80,6 +80,7 @@ import 'src/data/capitalize_figures_scope.dart';
 import 'src/data/show_custom_figures_scope.dart';
 import 'src/data/calling_card_settings_scope.dart';
 import 'src/data/show_glossary_scope.dart';
+import 'src/data/suggestions_scope.dart';
 import 'src/data/decimal_turns_scope.dart';
 import 'src/data/canonical_discouraged_terms_scope.dart';
 import 'src/data/display_defaults.dart'
@@ -698,6 +699,19 @@ class _CompendiumAppState extends State<CompendiumApp>
     decode: (Object? v) => v is bool ? v : false,
     encode: (v) => v,
   );
+  final _suggestionsEnabledNotifier = PreferenceNotifier<bool>(
+    key: kSuggestionsEnabledKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _suggestionSettingsNotifier =
+      PreferenceNotifier<SuggestionSettingsRead>(
+        key: kSuggestionSettingsKey,
+        defaultValue: (settings: SuggestionSettings.defaults, isNewer: false),
+        decode: decodeSuggestionSettings,
+        encode: encodeSuggestionSettings,
+      );
   final _callingCardSettingsNotifier = PreferenceNotifier<CallingCardSettings>(
     key: kCallingCardSettingsKey,
     defaultValue: CallingCardSettings.defaults,
@@ -1389,6 +1403,8 @@ class _CompendiumAppState extends State<CompendiumApp>
     _capitalizeFiguresNotifier,
     _showGlossaryNotifier,
     _showCustomFiguresNotifier,
+    _suggestionsEnabledNotifier,
+    _suggestionSettingsNotifier,
     _callingCardSettingsNotifier,
     _aggressiveBeatsUpdateNotifier,
     _confirmBeforeDeleteNotifier,
@@ -2266,6 +2282,8 @@ class _CompendiumAppState extends State<CompendiumApp>
     _capitalizeFiguresNotifier.dispose();
     _showGlossaryNotifier.dispose();
     _showCustomFiguresNotifier.dispose();
+    _suggestionsEnabledNotifier.dispose();
+    _suggestionSettingsNotifier.dispose();
     _callingCardSettingsNotifier.dispose();
     _aggressiveBeatsUpdateNotifier.dispose();
     _confirmBeforeDeleteNotifier.dispose();
@@ -2938,6 +2956,14 @@ class _CompendiumAppState extends State<CompendiumApp>
     (child) => ShowGlossaryScope(notifier: _showGlossaryNotifier, child: child),
     (child) => ShowCustomFiguresScope(
       notifier: _showCustomFiguresNotifier,
+      child: child,
+    ),
+    (child) => SuggestionsEnabledScope(
+      notifier: _suggestionsEnabledNotifier,
+      child: child,
+    ),
+    (child) => SuggestionSettingsScope(
+      notifier: _suggestionSettingsNotifier,
       child: child,
     ),
     (child) => CallingCardSettingsScope(

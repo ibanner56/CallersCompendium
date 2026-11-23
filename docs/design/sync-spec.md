@@ -5209,6 +5209,17 @@ retained records, which is why the gate exists. Deleting one is a tombstone that
 keeps its value until the record is purged, so a held-back deletion is published
 once the gate opens, as any gated tombstone is.
 
+**`suggestions.v1`.** Gates the Suggestions settings (#2343): the exact keys
+`suggestions_enabled` and `suggestion_settings`, tombstones included. A build
+without it has neither setting and nothing that reads them. The reference
+client advertises it from the change that adds them, so it is subject to
+*Rollout*: a device on a build that lists only the glossary capabilities and
+`programTemplates.v1` holds it closed and is named for it, while what those
+gate publishes past it. `suggestion_settings` carries its own `version`; a
+build that reads a newer one keeps it unchanged (see
+[suggestions.md](suggestions.md#stored-settings)), so the capability is not
+bumped for a change the version field covers.
+
 **Server.** The server needs no code for the gate. It validates settings keys
 and record kinds through the registry it is built from, so it MUST be deployed
 before any client emits the capability prefix or a gated kind (§7.5).

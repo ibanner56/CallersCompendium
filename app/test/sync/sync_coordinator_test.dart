@@ -7902,8 +7902,10 @@ void main() {
       expect(SyncCapabilityPolicy.build.advertised, {
         SyncCapabilities.glossaryV1,
         SyncCapabilities.glossaryV2,
-        // Program templates (#2337) are covered by their own rollout test.
+        // Program templates (#2337) and suggestions (#2343) are covered by
+        // their own rollout tests.
         SyncCapabilities.programTemplatesV1,
+        SyncCapabilities.suggestionsV1,
       });
       expect(SyncCapabilityPolicy.build.gatedRecordKinds, {
         SyncRecordKind.glossaryEntry: SyncCapabilities.glossaryV1,
@@ -7915,6 +7917,8 @@ void main() {
         'user_figure_shorthands': SyncCapabilities.glossaryV2,
         'program_template_order': SyncCapabilities.programTemplatesV1,
         'program_template_default': SyncCapabilities.programTemplatesV1,
+        'suggestions_enabled': SyncCapabilities.suggestionsV1,
+        'suggestion_settings': SyncCapabilities.suggestionsV1,
       });
       expect(SyncCapabilityPolicy.build.gatedGlossaryEntryKinds, {
         'term': SyncCapabilities.glossaryV2,
@@ -8255,6 +8259,96 @@ void main() {
       expect(awaiting(result), isEmpty);
     });
 
+    test('rollout: the suggestion settings (#2343) wait beside peers with no '
+        'record and peers on the previous build, and publish once every '
+        'device advertises suggestions.v1', () async {
+      const build = SyncCapabilityPolicy.build;
+      final suggestions = [
+        SyncMergeCandidate.fromBlob(_setting('suggestions_enabled', 'true')),
+        SyncMergeCandidate.fromBlob(
+          _setting(
+            'suggestion_settings',
+            '{"version":1,"factors":{"venueRecency":{"weight":"off"}},'
+                '"preferences":[]}',
+          ),
+        ),
+      ];
+      for (final candidate in suggestions) {
+        expect(
+          build.capabilityFor(candidate.blob.kind, candidate.blob.id),
+          SyncCapabilities.suggestionsV1,
+          reason: '${candidate.blob.id} is gated by the shipped policy',
+        );
+      }
+      final suggestionKeys = {for (final c in suggestions) c.blob.id};
+      final everyDevice = ['p1', 'p2'];
+      // What the build before this one advertised.
+      const previous = {
+        SyncCapabilities.glossaryV1,
+        SyncCapabilities.glossaryV2,
+        SyncCapabilities.programTemplatesV1,
+      };
+
+      Future<(SyncPassResult, _FakeTransport)> pass(
+        Map<String, Set<String>> recorded,
+      ) async {
+        final records = [
+          for (final MapEntry(key: peer, value: advertised) in recorded.entries)
+            capabilityOf(peer, advertised),
+        ];
+        final local = {
+          for (final c in [...suggestions, plain, ...records]) c.address: c,
+        };
+        final store = _FakeStore(local: local);
+        final transport = transportFor(
+          everyDevice,
+          missing: {
+            for (final c in [...suggestions, plain]) c.wireHash,
+          },
+        );
+        final result = await coordinatorFor(
+          store,
+          transport,
+          capabilities: build,
+        ).syncNow();
+        expect(result.status, SyncPassStatus.completed);
+        expect(
+          uploaded(transport),
+          contains(plain.wireHash),
+          reason: 'an ungated record uploads, so the checks below can fail',
+        );
+        return (result, transport);
+      }
+
+      for (final recorded in [
+        const <String, Set<String>>{},
+        {for (final peer in everyDevice) peer: previous},
+      ]) {
+        final (result, transport) = await pass(recorded);
+        expect(publishedSettings(transport), contains('theme_mode'));
+        expect(
+          publishedSettings(transport).intersection(suggestionKeys),
+          isEmpty,
+        );
+        for (final c in suggestions) {
+          expect(uploaded(transport), isNot(contains(c.wireHash)));
+        }
+        expect(awaiting(result).map((r) => r.peerId).toSet(), {'p1', 'p2'});
+        for (final report in awaiting(result)) {
+          expect(report.message, contains(SyncCapabilities.suggestionsV1));
+        }
+      }
+
+      final (result, transport) = await pass({
+        for (final peer in everyDevice) peer: build.advertised,
+      });
+      expect(publishedSettings(transport), containsAll(suggestionKeys));
+      for (final c in suggestions) {
+        expect(uploaded(transport), contains(c.wireHash));
+      }
+      expect(awaiting(result), isEmpty);
+    });
+
     test('glossary entries wait on the capability of their own kind: terms '
         'and figures of your own on glossary.v2, compounds and unknown kinds '
         'on glossary.v1, tombstones included (#1023)', () async {
@@ -8441,6 +8535,7 @@ void main() {
           SyncCapabilities.glossaryV1,
           SyncCapabilities.glossaryV2,
           SyncCapabilities.programTemplatesV1,
+          SyncCapabilities.suggestionsV1,
         ],
       }, reason: 'this build advertises the capabilities');
 
