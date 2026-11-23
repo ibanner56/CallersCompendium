@@ -577,12 +577,20 @@ class ProgramMatrix {
   /// [MatrixRow.phraseLabelsByMove] nor [MatrixRow.beatSpansByMove] carries
   /// them.
   bool isCollisionOnMove(int rowIndex, String moveId) =>
+      collidingNeighborRowIndices(rowIndex, moveId).isNotEmpty;
+
+  /// The neighbours ([neighborRowIndices], in that order) whose [moveId]
+  /// collides with [rowIndex]'s under [collisionMode]: the rows that make
+  /// [isCollisionOnMove] true. Suggestions name the first one in a reason
+  /// (#2344), so the dance named is one that really collides, not merely one
+  /// that has the move.
+  Iterable<int> collidingNeighborRowIndices(int rowIndex, String moveId) =>
       switch (collisionMode) {
-        MatrixCollisionMode.exactBeats => _isExactBeatCollision(
+        MatrixCollisionMode.exactBeats => _exactBeatCollisions(
           rowIndex,
           moveId,
         ),
-        MatrixCollisionMode.phrase => _isPhraseCollision(rowIndex, moveId),
+        MatrixCollisionMode.phrase => _phraseCollisions(rowIndex, moveId),
       };
 
   /// The rows [rowIndex] can be danced directly next to, exactly as
@@ -640,27 +648,23 @@ class ProgramMatrix {
     }
   }
 
-  bool _isExactBeatCollision(int rowIndex, String moveId) {
+  Iterable<int> _exactBeatCollisions(int rowIndex, String moveId) sync* {
     final here = rows[rowIndex].beatSpansByMove[moveId];
-    if (here == null || here.isEmpty) return false;
+    if (here == null || here.isEmpty) return;
     for (final neighbor in _neighborRowIndices(rowIndex)) {
       final there = rows[neighbor].beatSpansByMove[moveId];
       if (there == null) continue;
-      for (final h in here) {
-        if (there.any(h.overlaps)) return true;
-      }
+      if (here.any((h) => there.any(h.overlaps))) yield neighbor;
     }
-    return false;
   }
 
-  bool _isPhraseCollision(int rowIndex, String moveId) {
+  Iterable<int> _phraseCollisions(int rowIndex, String moveId) sync* {
     final here = rows[rowIndex].phraseLabelsByMove[moveId];
-    if (here == null || here.isEmpty) return false;
+    if (here == null || here.isEmpty) return;
     for (final neighbor in _neighborRowIndices(rowIndex)) {
       final there = rows[neighbor].phraseLabelsByMove[moveId];
-      if (there != null && here.any(there.contains)) return true;
+      if (there != null && here.any(there.contains)) yield neighbor;
     }
-    return false;
   }
 }
 
