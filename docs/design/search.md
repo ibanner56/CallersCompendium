@@ -832,7 +832,8 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
   `barnes_reference`, its other titles (`alternate_titles`, one per line, each
   line break read as a space; `_alternateTitleMatch`) and the names of its
   live interpreters (`dance_interpreters` joined to `choreographers` with
-  `deleted_at IS NULL`), in a dance of any form. They are read with a folded
+  `deleted_at IS NULL`), in a dance of any form (only an ECD dance holds a
+  Barnes reference, `formHasBarnesReference`). They are read with a folded
   `LIKE` (below) from those rows rather than from the text index
   (`_musicAndInterpreterMatch`), as three `id IN` subqueries beside the index
   branches (the dance's own columns, its other titles, its interpreters), so they need no index column, no rebuild, and follow a rename at

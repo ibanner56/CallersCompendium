@@ -325,8 +325,10 @@ exceptions: it keeps the dance's **rating** whenever the incoming record
 carries none (*B19 follow-up*, maintainer decision of 2026-10-30, "Keep my
 rating"), and likewise its interpreters, interpretation date, other titles and
 Barnes reference (implementer's call, extending the rating rule to fields most
-sources never carry). A value the record does carry replaces the existing
-one. The rule lives in
+sources never carry; the maintainer kept it on 23 November 2026). A value the
+record does carry replaces the existing one. The record's form still applies,
+so a link to a record of a form other than ECD clears the Barnes reference,
+which only an ECD dance holds. The rule lives in
 `_rebuildWithIdentity`'s `keepFrom`, beside the custom-field merge, so it holds
 for every source that links: share files, archives, Caller's Box and `.USR`.
 Otherwise a link is out of scope of the re-import decision. Provenance is refreshed on a re-import, unlike the detail-screen

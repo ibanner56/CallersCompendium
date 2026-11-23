@@ -4016,7 +4016,10 @@ rewrites it through the alias.
 
 A fresh-attach merge also unions `alternateTitles`, every copy's other titles
 in order with repeats dropped, and takes `barnesReference` from the latest
-copy, as it takes `meter`; neither is part of the choreography fingerprint,
+copy, as it takes `meter`, but only when that copy has the merged dance's
+form: only an ECD dance holds one, and a merge the person chose may join
+copies of different forms, so a newer copy of another form leaves the
+survivor's value alone. Neither is part of the choreography fingerprint,
 which a build older than v42 computes without them.
 
 **A field the receiver does not sync is kept, not dropped and not applied.**

@@ -352,16 +352,22 @@ Map<String, Object?> _mergeDanceBodies(
   // into two fingerprints. The copies merged here may differ in them; the latest copy's wins. Each is omitted
   // from a body when it holds its default, so a missing key is the default,
   // not "keep the survivor's".
-  for (final key in const [
-    'meter',
-    'musicalKey',
-    'barnesReference',
-    'interpretedOn',
-  ]) {
+  for (final key in const ['meter', 'musicalKey', 'interpretedOn']) {
     if (latest.blob.body.containsKey(key)) {
       body[key] = latest.blob.body[key];
     } else {
       body.remove(key);
+    }
+  }
+  // The Barnes reference likewise, but only from a latest copy of the
+  // merged dance's own form: the merged body keeps the survivor's form, and
+  // only an ECD dance holds one (`formHasBarnesReference`), so a latest copy
+  // of another form says nothing about it and must not clear the survivor's.
+  if (latest.blob.body['form'] == body['form']) {
+    if (latest.blob.body.containsKey('barnesReference')) {
+      body['barnesReference'] = latest.blob.body['barnesReference'];
+    } else {
+      body.remove('barnesReference');
     }
   }
   final latestFormation = latest.blob.body['formation'];

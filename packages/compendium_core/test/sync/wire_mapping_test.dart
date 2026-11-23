@@ -372,8 +372,8 @@ void main() {
   }, timeout: const Timeout(Duration(minutes: 5)));
 
   test('a multi-source wire path is admitted only when every column is', () {
-    // `customFields.value` is the only path with more than one source column,
-    // and both are shareable today, so the generator's rule is not observable
+    // `customFields.value` and `barnesReference` are the paths with more than
+    // one source column, and every one of those columns is shareable today, so the generator's rule is not observable
     // from the committed registry. Classifying either one out must remove the
     // path: admitting it because the OTHER column is shareable would emit both
     // (#1359). `fieldClassifications` is a mutable top-level map, which is how

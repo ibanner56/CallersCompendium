@@ -3260,6 +3260,45 @@ void main() {
       expect(saved.meter, '3/2');
       expect(saved.interpreterIds, ['pat']);
     });
+
+    testWidgets('switching an English dance to contra hides its Barnes '
+        'reference and saves it cleared; switching back first keeps it', (
+      tester,
+    ) async {
+      Future<Dance?> saveAfter(List<String> forms) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(
+          _dance(
+            id: 'd1',
+            title: 'Money Musk',
+          ).copyWith(form: DanceForm.ecd, barnesReference: 'BIII p. 92'),
+        );
+        await _pumpEditor(tester, repos, danceId: 'd1');
+        final barnes = find.byKey(const ValueKey('barnes-reference-field'));
+        expect(barnes, findsOneWidget);
+        for (final label in forms) {
+          await tester.tap(find.byKey(const ValueKey('form-field')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(label).last);
+          await tester.pumpAndSettle();
+        }
+        if (forms.last == 'Contra') {
+          await _expandMoreDetails(tester);
+          expect(barnes, findsNothing);
+        }
+        await tester.tap(find.byKey(const ValueKey('save-dance')));
+        await tester.pumpAndSettle();
+        return repos.dances.getById('d1');
+      }
+
+      final cleared = await saveAfter(['Contra']);
+      expect(cleared!.form, DanceForm.contra);
+      expect(cleared.barnesReference, '');
+
+      final kept = await saveAfter(['Contra', 'English (ECD)']);
+      expect(kept!.form, DanceForm.ecd);
+      expect(kept.barnesReference, 'BIII p. 92');
+    });
   });
 
   group('sectioned layout —', () {
