@@ -652,7 +652,7 @@ void main() {
     test('controls: each token reads as a figure under exactly one pair', () {
       expect(englishName, isNotNull, reason: 'an English-only figure name');
       expect(reads(englishName!, DanceForm.ecd, english), isTrue);
-      expect(reads(englishName!, DanceForm.contra, contraDialect), isFalse);
+      expect(reads(englishName, DanceForm.contra, contraDialect), isFalse);
       expect(reads('whirlygig', DanceForm.contra, square), isTrue);
       expect(reads('whirlygig', DanceForm.contra, contraDialect), isFalse);
       expect(reads('whirlygig', DanceForm.ecd, english), isFalse);
