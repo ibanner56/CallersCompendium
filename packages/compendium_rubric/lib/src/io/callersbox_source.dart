@@ -643,9 +643,12 @@ bool _movesAlongTheSet(core.Figure figure) => switch (figure.move) {
 ///   the end of that figure, so the figure itself is the placement.
 ///
 /// A dance that names the next neighbours and later names plain `neighbors`
-/// again has left its minor set and come back, so its N2 is not a progression
-/// marker; a note-only mention followed by such a figure is skipped. A mention
-/// carried in a param keeps its earlier ruling and is never skipped.
+/// again has left its minor set and come back, so that N2 is not a
+/// progression marker: a note-only mention followed by such a figure is
+/// skipped, and the scan goes on to the next mention. A mention carried in a
+/// param keeps its earlier ruling and is never skipped. A note clause that
+/// speaks of only some dancers or of other neighbours too is not a mention
+/// (see [_partialMention]).
 ///
 /// This reads the figures' parameters and notes, not the compiled state: it is
 /// the same kind of positional reasoning as [assumedProgressionIndex], with the
@@ -653,9 +656,9 @@ bool _movesAlongTheSet(core.Figure figure) => switch (figure.move) {
 /// inspects where dancers ended up, which the compiler forbids as a basis for
 /// progression.
 ///
-/// Returns `null` when no figure mentions the next neighbours, or when the
-/// first mention reaches for them in the opening figure and so has nothing
-/// before it.
+/// Returns `null` when no figure mentions the next neighbours (or every
+/// note mention is an excursion), or when the first mention reaches for them
+/// in the opening figure and so has nothing before it.
 int? nextNeighborsProgressionIndex(core.Dance dance) {
   final figures = _requireDecoded(dance);
   for (var index = 0; index < figures.length; index++) {
@@ -689,21 +692,41 @@ bool _namesNeighbors(core.Figure figure) =>
     ) ||
     figure.subFigures.any(_namesNeighbors);
 
-/// A note that dances with the next neighbours: "with N2", or the import's
-/// `with nextNeighbors`, possibly with others named alongside ("with N2,
-/// shadow"). Stops at a `;`, which separates a note's clauses.
-final _withNextNeighbors = RegExp(r'\bwith\b[^;]*\b(N2|nextNeighbors?)\b');
+/// A note clause that dances with the next neighbours: "with N2", or the
+/// import's `with nextNeighbors`, possibly with others alongside ("with N2,
+/// shadow").
+final _withNextNeighbors = RegExp(r'\bwith\b.*\b(N2|nextNeighbors?)\b');
 
-/// A note that ends facing the next neighbours: "face N2".
+/// A note clause that ends facing the next neighbours: "face N2".
 final _faceNextNeighbors = RegExp(r'\bface\s+(N2|nextNeighbors?)\b');
 
-bool _noteReaches(core.Figure figure) =>
-    _withNextNeighbors.hasMatch(figure.note ?? '') ||
-    figure.subFigures.any(_noteReaches);
+/// A clause that speaks of only some dancers, or of other neighbours too, so
+/// does not say the whole hands four has progressed: another neighbour
+/// number ("M1 with N2, W1 with N1"), a role or group as the subject of
+/// "with" ("Heads with N2"), one dancer of N2 ("face N2 M2"), or phantoms.
+final _partialMention = RegExp(
+  r'\b(N0|N1|N3|N4|phantoms?)\b'
+  r'|\b(M|W|M1|M2|W1|W2|men|women|heads|sides|larks|robins)\s+with\b'
+  r'|\bN2\s+[MW]\d',
+  caseSensitive: false,
+);
 
-bool _noteFaces(core.Figure figure) =>
-    _faceNextNeighbors.hasMatch(figure.note ?? '') ||
-    figure.subFigures.any(_noteFaces);
+/// Whether a `;`-separated clause of [figure]'s note, or of a note inside it,
+/// matches [pattern] and speaks of the whole hands four. A container's
+/// children are danced in its slot, as for [_namesNextNeighbors] *(agent's
+/// call, 2026-11-23)*.
+bool _noteSays(core.Figure figure, RegExp pattern) =>
+    (figure.note ?? '')
+        .split(';')
+        .any(
+          (clause) =>
+              pattern.hasMatch(clause) && !_partialMention.hasMatch(clause),
+        ) ||
+    figure.subFigures.any((child) => _noteSays(child, pattern));
+
+bool _noteReaches(core.Figure figure) => _noteSays(figure, _withNextNeighbors);
+
+bool _noteFaces(core.Figure figure) => _noteSays(figure, _faceNextNeighbors);
 
 /// [dance]'s figures when its transcription decoded, or `null` when it did not.
 ///

@@ -51,9 +51,12 @@
 > placement does not compile, the retry now also reads a figure's note, so
 > "[with N2]" and "face N2" place an unflagged progression (user-ruled).
 > Against `rubric` at `9c32153f` it took the count from 3,547 to 3,729
-> compiled in scope (69.3% to 72.8%), and the core set from 488 to 507. One
-> dance that compiled now mismatches (16101 Blue and Green Candles, whose
-> "[with N2]" circulate is where the progression happens, not after it).
+> compiled in scope (69.3% to 72.8%), and the core set from 488 to 507
+> (`core-set-seattle.txt` with the core-set decisions applied). One dance that
+> compiled now mismatches: 16101 Blue and Green Candles, whose first "[with
+> N2]" note comes before the param reach that used to place it. Letting
+> params win instead saves it but loses 85 others. The excursion skip on its
+> own is net +1 (it keeps 14072 and 14858 and costs 13597).
 >
 > **"Ones swing" (2026-11-23)**: the ones swing in their own row and finish
 > facing down, toward the twos (user-ruled). Against `rubric` at `59dfdd15`

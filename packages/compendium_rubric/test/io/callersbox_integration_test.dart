@@ -977,63 +977,135 @@ void main() {
     group('N2 in a note (user-ruled 2026-11-23)', () {
       core.Figure noted(String move, String note) =>
           core_test.testFigure(move: move, note: note);
+      core.Dance becket(List<core.Figure> figures) =>
+          _shapedLike(shape: core.FormationShape.becketCw, figures: figures);
 
       test('a note dancing with the next neighbours is a reach', () {
         // Songbird: "Partner poussette ... [with N2]" is imported as a note.
-        final dance = _shapedLike(
-          shape: core.FormationShape.becketCw,
-          figures: [
-            figure('circle'),
-            figure('poussette'),
-            noted('poussette', 'with nextNeighbors'),
-            figure('swing', {'who': 'partners'}),
-          ],
-        );
+        final dance = becket([
+          figure('circle'),
+          figure('poussette'),
+          noted('poussette', 'with nextNeighbors'),
+          figure('swing', {'who': 'partners'}),
+        ]);
         expect(nextNeighborsProgressionIndex(dance), 1);
       });
 
       test('the source spelling and company in the note still count', () {
-        final dance = _shapedLike(
-          shape: core.FormationShape.becketCw,
-          figures: [
-            figure('circle'),
-            figure('swing'),
-            noted('balance', 'with N2, shadow'),
-          ],
-        );
+        final dance = becket([
+          figure('circle'),
+          figure('swing'),
+          noted('balance', 'with N2, shadow'),
+        ]);
         expect(nextNeighborsProgressionIndex(dance), 1);
       });
 
       test('ending face N2 places the progression on that figure', () {
-        final dance = _shapedLike(
-          shape: core.FormationShape.dupleImproper,
-          figures: [
-            figure('circle'),
-            noted('swing', 'face N2'),
-            figure('do_si_do'),
-          ],
-        );
+        final dance = becket([
+          figure('circle'),
+          noted('swing', 'face N2'),
+          figure('do_si_do'),
+        ]);
         expect(nextNeighborsProgressionIndex(dance), 1);
       });
 
-      test('N2 and then plain neighbours again is an excursion', () {
-        final dance = _shapedLike(
-          shape: core.FormationShape.becketCw,
-          figures: [
-            figure('circle'),
-            noted('balance', 'with nextNeighbors'),
-            figure('swing', {'who': 'neighbors'}),
-          ],
-        );
+      test('a note reach in the opening figure has nowhere to go', () {
+        final dance = becket([noted('balance', 'with N2'), figure('swing')]);
         expect(nextNeighborsProgressionIndex(dance), isNull);
       });
 
-      test('a note on another figure is not read as a reach', () {
-        final dance = _shapedLike(
-          shape: core.FormationShape.dupleImproper,
-          figures: [figure('circle'), noted('swing', 'finish proper; face up')],
-        );
-        expect(nextNeighborsProgressionIndex(dance), isNull);
+      test('a note inside a container counts', () {
+        final dance = becket([
+          figure('circle'),
+          figure('swing'),
+          core.Figure.modifier(
+            figures: [figure('long_lines'), noted('roll_away', 'with N2')],
+            beats: 8,
+          ),
+        ]);
+        expect(nextNeighborsProgressionIndex(dance), 1);
+      });
+
+      group('an excursion', () {
+        test('N2 and then plain neighbours again is skipped', () {
+          final dance = becket([
+            figure('circle'),
+            noted('balance', 'with nextNeighbors'),
+            figure('swing', {'who': 'neighbors'}),
+          ]);
+          expect(nextNeighborsProgressionIndex(dance), isNull);
+        });
+
+        test('the singular spelling also marks the return', () {
+          final dance = becket([
+            figure('circle'),
+            noted('balance', 'with nextNeighbors'),
+            core_test.invalidTestFigure(
+              move: 'swing',
+              params: const {'who': 'neighbor'},
+              reason: 'exercises the legacy singular source spelling',
+            ),
+          ]);
+          expect(nextNeighborsProgressionIndex(dance), isNull);
+        });
+
+        test('a face N2 note is skipped the same way', () {
+          final dance = becket([
+            figure('circle'),
+            noted('swing', 'face N2'),
+            figure('swing', {'who': 'neighbors'}),
+          ]);
+          expect(nextNeighborsProgressionIndex(dance), isNull);
+        });
+
+        test('and the scan goes on to the next mention', () {
+          final dance = becket([
+            figure('circle'),
+            noted('balance', 'with N2'),
+            figure('swing', {'who': 'neighbors'}),
+            figure('star'),
+            noted('balance', 'with N2'),
+          ]);
+          expect(nextNeighborsProgressionIndex(dance), 3);
+        });
+
+        test('a param mention is never skipped', () {
+          final dance = becket([
+            figure('circle'),
+            figure('do_si_do', {'who': 'nextNeighbors'}),
+            figure('swing', {'who': 'neighbors'}),
+          ]);
+          expect(nextNeighborsProgressionIndex(dance), 0);
+        });
+      });
+
+      group('notes that are not a mention of the whole hands four', () {
+        for (final note in const [
+          'finish proper; face up',
+          'pass N2 by right shoulder',
+          'to N2',
+          'with partner; to N2',
+          'M1 with N2, W1 with N1',
+          'Heads with N2, sides with N1',
+          'with N2 phantoms',
+          'face N2 M2, on diagonal',
+        ]) {
+          test('"$note"', () {
+            final dance = becket([figure('circle'), noted('swing', note)]);
+            expect(nextNeighborsProgressionIndex(dance), isNull);
+          });
+        }
+      });
+
+      test('the retry warning names the next neighbours', () {
+        final dance = becket([
+          figure('circle'),
+          figure('swing'),
+          noted('balance', 'with nextNeighbors'),
+        ]);
+        final bridged = bridgeCoreDance(dance, useNextNeighborsFallback: true);
+        expect(bridged.assumedProgressionAt, 1);
+        expect(bridged.warnings.single.detail, contains('N2'));
       });
     });
 
