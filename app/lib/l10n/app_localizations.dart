@@ -19010,7 +19010,7 @@ abstract class AppLocalizations {
   /// Subtitle of the Suggest the next dance switch.
   ///
   /// In en, this message translates to:
-  /// **'Adds Suggested to the Sort menu of the program builder\'s dance list. It orders the dances for the end of the program and says why.'**
+  /// **'Adds Suggested to the Sort menu of the program builder\'s dance lists. It orders the dances for where the new one will go and says why.'**
   String get settingsSuggestionsEnabledSubtitle;
 
   /// Title of the row, and of the screen it opens, where the user chooses how much each suggestion factor counts.
@@ -19133,7 +19133,7 @@ abstract class AppLocalizations {
   /// **'These choices were saved by a newer version of the app, so they can\'t be changed here. Update the app to change them.'**
   String get suggestionsNewerVersion;
 
-  /// Sort choice in the program builder's dance list, offered when Suggestions is on: the dances ordered for the end of the program.
+  /// Sort choice in the program builder's dance lists (adding a dance, and Replace), offered when Suggestions is on: the dances ordered for where the new one will go (the end of the program, a place before or after a slot, or the slot being replaced).
   ///
   /// In en, this message translates to:
   /// **'Suggested'**

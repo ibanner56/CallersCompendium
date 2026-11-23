@@ -12983,7 +12983,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSuggestionsEnabledSubtitle =>
-      'Tilføjer Foreslået til menuen Sortér i programbyggerens danseliste. Den ordner danserne til slutningen af programmet og fortæller hvorfor.';
+      'Tilføjer Foreslået til menuen Sortér i programbyggerens dancelister. Den ordner danserne efter, hvor den nye dans skal stå, og fortæller hvorfor.';
 
   @override
   String get settingsSuggestionsEditorTitle => 'Hvad forslag tager hensyn til';

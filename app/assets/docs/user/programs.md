@@ -361,25 +361,40 @@ you close them.
 [Settings ▸ Experimental ▸ Suggestions](./settings.md#suggestions), the picker's
 **Sort** menu has one more choice, **Suggested**. It orders the dances the
 picker is showing (your search and filters still decide which ones) by how well
-each would fit as the next dance at the end of your program, best first. It
-looks at variety on the [matrix](#check-your-evening-with-the-matrix), the
-balance of formations, the difficulty of the evening, and when you last called
-each dance at the program's venue, as much as you chose under
-**What suggestions look for**.
+each would fit where the dance will go, best first:
+
+- **Adding at the end** (**Add dance**): as the next dance after your last one.
+- **Adding before or after a slot** ([Add a dance before / after](#build-a-program)):
+  between the dances on either side of that place, compared with both of them.
+- **[Replace…](#edit-a-slot)**: in that slot's place, between the dances
+  before and after it. The dance you are replacing is left out: it isn't
+  compared with, and isn't marked *Already in this program* (unless another
+  slot has it too), since picking it again would change nothing.
+
+It looks at variety on the [matrix](#check-your-evening-with-the-matrix), the
+balance of formations, the difficulty of the evening at that point, and when
+you last called each dance at the program's venue, as much as you chose under
+**What suggestions look for**. The dances on either side count as the matrix
+counts them: a break in between means they are not next to each other, a note
+or waltz does not, and every alternate of a neighboring dance counts, since
+you might call any of them. A dance replacing an alternate is an alternative to
+its primary, not next to it.
 
 Each dance shows a short line under its details with the one or two things that
-moved it most, such as *Never called at the Grange · Same swing beats as the
-previous dance*. Select the question mark on a row to see why that dance is
-suggested there: every reason, each marked as raising or lowering it.
+moved it most, such as *Never called at the Grange · Same partner swing beats
+as Chorus Jig, after it*. A reason about a neighboring dance names it and says which
+side the suggested dance would be on: *after it* when it would follow Chorus
+Jig, *before it* when it would come just before. Select the question mark on a
+row to see why that dance is suggested there: every reason, each marked as
+raising or lowering it.
 
 - The picker always opens in your usual order. Suggested lasts until you
-  choose another sort or close the picker, and re-orders as you search or add
-  dances.
+  choose another sort or close the picker, and re-orders as you search, add
+  dances, or move where the dance will go (start or cancel an add before or
+  after a slot). Until the new order is ready the list shows its plain order,
+  never an order worked out for another place.
 - Ordering takes a moment on a large collection. Meanwhile the list shows in
   its plain order with a spinner by the count, and you can add dances as usual.
-- Suggested is only offered when the dance will go at the end of the program:
-  not while you are adding a dance before or after a slot, nor when you replace
-  a slot's dance.
 - English dances aren't covered yet. They are listed after the ordered
   dances, in their usual order, and say so.
 - A dance already in the program stays in the list but goes to the very

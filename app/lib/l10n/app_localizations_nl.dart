@@ -13057,7 +13057,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSuggestionsEnabledSubtitle =>
-      'Voegt Voorgesteld toe aan het menu Sorteren van de danslijst in de programma-editor. Het ordent de dansen voor het einde van het programma en zegt waarom.';
+      'Voegt Voorgesteld toe aan het menu Sorteren van de danslijsten in de programma-editor. Het ordent de dansen voor de plek waar de nieuwe dans komt en zegt waarom.';
 
   @override
   String get settingsSuggestionsEditorTitle => 'Waar suggesties op letten';

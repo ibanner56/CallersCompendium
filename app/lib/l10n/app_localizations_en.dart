@@ -12931,7 +12931,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSuggestionsEnabledSubtitle =>
-      'Adds Suggested to the Sort menu of the program builder\'s dance list. It orders the dances for the end of the program and says why.';
+      'Adds Suggested to the Sort menu of the program builder\'s dance lists. It orders the dances for where the new one will go and says why.';
 
   @override
   String get settingsSuggestionsEditorTitle => 'What suggestions look for';

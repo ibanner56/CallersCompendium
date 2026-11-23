@@ -17505,7 +17505,7 @@
   "@settingsSuggestionsEnabledTitle": {
     "description": "Title of the switch that turns on the Suggested sort in the program builder's dance list."
   },
-  "settingsSuggestionsEnabledSubtitle": "Adds Suggested to the Sort menu of the program builder's dance list. It orders the dances for the end of the program and says why.",
+  "settingsSuggestionsEnabledSubtitle": "Adds Suggested to the Sort menu of the program builder's dance lists. It orders the dances for where the new one will go and says why.",
   "@settingsSuggestionsEnabledSubtitle": {
     "description": "Subtitle of the Suggest the next dance switch."
   },
@@ -17596,7 +17596,7 @@
   },
   "collectionSortSuggested": "Suggested",
   "@collectionSortSuggested": {
-    "description": "Sort choice in the program builder's dance list, offered when Suggestions is on: the dances ordered for the end of the program."
+    "description": "Sort choice in the program builder's dance lists (adding a dance, and Replace), offered when Suggestions is on: the dances ordered for where the new one will go (the end of the program, a place before or after a slot, or the slot being replaced)."
   },
   "suggestionReasonNewMoves": "{count, plural, =1{A new move for tonight} other{{count} new moves for tonight}}",
   "@suggestionReasonNewMoves": {

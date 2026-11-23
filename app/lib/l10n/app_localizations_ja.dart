@@ -12474,7 +12474,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSuggestionsEnabledSubtitle =>
-      'プログラム作成画面のダンス一覧の「並べ替え」メニューに「おすすめ順」を追加します。プログラムの最後に入れるダンスを並べ、その理由を示します。';
+      'プログラム作成画面のダンス一覧の「並べ替え」メニューに「おすすめ順」を追加します。新しいダンスを入れる位置に合わせてダンスを並べ、その理由を示します。';
 
   @override
   String get settingsSuggestionsEditorTitle => '提案で考慮すること';

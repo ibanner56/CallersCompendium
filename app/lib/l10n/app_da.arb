@@ -12518,9 +12518,9 @@
   "@settingsSuggestionsEnabledTitle": {
     "x-sourceSha256": "d872df21f53748993e2c03eb283c92a6f90b0457b9c462a68aa29e685eb4ae0e"
   },
-  "settingsSuggestionsEnabledSubtitle": "Tilføjer Foreslået til menuen Sortér i programbyggerens danseliste. Den ordner danserne til slutningen af programmet og fortæller hvorfor.",
+  "settingsSuggestionsEnabledSubtitle": "Tilføjer Foreslået til menuen Sortér i programbyggerens dancelister. Den ordner danserne efter, hvor den nye dans skal stå, og fortæller hvorfor.",
   "@settingsSuggestionsEnabledSubtitle": {
-    "x-sourceSha256": "c8ba45ca4ba6a61e90aa0d9effcee74aac0a4a8cdf9c2bc0d3965f8a5af82e2a"
+    "x-sourceSha256": "193f4023841f384da42426d70da634dc5d4d49ee61e7badccda4d0a10b121202"
   },
   "settingsSuggestionsEditorTitle": "Hvad forslag tager hensyn til",
   "@settingsSuggestionsEditorTitle": {

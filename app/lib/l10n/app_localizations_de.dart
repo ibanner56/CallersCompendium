@@ -13091,7 +13091,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSuggestionsEnabledSubtitle =>
-      'Fügt dem Menü „Sortieren“ der Tanzliste im Programmeditor „Vorgeschlagen“ hinzu. Es ordnet die Tänze für das Ende des Programms und sagt, warum.';
+      'Fügt den Menüs „Sortieren“ der Tanzlisten im Programmeditor „Vorgeschlagen“ hinzu. Es ordnet die Tänze für die Stelle, an die der neue Tanz kommt, und sagt, warum.';
 
   @override
   String get settingsSuggestionsEditorTitle => 'Worauf Vorschläge achten';
