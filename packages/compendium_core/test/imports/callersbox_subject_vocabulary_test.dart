@@ -131,6 +131,16 @@ void main() {
       });
     });
 
+    test(
+      'a circle takes it in places: once around is 4 (not corpus wording)',
+      () {
+        final f = parse('Circle left (1 or 2)');
+        expect(f.move, 'circle');
+        expect(f.params['places'], 4);
+        expect(f.note, '1 or 2');
+      },
+    );
+
     test('a two-hand turn takes the amount too (not corpus wording)', () {
       final f = parse('Partner two-hand turn (1 or 2)');
       expect(f.move, 'two_hand_turn');
@@ -145,6 +155,10 @@ void main() {
       'C1 corner promenade counterclockwise (3/8 or 5/8)',
       // Not corpus wording: two choices on one line.
       'Neighbor allemande left (1 or 2) (1/2 or 1)',
+      // Not corpus wording: no such amount.
+      'Neighbor allemande left (1/0 or 2)',
+      // Not corpus wording: a swing has no amount.
+      'Partner swing (1 or 2)',
     ]) {
       test('"$line" has no place for the amount, so stays custom', () {
         final f = parse(line);

@@ -190,11 +190,12 @@ final RegExp _roleSplitAmountRe = RegExp(
 /// shared grammar, so the amount lands in whichever param that move reads it
 /// into (`travel` for an allemande or a two-hand turn).
 ///
-/// No move models a choice, so a line whose move does not take the amount —
-/// it already states one, or it has no amount param (`C1 corner promenade
-/// counterclockwise (3/8 or 5/8)`) — goes to custom. Structured with the choice
-/// only as a note, it would render the move's default amount, one the source
-/// never offered (an allemande renders 1½).
+/// The amount is read in the move's own unit: `Circle left (1 or 2)` is once
+/// around, 4 places. No move models a choice, so a line whose move does not
+/// take the amount — it already states one, or it has no amount param (`C1
+/// corner promenade counterclockwise (3/8 or 5/8)`) — goes to custom.
+/// Structured with the choice only as a note, it would render the move's
+/// default amount, one the source never offered (an allemande renders 1½).
 ///
 /// Not subject- or move-specific. Only digit amounts are read; glyph, decimal
 /// and word amounts (`1½ or 2`, `once or twice`) are not in the corpus and are
@@ -207,8 +208,8 @@ FigureMatch? _amountAlternativeAnnotation(String scrubbed) {
   if (hits.length > 1) return FigureMatch.customFallback();
   final hit = hits.single;
   final first = hit.group(2)!;
-  final amount = _parseDigitAmount(first);
-  if (amount == null) return FigureMatch.customFallback();
+  // `1/0` is not an amount.
+  if (_zeroDenominatorRe.hasMatch(first)) return FigureMatch.customFallback();
   final before = scrubbed.substring(0, hit.start).trimRight();
   final after = scrubbed.substring(hit.end).trimLeft();
   final withAmount = [
@@ -216,22 +217,12 @@ FigureMatch? _amountAlternativeAnnotation(String scrubbed) {
     first,
     after,
   ].where((s) => s.isNotEmpty).join(' ');
-  final without = [before, after].where((s) => s.isNotEmpty).join(' ');
 
   final inner = _tcbReadWithout(withAmount, _amountAlternativeAnnotation);
+  // A line with no place for the amount does not read with it written in —
+  // `allemande left 1 1`, `swing 1`, `promenade 3/8` all fail the grammar —
+  // so it stays text rather than take the move's default.
   if (inner == null || inner.forceCustom) return FigureMatch.customFallback();
-  final bare = _tcbReadWithout(without, _amountAlternativeAnnotation);
-  // The amount must land in a param the line did not already fill: a line that
-  // states its own amount and a move with no amount param both fail this.
-  final landed = inner.params.entries.any(
-    (e) =>
-        e.value is num &&
-        (e.value! as num) == amount &&
-        (bare == null ||
-            bare.moveId != inner.moveId ||
-            bare.params[e.key] != e.value),
-  );
-  if (!landed) return FigureMatch.customFallback();
   return _withAnnotationNote(inner, hit.group(1)!.trim());
 }
 
@@ -249,20 +240,7 @@ FigureMatch? _tcbReadWithout(String text, FigureMatch? Function(String) skip) {
   );
 }
 
-/// A whole number, a fraction, or `<whole> & <fraction>`, as a number; null
-/// for a zero denominator.
-num? _parseDigitAmount(String text) {
-  final m = _digitAmountRe.firstMatch(text.trim());
-  if (m == null) return null;
-  final whole = m.group(1) == null ? 0 : int.parse(m.group(1)!);
-  final n = int.parse(m.group(2)!);
-  if (m.group(3) == null) return whole + n;
-  final d = int.parse(m.group(3)!);
-  if (d == 0) return null;
-  return whole + n / d;
-}
-
-final RegExp _digitAmountRe = RegExp(r'^(?:(\d+)\s*&\s*)?(\d+)(?:/(\d+))?$');
+final RegExp _zeroDenominatorRe = RegExp(r'/0+$');
 
 /// A `(…)` whose body opens with `<amount> or <amount>`, then either ends or
 /// continues after a `,`/`;`. Group 1 is the body, group 2 the first amount.
