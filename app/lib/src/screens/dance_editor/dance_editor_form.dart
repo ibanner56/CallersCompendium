@@ -1319,11 +1319,70 @@ Future<void> _fillWalkthroughFromSnippets(
   controller.setWalkthroughText(assembled);
 }
 
+/// Whether [text] fits the bounds every [Dance] holds for its other titles:
+/// at most [kMaxAlternateTitles] lines of at most [kMaxAlternateTitleLength]
+/// code units each.
+bool _alternateTitlesFit(String text) {
+  final lines = text.split('\n');
+  return lines.length <= kMaxAlternateTitles &&
+      lines.every((line) => line.length <= kMaxAlternateTitleLength);
+}
+
+/// [newValue] made to [fits] without losing any of [oldValue]'s text, when
+/// [oldValue] fits and the edit only inserted text at a collapsed cursor
+/// (typing, or a paste with nothing selected): the longest part of the
+/// insertion that fits is kept, cut on a character boundary, and nothing
+/// already there is cut. A keystroke at the bound is refused, as
+/// `LengthLimitingTextInputFormatter` refuses it. Null for any other edit,
+/// and when [oldValue] is empty, since then there is nothing to keep and the
+/// caller's own cut (line by line, for other titles) loses less of a paste.
+TextEditingValue? _fitInsertion(
+  TextEditingValue oldValue,
+  TextEditingValue newValue,
+  bool Function(String text) fits,
+) {
+  final old = oldValue.text;
+  final next = newValue.text;
+  final at = oldValue.selection.start;
+  if (old.isEmpty ||
+      !fits(old) ||
+      !oldValue.selection.isValid ||
+      !oldValue.selection.isCollapsed ||
+      at > old.length ||
+      next.length <= old.length) {
+    return null;
+  }
+  final before = old.substring(0, at);
+  final after = old.substring(at);
+  if (!next.startsWith(before) || !next.endsWith(after)) return null;
+  final inserted = next.substring(at, next.length - after.length);
+  // Growing the insertion never makes the text fit again (it adds lines and
+  // length, never removes them), so the longest fitting prefix is found by
+  // halving.
+  var low = 0;
+  var high = inserted.length;
+  while (low < high) {
+    final mid = (low + high + 1) ~/ 2;
+    if (fits(before + truncateOnRuneBoundary(inserted, mid) + after)) {
+      low = mid;
+    } else {
+      high = mid - 1;
+    }
+  }
+  final kept = truncateOnRuneBoundary(inserted, low);
+  return TextEditingValue(
+    text: before + kept + after,
+    selection: TextSelection.collapsed(offset: at + kept.length),
+  );
+}
+
 /// Keeps the editor's "Other titles" text inside the bounds every [Dance]
 /// holds: at most [kMaxAlternateTitles] lines of at most
-/// [kMaxAlternateTitleLength] code units each. An edit that would go past
-/// them is cut back to them, as a length limit cuts a paste, so what the
-/// person sees is what [normalizeAlternateTitles] keeps on save.
+/// [kMaxAlternateTitleLength] code units each, so what the person sees is
+/// what [normalizeAlternateTitles] keeps on save. Typing or pasting at the
+/// cursor keeps what is already there and cuts only what was inserted (a
+/// line break at 20 titles is refused); any other edit that goes past the
+/// bounds is cut back to them.
 @visibleForTesting
 class AlternateTitlesInputFormatter extends TextInputFormatter {
   const AlternateTitlesInputFormatter();
@@ -1333,13 +1392,11 @@ class AlternateTitlesInputFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    final lines = newValue.text.split('\n');
-    final fits =
-        lines.length <= kMaxAlternateTitles &&
-        lines.every((line) => line.length <= kMaxAlternateTitleLength);
-    if (fits) return newValue;
+    if (_alternateTitlesFit(newValue.text)) return newValue;
+    final insertion = _fitInsertion(oldValue, newValue, _alternateTitlesFit);
+    if (insertion != null) return insertion;
     final text = [
-      for (final line in lines.take(kMaxAlternateTitles))
+      for (final line in newValue.text.split('\n').take(kMaxAlternateTitles))
         truncateOnRuneBoundary(line, kMaxAlternateTitleLength),
     ].join('\n');
     final end = newValue.selection.end.clamp(0, text.length);
@@ -1351,10 +1408,12 @@ class AlternateTitlesInputFormatter extends TextInputFormatter {
 }
 
 /// Keeps a field's text to at most [maxLength] UTF-16 code units, the unit
-/// the model's bounds count in, cutting an edit that goes past it on a
-/// character boundary. `TextField.maxLength` counts characters instead, so
-/// text made of characters outside the Basic Multilingual Plane could pass it
-/// and still be cut on save.
+/// the model's bounds count in. `TextField.maxLength` counts characters
+/// instead, so text made of characters outside the Basic Multilingual Plane
+/// could pass it and still be cut on save. Typing or pasting at the cursor
+/// keeps what is already there and cuts only what was inserted (a keystroke
+/// at the bound is refused); any other edit past the bound is cut back to it
+/// on a character boundary.
 @visibleForTesting
 class CodeUnitLimitInputFormatter extends TextInputFormatter {
   const CodeUnitLimitInputFormatter(this.maxLength);
@@ -1367,6 +1426,12 @@ class CodeUnitLimitInputFormatter extends TextInputFormatter {
     TextEditingValue newValue,
   ) {
     if (newValue.text.length <= maxLength) return newValue;
+    final insertion = _fitInsertion(
+      oldValue,
+      newValue,
+      (text) => text.length <= maxLength,
+    );
+    if (insertion != null) return insertion;
     final text = truncateOnRuneBoundary(newValue.text, maxLength);
     return TextEditingValue(
       text: text,
