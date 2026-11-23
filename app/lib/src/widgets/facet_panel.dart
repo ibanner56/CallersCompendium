@@ -71,14 +71,16 @@ class FacetPanel extends StatelessWidget {
   final bool hasMixedLevel;
 
   /// Whether any dance is flagged as a mixer; hides the Mixer facet section
-  /// when the whole collection has no mixers.
+  /// when the whole collection has no mixers, unless it holds a selection.
   final bool hasMixer;
 
   /// Whether any dance carries a star rating; hides the minimum-rating section
-  /// for an all-unrated collection.
+  /// for an all-unrated collection, unless it holds a selection.
   final bool hasRating;
 
-  /// Whether any dance has a positive call count in the active history scope.
+  /// Whether any dance has a positive call count in the active history scope;
+  /// without one the Calling history section is hidden, unless it holds a
+  /// selection.
   final bool hasCallingHistory;
 
   /// Where the Calling history section's venue chooser reads its rows. Null
@@ -89,7 +91,8 @@ class FacetPanel extends StatelessWidget {
   final List<Tag> tags;
 
   /// Published sources cited by at least one dance; drives the Source facet.
-  /// Empty hides the section (an uncited collection), mirroring [authors].
+  /// Empty hides the section (an uncited collection) unless a source is
+  /// selected, mirroring [authors].
   final List<PublishedSource> citedSources;
 
   /// Distinct tune names in the collection, offered as suggestions by the Tunes

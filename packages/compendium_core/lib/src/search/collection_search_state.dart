@@ -44,8 +44,11 @@ class FacetSelections {
   /// removed). Set and cleared with [historyVenue] by [setHistoryVenue].
   String? historyVenueLabel;
 
-  /// The recency scope, as a preset: only calls in the last this-many calendar
-  /// months count (1, 3 or 6). Null with [historySince] also null = no window.
+  /// The recency scope, as a number of months: only calls in the last
+  /// this-many calendar months count. The panel offers 1, 3 or 6; any other
+  /// number comes in with a panel state (a saved search keeps the months) and
+  /// is shown as a chip of its own. Null with [historySince] also null = no
+  /// window.
   /// Never set together with [historySince]; use [setHistoryMonths] and
   /// [setHistorySince].
   int? historyMonths;

@@ -1,0 +1,15 @@
+{
+  "id": "2325-panel-shows-every-filter",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A filter you chose no longer goes on narrowing the list out of sight once no dance has that value: the Filters panel keeps it as a selected chip you can remove, even when the whole section would otherwise be hidden, and a level, author or source that has since been deleted reads Not in your library. A By phrase pick in a phrase no dance has any more keeps its row too.",
+      "Typing a number into a custom number filter, such as a lone minus sign or the first bound of Between, no longer clears what you typed."
+    ]
+  },
+  "core": {
+    "added": [
+      "FacetSelections.keepSelectedTags marks the selected tags a host opened with, which retainTags then keeps even while no live dance carries them; a tag picked by hand is dropped as before. CollectionPanelState.fromSavedSearch says a state was read from a saved search; SavedSearchSpec.toPanelState sets it."
+    ]
+  }
+}

@@ -166,8 +166,9 @@ class CollectionData {
   final List<Tag> tags;
 
   /// Published sources cited by at least one dance in the collection (sorted by
-  /// title). Drives the Source facet; an empty list hides the facet, matching
-  /// the present-value pattern used for authors/tags/rating.
+  /// title). Drives the Source facet; an empty list hides the facet unless a
+  /// source is selected, matching the present-value pattern used for
+  /// authors/tags/rating.
   final List<PublishedSource> citedSources;
 
   /// Distinct tune names across the collection, sorted case-insensitively, for
@@ -209,7 +210,8 @@ class CollectionData {
   final bool hasMixer;
 
   /// Whether any dance carries a star rating (drives the minimum-rating facet;
-  /// an all-unrated collection hides it, matching the present-value pattern).
+  /// an all-unrated collection hides it unless a rating is selected, matching
+  /// the present-value pattern).
   final bool hasRating;
 
   final Taxonomy taxonomy;

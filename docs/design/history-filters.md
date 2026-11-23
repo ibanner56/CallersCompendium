@@ -221,6 +221,12 @@ say 1mo, 3mo, 6mo, or since a date on top of that, 1 year is a long while."
   1 year". "1mo" is a calendar month, counted like the other two
   (*planner's reading, accepted by the maintainer 2026-10-30*;
   `design-work-plan.md` ambiguity 2).
+- A window of any other number of months can only come in with a whole panel
+  state (a saved search keeps months, `search.md`). The **Within** row then
+  shows one more selected chip for it, "12 months", or "12 months, saved" when
+  the state came from a saved search, so the window is never invisible;
+  choosing another window replaces it (#2325, plan item A2: the chip shows
+  whenever the window is not a preset, not only for a saved search).
 - **Since a date…** opens the date picker.
 - **Never called.** The maintainer's note asks for this as a choice in the same
   control. *Planner's reading, accepted by the maintainer 2026-10-30*
@@ -486,7 +492,9 @@ These hold on every surface.
 **When the section shows:**
 - The whole section stays hidden when nothing has been called
   (`FacetPanel.hasCallingHistory`, `docs/design/search.md:164-166`). Every
-  dance is then uncalled, so a scope cannot change the result.
+  dance is then uncalled, so a scope cannot change the result. It shows anyway
+  while it holds a selection (a Called / Not called choice or a scope), so a
+  filter that came in with a panel state can be seen and removed (#2325).
 - The section's active count includes each active scope, so the Filters badge
   never hides an active narrowing.
 

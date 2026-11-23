@@ -176,5 +176,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(_fieldText(tester, 'cf-num-fn-lo'), '-');
     expect(facets.numberValues, isEmpty);
+
+    // Between, with only its first bound typed so far: no value yet either.
+    await tester.tap(find.byKey(const ValueKey('cf-num-fn-between')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('cf-num-fn-lo')), '5');
+    await tester.pumpAndSettle();
+    expect(_fieldText(tester, 'cf-num-fn-lo'), '5');
+    expect(facets.numberValues, isEmpty);
   });
 }

@@ -281,7 +281,12 @@ the **Filters** panel. It lets you narrow by:
   text, and number fields you have defined
 
 A filter appears only when there is something to filter by — the **Source**
-filter, for example, appears once a dance cites a published source. If an
+filter, for example, appears once a dance cites a published source. A choice
+you have made stays on screen as a selected chip even after no dance has it
+any more (you deleted the last dance at that level, say), so a filter that is
+still narrowing the list can always be seen and removed; a level, author or
+source that has since been deleted reads **Not in your library**. Tags differ:
+a tag you picked is taken out of the filter once no dance has it. If an
 author or source shows up twice under slightly different names, fix it once in
 the **Authors** or **Sources** manager under
 [Settings ▸ General ▸ Dances](./settings.md#dances): renaming or merging there
