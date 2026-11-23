@@ -805,6 +805,10 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   /// every existing program stays unarchived. It joined v42 while v42 was
   /// unreleased (CONTRIBUTING.md, "Adding to an unreleased version").
   ///
+  /// Also `programs.calendar_event_key` (calendar import, #2352), nullable, so
+  /// no existing program is taken for an imported one. It joined v42 while
+  /// v42 was unreleased, the same way.
+  ///
   /// The live-schema checks only keep the step idempotent.
   Future<void> _ensureV42Schema(Migrator m) async {
     final columns = await customSelect(
@@ -834,6 +838,11 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       for (final row in programColumns) row.read<String>('name'),
     }.contains(programs.archivedAt.name)) {
       await m.addColumn(programs, programs.archivedAt);
+    }
+    if (!{
+      for (final row in programColumns) row.read<String>('name'),
+    }.contains(programs.calendarEventKey.name)) {
+      await m.addColumn(programs, programs.calendarEventKey);
     }
   }
 

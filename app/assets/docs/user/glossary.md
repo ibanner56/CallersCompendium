@@ -311,8 +311,8 @@ place. A venue record holds a name, address, contacts, schedule, sponsor,
 website, price, and notes. Turn on **Use reusable venue records** in
 [Settings](./settings.md#venues) to link programs to saved venues; switching
 this on or off never discards your free-text label or a linked record. When you
-share a program, a venue's address is left out and its contact details are
-included only if you choose — see
+share a program, a venue's address is left out (a calendar file asks whether to
+include it) and its contact details are included only if you choose — see
 [What stays private](./sharing.md#what-stays-private).
 
 ## Walkthrough

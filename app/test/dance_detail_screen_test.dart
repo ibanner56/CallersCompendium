@@ -480,6 +480,101 @@ void main() {
         findsNothing,
       );
     });
+
+    Future<String?> copyFromDetail(
+      WidgetTester tester,
+      CompendiumRepositories repos,
+      String id, {
+      Set<DanceShareField> shareFields = DanceShareField.allExceptTunes,
+      bool narrow = false,
+    }) async {
+      String? clipboardText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboardText = (call.arguments as Map)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      await _pumpDetail(
+        tester,
+        repos,
+        id,
+        shareFields: shareFields,
+        surfaceSize: narrow ? const Size(360, 800) : const Size(1200, 2400),
+      );
+      if (narrow) {
+        // The phone layout's own overflow menu, a separate export path.
+        await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('overflow-copy-dance')));
+      } else {
+        await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Copy dance'));
+      }
+      await tester.pumpAndSettle();
+      return clipboardText;
+    }
+
+    Dance english() =>
+        _dance(
+          id: 'eng',
+          title: 'Hole in the Wall',
+          authorIds: ['a1'],
+        ).copyWith(
+          form: DanceForm.ecd,
+          formation: const Formation(FormationShape.dupleMinor),
+          composedOn: PartialDate(1951),
+          interpreterIds: ['i1'],
+          interpretedOn: PartialDate(1916),
+          meter: '3/2',
+          musicalKey: 'D minor',
+          barnesReference: 'BI p. 63',
+        );
+
+    for (final narrow in [false, true]) {
+      testWidgets('Copy dance carries the credit years, interpreters, meter, '
+          'key and Barnes (${narrow ? 'phone' : 'wide'} layout)', (
+        tester,
+      ) async {
+        final repos = await withPeople();
+        await repos.dances.create(english());
+
+        final text = await copyFromDetail(tester, repos, 'eng', narrow: narrow);
+        expect(text, isNotNull);
+        final lines = text!.split('\n');
+        expect(lines, contains('Pat Shaw (1951)'));
+        expect(lines, contains('Interpreted by Cecil Sharp (1916)'));
+        expect(lines, contains('Meter: 3/2 · Key: D minor'));
+        expect(lines, contains('Barnes: BI p. 63'));
+      });
+    }
+
+    testWidgets('Copy dance leaves meter, key and Barnes off with their '
+        'field', (tester) async {
+      final repos = await withPeople();
+      await repos.dances.create(english());
+
+      final text = await copyFromDetail(
+        tester,
+        repos,
+        'eng',
+        shareFields: {...DanceShareField.allExceptTunes}
+          ..remove(DanceShareField.music),
+      );
+      expect(text, contains('Pat Shaw (1951)'));
+      expect(text, isNot(contains('Meter')));
+      expect(text, isNot(contains('Barnes')));
+    });
   });
 
   testWidgets('shows the meter and key in the header when they are set', (
@@ -3815,6 +3910,7 @@ void main() {
       final repos = openTestRepositories();
       await repos.dances.create(
         _dance(id: 'd1', title: 'Money Musk').copyWith(
+          form: DanceForm.ecd,
           alternateTitles: ['Monymusk', 'Sir Archibald Grant'],
           barnesReference: 'BIII p. 92',
         ),
@@ -3837,7 +3933,7 @@ void main() {
         _dance(
           id: 'd1',
           title: 'Gypsy Dance',
-        ).copyWith(barnesReference: 'Gypsy p. 4'),
+        ).copyWith(form: DanceForm.ecd, barnesReference: 'Gypsy p. 4'),
       );
 
       await _pumpDetail(tester, repos, 'd1');

@@ -48,6 +48,7 @@ CallingCardEntry _entry(Dance d) => CallingCardEntry(
   number: '',
   labels: (
     authorNames: const [],
+    interpreterNames: const <String>[],
     formationLabel: 'Duple minor',
     levelLabel: null,
     statusLabel: 'Active',

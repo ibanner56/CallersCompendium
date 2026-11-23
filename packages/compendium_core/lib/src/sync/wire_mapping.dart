@@ -34,7 +34,9 @@ const _danceFields = [
   SyncWireField('meter', ['dances.meter']),
   SyncWireField('musicalKey', ['dances.musical_key']),
   SyncWireField('alternateTitles', ['dances.alternate_titles']),
-  SyncWireField('barnesReference', ['dances.barnes_reference']),
+  // Only an ECD dance keeps one (`formHasBarnesReference`), so its form
+  // decides whether the value is sent at all.
+  SyncWireField('barnesReference', ['dances.barnes_reference', 'dances.form']),
   SyncWireField('status', ['dances.status']),
   SyncWireField('difficultyLevelId', ['dances.level_id']),
   SyncWireField('mixedLevel', ['dances.mixed_level']),
@@ -91,6 +93,7 @@ const _programFields = [
   SyncWireField('payMinorUnits', ['programs.pay_minor_units']),
   SyncWireField('payCurrency', ['programs.pay_currency']),
   SyncWireField('archivedAt', ['programs.archived_at']),
+  SyncWireField('calendarEventKey', ['programs.calendar_event_key']),
   SyncWireField('slots', []),
   SyncWireField('slots.id', ['program_slots.id']),
   SyncWireField('slots.position', ['program_slots.position']),

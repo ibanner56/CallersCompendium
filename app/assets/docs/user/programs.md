@@ -55,15 +55,18 @@ direction the list opens with, see
   have since deleted is left out). With two or more templates, **New program**
   first asks which one to start from — your **Default template** is listed
   first and marked — or **Blank program**; with one template or none it opens
-  the builder straight away, using the Default template. Templates apply only
-  here — not to imported or duplicated programs, programs someone shared with
-  you, or **Create a new program with this dance**.
+  the builder straight away, using the Default template. The Default template
+  also fills the drafts a [calendar import](#import-programs-from-your-calendar)
+  creates. Templates don't apply to other imported or duplicated programs,
+  programs someone shared with you, or **Create a new program with this
+  dance**.
 - **Import one** from the **Import program** menu (the import icon in the
-  **Programs** toolbar), which offers two sources — **From title list** (paste a
-  set list you already have) and **From ContraDB** (pull an event straight from
-  the online archive). On a narrow screen, these sit in the **More actions** menu
-  as **Import from title list** and **Import from ContraDB**. Both are described
-  below.
+  **Programs** toolbar), which offers three sources — **From title list** (paste
+  a set list you already have), **From ContraDB** (pull an event straight from
+  the online archive) and **From calendar** (draft programs for the gigs in your
+  online calendar). On a narrow screen, these sit in the **More actions** menu
+  as **Import from title list**, **Import from ContraDB** and **Import from
+  calendar**. All three are described below.
 - **Sync** with your other devices from the **Sync now** icon in the
   **Programs** toolbar. It appears only while [Device
   Sync](./settings.md#device-sync) is on and a store is connected, and shows a
@@ -74,6 +77,10 @@ direction the list opens with, see
   and a program that already holds the dance says **In this program** and asks
   before adding it again. See
   [What you can do with a dance](./collection.md#what-you-can-do-with-a-dance).
+- **Export calendar (.ics)**, in the **More actions** (⋮) menu in the
+  **Programs** toolbar, puts your upcoming programs — and any past ones you
+  tick — into one calendar file for your calendar app. See
+  [Put programs in your calendar](./sharing.md#put-programs-in-your-calendar).
 - **Duplicate** a program from its row's **⋮** menu (on a computer, you can
   also right-click the row) to reuse last month's shape
   as a starting point. The copy starts as a **Draft** with no performed marks,
@@ -211,6 +218,70 @@ or you cancel or leave the screen before it finishes, no program is created and
 any dances it had already brought in are removed again, so you can simply try
 again later.
 
+### Import programs from your calendar
+
+If you keep your bookings in an online calendar, the app can read it and turn
+each gig into a **draft program** for you to fill in. It only reads: nothing is
+ever written back to your calendar.
+
+1. Find your calendar's **iCal address** — a link ending in `.ics`, or starting
+   `webcal://`. In Google Calendar it is under the calendar's **Settings and
+   sharing ▸ Integrate calendar**: the public address in iCal format, or the
+   secret one for a private calendar. The calendar's ordinary link is a web page,
+   not a calendar, and the app says so.
+2. Choose **From calendar** in the **Import program** menu (or **Import from
+   calendar** on a narrow screen), or **Pull now** in
+   [Settings ▸ Program ▸ Calendar](./settings.md#calendar). Paste the address and
+   choose **Fetch events**. The app remembers it on this device.
+3. Review the list, then choose **Import**.
+
+The app goes online only when you choose **Fetch events**: never in the
+background, on a timer, or when you come back to the app.
+
+**Which events are offered.**
+
+- Events from **today** up to 6 months ahead. You can choose 3 or 12 months
+  instead, and offer only events whose title contains a word such as "contra",
+  in [Settings ▸ Program ▸ Calendar](./settings.md#calendar). Past events are
+  never offered, and nor are cancelled ones.
+- **Repeating events** are read only **30 days ahead**, whatever the date range,
+  so a weekly series never floods your list. Each occurrence becomes its own
+  draft, and a later import picks up the next ones as they come within 30 days.
+  A series that repeats in a way the app can't read (anything beyond every so
+  many days, weeks, months or years, on given weekdays such as "second
+  Saturday", or on given days of the month) is listed under **Repeating events
+  the app can't read** and not imported. The app never guesses.
+- Events with no identifier can't be recognised next time, so they are skipped,
+  and the list says how many.
+
+**What each draft gets.** The event's title (or **Untitled event**), its date,
+and the first part of its location as the venue — "Glen Echo Park, 7300
+MacArthur Blvd, …" becomes **Glen Echo Park**. If that matches the name of a
+saved [venue](./glossary.md#venue), the draft is linked to it. The rest of the
+location, usually a street address, is not kept. Nor is the event's
+description, organiser, guests or link: that is where other people's names,
+emails and phone numbers live. The draft starts with your **Default template**,
+**Default caller** and **Default band** from
+[Settings ▸ Defaults](./settings.md#program-defaults), and its status is
+**Draft**.
+
+**No duplicates.** Each imported program remembers which event it came from, so
+the next import lists that event as **Already imported** and does not offer it
+again — even if the event has since changed in your calendar. That memory
+travels with [Device Sync](./settings.md#device-sync), so your other devices
+recognise it too once they have synced. (If two devices import the same
+calendar before either has synced, both create the program; delete one.)
+
+- If you deleted the program made from an event, the event is listed under **You
+  deleted these programs**, unticked; tick it to import it again. Once the
+  program has left **Recently deleted** for good, the event counts as new.
+- Events you put in your calendar with **Add to calendar (.ics)** from this app
+  are listed under **From this app** and not offered, because the program is
+  already here.
+
+**Undo.** After **Import**, a message says how many draft programs were added,
+with **Undo** to remove them all again.
+
 ## Build a program
 
 On a wide screen — a desktop or a tablet in landscape — the builder shows two
@@ -248,6 +319,24 @@ types you choose.
 
 **Add note or break** adds a free-text slot (a note, a waltz, an announcement), and **Insert break** adds a break.
 On a narrow screen, **Add dance** opens the collection picker.
+
+New slots go at the end of the program. To put a dance somewhere else, choose
+**Add a dance before** or **Add a dance after** from a slot's **…** menu. On a
+narrow screen the collection picker opens titled with the slot, such as
+**Add before Chorus Jig**, and closes once you choose a dance. On a wide
+screen the picker beside your program shows **Adding before Chorus Jig** with
+**Cancel**, and the slot is highlighted. The dance you choose goes there,
+including one you import from online search, and the next dance you add goes at
+the end again. The new dance is always a primary: **before** puts it ahead of
+the slot's alternates as well, and **after** puts it after the last of them, so
+it never becomes, or splits up, another dance's alternates. Choosing either
+from an alternate's menu gives the same place as from its primary's. If the
+slot is one of a run of alternates at the top of the program, with no dance
+above them, choosing **Add a dance before** turns the first of them into a
+dance of its own, and the rest become its alternates. A break or note slot counts on
+its own. Screen readers announce where the dance went:
+*Added Rory O'More before Chorus Jig*. To put a note or a break in the middle,
+add it and then move it.
 
 To bring in a dance you don't have yet, tap the **Online search** icon at the end of the
 picker's row of search tools to search The Caller's Box or ContraDB by title,
@@ -329,7 +418,9 @@ import that couldn't find a match.
 ### Reorder and remove slots
 
 To reorder slots, use the **drag handle** or the **move up / move down** buttons.
-Both do the same job, so you are never forced to drag.
+Both do the same job, so you are never forced to drag. To add a dance at a
+particular place in the first place, see **Add a dance before** and **Add a
+dance after** under [Build a program](#build-a-program).
 
 To remove a slot, choose the **scissors** button on its row (its tooltip reads
 **Cut** and the slot's name). The slot is removed immediately, the slots after
@@ -339,7 +430,8 @@ a program never deletes the dance from your collection.
 On a phone, or wherever the program pane is narrow, each row keeps only its drag
 handle and its **…** menu, so the slot's title has room. The menu then starts
 with **Move up** and **Move down**, followed by **View details** and the
-scissors **Cut** item, ahead of the slot's usual actions.
+scissors **Cut** item, ahead of **Add a dance before**, **Add a dance after**
+and the slot's usual actions.
 
 When you cut or move a dance that has alternates, its first alternate takes its
 place as the primary, and any other alternates stay with that one. They never
@@ -389,7 +481,9 @@ A program carries the details of its event:
 - program-level **Band**, **Caller**, and **Dancer level**;
 - **Pay**, an amount and currency under **More details**, shown on the
   program's summary but never in the shared set list, the PDF, or a program
-  file you share;
+  file you share. If you don't track pay, turn off **Show pay** in
+  [Settings › Program › Programs](./settings.md#programs) to hide it in the
+  editor and on the summary; pay already entered is kept;
 - a **Status** — **Draft**, **Finalized**, or **Performed** — shown on the
   Programs list. Saving a change to **Performed** marks every unmarked dance
   in the program performed, except alternates, and that writes calling
@@ -611,15 +705,23 @@ menu:
   named `.json` so a device without the app can still open it. **Save** opens
   your system's save dialog; canceling it saves nothing.
 - **Export / print PDF** — builds a PDF and opens your system's print dialog.
+- **Add to calendar (.ics)** — for a saved program with a date, writes a
+  calendar file your calendar app can open, with a choice to **Save** or
+  **Share**. In the builder it appears once the program is saved, and not while
+  it has unsaved changes. To
+  put several programs in one file, use **More actions** (⋮) ▸ **Export
+  calendar (.ics)** on the Programs list.
 
 A set list is titles, event details, and slot notes by default, with each
-dance's author shown next to its title if you have authors turned on.
+dance's author shown next to its title if you have authors turned on, and its
+meter and key if you have **Meter, key and Barnes** turned on.
 Settings ▸ Defaults lets you choose other dance fields too, but they only
 appear on the richer per-dance card, not the numbered set-list line itself —
 see
 [Choose which dance fields appear](./sharing.md#choose-which-dance-fields-appear).
 When you share, copy, or export as PDF the app asks **"Include figures?"** —
-choose **Set list only** to keep titles, notes, and the author, or
+choose **Set list only** to keep titles, notes, the author, and the meter and
+key, or
 **Set list and figures** to append a full card for each dance, showing every
 selected field alongside its figures, after the set list. A dance with no
 structured figures still gets a card when it has calling notes, a walkthrough,
@@ -628,7 +730,8 @@ have anything to put on a card, the question is skipped. If your program is link
 a [venue](./glossary.md#venue) with contact people recorded, the PDF, JSON, and
 **Share program and dances** exports first ask whether to include those
 contacts, and leave them out unless you say otherwise. A venue's street address
-is never included in any export.
+is never included in any export except a calendar file, which asks first and
+leaves it out unless you tick it.
 
 [Share, print & export](./sharing.md#share-a-program) covers all of this in
 detail, including what a shared bundle contains and what never leaves your

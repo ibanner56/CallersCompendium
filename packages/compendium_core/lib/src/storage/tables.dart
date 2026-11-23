@@ -370,6 +370,12 @@ class Programs extends Table {
   /// on a migrated database, so a fresh one gets the same column order.
   DateTimeColumn get archivedAt => dateTime().nullable()();
 
+  /// The calendar event the program was imported from (#2352, schema v42): a
+  /// SHA-256 hex digest of the event's `UID` and recurrence id, never the
+  /// `UID`. `null` for every program not imported from a calendar. Declared
+  /// last for the same column-order reason as [archivedAt].
+  TextColumn get calendarEventKey => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

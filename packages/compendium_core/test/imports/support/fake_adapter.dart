@@ -165,6 +165,11 @@ class FakeSourceAdapter implements SourceAdapter {
     final dance = Dance(
       id: 'draft-${raw.externalId ?? 'anon'}',
       title: title,
+      // A record may name its form; the default is the constructor's.
+      form: switch (decoded['form']) {
+        final String name => DanceForm.values.byName(name),
+        _ => DanceForm.contra,
+      },
       difficultyLevelId: decoded['difficultyLevelId'] as String?,
       mixedLevel: decoded['mixedLevel'] as bool? ?? false,
       rating: decoded['rating'] as int?,

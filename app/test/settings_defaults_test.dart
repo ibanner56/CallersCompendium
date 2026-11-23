@@ -458,6 +458,41 @@ void main() {
     );
   });
 
+  testWidgets('the dance-card picker offers Meter, key and Barnes, on by '
+      'default, and persists turning it off', (tester) async {
+    final repos = openTestRepositories();
+    final fields = ValueNotifier<Set<DanceShareField>>(
+      DanceShareField.allExceptTunes,
+    );
+    addTearDown(fields.dispose);
+    await _pumpDefaults(tester, repos, shareFields: fields);
+
+    const key = ValueKey('defaults-share-field-music');
+    await _scrollTo(tester, key);
+    expect(find.text('Meter, key and Barnes'), findsOneWidget);
+    expect(tester.widget<CheckboxListTile>(find.byKey(key)).value, isTrue);
+    await tester.tap(find.byKey(key));
+    await tester.pumpAndSettle();
+
+    expect(fields.value, isNot(contains(DanceShareField.music)));
+    final stored =
+        await repos.settings.get(kProgramDanceShareFieldsKey) as List;
+    expect(stored, isNot(contains('music')));
+    expect(stored, contains('authors'));
+  });
+
+  test('a saved field choice from before Meter, key and Barnes leaves it '
+      'off; an untouched one has it on', () {
+    expect(DanceShareFieldsScope.decodeStored(['authors', 'formation']), {
+      DanceShareField.authors,
+      DanceShareField.formation,
+    });
+    expect(
+      DanceShareFieldsScope.decodeStored(null),
+      contains(DanceShareField.music),
+    );
+  });
+
   group('default import tags (#1476)', () {
     Future<void> openImportGroup(WidgetTester tester) async {
       await tester.ensureVisible(

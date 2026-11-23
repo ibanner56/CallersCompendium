@@ -24,7 +24,8 @@ import 'program_pdf.dart';
 /// a long card.
 ///
 /// The caller resolves and passes in the display strings the app owns
-/// ([authorNames], [formationLabel], [levelLabel], [statusLabel]); [levelLabel]
+/// ([authorNames], [interpreterNames], [formationLabel], [levelLabel],
+/// [statusLabel]); [levelLabel]
 /// is `null` when unspecified and the Level line is omitted, and the Status
 /// line is omitted for an active dance (mirroring the text renderer). [renderer]
 /// supplies the dialect engine; when omitted a `FigureRenderer` over
@@ -37,12 +38,14 @@ import 'program_pdf.dart';
 /// core's [DanceCardContent], which this builder only lays out — the same
 /// object [danceToPlainText] serialises and [buildProgramPdf]'s figure-appendix
 /// cards lay out. Defaults to
-/// [DanceShareField.allExceptTunes], matching every block this builder
-/// rendered before the picker existed. [pageFormat] defaults to A4.
+/// [DanceShareField.allExceptTunes]: every block this builder rendered
+/// before the picker existed, plus the meter, key and Barnes lines.
+/// [pageFormat] defaults to A4.
 Future<Uint8List> buildDancePdf(
   Dance dance, {
   required Dialect dialect,
   required List<String> authorNames,
+  List<String> interpreterNames = const [],
   required String formationLabel,
   String? levelLabel,
   required String statusLabel,
@@ -62,6 +65,7 @@ Future<Uint8List> buildDancePdf(
     dance,
     dialect: dialect,
     authorNames: authorNames,
+    interpreterNames: interpreterNames,
     formationLabel: formationLabel,
     levelLabel: levelLabel,
     statusLabel: statusLabel,
@@ -115,12 +119,11 @@ List<pw.Widget> danceCardWidgets(
         style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
       ),
     ),
-    if (content.authorNames.isNotEmpty)
-      pw.Text(
-        content.authorNames.join(', '),
-        style: const pw.TextStyle(fontSize: 13),
-      ),
+    for (final line in content.creditLines)
+      pw.Text(line, style: const pw.TextStyle(fontSize: 13)),
     for (final line in content.metaLines)
+      pw.Text(line, style: const pw.TextStyle(fontSize: 12)),
+    for (final line in content.musicLines)
       pw.Text(line, style: const pw.TextStyle(fontSize: 12)),
     if (content.hook case final hook?)
       pw.Text(

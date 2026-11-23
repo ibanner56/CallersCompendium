@@ -1,0 +1,14 @@
+{
+  "id": "2351-calendar-export",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can put your programs in your calendar app. A program's Export menu has Add to calendar (.ics) for any program with a date, and the Programs list's More actions menu has Export calendar (.ics), which lists your upcoming programs ticked and, behind Show past programs, earlier ones unticked, and writes them as one file. You choose Save or Share. Each event carries the program's title, date, venue name and status, and a linked venue's time. If a venue has a street address, the app asks first and leaves it out unless you tick Include the venue's address for that export. Contacts, pay and notes are never included. Exporting a program again gives it the same event identity, but calendar apps differ in what they do with a file they have imported before."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add programsToICalendar, an RFC 5545 writer for program calendar events (floating local times or all-day dates, CRLF line ends, 75-octet folding that never splits a UTF-8 character, and TEXT escaping), with a stable `<program id>@callers-compendium` UID and a SEQUENCE derived from the program's last change."
+    ]
+  }
+}

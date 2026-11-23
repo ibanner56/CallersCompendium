@@ -2767,6 +2767,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDefaultsShareFieldsSources => 'Bronnen';
 
   @override
+  String get settingsDefaultsShareFieldsMusic =>
+      'Maatsoort, toonsoort en Barnes';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'Collectiefilters';
 
   @override
@@ -3211,6 +3215,13 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsProgramAutoCommitSubtitle =>
       'Als dit is ingeschakeld, worden geldige wijzigingen tijdens het werken opgeslagen en wordt bij het verlaten van de editor niet gevraagd of je ze wilt verwerpen. Schakel dit uit om programma’s expliciet op te slaan.';
+
+  @override
+  String get settingsProgramShowPayTitle => 'Gage tonen';
+
+  @override
+  String get settingsProgramShowPaySubtitle =>
+      'Als dit uit staat, verbergen de programma-editor en het overzicht de gage. Al ingevoerde gages blijven bewaard en verschijnen weer als je dit opnieuw aanzet.';
 
   @override
   String get settingsMatrixColumnsHeader => 'Matrixkolommen';
@@ -6160,6 +6171,46 @@ class AppLocalizationsNl extends AppLocalizations {
   String programsMoreActionsForSlot(String title) {
     return 'Meer acties voor $title';
   }
+
+  @override
+  String get programsAddDanceBeforeMenu => 'Dans ervoor toevoegen';
+
+  @override
+  String get programsAddDanceAfterMenu => 'Dans erna toevoegen';
+
+  @override
+  String programsAddBeforeSheetTitle(String title) {
+    return 'Toevoegen vóór $title';
+  }
+
+  @override
+  String programsAddAfterSheetTitle(String title) {
+    return 'Toevoegen na $title';
+  }
+
+  @override
+  String programsAddingBeforeBanner(String title) {
+    return 'Toevoegen vóór $title';
+  }
+
+  @override
+  String programsAddingAfterBanner(String title) {
+    return 'Toevoegen na $title';
+  }
+
+  @override
+  String programsAddedDanceBeforeAnnounce(String title, String target) {
+    return '$title toegevoegd vóór $target.';
+  }
+
+  @override
+  String programsAddedDanceAfterAnnounce(String title, String target) {
+    return '$title toegevoegd na $target.';
+  }
+
+  @override
+  String get programsInsertionCancelledAnnounce =>
+      'Geannuleerd. Nieuwe dansen komen aan het eind.';
 
   @override
   String get programsEditSlotMenu => 'Slot bewerken';
@@ -9295,6 +9346,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorChooseHint => 'Kies…';
+
+  @override
+  String get figureParamSearchDancersHint => 'Dansers zoeken';
 
   @override
   String danceEditorCreateQuotedName(String name) {
@@ -12607,7 +12661,8 @@ class AppLocalizationsNl extends AppLocalizations {
   String get callingCardHelpBlockTitle => 'De titel van de dans.';
 
   @override
-  String get callingCardHelpBlockAuthors => 'Wie de dans heeft geschreven.';
+  String get callingCardHelpBlockAuthors =>
+      'Wie de dans heeft geschreven en wanneer, daarna wie hem heeft geïnterpreteerd en wanneer.';
 
   @override
   String get callingCardHelpBlockFormation =>
@@ -12619,6 +12674,10 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get callingCardHelpBlockMeta =>
       'Opstelling, niveau, mixer, status en frase op één regel, elk met zijn label.';
+
+  @override
+  String get callingCardHelpBlockMusic =>
+      'De maatsoort en toonsoort van het deuntje en de Barnes-verwijzing op één regel.';
 
   @override
   String get callingCardHelpBlockFigures =>
@@ -12855,6 +12914,221 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get programTemplateSaveError =>
       'Die wijziging in je sjablonen kon niet worden opgeslagen. Probeer het opnieuw.';
+
+  @override
+  String get exportAddToCalendar => 'Toevoegen aan agenda (.ics)';
+
+  @override
+  String get programsExportCalendar => 'Agenda exporteren (.ics)';
+
+  @override
+  String get exportCalendarPickTitle => 'Agenda exporteren';
+
+  @override
+  String get exportCalendarPickBody =>
+      'Kies de programma\'s die in het agendabestand komen.';
+
+  @override
+  String get exportCalendarShowPast => 'Eerdere programma\'s tonen';
+
+  @override
+  String get exportCalendarNoUpcoming =>
+      'Geen komende programma\'s om te tonen. Gearchiveerde programma\'s staan hier niet. Zet Eerdere programma\'s tonen aan om een eerder programma te kiezen.';
+
+  @override
+  String get exportCalendarNoDated =>
+      'Nog geen enkel programma heeft een datum. Geef een programma een datum om het aan een agenda toe te voegen.';
+
+  @override
+  String get exportCalendarPickConfirm => 'Exporteren';
+
+  @override
+  String get exportCalendarAddressTitle => 'Adres van de locatie opnemen?';
+
+  @override
+  String get exportCalendarAddressBody =>
+      'Het agendabestand noemt de locatie. Het adres blijft weg, tenzij je het opneemt. Agenda\'s worden vaak gesynchroniseerd of met anderen gedeeld.';
+
+  @override
+  String get exportCalendarAddressInclude => 'Adres van de locatie opnemen';
+
+  @override
+  String get exportCalendarDialogTitle => 'Agendabestand exporteren';
+
+  @override
+  String get exportCalendarDialogMessage =>
+      'Kies hoe je dit agendabestand wilt afleveren.';
+
+  @override
+  String get exportCalendarSavedGeneric => 'Agendabestand opgeslagen.';
+
+  @override
+  String get exportCalendarSaveError =>
+      'Dit agendabestand kon niet worden opgeslagen. Probeer het opnieuw.';
+
+  @override
+  String get exportCalendarShareError =>
+      'Dit agendabestand kon niet worden gedeeld. Probeer het opnieuw.';
+
+  @override
+  String get importErrorNotACalendar =>
+      'Dat adres gaf geen agenda terug. Gebruik bij een Google-agenda het adres in iCal-indeling (Instellingen en delen ▸ Agenda integreren), niet de gewone link.';
+
+  @override
+  String get importFromCalendar => 'Uit agenda';
+
+  @override
+  String get importProgramFromCalendar => 'Importeren uit agenda';
+
+  @override
+  String get calendarImportTitle => 'Importeren uit agenda';
+
+  @override
+  String get calendarImportImport => 'Importeren';
+
+  @override
+  String get calendarAddressLabel => 'Agenda-adres';
+
+  @override
+  String get calendarAddressHelper =>
+      'Het iCal-adres van de agenda, beginnend met https:// of webcal://. Het geheime adres van een privé-agenda werkt ook; houd het voor jezelf.';
+
+  @override
+  String get calendarImportFetch => 'Afspraken ophalen';
+
+  @override
+  String get calendarImportFailed =>
+      'Importeren uit de agenda is mislukt. Probeer het opnieuw.';
+
+  @override
+  String get calendarImportUntitled => 'Afspraak zonder titel';
+
+  @override
+  String calendarImportCommitted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count conceptprogramma\'s toegevoegd uit je agenda.',
+      one: '1 conceptprogramma toegevoegd uit je agenda.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportNothingFound => 'Geen afspraken in deze periode.';
+
+  @override
+  String calendarImportSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nieuwe afspraken.',
+      one: '1 nieuwe afspraak.',
+      zero: 'Geen nieuwe afspraken.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportNewHeader => 'Nieuw in je agenda';
+
+  @override
+  String get calendarImportDeletedHeader =>
+      'Programma\'s die je hebt verwijderd';
+
+  @override
+  String get calendarImportDeletedNote =>
+      'Je hebt het programma verwijderd dat van deze afspraak is gemaakt. Vink het aan om het opnieuw te importeren.';
+
+  @override
+  String get calendarImportAlreadyHeader => 'Al geïmporteerd';
+
+  @override
+  String get calendarImportFromThisAppHeader => 'Uit deze app';
+
+  @override
+  String get calendarImportUnreadableHeader =>
+      'Terugkerende afspraken die de app niet kan lezen';
+
+  @override
+  String get calendarImportUnreadableBody =>
+      'Deze herhalen zich op een manier die de app niet begrijpt, dus ze worden niet geïmporteerd.';
+
+  @override
+  String calendarImportSkippedNoUid(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count afspraken hebben geen id en zijn overgeslagen.',
+      one: '1 afspraak heeft geen id en is overgeslagen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarImportTruncated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'De agenda heeft meer dan $count afspraken. Alleen de eerste $count zijn gelezen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarSettingsHeader => 'Agenda';
+
+  @override
+  String get calendarSettingsSaveError =>
+      'Die instelling kon niet worden opgeslagen. Probeer het opnieuw.';
+
+  @override
+  String get calendarAddressSet => 'Ingesteld. Tik om het te wijzigen.';
+
+  @override
+  String get calendarAddressNotSet => 'Niet ingesteld';
+
+  @override
+  String get calendarWindowTitle => 'Welke afspraken';
+
+  @override
+  String get calendarWindowSubtitle =>
+      'Afspraken vanaf vandaag tot zo ver vooruit. Terugkerende afspraken worden maar 30 dagen vooruit gelezen.';
+
+  @override
+  String calendarWindowOption(int months) {
+    String _temp0 = intl.Intl.pluralLogic(
+      months,
+      locale: localeName,
+      other: '$months maanden',
+      one: '1 maand',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarTitleFilterTitle =>
+      'Alleen afspraken waarvan de titel bevat';
+
+  @override
+  String get calendarTitleFilterHelper =>
+      'Voor een agenda waar ook andere afspraken in staan. Laat leeg voor alle afspraken.';
+
+  @override
+  String get calendarTitleFilterNone => 'Alle afspraken';
+
+  @override
+  String calendarTitleFilterValue(String filter) {
+    return '‘$filter’';
+  }
+
+  @override
+  String get calendarPullNowTitle => 'Nu ophalen';
+
+  @override
+  String get calendarPullNowSubtitle =>
+      'Lees de agenda en kies afspraken om als conceptprogramma\'s toe te voegen.';
 
   @override
   String get collectionExportCsv => 'Exporteren als CSV';

@@ -80,6 +80,9 @@ const Map<String, String> _sources = {
   // An ISO-shaped code ('XTS' is the reserved testing currency) because the
   // Program constructor rejects anything else.
   'programs.pay_currency': 'XTS',
+  // A hex digest (#2352): the archive codec keeps only that shape.
+  'programs.calendar_event_key':
+      'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
   'program_slots.guest_caller': 'TERMSRC guest caller',
   // -- published sources (thirdParty) --
   'published_sources.author': 'TERMSRC source author',
@@ -310,6 +313,7 @@ Future<void> _populate(CompendiumRepositories repos) async {
       caller: _v('programs.caller'),
       payMinorUnits: 12345,
       payCurrency: _v('programs.pay_currency'),
+      calendarEventKey: _v('programs.calendar_event_key'),
       slots: [
         ProgramSlot(
           id: 'ps1',

@@ -81,8 +81,8 @@ XTypeGroup csvTypeGroup({bool? isLinux}) => XTypeGroup(
   mimeTypes: const [csvMimeType],
 );
 
-/// Writes [json] to a path-safe [fileName] in the temporary directory, as UTF-8
-/// text of type [mimeType].
+/// Writes [json] to a path-safe [fileName] in the temporary directory, typed
+/// as [mimeType] for the share sheet.
 Future<XFile> writeBundleFile(
   String json,
   String fileName, {
@@ -110,10 +110,8 @@ Future<XFile> writeCsvTempFile(String csv, String fileName) =>
 ///
 /// Desktop uses [file_selector]'s Save As panel. Android and iOS stage the
 /// exact JSON in a temporary file, then hand that file to the platform
-/// document-save dialog. A `null` result means the user cancelled.
-///
-/// [mimeType] types the mobile save dialog; the CSV export (#2332) passes
-/// [csvMimeType] together with [csvTypeGroup] and [writeCsvTempFile].
+/// document-save dialog, filtered to [mobileMimeTypes]. A `null` result means
+/// the user cancelled.
 Future<JsonSaveResult?> saveJsonBundle(
   String json,
   String fileName, {
@@ -124,7 +122,7 @@ Future<JsonSaveResult?> saveJsonBundle(
   JsonMobileSaveFile? mobileSaveFile,
   BundleFileWriter? stageFile,
   List<XTypeGroup>? acceptedTypeGroups,
-  String mimeType = 'application/json',
+  List<String> mobileMimeTypes = const ['application/json'],
 }) async {
   if ((isDesktop ?? isJsonExportDesktopPlatform)()) {
     final location = await (saveLocationPicker ?? _showSaveLocation)(
@@ -143,7 +141,7 @@ Future<JsonSaveResult?> saveJsonBundle(
   try {
     final savedPath =
         await (mobileSaveFile ??
-            (path) => _saveMobileFile(path, mimeType: mimeType))(staged.path);
+            (path) => _saveMobileFile(path, mobileMimeTypes))(staged.path);
     if (savedPath == null) return null;
     return JsonSaveResult(
       path: savedPath,
@@ -224,12 +222,12 @@ Future<FileSaveLocation?> _showSaveLocation({
 );
 
 Future<String?> _saveMobileFile(
-  String sourceFilePath, {
-  String mimeType = 'application/json',
-}) => FlutterFileDialog.saveFile(
+  String sourceFilePath,
+  List<String> mimeTypes,
+) => FlutterFileDialog.saveFile(
   params: SaveFileDialogParams(
     sourceFilePath: sourceFilePath,
-    mimeTypesFilter: [mimeType],
+    mimeTypesFilter: mimeTypes,
   ),
 );
 

@@ -60,7 +60,7 @@ Future<JsonSaveResult?> saveCsvFile(String csv, String fileName) =>
       csv,
       fileName,
       acceptedTypeGroups: [csvTypeGroup()],
-      mimeType: csvMimeType,
+      mobileMimeTypes: const [csvMimeType],
       stageFile: writeCsvTempFile,
     );
 

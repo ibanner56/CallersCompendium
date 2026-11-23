@@ -776,4 +776,37 @@ void main() {
       );
     });
   });
+
+  group('the tune details on a slot line', () {
+    final mixed = program(
+      slots: [
+        ProgramSlot(id: 's1', position: 0, danceId: 'd1', danceMinutes: 5),
+        ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+        ProgramSlot(id: 's3', position: 2, text: 'Break'),
+      ],
+    );
+
+    test('follow the form in the details', () {
+      final text = programToPlainText(
+        mixed,
+        titleFor: titles,
+        formLabelFor: (id) => id == 'd1' ? 'English' : 'Contra',
+        tuneDetailsFor: (id) =>
+            id == 'd1' ? ' Meter: 6/8 · Key: G minor ' : null,
+      );
+      expect(
+        text,
+        contains("1. Rory O'More (English; Meter: 6/8 · Key: G minor; 5 min)"),
+      );
+      expect(text, contains('2. The Nice Combination (Contra)'));
+      expect(text, isNot(contains('Break (')));
+    });
+
+    test('a null or blank line adds nothing', () {
+      expect(
+        programToPlainText(mixed, titleFor: titles, tuneDetailsFor: (_) => ''),
+        programToPlainText(mixed, titleFor: titles),
+      );
+    });
+  });
 }
