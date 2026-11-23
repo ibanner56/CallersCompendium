@@ -494,7 +494,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**134 settings keys**: 88 shareable, 13 device-local, 31 device-scoped, 1 protocol-identifier, 1 store-address. 5 personal data by category.
+**135 settings keys**: 89 shareable, 13 device-local, 31 device-scoped, 1 protocol-identifier, 1 store-address. 5 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -607,6 +607,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `show_performed_toggles` | `dpv:NonPersonalData` | app user | shareable |  |
 | `show_program_pay` | `dpv:NonPersonalData` | app user | shareable |  |
 | `show_program_slot_caller_notes` | `dpv:NonPersonalData` | app user | shareable |  |
+| `show_repertoire_dashboard` | `dpv:NonPersonalData` | app user | shareable |  |
 | `soft_delete_retention_days` | `dpv:NonPersonalData` | app user | shareable |  |
 | `sort_ignore_articles` | `dpv:NonPersonalData` | app user | shareable |  |
 | `suggestion_settings` | `dpv:NonPersonalData` | app user | shareable | The user's chosen weights for the program builder's Suggested sort (Off / A little / A lot per factor, the difficulty curve's shape and the venue window), plus a reserved list of preferences that will hold saved-search ids. How the user likes dances suggested, the same on every device, so it travels like any preference. Ranking reads calling history and venues locally and stores nothing. |

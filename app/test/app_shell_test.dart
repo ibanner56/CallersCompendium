@@ -11,6 +11,7 @@ import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
+import 'package:compendium_app/src/data/show_repertoire_scope.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
@@ -37,6 +38,7 @@ Future<void> _pump(
   required Size size,
   ImportPicker? reimportPicker,
   ValueNotifier<bool>? showGlossary,
+  ValueNotifier<bool>? showRepertoire,
   ThemeData? theme,
 }) async {
   await tester.binding.setSurfaceSize(size);
@@ -89,12 +91,15 @@ Future<void> _pump(
                 notifier: notifier,
                 child: RequirePerformedForHistoryScope(
                   notifier: requirePerformedNotifier,
-                  child: showGlossary == null
-                      ? child!
-                      : ShowGlossaryScope(
-                          notifier: showGlossary,
-                          child: child!,
-                        ),
+                  child: _maybeShowRepertoire(
+                    showRepertoire,
+                    showGlossary == null
+                        ? child!
+                        : ShowGlossaryScope(
+                            notifier: showGlossary,
+                            child: child!,
+                          ),
+                  ),
                 ),
               ),
             ),
@@ -106,6 +111,12 @@ Future<void> _pump(
   );
   await tester.pumpAndSettle();
 }
+
+/// Mounts [ShowRepertoireScope] only when a test supplies a notifier.
+Widget _maybeShowRepertoire(ValueNotifier<bool>? notifier, Widget child) =>
+    notifier == null
+    ? child
+    : ShowRepertoireScope(notifier: notifier, child: child);
 
 void main() {
   // The guide is now a kept-alive shell destination, so its doc FutureBuilder
@@ -945,6 +956,54 @@ void main() {
     await tester.tap(button);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('command-palette')), findsOneWidget);
+  });
+
+  group('Repertoire (issue #2357)', () {
+    List<String> destinations(WidgetTester tester) => [
+      for (final d in tester.widgetList<NavigationDestination>(
+        find.byType(NavigationDestination),
+      ))
+        d.label,
+      if (find.byType(NavigationRail).evaluate().isNotEmpty)
+        for (final d
+            in tester
+                .widget<NavigationRail>(find.byType(NavigationRail))
+                .destinations)
+          (d.label as Text).data!,
+    ];
+
+    for (final size in [const Size(500, 900), const Size(1400, 900)]) {
+      testWidgets('adds no navigation destination at ${size.width} wide; '
+          'More actions offers it only while on', (tester) async {
+        final repos = openTestRepositories();
+        final show = ValueNotifier<bool>(false);
+        addTearDown(show.dispose);
+        await _pump(tester, repos, size: size, showRepertoire: show);
+        final off = destinations(tester);
+        expect(off, isNotEmpty);
+
+        await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('collection-repertoire')),
+          findsNothing,
+        );
+        await tester.tapAt(Offset.zero);
+        await tester.pumpAndSettle();
+
+        show.value = true;
+        await tester.pumpAndSettle();
+        expect(destinations(tester), off);
+        expect(find.text('Repertoire'), findsNothing);
+
+        await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('collection-repertoire')),
+          findsOneWidget,
+        );
+      });
+    }
   });
 
   group('Glossary destination (issue #695)', () {

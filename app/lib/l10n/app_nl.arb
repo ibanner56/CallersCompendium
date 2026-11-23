@@ -13126,6 +13126,178 @@
   "@exportCsvPayHiddenNotice": {
     "x-sourceSha256": "7211fa66aebc90d9f812f84eb5311ec7ce3c9492040b40a47ae3cce07f2f9e6d"
   },
+  "collectionRepertoireMenuItem": "Repertoire",
+  "@collectionRepertoireMenuItem": {
+    "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
+  },
+  "repertoireTitle": "Repertoire",
+  "@repertoireTitle": {
+    "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
+  },
+  "repertoireLoadError": "Je repertoire kon niet worden berekend",
+  "@repertoireLoadError": {
+    "x-sourceSha256": "a377018354f04a0476bcfdd92e5356014441e33da976d52a148c063a68409455"
+  },
+  "repertoirePeriodLabel": "Periode",
+  "@repertoirePeriodLabel": {
+    "x-sourceSha256": "6e795d4d3cc21c5ca8349ab5e917482197aa612d1a218f9e9411467db73242bb"
+  },
+  "repertoirePeriodAllTime": "Altijd",
+  "@repertoirePeriodAllTime": {
+    "x-sourceSha256": "9755c8d7d44a62589c873ca19a4119a594b98fbf3744cda4eb14b87a199765cb"
+  },
+  "repertoirePeriodMonths": "{count, plural, =1{Afgelopen maand} other{Afgelopen {count} maanden}}",
+  "@repertoirePeriodMonths": {
+    "x-sourceSha256": "a09e4dfbc620510b7de3ecf77e578fd3ba0ed50a6ce0a4b086c1aa4a212d3507"
+  },
+  "repertoirePeriodSinceDate": "Sinds een datum…",
+  "@repertoirePeriodSinceDate": {
+    "x-sourceSha256": "af507bf47251132ba4703a698935d64e15447d0ac82af7a649c56aeaba2b65a4"
+  },
+  "repertoirePeriodSince": "Sinds {date}",
+  "@repertoirePeriodSince": {
+    "x-sourceSha256": "1550794b36af0a945ddc65d95c16fbde42d2df500d5f3a232f5b1138e9b299f1"
+  },
+  "repertoireTypeLabel": "Danssoort",
+  "@repertoireTypeLabel": {
+    "x-sourceSha256": "2c004974318a3075ebadbd65e39bd0efc9bd6b1eee3f8a9c679d5c669b326ce0"
+  },
+  "repertoireTypeAll": "Alle soorten",
+  "@repertoireTypeAll": {
+    "x-sourceSha256": "f10988e79e8d9a49f45a71ecf3f4ebe143a96eb9d83272156ab54101b3777046"
+  },
+  "repertoireSummary": "Keer gebeld in deze periode: {calls}. Dansen gebeld: {called} van {total}.",
+  "@repertoireSummary": {
+    "x-sourceSha256": "4a7cbbf7c87e3bc46500abc1affb3190fd2f410e54fa5e6c41b9b31665ea822f"
+  },
+  "repertoireMostCalledHeader": "Vaakst gebeld",
+  "@repertoireMostCalledHeader": {
+    "x-sourceSha256": "f2aff79f46e584591a4f0b1fcd3131e043212b0bbb4ea84d3dae766272a149de"
+  },
+  "repertoireLeastCalledHeader": "Minst gebeld (van wat je hebt gebeld)",
+  "@repertoireLeastCalledHeader": {
+    "x-sourceSha256": "c842c2a0183d8447f0a70e0c59646aaf2d9d3c8684b451d857353e23329781c8"
+  },
+  "repertoireLeastCalledAllShown": "Elke dans die je in deze periode hebt gebeld, staat al onder Vaakst gebeld.",
+  "@repertoireLeastCalledAllShown": {
+    "x-sourceSha256": "5cb02281254a6fab6493c5d267f1c1f8cea8776c7876b01ef0a823e494e82def"
+  },
+  "repertoireNoCalls": "Niets gebeld in deze periode.",
+  "@repertoireNoCalls": {
+    "x-sourceSha256": "86745f9130fff2ca0d915327740923a147bd5234bbbf4eb3192173031b0f9858"
+  },
+  "repertoireDanceCalls": "{count, plural, =1{één keer gebeld} other{{count} keer gebeld}}",
+  "@repertoireDanceCalls": {
+    "x-sourceSha256": "45189eb3c35920001f632a177ba87dc00a38fabca66625eaf78b54446abb5f8f"
+  },
+  "repertoireDanceSemantics": "{title}: {count, plural, =1{één keer gebeld} other{{count} keer gebeld}}",
+  "@repertoireDanceSemantics": {
+    "x-sourceSha256": "f5ea6abe5e2415a57e19493b7734fcaf50fe98414349c428ef84e8214cf4d705"
+  },
+  "repertoireNeverCalledHeader": "Nooit gebeld",
+  "@repertoireNeverCalledHeader": {
+    "x-sourceSha256": "a523b2ac225d3979beb78fe0272ba337772b159e4932f6e27b7df2bce6384a42"
+  },
+  "repertoireNeverCalledLabel": "Nooit gebeld",
+  "@repertoireNeverCalledLabel": {
+    "x-sourceSha256": "a523b2ac225d3979beb78fe0272ba337772b159e4932f6e27b7df2bce6384a42"
+  },
+  "repertoireOfDances": "{count} van {total} dansen",
+  "@repertoireOfDances": {
+    "x-sourceSha256": "76615ee1ce72d60b9f878a4576a3b3ab25c37de1a722d0ecd18aea33eb731899"
+  },
+  "repertoireNeverCalledSemantics": "Nooit gebeld: {count} van {total} dansen",
+  "@repertoireNeverCalledSemantics": {
+    "x-sourceSha256": "8194a4a6d9fb05db1e0551fe07e9158a44c3c7cc32984263a953a5d72a630267"
+  },
+  "repertoireNeverCalledDanceSemantics": "{title}: nooit gebeld",
+  "@repertoireNeverCalledDanceSemantics": {
+    "x-sourceSha256": "5bb809f2149949c9ea5bf93daf9e454396da8da208e4cf8c10633fd5172b36c6"
+  },
+  "repertoireNotCalledInPeriodLabel": "Niet gebeld in deze periode",
+  "@repertoireNotCalledInPeriodLabel": {
+    "x-sourceSha256": "42ec0ae23e760c9a9c39f25eb38afcb3acb55ad830325a40247c450600734b78"
+  },
+  "repertoireNotCalledInPeriodSemantics": "Niet gebeld in deze periode: {count} van {total} dansen",
+  "@repertoireNotCalledInPeriodSemantics": {
+    "x-sourceSha256": "b889fd2f0f3ceeaa6ffd2345ee4532176a77216570a8b17879b8f472e80b81d6"
+  },
+  "repertoireFigureHeader": "Hoe vaak figuren voorkomen",
+  "@repertoireFigureHeader": {
+    "x-sourceSha256": "1f1265b6c299fb7fc1f01ad509e58f9d75476b89505d29a7433fd0befe8e6443"
+  },
+  "repertoireNoFigures": "Geen van deze dansen heeft ingevoerde figuren.",
+  "@repertoireNoFigures": {
+    "x-sourceSha256": "5c7385dadaa29516f1c99a78658d745b5febfea33156da79906bf887323bca0e"
+  },
+  "repertoireFigureValue": "in {dances} van {total} dansen ({percent}%) · {calls, plural, =1{1 keer gebeld} other{{calls} keer gebeld}}",
+  "@repertoireFigureValue": {
+    "x-sourceSha256": "427959c91687de4ae08a3efef81f129115e22eeeb1a98aecc65bb219f34a59f2"
+  },
+  "repertoireFigureSemantics": "{move}: in {dances} van {total} dansen, {percent} procent; {calls, plural, =1{1 keer gebeld} other{{calls} keer gebeld}} in deze periode",
+  "@repertoireFigureSemantics": {
+    "x-sourceSha256": "b0911685dfaa28d6fe4fd6587bfa6632fd8c7e7447a82a0db9131880913281d0"
+  },
+  "repertoireShowAll": "Alle {count} tonen",
+  "@repertoireShowAll": {
+    "x-sourceSha256": "a6c3860c56d7523fe43cfc166f3034d023eeac5491f722aba74922d03dca769d"
+  },
+  "repertoireShowFewer": "Minder tonen",
+  "@repertoireShowFewer": {
+    "x-sourceSha256": "255beb6510e7827d37ec1cd22d080f910888ae00f29374dd9545c8b3d1fce43a"
+  },
+  "repertoireAuthorsHeader": "Auteurs die je belt",
+  "@repertoireAuthorsHeader": {
+    "x-sourceSha256": "03a08a6177689c82fcc0a1cfe404363104f2eb53ccb83e2165947969bb41d94b"
+  },
+  "repertoireAuthorsSummary": "{count, plural, =0{Geen auteur gebeld in deze periode.} =1{1 auteur gebeld in deze periode.} other{{count} auteurs gebeld in deze periode.}}",
+  "@repertoireAuthorsSummary": {
+    "x-sourceSha256": "d2660bfb610f85406c90d761e3f01e3e6e8b58d9eae6849930f84759364cbfd0"
+  },
+  "repertoireShareValue": "{calls, plural, =1{1 keer gebeld} other{{calls} keer gebeld}} ({percent}%)",
+  "@repertoireShareValue": {
+    "x-sourceSha256": "b61b0042e986ce34f28b386ed7868e08cee4a26c6bac14c0809b05c8a63dbfcb"
+  },
+  "repertoireShareSemantics": "{label}: {calls, plural, =1{1 keer gebeld} other{{calls} keer gebeld}}, {percent} procent van wat in deze periode is gebeld",
+  "@repertoireShareSemantics": {
+    "x-sourceSha256": "044bc4d54d2dcc9d96418d86f9ab95849c79e5edf4710e7c4e8f1da8db2de573"
+  },
+  "repertoireFormationHeader": "Formaties",
+  "@repertoireFormationHeader": {
+    "x-sourceSha256": "098683a99bcce20ab162bb7af93ac6ad456eaaa455ec58235f5ec5e5cda68739"
+  },
+  "repertoireVenuesHeader": "Herhalingen per locatie",
+  "@repertoireVenuesHeader": {
+    "x-sourceSha256": "9b0640ebefe0b4e62b8d63d8948a9d88593e9cea25c1fd35b25a6e6b82ea841f"
+  },
+  "repertoireNoRepeats": "Geen dans is in deze periode meer dan één keer op dezelfde locatie gebeld.",
+  "@repertoireNoRepeats": {
+    "x-sourceSha256": "1ee83c14c00d9965edff9c7d2113aeaf23c7269f09a54b529b010feb074062cd"
+  },
+  "repertoireVenueUnnamed": "Naamloze locatie",
+  "@repertoireVenueUnnamed": {
+    "x-sourceSha256": "d05aef5da8914bd969562f34dd344d7251dd248c6e2cf2674efd76ee9f84704b"
+  },
+  "repertoireVenueRepeats": "{count, plural, =1{1 dans herhaald} other{{count} dansen herhaald}}",
+  "@repertoireVenueRepeats": {
+    "x-sourceSha256": "826159fbea4aac34da9274535e7f110d30128adbf08c0a99f39adf72d185c3cf"
+  },
+  "repertoireVenueSemantics": "{venue}: {count, plural, =1{1 dans meer dan één keer gebeld} other{{count} dansen meer dan één keer gebeld}}",
+  "@repertoireVenueSemantics": {
+    "x-sourceSha256": "6ac25c6d56b7afe142098842bf969c16f8b147d1d7c2172c1dd1e492c9d467f2"
+  },
+  "settingsExperimentalRepertoireHeader": "Repertoire",
+  "@settingsExperimentalRepertoireHeader": {
+    "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
+  },
+  "settingsExperimentalShowRepertoireTitle": "Repertoire",
+  "@settingsExperimentalShowRepertoireTitle": {
+    "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
+  },
+  "settingsExperimentalShowRepertoireSubtitle": "Voegt Repertoire toe aan het menu Meer acties van de Collectie: je vaakst en minst gebelde dansen, wat je nooit hebt gebeld, hoe vaak figuren voorkomen, auteurs, formaties en herhalingen per locatie.",
+  "@settingsExperimentalShowRepertoireSubtitle": {
+    "x-sourceSha256": "f537bb665c51db4ea2f7bebe359ced80907a25a71ab9fee34cf7c48159b6e946"
+  },
   "calendarImportUpdated": "{count, plural, =1{1 programma bijgewerkt uit je agenda.} other{{count} programma's bijgewerkt uit je agenda.}}",
   "@calendarImportUpdated": {
     "x-sourceSha256": "6ac5eca3ccc48d48449bf0b5aaf3df3010042c0070d3992c45d66b011f754861"

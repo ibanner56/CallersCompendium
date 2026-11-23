@@ -13031,6 +13031,238 @@ class AppLocalizationsJa extends AppLocalizations {
       '報酬は設定で非表示になっているため、含まれません。含めるには、設定 ▸ プログラムで「報酬を表示」をオンにしてください。';
 
   @override
+  String get collectionRepertoireMenuItem => 'レパートリー';
+
+  @override
+  String get repertoireTitle => 'レパートリー';
+
+  @override
+  String get repertoireLoadError => 'レパートリーを集計できませんでした';
+
+  @override
+  String get repertoirePeriodLabel => '期間';
+
+  @override
+  String get repertoirePeriodAllTime => '全期間';
+
+  @override
+  String repertoirePeriodMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '過去$countか月',
+      one: '過去1か月',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get repertoirePeriodSinceDate => '日付以降…';
+
+  @override
+  String repertoirePeriodSince(String date) {
+    return '$date以降';
+  }
+
+  @override
+  String get repertoireTypeLabel => 'ダンスの種類';
+
+  @override
+  String get repertoireTypeAll => 'すべての種類';
+
+  @override
+  String repertoireSummary(int calls, int called, int total) {
+    return 'この期間のコール数：$calls。コールしたダンス：$total件中$called件。';
+  }
+
+  @override
+  String get repertoireMostCalledHeader => 'コール回数が多い';
+
+  @override
+  String get repertoireLeastCalledHeader => 'コール回数が少ない（コールしたダンスのうち）';
+
+  @override
+  String get repertoireLeastCalledAllShown =>
+      'この期間にコールしたダンスは、すべて「コール回数が多い」に表示されています。';
+
+  @override
+  String get repertoireNoCalls => 'この期間にカウントされたコールはありません。';
+
+  @override
+  String repertoireDanceCalls(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count回コール',
+      one: '1回コール',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireDanceSemantics(String title, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count回コール',
+      one: '1回コール',
+    );
+    return '$title：$_temp0';
+  }
+
+  @override
+  String get repertoireNeverCalledHeader => '一度もコールされていない';
+
+  @override
+  String get repertoireNeverCalledLabel => '一度もコールされていない';
+
+  @override
+  String repertoireOfDances(int count, int total) {
+    return '$total件中$count件のダンス';
+  }
+
+  @override
+  String repertoireNeverCalledSemantics(int count, int total) {
+    return '一度もコールされていない：$total件中$count件のダンス';
+  }
+
+  @override
+  String repertoireNeverCalledDanceSemantics(String title) {
+    return '$title：一度もコールされていない';
+  }
+
+  @override
+  String get repertoireNotCalledInPeriodLabel => 'この期間に未コール';
+
+  @override
+  String repertoireNotCalledInPeriodSemantics(int count, int total) {
+    return 'この期間に未コール：$total件中$count件のダンス';
+  }
+
+  @override
+  String get repertoireFigureHeader => 'フィギュアの出現頻度';
+
+  @override
+  String get repertoireNoFigures => 'これらのダンスにはフィギュアが入力されていません。';
+
+  @override
+  String repertoireFigureValue(int dances, int total, int percent, int calls) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls回コール',
+      one: '1回コール',
+    );
+    return '$total件中$dances件のダンス（$percent%）・$_temp0';
+  }
+
+  @override
+  String repertoireFigureSemantics(
+    String move,
+    int dances,
+    int total,
+    int percent,
+    int calls,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls回コール',
+      one: '1回コール',
+    );
+    return '$move：$total件中$dances件のダンス、$percentパーセント。この期間に$_temp0';
+  }
+
+  @override
+  String repertoireShowAll(int count) {
+    return 'すべて表示（$count件）';
+  }
+
+  @override
+  String get repertoireShowFewer => '表示を減らす';
+
+  @override
+  String get repertoireAuthorsHeader => 'コールしている作者';
+
+  @override
+  String repertoireAuthorsSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'この期間に$count人の作者のダンスをコールしました。',
+      one: 'この期間に1人の作者のダンスをコールしました。',
+      zero: 'この期間にコールした作者はいません。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireShareValue(int calls, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls回コール',
+      one: '1回コール',
+    );
+    return '$_temp0（$percent%）';
+  }
+
+  @override
+  String repertoireShareSemantics(String label, int calls, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls回コール',
+      one: '1回コール',
+    );
+    return '$label：$_temp0、この期間のコールの$percentパーセント';
+  }
+
+  @override
+  String get repertoireFormationHeader => 'フォーメーションの内訳';
+
+  @override
+  String get repertoireVenuesHeader => '会場ごとの繰り返し';
+
+  @override
+  String get repertoireNoRepeats => 'この期間に同じ会場で2回以上コールされたダンスはありません。';
+
+  @override
+  String get repertoireVenueUnnamed => '名前のない会場';
+
+  @override
+  String repertoireVenueRepeats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスを繰り返し',
+      one: '1件のダンスを繰り返し',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireVenueSemantics(String venue, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスを2回以上コール',
+      one: '1件のダンスを2回以上コール',
+    );
+    return '$venue：$_temp0';
+  }
+
+  @override
+  String get settingsExperimentalRepertoireHeader => 'レパートリー';
+
+  @override
+  String get settingsExperimentalShowRepertoireTitle => 'レパートリー';
+
+  @override
+  String get settingsExperimentalShowRepertoireSubtitle =>
+      'コレクションの「その他のアクション」メニューに「レパートリー」を追加します。コール回数が多いダンスと少ないダンス、一度もコールしていないダンス、フィギュアの出現頻度、作者、フォーメーション、会場ごとの繰り返しを表示します。';
+
+  @override
   String calendarImportUpdated(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

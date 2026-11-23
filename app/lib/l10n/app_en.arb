@@ -18250,6 +18250,314 @@
   "@exportCsvPayHiddenNotice": {
     "description": "Shown in the export dialog of the programs CSV spreadsheet while the Show pay setting is off: the file has no pay columns. 'Show pay' is the setting's name (settingsProgramShowPayTitle)."
   },
+  "collectionRepertoireMenuItem": "Repertoire",
+  "@collectionRepertoireMenuItem": {
+    "description": "Collection More actions menu item that opens the Repertoire page (#2357, Experimental)."
+  },
+  "repertoireTitle": "Repertoire",
+  "@repertoireTitle": {
+    "description": "App bar title of the Repertoire page: a read-only summary of the collection and its calling history (#2357)."
+  },
+  "repertoireLoadError": "Couldn't work out your repertoire",
+  "@repertoireLoadError": {
+    "description": "Shown when the Repertoire page fails to load."
+  },
+  "repertoirePeriodLabel": "Period",
+  "@repertoirePeriodLabel": {
+    "description": "Label of the Repertoire page's period chips."
+  },
+  "repertoirePeriodAllTime": "All time",
+  "@repertoirePeriodAllTime": {
+    "description": "Repertoire period chip: every call, whenever it was."
+  },
+  "repertoirePeriodMonths": "{count, plural, =1{Last month} other{Last {count} months}}",
+  "@repertoirePeriodMonths": {
+    "description": "Repertoire period chip: calls in the last N calendar months (1, 3 or 6).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoirePeriodSinceDate": "Since a date…",
+  "@repertoirePeriodSinceDate": {
+    "description": "Repertoire period chip that opens a date picker."
+  },
+  "repertoirePeriodSince": "Since {date}",
+  "@repertoirePeriodSince": {
+    "description": "Repertoire period chip once a date is chosen. {date} is the formatted date.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "repertoireTypeLabel": "Dance type",
+  "@repertoireTypeLabel": {
+    "description": "Label of the Repertoire page's dance type chips."
+  },
+  "repertoireTypeAll": "All types",
+  "@repertoireTypeAll": {
+    "description": "Repertoire dance type chip: every dance type."
+  },
+  "repertoireSummary": "Calls in this period: {calls}. Dances called: {called} of {total}.",
+  "@repertoireSummary": {
+    "description": "Summary line at the top of the Repertoire page.",
+    "placeholders": {
+      "calls": {
+        "type": "int"
+      },
+      "called": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireMostCalledHeader": "Most called",
+  "@repertoireMostCalledHeader": {
+    "description": "Repertoire section header: the dances called most in the period."
+  },
+  "repertoireLeastCalledHeader": "Least called (of those you have called)",
+  "@repertoireLeastCalledHeader": {
+    "description": "Repertoire section header: the dances called least in the period, among those called at least once."
+  },
+  "repertoireLeastCalledAllShown": "Every dance you called in this period is already listed under Most called.",
+  "@repertoireLeastCalledAllShown": {
+    "description": "Shown under Least called when ten or fewer dances were called, so all of them are under Most called."
+  },
+  "repertoireNoCalls": "No counted calls in this period.",
+  "@repertoireNoCalls": {
+    "description": "Shown in a Repertoire section when nothing was called in the period."
+  },
+  "repertoireDanceCalls": "{count, plural, =1{called once} other{called {count} times}}",
+  "@repertoireDanceCalls": {
+    "description": "How many times a dance was called in the period, beside its title.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireDanceSemantics": "{title}: {count, plural, =1{called once} other{called {count} times}}",
+  "@repertoireDanceSemantics": {
+    "description": "Screen reader label of a dance row on the Repertoire page.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireNeverCalledHeader": "Never called",
+  "@repertoireNeverCalledHeader": {
+    "description": "Repertoire section header: dances with no counted call ever."
+  },
+  "repertoireNeverCalledLabel": "Never called",
+  "@repertoireNeverCalledLabel": {
+    "description": "Row label: dances with no counted call ever. Tapping it shows them in Collection."
+  },
+  "repertoireOfDances": "{count} of {total} dances",
+  "@repertoireOfDances": {
+    "description": "A number of dances out of the collection's total.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireNeverCalledSemantics": "Never called: {count} of {total} dances",
+  "@repertoireNeverCalledSemantics": {
+    "description": "Screen reader label of the Never called row.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireNeverCalledDanceSemantics": "{title}: never called",
+  "@repertoireNeverCalledDanceSemantics": {
+    "description": "Screen reader label of one never-called dance listed under the Never called row.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "repertoireNotCalledInPeriodLabel": "Not called in this period",
+  "@repertoireNotCalledInPeriodLabel": {
+    "description": "Row label: dances with no counted call in the chosen period, including never-called ones."
+  },
+  "repertoireNotCalledInPeriodSemantics": "Not called in this period: {count} of {total} dances",
+  "@repertoireNotCalledInPeriodSemantics": {
+    "description": "Screen reader label of the Not called in this period row.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireFigureHeader": "Figure frequency",
+  "@repertoireFigureHeader": {
+    "description": "Repertoire section header: for each move, how many dances contain it."
+  },
+  "repertoireNoFigures": "None of these dances has figures entered.",
+  "@repertoireNoFigures": {
+    "description": "Shown under Figure frequency when no dance has figures."
+  },
+  "repertoireFigureValue": "in {dances} of {total} dances ({percent}%) · {calls, plural, =1{1 call} other{{calls} calls}}",
+  "@repertoireFigureValue": {
+    "description": "A figure row's numbers: how many dances contain the move, as a share, and how many calls in the period were of such a dance.",
+    "placeholders": {
+      "dances": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "int"
+      },
+      "calls": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireFigureSemantics": "{move}: in {dances} of {total} dances, {percent} percent; {calls, plural, =1{1 call} other{{calls} calls}} in this period",
+  "@repertoireFigureSemantics": {
+    "description": "Screen reader label of a figure row. {move} is the move's name.",
+    "placeholders": {
+      "move": {
+        "type": "String"
+      },
+      "dances": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "int"
+      },
+      "calls": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireShowAll": "Show all {count}",
+  "@repertoireShowAll": {
+    "description": "Button that expands a Repertoire list to every row.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireShowFewer": "Show fewer",
+  "@repertoireShowFewer": {
+    "description": "Button that collapses an expanded Repertoire list."
+  },
+  "repertoireAuthorsHeader": "Authors you call",
+  "@repertoireAuthorsHeader": {
+    "description": "Repertoire section header: the authors of the dances called in the period."
+  },
+  "repertoireAuthorsSummary": "{count, plural, =0{No author called in this period.} =1{1 author called in this period.} other{{count} authors called in this period.}}",
+  "@repertoireAuthorsSummary": {
+    "description": "How many distinct authors' dances were called in the period.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireShareValue": "{calls, plural, =1{1 call} other{{calls} calls}} ({percent}%)",
+  "@repertoireShareValue": {
+    "description": "A row's calls in the period and their share of all calls in it.",
+    "placeholders": {
+      "calls": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireShareSemantics": "{label}: {calls, plural, =1{1 call} other{{calls} calls}}, {percent} percent of calls in this period",
+  "@repertoireShareSemantics": {
+    "description": "Screen reader label of a choreographer or formation row. {label} is the name.",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "calls": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireFormationHeader": "Formation mix",
+  "@repertoireFormationHeader": {
+    "description": "Repertoire section header: calls in the period by formation."
+  },
+  "repertoireVenuesHeader": "Repeats per venue",
+  "@repertoireVenuesHeader": {
+    "description": "Repertoire section header: for each venue, the dances called there more than once in the period."
+  },
+  "repertoireNoRepeats": "No dance was called more than once at one venue in this period.",
+  "@repertoireNoRepeats": {
+    "description": "Shown under Repeats per venue when there are none."
+  },
+  "repertoireVenueUnnamed": "Unnamed venue",
+  "@repertoireVenueUnnamed": {
+    "description": "Label for a venue with no name to show."
+  },
+  "repertoireVenueRepeats": "{count, plural, =1{1 dance repeated} other{{count} dances repeated}}",
+  "@repertoireVenueRepeats": {
+    "description": "How many dances were called more than once at a venue in the period.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireVenueSemantics": "{venue}: {count, plural, =1{1 dance called more than once} other{{count} dances called more than once}}",
+  "@repertoireVenueSemantics": {
+    "description": "Screen reader label of a venue row. {venue} is the venue's name.",
+    "placeholders": {
+      "venue": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsExperimentalRepertoireHeader": "Repertoire",
+  "@settingsExperimentalRepertoireHeader": {
+    "description": "Header of the Experimental settings section for the Repertoire page (#2357)."
+  },
+  "settingsExperimentalShowRepertoireTitle": "Repertoire",
+  "@settingsExperimentalShowRepertoireTitle": {
+    "description": "Title of the switch that adds Repertoire to Collection's More actions menu."
+  },
+  "settingsExperimentalShowRepertoireSubtitle": "Adds Repertoire to Collection's More actions menu: your most and least called dances, what you've never called, figure frequency, authors, formations and repeats per venue.",
+  "@settingsExperimentalShowRepertoireSubtitle": {
+    "description": "Subtitle of the Repertoire switch."
+  },
   "calendarImportUpdated": "{count, plural, =1{1 program updated from your calendar.} other{{count} programs updated from your calendar.}}",
   "@calendarImportUpdated": {
     "description": "Snack bar part after a calendar import updated existing programs from calendar changes. Offers Undo.",

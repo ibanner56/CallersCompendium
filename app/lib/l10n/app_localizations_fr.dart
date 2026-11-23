@@ -13711,6 +13711,242 @@ class AppLocalizationsFr extends AppLocalizations {
       'Le cachet est masqué dans les Paramètres, il est donc omis. Activez « Afficher le cachet » dans Paramètres ▸ Programme pour l’inclure.';
 
   @override
+  String get collectionRepertoireMenuItem => 'Répertoire';
+
+  @override
+  String get repertoireTitle => 'Répertoire';
+
+  @override
+  String get repertoireLoadError => 'Impossible de calculer votre répertoire';
+
+  @override
+  String get repertoirePeriodLabel => 'Période';
+
+  @override
+  String get repertoirePeriodAllTime => 'Depuis toujours';
+
+  @override
+  String repertoirePeriodMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Les $count derniers mois',
+      one: 'Le dernier mois',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get repertoirePeriodSinceDate => 'Depuis une date…';
+
+  @override
+  String repertoirePeriodSince(String date) {
+    return 'Depuis le $date';
+  }
+
+  @override
+  String get repertoireTypeLabel => 'Type de danse';
+
+  @override
+  String get repertoireTypeAll => 'Tous les types';
+
+  @override
+  String repertoireSummary(int calls, int called, int total) {
+    return 'Appels sur cette période : $calls. Danses appelées : $called sur $total.';
+  }
+
+  @override
+  String get repertoireMostCalledHeader => 'Les plus appelées';
+
+  @override
+  String get repertoireLeastCalledHeader =>
+      'Les moins appelées (parmi celles que vous avez appelées)';
+
+  @override
+  String get repertoireLeastCalledAllShown =>
+      'Toutes les danses appelées sur cette période figurent déjà dans Les plus appelées.';
+
+  @override
+  String get repertoireNoCalls => 'Aucun appel compté sur cette période.';
+
+  @override
+  String repertoireDanceCalls(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'appelée $count fois',
+      one: 'appelée une fois',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireDanceSemantics(String title, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'appelée $count fois',
+      one: 'appelée une fois',
+    );
+    return '$title : $_temp0';
+  }
+
+  @override
+  String get repertoireNeverCalledHeader => 'Jamais appelées';
+
+  @override
+  String get repertoireNeverCalledLabel => 'Jamais appelées';
+
+  @override
+  String repertoireOfDances(int count, int total) {
+    return '$count danses sur $total';
+  }
+
+  @override
+  String repertoireNeverCalledSemantics(int count, int total) {
+    return 'Jamais appelées : $count danses sur $total';
+  }
+
+  @override
+  String repertoireNeverCalledDanceSemantics(String title) {
+    return '$title : jamais appelée';
+  }
+
+  @override
+  String get repertoireNotCalledInPeriodLabel =>
+      'Non appelées sur cette période';
+
+  @override
+  String repertoireNotCalledInPeriodSemantics(int count, int total) {
+    return 'Non appelées sur cette période : $count danses sur $total';
+  }
+
+  @override
+  String get repertoireFigureHeader => 'Fréquence des figures';
+
+  @override
+  String get repertoireNoFigures =>
+      'Aucune de ces danses n\'a de figures saisies.';
+
+  @override
+  String repertoireFigureValue(int dances, int total, int percent, int calls) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls appels',
+      one: '1 appel',
+    );
+    return 'dans $dances danses sur $total ($percent %) · $_temp0';
+  }
+
+  @override
+  String repertoireFigureSemantics(
+    String move,
+    int dances,
+    int total,
+    int percent,
+    int calls,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls appels',
+      one: '1 appel',
+    );
+    return '$move : dans $dances danses sur $total, $percent pour cent ; $_temp0 sur cette période';
+  }
+
+  @override
+  String repertoireShowAll(int count) {
+    return 'Tout afficher ($count)';
+  }
+
+  @override
+  String get repertoireShowFewer => 'Afficher moins';
+
+  @override
+  String get repertoireAuthorsHeader => 'Auteurs que vous appelez';
+
+  @override
+  String repertoireAuthorsSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count auteurs appelés sur cette période.',
+      one: '1 auteur appelé sur cette période.',
+      zero: 'Aucun auteur appelé sur cette période.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireShareValue(int calls, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls appels',
+      one: '1 appel',
+    );
+    return '$_temp0 ($percent %)';
+  }
+
+  @override
+  String repertoireShareSemantics(String label, int calls, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls appels',
+      one: '1 appel',
+    );
+    return '$label : $_temp0, $percent pour cent des appels sur cette période';
+  }
+
+  @override
+  String get repertoireFormationHeader => 'Répartition des formations';
+
+  @override
+  String get repertoireVenuesHeader => 'Répétitions par lieu';
+
+  @override
+  String get repertoireNoRepeats =>
+      'Aucune danse n\'a été appelée plus d\'une fois dans un même lieu sur cette période.';
+
+  @override
+  String get repertoireVenueUnnamed => 'Lieu sans nom';
+
+  @override
+  String repertoireVenueRepeats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danses répétées',
+      one: '1 danse répétée',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireVenueSemantics(String venue, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count danses appelées plus d\'une fois',
+      one: '1 danse appelée plus d\'une fois',
+    );
+    return '$venue : $_temp0';
+  }
+
+  @override
+  String get settingsExperimentalRepertoireHeader => 'Répertoire';
+
+  @override
+  String get settingsExperimentalShowRepertoireTitle => 'Répertoire';
+
+  @override
+  String get settingsExperimentalShowRepertoireSubtitle =>
+      'Ajoute Répertoire au menu Plus d\'actions de la Collection : vos danses les plus et les moins appelées, celles que vous n\'avez jamais appelées, la fréquence des figures, les auteurs, les formations et les répétitions par lieu.';
+
+  @override
   String calendarImportUpdated(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
