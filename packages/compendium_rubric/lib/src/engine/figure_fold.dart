@@ -29,7 +29,9 @@ import 'result.dart';
 class FigureFold {
   FigureFold();
 
-  /// Progressions performed so far, counted at the figures that were flagged.
+  /// Progressions performed so far, counted at the figures that were flagged
+  /// (a flagged diagonal slice counts two; see
+  /// [OperationInvocation.progressionCount]).
   int get progressions => _progressions;
   int _progressions = 0;
 
@@ -77,7 +79,7 @@ class FigureFold {
           _held.removeAt(0);
         }
       }
-      if (figure.progression) _progressions++;
+      _progressions += figure.progressionCount;
       return next;
     });
   }

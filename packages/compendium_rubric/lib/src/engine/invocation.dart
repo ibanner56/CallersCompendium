@@ -50,12 +50,52 @@ class OperationInvocation {
   /// flag names, so counting it twice would undo it. A figure whose reach has
   /// been closed to nothing by earlier progressions did not step out at all,
   /// so it does not qualify either.
+  ///
+  /// **A figure danced in several progression steps spends one progression per
+  /// step** ([Operation.progressionSteps]): a flagged diagonal `slice` runs as
+  /// two flagged slides, each with its own change-over *(user-ruled
+  /// 2026-11-23)*.
   Result<Formation, OpError> apply(
     Formation formation, {
     int progressions = 0,
-  }) => operation
-      .apply(formation, progressions: progressions)
-      .map((next) => _finish(formation, next, progressions));
+  }) {
+    if (_steps case final steps?) {
+      return _applySteps(steps, formation, progressions);
+    }
+    return operation
+        .apply(formation, progressions: progressions)
+        .map((next) => _finish(formation, next, progressions));
+  }
+
+  /// How many progressions this entry spends: none unflagged, otherwise one
+  /// per [Operation.progressionSteps].
+  int get progressionCount =>
+      progression ? operation.progressionSteps.length : 0;
+
+  /// The steps of a flagged figure that spends more than one progression, or
+  /// `null` for every other entry.
+  List<Operation>? get _steps {
+    if (!progression) return null;
+    final steps = operation.progressionSteps;
+    return steps.length > 1 ? steps : null;
+  }
+
+  /// Runs each step as its own flagged figure, the distance count advancing
+  /// after each one.
+  static Result<Formation, OpError> _applySteps(
+    List<Operation> steps,
+    Formation formation,
+    int progressions,
+  ) {
+    Result<Formation, OpError> state = Ok(formation);
+    for (var i = 0; i < steps.length; i++) {
+      final step = OperationInvocation(steps[i], progression: true);
+      state = state.flatMap(
+        (current) => step.apply(current, progressions: progressions + i),
+      );
+    }
+    return state;
+  }
 
   /// [apply], except that a progression with nobody to step out yet is
   /// **held** rather than spent.
@@ -80,19 +120,31 @@ class OperationInvocation {
   /// set finishes a phase further on, which a later change-over could not
   /// reproduce; both finish where they are, as before. *(Agent's call,
   /// 2026-11-23: neither shape needed holding in the corpus measured.)*
+  ///
+  /// A figure danced in several progression steps is never held: each step is
+  /// its own progression, run as [apply] runs it.
   Result<({Formation formation, bool held}), OpError> applyHolding(
     Formation formation, {
     int progressions = 0,
-  }) => operation.apply(formation, progressions: progressions).map((next) {
-    final hold =
-        progression &&
-        !operation.isItsOwnProgression &&
-        !_reached(progressions) &&
-        !endHasWholeCouple(next);
-    return hold
-        ? (formation: next, held: true)
-        : (formation: _finish(formation, next, progressions), held: false);
-  });
+  }) {
+    if (_steps case final steps?) {
+      return _applySteps(
+        steps,
+        formation,
+        progressions,
+      ).map((next) => (formation: next, held: false));
+    }
+    return operation.apply(formation, progressions: progressions).map((next) {
+      final hold =
+          progression &&
+          !operation.isItsOwnProgression &&
+          !_reached(progressions) &&
+          !endHasWholeCouple(next);
+      return hold
+          ? (formation: next, held: true)
+          : (formation: _finish(formation, next, progressions), held: false);
+    });
+  }
 
   /// The change-over that follows a flagged figure, given the state it
   /// started in ([before]) and the state its transform produced ([next]).

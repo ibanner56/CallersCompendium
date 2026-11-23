@@ -54,6 +54,119 @@ void main() {
     }
   });
 
+  group('a flagged double slice is two progressions (user-ruled 2026-11-23)', () {
+    // "Diagonal is double, straight back is single": a diagonal return is two
+    // slides, and as the progression it is both of a double progression.
+    Map<String, Object?> record(
+      List<Map<String, Object?>> figures, {
+      String progression = 'double',
+    }) => {
+      'title': 'double slice',
+      'formation': {'shape': 'becket'},
+      'progression': progression,
+      'figures': figures,
+    };
+    Map<String, Object?> flagged(String move, [Map<String, Object?>? params]) =>
+        {
+          'move': move,
+          'params': params ?? <String, Object?>{},
+          'progression': true,
+        };
+    CompileResult compiled(Map<String, Object?> raw) {
+      final parsed = parseDance(raw);
+      expect(parsed, isA<Ok<Dance, DanceParseError>>(), reason: '$parsed');
+      return compile((parsed as Ok<Dance, DanceParseError>).value);
+    }
+
+    for (final dir in SlideDirection.values) {
+      test(
+        'slice ${dir.key} on the diagonal, flagged, is two flagged slides',
+        () {
+          // Each direction in the Becket formation where its flag does work,
+          // so the old one-change-over reading would fail here.
+          final start = startingFormation(
+            dir == SlideDirection.left
+                ? FormationType.becketCw
+                : FormationType.becketCcw,
+            handsFour: 3,
+          );
+          final once = progressing(SlideAlongSet(slide: dir), start);
+          // The old reading, one change-over after both slides, lands
+          // elsewhere, so this test tells the two apart.
+          expect(
+            progressing(SlideAlongSet(slide: dir), once),
+            isNot(
+              progressing(
+                SlideAlongSet(slide: dir),
+                applyOk(SlideAlongSet(slide: dir), start),
+              ),
+            ),
+            reason: 'the first change-over must change something',
+          );
+          expect(
+            progressing(Slice(slice: dir, back: SliceReturn.diagonal), start),
+            progressing(SlideAlongSet(slide: dir), once),
+          );
+        },
+      );
+    }
+
+    test('a double-progression dance compiles on one flagged double slice', () {
+      // Positive control first: the same dance written as two flagged slides.
+      expect(
+        compiled(
+          record([flagged('slide_along_set'), flagged('slide_along_set')]),
+        ),
+        isA<Compiled>(),
+      );
+      expect(
+        compiled(
+          record([
+            flagged('slice', {'return': 'diagonal'}),
+          ]),
+        ),
+        isA<Compiled>(),
+      );
+    });
+
+    test('it counts two for the distance sets and the set size', () {
+      // Next neighbours named after the progression: two progressions close
+      // that gap twice, so the count must match two flagged slides.
+      final nextNeighbors = <String, Object?>{
+        'move': 'allemande',
+        'params': {'who': 'nextNeighbors', 'turn': 1},
+      };
+      Dance dance(List<Map<String, Object?>> figures) =>
+          (parseDance(record(figures)) as Ok<Dance, DanceParseError>).value;
+      final sliced = dance([
+        flagged('slice', {'return': 'diagonal'}),
+        nextNeighbors,
+      ]);
+      final slid = dance([
+        flagged('slide_along_set'),
+        flagged('slide_along_set'),
+        nextNeighbors,
+      ]);
+      expect(sliced.requiredHandsFour, slid.requiredHandsFour);
+      expect(
+        compile(sliced).runtimeType,
+        compile(slid).runtimeType,
+        reason: '${compile(sliced)} vs ${compile(slid)}',
+      );
+    });
+
+    test('and it is not a single progression', () {
+      expect(
+        compiled(
+          record([
+            flagged('slice', {'return': 'diagonal'}),
+          ], progression: 'single'),
+        ),
+        isNot(isA<Compiled>()),
+      );
+    });
+  });
+
   group('slice deferrals refuse rather than approximate', () {
     test('by a single dancer', () {
       final error = applyErr(const Slice(by: SliceBy.dancer), becketStart);

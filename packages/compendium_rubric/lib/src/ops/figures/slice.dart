@@ -50,16 +50,17 @@ enum SliceReturn {
 /// Like the slide, the slice **is** the progression when it carries the flag:
 /// its own displacement is the movement that hands each couple on.
 ///
-/// **Known limit:** a diagonal return is two slides, but the engine runs a
-/// progression's end-normalization once per flag, so a progression-flagged
-/// diagonal slice compiles as a mismatch. What a flag on a double slice means
-/// (one progression or two) is not ruled. The Caller's Box bridge therefore
-/// does not assume one on a Becket opener (`assumedProgressionIndex`), but a
-/// dance that *ends* in a double slice still gets the ordinary last-figure
-/// flag and compiles as this mismatch. In the Caller's Box corpus 19 of the 21
-/// double slices are mid-dance shifts to the shadows; the other two end
-/// double-progression dances, and neither reaches the compiler today (another
-/// figure in each stays free text).
+/// **A flagged diagonal slice is two progressions** *(user-ruled 2026-11-23:
+/// "diagonal is double, straight back is single")*. It is danced as two
+/// flagged slides, each with its own change-over ([progressionSteps]), so a
+/// double-progression dance can progress on it. The Caller's Box bridge still
+/// does not assume one on a Becket opener (`assumedProgressionIndex`, agent's
+/// call): single-progression dances open with one too. Inside a container
+/// (`modifier`, `meanwhile` or a nested `sequence`) it is a known limit: the
+/// container is one step, so a flag there counts one. Today only 3 of the 21
+/// Caller's Box double slices import as a `slice` (those written "go forward
+/// to S1, fall back to S2", all mid-dance and unflagged); the rest stay free
+/// text, so none of them reaches the compiler (`taxonomy.md`, `slice`).
 ///
 /// **Deferred:** `by: dancer` (a shift of a single dancer, which leaves a shape
 /// the slide does not model) and `return: none` (the couples stop in the
@@ -96,6 +97,15 @@ final class Slice extends Operation {
   bool get isItsOwnProgression => true;
 
   SlideAlongSet get _slide => SlideAlongSet(slide: slice);
+
+  /// A diagonal return is two slides, and flagged it is two progressions
+  /// *(user-ruled 2026-11-23)*. The deferred shapes stay one step, so a flag
+  /// on them still refuses with their own error.
+  @override
+  List<Operation> get progressionSteps =>
+      back == SliceReturn.diagonal && by == SliceBy.couple
+      ? [_slide, _slide]
+      : [this];
 
   @override
   OpError? checkPreconditions(Formation formation) {

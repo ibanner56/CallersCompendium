@@ -162,7 +162,7 @@ behind §3.5's equality rule.
                                any held progression is overtaken (given up, reported)
                              else, if a progression is held:
                                finishHeldProgression(...) once a whole couple is at an end
-                             if flagged, progressions++ (counted where flagged, held or not)
+                             if flagged, progressions += progressionCount (counted where flagged, held or not; a flagged diagonal slice counts two)
                         c. Err  -> return CompileError(opIndex, opName, error, warnings)
                         d. Ok   -> state = value
    then            <- a held progression never finished -> heldProgressionUnfinished warning
@@ -197,7 +197,14 @@ operation.apply(...)                       the figure's own transform
 `applyHolding` is the same, except that a flagged figure (not its own
 progression, not reaching) whose transform leaves no whole couple at either end
 returns its transform with `held: true` and no change-over; `FigureFold` owes
-it one (`fundamentals.md` §10.2.1). Tools that trace a dance step by step
+it one (`fundamentals.md` §10.2.1).
+
+A flagged figure danced in more than one progression step
+(`Operation.progressionSteps`; today only a `slice` back on the diagonal, which
+is two slides) runs each step as its own flagged invocation, with its own
+change-over, and spends one progression per step (`progressionCount`). Neither
+`apply` nor `applyHolding` holds that path. *(User-ruled 2026-11-23: a flagged
+diagonal slice is two progressions.)* Tools that trace a dance step by step
 (`tool/probe_dance.dart`, the golden test's failure report) fold through
 `FigureFold` too, so a trace cannot disagree with `compile`.
 
@@ -772,7 +779,7 @@ rest cannot pass for the wrong reason.
 
 ## 15. Current state and known debt
 
-- **1,313 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,318 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,
