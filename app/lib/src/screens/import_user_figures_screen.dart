@@ -35,7 +35,8 @@ class UserFigureImportChoices {
 /// the same, and the Glossary marks it Rename needed. [nameTaken] is checked
 /// the way the Glossary checks a figure: against the app's figures and the
 /// active dialect of the figure's own form, the user's own dialects, the
-/// shorthands and the user's other entries (`importedFiguresWithTakenNames`).
+/// shorthands, the user's other entries and the file's other figures
+/// (`importedFiguresWithTakenNames`).
 ///
 /// Pops a [UserFigureImportChoices]; empty when the user skips.
 class ImportUserFiguresScreen extends StatefulWidget {

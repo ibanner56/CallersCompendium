@@ -357,36 +357,74 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('says an English figure\'s name is taken when English\'s '
-        'dialect has it, as the Glossary reads it (#2294)', (tester) async {
-      // English gives `swing` the name "zebra"; contra's dialect does not.
-      final english = Dialect.canonical.copyWith(moves: {'swing': 'zebra'});
+    group('a shared figure\'s name and its form\'s dialect (#2294)', () {
+      // Each form's dialect gives `swing` a name of its own, and the other
+      // form's dialect does not have it: contra "quokka", English "zebra".
       final dialects = DialectsByForm({
-        DanceForm.contra: Dialect.larksRobins,
-        DanceForm.ecd: english,
+        DanceForm.contra: Dialect.larksRobins.copyWith(
+          moves: {'swing': 'quokka'},
+        ),
+        DanceForm.ecd: Dialect.canonical.copyWith(moves: {'swing': 'zebra'}),
       });
-      final shared = UserGlossaryEntry(
-        id: 'zebra-id',
-        kindName: UserGlossaryEntryKind.customFigure.name,
-        name: 'zebra',
-        definition: 'A figure called zebra.',
-        description: 'Of your own.',
-        payload: const {
-          'form': 'ecd',
-          'template': '{move}',
-          'defaultBeats': 8,
-          'params': <Object?>[],
-        },
-        createdAt: created,
-      );
-      final repos = openTestRepositories();
-      await pumpShared(tester, repos, shared: shared, dialects: dialects);
 
-      expect(find.byType(ImportUserFiguresScreen), findsOneWidget);
-      expect(
-        find.textContaining('your Glossary will mark it Rename needed'),
-        findsOneWidget,
+      Future<void> importFigureNamed(
+        WidgetTester tester,
+        String name,
+        String form,
+      ) async {
+        final shared = UserGlossaryEntry(
+          id: 'shared-id',
+          kindName: UserGlossaryEntryKind.customFigure.name,
+          name: name,
+          definition: 'A figure called $name.',
+          description: 'Of your own.',
+          payload: {
+            'form': form,
+            'template': '{move}',
+            'defaultBeats': 8,
+            'params': <Object?>[],
+          },
+          createdAt: created,
+        );
+        await pumpShared(
+          tester,
+          openTestRepositories(),
+          shared: shared,
+          dialects: dialects,
+        );
+        expect(find.byType(ImportUserFiguresScreen), findsOneWidget);
+      }
+
+      final taken = find.textContaining(
+        'your Glossary will mark it Rename needed',
       );
+
+      testWidgets('an English figure is taken by English\'s dialect', (
+        tester,
+      ) async {
+        await importFigureNamed(tester, 'zebra', 'ecd');
+        expect(taken, findsOneWidget);
+      });
+
+      testWidgets('a contra figure is taken by contra\'s dialect', (
+        tester,
+      ) async {
+        await importFigureNamed(tester, 'quokka', 'contra');
+        expect(taken, findsOneWidget);
+      });
+
+      testWidgets('an English figure is not taken by contra\'s dialect, as '
+          'the Glossary reads it', (tester) async {
+        await importFigureNamed(tester, 'quokka', 'ecd');
+        expect(taken, findsNothing);
+      });
+
+      testWidgets('a contra figure is not taken by English\'s dialect', (
+        tester,
+      ) async {
+        await importFigureNamed(tester, 'zebra', 'contra');
+        expect(taken, findsNothing);
+      });
     });
 
     testWidgets('offers the file\'s figures once its dances are in; Undo '
