@@ -143,6 +143,9 @@ flutter:
     # follows. Both loaded the same way, via licenses.dart.
     - assets/licenses/eff-wordlist-NOTICE.txt
     - assets/licenses/contradb-NOTICE.txt
+    # The notice CALLERLAB asks for when its timing data is reproduced: the
+    # square calls' default beats follow its timing lists (ADR-007 Q1).
+    - assets/licenses/callerlab-NOTICE.txt
     # pdfium's LICENSE (PDFium plus the notices of the libraries built into
     # it), from the pdfium-binaries release pinned in
     # packaging/pdfium/pdfium.cmake. The printing plugin ships that pdfium in

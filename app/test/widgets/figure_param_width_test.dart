@@ -4,7 +4,6 @@
 // it. Measured on the render with the real fonts; the Ahem test font would
 // make every glyph a full em and the check meaningless.
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
-import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/widgets/figure_param_editors.dart';
 import 'package:compendium_core/compendium_core.dart';

@@ -1,0 +1,11 @@
+{
+  "id": "2325-saved-search-model",
+  "user_visible": false,
+  "core": {
+    "added": [
+      "A saved search's model, format and resolver: CollectionPanelState, SavedSearchSpec (a strict, versioned JSON codec that never throws), SavedSearch, and resolveSavedSearch, which turns a saved search into a DanceFilter against the data and settings of the day it runs, or names every reference that is gone instead of dropping it.",
+      "monthsBackFromDate, calendarDayAt and SearchClock for a search window counted from the caller's own calendar day; VenueKey.fromStorageKey; and an optional currentProgramId on buildCollectionFilter.",
+      "figureParamChoices and figureParamSelectableChoices moved, unchanged, from the app into compendium_core."
+    ]
+  }
+}
