@@ -1880,6 +1880,54 @@ To be defined later with worked examples.
   hand-trace confirmation (square through 4 returns home; 2 = diagonal); CallersCompendium taxonomy
   `square_through` MoveDef.
 
+### `cast`
+
+- **summary:** Dancers turn out, away from the middle of the set, and travel around the outside
+  to a new place. "Cast off" is a cast down one place (the importer's reading, `compendium_core`).
+- **params** (meets CallersCompendium baseline `{who, direction, places, whom, destination,
+  beats}`; every default is `unspecified`):
+  - `who` — dancer set. The casters, named by membership: `ones`, `twos`, `role1s` or `role2s`.
+  - `direction` — `up`, `down`, `left` or `right`. Only `up` and `down` are built.
+  - `places` — int. How many places the casters move. Only 1 is built.
+  - `whom` — dancer set. Whom the casters go around. **Descriptive**: the dancers in the
+    caster's path are the ones passed.
+  - `destination` — a stated endpoint (`place`, `top`, `bottom`, …). Deferred.
+  - `beats` — int, default 4.
+- **preconditions:** casters named, `direction` up or down, `places` stated and equal to 1, no
+  `destination`; anything else is deferred (`UnsupportedParam`). A `who` naming pairs rather
+  than members (`partners`, `neighbors`, `everyone`, or a distance set such as
+  `nextNeighbors`) is refused (`UnresolvableDancerSet`), unless the engine's reach check
+  refuses a distance set first; `shadows` is deferred at parse time. In every active hands four, each caster must have a dancer beside it
+  in its column, in the cast's direction, who is not casting too (`UnresolvableDancerSet`
+  otherwise).
+- **effect (user-ruled 2026-11-23):** the casters move `places` places up or down the set, and
+  each dancer they pass steps one place the other way. For the one place that is built, the
+  caster and the dancer beside it in its column, inside its own hands four, trade rows.
+  - *Worked check:* from the base ring `R1-A . . . L1-A / L2-B . . . R2-B`, ones cast down one
+    land `L2-B . . . R2-B / R1-A . . . L1-A`.
+  - **Agent's calls, not ruled:** the cast is danced in the active hands fours only, like
+    every other figure, so a couple standing out at an end neither casts nor is passed. A cast
+    of two or more places is deferred: it would cross into the next hands four, and in an
+    ordinary duple set every ones couple casting at once would pass the same dancers. In
+    Becket the ones share a column, so a `ones` or `twos` cast is refused (each would pass a
+    caster).
+- **normalization:** none.
+- **facing (output):** **flexible** for everyone who moved; casting turns the casters out and
+  around, and the dancers stepping along turn to follow.
+- **interaction scope:** within the hands four (the caster's column).
+- **h4 contribution** (D7): 0.
+- **progression-eligible:** yes (not its own progression).
+- **corpus note (2026-11-23, `rubric` at `2bf7a0e1`):** 202 Caller's Box dances stopped at
+  this figure before it was built. None compiles yet. 192 refuse before the cast: 147 at a
+  `down_the_hall` led by part of the set (144 `who: ones`, 2 `role1s`, 1 `partners`; deferred),
+  34 at a `swing`, 10 at `form_short_waves` and 1 at a `two_hand_turn`. 6 refuse at the cast
+  itself (5 casts of two places, 1 cast right). 4 refuse at a later hall figure led by part of
+  the set (`who: ones` twice, `who: twos`, `moving: center`). The in-scope denominator grows
+  (4,506 to 4,539) because these dances are no longer stopped by a deferred move.
+- **sources:** user ruling 2026-11-23 ("casters move N, passed couples step 1"; left/right,
+  "back" and unnamed casts refuse for now); CallersCompendium taxonomy `cast` MoveDef and figure
+  definition.
+
 ### `circular_hey`
 
 - **summary:** A square through without hands (also "square hey"): the four dancers of a ring

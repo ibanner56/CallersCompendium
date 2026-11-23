@@ -766,10 +766,10 @@ rest cannot pass for the wrong reason.
 
 ## 15. Current state and known debt
 
-- **1,241 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,269 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
-- **52 figures registered**, plus 7 upstream aliases resolved to them
+- **53 figures registered**, plus 7 upstream aliases resolved to them
   (`hand_cast` → `gate`, `long_lines` → `forward_and_back`, `meltdown_swing`,
   `pull_by_dancers`, `pull_by_direction`, `see_saw`, `swat_the_flea`).
 - **Schema-aligned with `compendium_core`** (`test/io/core_taxonomy_alignment_test.dart`).
@@ -820,15 +820,17 @@ rest cannot pass for the wrong reason.
   beyond `where: across` (single-file, whole-set, and stated destinations),
   `slice` by a single dancer or with no return, `dolphin_hey`, and the moves
   taxonomy v36–v40
-  added and not yet built (`trade_the_wave`, `starburst`, `hey_for_three`,
-  `cast`), `orbit` couple-`who` (the
+  added and not yet built (`trade_the_wave`, `starburst`, `hey_for_three`),
+  `orbit` couple-`who` (the
   **meanwhile** mechanism), hall `ender` values `cozy`/`cloverleaf`/
   `threadNeedle`/`rightHandHigh`, and hall `moving` values `center`/`outsides`.
 - **Deferred param values inside implemented figures** raise
   `unsupportedParam` — notably diagonal and `along` `right_left_through`,
   `chain dir:along`, `swing where:center`, `long_lines goBack:false`, and
   `hey`'s partial lengths and non-`across` `dir`, and a `circular_hey` `who2`
-  reaching another hands four (`shadows` there is a parse-time deferral). Three
+  reaching another hands four (`shadows` there is a parse-time deferral), and
+  a `cast` left or right, of more than one place, with no direction, places or
+  casters, or to a stated destination. Three
   taxonomy v39 values are
   refused earlier, at parse time, as a deferred `DanceParseError`: a
   `forward_and_back` outside long lines, a `figure_8` marked `double`, and a

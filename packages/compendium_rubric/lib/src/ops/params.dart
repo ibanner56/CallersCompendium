@@ -271,3 +271,26 @@ enum FaceDirection {
     return null;
   }
 }
+
+/// The way a `cast` goes (`compendium_core` `castDirections`).
+///
+/// Only [up] and [down] are built (user-ruled 2026-11-23); [left] and [right],
+/// the shoulder a dancer turns over when casting back, are parsed so a record
+/// naming them refuses with a reason rather than failing to read.
+enum CastDirection {
+  up('up'),
+  down('down'),
+  left('left'),
+  right('right');
+
+  const CastDirection(this.key);
+
+  final String key;
+
+  static CastDirection? fromKey(String key) {
+    for (final value in CastDirection.values) {
+      if (value.key == key) return value;
+    }
+    return null;
+  }
+}
