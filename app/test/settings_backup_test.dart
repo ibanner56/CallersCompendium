@@ -1522,7 +1522,16 @@ void main() {
     );
 
     final button = find.byKey(const ValueKey('export-dances-csv-button'));
-    await tester.ensureVisible(button);
+    await tester.scrollUntilVisible(
+      button,
+      300,
+      scrollable: find
+          .ancestor(
+            of: find.byKey(const ValueKey('backup-export-button')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(button);
     await tester.pumpAndSettle();
