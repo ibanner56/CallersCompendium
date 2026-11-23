@@ -12220,6 +12220,12 @@ abstract class AppLocalizations {
   /// **'This dance counts in bars but states no meter, so each bar was counted as 2 beats. Check its counts.'**
   String get importIssueBarsMeterUnstated;
 
+  /// Import note: an English dance's figure lines count in bars ("1-4 partners set"), but its music names meters of different bar lengths ("3/4 and 6/8"), so bars were counted as 2 beats each.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance counts in bars but names meters of different bar lengths, so each bar was counted as 2 beats. Check its counts.'**
+  String get importIssueBarsMeterMixed;
+
   /// Import note: a dance-type string wasn't recognized; the dance was imported as a contra with the original value kept in the notes.
   ///
   /// In en, this message translates to:
@@ -19114,6 +19120,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Read the calendar and choose events to add as draft programs.'**
   String get calendarPullNowSubtitle;
+
+  /// Collection selection-mode overflow menu item that exports the selected dances as a CSV spreadsheet file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export as CSV'**
+  String get collectionExportCsv;
+
+  /// Title of the Settings > General > Backup & restore row that exports every dance as a CSV spreadsheet file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export dances as a spreadsheet'**
+  String get settingsExportDancesCsvTitle;
+
+  /// Subtitle of the Settings row that exports every dance as a CSV spreadsheet. 'Sharing rules' are what the app leaves out of shared files (for example an author's email).
+  ///
+  /// In en, this message translates to:
+  /// **'Every dance in your collection, as a CSV file for Excel, Numbers or Google Sheets. It follows the sharing rules, plus your star ratings. It is not a backup and can\'t be restored.'**
+  String get settingsExportDancesCsvSubtitle;
+
+  /// Button label on the Settings row that exports every dance as a CSV spreadsheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get settingsExportDancesCsvAction;
+
+  /// Title of the dialog that asks how to deliver an exported CSV spreadsheet file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export a spreadsheet (CSV)'**
+  String get exportCsvDialogTitle;
+
+  /// Message of the dialog that asks how to deliver an exported CSV spreadsheet file.
+  ///
+  /// In en, this message translates to:
+  /// **'Save the file, or share it with another app. It opens in Excel, Numbers, LibreOffice or Google Sheets.'**
+  String get exportCsvDialogMessage;
+
+  /// Snackbar confirming a CSV spreadsheet was saved when the platform does not report a file name.
+  ///
+  /// In en, this message translates to:
+  /// **'Spreadsheet saved.'**
+  String get exportCsvSavedGeneric;
+
+  /// Snackbar when saving an exported CSV spreadsheet fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save this spreadsheet. Try again.'**
+  String get exportCsvSaveError;
+
+  /// Snackbar when sharing an exported CSV spreadsheet fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t share this spreadsheet. Try again.'**
+  String get exportCsvShareError;
+
+  /// Snackbar when reading the data for, or building, a CSV spreadsheet export fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t make this spreadsheet. Try again.'**
+  String get exportCsvError;
+
+  /// Start of the file name of an exported dances CSV spreadsheet, before the date (for example dances_2026-11-23.csv). Lower case; a single word if possible.
+  ///
+  /// In en, this message translates to:
+  /// **'dances'**
+  String get csvDancesFileStem;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance title.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get csvColumnTitle;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance's authors (choreographers).
+  ///
+  /// In en, this message translates to:
+  /// **'Authors'**
+  String get csvColumnAuthors;
+
+  /// Column heading in an exported dances CSV spreadsheet: the people who interpreted (reconstructed) a historical dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted by'**
+  String get csvColumnInterpreters;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance type, such as contra or English country. Matches the dance editor's Type field.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get csvColumnForm;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance formation.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation'**
+  String get csvColumnFormation;
+
+  /// Column heading in an exported dances CSV spreadsheet: how the dance progresses (single, double, and so on).
+  ///
+  /// In en, this message translates to:
+  /// **'Progression'**
+  String get csvColumnProgression;
+
+  /// Column heading in an exported dances CSV spreadsheet: the difficulty level.
+  ///
+  /// In en, this message translates to:
+  /// **'Level'**
+  String get csvColumnLevel;
+
+  /// Column heading in an exported dances CSV spreadsheet: whether the dance spans the difficulty scale (Yes or No).
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed level'**
+  String get csvColumnMixedLevel;
+
+  /// Column heading in an exported dances CSV spreadsheet: whether dancers change partners each time through (Yes or No).
+  ///
+  /// In en, this message translates to:
+  /// **'Mixer'**
+  String get csvColumnMixer;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance's status, such as active or retired.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get csvColumnStatus;
+
+  /// Column heading in an exported dances CSV spreadsheet: the star rating, 1 to 5, empty when unrated.
+  ///
+  /// In en, this message translates to:
+  /// **'Rating'**
+  String get csvColumnRating;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance's tags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get csvColumnTags;
+
+  /// Column heading in an exported dances CSV spreadsheet: suggested tunes.
+  ///
+  /// In en, this message translates to:
+  /// **'Tunes'**
+  String get csvColumnTunes;
+
+  /// Column heading in an exported dances CSV spreadsheet: the musical meter, such as 6/8.
+  ///
+  /// In en, this message translates to:
+  /// **'Meter'**
+  String get csvColumnMeter;
+
+  /// Column heading in an exported dances CSV spreadsheet: the musical key.
+  ///
+  /// In en, this message translates to:
+  /// **'Key'**
+  String get csvColumnKey;
+
+  /// Column heading in an exported dances CSV spreadsheet: books or collections the dance is published in, with page and number.
+  ///
+  /// In en, this message translates to:
+  /// **'Published sources'**
+  String get csvColumnSources;
+
+  /// Column heading in an exported dances CSV spreadsheet: the one-line reason to call the dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Hook'**
+  String get csvColumnHook;
+
+  /// Column heading in an exported dances CSV spreadsheet: the caller's notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Calling notes'**
+  String get csvColumnCallingNotes;
+
+  /// Column heading in an exported dances CSV spreadsheet: the step-by-step walkthrough.
+  ///
+  /// In en, this message translates to:
+  /// **'Walkthrough'**
+  String get csvColumnWalkthrough;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance's figures, one per line.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures'**
+  String get csvColumnFigures;
+
+  /// Column heading in an exported dances CSV spreadsheet: when the dance was composed, as a year or a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Composed'**
+  String get csvColumnComposed;
+
+  /// Column heading in an exported dances CSV spreadsheet: when a historical dance was interpreted (reconstructed), as a year or a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted in'**
+  String get csvColumnInterpreted;
+
+  /// Column heading in an exported dances CSV spreadsheet: where an English country dance appears in the Barnes books.
+  ///
+  /// In en, this message translates to:
+  /// **'Barnes reference'**
+  String get csvColumnBarnes;
 
   /// Collection More actions menu item that opens the Repertoire page (#2357, Experimental).
   ///

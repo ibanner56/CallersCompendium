@@ -381,6 +381,8 @@ final Map<String, DataClassification> fieldClassifications = {
         'own devices and backups yes, share files no. The app omits it from '
         'every dance and program share file (maintainer decision '
         'R2-out2-export, 2026-10-30), but Device Sync and Backup keep it. '
+        'The one output the user sends on that carries it is the dances CSV '
+        'export, which includes it by maintainer decision (#2332). '
         'Kept shareable rather than deviceLocal because deviceLocal means '
         'never serialised and would stop sync, which the maintainer wants '
         'to keep; the share-file strip lives in the share bundle builders '

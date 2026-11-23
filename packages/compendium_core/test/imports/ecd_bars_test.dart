@@ -795,6 +795,96 @@ void main() {
       }
     });
 
+    // #2365: a Music text naming meters of different bars states none, so
+    // its bars count 2 beats, as with no meter, and the review says why.
+    test('meters of different bars are kept as written and counted as 2 '
+        'beats, with a note', () {
+      for (final (music, meter) in [
+        ('Key: G, Meter: 3/4 and 6/8', '3/4 and 6/8'),
+        ('Key G Meter 2/4 and 3/4', '2/4 and 3/4'),
+        ('G 3/4, 6/8', '3/4, 6/8'),
+        ('Key: G, Meter: 3/2; later 6/8', '3/2; later 6/8'),
+      ]) {
+        final mapping = mapCallersCompanionDance(
+          CcDanceRecord(
+            name: 'Mixed',
+            type: 'Contra',
+            music: music,
+            fromUsrColumns: true,
+            body: [
+              CcBodySection(
+                label: 'A',
+                lines: const [
+                  '1-4 lead up a double and back',
+                  '5-8 partners set and turn single',
+                ],
+              ),
+              CcBodySection(
+                label: 'B',
+                lines: const [
+                  '9-12 circle left',
+                  '13-16 partners back to back',
+                ],
+              ),
+            ],
+          ),
+          englishDances: true,
+        );
+        final dance = mapping.dance;
+        expect(dance.meter, meter, reason: music);
+        expect(dance.musicalKey, 'G', reason: music);
+        expect(dance.phraseStructure.raw, 'A:1*8*2 + B:1*8*2', reason: music);
+        expect(
+          [
+            for (final f in (dance.figuresSource as DecodedFigures).figures)
+              f.params['beats'],
+          ],
+          [8, 8, 8, 8],
+          reason: music,
+        );
+        final codes = mapping.issues.map((i) => i.code);
+        expect(codes, contains('cc_bars_meter_mixed'), reason: music);
+        expect(codes, isNot(contains('cc_bars_meter_unstated')), reason: music);
+      }
+    });
+
+    test('meters of different bars too far apart to keep whole are none', () {
+      // Clipped, the text would keep only `3/4` and read as stating it.
+      final music = 'Meter: 3/4 ${'x' * kMaxMusicLabelLength} 6/8';
+      final mapping = mapCallersCompanionDance(
+        record(music: music),
+        englishDances: true,
+      );
+      expect(mapping.dance.meter, '');
+      final figure =
+          (mapping.dance.figuresSource as DecodedFigures).figures.single;
+      expect(figure.params['beats'], 8);
+      expect(
+        mapping.issues.map((i) => i.code),
+        contains('cc_bars_meter_unstated'),
+      );
+    });
+
+    test('meters of the same bar count as the first, with no note', () {
+      final mapping = mapCallersCompanionDance(
+        record(music: 'Meter: 2/2 or 6/8'),
+        englishDances: true,
+      );
+      expect(mapping.dance.meter, '2/2');
+      final figure =
+          (mapping.dance.figuresSource as DecodedFigures).figures.single;
+      expect(figure.params['beats'], 8);
+      expect(
+        mapping.issues.map((i) => i.code),
+        isNot(
+          anyOf(
+            contains('cc_bars_meter_mixed'),
+            contains('cc_bars_meter_unstated'),
+          ),
+        ),
+      );
+    });
+
     test('bars after a beat prefix with no meter still raise the note', () {
       final mapping = mapCallersCompanionDance(
         record(music: 'a good tune', lines: const ['(8) 1-4 circle left']),

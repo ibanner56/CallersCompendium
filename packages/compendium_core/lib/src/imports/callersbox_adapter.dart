@@ -297,10 +297,12 @@ class CallersBoxAdapter implements SourceAdapter {
   /// no longer prefixed. Parse-never-fails: any odd line is still imported as
   /// custom.
   ///
-  /// The cross-line merge ([_mergeCrossLineFigures]) runs PER-PHRASE, so a fold
-  /// never crosses a section boundary: TCB phrase entries map to the A1/A2/…
-  /// sections, and the balance+move / hall+bend pairs it folds are always
-  /// written within a single phrase entry.
+  /// The cross-line merge ([_mergeCrossLineFigures]) runs PER-PHRASE: TCB
+  /// phrase entries map to the A1/A2/… sections, and the balance+move /
+  /// hall+bend pairs it folds are always written within a single phrase entry.
+  /// The one exception is a bare `form long wave` ending a phrase and its
+  /// balance opening the next ([_foldLongWaveAcrossPhrases], #2331): the wave
+  /// takes no beats, so folding it forward moves no beat across the boundary.
   ///
   /// [longestPhraseBeats] is the dance's longest phrase: a named compound
   /// longer than it is not grouped ([_groupNamedCompounds]).
@@ -325,6 +327,7 @@ class CallersBoxAdapter implements SourceAdapter {
       }
       final standaloneSquareThroughs = Map<Figure, String>.identity();
       final namedCompounds = <_NamedCompound>[];
+      final promotedFrom = Map<Figure, Figure>.identity();
       final merged = _groupNamedCompounds(
         _mergeCrossLineFigures(
           _parsePhraseFigures(
@@ -332,19 +335,60 @@ class CallersBoxAdapter implements SourceAdapter {
             standaloneSquareThroughs,
             namedCompounds,
           ),
+          promotedFrom: promotedFrom,
         ),
         namedCompounds,
         longestPhraseBeats: longestPhraseBeats,
       );
-      figures.addAll([
+      final phraseFigures = [
         for (final f in merged)
           switch (standaloneSquareThroughs[f]) {
             final text? => beatImpliedBalance(text, f),
             null => f,
           },
-      ]);
+      ];
+      _foldLongWaveAcrossPhrases(figures, phraseFigures, promotedFrom);
+      figures.addAll(phraseFigures);
     }
     return figures;
+  }
+
+  /// The one fold that crosses a phrase boundary (#2331): a bare `form long
+  /// wave` that ends one phrase, and the balance of that wave that opens the
+  /// next, are one figure — never a long-waves figure followed by a second,
+  /// balanced one. [figures] holds the earlier phrases (its last figure is the
+  /// previous phrase's last); [next] is this phrase's figures, already merged.
+  ///
+  /// The decision is exactly the in-phrase one ([_foldTrailingBalanceIntoWave]
+  /// after [_inCenterFollower]), made on the ORIGINAL balance line: a balance
+  /// [_promoteBalanceWaveLines] already turned into `form_long_waves` is looked
+  /// up in [promotedFrom] (keyed by the promoted figure, valued by the source
+  /// line), because a promoted figure is no longer a balance-wave line to
+  /// [_isBalanceWaveLine].
+  ///
+  /// The wave takes no beats, so the dance's beat total and every surviving
+  /// figure's section are unchanged; the folded figure sits where the balance's
+  /// beats are, at the start of the later phrase. Only top-level figures take
+  /// part: a wave inside a grouped compound is not the phrase's last figure.
+  /// Progression is dance-level in TCB, so no per-figure flag is merged.
+  static void _foldLongWaveAcrossPhrases(
+    List<Figure> figures,
+    List<Figure> next,
+    Map<Figure, Figure> promotedFrom,
+  ) {
+    if (figures.isEmpty || next.isEmpty) return;
+    final wave = figures.last;
+    if (!_isBareLongWave(wave) || wave.beats != 0) return;
+    final first = next.first;
+    final balance = promotedFrom[first] ?? first;
+    if (!_isBalanceWaveLine(balance)) return;
+    final followed = _inCenterFollower(wave, balance);
+    figures[figures.length - 1] = followed;
+    if (!_isOceanWaveMove(followed)) return;
+    final folded = _foldTrailingBalanceIntoWave(followed, balance);
+    if (folded == null) return;
+    figures.removeLast();
+    next[0] = folded;
   }
 
   /// Parses one phrase's raw figure lines into figures, collapsing TCB's
@@ -797,14 +841,12 @@ class CallersBoxAdapter implements SourceAdapter {
   /// the same single-source-of-truth beat pattern the leading-balance folds use.
   ///
   /// `form_long_waves` joined this set at taxonomy v21 (#295), which gave it the
-  /// `balance` flag whose absence had previously excluded it. It is here for
-  /// CONSISTENCY, not corpus demand: TCB writes the plural "form long waves"
-  /// exactly ONCE in the 24,107-file corpus (dance 2463 *Gypsy Star* B1), and
-  /// that line's balance names an `interlocking` formation which
-  /// [_unmodeledWaveQualifiers] correctly refuses. Excluding the move anyway
-  /// would be incoherent, though — the balance-a-wave promotion already emits
-  /// `form_long_waves{balance: true}`, so a formed-then-balanced long wave must
-  /// be able to reach the same shape.
+  /// `balance` flag whose absence had previously excluded it. TCB writes the
+  /// plural "form long waves" only once in the corpus (dance 2463 *Gypsy Star*
+  /// B1, whose `interlocking` balance [_unmodeledWaveQualifiers] refuses), but
+  /// since #2331 the TCB dialect reads the bare singular `form long wave` — a
+  /// few hundred corpus lines — as `form_long_waves` too, and this is the fold
+  /// its `Balance long wave (…, <role> face in)` line takes.
   static const _trailingBalanceMergeMoves = {
     'pass_the_ocean',
     'form_short_waves',
@@ -834,7 +876,8 @@ class CallersBoxAdapter implements SourceAdapter {
   /// lines fold, and a balance/bend line with no mergeable neighbour is kept as
   /// its own figure (choreography is never dropped). Merged beats are the SUM of
   /// the two consumed lines (source timing preserved). The caller passes one
-  /// phrase's figures, so folds never cross a section boundary.
+  /// phrase's figures, so these folds never cross a section boundary (the
+  /// caller's [_foldLongWaveAcrossPhrases] is the one fold that does).
   ///
   /// A FINAL pass ([_promoteBalanceWaveLines], #295) then maps the balance-wave
   /// lines that NO fold claimed onto the wave-formation move they balance. It
@@ -852,11 +895,14 @@ class CallersBoxAdapter implements SourceAdapter {
   /// into a following petronella. Losing the note there would make structuring
   /// cost information the custom fallback kept. Folds 2/3/4 consume only CUSTOM
   /// lines, which carry no note, so the propagation is defence in depth there.
-  static List<Figure> _mergeCrossLineFigures(List<Figure> figures) {
+  static List<Figure> _mergeCrossLineFigures(
+    List<Figure> figures, {
+    Map<Figure, Figure>? promotedFrom,
+  }) {
     final merged = <Figure>[];
     var i = 0;
     while (i < figures.length) {
-      final current = figures[i];
+      var current = figures[i];
       final next = i + 1 < figures.length ? figures[i + 1] : null;
       if (next != null) {
         if (i + 2 < figures.length) {
@@ -931,6 +977,12 @@ class CallersBoxAdapter implements SourceAdapter {
         // predicate is deliberately narrow (a balance-WAVE line, not a bare
         // dancer balance) so a `Partner balance` destined for a following swing
         // is never stolen here — that pairing folds via Fold 1 instead.
+        //
+        // A bare long wave followed by a balance that says `in center` is
+        // the centre wave (#2331, the follower decides). The wave is replaced
+        // BEFORE the fold is tried, so a refused fold still leaves the centre
+        // wave rather than the side-of-set long waves.
+        current = _inCenterFollower(current, next);
         if (_isOceanWaveMove(current) && _isBalanceWaveLine(next)) {
           final folded = _foldTrailingBalanceIntoWave(current, next);
           if (folded != null) {
@@ -943,7 +995,7 @@ class CallersBoxAdapter implements SourceAdapter {
       merged.add(current);
       i += 1;
     }
-    return _promoteBalanceWaveLines(merged);
+    return _promoteBalanceWaveLines(merged, promotedFrom: promotedFrom);
   }
 
   /// A balance line: the structured `balance` / `balance_the_ring` moves, or a
@@ -1337,14 +1389,30 @@ class CallersBoxAdapter implements SourceAdapter {
     // defaults to `role2s`). A move with no `who` param at all (e.g.
     // `pass_the_ocean`) yields null and the guard short-circuits.
     final balanceWho = _balanceWaveWho(balance);
-    final waveWho =
-        wave.params['who'] ??
-        contraTaxonomy.resolve(wave.move)?.params['who']?.defaultValue;
+    // A `who` of `unspecified` (#2331: a bare `form long wave`) states no
+    // facing, so there is nothing to disagree with — the guard is skipped
+    // rather than falling back to the taxonomy default, which would compare
+    // against a facing the source never stated.
+    final statedWho = wave.params['who'];
+    final waveWho = statedWho == ParamVocab.unspecified
+        ? null
+        : statedWho ??
+              contraTaxonomy.resolve(wave.move)?.params['who']?.defaultValue;
     if (balanceWho != null && waveWho != null && balanceWho != waveWho) {
       return null;
     }
     final beats = _sumBeats(wave, balance);
     final decoded = _balanceWaveAsFormMove(balance);
+    // A bare long wave takes only what the balance states in long-wave
+    // terms: a decoded long-wave hold, or a generic `Balance [the] [long]
+    // wave[s]` with nothing else. Any other word — a dancer prefix, `for
+    // all`, an undecoded annotation, a wave of four's holds — would be
+    // dropped by the fold, so the balance stays text (#2331).
+    if (_isBareLongWave(wave) &&
+        decoded?.move != 'form_long_waves' &&
+        !_isGenericBalanceWaveLine(balance)) {
+      return null;
+    }
     // A custom balance line whose annotation does not decode (`Balance wave of
     // four (SRNR,1CL)` — `SRN` and `1C` are not modelled codes) would lose
     // that annotation in the fold: only decoded params and a decoded note are
@@ -1360,11 +1428,66 @@ class CallersBoxAdapter implements SourceAdapter {
       params: {
         ...wave.params,
         for (final e in extra.entries)
-          if (!wave.params.containsKey(e.key)) e.key: e.value,
+          if (!wave.params.containsKey(e.key) ||
+              wave.params[e.key] == ParamVocab.unspecified)
+            e.key: e.value,
         'balance': true,
         'beats': ?beats,
       },
       note: combineFigureNotes(wave.note, balanceNote),
+    );
+  }
+
+  /// A bare `form long wave` as the TCB dialect reads it (#2331):
+  /// `form_long_waves` whose only stated param, beats aside, is `who:
+  /// unspecified`. The line's own beats (`(4) form long wave` on a line of
+  /// its own) and a note (`release right hands`) do not change that; any
+  /// stated hold, facing or balance does.
+  static bool _isBareLongWave(Figure f) =>
+      !f.isCustom &&
+      f.move == 'form_long_waves' &&
+      f.params['who'] == ParamVocab.unspecified &&
+      f.params.keys.every((k) => k == 'who' || k == 'beats');
+
+  /// A custom balance line that is exactly `Balance [the] [long] wave[s]`:
+  /// no dancer, no locator, no annotation — nothing a fold would drop.
+  static bool _isGenericBalanceWaveLine(Figure f) {
+    if (!f.isCustom) return false;
+    final text = f.params['text'];
+    if (text is! String) return false;
+    return _genericBalanceWave.hasMatch(text.trim());
+  }
+
+  static final RegExp _genericBalanceWave = RegExp(
+    r'^balance(?:\s+the)?(?:\s+long)?\s+waves?[.]?$',
+    caseSensitive: false,
+  );
+
+  /// The in-centre follower (#2331, maintainer ruling): a bare long wave
+  /// followed by a balance that says the wave is `in center` is the centre
+  /// wave, `form_a_long_wave`, exactly as `form long wave in center` reads.
+  /// Returns [wave] unchanged in every other case. The result carries no
+  /// params but the wave's own beats (the centre wave's own defaults, as the
+  /// shared recognizer gives `form long wave in center`), so today's
+  /// centre-wave fold then decides the pair.
+  static Figure _inCenterFollower(Figure wave, Figure balance) {
+    if (!_isBareLongWave(wave) || !_isBalanceWaveLine(balance)) return wave;
+    final words = _figureWords(balance).map(_stripEdgePunctuation).toList();
+    var inCenter = false;
+    for (var i = 0; i + 1 < words.length; i++) {
+      if (words[i] != 'in') continue;
+      final j = words[i + 1] == 'the' ? i + 2 : i + 1;
+      if (j < words.length && words[j] == 'center') inCenter = true;
+    }
+    if (!inCenter) return wave;
+    return Figure(
+      move: 'form_a_long_wave',
+      params: {'beats': ?wave.params['beats']},
+      note: wave.note,
+      progression: wave.progression,
+      assumedSubject: true,
+      walkthroughOverride: wave.walkthroughOverride,
+      wordingOverride: wave.wordingOverride,
     );
   }
 
@@ -1379,15 +1502,17 @@ class CallersBoxAdapter implements SourceAdapter {
   ///
   /// `form_short_waves` and `pass_the_ocean` share one param schema
   /// (`center`/`centerHand`/`sides`), so a short-wave decode transfers to
-  /// either. A long-wave decode (`whom`/`whomHand`/`who`) transfers only to
-  /// `form_long_waves`; `form_a_long_wave`'s `who` means something different
-  /// (which pair dances IN to the centre), so nothing is transferred there.
+  /// either. A long-wave decode (`whom`/`whomHand`/`whom2`/`who`) transfers
+  /// only to `form_long_waves`; `form_a_long_wave`'s `who` means something
+  /// different (which pair dances IN to the centre), so nothing is transferred
+  /// there. A wave value of `unspecified` (the bare `form long wave`'s `who`)
+  /// is a slot the source left open, so the decode fills it.
   static Map<String, Object?> _compatibleFormParams(
     String waveMove,
     Figure decoded,
   ) {
     const shortWaveKeys = {'center', 'centerHand', 'sides'};
-    const longWaveKeys = {'who', 'whom', 'whomHand'};
+    const longWaveKeys = {'who', 'whom', 'whomHand', 'whom2'};
     final Set<String> keys;
     if (decoded.move == 'form_short_waves' &&
         (waveMove == 'form_short_waves' || waveMove == 'pass_the_ocean')) {
@@ -1480,7 +1605,14 @@ class CallersBoxAdapter implements SourceAdapter {
   /// Maps the balance-wave lines no fold claimed onto their wave-formation move.
   /// Every other figure passes through byte-identical (list identity is not
   /// preserved — the caller always builds a fresh list anyway).
-  static List<Figure> _promoteBalanceWaveLines(List<Figure> figures) {
+  ///
+  /// [promotedFrom], when given, records each promoted figure (key, by
+  /// identity) against the balance line it replaced, so the cross-phrase
+  /// long-wave fold ([_foldLongWaveAcrossPhrases]) can decide on the line.
+  static List<Figure> _promoteBalanceWaveLines(
+    List<Figure> figures, {
+    Map<Figure, Figure>? promotedFrom,
+  }) {
     final out = <Figure>[];
     for (final figure in figures) {
       if (!_isBalanceWaveLine(figure)) {
@@ -1496,6 +1628,9 @@ class CallersBoxAdapter implements SourceAdapter {
         continue;
       }
       final promoted = _balanceWaveAsFormMove(figure);
+      if (promoted != null && promotedFrom != null) {
+        promotedFrom[promoted] = figure;
+      }
       out.add(promoted ?? figure);
     }
     return out;
@@ -1531,10 +1666,15 @@ class CallersBoxAdapter implements SourceAdapter {
   ///  * `Balance long wave (<pair><H>, <role> face in)` →
   ///    `form_long_waves{balance, whom, hand, who}`. `who` is the facing-IN
   ///    role, matching ContraDB's `form_long_waves` subject exactly.
+  ///  * `Balance long wave (<pair><H>, <pair'><H'>, <role> face in)` (#2331) →
+  ///    the same plus `whom2`, the pair held by the other hand: the two hands
+  ///    must be opposite and the two pairs different.
   ///
   /// NOT mapped (stay custom): `form_a_long_wave`'s single-wave-in-the-centre
   /// sense — a line meaning that reaches it through Fold 4 from the preceding
-  /// `form long wave in center` line, so it never needs guessing here.
+  /// `form long wave in center` line, or from a bare `form long wave` whose
+  /// balance says `in center` ([_inCenterFollower]), so it never needs
+  /// guessing here.
   static Figure? _balanceWaveAsFormMove(Figure f) {
     if (!f.isCustom &&
         f.move == 'form_short_waves' &&
@@ -1587,13 +1727,29 @@ class CallersBoxAdapter implements SourceAdapter {
     if (_sameWords(head, const ['balance', 'long', 'wave'])) {
       if (annotation == null) return null;
       final parts = _splitAnnotation(annotation);
-      if (parts.length != 2) return null;
+      if (parts.length != 2 && parts.length != 3) return null;
       final whom = _decodeCode(parts[0], _wavePairFor);
-      final facing = _waveFacing.firstMatch(parts[1]);
+      final facing = _waveFacing.firstMatch(parts.last);
       if (whom == null || facing == null) return null;
+      // #2331: `(N2R,N1L, women face in)` states both hands — next neighbors
+      // by the right, neighbors by the left. The second pair is `whom2`, the
+      // pair held by the other hand, so its hand must be the opposite one and
+      // the pair a different one; anything else is not a long wave's two
+      // hands and stays custom.
+      String? whom2;
+      if (parts.length == 3) {
+        final second = _decodeCode(parts[1], _wavePairFor);
+        if (second == null ||
+            second.hand == whom.hand ||
+            second.who == whom.who) {
+          return null;
+        }
+        whom2 = second.who;
+      }
       return _asFormFigure(f, 'form_long_waves', {
         'whom': whom.who,
         'whomHand': whom.hand,
+        'whom2': ?whom2,
         'who': facing.group(1)!,
       }, note: squareNote);
     }

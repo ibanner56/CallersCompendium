@@ -124,13 +124,30 @@ void main() {
     });
 
     test('who is narrowed to the pair tokens that have an inverse', () {
-      // The display line names the OTHER pair, so `who` must always be
-      // invertible — otherwise "{other} facing out" would assert a facing for
-      // an empty set. The domain is exactly ParamVocab.pairInverse's keys.
-      final choices = tax.resolve('form_long_waves')!.params['who']!.choices;
+      // The display line names the OTHER pair, so a stated `who` must always
+      // be invertible — otherwise "{other} facing out" would assert a facing
+      // for an empty set. The domain is exactly ParamVocab.pairInverse's keys
+      // plus the `unspecified` sentinel (v40, #2331), which names no pair and
+      // so renders no facing at all.
+      final spec = tax.resolve('form_long_waves')!.params['who']!;
+      final choices = spec.choices;
       expect(choices, isNotNull);
-      expect(choices!.toSet(), ParamVocab.pairInverse.keys.toSet());
-      for (final who in choices) {
+      expect(choices!.toSet(), {
+        ...ParamVocab.pairInverse.keys,
+        ParamVocab.unspecified,
+      });
+      expect(spec.defaultValue, 'role1s');
+      expect(spec.allowManualClear, isFalse);
+      expect(
+        tax.validateFigure(
+          testFigure(
+            move: 'form_long_waves',
+            params: const {'who': ParamVocab.unspecified},
+          ),
+        ),
+        isEmpty,
+      );
+      for (final who in choices.where((c) => c != ParamVocab.unspecified)) {
         expect(
           invertPairDancerSet(who),
           isNotNull,

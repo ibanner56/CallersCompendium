@@ -7859,6 +7859,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'このダンスは小節で数えていますが拍子の記載がないため、1小節を2拍として数えました。カウントを確認してください。';
 
   @override
+  String get importIssueBarsMeterMixed =>
+      'このダンスは小節で数えていますが、小節の長さが異なる拍子が記載されているため、1小節を2拍として数えました。カウントを確認してください。';
+
+  @override
   String get importIssueUnmappedType =>
       'ダンスの種類を認識できませんでした。コントラとしてインポートし、ノートに保持しました。';
 
@@ -12531,6 +12535,110 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get calendarPullNowSubtitle => 'カレンダーを読み取り、下書きプログラムとして追加する予定を選びます。';
+
+  @override
+  String get collectionExportCsv => 'CSVでエクスポート';
+
+  @override
+  String get settingsExportDancesCsvTitle => 'ダンスを表計算ファイルでエクスポート';
+
+  @override
+  String get settingsExportDancesCsvSubtitle =>
+      'コレクションのすべてのダンスを、Excel、Numbers、Googleスプレッドシート用のCSVファイルにします。共有と同じルールが適用され、星の評価も含まれます。バックアップではないため、復元はできません。';
+
+  @override
+  String get settingsExportDancesCsvAction => 'エクスポート';
+
+  @override
+  String get exportCsvDialogTitle => '表計算ファイル（CSV）をエクスポート';
+
+  @override
+  String get exportCsvDialogMessage =>
+      'ファイルを保存するか、ほかのアプリと共有します。Excel、Numbers、LibreOffice、Googleスプレッドシートで開けます。';
+
+  @override
+  String get exportCsvSavedGeneric => '表計算ファイルを保存しました。';
+
+  @override
+  String get exportCsvSaveError => 'この表計算ファイルを保存できませんでした。もう一度お試しください。';
+
+  @override
+  String get exportCsvShareError => 'この表計算ファイルを共有できませんでした。もう一度お試しください。';
+
+  @override
+  String get exportCsvError => 'この表計算ファイルを作成できませんでした。もう一度お試しください。';
+
+  @override
+  String get csvDancesFileStem => 'ダンス';
+
+  @override
+  String get csvColumnTitle => 'タイトル';
+
+  @override
+  String get csvColumnAuthors => '作者';
+
+  @override
+  String get csvColumnInterpreters => '解釈者';
+
+  @override
+  String get csvColumnForm => 'タイプ';
+
+  @override
+  String get csvColumnFormation => 'フォーメーション';
+
+  @override
+  String get csvColumnProgression => 'プログレッション';
+
+  @override
+  String get csvColumnLevel => 'レベル';
+
+  @override
+  String get csvColumnMixedLevel => 'ミックスレベル';
+
+  @override
+  String get csvColumnMixer => 'ミキサー';
+
+  @override
+  String get csvColumnStatus => 'ステータス';
+
+  @override
+  String get csvColumnRating => '評価';
+
+  @override
+  String get csvColumnTags => 'タグ';
+
+  @override
+  String get csvColumnTunes => 'チューン';
+
+  @override
+  String get csvColumnMeter => '拍子';
+
+  @override
+  String get csvColumnKey => '調';
+
+  @override
+  String get csvColumnSources => '公開ソース';
+
+  @override
+  String get csvColumnHook => 'フック';
+
+  @override
+  String get csvColumnCallingNotes => 'コーリングノート';
+
+  @override
+  String get csvColumnWalkthrough => 'ウォークスルー';
+
+  @override
+  String get csvColumnFigures => 'フィギュア';
+
+  @override
+  String get csvColumnComposed => '振付年';
+
+  @override
+  String get csvColumnInterpreted => '解釈年';
+
+  @override
+  String get csvColumnBarnes => 'Barnes 掲載箇所';
 
   @override
   String get collectionRepertoireMenuItem => 'レパートリー';
