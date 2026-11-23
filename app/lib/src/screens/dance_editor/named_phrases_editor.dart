@@ -377,9 +377,7 @@ class _NamedPhrasesEditorState extends State<NamedPhrasesEditor> {
         keyboardType: TextInputType.number,
         inputFormatters: [
           FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(
-            '$ecdMaxBeatsPerBar'.length,
-          ),
+          LengthLimitingTextInputFormatter('$ecdMaxBeatsPerBar'.length),
         ],
         decoration: InputDecoration(
           labelText: l10n.danceEditorPhraseBeatsPerBarLabel(row.name),
