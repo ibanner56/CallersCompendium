@@ -158,6 +158,11 @@ any track (including testing) can go live. Answers are drafted in
   `AD_ID`; declare that the app does not use an advertising ID. (If a dependency
   pulls the `com.google.android.gms.permission.AD_ID` permission in, either
   remove it via manifest merge or declare its use — mismatches get flagged.)
+- [x] **[Confirm]** **No camera permission** — a dance's QR code is read by the
+  phone's camera app or Google Lens, which opens the app through a `BROWSABLE`
+  `VIEW` filter on the `ccdance` scheme (#2335). It is a custom scheme, not an
+  `https` app link, so there is no Digital Asset Links file to publish, and no
+  `CAMERA` permission to declare.
 
 ## 5. The testing ladder — [the critical path]
 
