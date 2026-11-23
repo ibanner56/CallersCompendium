@@ -8878,6 +8878,52 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get danceEditorPhraseRowsHelp =>
+      'Jede Zeile ist eine Folge gleicher Phrasen: wie viele es sind, die Takte in jeder und die Schläge in einem Takt. Die Phrasierungsstruktur darunter ändert sich mit den Zeilen.';
+
+  @override
+  String get danceEditorPhraseRowsPhrasesLabel => 'Phrasen';
+
+  @override
+  String get danceEditorPhraseRowsBarsLabel => 'Takte pro Phrase';
+
+  @override
+  String get danceEditorPhraseRowsBeatsLabel => 'Schläge pro Takt';
+
+  @override
+  String danceEditorPhraseRowsRange(int max) {
+    return '1 bis $max';
+  }
+
+  @override
+  String get danceEditorPhraseRowsAdd => 'Zeile hinzufügen';
+
+  @override
+  String danceEditorPhraseRowsRemove(int number) {
+    return 'Zeile $number entfernen';
+  }
+
+  @override
+  String danceEditorPhraseRowsInvalid(int max) {
+    return 'Gib in jedes Feld eine ganze Zahl von 1 bis $max ein, in einer Struktur, die nicht zu lang ist. Bis dahin bleibt die letzte gültige Phrasierungsstruktur erhalten.';
+  }
+
+  @override
+  String danceEditorPhraseRowsSummary(String labels, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats Schläge',
+      one: '1 Schlag',
+    );
+    return '$labels · $_temp0';
+  }
+
+  @override
+  String get danceEditorPhraseRowsDisabledNote =>
+      'Diese Zeilen zeigen die letzte gültige Phrasierungsstruktur. Korrigiere die Phrasierungsstruktur darunter, um sie wieder zu bearbeiten.';
+
+  @override
   String get danceEditorFiguresSection => 'Figuren';
 
   @override
@@ -9271,6 +9317,11 @@ class AppLocalizationsDe extends AppLocalizations {
       one: '1 Figur stammt',
     );
     return 'Dies ist ein Tanz der Art $danceForm, aber $_temp0 aus $figureForm. Sie bleiben, wie sie sind, aber die Figurenauswahl bietet nur Figuren der Art $pickerForm an.';
+  }
+
+  @override
+  String validationFigureCrossesPhrase(int position, String label) {
+    return 'Figur $position reicht über das Ende von $label hinaus. In einem Square Dance sollten die Calls jeder Phrase sie genau füllen.';
   }
 
   @override

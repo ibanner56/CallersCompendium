@@ -719,7 +719,10 @@ open this group. You can override any of them per dance, and
   dance. **Type** can also be **Last used**, so a new dance starts as the type of
   the last new dance you saved. Until you save one, it starts as contra.
 - **Default phrase structure** — leave blank for the standard 4×16 A1 A2 B1 B2, or
-  set your own.
+  set your own, as rows of phrases, bars per phrase and beats per bar or by
+  writing it in the field under them. English phrase names
+  (`A:2*8*2 + B:1*8*2`) go in the field; the rows don't show for a default
+  that has them, and are dimmed if you type them.
 - **Starting figures** — the figures a new dance begins with; defaults to eight
   stand stills of eight beats each, or to none while **Free-text entry** is on.
   Clear it for a blank new dance.

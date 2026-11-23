@@ -8759,6 +8759,52 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get danceEditorPhraseRowsHelp =>
+      'Each row is a run of equal phrases: how many there are, the bars in each, and the beats in a bar. The phrase structure below changes with the rows.';
+
+  @override
+  String get danceEditorPhraseRowsPhrasesLabel => 'Phrases';
+
+  @override
+  String get danceEditorPhraseRowsBarsLabel => 'Bars per phrase';
+
+  @override
+  String get danceEditorPhraseRowsBeatsLabel => 'Beats per bar';
+
+  @override
+  String danceEditorPhraseRowsRange(int max) {
+    return '1 to $max';
+  }
+
+  @override
+  String get danceEditorPhraseRowsAdd => 'Add row';
+
+  @override
+  String danceEditorPhraseRowsRemove(int number) {
+    return 'Remove row $number';
+  }
+
+  @override
+  String danceEditorPhraseRowsInvalid(int max) {
+    return 'Give each field a whole number from 1 to $max, in a structure that is not too long. Until then the last valid phrase structure is kept.';
+  }
+
+  @override
+  String danceEditorPhraseRowsSummary(String labels, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats beats',
+      one: '1 beat',
+    );
+    return '$labels · $_temp0';
+  }
+
+  @override
+  String get danceEditorPhraseRowsDisabledNote =>
+      'These rows show the last valid phrase structure. Fix the phrase structure below to edit them again.';
+
+  @override
   String get danceEditorFiguresSection => 'Figures';
 
   @override
@@ -9146,6 +9192,11 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '1 figure is',
     );
     return 'This dance is $danceForm, but $_temp0 from $figureForm. They are kept as they are, but the figure picker offers only $pickerForm figures.';
+  }
+
+  @override
+  String validationFigureCrossesPhrase(int position, String label) {
+    return 'Figure $position runs past the end of $label. In a square dance, the calls of each phrase should fill it exactly.';
   }
 
   @override

@@ -8582,6 +8582,46 @@
   "@danceEditorPhraseRemove": {
     "x-sourceSha256": "ac53653b0502a2963db64c69011dbd463efc6e80b1d2020418209439d3e33e52"
   },
+  "danceEditorPhraseRowsHelp": "各行は、同じ長さのフレーズの並びです。フレーズの数、各フレーズの小節数、1小節の拍数を指定します。下のフレーズ構造は行に合わせて変わります。",
+  "@danceEditorPhraseRowsHelp": {
+    "x-sourceSha256": "6f0ab175d6660a4825350727f257f4d9a04f8d9236ec55aaba61f64f41cd7dca"
+  },
+  "danceEditorPhraseRowsPhrasesLabel": "フレーズ数",
+  "@danceEditorPhraseRowsPhrasesLabel": {
+    "x-sourceSha256": "076bcf6aae77baad87996fdcdd36b513bb44458288adb5cf5d1b4827c4d40fb9"
+  },
+  "danceEditorPhraseRowsBarsLabel": "フレーズごとの小節数",
+  "@danceEditorPhraseRowsBarsLabel": {
+    "x-sourceSha256": "895f6d494f86d0cea1bc369363139d049887e92231cafacc0a11d56157c3940e"
+  },
+  "danceEditorPhraseRowsBeatsLabel": "1小節の拍数",
+  "@danceEditorPhraseRowsBeatsLabel": {
+    "x-sourceSha256": "f9a399427d599a2a2fb742a9c24c04063e09494590e492f5e00fe36775770c5e"
+  },
+  "danceEditorPhraseRowsRange": "1〜{max}",
+  "@danceEditorPhraseRowsRange": {
+    "x-sourceSha256": "bfa7cdf134bbeb548cd4f923b76b40b9d9f16882792d502e0657e9e611bcdbf5"
+  },
+  "danceEditorPhraseRowsAdd": "行を追加",
+  "@danceEditorPhraseRowsAdd": {
+    "x-sourceSha256": "1868a8dd78ad959415c742898477ab2848e5dfd80205604c86b9acc80a7e7bdf"
+  },
+  "danceEditorPhraseRowsRemove": "{number}行目を削除",
+  "@danceEditorPhraseRowsRemove": {
+    "x-sourceSha256": "5d1e14b6c4353c8b98e78ebd9904ec2da1cfd0312165096b4e426a686372bba8"
+  },
+  "danceEditorPhraseRowsInvalid": "各欄に1から{max}までの整数を入力してください。長すぎる構造にはできません。それまでは最後の有効なフレーズ構造が保たれます。",
+  "@danceEditorPhraseRowsInvalid": {
+    "x-sourceSha256": "136099aeff18e01fd168bc79ef22b4d6f416ab4f52bacc44c997852a7e31de66"
+  },
+  "danceEditorPhraseRowsSummary": "{labels} · {beats, plural, =1{1拍} other{{beats}拍}}",
+  "@danceEditorPhraseRowsSummary": {
+    "x-sourceSha256": "20214a3d4f5e9106147b26c337e5e7e79c565f84e9d2fd7add17b4345dbd5627"
+  },
+  "danceEditorPhraseRowsDisabledNote": "これらの行には最後の有効なフレーズ構造が表示されています。再び編集するには、下のフレーズ構造を修正してください。",
+  "@danceEditorPhraseRowsDisabledNote": {
+    "x-sourceSha256": "ed2891c29ccd52f3beb3972e5ea4c77a1f0c609bd7375a8a9a50df9aa1e48423"
+  },
   "danceEditorFiguresSection": "フィギュア",
   "@danceEditorFiguresSection": {
     "x-sourceSha256": "f2f410e7009e9a31dcc7c971e662285f4071150ef1e211f76e838efb35082d1e"
@@ -8997,6 +9037,10 @@
   "validationOtherFormFigures": "これは{danceForm}のダンスですが、{count, plural, other{{count}個のフィギュア}}が{figureForm}のものです。そのまま残りますが、フィギュアの選択肢には{pickerForm}のフィギュアだけが表示されます。",
   "@validationOtherFormFigures": {
     "x-sourceSha256": "c9ecc275ac684f779261f8efede22076a2dd84f87b5d8b0f4ec812630fbc8e77"
+  },
+  "validationFigureCrossesPhrase": "フィギュア{position}が{label}の終わりを越えています。スクエアダンスでは、各フレーズのコールがそのフレーズをちょうど埋めるようにします。",
+  "@validationFigureCrossesPhrase": {
+    "x-sourceSha256": "30e0b45cbe0c7888f4176602ea75398eb936512e6ddb481cd4f98626fc9d1ba7"
   },
   "validationIncompleteFigure": "フィギュア{position}は未完成のため、保存しても含まれません。",
   "@validationIncompleteFigure": {

@@ -8437,6 +8437,52 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get danceEditorPhraseRowsHelp =>
+      '各行は、同じ長さのフレーズの並びです。フレーズの数、各フレーズの小節数、1小節の拍数を指定します。下のフレーズ構造は行に合わせて変わります。';
+
+  @override
+  String get danceEditorPhraseRowsPhrasesLabel => 'フレーズ数';
+
+  @override
+  String get danceEditorPhraseRowsBarsLabel => 'フレーズごとの小節数';
+
+  @override
+  String get danceEditorPhraseRowsBeatsLabel => '1小節の拍数';
+
+  @override
+  String danceEditorPhraseRowsRange(int max) {
+    return '1〜$max';
+  }
+
+  @override
+  String get danceEditorPhraseRowsAdd => '行を追加';
+
+  @override
+  String danceEditorPhraseRowsRemove(int number) {
+    return '$number行目を削除';
+  }
+
+  @override
+  String danceEditorPhraseRowsInvalid(int max) {
+    return '各欄に1から$maxまでの整数を入力してください。長すぎる構造にはできません。それまでは最後の有効なフレーズ構造が保たれます。';
+  }
+
+  @override
+  String danceEditorPhraseRowsSummary(String labels, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats拍',
+      one: '1拍',
+    );
+    return '$labels · $_temp0';
+  }
+
+  @override
+  String get danceEditorPhraseRowsDisabledNote =>
+      'これらの行には最後の有効なフレーズ構造が表示されています。再び編集するには、下のフレーズ構造を修正してください。';
+
+  @override
   String get danceEditorFiguresSection => 'フィギュア';
 
   @override
@@ -8814,6 +8860,11 @@ class AppLocalizationsJa extends AppLocalizations {
       other: '$count個のフィギュア',
     );
     return 'これは$danceFormのダンスですが、$_temp0が$figureFormのものです。そのまま残りますが、フィギュアの選択肢には$pickerFormのフィギュアだけが表示されます。';
+  }
+
+  @override
+  String validationFigureCrossesPhrase(int position, String label) {
+    return 'フィギュア$positionが$labelの終わりを越えています。スクエアダンスでは、各フレーズのコールがそのフレーズをちょうど埋めるようにします。';
   }
 
   @override

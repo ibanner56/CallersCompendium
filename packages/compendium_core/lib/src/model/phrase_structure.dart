@@ -502,10 +502,18 @@ class SectionedFigure {
 /// warning. The editor will not add a step or form a sequence past a phrase,
 /// but it does not block editing a step's move or beats, or the phrase
 /// structure, so this is what flags a sequence left too long.
+///
+/// With [checkPhraseFill], each top-level figure that runs past the end of a
+/// phrase also adds a [figureCrossesPhraseCode] warning: the calls of that
+/// phrase do not fill it exactly. Traditional squares are phrased call by
+/// call, so ADR-007 §5.3 asks for this check on square dances; contra and
+/// English dances leave it off, because a figure across a phrase line is
+/// ordinary there (a balance and swing that starts mid-phrase).
 List<SectionedFigure> deriveSections(
   List<Figure> figures,
   PhraseStructure structure, {
   List<ValidationIssue>? issues,
+  bool checkPhraseFill = false,
 }) {
   final result = <SectionedFigure>[];
   var beat = 0;
@@ -518,6 +526,9 @@ List<SectionedFigure> deriveSections(
         label: labelForFigure(beat, figures[i].beats, structure),
       ),
     );
+    if (issues != null && checkPhraseFill) {
+      _flagPhraseCrossing(figures[i], i, beat, structure, issues);
+    }
     // One list element → one beat advance. For a container this is the
     // shared count, counted once (no double-count from its children).
     beat += figures[i].beats;
@@ -538,6 +549,43 @@ List<SectionedFigure> deriveSections(
     );
   }
   return result;
+}
+
+/// The [ValidationIssue.code] of a figure that runs past the end of a phrase,
+/// so that phrase's calls do not fill it ([deriveSections] with
+/// `checkPhraseFill`). Its data holds the figure's 1-based `position` and the
+/// `label` of the phrase it runs past.
+const String figureCrossesPhraseCode = 'figure_crosses_phrase';
+
+/// Adds a [figureCrossesPhraseCode] warning when [figure], starting at
+/// [start], runs past the end of a phrase: one per figure, for the first
+/// phrase it crosses. A figure that ends exactly on a phrase line fills it,
+/// and so does one that starts and ends on phrase lines, however many phrases
+/// it takes (a 32-beat promenade from the top of A1 fills A1 and A2).
+void _flagPhraseCrossing(
+  Figure figure,
+  int index,
+  int start,
+  PhraseStructure structure,
+  List<ValidationIssue> issues,
+) {
+  final end = start + figure.beats;
+  if (structure.isPhraseBoundary(start) && structure.isPhraseBoundary(end)) {
+    return;
+  }
+  for (var b = start + 1; b < end; b++) {
+    if (!structure.isPhraseBoundary(b)) continue;
+    final label = structure.labelAtBeat(b - 1);
+    issues.add(
+      ValidationIssue(
+        severity: ValidationSeverity.warning,
+        code: figureCrossesPhraseCode,
+        message: 'figure ${index + 1} runs past the end of $label',
+        data: {'position': index + 1, 'label': label},
+      ),
+    );
+    return;
+  }
 }
 
 /// Whether [sequence], a `sequence` container, is counted longer than one

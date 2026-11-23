@@ -10,7 +10,11 @@ import '../support/l10n_harness.dart';
 /// The dance detail view shows the editor's beat-mismatch warning, in the
 /// editor's words (AUTH-12, October behaviour audit): without it the A1/A2/
 /// B1/B2 labels silently shift when the beats do not add up.
-Future<void> _pump(WidgetTester tester, List<Figure> figures) async {
+Future<void> _pump(
+  WidgetTester tester,
+  List<Figure> figures, {
+  bool checkPhraseFill = false,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
@@ -22,6 +26,7 @@ Future<void> _pump(WidgetTester tester, List<Figure> figures) async {
             phraseStructure: PhraseStructure.standard,
             renderer: FigureRenderer(contraTaxonomy),
             dialect: Dialect.larksRobins,
+            checkPhraseFill: checkPhraseFill,
           ),
         ),
       ),
@@ -56,6 +61,33 @@ void main() {
 
   testWidgets('an empty dance shows none', (tester) async {
     await _pump(tester, const []);
+    expect(find.byType(WarningsCard), findsNothing);
+  });
+
+  // ADR-007 §5.3: the dance page shows a square dance's phrase-crossing
+  // warning, as the editor does (review N1 on #2405). 12 + 8 + 4 + 5×8 = 64,
+  // so the beats add up; the second figure runs from beat 12 past A1's end at
+  // 16, and it is the only one flagged.
+  final crossing = [
+    _swing(12),
+    _swing(8),
+    _swing(4),
+    for (var i = 0; i < 5; i++) _swing(8),
+  ];
+
+  testWidgets('a square dance names a figure that runs past a phrase', (
+    tester,
+  ) async {
+    await _pump(tester, crossing, checkPhraseFill: true);
+    expect(find.byType(WarningsCard), findsOneWidget);
+    expect(
+      find.textContaining('Figure 2 runs past the end of A1'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('without the check the crossing is not flagged', (tester) async {
+    await _pump(tester, crossing);
     expect(find.byType(WarningsCard), findsNothing);
   });
 }
