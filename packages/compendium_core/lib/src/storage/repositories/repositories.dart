@@ -875,6 +875,7 @@ class CompendiumRepositories {
     taxonomyV38CanonicalRebuildDoneKey: null,
     taxonomyV39CanonicalRebuildDoneKey: null,
     ecdTaxonomyCanonicalRebuildDoneKey: null,
+    squareTaxonomyCanonicalRebuildDoneKey: null,
     chainHandBackfillDoneKey: null,
     callersBoxRollAwayRoleRepairDoneKey: null,
     shareableTextNormalisationScopeKey: _normalisationScope,
@@ -1006,6 +1007,10 @@ class CompendiumRepositories {
         onProgress: onDerivedRebuildProgress,
       );
       rebuiltThisCall = await _emitEcdTaxonomyCanonicalTextIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
+      rebuiltThisCall = await _emitSquareTaxonomyCanonicalTextIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
@@ -2572,6 +2577,31 @@ class CompendiumRepositories {
       await runDerivedRebuild(onProgress: onProgress);
     }
     await _writeSweepMarker(ecdTaxonomyCanonicalRebuildDoneKey, '"done"');
+    return true;
+  }
+
+  /// One-time canonical/FTS rebuild owed when the square taxonomy first ships
+  /// ([squareTaxonomyCanonicalRebuildDoneKey]), shaped like
+  /// [_emitEcdTaxonomyCanonicalTextIfNeeded]: a stored `sq_` figure indexed
+  /// while its ID was unknown renders as a call now.
+  Future<bool> _emitSquareTaxonomyCanonicalTextIfNeeded({
+    bool alreadyRebuilt = false,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [
+            Variable.withString(squareTaxonomyCanonicalRebuildDoneKey),
+          ],
+        )
+        .get();
+    if (done.isNotEmpty) return alreadyRebuilt;
+
+    if (!alreadyRebuilt) {
+      await runDerivedRebuild(onProgress: onProgress);
+    }
+    await _writeSweepMarker(squareTaxonomyCanonicalRebuildDoneKey, '"done"');
     return true;
   }
 

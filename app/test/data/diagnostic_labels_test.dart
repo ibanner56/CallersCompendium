@@ -88,7 +88,7 @@ void main() {
       );
     });
 
-    test('a form without figures of its own names the picker\'s', () {
+    test('a square dance names the squares\' picker (ADR-007)', () {
       expect(
         validationIssueMessage(
           l10n,
@@ -100,12 +100,12 @@ void main() {
               'count': 1,
               'figureForm': 'ecd',
               'danceForm': 'square',
-              'pickerForm': 'contra',
+              'pickerForm': 'square',
             },
           ),
         ),
         'This dance is Square, but 1 figure is from English (ECD). They are '
-        'kept as they are, but the figure picker offers only Contra figures.',
+        'kept as they are, but the figure picker offers only Square figures.',
       );
     });
 

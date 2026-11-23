@@ -147,7 +147,8 @@ wording, saved unchanged, reads as the default line. Imported
   figure's form's dialect, and a column of the user's own figure in contra's,
   and shows each dance's formation details in that dance's dialect. A figure
   with no prefix is contra's, and a dance of another form can use it too
-  (squares have no taxonomy yet; an English dance may keep a contra figure):
+  (an English or square dance may keep a contra figure from an earlier
+  import):
   its column reads in the dialect of the dances that use it when they are all
   of one form, and in contra's when forms mix; a column no dance uses (a
   baseline swing column) reads in the program's form when all its dances are

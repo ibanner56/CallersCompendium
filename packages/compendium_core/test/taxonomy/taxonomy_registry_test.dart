@@ -23,25 +23,35 @@ Taxonomy _ecd({String moveId = 'ecd_set', int version = 1}) => Taxonomy(
   ],
 );
 
-Taxonomy _square() => Taxonomy(
+Taxonomy _square({String moveId = 'sq_do_paso'}) => Taxonomy(
   version: 1,
   form: DanceForm.square,
-  moves: const [
-    MoveDef(id: 'sq_do_paso', displayName: 'do paso', renderTemplate: '{move}'),
+  moves: [
+    MoveDef(id: moveId, displayName: 'do paso', renderTemplate: '{move}'),
   ],
 );
 
 void main() {
   group('the shipped registry', () {
-    test('ships contra, and ECD over contra; squares use contra', () {
+    test('ships contra, and ECD and squares each over contra', () {
       expect(shippedTaxonomies.forForm(DanceForm.contra), same(contraTaxonomy));
-      expect(shippedTaxonomies.forForm(DanceForm.square), same(contraTaxonomy));
       expect(
         shippedTaxonomies.ownTaxonomy(DanceForm.contra),
         same(contraTaxonomy),
       );
       expect(shippedTaxonomies.ownTaxonomy(DanceForm.ecd), same(ecdTaxonomy));
-      expect(shippedTaxonomies.ownTaxonomy(DanceForm.square), isNull);
+      expect(
+        shippedTaxonomies.ownTaxonomy(DanceForm.square),
+        same(squareTaxonomy),
+      );
+      final square = shippedTaxonomies.forForm(DanceForm.square);
+      expect(square.form, DanceForm.square);
+      expect(square.resolve('sq_swing')?.id, 'sq_swing');
+      // A square imported before squares had a taxonomy keeps its contra
+      // moves until it is converted (ADR-007 §8.4).
+      expect(square.resolve('swing')?.id, 'swing');
+      expect(square.resolve('ecd_set'), isNull);
+      expect(shippedTaxonomies.anyForm.resolve('sq_hey')?.id, 'sq_hey');
       final ecd = shippedTaxonomies.forForm(DanceForm.ecd);
       expect(ecd.resolve('ecd_set')?.id, 'ecd_set');
       // An ECD dance keeps the contra moves it was stored with (F5).
@@ -177,8 +187,7 @@ void main() {
     test('formOfMoveId reads the prefix', () {
       expect(registry.formOfMoveId('ecd_set'), DanceForm.ecd);
       expect(registry.formOfMoveId('swing'), DanceForm.contra);
-      // Squares have no prefix until their taxonomy is registered (ADR-007).
-      expect(registry.formOfMoveId('sq_do_paso'), DanceForm.contra);
+      expect(registry.formOfMoveId('sq_do_paso'), DanceForm.square);
     });
   });
 
@@ -210,10 +219,20 @@ void main() {
       );
     });
 
-    test('a form with no move ID prefix', () {
+    test('a square move without the sq_ prefix', () {
       expect(
-        () => TaxonomyRegistry(base: contraTaxonomy, forms: [_square()]),
+        () => TaxonomyRegistry(
+          base: contraTaxonomy,
+          forms: [_square(moveId: 'do_paso')],
+        ),
         throwsArgumentError,
+      );
+      expect(
+        TaxonomyRegistry(
+          base: contraTaxonomy,
+          forms: [_square()],
+        ).ownTaxonomy(DanceForm.square)?.moves.keys,
+        ['sq_do_paso'],
       );
     });
 
