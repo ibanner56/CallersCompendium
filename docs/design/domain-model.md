@@ -282,13 +282,18 @@ the typed text and every trashed program untouched.
 The program editor writes `venueId` only if the person changed it since the editor
 loaded or last saved; otherwise the stored value stands, so a link made while an
 editor was open (this offer, or sync) is not undone by that editor's next save.
+A restored autosave draft follows the same rule: the draft records the link and
+times the editor had loaded, and on restore an unchanged one takes the stored
+value, so a sync that landed after the draft was written survives it.
 
 A venue's free-text `time` (a Caller's Companion field such as "7:30–10:30pm")
 is the series' usual schedule, edited on the venue. A program's own times
 (`startMinute` and the others, below) are a different thing: when one evening
 happens. The program editor shows a linked venue's `time` as a hint beside the
 program's time fields, but never parses it into them, and nothing writes from
-a program back to the venue (#2350).
+a program back to the venue (#2350). The set-list PDF's venue block leaves the
+venue's `time` out when the program has a `startMinute` or `endMinute`, so the
+page does not give two answers to when the dance runs.
 
 ### Program & ProgramSlot
 | Program | ProgramSlot |

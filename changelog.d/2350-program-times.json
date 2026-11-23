@@ -6,6 +6,8 @@
       "A program can now record four optional times for its event: when the dance starts and ends, when the beginner lesson starts, and when you need to arrive at the hall. Set, change or clear each one under More details in the editor, with the time picker. They show in your language's 12- or 24-hour clock on one line on the program's summary, an end earlier than the start reads as the next day, and you can set them before you know the date.",
       "When a program is linked to a saved venue with a usual time, the editor shows that time as a hint beside the time fields. It never fills them in or changes the venue.",
       "The shared set list and the PDF show the start and end times beside the date and the lesson time below it. Arrive by stays off them, but a program file you share keeps it, so a guest caller knows when to arrive.",
+      "When a program has a start or end time, the PDF's venue details leave out the venue's usual time, so the page gives one answer to when the dance runs. The matrix PDF shows the start and end beside its date.",
+      "Restoring an unsaved draft keeps any change another device made to the program's times or linked venue after the draft was saved, for anything you hadn't changed in the draft.",
       "Duplicating a program keeps its times. They sync to your other devices and are kept in backups. An older version of the app won't replace your library with a backup that holds them, and warns when it imports one."
     ],
     "changed": [

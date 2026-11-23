@@ -192,7 +192,8 @@ A program's [times](./programs.md#times) appear in the set list too: the
 dance's start and end beside the date, such as "7:30 PM–10:30 PM", with
 "(next day)" when it ends after midnight, and the **Beginner lesson** on its
 own line. **Arrive by** never appears in the set list or the PDF: it is your
-own logistics. A program file you share (**Share program and dances**, or
+own logistics. When the program has a start or end time, the PDF's venue
+details leave out the venue's usual **Time**. A program file you share (**Share program and dances**, or
 **Export as JSON file**) keeps all four times, so a guest caller you send it
 to knows when to arrive.
 

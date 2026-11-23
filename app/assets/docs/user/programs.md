@@ -374,6 +374,10 @@ open that program, the app offers the draft back — **Restore** to pick up
 where you left off, or **Discard** to start from the last saved version. Drafts
 stay on your device; they are never uploaded, shared, or included in backups.
 
+If another of your devices changed the program's [times](#times) or its linked
+venue after the draft was saved, **Restore** keeps those changes for anything
+you hadn't changed in the draft; only your own edits come back.
+
 Each new program keeps its own draft, so two new programs never overwrite each
 other's. If a new program you never saved left one behind, the next new
 program you start offers it back by its title (the one you saved last, if
@@ -538,10 +542,13 @@ before you know the date.
   program's times never changes the venue.
 - **Duplicate** keeps all four times: the date changes from one event to the
   next, but the schedule usually does not.
-- The shared set list and the PDF show the start, end and lesson times
-  beside the date, but never **Arrive by**: that is your own logistics. A
-  program file you share keeps all four, so a guest caller you send it to
-  knows when to arrive. See [Sharing](./sharing.md).
+- The shared set list and the PDF show the start and end times beside the
+  date and the lesson time below it, but never **Arrive by**: that is your
+  own logistics. When the program has a start or end time, the PDF's venue
+  details leave out the venue's usual **Time**, so the page gives one answer
+  to when the dance runs. The matrix PDF shows the start and end beside its
+  date too. A program file you share keeps all four, so a guest caller you
+  send it to knows when to arrive. See [Sharing](./sharing.md).
 
 If you often play the same role, set a default caller or band in
 [Settings ▸ Defaults](./settings.md#program-defaults) and new programs will
