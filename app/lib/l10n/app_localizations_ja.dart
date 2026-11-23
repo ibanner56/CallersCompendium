@@ -8868,6 +8868,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorChooseHint => '選択…';
 
   @override
+  String get figureParamSearchDancersHint => 'ダンサーを検索';
+
+  @override
   String danceEditorCreateQuotedName(String name) {
     return '「$name」を作成';
   }

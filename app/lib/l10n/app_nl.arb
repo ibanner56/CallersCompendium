@@ -9058,6 +9058,10 @@
   "@danceEditorChooseHint": {
     "x-sourceSha256": "7ca41615c19be38d63b5defd85e2db57712e18014c8d9e985f449245c0fdabc4"
   },
+  "figureParamSearchDancersHint": "Dansers zoeken",
+  "@figureParamSearchDancersHint": {
+    "x-sourceSha256": "1cdb21a9c736e3bc9e88c5bcc9a28a50c318e243475c3cc00b9e60e284d1c917"
+  },
   "danceEditorCreateQuotedName": "“{name}” aanmaken",
   "@danceEditorCreateQuotedName": {
     "x-sourceSha256": "61beb570b064beafe58096897e5b92cac6e071d27dbe3157ecced2593d7bcbc2"

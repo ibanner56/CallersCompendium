@@ -1,0 +1,9 @@
+{
+  "id": "who-picker-dropdown",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "An English figure's Who is now a drop-down list: the field reads the dancers you picked, in order, and opening it shows every group with a checkbox and a search box. The wall of chips is gone."
+    ]
+  }
+}
