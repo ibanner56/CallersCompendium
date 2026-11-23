@@ -455,7 +455,7 @@ Facing _facingOf(({int x, int y}) v) => switch (v) {
 /// the two are told apart the only way they can be — a line puts all four
 /// dancers of a band in one row and leaves the other empty (§8.1), which is
 /// exactly what [lineOfFourRow] recognizes. Bands holding one are skipped
-/// untouched.
+/// untouched, and so is any single row holding four dancers.
 ///
 /// Short-wave offsets return to their own side of the set (`c1 -> c0`,
 /// `c3 -> c4`), which §8.1's side-preservation rule already guarantees is where
@@ -503,6 +503,11 @@ Formation normalizeWaveOffsets(
     if (lineOfFourRow(formation, band) != null) continue;
     for (final row in [band.topRow, band.bottomRow]) {
       final ids = formation.dancersInRow(row);
+      // A row holding four dancers is a line, whatever the other row holds: a
+      // wave puts two dancers in each row. A line formed in one row of a band
+      // whose other row is still occupied (as a gate into a line can leave at
+      // an end of the set) would otherwise be collapsed onto itself.
+      if (ids.length == 4) continue;
       final occupiedSides = {
         for (final id in ids)
           if (_isSideColumn(formation.stateOf(id).col))
