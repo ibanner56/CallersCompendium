@@ -50,9 +50,9 @@
 > **N3 and N4 place later progressions (2026-11-23)**: on the N2 retry, a
 > Double dance flags its second progression by the first N3 mention and a
 > Triple its third by the first N4 (user-ruled). Against `rubric` at
-> `BASESHA` it took the count from 3,835 to 3,867 of 5,119 compiled in scope
-> (74.9% to 75.5%), and the core set from 515 to 518, with no previously
-> compiling dance lost; 23 refused and 9 mismatched dances now compile.
+> `52009f35` it took the count from 3,835 to 3,874 of 5,119 compiled in scope
+> (74.9% to 75.7%), and the core set from 515 to 519, with no previously
+> compiling dance lost; 30 refused and 9 mismatched dances now compile.
 > Mallomars (10095) now progresses where the maintainer reads it: after the
 > ones' swing and at the allemande that faces N3.
 >

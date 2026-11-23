@@ -358,12 +358,12 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
   //
   // A crash is never retried. The compiler throwing is a defect here, and a
   // second placement that happens to land would bury it.
-  var attempt = _attempt(bridgeCoreDance(dance));
+  final positional = bridgeCoreDance(dance);
+  var attempt = _attempt(positional);
   if (attempt.outcome != DanceOutcome.compiled &&
       attempt.outcome != DanceOutcome.crashed) {
     final fallback = bridgeCoreDance(dance, useNextNeighborsFallback: true);
-    if (fallback.assumedProgressionAt != null &&
-        fallback.assumedProgressionAt != attempt.assumedAt) {
+    if (retryPlacesDifferently(positional, fallback)) {
       final retry = _attempt(fallback);
       if (retry.outcome == DanceOutcome.compiled) attempt = retry;
     }
@@ -445,14 +445,28 @@ class BridgedDance {
     required this.record,
     this.warnings = const [],
     this.assumedProgressionAt,
+    this.laterProgressionsAt = const [],
   });
 
   final Map<String, Object?> record;
   final List<Warning> warnings;
 
-  /// A position in [dancedFigures], as is every index in [record]'s figures.
+  /// The first assumed progression: a position in [dancedFigures], as is
+  /// every index in [record]'s figures.
   final int? assumedProgressionAt;
+
+  /// The second and later assumed progressions of a multiple progression,
+  /// in order (`laterNeighborsProgressionIndex`); empty for a single one.
+  final List<int> laterProgressionsAt;
 }
+
+/// Whether the N2 retry [fallback] reads the dance differently from the
+/// positional [attempt], and so is worth compiling: it places a progression,
+/// and either its first one differs or it adds later ones.
+bool retryPlacesDifferently(BridgedDance attempt, BridgedDance fallback) =>
+    fallback.assumedProgressionAt != null &&
+    (fallback.assumedProgressionAt != attempt.assumedProgressionAt ||
+        fallback.laterProgressionsAt.isNotEmpty);
 
 /// Translates a [core.Dance] into the dance-record shape [parseDance] reads.
 ///
@@ -465,7 +479,11 @@ class BridgedDance {
 /// Set [useNextNeighborsFallback] to place the progression by
 /// [nextNeighborsProgressionIndex] instead. That is the retry
 /// [runCoreDance] makes when the positional rule does not compile; it is not a
-/// better rule, only a second guess, and it warns just as loudly.
+/// better rule, only a second guess, and it warns just as loudly. On that
+/// retry a Double or Triple dance also gets its later progressions by
+/// [laterNeighborsProgressionIndex] (N3, then N4), reported in
+/// [BridgedDance.laterProgressionsAt]. A Quadruple gets at most three: no
+/// rule names its fourth.
 BridgedDance bridgeCoreDance(
   core.Dance dance, {
   bool useNextNeighborsFallback = false,
@@ -497,17 +515,6 @@ BridgedDance bridgeCoreDance(
     }
   }
   final warnings = <Warning>[
-    for (final (step, at) in laterAt.indexed)
-      Warning(
-        WarningKind.assumedProgression,
-        opIndex: at,
-        detail:
-            'the source flagged no figure as the progression, so figure '
-            '${at + 1} (${figures[at].move}) was assumed to be progression '
-            '${step + 2}, because this is where the first mention of '
-            '${_laterNeighbours[step + 3]!.label} '
-            '(${_laterNeighbours[step + 3]!.key}) puts it',
-      ),
     if (assumedAt != null)
       Warning(
         WarningKind.assumedProgression,
@@ -519,6 +526,17 @@ BridgedDance bridgeCoreDance(
             '${useNextNeighborsFallback ? ', because the positional rule did '
                       'not compile and this is where the first mention of the '
                       'next neighbours (nextNeighbors, N2) puts it' : ''}',
+      ),
+    for (final (step, at) in laterAt.indexed)
+      Warning(
+        WarningKind.assumedProgression,
+        opIndex: at,
+        detail:
+            'the source flagged no figure as the progression, so figure '
+            '${at + 1} (${figures[at].move}) was assumed to be progression '
+            '${step + 2}, because this is where the first mention of '
+            '${_laterNeighbours[step + 3]!.label} '
+            '(${_laterNeighbours[step + 3]!.key}) puts it',
       ),
   ];
 
@@ -542,6 +560,7 @@ BridgedDance bridgeCoreDance(
     },
     warnings: warnings,
     assumedProgressionAt: assumedAt,
+    laterProgressionsAt: laterAt,
   );
 }
 
@@ -815,6 +834,7 @@ bool _namesNthNeighbors(core.Figure figure, int n) =>
 /// Whether [figure], or any figure inside it, names a neighbour set nearer
 /// than the [n]th: plain neighbours, N2, ..., N(n-1).
 bool _namesNearerNeighbors(core.Figure figure, int n) =>
+    _namesNeighbors(figure) ||
     _namesNextNeighbors(figure) ||
     [for (var k = 3; k < n; k++) k].any((k) => _namesNthNeighbors(figure, k));
 

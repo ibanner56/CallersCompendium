@@ -1268,6 +1268,77 @@ void main() {
         );
       });
 
+      test('a note-only N3 followed by plain neighbours is an excursion', () {
+        expect(
+          laterNeighborsProgressionIndex(
+            dance([
+              figure('circle'),
+              figure('swing'),
+              noted('balance', 'with N3'),
+              figure('swing', {'who': 'neighbors'}),
+            ]),
+            n: 3,
+            after: 0,
+          ),
+          isNull,
+        );
+      });
+
+      test('a note inside a container counts', () {
+        expect(
+          laterNeighborsProgressionIndex(
+            dance([
+              figure('circle'),
+              figure('swing'),
+              core.Figure.modifier(
+                figures: [figure('long_lines'), noted('swing', 'face N3')],
+                beats: 8,
+              ),
+            ]),
+            n: 3,
+            after: 0,
+          ),
+          2,
+        );
+      });
+
+      test('the retry is compiled when it only adds a later progression', () {
+        // A Becket double opening with a slide left: both rules put the first
+        // progression on the slide, and only the retry adds the N3 one.
+        final source = _shapedLike(
+          shape: core.FormationShape.becketCw,
+          figures: [
+            figure('slide_along_set', {'slide': 'left'}),
+            figure('swing', {'who': 'nextNeighbors'}),
+            figure('long_lines'),
+            figure('do_si_do', {'who': 'thirdNeighbors'}),
+          ],
+        ).copyWith(progression: core.Progression.double);
+        final positional = bridgeCoreDance(source);
+        final fallback = bridgeCoreDance(
+          source,
+          useNextNeighborsFallback: true,
+        );
+        expect(positional.assumedProgressionAt, 0);
+        expect(fallback.assumedProgressionAt, 0);
+        expect(fallback.laterProgressionsAt, [2]);
+        expect(retryPlacesDifferently(positional, fallback), isTrue);
+        expect(retryPlacesDifferently(positional, positional), isFalse);
+      });
+
+      test('the first progression is warned about first', () {
+        final bridged = bridgeCoreDance(
+          dance([
+            figure('circle'),
+            figure('swing', {'who': 'nextNeighbors'}),
+            figure('long_lines'),
+            figure('do_si_do', {'who': 'thirdNeighbors'}),
+          ]),
+          useNextNeighborsFallback: true,
+        );
+        expect(bridged.warnings.map((w) => w.opIndex), [0, 2]);
+      });
+
       group('clauses that are not a mention of the whole hands four', () {
         for (final note in const [
           'M1 with N3, W1 with N2',
