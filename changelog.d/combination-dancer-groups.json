@@ -1,0 +1,14 @@
+{
+  "id": "combination-dancer-groups",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "A combination made for English that declares a group-of-dancers parameter filling no slot (the editor already warns it is unused) now lists English's groups, such as the ends or the top, when you choose its value in a dance or a shorthand, instead of contra's. A parameter that fills a slot already took that slot's own groups, and no combination's figures change."
+    ]
+  },
+  "core": {
+    "changed": [
+      "allowedValues gives a combination's group-of-dancers parameter that fills no slot the groups of the combination's own form (ecdSelectors for ecd, as userFigureDancerChoices does), instead of contra's for every form."
+    ]
+  }
+}
