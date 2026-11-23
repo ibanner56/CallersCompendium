@@ -1,0 +1,14 @@
+{
+  "id": "2423-calendar-import-times",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Importing from your calendar now fills each draft program's start and end times from a timed event, and shows them beside the date in the list before you import. A time your calendar keeps in a time zone is taken as written; a time kept in UTC is turned into your device's local time. An all-day event still gets no times, and the lesson and Arrive by times are never read from an event."
+    ]
+  },
+  "core": {
+    "added": [
+      "ICalEvent reads DTEND and DURATION, and ICalDateValue.localDateTime gives a value's wall-clock date and time for the reader. CalendarImportCandidate carries startMinute and endMinute, set for each occurrence (a series' length moves with each occurrence; an override keeps its own); the end is left empty for an event of no length or a day or more."
+    ]
+  }
+}
