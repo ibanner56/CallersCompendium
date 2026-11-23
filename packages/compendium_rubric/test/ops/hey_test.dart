@@ -196,8 +196,7 @@ void main() {
     });
 
     test('one same-side pair names only half a side pass', () {
-      // Duple *proper* again, but asked for a full hey so the side-opening
-      // deferral cannot be what answers. Both Robins stand east with nobody
+      // Duple *proper* again, with a full hey. Both Robins stand east with nobody
       // named opposite them, so neither reading of the opening pass applies.
       final error = applyErr(
         const HeyForFour(length: HeyLength.full),
@@ -353,6 +352,37 @@ void main() {
         'L1-A . . . R2-B',
       ]);
     });
+
+    test(
+      'a side-opening half hey with a ricochet keeps that pair in place',
+      () {
+        // rico1 names the pass2 pair's one centre meeting (the Larks); rico2
+        // the other pair's (the Robins). Each suppressed meeting leaves that
+        // pair where it stood while the other pair still exchanges.
+        expect(
+          applyOk(
+            const HeyForFour(
+              pass1: WhoSet.partners,
+              pass2: WhoSet.role1s,
+              rico1: true,
+            ),
+            di(carousel),
+          ).toRolesNotation(),
+          ['R1-A . . . L1-A', 'L2-B . . . R2-B'],
+        );
+        expect(
+          applyOk(
+            const HeyForFour(
+              pass1: WhoSet.partners,
+              pass2: WhoSet.role1s,
+              rico2: true,
+            ),
+            di(carousel),
+          ).toRolesNotation(),
+          ['R2-B . . . L2-B', 'L1-A . . . R1-A'],
+        );
+      },
+    );
 
     test('rico1 suppresses the meeting of whichever pair meets first', () {
       // User ruling: rico1..rico4 always name centre passes. Opening on the

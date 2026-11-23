@@ -2933,8 +2933,9 @@ To be defined later with worked examples.
     anything else names a pass with no place to happen.
   - A side opening with `pass2` absent, or with a `pass2` that names no single spanning pair →
     `unresolvableDancerSet`. There the anchor is the only thing that can identify the centres.
-  - A side opening at any `length` other than `full` → `unsupportedParam`. Ricochets are **not**
-    refused there; see the side-opening section above.
+  - A side opening is danced at `half` and `full`, like a centre opening (user-ruled
+    2026-11-23); its partial lengths are refused by the `length` bullet above. Ricochets are
+    **not** refused there; see the side-opening section above.
   - A band holds other than four dancers, or there is **no complete hands four** →
     `unresolvableDancerSet`.
 - **facing:** `flexible` for all four. A hey ends mid-flow, and what a dancer looks at depends on

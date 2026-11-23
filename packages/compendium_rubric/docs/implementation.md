@@ -781,7 +781,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,318 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,319 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,
@@ -968,7 +968,7 @@ post-taxonomy-v35 snapshot.
   vocabulary values 310, almost all the `shadows` who-value at 305 (since
   modelled: `docs/taxonomy.md`, "Shadows"); and
   `unsupportedParam` refusals 332, led by `hey` 191 (105 side-opening non-full,
-  59 partial length, 27 diagonal) and `right_left_through` 78. *(This
+  since built, 59 partial length, 27 diagonal) and `right_left_through` 78. *(This
   bullet and the `swing` one above predate `promenade` across. Its Caller's Box
   lines with no `where` are now reported as `unstructured`, an import problem;
   its other forms are still deferred.)*
