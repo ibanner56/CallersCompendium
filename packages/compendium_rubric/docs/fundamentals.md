@@ -624,6 +624,31 @@ couples** (one per line), so "the row-0 couple" needed a referent.
 
 The two ends are evaluated separately; one may normalize while the other skips.
 
+**In Becket, when both ends would skip, the progression is held, not spent** *(user-ruled
+2026-11-23)*. A Becket dance progresses on the obvious move — a diagonal `chain` or a
+`pass_through` along the set — but those send only some dancers on: after The Judge's
+left-diagonal ladies chain the robins have reached the next hands four while their partners
+have not, so no couple stands whole at either end. A change-over there would do nothing and
+the progression would be lost. Instead the flag is **held** and the change-over runs after the
+first later *unflagged* figure that leaves a whole couple at an end (in The Judge, the second
+petronella). A couple already standing out counts as being at an end: the change-over still
+brings it back in, so finding only those is no reason to hold. The progression still *counts*
+at the flagged figure, so the distance sets measure from it. If no later unflagged figure ever
+brings a couple to an end, the change-over never runs and the compile says so with a
+`heldProgressionUnfinished` warning. The dance may still match the oracle: with nobody whole at
+an end the change-over would only have cleared waiting-out marks, which the comparison does not
+read. `FigureFold` is the one place this is threaded.
+
+Three limits, each the *agent's call (2026-11-23)*: holding is **Becket only** (the ruling was
+about Becket, and in Duple Improper a misplaced flag should still fail rather than be carried
+forward); a figure that is its own progression (`slide_along_set`) or that reached along the
+set is never held; and a later flagged figure that runs its own change-over **overtakes** a
+held progression, which is then given up and reported with the same warning, since finishing it
+afterwards would retire the couples that figure had just sent out.
+
+This does not infer progression from state (§10.1): only the flag decides *that* a progression
+happens. The state decides only *when* its change-over can run.
+
 **Why both partners are required.** A number is a property of the **couple**, not of a
 dancer. Writing it for both partners at once is what makes it *structurally impossible* for
 this step to leave a couple holding two different numbers. The rejected alternative — a

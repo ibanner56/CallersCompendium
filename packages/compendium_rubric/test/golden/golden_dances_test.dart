@@ -78,20 +78,20 @@ void expectCompiles(Dance dance, List<String> expectedTrace) {
   final result = compile(dance);
   if (result is! Compiled) {
     var state = dance.instantiate();
-    var progressions = 0;
+    final fold = FigureFold(
+      holdsProgressions: dance.formation.couplesShareColumn,
+    );
     final buffer = StringBuffer('${dance.name} did not compile: $result\n');
     buffer.writeln('start: ${state.toRolesNotation()}');
     for (var i = 0; i < dance.figures.length; i++) {
-      // Threaded as the engine threads it, so the trace cannot disagree with
-      // the compile it is explaining on a dance that names a distance after
-      // progressing.
-      final step = dance.figures[i].apply(state, progressions: progressions);
+      // Threaded as the engine threads it (`FigureFold`), so the trace cannot
+      // disagree with the compile it is explaining.
+      final step = fold.step(dance.figures[i], state, index: i);
       if (step is! Ok<Formation, OpError>) {
         buffer.writeln('op $i ${dance.figures[i]}: $step');
         break;
       }
       state = step.value;
-      if (dance.figures[i].progression) progressions++;
       final want = i < expectedTrace.length ? expectedTrace[i] : '(none)';
       buffer.writeln(
         'op $i ${dance.figures[i]}\n'
@@ -171,9 +171,15 @@ void main() {
         ],
       ];
       final dance = theBabyRose();
+      final fold = FigureFold(
+        holdsProgressions: dance.formation.couplesShareColumn,
+      );
       var state = dance.instantiate();
       for (var i = 0; i < dance.figures.length; i++) {
-        state = (dance.figures[i].apply(state) as Ok<Formation, OpError>).value;
+        state =
+            (fold.step(dance.figures[i], state, index: i)
+                    as Ok<Formation, OpError>)
+                .value;
         expect(
           state.toRolesNotation(),
           trace[i],
@@ -265,9 +271,15 @@ void main() {
         ],
       ];
       final dance = theJudge();
+      final fold = FigureFold(
+        holdsProgressions: dance.formation.couplesShareColumn,
+      );
       var state = dance.instantiate();
       for (var i = 0; i < dance.figures.length; i++) {
-        state = (dance.figures[i].apply(state) as Ok<Formation, OpError>).value;
+        state =
+            (fold.step(dance.figures[i], state, index: i)
+                    as Ok<Formation, OpError>)
+                .value;
         expect(
           state.toRolesNotation(),
           trace[i],

@@ -520,18 +520,24 @@ BridgedDance bridgeCoreDance(
 /// marker — there is no structural marker to carry across, so every dance
 /// imported from it arrives with no figure flagged.
 ///
-/// The rule is positional, not semantic, and it is a rule rather than a search
-/// on purpose: nothing here looks at what the figures *do*. **The last figure
-/// progresses**, which is where contra choreography overwhelmingly puts it —
-/// the dance ends standing with the next couple.
+/// The rule is a rule rather than a search on purpose: it never tries a
+/// placement to see what compiles. Outside Becket it is purely positional.
+/// **The last figure progresses**, which is where contra choreography
+/// overwhelmingly puts it — the dance ends standing with the next couple. In
+/// Becket it reads only which move a figure is, never what it does to the set.
 ///
-/// The one exception is a **Becket dance that opens with a slide left** (or a
-/// slice left, which lands exactly like one). Becket
-/// dancers progress along the set rather than through it, and a slide left at
-/// the top of the dance *is* that progression: it is the figure that hands the
-/// couple to the next one, and everything after it is danced with the new
-/// neighbours. Reading the final figure there would place the progression a
-/// full time through the dance away from where it happens.
+/// The exception is a **Becket dance**, whose dancers progress along the set
+/// rather than through it, on the obvious move:
+///
+/// - One that **opens with a slide left** (or a slice left, which lands
+///   exactly like one) progresses on it. A slide left at the top of the dance
+///   *is* the progression: it hands the couple to the next one, and everything
+///   after it is danced with the new neighbours. Reading the final figure there
+///   would place the progression a full time through the dance away from where
+///   it happens.
+/// - Otherwise its **first diagonal chain or pass through along the set**
+///   progresses (user-ruled 2026-11-23). Only a Becket dance with neither
+///   falls back to the last figure.
 ///
 /// Returns `null` only for a dance with no figures. *(User-ruled.)*
 int? assumedProgressionIndex(core.Dance dance) {
@@ -559,10 +565,33 @@ int? assumedProgressionIndex(core.Dance dance) {
       _ => null,
     };
     if (direction == 'left') return 0;
+
+    // Otherwise a Becket dance progresses on its first move along the set:
+    // a diagonal chain, which sends the chainers to the next hands four, or a
+    // pass through along the set. (User-ruled 2026-11-23: Becket progressions
+    // are usually the obvious move.) The couples may not stand together at an
+    // end until a figure or two later; the compiler holds the progression
+    // until they do (`OperationInvocation.applyHolding`).
+    for (var index = 0; index < figures.length; index++) {
+      if (_movesAlongTheSet(figures[index])) return index;
+    }
   }
 
   return figures.length - 1;
 }
+
+/// Whether [figure] is a Becket progression move: a `chain` on either
+/// diagonal, or a `pass_through` along the set. The direction is carried under
+/// `where` upstream; `pass_through` defaults to `along` (as the compiler's
+/// `PassThrough` does).
+bool _movesAlongTheSet(core.Figure figure) => switch (figure.move) {
+  'chain' => switch (figure.params['where']) {
+    'leftDiagonal' || 'rightDiagonal' => true,
+    _ => false,
+  },
+  'pass_through' => (figure.params['where'] ?? 'along') == 'along',
+  _ => false,
+};
 
 /// The one alternative placement the *record itself* suggests, for when the
 /// positional rule of [assumedProgressionIndex] does not compile.

@@ -25,6 +25,14 @@
 > they took the count from 2,759 to 2,795 and the core set from 391 to 397,
 > again losing nothing. The tables below count all five in their new rows but
 > keep the September per-figure numbers.
+>
+> **Becket progressions (2026-11-23):** the Caller's Box bridge now places a
+> Becket dance's progression on its first diagonal `chain` or `pass_through`
+> along the set, and a Becket progression with no whole couple at an end is
+> held until one gets there (both user-ruled). Measured against `rubric` at
+> `e88bc9ce`: 2,795 to 2,843 compiled in scope (49 gained, 1 lost: *More
+> Summer Haze*, whose pass through along goes to the previous neighbours), and
+> the core set from 397 to 410.
 
 The compiler implements 51 canonical figures. Twenty-eight have no deliberately
 deferred parameter values, 23 have an implemented core with explicit
@@ -260,8 +268,8 @@ collision:
 `r0,c0` inside `give_and_take`: both takers of one hands four stood on the same
 side of the set, so each slid along that column into the cell the other's
 taken partner was entering. `give_and_take` now refuses that state as an
-`unresolvableDancerSet` before moving anyone. *(Agent's call, 2026-11-22, not
-yet ratified: a refusal rather than a crash.)* Measured in a local corpus
+`unresolvableDancerSet` before moving anyone. *(Proposed as the agent's call on
+2026-11-22; user-ruled 2026-11-23: a refusal rather than a crash.)* Measured in a local corpus
 sweep on 2026-11-22: both dances now end `FIGUREREFUSED` at their
 `give_and_take`. The evidence so far points at an earlier wrong position rather
 than at the permutation: both dances progress mid-dance (*The Digital Divide*

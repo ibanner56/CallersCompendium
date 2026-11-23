@@ -12,9 +12,10 @@ import 'result.dart';
 ///
 /// The flag lives here rather than on [Operation] because it is *not* a
 /// property of the figure — the same figure progresses in one dance and not in
-/// another. This type is therefore the single place where §3.2's ordering is
-/// expressed: the operation's own transform runs first, and end-normalization
-/// runs after it.
+/// another. This type expresses §3.2's ordering: the operation's own transform
+/// runs first, and end-normalization runs after it. The one exception is a
+/// **held** progression ([applyHolding]), whose change-over `FigureFold` runs
+/// after a later figure instead.
 @immutable
 class OperationInvocation {
   const OperationInvocation(this.operation, {this.progression = false});
@@ -52,14 +53,57 @@ class OperationInvocation {
   Result<Formation, OpError> apply(
     Formation formation, {
     int progressions = 0,
+  }) => operation
+      .apply(formation, progressions: progressions)
+      .map((next) => _finish(formation, next, progressions));
+
+  /// [apply], except that a progression with nobody to step out yet is
+  /// **held** rather than spent.
+  ///
+  /// The end-normalization a progression runs (`docs/fundamentals.md` §10.2)
+  /// needs a whole couple standing in an end row. A Becket dance that
+  /// progresses on a diagonal `chain` or a `pass_through` along the set has
+  /// not brought one there yet: the robins have moved on, but the couples
+  /// only stand together at the ends a figure or two later. Run there, the
+  /// change-over would mark nobody and the progression would be lost. Held,
+  /// it finishes on the first later figure that leaves a whole couple at an
+  /// end; see [finishHeldProgression] and `FigureFold`. *(User-ruled,
+  /// 2026-11-23, for Becket.)* Whether to call this rather than [apply] is
+  /// `FigureFold`'s decision: it holds in Becket only.
+  ///
+  /// When the result's `held` is `true`, its formation is the figure's own
+  /// transform with no change-over applied, and the caller owes one
+  /// progression. Otherwise this is exactly [apply].
+  ///
+  /// Only an ordinary figure is held. A figure that is its own progression
+  /// decides its own waiting-out state, and a figure that reached along the
+  /// set finishes a phase further on, which a later change-over could not
+  /// reproduce; both finish where they are, as before. *(Agent's call,
+  /// 2026-11-23: neither shape needed holding in the corpus measured.)*
+  Result<({Formation formation, bool held}), OpError> applyHolding(
+    Formation formation, {
+    int progressions = 0,
   }) => operation.apply(formation, progressions: progressions).map((next) {
+    final hold =
+        progression &&
+        !operation.isItsOwnProgression &&
+        !_reached(progressions) &&
+        !endHasWholeCouple(next);
+    return hold
+        ? (formation: next, held: true)
+        : (formation: _finish(formation, next, progressions), held: false);
+  });
+
+  /// The change-over that follows a flagged figure, given the state it
+  /// started in ([before]) and the state its transform produced ([next]).
+  Formation _finish(Formation before, Formation next, int progressions) {
     if (!progression) return next;
     final normalized = applyEndNormalization(
       next,
-      servedRound: waitingCouples(formation),
+      servedRound: waitingCouples(before),
     );
     return _reached(progressions) ? toggleBandPhase(normalized) : normalized;
-  });
+  }
 
   /// Whether the figure names dancers a distance along the set, and so has
   /// already moved the set once before the flag asks for more.
