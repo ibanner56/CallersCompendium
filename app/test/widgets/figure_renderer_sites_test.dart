@@ -26,6 +26,9 @@ const Map<String, int> _allowed = {
   // that maps one of the user's figures onto it.
   'lib/src/screens/glossary/user_figure_switch_screen.dart': 1,
   'lib/src/screens/compound_shorthand_editor_screen.dart': 1,
+  // Built-in move names on the Repertoire page's figure frequency, in each
+  // type's own taxonomy; the core leaves figures of the user's own out.
+  'lib/src/screens/repertoire_screen.dart': 1,
   // Free text, formation labels and link labels; the figures go to the live
   // renderer.
   'lib/src/screens/dance_detail_screen.dart': 2,
