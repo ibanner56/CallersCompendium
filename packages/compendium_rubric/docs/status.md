@@ -43,7 +43,8 @@
 > **`cast` (2026-11-23)** is built on Hudson's ruling for up and down casts,
 > one place only. Against `rubric` at `2bf7a0e1` it compiles no new dance yet:
 > 147 of the 202 dances it unblocked first stop at a `down_the_hall` led by part
-> of the set (mostly "ones lead down"), which is still deferred. The count stays
+> of the set (mostly "ones lead down"), which was then deferred (built since;
+> see below). The count stays
 > at 2,849 (the in-scope denominator grows from 4,506 to 4,539), the core set at
 > 410, and nothing is lost.
 >
