@@ -17,6 +17,7 @@ part 'figures/arch_and_dive.dart';
 part 'figures/axis_swaps.dart';
 part 'figures/butterfly_whirl.dart';
 part 'figures/circle.dart';
+part 'figures/circular_hey.dart';
 part 'figures/chain.dart';
 part 'figures/contra_corners.dart';
 part 'figures/couple_wheel.dart';

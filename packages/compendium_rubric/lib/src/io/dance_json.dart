@@ -260,6 +260,7 @@ const Map<String, _FigureBuilder> _registry = {
   'california_twirl': _buildCaliforniaTwirl,
   'chain': _buildChain,
   'circle': _buildCircle,
+  'circular_hey': _buildCircularHey,
   'contra_corners': _buildContraCorners,
   'courtesy_turn': _buildCourtesyTurn,
   'cross_trails': _buildCrossTrails,
@@ -629,6 +630,14 @@ Operation _buildCrossTrails(_Params p) => CrossTrails(
   dir: p.enumOr(['where', 'dir'], Direction.fromKey, Direction.across),
   shoulder: p.enumOr(['shoulder'], Hand.fromKey, Hand.right),
   who2: p.enumOr(['who2'], WhoSet.fromKey, WhoSet.neighbors),
+);
+
+Operation _buildCircularHey(_Params p) => CircularHey(
+  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.neighbors),
+  changes: p.intOr(['changes'], 4),
+  shoulder: p.enumOr(['shoulder'], Hand.fromKey, Hand.right),
+  who2: p.optionalEnum(['who2'], WhoSet.fromKey),
+  where: p.enumOr(['where'], Direction.fromKey, Direction.across),
 );
 
 Operation _buildSquareThrough(_Params p) => SquareThrough(
