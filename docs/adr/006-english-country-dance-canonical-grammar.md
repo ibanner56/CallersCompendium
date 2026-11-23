@@ -1438,7 +1438,7 @@ error we are most likely to make without help.
 
 The maintainer made these decisions on 19 November 2026, on the same
 decision sheet as §9, about how the app stores and shows ECD dances. Some
-draw on the requirements for squares in ADR-007, which is still a proposal,
+draw on the requirements for squares in ADR-007, which was then a proposal,
 so that both forms behave the same way. The goal they serve is the
 maintainer's: the app supports ECD choreography and programming as fully as
 it supports contra, and a caller can program a night that mixes the two, or
