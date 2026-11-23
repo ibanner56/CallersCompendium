@@ -84,8 +84,10 @@ void main() {
     });
 
     for (final line in const [
-      // Dance 3484.
-      'Neighbor arm right 1; form long wave [M1 with N2, W1 with N1]',
+      // Dance 3484's bracket, alone and after a clause that structures (the
+      // dance's own first clause, `Neighbor arm right 1`, does not).
+      'form long wave [M1 with N2, W1 with N1]',
+      'Neighbor allemande right 1; form long wave [M1 with N2, W1 with N1]',
       // Inline holds (dance 11904's shape on the forming line).
       'form long wave (P2L,P3R, women face in)',
     ]) {
@@ -257,6 +259,19 @@ void main() {
       expect(figures[1].params, {'who': _unspecified});
       expect(figures[2].params['sides'], 'nextNeighbors');
     });
+  });
+
+  test('explicitly formed long waves keep their existing fold', () async {
+    // The refusal of words a fold would drop is scoped to the bare wave. The
+    // plural `Form long waves` keeps the path it had before #2331 — including
+    // a dancer-prefixed balance whose prefix agrees with the default facing,
+    // which folds and drops the prefix (pre-existing; not changed here).
+    final figures = await _import({
+      'A1': ['(0) Form long waves', '(4) Men balance long wave'],
+    });
+    expect(figures, hasLength(1));
+    expect(figures.single.move, 'form_long_waves');
+    expect(figures.single.params['balance'], isTrue);
   });
 
   group('across a phrase boundary it is still one figure', () {
