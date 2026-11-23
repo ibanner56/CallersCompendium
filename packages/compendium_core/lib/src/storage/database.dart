@@ -333,6 +333,13 @@ const String taxonomyV39CanonicalRebuildDoneKey =
 const String ecdTaxonomyCanonicalRebuildDoneKey =
     '__ecd_taxonomy_canonical_rebuild_done__';
 
+/// Settings key for the one-time canonical/FTS rebuild owed when the square
+/// taxonomy first ships (ADR-007), for the reason
+/// [ecdTaxonomyCanonicalRebuildDoneKey] gives: a dance already holding `sq_`
+/// move IDs was indexed while they were unknown, as the bare ID.
+const String squareTaxonomyCanonicalRebuildDoneKey =
+    '__square_taxonomy_canonical_rebuild_done__';
+
 /// Settings key for the one-time canonical/FTS rebuild owed by the modifier
 /// container structural tokens. Existing figures gain searchable canonical
 /// container text without changing their source JSON.
@@ -789,6 +796,11 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   /// empty. No data is rewritten and no derived index reads them, so no
   /// rebuild is needed.
   ///
+  /// Also `dances.alternate_titles` and `dances.barnes_reference` (a dance's
+  /// other titles and its Barnes book reference), both `''` by default, so
+  /// every existing dance has neither. They joined v42 while v42 was
+  /// unreleased.
+  ///
   /// Also `programs.archived_at` (program archiving, #2218), nullable, so
   /// every existing program stays unarchived. It joined v42 while v42 was
   /// unreleased (CONTRIBUTING.md, "Adding to an unreleased version").
@@ -804,6 +816,8 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       dances.meter,
       dances.musicalKey,
       dances.interpretedOn,
+      dances.alternateTitles,
+      dances.barnesReference,
     ]) {
       if (!present.contains(column.name)) await m.addColumn(dances, column);
     }

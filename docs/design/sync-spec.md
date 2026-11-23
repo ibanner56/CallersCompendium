@@ -730,9 +730,10 @@ Canonical JSON means:
 - envelope fields always present, `null` where empty;
 - body fields: explicit `null` for an empty `shareable` field, omission **only**
   for a field that is not `shareable`, with one exception: a dance's `meter`,
-  `musicalKey`, `formation.improper`, `interpreterIds` and `interpretedOn`
-  (schema v42) are omitted when they hold their default (`''`, `''`, `false`,
-  `[]`, `null`), and a receiver reads a missing one as that default (§6.7);
+  `musicalKey`, `formation.improper`, `interpreterIds`, `interpretedOn`,
+  `alternateTitles` and `barnesReference` (schema v42) are omitted when they
+  hold their default (`''`, `''`, `false`, `[]`, `null`, `[]`, `''`), and a
+  receiver reads a missing one as that default (§6.7);
 - **timestamps emitted at exactly one-tick precision** (§2), UTC, with the
   sub-tick component always zero;
 - **all strings in Unicode NFC**, normalised on write as described below.
@@ -3988,8 +3989,9 @@ independently consult the registry to decide which absences mean *preserve*.
 The exception is the dance fields added after Device Sync shipped, listed in
 `omittedDanceDefaults` and `omittedFormationDefaults`
 (`archive_entity_codec.dart`): `meter`, `musicalKey` and `formation.improper`
-(ADR-006 §12, F2 and F3), and `interpreterIds` and `interpretedOn` (ADR-006
-§9.2). The sender omits each when it holds its default, so a
+(ADR-006 §12, F2 and F3), `interpreterIds` and `interpretedOn` (ADR-006
+§9.2), and `alternateTitles` and `barnesReference` (ADR-006 §9.2, point 9).
+The sender omits each when it holds its default, so a
 dance that never had one keeps the body, and the content hash, it had before
 the field existed: no device republishes every dance on updating, and a device
 on an older build has nothing to keep for it. A receiver that knows the field
@@ -4011,6 +4013,11 @@ than v42 keeps the key aside without knowing it cites anyone, so a deletion of
 a person credited only as interpreter there is not refused, and a merge of two
 people there leaves the kept key naming the loser until a newer device
 rewrites it through the alias.
+
+A fresh-attach merge also unions `alternateTitles`, every copy's other titles
+in order with repeats dropped, and takes `barnesReference` from the latest
+copy, as it takes `meter`; neither is part of the choreography fingerprint,
+which a build older than v42 computes without them.
 
 **A field the receiver does not sync is kept, not dropped and not applied.**
 Any part of an inbound body that the receiver does not classify `shareable` for

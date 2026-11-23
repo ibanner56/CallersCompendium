@@ -46,11 +46,12 @@ app cannot express either today:
 
 - `CalledFilter` has only `called`, `callerFilter`, `performedOnly` and
   `requireEventDate`. It has no venue or date scope
-  (`packages/compendium_core/lib/src/search/filter.dart:224-247`, compiled at
+  (`packages/compendium_core/lib/src/search/filter.dart:282-302`, compiled at
   `filter_compiler.dart`).
 - The Filters panel offers only a Called / Not called pair
   (the `call-status-called` and `call-status-not-called` chips in `app/lib/src/widgets/facet_panel.dart`). It becomes a `CalledFilter`
-  in `app/lib/src/search/collection_query.dart`.
+  in `packages/compendium_core/lib/src/search/collection_search_state.dart`
+  (`buildCollectionFilter`).
 - The picker rows show "called ×N" and "in program ×N", but not when or where
   (`app/lib/src/widgets/collection_picker.dart`,
   `DanceListTile`'s `called-count-` chip in `app/lib/src/widgets/dance_list_tile.dart`).
@@ -467,7 +468,7 @@ These hold on every surface.
 
 **When the panel's scopes apply:**
 - They apply only when **exactly one** of Called / Not called is chosen. With
-  neither or both chosen, `collection_query.dart` builds no `CalledFilter`,
+  neither or both chosen, `buildCollectionFilter` builds no `CalledFilter`,
   so a scope would do nothing.
 - A scope stays set when its polarity is cleared, but it goes inert. It shows the
   hint "Applies with Called or Not called", and the active count leaves it out.
@@ -488,8 +489,8 @@ These hold on every surface.
 ## Privacy and sync
 
 - **Nothing new is persisted.** Every scope and the picker chip live in session
-  state, as Called / Not called do now (`FacetSelections`,
-  `collection_query.dart:50`). No settings key, column, registry entry or record
+  state, as Called / Not called do now (`FacetSelections`, in
+  `packages/compendium_core/lib/src/search/collection_search_state.dart`). No settings key, column, registry entry or record
   kind, so §6.6 and §6.15 have nothing to gate.
 - **`collection_tile_visible_fields` gains a value** (Q4). It is already
   `_preference`: non-personal, about the app user, shareable

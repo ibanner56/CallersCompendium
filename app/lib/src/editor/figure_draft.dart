@@ -662,6 +662,13 @@ class FigureDraft {
       !isContainerDraft &&
       note.trim().isNotEmpty;
 
+  /// Whether Save writes this row as a figure (or keeps its note as one), so
+  /// that its beats count towards where the figures after it start. A row
+  /// with no move and no note, a group short of two sides, or a modifier group
+  /// with a blank core builds no figure, and counting its beats would put a
+  /// figure the saved dance lacks into the count.
+  bool get savesAsFigure => toFigure() != null || keepsNoteWithoutMove;
+
   /// Whether Save leaves this row out although it is more than a blank row
   /// (AUTH-2): a group that is not complete (a meanwhile, modifier or sequence
   /// with fewer than two of its figures filled in, a modifier group with no
@@ -984,4 +991,16 @@ class CompoundPlaceholder {
     args: Map<String, Object?>.of(args),
     beats: beats,
   );
+}
+
+/// The beat at which a figure placed after [drafts] starts: the beats of the
+/// rows Save writes as figures ([FigureDraft.savesAsFigure]), as
+/// `deriveSections` counts the saved figures. A bar range in an English dance
+/// whose phrases differ in beats per bar counts from here (#2303).
+int figureStartBeat(Iterable<FigureDraft> drafts) {
+  var beat = 0;
+  for (final draft in drafts) {
+    if (draft.savesAsFigure) beat += draft.beats;
+  }
+  return beat;
 }

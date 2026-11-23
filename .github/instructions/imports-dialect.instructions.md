@@ -32,7 +32,8 @@ Run the ratchet yourself whenever you change a move's params:
 or `python3 tools/preflight.py`, which runs it along with everything else.
 
 Every `Figure(...)` in either suite must be valid under the shipped taxonomies
-(`shippedTaxonomies.anyForm`: contra's moves, and ECD's `ecd_` moves), routed
+(`shippedTaxonomies.anyForm`: contra's moves, ECD's `ecd_` moves and the
+squares' `sq_` calls), routed
 through `testFigure` (which validates at run time, for fixtures built from
 variables), or marked `// invalid-fixture: <reason>`. The marker is checked in
 both directions: one that introduces no fixture is a stale claim the next fixture

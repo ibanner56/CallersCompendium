@@ -1,0 +1,18 @@
+{
+  "id": "2364-ecd-bars-by-phrase",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "In an English dance whose phrases have different beats to the bar, such as an A in 3/4 and a B in 6/8, a typed or re-checked bar range such as \"1-4 circle left\" counts each bar by the phrase it falls in, from where the line is placed, instead of by one beats-to-the-bar count for the whole dance. Convert English dances counts it the same way."
+    ]
+  },
+  "core": {
+    "added": [
+      "`BarTiming` counts a bar range from a start beat, each bar as long as the phrase it starts in; `PhraseStructure.hasMixedMeter` tells whether a structure's phrases differ in beats per bar.",
+      "`ecdBarCount`, `parseEcdFigureLine` and `parseFreeTextFigureEntry` take a `timing` and a `startBeat`."
+    ],
+    "changed": [
+      "`reparseImportGapFigures` and so `migrateEcdDance` count a bar range from where its figure starts, as re-read, when the phrase structure's phrases differ in beats per bar."
+    ]
+  }
+}

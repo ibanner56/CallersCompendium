@@ -126,6 +126,8 @@ Map<String, Object?> archiveDanceToJson(
   // [archiveSchemaVersionEcdDanceFields].
   if (d.meter.isNotEmpty) 'meter': d.meter,
   if (d.musicalKey.isNotEmpty) 'musicalKey': d.musicalKey,
+  if (d.alternateTitles.isNotEmpty) 'alternateTitles': d.alternateTitles,
+  if (d.barnesReference.isNotEmpty) 'barnesReference': d.barnesReference,
   'status': d.status.name,
   if (includeOptionalFields || d.difficultyLevelId != null)
     'difficultyLevelId': d.difficultyLevelId,
@@ -186,6 +188,8 @@ Map<String, Object?> archiveDanceToJson(
 const Map<String, Object?> omittedDanceDefaults = {
   'meter': '',
   'musicalKey': '',
+  'alternateTitles': <String>[],
+  'barnesReference': '',
   'interpreterIds': <String>[],
   'interpretedOn': null,
 };

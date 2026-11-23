@@ -6574,6 +6574,96 @@ abstract class AppLocalizations {
   /// **'e.g. G minor'**
   String get danceEditorMusicalKeyHint;
 
+  /// Label of the dance editor field for other names the dance is known by, entered one per line.
+  ///
+  /// In en, this message translates to:
+  /// **'Other titles'**
+  String get danceEditorAlternateTitlesLabel;
+
+  /// Helper text under the dance editor's other-titles field: enter one title per line, and a title search finds the dance by any of them.
+  ///
+  /// In en, this message translates to:
+  /// **'One per line. A title search finds the dance by any of them.'**
+  String get danceEditorAlternateTitlesHelper;
+
+  /// Label of the dance editor field for where the dance's tune is printed in the Barnes books (a set of English country dance tune books), as free text with the book and page in one value.
+  ///
+  /// In en, this message translates to:
+  /// **'Barnes reference'**
+  String get danceEditorBarnesReferenceLabel;
+
+  /// Hint in the dance editor's Barnes field: examples of a Barnes book reference. 'BIII p. 92' is book III, page 92; 'NiB' means Not in Barnes. Keep both examples untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. BIII p. 92, or NiB'**
+  String get danceEditorBarnesReferenceHint;
+
+  /// Line under a dance's title on the dance detail screen, listing the other names the dance is known by.
+  ///
+  /// In en, this message translates to:
+  /// **'Also known as {titles}'**
+  String danceAlsoKnownAs(String titles);
+
+  /// Text placed between two of a dance's other titles in the 'Also known as' line.
+  ///
+  /// In en, this message translates to:
+  /// **'; '**
+  String get danceAlsoKnownAsSeparator;
+
+  /// Heading of the section on the dance detail screen that shows where the dance's tune is printed in the Barnes books (a set of English country dance tune books).
+  ///
+  /// In en, this message translates to:
+  /// **'Barnes books'**
+  String get danceSectionBarnes;
+
+  /// On the dance detail screen and the Perform card: the dance's authors followed by the year it was composed. {names} is the authors' names joined with commas; {year} is a four-digit year such as 1951, shown as written (not a formatted number).
+  ///
+  /// In en, this message translates to:
+  /// **'{names} ({year})'**
+  String danceAuthorsWithYear(String names, String year);
+
+  /// On the dance detail screen and the Perform card, when the dance has a composed year but no authors: the year it was composed. {year} is a four-digit year such as 1651.
+  ///
+  /// In en, this message translates to:
+  /// **'Composed {year}'**
+  String danceComposedYear(String year);
+
+  /// On the dance detail screen and the Perform card: who reconstructed (interpreted) the dance from its original source. {names} is the interpreters' names joined with commas.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted by {names}'**
+  String danceInterpretedBy(String names);
+
+  /// On the dance detail screen and the Perform card: who reconstructed (interpreted) the dance from its original source, and the year they did. {names} is the interpreters' names joined with commas; {year} is a four-digit year such as 1916.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted by {names} ({year})'**
+  String danceInterpretedByWithYear(String names, String year);
+
+  /// On the dance detail screen and the Perform card, when the dance has an interpretation year but no interpreters: the year it was reconstructed from its original source. {year} is a four-digit year such as 1916.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted {year}'**
+  String danceInterpretedYear(String year);
+
+  /// On the Perform card: where the dance's tune is printed in the Barnes books (a set of English country dance tune books), labelled. {reference} is free text the caller typed with the book and page, such as BIII p. 92 or NiB. Keep 'Barnes' as is: it is the books' name.
+  ///
+  /// In en, this message translates to:
+  /// **'Barnes: {reference}'**
+  String danceBarnesValue(String reference);
+
+  /// On the dance detail screen and the Perform card: the dance's written meter (time signature), labelled. {meter} is free text the caller typed, such as 3/2 or 6/8. Shown beside the key, separated by a middle dot.
+  ///
+  /// In en, this message translates to:
+  /// **'Meter: {meter}'**
+  String danceMeterValue(String meter);
+
+  /// On the dance detail screen and the Perform card: the musical key of the dance's tune, labelled. {key} is free text the caller typed, such as G minor. Shown beside the meter, separated by a middle dot.
+  ///
+  /// In en, this message translates to:
+  /// **'Key: {key}'**
+  String danceMusicalKeyValue(String key);
+
   /// Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip.
   ///
   /// In en, this message translates to:
@@ -10180,6 +10270,36 @@ abstract class AppLocalizations {
   /// **'Save dance file…'**
   String get exportSaveDanceBundle;
 
+  /// Export-menu item: show the dance as a full-screen QR code for another caller to scan in person. The code holds the same dance file as 'Share dance file'.
+  ///
+  /// In en, this message translates to:
+  /// **'Show code'**
+  String get exportShowCode;
+
+  /// Snackbar shown when the dance could not be turned into a QR code.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t show the code. Your dance is unchanged. Try again.'**
+  String get exportShowCodeError;
+
+  /// Title bar of the full-screen view that shows a dance as a QR code (and of the notice that replaces it when the dance is too long for one).
+  ///
+  /// In en, this message translates to:
+  /// **'Dance code'**
+  String get danceCodeScreenTitle;
+
+  /// Accessible name of the QR code image on the full-screen dance code view. The code itself cannot be read aloud.
+  ///
+  /// In en, this message translates to:
+  /// **'QR code for {title}'**
+  String danceCodeSemanticLabel(String title);
+
+  /// Message shown instead of a QR code when the dance holds more than any QR code can. A button below it shares or saves the dance file.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance is too long to share as a code. Share it as a file instead.'**
+  String get danceCodeTooLong;
+
   /// Export-menu item: copy the dance's plain-text card to the clipboard.
   ///
   /// In en, this message translates to:
@@ -13462,7 +13582,7 @@ abstract class AppLocalizations {
   /// **'The timed steps of the sequence in figure {position} take {actual} beats, leaving none of its {expected} for the rest.'**
   String validationSequenceSpanNoRoom(int position, int actual, int expected);
 
-  /// Editor warning when a dance holds figures of another dance type than its own, for example after its type was changed. {danceForm} and {figureForm} are dance type names such as 'Contra' or 'English (ECD)'. {pickerForm} is the type whose figures the picker offers: the dance's own, or Contra's for a type that has no figure list of its own yet (Square).
+  /// Editor warning when a dance holds figures of another dance type than its own, for example after its type was changed. {danceForm} and {figureForm} are dance type names such as 'Contra' or 'English (ECD)'. {pickerForm} is the type whose figures the picker offers: the dance's own, or Contra's for a type that has no figure list of its own.
   ///
   /// In en, this message translates to:
   /// **'This dance is {danceForm}, but {count, plural, =1{1 figure is} other{{count} figures are}} from {figureForm}. They are kept as they are, but the figure picker offers only {pickerForm} figures.'**

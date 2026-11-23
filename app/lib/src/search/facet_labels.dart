@@ -4,6 +4,12 @@ import 'package:flutter/material.dart' show Icons;
 
 import '../../l10n/app_localizations.dart';
 
+// `figureParamChoices` and `figureParamSelectableChoices` live in
+// compendium_core (#2325) so a saved search can judge a stored figure parameter
+// by the same rule as the panel; re-exported for this file's importers.
+export 'package:compendium_core/compendium_core.dart'
+    show figureParamChoices, figureParamSelectableChoices;
+
 /// Localized labels for the facet enums, for chips and dropdowns.
 ///
 /// The facet enums live in the Flutter-free `compendium_core` package
@@ -48,6 +54,72 @@ const IconData formationIcon = Icons.table_rows_outlined;
 /// "Progression" label/tooltip. (The plain-text and PDF exports keep the
 /// typographic `¶` marker, which is a text artifact rather than a UI glyph.)
 const IconData progressionIcon = Icons.repeat;
+
+/// The dance's authors with the year it was composed, as one line for the
+/// dance detail screen and the Perform card: "Pat Shaw (1951)", the names
+/// alone without a [composedOn], "Composed 1651" without names, and null with
+/// neither. Only the year is shown, whatever else [composedOn] holds; the
+/// editor keeps the month and day.
+String? authorsWithYearLabel(
+  AppLocalizations l10n,
+  List<String> authorNames,
+  PartialDate? composedOn,
+) {
+  final names = authorNames.join(', ');
+  final year = composedOn?.year.toString();
+  return switch ((names.isEmpty, year)) {
+    (true, null) => null,
+    (false, null) => names,
+    (true, final year?) => l10n.danceComposedYear(year),
+    (false, final year?) => l10n.danceAuthorsWithYear(names, year),
+  };
+}
+
+/// Who interpreted the dance and when, as one line for the dance detail
+/// screen and the Perform card: "Interpreted by Cecil Sharp (1916)", without
+/// the year or the names when either is missing, and null with neither.
+String? interpretersWithYearLabel(
+  AppLocalizations l10n,
+  List<String> interpreterNames,
+  PartialDate? interpretedOn,
+) {
+  final names = interpreterNames.join(', ');
+  final year = interpretedOn?.year.toString();
+  return switch ((names.isEmpty, year)) {
+    (true, null) => null,
+    (false, null) => l10n.danceInterpretedBy(names),
+    (true, final year?) => l10n.danceInterpretedYear(year),
+    (false, final year?) => l10n.danceInterpretedByWithYear(names, year),
+  };
+}
+
+/// The glyph for a dance's Barnes reference (where its tune is printed in the
+/// Barnes books). Always paired with the labelled reference text.
+const IconData barnesReferenceIcon = Icons.menu_book_outlined;
+
+/// The glyph for a dance's tune details (meter and key). Always paired with
+/// the labelled [meterAndKeyLabel] text, never shown alone.
+const IconData tuneDetailsIcon = Icons.music_note_outlined;
+
+/// A dance's meter and key as one labelled line, such as
+/// "Meter: 6/8 · Key: G minor", for the dance detail screen and the Perform
+/// card. Either part is left out when blank (after trimming); null when both
+/// are. [render] is applied to each typed value, not to the labels, so a
+/// caller can pass the dance's discouraged-term rendering.
+String? meterAndKeyLabel(
+  AppLocalizations l10n,
+  Dance dance, {
+  String Function(String value)? render,
+}) {
+  final meter = dance.meter.trim();
+  final key = dance.musicalKey.trim();
+  String shown(String value) => render == null ? value : render(value);
+  final parts = [
+    if (meter.isNotEmpty) l10n.danceMeterValue(shown(meter)),
+    if (key.isNotEmpty) l10n.danceMusicalKeyValue(shown(key)),
+  ];
+  return parts.isEmpty ? null : parts.join(' · ');
+}
 
 String progressionLabel(AppLocalizations l10n, Progression p) => switch (p) {
   Progression.none => l10n.commonProgressionNone,
@@ -176,86 +248,6 @@ String humanizeToken(String token) =>
 final RegExp _camelBoundary = RegExp(
   r'(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])',
 );
-
-/// The discrete, pickable value vocabulary for a figure parameter, or `null`
-/// when the parameter has no closed vocabulary (rotation/beats/text). Used to
-/// offer optional param dropdowns on an Advanced "has figure" row.
-///
-/// `spec.choices`, when present, IS the domain — for every kind that has one.
-/// A spec may narrow its kind's fixed vocabulary, or opt into the
-/// [ParamVocab.unspecified] sentinel, and this facet must offer exactly what
-/// [ParamSpec.validate] accepts and `FigureParamEditor` renders: the three are
-/// consumers of one contract and must not disagree about a param's domain
-/// (issue #726 / PR #736 taught the other two this same rule; this is the
-/// third). Offering the fixed vocabulary instead lets a search row build a
-/// filter for a value the param cannot hold — and silently drops a sentinel
-/// the user needs to search for. A spec that omits `choices` keeps exactly the
-/// kind's fixed vocabulary, i.e. today's behaviour.
-List<String>? figureParamChoices(ParamSpec spec) {
-  switch (spec.kind) {
-    case ParamKind.dancerSet:
-    case ParamKind.dancerPair:
-      return spec.choices ?? ParamVocab.dancerSets;
-    case ParamKind.handedness:
-    case ParamKind.shoulder:
-      return spec.choices ?? ParamVocab.sides;
-    case ParamKind.spinDirection:
-      return spec.choices ?? ParamVocab.spins;
-    case ParamKind.fraction:
-      return spec.choices ?? ParamVocab.fractions;
-    case ParamKind.direction:
-      return spec.choices ?? ParamVocab.directions;
-    case ParamKind.choice:
-      return spec.choices;
-    case ParamKind.rotation:
-    case ParamKind.places:
-    case ParamKind.number:
-    case ParamKind.beats:
-    case ParamKind.text:
-    case ParamKind.flag:
-    // A list of dancers (ECD's `who`): searching by one is ADR-006's W7.
-    case ParamKind.dancerList:
-      return null;
-  }
-}
-
-/// Whether [spec] admits the [ParamVocab.unspecified] sentinel, i.e. whether
-/// "the source stated nothing here" is a representable state for this param.
-bool paramAdmitsUnspecified(ParamSpec spec) =>
-    spec.choices?.contains(ParamVocab.unspecified) ?? false;
-
-/// The values a *user may pick* for a figure parameter: its [domain] minus the
-/// [ParamVocab.unspecified] sentinel.
-///
-/// Deliberately distinct from the domain. The sentinel is a real, valid value —
-/// [ParamSpec.validate] accepts it, [figureParamChoices] reports it, and the
-/// renderer knows how to emit it — but it is meaningless as something a user
-/// *chooses*: it means the SOURCE stated nothing, which is a fact about
-/// provenance, not a choreographic value anyone sets on purpose. In search it
-/// is worse than meaningless, because it sits next to "Any <param>", reads like
-/// a synonym, and filters for the near-inverse set (issue #741).
-///
-/// So the sentinel is filtered out *here*, at the presentation edge, and never
-/// in [figureParamChoices] or [ParamSpec.validate]: those two plus the editor
-/// are the three consumers of one domain contract (issue #726 / PR #746) and
-/// must not start disagreeing about what a param can hold.
-///
-/// **Do not collapse this into [figureParamChoices].** The two look like one
-/// function split for no reason — the facet calls them together and nothing
-/// else calls this one — but folding the filter into the domain function
-/// silently reintroduces the exact defect PR #746 fixed: the facet would offer
-/// LESS than the declared domain while [ParamSpec.validate] kept accepting what
-/// it no longer offered, and the figure editor would lose the value it needs to
-/// render "not stated" (see `FigureParamEditor._dropdown`, which reads the full
-/// domain and filters separately for exactly that reason). The guard PR #751
-/// merged asserts the domain side of that contract, so it would keep passing
-/// while the presentation side rotted. One function answers "what may this
-/// param hold?"; the other answers "what may a user pick?" — and #741 exists
-/// because those had been treated as the same question.
-List<String> figureParamSelectableChoices(List<String> domain) => [
-  for (final choice in domain)
-    if (choice != ParamVocab.unspecified) choice,
-];
 
 /// Human-readable label for a figure parameter's KEY (`meetTarget` -> "meet
 /// target"), for field labels and the facet's "Any <param>" option.

@@ -1266,7 +1266,13 @@ recommendation; the answer is quoted.
    version. Answer: "Go with your recommendation." They are stored as
    `Dance.interpreterIds` and `Dance.interpretedOn` (storage.md, v42). The
    dance editor shows them, with the Composed date, beside the authors for
-   an English dance, and in More details for other forms.
+   an English dance, and in More details for other forms. On 22 November
+   2026 the maintainer added: "ECD composed/interpreted is a year. No one
+   needs month/day granularity. If possible, have author + year share a
+   line, as well as interpreted + year." So for an English dance the editor
+   takes both dates as a year, each beside its names where the screen has
+   room. The stored type is unchanged (a year is a partial date), and a
+   month and day already stored stay until the year is edited.
 8. **Named phrases** (20 November 2026). ECD music is not always the
    standard A1 A2 B1 B2: the maintainer's cards give bars per phrase and
    say whether a phrase repeats ("A=4, B=4, C=8", or "A=4, B=8" with an A1,
@@ -1287,6 +1293,25 @@ recommendation; the answer is quoted.
    capability, no archive version, no published-collection capability).
    Rejected: a sync capability that holds such dances back until every
    attached device can read them.
+9. **Other titles and the Barnes reference** (22 November 2026). After a
+   comparison with another ECD collection, the maintainer answered:
+   "Alternate titles would be useful generally", and asked for "a
+   free-text field tracking the book and page number for each dance (in
+   one field)" for where a dance's tune is printed in the Barnes books
+   ("BIII p. 92" is book III, page 92; "NiB" is Not in Barnes). Both are
+   stored for every dance form, not only ECD: `dances.alternate_titles`
+   (plain text, one title per line) and `dances.barnes_reference` (free
+   text), joining the unreleased v42 schema and archive v8. Implementer's
+   calls, not yet ratified: one title per line rather than a JSON list, so
+   a stored value can never fail to decode; at most 20 other titles of 512
+   characters each, held by every dance (the editor stops at them, so a
+   synced or restored copy never differs from the one saved), and 100
+   characters of Barnes reference; a fresh-attach sync merge unions other titles and takes
+   the latest copy's Barnes reference; the choreography fingerprint
+   ignores both, so a build from before them agrees on duplicates; the
+   Title search scope reads other titles and All fields reads both. Also
+   answered: a 4/4 bar keeps counting four beats, and an
+   import from that collection waits for the ECDDB import.
 
 ### 9.3 Figures from a caller's notes
 
@@ -1413,7 +1438,7 @@ error we are most likely to make without help.
 
 The maintainer made these decisions on 19 November 2026, on the same
 decision sheet as §9, about how the app stores and shows ECD dances. Some
-draw on the requirements for squares in ADR-007, which is still a proposal,
+draw on the requirements for squares in ADR-007, which was then a proposal,
 so that both forms behave the same way. The goal they serve is the
 maintainer's: the app supports ECD choreography and programming as fully as
 it supports contra, and a caller can program a night that mixes the two, or

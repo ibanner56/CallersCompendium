@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/collection_facets_scope.dart';
-import 'package:compendium_app/src/search/collection_query.dart';
 
 import '../support/facet_selection_table.dart';
 

@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
 import 'package:compendium_app/src/data/user_figures_scope.dart';
-import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/widgets/advanced_query_builder.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';

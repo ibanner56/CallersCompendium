@@ -8,6 +8,7 @@ import '../taxonomy/gate_facing.dart';
 import '../taxonomy/move_def.dart';
 import '../taxonomy/param_opposites.dart';
 import '../taxonomy/param_types.dart';
+import '../taxonomy/square_taxonomy.dart' show squareRoleTokenWords;
 import '../taxonomy/taxonomy.dart';
 import '../taxonomy/user_figure_definition.dart';
 import '../taxonomy/user_figure_use.dart';
@@ -2076,7 +2077,9 @@ class FigureRenderer {
     if (single != null) return single;
     final substitution = dialect.dancers[token];
     if (substitution != null) return substitution;
-    return _singularDancerSets[token] ?? _humanize(token);
+    return _singularDancerSets[token] ??
+        _squareRoleWords(token, dialect) ??
+        _humanize(token);
   }
 
   /// DISPLAY-ONLY rendering of a dancer/role [token] as a PLURAL group noun,
@@ -2288,7 +2291,7 @@ class FigureRenderer {
       final substitution = dialect.dancers[token];
       if (substitution != null) return substitution;
     }
-    return _humanize(token);
+    return _squareRoleWords(token, dialect) ?? _humanize(token);
   }
 
   static String _applyMoveSubstitution(
@@ -2404,8 +2407,16 @@ class FigureRenderer {
     }
     if (value is num) return _formatNumber(value);
     if (value is bool) return value ? name : '';
-    return _humanize(value.toString());
+    return _squareRoleWords(value.toString(), dialect) ??
+        _humanize(value.toString());
   }
+
+  /// The words of a square token that names a role ("head larks" or
+  /// "lark's place" with larks and robins; ADR-007 §5.5), with the dialect's
+  /// role terms, or null
+  /// for any other token. Under the canonical dialect the role token stays.
+  static String? _squareRoleWords(String token, Dialect dialect) =>
+      squareRoleTokenWords(token, (role) => _roleTerm(role, dialect));
 
   /// Formats swing's `prefix` choice as a modifier that reads naturally in
   /// front of the move name in the render template `{who} {prefix} {move}`:

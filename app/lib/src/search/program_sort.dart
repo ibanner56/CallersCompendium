@@ -6,7 +6,7 @@ import 'package:compendium_core/compendium_core.dart';
 /// be imported by the Settings ▸ Defaults picker without pulling in the
 /// 600+-line Programs list screen (and, transitively, the import screens,
 /// the editor, and `flutter_slidable`) — mirrors the existing
-/// `search/collection_query.dart` split for `CollectionSort` (a dartdoc
+/// `CollectionSort` split (`collection_sort.dart` in compendium_core; a dartdoc
 /// `[...]` link to it would not resolve from this file, which does not
 /// import that library).
 enum ProgramSort {
@@ -28,7 +28,7 @@ enum ProgramSort {
 ///
 /// Returns `null` — so callers fall back to their historical default
 /// (`title`) — for `null`, a non-string, or an unrecognized name. Mirrors
-/// `collectionSortFromName` in `collection_query.dart`.
+/// `collectionSortFromName` in compendium_core's `collection_sort.dart`.
 ProgramSort? programSortFromName(Object? stored) {
   if (stored is! String) return null;
   for (final sort in ProgramSort.values) {

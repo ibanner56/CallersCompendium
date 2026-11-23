@@ -42,7 +42,8 @@ searchKeywords: [allemande, almond]
   migrations. Stored figures carry `schemaVersion` so old data always parses.
 - **Each form's taxonomy is chosen by `TaxonomyRegistry`**
   (`shippedTaxonomies`). Contra's owns every move ID with no prefix; another
-  form's IDs all carry its prefix (`ecd_`, ADR-006 §5.1), so a stored ID names
+  form's IDs all carry its prefix (`ecd_`, ADR-006 §5.1; `sq_`, ADR-007
+  §5.1), so a stored ID names
   the taxonomy that defines it. `forForm(form)` is what a dance of that form
   is edited and checked with (the form's own taxonomy over contra's, or
   contra's alone while the form has none); `anyForm` reads a stored figure of
@@ -69,6 +70,17 @@ searchKeywords: [allemande, almond]
   it. An ECD sequence may carry one span for steps with no timing of their
   own (`ecdSequenceSpanIssue`, ADR-006 §5.5). The containers and `custom`
   stay shared and unprefixed.
+- **Traditional squares have their own taxonomy** (`squareTaxonomy`,
+  `square_taxonomy.dart`): ADR-007 §7.1's traditional core, stored under
+  `sq_` IDs whose stems follow their contra namesakes. Its `who` is a single
+  `dancerSet` token from ADR-007 §6.2's selectors (`squareSelectors`), and
+  every `who`, `whom`, hand and amount a source can leave out defaults to
+  `unspecified`; the editor's starting values are `entryDefault`s (everyone,
+  a swing's partner, an allemande's corner). Its templates are contra-style.
+  A selector that names a role (`headRole1s`, `rightHandRole2`) shows the
+  dialect's role term (`squareRoleSelectorWords`). `squareCallPrograms`
+  records which calls CALLERLAB also lists, for a glossary label (ADR-007
+  §5.2) that nothing shows yet.
 - **Aliases** are entries that resolve to a canonical move with pinned params
   (seesaw → dosido{shoulder: left}; swat the flea → box the gnat{hand:
   left}; long lines → forward and back{formation: longLines}). A structured
@@ -647,7 +659,7 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
     closed.** All three consumers of the kind + `choices` contract now read
     `spec.choices ?? <fixed vocabulary>`: the figure param editor
     (`figure_param_editors.dart`) and `ParamSpec.validate` (#726), and the
-    Advanced-search facet (`facet_labels.dart`'s `figureParamChoices`, PR
+    Advanced-search facet (`figure_param_domain.dart`'s `figureParamChoices`, PR
     #746). A sentinel on a typed kind is offered, stored and validated
     correctly.
     The corollary: declaring a param `ParamKind.choice` **purely** so it can
@@ -2397,6 +2409,40 @@ instead, which the gate cannot see.
     of `ecd_gate` that pins nothing, with `listedAsMove`, as contra's
     `hand_cast` is. v1 had not shipped in a release tag, so it was amended in
     place rather than bumped (CONTRIBUTING.md "Versioned formats").
+
+### Square taxonomy versions
+
+`squareTaxonomyVersion` (`square_taxonomy.dart`) is the same kind of
+documentary marker for the traditional square taxonomy (ADR-007), logged here.
+
+**Every bump appends an entry here, in the same PR.**
+`tools/ci/check_version_history.py` fails a PR that moves the constant without
+a `- vN` entry under this heading; a contra or ECD entry does not count. A
+change added to a version that has not shipped yet amends that version's entry
+instead, which the gate cannot see.
+
+- v1: ADR-007 §7.1's traditional core: 19 calls under `sq_` IDs, whose stems
+    follow their contra namesakes (`sq_pass_through`, `sq_do_si_do`), and the
+    aliases `sq_allemande_left`, `sq_allemande_right`, `sq_see_saw`,
+    `sq_u_turn_back` and `sq_backtrack`. "Gypsy" reads as a shoulder round,
+    as it does for contra, and no square keyword is another form's move name
+    or a phrase another form's text says (such as "single file"), so a
+    search over every form reads those as before. The selectors are
+    ADR-007 §6.2's (`squareSelectors`); a selector or destination that names
+    a role (`headRole1s`, `rightHandRole2`, `role1Place`) shows the dialect's
+    role term. `ParamBeats.rules` lets a count follow more than one parameter
+    (a circle's size and fraction). A chain states `where` (across, along
+    the line), a `fraction` (8 across, 10 three quarters round the set, 16
+    over and back) and a power turn; a separate whom it goes `around` (one
+    or two); a circle or star a `size` from two to eight dancers, three
+    included. `squareCallPrograms`
+    labels the calls
+    CALLERLAB also lists. Migration: no stored figure changes. A dance that
+    already held `sq_` IDs was indexed while they were unknown, so a one-time
+    canonical/FTS rebuild runs, guarded by
+    `squareTaxonomyCanonicalRebuildDoneKey`. **Older devices.** A build without
+    this taxonomy shows an `sq_` figure as an unknown move and keeps it as it
+    is (ADR-007 §5.1).
 
 ## Open questions (to resolve during implementation, with user input)
 

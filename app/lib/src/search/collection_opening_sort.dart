@@ -1,7 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 
 import '../data/display_defaults.dart';
-import 'collection_query.dart';
 
 /// Reads the sort and direction a Collection-style list opens in, from
 /// Settings ▸ Defaults ▸ **Collection sort order** (ROADMAP G.6a).

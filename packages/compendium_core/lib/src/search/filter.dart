@@ -49,8 +49,10 @@ class NotFilter extends DanceFilter {
 }
 
 /// The local full-text scope. [omni] preserves the historical canonical
-/// cross-field search and adds a raw-title fallback; [title] and [figure]
-/// restrict matching to one derived column each; [author] matches the
+/// cross-field search and adds a raw-title fallback; [title] matches the
+/// title column and the dance's other titles (`dances.alternate_titles`,
+/// accents folded); [figure] restricts matching to one derived column;
+/// [author] matches the
 /// `authors` column and the names of the dance's interpreters, accents
 /// folded.
 enum FullTextScope { omni, title, author, figure }
@@ -328,6 +330,23 @@ class VenueKey {
   }
 
   const VenueKey._typed(String this.typedVenue) : venueId = null;
+
+  /// The key a [storageKey] string names, or null when it is not one: no
+  /// `id:`/`text:` prefix, a blank rest, or a `text:` rest that is not already
+  /// folded (a stored key is always folded, so one that is not was not written
+  /// by [storageKey]). Never throws.
+  static VenueKey? fromStorageKey(String key) {
+    if (key.startsWith('id:')) {
+      final id = key.substring(3);
+      return id.trim().isEmpty || id != id.trim() ? null : VenueKey.record(id);
+    }
+    if (key.startsWith('text:')) {
+      final text = key.substring(5);
+      if (callingHistoryVenueText(text) != text) return null;
+      return VenueKey._typed(text);
+    }
+    return null;
+  }
 
   /// The key of a program with this linked [venueId] and typed [venue], or
   /// null when it has neither. A linked record wins over the typed text.

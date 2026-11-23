@@ -1,9 +1,11 @@
 /// Bar counts in English Country Dance lines (ADR-006 W6): ECD notation
 /// counts a figure in bars of the tune (`1-4 partners set and turn single`),
 /// not in beats. A leading bar range is the line's count, turned into beats by
-/// the dance's meter (Hudson, 19 November 2026: "the meter is the rule").
+/// the dance's meter (Hudson, 19 November 2026: "the meter is the rule"), or,
+/// where its phrases differ in beats per bar, by the phrase each bar falls in.
 library;
 
+import '../model/bar_timing.dart';
 import '../model/phrase_structure.dart';
 
 /// How many beats one bar of [meter] holds, and whether [meter] stated it.
@@ -39,9 +41,13 @@ int? _beatsPerBar(String topText, String bottomText) {
 /// one ([ecdBeatsPerBar]), else the beats per bar of [structure] when its parts
 /// all agree (a `4*8*3` tune is read as `3/4`), else [meter] as it is.
 ///
-/// The meter is the rule (Hudson, 19 November 2026); the phrase structure is
-/// the fallback, so the editor's bar timing and a typed or re-checked bar range
-/// count a bar the same way.
+/// The meter is the rule (Hudson, 19 November 2026) for a structure whose
+/// parts agree; the phrase structure is the fallback, so the editor's bar
+/// timing and a typed or re-checked bar range count a bar the same way. A
+/// structure whose parts differ in beats per bar is counted by
+/// [BarTiming.byPhrase] (#2303) where a caller gives [ecdBarCount] that
+/// `timing`; this function is then not asked, and still returns a stated
+/// meter for it.
 String ecdMeterForBars(String? meter, PhraseStructure structure) {
   if (ecdBeatsPerBar(meter).stated) return meter!;
   final perBar = {for (final c in structure.components) c.beatsPerBar};
@@ -129,19 +135,30 @@ final RegExp _barRange = RegExp(
 /// [several] ranges ([splitEcdBarRange]). Null when [line] starts with no
 /// range, or its count would be over 64 beats.
 ///
+/// With [timing] (a dance whose phrases differ in beats per bar, #2303) the
+/// bars are instead counted from [startBeat], where the line starts, each as
+/// long as the phrase it starts in, and [meter] is not read: the range's
+/// numbers give how many bars, not where they sit.
+///
 /// A line of several ranges names several figures, so the parsers keep it
 /// whole as text, with the count of all its ranges; when that would be over
 /// 64 beats, with its first range's count, as a line of one range would be.
 ({int beats, String rest, bool several})? ecdBarCount(
   String line, {
   String? meter,
+  BarTiming? timing,
+  int startBeat = 0,
 }) {
   final range = splitEcdBarRange(line);
   if (range == null) return null;
   final perBar = ecdBeatsPerBar(meter).beatsPerBar;
-  var beats = range.bars * perBar;
+  // With phrases that differ in beats per bar, the bars are counted from where
+  // the line sits, each as long as the phrase it falls in.
+  int beatsOf(int bars) =>
+      timing?.beatsForHalfBars(startBeat, bars * 2) ?? bars * perBar;
+  var beats = beatsOf(range.bars);
   // Ranges that run past the beats range keep the first one's count.
-  if (beats > _maxBeats) beats = range.firstBars * perBar;
+  if (beats > _maxBeats) beats = beatsOf(range.firstBars);
   if (beats > _maxBeats) return null;
   return (beats: beats, rest: range.rest, several: range.several);
 }

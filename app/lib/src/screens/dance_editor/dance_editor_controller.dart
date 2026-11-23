@@ -58,6 +58,8 @@ class DanceEditorController extends ChangeNotifier {
        formationDetailController = _lingo(dialects),
        meterController = _lingo(dialects),
        musicalKeyController = _lingo(dialects),
+       alternateTitlesController = _lingo(dialects),
+       barnesReferenceController = _lingo(dialects),
        tuneController = _lingo(dialects),
        _draftKey = danceId == null
            ? danceEditorDraftKey('$kNewDanceDraftIdPrefix${uuidV4()}')
@@ -243,6 +245,14 @@ class DanceEditorController extends ChangeNotifier {
   /// [Dance.musicalKey]): free text, ADR-006 §12.1 F3.
   final LingoTextEditingController meterController;
   final LingoTextEditingController musicalKeyController;
+
+  /// Editor for the dance's other titles ([Dance.alternateTitles]), one per
+  /// line; saving drops blank lines and repeats ([normalizeAlternateTitles]).
+  final LingoTextEditingController alternateTitlesController;
+
+  /// Editor for where the tune is printed in the Barnes books
+  /// ([Dance.barnesReference]), free text.
+  final LingoTextEditingController barnesReferenceController;
   final LingoTextEditingController tuneController;
 
   /// The user's Move defaults (DD.3), by move id, which a typed line's rows
@@ -266,6 +276,8 @@ class DanceEditorController extends ChangeNotifier {
     formationDetailController,
     meterController,
     musicalKeyController,
+    alternateTitlesController,
+    barnesReferenceController,
     tuneController,
     ...customTextControllers.values,
   ];
@@ -332,6 +344,15 @@ class DanceEditorController extends ChangeNotifier {
   final GlobalKey composedOnFieldKey = GlobalKey(debugLabel: 'composed-on');
   final GlobalKey interpretedOnFieldKey = GlobalKey(
     debugLabel: 'interpreted-on',
+  );
+
+  /// Keys for the Authors and Interpreted by pickers, so a picker keeps its
+  /// typed search text and focus when an English dance's credit line flips
+  /// between names beside the year and names above it (a window resize or a
+  /// text size change), or moves when the form changes.
+  final GlobalKey authorsPickerKey = GlobalKey(debugLabel: 'authors-picker');
+  final GlobalKey interpretersPickerKey = GlobalKey(
+    debugLabel: 'interpreters-picker',
   );
 
   /// Whether the interpretation credits (Interpreted by, Interpreted in) and
@@ -847,6 +868,8 @@ class DanceEditorController extends ChangeNotifier {
       formationDetailController.text = dance.formation.detail ?? '';
       meterController.text = dance.meter;
       musicalKeyController.text = dance.musicalKey;
+      alternateTitlesController.text = dance.alternateTitles.join('\n');
+      barnesReferenceController.text = dance.barnesReference;
       _improper = dance.formation.improper;
       _form = dance.form;
       _followForm();
@@ -1254,7 +1277,8 @@ class DanceEditorController extends ChangeNotifier {
   /// shown as they are, but this form's picker does not offer them, and the
   /// other form's checks do not apply. Null when every figure is the form's
   /// own (a form with no figures of its own uses contra's), or a custom or
-  /// structural one, which every form shares.
+  /// structural one, which every form shares, or a stand still in a square
+  /// dance.
   ValidationIssue? _otherFormFiguresWarning() {
     final ownForm = shippedTaxonomies.ownTaxonomy(_form) == null
         ? shippedTaxonomies.base.form
@@ -1270,6 +1294,11 @@ class DanceEditorController extends ChangeNotifier {
           shippedTaxonomies.anyForm.resolve(move) == null) {
         return;
       }
+      // A new dance's template rows and a new meanwhile's sides are contra's
+      // stand still in every form. Until squares get a placeholder of their
+      // own (ADR-007 §9, phase 1), a square dance does not count them, so a
+      // new square dance opens without this warning.
+      if (_form == DanceForm.square && move == 'stand_still') return;
       final form = shippedTaxonomies.formOfMoveId(move);
       if (form != ownForm) counts[form] = (counts[form] ?? 0) + 1;
     }
@@ -1328,6 +1357,8 @@ class DanceEditorController extends ChangeNotifier {
     formationDetail: formationDetailController.text,
     meter: meterController.text,
     musicalKey: musicalKeyController.text,
+    alternateTitles: alternateTitlesController.text,
+    barnesReference: barnesReferenceController.text,
     form: _form,
     formationShape: _formationShape,
     improper: _improper,
@@ -1411,6 +1442,12 @@ class DanceEditorController extends ChangeNotifier {
     if (meterController.text != s.meter) meterController.text = s.meter;
     if (musicalKeyController.text != s.musicalKey) {
       musicalKeyController.text = s.musicalKey;
+    }
+    if (alternateTitlesController.text != s.alternateTitles) {
+      alternateTitlesController.text = s.alternateTitles;
+    }
+    if (barnesReferenceController.text != s.barnesReference) {
+      barnesReferenceController.text = s.barnesReference;
     }
 
     // Enum fields.
@@ -1732,6 +1769,10 @@ class DanceEditorController extends ChangeNotifier {
     );
     final meter = meterController.text.trim();
     final musicalKey = musicalKeyController.text.trim();
+    final alternateTitles = normalizeAlternateTitles(
+      alternateTitlesController.text.split('\n'),
+    );
+    final barnesReference = barnesReferenceController.text.trim();
     final linkList = [for (final l in links) ?l.toLink()];
     final citationList = [for (final c in sourceCitations) c.toCitation()];
     final customFields = collectCustomFields();
@@ -1739,12 +1780,14 @@ class DanceEditorController extends ChangeNotifier {
     if (_original case final original?) {
       return original.copyWith(
         title: titleController.text.trim(),
+        alternateTitles: alternateTitles,
         authorIds: List.of(authorIds),
         interpreterIds: List.of(interpreterIds),
         interpretedOn: _interpretedOn,
         clearInterpretedOn: _interpretedOn == null,
         meter: meter,
         musicalKey: musicalKey,
+        barnesReference: barnesReference,
         form: _form,
         formation: formation,
         progression: _progression,
@@ -1775,11 +1818,13 @@ class DanceEditorController extends ChangeNotifier {
     return Dance(
       id: uuidV4(),
       title: titleController.text.trim(),
+      alternateTitles: alternateTitles,
       authorIds: List.of(authorIds),
       interpreterIds: List.of(interpreterIds),
       interpretedOn: _interpretedOn,
       meter: meter,
       musicalKey: musicalKey,
+      barnesReference: barnesReference,
       form: _form,
       formation: formation,
       progression: _progression,
@@ -1810,6 +1855,7 @@ class DanceEditorController extends ChangeNotifier {
   // -------------------------------------------------------------------------
 
   void setForm(DanceForm value) {
+    _fitFormationToForm(from: _form, to: value);
     _form = value;
     _followForm();
     _fitSequenceTimingToForm(figureDrafts);
@@ -1818,6 +1864,27 @@ class DanceEditorController extends ChangeNotifier {
     pushUndoNow();
     scheduleAutosave();
     _notify();
+  }
+
+  /// Starts the formation over when the dance changes to a form that does not
+  /// offer its shape: the shape becomes that form's first
+  /// ([core.offeredFormationShapes], duple minor for ECD, duple improper for
+  /// contra and the square set for a square). A shape from the old form's
+  /// list, such as contra's "Improper", would otherwise stay selected and keep
+  /// showing in the new form's list ([offeredFormationShapes]). A shape the
+  /// new form offers is kept: triple minor, Sicilian circle and other are in
+  /// both the contra and ECD lists, circle, square and other in both the ECD
+  /// and square lists, and an English dance still on a contra shape
+  /// (converted or imported before ECD's shapes) keeps it when changed back
+  /// to contra. Choosing the form the dance already has changes
+  /// nothing. [improper] is left as it is: a new dance starts proper, and an
+  /// English dance changed to contra and back keeps its checkbox. Undo
+  /// restores the old shape.
+  void _fitFormationToForm({required DanceForm from, required DanceForm to}) {
+    if (from == to) return;
+    final offered = core.offeredFormationShapes(to);
+    if (offered.contains(_formationShape)) return;
+    _formationShape = offered.first;
   }
 
   void setImproper(bool value) {
@@ -2606,6 +2673,12 @@ class DanceEditorController extends ChangeNotifier {
   /// The Meter field changed. Named phrases count their bars by it (Hudson,
   /// 19 November 2026: "the meter is the rule"), so a meter that states its
   /// beats in a bar rewrites them in each named phrase, keeping its bars.
+  ///
+  /// That includes a structure whose phrases differ in beats per bar: while the
+  /// Meter states one meter, editing it sets every named phrase to it, so the
+  /// phrases keep their own beats per bar (#2303) only where the Meter states
+  /// none or several meters ("3/4 and 6/8"). An unnamed structure is not
+  /// rewritten.
   void onMeterChanged() {
     final perBar = statedBeatsPerBar;
     final phrases = typedPhraseStructure?.namedPhrases;
@@ -2667,6 +2740,8 @@ class DanceEditorController extends ChangeNotifier {
     formationDetailController.dispose();
     meterController.dispose();
     musicalKeyController.dispose();
+    alternateTitlesController.dispose();
+    barnesReferenceController.dispose();
     tuneController.dispose();
     for (final c in customTextControllers.values) {
       c.dispose();

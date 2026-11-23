@@ -23,7 +23,6 @@ import '../models/dance_list_entry.dart';
 import '../search/called_venue_choices.dart';
 import '../search/collection_data.dart';
 import '../search/collection_opening_sort.dart';
-import '../search/collection_query.dart';
 import '../theme/app_spacing.dart';
 import 'advanced_query_builder.dart';
 import 'by_phrase_panel.dart';

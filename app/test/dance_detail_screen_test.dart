@@ -30,6 +30,7 @@ import 'package:compendium_app/src/export/json_export.dart';
 import 'package:compendium_app/src/export/share_file.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
+import 'package:compendium_app/src/widgets/dance_code_view.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/widgets/dance_export_menu.dart'
@@ -408,6 +409,131 @@ void main() {
 
     await _pumpDetail(tester, repos, 'plain');
     expect(find.text('Mixer'), findsNothing);
+  });
+
+  group('credits with years', () {
+    Future<CompendiumRepositories> withPeople() async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'a1', name: 'Pat Shaw'),
+      );
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'i1', name: 'Cecil Sharp'),
+      );
+      return repos;
+    }
+
+    testWidgets('the authors carry the composed year and the interpreters '
+        'their own line with the interpreted year', (tester) async {
+      final repos = await withPeople();
+      await repos.dances.create(
+        _dance(id: 'credits', authorIds: ['a1']).copyWith(
+          composedOn: PartialDate(1951, 3, 4),
+          interpreterIds: ['i1'],
+          interpretedOn: PartialDate(1916),
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'credits');
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('dance-detail-authors')),
+          matching: find.text('Pat Shaw (1951)'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('dance-detail-interpreters')),
+          matching: find.text('Interpreted by Cecil Sharp (1916)'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a year with no names still shows, labelled', (tester) async {
+      final repos = await withPeople();
+      await repos.dances.create(
+        _dance(id: 'years-only').copyWith(
+          composedOn: PartialDate(1651),
+          interpretedOn: PartialDate(1916),
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'years-only');
+      expect(find.text('Composed 1651'), findsOneWidget);
+      expect(find.text('Interpreted 1916'), findsOneWidget);
+    });
+
+    testWidgets('names with no years show as before, and no interpreter line '
+        'without interpreters', (tester) async {
+      final repos = await withPeople();
+      await repos.dances.create(_dance(id: 'names-only', authorIds: ['a1']));
+
+      await _pumpDetail(tester, repos, 'names-only');
+      expect(find.text('Pat Shaw'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('dance-detail-interpreters')),
+        findsNothing,
+      );
+    });
+  });
+
+  testWidgets('shows the meter and key in the header when they are set', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: 'tune').copyWith(meter: '6/8', musicalKey: 'G minor'),
+    );
+
+    await _pumpDetail(tester, repos, 'tune');
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('dance-detail-tune-details')),
+        matching: find.text('Meter: 6/8 · Key: G minor'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('shows only the key when no meter is set', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: 'key-only').copyWith(meter: '  ', musicalKey: 'D'),
+    );
+
+    await _pumpDetail(tester, repos, 'key-only');
+    expect(find.text('Key: D'), findsOneWidget);
+    expect(find.textContaining('Meter:'), findsNothing);
+  });
+
+  testWidgets('renders a discouraged term in the meter or key canonically', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: 'gypsy-key').copyWith(musicalKey: 'Gypsy'),
+    );
+
+    await _pumpDetail(tester, repos, 'gypsy-key');
+    expect(find.text('Key: Shoulder round'), findsOneWidget);
+    expect(find.textContaining('Gypsy'), findsNothing);
+  });
+
+  testWidgets('has no tune details row when neither meter nor key is set', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'no-tune'));
+
+    await _pumpDetail(tester, repos, 'no-tune');
+    expect(
+      find.byKey(const ValueKey('dance-detail-tune-details')),
+      findsNothing,
+    );
   });
 
   testWidgets('renders a canonical hook under the active dialect (#613)', (
@@ -1156,8 +1282,9 @@ void main() {
       tester,
     ) async {
       // Characterisation test for the DanceExportActions extraction (CS-10b):
-      // passes before and after the move, pinning that all five compact items
-      // keep reaching the same seams. The bundle item runs the Linux Save-As
+      // passes before and after the move, pinning that the compact export items
+      // (all but Show code, which opens a screen and is tested below) keep
+      // reaching the same seams. The bundle item runs the Linux Save-As
       // branch so it is observable through `saveInvoker` without a temp dir.
       isBundleShareUnsupported = () => true;
       final repos = openTestRepositories();
@@ -1232,6 +1359,35 @@ void main() {
       expect(pdfNames, ['Narrow_Dance']);
 
       expect(shares, hasLength(1));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('the overflow Show code item opens that dance as a code', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+      final library = await buildLibrary(repos);
+      await _pumpDetail(
+        tester,
+        repos,
+        'd1',
+        surfaceSize: const Size(360, 800),
+        dialectLibrary: library,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('overflow-show-code')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DanceCodeScreen), findsOneWidget);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('dance-code-title')))
+            .data,
+        'Narrow Dance',
+      );
       expect(tester.takeException(), isNull);
     });
 
@@ -3632,6 +3788,61 @@ void main() {
 
       expect(find.textContaining("can't be read"), findsNothing);
       expect(find.byType(FigureTable), findsOneWidget);
+    });
+  });
+  group('other titles and the Barnes reference', () {
+    testWidgets('show under the title and in their own section', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Money Musk').copyWith(
+          alternateTitles: ['Monymusk', 'Sir Archibald Grant'],
+          barnesReference: 'BIII p. 92',
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(
+        find.text('Also known as Monymusk; Sir Archibald Grant'),
+        findsOneWidget,
+      );
+      expect(find.text('Barnes books'), findsOneWidget);
+      expect(find.text('BIII p. 92'), findsOneWidget);
+    });
+
+    testWidgets('a discouraged term in the Barnes reference reads '
+        'canonically', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Gypsy Dance',
+        ).copyWith(barnesReference: 'Gypsy p. 4'),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('dance-barnes-reference')))
+            .data,
+        'Shoulder round p. 4',
+      );
+    });
+
+    testWidgets('a dance without them shows neither', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Plain'));
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(
+        find.byKey(const ValueKey('dance-alternate-titles')),
+        findsNothing,
+      );
+      expect(find.text('Barnes books'), findsNothing);
     });
   });
   group('the floating Edit', () {

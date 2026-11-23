@@ -54,9 +54,11 @@ Typing `sw` and pressing Enter, for example, gives you a swing.
 
 The moves offered are those of the dance's **Type**: an English dance offers
 English figures, such as set, turn single, siding and the heys, and a contra
-dance offers contra figures. A square dance has no figures of its own yet, so
-it offers contra's. A figure the dance already holds from another type stays as
-it is; it just isn't offered for a new row.
+dance offers contra figures, and a square dance offers square calls, such as
+promenade, allemande left, circle, chain and separate. A figure the dance
+already holds from another type stays as it is; it just isn't offered for a
+new row. Square calls are picked here for now: a line you type with
+**Free-text entry** in a square dance is still read with contra's figures.
 
 With **Free-text entry** on, **Add figure** opens **Type a figure** instead: one
 box that takes a whole line and offers no move suggestions. Press Enter and the
@@ -102,7 +104,16 @@ formation, two in a duple minor and three in a triple minor. A line that
 starts with a bar range (`1-4 partners set and turn single`, `(5-8) circle
 left`, `A1 1-8 lead up`) counts those bars by the dance's **Meter**: `1-4` is
 8 beats in 2/2 and 12 in 3/2 or 3/4. With no meter, a bar counts the beats
-of the phrase structure, as the **Bars** field does.
+of the phrase structure, as the **Bars** field does. Where the phrase
+structure's phrases differ in beats per bar (`A:2*4*3 + B:1*8*2`, an A in 3/4
+and a B in 6/8), the Meter does not decide it: each bar is as long as the
+phrase it falls in, and the bars count from where the line is placed in the
+dance (this holds for a Meter that names none or several meters, such as
+"3/4 and 6/8"; while the Meter field states one meter, editing it sets every
+named phrase to that meter's beats to the bar), so the numbers you type give how many bars, not where they sit. In that
+example `1-4` placed first is 12 beats, and `9-12` placed after the two A
+phrases is 8. A line that runs across the change counts each bar by its own
+phrase.
 The bars are the count. A line that also states a count in beats
 (`1-4 (6) circle left`) is kept as you typed it, with the bars' count, so you
 can see the two disagree and fix whichever is wrong. A line with several bar
@@ -610,8 +621,10 @@ move's usual length; **Undo** puts them back.
 If a dance holds figures of another type than its own, for example English
 figures in a dance you have just changed to contra, **Warnings** says how
 many. They are kept and shown as they are, but the figure picker offers only
-the dance's own type's figures (contra's, for a square dance, which has no
-figure list of its own yet).
+the dance's own type's figures. Imports and **Free-text entry** still read a
+square dance's lines as contra figures, so a square typed or imported that
+way shows this warning; a **stand still** row, such as those a new dance
+starts with, isn't counted.
 
 ### Keep an eye on the beats
 
@@ -645,13 +658,18 @@ nothing in it to lose.
 - **Authors** — the [author](./glossary.md#author) or authors of the dance.
   Type to find an existing author or create a new one.
 - For an **English (ECD)** dance, the credits for its original and its
-  interpretation come next: **Composed**, **Interpreted by** and
-  **Interpreted in**. Many English dances were published long ago and
-  reconstructed later, as in "Walsh, 1731, Pat Shaw version": put the
-  original's author or publisher in **Authors** and its year in **Composed**, and
-  the person who reconstructed it, and when, in the other two. **Interpreted
-  by** draws on the same list of people as **Authors**. For other types these
-  three fields are in **More details**.
+  interpretation come next, each as names with a year beside them: **Authors**
+  with **Composed**, then **Interpreted by** with **Interpreted in**. Many
+  English dances were published long ago and reconstructed later, as in
+  "Walsh, 1731, Pat Shaw version": put the original's author or publisher in
+  **Authors** and its year in **Composed**, and the person who reconstructed
+  it, and the year, in the other two. On a narrow screen, or with large text,
+  each year goes under its names. **Interpreted by** draws on the same list of
+  people as **Authors**. For other types the dates and **Interpreted by** are in **More
+  details**, where a date can also have a month and day. The dance's detail
+  view and its Perform card show each year beside its names, such as
+  *Pat Shaw (1951)* and *Interpreted by Cecil Sharp (1916)*; they show only
+  the year of a date that has a month and day.
 - **Type** — **Contra**, **English (ECD)**, or **Square**. It sets the icon on
   the dance's row in your collection and what the **Type** filter finds. A new
   dance starts with your default type (see
@@ -661,7 +679,13 @@ nothing in it to lose.
   anything worth adding in words. An English dance offers English formations,
   such as duple minor, triple minor and three-couple longways, with a
   **Starts improper** checkbox; leave it unchecked for a dance that starts
-  proper.
+  proper. A square offers **Square**, **Circle** for a big-circle dance such
+  as a running set, and **Other**. Changing the type to one whose list
+  doesn't have the dance's formation starts the formation over: on **Duple
+  minor** for English, **Improper** for contra, and **Square** for a square.
+  A formation both lists have, such as triple minor between contra and
+  English or circle between English and square, is kept. Undo brings the
+  old formation back.
 - **Mixer** — tick this when the dance is a
   [mixer](./glossary.md#mixer): one where you change partners each time through.
   It's kept separate from the formation, because a mixer can be danced in many
@@ -687,7 +711,12 @@ nothing in it to lose.
   Japanese, `AAB（A 4小節、B 8小節）`).
 - **Meter** and **Key** — the tune's written meter, such as `3/2`, and its key,
   such as `G minor`, in your own words. They sit here for an English dance and
-  in **More details** for other types.
+  in **More details** for other types. The dance's detail view and its Perform
+  card show them on one line, such as *Meter: 6/8 · Key: G minor*.
+- **Barnes reference** — where the tune is printed in the Barnes books, book and
+  page in one line, such as `BIII p. 92`, or `NiB` when it is not in them. It
+  sits under **Meter** and **Key**. The dance's detail view shows it under
+  **Barnes books**, and its Perform card as *Barnes: BIII p. 92*.
 
 ### Notes
 
@@ -730,12 +759,13 @@ updates the default used everywhere.
 
 | Field | Notes |
 |---|---|
+| **Other titles** | Other names the dance goes by, one per line; the dance page shows them under the title, and searching by **Title** finds them |
 | **Level** and **Status** | How hard it is, and where it is in your workflow |
 | **Mixed level** | For dances that span the difficulty scale |
 | **Rating** | Your own star rating, with **Clear rating** to unset it |
-| **Composed** / **Revised** | A year, optionally with a month and day; Composed is up front for an English dance |
-| **Interpreted by** / **Interpreted in** | Who reconstructed the dance from its original, and when; up front for an English dance |
-| **Meter** / **Key** | The tune's written meter and key; up front for an English dance |
+| **Composed** / **Revised** | A year, optionally with a month and day; for an English dance, Composed is a year, up front beside the authors |
+| **Interpreted by** / **Interpreted in** | Who reconstructed the dance from its original, and when; for an English dance, up front, with Interpreted in as a year beside the names |
+| **Meter** / **Key** / **Barnes reference** | The tune's written meter and key, and where it is printed in the Barnes books; up front for an English dance |
 | **Tags** | Your own labels |
 | **Tunes** | Tunes you like with this dance |
 | **Links** | A URL with an optional label, marked **Source**, **Video**, or **Other** |

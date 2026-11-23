@@ -4272,6 +4272,70 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceEditorMusicalKeyHint => 'ex. sol mineur';
 
   @override
+  String get danceEditorAlternateTitlesLabel => 'Autres titres';
+
+  @override
+  String get danceEditorAlternateTitlesHelper =>
+      'Un par ligne. La recherche par titre trouve la danse sous chacun d’eux.';
+
+  @override
+  String get danceEditorBarnesReferenceLabel => 'Référence Barnes';
+
+  @override
+  String get danceEditorBarnesReferenceHint => 'ex. BIII p. 92, ou NiB';
+
+  @override
+  String danceAlsoKnownAs(String titles) {
+    return 'Aussi appelée $titles';
+  }
+
+  @override
+  String get danceAlsoKnownAsSeparator => ' ; ';
+
+  @override
+  String get danceSectionBarnes => 'Recueils Barnes';
+
+  @override
+  String danceAuthorsWithYear(String names, String year) {
+    return '$names ($year)';
+  }
+
+  @override
+  String danceComposedYear(String year) {
+    return 'Composée en $year';
+  }
+
+  @override
+  String danceInterpretedBy(String names) {
+    return 'Interprétée par $names';
+  }
+
+  @override
+  String danceInterpretedByWithYear(String names, String year) {
+    return 'Interprétée par $names ($year)';
+  }
+
+  @override
+  String danceInterpretedYear(String year) {
+    return 'Interprétée en $year';
+  }
+
+  @override
+  String danceBarnesValue(String reference) {
+    return 'Barnes : $reference';
+  }
+
+  @override
+  String danceMeterValue(String meter) {
+    return 'Mesure : $meter';
+  }
+
+  @override
+  String danceMusicalKeyValue(String key) {
+    return 'Tonalité : $key';
+  }
+
+  @override
   String get commonMixedLevel => 'Niveau mixte';
 
   @override
@@ -6818,6 +6882,25 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get exportSaveDanceBundle => 'Enregistrer le fichier de danse…';
+
+  @override
+  String get exportShowCode => 'Afficher le code';
+
+  @override
+  String get exportShowCodeError =>
+      'Impossible d’afficher le code. Votre danse est inchangée. Réessayez.';
+
+  @override
+  String get danceCodeScreenTitle => 'Code de la danse';
+
+  @override
+  String danceCodeSemanticLabel(String title) {
+    return 'Code QR de $title';
+  }
+
+  @override
+  String get danceCodeTooLong =>
+      'Cette danse est trop longue pour être partagée sous forme de code. Partagez-la plutôt comme fichier.';
 
   @override
   String get exportCopyDance => 'Copier la danse';

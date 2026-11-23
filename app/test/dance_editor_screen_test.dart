@@ -70,6 +70,7 @@ Future<void> _pumpEditor(
   ThemeData? theme,
   Size surfaceSize = const Size(1200, 3200),
   Dialect? activeDialect,
+  TextScaler? textScaler,
 }) async {
   // Tall surface so the full editor form (which grew with the walkthrough
   // field, #370) lays out without the trailing controls falling beyond a
@@ -84,10 +85,18 @@ Future<void> _pumpEditor(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       theme: theme,
-      builder: (context, child) => RepositoriesScope(
-        repositories: repos,
-        child: ActiveDialectScope(notifier: notifier, child: child!),
-      ),
+      builder: (context, child) {
+        final scoped = RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(notifier: notifier, child: child!),
+        );
+        return textScaler == null
+            ? scoped
+            : MediaQuery(
+                data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+                child: scoped,
+              );
+      },
       home: Scaffold(
         body: Builder(
           builder: (context) => TextButton(
@@ -614,6 +623,29 @@ void main() {
 
     final saved = await repos.dances.getById('d1');
     expect(saved!.form, DanceForm.square);
+  });
+
+  testWidgets('type: a new dance changed to English starts on duple minor, '
+      'and its list has no contra formations', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpEditor(tester, repos);
+    expect(
+      _dropdownValue<FormationShape>(tester),
+      FormationShape.dupleImproper,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('form-field')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('English (ECD)').last);
+    await tester.pumpAndSettle();
+
+    expect(_dropdownValue<FormationShape>(tester), FormationShape.dupleMinor);
+    final formation = find.byKey(const ValueKey('formation-field'));
+    await tester.ensureVisible(formation);
+    await tester.tap(formation);
+    await tester.pumpAndSettle();
+    expect(find.text('Duple minor'), findsWidgets);
+    expect(find.text('Improper'), findsNothing);
   });
 
   testWidgets('type: a mouse click on a desktop picks another type', (
@@ -2914,6 +2946,88 @@ void main() {
       expect(saved.composedOn, PartialDate(1695));
     });
 
+    testWidgets('other titles and the Barnes reference load, and save '
+        'one title per line with blanks and repeats dropped', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Money Musk',
+        ).copyWith(alternateTitles: ['Monymusk'], barnesReference: 'NiB'),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await _expandMoreDetails(tester);
+
+      final titles = find.byKey(const ValueKey('alternate-titles-field'));
+      final barnes = find.byKey(const ValueKey('barnes-reference-field'));
+      expect(tester.widget<TextFormField>(titles).controller?.text, 'Monymusk');
+      expect(tester.widget<TextFormField>(barnes).controller?.text, 'NiB');
+
+      await tester.enterText(
+        titles,
+        'Monymusk\n\n  Sir Archibald Grant  \nMonymusk',
+      );
+      await tester.enterText(barnes, ' BIII p. 92 ');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.alternateTitles, ['Monymusk', 'Sir Archibald Grant']);
+      expect(saved.barnesReference, 'BIII p. 92');
+    });
+
+    testWidgets('other titles stop at the bounds a saved dance keeps, so '
+        'nothing typed is cut on save', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Money Musk'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await _expandMoreDetails(tester);
+
+      final titles = find.byKey(const ValueKey('alternate-titles-field'));
+      await tester.enterText(
+        titles,
+        [
+          'x' * (kMaxAlternateTitleLength + 10),
+          for (var i = 0; i < kMaxAlternateTitles + 3; i++) 'Title $i',
+        ].join('\n'),
+      );
+      await tester.pumpAndSettle();
+      final shown = tester
+          .widget<TextFormField>(titles)
+          .controller!
+          .text
+          .split('\n');
+      expect(shown, hasLength(kMaxAlternateTitles));
+      expect(shown.first, 'x' * kMaxAlternateTitleLength);
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.alternateTitles, shown);
+    });
+
+    testWidgets('the Barnes reference stops at its bound in code units, so '
+        'characters outside the Basic Multilingual Plane are not cut on '
+        'save', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Money Musk'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await _expandMoreDetails(tester);
+
+      final barnes = find.byKey(const ValueKey('barnes-reference-field'));
+      // 60 fiddles: 60 characters, 120 code units.
+      await tester.enterText(barnes, '\u{1F3BB}' * 60);
+      await tester.pumpAndSettle();
+      final shown = tester.widget<TextFormField>(barnes).controller!.text;
+      expect(shown, '\u{1F3BB}' * (kMaxBarnesReferenceLength ~/ 2));
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.barnesReference, shown);
+    });
+
     testWidgets('an interpreter is picked from the people list', (
       tester,
     ) async {
@@ -2935,6 +3049,124 @@ void main() {
       final saved = await repos.dances.getById('d1');
       expect(saved!.interpreterIds, ['pat', 'playford']);
       expect(saved.authorIds, ['playford']);
+    });
+
+    testWidgets('an English dance takes each credit as a year, beside its '
+        'names where there is room', (tester) async {
+      final repos = await withEcdDance();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      for (final (line, names, year) in [
+        ('authors-credit-line', 'author-input', 'composed-on-year'),
+        (
+          'interpreters-credit-line',
+          'interpreter-input',
+          'interpreted-on-year',
+        ),
+      ]) {
+        final inLine = find.descendant(
+          of: find.byKey(ValueKey(line)),
+          matching: find.byKey(ValueKey(year)),
+        );
+        expect(inLine, findsOneWidget);
+        // Same line: the year box starts beside the names, not under them.
+        final namesBox = tester.getRect(find.byKey(ValueKey(names)));
+        final yearBox = tester.getRect(inLine);
+        expect(yearBox.left, greaterThan(namesBox.right), reason: line);
+        expect(yearBox.top, lessThan(namesBox.bottom), reason: line);
+      }
+      // A year, with no month or day to pick.
+      expect(find.byKey(const ValueKey('composed-on-month')), findsNothing);
+      expect(find.byKey(const ValueKey('interpreted-on-day')), findsNothing);
+      expect(
+        find.text('When the dance was composed (year, or add month/day)'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('on a narrow screen an English credit year goes under its '
+        'names', (tester) async {
+      final repos = await withEcdDance();
+      await _pumpEditor(
+        tester,
+        repos,
+        danceId: 'd1',
+        surfaceSize: const Size(300, 3200),
+      );
+
+      final namesBox = tester.getRect(
+        find.byKey(const ValueKey('author-input')),
+      );
+      final yearBox = tester.getRect(
+        find.byKey(const ValueKey('composed-on-year')),
+      );
+      expect(yearBox.top, greaterThanOrEqualTo(namesBox.bottom));
+    });
+
+    testWidgets('with large text an English credit year goes under its '
+        'names, even where the system scales large sizes less', (tester) async {
+      final repos = await withEcdDance();
+      await _pumpEditor(
+        tester,
+        repos,
+        danceId: 'd1',
+        // A phone at 200% text with a nonlinear scaler, as Android 14 has:
+        // body text doubles, a large size barely grows.
+        surfaceSize: const Size(411, 3200),
+        textScaler: const _NonlinearTextScaler(),
+      );
+
+      final namesBox = tester.getRect(
+        find.byKey(const ValueKey('author-input')),
+      );
+      final yearBox = tester.getRect(
+        find.byKey(const ValueKey('composed-on-year')),
+      );
+      expect(yearBox.top, greaterThanOrEqualTo(namesBox.bottom));
+    });
+
+    testWidgets('an English credit picker keeps its typed text when its '
+        'line flips from beside the year to above it', (tester) async {
+      final repos = await withEcdDance();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      final input = find.byKey(const ValueKey('interpreter-input'));
+      await tester.enterText(input, 'Jo');
+      await tester.pumpAndSettle();
+      await tester.binding.setSurfaceSize(const Size(300, 3200));
+      await tester.pumpAndSettle();
+
+      final names = tester.getRect(input);
+      final year = tester.getRect(
+        find.byKey(const ValueKey('interpreted-on-year')),
+      );
+      expect(year.top, greaterThanOrEqualTo(names.bottom));
+      expect(tester.widget<TextField>(input).controller?.text, 'Jo');
+    });
+
+    testWidgets('an English credit keeps a stored month and day until its '
+        'year is edited, which stores the year alone', (tester) async {
+      final repos = await withEcdDance();
+      final stored = (await repos.dances.getById('d1'))!;
+      await repos.dances.update(
+        stored.copyWith(
+          composedOn: PartialDate(1695, 3, 14),
+          interpretedOn: PartialDate(1975, 6),
+        ),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      final interpreted = find.byKey(const ValueKey('interpreted-on-year'));
+      expect(tester.widget<TextField>(interpreted).controller?.text, '1975');
+      await tester.enterText(interpreted, '1976');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.dances.getById('d1'))!;
+      expect(saved.interpretedOn, PartialDate(1976));
+      // Not edited, so not rewritten.
+      expect(saved.composedOn, PartialDate(1695, 3, 14));
     });
 
     testWidgets('a contra dance keeps them in More details, with no '
@@ -3040,7 +3272,8 @@ void main() {
       await repos.settings.set(kDefaultDanceFormKey, DanceForm.square.name);
       await repos.settings.set(
         kDefaultDanceFormationShapeKey,
-        FormationShape.longways.name,
+        // A shape squares offer (ADR-007 §8.1) other than their default.
+        FormationShape.circle.name,
       );
       await repos.settings.set(
         kDefaultDanceProgressionKey,
@@ -3059,7 +3292,7 @@ void main() {
         '6*8*2',
       );
       // The seeded formation shows in the formation dropdown.
-      expect(_dropdownValue<FormationShape>(tester), FormationShape.longways);
+      expect(_dropdownValue<FormationShape>(tester), FormationShape.circle);
       // ...and the seeded type shows in the type dropdown (issue #1418).
       expect(_dropdownValue<DanceForm>(tester), DanceForm.square);
 
@@ -3072,7 +3305,7 @@ void main() {
 
       final saved = (await repos.dances.listAll()).single;
       expect(saved.form, DanceForm.square);
-      expect(saved.formation.shape, FormationShape.longways);
+      expect(saved.formation.shape, FormationShape.circle);
       expect(saved.progression, Progression.triple);
       expect(saved.phraseStructure.raw, '6*8*2');
     });
@@ -4906,4 +5139,18 @@ class _FailingDraftRemoveSettingsRepository extends SettingsRepository {
     }
     return super.remove(key, at: at, permanent: permanent);
   }
+}
+
+/// Android 14's kind of text scaling at 200%: body sizes double, while a
+/// size of 100 or more grows by only a tenth.
+class _NonlinearTextScaler extends TextScaler {
+  const _NonlinearTextScaler();
+
+  @override
+  double scale(double fontSize) =>
+      fontSize >= 100 ? fontSize * 1.1 : fontSize * 2;
+
+  @override
+  // The linear equivalent the framework asks for in a few places.
+  double get textScaleFactor => 2;
 }

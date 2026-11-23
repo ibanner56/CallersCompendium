@@ -4304,6 +4304,66 @@
   "@danceEditorMusicalKeyHint": {
     "x-sourceSha256": "f4b6292e746248db6dcdf014a506b1ebbdfa323e4761c71b7eeda3e64eb5166b"
   },
+  "danceEditorAlternateTitlesLabel": "別名",
+  "@danceEditorAlternateTitlesLabel": {
+    "x-sourceSha256": "befe494f481dc6103fe5f47704fa36dc82739c5d8b5086e57ee8e8bf39504e3b"
+  },
+  "danceEditorAlternateTitlesHelper": "1行に1つずつ。タイトル検索でどの名前からも見つかります。",
+  "@danceEditorAlternateTitlesHelper": {
+    "x-sourceSha256": "e6f92b1bba9299f59f2931c46f8c571713a7e2ae46b86773a50e42b5bcf3ed12"
+  },
+  "danceEditorBarnesReferenceLabel": "Barnes 掲載箇所",
+  "@danceEditorBarnesReferenceLabel": {
+    "x-sourceSha256": "a87089c5e6ee0a0b519cc8136c7dc9e8133ed36735490fdb09559feefdb097a5"
+  },
+  "danceEditorBarnesReferenceHint": "例: BIII p. 92、NiB",
+  "@danceEditorBarnesReferenceHint": {
+    "x-sourceSha256": "83e5191f97ef94a027c93d3356c7bd2c7947b73178d462afa2f482cc4e1717f6"
+  },
+  "danceAlsoKnownAs": "別名: {titles}",
+  "@danceAlsoKnownAs": {
+    "x-sourceSha256": "27dba4b0559050be164ca848e7b23141326a01c6b65fdbc71b9baf35e2056a83"
+  },
+  "danceAlsoKnownAsSeparator": "、",
+  "@danceAlsoKnownAsSeparator": {
+    "x-sourceSha256": "0a2d3f8f9b727cf73e6c7e44f2feefc41855195b3010a3c4f6b05c33aeb484a9"
+  },
+  "danceSectionBarnes": "Barnes 曲集",
+  "@danceSectionBarnes": {
+    "x-sourceSha256": "49a8e8a9f8339a6e0ce62b696d610c4a164ecc6268d021da155f11944946b95a"
+  },
+  "danceAuthorsWithYear": "{names}（{year}年）",
+  "@danceAuthorsWithYear": {
+    "x-sourceSha256": "9da3518c560f6302cab54100ad68898ef4e9cae6d5a57560f30b2fbe27c30bd9"
+  },
+  "danceComposedYear": "{year}年振付",
+  "@danceComposedYear": {
+    "x-sourceSha256": "3459cb5a490d4effed9e6fea7954e0706134c4ca14bd03b258008f779d325f80"
+  },
+  "danceInterpretedBy": "解釈：{names}",
+  "@danceInterpretedBy": {
+    "x-sourceSha256": "b898c976869f45e68899cf965d33ae814c64a718c85cfbfc971bd00736aa92de"
+  },
+  "danceInterpretedByWithYear": "解釈：{names}（{year}年）",
+  "@danceInterpretedByWithYear": {
+    "x-sourceSha256": "11cc4ce5a0bc38981a9ad514c0079bfceae68e28396117d9a7754bdc4eae7dd0"
+  },
+  "danceInterpretedYear": "{year}年解釈",
+  "@danceInterpretedYear": {
+    "x-sourceSha256": "bf7f2681634650c962accef31e57f40118bb171615bb7218247ef1e8fde5abee"
+  },
+  "danceBarnesValue": "Barnes：{reference}",
+  "@danceBarnesValue": {
+    "x-sourceSha256": "f139413c071e9491584997ef77bde8672284354c6fbdef4630b534fb5a3a1997"
+  },
+  "danceMeterValue": "拍子：{meter}",
+  "@danceMeterValue": {
+    "x-sourceSha256": "43c115395c78332e54a364e9a0a3c253895a121a1a2336b736f9d6cb2a690444"
+  },
+  "danceMusicalKeyValue": "調：{key}",
+  "@danceMusicalKeyValue": {
+    "x-sourceSha256": "6b357327c5acbabfff1178e4daac82bbb3fe5f0f5a86396aae46b961bb628dd1"
+  },
   "commonMixedLevel": "ミックスレベル",
   "@commonMixedLevel": {
     "x-sourceSha256": "c76f62265cdc2f4c343ae17292b236551fe66a38bb839fec2218e365ca293316"
@@ -6681,6 +6741,26 @@
   "exportSaveDanceBundle": "ダンスファイルを保存…",
   "@exportSaveDanceBundle": {
     "x-sourceSha256": "09e808c7c50eb5ca371424b818a64ba45450b29a5ae7b5522c6deb4994b3eed1"
+  },
+  "exportShowCode": "コードを表示",
+  "@exportShowCode": {
+    "x-sourceSha256": "c9eab29c97b914ff931c7618451257a68f575d2d2f2e063a0a7a1da1b92058c8"
+  },
+  "exportShowCodeError": "コードを表示できませんでした。ダンスは変更されていません。もう一度お試しください。",
+  "@exportShowCodeError": {
+    "x-sourceSha256": "2b99edb4797659fac134dbe901f9782135215e58896323bb3eba14e85f0b71a6"
+  },
+  "danceCodeScreenTitle": "ダンスのコード",
+  "@danceCodeScreenTitle": {
+    "x-sourceSha256": "8783ed47915582f0c22234101e9604e6501e6b70e37c99494b53de5220abcc83"
+  },
+  "danceCodeSemanticLabel": "{title}のQRコード",
+  "@danceCodeSemanticLabel": {
+    "x-sourceSha256": "4174abc825964302de0f02998e5d2905578b818c7a8f790751e998bcb7251088"
+  },
+  "danceCodeTooLong": "このダンスは長すぎて、コードとして共有できません。代わりにファイルとして共有してください。",
+  "@danceCodeTooLong": {
+    "x-sourceSha256": "86c81ce29026dbb79a0bac1fb2eed4b6b180d909068438030db1ea5ea701ca11"
   },
   "exportCopyDance": "ダンスをコピー",
   "@exportCopyDance": {
