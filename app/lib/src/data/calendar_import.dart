@@ -302,7 +302,12 @@ CalendarChangeOffer? _changeOffer(
   final startDiffers = c.startMinute != program.startMinute;
   final endDiffers = c.endMinute != program.endMinute;
   final title = titleDiffers && (upstream?.title ?? true);
-  final date = dateDiffers && (upstream?.date ?? true);
+  // A UTC event's fingerprint holds its UTC date, so a new start time can
+  // move the local date while the UTC date stays: judge the date from both.
+  // A floating or TZID event's date part is its local date already.
+  final date =
+      dateDiffers &&
+      (upstream == null || upstream.date || (c.startsInUtc && upstream.start));
   final venue = venueDiffers && (upstream?.venue ?? true);
   final start = startDiffers && (upstream?.start ?? true);
   final end = endDiffers && (upstream?.end ?? true);

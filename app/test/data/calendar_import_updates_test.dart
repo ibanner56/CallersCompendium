@@ -583,6 +583,30 @@ void main() {
           expect(preview.changes.where(calendarOfferVisible), isEmpty);
         });
 
+        test('an evening gig moved a day, on the same UTC date, gets its new '
+            'date as well as its new time', () async {
+          final repos = openTestRepositories();
+          // At UTC-4: 20 June 20:00-23:00.
+          await importAt(
+            repos,
+            utc('20300621T000000Z', '20300621T030000Z'),
+            west,
+          );
+          // Moved to 21 June 19:00-22:00: still 21 June in UTC.
+          final moved = utc('20300621T230000Z', '20300622T020000Z');
+          final offer = (await read(repos, moved, west)).changes.single;
+          expect((offer.date, offer.start, offer.end), (true, true, true));
+          await applyCalendarUpdates(
+            repos,
+            preview: await read(repos, moved, west),
+            accepted: {offer.program.id},
+            now: _t1,
+          );
+          final after = await _only(repos);
+          expect(after.eventDate, DateTime.utc(2030, 6, 21));
+          expect((after.startMinute, after.endMinute), (19 * 60, 22 * 60));
+        });
+
         test('a real change is offered, read in this time zone', () async {
           final repos = openTestRepositories();
           await importAt(
@@ -636,6 +660,22 @@ void main() {
           (18 * 60, 18 * 60 + 30),
           reason: 'lesson and arrival times are never touched',
         );
+      });
+
+      test('a caller\'s edited date is not offered back on a time-only change '
+          'to a floating event', () async {
+        final repos = openTestRepositories();
+        await _importNew(repos, original);
+        final p = await _only(repos);
+        await repos.programs.update(
+          p.copyWith(
+            eventDate: DateTime.utc(2030, 6, 21),
+            updatedAt: _t0.add(const Duration(hours: 1)),
+          ),
+        );
+        final later = timed('20300620', '193000', '223000');
+        final offer = (await _preview(repos, later)).changes.single;
+        expect((offer.date, offer.start, offer.end), (false, true, true));
       });
 
       test('a caller\'s edited time is not offered back when only the title '

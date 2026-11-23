@@ -595,6 +595,7 @@ class CalendarImportCandidate {
     this.venueLabel,
     this.exportedProgramId,
     this.asWritten,
+    this.startsInUtc = false,
   });
 
   /// [calendarEventKey] of the event's `UID` and recurrence id.
@@ -634,6 +635,11 @@ class CalendarImportCandidate {
   /// it, so the same event read in another time zone, or on a device in
   /// another zone that syncs the program, is not taken for a changed one.
   final ({DateTime date, int? startMinute, int? endMinute})? asWritten;
+
+  /// Whether the event starts at a `Z` (UTC) time. Then [asWritten]'s date
+  /// is the UTC date, and a change of start time alone can move the local
+  /// [date]: a change offer must judge the date from both (#2354).
+  final bool startsInUtc;
 
   /// [calendarEventFingerprint] of this event as it is now, from
   /// [asWritten]: it changes only when the event does, whatever the
@@ -824,6 +830,7 @@ CalendarImportPlan planCalendarImport(
           startMinute: writtenStart,
           endMinute: writtenEnd,
         ),
+        startsInUtc: start.isUtc && !start.isDate,
       ),
     );
   }
