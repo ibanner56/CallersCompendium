@@ -2869,6 +2869,182 @@ void main() {
         expect(find.text('1 to 1000'), findsNothing);
         expect(await savedStructure(tester, repos), 'A:2*4*2 + B:1*1000*2');
       });
+
+      // The rows a contra or square dance reads its phrase structure as
+      // (#2304); they write the text the formula field holds.
+      String? rowText(WidgetTester tester, int row, String name) => tester
+          .widget<TextField>(find.byKey(ValueKey('phrase-row-$row-$name')))
+          .controller
+          ?.text;
+
+      Future<void> setRow(
+        WidgetTester tester,
+        int row,
+        String name,
+        String text,
+      ) async {
+        final field = find.byKey(ValueKey('phrase-row-$row-$name'));
+        await tester.ensureVisible(field);
+        await tester.enterText(field, text);
+        await tester.pump();
+      }
+
+      String formulaText(WidgetTester tester) => tester
+          .widget<TextFormField>(find.byKey(const ValueKey('phrase-field')))
+          .controller!
+          .text;
+
+      testWidgets('a contra dance reads its phrase structure as rows', (
+        tester,
+      ) async {
+        final repos = await ecdDance(
+          form: DanceForm.contra,
+          phraseStructure: '2*8*2 + 2*10*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        expect(find.byKey(const ValueKey('phrase-rows')), findsOneWidget);
+        expect(rowText(tester, 0, 'phrases'), '2');
+        expect(rowText(tester, 1, 'bars'), '10');
+        expect(find.byKey(const ValueKey('named-phrases')), findsNothing);
+        expect(find.byKey(const ValueKey('named-phrases-start')), findsNothing);
+        expect(formulaText(tester), '2*8*2 + 2*10*2');
+      });
+
+      testWidgets('a row edit is the formula the field shows, and saves', (
+        tester,
+      ) async {
+        final repos = await ecdDance(
+          form: DanceForm.contra,
+          phraseStructure: '2*8*2 + 2*10*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        await setRow(tester, 1, 'bars', '9');
+        expect(formulaText(tester), '2*8*2 + 2*9*2');
+        expect(await savedStructure(tester, repos), '2*8*2 + 2*9*2');
+      });
+
+      testWidgets('saving without touching the rows keeps the text as it '
+          'was imported', (tester) async {
+        final repos = await ecdDance(
+          form: DanceForm.contra,
+          phraseStructure: '2*8*2+2*10*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        expect(await savedStructure(tester, repos), '2*8*2+2*10*2');
+      });
+
+      testWidgets('a square dance gets the rows too', (tester) async {
+        final repos = await ecdDance(
+          form: DanceForm.square,
+          phraseStructure: '6*8*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        expect(rowText(tester, 0, 'phrases'), '6');
+        await setRow(tester, 0, 'phrases', '8');
+        expect(await savedStructure(tester, repos), '8*8*2');
+      });
+
+      testWidgets('an English dance keeps its named phrases and gets no '
+          'rows', (tester) async {
+        final repos = await ecdDance();
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        expect(
+          find.byKey(const ValueKey('named-phrases-start')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('phrase-rows')), findsNothing);
+      });
+
+      testWidgets('changing an English dance to contra shows its phrases as '
+          'rows, names dropped', (tester) async {
+        final repos = await ecdDance(phraseStructure: 'A:2*4*2 + B:1*8*2');
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        expect(find.byKey(const ValueKey('phrase-rows')), findsNothing);
+        await tester.ensureVisible(find.byKey(const ValueKey('form-field')));
+        await tester.tap(find.byKey(const ValueKey('form-field')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Contra').last);
+        await tester.pumpAndSettle();
+        expect(rowText(tester, 0, 'phrases'), '2');
+        expect(rowText(tester, 0, 'bars'), '4');
+        expect(rowText(tester, 1, 'phrases'), '1');
+        expect(rowText(tester, 1, 'bars'), '8');
+      });
+
+      testWidgets('adding a row is its own undo step, and undo puts the rows '
+          'back', (tester) async {
+        final repos = await ecdDance(
+          form: DanceForm.contra,
+          phraseStructure: '3*8*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        final add = find.byKey(const ValueKey('phrase-rows-add'));
+        await tester.ensureVisible(add);
+        await tester.tap(add);
+        await tester.pump();
+        expect(formulaText(tester), '3*8*2 + 1*8*2');
+        expect(find.byKey(const ValueKey('phrase-row-1-bars')), findsOneWidget);
+        await tester.ensureVisible(find.byKey(const ValueKey('undo-button')));
+        await tester.tap(find.byKey(const ValueKey('undo-button')));
+        await tester.pump();
+        expect(formulaText(tester), '3*8*2');
+        expect(find.byKey(const ValueKey('phrase-row-1-bars')), findsNothing);
+      });
+
+      testWidgets('typing phrase names into a contra dance disables the rows '
+          'and saves nothing until it reads as it did', (tester) async {
+        final repos = await ecdDance(form: DanceForm.contra);
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        final field = find.byKey(const ValueKey('phrase-field'));
+        await tester.ensureVisible(field);
+        await tester.enterText(field, 'A:2*8*2 + B:2*8*2');
+        await tester.pump();
+        expect(
+          tester
+              .widget<TextField>(
+                find.byKey(const ValueKey('phrase-row-0-bars')),
+              )
+              .enabled,
+          isFalse,
+        );
+        expect(await savedStructure(tester, repos), '');
+        await tester.enterText(field, '');
+        await tester.pump();
+        expect(
+          tester
+              .widget<TextField>(
+                find.byKey(const ValueKey('phrase-row-0-bars')),
+              )
+              .enabled,
+          isTrue,
+        );
+        await setRow(tester, 0, 'bars', '6');
+        expect(await savedStructure(tester, repos), '4*6*2');
+      });
+
+      testWidgets('the formula field stays put while its text does not read', (
+        tester,
+      ) async {
+        final repos = await ecdDance(
+          form: DanceForm.contra,
+          phraseStructure: '2*8*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
+        final field = find.byKey(const ValueKey('phrase-field'));
+        await tester.ensureVisible(field);
+        final before = tester.getTopLeft(field);
+        await tester.enterText(field, '2*8*2 +');
+        await tester.pump();
+        expect(tester.getTopLeft(field), before);
+        await tester.enterText(field, 'A:2*8*2 + B:2*8*2');
+        await tester.pump();
+        expect(tester.getTopLeft(field), before);
+        // Once it reads again the rows follow it: a second component is a
+        // second row, which does move the field.
+        await tester.enterText(field, '2*8*2 + 1*4*2');
+        await tester.pump();
+        expect(rowText(tester, 1, 'bars'), '4');
+      });
     });
 
     testWidgets('an English dance shows its credits, meter, key and the '
