@@ -3726,7 +3726,9 @@ reconciliation.
 > merge (§6.10), and a user's merge of two or more tags, authors or sources
 > (`ReferenceEditRepository.merge`). A user merge adds no record kind and no
 > key, so §6.15's gate does not apply. Its peers learn of it from ordinary
-> records.
+> records, among them each saved search (§6.15, `savedSearches.v1`) the merge
+> rewrote from a loser's id to the survivor's, which is an ordinary settings
+> edit of that search's own key (#2325).
 >
 > 1. **The surviving id is the lexicographically smaller UUID** of all the
 >    entries merged, whichever one the user merged *into*. That entry's fields

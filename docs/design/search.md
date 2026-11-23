@@ -1042,6 +1042,18 @@ no record and is never missing. Ids are read through the aliases first
 and reported), so a saved search that a peer edited with a merged-away id reads
 as the survivor.
 
+**Merges rewrite, aliases cover the rest.** Merging tags, authors or sources
+rewrites each readable saved search that names a loser to name the survivor, in
+the merge's own transaction, and an Undo puts it back only while it is still as
+the merge left it (`tags-and-people.md`, Merge step 8). The alias is the safety
+net, not the mechanism: it covers a saved search the merge could not rewrite
+(one in a newer format) and one a peer edited before it saw the merge, but only
+until the alias is retired (once no peer lists the loser), after which a value
+naming the loser reports it as missing, which is safe. The alias map is built
+once per run, from one read (`SyncLocalRepository.aliasMaps`), never per
+reference. Deleting a tag has no survivor, so nothing is rewritten and the
+resolver reports the missing tag.
+
 Moves and sections are not references to records, and are not reported here: a
 move id the taxonomy does not know, or a By phrase section the dance form has no
 label for, is built as written.
