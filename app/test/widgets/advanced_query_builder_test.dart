@@ -976,6 +976,33 @@ void _paramChoiceTests() {
     );
 
     testWidgets(
+      'added by #2325: a stored value of a param with nothing to pick is shown, '
+      'not left applied behind an empty control',
+      (tester) async {
+        // The dropdown is left out when only the sentinel is in the domain.
+        // That early return used to come before any check of the stored
+        // value, so a stored sentinel filtered with no control at all.
+        final figure = BuilderFigure(move: 'wave');
+        figure.params['hand'] = ParamVocab.unspecified;
+        final root = BuilderGroup(
+          children: [BuilderThen(before: figure, after: BuilderFigure())],
+        );
+        await _pump(
+          tester,
+          root: root,
+          taxonomy: _taxonomyWithHandParam(
+            choices: const [ParamVocab.unspecified],
+          ),
+        );
+        expect(figure.params['hand'], ParamVocab.unspecified);
+        expect(
+          find.byKey(ValueKey('param-notice-${figure.id}-hand')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
       'added by #2325: a stored param the move does not declare is kept and '
       'shown, not left applied with no control',
       (tester) async {
