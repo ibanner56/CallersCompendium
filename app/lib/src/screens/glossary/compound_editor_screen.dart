@@ -707,9 +707,11 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
           ? store(label)
           : null,
     );
-    // A default the parameter's kind or choices no longer take is dropped,
-    // not saved broken: a kind changed after the default was chosen.
-    if (defaultValue == null || !withoutDefault.spec.validate(defaultValue)) {
+    // A default the parameter's kind, choices or form's dancer groups no
+    // longer take is dropped, not saved broken: a kind or form changed after
+    // the default was chosen.
+    if (defaultValue == null ||
+        !withoutDefault.specIn(_form).validate(defaultValue)) {
       return withoutDefault;
     }
     return UserFigureParam(
@@ -1618,6 +1620,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                       ),
                       keyPrefix: 'user-figure-param-$index-default',
                       param: param,
+                      form: _form,
                       value: row.defaultValue,
                       dialect: dialect,
                       label: l10n.userFigureEditorDefault,

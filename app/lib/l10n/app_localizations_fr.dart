@@ -583,6 +583,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'Vos figures par défaut l\'utilisent aussi et passent de la même façon.';
 
   @override
+  String userFigureSwitchConfirmKeepsWording(String name) {
+    return 'Toute utilisation d\'un groupe de danseurs absent de $name conserve sa formulation.';
+  }
+
+  @override
   String userFigureSwitchConfirmShorthands(int count, String name) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

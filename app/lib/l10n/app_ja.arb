@@ -528,6 +528,10 @@
   "@userFigureSwitchConfirmDefaults": {
     "x-sourceSha256": "c1697c77ab5e374a3eb47917625a399901be0df1dfb4c4e07ab46a731af2ac62"
   },
+  "userFigureSwitchConfirmKeepsWording": "{name} にないダンサーのグループを使っている箇所は、切り替わらず現在の表現のまま残ります。",
+  "@userFigureSwitchConfirmKeepsWording": {
+    "x-sourceSha256": "38cbf9dfabe885db16d60fc3b6b10594bf921426b00794f1c979e7307c3045c4"
+  },
   "userFigureSwitchConfirmShorthands": "{count, plural, other{{count}件のショートハンドは {name} を挿入するようになります。}}",
   "@userFigureSwitchConfirmShorthands": {
     "x-sourceSha256": "d4d2a6ad284fafd94197e4b565bfaedc778486cc6870c4ca4b32137325c8edc7"
