@@ -12400,7 +12400,7 @@
   },
   "suggestionFactorMatrixVarietyHelp": "プログラムでまだ使っていない動きのあるダンスを優先します。前のダンスと同じ拍の動きは避けます。",
   "@suggestionFactorMatrixVarietyHelp": {
-    "x-sourceSha256": "60d02c6d8431206e1480520c18cfa59089e253c6bba3bf442d12c0bf778a91bd"
+    "x-sourceSha256": "d24a8fb5e03bc9371ce6c64750efafeb8b4c1b66e8c6502c5d6fc0e182c0c130"
   },
   "suggestionFactorFormationBalanceTitle": "隊形のバランス",
   "@suggestionFactorFormationBalanceTitle": {

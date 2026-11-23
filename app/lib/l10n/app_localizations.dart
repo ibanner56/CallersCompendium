@@ -18830,7 +18830,7 @@ abstract class AppLocalizations {
   /// Explanation under the Variety on the matrix factor in the suggestions editor.
   ///
   /// In en, this message translates to:
-  /// **'Favour dances with moves the program hasn\'t used yet. Avoid moves on the same beats as the dance before.'**
+  /// **'Favor dances with moves the program hasn\'t used yet. Avoid moves on the same beats as the dance before.'**
   String get suggestionFactorMatrixVarietyHelp;
 
   /// Name of the suggestion factor that avoids repeating formations.

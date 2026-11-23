@@ -47,7 +47,7 @@ results. The UI shows no numbers.
 - **Variety** builds the candidate's matrix row with `buildMatrixRow` (the same
   routing as `buildProgramMatrix`, including the matrix column config and the
   user's own figures) and asks `ProgramMatrix.isCollisionOnMove` of the program
-  with the candidate appended. It therefore honours
+  with the candidate appended. It therefore honors
   `matrix_exact_beat_collision` (exact beats or phrase) and the matrix's notion
   of neighbours: alternates of one slot are not neighbours of each other, and a
   break or note between two dances separates them.

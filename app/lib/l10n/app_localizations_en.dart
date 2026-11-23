@@ -12800,7 +12800,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get suggestionFactorMatrixVarietyHelp =>
-      'Favour dances with moves the program hasn\'t used yet. Avoid moves on the same beats as the dance before.';
+      'Favor dances with moves the program hasn\'t used yet. Avoid moves on the same beats as the dance before.';
 
   @override
   String get suggestionFactorFormationBalanceTitle => 'Formation balance';

@@ -17289,7 +17289,7 @@
   "@suggestionFactorMatrixVarietyTitle": {
     "description": "Name of the suggestion factor that favours moves the program has not used yet and avoids moves on the same beats as the neighbouring dance."
   },
-  "suggestionFactorMatrixVarietyHelp": "Favour dances with moves the program hasn't used yet. Avoid moves on the same beats as the dance before.",
+  "suggestionFactorMatrixVarietyHelp": "Favor dances with moves the program hasn't used yet. Avoid moves on the same beats as the dance before.",
   "@suggestionFactorMatrixVarietyHelp": {
     "description": "Explanation under the Variety on the matrix factor in the suggestions editor."
   },

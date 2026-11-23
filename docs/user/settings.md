@@ -1075,7 +1075,7 @@ back to its plain order.
 suggestions weigh up. Each has **Off**, **A little** or **A lot**: Off leaves it
 out entirely. There are no numbers to tune.
 
-- **Variety on the matrix** — favours dances with moves the program hasn't
+- **Variety on the matrix** — favors dances with moves the program hasn't
   used yet, and keeps away from a move on the same beats as the dance before
   (or the same phrase, if
   [Flag exact beat overlap only](#programs) is off), the same thing the
@@ -1090,7 +1090,7 @@ out entirely. There are no numbers to tune.
   **Off**. It uses each dance's **Difficulty**; a dance with none set
   is not moved by it.
 - **Recent calls at this venue** — keeps away from dances called recently at
-  the program's venue, **Within** 1, 3 or 6 months, and favours ones not called
+  the program's venue, **Within** 1, 3 or 6 months, and favors ones not called
   there for a while. A call counts the same way as in the Collection's
   [calling history filter](./collection.md#filter-by-calling-history), with your
   [Recency and history order](#recency-and-history-order) settings, and the
