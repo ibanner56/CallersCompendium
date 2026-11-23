@@ -2342,6 +2342,8 @@ To be defined later with worked examples.
   the hall, finishing with an `ender` that reshapes or reorients the line. Travel itself is
   **positionally inert** — going down the hall is not a matrix transformation, it is a movement
   of the entire matrix — so every real state change comes from the **gather** and the **ender**.
+  This is the whole-hands-four figure; a lead by part of the set displaces dancers and never
+  gathers (see "Led by part of the set", below).
 - **params** (meets CallersCompendium baseline `{who, moving, facing, ender, beats}`):
   - `who` — dancer set, default `everyone`. The baseline couples this to `moving`
     (`everyone` ↔ `all`). `everyone` is the line of four specified below; leaders named by
@@ -2419,7 +2421,8 @@ To be defined later with worked examples.
   `turnAlone` / `slidingDoors`, or set to across-in by `bendTheLine` / `circle`.
 - **interaction scope:** within the hands four.
 - **h4 contribution** (D7): 0 (no displacement).
-- **progression-eligible:** no (travel is inert; no net displacement to carry).
+- **progression-eligible:** no for the whole hands four (travel is inert; no net displacement
+  to carry); yes when led by part of the set (below).
 - **diagnostics:** a dance containing a `down_the_hall` with no corresponding `up_the_hall`
   (or vice versa) raises the **`oneSidedHall` warning** — non-fatal, because the two need not be
   adjacent. Not raised when `facing: forwardThenBackward` completes the round trip.
@@ -2471,6 +2474,11 @@ To be defined later with worked examples.
   - **user-ruled (2026-11-23):** `moving: outsides` ("ones go down the outside") moves the set
     exactly as `center` does: on the grid both pass the same dancers.
   - **progression-eligible:** yes, like `cast` (the whole-hands-four figure stays no).
+  - A lead from a band already standing as a line of four is refused
+    (`UnresolvableDancerSet`): the leaders have no couple beside them in their column.
+  - **diagnostics:** the `oneSidedHall` lint pairs a partial lead like any other hall figure, so
+    a lead down returned by a `cast` up still warns, and a partial lead can pair with a
+    whole-hands-four figure. Not revisited *(agent's call: the lint's rule is unchanged)*.
   - **known gap:** the Caller's Box import does not carry how far the leaders go ("past N1;N2"
     is dropped), so a lead written as passing two couples is read as one place. Most such
     leads are followed by a cast of two places, which is deferred, but five corpus dances
@@ -2497,7 +2505,8 @@ To be defined later with worked examples.
     down (`down_the_hall`, "Led by part of the set").
 - **interaction scope:** within the hands four.
 - **h4 contribution** (D7): 0.
-- **progression-eligible:** no.
+- **progression-eligible:** as `down_the_hall`: no for the whole hands four, yes when led by
+  part of the set.
 - **sources:** CallersCompendium taxonomy `up_the_hall` MoveDef (identical params to
   `down_the_hall`; `ender` default **`circle`**, shared `_downTheHallEnders`). Verifier sources
   as `down_the_hall` — `TryLineOfFour` reads `\bup\b` to set the same transient line state

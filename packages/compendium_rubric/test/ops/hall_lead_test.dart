@@ -174,6 +174,13 @@ void main() {
       },
     );
 
+    test('a lead from a standing line of four is refused as such', () {
+      final line = applyOk(const DownTheHall(ender: HallEnder.none), di(base));
+      final error = refusal(leadDown, line);
+      expect(error.kind, ErrorKind.unresolvableDancerSet);
+      expect(error.message, contains('line of four'));
+    });
+
     test('the hallFacingConflict lint stays silent', () {
       final line = applyOk(const DownTheHall(ender: HallEnder.none), di(base));
       expect(

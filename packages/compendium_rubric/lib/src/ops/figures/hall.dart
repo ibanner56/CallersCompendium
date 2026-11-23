@@ -21,8 +21,9 @@ enum HallMoving {
 
 /// How the line is oriented relative to its travel.
 ///
-/// Travel is positionally inert, so this parameter's whole job is to set the
-/// **ending facing** — and, through it, the row the line normalizes into.
+/// For the whole hands four, travel is positionally inert, so this parameter's
+/// whole job is to set the **ending facing** — and, through it, the row the
+/// line normalizes into. A lead by part of the set takes only `forward`.
 enum HallFacing {
   forward('forward'),
   forwardThenBackward('forwardThenBackward'),
@@ -79,11 +80,12 @@ enum HallEnder {
 /// `down_the_hall` / `up_the_hall` — the hands four forms a **line of four**
 /// and travels along the hall, finishing with an `ender`.
 ///
-/// **Travel is positionally inert.** Going down the hall is not a matrix
-/// transformation; it is a movement of the entire matrix, and so produces no
-/// displacement. Every real state change here comes from the two phases either
-/// side of it — the **gather** that forms the line and the **ender** that
-/// reshapes it.
+/// **For the whole hands four, travel is positionally inert.** Going down the
+/// hall is not a matrix transformation; it is a movement of the entire matrix,
+/// and so produces no displacement. Every real state change here comes from the
+/// two phases either side of it — the **gather** that forms the line and the
+/// **ender** that reshapes it. A lead by part of the set is different: it
+/// displaces dancers and never gathers (see [_leadPlan]).
 ///
 /// The gather is *conditional*, and must be. Re-running it on a line that
 /// already exists would silently re-normalize it, and a re-normalized line is a
@@ -192,6 +194,17 @@ sealed class HallFigure extends Operation {
         OpError(
           ErrorKind.unsupportedParam,
           '$name who:${who.key} ender:${ender.key} is deferred',
+        ),
+      );
+    }
+    for (final band in handsFourBands(formation)) {
+      if (lineOfFourRow(formation, band) == null) continue;
+      return Err(
+        OpError(
+          ErrorKind.unresolvableDancerSet,
+          '$name who:${who.key} needs the hands four standing in its two '
+          'rows, but rows ${band.topRow}/${band.bottomRow} stand as a line '
+          'of four',
         ),
       );
     }
@@ -440,7 +453,9 @@ sealed class HallFigure extends Operation {
   int get hashCode => Object.hash(name, who, moving, facing, ender);
 
   @override
-  String toString() => '$name(${facing.key}, ender: ${ender.key})';
+  String toString() => _ledByPart
+      ? '$name(${who.key}, ${moving.key}, ${facing.key}, ender: ${ender.key})'
+      : '$name(${facing.key}, ender: ${ender.key})';
 }
 
 /// `down_the_hall` — the line travels **down** the hall.
