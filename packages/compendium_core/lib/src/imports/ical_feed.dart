@@ -356,8 +356,8 @@ ICalDateValue? _date(Map<String, List<_Prop>> props, String name) {
   return ICalDateValue.tryParse(p.first.value);
 }
 
-/// An RFC 5545 §3.3.6 `DURATION` value (`PT3H`, `PT2H30M`, `P1D`, `P1W`), or
-/// `null` when it is missing, negative or unreadable.
+/// An RFC 5545 §3.3.6 `DURATION` value, such as "PT3H", "PT2H30M", "P1D" or
+/// "P1W", or `null` when it is missing, negative or unreadable.
 Duration? _duration(String? raw) {
   if (raw == null) return null;
   final m = RegExp(
