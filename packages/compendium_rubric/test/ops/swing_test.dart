@@ -304,4 +304,56 @@ void main() {
       expect(after.toRolesNotation()[1], 'R1-C . . . L1-C');
     });
   });
+
+  group('"Twos swing" in their own row (user-ruled 2026-11-23)', () {
+    // The twos swing in their row and finish facing up, toward the ones.
+    test('the twos finish facing up, lark on the west line', () {
+      final after = applyOk(
+        const Swing(who: WhoSet.twos),
+        di(const ['R1-A . . . L1-A', 'R2-B . . . L2-B']),
+      );
+      expect(after.toRolesNotation(), ['R1-A . . . L1-A', 'L2-B . . . R2-B']);
+      for (final id in after.dancersInRow(1)) {
+        expect(after.stateOf(id).facing, Facing.up, reason: '$id');
+      }
+    });
+
+    test('twos in the top row still face up, toward new ones', () {
+      final after = applyOk(
+        const Swing(who: WhoSet.twos),
+        di(const ['R2-B . . . L2-B', 'R1-A . . . L1-A']),
+      );
+      expect(after.toRolesNotation(), ['L2-B . . . R2-B', 'R1-A . . . L1-A']);
+      for (final id in after.dancersInRow(0)) {
+        expect(after.stateOf(id).facing, Facing.up, reason: '$id');
+      }
+    });
+
+    test('a stated face: down is honoured', () {
+      final after = applyOk(
+        const Swing(who: WhoSet.twos, face: FaceDirection.down),
+        di(const ['R1-A . . . L1-A', 'L2-B . . . R2-B']),
+      );
+      expect(after.toRolesNotation(), ['R1-A . . . L1-A', 'R2-B . . . L2-B']);
+    });
+
+    test('twos at the ends of a line of four do not swing in that row', () {
+      final line = di(const ['R2-B L1-A . R1-A L2-B', '. . . . .']);
+      final after = applyOk(const Swing(who: WhoSet.twos), line);
+      for (final id in line.dancers.keys) {
+        expect(after.stateOf(id), line.stateOf(id), reason: '$id');
+      }
+    });
+
+    test('face: out for twos in their own row is deferred', () {
+      final result = const Swing(
+        who: WhoSet.twos,
+        face: FaceDirection.awayFromSet,
+      ).apply(di(const ['R1-A . . . L1-A', 'L2-B . . . R2-B']));
+      expect(
+        (result as Err<Formation, OpError>).error.kind,
+        ErrorKind.unsupportedParam,
+      );
+    });
+  });
 }

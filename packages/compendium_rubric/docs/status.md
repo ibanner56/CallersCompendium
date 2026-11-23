@@ -47,6 +47,12 @@
 > previously compiling dance lost. 8 dances that refused now mismatch and 3
 > that mismatched now refuse.
 >
+> **"Twos swing" (2026-11-23)**: the twos swing in their own row and finish
+> facing up, toward the ones (user-ruled). Against `rubric` at `080d9f1c` it
+> took the count from 3,761 to 3,779 of 5,119 compiled in scope (73.5% to
+> 73.8%), and the core set from 511 to 512, with no previously compiling dance
+> lost; 10 dances that refused now get further and mismatch.
+>
 > **An unstated short-wave pairing warns (2026-11-23)**: `form_short_waves`
 > and `pass_the_ocean` with no stated `sides` or `center` form with whoever is
 > in position and raise `unstatedPairing` instead of refusing (user-ruled).

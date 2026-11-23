@@ -12,8 +12,9 @@ part of '../operation.dart';
 /// and the one the taxonomy marks *verified*; `where: center` is partly
 /// deferred in the spec itself (its not-aligned branch is explicitly
 /// incomplete) and raises [ErrorKind.unsupportedParam] rather than guessing.
-/// The one exception is "Ones swing", the centre swing's aligned case, which
-/// the import writes as `where: sides`; see [_ownRowSwing].
+/// The one exception is "Ones swing" / "Twos swing", the centre swing's
+/// aligned case, which the import writes as `where: sides`; see
+/// [_ownRowSwing].
 final class Swing extends Operation {
   const Swing({
     required this.who,
@@ -69,11 +70,11 @@ final class Swing extends Operation {
         'swing supports where:sides only; where:center is deferred',
       );
     }
-    if (_onesInTheirRows(formation) != null) {
+    if (_couplesInTheirRows(formation) != null) {
       if (face == FaceDirection.awayFromSet) {
-        return const OpError(
+        return OpError(
           ErrorKind.unsupportedParam,
-          'the ones swing in their own row; face:out there is deferred',
+          'the ${who.key} swing in their own row; face:out there is deferred',
         );
       }
       return null;
@@ -98,46 +99,52 @@ final class Swing extends Operation {
     return face == FaceDirection.towardSet ? inward : inward.reversed;
   }
 
-  /// "Ones swing": the ones, standing across the set from each other in one
-  /// row of every hands four, swing there, in that row, and finish as a
-  /// couple facing **down** the hall, toward the twos — which after a
-  /// progression may be new twos. *(User-ruled 2026-11-23.)*
+  /// "Ones swing" / "Twos swing": the couple named, standing across the set
+  /// from each other in one row of every hands four, swing there, in that
+  /// row, and finish facing the other couple — which after a progression may
+  /// be a new one. The ones face **down** the hall toward the twos, the twos
+  /// face **up** toward the ones. *(User-ruled 2026-11-23, ones and twos
+  /// separately.)*
   ///
   /// This is the taxonomy's `where: center` aligned case, which the import
   /// never names: Caller's Box writes "Ones swing" and the record carries
   /// only `who: ones`. A stated `face: up` or `down` is honoured; the default
   /// `in` has no meaning for a couple standing along the hall, so it takes the
-  /// ruled `down`. `face: out` is deferred ([checkPreconditions] refuses it).
+  /// ruled facing. `face: out` is deferred ([checkPreconditions] refuses it).
   Map<DancerId, DancerState>? _ownRowSwing(Formation formation) {
     if (face == FaceDirection.awayFromSet) return null;
-    final rows = _onesInTheirRows(formation);
+    final rows = _couplesInTheirRows(formation);
     if (rows == null) return null;
-    final facing = face == FaceDirection.up ? Facing.up : Facing.down;
+    final facing = switch (face) {
+      FaceDirection.up => Facing.up,
+      FaceDirection.down => Facing.down,
+      _ => who == WhoSet.twos ? Facing.up : Facing.down,
+    };
     final changes = <DancerId, DancerState>{};
-    for (final ones in rows) {
-      final placement = normalizeAlongHall(row: ones.row, facing: facing);
-      changes[ones.lark] = formation
-          .stateOf(ones.lark)
+    for (final couple in rows) {
+      final placement = normalizeAlongHall(row: couple.row, facing: facing);
+      changes[couple.lark] = formation
+          .stateOf(couple.lark)
           .copyWith(position: placement.lark, facing: facing);
-      changes[ones.robin] = formation
-          .stateOf(ones.robin)
+      changes[couple.robin] = formation
+          .stateOf(couple.robin)
           .copyWith(position: placement.robin, facing: facing);
     }
     return changes;
   }
 
-  /// The row each active hands four's ones stand in, when [who] is `ones`
-  /// and every such hands four has them alone in one row, a lark and a robin
-  /// on opposite side lines; otherwise `null`, leaving the side-column swing
-  /// to run.
+  /// The row each active hands four's [who] couple stands in, when [who] is
+  /// `ones` or `twos` and every such hands four has them alone in one row, a
+  /// lark and a robin on opposite side lines; otherwise `null`, leaving the
+  /// side-column swing to run.
   ///
-  /// A band with ones in both rows, or a row shared with other dancers (a
-  /// line of four), does not qualify. A couple standing out is outside every
+  /// A band with the couple in both rows, or a row shared with other dancers
+  /// (a line of four), does not qualify. A couple standing out is outside every
   /// band and does not swing (§10.3.2).
-  List<({int row, DancerId lark, DancerId robin})>? _onesInTheirRows(
+  List<({int row, DancerId lark, DancerId robin})>? _couplesInTheirRows(
     Formation formation,
   ) {
-    if (who != WhoSet.ones) return null;
+    if (who != WhoSet.ones && who != WhoSet.twos) return null;
     final bands = handsFourBands(formation);
     if (bands.isEmpty) return null;
     final found = <({int row, DancerId lark, DancerId robin})>[];

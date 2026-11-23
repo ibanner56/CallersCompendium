@@ -803,9 +803,13 @@ To be defined later with worked examples.
     A stated `face: up` / `down` is honoured; the default `in` means nothing for a couple along
     the hall and takes the ruled `down`; `face: out` there is deferred (`unsupportedParam`).
     Otherwise the side-column swing runs as above. A couple standing out does not swing
-    (`fundamentals.md` §10.3.2). `who: twos` in a row is not ruled and still refuses.
+    (`fundamentals.md` §10.3.2).
+  - **"Twos swing" — built for `who: twos`** *(user-ruled 2026-11-23)*: the same, mirrored. The
+    twos swing in their own row and finish facing **up**, toward the ones (which may be new
+    ones), lark-left — so the lark on the west line.
     - _Known gap:_ the import keeps a written facing ("Ones swing; face up") as the figure's
-      note, not a param, so from Caller's Box every ones swing takes the default `down`.
+      note, not a param, so from Caller's Box every ones or twos swing takes its default
+      facing.
   - **dancers not aligned (swingers diagonally opposite)** — e.g. `who:larks`: highly
     context-dependent on the following figure — **largely deferred**. For now: `face:out` →
     dancers stay put `[[L2-B,0,0,0,R2-B],[R1-A,0,0,0,L1-A]]` (placeholder, known-incomplete);

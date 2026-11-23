@@ -834,7 +834,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,419 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,424 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,
@@ -1014,8 +1014,8 @@ post-taxonomy-v35 snapshot.
   `promenade`, and it sits squarely inside the in-scope denominator.
   *(Since then, 2026-11-23: its largest cause, "Ones swing" in the ones' own
   row, is built on a user ruling (`taxonomy.md`, `swing`), with the measurement
-  in `status.md`; "Twos swing" in a row and the line of four that follows the
-  ones' swing remain open.)* Among deferred
+  in `status.md`; "Twos swing" in a row is built too, and the line of four
+  that follows the ones' swing remains open.)* Among deferred
   parameters, **diagonal `right_left_through` (78 dances) is the highest-value
   unblock** — it also gates the hey diagonals.
 - **What the 1,724 deferred dances are blocked by**, first blocker only (the
