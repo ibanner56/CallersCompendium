@@ -2962,8 +2962,9 @@ republishes, which is an ordinary upload and needs no special path.
    than a UUID: two attached devices that each set the same shareable preference
    before the next pass reach exactly this state, and 64 settings keys are
    `shareable` (exact keys in `settingsClassifications` whose egress is
-   `shareable`, counted 2026-10-15), as are two prefix entries,
-   `sync_capabilities:` and `saved_search:` (§6.15). Records with UUID ids reach it too, because archive
+   `shareable`, counted 2026-10-15), as are three prefix entries,
+   `program_template:`, `saved_search:` and `sync_capabilities:` (§6.15).
+   Records with UUID ids reach it too, because archive
    import preserves ids, so two devices importing one bundle and then editing it
    locally collide on the same id.
 
