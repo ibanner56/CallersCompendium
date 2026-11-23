@@ -1903,9 +1903,12 @@ final RegExp _promenadeAnchor = RegExp(
 ///
 /// Annotations: prose (`(release right hands)`) is kept as the note, by the
 /// same lowercase shape rule as [_proseAnnotation]. A people-code annotation
-/// (`(P2L,P3R, women face in)`) or any square bracket (`[M1 with N2, W1 with
-/// N1]`) states holds this figure would not carry, so the line stays custom
-/// rather than lose them.
+/// states the holds, and reads exactly as on a long-wave balance (#2331
+/// follow-up, maintainer: "we just talked about what the annotations mean"):
+/// `(P2L, P3R, women face in)` → partners by the left, next partners by the
+/// right, role2s facing in ([tcbLongWaveHolds]). A code annotation that does
+/// not decode, or a square bracket (`[M1 with N2, W1 with N1]`, which names no
+/// hand), keeps the line custom rather than lose it.
 FigureMatch? _tcbBareLongWave(String scrubbed) {
   final words = _stripAnnotations(
     scrubbed.toLowerCase(),
@@ -1921,24 +1924,98 @@ FigureMatch? _tcbBareLongWave(String scrubbed) {
   }
   final annotations = _parenAnnotations(scrubbed);
   final notes = <String>[];
+  Map<String, Object?>? holds;
   for (final body in annotations) {
     final codeShaped = body
         .split(',')
         .map((f) => f.trim())
         .any(_bareLongWaveCodeField.hasMatch);
-    if (codeShaped ||
-        !_annotationBodyHasLowercase(body) ||
-        _looksLikePerRoleBody(body)) {
+    if (codeShaped) {
+      // One hold annotation, decoded whole, or the line stays custom.
+      if (holds != null) return const FigureMatch.customFallback();
+      holds = tcbLongWaveHolds(body, facingRequired: false);
+      if (holds == null) return const FigureMatch.customFallback();
+      continue;
+    }
+    if (!_annotationBodyHasLowercase(body) || _looksLikePerRoleBody(body)) {
       return const FigureMatch.customFallback();
     }
     notes.add(body);
   }
   return FigureMatch(
     'form_long_waves',
-    params: const {'who': ParamVocab.unspecified},
+    params: holds ?? const {'who': ParamVocab.unspecified},
     note: _joinAnnotations(notes),
   );
 }
+
+/// The long-wave holds a TCB annotation states, as `form_long_waves` params,
+/// or null when it is not exactly that shape (#2331):
+///
+/// * `<pair><H>` — the pair held by hand H: `whom`, `whomHand`;
+/// * `<pair><H>, <pair'><H'>` — the pair held by the other hand too, `whom2`:
+///   the hands must be opposite and the pairs different;
+/// * either, then `<role> face in` — who faces in, `who`.
+///
+/// Fields in source order: the first pair is `whom`. A pair is a relationship
+/// people code from [tcbPassPeople] (`N`, `N2`, `P3`, `S`, …), never a role or
+/// couple code (`M`, `W`, `1`, `2`), which names a wave's centre, not a hold
+/// along the side. Roles reach here already scrubbed (`women face in` →
+/// `role2s face in`). With [facingRequired] false (a forming line) a missing
+/// facing is `who: unspecified`; a balance line must state it.
+Map<String, Object?>? tcbLongWaveHolds(
+  String annotation, {
+  bool facingRequired = true,
+}) {
+  final parts = annotation
+      .toLowerCase()
+      .split(',')
+      .map((p) => p.trim())
+      .where((p) => p.isNotEmpty)
+      .toList();
+  if (parts.isEmpty || parts.length > 3) return null;
+  final facing = _longWaveFacingRe.firstMatch(parts.last);
+  final codes = facing == null ? parts : parts.sublist(0, parts.length - 1);
+  if (facing == null && facingRequired) return null;
+  if (codes.isEmpty || codes.length > 2) return null;
+  final first = _longWaveHold(codes.first);
+  if (first == null) return null;
+  String? whom2;
+  if (codes.length == 2) {
+    final second = _longWaveHold(codes.last);
+    if (second == null ||
+        second.hand == first.hand ||
+        second.who == first.who) {
+      return null;
+    }
+    whom2 = second.who;
+  }
+  return {
+    'whom': first.who,
+    'whomHand': first.hand,
+    'whom2': ?whom2,
+    'who': facing?.group(1) ?? ParamVocab.unspecified,
+  };
+}
+
+({String who, String hand})? _longWaveHold(String field) {
+  final m = _longWaveHoldRe.firstMatch(field);
+  if (m == null) return null;
+  final code = m.group(1)!;
+  if (_longWaveRoleCodes.contains(code)) return null;
+  final who = tcbPassPeople[code];
+  if (who == null) return null;
+  return (who: who, hand: m.group(2) == 'r' ? 'right' : 'left');
+}
+
+/// The role and couple codes: a wave's centre, never a long wave's hold.
+const Set<String> _longWaveRoleCodes = {'m', 'w', '1', '2'};
+
+/// A people code plus a trailing `r`/`l` hand (lowercased). Anchored, bounded.
+final RegExp _longWaveHoldRe = RegExp(r'^([a-z0-9]{1,3})([rl])$');
+
+/// `<role> face in`, roles already scrubbed. Anchored.
+final RegExp _longWaveFacingRe = RegExp(r'^(role1s|role2s|ones|twos) face in$');
 
 /// One people-code-plus-hand field of a TCB annotation (P2L, N1R, SR, P-1R),
 /// the shape that names a hold. Anchored and bounded.

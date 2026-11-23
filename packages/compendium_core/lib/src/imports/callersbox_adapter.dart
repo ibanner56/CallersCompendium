@@ -392,7 +392,7 @@ class CallersBoxAdapter implements SourceAdapter {
   ) {
     if (figures.isEmpty || next.isEmpty) return;
     final wave = figures.last;
-    if (!_isBareLongWave(wave) || wave.beats != 0) return;
+    if (!_isTcbLongWave(wave) || wave.beats != 0) return;
     final first = next.first;
     final balance = promotedFrom[first] ?? first;
     if (!_isBalanceWaveLine(balance)) return;
@@ -401,7 +401,17 @@ class CallersBoxAdapter implements SourceAdapter {
     figures[figures.length - 1] = followed;
     if (!_isOceanWaveMove(followed)) return;
     final folded = _foldTrailingBalanceIntoWave(followed, balance);
-    if (folded == null) return;
+    if (folded == null) {
+      // Refused: a balance the phrase promoted on its own would be a second
+      // long-waves figure straight after this one, so it goes back to text,
+      // as it would within a phrase.
+      if (_isTcbLongWave(followed) &&
+          first.move == 'form_long_waves' &&
+          !identical(balance, first)) {
+        next[0] = balance;
+      }
+      return;
+    }
     figures.removeLast();
     next[0] = folded;
   }
@@ -932,6 +942,8 @@ class CallersBoxAdapter implements SourceAdapter {
     Map<Figure, Figure>? promotedFrom,
     Map<Figure, _WaveLine> waveLines = const {},
   }) {
+    // A copy: a fold that joins two lines writes the result in place.
+    figures = List.of(figures);
     final merged = <Figure>[];
     var i = 0;
     while (i < figures.length) {
@@ -1031,6 +1043,16 @@ class CallersBoxAdapter implements SourceAdapter {
           continue;
         }
         current = _inCenterFollower(current, next);
+        // Two TCB long-wave lines in a row are one forming: `form long wave
+        // (release left hands)` then `(0) Form long wave (P4R,P5L, women face
+        // in)` (dance 15461, #2331 follow-up), never two long-waves figures.
+        // The joined figure takes the second line's place, so the balance
+        // after both still folds into it.
+        if (_foldLongWaveLines(current, next) case final both?) {
+          figures[i + 1] = both;
+          i += 1;
+          continue;
+        }
         if (_isOceanWaveMove(current) && _isBalanceWaveLine(next)) {
           final folded = _foldTrailingBalanceIntoWave(current, next);
           if (folded != null) {
@@ -1456,10 +1478,20 @@ class CallersBoxAdapter implements SourceAdapter {
     // wave[s]` with nothing else. Any other word — a dancer prefix, `for
     // all`, an undecoded annotation, a wave of four's holds — would be
     // dropped by the fold, so the balance stays text (#2331).
-    if (_isBareLongWave(wave) &&
+    if (_isTcbLongWave(wave) &&
         decoded?.move != 'form_long_waves' &&
         !_isGenericBalanceWaveLine(balance)) {
       return null;
+    }
+    // A long wave whose forming line stated holds (`form long wave (P2L,
+    // P3R)`, #2331 follow-up) and a balance that states its own must agree:
+    // the two lines' holds are one set, at most two pairs by opposite hands,
+    // and one facing. Disagreeing, the fold would keep one line's holds and
+    // drop the other's, so the balance stays text.
+    Map<String, Object?>? longWaveHolds;
+    if (_isTcbLongWave(wave) && decoded?.move == 'form_long_waves') {
+      longWaveHolds = _mergeLongWaveHolds(wave.params, decoded!.params);
+      if (longWaveHolds == null) return null;
     }
     // A custom balance line whose annotation does not decode (`Balance wave of
     // four (SRNR,1CL)` — `SRN` and `1C` are not modelled codes) would lose
@@ -1479,11 +1511,94 @@ class CallersBoxAdapter implements SourceAdapter {
           if (!wave.params.containsKey(e.key) ||
               wave.params[e.key] == ParamVocab.unspecified)
             e.key: e.value,
+        ...?longWaveHolds,
         'balance': true,
         'beats': ?beats,
       },
       note: combineFigureNotes(wave.note, balanceNote),
     );
+  }
+
+  /// A TCB `form long wave` not yet balanced (#2331): a bare one
+  /// ([_isBareLongWave]) or one whose line stated holds, `form long wave
+  /// (P2L,P3R, women face in)` (#2331 follow-up). The dialect always writes
+  /// its `who`, `unspecified` when the line states no facing; ContraDB's own
+  /// `form long waves` names none, which keeps that figure on its old path.
+  static bool _isTcbLongWave(Figure f) =>
+      !f.isCustom &&
+      f.move == 'form_long_waves' &&
+      f.params.containsKey('who') &&
+      f.params['balance'] != true &&
+      f.params.keys.every(_tcbLongWaveKeys.contains);
+
+  static const _tcbLongWaveKeys = {'who', 'whom', 'whomHand', 'whom2', 'beats'};
+
+  /// One figure for two consecutive TCB long-wave lines ([_isTcbLongWave]),
+  /// their holds and facing together ([_mergeLongWaveHolds]), beats summed and
+  /// notes kept; null when either is not one or their holds disagree.
+  static Figure? _foldLongWaveLines(Figure first, Figure second) {
+    if (!_isTcbLongWave(first) || !_isTcbLongWave(second)) return null;
+    final holds = _mergeLongWaveHolds(first.params, second.params);
+    if (holds == null) return null;
+    final beats = _sumBeats(first, second);
+    return first.copyWith(
+      params: {...first.params, ...holds, 'beats': ?beats},
+      note: combineFigureNotes(first.note, second.note),
+    );
+  }
+
+  /// The holds and facing of a long wave [wave] and of its balance [balance]
+  /// together, or null when they disagree. A hold is a pair and the hand that
+  /// holds it; the two lines may name the pairs in either order, and a line
+  /// may name one hold the other does not. Together they must be at most two
+  /// different pairs, by opposite hands. The wave's own first pair stays
+  /// `whom`. A stated facing on both must be the same.
+  static Map<String, Object?>? _mergeLongWaveHolds(
+    Map<String, Object?> wave,
+    Map<String, Object?> balance,
+  ) {
+    Map<String, String> holdsOf(Map<String, Object?> p) {
+      final whom = p['whom'];
+      final hand = p['whomHand'];
+      if (whom is! String || hand is! String) return const {};
+      final whom2 = p['whom2'];
+      return {
+        whom: hand,
+        if (whom2 is String && whom2 != ParamVocab.unspecified)
+          whom2: hand == 'right' ? 'left' : 'right',
+      };
+    }
+
+    final waveHolds = holdsOf(wave);
+    final holds = <String, String>{...waveHolds};
+    for (final MapEntry(key: pair, value: hand) in holdsOf(balance).entries) {
+      final had = holds[pair];
+      if (had != null && had != hand) return null;
+      holds[pair] = hand;
+    }
+    if (holds.length > 2) return null;
+    if (holds.length == 2 && holds.values.toSet().length != 2) return null;
+
+    final waveWho = wave['who'];
+    final balanceWho = balance['who'];
+    final whoStated = waveWho != null && waveWho != ParamVocab.unspecified;
+    final balanceWhoStated =
+        balanceWho != null && balanceWho != ParamVocab.unspecified;
+    if (whoStated && balanceWhoStated && waveWho != balanceWho) return null;
+
+    if (holds.isEmpty) {
+      return {'who': whoStated ? waveWho : balanceWho ?? waveWho};
+    }
+    final first = waveHolds.isNotEmpty
+        ? waveHolds.keys.first
+        : holds.keys.first;
+    final second = holds.keys.where((k) => k != first).firstOrNull;
+    return {
+      'whom': first,
+      'whomHand': holds[first],
+      'whom2': ?second,
+      'who': whoStated ? waveWho : balanceWho ?? waveWho,
+    };
   }
 
   /// A bare `form long wave` as the TCB dialect reads it (#2331):
@@ -1688,12 +1803,6 @@ class CallersBoxAdapter implements SourceAdapter {
   /// is untrusted.
   static final RegExp _waveCode = RegExp(r'^([a-z0-9]{1,3})([rl])$');
 
-  /// A `<role> face in` clause. Roles reach us already canonicalized by
-  /// `scrubFigureText` (TCB's "women face in" is stored as "role2s face in").
-  static final RegExp _waveFacing = RegExp(
-    r'^(role1s|role2s|ones|twos) face in$',
-  );
-
   /// Maps the balance-wave lines no fold claimed onto their wave-formation move.
   /// Every other figure passes through byte-identical (list identity is not
   /// preserved — the caller always builds a fresh list anyway).
@@ -1719,7 +1828,16 @@ class CallersBoxAdapter implements SourceAdapter {
         out.add(figure);
         continue;
       }
+      // Nor a long-wave balance right after a TCB long wave that did not take
+      // it (#2331): the fold refused it, so promoting would put a second
+      // long-waves figure straight after the first. It stays text.
       final promoted = _balanceWaveAsFormMove(figure);
+      if (previous != null &&
+          _isTcbLongWave(previous) &&
+          promoted?.move == 'form_long_waves') {
+        out.add(figure);
+        continue;
+      }
       if (promoted != null && promotedFrom != null) {
         promotedFrom[promoted] = figure;
       }
@@ -1818,32 +1936,13 @@ class CallersBoxAdapter implements SourceAdapter {
 
     if (_sameWords(head, const ['balance', 'long', 'wave'])) {
       if (annotation == null) return null;
-      final parts = _splitAnnotation(annotation);
-      if (parts.length != 2 && parts.length != 3) return null;
-      final whom = _decodeCode(parts[0], _wavePairFor);
-      final facing = _waveFacing.firstMatch(parts.last);
-      if (whom == null || facing == null) return null;
       // #2331: `(N2R,N1L, women face in)` states both hands — next neighbors
-      // by the right, neighbors by the left. The second pair is `whom2`, the
-      // pair held by the other hand, so its hand must be the opposite one and
-      // the pair a different one; anything else is not a long wave's two
-      // hands and stays custom.
-      String? whom2;
-      if (parts.length == 3) {
-        final second = _decodeCode(parts[1], _wavePairFor);
-        if (second == null ||
-            second.hand == whom.hand ||
-            second.who == whom.who) {
-          return null;
-        }
-        whom2 = second.who;
-      }
-      return _asFormFigure(f, 'form_long_waves', {
-        'whom': whom.who,
-        'whomHand': whom.hand,
-        'whom2': ?whom2,
-        'who': facing.group(1)!,
-      }, note: squareNote);
+      // by the right, neighbors by the left; the second pair is `whom2`. The
+      // dialect reads the same holds on a `form long wave` line, so both use
+      // the one decoder. A balance line must state who faces in.
+      final holds = tcbLongWaveHolds(annotation);
+      if (holds == null) return null;
+      return _asFormFigure(f, 'form_long_waves', holds, note: squareNote);
     }
     return null;
   }

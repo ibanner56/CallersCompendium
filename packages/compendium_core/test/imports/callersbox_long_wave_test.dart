@@ -88,8 +88,14 @@ void main() {
       // dance's own first clause, `Neighbor arm right 1`, does not).
       'form long wave [M1 with N2, W1 with N1]',
       'Neighbor allemande right 1; form long wave [M1 with N2, W1 with N1]',
-      // Inline holds (dance 11904's shape on the forming line).
-      'form long wave (P2L,P3R, women face in)',
+      // Not corpus wording: holds that do not decode — a role code, two
+      // holds by one hand, the same pair twice, three pairs, two hold
+      // annotations.
+      'form long wave (WL, role2s face in)',
+      'form long wave (P2L,P3L, women face in)',
+      'form long wave (P2L,P2R)',
+      'form long wave (P1L,P2R,P3L)',
+      'form long wave (P2L) (P3R)',
     ]) {
       test('"$line" keeps its holds as text', () {
         final figures = parse(line);
@@ -98,6 +104,55 @@ void main() {
         expect(figures.single.isCustom, isTrue);
       });
     }
+
+    group('holds on the forming line read as on its balance', () {
+      // Maintainer (2026-11-23, #2331 follow-up): the annotation means the
+      // same on `form long wave` as on `Balance long wave`.
+      const cases = <String, Map<String, Object?>>{
+        // Dance 10547.
+        'form long wave (P2L, P3R, women face in)': {
+          'whom': 'nextPartners',
+          'whomHand': 'left',
+          'whom2': 'thirdPartners',
+          'who': 'role2s',
+        },
+        // Dance 15139.
+        'Form long wave (P2R,P1L, men face in)': {
+          'whom': 'nextPartners',
+          'whomHand': 'right',
+          'whom2': 'partners',
+          'who': 'role1s',
+        },
+        // Dance 16002.
+        'form long wave (N2R, women face in)': {
+          'whom': 'nextNeighbors',
+          'whomHand': 'right',
+          'who': 'role2s',
+        },
+        // Dance 1210: no facing stated.
+        'form long wave (P2L,P3R)': {
+          'whom': 'nextPartners',
+          'whomHand': 'left',
+          'whom2': 'thirdPartners',
+          'who': _unspecified,
+        },
+      };
+      cases.forEach((line, params) {
+        test(line, () {
+          final f = parse(line).single;
+          expect(f.move, 'form_long_waves');
+          expect({...f.params}..remove('beats'), params);
+        });
+      });
+
+      test('dance 16002 B2: the swing before it structures too', () {
+        final figures = parse(
+          'N2 neighbor swing; form long wave (N2R, women face in)',
+        );
+        expect(figures.map((f) => f.move), ['swing', 'form_long_waves']);
+        expect(figures.last.params['whom'], 'nextNeighbors');
+      });
+    });
 
     test('"Women walk forward; form long wave" (dance 130) stays text', () {
       // The walk-forward fold reads only the centre wave, whose subject is who
@@ -597,5 +652,131 @@ void main() {
         expect(_total(figures), 16);
       },
     );
+  });
+
+  group('a long wave whose forming line states holds (#2331 follow-up)', () {
+    test('a balance that agrees folds in, both lines\' holds kept', () async {
+      // Not corpus wording: dance 16002's forming line, then a balance that
+      // adds the other hand.
+      final figures = await _import({
+        'B2': [
+          '(8) N2 neighbor swing; form long wave (N2R, women face in)',
+          '(4) Balance long wave (N1L,N2R, women face in)',
+        ],
+      });
+      expect(figures.map((f) => f.move), ['swing', 'form_long_waves']);
+      expect(figures.last.params, {
+        'whom': 'nextNeighbors',
+        'whomHand': 'right',
+        'whom2': 'neighbors',
+        'who': 'role2s',
+        'balance': true,
+        'beats': 4,
+      });
+      expect(_total(figures), 12);
+    });
+
+    for (final balance in const [
+      // A different pair by the same hand.
+      '(4) Balance long wave (P3R, women face in)',
+      // The same pair by the other hand.
+      '(4) Balance long wave (N2L, women face in)',
+      // The other role facing in.
+      '(4) Balance long wave (N2R, men face in)',
+    ]) {
+      test('"$balance" disagreeing stays text', () async {
+        // Not corpus wording.
+        final figures = await _import({
+          'B2': [
+            '(8) N2 neighbor swing; form long wave (N2R, women face in)',
+            balance,
+          ],
+        });
+        expect(figures.map((f) => f.move), [
+          'swing',
+          'form_long_waves',
+          'custom',
+        ]);
+        expect(figures[1].params, {
+          'whom': 'nextNeighbors',
+          'whomHand': 'right',
+          'who': 'role2s',
+        });
+        expect(_total(figures), 12);
+      });
+    }
+
+    test('a generic balance folds in across a phrase', () async {
+      // Not corpus wording: dance 1210's forming line, the balance opening
+      // the next phrase.
+      final figures = await _import({
+        'A1': ['(16) Partner swing', '(0) form long wave (P2L,P3R)'],
+        'A2': ['(4) Balance the wave', '(12) Neighbor swing'],
+      });
+      expect(figures.map((f) => f.move), ['swing', 'form_long_waves', 'swing']);
+      expect(figures[1].params, {
+        'whom': 'nextPartners',
+        'whomHand': 'left',
+        'whom2': 'thirdPartners',
+        'who': _unspecified,
+        'balance': true,
+        'beats': 4,
+      });
+      expect(_total(figures), 32);
+    });
+
+    test('across a phrase, a disagreeing balance stays text', () async {
+      // Not corpus wording. The next phrase promotes its balance on its own;
+      // after this wave it would be a second long-waves figure.
+      final figures = await _import({
+        'A1': ['(16) Partner swing', '(0) form long wave (P2L,P3R)'],
+        'A2': [
+          '(4) Balance long wave (P4R, women face in)',
+          '(12) Neighbor swing',
+        ],
+      });
+      expect(figures.map((f) => f.move), [
+        'swing',
+        'form_long_waves',
+        'custom',
+        'swing',
+      ]);
+      expect(_total(figures), 32);
+    });
+
+    test('dance 15461 B2: two forming lines are one figure', () async {
+      final figures = await _import({
+        'B2': [
+          '(16) P4 partner promenade counterclockwise; form long wave '
+              '(release left hands)',
+          '(0) Form long wave (P4R,P5L, women face in)',
+        ],
+      });
+      expect(figures.map((f) => f.move), ['promenade', 'form_long_waves']);
+      expect(figures.last.params, {
+        'who': 'role2s',
+        'whom': 'fourthPartners',
+        'whomHand': 'right',
+        'whom2': 'fifthPartners',
+      });
+      expect(figures.last.note, 'release left hands');
+      expect(_total(figures), 16);
+    });
+
+    test('two forming lines, then the balance: one figure', () async {
+      // Not corpus wording.
+      final figures = await _import({
+        'A1': [
+          '(12) Partner swing',
+          '(0) form long wave',
+          '(0) Form long wave (P2R,P1L, men face in)',
+          '(4) Balance the wave',
+        ],
+      });
+      expect(figures.map((f) => f.move), ['swing', 'form_long_waves']);
+      expect(figures.last.params['balance'], isTrue);
+      expect(figures.last.params['whom2'], 'partners');
+      expect(_total(figures), 16);
+    });
   });
 }
