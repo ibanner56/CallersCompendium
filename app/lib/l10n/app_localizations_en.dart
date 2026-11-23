@@ -13954,4 +13954,104 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get calendarClearFlagError =>
       'Couldn\'t clear the calendar flag. Try again.';
+
+  @override
+  String get calendarOnStartupTitle => 'Import calendar when the app starts';
+
+  @override
+  String get calendarOnStartupSubtitle =>
+      'Off by default. When on, the app reads your calendar once each time it starts, and says nothing if it can\'t.';
+
+  @override
+  String get calendarStartupModeTitle => 'At startup';
+
+  @override
+  String get calendarStartupModeReport => 'Report new events';
+
+  @override
+  String get calendarStartupModeAdd => 'Add them as drafts';
+
+  @override
+  String get calendarStartupModeReportSubtitle =>
+      'Tells you about new events; nothing is added until you review them.';
+
+  @override
+  String get calendarStartupModeAddSubtitle =>
+      'Adds new events as draft programs, with Undo. Changed or canceled events are only reported.';
+
+  @override
+  String calendarLastResultFailed(String when) {
+    return 'Couldn\'t reach the calendar at startup ($when)';
+  }
+
+  @override
+  String calendarLastResultAdded(String when, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count drafts added',
+      one: '1 draft added',
+    );
+    return 'Checked at startup $when: $_temp0';
+  }
+
+  @override
+  String calendarLastResultNew(String when, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count new events',
+      one: '1 new event',
+      zero: 'no new events',
+    );
+    return 'Checked at startup $when: $_temp0';
+  }
+
+  @override
+  String calendarStartupFailureNotice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'The calendar couldn\'t be reached the last $count times the app started.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarStartupFailureHint =>
+      'Check the calendar address, or your connection.';
+
+  @override
+  String calendarStartupNewEvents(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count new events in your calendar.',
+      one: '1 new event in your calendar.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarStartupChanges(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count changes need you.',
+      one: '1 change needs you.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarStartupShow => 'Show';
+
+  @override
+  String get calendarStartupReview => 'Review';
+
+  @override
+  String calendarLastResultError(String when) {
+    return 'Couldn\'t import from the calendar at startup ($when)';
+  }
 }

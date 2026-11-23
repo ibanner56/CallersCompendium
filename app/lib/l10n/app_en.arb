@@ -18890,5 +18890,114 @@
   "calendarClearFlagError": "Couldn't clear the calendar flag. Try again.",
   "@calendarClearFlagError": {
     "description": "Snack bar when Clear calendar flag on a program's summary could not save the program."
+  },
+  "calendarOnStartupTitle": "Import calendar when the app starts",
+  "@calendarOnStartupTitle": {
+    "description": "Switch in Settings ▸ Program ▸ Calendar, off by default: read the calendar once each time the app starts."
+  },
+  "calendarOnStartupSubtitle": "Off by default. When on, the app reads your calendar once each time it starts, and says nothing if it can't.",
+  "@calendarOnStartupSubtitle": {
+    "description": "Subtitle of the start-up calendar import switch."
+  },
+  "calendarStartupModeTitle": "At startup",
+  "@calendarStartupModeTitle": {
+    "description": "Setting that chooses what the start-up calendar import does with new events."
+  },
+  "calendarStartupModeReport": "Report new events",
+  "@calendarStartupModeReport": {
+    "description": "Option of the At startup setting (the default): only say how many new events there are."
+  },
+  "calendarStartupModeAdd": "Add them as drafts",
+  "@calendarStartupModeAdd": {
+    "description": "Option of the At startup setting: create draft programs for new events."
+  },
+  "calendarStartupModeReportSubtitle": "Tells you about new events; nothing is added until you review them.",
+  "@calendarStartupModeReportSubtitle": {
+    "description": "Subtitle of the At startup setting when Report new events is chosen."
+  },
+  "calendarStartupModeAddSubtitle": "Adds new events as draft programs, with Undo. Changed or canceled events are only reported.",
+  "@calendarStartupModeAddSubtitle": {
+    "description": "Subtitle of the At startup setting when Add them as drafts is chosen."
+  },
+  "calendarLastResultFailed": "Couldn't reach the calendar at startup ({when})",
+  "@calendarLastResultFailed": {
+    "description": "Settings line: the last start-up calendar import failed. {when} is a date.",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "calendarLastResultAdded": "Checked at startup {when}: {count, plural, =1{1 draft added} other{{count} drafts added}}",
+  "@calendarLastResultAdded": {
+    "description": "Settings line: the last start-up calendar import added drafts. {when} is a date.",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarLastResultNew": "Checked at startup {when}: {count, plural, =0{no new events} =1{1 new event} other{{count} new events}}",
+  "@calendarLastResultNew": {
+    "description": "Settings line: the last start-up calendar import's result. {when} is a date.",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarStartupFailureNotice": "{count, plural, other{The calendar couldn't be reached the last {count} times the app started.}}",
+  "@calendarStartupFailureNotice": {
+    "description": "Quiet notice in Settings after several start-up calendar imports in a row failed.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarStartupFailureHint": "Check the calendar address, or your connection.",
+  "@calendarStartupFailureHint": {
+    "description": "Hint under the repeated-failure notice."
+  },
+  "calendarStartupNewEvents": "{count, plural, =1{1 new event in your calendar.} other{{count} new events in your calendar.}}",
+  "@calendarStartupNewEvents": {
+    "description": "Message after a start-up calendar import in Report mode found new events.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarStartupChanges": "{count, plural, =1{1 change needs you.} other{{count} changes need you.}}",
+  "@calendarStartupChanges": {
+    "description": "Message part after a start-up calendar import found changed or canceled events, which it never applies.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarStartupShow": "Show",
+  "@calendarStartupShow": {
+    "description": "Button in the start-up calendar message: open a draft it added."
+  },
+  "calendarStartupReview": "Review",
+  "@calendarStartupReview": {
+    "description": "Button in the start-up calendar message: open the import review with what it found."
+  },
+  "calendarLastResultError": "Couldn't import from the calendar at startup ({when})",
+  "@calendarLastResultError": {
+    "description": "Settings line: the last start-up calendar import reached the calendar but could not read it or add the drafts. {when} is a date.",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
   }
 }

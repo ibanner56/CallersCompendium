@@ -13493,5 +13493,73 @@
   "calendarClearFlagError": "Die Kalendermarkierung konnte nicht entfernt werden. Versuche es erneut.",
   "@calendarClearFlagError": {
     "x-sourceSha256": "7f31c36bfec0eaa49ce85b3501658f5788167cceec31b4b23237b44fd80501ee"
+  },
+  "calendarOnStartupTitle": "Kalender beim Start der App importieren",
+  "@calendarOnStartupTitle": {
+    "x-sourceSha256": "c7e7976b2cca7054a32ded2d9db81e98877e1fcecc0f53f2391a16d49455ea66"
+  },
+  "calendarOnStartupSubtitle": "Standardmäßig aus. Wenn an, liest die App deinen Kalender bei jedem Start einmal und meldet nichts, wenn es nicht klappt.",
+  "@calendarOnStartupSubtitle": {
+    "x-sourceSha256": "e056a23296e3663767355547c664dfbc982910104dbd90b61d452b6325a06b2e"
+  },
+  "calendarStartupModeTitle": "Beim Start",
+  "@calendarStartupModeTitle": {
+    "x-sourceSha256": "1e0ff8230be734239932417d849d117fbba4d6e1474502a4d5a4df1e5df99958"
+  },
+  "calendarStartupModeReport": "Neue Termine melden",
+  "@calendarStartupModeReport": {
+    "x-sourceSha256": "70e436309bfaf16f1fe7a0ffae975d60017ac233b079437eb9a96f5ba306c7e1"
+  },
+  "calendarStartupModeAdd": "Als Entwürfe hinzufügen",
+  "@calendarStartupModeAdd": {
+    "x-sourceSha256": "2b65fa882c090cf0763ff21febb1e2f043159d91368cecb44ee8b4b352e1f28e"
+  },
+  "calendarStartupModeReportSubtitle": "Meldet neue Termine; nichts wird hinzugefügt, bevor du sie prüfst.",
+  "@calendarStartupModeReportSubtitle": {
+    "x-sourceSha256": "19b69452a18e130d89bdb29818ef74aa7b7536d55f64f4252a2b453ffe63777e"
+  },
+  "calendarStartupModeAddSubtitle": "Fügt neue Termine als Programmentwürfe hinzu, mit Rückgängig. Geänderte oder abgesagte Termine werden nur gemeldet.",
+  "@calendarStartupModeAddSubtitle": {
+    "x-sourceSha256": "c46a506d2bed5f309ed224b8a5c28a71ae6f0fb8caa4544ef556c2accaa3f954"
+  },
+  "calendarLastResultFailed": "Kalender beim Start nicht erreichbar ({when})",
+  "@calendarLastResultFailed": {
+    "x-sourceSha256": "61b1f900991b944a3ffd641fbf2894a47c8b126d92c302610962fc5b4fc8eed1"
+  },
+  "calendarLastResultAdded": "Beim Start geprüft am {when}: {count, plural, =1{1 Entwurf hinzugefügt} other{{count} Entwürfe hinzugefügt}}",
+  "@calendarLastResultAdded": {
+    "x-sourceSha256": "6c43cfcc9878b805367fb68a0535ec13f55441a994e4f9d8405b394139ce6865"
+  },
+  "calendarLastResultNew": "Beim Start geprüft am {when}: {count, plural, =0{keine neuen Termine} =1{1 neuer Termin} other{{count} neue Termine}}",
+  "@calendarLastResultNew": {
+    "x-sourceSha256": "f2e253184432a0838b757716b96a1230a71c9704392c66f4aebdf4f7f4dd4552"
+  },
+  "calendarStartupFailureNotice": "{count, plural, other{Der Kalender war bei den letzten {count} Starts der App nicht erreichbar.}}",
+  "@calendarStartupFailureNotice": {
+    "x-sourceSha256": "1c08c525abd1e631cfc904ec226be0df5cbd829e071e2044c9c6c36d0e6cc3f9"
+  },
+  "calendarStartupFailureHint": "Prüfe die Kalenderadresse oder deine Verbindung.",
+  "@calendarStartupFailureHint": {
+    "x-sourceSha256": "343be91960bc9ccfbdddda531b096feddbcab978c70c9541e3c0d3ccd7f7990d"
+  },
+  "calendarStartupNewEvents": "{count, plural, =1{1 neuer Termin in deinem Kalender.} other{{count} neue Termine in deinem Kalender.}}",
+  "@calendarStartupNewEvents": {
+    "x-sourceSha256": "5e69184159efd2e49b4fd85ca64c4eb0131543f83390c3d92e46ad65e9d83803"
+  },
+  "calendarStartupChanges": "{count, plural, =1{1 Änderung wartet auf dich.} other{{count} Änderungen warten auf dich.}}",
+  "@calendarStartupChanges": {
+    "x-sourceSha256": "d24b0d697433b60ad385afb2f9e1bbe7bb31a1c7bd7554c1941fb6327d5271d7"
+  },
+  "calendarStartupShow": "Zeigen",
+  "@calendarStartupShow": {
+    "x-sourceSha256": "0df6f1cad36c49da768a6efdcc2c4be102f5729f7381cb53e4ff8061d17eaeb6"
+  },
+  "calendarStartupReview": "Prüfen",
+  "@calendarStartupReview": {
+    "x-sourceSha256": "aff0766a5290e117b8433c351bae7b7b23bed682b2369bd822d88a647cc58512"
+  },
+  "calendarLastResultError": "Import aus dem Kalender beim Start fehlgeschlagen ({when})",
+  "@calendarLastResultError": {
+    "x-sourceSha256": "a826d9f8828d360f373473072915ffe0c2fb4944f9b9e733a3e75a6f72591f5c"
   }
 }

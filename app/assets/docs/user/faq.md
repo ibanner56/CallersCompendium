@@ -19,8 +19,9 @@ No account, and no connection for everyday use. Caller's Compendium is
 app works fully offline. It reaches the internet only when you ask it to — to
 [import](./glossary.md#import) dances from an online source such as
 [The Caller's Box](./glossary.md#the-callers-box) or
-[ContraDB](./glossary.md#contradb), to check for updates, or to sync if you have
-turned on Device Sync.
+[ContraDB](./glossary.md#contradb) or your own calendar, to check for updates,
+or to sync if you have turned on Device Sync. The automatic update check and the
+calendar import at startup are off until you turn them on.
 
 ### Where is my data stored?
 

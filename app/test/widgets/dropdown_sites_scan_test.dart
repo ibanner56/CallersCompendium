@@ -86,6 +86,7 @@ const _sites = <String, List<(String, String)>>{
   ],
   'lib/src/screens/settings/calendar_settings_tiles.dart': [
     ("const ValueKey('calendar-settings-window-field')", 'false'),
+    ("const ValueKey('calendar-settings-startup-mode-field')", 'false'),
   ],
   'lib/src/screens/settings/matrix_column_editor.dart': [
     ("const ValueKey('matrix-parameterized-move')", 'true'),

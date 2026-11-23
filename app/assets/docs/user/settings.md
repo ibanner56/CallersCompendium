@@ -403,11 +403,37 @@ as draft programs.
   Repeating events are read only 30 days ahead, whatever you choose.
 - **Only events whose title contains** — for a calendar that also holds things
   other than gigs. Leave it empty for every event. It ignores capitals.
-- **Pull now** — opens the calendar import. The app reads your calendar only
-  when you ask it to there.
+- **Import calendar when the app starts** (off) — reads your calendar once each
+  time the app starts, and never at any other time: not in the background, not
+  on a timer, not when you come back to the app. Like the automatic
+  [update check](#updates), it is off until you turn it on.
+- **At startup** — what that run does with events not imported before:
+  - **Report new events** (the default) — adds nothing. If there are new events,
+    a message says how many, with **Review**, which opens the import review with
+    what was found; nothing is added until you choose **Import** there.
+  - **Add them as drafts** — adds a draft program for each new event, with the
+    same rules as an import you start, and says so, with **Undo** and **Show**.
+    **Undo** removes the drafts you haven't touched, but the events are still
+    new to the app, so the next start adds them again. To stop that, delete
+    the drafts instead: the import skips events whose programs are in
+    Recently deleted, until they leave it for good. Or switch to **Report new
+    events**.
+
+  Either way it never changes a program you already have. If an event you
+  imported has changed or been canceled, the message only counts it ("1 change
+  needs you") and **Review** shows it.
+- If the run can't reach the calendar, nothing tells you at the time. A line
+  here says what the last run did ("Checked at startup 22 Nov: 2 new events",
+  or that it couldn't reach the calendar), and after it has failed 3 times in a
+  row, a notice here says so, with a hint to check the address. A successful
+  run, or changing the address, clears it. A run that reached the calendar but
+  couldn't read it, such as a Wi-Fi sign-in page, says so on that line, and
+  neither counts toward the notice nor clears it.
+- **Pull now** — opens the calendar import.
 
 **Which events** and the title filter travel with your other preferences; the
-address does not.
+address does not. The startup switch and **At startup** stay on this device,
+like the update check's, but a backup keeps them.
 
 ## Appearance
 
