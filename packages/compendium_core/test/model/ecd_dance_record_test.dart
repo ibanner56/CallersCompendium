@@ -66,6 +66,24 @@ void main() {
       }
     });
 
+    test('a square offers the square set first, a circle and other '
+        '(ADR-007 §8.1)', () {
+      expect(offeredFormationShapes(DanceForm.square), [
+        FormationShape.square,
+        FormationShape.circle,
+        FormationShape.other,
+      ]);
+      // Every one is also an ECD shape or shared, so no new value is stored.
+      for (final shape in squareFormationShapes) {
+        expect(
+          ecdFormationShapes.contains(shape) ||
+              contraFormationShapes.contains(shape),
+          isTrue,
+          reason: shape.name,
+        );
+      }
+    });
+
     test('a dance of a form without the flag never holds improper', () {
       final ecd = _ecdDance();
       expect(ecd.formation.improper, isTrue);
