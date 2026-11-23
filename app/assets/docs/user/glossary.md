@@ -240,7 +240,7 @@ choose **Never**.
 
 Two to four [figures](#figure) danced one after another and written as one line,
 such as *ones balance and swing*. Its beats are the total of its figures', and
-must fit in one phrase. A sequence is most useful as one side of a
+must fit in the phrase it starts in. A sequence is most useful as one side of a
 [meanwhile](#meanwhile). See
 [Write & edit dances](./authoring.md#sequence-figures).
 

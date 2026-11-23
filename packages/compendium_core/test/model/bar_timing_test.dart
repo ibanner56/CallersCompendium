@@ -241,27 +241,6 @@ void main() {
     });
   });
 
-  group('PhraseStructure.longestPhraseStart', () {
-    test('is where the longest phrase starts', () {
-      // A is 12 beats, B is 16.
-      expect(PhraseStructure.parse('A:2*4*3 + B:1*8*2').longestPhraseStart, 24);
-      expect(PhraseStructure.parse('A:1*8*2 + B:1*4*2').longestPhraseStart, 0);
-      expect(PhraseStructure.standard.longestPhraseStart, 0);
-    });
-
-    test('is the first of phrases tied for longest that agree in bars', () {
-      expect(PhraseStructure.parse('A:1*8*2 + B:1*8*2').longestPhraseStart, 0);
-    });
-
-    test('is null where phrases tied for longest differ in bars', () {
-      // Both are 16 beats: 8 bars of 2, and 4 bars of 4.
-      expect(
-        PhraseStructure.parse('A:1*8*2 + B:1*4*4').longestPhraseStart,
-        isNull,
-      );
-    });
-  });
-
   group('childStartBeats', () {
     Figure step(int beats) => customFigure('x', beats: beats);
 

@@ -1,0 +1,20 @@
+{
+  "id": "sequence-fits-its-phrase",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "A sequence must now fit the phrase it starts in, not the longest phrase of the dance. In a dance whose phrases differ in length, such as an A of 4 bars and a B of 8, a sequence in A that is longer than A is flagged, Group with next as sequence and Add next figure stop at A's length, and an import from The Caller's Box groups a named block into a sequence only if it fits its own phrase. A sequence may still start partway through a phrase and run over its end, as long as it is no longer than that phrase."
+    ]
+  },
+  "core": {
+    "added": [
+      "PhraseStructure.phraseBeatsAt and phraseStartAt give the length and the start of the phrase that plays at a beat."
+    ],
+    "changed": [
+      "sequenceExceedsPhrase takes the sequence's startBeat and measures it against the phrase it starts in; the sequence_exceeds_phrase warning's limit and limitStart are that phrase's length and start. The Caller's Box adapter groups a named compound only when it fits the phrase it starts in."
+    ],
+    "removed": [
+      "PhraseStructure.longestPhraseBeats and longestPhraseStart, which nothing uses any more."
+    ]
+  }
+}

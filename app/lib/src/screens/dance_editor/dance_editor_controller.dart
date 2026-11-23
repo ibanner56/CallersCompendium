@@ -2552,7 +2552,7 @@ class DanceEditorController extends ChangeNotifier {
       kind,
       first,
       second,
-      sequenceBeatLimit: sequenceBeatLimit,
+      sequenceBeatLimit: sequenceBeatLimitAt(index),
     )) {
       return;
     }
@@ -2566,9 +2566,11 @@ class DanceEditorController extends ChangeNotifier {
     _notify();
   }
 
-  /// The most beats a sequence may hold: one phrase of this dance
-  /// ([PhraseStructure.longestPhraseBeats]).
-  int get sequenceBeatLimit => _phraseStructure.longestPhraseBeats;
+  /// The most beats a sequence at row [index] may hold: the phrase of this
+  /// dance it starts in ([PhraseStructure.phraseBeatsAt]), counting the rows
+  /// before it as Save does ([figureStartBeat]).
+  int sequenceBeatLimitAt(int index) =>
+      _phraseStructure.phraseBeatsAt(figureStartBeat(figureDrafts.take(index)));
 
   void convertContainerToMeanwhile(FigureDraft draft) =>
       _convertContainer(draft, meanwhileMove);
@@ -2584,7 +2586,7 @@ class DanceEditorController extends ChangeNotifier {
     if (index == -1 ||
         !draft.canConvertContainerTo(
           kind,
-          sequenceBeatLimit: sequenceBeatLimit,
+          sequenceBeatLimit: sequenceBeatLimitAt(index),
         )) {
       return;
     }

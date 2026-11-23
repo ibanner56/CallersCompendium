@@ -237,9 +237,7 @@ class CallersBoxAdapter implements SourceAdapter {
         ? _assumeCastShoulders(
             _parseFigures(
               dance['phrases'],
-              longestPhraseBeats: PhraseStructure.parseOrStandard(
-                phraseStructure,
-              ).longestPhraseBeats,
+              structure: PhraseStructure.parseOrStandard(phraseStructure),
             ),
           )
         : const <Figure>[];
@@ -304,11 +302,11 @@ class CallersBoxAdapter implements SourceAdapter {
   /// balance opening the next ([_foldLongWaveAcrossPhrases], #2331): the wave
   /// takes no beats, so folding it forward moves no beat across the boundary.
   ///
-  /// [longestPhraseBeats] is the dance's longest phrase: a named compound
-  /// longer than it is not grouped ([_groupNamedCompounds]).
+  /// [structure] is the dance's phrase structure: a named compound longer
+  /// than the phrase it starts in is not grouped ([_groupNamedCompounds]).
   List<Figure> _parseFigures(
     Object? phrases, {
-    required int longestPhraseBeats,
+    required PhraseStructure structure,
   }) {
     if (phrases is! List) return const [];
     final figures = <Figure>[];
@@ -328,6 +326,9 @@ class CallersBoxAdapter implements SourceAdapter {
       final standaloneSquareThroughs = Map<Figure, String>.identity();
       final namedCompounds = <_NamedCompound>[];
       final promotedFrom = Map<Figure, Figure>.identity();
+      // Where this phrase's figures start: the beats of every figure before
+      // them, as `deriveSections` will count the dance.
+      final phraseStart = figures.fold(0, (sum, f) => sum + f.beats);
       final merged = _groupNamedCompounds(
         _mergeCrossLineFigures(
           _parsePhraseFigures(
@@ -338,7 +339,8 @@ class CallersBoxAdapter implements SourceAdapter {
           promotedFrom: promotedFrom,
         ),
         namedCompounds,
-        longestPhraseBeats: longestPhraseBeats,
+        structure: structure,
+        startBeat: phraseStart,
       );
       final phraseFigures = [
         for (final f in merged)
@@ -622,9 +624,10 @@ class CallersBoxAdapter implements SourceAdapter {
   /// the merge produced. So grouping never costs a fold: the choreography is
   /// exactly what the flat form says, and only its grouping differs.
   ///
-  /// A block also stays flat when it cannot be a sequence: longer than
-  /// [longestPhraseBeats], the dance's longest phrase (a sequence must fit
-  /// one, as the editor requires and `deriveSections` warns), fewer than two or
+  /// A block also stays flat when it cannot be a sequence: longer than the
+  /// phrase of [structure] it starts in, counted from [startBeat] (a sequence
+  /// must fit that phrase, as the editor requires and `deriveSections` warns,
+  /// [sequenceExceedsPhrase]), fewer than two or
   /// more than [kMaxSequenceFigures] figures, a figure that is itself a
   /// sequence, a nested container deeper than the model allows, or a name the
   /// title would have to shorten or rewrite ([normalizeContainerTitle]). The
@@ -636,7 +639,8 @@ class CallersBoxAdapter implements SourceAdapter {
   static List<Figure> _groupNamedCompounds(
     List<Figure> figures,
     List<_NamedCompound> named, {
-    required int longestPhraseBeats,
+    required PhraseStructure structure,
+    required int startBeat,
   }) {
     if (named.isEmpty) return figures;
     final byFirst = Map<Figure, _NamedCompound>.identity();
@@ -644,18 +648,22 @@ class CallersBoxAdapter implements SourceAdapter {
       byFirst[block.emitted.first] = block;
     }
     final out = <Figure>[];
+    var beat = startBeat;
     var i = 0;
     while (i < figures.length) {
       final block = byFirst[figures[i]];
-      final grouped = block == null || block.beats > longestPhraseBeats
+      final grouped =
+          block == null || block.beats > structure.phraseBeatsAt(beat)
           ? null
           : _namedSequence(block, figures, i);
       if (grouped != null) {
         out.add(grouped);
+        beat += grouped.beats;
         i += block!.emitted.length;
         continue;
       }
       out.add(figures[i]);
+      beat += figures[i].beats;
       i += 1;
     }
     return out;

@@ -301,7 +301,10 @@ not.
 - Validation checks the whole dance against its phrase structure
   (`phrase_overflow`, `phrase_underflow`), and warns when a `sequence` is
   longer than the longest phrase (`sequence_exceeds_phrase`). There is no
-  per-phrase check, for ECD either. The editor adds `other_form_figures`
+  per-phrase check, for ECD either. (Since 23 November 2026, by the
+  maintainer's decision, a `sequence` is measured against the phrase it
+  starts in rather than the longest; that warning still judges a sequence's
+  length, not whether the calls fill each phrase.) The editor adds `other_form_figures`
   for a dance that holds another form's figures, and, for ECD only,
   `sequence_span_mismatch`.
 
@@ -545,7 +548,8 @@ Every call has a `beats` parameter, as in contra.
 - **The phrase totals are the main check.** Today the editor compares only the
   dance's whole beat total with its phrase structure (`phrase_overflow`,
   `phrase_underflow`) and warns when a `sequence` is longer than the longest
-  phrase (`sequence_exceeds_phrase`). Phase 1 adds a warning when the calls in
+  phrase (`sequence_exceeds_phrase`; since 23 November 2026, the phrase it
+  starts in). Phase 1 adds a warning when the calls in
   one phrase do not fill it. It would be the app's first per-phrase check: ECD
   has none (§3). This ADR proposes it for squares; whether contra uses it too
   is left to that phase's PR.

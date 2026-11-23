@@ -589,46 +589,43 @@ void main() {
       expect(figures.single.note, 'Interrupted square through 2');
     });
 
-    test(
-      'a block longer than the dance\'s longest phrase keeps it flat',
-      () async {
-        // Eight-beat phrases: a sequence must fit one, as the editor requires.
-        final adapter = CallersBoxAdapter();
-        Future<List<Figure>> eightBeatPhrases(List<String> lines) async {
-          final payload = jsonEncode({
-            'ID': '9002',
-            'Name': 'Short phrases',
-            'Permission': 'full',
-            'PhraseStructure': '8*4*2',
-            'phrases': [
-              {'name': 'A1', 'figures': lines},
-            ],
-          });
-          final found = await adapter.discover(ImportRequest(payload: payload));
-          return figuresOf(
-            adapter.parse(await adapter.fetch(found.single)).dance,
-          );
-        }
+    test('a block longer than its phrase keeps it flat', () async {
+      // Eight-beat phrases: a sequence must fit one, as the editor requires.
+      final adapter = CallersBoxAdapter();
+      Future<List<Figure>> eightBeatPhrases(List<String> lines) async {
+        final payload = jsonEncode({
+          'ID': '9002',
+          'Name': 'Short phrases',
+          'Permission': 'full',
+          'PhraseStructure': '8*4*2',
+          'phrases': [
+            {'name': 'A1', 'figures': lines},
+          ],
+        });
+        final found = await adapter.discover(ImportRequest(payload: payload));
+        return figuresOf(
+          adapter.parse(await adapter.fetch(found.single)).dance,
+        );
+      }
 
-        final long = await eightBeatPhrases([
-          '(16) Georgia Rang Tang:',
-          '     (4) Partner allemande right 3/4',
-          '     (4) Women pass left',
-          '     (4) N2 neighbor allemande left 1',
-          '     (4) Women pass right',
-        ]);
-        expect(long.any((f) => f.isContainer), isFalse);
-        expect(long.first.note, 'Georgia Rang Tang');
+      final long = await eightBeatPhrases([
+        '(16) Georgia Rang Tang:',
+        '     (4) Partner allemande right 3/4',
+        '     (4) Women pass left',
+        '     (4) N2 neighbor allemande left 1',
+        '     (4) Women pass right',
+      ]);
+      expect(long.any((f) => f.isContainer), isFalse);
+      expect(long.first.note, 'Georgia Rang Tang');
 
-        // One that fits the phrase is still grouped.
-        final fits = await eightBeatPhrases([
-          '(8) Neighbor flutterwheel:',
-          '     (4) Women allemande right 1/2',
-          '     (4) Neighbor star promenade 1/2 (WR)',
-        ]);
-        expect(_named(fits).containerTitle, 'Neighbor flutterwheel');
-      },
-    );
+      // One that fits the phrase is still grouped.
+      final fits = await eightBeatPhrases([
+        '(8) Neighbor flutterwheel:',
+        '     (4) Women allemande right 1/2',
+        '     (4) Neighbor star promenade 1/2 (WR)',
+      ]);
+      expect(_named(fits).containerTitle, 'Neighbor flutterwheel');
+    });
 
     test('a block is grouped only if it fits the phrase it starts in '
         '(23 November 2026)', () async {
@@ -672,7 +669,9 @@ void main() {
         },
         {'name': 'B', 'figures': block},
       ]);
-      expect(_named(inB).containerTitle, 'Allemande run');
+      expect(inB, hasLength(3));
+      expect(inB.last.isSequence, isTrue);
+      expect(inB.last.containerTitle, 'Allemande run');
     });
 
     test('more figures than a sequence holds keeps it flat', () async {
