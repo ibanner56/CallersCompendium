@@ -4272,6 +4272,31 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceEditorMusicalKeyHint => 'ex. sol mineur';
 
   @override
+  String danceAuthorsWithYear(String names, String year) {
+    return '$names ($year)';
+  }
+
+  @override
+  String danceComposedYear(String year) {
+    return 'Composée en $year';
+  }
+
+  @override
+  String danceInterpretedBy(String names) {
+    return 'Interprétée par $names';
+  }
+
+  @override
+  String danceInterpretedByWithYear(String names, String year) {
+    return 'Interprétée par $names ($year)';
+  }
+
+  @override
+  String danceInterpretedYear(String year) {
+    return 'Interprétée en $year';
+  }
+
+  @override
   String danceMeterValue(String meter) {
     return 'Mesure : $meter';
   }

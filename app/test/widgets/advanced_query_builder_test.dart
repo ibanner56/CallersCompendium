@@ -1,4 +1,3 @@
-import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/widgets/advanced_query_builder.dart';
 import 'package:compendium_core/compendium_core.dart';

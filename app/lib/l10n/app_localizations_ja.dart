@@ -4015,6 +4015,31 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorMusicalKeyHint => '例: ト短調';
 
   @override
+  String danceAuthorsWithYear(String names, String year) {
+    return '$names（$year年）';
+  }
+
+  @override
+  String danceComposedYear(String year) {
+    return '$year年振付';
+  }
+
+  @override
+  String danceInterpretedBy(String names) {
+    return '解釈：$names';
+  }
+
+  @override
+  String danceInterpretedByWithYear(String names, String year) {
+    return '解釈：$names（$year年）';
+  }
+
+  @override
+  String danceInterpretedYear(String year) {
+    return '$year年解釈';
+  }
+
+  @override
   String danceMeterValue(String meter) {
     return '拍子：$meter';
   }

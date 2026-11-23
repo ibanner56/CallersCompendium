@@ -34,7 +34,6 @@ import '../models/dance_list_entry.dart';
 import '../search/called_venue_choices.dart';
 import '../search/collection_data.dart';
 import '../search/collection_opening_sort.dart';
-import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
 import '../search/collection_selection.dart';
 import '../search/dance_detail_data.dart';

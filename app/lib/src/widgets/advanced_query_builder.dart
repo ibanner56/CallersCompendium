@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
-import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';

@@ -21,7 +21,6 @@ import '../../data/shorthand_mappings_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../editor/figure_draft.dart';
 import '../../editor/user_figure_draft.dart';
-import '../../search/collection_query.dart';
 import '../../search/collection_query_labels.dart';
 import '../../search/collection_data.dart';
 import '../../search/facet_labels.dart';
