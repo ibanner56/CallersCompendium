@@ -649,10 +649,9 @@ void main() {
       final picker = find.byKey(const ValueKey('inline-picker'));
       await rankIn(tester, picker);
       expect(reasonOf(tester, picker, 'd-b'), 'Already in this program');
-      expect(
-        reasonOf(tester, picker, 'd-new'),
-        isNot('Already in this program'),
-      );
+      final fresh = reasonOf(tester, picker, 'd-new');
+      expect(fresh, isNotNull);
+      expect(fresh, isNot(contains('Already in this program')));
       // Close the picker's worker with the screen.
       await tester.pumpWidget(const SizedBox());
     });
@@ -680,9 +679,11 @@ void main() {
       expect(position.isAlternate, isFalse);
 
       await rankIn(tester, picker);
+      final replaced = reasonOf(tester, picker, 'd-b');
+      expect(replaced, isNotNull, reason: 'the dance being replaced is ranked');
       expect(
-        reasonOf(tester, picker, 'd-b'),
-        isNot('Already in this program'),
+        replaced,
+        isNot(contains('Already in this program')),
         reason: 'the dance being replaced',
       );
       for (final other in ['d-a', 'd-b1', 'd-c']) {

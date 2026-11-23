@@ -13222,22 +13222,22 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String suggestionReasonBeatOverlapAfterDance(String move, String dance) {
-    return '$move op dezelfde tellen als $dance, vlak ervoor';
+    return '$move op dezelfde tellen als $dance, de dans er vlak voor';
   }
 
   @override
   String suggestionReasonBeatOverlapBeforeDance(String move, String dance) {
-    return '$move op dezelfde tellen als $dance, vlak erna';
+    return '$move op dezelfde tellen als $dance, de dans er vlak na';
   }
 
   @override
   String suggestionReasonPhraseOverlapAfterDance(String move, String dance) {
-    return '$move in dezelfde frase als $dance, vlak ervoor';
+    return '$move in dezelfde frase als $dance, de dans er vlak voor';
   }
 
   @override
   String suggestionReasonPhraseOverlapBeforeDance(String move, String dance) {
-    return '$move in dezelfde frase als $dance, vlak erna';
+    return '$move in dezelfde frase als $dance, de dans er vlak na';
   }
 
   @override
@@ -13245,7 +13245,7 @@ class AppLocalizationsNl extends AppLocalizations {
     String formation,
     String dance,
   ) {
-    return '$formation, net als $dance vlak ervoor';
+    return '$formation, net als $dance, de dans er vlak voor';
   }
 
   @override
@@ -13253,7 +13253,7 @@ class AppLocalizationsNl extends AppLocalizations {
     String formation,
     String dance,
   ) {
-    return '$formation, net als $dance vlak erna';
+    return '$formation, net als $dance, de dans er vlak na';
   }
 
   @override

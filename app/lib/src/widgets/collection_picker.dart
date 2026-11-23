@@ -785,7 +785,11 @@ class _CollectionPickerState extends State<CollectionPicker> {
           final dance = _latestDanceFor(id, widget.data);
           return dance == null
               ? null
-              : slotDanceTitle(AppLocalizations.of(context), dance);
+              : slotDanceTitle(
+                  AppLocalizations.of(context),
+                  dance,
+                  markDeleted: true,
+                );
         },
       );
 
