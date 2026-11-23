@@ -81,6 +81,20 @@ void main() {
     final custom = DifficultyLevel(id: 'lvl-x', label: 'Wizard', position: 9);
     final vocab = csvValueVocabulary(languages, levels: [custom]);
     expect(vocab.levels[csvFold('wizard')], 'lvl-x');
+    // A built-in level is read by its stored name even in a German-only
+    // vocabulary, and by its German name.
+    final german = csvValueVocabulary(
+      [de],
+      levels: [DifficultyLevel.intermediate],
+    );
+    expect(
+      german.levels[csvFold(DifficultyLevel.intermediate.label)],
+      DifficultyLevel.intermediateId,
+    );
+    expect(
+      german.levels[csvFold(de.commonDanceLevelIntermediate)],
+      DifficultyLevel.intermediateId,
+    );
     for (final l10n in languages) {
       for (final halfBars in const [0, 1]) {
         final words = csvFold(
