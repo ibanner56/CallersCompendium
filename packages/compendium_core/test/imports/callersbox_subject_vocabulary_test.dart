@@ -98,20 +98,55 @@ void main() {
     }
   });
 
-  group('an amount alternative keeps the line custom (#2331)', () {
-    // `(1 or 2)` states two amounts; no move models a choice of amounts, and
-    // structuring keeps the words only as a note while `travel` falls back to
-    // the allemande's default 1½, which the line never says.
-    for (final line in const [
+  group('an amount alternative takes the first amount (#2331)', () {
+    // `(1 or 2)` offers two amounts and either is correct. Maintainer ruling
+    // (2026-11-23): the figure takes the first, and the parenthetical stays as
+    // the note, so the line says the other also works. Before, the amount fell
+    // back to the allemande's default 1½, which the line never offers.
+    const cases = <String, (String, num, String)>{
       // Corpus wording (dances 14635, 12070/12071, 3417, 5031).
-      'Men allemande right (1 or 2)',
-      'Neighbor allemande right (1 or 2)',
-      'Ones allemande right (1/2 or 1 & 1/2)',
-      'Partner allemande right (1 or 1 & 1/2, until men face down)',
+      'Men allemande right (1 or 2)': ('role1s', 1, '1 or 2'),
+      'Neighbor allemande right (1 or 2)': ('neighbors', 1, '1 or 2'),
+      'Ones allemande right (1/2 or 1 & 1/2)': ('ones', 0.5, '1/2 or 1 & 1/2'),
+      'Partner allemande right (1 or 1 & 1/2, until men face down)': (
+        'partners',
+        1,
+        '1 or 1 & 1/2, until role1s face down',
+      ),
+      // Not corpus wording: the first amount is a mixed number.
+      'Neighbor allemande left (1 & 1/2 or 2)': (
+        'neighbors',
+        1.5,
+        '1 & 1/2 or 2',
+      ),
+    };
+    cases.forEach((line, expected) {
+      final (who, travel, note) = expected;
+      test('"$line" takes $travel with the choice as the note', () {
+        final f = parse(line);
+        expect(f.move, 'allemande');
+        expect(f.params['who'], who);
+        expect(f.params['travel'], travel);
+        expect(f.note, note);
+      });
+    });
+
+    test('a two-hand turn takes the amount too (not corpus wording)', () {
+      final f = parse('Partner two-hand turn (1 or 2)');
+      expect(f.move, 'two_hand_turn');
+      expect(f.params['travel'], 1);
+      expect(f.note, '1 or 2');
+    });
+
+    for (final line in const [
       // Not corpus wording: a stated amount beside the alternative.
       'Neighbor allemande left 1 (1 or 2)',
+      // Corpus wording (dance 10156's right side): a promenade has no amount.
+      'C1 corner promenade counterclockwise (3/8 or 5/8)',
+      // Not corpus wording: two choices on one line.
+      'Neighbor allemande left (1 or 2) (1/2 or 1)',
     ]) {
-      test('"$line" stays custom with its text intact', () {
+      test('"$line" has no place for the amount, so stays custom', () {
         final f = parse(line);
         expect(f.isCustom, isTrue);
         expect(f.params['text'], contains(' or '));
@@ -119,7 +154,7 @@ void main() {
     }
 
     test(
-      'through the importer: dance 14635 A2 keeps the line as text',
+      'through the importer: dance 14635 A2 takes the first amount',
       () async {
         final payload = jsonEncode({
           'ID': '14635',
@@ -141,13 +176,14 @@ void main() {
         );
         final raw = await adapter.fetch(discovered.single);
         final figures = figuresOf(adapter.parse(raw).dance);
-        expect(figures.last.isCustom, isTrue);
-        expect(figures.last.params['text'], 'role1s allemande right (1 or 2)');
+        expect(figures.last.move, 'allemande');
+        expect(figures.last.params['travel'], 1);
+        expect(figures.last.note, '1 or 2');
         expect(figures.fold<int>(0, (a, f) => a + f.beats), 16);
       },
     );
 
-    test('a ;-compound holding one stays whole-line custom, either order', () {
+    test('a ;-compound holding one structures both clauses, either order', () {
       for (final line in const [
         'Circle right 3/4; Men allemande right (1 or 2)',
         'Men allemande right (1 or 2); face out',
@@ -157,16 +193,34 @@ void main() {
           beats: 8,
           frontEnd: tcbFigureFrontEnd,
         );
-        expect(figures, hasLength(1), reason: line);
-        expect(figures.single.isCustom, isTrue, reason: line);
-        expect(figures.single.beats, 8, reason: line);
+        final allemande = figures.firstWhere(
+          (f) => f.move == 'allemande',
+          orElse: () => fail('$line: ${figures.map((f) => f.move)}'),
+        );
+        expect(allemande.params['travel'], 1, reason: line);
+        // `face out` is one of the clauses TCB keeps as a note.
+        expect(allemande.note, startsWith('1 or 2'), reason: line);
+      }
+    });
+
+    test('typed text takes the first amount too', () {
+      // Free-text entry fans out across the readers. ContraDB's reading keeps
+      // `(1 or 2)` as its note and takes no amount, so it is not picked.
+      for (final line in const [
+        'Men allemande right (1 or 2)',
+        'Neighbor allemande right (1 or 2)',
+      ]) {
+        final f = parseFreeTextFigureEntry(line).single;
+        expect(f.move, 'allemande', reason: line);
+        expect(f.params['travel'], 1, reason: line);
+        expect(f.note, '1 or 2', reason: line);
       }
     });
   });
 
   group('an "or" annotation that is not an amount alternative', () {
-    // Controls for the amount-alternative veto (#2331): an annotation that
-    // merely contains "or" still structures, with the words as its note.
+    // Controls for the amount-alternative reading (#2331): an annotation that
+    // merely contains "or" structures as before, with the words as its note.
     test('"Neighbor allemande right (or LLFB)" structures', () {
       final f = parse('Neighbor allemande right (or LLFB)');
       expect(f.move, 'allemande');

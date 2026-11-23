@@ -80,6 +80,9 @@ import 'while_container.dart';
 /// claims whatever the bespoke decoders left behind.
 final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
   preRecognizers: [
+    // #2331 follow-up: `(1 or 2)` writes the first amount into the line and
+    // reads the result through every other entry here, so it is listed first.
+    _amountAlternativeAnnotation,
     _hey,
     _circulate,
     _waveBalanceCirculate,
@@ -150,9 +153,7 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
 /// The TCB front-end's veto: every line one of these rejects goes straight to
 /// the custom fallback (see [FigureFrontEnd.declineToCustom]).
 bool _tcbDeclineToCustom(String scrubbed) =>
-    _declineSingleFileCircle(scrubbed) ||
-    _declineRoleSplitAmount(scrubbed) ||
-    _declineAmountAlternative(scrubbed);
+    _declineSingleFileCircle(scrubbed) || _declineRoleSplitAmount(scrubbed);
 
 /// Vetoes a line that states a DIFFERENT turn amount per role in a
 /// parenthetical: `Same-role neighbor allemande left (M 1 & 1/2, W 2)`.
@@ -176,28 +177,100 @@ final RegExp _roleSplitAmountRe = RegExp(
   r'^[MW]\s+(?:\d+\s*&\s*)?\d+(?:/\d+)?\s*,\s*[MW]\s+(?:\d+\s*&\s*)?\d+(?:/\d+)?$',
 );
 
-/// Vetoes a line whose parenthetical opens with a CHOICE of amounts:
-/// `Men allemande right (1 or 2)`, `Ones allemande right (1/2 or 1 & 1/2)`,
-/// `Partner allemande right (1 or 1 & 1/2, until men face down)` (#2331).
+/// Reads a parenthetical that opens with a CHOICE of amounts — `Men allemande
+/// right (1 or 2)`, `Ones allemande right (1/2 or 1 & 1/2)`, `Partner allemande
+/// right (1 or 1 & 1/2, until men face down)` — as the FIRST amount, with the
+/// whole parenthetical kept as the note (#2331 follow-up). Either amount is
+/// correct; the maintainer ruled (2026-11-23) that the figure takes the first
+/// and the note says the other also works. The note keeps the source's own
+/// words, `1 or 2`.
 ///
-/// No move models a choice of amounts. Structured, the line keeps the words
-/// only as a note (via [_proseAnnotation]) while the move's own amount param
-/// falls back to its taxonomy default, so the figure would state an amount the
-/// source never chose (an allemande renders 1½). Custom keeps the line.
+/// The first amount is written into the line where the parenthetical stood,
+/// and the line is then read through every other TCB pre-recognizer and the
+/// shared grammar, so the amount lands in whichever param that move reads it
+/// into (`travel` for an allemande or a two-hand turn).
 ///
-/// Not subject- or move-specific, like [_declineRoleSplitAmount]. Only digit
-/// amounts are read; glyph, decimal and word amounts (`1½ or 2`, `once or
-/// twice`) are not in the corpus and are left alone. An annotation that merely
-/// contains `or` (`(or LLFB)`) does not open with an amount and is unaffected.
-bool _declineAmountAlternative(String scrubbed) =>
-    _parenAnnotations(scrubbed).any(_amountAlternativeRe.hasMatch);
+/// No move models a choice, so a line whose move does not take the amount —
+/// it already states one, or it has no amount param (`C1 corner promenade
+/// counterclockwise (3/8 or 5/8)`) — goes to custom. Structured with the choice
+/// only as a note, it would render the move's default amount, one the source
+/// never offered (an allemande renders 1½).
+///
+/// Not subject- or move-specific. Only digit amounts are read; glyph, decimal
+/// and word amounts (`1½ or 2`, `once or twice`) are not in the corpus and are
+/// left alone. An annotation that merely contains `or` (`(or LLFB)`) does not
+/// open with an amount and is unaffected.
+FigureMatch? _amountAlternativeAnnotation(String scrubbed) {
+  final hits = _amountAlternativeParenRe.allMatches(scrubbed).take(2).toList();
+  if (hits.isEmpty) return null;
+  // Two choices on one line: no single reading. Keep the words.
+  if (hits.length > 1) return FigureMatch.customFallback();
+  final hit = hits.single;
+  final first = hit.group(2)!;
+  final amount = _parseDigitAmount(first);
+  if (amount == null) return FigureMatch.customFallback();
+  final before = scrubbed.substring(0, hit.start).trimRight();
+  final after = scrubbed.substring(hit.end).trimLeft();
+  final withAmount = [
+    before,
+    first,
+    after,
+  ].where((s) => s.isNotEmpty).join(' ');
+  final without = [before, after].where((s) => s.isNotEmpty).join(' ');
 
-/// `<amount> or <amount>` at the start of an annotation body, then either the
-/// end of the body or a `,`/`;` and whatever follows. An amount is a whole
-/// number, a fraction, or `<whole> & <fraction>`. Anchored, no unbounded
-/// nesting; the body itself is already length-capped by [_parenAnnotationRe].
-final RegExp _amountAlternativeRe = RegExp(
-  r'^(?:\d+\s*&\s*)?\d+(?:/\d+)?\s+or\s+(?:\d+\s*&\s*)?\d+(?:/\d+)?\s*(?:$|[,;])',
+  final inner = _tcbReadWithout(withAmount, _amountAlternativeAnnotation);
+  if (inner == null || inner.forceCustom) return FigureMatch.customFallback();
+  final bare = _tcbReadWithout(without, _amountAlternativeAnnotation);
+  // The amount must land in a param the line did not already fill: a line that
+  // states its own amount and a move with no amount param both fail this.
+  final landed = inner.params.entries.any(
+    (e) =>
+        e.value is num &&
+        (e.value! as num) == amount &&
+        (bare == null ||
+            bare.moveId != inner.moveId ||
+            bare.params[e.key] != e.value),
+  );
+  if (!landed) return FigureMatch.customFallback();
+  return _withAnnotationNote(inner, hit.group(1)!.trim());
+}
+
+/// Reads [text] through every TCB pre-recognizer except [skip], then the
+/// shared grammar, as [_tcbCast] does for its remainder.
+FigureMatch? _tcbReadWithout(String text, FigureMatch? Function(String) skip) {
+  for (final pre in tcbFigureFrontEnd.preRecognizers) {
+    if (identical(pre, skip)) continue;
+    final m = pre(text);
+    if (m != null) return m;
+  }
+  return recognizeSharedFigureLine(
+    text,
+    recognitionNormalize: _tcbRecognitionNormalize,
+  );
+}
+
+/// A whole number, a fraction, or `<whole> & <fraction>`, as a number; null
+/// for a zero denominator.
+num? _parseDigitAmount(String text) {
+  final m = _digitAmountRe.firstMatch(text.trim());
+  if (m == null) return null;
+  final whole = m.group(1) == null ? 0 : int.parse(m.group(1)!);
+  final n = int.parse(m.group(2)!);
+  if (m.group(3) == null) return whole + n;
+  final d = int.parse(m.group(3)!);
+  if (d == 0) return null;
+  return whole + n / d;
+}
+
+final RegExp _digitAmountRe = RegExp(r'^(?:(\d+)\s*&\s*)?(\d+)(?:/(\d+))?$');
+
+/// A `(…)` whose body opens with `<amount> or <amount>`, then either ends or
+/// continues after a `,`/`;`. Group 1 is the body, group 2 the first amount.
+/// An amount is a whole number, a fraction, or `<whole> & <fraction>`.
+/// Anchored on the parenthesis, no unbounded nesting; the body is capped at
+/// 120 characters like [_parenAnnotationRe].
+final RegExp _amountAlternativeParenRe = RegExp(
+  r'\((\s*((?:\d+\s*&\s*)?\d+(?:/\d+)?)\s+or\s+(?:\d+\s*&\s*)?\d+(?:/\d+)?\s*(?:[,;][^()]{0,100})?)\)',
 );
 
 /// Parses a compound figure line, splitting it on TOP-LEVEL `;` separators and
