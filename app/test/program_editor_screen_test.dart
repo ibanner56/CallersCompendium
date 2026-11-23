@@ -20,6 +20,7 @@ import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/program_templates.dart';
 import 'package:compendium_app/src/data/online_search.dart';
 import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
@@ -33,6 +34,7 @@ import 'package:compendium_app/src/widgets/program_export_menu.dart'
     show PdfLayouter, ProgramExportMenu;
 import 'package:compendium_app/src/widgets/program_slot_list_editor.dart';
 
+import 'support/program_template_seed.dart';
 import 'support/dropdown.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
@@ -342,6 +344,8 @@ Future<void> _pump(
   void Function(String)? onNavigateTo,
   DialectLibraryController? dialectLibrary,
   bool confirmBeforeDelete = false,
+  ProgramTemplateChoice templateChoice =
+      const ProgramTemplateChoice.useDefault(),
 }) async {
   await tester.binding.setSurfaceSize(const Size(800, 1400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -368,6 +372,7 @@ Future<void> _pump(
         onSaved: onSaved,
         onDeleted: onDeleted,
         onNavigateTo: onNavigateTo,
+        templateChoice: templateChoice,
       ),
     ),
   );
@@ -1118,9 +1123,17 @@ void main() {
     expect(updated.venue, isNull);
   });
 
-  testWidgets('duplicate creates a copy', (tester) async {
+  testWidgets('duplicate creates a copy, taking nothing from the Default '
+      'template (#2337)', (tester) async {
     final repos = openTestRepositories();
-    await repos.programs.create(_program(id: 'p1', title: 'Original'));
+    await seedDefaultProgramTemplate(repos);
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Original',
+        slots: [ProgramSlot(id: 's1', position: 0, text: 'Own note')],
+      ),
+    );
     String? navigatedTo;
     await _pump(
       tester,
@@ -1137,6 +1150,9 @@ void main() {
     final all = await repos.programs.listAll();
     expect(all, hasLength(2));
     expect(all.map((p) => p.title), contains('Original (copy)'));
+    final copy = all.singleWhere((p) => p.id == navigatedTo);
+    expect(copy.slots.map((slot) => slot.text), ['Own note']);
+    expect(hasSeededTemplateSlot(copy), isFalse);
   });
 
   testWidgets('delete with confirm ON names the dances that lose their calling '
@@ -5567,8 +5583,83 @@ void main() {
     );
   });
 
+  group('program templates (#2337)', () {
+    Future<void> seedTwoTemplates(CompendiumRepositories repos) async {
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Rory O More'));
+      await saveProgramTemplate(
+        repos.settings,
+        const ProgramTemplate(
+          id: 'family',
+          name: 'Family',
+          entries: [ProgramTemplateEntry(danceId: 'd1')],
+        ),
+      );
+      await saveProgramTemplate(
+        repos.settings,
+        const ProgramTemplate(
+          id: 'saturday',
+          name: 'Saturday',
+          entries: [
+            ProgramTemplateEntry(danceId: 'd2'),
+            ProgramTemplateEntry(text: 'Waltz'),
+          ],
+        ),
+      );
+      await saveProgramTemplateOrder(repos.settings, ['family', 'saturday']);
+      await saveProgramTemplateDefault(repos.settings, 'family');
+    }
+
+    testWidgets('a new program starts from the chosen template', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await seedTwoTemplates(repos);
+      await _pump(
+        tester,
+        repos,
+        templateChoice: const ProgramTemplateChoice.template('saturday'),
+      );
+      expect(find.text('Rory O More'), findsOneWidget);
+      expect(find.text('Waltz'), findsOneWidget);
+      expect(find.text('Chase the Squirrel'), findsNothing);
+    });
+
+    testWidgets('with no choice made, a new program starts from the default', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await seedTwoTemplates(repos);
+      await _pump(tester, repos);
+      expect(find.text('Chase the Squirrel'), findsOneWidget);
+      expect(find.text('Rory O More'), findsNothing);
+    });
+
+    testWidgets('Blank program starts with no slots', (tester) async {
+      final repos = openTestRepositories();
+      await seedTwoTemplates(repos);
+      await _pump(
+        tester,
+        repos,
+        templateChoice: const ProgramTemplateChoice.blank(),
+      );
+      expect(find.text('Chase the Squirrel'), findsNothing);
+      expect(find.text('Rory O More'), findsNothing);
+    });
+
+    testWidgets('opening an existing program never applies a template', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await seedTwoTemplates(repos);
+      await repos.programs.create(_program(id: 'p1', title: 'Existing'));
+      await _pump(tester, repos, programId: 'p1');
+      expect(find.text('Chase the Squirrel'), findsNothing);
+    });
+  });
+
   testWidgets(
-    'starting program template seeds valid entries with fresh slots',
+    'an upgraded Starting program seeds valid entries with fresh slots',
     (tester) async {
       final repos = openTestRepositories();
       String? savedId;
@@ -5576,12 +5667,9 @@ void main() {
       await repos.settings.set(
         kDefaultStartingProgramKey,
         encodeStartingProgramTemplate([
-          const StartingProgramTemplateEntry(
-            danceId: 'd1',
-            text: 'Guest caller',
-          ),
-          const StartingProgramTemplateEntry(danceId: 'missing'),
-          const StartingProgramTemplateEntry(text: Program.breakSlotText),
+          const ProgramTemplateEntry(danceId: 'd1', text: 'Guest caller'),
+          const ProgramTemplateEntry(danceId: 'missing'),
+          const ProgramTemplateEntry(text: Program.breakSlotText),
         ]),
       );
 

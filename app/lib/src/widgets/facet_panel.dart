@@ -776,8 +776,7 @@ class _FacetExpansion extends StatelessWidget {
 
 /// The Author facet (#341): a searchable multi-select over choreographers.
 ///
-/// Built on the dance-editor name-picker typeahead pattern
-/// ([`name_picker.dart`]'s `_AddAutocomplete`) but author-specific and
+/// A type-ahead over [ResponsiveAutocomplete], author-specific and
 /// filter-only (no "create" affordance). Type to filter authors; matches are
 /// shown in a dropdown and, once chosen, appear as removable chips. Selection
 /// is written straight into the parent-owned [FacetSelections.authorIds] set,
@@ -889,9 +888,9 @@ class _AuthorFacetState extends State<_AuthorFacet> {
             // Picking always closes the sheet on narrow layouts (owner's Q1
             // decision, uniform across all seven call sites) — even here,
             // where multi-select via repeated adds is the norm. `_add`
-            // clears the query so the next search starts empty, but (unlike
-            // `NamePicker`'s tag/author fields) does not refocus: a tap on
-            // the field is what reopens the sheet for the next add.
+            // clears the query so the next search starts empty, but does not
+            // refocus: a tap on the field is what reopens the sheet for the
+            // next add.
             onSelected: (a) => _add(a.id),
             fieldViewBuilder: (context, controller, focusNode, onSubmit, _) {
               return TextField(

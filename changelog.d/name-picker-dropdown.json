@@ -1,0 +1,9 @@
+{
+  "id": "name-picker-dropdown",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Authors, Interpreted by and Tags in the dance editor are now drop-down lists: the field reads the chosen names, and opening it shows everyone with a checkbox, a search box, a Create row for a new name, and a pencil to edit a person's details. The row of removable chips is gone."
+    ]
+  }
+}
