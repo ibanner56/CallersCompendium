@@ -1187,6 +1187,20 @@ void main() {
       expect(facets.tagIds, isEmpty);
     });
 
+    test('clearCount counts clears, not edits', () {
+      final facets = FacetSelections();
+      facets.setTag('t1', selected: true);
+      expect(facets.clearCount, 0);
+      facets.clear();
+      expect(facets.clearCount, 1);
+      // Nothing selected in the section: nothing cleared, nothing counted.
+      facets.clearFacets({CollectionFacetIds.tags});
+      expect(facets.clearCount, 1);
+      facets.setTag('t1', selected: true);
+      facets.clearFacets({CollectionFacetIds.tags, CollectionFacetIds.form});
+      expect(facets.clearCount, 2);
+    });
+
     test('the mode is not a selection: it never counts or makes non-empty', () {
       final facets = FacetSelections()..tagsMatchAll = false;
       expect(facets.isEmpty, isTrue);
