@@ -5873,6 +5873,46 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get programsAddDanceBeforeMenu => '前にダンスを追加';
+
+  @override
+  String get programsAddDanceAfterMenu => '後にダンスを追加';
+
+  @override
+  String programsAddBeforeSheetTitle(String title) {
+    return '$title の前に追加';
+  }
+
+  @override
+  String programsAddAfterSheetTitle(String title) {
+    return '$title の後に追加';
+  }
+
+  @override
+  String programsAddingBeforeBanner(String title) {
+    return '$title の前に追加中';
+  }
+
+  @override
+  String programsAddingAfterBanner(String title) {
+    return '$title の後に追加中';
+  }
+
+  @override
+  String programsAddedDanceBeforeAnnounce(String title, String target) {
+    return '$title を $target の前に追加しました。';
+  }
+
+  @override
+  String programsAddedDanceAfterAnnounce(String title, String target) {
+    return '$title を $target の後に追加しました。';
+  }
+
+  @override
+  String get programsInsertionCancelledAnnounce =>
+      'キャンセルしました。新しいダンスは最後に追加されます。';
+
+  @override
   String get programsEditSlotMenu => 'スロットを編集';
 
   @override

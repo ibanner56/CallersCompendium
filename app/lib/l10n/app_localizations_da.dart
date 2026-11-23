@@ -6133,6 +6133,46 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get programsAddDanceBeforeMenu => 'Tilføj en dans før';
+
+  @override
+  String get programsAddDanceAfterMenu => 'Tilføj en dans efter';
+
+  @override
+  String programsAddBeforeSheetTitle(String title) {
+    return 'Tilføj før $title';
+  }
+
+  @override
+  String programsAddAfterSheetTitle(String title) {
+    return 'Tilføj efter $title';
+  }
+
+  @override
+  String programsAddingBeforeBanner(String title) {
+    return 'Tilføjer før $title';
+  }
+
+  @override
+  String programsAddingAfterBanner(String title) {
+    return 'Tilføjer efter $title';
+  }
+
+  @override
+  String programsAddedDanceBeforeAnnounce(String title, String target) {
+    return '$title tilføjet før $target.';
+  }
+
+  @override
+  String programsAddedDanceAfterAnnounce(String title, String target) {
+    return '$title tilføjet efter $target.';
+  }
+
+  @override
+  String get programsInsertionCancelledAnnounce =>
+      'Annulleret. Nye danse tilføjes til sidst.';
+
+  @override
   String get programsEditSlotMenu => 'Rediger slot';
 
   @override

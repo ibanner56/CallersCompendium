@@ -695,4 +695,156 @@ void main() {
       expect(find.byKey(const ValueKey('slot-1-view-details')), findsOneWidget);
     });
   });
+
+  // #2339: "Add a dance before" / "Add a dance after" on every slot's menu,
+  // after D-2's compact items and before Edit slot.
+  group('add a dance before/after (#2339)', () {
+    late List<(int, bool, String)> requests;
+
+    List<ProgramSlot> groupedSlots() => [
+      ProgramSlot(id: 'p1', position: 0, danceId: 'd1'),
+      ProgramSlot(id: 'a1', position: 1, danceId: 'd2', isAlt: true),
+      ProgramSlot(id: 'brk', position: 2, text: Program.breakSlotText),
+    ];
+
+    Future<void> pumpList(
+      WidgetTester tester, {
+      required Size size,
+      Set<String> targets = const {},
+    }) async {
+      requests = [];
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: ProgramSlotListEditor(
+              slots: groupedSlots(),
+              danceTitles: (id) => 'Dance $id',
+              formationFor: (_) => null,
+              mixerFor: (_) => false,
+              onReorder: (_, _) {},
+              onSlotChanged: (_, _) {},
+              onPromoteAlternate: (_, _) {},
+              onRemove: (_) {},
+              onCreateDance: (_) {},
+              onViewDanceDetails: (_) {},
+              onAddDanceAt: (index, {required after, required targetTitle}) =>
+                  requests.add((index, after, targetTitle)),
+              insertionTargetSlotIds: targets,
+            ),
+          ),
+        ),
+      );
+    }
+
+    List<String?> menuValues(WidgetTester tester) => tester
+        .widgetList<PopupMenuItem<String>>(
+          find.byWidgetPredicate((w) => w is PopupMenuItem<String>),
+        )
+        .map((item) => item.value)
+        .toList();
+
+    testWidgets('on a compact row they follow move up, move down, View '
+        'details and Cut, and come before Edit slot', (tester) async {
+      await pumpList(tester, size: const Size(360, 800));
+      await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+      await tester.pumpAndSettle();
+      expect(menuValues(tester).take(7), [
+        'move_up',
+        'move_down',
+        'view_details',
+        'remove',
+        'add_before',
+        'add_after',
+        'edit',
+      ]);
+      expect(find.text('Add a dance before'), findsOneWidget);
+      expect(find.text('Add a dance after'), findsOneWidget);
+    });
+
+    testWidgets('on a full row they open the menu, before Edit slot', (
+      tester,
+    ) async {
+      await pumpList(tester, size: const Size(800, 800));
+      await tester.tap(find.byKey(const ValueKey('slot-2-menu')));
+      await tester.pumpAndSettle();
+      expect(menuValues(tester).take(3), ['add_before', 'add_after', 'edit']);
+    });
+
+    testWidgets("an alternate's items name its primary as the target", (
+      tester,
+    ) async {
+      await pumpList(tester, size: const Size(800, 800));
+      for (final action in ['add-before', 'add-after']) {
+        await tester.tap(find.byKey(const ValueKey('slot-1-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(ValueKey('slot-1-$action')));
+        await tester.pumpAndSettle();
+      }
+      expect(requests, [(1, false, 'Dance d1'), (1, true, 'Dance d1')]);
+    });
+
+    testWidgets('the items are at least 24dp tall and keyboard-operable', (
+      tester,
+    ) async {
+      await pumpList(tester, size: const Size(800, 800));
+      await tester.tap(find.byKey(const ValueKey('slot-2-menu')));
+      await tester.pumpAndSettle();
+      for (final action in ['add-before', 'add-after']) {
+        final size = tester.getSize(find.byKey(ValueKey('slot-2-$action')));
+        expect(size.height, greaterThanOrEqualTo(24));
+        expect(size.width, greaterThanOrEqualTo(24));
+      }
+      // Arrow down to "Add a dance after" and press Enter.
+      final after = find.byKey(const ValueKey('slot-2-add-after'));
+      bool afterFocused() {
+        final focused = FocusManager.instance.primaryFocus?.context;
+        if (focused == null) return false;
+        final targets = after.evaluate().toSet();
+        if (targets.contains(focused)) return true;
+        var found = false;
+        focused.visitAncestorElements((element) {
+          found = targets.contains(element);
+          return !found;
+        });
+        return found;
+      }
+
+      for (var i = 0; i < 6 && !afterFocused(); i++) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.pumpAndSettle();
+      }
+      expect(afterFocused(), isTrue);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(requests, [(2, true, 'Break')]);
+    });
+
+    testWidgets('the target slots are highlighted', (tester) async {
+      await pumpList(
+        tester,
+        size: const Size(800, 800),
+        targets: const {'p1', 'a1'},
+      );
+      expect(
+        find.byKey(const ValueKey('slot-p1-insertion-target')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('slot-a1-insertion-target')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('slot-brk-insertion-target')),
+        findsNothing,
+      );
+    });
+  });
 }

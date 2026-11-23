@@ -6094,6 +6094,46 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get programsAddDanceBeforeMenu => 'Add a dance before';
+
+  @override
+  String get programsAddDanceAfterMenu => 'Add a dance after';
+
+  @override
+  String programsAddBeforeSheetTitle(String title) {
+    return 'Add before $title';
+  }
+
+  @override
+  String programsAddAfterSheetTitle(String title) {
+    return 'Add after $title';
+  }
+
+  @override
+  String programsAddingBeforeBanner(String title) {
+    return 'Adding before $title';
+  }
+
+  @override
+  String programsAddingAfterBanner(String title) {
+    return 'Adding after $title';
+  }
+
+  @override
+  String programsAddedDanceBeforeAnnounce(String title, String target) {
+    return 'Added $title before $target.';
+  }
+
+  @override
+  String programsAddedDanceAfterAnnounce(String title, String target) {
+    return 'Added $title after $target.';
+  }
+
+  @override
+  String get programsInsertionCancelledAnnounce =>
+      'Canceled. New dances go at the end.';
+
+  @override
   String get programsEditSlotMenu => 'Edit slot';
 
   @override
