@@ -8937,8 +8937,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceEditorPhrasesAdd => 'Phrase hinzufügen';
 
   @override
-  String danceEditorPhrasesInvalid(int max) {
-    return 'Gib jeder Phrase 1 bis $max Takte und 1 bis $max Schläge pro Takt. Bis dahin behält der Tanz seine letzten gültigen Phrasen, und Speichern speichert diese.';
+  String danceEditorPhrasesInvalid(int maxBars, int maxBeats) {
+    return 'Gib jeder Phrase 1 bis $maxBars Takte und 1 bis $maxBeats Schläge pro Takt. Bis dahin behält der Tanz seine letzten gültigen Phrasen, und Speichern speichert diese.';
   }
 
   @override
@@ -13120,7 +13120,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSuggestionsEnabledSubtitle =>
-      'Fügt dem Menü „Sortieren“ der Tanzliste im Programmeditor „Vorgeschlagen“ hinzu. Es ordnet die Tänze für das Ende des Programms und sagt, warum.';
+      'Fügt den Menüs „Sortieren“ der Tanzlisten im Programmeditor „Vorgeschlagen“ hinzu. Es ordnet die Tänze für die Stelle, an die der neue Tanz kommt, und sagt, warum.';
 
   @override
   String get settingsSuggestionsEditorTitle => 'Worauf Vorschläge achten';
@@ -13284,6 +13284,42 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String suggestionReasonPhraseOverlapNext(String move) {
     return '$move in derselben Phrase wie im Tanz danach';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapAfterDance(String move, String dance) {
+    return '$move auf denselben Schlägen wie in $dance direkt davor';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapBeforeDance(String move, String dance) {
+    return '$move auf denselben Schlägen wie in $dance direkt danach';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapAfterDance(String move, String dance) {
+    return '$move in derselben Phrase wie in $dance direkt davor';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapBeforeDance(String move, String dance) {
+    return '$move in derselben Phrase wie in $dance direkt danach';
+  }
+
+  @override
+  String suggestionReasonSameFormationAfterDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation wie $dance direkt davor';
+  }
+
+  @override
+  String suggestionReasonSameFormationBeforeDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation wie $dance direkt danach';
   }
 
   @override
@@ -13914,6 +13950,107 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsExperimentalShowRepertoireSubtitle =>
       'Fügt dem Menü „Weitere Aktionen“ der Sammlung „Repertoire“ hinzu: deine am häufigsten und seltensten aufgerufenen Tänze, was du nie aufgerufen hast, Häufigkeit der Figuren, Autoren, Formationen und Wiederholungen je Veranstaltungsort.';
+
+  @override
+  String get importSourceLabelCsv => 'Deine eigene Tabelle (CSV)';
+
+  @override
+  String get importCsvPickFile => 'CSV-Datei wählen …';
+
+  @override
+  String get importCsvSaveAsHint =>
+      'Wähle in deinem Tabellenprogramm Datei ▸ Speichern unter (oder Herunterladen) und „CSV UTF-8“, und wähle dann diese Datei hier.';
+
+  @override
+  String get importCsvMapTitle => 'Spalten zuordnen';
+
+  @override
+  String get importCsvMapIntro =>
+      'Wähle, was jede Spalte enthält. Spalten auf „Ignorieren“ werden ausgelassen. Nichts wird hinzugefügt, bevor du prüfst und bestätigst.';
+
+  @override
+  String get importCsvSeparatorLabel => 'Trennzeichen';
+
+  @override
+  String get importCsvSeparatorComma => 'Komma (,)';
+
+  @override
+  String get importCsvSeparatorSemicolon => 'Semikolon (;)';
+
+  @override
+  String get importCsvSeparatorTab => 'Tabulator';
+
+  @override
+  String get importCsvFirstRowHeader => 'Die erste Zeile benennt die Spalten';
+
+  @override
+  String importCsvColumnFallback(int number) {
+    return 'Spalte $number';
+  }
+
+  @override
+  String get importCsvTargetIgnore => 'Ignorieren';
+
+  @override
+  String importCsvTargetPhrase(String phrase) {
+    return 'Figuren, $phrase';
+  }
+
+  @override
+  String importCsvTargetNewField(String type) {
+    return 'Neues eigenes Feld ($type)';
+  }
+
+  @override
+  String importCsvTargetExistingField(String name) {
+    return 'Eigenes Feld: $name';
+  }
+
+  @override
+  String get importCsvNeedsTitle =>
+      'Wähle die Spalte, die den Titel jedes Tanzes enthält.';
+
+  @override
+  String get importCsvContinue => 'Weiter';
+
+  @override
+  String get importCsvPreviewHeading => 'Erste Zeilen';
+
+  @override
+  String get importCsvNotUtf8 =>
+      'Diese Datei ist nicht als UTF-8-Text gespeichert, daher kämen Umlaute und Akzente falsch an. Speichere sie in deinem Tabellenprogramm erneut als „CSV UTF-8“ und wähle diese Datei.';
+
+  @override
+  String get importCsvTooLarge =>
+      'Diese Datei ist zu groß zum Importieren. Teile sie in kleinere Dateien auf.';
+
+  @override
+  String importCsvTooManyRows(int limit) {
+    return 'Diese Datei hat mehr als $limit Zeilen. Teile sie in kleinere Dateien auf.';
+  }
+
+  @override
+  String importCsvTooManyColumns(int limit) {
+    return 'Eine Zeile dieser Datei hat mehr als $limit Spalten.';
+  }
+
+  @override
+  String importCsvCellTooLong(int limit) {
+    return 'Eine Zelle dieser Datei ist länger als $limit Zeichen.';
+  }
+
+  @override
+  String get importCsvUnterminatedQuote =>
+      'Diese Datei hat eine Zelle in Anführungszeichen, die nie endet, daher kann sie nicht gelesen werden.';
+
+  @override
+  String importCsvLargeBatch(int count) {
+    return 'Diese Datei hat $count Zeilen. Das Prüfen kann eine Weile dauern.';
+  }
+
+  @override
+  String get importCsvNoRows =>
+      'Diese Datei hat keine Zeilen mit Tänzen, nur die Spaltennamen.';
 
   @override
   String calendarImportUpdated(int count) {

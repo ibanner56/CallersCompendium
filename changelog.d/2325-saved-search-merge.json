@@ -1,0 +1,9 @@
+{
+  "id": "2325-saved-search-merge",
+  "user_visible": false,
+  "core": {
+    "added": [
+      "Merging tags, authors or sources now rewrites every saved search that names a merged-away one to name the survivor, in the merge's own transaction (SavedSearchRepository.moveReferences, called from ReferenceEditRepository.merge). A saved search this build cannot read is left untouched, and Undo puts a rewritten search back only while nothing has changed it since. SyncLocalRepository.aliasMaps reads every alias in one query, for a host to give the saved-search resolver once per run; the resolver reads a readable search that still names a merged-away id as the survivor while the alias exists."
+    ]
+  }
+}

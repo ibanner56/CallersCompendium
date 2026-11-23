@@ -8908,8 +8908,8 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorPhrasesAdd => 'Frase toevoegen';
 
   @override
-  String danceEditorPhrasesInvalid(int max) {
-    return 'Geef elke frase 1 tot $max maten en 1 tot $max tellen per maat. Tot dan houdt de dans zijn laatste geldige frasen, en Opslaan slaat die op.';
+  String danceEditorPhrasesInvalid(int maxBars, int maxBeats) {
+    return 'Geef elke frase 1 tot $maxBars maten en 1 tot $maxBeats tellen per maat. Tot dan houdt de dans zijn laatste geldige frasen, en Opslaan slaat die op.';
   }
 
   @override
@@ -13086,7 +13086,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSuggestionsEnabledSubtitle =>
-      'Voegt Voorgesteld toe aan het menu Sorteren van de danslijst in de programma-editor. Het ordent de dansen voor het einde van het programma en zegt waarom.';
+      'Voegt Voorgesteld toe aan het menu Sorteren van de danslijsten in de programma-editor. Het ordent de dansen voor de plek waar de nieuwe dans komt en zegt waarom.';
 
   @override
   String get settingsSuggestionsEditorTitle => 'Waar suggesties op letten';
@@ -13247,6 +13247,42 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String suggestionReasonPhraseOverlapNext(String move) {
     return '$move in dezelfde frase als de volgende dans';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapAfterDance(String move, String dance) {
+    return '$move op dezelfde tellen als $dance, de dans er vlak voor';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapBeforeDance(String move, String dance) {
+    return '$move op dezelfde tellen als $dance, de dans er vlak na';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapAfterDance(String move, String dance) {
+    return '$move in dezelfde frase als $dance, de dans er vlak voor';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapBeforeDance(String move, String dance) {
+    return '$move in dezelfde frase als $dance, de dans er vlak na';
+  }
+
+  @override
+  String suggestionReasonSameFormationAfterDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation, net als $dance, de dans er vlak voor';
+  }
+
+  @override
+  String suggestionReasonSameFormationBeforeDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation, net als $dance, de dans er vlak na';
   }
 
   @override
@@ -13876,6 +13912,106 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsExperimentalShowRepertoireSubtitle =>
       'Voegt Repertoire toe aan het menu Meer acties van de Collectie: je vaakst en minst gebelde dansen, wat je nooit hebt gebeld, hoe vaak figuren voorkomen, auteurs, formaties en herhalingen per locatie.';
+
+  @override
+  String get importSourceLabelCsv => 'Je eigen spreadsheet (CSV)';
+
+  @override
+  String get importCsvPickFile => 'CSV-bestand kiezen…';
+
+  @override
+  String get importCsvSaveAsHint =>
+      'Kies in je spreadsheetprogramma Bestand ▸ Opslaan als (of Downloaden) en ‘CSV UTF-8’, en kies dat bestand dan hier.';
+
+  @override
+  String get importCsvMapTitle => 'Kolommen koppelen';
+
+  @override
+  String get importCsvMapIntro =>
+      'Kies wat elke kolom bevat. Kolommen op ‘Negeren’ worden weggelaten. Er wordt niets toegevoegd voordat je controleert en bevestigt.';
+
+  @override
+  String get importCsvSeparatorLabel => 'Scheidingsteken';
+
+  @override
+  String get importCsvSeparatorComma => 'Komma (,)';
+
+  @override
+  String get importCsvSeparatorSemicolon => 'Puntkomma (;)';
+
+  @override
+  String get importCsvSeparatorTab => 'Tab';
+
+  @override
+  String get importCsvFirstRowHeader => 'De eerste rij noemt de kolommen';
+
+  @override
+  String importCsvColumnFallback(int number) {
+    return 'Kolom $number';
+  }
+
+  @override
+  String get importCsvTargetIgnore => 'Negeren';
+
+  @override
+  String importCsvTargetPhrase(String phrase) {
+    return 'Figuren, $phrase';
+  }
+
+  @override
+  String importCsvTargetNewField(String type) {
+    return 'Nieuw eigen veld ($type)';
+  }
+
+  @override
+  String importCsvTargetExistingField(String name) {
+    return 'Eigen veld: $name';
+  }
+
+  @override
+  String get importCsvNeedsTitle => 'Kies de kolom met de titel van elke dans.';
+
+  @override
+  String get importCsvContinue => 'Doorgaan';
+
+  @override
+  String get importCsvPreviewHeading => 'Eerste rijen';
+
+  @override
+  String get importCsvNotUtf8 =>
+      'Dit bestand is niet als UTF-8-tekst opgeslagen, dus letters met accenten zouden verkeerd binnenkomen. Sla het in je spreadsheetprogramma opnieuw op als ‘CSV UTF-8’ en kies dat bestand.';
+
+  @override
+  String get importCsvTooLarge =>
+      'Dit bestand is te groot om te importeren. Splits het in kleinere bestanden.';
+
+  @override
+  String importCsvTooManyRows(int limit) {
+    return 'Dit bestand heeft meer dan $limit rijen. Splits het in kleinere bestanden.';
+  }
+
+  @override
+  String importCsvTooManyColumns(int limit) {
+    return 'Een rij in dit bestand heeft meer dan $limit kolommen.';
+  }
+
+  @override
+  String importCsvCellTooLong(int limit) {
+    return 'Een cel in dit bestand is langer dan $limit tekens.';
+  }
+
+  @override
+  String get importCsvUnterminatedQuote =>
+      'Dit bestand heeft een cel tussen aanhalingstekens die nooit eindigt, dus het kan niet worden gelezen.';
+
+  @override
+  String importCsvLargeBatch(int count) {
+    return 'Dit bestand heeft $count rijen. Controleren kan even duren.';
+  }
+
+  @override
+  String get importCsvNoRows =>
+      'Dit bestand heeft geen rijen met dansen, alleen de kolomnamen.';
 
   @override
   String calendarImportUpdated(int count) {

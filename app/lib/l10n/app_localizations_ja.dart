@@ -8494,8 +8494,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorPhrasesAdd => 'フレーズを追加';
 
   @override
-  String danceEditorPhrasesInvalid(int max) {
-    return '各フレーズの小節数と1小節の拍数を、それぞれ1から$maxで入力してください。それまでは最後の有効なフレーズが保たれ、保存するとそれが保存されます。';
+  String danceEditorPhrasesInvalid(int maxBars, int maxBeats) {
+    return '各フレーズの小節数は1から$maxBars、1小節の拍数は1から$maxBeatsで入力してください。それまでは最後の有効なフレーズが保たれ、保存するとそれが保存されます。';
   }
 
   @override
@@ -12501,7 +12501,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSuggestionsEnabledSubtitle =>
-      'プログラム作成画面のダンス一覧の「並べ替え」メニューに「おすすめ順」を追加します。プログラムの最後に入れるダンスを並べ、その理由を示します。';
+      'プログラム作成画面のダンス一覧の「並べ替え」メニューに「おすすめ順」を追加します。新しいダンスを入れる位置に合わせてダンスを並べ、その理由を示します。';
 
   @override
   String get settingsSuggestionsEditorTitle => '提案で考慮すること';
@@ -12655,6 +12655,42 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String suggestionReasonPhraseOverlapNext(String move) {
     return '$moveが次のダンスと同じフレーズ';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapAfterDance(String move, String dance) {
+    return '$moveが直前の$danceと同じ拍';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapBeforeDance(String move, String dance) {
+    return '$moveが直後の$danceと同じ拍';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapAfterDance(String move, String dance) {
+    return '$moveが直前の$danceと同じフレーズ';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapBeforeDance(String move, String dance) {
+    return '$moveが直後の$danceと同じフレーズ';
+  }
+
+  @override
+  String suggestionReasonSameFormationAfterDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation（直前の$danceと同じ）';
+  }
+
+  @override
+  String suggestionReasonSameFormationBeforeDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation（直後の$danceと同じ）';
   }
 
   @override
@@ -13261,6 +13297,104 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsExperimentalShowRepertoireSubtitle =>
       'コレクションの「その他のアクション」メニューに「レパートリー」を追加します。コール回数が多いダンスと少ないダンス、一度もコールしていないダンス、フィギュアの出現頻度、作者、フォーメーション、会場ごとの繰り返しを表示します。';
+
+  @override
+  String get importSourceLabelCsv => '自分の表計算ファイル（CSV）';
+
+  @override
+  String get importCsvPickFile => 'CSV ファイルを選択…';
+
+  @override
+  String get importCsvSaveAsHint =>
+      '表計算アプリで［ファイル］▸［名前を付けて保存］（または［ダウンロード］）を選び、「CSV UTF-8」を選んでから、そのファイルをここで選択してください。';
+
+  @override
+  String get importCsvMapTitle => '列の割り当て';
+
+  @override
+  String get importCsvMapIntro =>
+      '各列の内容を選んでください。「無視」にした列は取り込まれません。確認して確定するまで何も追加されません。';
+
+  @override
+  String get importCsvSeparatorLabel => '区切り文字';
+
+  @override
+  String get importCsvSeparatorComma => 'カンマ（,）';
+
+  @override
+  String get importCsvSeparatorSemicolon => 'セミコロン（;）';
+
+  @override
+  String get importCsvSeparatorTab => 'タブ';
+
+  @override
+  String get importCsvFirstRowHeader => '1 行目は列名';
+
+  @override
+  String importCsvColumnFallback(int number) {
+    return '列 $number';
+  }
+
+  @override
+  String get importCsvTargetIgnore => '無視';
+
+  @override
+  String importCsvTargetPhrase(String phrase) {
+    return 'フィギュア、$phrase';
+  }
+
+  @override
+  String importCsvTargetNewField(String type) {
+    return '新しいカスタムフィールド（$type）';
+  }
+
+  @override
+  String importCsvTargetExistingField(String name) {
+    return 'カスタムフィールド：$name';
+  }
+
+  @override
+  String get importCsvNeedsTitle => '各ダンスのタイトルが入っている列を選んでください。';
+
+  @override
+  String get importCsvContinue => '続ける';
+
+  @override
+  String get importCsvPreviewHeading => '最初の行';
+
+  @override
+  String get importCsvNotUtf8 =>
+      'このファイルは UTF-8 テキストで保存されていないため、アクセント付きの文字が正しく取り込まれません。表計算アプリで「CSV UTF-8」として保存し直し、そのファイルを選択してください。';
+
+  @override
+  String get importCsvTooLarge => 'このファイルは大きすぎて取り込めません。小さなファイルに分けてください。';
+
+  @override
+  String importCsvTooManyRows(int limit) {
+    return 'このファイルには $limit 行を超える行があります。小さなファイルに分けてください。';
+  }
+
+  @override
+  String importCsvTooManyColumns(int limit) {
+    return 'このファイルのある行には $limit を超える列があります。';
+  }
+
+  @override
+  String importCsvCellTooLong(int limit) {
+    return 'このファイルのあるセルは $limit 文字を超えています。';
+  }
+
+  @override
+  String get importCsvUnterminatedQuote =>
+      'このファイルには終わりのない引用符付きのセルがあるため、読み込めません。';
+
+  @override
+  String importCsvLargeBatch(int count) {
+    return 'このファイルには $count 行あります。確認に時間がかかることがあります。';
+  }
+
+  @override
+  String get importCsvNoRows => 'このファイルには列名だけで、ダンスの行がありません。';
 
   @override
   String calendarImportUpdated(int count) {

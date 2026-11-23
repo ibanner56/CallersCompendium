@@ -13120,11 +13120,11 @@ abstract class AppLocalizations {
   /// **'Add phrase'**
   String get danceEditorPhrasesAdd;
 
-  /// Error under an English dance's named phrases when a bar count or a beats-to-the-bar count is empty, zero or above {max}, or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.
+  /// Error under an English dance's named phrases when a bar count or a beats-to-the-bar count is empty, zero or above its most ({maxBars} bars, {maxBeats} beats to the bar), or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.
   ///
   /// In en, this message translates to:
-  /// **'Give each phrase from 1 to {max} bars and from 1 to {max} beats to the bar. Until then the dance keeps its last valid phrases, and Save saves those.'**
-  String danceEditorPhrasesInvalid(int max);
+  /// **'Give each phrase from 1 to {maxBars} bars and from 1 to {maxBeats} beats to the bar. Until then the dance keeps its last valid phrases, and Save saves those.'**
+  String danceEditorPhrasesInvalid(int maxBars, int maxBeats);
 
   /// Label of the number field for how many bars of music one named phrase of an English dance has. The name is A, B or C, a phrase label of English country dance music.
   ///
@@ -19052,7 +19052,7 @@ abstract class AppLocalizations {
   /// Subtitle of the Suggest the next dance switch.
   ///
   /// In en, this message translates to:
-  /// **'Adds Suggested to the Sort menu of the program builder\'s dance list. It orders the dances for the end of the program and says why.'**
+  /// **'Adds Suggested to the Sort menu of the program builder\'s dance lists. It orders the dances for where the new one will go and says why.'**
   String get settingsSuggestionsEnabledSubtitle;
 
   /// Title of the row, and of the screen it opens, where the user chooses how much each suggestion factor counts.
@@ -19175,7 +19175,7 @@ abstract class AppLocalizations {
   /// **'These choices were saved by a newer version of the app, so they can\'t be changed here. Update the app to change them.'**
   String get suggestionsNewerVersion;
 
-  /// Sort choice in the program builder's dance list, offered when Suggestions is on: the dances ordered for the end of the program.
+  /// Sort choice in the program builder's dance lists (adding a dance, and Replace), offered when Suggestions is on: the dances ordered for where the new one will go (the end of the program, a place before or after a slot, or the slot being replaced).
   ///
   /// In en, this message translates to:
   /// **'Suggested'**
@@ -19288,6 +19288,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{move} in the same phrase as the next dance'**
   String suggestionReasonPhraseOverlapNext(String move);
+
+  /// Suggestion reason: a move lands on the same beats as in the named dance, which this one would follow (the matrix's collision rule). {move} is the matrix column's name, such as partner swing. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'Same {move} beats as {dance}, after it'**
+  String suggestionReasonBeatOverlapAfterDance(String move, String dance);
+
+  /// Suggestion reason: a move lands on the same beats as in the named dance, which this one would come before. {move} is the matrix column's name. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'Same {move} beats as {dance}, before it'**
+  String suggestionReasonBeatOverlapBeforeDance(String move, String dance);
+
+  /// Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the named dance, which this one would follow. {move} is the matrix column's name. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} in the same phrase as {dance}, after it'**
+  String suggestionReasonPhraseOverlapAfterDance(String move, String dance);
+
+  /// Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the named dance, which this one would come before. {move} is the matrix column's name. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} in the same phrase as {dance}, before it'**
+  String suggestionReasonPhraseOverlapBeforeDance(String move, String dance);
+
+  /// Suggestion reason: the dance is in the same formation as the named dance, which this one would follow. {formation} is the formation's name. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'{formation}, like {dance}, after it'**
+  String suggestionReasonSameFormationAfterDance(
+    String formation,
+    String dance,
+  );
+
+  /// Suggestion reason: the dance is in the same formation as the named dance, which this one would come before. {formation} is the formation's name. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'{formation}, like {dance}, before it'**
+  String suggestionReasonSameFormationBeforeDance(
+    String formation,
+    String dance,
+  );
 
   /// Suggestion reason: the dance is already in the program being built, so the Suggested order puts it last (it is not removed).
   ///
@@ -20182,6 +20224,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Adds Repertoire to Collection\'s More actions menu: your most and least called dances, what you\'ve never called, figure frequency, authors, formations and repeats per venue.'**
   String get settingsExperimentalShowRepertoireSubtitle;
+
+  /// Import source label: a CSV file the person saved from their own spreadsheet (Excel, Numbers, LibreOffice or Google Sheets).
+  ///
+  /// In en, this message translates to:
+  /// **'Your own spreadsheet (CSV)'**
+  String get importSourceLabelCsv;
+
+  /// Button on the import screen that opens the file picker for a CSV spreadsheet file.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a CSV file…'**
+  String get importCsvPickFile;
+
+  /// Help text under the CSV import source explaining how to get a CSV file out of a spreadsheet program.
+  ///
+  /// In en, this message translates to:
+  /// **'In your spreadsheet, choose File ▸ Save As (or Download) and pick \"CSV UTF-8\", then choose that file here.'**
+  String get importCsvSaveAsHint;
+
+  /// Heading of the import step where the person says what each spreadsheet column holds.
+  ///
+  /// In en, this message translates to:
+  /// **'Map columns'**
+  String get importCsvMapTitle;
+
+  /// Explanation at the top of the map-columns step of a CSV import.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what each column holds. Columns set to Ignore are left out. Nothing is added until you review and confirm.'**
+  String get importCsvMapIntro;
+
+  /// Label of the dropdown that chooses which character separates the columns of a CSV file.
+  ///
+  /// In en, this message translates to:
+  /// **'Separator'**
+  String get importCsvSeparatorLabel;
+
+  /// Separator choice: comma.
+  ///
+  /// In en, this message translates to:
+  /// **'Comma (,)'**
+  String get importCsvSeparatorComma;
+
+  /// Separator choice: semicolon, which Excel uses in many European languages.
+  ///
+  /// In en, this message translates to:
+  /// **'Semicolon (;)'**
+  String get importCsvSeparatorSemicolon;
+
+  /// Separator choice: tab character.
+  ///
+  /// In en, this message translates to:
+  /// **'Tab'**
+  String get importCsvSeparatorTab;
+
+  /// Switch on the map-columns step: whether the first row of the CSV holds column names rather than a dance.
+  ///
+  /// In en, this message translates to:
+  /// **'The first row names the columns'**
+  String get importCsvFirstRowHeader;
+
+  /// Name shown for a CSV column that has no header. {number} counts from 1.
+  ///
+  /// In en, this message translates to:
+  /// **'Column {number}'**
+  String importCsvColumnFallback(int number);
+
+  /// Dropdown choice: leave this CSV column out of the import.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignore'**
+  String get importCsvTargetIgnore;
+
+  /// Dropdown choice: this CSV column holds the figures of one phrase, such as A1 or B2.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures, {phrase}'**
+  String importCsvTargetPhrase(String phrase);
+
+  /// Dropdown choice: create a new custom field of this type from the column. {type} is a custom field type such as Number.
+  ///
+  /// In en, this message translates to:
+  /// **'New custom field ({type})'**
+  String importCsvTargetNewField(String type);
+
+  /// Dropdown choice: put this column into one of the person's existing custom fields. {name} is the field's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom field: {name}'**
+  String importCsvTargetExistingField(String name);
+
+  /// Shown on the map-columns step while no column, or more than one, is set to Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the column that holds each dance\'s title.'**
+  String get importCsvNeedsTitle;
+
+  /// Button that moves from the map-columns step to the review of the planned dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get importCsvContinue;
+
+  /// Heading above the preview of the first few rows of the CSV file.
+  ///
+  /// In en, this message translates to:
+  /// **'First rows'**
+  String get importCsvPreviewHeading;
+
+  /// Error when a CSV file is in an old encoding such as Windows-1252 instead of UTF-8.
+  ///
+  /// In en, this message translates to:
+  /// **'This file isn\'t saved as UTF-8 text, so accented letters would come in wrong. In your spreadsheet, save it again as \"CSV UTF-8\" and choose that file.'**
+  String get importCsvNotUtf8;
+
+  /// Error when a CSV file is larger than the import allows.
+  ///
+  /// In en, this message translates to:
+  /// **'This file is too large to import. Split it into smaller files.'**
+  String get importCsvTooLarge;
+
+  /// Error when a CSV file has too many rows.
+  ///
+  /// In en, this message translates to:
+  /// **'This file has more than {limit} rows. Split it into smaller files.'**
+  String importCsvTooManyRows(int limit);
+
+  /// Error when a row of a CSV file has too many columns.
+  ///
+  /// In en, this message translates to:
+  /// **'A row in this file has more than {limit} columns.'**
+  String importCsvTooManyColumns(int limit);
+
+  /// Error when one cell of a CSV file is too long.
+  ///
+  /// In en, this message translates to:
+  /// **'A cell in this file is longer than {limit} characters.'**
+  String importCsvCellTooLong(int limit);
+
+  /// Error when a CSV file has an opening double quote with no closing one.
+  ///
+  /// In en, this message translates to:
+  /// **'This file has a quoted cell that never ends, so it can\'t be read.'**
+  String get importCsvUnterminatedQuote;
+
+  /// Warning on the map-columns step when a CSV file has many rows.
+  ///
+  /// In en, this message translates to:
+  /// **'This file has {count} rows. Reviewing them may take a while.'**
+  String importCsvLargeBatch(int count);
+
+  /// Shown on the map-columns step of a CSV import when the file has a header row but no dance rows (or only blank ones).
+  ///
+  /// In en, this message translates to:
+  /// **'This file has no rows of dances, only the column names.'**
+  String get importCsvNoRows;
 
   /// Snack bar part after a calendar import updated existing programs from calendar changes. Offers Undo.
   ///

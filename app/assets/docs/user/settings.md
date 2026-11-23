@@ -1128,8 +1128,10 @@ worked out each time you open the page, under the
 
 **Suggest the next dance** adds **Suggested** to the **Sort** menu of the
 collection picker in the program builder. It is **off by default**, and the
-section starts closed while it is off. Suggested orders the dances for the end
-of the program you are building, and each dance says why it is where it is.
+section starts closed while it is off. Suggested orders the dances for where
+the new one will go in the program you are building (the end, a place you are
+adding before or after a slot, or the slot you are replacing), and each dance
+says why it is where it is.
 See [Let the app suggest the next dance](./programs.md#let-the-app-suggest-the-next-dance).
 Turning it off takes Suggested out of the menu, and a picker that is open goes
 back to its plain order.
@@ -1140,13 +1142,13 @@ out entirely. There are no numbers to tune.
 
 - **Variety on the matrix** — favors dances with moves the program hasn't
   used yet, and keeps away from a move on the same beats as the dance before
-  (or in the same phrase, if
+  or after (or in the same phrase, if
   [Flag exact beat overlap only](#programs) is off, and the reason says
   which), the same thing the
   [programming matrix](./programs.md#check-your-evening-with-the-matrix) flags.
   A break between two dances means they are not next to each other.
-- **Formation balance** — keeps away from the formation of the dance before,
-  and from formations the program already has many of.
+- **Formation balance** — keeps away from the formation of the dance before
+  or after, and from formations the program already has many of.
 - **Difficulty curve** — fits the difficulty of the evening to a **Shape**:
   **Build up, then ease off** (easy at the start, building to your hardest
   dances about two-thirds of the way through a dozen-dance evening, then easing

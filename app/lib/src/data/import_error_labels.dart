@@ -216,6 +216,24 @@ String importSourceLabel(AppLocalizations l10n, ImportSourceKind kind) =>
       ImportSourceKind.titleList => l10n.importSourceLabelTitleList,
       ImportSourceKind.publishedCollection =>
         l10n.importSourceLabelPublishedCollection,
+      ImportSourceKind.csv => l10n.importSourceLabelCsv,
+    };
+
+/// The message for a spreadsheet that could not be read (#2329).
+String csvReadFailureMessage(AppLocalizations l10n, CsvReadException e) =>
+    switch (e.reason) {
+      CsvReadFailure.tooLarge => l10n.importCsvTooLarge,
+      CsvReadFailure.notUtf8 => l10n.importCsvNotUtf8,
+      CsvReadFailure.tooManyRows => l10n.importCsvTooManyRows(
+        e.limit ?? kMaxCsvImportRows,
+      ),
+      CsvReadFailure.tooManyColumns => l10n.importCsvTooManyColumns(
+        e.limit ?? kMaxCsvImportColumns,
+      ),
+      CsvReadFailure.cellTooLong => l10n.importCsvCellTooLong(
+        e.limit ?? kMaxCsvImportCellChars,
+      ),
+      CsvReadFailure.unterminatedQuote => l10n.importCsvUnterminatedQuote,
     };
 
 /// Localized display name for the provenance attached to an imported draft.

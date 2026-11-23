@@ -46,6 +46,11 @@ const _sites = <String, List<(String, String)>>{
   'lib/src/screens/import_review_screen.dart': [
     ("const ValueKey('import-source-select')", 'false'),
   ],
+  'lib/src/screens/import_csv_mapping.dart': [
+    ("const ValueKey('csv-separator')", 'false'),
+    // Some thirty column targets plus the caller's custom fields.
+    (r"ValueKey('csv-column-$index')", 'true'),
+  ],
   'lib/src/screens/glossary/compound_editor_screen.dart': [
     ("const ValueKey('glossary-entry-form')", 'false'),
     (r"ValueKey('compound-param-$i-kind')", 'false'),

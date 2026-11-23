@@ -1644,7 +1644,10 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     turn. A non-default `turn` or a rendered destination shows both `dir` and
     `turn` together. Rotationless directions (`in`/`out`/`up`/`down`) reset
     `turn` to the `unspecified` sentinel in the editor, so no turn token is
-    rendered. Canonical never applies this default-silencing: `turn` is
+    rendered. The single-file display path takes the same `along` exception
+    since the #2331 follow-up (maintainer ruling, 2026-11-23): before, a
+    single-file promenade along the set at the default turn displayed as
+    `single file promenade along`, with no rotation. Canonical never applies this default-silencing: `turn` is
     omitted from canonical text only at the `unspecified` sentinel, exactly
     like `dir`'s existing canonical behaviour of always rendering even at its
     default.
@@ -2366,7 +2369,10 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     same rulings read a bare TCB `form long wave` as `form_long_waves` —
     forming a long wave in the center (`form long wave in center`,
     `form_a_long_wave`) is a different figure — and fold its balance into it,
-    across a phrase boundary too; see `docs/design/imports.md`.
+    across a phrase boundary too; the holds written on the forming line
+    itself, `form long wave (P2L,P3R)`, read the same way (#2331 follow-up),
+    with the facing `unspecified` when the line names none; see
+    `docs/design/imports.md`.
     **Older devices (v39)** have neither change. A synced
     `form_long_waves{who: unspecified}` renders through v39's display line,
     which names a subject and its inverse unconditionally, so it reads

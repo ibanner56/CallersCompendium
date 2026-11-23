@@ -1,7 +1,8 @@
-// Suggested in the program builder's add-dance picker (#2343).
+// Suggested in the program builder's pickers (#2343, #2344).
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -83,7 +84,9 @@ final _context = PickerProgramContext(
   programId: 'p1',
   venue: 'The Grange',
   venueLabel: 'The Grange',
-  slots: [ProgramSlot(id: 's0', position: 0, danceId: 'in-program')],
+  position: SuggestionPosition.atEnd([
+    ProgramSlot(id: 's0', position: 0, danceId: 'in-program'),
+  ]),
 );
 
 class _Harness {
@@ -208,8 +211,7 @@ void main() {
     expect(ranker.requests, isEmpty);
   });
 
-  testWidgets('a picker that does not add at the end (Replace…, or an '
-      'insertion) offers no Suggested', (tester) async {
+  testWidgets('a picker with no position offers no Suggested', (tester) async {
     final repos = await _seed();
     final ranker = _SpyRanker();
     for (final context in const [
@@ -239,7 +241,9 @@ void main() {
     await _chooseSuggested(tester);
     expect(ranker.requests, hasLength(1));
     final request = ranker.requests.single;
-    expect(request.slotsBefore, _context.slots);
+    expect(request.slotsBefore, _context.position!.slotsBefore);
+    expect(request.slotsAfter, isEmpty);
+    expect(request.candidateIsAlternate, isFalse);
     expect(request.hasVenue, isTrue);
     expect(request.today, DateTime.utc(2026, 6, 15));
     expect(request.candidates.map((d) => d.id), ['a', 'b', 'c', 'in-program']);
@@ -383,7 +387,9 @@ void main() {
       ranker: ranker,
       programContext: PickerProgramContext(
         programId: 'p1',
-        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'in-program')],
+        position: SuggestionPosition.atEnd([
+          ProgramSlot(id: 's0', position: 0, danceId: 'in-program'),
+        ]),
       ),
     );
     await _chooseSuggested(tester);
@@ -457,7 +463,9 @@ void main() {
       programContext: PickerProgramContext(
         programId: 'p1',
         venueId: 'venue-1',
-        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'in-program')],
+        position: SuggestionPosition.atEnd([
+          ProgramSlot(id: 's0', position: 0, danceId: 'in-program'),
+        ]),
       ),
     );
     await _chooseSuggested(tester);
@@ -569,10 +577,10 @@ void main() {
       programId: 'p1',
       venue: 'The Grange',
       venueLabel: 'The Grange',
-      slots: [
-        ..._context.slots!,
+      position: SuggestionPosition.atEnd([
+        ..._context.position!.slotsBefore,
         ProgramSlot(id: 's1', position: 1, danceId: 'b'),
-      ],
+      ]),
     );
     await tester.pumpAndSettle();
     expect(ranker.requests, hasLength(2));
@@ -593,5 +601,276 @@ void main() {
     await _pump(tester, repos, ranker: ranker, programContext: _context);
     await _chooseSuggested(tester);
     expect(find.byKey(const ValueKey('picker-suggested-failed')), findsNothing);
+  });
+
+  // --- A position inside the program (#2344) --------------------------------
+
+  /// The in-program dance's slot, "Zulu".
+  final s0 = ProgramSlot(id: 's0', position: 0, danceId: 'in-program');
+  PickerProgramContext contextAt(SuggestionPosition position) =>
+      PickerProgramContext(
+        programId: 'p1',
+        venue: 'The Grange',
+        venueLabel: 'The Grange',
+        position: position,
+      );
+
+  testWidgets('an add before a slot and Replace… send their position to the '
+      'ranker', (tester) async {
+    final repos = await _seed();
+    final ranker = _SpyRanker();
+    final alt = ProgramSlot(id: 's1', position: 1, danceId: 'c', isAlt: true);
+    final harness = await _pump(
+      tester,
+      repos,
+      ranker: ranker,
+      programContext: contextAt(
+        SuggestionPosition.inserting([s0], 0, after: false),
+      ),
+    );
+    await _chooseSuggested(tester);
+    expect(ranker.requests.single.slotsBefore, isEmpty);
+    expect(ranker.requests.single.slotsAfter, [s0]);
+    expect(ranker.requests.single.candidateIsAlternate, isFalse);
+    expect(ranker.requests.single.programDances.keys, ['in-program']);
+
+    harness.context.value = contextAt(
+      SuggestionPosition.replacing([s0, alt], 1),
+    );
+    await tester.pumpAndSettle();
+    expect(ranker.requests, hasLength(2));
+    expect(ranker.requests.last.slotsBefore, [s0]);
+    expect(ranker.requests.last.slotsAfter, isEmpty);
+    expect(ranker.requests.last.candidateIsAlternate, isTrue);
+  });
+
+  testWidgets('a new position shows the plain order until it is ranked: a '
+      'ranking for one place never shows for another', (tester) async {
+    final repos = await _seed();
+    final ranker = _SpyRanker();
+    final pending = <Completer<SuggestionRanking>>[];
+    ranker.answer = (_) {
+      final completer = Completer<SuggestionRanking>();
+      pending.add(completer);
+      return completer.future;
+    };
+    const plain = ['Alpha', 'Bravo', 'Charlie', 'Zulu'];
+    const reversed = ['Zulu', 'Charlie', 'Bravo', 'Alpha'];
+    final harness = await _pump(
+      tester,
+      repos,
+      ranker: ranker,
+      programContext: _context,
+    );
+    await _openSortMenu(tester);
+    await tester.tap(find.byKey(const ValueKey('sort-suggested')));
+    await tester.pump();
+    pending.single.complete(_reversed(ranker.requests.single));
+    await tester.pump();
+    expect(_titles(tester), reversed, reason: 'ranked for the end');
+    expect(_reasonLines, findsNWidgets(4));
+
+    // The builder starts an add before Zulu: same results, new position.
+    harness.context.value = contextAt(
+      SuggestionPosition.inserting([s0], 0, after: false),
+    );
+    await tester.pump();
+    expect(ranker.requests, hasLength(2));
+    expect(ranker.requests.last.slotsAfter, [s0]);
+    expect(_titles(tester), plain, reason: 'the end ranking is not shown');
+    expect(_reasonLines, findsNothing);
+
+    // Before that ranks, the target moves to Replace… of Zulu.
+    harness.context.value = contextAt(SuggestionPosition.replacing([s0], 0));
+    await tester.pump();
+    expect(ranker.requests, hasLength(3));
+    // The add-before ranking comes back late: it is for another place.
+    pending[1].complete(_reversed(ranker.requests[1]));
+    await tester.pump();
+    expect(_titles(tester), plain);
+    expect(_reasonLines, findsNothing);
+    // Ranked for the slot Replace… fills: shown.
+    pending[2].complete(
+      SuggestionRanking([
+        for (final c in ranker.requests[2].candidates)
+          RankedSuggestion(
+            danceId: c.id,
+            score: 0,
+            ranked: true,
+            reasons: const [
+              SuggestionReason(SuggestionReasonKind.noFactorApplied),
+            ],
+          ),
+      ]),
+    );
+    await tester.pump();
+    expect(_titles(tester), plain);
+    expect(_reasonLines, findsNWidgets(4));
+
+    // Cancel: back to the end, which ranks again.
+    harness.context.value = _context;
+    await tester.pump();
+    expect(ranker.requests, hasLength(4));
+    expect(ranker.requests.last.slotsAfter, isEmpty);
+    expect(_reasonLines, findsNothing);
+    pending[3].complete(_reversed(ranker.requests[3]));
+    await tester.pump();
+    expect(_titles(tester), reversed);
+  });
+
+  testWidgets('an overlap or formation reason names the neighbour and its '
+      'side, and falls back to "the previous/next dance" without a name', (
+    tester,
+  ) async {
+    final repos = await _seed();
+    SuggestionReason reason(
+      SuggestionReasonKind kind,
+      SuggestionNeighbor side,
+      String? danceId,
+    ) => SuggestionReason(
+      kind,
+      factor: SuggestionFactor.matrixVariety,
+      effect: -1,
+      count: 1,
+      moveKey: 'circle',
+      formation: FormationShape.becketCw,
+      neighbor: side,
+      neighborDanceId: danceId,
+    );
+    final byDance = {
+      'a': [
+        reason(
+          SuggestionReasonKind.beatOverlap,
+          SuggestionNeighbor.previous,
+          'in-program',
+        ),
+      ],
+      'b': [
+        reason(
+          SuggestionReasonKind.phraseOverlap,
+          SuggestionNeighbor.next,
+          'in-program',
+        ),
+      ],
+      'c': [
+        reason(
+          SuggestionReasonKind.sameFormationAsNeighbor,
+          SuggestionNeighbor.next,
+          'in-program',
+        ),
+      ],
+      'in-program': [
+        reason(
+          SuggestionReasonKind.beatOverlap,
+          SuggestionNeighbor.next,
+          'no-such-dance',
+        ),
+      ],
+    };
+    final ranker = _SpyRanker()
+      ..answer = (request) async => SuggestionRanking([
+        for (final c in request.candidates)
+          RankedSuggestion(
+            danceId: c.id,
+            score: 0,
+            ranked: true,
+            reasons: byDance[c.id]!,
+          ),
+      ]);
+    await _pump(
+      tester,
+      repos,
+      ranker: ranker,
+      programContext: contextAt(
+        SuggestionPosition.inserting([s0], 0, after: false),
+      ),
+    );
+    await _chooseSuggested(tester);
+    String line(String id) => tester
+        .widget<Text>(
+          find.descendant(
+            of: find.byKey(ValueKey('suggestion-reason-$id')),
+            matching: find.byType(Text),
+          ),
+        )
+        .data!;
+    expect(line('a'), matches(RegExp(r'^Same .+ beats as Zulu, after it$')));
+    expect(
+      line('b'),
+      matches(RegExp(r'^.+ in the same phrase as Zulu, before it$')),
+    );
+    expect(line('c'), matches(RegExp(r'^.+, like Zulu, before it$')));
+    expect(
+      line('in-program'),
+      matches(RegExp(r'^Same .+ beats as the next dance$')),
+    );
+  });
+
+  testWidgets('with the real worker, moving the position re-ranks the held '
+      'candidates for the new place', (tester) async {
+    final repos = openTestRepositories();
+    Figure fig(String move, int beats) =>
+        testFigure(move: move, params: {'beats': beats});
+    await repos.dances.create(
+      _dance('n', 'Chorus Jig', figures: [fig('circle', 16), fig('swing', 16)]),
+    );
+    await repos.dances.create(
+      _dance(
+        'x',
+        'Overlapping',
+        figures: [fig('petronella', 16), fig('swing', 16)],
+      ),
+    );
+    await repos.dances.create(
+      _dance('y', 'Clean', figures: [fig('swing', 16), fig('petronella', 16)]),
+    );
+    final slots = [ProgramSlot(id: 'sn', position: 0, danceId: 'n')];
+    final harness = await _pump(
+      tester,
+      repos,
+      ranker: null,
+      programContext: contextAt(
+        SuggestionPosition.inserting(slots, 0, after: false),
+      ),
+    );
+    await _openSortMenu(tester);
+    await tester.tap(find.byKey(const ValueKey('sort-suggested')));
+    await tester.pump();
+
+    final overlapLine = find.descendant(
+      of: find.byKey(const ValueKey('suggestion-reason-x')),
+      matching: find.byType(Text),
+    );
+    String? lineOf() => overlapLine.evaluate().isEmpty
+        ? null
+        : tester.widget<Text>(overlapLine).data;
+
+    /// Pumps until [done], with real time for the worker isolate, failing
+    /// after a deadline rather than waiting on a fixed delay.
+    Future<void> until(bool Function() done) async {
+      final deadline = DateTime.now().add(const Duration(seconds: 30));
+      while (!done() && DateTime.now().isBefore(deadline)) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+        await tester.pump();
+      }
+      expect(done(), isTrue, reason: 'condition not reached by the deadline');
+    }
+
+    await until(() => lineOf()?.contains('Chorus Jig, before it') ?? false);
+    expect(
+      _titles(tester).indexOf('Clean'),
+      lessThan(_titles(tester).indexOf('Overlapping')),
+    );
+
+    // The add is cancelled: the end of the program, after Chorus Jig.
+    harness.context.value = contextAt(SuggestionPosition.atEnd(slots));
+    await tester.pump();
+    expect(lineOf(), isNull, reason: 'the add-before ranking is not shown');
+    await until(() => lineOf()?.contains('Chorus Jig, after it') ?? false);
+
+    // Close the picker: the worker stops with it.
+    await tester.pumpWidget(const SizedBox());
   });
 }
