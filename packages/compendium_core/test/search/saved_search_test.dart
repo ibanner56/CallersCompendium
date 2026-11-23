@@ -1023,6 +1023,12 @@ void main() {
           s.byPhrase.match[k] = ['swing'];
           s.byPhrase.exclude[k] = ['star'];
         }
+        // A figure row's params are filled in the order the user picks them.
+        final params = <String, Object?>{};
+        for (final k in keys) {
+          params[k] = 'v$k';
+        }
+        s.advanced.children.add(BuilderFigure(move: 'swing', params: params));
         return s;
       }
 

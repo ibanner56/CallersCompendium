@@ -707,8 +707,8 @@ Map<String, Object?> _encodeNode(BuilderNode n) => switch (n) {
 
 Map<String, Object?> _encodeFigure(BuilderFigure f) {
   final params = {
-    for (final e in f.params.entries)
-      if (e.value != null) e.key: e.value,
+    for (final k in _sortedKeys(f.params))
+      if (f.params[k] != null) k: f.params[k],
   };
   return {
     't': 'figure',
