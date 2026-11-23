@@ -438,8 +438,8 @@ final class MadRobin extends Operation {
 ///
 /// ⚠️ **For a couple `who` it is not.** The 1s are row-mates, so rotating them
 /// about the centre would carry them onto the 2s' cells, which only resolves
-/// once the centre figure's outcome is known — the *meanwhile* dependency,
-/// which is not modelled. The swap rule is applied to every `who` on the user's
+/// once the centre figure's outcome is known. `Meanwhile` dances each part
+/// on its own, so it does not resolve that either. The swap rule is applied to every `who` on the user's
 /// ruling; the caveat is recorded here because the baseline default `who` is
 /// `ones`, so the default invocation is the caveated case.
 final class Orbit extends Operation {

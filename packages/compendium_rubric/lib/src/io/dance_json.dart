@@ -277,6 +277,8 @@ const Map<String, _FigureBuilder> _registry = {
   'give_and_take': _buildGiveAndTake,
   'hey': _buildHey,
   'mad_robin': _buildMadRobin,
+  'meanwhile': _buildMeanwhile,
+  'modifier': _buildModifier,
   'orbit': _buildOrbit,
   'pass_by': _buildPassBy,
   'pass_the_ocean': _buildPassTheOcean,
@@ -291,6 +293,7 @@ const Map<String, _FigureBuilder> _registry = {
   'rory_o_more': _buildRoryOMore,
   'shoulder_round': _buildShoulderRound,
   'slice': _buildSlice,
+  'sequence': _buildSequence,
   'slide_along_set': _buildSlideAlongSet,
   'square_through': _buildSquareThrough,
   'stand_still': _buildStandStill,
@@ -559,6 +562,46 @@ Operation _buildCourtesyTurn(_Params p) => CourtesyTurn(
 );
 
 // --- Pair swaps ------------------------------------------------------------
+
+/// The children of a container (`modifier`, `meanwhile`, `sequence`), read
+/// from its `figures` param as figures in their own right.
+///
+/// A child may not carry the progression flag: the container is the one slot
+/// the dance gives its figures, so the flag belongs on it. *(Agent's call: the
+/// alternative was moving a child's flag up to the container, which would read
+/// a flag the source put somewhere else.)*
+List<Operation> _containerFigures(_Params p) {
+  const key = 'figures';
+  final raw = p._raw[key];
+  if (raw is! List || raw.length < 2) {
+    p._fail(key, 'a container needs a list of at least two figures');
+  }
+  return [
+    for (var index = 0; index < raw.length; index++)
+      () {
+        final path = '${p._path}.$key[$index]';
+        final child = _parseFigureAt(raw[index], path);
+        if (child.progression) {
+          throw _ParseFailure(
+            DanceParseError(
+              'the progression flag goes on the container, not on one of '
+              'its figures',
+              path: '$path.progression',
+            ),
+          );
+        }
+        return child.operation;
+      }(),
+  ];
+}
+
+Operation _buildModifier(_Params p) =>
+    FiguresInOrder(_containerFigures(p), name: 'modifier');
+
+Operation _buildSequence(_Params p) =>
+    FiguresInOrder(_containerFigures(p), name: 'sequence');
+
+Operation _buildMeanwhile(_Params p) => Meanwhile(_containerFigures(p));
 
 Operation _buildRollAway(_Params p) => RollAway(
   // Taxonomy v38: `neighbors` -> `role1s`.
@@ -945,8 +988,10 @@ List<OperationInvocation> _parseFigures(Object? raw) {
   ];
 }
 
-OperationInvocation _parseFigure(Object? raw, int index) {
-  final path = 'figures[$index]';
+OperationInvocation _parseFigure(Object? raw, int index) =>
+    _parseFigureAt(raw, 'figures[$index]');
+
+OperationInvocation _parseFigureAt(Object? raw, String path) {
   if (raw is! Map<String, Object?>) {
     throw _ParseFailure(
       DanceParseError('expected a figure object', path: path),
