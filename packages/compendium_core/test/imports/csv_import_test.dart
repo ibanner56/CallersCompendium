@@ -255,6 +255,74 @@ void main() {
     });
   });
 
+  group('review round 1 (#2429)', () {
+    CsvImportMapping m(
+      List<CsvColumnMapping> cols, {
+      CsvValueVocabulary vocab = const CsvValueVocabulary(),
+    }) => CsvImportMapping(
+      separator: ',',
+      hasHeader: true,
+      columns: cols,
+      vocabulary: vocab,
+    );
+
+    test('a Level column reads a configured level, and keeps an unknown one '
+        'in the notes', () async {
+      final batch = await plan(
+        'Title,Level\r\nA,intermediate\r\nB,Wizard\r\n',
+        m(
+          const [
+            CsvColumnMapping(CsvColumnTarget.title),
+            CsvColumnMapping(CsvColumnTarget.level),
+          ],
+          vocab: const CsvValueVocabulary(levels: {'intermediate': 'lvl-int'}),
+        ),
+      );
+      final a = batch.records[0].draft.dance;
+      final b = batch.records[1].draft.dance;
+      expect(a.difficultyLevelId, 'lvl-int');
+      expect(b.difficultyLevelId, isNull);
+      expect(b.callingNotes, 'Level: Wizard');
+    });
+
+    test('a trailing bracket that is not a beat or bar count stays in the '
+        'figure', () async {
+      final batch = await plan(
+        'Title,Figures\r\nA,"circle left (3 places)"\r\n',
+        m(const [
+          CsvColumnMapping(CsvColumnTarget.title),
+          CsvColumnMapping(CsvColumnTarget.figures),
+        ]),
+      );
+      final figures =
+          (batch.records.single.draft.dance.figuresSource as DecodedFigures)
+              .figures;
+      expect(figures, parseFigureLinesFanOut('circle left (3 places)'));
+    });
+
+    test('a second column for a single-valued field keeps its value in the '
+        'notes; two columns for one phrase add up', () async {
+      final batch = await plan(
+        'Title,Hook,Hook,A1,A1\r\n'
+        'A,First hook,Second hook,neighbors balance,neighbors swing\r\n',
+        m(const [
+          CsvColumnMapping(CsvColumnTarget.title),
+          CsvColumnMapping(CsvColumnTarget.hook),
+          CsvColumnMapping(CsvColumnTarget.hook),
+          CsvColumnMapping.phrase('A1'),
+          CsvColumnMapping.phrase('A1'),
+        ]),
+      );
+      final dance = batch.records.single.draft.dance;
+      expect(dance.hook, 'First hook');
+      expect(dance.callingNotes, 'Hook: Second hook');
+      expect((dance.figuresSource as DecodedFigures).figures, [
+        ...parseFigureLinesFanOut('neighbors balance'),
+        ...parseFigureLinesFanOut('neighbors swing'),
+      ]);
+    });
+  });
+
   group('committing', () {
     test('records no provenance, and adds no provenance source', () async {
       final batch = await plan(sheet(','), mapping(','));
@@ -363,6 +431,26 @@ void main() {
       final defs = await fields.listAll();
       expect(defs, hasLength(1));
       expect(defs.single.choices!.toSet(), {'Winter', 'Summer'});
+    });
+
+    test('a new text field keeps a long value whole', () async {
+      const cols = [
+        CsvColumnMapping(CsvColumnTarget.title),
+        CsvColumnMapping.newCustomField('Story', CustomFieldType.text),
+      ];
+      final long = 'x' * 300;
+      final batch = await plan(
+        'Title,Story\r\nA,$long\r\n',
+        mapping(',', cols: cols),
+      );
+      await importer.commit(
+        batch,
+        mapping: mapping(',', cols: cols),
+        now: now,
+        newId: _ids(),
+      );
+      final dance = (await dances.listAll()).single;
+      expect(dance.customFields.single.value, long);
     });
 
     test('a new number or choice field is created once and holds typed '

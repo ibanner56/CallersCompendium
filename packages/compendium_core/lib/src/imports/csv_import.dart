@@ -73,7 +73,17 @@ class CsvImporter {
           for (final plan in batch.records)
             ImportRecordPlan(
               draft: plan.draft.copyWith(
-                dance: _rewrite(plan.draft.dance, tagIdByName, fieldIdByColumn),
+                dance: _rewrite(
+                  plan.draft.dance,
+                  tagIdByName,
+                  fieldIdByColumn,
+                  choicePlaceholders: {
+                    for (var i = 0; i < mapping.columns.length; i++)
+                      if (mapping.columns[i].newFieldType ==
+                          CustomFieldType.choice)
+                        '$kCsvNewFieldPlaceholderPrefix$i',
+                  },
+                ),
               ),
               verdict: plan.verdict,
             ),
@@ -228,11 +238,15 @@ class CsvImporter {
     return result;
   }
 
+  /// [dance] with its placeholders replaced. Only a new *choice* field's
+  /// values are normalized as its options were ([normalizeChoiceOption]); a
+  /// text field keeps its value whole.
   Dance _rewrite(
     Dance dance,
     Map<String, String> tagIdByName,
-    Map<String, String> fieldIdByPlaceholder,
-  ) => dance.copyWith(
+    Map<String, String> fieldIdByPlaceholder, {
+    required Set<String> choicePlaceholders,
+  }) => dance.copyWith(
     tagIds: [
       ...{
         for (final id in dance.tagIds)
@@ -248,7 +262,7 @@ class CsvImporter {
         else if (fieldIdByPlaceholder[v.fieldId] case final id?)
           CustomFieldValue(
             fieldId: id,
-            value: v.value is String
+            value: choicePlaceholders.contains(v.fieldId) && v.value is String
                 ? (normalizeChoiceOption(v.value as String) ?? v.value)
                 : v.value,
           ),

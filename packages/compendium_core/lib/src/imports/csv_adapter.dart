@@ -117,6 +117,8 @@ class CsvValueVocabulary {
     this.yes = const {},
     this.no = const {},
     this.beatWords = const {},
+    this.barWords = const {},
+    this.levels = const {},
   });
 
   final Map<String, DanceForm> forms;
@@ -134,6 +136,14 @@ class CsvValueVocabulary {
   /// (`beats`, `schläge`…), so this app's own export in any language reads
   /// back: `(16 beats)`.
   final Set<String> beatWords;
+
+  /// The words the same count uses for bars (an English dance's export),
+  /// folded. A count in bars is read off the line but does not set beats.
+  final Set<String> barWords;
+
+  /// The caller's configured difficulty levels, by folded name (their own
+  /// label and the built-in name in each language) → level id.
+  final Map<String, String> levels;
 }
 
 /// Everything the caller chose in the map-columns step, carried on
@@ -307,7 +317,10 @@ StructuredDraft csvRowToDraft(
   DanceForm? form;
   Formation? formation;
   Progression? progression;
-  String? levelLabel;
+  String? levelId;
+  // Single-valued targets a column has already filled: a second column for
+  // the same one keeps its value in the notes rather than overwriting.
+  final filled = <Object>{};
   DanceStatus? status;
   bool? mixer;
   final tagNames = <String>[];
@@ -352,6 +365,24 @@ StructuredDraft csvRowToDraft(
     final column = mapping.columns[i];
     final value = unguardCsvFormula(cells[i].trim());
     if (value.isEmpty) continue;
+    final single = switch (column.target) {
+      CsvColumnTarget.form ||
+      CsvColumnTarget.formation ||
+      CsvColumnTarget.progression ||
+      CsvColumnTarget.level ||
+      CsvColumnTarget.status ||
+      CsvColumnTarget.mixer ||
+      CsvColumnTarget.meter ||
+      CsvColumnTarget.key ||
+      CsvColumnTarget.hook ||
+      CsvColumnTarget.walkthrough => column.target,
+      CsvColumnTarget.customField => column.customFieldId,
+      _ => null,
+    };
+    if (single != null && !filled.add(single)) {
+      keep(i, value);
+      continue;
+    }
     switch (column.target) {
       case CsvColumnTarget.ignore:
         break;
@@ -389,7 +420,12 @@ StructuredDraft csvRowToDraft(
           progression = p;
         }
       case CsvColumnTarget.level:
-        levelLabel = value;
+        final id = vocab.levels[csvFold(value)];
+        if (id == null) {
+          keep(i, value);
+        } else {
+          levelId = id;
+        }
       case CsvColumnTarget.status:
         final s =
             vocab.statuses[csvFold(value)] ??
@@ -430,7 +466,12 @@ StructuredDraft csvRowToDraft(
       case CsvColumnTarget.figures:
         figureLines.addAll(_figureLinesOf(value));
       case CsvColumnTarget.figurePhrase:
-        phraseCells[column.phrase!] = value;
+        // Two columns for one phrase add up rather than overwrite.
+        phraseCells.update(
+          column.phrase!,
+          (earlier) => '$earlier\n$value',
+          ifAbsent: () => value,
+        );
       case CsvColumnTarget.customField:
         final def = mapping.existingFields[column.customFieldId];
         final typed = def == null ? null : _typedValue(def, value, yesNo);
@@ -468,7 +509,7 @@ StructuredDraft csvRowToDraft(
     figureLines.addAll(_figureLinesOf(phraseCells[phrase]!));
   }
   final figures = <Figure>[
-    for (final line in figureLines) ..._figuresOf(line, vocab.beatWords),
+    for (final line in figureLines) ..._figuresOf(line, vocab),
   ];
 
   final callingNotes = [...notes, ...keptNotes].join('\n\n');
@@ -485,6 +526,7 @@ StructuredDraft csvRowToDraft(
     meter: meter,
     musicalKey: key,
     status: status ?? DanceStatus.active,
+    difficultyLevelId: levelId,
     mixer: mixer ?? false,
     tunes: tunes,
     tagIds: [
@@ -499,7 +541,6 @@ StructuredDraft csvRowToDraft(
     raw: raw,
     issues: issues,
     authorNames: authors,
-    difficultyLevelLabel: levelLabel,
   );
 }
 
@@ -518,7 +559,7 @@ List<String> _figureLinesOf(String cell) {
 /// One figure line through the shared fan-out, with a leading phrase label,
 /// a leading `(8)` count, or this app's own trailing `(16 beats) ¶` read off
 /// first.
-List<Figure> _figuresOf(String line, Set<String> beatWords) {
+List<Figure> _figuresOf(String line, CsvValueVocabulary vocab) {
   var text = line.replaceFirst(_phraseLabel, '');
   var beats = 0;
   var progression = false;
@@ -528,13 +569,18 @@ List<Figure> _figuresOf(String line, Set<String> beatWords) {
     text = text.substring(lead.end);
   }
   final trail = _trailingCount.firstMatch(text);
-  if (trail != null) {
-    final word = csvFold(trail.group(2)!);
-    // A count in beats sets the beats; one in another unit (bars) is read
-    // off but left to the figure's default, rather than guessed.
-    if (beatWords.contains(word) || word == 'beat' || word == 'beats') {
-      beats = int.parse(trail.group(1)!);
-    }
+  final unit = trail == null ? null : csvFold(trail.group(2)!);
+  final isBeats =
+      unit != null &&
+      (vocab.beatWords.contains(unit) || unit == 'beat' || unit == 'beats');
+  final isBars =
+      unit != null &&
+      (vocab.barWords.contains(unit) || unit == 'bar' || unit == 'bars');
+  // Only a count in beats or bars (this app's own export) is read off; any
+  // other trailing bracket, `(3 places)`, is part of the figure.
+  if (trail != null && (isBeats || isBars)) {
+    // A count in bars is left to the figure's default, rather than guessed.
+    if (isBeats) beats = int.parse(trail.group(1)!);
     progression = trail.group(3) != null;
     text = text.substring(0, trail.start);
   } else if (text.trimRight().endsWith('¶')) {

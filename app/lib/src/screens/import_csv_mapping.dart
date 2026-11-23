@@ -47,6 +47,7 @@ class CsvMappingStep extends StatefulWidget {
     super.key,
     required this.text,
     required this.fields,
+    this.levels = const [],
     required this.onContinue,
     required this.onBack,
   });
@@ -56,6 +57,9 @@ class CsvMappingStep extends StatefulWidget {
 
   /// The caller's custom fields, offered as targets.
   final List<CustomFieldDef> fields;
+
+  /// The caller's configured difficulty levels, for reading a Level column.
+  final List<DifficultyLevel> levels;
 
   final void Function(CsvImportMapping mapping) onContinue;
 
@@ -140,7 +144,7 @@ class _CsvMappingStepState extends State<CsvMappingStep> {
       separator: _separator,
       hasHeader: _hasHeader,
       columns: _columns,
-      vocabulary: csvValueVocabulary(_languages),
+      vocabulary: csvValueVocabulary(_languages, levels: widget.levels),
       existingFields: {for (final f in widget.fields) f.id: f},
     );
     widget.onContinue(mapping);

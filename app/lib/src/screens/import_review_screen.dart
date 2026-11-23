@@ -540,6 +540,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// The caller's custom fields, offered as targets on the map-columns step.
   List<CustomFieldDef> _csvFields = const [];
 
+  /// The caller's configured difficulty levels, for a Level column.
+  List<DifficultyLevel> _csvLevels = const [];
+
   /// The column mapping the caller confirmed. Planning and committing a
   /// spreadsheet use it; going back to the input step clears it.
   CsvImportMapping? _csvMapping;
@@ -1155,10 +1158,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       return;
     }
     final fields = await _repos.customFieldDefs.listAll();
+    final levels = await _repos.difficultyLevels.listAll();
     if (!mounted) return;
     setState(() {
       _csvText = text;
       _csvFields = fields;
+      _csvLevels = levels;
       _phase = _Phase.mapping;
     });
   }
@@ -2933,6 +2938,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           _Phase.mapping => CsvMappingStep(
             text: _csvText!,
             fields: _csvFields,
+            levels: _csvLevels,
             onContinue: (mapping) {
               _csvMapping = mapping;
               _plan();

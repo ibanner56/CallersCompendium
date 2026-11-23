@@ -139,10 +139,24 @@ List<CsvColumnMapping> autoMapCsvColumns(
 }
 
 /// The words a cell may use for each closed field, in every one of
-/// [languages], for the adapter to read values in either language.
+/// [languages], for the adapter to read values in either language. [levels]
+/// are the caller's configured difficulty levels: each is read by its own
+/// label and by its built-in name in each language.
 CsvValueVocabulary csvValueVocabulary(
-  List<AppLocalizations> languages,
-) => CsvValueVocabulary(
+  List<AppLocalizations> languages, {
+  List<DifficultyLevel> levels = const [],
+}) => CsvValueVocabulary(
+  levels: {
+    for (final level in levels) csvFold(level.label): level.id,
+    for (final l10n in languages)
+      for (final level in levels)
+        csvFold(danceLevelLabel(l10n, level)): level.id,
+  },
+  barWords: {
+    for (final l10n in languages)
+      for (final halfBars in const [0, 1])
+        csvFold(l10n.danceFigureBars('8', halfBars).replaceAll(_digits, '')),
+  },
   forms: {
     for (final l10n in languages)
       for (final f in DanceForm.values) csvFold(danceFormLabel(l10n, f)): f,
