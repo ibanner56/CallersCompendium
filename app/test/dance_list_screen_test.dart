@@ -3732,6 +3732,7 @@ class _FailOnceSearchDances extends DanceRepository {
     bool performedOnly = false,
     bool requireEventDate = false,
     CallingHistoryTracking tracking = CallingHistoryTracking.defaults,
+    String? currentProgramId,
   }) {
     if (!fired) {
       fired = true;
@@ -3748,6 +3749,7 @@ class _FailOnceSearchDances extends DanceRepository {
       performedOnly: performedOnly,
       requireEventDate: requireEventDate,
       tracking: tracking,
+      currentProgramId: currentProgramId,
     );
   }
 }

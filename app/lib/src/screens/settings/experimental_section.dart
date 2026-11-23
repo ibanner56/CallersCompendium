@@ -14,6 +14,7 @@ import '../glossary/custom_figures_screen.dart';
 import 'calling_card_section.dart';
 import 'developer_options_section.dart';
 import 'device_sync_section.dart';
+import 'suggestion_settings_screen.dart';
 
 /// The Experimental settings section for features still in development.
 class ExperimentalSection extends StatelessWidget {
@@ -35,6 +36,7 @@ class ExperimentalSection extends StatelessWidget {
           child: Text(l10n.settingsExperimentalPlaceholder),
         ),
         const _GlossarySection(),
+        const SuggestionsSection(),
         const CallingCardSection(),
         DeviceSyncSection(backupSaver: backupSaver),
         const DeveloperOptionsSection(),
