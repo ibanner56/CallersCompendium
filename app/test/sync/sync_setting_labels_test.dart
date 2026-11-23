@@ -139,5 +139,50 @@ void main() {
         Dialect.customName,
       );
     });
+
+    test(
+      'names a saved search by its own name, not by a count of its parts',
+      () {
+        final value = <String, Object?>{
+          'v': 1,
+          'name': 'Easy mixers',
+          'sort': 'title',
+          'facets': {'mixer': true},
+        };
+        // The same value under another key is just a collection: 4 entries,
+        // none of them a named one.
+        expect(
+          syncSettingValueText(l10n, value, key: 'saved_search:abc'),
+          'Easy mixers',
+        );
+        expect(
+          syncSettingValueText(l10n, value, key: 'custom_dialects'),
+          '4 items',
+        );
+        // A value with no usable name falls back to the count.
+        expect(
+          syncSettingValueText(l10n, {
+            ...value,
+            'name': '  ',
+          }, key: 'saved_search:abc'),
+          '4 items',
+        );
+        expect(
+          syncSettingValueText(
+            l10n,
+            {...value}..remove('name'),
+            key: 'saved_search:abc',
+          ),
+          '3 items',
+        );
+      },
+    );
+
+    test('a saved search\'s setting is labelled as one', () {
+      expect(
+        syncSettingLabel(l10n, 'saved_search:abc'),
+        l10n.syncSavedSearchLabel,
+      );
+    });
   });
 }

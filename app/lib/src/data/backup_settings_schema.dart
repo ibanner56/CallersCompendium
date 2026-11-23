@@ -1,7 +1,9 @@
 import 'package:compendium_core/compendium_core.dart'
     show
         MatrixColumnConfig,
+        SavedSearch,
         isValidStoredSuggestionSettings,
+        savedSearchKeyPrefix,
         shareableTextNormalisationScopeKey;
 
 import '../update/update_config.dart'
@@ -312,6 +314,13 @@ _backupSettingPrefixValidators = {
         value,
       ) !=
       null,
+  // One saved search per key (#2325): read with the codec that wrote it, as it
+  // will be stored, which never throws and rejects an empty id, so a crafted
+  // backup cannot restore a value the app would then have to defend against.
+  savedSearchKeyPrefix: (key, value) => SavedSearch.decodeAsStored(
+    key.substring(savedSearchKeyPrefix.length),
+    value,
+  ).isOk,
 };
 bool _isNonNegativeInt(Object? v) => v is int && v >= 0;
 bool _isUndoPromptSeconds(Object? v) =>

@@ -243,6 +243,7 @@ export 'src/storage/repositories/published_source_repository.dart';
 export 'src/storage/repositories/reference_edit_repository.dart';
 export 'src/storage/repositories/repertoire_repository.dart';
 export 'src/storage/repositories/repositories.dart';
+export 'src/storage/repositories/saved_search_repository.dart';
 export 'src/storage/repositories/settings_repository.dart';
 export 'src/storage/repositories/sync_local_repository.dart';
 export 'src/storage/repositories/tag_repository.dart';

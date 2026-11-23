@@ -8035,6 +8035,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get archiveIntakeRejectedEmpty => 'Ce fichier est vide.';
 
   @override
+  String get danceLinkRefusedNewerVersion =>
+      'Ce code de danse a été créé par une version plus récente de Caller’s Compendium. Mettez l\'application à jour pour l\'ouvrir.';
+
+  @override
+  String get danceLinkRefusedDamaged =>
+      'Ce code de danse est endommagé ou incomplet ; impossible de l\'ouvrir.';
+
+  @override
+  String get danceLinkRefusedNotADance =>
+      'Ce code n\'est pas un code de danse de Caller\'s Compendium.';
+
+  @override
+  String get danceLinkRefusedNoContent =>
+      'Ce code de danse ne contient aucune danse ni aucun programme.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'Ce fichier n\'est pas un fichier de partage Caller’s Compendium.';
 
@@ -8265,7 +8281,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get importIssueArchiveNewerSchema =>
-      'Ce fichier a été créé avec une version plus récente de Caller\'s Compendium. Mettez l\'application à jour avant d\'importer, sinon certains détails risquent d\'être omis.';
+      'Ceci a été créé avec une version plus récente de Caller\'s Compendium. Mettez l\'application à jour avant d\'importer, sinon certains détails risquent d\'être omis.';
 
   @override
   String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
@@ -10630,6 +10646,9 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get shorthandsUserFigureSyncLabel =>
       'Abréviations pour les nouvelles figures';
+
+  @override
+  String get syncSavedSearchLabel => 'Recherche enregistrée';
 
   @override
   String get shorthandsCompoundIntro =>

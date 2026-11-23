@@ -7943,6 +7943,22 @@ class AppLocalizationsDa extends AppLocalizations {
   String get archiveIntakeRejectedEmpty => 'Den fil er tom.';
 
   @override
+  String get danceLinkRefusedNewerVersion =>
+      'Denne dansekode er lavet af en nyere version af Caller’s Compendium. Opdater appen for at åbne den.';
+
+  @override
+  String get danceLinkRefusedDamaged =>
+      'Denne dansekode er beskadiget eller ufuldstændig og kan ikke åbnes.';
+
+  @override
+  String get danceLinkRefusedNotADance =>
+      'Denne kode er ikke en dansekode fra Caller\'s Compendium.';
+
+  @override
+  String get danceLinkRefusedNoContent =>
+      'Denne dansekode indeholder ingen danse eller programmer.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'Den fil er ikke en delefil fra Caller’s Compendium.';
 
@@ -8172,7 +8188,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importIssueArchiveNewerSchema =>
-      'Denne fil er lavet med en nyere version af Caller\'s Compendium. Opdater appen, før du importerer, ellers kan nogle detaljer mangle.';
+      'Dette er lavet med en nyere version af Caller\'s Compendium. Opdater appen, før du importerer, ellers kan nogle detaljer mangle.';
 
   @override
   String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
@@ -10507,6 +10523,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get shorthandsUserFigureSyncLabel => 'Forkortelser til nye figurer';
+
+  @override
+  String get syncSavedSearchLabel => 'Gemt søgning';
 
   @override
   String get shorthandsCompoundIntro =>

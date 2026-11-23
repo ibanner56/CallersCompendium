@@ -19,10 +19,13 @@ import java.io.File
  * - **URL** (#343): a web page URL shared as `text/plain` from a browser (an
  *   `ACTION_SEND` with `EXTRA_TEXT`). The native side hands Dart the **raw URL
  *   string** verbatim.
+ * - **Dance link** (#2335): an `ACTION_VIEW` of a `ccdance:` URI, from a camera
+ *   app that read a dance's QR code. Handed to Dart verbatim, like a URL.
  *
  * The native side never parses, trusts, or interprets a payload — Dart owns all
- * validation and import (both the file, via `ArchiveIntakeService`, and the URL,
- * via `validateSharedContraDbProgramUrl`, are untrusted input).
+ * validation and import (the file, via `ArchiveIntakeService`, the URL, via
+ * `validateSharedContraDbProgramUrl`, and the dance link, via
+ * `validateDanceLink`, are all untrusted input).
  */
 class MainActivity : FlutterActivity() {
     private val channelName = "is.banner.callerscompendium/incoming_files"
@@ -66,6 +69,15 @@ class MainActivity : FlutterActivity() {
         // Dart validates it as untrusted input.
         if (intent.action == Intent.ACTION_SEND && intent.type == "text/plain") {
             router.onSharedText(intent.getStringExtra(Intent.EXTRA_TEXT))
+            return
+        }
+        // A dance link (issue #2335), opened from a camera app's QR-code
+        // banner, Google Lens or a browser. It goes to Dart as a shared URL,
+        // verbatim, and never reaches the file path below: a ccdance: URI has
+        // no content to open.
+        val danceLink = danceLinkOf(intent.action, intent.data?.scheme, intent.dataString)
+        if (danceLink != null) {
+            router.onSharedText(danceLink)
             return
         }
         val uri: Uri? = when (intent.action) {

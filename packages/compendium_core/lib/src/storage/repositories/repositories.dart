@@ -24,6 +24,7 @@ import 'program_repository.dart';
 import 'published_source_repository.dart';
 import 'reference_edit_repository.dart';
 import 'repertoire_repository.dart';
+import 'saved_search_repository.dart';
 import 'settings_repository.dart';
 import 'sync_local_repository.dart';
 import 'tag_repository.dart';
@@ -273,6 +274,11 @@ class CompendiumRepositories {
   final VenueRepository venues;
   final CollectionImportEventRepository collectionImports;
   final SettingsRepository settings;
+
+  /// The user's saved searches, one settings value each.
+  late final SavedSearchRepository savedSearches = SavedSearchRepository(
+    settings,
+  );
 
   /// The user's own glossary entries (#709). Writing a figure of your own
   /// (#1023) reindexes the dances that use it.
