@@ -157,6 +157,30 @@ void main() {
     expect(text, isNot(contains('beats')));
   });
 
+  test('the set-list PDF\'s figures appendix counts a tune whose phrases '
+      'differ by phrase', () async {
+    final english = mixed([18, 10]);
+    final text = pdfText(
+      await buildProgramPdf(
+        Program(
+          id: 'p1',
+          title: 'Friday Dance',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'e')],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+        titleFor: (id) => english.title,
+        formLabelFor: (id) => 'English (ECD)',
+        appendDances: [(dance: english, isAlternate: false)],
+        danceLabels: const DanceExportLabels(),
+        theme: _theme,
+      ),
+    ).replaceAll(r'\', '');
+    expect(text, contains('6 bars'));
+    expect(text, contains('4 bars'));
+    expect(text, isNot(contains('beats')));
+  });
+
   test('the set-list PDF names each form in a program that mixes them, and '
       'its figures appendix counts an English dance in bars', () async {
     final english = _english();
