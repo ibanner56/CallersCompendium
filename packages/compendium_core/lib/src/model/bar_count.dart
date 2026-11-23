@@ -4,18 +4,17 @@ import 'enums.dart';
 import 'phrase_structure.dart';
 
 /// The beats in one bar of a dance of [form] set to [structure] in [meter],
-/// when its figures are counted in bars, or null where they are counted in
-/// beats (ADR-006 §5.5): any form but ECD, and a tune whose parts differ in
-/// beats per bar, where one count of bars would mean different beats in
-/// different parts. A bar holds the beats [meter] states (Hudson, 19 November
-/// 2026: "the meter is the rule"), or with none the beats per bar of
-/// [structure], as a typed bar range counts them ([ecdBeatsPerBar]). A typed
-/// bar range in a tune whose parts differ is counted by [BarTiming.byPhrase],
-/// phrase by phrase (#2303); the figures are shown in beats until the editor
-/// and exports show them so.
+/// when its figures are counted in bars by one bar length, or null where they
+/// are counted in beats (ADR-006 §5.5): any form but ECD, and a tune whose
+/// parts differ in beats per bar, which has no one bar length (it is counted
+/// phrase by phrase by [BarTiming.byPhrase], #2303: see [barTimingFor]). A bar
+/// holds the beats [meter] states (Hudson, 19 November 2026: "the meter is the
+/// rule"), or with none the beats per bar of [structure], as a typed bar range
+/// counts them ([ecdBeatsPerBar]).
 ///
-/// The editor, Perform and every export count a dance's bars by this one
-/// rule, so a figure reads "4 bars" on screen and on paper alike.
+/// The editor, Perform and every export count a dance's bars by [barTimingFor],
+/// which reads one bar length by this rule, so a figure reads "4 bars" on
+/// screen and on paper alike.
 int? danceBeatsPerBar(
   DanceForm form,
   PhraseStructure structure, {

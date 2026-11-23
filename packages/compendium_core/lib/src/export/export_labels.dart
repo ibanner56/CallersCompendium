@@ -115,10 +115,10 @@ class DanceExportLabels {
   /// such as `Figures:`: [labelSeparator] without a trailing space.
   String heading(String label) => '$label${labelSeparator.trimRight()}';
 
-  /// A figure's count of [beats] as an export shows it: in bars of
-  /// [beatsPerBar] beats for a dance timed in bars ([danceBeatsPerBar]), or in
-  /// beats where [beatsPerBar] is null or the count is not a whole number of
-  /// half bars, as the editor shows it.
+  /// A figure's count of [beats] as an export shows it: in bars, counted from
+  /// where the figure starts ([startBeat]) by [timing], for a dance timed in
+  /// bars ([barTimingFor]), or in beats where [timing] is null or the count is
+  /// not a whole number of half bars, as the editor shows it.
   String count(int beats, BarTiming? timing, [int startBeat = 0]) {
     final counted = timing?.barsTextAt(startBeat, beats);
     return counted == null

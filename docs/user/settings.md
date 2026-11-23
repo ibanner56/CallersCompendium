@@ -1036,8 +1036,9 @@ can then edit them down but not add more.
 A calling card is one dance on a small card — a 3 × 5 index card unless you
 choose otherwise — to hold while you call: the title, with the formation
 beside it and the authors under it, then the figures phrase by phrase (A1, A2, B1, B2) with
-their beats (bars for an English dance, unless one of its figures is not a whole
-number of half bars, when the whole card stays in beats), then your calling
+their beats (bars for an English dance, each counted from where its figure
+starts, unless one of its figures is not a whole number of half bars, when the
+whole card stays in beats), then your calling
 notes. The design comes from
 [Contra Card](https://github.com/Yona-Appletree/contra-card), a tool by
 caller Yona Appletree.

@@ -598,11 +598,19 @@ for whole bars instead. The app still works in beats underneath. A bar holds
 the beats of the dance's **Meter**: 2/2, 2/4, 6/8 and 6/4 have two, 3/2, 3/4,
 9/8 and 9/4 three, 4/4, 12/8 and 12/4 four, so in 3/2 two bars are 6 beats. With no meter the
 phrase structure says, so `4*8*3` (four 8-bar phrases of three beats) makes 2
-bars 6 beats too. A tune whose parts have different numbers of beats to the bar
-keeps its figures in beats, since one count of bars would mean different
-lengths in different parts. The dance's page and Perform show bars too, and so
+bars 6 beats too. A tune whose phrases have different numbers of beats to the
+bar (`A:2*4*3 + B:1*8*2`, an A in 3/4 and a B in 6/8) counts each bar by the
+phrase it starts in, whatever the Meter says, and from where its figure
+starts: the two bars at the end of an A and the first two of a B are 3 + 3 + 2
++ 2 beats, and the field shows them as 4 bars. A count that is not a whole
+number of half bars where it falls shows in beats. The count is stored in
+beats when you enter it, so a figure that ends up in another phrase, because a
+figure before it was lengthened or removed, is read there: in the bars of that
+phrase, or in beats where it no longer comes to whole or half bars. The dance's page and Perform show bars too, and so
 do the dance's warnings, its calling card, and its figures when you share, copy
-or print it, alone or with a program.
+or print it, alone or with a program. A calling card prints bare numbers, so if
+any count on it is not a whole number of half bars, the whole card stays in
+beats.
 
 An English sequence can also take its bars as a whole, as in "A, B and C in
 bars 1–4". Fill in **Bars for all** at the top of the sequence, and leave the
