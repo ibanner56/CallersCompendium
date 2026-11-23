@@ -138,3 +138,24 @@ upOrDownTheHallWords, zigZagWords, longLinesWords, heyWords and gyreWords). No
 ContraDB source code is transcribed; the renderer's comments name the libfigure
 function each rendering follows.
 ```
+
+## CALLERLAB
+
+The default beats of the square dance calls in Caller's Compendium follow
+[CALLERLAB](https://www.callerlab.org/)'s program timing lists wherever no
+traditional source states a count (ADR-007 §5.3 and Q1). CALLERLAB grants
+permission to reproduce that data provided its notice is included. No CALLERLAB
+definition text is copied. The notice:
+
+```text
+CALLERLAB
+Reprinted with permission of CALLERLAB.
+
+Source: CALLERLAB Inc., The International Association of Square Dance Callers,
+https://www.callerlab.org/
+
+Where no traditional source states a count, the default beats Caller's
+Compendium gives a square dance call follow CALLERLAB's program timing lists,
+which CALLERLAB lets anyone reproduce with the notice above. No CALLERLAB
+definition text is copied; the app's call definitions are in its own words.
+```
