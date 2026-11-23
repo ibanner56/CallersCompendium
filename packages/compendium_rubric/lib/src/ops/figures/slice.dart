@@ -55,11 +55,11 @@ enum SliceReturn {
 /// diagonal slice compiles as a mismatch. What a flag on a double slice means
 /// (one progression or two) is not ruled. The Caller's Box bridge therefore
 /// does not assume one on a Becket opener (`assumedProgressionIndex`), but a
-/// dance that *ends* in a double slice still gets the ordinary last-figure
-/// flag and compiles as this mismatch. In the Caller's Box corpus 19 of the 21
-/// double slices are mid-dance shifts to the shadows; the other two end
-/// double-progression dances, and neither reaches the compiler today (another
-/// figure in each stays free text).
+/// dance that *ends* in a double slice can still get the last-figure flag and
+/// compile as this mismatch. Today only 3 of the 21 Caller's Box double slices
+/// import as a `slice` (those written "go forward to S1, fall back to S2", all
+/// mid-dance and unflagged); the rest stay free text, so none of them reaches
+/// the compiler (`taxonomy.md`, `slice`).
 ///
 /// **Deferred:** `by: dancer` (a shift of a single dancer, which leaves a shape
 /// the slide does not model) and `return: none` (the couples stop in the

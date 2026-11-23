@@ -1103,11 +1103,18 @@ To be defined later with worked examples.
 - **progression-eligible:** yes, and it is **its own progression**, like the slide: a flag on a
   straight slice names the shift it has already made. ⚠️ **Known limit:** a diagonal return is
   two slides, but a flag end-normalizes once, so a progression-flagged diagonal slice compiles
-  as a mismatch. Whether a flag on a double slice means one progression or two is not ruled. Of
-  the 21 Caller's Box "Double slice" lines, 19 are mid-dance shifts to the shadows and 2 end a
-  double-progression dance; neither of those two reaches the compiler today (another figure in
-  each stays free text). The bridge does not assume a progression on a Becket opener double
-  slice, but a dance ending in one still gets the ordinary last-figure flag.
+  as a mismatch. Whether a flag on a double slice means one progression or two is not ruled.
+  The ruling (2026-11-22) says how far a diagonal return shifts the set, not how many
+  progressions a flag on it counts. On the Caller's Box mirror (measured 2026-11-23), 21 dances
+  hold a "Double slice". `compendium_core`'s importer structures only the 3 written "go
+  forward to S1, fall back to S2": all three are mid-dance shifts in single-progression
+  improper dances, and none is flagged. It leaves the other 18 as free text, so none of them
+  reaches the compiler: 17 go forward to a neighbour and fall back to the next (N1 to N2, or N2
+  to N3), and one goes forward to a shadow and falls back to partner. 13 of the 18 are in
+  dances Caller's Box marks as a double or quadruple progression, and 5 of those open with the
+  double slice (Warren's Roadhouse Reel, in the Seattle core set, is one). The bridge does not
+  assume a progression on a Becket opener double slice, but a dance ending in one can still get
+  the last-figure flag.
 - **assumed progression (Caller's Box):** a Becket dance that **opens with a slice left** and a
   straight return is assumed to progress on it, exactly as one opening with a slide left is
   (user-ruled 2026-11-22, extending the slide rule in `callersbox_source.dart`). A diagonal
