@@ -3576,7 +3576,7 @@ void main() {
       });
 
       test('an unstated who states no facing, and leaves no dangling dash', () {
-        Figure lw(Map<String, Object?> params) => Figure(
+        Figure lw(Map<String, Object?> params) => testFigure(
           move: 'form_long_waves',
           params: {'who': ParamVocab.unspecified, ...params},
         );
