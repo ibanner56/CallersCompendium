@@ -333,7 +333,8 @@ dance.
   a spreadsheet**.
 
 Then choose **Save** or **Share**, or **Cancel** to export nothing. On Linux
-there is no **Share**: **Save** opens the system's save dialog.
+the second button reads **Save as…** instead of **Share** and saves the file
+through the system dialog, because there is no file share sheet to open.
 
 Each row holds the dance's title, authors, who interpreted it, type,
 formation, progression, level, whether it is a mixed-level dance and a mixer,

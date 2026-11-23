@@ -14,7 +14,7 @@ void main() {
       ]);
       final bytes = utf8.encode(csv);
       expect(bytes.take(3), [0xEF, 0xBB, 0xBF]);
-      expect(csv, '﻿a,b\r\nc,d\r\n');
+      expect(csv, '\uFEFFa,b\r\nc,d\r\n');
     });
 
     test('quotes commas, quotes and line breaks, and survives an RFC 4180 '

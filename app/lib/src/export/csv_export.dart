@@ -12,57 +12,46 @@ enum CsvExportChoice { save, share }
 
 /// Opens the CSV delivery choice dialog.
 typedef CsvChoicePicker =
-    Future<CsvExportChoice?> Function(BuildContext context, {String? notice});
+    Future<CsvExportChoice?> Function(BuildContext context);
 
 /// Shows the CSV delivery choice: **Save**, **Share** and **Cancel**. Where
-/// the share sheet cannot carry files ([isBundleShareUnsupported], Linux) only
-/// Save and Cancel are offered, as Share would only open the same Save As.
-///
-/// [notice], when given, is shown under the message: the programs CSV uses it
-/// to say why a column is missing. Dismissing the dialog returns `null`, which
-/// callers treat as Cancel.
-Future<CsvExportChoice?> showCsvExportChoiceDialog(
-  BuildContext context, {
-  String? notice,
-}) => showDialog<CsvExportChoice>(
-  context: context,
-  builder: (context) {
-    final l10n = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(l10n.exportCsvDialogTitle),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(l10n.exportCsvDialogMessage),
-          if (notice != null) ...[
-            const SizedBox(height: 12),
-            Text(notice, key: const ValueKey('csv-export-notice')),
+/// the share sheet cannot carry files ([isBundleShareUnsupported], Linux) the
+/// Share button reads **Save as…** and saves through the system dialog, as the
+/// JSON export's does. Dismissing the dialog returns `null`, which callers
+/// treat as Cancel.
+Future<CsvExportChoice?> showCsvExportChoiceDialog(BuildContext context) =>
+    showDialog<CsvExportChoice>(
+      context: context,
+      builder: (context) {
+        final l10n = AppLocalizations.of(context);
+        return AlertDialog(
+          title: Text(l10n.exportCsvDialogTitle),
+          content: Text(l10n.exportCsvDialogMessage),
+          actions: [
+            TextButton(
+              key: const ValueKey('csv-export-save'),
+              onPressed: () => Navigator.of(context).pop(CsvExportChoice.save),
+              child: Text(l10n.exportJsonSave),
+            ),
+            TextButton(
+              key: const ValueKey('csv-export-share'),
+              onPressed: () => Navigator.of(context).pop(CsvExportChoice.share),
+              child: Text(
+                isBundleShareUnsupported()
+                    ? l10n.exportJsonSaveAs
+                    : l10n.exportJsonShare,
+              ),
+            ),
+            TextButton(
+              key: const ValueKey('csv-export-cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n.exportJsonCancel),
+            ),
           ],
-        ],
-      ),
-      actions: [
-        TextButton(
-          key: const ValueKey('csv-export-save'),
-          onPressed: () => Navigator.of(context).pop(CsvExportChoice.save),
-          child: Text(l10n.exportJsonSave),
-        ),
-        if (!isBundleShareUnsupported())
-          TextButton(
-            key: const ValueKey('csv-export-share'),
-            onPressed: () => Navigator.of(context).pop(CsvExportChoice.share),
-            child: Text(l10n.exportJsonShare),
-          ),
-        TextButton(
-          key: const ValueKey('csv-export-cancel'),
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.exportJsonCancel),
-        ),
-      ],
+        );
+      },
+      animationStyle: AppMotion.styleFor(context),
     );
-  },
-  animationStyle: AppMotion.styleFor(context),
-);
 
 /// Saves a CSV through the native Save As (desktop) or document-save (mobile)
 /// dialog, typed as CSV. A `null` result means the user cancelled.
@@ -75,7 +64,7 @@ Future<JsonSaveResult?> saveCsvFile(String csv, String fileName) =>
       stageFile: writeCsvTempFile,
     );
 
-/// Delivers a CSV spreadsheet export (#2332, #2333) through the user's choice
+/// Delivers a CSV spreadsheet export (#2332) through the user's choice
 /// of Save or Share, with its snackbars. The counterpart of
 /// `JsonExportDelivery` for spreadsheets; every field is a test seam that
 /// defaults to the production behaviour.
@@ -111,12 +100,8 @@ class CsvExportDelivery {
     required String subject,
     required Rect? sharePositionOrigin,
     required String source,
-    String? notice,
   }) async {
-    final choice = await (choicePicker ?? showCsvExportChoiceDialog)(
-      context,
-      notice: notice,
-    );
+    final choice = await (choicePicker ?? showCsvExportChoiceDialog)(context);
     if (choice == null || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);

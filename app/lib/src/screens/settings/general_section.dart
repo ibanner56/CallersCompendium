@@ -982,16 +982,6 @@ class _GeneralView extends StatelessWidget {
         ),
       ),
       SettingsActionRow(
-        title: Text(l10n.settingsExportDancesCsvTitle),
-        subtitle: Text(l10n.settingsExportDancesCsvSubtitle),
-        button: OutlinedButton.icon(
-          key: const ValueKey('export-dances-csv-button'),
-          onPressed: onExportDancesCsv,
-          icon: const Icon(Icons.table_view_outlined),
-          label: Text(l10n.settingsExportDancesCsvAction),
-        ),
-      ),
-      SettingsActionRow(
         title: Text(l10n.backupRestoreTitle),
         subtitle: Text(l10n.backupRestoreSubtitle),
         button: OutlinedButton.icon(
@@ -1052,6 +1042,17 @@ class _GeneralView extends StatelessWidget {
             ],
           ),
         ),
+      // After the backup controls: a spreadsheet is an export, not a backup.
+      SettingsActionRow(
+        title: Text(l10n.settingsExportDancesCsvTitle),
+        subtitle: Text(l10n.settingsExportDancesCsvSubtitle),
+        button: OutlinedButton.icon(
+          key: const ValueKey('export-dances-csv-button'),
+          onPressed: onExportDancesCsv,
+          icon: const Icon(Icons.table_view_outlined),
+          label: Text(l10n.settingsExportDancesCsvAction),
+        ),
+      ),
     ];
   }
 }

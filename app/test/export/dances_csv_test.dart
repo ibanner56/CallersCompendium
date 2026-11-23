@@ -203,7 +203,7 @@ void main() {
   });
 
   group('the file format never follows the region', () {
-    for (final locale in ['da', 'de', 'fr', 'nl']) {
+    for (final locale in ['da', 'de', 'fr', 'nl', 'ja']) {
       test('commas and UTF-8 with a byte-order mark under $locale', () {
         final previous = Intl.defaultLocale;
         Intl.defaultLocale = locale;

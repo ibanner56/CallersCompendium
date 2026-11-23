@@ -45,6 +45,7 @@ import 'package:path_provider_platform_interface/path_provider_platform_interfac
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:share_plus/share_plus.dart' show ShareResult, ShareResultStatus;
 
+import 'export/rfc4180_test_reader.dart';
 import 'support/finders.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
@@ -1511,7 +1512,7 @@ void main() {
       tester,
       repos,
       csvExportDelivery: CsvExportDelivery(
-        choicePicker: (context, {notice}) async => CsvExportChoice.save,
+        choicePicker: (context) async => CsvExportChoice.save,
         saveInvoker: (content, name) async {
           csv = content;
           fileName = name;
@@ -1528,13 +1529,7 @@ void main() {
 
     expect(csv, isNotNull);
     expect(csv, startsWith('\uFEFF'));
-    final titles = csv!
-        .split('\r\n')
-        .skip(1)
-        .where((l) => l.isNotEmpty)
-        .map((l) => l.split(',').first)
-        .toList();
-    expect(titles, ['Alpha', 'Bravo']);
+    expect(csvRecords(csv!).map((r) => r['Title']), ['Alpha', 'Bravo']);
     expect(fileName, endsWith('.csv'));
     expect(find.textContaining(fileName!), findsOneWidget);
   });

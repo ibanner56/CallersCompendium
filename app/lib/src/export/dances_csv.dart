@@ -1,6 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../search/dance_detail_data.dart' show formatCustomFieldValue;
 import '../search/facet_labels.dart';
 import '../utils/safe_name.dart';
 import 'dance_source_lines.dart';
@@ -17,13 +18,11 @@ class DancesCsvLookups {
     this.difficultyLevelsById = const {},
   });
 
-  /// Reads every record the dances may refer to. Deleted people are included,
-  /// so a dance whose author was deleted still shows the name it shows on
-  /// screen.
+  /// Reads every record the dances may refer to. Deleted people are left
+  /// out, as the dance screen and its text export leave them out, so the
+  /// authors (and the dialect chosen from them) match the text export.
   static Future<DancesCsvLookups> load(CompendiumRepositories repos) async {
-    final choreographers = await repos.choreographers.listAll(
-      includeDeleted: true,
-    );
+    final choreographers = await repos.choreographers.listAll();
     final tags = await repos.tags.listAll();
     final sources = await repos.publishedSources.listAll();
     final customFields = await repos.customFieldDefs.listAll();
@@ -107,12 +106,7 @@ String buildDancesCsv(
         .where((v) => v.fieldId == field.id)
         .firstOrNull
         ?.value;
-    return switch (value) {
-      null => '',
-      final bool b => yesNo(b),
-      final num n => customNumberText(n),
-      _ => value.toString(),
-    };
+    return value == null ? '' : formatCustomFieldValue(l10n, value);
   }
 
   final header = [
@@ -157,7 +151,7 @@ String buildDancesCsv(
       renderer: renderer,
       labels: labels,
       canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-      fields: DanceShareField.all,
+      fields: spreadsheetDanceFields,
     );
     final levelId = dance.difficultyLevelId;
     final level = levelId == null

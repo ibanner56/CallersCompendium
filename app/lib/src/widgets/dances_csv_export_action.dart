@@ -18,7 +18,10 @@ import 'export_guard.dart';
 /// never exported.
 ///
 /// Everything read from [context] (repositories, dialects, the renderer that
-/// knows the user's own figures) is resolved before the first await. Loading
+/// knows the user's own figures, and [origin]) is resolved before the first
+/// await. [origin] anchors the share sheet (iPad and macOS need one); without
+/// it the sheet anchors to the centre of the screen, as the dance screen's
+/// compact menu does. Loading
 /// and building run under [guardExport], and delivery under the
 /// [CsvExportDelivery]'s own guards, so every failure is logged and shown.
 Future<void> exportDancesCsv(
@@ -37,6 +40,14 @@ Future<void> exportDancesCsv(
   final renderer = UserFiguresScope.rendererOf(context);
   final canonicalize = CanonicalDiscouragedTermsScope.of(context);
   final ids = danceIds?.toList();
+  final size = MediaQuery.sizeOf(context);
+  final anchor =
+      origin ??
+      Rect.fromCenter(
+        center: Offset(size.width / 2, size.height / 2),
+        width: 1,
+        height: 1,
+      );
 
   return guardExport(messenger, l10n.exportCsvError, () async {
     final dances = ids == null
@@ -57,7 +68,7 @@ Future<void> exportDancesCsv(
       csv: csv,
       fileName: dancesCsvFileName(l10n.csvDancesFileStem, now()),
       subject: l10n.csvDancesFileStem,
-      sharePositionOrigin: origin,
+      sharePositionOrigin: anchor,
       source: source,
     );
   }, source: source);

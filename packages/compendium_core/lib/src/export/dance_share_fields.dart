@@ -103,3 +103,10 @@ enum DanceShareField {
     return null;
   }
 }
+
+/// The dance-card fields a dances spreadsheet (CSV) export carries (#2332):
+/// every one. A spreadsheet has one column per field, so it does not follow
+/// the caller's **Choose which dance fields appear** selection, which shapes
+/// cards, set lists and PDFs. Kept here, beside the other field sets, so the
+/// app's export code chooses no fields of its own.
+const Set<DanceShareField> spreadsheetDanceFields = DanceShareField.all;

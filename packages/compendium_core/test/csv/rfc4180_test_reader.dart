@@ -4,7 +4,7 @@
 /// checks the writer against the RFC rather than against itself.
 List<List<String>> readRfc4180(String text) {
   var input = text;
-  if (input.startsWith('﻿')) input = input.substring(1);
+  if (input.startsWith('\uFEFF')) input = input.substring(1);
   final records = <List<String>>[];
   var record = <String>[];
   final cell = StringBuffer();

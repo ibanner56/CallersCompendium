@@ -1,4 +1,4 @@
-/// A small RFC 4180 CSV writer for the spreadsheet exports (#2332, #2333).
+/// A small RFC 4180 CSV writer for the spreadsheet exports (#2332).
 ///
 /// Pure Dart, no dependency. Every file it writes uses the same dialect,
 /// whatever the device's region (maintainer decision on #2332): a comma
@@ -8,7 +8,7 @@ library;
 
 /// The byte-order mark every CSV file starts with. Written as text, it encodes
 /// to the UTF-8 bytes `EF BB BF`.
-const String csvByteOrderMark = '﻿';
+const String csvByteOrderMark = '\uFEFF';
 
 /// The separator between cells. Always a comma, never the locale's list
 /// separator.

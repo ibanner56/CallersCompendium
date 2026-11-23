@@ -280,8 +280,8 @@ Four related features are easy to mix up:
   and leaves out private details a backup keeps. See
   [Share, print & export](./sharing.md).
 - **A spreadsheet of your dances** (CSV) opens in Excel, Numbers or Google
-  Sheets, but it follows the sharing rules and can't be restored, so it is no
-  substitute for a backup. See
+  Sheets, but it follows the sharing rules (plus your star ratings) and can't
+  be restored, so it is no substitute for a backup. See
   [Export dances as a spreadsheet](./sharing.md#export-dances-as-a-spreadsheet-csv).
 - **Importing** brings dances in from other apps and sources — such as
   The Caller's Box, ContraDB, or another Caller's Compendium file — and

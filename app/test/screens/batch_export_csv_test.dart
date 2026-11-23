@@ -27,7 +27,7 @@ void main() {
 
     String? csv;
     final delivery = CsvExportDelivery(
-      choicePicker: (context, {notice}) async => CsvExportChoice.save,
+      choicePicker: (context) async => CsvExportChoice.save,
       saveInvoker: (content, name) async {
         csv = content;
         return JsonSaveResult(path: '', fileName: name);
@@ -91,7 +91,7 @@ void main() {
     expect(saved, isFalse);
   });
 
-  testWidgets('on Linux the dialog offers Save and Cancel only', (
+  testWidgets('on Linux the second button reads Save as… and saves', (
     tester,
   ) async {
     final previous = isBundleShareUnsupported;
@@ -99,7 +99,19 @@ void main() {
     addTearDown(() => isBundleShareUnsupported = previous);
     final repos = openTestRepositories();
     await repos.dances.create(_dance('d1', 'Alpha'));
-    await pumpBatchScreen(tester, repos);
+    String? saved;
+    var shared = false;
+    await pumpBatchScreen(
+      tester,
+      repos,
+      csvExportDelivery: CsvExportDelivery(
+        saveInvoker: (content, name) async {
+          saved = name;
+          return JsonSaveResult(path: '', fileName: name);
+        },
+        shareInvoker: (params) async => shared = true,
+      ),
+    );
 
     await tester.longPress(find.text('Alpha'));
     await tester.pumpAndSettle();
@@ -108,10 +120,15 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('batch-export-csv')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('csv-export-save')), findsOneWidget);
-    expect(find.byKey(const ValueKey('csv-export-share')), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('csv-export-cancel')));
+    final second = find.byKey(const ValueKey('csv-export-share'));
+    expect(
+      find.descendant(of: second, matching: find.text('Save as…')),
+      findsOneWidget,
+    );
+    await tester.tap(second);
     await tester.pumpAndSettle();
+    expect(saved, endsWith('.csv'));
+    expect(shared, isFalse);
   });
 
   testWidgets('a failing save is logged and shown, not swallowed', (
@@ -123,7 +140,7 @@ void main() {
       tester,
       repos,
       csvExportDelivery: CsvExportDelivery(
-        choicePicker: (context, {notice}) async => CsvExportChoice.save,
+        choicePicker: (context) async => CsvExportChoice.save,
         saveInvoker: (content, name) async => throw StateError('disk full'),
       ),
     );
