@@ -1,4 +1,3 @@
-import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
