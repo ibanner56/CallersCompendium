@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:ui' show Locale;
 
 import 'package:compendium_app/l10n/app_localizations.dart';
+import 'package:compendium_app/src/data/csv_import_mapping.dart';
 import 'package:compendium_app/src/export/dances_csv.dart';
 import 'package:compendium_app/src/export/export_labels_l10n.dart';
 import 'package:compendium_app/src/export/share_sanitization.dart';
@@ -114,6 +115,65 @@ void main() {
     renderer: renderer ?? plainRenderer,
     lookups: lookups,
   );
+
+  group('custom field headers', () {
+    CustomFieldDef field(String id, String label, {bool shareable = true}) =>
+        CustomFieldDef(
+          id: id,
+          key: id,
+          label: label,
+          type: CustomFieldType.text,
+          shareable: shareable,
+        );
+
+    test('labels shared by several fields, or equal to a built-in column, get '
+        'unique headers that import maps back to their own fields', () {
+      final fields = [
+        field('a', 'Story'),
+        field('hidden', 'Story', shareable: false),
+        field('b', 'Story'),
+        field('c', en.csvColumnTitle),
+        field('d', 'story (2)'),
+      ];
+      final withValues = dance(
+        customFields: [
+          for (final f in fields)
+            CustomFieldValue(fieldId: f.id, value: 'v-${f.id}'),
+        ],
+      );
+      final csv = buildDancesCsv(
+        [withValues],
+        l10n: en,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        renderer: plainRenderer,
+        lookups: DancesCsvLookups(customFields: fields),
+      );
+      final header = csvRecords(csv).single.keys.toList();
+      final custom = header.skip(header.indexOf(en.csvColumnFigures) + 1);
+      expect(custom, ['Story', 'Story (2)', 'Title (2)', 'story (2) (2)']);
+      expect(
+        {for (final h in header) h.toLowerCase()}.length,
+        header.length,
+        reason: 'no two headers fold alike',
+      );
+
+      final mapped = autoMapCsvColumns(header, header.length, [en], fields);
+      final customMappings = mapped.skip(
+        header.indexOf(en.csvColumnFigures) + 1,
+      );
+      expect(customMappings, [
+        CsvColumnMapping.customField('a'),
+        CsvColumnMapping.customField('b'),
+        CsvColumnMapping.customField('c'),
+        CsvColumnMapping.customField('d'),
+      ]);
+      expect(
+        mapped[header.indexOf(en.csvColumnTitle)],
+        const CsvColumnMapping(CsvColumnTarget.title),
+        reason: 'the built-in Title column keeps the title',
+      );
+    });
+  });
 
   group('what stays private', () {
     test("an author's email, location and deceased mark never appear", () {

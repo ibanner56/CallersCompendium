@@ -82,6 +82,41 @@ Map<CsvColumnTarget, List<String>> csvTargetHeaderNames(
   CsvColumnTarget.figures: [l10n.csvColumnFigures, l10n.danceSectionFigures],
 };
 
+/// The header each custom field of [fields] gets in the dances CSV export
+/// (#2332), keyed by field id. Only fields that leave in a share file get one
+/// (they are the only columns the export writes).
+///
+/// Labels are not unique (only keys are), and a label may equal a built-in
+/// column name, so a header is its label, then `label (2)`, `label (3)`, ...
+/// until [csvFold] finds it unused by an earlier header and by every name in
+/// [reserved] (the built-in column names). The import reads the same headers
+/// back through [csvTargetForHeader], so a round trip tells the columns apart.
+Map<String, String> customFieldCsvHeaders(
+  List<CustomFieldDef> fields,
+  Iterable<String> reserved,
+) {
+  final used = {for (final name in reserved) csvFold(name)};
+  final headers = <String, String>{};
+  for (final field in fields) {
+    if (!customFieldLeavesIn(field, ArchiveSerializationMode.share)) continue;
+    var header = field.label;
+    for (var n = 2; used.contains(csvFold(header)); n++) {
+      header = '${field.label} ($n)';
+    }
+    used.add(csvFold(header));
+    headers[field.id] = header;
+  }
+  return headers;
+}
+
+/// Every header a built-in column answers to in [languages], plus the phrase
+/// labels: the names [customFieldCsvHeaders] must not reuse.
+List<String> csvReservedHeaders(List<AppLocalizations> languages) => [
+  for (final l10n in languages)
+    for (final names in csvTargetHeaderNames(l10n).values) ...names,
+  ...csvPhraseLabels,
+];
+
 /// The target a header names, in any of [languages] (the UI language and
 /// English), or `null`. A phrase label (`A1`) names its phrase, and a custom
 /// field's label names that field.
@@ -101,6 +136,12 @@ CsvColumnMapping? csvTargetForHeader(
   }
   for (final p in csvPhraseLabels) {
     if (csvFold(p) == folded) return CsvColumnMapping.phrase(p);
+  }
+  final exported = customFieldCsvHeaders(fields, csvReservedHeaders(languages));
+  for (final f in fields) {
+    if (exported[f.id] case final header? when csvFold(header) == folded) {
+      return CsvColumnMapping.customField(f.id);
+    }
   }
   for (final f in fields) {
     if (csvFold(f.label) == folded) return CsvColumnMapping.customField(f.id);

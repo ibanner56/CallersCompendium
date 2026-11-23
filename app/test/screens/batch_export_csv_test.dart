@@ -1,3 +1,8 @@
+import 'package:compendium_app/src/data/backup_document.dart'
+    show
+        defaultBackupCodecRunner,
+        runBackupCodecInline,
+        runBackupCodecOnIsolate;
 import 'package:compendium_app/src/export/csv_export.dart';
 import 'package:compendium_app/src/export/share_file.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -18,6 +23,17 @@ Dance _dance(String id, String title, {int? rating}) => Dance(
 
 /// Collection selection mode, More batch actions ▸ Export as CSV (#2332).
 void main() {
+  // A worker isolate's reply never arrives under testWidgets' fake async.
+  var runnerCalls = 0;
+  setUp(() {
+    runnerCalls = 0;
+    defaultBackupCodecRunner = <T>(T Function() work) async {
+      runnerCalls++;
+      return work();
+    };
+  });
+  tearDown(() => defaultBackupCodecRunner = runBackupCodecOnIsolate);
+
   testWidgets('exports exactly the selected dances, including one the search '
       'hides, and keeps selection mode open', (tester) async {
     final repos = openTestRepositories();
@@ -56,6 +72,11 @@ void main() {
     expect(rows.map((r) => r['Title']), ['Alpha', 'Charlie']);
     expect(rows.first['Rating'], '5');
     expect(find.text('2 selected'), findsOneWidget);
+    expect(
+      runnerCalls,
+      1,
+      reason: 'the sheet is encoded through the codec runner, off the UI',
+    );
   });
 
   testWidgets('the dialog offers Save, Share and Cancel, and Cancel exports '

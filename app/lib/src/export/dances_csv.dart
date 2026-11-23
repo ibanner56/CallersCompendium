@@ -1,6 +1,8 @@
 import 'package:compendium_core/compendium_core.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../l10n/app_localizations_en.dart';
+import '../data/csv_import_mapping.dart';
 import '../search/dance_detail_data.dart' show formatCustomFieldValue;
 import '../search/facet_labels.dart';
 import '../utils/safe_name.dart';
@@ -81,11 +83,39 @@ String buildDancesCsv(
   required FigureRenderer renderer,
   bool canonicalizeDiscouragedTerms = false,
   DancesCsvLookups lookups = const DancesCsvLookups(),
+}) => encodeCsv(
+  buildDancesCsvRows(
+    dances,
+    l10n: l10n,
+    dialects: dialects,
+    renderer: renderer,
+    canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+    lookups: lookups,
+  ),
+);
+
+/// The header and one row per dance that [buildDancesCsv] encodes: plain
+/// strings, so [encodeCsv] can run on another isolate while everything that
+/// needs [l10n] (which cannot cross an isolate) has already been resolved here.
+///
+/// A custom field's header is its label, made unique and distinct from every
+/// built-in column by [customFieldCsvHeaders] (labels are not unique).
+List<List<String>> buildDancesCsvRows(
+  Iterable<Dance> dances, {
+  required AppLocalizations l10n,
+  required DialectsByForm dialects,
+  required FigureRenderer renderer,
+  bool canonicalizeDiscouragedTerms = false,
+  DancesCsvLookups lookups = const DancesCsvLookups(),
 }) {
   final sharedFields = [
     for (final field in lookups.customFields)
       if (customFieldLeavesIn(field, ArchiveSerializationMode.share)) field,
   ];
+  final customHeaders = customFieldCsvHeaders(
+    sharedFields,
+    csvReservedHeaders([l10n, AppLocalizationsEn()]),
+  );
   final labels = danceExportLabels(l10n);
   final sorted = [...dances]
     ..sort((a, b) {
@@ -135,7 +165,7 @@ String buildDancesCsv(
     l10n.csvColumnCallingNotes,
     l10n.csvColumnWalkthrough,
     l10n.csvColumnFigures,
-    for (final field in sharedFields) field.label,
+    for (final field in sharedFields) customHeaders[field.id]!,
   ];
 
   final rows = <List<String>>[header];
@@ -205,7 +235,7 @@ String buildDancesCsv(
       for (final field in sharedFields) customValue(field, dance),
     ]);
   }
-  return encodeCsv(rows);
+  return rows;
 }
 
 /// The file name for a dances CSV exported on [date]: `<stem>_yyyy-MM-dd.csv`,
