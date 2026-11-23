@@ -140,7 +140,7 @@ void main() {
     expect(find.text(l10n.danceLinkRefusedDamaged), findsOneWidget);
 
     await pasteIntoLinkField(tester, emptyArchiveDanceLink());
-    expect(find.text(l10n.archiveIntakeRejectedNoContent), findsOneWidget);
+    expect(find.text(l10n.danceLinkRefusedNoContent), findsOneWidget);
 
     expect(find.byKey(const ValueKey('import-review-list')), findsNothing);
     expect(find.byKey(const ValueKey('import-url-field')), findsOneWidget);

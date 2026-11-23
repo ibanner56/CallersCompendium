@@ -106,4 +106,46 @@ void main() {
       }
     });
   });
+  group('danceLinkIntakeRejectionMessage', () {
+    final l10n = AppLocalizationsEn();
+    final fileMessages = {
+      l10n.archiveIntakeRejectedTooLarge,
+      l10n.archiveIntakeRejectedUnreadable,
+      l10n.archiveIntakeRejectedEmpty,
+      l10n.archiveIntakeRejectedNotArchive,
+      l10n.archiveIntakeRejectedNoContent,
+      l10n.archiveIntakeRejectedBackup,
+    };
+
+    test('every refusal is worded for a code, never as a file', () {
+      for (final reason in ArchiveIntakeRejectionReason.values) {
+        final message = danceLinkIntakeRejectionMessage(l10n, reason);
+        expect(fileMessages, isNot(contains(message)), reason: reason.name);
+        expect(message.toLowerCase(), contains('code'), reason: reason.name);
+      }
+    });
+
+    test('an empty archive and a non-dance payload say which', () async {
+      expect(
+        danceLinkIntakeRejectionMessage(
+          l10n,
+          ArchiveIntakeRejectionReason.noContent,
+        ),
+        l10n.danceLinkRefusedNoContent,
+      );
+      expect(
+        danceLinkIntakeRejectionMessage(
+          l10n,
+          ArchiveIntakeRejectionReason.notArchive,
+        ),
+        l10n.danceLinkRefusedNotADance,
+      );
+      final validation = await validateDanceLink(notADanceLink());
+      expect(validation.reason, ArchiveIntakeRejectionReason.backup);
+      expect(
+        danceLinkIntakeRejectionMessage(l10n, validation.reason!),
+        l10n.danceLinkRefusedNotADance,
+      );
+    });
+  });
 }

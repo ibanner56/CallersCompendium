@@ -52,6 +52,9 @@ String newerSchemaDanceLink() => encodeDanceLink(
 String emptyArchiveDanceLink() =>
     encodeDanceLink(danceLinkBundleJson(withDance: false));
 
+/// A well-formed link that carries a backup's envelope, not a dance share.
+String notADanceLink() => encodeDanceLink('{"backupContainer":{}}');
+
 /// One character past [kMaxDanceLinkLength].
 String overLengthDanceLink() =>
     '$danceLinkPrefix${'A' * (kMaxDanceLinkLength + 1 - danceLinkPrefix.length)}';

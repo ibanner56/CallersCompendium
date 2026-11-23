@@ -1008,12 +1008,22 @@ void main() {
       });
     }
 
-    testWidgets('a link to an archive with nothing in it gets the file '
-        "intake's refusal", (tester) async {
+    testWidgets('a link to an archive with nothing in it is refused in '
+        "a code's words", (tester) async {
       await pumpWithLink(tester, coldLink: emptyArchiveDanceLink());
 
       expect(find.byKey(const ValueKey('shared-import-error')), findsOneWidget);
-      expect(find.text(l10n.archiveIntakeRejectedNoContent), findsOneWidget);
+      expect(find.text(l10n.danceLinkRefusedNoContent), findsOneWidget);
+      expect(find.byType(ImportReviewScreen), findsNothing);
+    });
+
+    testWidgets('a link that carries no dance is refused in a code\'s words', (
+      tester,
+    ) async {
+      await pumpWithLink(tester, coldLink: notADanceLink());
+
+      expect(find.byKey(const ValueKey('shared-import-error')), findsOneWidget);
+      expect(find.text(l10n.danceLinkRefusedNotADance), findsOneWidget);
       expect(find.byType(ImportReviewScreen), findsNothing);
     });
   });

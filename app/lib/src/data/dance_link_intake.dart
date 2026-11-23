@@ -72,3 +72,20 @@ String danceLinkRefusalMessage(
   DanceLinkFailure.notUtf8 ||
   DanceLinkFailure.notAJsonObject => l10n.danceLinkRefusedDamaged,
 };
+
+/// What to tell the user when a link reads correctly but intake refuses the
+/// archive it carries. Worded for a code, not a file: the file messages would
+/// tell someone who scanned a code that "that file" is wrong. A size, read or
+/// empty refusal cannot follow a successful [decodeDanceLink] (its caps and
+/// checks come first), so those say the code is damaged.
+String danceLinkIntakeRejectionMessage(
+  AppLocalizations l10n,
+  ArchiveIntakeRejectionReason reason,
+) => switch (reason) {
+  ArchiveIntakeRejectionReason.notArchive ||
+  ArchiveIntakeRejectionReason.backup => l10n.danceLinkRefusedNotADance,
+  ArchiveIntakeRejectionReason.noContent => l10n.danceLinkRefusedNoContent,
+  ArchiveIntakeRejectionReason.tooLarge ||
+  ArchiveIntakeRejectionReason.unreadable ||
+  ArchiveIntakeRejectionReason.empty => l10n.danceLinkRefusedDamaged,
+};

@@ -7682,6 +7682,14 @@
   "@danceLinkRefusedDamaged": {
     "x-sourceSha256": "24da96c8326613af1ad3348ff0b53893be9ba08d5f5e2ee69103d8a8c96c0e59"
   },
+  "danceLinkRefusedNotADance": "このコードは Caller's Compendium のダンスのコードではありません。",
+  "@danceLinkRefusedNotADance": {
+    "x-sourceSha256": "f4a9058d924f5ecb3eb48b7de611ea451980ef99faf8ce0eecd43ef73b2327ff"
+  },
+  "danceLinkRefusedNoContent": "このダンスのコードにはダンスもプログラムも含まれていません。",
+  "@danceLinkRefusedNoContent": {
+    "x-sourceSha256": "12e1e0997cdbb1ae3cc25202f1823287ba7b1c8bd1985263e73edcbf668b7b0e"
+  },
   "archiveIntakeRejectedNotArchive": "そのファイルはCaller’s Compendiumの共有ファイルではありません。",
   "@archiveIntakeRejectedNotArchive": {
     "x-sourceSha256": "80dd7dada7feaccdf4d83c86ca2567fad99deb5ad4b25ffc22cdd87c7d4de1d8"
@@ -7906,9 +7914,9 @@
   "@importIssueArchiveReadWarning": {
     "x-sourceSha256": "fe85dd330b19b95b4d3576c70949c46fe4cd90ad9f04668ad5c5f7e35d08043b"
   },
-  "importIssueArchiveNewerSchema": "このファイルは新しいバージョンの Caller's Compendium で作成されました。インポートする前にアプリを更新してください。更新しないと、一部の詳細が含まれない場合があります。",
+  "importIssueArchiveNewerSchema": "これは新しいバージョンの Caller's Compendium で作成されました。インポートする前にアプリを更新してください。更新しないと、一部の詳細が含まれない場合があります。",
   "@importIssueArchiveNewerSchema": {
-    "x-sourceSha256": "55b8932da3e9592c9bf8da0f1b79c8728970f80ff2204193a6db17fbe1bc61df"
+    "x-sourceSha256": "9b86962b90d1d14a52c0efda353106a377827ed244a142001fc923380f1bc902"
   },
   "importIssueArchiveCustomFieldKeyConflict": "あなたのカスタムフィールド「{label}」は、このファイルでは種類または選択肢が異なるため、ファイルの値は代わりにキー「{key}」のフィールドに入ります（まだない場合は追加されます）。あなたのフィールドは変更されません。",
   "@importIssueArchiveCustomFieldKeyConflict": {

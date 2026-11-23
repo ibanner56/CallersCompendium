@@ -11680,6 +11680,18 @@ abstract class AppLocalizations {
   /// **'This dance code is damaged or incomplete, so it can\'t be opened.'**
   String get danceLinkRefusedDamaged;
 
+  /// Shown when a dance's QR code link (ccdance://) reads correctly but what it carries is not a dance share (for example, a backup or unrelated JSON). Generic; never echoes the link. Nothing is imported.
+  ///
+  /// In en, this message translates to:
+  /// **'This code isn\'t a Caller\'s Compendium dance code.'**
+  String get danceLinkRefusedNotADance;
+
+  /// Shown when a dance's QR code link (ccdance://) reads correctly but carries neither dances nor programs. Nothing is imported.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance code doesn\'t contain any dances or programs.'**
+  String get danceLinkRefusedNoContent;
+
   /// Rejection shown when a shared file is not a well-formed Caller's Compendium archive (bad text, non-archive JSON, or an unreadable envelope). Generic; never echoes parser detail.
   ///
   /// In en, this message translates to:
@@ -12016,10 +12028,10 @@ abstract class AppLocalizations {
   /// **'The shared file reported a warning while decoding.'**
   String get importIssueArchiveReadWarning;
 
-  /// Import review warning: the shared file was written by a newer app version than this one, so fields the newer version added are dropped. Tells the user to update first. Shown once for the whole file.
+  /// Import review warning: what is being imported (a shared file, pasted JSON, or a dance code) was written by a newer app version than this one, so fields the newer version added are dropped. Tells the user to update first. Worded without "file" because a dance code reaches the same review (issue #2335). Shown once for the whole import.
   ///
   /// In en, this message translates to:
-  /// **'This file was made by a newer version of Caller\'s Compendium. Update the app before importing, or some details may be left out.'**
+  /// **'This was made by a newer version of Caller\'s Compendium. Update the app before importing, or some details may be left out.'**
   String get importIssueArchiveNewerSchema;
 
   /// Import review warning for a shared file (INTAKE-2): the file has a custom field under the same key as one of the user's, but of another type or with other choices for a choice field, so its values go into the field under the key shown (the user's key plus _2, _3, …), which is created unless an earlier import made it; the user's own field is not changed. {label} is the user's own field's name and {key} the new field's key, both rendered as plain text.

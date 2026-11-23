@@ -7823,6 +7823,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Denne dansekode er beskadiget eller ufuldstændig og kan ikke åbnes.';
 
   @override
+  String get danceLinkRefusedNotADance =>
+      'Denne kode er ikke en dansekode fra Caller\'s Compendium.';
+
+  @override
+  String get danceLinkRefusedNoContent =>
+      'Denne dansekode indeholder ingen danse eller programmer.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'Den fil er ikke en delefil fra Caller’s Compendium.';
 
@@ -8052,7 +8060,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importIssueArchiveNewerSchema =>
-      'Denne fil er lavet med en nyere version af Caller\'s Compendium. Opdater appen, før du importerer, ellers kan nogle detaljer mangle.';
+      'Dette er lavet med en nyere version af Caller\'s Compendium. Opdater appen, før du importerer, ellers kan nogle detaljer mangle.';
 
   @override
   String importIssueArchiveCustomFieldKeyConflict(String label, String key) {

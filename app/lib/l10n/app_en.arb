@@ -10227,6 +10227,14 @@
   "@danceLinkRefusedDamaged": {
     "description": "Shown when a dance's QR code link (ccdance://) cannot be read: too long, cut short, or corrupted. Generic; never echoes the link. Nothing is imported."
   },
+  "danceLinkRefusedNotADance": "This code isn't a Caller's Compendium dance code.",
+  "@danceLinkRefusedNotADance": {
+    "description": "Shown when a dance's QR code link (ccdance://) reads correctly but what it carries is not a dance share (for example, a backup or unrelated JSON). Generic; never echoes the link. Nothing is imported."
+  },
+  "danceLinkRefusedNoContent": "This dance code doesn't contain any dances or programs.",
+  "@danceLinkRefusedNoContent": {
+    "description": "Shown when a dance's QR code link (ccdance://) reads correctly but carries neither dances nor programs. Nothing is imported."
+  },
   "archiveIntakeRejectedNotArchive": "That file isn't a Caller's Compendium share file.",
   "@archiveIntakeRejectedNotArchive": {
     "description": "Rejection shown when a shared file is not a well-formed Caller's Compendium archive (bad text, non-archive JSON, or an unreadable envelope). Generic; never echoes parser detail."
@@ -10493,9 +10501,9 @@
   "@importIssueArchiveReadWarning": {
     "description": "Import note: decoding a shared archive produced a non-fatal warning. Generic; the raw warning text is not shown."
   },
-  "importIssueArchiveNewerSchema": "This file was made by a newer version of Caller's Compendium. Update the app before importing, or some details may be left out.",
+  "importIssueArchiveNewerSchema": "This was made by a newer version of Caller's Compendium. Update the app before importing, or some details may be left out.",
   "@importIssueArchiveNewerSchema": {
-    "description": "Import review warning: the shared file was written by a newer app version than this one, so fields the newer version added are dropped. Tells the user to update first. Shown once for the whole file."
+    "description": "Import review warning: what is being imported (a shared file, pasted JSON, or a dance code) was written by a newer app version than this one, so fields the newer version added are dropped. Tells the user to update first. Worded without \"file\" because a dance code reaches the same review (issue #2335). Shown once for the whole import."
   },
   "importIssueArchiveCustomFieldKeyConflict": "Your custom field \"{label}\" has a different type or other choices in this file, so the file's values for it go into the field with the key \"{key}\" instead, which is added if you don't have it yet. Your field is unchanged.",
   "@importIssueArchiveCustomFieldKeyConflict": {

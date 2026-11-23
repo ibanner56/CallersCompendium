@@ -7499,6 +7499,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceLinkRefusedDamaged => 'このダンスのコードは破損しているか不完全なため、開けません。';
 
   @override
+  String get danceLinkRefusedNotADance =>
+      'このコードは Caller\'s Compendium のダンスのコードではありません。';
+
+  @override
+  String get danceLinkRefusedNoContent => 'このダンスのコードにはダンスもプログラムも含まれていません。';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'そのファイルはCaller’s Compendiumの共有ファイルではありません。';
 
@@ -7720,7 +7727,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importIssueArchiveNewerSchema =>
-      'このファイルは新しいバージョンの Caller\'s Compendium で作成されました。インポートする前にアプリを更新してください。更新しないと、一部の詳細が含まれない場合があります。';
+      'これは新しいバージョンの Caller\'s Compendium で作成されました。インポートする前にアプリを更新してください。更新しないと、一部の詳細が含まれない場合があります。';
 
   @override
   String importIssueArchiveCustomFieldKeyConflict(String label, String key) {

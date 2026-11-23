@@ -1520,7 +1520,14 @@ class _CompendiumAppState extends State<CompendiumApp>
     }
   }
 
-  void _showIncomingFileRejection(ArchiveIntakeRejectionReason reason) {
+  void _showIncomingFileRejection(ArchiveIntakeRejectionReason reason) =>
+      _showIncomingRejection(
+        (l10n) => archiveIntakeRejectionMessage(l10n, reason),
+      );
+
+  /// Shows an incoming share's refusal; [message] picks the wording, which
+  /// differs for a file and for a dance code (#2335).
+  void _showIncomingRejection(String Function(AppLocalizations l10n) message) {
     final messenger = _messengerKey.currentState;
     final messengerContext = _messengerKey.currentContext;
     if (messenger == null ||
@@ -1532,7 +1539,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     messenger.showSnackBar(
       SnackBar(
         key: const ValueKey('shared-import-error'),
-        content: Text(archiveIntakeRejectionMessage(l10n, reason)),
+        content: Text(message(l10n)),
       ),
     );
   }
@@ -1669,7 +1676,9 @@ class _CompendiumAppState extends State<CompendiumApp>
     }
     if (!mounted) return;
     if (validation.isRejected) {
-      _showIncomingFileRejection(validation.reason!);
+      _showIncomingRejection(
+        (l10n) => danceLinkIntakeRejectionMessage(l10n, validation.reason!),
+      );
       return;
     }
     await _navigatorKey.currentState?.push(

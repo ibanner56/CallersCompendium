@@ -281,7 +281,7 @@ below.
 
 A file made by a **newer version** of Caller's Compendium can still be reviewed
 and imported, but this version only understands the details it already knows
-about. The review then shows one warning, *"This file was made by a newer version
+about. The review then shows one warning, *"This was made by a newer version
 of Caller's Compendium. Update the app before importing, or some details may be
 left out."* Update the app first if you want everything that file carries.
 
@@ -317,8 +317,9 @@ is fetched.
 
 If the app can't read a code, it says why and nothing is imported: a code made
 by a **newer version** of Caller's Compendium asks you to update the app, and a
-code that is damaged or was read only in part says so. Ask for the code again,
-or for **Share dance file** instead. A code made by a newer version whose dance
+code that is damaged or was read only in part says so. So does a code that
+isn't a dance code, or one with no dances or programs in it. Ask for the code
+again, or for **Share dance file** instead. A code made by a newer version whose dance
 this version can read still opens, with the same newer-version warning as a
 file.
 

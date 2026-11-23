@@ -17,7 +17,6 @@ import '../theme/app_spacing.dart';
 import 'import_cc_terms_screen.dart';
 import 'import_user_figures_screen.dart';
 import '../data/callersbox_online.dart';
-import '../data/archive_intake_labels.dart';
 import '../data/dance_link_intake.dart';
 import '../data/dance_reimport.dart';
 import '../export/dance_code.dart' show DanceLinkException;
@@ -905,7 +904,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     try {
       final validation = await validateDanceLink(link);
       if (validation.isRejected) {
-        refusal = archiveIntakeRejectionMessage(l10n, validation.reason!);
+        refusal = danceLinkIntakeRejectionMessage(l10n, validation.reason!);
       } else {
         bundle = SharedBundleImport(
           json: validation.json!,
