@@ -867,6 +867,7 @@ class DanceEditorController extends ChangeNotifier {
       phraseController.text = dance.phraseStructure.raw;
       formationDetailController.text = dance.formation.detail ?? '';
       meterController.text = dance.meter;
+      _statedBeatsPerBarSeen = statedBeatsPerBar;
       musicalKeyController.text = dance.musicalKey;
       alternateTitlesController.text = dance.alternateTitles.join('\n');
       barnesReferenceController.text = dance.barnesReference;
@@ -1455,7 +1456,10 @@ class DanceEditorController extends ChangeNotifier {
     if (formationDetailController.text != s.formationDetail) {
       formationDetailController.text = s.formationDetail;
     }
-    if (meterController.text != s.meter) meterController.text = s.meter;
+    if (meterController.text != s.meter) {
+      meterController.text = s.meter;
+      _statedBeatsPerBarSeen = statedBeatsPerBar;
+    }
     if (musicalKeyController.text != s.musicalKey) {
       musicalKeyController.text = s.musicalKey;
     }
@@ -2687,21 +2691,33 @@ class DanceEditorController extends ChangeNotifier {
     scheduleAutosave();
   }
 
+  /// The beats in a bar the Meter stated when it was last loaded or edited, so
+  /// that [onMeterChanged] can tell a Meter that now states other beats from
+  /// one that only has more words in it.
+  int? _statedBeatsPerBarSeen;
+
   /// The Meter field changed. Named phrases count their bars by it (Hudson,
-  /// 19 November 2026: "the meter is the rule"), so a meter that states its
-  /// beats in a bar rewrites them in each named phrase, keeping its bars.
+  /// 19 November 2026: "the meter is the rule"), so a Meter that now states
+  /// other beats in a bar than it did sets them in each named phrase, keeping
+  /// its bars.
   ///
-  /// That includes a structure whose phrases differ in beats per bar: while the
-  /// Meter states one meter, editing it sets every named phrase to it, so the
-  /// phrases keep their own beats per bar (#2303) only where the Meter states
-  /// none or several meters ("3/4 and 6/8"). An unnamed structure is not
+  /// A Meter that states the same beats in a bar as before (a word added after
+  /// "3/4"), or none or several meters ("3/4 and 6/8"), leaves the phrases as
+  /// they are. So does any Meter when the phrases differ in beats to the bar
+  /// among themselves: a structure a caller set phrase by phrase (#2303) is
+  /// never flattened, whatever the Meter says, and typing the Meter a
+  /// character at a time cannot reach it. An unnamed structure is not
   /// rewritten.
   void onMeterChanged() {
     final perBar = statedBeatsPerBar;
+    final changed = perBar != _statedBeatsPerBarSeen;
+    _statedBeatsPerBarSeen = perBar;
     final phrases = typedPhraseStructure?.namedPhrases;
     if (offersNamedPhrases &&
         perBar != null &&
+        changed &&
         phrases != null &&
+        phrases.every((p) => p.beatsPerBar == phrases.first.beatsPerBar) &&
         phrases.any((p) => p.beatsPerBar != perBar)) {
       try {
         setPhraseStructureText(

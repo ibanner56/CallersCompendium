@@ -13087,7 +13087,7 @@ abstract class AppLocalizations {
   /// Help under the Phrases heading in an English dance's editor. A, B, C, A1 and A2 are phrase labels of English country dance music and stay as written.
   ///
   /// In en, this message translates to:
-  /// **'Name each part of the tune A, B or C, give its bars, and say whether it plays once or twice. A phrase played twice is labeled A1 and A2.'**
+  /// **'Name each part of the tune A, B or C, give its bars and the beats in each bar, and say whether it plays once or twice. A phrase played twice is labeled A1 and A2.'**
   String get danceEditorPhrasesHelp;
 
   /// Button that adds a named phrase (the next unused of A, B, C) to an English dance's phrases. Hidden when all three are used.
@@ -13096,10 +13096,10 @@ abstract class AppLocalizations {
   /// **'Add phrase'**
   String get danceEditorPhrasesAdd;
 
-  /// Error under an English dance's named phrases when a bar count is empty, zero or above {max}, or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.
+  /// Error under an English dance's named phrases when a bar count or a beats-to-the-bar count is empty, zero or above {max}, or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.
   ///
   /// In en, this message translates to:
-  /// **'Give each phrase from 1 to {max} bars. Until then the dance keeps its last valid phrases, and Save saves those.'**
+  /// **'Give each phrase from 1 to {max} bars and from 1 to {max} beats to the bar. Until then the dance keeps its last valid phrases, and Save saves those.'**
   String danceEditorPhrasesInvalid(int max);
 
   /// Label of the number field for how many bars of music one named phrase of an English dance has. The name is A, B or C, a phrase label of English country dance music.
@@ -13113,6 +13113,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'1 to {max}'**
   String danceEditorPhraseBarsRange(int max);
+
+  /// Label of the number field for how many beats one bar of one named phrase of an English dance has, as in 3 for a phrase in 3/4 and 2 for one in 6/8. The name is A, B or C, a phrase label of English country dance music.
+  ///
+  /// In en, this message translates to:
+  /// **'Beats per bar in {name}'**
+  String danceEditorPhraseBeatsPerBarLabel(String name);
+
+  /// Short error under one named phrase's beats-to-the-bar field in an English dance when its count is empty, zero or too large: the beats a bar may have.
+  ///
+  /// In en, this message translates to:
+  /// **'1 to {max}'**
+  String danceEditorPhraseBeatsPerBarRange(int max);
 
   /// Label of the dropdown that picks one named phrase's name (A, B or C) in an English dance's phrases.
   ///
