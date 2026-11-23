@@ -19,8 +19,6 @@ import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_app/src/published_collections/published_collection_service.dart';
 import 'package:compendium_app/src/published_collections/published_collection_config.dart';
-import 'package:compendium_app/src/search/collection_query.dart'
-    show CollectionSort;
 import 'package:compendium_app/src/widgets/brand_mark.dart';
 
 import 'support/dance_detail_actions.dart';

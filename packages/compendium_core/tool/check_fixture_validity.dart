@@ -1,6 +1,6 @@
 /// Ratchet: every figure fixture in the test suites must be valid under the
 /// shipped taxonomies (`shippedTaxonomies.anyForm`: contra's, and each other
-/// form's `ecd_`-prefixed moves), or say why it is not.
+/// form's prefixed moves, `ecd_` and `sq_`), or say why it is not.
 ///
 /// Run from the repository root:
 ///

@@ -749,6 +749,135 @@ void main() {
         },
       );
 
+      group('PhraseStructure with a trailing parenthesised note (#2366)', () {
+        bool unreadable(StructuredDraft d) => d.issues.any(
+          (i) => i.code == 'callersbox_phrase_structure_unreadable',
+        );
+
+        Future<StructuredDraft> importWith(String phraseStructure) =>
+            _importOne(jsonEncode(_dance(phraseStructure: phraseStructure)));
+
+        test(
+          'Hardiman the Fiddler: "4*4*3 (slip jig)" imports as 4*4*3, labelled '
+          'A1 A2 B1 B2 at beats 0/12/24/36, and the note is kept',
+          () async {
+            final draft = await _importOne(
+              jsonEncode(
+                _dance(
+                  phraseStructure: '4*4*3 (slip jig)',
+                  phrases: [
+                    for (final name in ['A1', 'A2', 'B1', 'B2'])
+                      _phrase(name, ['(12) Neighbor swing']),
+                  ],
+                ),
+              ),
+            );
+            final structure = draft.dance.phraseStructure;
+            // The stored value is the bare formula: no free text reaches the
+            // persisted (synced, deduped) format.
+            expect(structure.raw, '4*4*3');
+            expect(unreadable(draft), isFalse);
+
+            // The structure itself: four 12-beat phrases (the standard one is
+            // four of 16, 64 beats).
+            expect(structure.totalBeats, 48);
+            expect(structure.beatsPerPhrase, 12);
+
+            final figures = figuresOf(draft.dance);
+            final sections = deriveSections(figures, structure);
+            // `startBeat` is the running total of the figures' own beats, so it
+            // does not depend on the structure; the labels below do.
+            expect([for (final s in sections) s.startBeat], [0, 12, 24, 36]);
+            expect(
+              [for (final s in sections) s.label],
+              ['A1', 'A2', 'B1', 'B2'],
+            );
+
+            expect(
+              draft.dance.callingNotes,
+              contains('Phrase structure note: slip jig'),
+            );
+          },
+        );
+
+        test(
+          'an unreadable formula keeps the warning and drops the note',
+          () async {
+            for (final text in ['garbage (x)', '100000000*1*1 (x)']) {
+              final draft = await importWith(text);
+              expect(draft.dance.phraseStructure.raw, '', reason: text);
+              expect(unreadable(draft), isTrue, reason: text);
+              expect(
+                draft.dance.callingNotes,
+                isNot(contains('Phrase structure note')),
+                reason: text,
+              );
+            }
+          },
+        );
+
+        test('other shapes of formula + note', () async {
+          for (final (text, formula) in [
+            ('4*4*3(slip jig)', '4*4*3'),
+            ('4*4*3\n(slip jig)', '4*4*3'),
+            ('3*8*2 + 1*4*2 (x)', '3*8*2 + 1*4*2'),
+            ('A:2*4*2 + B:1*8*2 (x)', 'A:2*4*2 + B:1*8*2'),
+          ]) {
+            final draft = await importWith(text);
+            expect(draft.dance.phraseStructure.raw, formula, reason: text);
+            expect(unreadable(draft), isFalse, reason: text);
+            expect(
+              draft.dance.callingNotes,
+              contains('Phrase structure note: '),
+              reason: text,
+            );
+          }
+        });
+
+        test(
+          'a note that is empty or all invisible imports the formula without '
+          'a note line',
+          () async {
+            for (final text in ['4*4*3 ()', '4*4*3 ( )', '4*4*3 (\u202E)']) {
+              final draft = await importWith(text);
+              expect(draft.dance.phraseStructure.raw, '4*4*3', reason: text);
+              expect(unreadable(draft), isFalse, reason: text);
+              expect(
+                draft.dance.callingNotes,
+                isNot(contains('Phrase structure note')),
+                reason: text,
+              );
+            }
+          },
+        );
+
+        test(
+          'the note is one line of single-spaced text: a newline becomes a '
+          'space and a stripped bidi character leaves no double space',
+          () async {
+            final newline = await importWith('4*4*3 (slip\njig)');
+            expect(
+              newline.dance.callingNotes,
+              contains('Phrase structure note: slip jig\n'),
+            );
+
+            final bidi = await importWith('4*4*3 (slip \u202E jig)');
+            expect(
+              bidi.dance.callingNotes,
+              contains('Phrase structure note: slip jig\n'),
+            );
+          },
+        );
+
+        test('nested or repeated note groups stay unreadable', () async {
+          for (final text in ['4*4*3 (a (b))', '4*4*3 (a) + 1*2*3 (b)']) {
+            final draft = await importWith(text);
+            expect(draft.dance.phraseStructure.raw, '', reason: text);
+            expect(unreadable(draft), isTrue, reason: text);
+          }
+        });
+      });
+
       test(
         'Authors → authorNames; not folded into notes; no info issue',
         () async {

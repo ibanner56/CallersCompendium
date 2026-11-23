@@ -42,9 +42,12 @@ Perform mode shows one dance at a time in very large type, with the
 [figures](./glossary.md#figure) grouped by section (A1, A2, B1, B2) and set in a
 typeface built to be read from a distance.
 
-Above the figures, the card shows the dance's title, author, formation,
-and level; below them come the dance's calling notes. The figure where the
-progression happens is marked with an icon labeled *Progression*. Break and
+Above the figures, the card shows the dance's title, its authors with the year
+it was composed, who interpreted it and when (if anyone did), its formation
+and level, the tune's meter and key on one line when the dance has either,
+and where the tune is in the Barnes books (such as *Barnes: BIII p. 92*) when
+you have filled that in; below them come the dance's calling notes. The figure
+where the progression happens is marked with an icon labeled *Progression*. Break and
 note slots in a program get a card of their own, with the text in the same
 large type.
 

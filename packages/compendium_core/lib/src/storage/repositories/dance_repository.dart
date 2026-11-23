@@ -701,6 +701,14 @@ class DanceRepository {
               musicalKey: Value(
                 normalizeShareableText(normalisedDance.musicalKey),
               ),
+              alternateTitles: Value(
+                normalizeShareableText(
+                  alternateTitlesColumnText(normalisedDance.alternateTitles),
+                ),
+              ),
+              barnesReference: Value(
+                normalizeShareableText(normalisedDance.barnesReference),
+              ),
               status: normalisedDance.status,
               levelId: Value(dance.difficultyLevelId),
               mixedLevel: Value(dance.mixedLevel),
@@ -2995,6 +3003,8 @@ class DanceRepository {
       row.walkthrough.isEmpty &&
       row.meter.isEmpty &&
       row.musicalKey.isEmpty &&
+      row.alternateTitles.isEmpty &&
+      row.barnesReference.isEmpty &&
       row.status == DanceStatus.active &&
       row.levelId == null &&
       !row.mixedLevel &&
@@ -3085,6 +3095,8 @@ class DanceRepository {
         walkthrough: Value(normalizeShareableText('')),
         meter: Value(normalizeShareableText('')),
         musicalKey: Value(normalizeShareableText('')),
+        alternateTitles: Value(normalizeShareableText('')),
+        barnesReference: Value(normalizeShareableText('')),
         status: const Value(DanceStatus.active),
         levelId: const Value(null),
         mixedLevel: const Value(false),
@@ -4240,6 +4252,7 @@ class DanceRepository {
     return Dance(
       id: row.id,
       title: row.title,
+      alternateTitles: alternateTitlesFromColumnText(row.alternateTitles),
       authorIds: authorIds,
       form: row.form,
       formation: Formation(
@@ -4257,6 +4270,7 @@ class DanceRepository {
       walkthrough: row.walkthrough,
       meter: row.meter,
       musicalKey: row.musicalKey,
+      barnesReference: row.barnesReference,
       status: row.status,
       difficultyLevelId: row.levelId,
       mixedLevel: row.mixedLevel,

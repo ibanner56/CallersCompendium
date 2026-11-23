@@ -4015,6 +4015,70 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorMusicalKeyHint => '例: ト短調';
 
   @override
+  String get danceEditorAlternateTitlesLabel => '別名';
+
+  @override
+  String get danceEditorAlternateTitlesHelper =>
+      '1行に1つずつ。タイトル検索でどの名前からも見つかります。';
+
+  @override
+  String get danceEditorBarnesReferenceLabel => 'Barnes 掲載箇所';
+
+  @override
+  String get danceEditorBarnesReferenceHint => '例: BIII p. 92、NiB';
+
+  @override
+  String danceAlsoKnownAs(String titles) {
+    return '別名: $titles';
+  }
+
+  @override
+  String get danceAlsoKnownAsSeparator => '、';
+
+  @override
+  String get danceSectionBarnes => 'Barnes 曲集';
+
+  @override
+  String danceAuthorsWithYear(String names, String year) {
+    return '$names（$year年）';
+  }
+
+  @override
+  String danceComposedYear(String year) {
+    return '$year年振付';
+  }
+
+  @override
+  String danceInterpretedBy(String names) {
+    return '解釈：$names';
+  }
+
+  @override
+  String danceInterpretedByWithYear(String names, String year) {
+    return '解釈：$names（$year年）';
+  }
+
+  @override
+  String danceInterpretedYear(String year) {
+    return '$year年解釈';
+  }
+
+  @override
+  String danceBarnesValue(String reference) {
+    return 'Barnes：$reference';
+  }
+
+  @override
+  String danceMeterValue(String meter) {
+    return '拍子：$meter';
+  }
+
+  @override
+  String danceMusicalKeyValue(String key) {
+    return '調：$key';
+  }
+
+  @override
   String get commonMixedLevel => 'ミックスレベル';
 
   @override

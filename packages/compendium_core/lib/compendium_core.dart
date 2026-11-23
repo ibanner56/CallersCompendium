@@ -83,6 +83,7 @@ export 'src/imports/title_punctuation.dart';
 export 'src/imports/venue_dedupe.dart';
 export 'src/imports/while_container.dart';
 export 'src/model/bar_count.dart';
+export 'src/model/bar_timing.dart';
 export 'src/model/choreographer.dart';
 export 'src/model/collection_import_event.dart';
 export 'src/model/custom_field.dart';
@@ -107,6 +108,10 @@ export 'src/privacy/data_classification.dart';
 export 'src/privacy/field_registry.dart';
 export 'src/privacy/settings_registry.dart';
 export 'src/search/search_sort.dart';
+export 'src/search/builder_nodes.dart';
+export 'src/search/collection_facet_ids.dart';
+export 'src/search/collection_search_state.dart';
+export 'src/search/collection_sort.dart';
 export 'src/search/title_match.dart';
 export 'src/search/title_sort_key.dart';
 export 'src/search/filter.dart';
@@ -181,6 +186,7 @@ export 'src/storage/database.dart'
         taxonomyV38CanonicalRebuildDoneKey,
         taxonomyV39CanonicalRebuildDoneKey,
         ecdTaxonomyCanonicalRebuildDoneKey,
+        squareTaxonomyCanonicalRebuildDoneKey,
         callersBoxRollAwayRoleRepairDoneKey,
         shareableTextNormalisationScopeKey,
         normalisationDerivedIndexRepairDoneKey,
@@ -232,6 +238,7 @@ export 'src/taxonomy/compound_definition.dart';
 export 'src/taxonomy/contra_taxonomy.dart';
 export 'src/taxonomy/ecd_sequence_span.dart';
 export 'src/taxonomy/ecd_taxonomy.dart';
+export 'src/taxonomy/square_taxonomy.dart';
 export 'src/taxonomy/figure_glossary.dart';
 export 'src/taxonomy/gate_facing.dart';
 export 'src/taxonomy/glossary_names.dart';

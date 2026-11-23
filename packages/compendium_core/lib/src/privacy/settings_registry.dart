@@ -523,6 +523,7 @@ final Map<String, DataClassification> settingsClassifications = {
   '__taxonomy_v38_canonical_rebuild_done__': _installState,
   '__taxonomy_v39_canonical_rebuild_done__': _installState,
   '__ecd_taxonomy_canonical_rebuild_done__': _installState,
+  '__square_taxonomy_canonical_rebuild_done__': _installState,
   '__taxonomy_v35_figure_normalization_done__': _installState,
   '__callersbox_roll_away_role_repair_done__': _installState,
   '__normalisation_derived_index_repair_done__': _installState,

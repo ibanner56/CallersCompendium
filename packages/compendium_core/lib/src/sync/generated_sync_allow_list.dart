@@ -6,7 +6,9 @@ import 'sync_record_kind.dart';
 /// Shareable wire paths derived from the structural mapping and privacy registries.
 const Map<SyncRecordKind, Set<String>> generatedShareableWirePaths = {
   SyncRecordKind.dance: {
+    'alternateTitles',
     'authorIds',
+    'barnesReference',
     'callingNotes',
     'composedOn',
     'createdAt',

@@ -138,7 +138,8 @@ bool scrollPerformBy(
 }
 
 /// Large-print card body for a dance-backed slot: header (title / authors /
-/// formation / level / status) + section-grouped figures + calling notes.
+/// interpreters / formation / level / meter and key / Barnes reference /
+/// status) + section-grouped figures + calling notes.
 ///
 /// Applies the composed large-print [textScale] to its subtree so it renders
 /// the same whether shown by the single-dance or program Perform view.
@@ -153,6 +154,7 @@ class PerformCard extends StatelessWidget {
     this.callerNoteDialect,
     this.autoSize = false,
     this.authorNames = const [],
+    this.interpreterNames = const [],
     this.difficultyLevel,
     this.fitScaleCache,
     this.scrollController,
@@ -184,8 +186,14 @@ class PerformCard extends StatelessWidget {
   /// (the manual A-/A+ size, Phase 5.1).
   final bool autoSize;
 
-  /// Resolved author display names, rendered under the title when non-empty.
+  /// Resolved author display names, rendered under the title with the
+  /// dance's composed year (see `authorsWithYearLabel`).
   final List<String> authorNames;
+
+  /// Resolved names of the dance's interpreters, rendered on their own line
+  /// under the authors with the interpreted year (see
+  /// `interpretersWithYearLabel`).
+  final List<String> interpreterNames;
   final DifficultyLevel? difficultyLevel;
 
   /// Parent-owned auto-fit scale cache (see [PerformFitScaleCache]). Passed by a
@@ -221,6 +229,7 @@ class PerformCard extends StatelessWidget {
                 callerNote: callerNote,
                 callerNoteDialect: callerNoteDialect ?? dialect,
                 authorNames: authorNames,
+                interpreterNames: interpreterNames,
                 renderer: renderer,
                 dialect: dialect,
                 canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
@@ -909,6 +918,7 @@ class _Header extends StatelessWidget {
     this.callerNote,
     required this.callerNoteDialect,
     required this.authorNames,
+    required this.interpreterNames,
     this.difficultyLevel,
     required this.renderer,
     required this.dialect,
@@ -924,6 +934,7 @@ class _Header extends StatelessWidget {
   final String? callerNote;
   final Dialect callerNoteDialect;
   final List<String> authorNames;
+  final List<String> interpreterNames;
   final FigureRenderer renderer;
   final Dialect dialect;
   final bool canonicalizeDiscouragedTerms;
@@ -959,10 +970,27 @@ class _Header extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        if (authorNames.isNotEmpty) ...[
+        if (authorsWithYearLabel(l10n, authorNames, dance.composedOn)
+            case final authors?) ...[
           SizedBox(height: AppSpacing.xs * chromeScale),
           Text(
-            authorNames.join(', '),
+            authors,
+            key: const ValueKey('perform-authors'),
+            style: theme.textTheme.headlineSmall?.merge(
+              AppTypography.performBody,
+            ),
+          ),
+        ],
+        if (interpretersWithYearLabel(
+              l10n,
+              interpreterNames,
+              dance.interpretedOn,
+            )
+            case final interpreters?) ...[
+          SizedBox(height: AppSpacing.xs * chromeScale),
+          Text(
+            interpreters,
+            key: const ValueKey('perform-interpreters'),
             style: theme.textTheme.headlineSmall?.merge(
               AppTypography.performBody,
             ),
@@ -994,6 +1022,40 @@ class _Header extends StatelessWidget {
             text: danceLevelLabel(l10n, level),
           ),
         ],
+        if (meterAndKeyLabel(
+              l10n,
+              dance,
+              render: (value) => canonicalizeDiscouragedTerms
+                  ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                      value,
+                      dialect,
+                    )
+                  : renderer.renderFreeText(value, dialect),
+            )
+            case final tuneDetails?) ...[
+          SizedBox(height: AppSpacing.xs * chromeScale),
+          _MetaRow(
+            key: const ValueKey('perform-tune-details'),
+            icon: tuneDetailsIcon,
+            text: tuneDetails,
+          ),
+        ],
+        if (dance.barnesReference.trim() case final barnes
+            when barnes.isNotEmpty) ...[
+          SizedBox(height: AppSpacing.xs * chromeScale),
+          _MetaRow(
+            key: const ValueKey('perform-barnes-reference'),
+            icon: barnesReferenceIcon,
+            text: l10n.danceBarnesValue(
+              canonicalizeDiscouragedTerms
+                  ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                      barnes,
+                      dialect,
+                    )
+                  : renderer.renderFreeText(barnes, dialect),
+            ),
+          ),
+        ],
         if (dance.status != DanceStatus.active) ...[
           SizedBox(height: AppSpacing.md * chromeScale),
           _atLeastOsBodySize(
@@ -1008,7 +1070,12 @@ class _Header extends StatelessWidget {
 }
 
 class _MetaRow extends StatelessWidget {
-  const _MetaRow({required this.icon, required this.text, this.highlightColor});
+  const _MetaRow({
+    super.key,
+    required this.icon,
+    required this.text,
+    this.highlightColor,
+  });
 
   final IconData icon;
   final String text;

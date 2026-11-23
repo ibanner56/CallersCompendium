@@ -34,7 +34,6 @@ import '../models/dance_list_entry.dart';
 import '../search/called_venue_choices.dart';
 import '../search/collection_data.dart';
 import '../search/collection_opening_sort.dart';
-import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
 import '../search/collection_selection.dart';
 import '../search/dance_detail_data.dart';
@@ -67,6 +66,7 @@ import '../widgets/online_more_footer.dart';
 import '../widgets/online_result_count.dart';
 import '../widgets/online_result_tile.dart';
 import '../widgets/online_search_toggle.dart';
+import '../widgets/pinned_while_room_sliver.dart';
 import '../widgets/search_panel_bar.dart';
 import '../widgets/skeleton.dart';
 import '../sync/sync_scope.dart';
@@ -3021,44 +3021,68 @@ class _DanceListScreenState extends State<DanceListScreen>
                 onInvoke: _selectAllFromKeyboard,
               ),
             },
-            child: CustomScrollView(
-              keyboardDismissBehavior: textEntryKeyboardDismiss(),
-              slivers: [
-                SliverList(
-                  delegate: SliverChildListDelegate([
-                    // Which tools appear in which mode is documented on
-                    // [_buildSearchPanels]. By-phrase maps onto TCB's own "search
-                    // by phrase" fields, so it's offered for the Caller's Box
-                    // source even with an empty local collection; for sources
-                    // without by-phrase support (ContraDB) it is greyed out, or
-                    // absent when the collection is empty.
-                    _NotTheResultList(
-                      child: _buildSearchPanels(data, collectionEmpty),
-                    ),
-                    if (_onlineEnabled || !collectionEmpty) _buildResultCount(),
-                    const Divider(height: 1),
-                  ]),
-                ),
-                if (_onlineEnabled)
-                  _buildOnlineResultsSliver()
-                else if (collectionEmpty)
-                  _buildEmptyCollectionSliver()
-                else ...[
-                  if (_onlyTheSampleDance(data) && !_hasActiveQuery)
-                    _buildImportCardSliver(),
-                  _buildResultsSliver(),
+            // The search tools' state lives in the bar, which builds the whole
+            // scroll view so its row of toggles can be pinned in it.
+            child: _buildSearchPanels(
+              data,
+              collectionEmpty,
+              layout: (toggles, panel) => CustomScrollView(
+                keyboardDismissBehavior: textEntryKeyboardDismiss(),
+                slivers: [
+                  // The row of search tools and the result count stay pinned
+                  // while the list scrolls (each while there is room for it),
+                  // and the open tool's content scrolls between them. Which
+                  // tools appear in which mode is documented on
+                  // [_buildSearchPanels]. By-phrase maps onto TCB's own "search
+                  // by phrase" fields, so it's offered for the Caller's Box
+                  // source even with an empty local collection; for sources
+                  // without by-phrase support (ContraDB) it is greyed out, or
+                  // absent when the collection is empty.
+                  PinnedWhileRoomSliver(
+                    child: _pinnedBackground(_NotTheResultList(child: toggles)),
+                  ),
+                  SliverToBoxAdapter(child: _NotTheResultList(child: panel)),
+                  if (_onlineEnabled || !collectionEmpty)
+                    PinnedWhileRoomSliver(
+                      child: _pinnedBackground(
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildResultCount(),
+                            const Divider(height: 1),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    const SliverToBoxAdapter(child: Divider(height: 1)),
+                  if (_onlineEnabled)
+                    _buildOnlineResultsSliver()
+                  else if (collectionEmpty)
+                    _buildEmptyCollectionSliver()
+                  else ...[
+                    if (_onlyTheSampleDance(data) && !_hasActiveQuery)
+                      _buildImportCardSliver(),
+                    _buildResultsSliver(),
+                  ],
+                  // Lets the last row scroll clear of the floating New dance.
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: AppSpacing.fabClearance),
+                  ),
                 ],
-                // Lets the last row scroll clear of the floating New dance.
-                const SliverToBoxAdapter(
-                  child: SizedBox(height: AppSpacing.fabClearance),
-                ),
-              ],
+              ),
             ),
           ),
         ),
       ],
     );
   }
+
+  /// The page's own background behind a pinned header, so rows scrolling
+  /// under it do not show through. A [Material], so the chips' ink still
+  /// draws.
+  Widget _pinnedBackground(Widget child) =>
+      Material(color: Theme.of(context).scaffoldBackgroundColor, child: child);
 
   /// Whether the first-run sample is the only dance in the Collection. Judged
   /// from the dance's fixed seed id, so no marker is stored: deleting the
@@ -3165,12 +3189,20 @@ class _DanceListScreenState extends State<DanceListScreen>
   ///
   /// The Online search icon ends the row in both modes: it is how a user
   /// enters and leaves online mode, so it must not depend on the mode. While
-  /// online, the source selector sits full-width under the row.
-  Widget _buildSearchPanels(CollectionData data, bool collectionEmpty) {
+  /// online, the source selector sits full-width under the row, and is pinned
+  /// with it.
+  ///
+  /// [layout] builds the scroll view from the row (`toggles`, with the source
+  /// selector) and the open tool's content (`panel`).
+  Widget _buildSearchPanels(
+    CollectionData data,
+    bool collectionEmpty, {
+    required Widget Function(Widget toggles, Widget panel) layout,
+  }) {
     final l10n = AppLocalizations.of(context);
     final filtersActive = _facets.activeCount;
     final byPhraseActive = _byPhraseActiveCount();
-    final panelBar = SearchPanelBar(
+    return SearchPanelBar(
       storageId: 'collection',
       trailing: OnlineSearchToggle(
         key: const ValueKey('online-search-enable'),
@@ -3218,39 +3250,43 @@ class _DanceListScreenState extends State<DanceListScreen>
           builder: (_) => _buildAdvancedPanel(data),
         ),
       ],
-    );
-    // The bar is always the Column's first child, so toggling online keeps its
-    // state (open tool, scroll and focus inside a panel) instead of rebuilding it.
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        panelBar,
-        if (_onlineEnabled)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md,
-              0,
-              AppSpacing.md,
-              AppSpacing.xs,
-            ),
-            child: SegmentedButton<OnlineSource>(
-              key: const ValueKey('online-source-selector'),
-              // Full width, so the sources read as the row's second line.
-              expandedInsets: EdgeInsets.zero,
-              segments: [
-                for (final source in OnlineSource.values)
-                  ButtonSegment<OnlineSource>(
-                    value: source,
-                    label: Text(source.label),
-                  ),
-              ],
-              selected: {_onlineSource},
-              showSelectedIcon: false,
-              onSelectionChanged: (selection) =>
-                  _onOnlineSourceChanged(selection.first),
-            ),
-          ),
-      ],
+      // The bar is built in every mode and holds the scroll view, so toggling
+      // online keeps its state (open tool, scroll and focus inside a panel)
+      // instead of rebuilding it.
+      layoutBuilder: (context, toggles, panel) => layout(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            toggles,
+            if (_onlineEnabled)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  0,
+                  AppSpacing.md,
+                  AppSpacing.xs,
+                ),
+                child: SegmentedButton<OnlineSource>(
+                  key: const ValueKey('online-source-selector'),
+                  // Full width, so the sources read as the row's second line.
+                  expandedInsets: EdgeInsets.zero,
+                  segments: [
+                    for (final source in OnlineSource.values)
+                      ButtonSegment<OnlineSource>(
+                        value: source,
+                        label: Text(source.label),
+                      ),
+                  ],
+                  selected: {_onlineSource},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (selection) =>
+                      _onOnlineSourceChanged(selection.first),
+                ),
+              ),
+          ],
+        ),
+        panel,
+      ),
     );
   }
 

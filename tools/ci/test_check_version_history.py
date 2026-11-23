@@ -35,6 +35,7 @@ SCHEMA_DOC = "docs/design/storage.md"
 WIRE_SOURCE = "packages/compendium_core/lib/src/sync/sync_codec.dart"
 WIRE_DOC = "docs/design/sync-spec.md"
 ECD_SOURCE = "packages/compendium_core/lib/src/taxonomy/ecd_taxonomy.dart"
+SQUARE_SOURCE = "packages/compendium_core/lib/src/taxonomy/square_taxonomy.dart"
 
 FAILURES: list[str] = []
 
@@ -63,13 +64,23 @@ def ecd_source(version: int) -> str:
     return f"const int ecdTaxonomyVersion = {version};\n"
 
 
-def taxonomy_doc(*entries: str, ecd: tuple[str, ...] = ("v1: registry.",)) -> str:
-    """The real figure-taxonomy.md shape: the ECD log is a ``###`` inside contra's ``##``."""
+def square_source(version: int) -> str:
+    return f"const int squareTaxonomyVersion = {version};\n"
+
+
+def taxonomy_doc(
+    *entries: str,
+    ecd: tuple[str, ...] = ("v1: registry.",),
+    square: tuple[str, ...] = ("v1: core calls.",),
+) -> str:
+    """The real figure-taxonomy.md shape: the ECD and square logs are ``###``s inside contra's ``##``."""
     body = "\n".join(f"- {e}" for e in entries)
     ecd_body = "\n".join(f"- {e}" for e in ecd)
+    square_body = "\n".join(f"- {e}" for e in square)
     return (
         f"# Figure taxonomy\n\n## Taxonomy version history\n\n{body}\n\n"
-        f"### ECD taxonomy versions\n\n{ecd_body}\n\n## Next\n"
+        f"### ECD taxonomy versions\n\n{ecd_body}\n\n"
+        f"### Square taxonomy versions\n\n{square_body}\n\n## Next\n"
     )
 
 
@@ -124,7 +135,7 @@ class Repo:
 
 
 def seed(repo: Repo) -> None:
-    """A base at contra v28, schema v25, wire v1 and ECD v1, all properly logged."""
+    """A base at contra v28, schema v25, wire v1, ECD v1 and squares v1, all properly logged."""
     repo.write(TAXONOMY_SOURCE, taxonomy_source(28))
     repo.write(SCHEMA_SOURCE, schema_source(25))
     repo.write(TAXONOMY_DOC, taxonomy_doc("v27 (#749): grip params.", "v28 (#976): chain hand."))
@@ -135,6 +146,7 @@ def seed(repo: Repo) -> None:
     repo.write(WIRE_SOURCE, wire_source(1))
     repo.write(WIRE_DOC, wire_doc("v1: the envelope."))
     repo.write(ECD_SOURCE, ecd_source(1))
+    repo.write(SQUARE_SOURCE, square_source(1))
     repo.commit("base")
 
 
@@ -255,6 +267,39 @@ def main() -> int:
         res = repo.run("HEAD~1")
         check("exits 1", res.returncode == 1, f"exit={res.returncode}")
         check("names the ECD heading", "'### ECD taxonomy versions'" in res.stdout, res.stdout)
+
+    @case("square bump logged only as an ECD entry")
+    def _(repo: Repo) -> None:
+        # The square log sits after ECD's, so an ECD ``- v2`` must not count.
+        repo.write(SQUARE_SOURCE, square_source(2))
+        repo.write(
+            TAXONOMY_DOC,
+            taxonomy_doc(
+                "v27 (#749): grip params.",
+                "v28 (#976): chain hand.",
+                ecd=("v1: registry.", "v2: not the squares'."),
+            ),
+        )
+        repo.commit("bump squares, log under ECD")
+        res = repo.run("HEAD~1")
+        check("exits 1", res.returncode == 1, f"exit={res.returncode}")
+        check("names the squares' v2", "squareTaxonomyVersion changed (1 -> 2)" in res.stdout, res.stdout)
+        check("names the square heading", "'### Square taxonomy versions'" in res.stdout, res.stdout)
+
+    @case("square bump with its entry under the square heading")
+    def _(repo: Repo) -> None:
+        repo.write(SQUARE_SOURCE, square_source(2))
+        repo.write(
+            TAXONOMY_DOC,
+            taxonomy_doc(
+                "v27 (#749): grip params.",
+                "v28 (#976): chain hand.",
+                square=("v1: core calls.", "v2: borrowed calls."),
+            ),
+        )
+        repo.commit("bump and log")
+        res = repo.run("HEAD~1")
+        check("exits 0", res.returncode == 0, res.stdout + res.stderr)
 
     @case("unresolvable base ref")
     def _(repo: Repo) -> None:

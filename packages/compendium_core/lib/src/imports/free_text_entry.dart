@@ -1,6 +1,7 @@
 import '../dialect/canonicalize.dart';
 import '../dialect/dialect.dart';
 import '../dialect/renderer.dart' show FigureRenderer;
+import '../model/bar_timing.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
@@ -395,7 +396,9 @@ Figure _withUnreadCount(Figure figure, String token) => figure.copyWith(
 /// front-ends, the typed-name lookup and the beat-implied balances, so it never
 /// becomes a contra move; shorthands, counts and `;` clauses work as above.
 /// [formationShape] is the dance's shape, from which a circle's or star's
-/// fraction is read as a number of places ([ecdRingDancers]).
+/// fraction is read as a number of places ([ecdRingDancers]). A leading bar
+/// range counts by [meter], or with [timing] (phrases that differ in beats per
+/// bar, #2303) from [startBeat], where the line is placed ([ecdBarCount]).
 ///
 /// Returns an empty list when the line is empty after trimming/scrubbing
 /// (nothing to insert) or when it exceeds [maxFreeTextEntryLength] (treated as
@@ -411,6 +414,8 @@ List<Figure> parseFreeTextFigureEntry(
   Dialect? dialect,
   FormationShape? formationShape,
   String? meter,
+  BarTiming? timing,
+  int startBeat = 0,
 }) {
   final ring = ecdRingDancers(formationShape);
   final trimmed = input.trim();
@@ -435,11 +440,14 @@ List<Figure> parseFreeTextFigureEntry(
   }
   // An English line that starts with a bar range (`1-4 partners set`) counts
   // in bars of the dance's [meter] (ADR-006 W6; Hudson: "the meter is the
-  // rule"): the rest is read, and one figure read in full takes the bars as
-  // its count. Anything else, a rest that also states a count in beats or a
+  // rule"), or by [timing] from [startBeat] where the dance's phrases differ
+  // in beats per bar (#2303): the rest is read, and one figure read in full
+  // takes the bars as its count. Anything else, a rest that also states a count in beats or a
   // line of several ranges (`(5-8) X (9-12) Y`, counted across all of them)
   // included, keeps the line whole as typed, with that count.
-  final bars = _isEcd(taxonomy) ? ecdBarCount(trimmed, meter: meter) : null;
+  final bars = _isEcd(taxonomy)
+      ? ecdBarCount(trimmed, meter: meter, timing: timing, startBeat: startBeat)
+      : null;
   if (bars != null) {
     // A count in beats as well would be dropped, and a line of several
     // ranges names several figures: the line is kept whole.
@@ -872,7 +880,12 @@ List<Figure> _parseSplit(
   // dancer (`neighbor pass by`): only when no parse read it, so a line the
   // grammar reads keeps every fact it states. A role word in the dancer's place
   // (`ravens mad robin`) is read by the retries' meaning of it, as it is above.
-  final names = taxonomy ?? contraTaxonomy;
+  // A square dance's line is still read with contra's names until squares get
+  // a parser of their own (ADR-007 §9, phase 3), so typed text never mixes
+  // `sq_` calls into the contra figures the grammar above reads.
+  final names = taxonomy == null || taxonomy.form == DanceForm.square
+      ? contraTaxonomy
+      : taxonomy;
   final named =
       figureFromTypedName(
         split.text,

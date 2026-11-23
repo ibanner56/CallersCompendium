@@ -4180,6 +4180,70 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorMusicalKeyHint => 'e.g. G minor';
 
   @override
+  String get danceEditorAlternateTitlesLabel => 'Other titles';
+
+  @override
+  String get danceEditorAlternateTitlesHelper =>
+      'One per line. A title search finds the dance by any of them.';
+
+  @override
+  String get danceEditorBarnesReferenceLabel => 'Barnes reference';
+
+  @override
+  String get danceEditorBarnesReferenceHint => 'e.g. BIII p. 92, or NiB';
+
+  @override
+  String danceAlsoKnownAs(String titles) {
+    return 'Also known as $titles';
+  }
+
+  @override
+  String get danceAlsoKnownAsSeparator => '; ';
+
+  @override
+  String get danceSectionBarnes => 'Barnes books';
+
+  @override
+  String danceAuthorsWithYear(String names, String year) {
+    return '$names ($year)';
+  }
+
+  @override
+  String danceComposedYear(String year) {
+    return 'Composed $year';
+  }
+
+  @override
+  String danceInterpretedBy(String names) {
+    return 'Interpreted by $names';
+  }
+
+  @override
+  String danceInterpretedByWithYear(String names, String year) {
+    return 'Interpreted by $names ($year)';
+  }
+
+  @override
+  String danceInterpretedYear(String year) {
+    return 'Interpreted $year';
+  }
+
+  @override
+  String danceBarnesValue(String reference) {
+    return 'Barnes: $reference';
+  }
+
+  @override
+  String danceMeterValue(String meter) {
+    return 'Meter: $meter';
+  }
+
+  @override
+  String danceMusicalKeyValue(String key) {
+    return 'Key: $key';
+  }
+
+  @override
   String get commonMixedLevel => 'Mixed level';
 
   @override

@@ -72,7 +72,9 @@ import '../taxonomy/param_types.dart' show ParamVocab;
 /// folded into [Dance.callingNotes]. `FormationBase` classifies to a
 /// [FormationShape] best-effort; a separate `FormationDetail` is normalized
 /// into [Formation.detail], while unclassified source text remains there.
-/// `Progression` maps best-effort; `PhraseStructure` empty means the default.
+/// `Progression` maps best-effort; `PhraseStructure` empty means the default,
+/// and a formula followed by a parenthesised note (`4*4*3 (slip jig)`) imports
+/// as the formula, the note going into [Dance.callingNotes].
 ///
 /// ## Contract
 /// - [discover] decodes the payload once and accepts a single TCB dance object,
@@ -225,10 +227,8 @@ class CallersBoxAdapter implements SourceAdapter {
     final formation = _parseFormation(dance, issues);
     final mixer = _parseMixer(dance, formation);
     final progression = _parseProgression(dance['Progression'], issues);
-    final phraseStructure = _parsePhraseStructure(
-      dance['PhraseStructure'],
-      issues,
-    );
+    final phraseParse = _parsePhraseStructure(dance['PhraseStructure'], issues);
+    final phraseStructure = phraseParse.structure;
 
     final permission = (_asString(dance['Permission'])?.trim() ?? '')
         .toLowerCase();
@@ -268,7 +268,7 @@ class CallersBoxAdapter implements SourceAdapter {
         progression: progression,
         phraseStructure: phraseStructure,
         figures: figures,
-        callingNotes: _buildNotes(dance),
+        callingNotes: _buildNotes(dance, phraseNote: phraseParse.note),
         tunes: _sanitizeLineList(_asStringList(dance['Tunes'])),
         // The pipeline attaches provenance at commit, derived from `raw`.
         createdAt: _epoch,
@@ -1906,30 +1906,71 @@ class CallersBoxAdapter implements SourceAdapter {
 
   // --- Phrase structure ------------------------------------------------------
 
-  String _parsePhraseStructure(Object? raw, List<ImportIssue> issues) {
+  /// One trailing parenthesised note after a formula, as in Hardiman the
+  /// Fiddler's `4*4*3 (slip jig)`: group 1 is the formula, group 2 the note.
+  /// The note may not contain parentheses, so a nested or a repeated group
+  /// does not match and the value stays unreadable.
+  static final RegExp _trailingNote = RegExp(r'^(.*\S)\s*\(([^()]*)\)$');
+  static final RegExp _whitespaceRun = RegExp(r'\s+');
+
+  /// The stored structure for a Caller's Box `PhraseStructure` field, and the
+  /// note that came after its formula, if any.
+  ///
+  /// A value the model's grammar accepts is kept as given, trimmed. Otherwise a
+  /// single trailing `( … )` note is split off and what remains must itself
+  /// parse (bounds included): the structure is then the bare formula, so no
+  /// free text reaches the stored (synced, deduplicated) format, and the note
+  /// is returned for the calling notes ([_buildNotes]). A note that is empty
+  /// once cleaned is dropped; the formula still imports. A value that is still
+  /// unreadable gets the warning and the standard structure, and no note.
+  ({String structure, String? note}) _parsePhraseStructure(
+    Object? raw,
+    List<ImportIssue> issues,
+  ) {
     final text = _asString(raw)?.trim();
-    if (text == null || text.isEmpty) return '';
+    if (text == null || text.isEmpty) return (structure: '', note: null);
     try {
       // Validate against the model's grammar; keep the raw form when valid.
       PhraseStructure.parse(text);
-      return text;
+      return (structure: text, note: null);
     } on FormatException {
-      issues.add(
-        ImportIssue(
-          severity: ImportIssueSeverity.warning,
-          code: 'callersbox_phrase_structure_unreadable',
-          message:
-              'PhraseStructure "$text" is not "phrases*bars*beatsPerBar" or is larger '
-              'than supported; default structure used.',
-        ),
-      );
-      return '';
+      // Not a formula as written: fall through to a formula plus a note.
     }
+    final split = _trailingNote.firstMatch(text);
+    if (split != null) {
+      final formula = split.group(1)!.trim();
+      try {
+        PhraseStructure.parse(formula);
+        // Control and bidi characters go first, so the whitespace around one
+        // collapses with the rest instead of leaving a double space; a newline
+        // would otherwise be deleted outright by the single-line sanitizer.
+        // (A line or paragraph separator, U+2028/U+2029, is removed rather
+        // than spaced by the sanitizer, so it can join the words around it.)
+        final note = sanitizeImportedText(
+          split.group(2)!,
+        ).replaceAll(_whitespaceRun, ' ').trim();
+        return (structure: formula, note: note.isEmpty ? null : note);
+      } on FormatException {
+        // Still unreadable without the note: warn below.
+      }
+    }
+    issues.add(
+      ImportIssue(
+        severity: ImportIssueSeverity.warning,
+        code: 'callersbox_phrase_structure_unreadable',
+        message:
+            'PhraseStructure "$text" is not "phrases*bars*beatsPerBar" or is larger '
+            'than supported; default structure used.',
+      ),
+    );
+    return (structure: '', note: null);
   }
 
   // --- Notes -----------------------------------------------------------------
 
-  String _buildNotes(Map<String, Object?> dance) {
+  /// [phraseNote] is the note that followed the formula in `PhraseStructure`
+  /// ([_parsePhraseStructure]), already cleaned.
+  String _buildNotes(Map<String, Object?> dance, {String? phraseNote}) {
     final parts = <String>[];
 
     // Author names are resolved to Choreographer associations by the import
@@ -1953,6 +1994,10 @@ class CallersBoxAdapter implements SourceAdapter {
     final music = _asStringList(dance['Music']);
     if (music.isNotEmpty) {
       parts.add('Music: ${music.join(', ')}');
+    }
+
+    if (phraseNote != null) {
+      parts.add('Phrase structure note: $phraseNote');
     }
 
     final appearances = _formatAppearances(dance['Appearances']);

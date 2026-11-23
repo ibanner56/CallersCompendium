@@ -1,13 +1,14 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:test/test.dart';
 
-/// The three `LIKE` binds an All fields word adds for the meter, the key
-/// and the interpreters' names (`_musicAndInterpreterMatch`), folded as the
-/// values are (`cc_fold`: lowercased, accents removed).
+/// The five `LIKE` binds an All fields word adds for the meter, the key, the
+/// Barnes reference, the other titles and the interpreters' names
+/// (`_musicAndInterpreterMatch`), folded as the values are (`cc_fold`:
+/// lowercased, accents removed).
 List<String> _music(String word, {bool prefix = false}) {
   final folded = foldForSearch(word);
   final p = prefix ? '% $folded%' : '%$folded%';
-  return [p, p, p];
+  return [p, p, p, p, p];
 }
 
 /// The SQL an All fields word of three or more characters adds for the
@@ -24,10 +25,21 @@ String _eq(String column) =>
     'THEN lower(trim($column, char(9, 10, 11, 12, 13, 32))) '
     'ELSE cc_fold($column) END)';
 
+/// The other titles, one per line, with each line break read as a space.
+const _otherTitles = "replace(alternate_titles, char(10), ' ')";
+
+/// The SQL a word of three or more characters adds for the other titles.
+final _otherTitlesSql =
+    "id IN (SELECT id FROM dances WHERE alternate_titles <> '' "
+    "AND ${_f(_otherTitles)} LIKE ? ESCAPE '\\')";
+
 final _musicSql =
-    "(id IN (SELECT id FROM dances WHERE (meter <> '' OR musical_key <> '') "
+    "(id IN (SELECT id FROM dances WHERE (meter <> '' OR musical_key <> '' "
+    "OR barnes_reference <> '') "
     "AND (${_f('meter')} LIKE ? ESCAPE '\\' "
-    "OR ${_f('musical_key')} LIKE ? ESCAPE '\\')) "
+    "OR ${_f('musical_key')} LIKE ? ESCAPE '\\' "
+    "OR ${_f('barnes_reference')} LIKE ? ESCAPE '\\')) "
+    'OR $_otherTitlesSql '
     'OR id IN (SELECT di.dance_id FROM dance_interpreters di '
     'JOIN choreographers c ON c.id = di.choreographer_id '
     'WHERE c.deleted_at IS NULL '
@@ -972,15 +984,17 @@ void main() {
       final c = compiler.compile(
         const FullTextFilter('nice combination', scope: FullTextScope.title),
       );
+      // Each word matches the title or one of the other titles.
       expect(
         c.sql,
         contains(
+          '((id IN (SELECT dance_id FROM dance_substring_fts '
+          'WHERE title MATCH ?) OR $_otherTitlesSql) AND '
           '(id IN (SELECT dance_id FROM dance_substring_fts '
-          'WHERE title MATCH ?) AND id IN (SELECT dance_id FROM '
-          'dance_substring_fts WHERE title MATCH ?))',
+          'WHERE title MATCH ?) OR $_otherTitlesSql))',
         ),
       );
-      expect(c.binds, ['"nice"', '"combination"']);
+      expect(c.binds, ['"nice"', '%nice%', '"combination"', '%combination%']);
     });
 
     test('the Author scope also reads the interpreters, folded', () {

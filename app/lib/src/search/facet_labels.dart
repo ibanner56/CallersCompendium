@@ -49,6 +49,72 @@ const IconData formationIcon = Icons.table_rows_outlined;
 /// typographic `¶` marker, which is a text artifact rather than a UI glyph.)
 const IconData progressionIcon = Icons.repeat;
 
+/// The dance's authors with the year it was composed, as one line for the
+/// dance detail screen and the Perform card: "Pat Shaw (1951)", the names
+/// alone without a [composedOn], "Composed 1651" without names, and null with
+/// neither. Only the year is shown, whatever else [composedOn] holds; the
+/// editor keeps the month and day.
+String? authorsWithYearLabel(
+  AppLocalizations l10n,
+  List<String> authorNames,
+  PartialDate? composedOn,
+) {
+  final names = authorNames.join(', ');
+  final year = composedOn?.year.toString();
+  return switch ((names.isEmpty, year)) {
+    (true, null) => null,
+    (false, null) => names,
+    (true, final year?) => l10n.danceComposedYear(year),
+    (false, final year?) => l10n.danceAuthorsWithYear(names, year),
+  };
+}
+
+/// Who interpreted the dance and when, as one line for the dance detail
+/// screen and the Perform card: "Interpreted by Cecil Sharp (1916)", without
+/// the year or the names when either is missing, and null with neither.
+String? interpretersWithYearLabel(
+  AppLocalizations l10n,
+  List<String> interpreterNames,
+  PartialDate? interpretedOn,
+) {
+  final names = interpreterNames.join(', ');
+  final year = interpretedOn?.year.toString();
+  return switch ((names.isEmpty, year)) {
+    (true, null) => null,
+    (false, null) => l10n.danceInterpretedBy(names),
+    (true, final year?) => l10n.danceInterpretedYear(year),
+    (false, final year?) => l10n.danceInterpretedByWithYear(names, year),
+  };
+}
+
+/// The glyph for a dance's Barnes reference (where its tune is printed in the
+/// Barnes books). Always paired with the labelled reference text.
+const IconData barnesReferenceIcon = Icons.menu_book_outlined;
+
+/// The glyph for a dance's tune details (meter and key). Always paired with
+/// the labelled [meterAndKeyLabel] text, never shown alone.
+const IconData tuneDetailsIcon = Icons.music_note_outlined;
+
+/// A dance's meter and key as one labelled line, such as
+/// "Meter: 6/8 · Key: G minor", for the dance detail screen and the Perform
+/// card. Either part is left out when blank (after trimming); null when both
+/// are. [render] is applied to each typed value, not to the labels, so a
+/// caller can pass the dance's discouraged-term rendering.
+String? meterAndKeyLabel(
+  AppLocalizations l10n,
+  Dance dance, {
+  String Function(String value)? render,
+}) {
+  final meter = dance.meter.trim();
+  final key = dance.musicalKey.trim();
+  String shown(String value) => render == null ? value : render(value);
+  final parts = [
+    if (meter.isNotEmpty) l10n.danceMeterValue(shown(meter)),
+    if (key.isNotEmpty) l10n.danceMusicalKeyValue(shown(key)),
+  ];
+  return parts.isEmpty ? null : parts.join(' · ');
+}
+
 String progressionLabel(AppLocalizations l10n, Progression p) => switch (p) {
   Progression.none => l10n.commonProgressionNone,
   Progression.single => l10n.commonProgressionSingle,

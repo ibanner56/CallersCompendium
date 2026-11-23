@@ -320,10 +320,13 @@ this, a re-import rebuilt the dance wholesale from the draft, and sources that
 carry no rating, tags or links (Caller's Box, ContraDB) erased them.
 
 A **link** (`CommitAction.link`, a fuzzy match the caller chose to treat as the
-same dance) still replaces the dance's content wholesale, with one exception:
-it keeps the dance's **rating** whenever the incoming record carries none
-(*B19 follow-up*, maintainer decision of 2026-10-30, "Keep my rating"). A
-rating the record does carry replaces the existing one. The rule lives in
+same dance) still replaces the dance's content wholesale, with these
+exceptions: it keeps the dance's **rating** whenever the incoming record
+carries none (*B19 follow-up*, maintainer decision of 2026-10-30, "Keep my
+rating"), and likewise its interpreters, interpretation date, other titles and
+Barnes reference (implementer's call, extending the rating rule to fields most
+sources never carry). A value the record does carry replaces the existing
+one. The rule lives in
 `_rebuildWithIdentity`'s `keepFrom`, beside the custom-field merge, so it holds
 for every source that links: share files, archives, Caller's Box and `.USR`.
 Otherwise a link is out of scope of the re-import decision. Provenance is refreshed on a re-import, unlike the detail-screen
@@ -2313,7 +2316,18 @@ ECD dance.
   and say it was not stated. Where the dance's phrase structure gives one beats per bar, that is
   the fallback for an unstated meter (`ecdMeterForBars`: `4*8*3` reads as
   `3/4`, a `4*8*6` one as `6/2`), as for the editor's bar timing (`BarTimingScope.beatsPerBarFor`,
-  which takes the meter first too). A range that runs backwards, spans more than 32 bars, would come to
+  which takes the meter first too). Where the phrases of a structure differ in
+  beats per bar (`A:2*4*3 + B:1*8*2`, #2303) the meter text does not count it:
+  `BarTiming.byPhrase` counts each bar as long as the phrase it starts in, from
+  where the line starts, so the range's numbers give a number of bars and not a
+  position (Caller's Companion numbers bars within each section). The start is
+  the end of the figures before the line, as stored or as re-read; for a
+  sequence's steps the end of the steps before it, for a meanwhile's sides and
+  a modifier's parts the container's start. A line Re-check keeps as text (several ranges, or a count in beats as well)
+  keeps its stored count and is not recounted, and that count carries into the
+  start of the figures after it. The typed entry, Re-check and
+  Convert English dances count this way; Caller's Companion import does not, since
+  it builds the phrase structure from the counted lines (#2365). A range that runs backwards, spans more than 32 bars, would come to
   more than 64 beats, or has nothing after it is not one, and a lone number is
   never a bar (`2 changes of rights and lefts`). The bars are the count, over
   a count the line was given (a Caller's Companion `(8)`, a re-checked

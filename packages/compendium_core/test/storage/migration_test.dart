@@ -202,6 +202,7 @@ void main() {
           taxonomyV38CanonicalRebuildDoneKey,
           taxonomyV39CanonicalRebuildDoneKey,
           ecdTaxonomyCanonicalRebuildDoneKey,
+          squareTaxonomyCanonicalRebuildDoneKey,
           chainHandBackfillDoneKey,
         ]) {
           await repos.settings.set(key, 'done');
@@ -914,6 +915,57 @@ void main() {
     );
   });
 
+  group('Square taxonomy canonical rebuild (ADR-007)', () {
+    test('an sq_ figure indexed while unknown re-derives as a call', () async {
+      final db = CompendiumDatabase(NativeDatabase.memory());
+      final repos = _CountingRepositories(db, shippedTaxonomies.anyForm);
+      addTearDown(db.close);
+
+      await repos.dances.create(
+        Dance(
+          id: 'sq-known',
+          title: 'A square',
+          form: DanceForm.square,
+          figures: [
+            Figure(
+              move: 'sq_swing',
+              params: {'who': 'heads', 'whom': 'opposites'},
+            ),
+          ],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await _markPre1192SweepsComplete(repos);
+      await repos.settings.remove(squareTaxonomyCanonicalRebuildDoneKey);
+      // What a build without the square taxonomy derived: the bare move ID.
+      await db.customUpdate(
+        'UPDATE dance_figures SET canonical_text = ? WHERE dance_id = ?',
+        variables: [Variable<String>('sq_swing'), Variable<String>('sq-known')],
+      );
+
+      await repos.ensureMigrated();
+
+      final indexed = await db
+          .customSelect(
+            'SELECT canonical_text FROM dance_figures WHERE dance_id = ?',
+            variables: [Variable<String>('sq-known')],
+          )
+          .get();
+      expect(indexed.map((row) => row.read<String>('canonical_text')), [
+        'heads swing opposites',
+      ]);
+      expect(
+        repos.oneTimeRepairMarkers,
+        contains(squareTaxonomyCanonicalRebuildDoneKey),
+      );
+
+      final rebuilds = repos.rebuildAttempts;
+      await repos.ensureMigrated();
+      expect(repos.rebuildAttempts, rebuilds, reason: 'runs once');
+    });
+  });
+
   group('taxonomy v35 figure normalization', () {
     // invalid-fixture: these figures deliberately use the pre-v35 persisted vocabulary
     test('rewrites legacy keys and nested structural figures', () async {
@@ -1608,6 +1660,93 @@ void main() {
     );
   });
 
+  group('v41 -> v42 upgrade (other titles and Barnes reference)', () {
+    Future<Set<String>> danceColumns(DatabaseConnectionUser db) async => {
+      for (final row
+          in await db
+              .customSelect("SELECT name FROM pragma_table_info('dances')")
+              .get())
+        row.read<String>('name'),
+    };
+
+    const added = {'alternate_titles', 'barnes_reference'};
+
+    test('adds both columns empty, and an existing dance reads with no other '
+        'title and no Barnes reference', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        41,
+      );
+      await historical.customSelect('SELECT 1').get();
+      expect(
+        (await danceColumns(historical)).intersection(added),
+        isEmpty,
+        reason: 'a v41 database has neither column',
+      );
+      await historical.customStatement(
+        "INSERT INTO dances (id, title, form, formation_shape, "
+        "progression, status, created_at, updated_at) "
+        "VALUES ('d1', 'Money Musk', 'contra', 'tripleMinor', "
+        "'single', 'active', 1700000000, 1700000100)",
+      );
+      await historical.close();
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      expect(await danceColumns(db), containsAll(added));
+      final dance = await CompendiumRepositories(
+        db,
+        contraTaxonomy,
+      ).dances.getById('d1');
+      expect(dance, isNotNull);
+      expect(dance!.title, 'Money Musk');
+      expect(dance.alternateTitles, isEmpty);
+      expect(dance.barnesReference, '');
+      expect(
+        dance.updatedAt,
+        DateTime.fromMillisecondsSinceEpoch(1700000100 * 1000, isUtc: true),
+        reason:
+            'the migration must not touch updated_at, or sync would '
+            'republish every dance',
+      );
+      final version = await db.customSelect('PRAGMA user_version').getSingle();
+      expect(version.read<int>('user_version'), 42);
+    });
+
+    test('is idempotent over a column that already exists', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        41,
+      );
+      await historical.customSelect('SELECT 1').get();
+      await historical.close();
+      raw.execute(
+        "ALTER TABLE dances ADD COLUMN alternate_titles TEXT NOT NULL "
+        "DEFAULT ''",
+      );
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      expect(await danceColumns(db), containsAll(added));
+    });
+  });
+
   group('v41 -> v42 upgrade (programs.archived_at, #2218)', () {
     Future<Set<String>> programColumns(DatabaseConnectionUser db) async => {
       for (final row
@@ -1935,6 +2074,7 @@ Future<void> _markPre1192SweepsComplete(CompendiumRepositories repos) async {
     taxonomyV38CanonicalRebuildDoneKey,
     taxonomyV39CanonicalRebuildDoneKey,
     ecdTaxonomyCanonicalRebuildDoneKey,
+    squareTaxonomyCanonicalRebuildDoneKey,
     chainHandBackfillDoneKey,
   ]) {
     await repos.settings.set(key, 'done');

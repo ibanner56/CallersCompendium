@@ -5313,6 +5313,128 @@
   "@danceEditorMusicalKeyHint": {
     "description": "Hint in the dance editor's key field: an example of a musical key."
   },
+  "danceEditorAlternateTitlesLabel": "Other titles",
+  "@danceEditorAlternateTitlesLabel": {
+    "description": "Label of the dance editor field for other names the dance is known by, entered one per line."
+  },
+  "danceEditorAlternateTitlesHelper": "One per line. A title search finds the dance by any of them.",
+  "@danceEditorAlternateTitlesHelper": {
+    "description": "Helper text under the dance editor's other-titles field: enter one title per line, and a title search finds the dance by any of them."
+  },
+  "danceEditorBarnesReferenceLabel": "Barnes reference",
+  "@danceEditorBarnesReferenceLabel": {
+    "description": "Label of the dance editor field for where the dance's tune is printed in the Barnes books (a set of English country dance tune books), as free text with the book and page in one value."
+  },
+  "danceEditorBarnesReferenceHint": "e.g. BIII p. 92, or NiB",
+  "@danceEditorBarnesReferenceHint": {
+    "description": "Hint in the dance editor's Barnes field: examples of a Barnes book reference. 'BIII p. 92' is book III, page 92; 'NiB' means Not in Barnes. Keep both examples untranslated."
+  },
+  "danceAlsoKnownAs": "Also known as {titles}",
+  "@danceAlsoKnownAs": {
+    "description": "Line under a dance's title on the dance detail screen, listing the other names the dance is known by.",
+    "placeholders": {
+      "titles": {
+        "type": "String",
+        "example": "Monymusk"
+      }
+    }
+  },
+  "danceAlsoKnownAsSeparator": "; ",
+  "@danceAlsoKnownAsSeparator": {
+    "description": "Text placed between two of a dance's other titles in the 'Also known as' line."
+  },
+  "danceSectionBarnes": "Barnes books",
+  "@danceSectionBarnes": {
+    "description": "Heading of the section on the dance detail screen that shows where the dance's tune is printed in the Barnes books (a set of English country dance tune books)."
+  },
+  "danceAuthorsWithYear": "{names} ({year})",
+  "@danceAuthorsWithYear": {
+    "description": "On the dance detail screen and the Perform card: the dance's authors followed by the year it was composed. {names} is the authors' names joined with commas; {year} is a four-digit year such as 1951, shown as written (not a formatted number).",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "Pat Shaw"
+      },
+      "year": {
+        "type": "String",
+        "example": "1951"
+      }
+    }
+  },
+  "danceComposedYear": "Composed {year}",
+  "@danceComposedYear": {
+    "description": "On the dance detail screen and the Perform card, when the dance has a composed year but no authors: the year it was composed. {year} is a four-digit year such as 1651.",
+    "placeholders": {
+      "year": {
+        "type": "String",
+        "example": "1651"
+      }
+    }
+  },
+  "danceInterpretedBy": "Interpreted by {names}",
+  "@danceInterpretedBy": {
+    "description": "On the dance detail screen and the Perform card: who reconstructed (interpreted) the dance from its original source. {names} is the interpreters' names joined with commas.",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "Cecil Sharp"
+      }
+    }
+  },
+  "danceInterpretedByWithYear": "Interpreted by {names} ({year})",
+  "@danceInterpretedByWithYear": {
+    "description": "On the dance detail screen and the Perform card: who reconstructed (interpreted) the dance from its original source, and the year they did. {names} is the interpreters' names joined with commas; {year} is a four-digit year such as 1916.",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "Cecil Sharp"
+      },
+      "year": {
+        "type": "String",
+        "example": "1916"
+      }
+    }
+  },
+  "danceInterpretedYear": "Interpreted {year}",
+  "@danceInterpretedYear": {
+    "description": "On the dance detail screen and the Perform card, when the dance has an interpretation year but no interpreters: the year it was reconstructed from its original source. {year} is a four-digit year such as 1916.",
+    "placeholders": {
+      "year": {
+        "type": "String",
+        "example": "1916"
+      }
+    }
+  },
+  "danceBarnesValue": "Barnes: {reference}",
+  "@danceBarnesValue": {
+    "description": "On the Perform card: where the dance's tune is printed in the Barnes books (a set of English country dance tune books), labelled. {reference} is free text the caller typed with the book and page, such as BIII p. 92 or NiB. Keep 'Barnes' as is: it is the books' name.",
+    "placeholders": {
+      "reference": {
+        "type": "String",
+        "example": "BIII p. 92"
+      }
+    }
+  },
+  "danceMeterValue": "Meter: {meter}",
+  "@danceMeterValue": {
+    "description": "On the dance detail screen and the Perform card: the dance's written meter (time signature), labelled. {meter} is free text the caller typed, such as 3/2 or 6/8. Shown beside the key, separated by a middle dot.",
+    "placeholders": {
+      "meter": {
+        "type": "String",
+        "example": "6/8"
+      }
+    }
+  },
+  "danceMusicalKeyValue": "Key: {key}",
+  "@danceMusicalKeyValue": {
+    "description": "On the dance detail screen and the Perform card: the musical key of the dance's tune, labelled. {key} is free text the caller typed, such as G minor. Shown beside the meter, separated by a middle dot.",
+    "placeholders": {
+      "key": {
+        "type": "String",
+        "example": "G minor"
+      }
+    }
+  },
   "commonMixedLevel": "Mixed level",
   "@commonMixedLevel": {
     "description": "Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip."
@@ -11853,7 +11975,7 @@
   },
   "validationOtherFormFigures": "This dance is {danceForm}, but {count, plural, =1{1 figure is} other{{count} figures are}} from {figureForm}. They are kept as they are, but the figure picker offers only {pickerForm} figures.",
   "@validationOtherFormFigures": {
-    "description": "Editor warning when a dance holds figures of another dance type than its own, for example after its type was changed. {danceForm} and {figureForm} are dance type names such as 'Contra' or 'English (ECD)'. {pickerForm} is the type whose figures the picker offers: the dance's own, or Contra's for a type that has no figure list of its own yet (Square).",
+    "description": "Editor warning when a dance holds figures of another dance type than its own, for example after its type was changed. {danceForm} and {figureForm} are dance type names such as 'Contra' or 'English (ECD)'. {pickerForm} is the type whose figures the picker offers: the dance's own, or Contra's for a type that has no figure list of its own.",
     "placeholders": {
       "count": {
         "type": "int"
