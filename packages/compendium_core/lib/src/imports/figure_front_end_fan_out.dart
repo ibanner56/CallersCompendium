@@ -181,6 +181,14 @@ final RegExp _amountLed = RegExp(
   caseSensitive: false,
 );
 
+/// A note opening with a bracketed choice of amounts, `(1 or 2)`: the reading
+/// kept the choice as text and took no amount, so the figure would carry its
+/// default, which is neither (#2331 follow-up). The TCB reading takes the
+/// first amount and notes the choice.
+final RegExp _amountChoiceLed = RegExp(
+  r'^\s*\(\s*(?:\d+\s*&\s*)?\d+(?:/\d+)?\s+or\s+(?:\d+\s*&\s*)?\d+(?:/\d+)?\s*[),;]',
+);
+
 /// Whether a figure in [figures] (sub-figures included) has a note opening
 /// with an amount while carrying no amount param of its own. A figure that
 /// did take an amount may legitimately open its note with one: a rounded
@@ -189,7 +197,8 @@ final RegExp _amountLed = RegExp(
 bool _leavesAmountUnread(Iterable<Figure> figures, Taxonomy taxonomy) {
   for (final f in figures) {
     final note = f.note;
-    if (note != null && _amountLed.hasMatch(note)) {
+    if (note != null &&
+        (_amountLed.hasMatch(note) || _amountChoiceLed.hasMatch(note))) {
       final specs = taxonomy.moves[f.move]?.params ?? const {};
       final tookAmount = f.params.keys.any(
         (k) => _amountKinds.contains(specs[k]?.kind),
