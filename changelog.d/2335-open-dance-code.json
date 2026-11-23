@@ -1,0 +1,9 @@
+{
+  "id": "2335-open-dance-code",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can add a dance someone shows you as a code by pointing your phone's camera app at it and tapping the link: the dance opens in the import review, with nothing added until you commit. You can also paste a dance link into Import."
+    ]
+  }
+}

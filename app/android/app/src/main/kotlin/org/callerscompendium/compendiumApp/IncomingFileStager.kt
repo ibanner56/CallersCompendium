@@ -144,8 +144,9 @@ internal class IncomingPayloadRouter(
         return url
     }
 
-    /** A `text/plain` share's `EXTRA_TEXT` (issue #343), forwarded trimmed
-     * but otherwise verbatim; blank or absent text is ignored. */
+    /** A `text/plain` share's `EXTRA_TEXT` (issue #343), or a dance link from
+     * a `VIEW` of a `ccdance:` URI (issue #2335), forwarded trimmed but
+     * otherwise verbatim; blank or absent text is ignored. */
     fun onSharedText(rawText: String?) {
         val text = rawText?.trim()
         if (text.isNullOrEmpty()) return
@@ -187,4 +188,19 @@ internal class IncomingPayloadRouter(
         fun tooLargePayload(): Map<String, Any> =
             mapOf("rejected" to "tooLarge")
     }
+}
+
+/** The dance-link scheme (issue #2335). Must match `danceLinkPrefix` in
+ * `lib/src/export/dance_code.dart` and the BROWSABLE filter in
+ * AndroidManifest.xml. */
+internal const val DANCE_LINK_SCHEME = "ccdance"
+
+/** The dance link an intent carries, verbatim, or `null` when it is not an
+ * `ACTION_VIEW` of a `ccdance:` URI. A scheme is case-insensitive. Takes the
+ * intent's parts rather than the Intent so JVM tests can call it; Dart caps
+ * and validates the link, so nothing else about it is read here. */
+internal fun danceLinkOf(action: String?, scheme: String?, dataString: String?): String? {
+    if (action != "android.intent.action.VIEW") return null
+    if (!DANCE_LINK_SCHEME.equals(scheme, ignoreCase = true)) return null
+    return dataString?.takeIf { it.isNotBlank() }
 }

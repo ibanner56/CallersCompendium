@@ -138,9 +138,14 @@ the same privacy rules: authors' private details are removed (see
 sharing** turned off are left out, and your star rating and your notes on your
 own figures stay on your devices.
 
-Opening a code inside Caller's Compendium itself is not available yet. For now,
-another phone's camera app reads the code and shows the link as text; to hand a
-dance to another Caller's Compendium user, use **Share dance file**.
+The other caller reads the code with their phone's own camera app: the iPhone
+Camera, or the Android camera or Google Lens. The camera offers a link; tapping it
+opens the dance in Caller's Compendium's import review, where they add it as
+they would a file you sent. Their phone needs no network, and the app asks for
+no camera permission. See
+[Open a dance someone shows you as a code](./imports.md#open-a-dance-someone-shows-you-as-a-code).
+A computer has no camera app to do this; send a computer user the dance with
+**Share dance file**.
 
 A short dance is drawn with the Caller's Compendium logo in the middle. A longer
 one is drawn without it, because the logo would cover too much of a code that

@@ -7904,6 +7904,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get archiveIntakeRejectedEmpty => 'That file is empty.';
 
   @override
+  String get danceLinkRefusedNewerVersion =>
+      'This dance code was made by a newer version of Caller\'s Compendium. Update the app to open it.';
+
+  @override
+  String get danceLinkRefusedDamaged =>
+      'This dance code is damaged or incomplete, so it can\'t be opened.';
+
+  @override
+  String get danceLinkRefusedNotADance =>
+      'This code isn\'t a Caller\'s Compendium dance code.';
+
+  @override
+  String get danceLinkRefusedNoContent =>
+      'This dance code doesn\'t contain any dances or programs.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'That file isn\'t a Caller\'s Compendium share file.';
 
@@ -8134,7 +8150,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importIssueArchiveNewerSchema =>
-      'This file was made by a newer version of Caller\'s Compendium. Update the app before importing, or some details may be left out.';
+      'This was made by a newer version of Caller\'s Compendium. Update the app before importing, or some details may be left out.';
 
   @override
   String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
