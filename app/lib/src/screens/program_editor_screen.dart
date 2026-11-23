@@ -4653,10 +4653,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// slot's dance is a single choice, not an open-ended add session.
   ///
   /// Its picker ranks Suggested for [slot]'s place, with [slot] itself left
-  /// out ([SuggestionPosition.replacing], #2344): its current dance is not a
-  /// neighbour, and is not "already in this program" unless another slot
-  /// holds it. A slot no longer in the program (it cannot leave while the
-  /// modal dialog is open) gets no position, so no Suggested.
+  /// out ([SuggestionPosition.replacing], #2344), so its saved dance is not a
+  /// neighbour. [slot]'s `danceId` is the dance the edit dialog shows (an
+  /// earlier pick in the dialog, else the saved dance); the picker leaves it
+  /// out of the list ([CollectionPicker.excludedDanceIds]). Online rows are
+  /// not filtered (their local id is unknown until import); one that
+  /// resolves to that dance hands it back, which leaves the dialog as it
+  /// was. A slot no longer in the program (it cannot leave while the modal
+  /// dialog is open) gets no position, so no Suggested.
   Future<String?> _pickReplacementDance(ProgramSlot slot) async {
     // The sheet route would hand focus back to a focused field on close.
     FocusManager.instance.primaryFocus?.unfocus();
@@ -4737,6 +4741,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                             scrollController: scrollController,
                             addedDanceCounts: counts,
                             programContext: programContext,
+                            excludedDanceIds: {?slot.danceId},
                             rowAction: PickerRowAction.replace,
                             enableOnlineSearch: true,
                             onDanceImported: _rememberImportedDance,

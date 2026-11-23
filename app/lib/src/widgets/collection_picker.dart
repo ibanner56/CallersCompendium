@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -94,6 +95,7 @@ class CollectionPicker extends StatefulWidget {
     this.onViewOnlineDetails,
     this.programContext,
     this.suggestionDialectForColumn,
+    this.excludedDanceIds = const {},
     this.rankSuggestions,
     this.clock = const SearchClock(),
   });
@@ -192,6 +194,11 @@ class CollectionPicker extends StatefulWidget {
   /// names a figure as its column does (#2294). Null reads every column in
   /// [dialect].
   final Dialect Function(MatrixColumn column)? suggestionDialectForColumn;
+
+  /// Dances this picker never lists, such as the dance a Replace… would
+  /// replace: choosing it would change nothing. Applied to the local results
+  /// before Suggested ranks them, so they are never ranked either.
+  final Set<String> excludedDanceIds;
 
   /// Ranks for Suggested. A test seam: when null, as in the app, the picker
   /// ranks on a [SuggestionWorker] of its own, which keeps the candidates it
@@ -451,7 +458,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
     // picker is open (e.g. the user edits their dialect library).
     final searchInputsChanged =
         oldWidget.dialect != widget.dialect ||
-        oldWidget.enrichment != widget.enrichment;
+        oldWidget.enrichment != widget.enrichment ||
+        !setEquals(oldWidget.excludedDanceIds, widget.excludedDanceIds);
     if (searchInputsChanged && !_onlineEnabled) {
       _runSearch();
     }
@@ -584,11 +592,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
       setState(() {
         _results = [
           for (final id in ids)
-            if (_latestDanceFor(id, data) case final dance?)
-              data.entryFor(
-                dance,
-                choreographerNamesOverride: choreographerNamesOverride,
-              ),
+            if (!widget.excludedDanceIds.contains(id))
+              if (_latestDanceFor(id, data) case final dance?)
+                data.entryFor(
+                  dance,
+                  choreographerNamesOverride: choreographerNamesOverride,
+                ),
         ];
         _searching = false;
       });
