@@ -15,9 +15,9 @@ import 'package:flutter/widgets.dart';
 /// result into the core renderers for what you share, copy or export.
 ///
 /// **Reading the value:** call [DanceShareFieldsScope.of] inside `build`. It
-/// returns [DanceShareField.allExceptTunes] when no ancestor is present,
-/// preserving pre-feature rendering for any call site (or test) that doesn't
-/// wire the scope.
+/// returns [DanceShareField.allExceptTunes], the default set, when no
+/// ancestor is present, for any call site (or test) that doesn't wire the
+/// scope.
 ///
 /// **Writing the value:** call [DanceShareFieldsScope.notifierOf] from a
 /// settings widget to update and persist the preference.
@@ -32,11 +32,11 @@ class DanceShareFieldsScope
   /// The set of fields currently selected. Registers a rebuild dependency so
   /// the caller rebuilds whenever the notifier changes.
   ///
-  /// Returns [DanceShareField.allExceptTunes] (every field this feature's
-  /// renderers emitted unconditionally before the picker existed, minus the
-  /// opt-in tunes, hook and sources) when there is no [DanceShareFieldsScope] ancestor, so tests and
-  /// call sites without the scope wired behave identically to the
-  /// pre-feature state.
+  /// Returns [DanceShareField.allExceptTunes] (the default set: every field
+  /// this feature's renderers emitted unconditionally before the picker
+  /// existed, plus the meter, key and Barnes lines, without the opt-in tunes,
+  /// hook and sources) when there is no [DanceShareFieldsScope] ancestor, so
+  /// tests and call sites without the scope wired see the default.
   static Set<DanceShareField> of(BuildContext context) {
     final scope = context
         .dependOnInheritedWidgetOfExactType<DanceShareFieldsScope>();
@@ -66,7 +66,8 @@ class DanceShareFieldsScope
   ///
   /// - [stored] is not a `List` (key absent or corrupt) →
   ///   [DanceShareField.allExceptTunes]: the preference has never been saved,
-  ///   so default to the pre-feature field set.
+  ///   so use the default set. A saved list keeps what it names, so a field
+  ///   added after it was saved, such as [DanceShareField.music], stays off.
   /// - [stored] is an empty `List` → empty set: the user deliberately turned
   ///   off every field and that choice must be honoured on restart.
   /// - [stored] is a non-empty `List` → decode recognised names; if every

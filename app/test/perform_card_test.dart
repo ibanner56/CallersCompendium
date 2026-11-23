@@ -940,7 +940,10 @@ void main() {
         .data;
 
     testWidgets('shows the reference on its own labelled row', (tester) async {
-      await pumpCard(tester, _dance().copyWith(barnesReference: 'BIII p. 92'));
+      await pumpCard(
+        tester,
+        _dance().copyWith(form: DanceForm.ecd, barnesReference: 'BIII p. 92'),
+      );
       expect(
         tester
             .widget<Text>(
@@ -957,7 +960,7 @@ void main() {
     testWidgets('trims the typed value', (tester) async {
       await pumpCard(
         tester,
-        _dance().copyWith(barnesReference: ' BIII p. 92 '),
+        _dance().copyWith(form: DanceForm.ecd, barnesReference: ' BIII p. 92 '),
       );
       expect(barnesRow(tester), 'Barnes: BIII p. 92');
     });
@@ -967,7 +970,7 @@ void main() {
     ) async {
       await pumpCard(
         tester,
-        _dance().copyWith(barnesReference: 'Gypsy p. 4'),
+        _dance().copyWith(form: DanceForm.ecd, barnesReference: 'Gypsy p. 4'),
         canonicalDiscouragedTerms: true,
       );
       expect(barnesRow(tester), 'Barnes: Shoulder round p. 4');
@@ -975,7 +978,10 @@ void main() {
     });
 
     testWidgets('has no row when the reference is blank', (tester) async {
-      await pumpCard(tester, _dance().copyWith(barnesReference: '  '));
+      await pumpCard(
+        tester,
+        _dance().copyWith(form: DanceForm.ecd, barnesReference: '  '),
+      );
       expect(
         find.byKey(const ValueKey('perform-barnes-reference')),
         findsNothing,

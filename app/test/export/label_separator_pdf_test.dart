@@ -68,6 +68,7 @@ void main() {
         appendDances: [(dance: dance('d2'), isAlternate: true)],
         cardLabelsFor: (_) => (
           authorNames: const [],
+          interpreterNames: const <String>[],
           formationLabel: 'F',
           levelLabel: null,
           statusLabel: 'S',

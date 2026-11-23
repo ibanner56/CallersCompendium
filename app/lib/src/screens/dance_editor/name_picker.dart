@@ -2,13 +2,24 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
-import '../../widgets/responsive_autocomplete.dart';
+import '../../theme/app_spacing.dart';
+import '../../widgets/multi_select_dropdown.dart';
 
 typedef NameOption = ({String id, String name});
 
-/// Chips of selected entities plus a type-ahead that adds an existing entity
-/// or creates a new one inline (`docs/design/ux.md` §3 author autocomplete).
-class NamePicker extends StatelessWidget {
+/// A multi-select dropdown of named entities (authors, interpreters, tags):
+/// a field that reads the chosen names as text, and opens a list of every
+/// option with a checkbox, a search box that narrows it, and a row that
+/// creates a new entity from the typed name (`docs/design/ux.md` §3).
+///
+/// On a wide window the list drops down under the field; on a phone, or a
+/// short window, it is a bottom sheet padded above the keyboard, so typing
+/// never hides it (issue #716).
+///
+/// The list reads [selectedIds], [namesById] and [options] live: a check runs
+/// [onAdd] or [onRemove], and the boxes follow once the owner rebuilds this
+/// widget with the new selection.
+class NamePicker extends StatefulWidget {
   const NamePicker({
     super.key,
     required this.fieldKey,
@@ -35,211 +46,275 @@ class NamePicker extends StatelessWidget {
   /// [onAdd] and leaves the typed text in place.
   final Future<String?> Function(String name) onCreate;
 
-  /// When non-null, each selected chip becomes tappable (an [InputChip]) and
-  /// tapping its body invokes [onEdit] with the id — used by the Authors picker
-  /// to edit the shared choreographer record. When null (e.g. the Tags picker),
-  /// chips stay plain, non-editable [Chip]s.
+  /// When non-null, each row of the open list has an edit button that closes
+  /// the list and invokes [onEdit] with the id: used by the Authors and
+  /// Interpreted by pickers to edit the shared person record. When null (the
+  /// Tags picker), rows have no edit button.
   final ValueChanged<String>? onEdit;
 
-  /// Announced when the small-screen picker sheet opens (e.g. "Authors" or
-  /// "Tags") so screen-reader users get the same field context sighted users
-  /// get from the [FieldLabel] shown above this picker. Ignored on the wide
-  /// inline layout.
+  /// The field's name for screen readers, and the announced name of the open
+  /// list (e.g. "Authors" or "Tags"), matching the [FieldLabel] shown above
+  /// this picker.
   final String? sheetSemanticLabel;
+
+  @override
+  State<NamePicker> createState() => _NamePickerState();
+}
+
+class _NamePickerState extends State<NamePicker> {
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return MultiSelectDropdown(
+      fieldKey: widget.fieldKey,
+      semanticLabel: widget.sheetSemanticLabel,
+      valueText: widget.selectedIds
+          .map((id) => widget.namesById[id] ?? id)
+          .join(', '),
+      decoration: InputDecoration(hintText: l10n.danceEditorChooseHint),
+      panelBuilder: (context, placement) => _NamePickerPanel(
+        owner: this,
+        picker: widget,
+        autofocus: placement.autofocus,
+        scrollController: placement.scrollController,
+      ),
+      onClosed: (editId) {
+        if (editId is String) widget.onEdit?.call(editId);
+      },
+    );
+  }
+}
+
+/// The open list: a search box, a checkbox row per option, the chosen ones
+/// first (see `_order`), and a create row for a typed name nobody has.
+class _NamePickerPanel extends StatefulWidget {
+  const _NamePickerPanel({
+    required this.owner,
+    required this.picker,
+    required this.autofocus,
+    this.scrollController,
+  });
+
+  /// The field this list belongs to. Once it is gone (the editor closed
+  /// under the list), a create still in flight adds nothing.
+  final State<NamePicker> owner;
+
+  /// The field as the owner last built it: its selection and names.
+  final NamePicker picker;
+  final bool autofocus;
+  final ScrollController? scrollController;
+
+  @override
+  State<_NamePickerPanel> createState() => _NamePickerPanelState();
+}
+
+class _NamePickerPanelState extends State<_NamePickerPanel> {
+  final TextEditingController _query = TextEditingController();
+  final FocusNode _queryFocus = FocusNode();
+
+  /// The rows' order: the chosen names first, in their order, then everyone
+  /// else by name, plus anything created while the list is open. Fixed while
+  /// the list is open, so a row does not jump when it is checked.
+  late final List<String> _order = _initialOrder(widget.picker);
+
+  static List<String> _initialOrder(NamePicker picker) {
+    final selected = picker.selectedIds.toSet();
+    // Each sort key is worked out once: a long people list would otherwise
+    // normalise every name many times over.
+    final rest = [
+      for (final o in picker.options)
+        if (!selected.contains(o.id))
+          (key: naturalKeyMatchKey(o.name), id: o.id),
+    ]..sort((a, b) => a.key.compareTo(b.key));
+    return [...picker.selectedIds, for (final o in rest) o.id];
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _query.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _query.dispose();
+    _queryFocus.dispose();
+    super.dispose();
+  }
+
+  /// Rows for [picker] matching the typed text, in list order, then the
+  /// create row when the typed name matches nobody exactly.
+  List<_Row> _rows(NamePicker picker) {
+    final q = _query.text.trim();
+    // `naturalKeyMatchKey`, not `toLowerCase()`, for the filter and the exact
+    // test alike: the repositories look an incumbent up by
+    // `normalizeShareableText`, so comparing case-folded raw text would offer
+    // a create that the repository then refuses as a duplicate (found in
+    // review on #1410).
+    final wanted = naturalKeyMatchKey(q);
+    final names = {
+      for (final o in picker.options) o.id: o.name,
+      ...picker.namesById,
+    };
+    final known = {..._order};
+    final ids = [
+      ..._order,
+      // Options that arrived while the list was open (another device's sync).
+      for (final o in picker.options)
+        if (!known.contains(o.id)) o.id,
+    ];
+    final rows = [
+      for (final id in ids)
+        if (names[id] case final name?)
+          if (wanted.isEmpty || naturalKeyMatchKey(name).contains(wanted))
+            _Row.existing(id, name),
+    ];
+    if (q.isNotEmpty &&
+        !picker.options.any((o) => naturalKeyMatchKey(o.name) == wanted)) {
+      rows.add(_Row.create(q));
+    }
+    return rows;
+  }
+
+  void _toggle(NamePicker picker, String id) {
+    if (picker.selectedIds.contains(id)) {
+      picker.onRemove(id);
+      return;
+    }
+    picker.onAdd(id);
+    // A name found by typing is added; the search box empties and keeps
+    // focus, so the next name can be typed straight away (issue #402).
+    if (_query.text.isNotEmpty) {
+      _query.clear();
+      _queryFocus.requestFocus();
+    }
+  }
+
+  Future<void> _create(NamePicker picker, String name) async {
+    final id = await picker.onCreate(name);
+    // `null` is "the create did not happen, and the user has been told": the
+    // typed name stays, so the next step is to pick the row it collided with.
+    if (!mounted || !widget.owner.mounted || id == null) return;
+    // Listed after the names already chosen, where a checked name sits.
+    final chosen = picker.selectedIds.toSet();
+    final at = _order.takeWhile(chosen.contains).length;
+    picker.onAdd(id);
+    setState(() {
+      if (!_order.contains(id)) _order.insert(at, id);
+    });
+    _query.clear();
+    _queryFocus.requestFocus();
+  }
+
+  /// Enter in the search box: checks the first match not yet chosen, or
+  /// creates the typed name when it matches nobody, then clears the box for
+  /// the next name. With nothing left to check or create, Enter does nothing
+  /// and the typed text stays.
+  void _submit(NamePicker picker) {
+    if (_query.text.trim().isEmpty) return;
+    final chosen = picker.selectedIds.toSet();
+    final rows = _rows(picker);
+    final first = rows
+        .where((r) => r.isCreate || !chosen.contains(r.id))
+        .firstOrNull;
+    if (first == null) return;
+    if (first.isCreate) {
+      _create(picker, first.name);
+      return;
+    }
+    picker.onAdd(first.id!);
+    _query.clear();
+    _queryFocus.requestFocus();
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final picker = widget.picker;
+    final rows = _rows(picker);
+    final selected = picker.selectedIds.toSet();
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (selectedIds.isNotEmpty)
-          Wrap(
-            spacing: 8,
-            children: [for (final id in selectedIds) _buildChip(id, l10n)],
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.sm,
+            AppSpacing.md,
+            AppSpacing.xs,
           ),
-        _AddAutocomplete(
-          fieldKey: fieldKey,
-          selectedIds: selectedIds,
-          options: options,
-          onAdd: onAdd,
-          onCreate: onCreate,
-          sheetSemanticLabel: sheetSemanticLabel,
+          child: TextField(
+            key: ValueKey('${picker.fieldKey}-input'),
+            controller: _query,
+            focusNode: _queryFocus,
+            autofocus: widget.autofocus,
+            decoration: InputDecoration(
+              hintText: l10n.danceEditorTypeToAddOrCreateHint,
+              prefixIcon: const Icon(Icons.search),
+              isDense: true,
+            ),
+            onSubmitted: (_) => _submit(picker),
+          ),
+        ),
+        Flexible(
+          child: ListView.builder(
+            key: ValueKey('${picker.fieldKey}-options'),
+            controller: widget.scrollController,
+            shrinkWrap: true,
+            itemCount: rows.length,
+            itemBuilder: (context, i) {
+              final row = rows[i];
+              if (row.isCreate) {
+                return ListTile(
+                  key: ValueKey('${picker.fieldKey}-option-create:${row.name}'),
+                  dense: true,
+                  leading: const Icon(Icons.add),
+                  title: Text(l10n.danceEditorCreateQuotedName(row.name)),
+                  onTap: () => _create(picker, row.name),
+                );
+              }
+              final id = row.id!;
+              return CheckboxListTile(
+                key: ValueKey('${picker.fieldKey}-option-$id'),
+                dense: true,
+                controlAffinity: ListTileControlAffinity.leading,
+                value: selected.contains(id),
+                title: Text(row.name),
+                onChanged: (_) => _toggle(picker, id),
+                secondary: picker.onEdit == null
+                    ? null
+                    : IconButton(
+                        key: ValueKey('${picker.fieldKey}-edit-$id'),
+                        icon: const Icon(Icons.edit_outlined),
+                        tooltip: l10n.danceEditorEditItemTooltip(row.name),
+                        onPressed: () => Navigator.of(context).pop(id),
+                      ),
+              );
+            },
+          ),
+        ),
+        Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.xs),
+            child: TextButton(
+              key: ValueKey('${picker.fieldKey}-done'),
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n.commonDone),
+            ),
+          ),
         ),
       ],
     );
   }
-
-  Widget _buildChip(String id, AppLocalizations l10n) {
-    final label = namesById[id] ?? id;
-    final key = ValueKey('$fieldKey-chip-$id');
-    if (onEdit == null) {
-      return Chip(key: key, label: Text(label), onDeleted: () => onRemove(id));
-    }
-    // Editable chip: tapping the body opens the details dialog; the delete
-    // affordance still removes the author from the dance. The tooltip makes the
-    // tap affordance discoverable for pointer and screen-reader users.
-    return InputChip(
-      key: key,
-      label: Text(label),
-      tooltip: l10n.danceEditorEditItemTooltip(label),
-      onPressed: () => onEdit!(id),
-      onDeleted: () => onRemove(id),
-    );
-  }
 }
 
-class _AddAutocomplete extends StatefulWidget {
-  const _AddAutocomplete({
-    required this.fieldKey,
-    required this.selectedIds,
-    required this.options,
-    required this.onAdd,
-    required this.onCreate,
-    this.sheetSemanticLabel,
-  });
-
-  final String fieldKey;
-  final List<String> selectedIds;
-  final List<NameOption> options;
-  final ValueChanged<String> onAdd;
-
-  /// Returns the id the entity actually occupies, or `null` when the
-  /// create did not happen and the caller has already told the user why
-  /// (see `dance_editor_screen._createChoreographer`). `null` skips
-  /// [onAdd] and leaves the typed text in place.
-  final Future<String?> Function(String name) onCreate;
-  final String? sheetSemanticLabel;
-
-  @override
-  State<_AddAutocomplete> createState() => _AddAutocompleteState();
-}
-
-class _AddAutocompleteState extends State<_AddAutocomplete> {
-  // Owned so we can clear the field and keep focus after a tag is committed
-  // (issue #402: the typed text lingered because Flutter's Autocomplete fills
-  // the field with the selected option's label before onSelected runs).
-  final TextEditingController _controller = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final fieldKey = widget.fieldKey;
-    final l10n = AppLocalizations.of(context);
-    return ResponsiveAutocomplete<_PickerChoice>(
-      key: ValueKey('$fieldKey-autocomplete'),
-      textEditingController: _controller,
-      focusNode: _focusNode,
-      sheetSemanticLabel: widget.sheetSemanticLabel,
-      displayStringForOption: (choice) => choice.label,
-      optionsBuilder: (value) {
-        final q = value.text.trim();
-        if (q.isEmpty) return const Iterable<_PickerChoice>.empty();
-        // `naturalKeyMatchKey`, not `toLowerCase()` — and for the substring
-        // filter as well as the exact test. The repositories look an incumbent
-        // up by `normalizeShareableText`, so comparing case-folded *raw* text
-        // asked a narrower question than the one that decides whether the
-        // create will be accepted: with a live "café", typing the decomposed
-        // form matched nothing here, offered "create", and threw
-        // `DuplicateNaturalKeyError` out of `onSelected` — an async callback
-        // nothing awaits, so the author was silently not created (found in
-        // review on #1410).
-        //
-        // Both comparisons move together on purpose. Fixing only the exact test
-        // would suppress "create" for the decomposed form while the filter
-        // still failed to show the row it collides with, leaving the user an
-        // empty list and no way forward.
-        final wanted = naturalKeyMatchKey(q);
-        final matches = widget.options
-            .where(
-              (o) =>
-                  !widget.selectedIds.contains(o.id) &&
-                  naturalKeyMatchKey(o.name).contains(wanted),
-            )
-            .map((o) => _PickerChoice.existing(o.id, o.name))
-            .toList();
-        final exact = widget.options.any(
-          (o) => naturalKeyMatchKey(o.name) == wanted,
-        );
-        if (!exact) matches.add(_PickerChoice.create(q));
-        return matches;
-      },
-      onSelected: (choice) async {
-        if (choice.isCreate) {
-          // Only clear after the create + add succeeds; a thrown onCreate
-          // short-circuits before we touch the field.
-          final id = await widget.onCreate(choice.name);
-          // Guard against the widget being disposed during the await (e.g. the
-          // editor route closed while the tag was being created).
-          if (!mounted) return;
-          // `null` is "the create did not happen, and the user has been told".
-          // Nothing is added and the field keeps the typed text, so the next
-          // action is to pick the row it collided with. Returning early rather
-          // than falling through is what keeps the field from being cleared —
-          // clearing it would discard the name the snackbar is talking about.
-          if (id == null) return;
-          widget.onAdd(id);
-        } else {
-          widget.onAdd(choice.id!);
-        }
-        // Reset the field and keep focus so the next tag can be typed straight
-        // away. Clearing lives only here, so empty/duplicate/no-op submits
-        // (which never reach onSelected) leave state untouched.
-        _controller.clear();
-        _focusNode.requestFocus();
-      },
-      fieldViewBuilder: (context, controller, focusNode, onSubmit, _) {
-        return TextField(
-          key: ValueKey('$fieldKey-input'),
-          controller: controller,
-          focusNode: focusNode,
-          decoration: InputDecoration(
-            hintText: l10n.danceEditorTypeToAddOrCreateHint,
-            isDense: true,
-          ),
-          onSubmitted: (_) => onSubmit(),
-        );
-      },
-      optionTileBuilder: (context, choice, onSelected) {
-        return ListTile(
-          key: ValueKey('$fieldKey-option-${choice.optionKey}'),
-          dense: true,
-          leading: Icon(
-            choice.isCreate ? Icons.add : Icons.person_outline,
-            size: 18,
-          ),
-          title: Text(
-            choice.isCreate
-                ? l10n.danceEditorCreateQuotedName(choice.name)
-                : choice.name,
-          ),
-          onTap: onSelected,
-        );
-      },
-    );
-  }
-}
-
-class _PickerChoice {
-  _PickerChoice.existing(this.id, this.name) : isCreate = false;
-  _PickerChoice.create(this.name) : id = null, isCreate = true;
+class _Row {
+  _Row.existing(this.id, this.name) : isCreate = false;
+  _Row.create(this.name) : id = null, isCreate = true;
 
   final String? id;
   final String name;
   final bool isCreate;
-
-  /// Text shown in the field when this option is selected.
-  String get label => name;
-
-  /// Stable widget key for the option row. Existing items are keyed by id so
-  /// two same-named entities (dedup is deferred) don't collide; the sole
-  /// "create" row is keyed by its typed name.
-  String get optionKey => isCreate ? 'create:$name' : id!;
 }

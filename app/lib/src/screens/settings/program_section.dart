@@ -6,6 +6,7 @@ import 'package:compendium_core/compendium_core.dart'
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import 'calendar_settings_tiles.dart';
 import 'matrix_column_editor_screen.dart';
 import 'settings_keys.dart';
 import '../../data/mark_all_sets_status_scope.dart';
@@ -18,6 +19,7 @@ import '../../data/require_event_date_for_history_scope.dart';
 import '../../data/calling_history_tracking_scope.dart';
 import '../../data/require_performed_for_history_scope.dart';
 import '../../data/show_performed_toggles_scope.dart';
+import '../../data/show_program_pay_scope.dart';
 import '../../data/track_history_for_all_callers_scope.dart';
 import '../../data/venue_call_count_scope.dart';
 import '../../data/venue_entity_mode_scope.dart';
@@ -251,6 +253,14 @@ class _ProgramSectionState extends State<ProgramSection> {
     await persistSetting(repos.settings, kShowPerformedTogglesKey, value);
   }
 
+  Future<void> _onShowProgramPayChanged(bool value) async {
+    // Instant-notifier-then-persist: an open editor or summary shows or hides
+    // pay immediately. Display-only: no program is read or written here.
+    ShowProgramPayScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kShowProgramPayKey, value);
+  }
+
   Future<void> _onMarkAllSetsStatusChanged(bool value) async {
     // Same instant-notifier-then-persist pattern: an open program editor's
     // status helper text follows the flip immediately, then persist.
@@ -370,6 +380,8 @@ class _ProgramSectionState extends State<ProgramSection> {
       onShowProgramSlotCallerNotesChanged: _onProgramSlotCallerNotesChanged,
       autoCommitProgramChanges: ProgramAutoCommitScope.of(context),
       onAutoCommitChanged: _onAutoCommitChanged,
+      showProgramPay: ShowProgramPayScope.of(context),
+      onShowProgramPayChanged: _onShowProgramPayChanged,
       requirePerformedForHistory: RequirePerformedForHistoryScope.of(context),
       onRequirePerformedForHistoryChanged: _onRequirePerformedForHistoryChanged,
       showPerformedToggles: ShowPerformedTogglesScope.of(context),
@@ -417,6 +429,8 @@ class _ProgramView extends StatelessWidget {
     required this.onShowProgramSlotCallerNotesChanged,
     required this.autoCommitProgramChanges,
     required this.onAutoCommitChanged,
+    required this.showProgramPay,
+    required this.onShowProgramPayChanged,
     required this.requirePerformedForHistory,
     required this.onRequirePerformedForHistoryChanged,
     required this.showPerformedToggles,
@@ -469,6 +483,11 @@ class _ProgramView extends StatelessWidget {
   final ValueChanged<bool> onShowProgramSlotCallerNotesChanged;
   final bool autoCommitProgramChanges;
   final ValueChanged<bool> onAutoCommitChanged;
+
+  /// The Programs "Show pay" toggle (issue #2355). On by default; off hides
+  /// pay in the editor and summary without touching stored pay.
+  final bool showProgramPay;
+  final ValueChanged<bool> onShowProgramPayChanged;
 
   final bool requirePerformedForHistory;
   final ValueChanged<bool> onRequirePerformedForHistoryChanged;
@@ -533,6 +552,14 @@ class _ProgramView extends StatelessWidget {
           onChanged: onAutoCommitChanged,
           title: Text(l10n.settingsProgramAutoCommitTitle),
           subtitle: Text(l10n.settingsProgramAutoCommitSubtitle),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('settings-show-program-pay'),
+          value: showProgramPay,
+          onChanged: onShowProgramPayChanged,
+          title: Text(l10n.settingsProgramShowPayTitle),
+          subtitle: Text(l10n.settingsProgramShowPaySubtitle),
           isThreeLine: true,
         ),
         ListTile(
@@ -695,6 +722,9 @@ class _ProgramView extends StatelessWidget {
           subtitle: Text(l10n.settingsHistoryOrderIgnoreUnperformedSubtitle),
           isThreeLine: true,
         ),
+        // Settings ▸ Program ▸ Calendar (#2352), last so the sections above
+        // keep their places. Reads and writes its own keys.
+        const CalendarSettingsTiles(),
       ],
     );
   }

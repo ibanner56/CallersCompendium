@@ -415,8 +415,9 @@ class ParamSpec {
   /// automatic reset when promenade's `where` is set to `in`/`out`/`up`/
   /// `down` (`applyParamChange`, `param_change_rules.dart`), never via a
   /// button. Set
-  /// `false` there for that reason; every other spec leaves this at its
-  /// default.
+  /// `false` there for that reason. `form_long_waves.who` (v40, #2331) is set
+  /// `false` for the same one: it admits the sentinel only for an importer's
+  /// unstated facing and defaults to the concrete `role1s`.
   final bool allowManualClear;
 
   /// Whether [value] belongs to this parameter's domain.

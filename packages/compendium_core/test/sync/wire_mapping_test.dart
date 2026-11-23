@@ -317,6 +317,25 @@ void main() {
       );
     }
 
+    // A column whose stored value another column decides: a dance's form
+    // clears its Barnes reference unless the form is ECD
+    // (`formHasBarnesReference`), so moving the form off ECD also moves that
+    // column. Declared, like the key aliases, so an undeclared dependency
+    // still fails; both sides are asserted to share a classification.
+    const derivedColumns = <String, Set<String>>{
+      'dances.form': {'dances.barnes_reference'},
+    };
+    for (final MapEntry(key: column, value: derived)
+        in derivedColumns.entries) {
+      for (final other in derived) {
+        expect(
+          fieldClassifications[other]!.egress,
+          fieldClassifications[column]!.egress,
+          reason: '$other and $column must not be classified apart',
+        );
+      }
+    }
+
     final baseline = await _storedColumns(_Fixture(null));
     final misplaced = <String>[];
     for (final column in _inScopeColumns) {
@@ -328,6 +347,7 @@ void main() {
       final expected = <String>{
         column,
         if (keyAliases.containsKey(column)) keyAliases[column]!,
+        ...?derivedColumns[column],
       };
       if (!(changed.length == expected.length &&
           changed.containsAll(expected))) {
@@ -352,8 +372,8 @@ void main() {
   }, timeout: const Timeout(Duration(minutes: 5)));
 
   test('a multi-source wire path is admitted only when every column is', () {
-    // `customFields.value` is the only path with more than one source column,
-    // and both are shareable today, so the generator's rule is not observable
+    // `customFields.value` and `barnesReference` are the paths with more than
+    // one source column, and every one of those columns is shareable today, so the generator's rule is not observable
     // from the committed registry. Classifying either one out must remove the
     // path: admitting it because the OTHER column is shareable would emit both
     // (#1359). `fieldClassifications` is a mutable top-level map, which is how
@@ -861,6 +881,11 @@ const _valuePairs = <String, List<Object?>>{
   'programs.updated_at': _earlier,
   'programs.deleted_at': _earlier,
   'programs.archived_at': _earlier,
+  // A SHA-256 hex digest: the codec drops anything else.
+  'programs.calendar_event_key': [
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+  ],
   'program_slots.position': [0, 1],
   'program_slots.is_alt': [false, true],
   'program_slots.is_purged_dance': [false, true],
@@ -1159,6 +1184,7 @@ class _Fixture {
     updatedAt: _date('programs.updated_at'),
     deletedAt: _date('programs.deleted_at'),
     archivedAt: _date('programs.archived_at'),
+    calendarEventKey: _str('programs.calendar_event_key'),
   );
 
   StoredUserGlossaryEntry glossaryEntry() => StoredUserGlossaryEntry(

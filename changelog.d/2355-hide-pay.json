@@ -1,0 +1,9 @@
+{
+  "id": "2355-hide-pay",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "If you don't track pay, turn off Show pay in Settings › Program › Programs to hide the Pay field in the program editor and the pay line on a program's summary. Pay you already entered is kept, and shows again when you turn the setting back on."
+    ]
+  }
+}

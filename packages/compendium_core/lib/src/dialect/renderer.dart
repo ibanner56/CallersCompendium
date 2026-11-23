@@ -877,7 +877,8 @@ class FigureRenderer {
         // NOT dropped from the index: it moves into the parenthetical
         // (widened from "(circle)" to "(circle, clockwise)"), preserving the
         // TCB source's own wording ("single file promenade clockwise …",
-        // `callersbox_figure_dialect.dart:1316-1365`) as a searchable token.
+        // `_singleFileCircleRecognizer` in `callersbox_figure_dialect.dart`) as a
+        // searchable token.
         // Clockwise = left (contra convention: circling left travels
         // clockwise).
         final turnRaw = params['direction'];
@@ -3755,26 +3756,53 @@ class FigureRenderer {
     // (they default to the `unspecified` sentinel, which renders as nothing),
     // so a ContraDB import renders as it did at v20. Consulted only when
     // `!forCanonical`, so `renderCanonical` stays byte-stable (dedupe/FTS).
+    //
+    // v40 (#2331): `whom2` is the pair held by the OTHER hand ("next neighbors
+    // by the right, neighbors by the left"), shown only beside a stated
+    // right/left `whomHand`. A `who` of `unspecified` (TCB's bare `form long
+    // wave`) names no facing, so neither facing clause is shown — and with no
+    // hold either, the line is the bare move name, never a dangling " - ".
     'form_long_waves': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
-      final swho = r._displaySubject(params['who'], dialect);
-      final other = r._invertPair(params['who'], dialect);
+      final whoRaw = params['who'];
       final swhom = _isUnspecified(params['whom'])
           ? ''
           : r._displaySubject(params['whom'], dialect);
-      final hand = _displayChoice(params['whomHand']);
+      final handRaw = params['whomHand'];
+      final hand = _displayChoice(handRaw);
+      final otherHand = handRaw == 'right'
+          ? 'left'
+          : handRaw == 'left'
+          ? 'right'
+          : '';
+      final swhom2 = _isUnspecified(params['whom2']) || params['whom2'] == null
+          ? ''
+          : r._displaySubject(params['whom2'], dialect);
       final holdClause = (swhom.isEmpty || hand.isEmpty)
           ? ''
-          : '$swhom by the $hand';
+          : [
+              '$swhom by the $hand',
+              if (swhom2.isNotEmpty && otherHand.isNotEmpty)
+                '$swhom2 by the $otherHand',
+            ].join(', ');
       final body = [
         holdClause,
-        '$swho facing in',
-        '$other facing out',
+        if (!_isUnspecified(whoRaw)) ...[
+          '${r._displaySubject(whoRaw, dialect)} facing in',
+          '${r._invertPair(whoRaw, dialect)} facing out',
+        ],
       ].where((s) => s.isNotEmpty).join(', ');
+      final balance = _balanceSuffix(params['balance']);
+      if (body.isEmpty) {
+        return _displayTemplate({
+          'move': move,
+          'balance': balance,
+        }, '{move}{balance}');
+      }
       return _displayTemplate({
         'move': move,
         'body': body,
-        'balance': _balanceSuffix(params['balance']),
+        'balance': balance,
       }, '{move} - {body}{balance}');
     },
     // ContraDB `formALongWaveWords`: branches on in/out/balance. in only ->

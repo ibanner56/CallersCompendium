@@ -44,6 +44,7 @@ String importErrorMessage(AppLocalizations l10n, UrlFetchException error) {
     UrlFetchFailureReason.emptyResponse => l10n.importErrorEmptyResponse,
     UrlFetchFailureReason.unsupportedSharedLink =>
       l10n.importErrorUnsupportedSharedLink,
+    UrlFetchFailureReason.notACalendar => l10n.importErrorNotACalendar,
     UrlFetchFailureReason.callersBoxEmptyInput =>
       l10n.importErrorCallersBoxEmptyInput,
     UrlFetchFailureReason.callersBoxInvalidUrl =>

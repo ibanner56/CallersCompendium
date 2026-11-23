@@ -1,0 +1,14 @@
+{
+  "id": "2339-add-dance-before-after",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Put a dance exactly where you want it in a program: choose Add a dance before or Add a dance after from a slot's … menu, then pick the dance (or import one from online search). It goes ahead of or after that slot and its alternates, without becoming anyone's alternate, and the next dance you add goes at the end again."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add Program.alternateGroupRange and Program.insertSlotAtGroupBoundary for inserting a slot before or after an alternate group."
+    ]
+  }
+}

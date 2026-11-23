@@ -3918,12 +3918,6 @@ abstract class AppLocalizations {
   /// **'Starting program'**
   String get settingsDefaultsStartingProgramTitle;
 
-  /// Explanation of the starting program template.
-  ///
-  /// In en, this message translates to:
-  /// **'Dance and note entries added to manually created programs.'**
-  String get settingsDefaultsStartingProgramSubtitle;
-
   /// Title for the dance picker used by the starting program template.
   ///
   /// In en, this message translates to:
@@ -4199,6 +4193,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sources'**
   String get settingsDefaultsShareFieldsSources;
+
+  /// Label for the share-field toggle that prints a dance's tune details: its meter and key (time signature and musical key of the tune) and its Barnes reference (where the tune is printed in the Barnes books of English dance tunes). On by default. 'Barnes' is a name and stays as is.
+  ///
+  /// In en, this message translates to:
+  /// **'Meter, key and Barnes'**
+  String get settingsDefaultsShareFieldsMusic;
 
   /// Section header for the preference that chooses which filters appear in the Collection page's Filters panel and the dance picker (#1419).
   ///
@@ -4881,6 +4881,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When on, valid changes are saved as you work, so leaving the editor does not ask whether to discard them. Turn off to save programs explicitly.'**
   String get settingsProgramAutoCommitSubtitle;
+
+  /// Title of the Settings > Program > Programs switch that shows or hides each program's Pay field in the editor and its pay line on the summary. On by default.
+  ///
+  /// In en, this message translates to:
+  /// **'Show pay'**
+  String get settingsProgramShowPayTitle;
+
+  /// Subtitle of the Show pay switch: turning it off only hides pay in the program editor and summary; stored pay is never cleared.
+  ///
+  /// In en, this message translates to:
+  /// **'When off, the program editor and summary hide pay. Pay already entered is kept, and shows again when you turn this back on.'**
+  String get settingsProgramShowPaySubtitle;
 
   /// Header for the Program settings editor that reorders, renames, and removes program-matrix columns.
   ///
@@ -9394,6 +9406,60 @@ abstract class AppLocalizations {
   /// **'More actions for {title}'**
   String programsMoreActionsForSlot(String title);
 
+  /// Program builder slot overflow menu item: choose a dance from the collection and insert it before this slot's group (the slot, or its primary, and that primary's alternates).
+  ///
+  /// In en, this message translates to:
+  /// **'Add a dance before'**
+  String get programsAddDanceBeforeMenu;
+
+  /// Program builder slot overflow menu item: choose a dance from the collection and insert it after this slot's group (after the last alternate of the slot's primary).
+  ///
+  /// In en, this message translates to:
+  /// **'Add a dance after'**
+  String get programsAddDanceAfterMenu;
+
+  /// Title of the dance picker sheet opened by 'Add a dance before' on a narrow screen. {title} names the slot the new dance will go before.
+  ///
+  /// In en, this message translates to:
+  /// **'Add before {title}'**
+  String programsAddBeforeSheetTitle(String title);
+
+  /// Title of the dance picker sheet opened by 'Add a dance after' on a narrow screen. {title} names the slot the new dance will go after.
+  ///
+  /// In en, this message translates to:
+  /// **'Add after {title}'**
+  String programsAddAfterSheetTitle(String title);
+
+  /// Banner above the dance picker beside the program on a wide screen while 'Add a dance before' waits for a dance. Also announced to screen readers. {title} names the target slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Adding before {title}'**
+  String programsAddingBeforeBanner(String title);
+
+  /// Banner above the dance picker beside the program on a wide screen while 'Add a dance after' waits for a dance. Also announced to screen readers. {title} names the target slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Adding after {title}'**
+  String programsAddingAfterBanner(String title);
+
+  /// Screen-reader announcement when a dance is inserted before a slot in the program being edited. {title} is the added dance; {target} is the slot it went before.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {title} before {target}.'**
+  String programsAddedDanceBeforeAnnounce(String title, String target);
+
+  /// Screen-reader announcement when a dance is inserted after a slot in the program being edited. {title} is the added dance; {target} is the slot it went after.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {title} after {target}.'**
+  String programsAddedDanceAfterAnnounce(String title, String target);
+
+  /// Screen-reader announcement when the caller cancels 'Add a dance before/after' from the banner beside the dance picker; the next dance added goes at the end of the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Canceled. New dances go at the end.'**
+  String get programsInsertionCancelledAnnounce;
+
   /// Overflow menu item to edit a program slot.
   ///
   /// In en, this message translates to:
@@ -13770,6 +13836,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Type to add or create…'**
   String get danceEditorTypeToAddOrCreateHint;
+
+  /// Hint in an empty multi-select field (Authors, Interpreted by, Tags) that opens a list to pick from or add to.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose…'**
+  String get danceEditorChooseHint;
+
+  /// Hint in the search box of the open list of dancers a figure names (its Who field), which narrows the list.
+  ///
+  /// In en, this message translates to:
+  /// **'Search dancers'**
+  String get figureParamSearchDancersHint;
 
   /// Type-ahead option label for creating a new item with the typed name/title.
   ///
@@ -18344,7 +18422,7 @@ abstract class AppLocalizations {
   /// Help: what the authors block prints.
   ///
   /// In en, this message translates to:
-  /// **'Who wrote the dance.'**
+  /// **'Who wrote the dance and when, then who interpreted it and when.'**
   String get callingCardHelpBlockAuthors;
 
   /// Help: what the formation block prints.
@@ -18364,6 +18442,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Formation, level, mixer, status and phrase on one line, each with its label.'**
   String get callingCardHelpBlockMeta;
+
+  /// Help: what the music block prints: the tune's meter (time signature) and key, and the Barnes reference (where the tune is printed in the Barnes books). 'Barnes' is a name and stays as is.
+  ///
+  /// In en, this message translates to:
+  /// **'The tune\'s meter and key, and its Barnes reference, on one line.'**
+  String get callingCardHelpBlockMusic;
 
   /// Help: what the figures block prints.
   ///
@@ -18586,6 +18670,456 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'These cards are bigger than the paper, so each was printed smaller, one to a page.'**
   String get exportCallingCardsBiggerThanPaper;
+
+  /// Settings ▸ Defaults ▸ Program defaults row and manager screen title for the list of program templates.
+  ///
+  /// In en, this message translates to:
+  /// **'Program templates'**
+  String get settingsProgramTemplatesTitle;
+
+  /// Subtitle of the Program templates row: how many templates there are.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No templates yet} =1{1 template} other{{count} templates}}'**
+  String settingsProgramTemplatesCount(int count);
+
+  /// Settings row choosing the template a new program starts from when the user is not asked to choose.
+  ///
+  /// In en, this message translates to:
+  /// **'Default template'**
+  String get settingsProgramTemplateDefaultTitle;
+
+  /// Subtitle of the Default template row.
+  ///
+  /// In en, this message translates to:
+  /// **'What a new program starts from when you aren\'t asked to choose.'**
+  String get settingsProgramTemplateDefaultSubtitle;
+
+  /// Name given to the template made from the old Starting program setting when the app is upgraded.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting program'**
+  String get settingsProgramTemplatesMigratedName;
+
+  /// Choice of starting a new program with no slots, in the New program chooser and the Default template setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Blank program'**
+  String get programTemplateBlankProgram;
+
+  /// Marks the default template in the New program chooser.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get programTemplateDefaultBadge;
+
+  /// Title of the sheet New program shows when there are two or more templates.
+  ///
+  /// In en, this message translates to:
+  /// **'Start from a template'**
+  String get programTemplateChooserTitle;
+
+  /// Button and dialog title that creates a program template.
+  ///
+  /// In en, this message translates to:
+  /// **'New template'**
+  String get programTemplateNew;
+
+  /// Empty state title in the program templates manager.
+  ///
+  /// In en, this message translates to:
+  /// **'No templates yet'**
+  String get programTemplatesEmptyTitle;
+
+  /// Empty state body in the program templates manager.
+  ///
+  /// In en, this message translates to:
+  /// **'A template is a starting list of dances, notes and breaks for one kind of evening. With two or more, New program asks which to start from.'**
+  String get programTemplatesEmptyBody;
+
+  /// Label of the program template name field.
+  ///
+  /// In en, this message translates to:
+  /// **'Template name'**
+  String get programTemplateNameLabel;
+
+  /// Menu action that renames a program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get programTemplateRename;
+
+  /// Dialog title for renaming a program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename template'**
+  String get programTemplateRenameTitle;
+
+  /// Name of a duplicated program template.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} (copy)'**
+  String programTemplateCopyName(String name);
+
+  /// Shown for a program template with no name.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled template'**
+  String get programTemplateUntitled;
+
+  /// How many slots a program template has, in the manager list.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Empty} =1{1 slot} other{{count} slots}}'**
+  String programTemplateSlotCount(int count);
+
+  /// Manager list subtitle of the default template; slots is the slot count text.
+  ///
+  /// In en, this message translates to:
+  /// **'Default · {slots}'**
+  String programTemplateDefaultWithSlots(String slots);
+
+  /// Tooltip and screen-reader label of a program template row menu.
+  ///
+  /// In en, this message translates to:
+  /// **'Actions for {name}'**
+  String programTemplateActionsTooltip(String name);
+
+  /// Title of the program template editor screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit template'**
+  String get programTemplateEditorTitle;
+
+  /// Heading over a program template slot list.
+  ///
+  /// In en, this message translates to:
+  /// **'Slots'**
+  String get programTemplateSlotsHeader;
+
+  /// Explains a program template slot list.
+  ///
+  /// In en, this message translates to:
+  /// **'Dances, notes and breaks a program made from this template starts with.'**
+  String get programTemplateSlotsSubtitle;
+
+  /// Error shown when program templates cannot be read.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your program templates.'**
+  String get programTemplatesLoadError;
+
+  /// Snackbar shown when creating, renaming, duplicating, reordering or deleting a program template fails to save.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save that change to your templates. Try again.'**
+  String get programTemplateSaveError;
+
+  /// Program export-menu item: save or share the program as an iCalendar (.ics) file so a calendar app shows it. Shown only when the program has an event date.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to calendar (.ics)'**
+  String get exportAddToCalendar;
+
+  /// Programs list More actions item: pick several programs and save or share them as one iCalendar (.ics) file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export calendar (.ics)'**
+  String get programsExportCalendar;
+
+  /// Title of the checklist dialog where the user picks which programs go into a calendar (.ics) file. Also the share-sheet subject for that file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export calendar'**
+  String get exportCalendarPickTitle;
+
+  /// Body of the calendar export checklist dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the programs to put in the calendar file.'**
+  String get exportCalendarPickBody;
+
+  /// Switch in the calendar export checklist that adds programs whose date has passed to the list, unticked.
+  ///
+  /// In en, this message translates to:
+  /// **'Show past programs'**
+  String get exportCalendarShowPast;
+
+  /// Shown in the calendar export checklist when there are dated programs but none dated today or later that is not archived, and past programs are hidden. Upcoming archived programs are never listed in the checklist.
+  ///
+  /// In en, this message translates to:
+  /// **'No upcoming programs to list. Archived programs aren\'t listed here. Turn on Show past programs to choose an earlier one.'**
+  String get exportCalendarNoUpcoming;
+
+  /// Shown in the calendar export checklist when no program has an event date.
+  ///
+  /// In en, this message translates to:
+  /// **'No program has an event date yet. Give a program a date to add it to a calendar.'**
+  String get exportCalendarNoDated;
+
+  /// Confirm button of the calendar export checklist dialog; disabled until at least one program is ticked.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get exportCalendarPickConfirm;
+
+  /// Title of the consent dialog shown before a calendar (.ics) export when a chosen program's venue has a street address.
+  ///
+  /// In en, this message translates to:
+  /// **'Include the venue\'s address?'**
+  String get exportCalendarAddressTitle;
+
+  /// Body of the calendar export's venue-address consent dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'The calendar file names the venue. Its street address is left out unless you include it. Calendars are often synced or shared with others.'**
+  String get exportCalendarAddressBody;
+
+  /// The single checkbox, unticked by default, in the calendar export's venue-address consent dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Include the venue\'s address'**
+  String get exportCalendarAddressInclude;
+
+  /// Title of the dialog that asks how to deliver a calendar (.ics) file: Save, Share or Cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Export calendar file'**
+  String get exportCalendarDialogTitle;
+
+  /// Body of the dialog that asks how to deliver a calendar (.ics) file.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how to deliver this calendar file.'**
+  String get exportCalendarDialogMessage;
+
+  /// Snack bar after a calendar (.ics) file was saved, when the platform does not report its file name.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar file saved.'**
+  String get exportCalendarSavedGeneric;
+
+  /// Snack bar when saving a calendar (.ics) file failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save this calendar file. Try again.'**
+  String get exportCalendarSaveError;
+
+  /// Snack bar when building or sharing a calendar (.ics) file failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t share this calendar file. Try again.'**
+  String get exportCalendarShareError;
+
+  /// Error when a calendar import's address returns something that is not an iCalendar file, often a web page. Mentions where Google Calendar shows its iCal address.
+  ///
+  /// In en, this message translates to:
+  /// **'That address didn\'t return a calendar. For a Google Calendar, use its address in iCal format (Settings and sharing ▸ Integrate calendar), not the ordinary link.'**
+  String get importErrorNotACalendar;
+
+  /// Programs import menu item: import gigs from the user's online calendar as draft programs.
+  ///
+  /// In en, this message translates to:
+  /// **'From calendar'**
+  String get importFromCalendar;
+
+  /// More actions menu item on narrow screens: import gigs from the user's online calendar as draft programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from calendar'**
+  String get importProgramFromCalendar;
+
+  /// Title of the calendar import screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from calendar'**
+  String get calendarImportTitle;
+
+  /// App-bar button on the calendar import screen that creates the ticked draft programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get calendarImportImport;
+
+  /// Label of the field holding the online calendar's iCal (.ics) address.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar address'**
+  String get calendarAddressLabel;
+
+  /// Helper text under the calendar address field.
+  ///
+  /// In en, this message translates to:
+  /// **'The calendar\'s iCal address, starting https:// or webcal://. A private calendar\'s secret address works too; keep it to yourself.'**
+  String get calendarAddressHelper;
+
+  /// Button on the calendar import screen that reads the calendar now.
+  ///
+  /// In en, this message translates to:
+  /// **'Fetch events'**
+  String get calendarImportFetch;
+
+  /// Generic failure message of the calendar import.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t import from the calendar. Try again.'**
+  String get calendarImportFailed;
+
+  /// Title given to a calendar event with no usable title, in the preview and on the draft program it becomes.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled event'**
+  String get calendarImportUntitled;
+
+  /// Snack bar after a calendar import created draft programs; offers Undo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 draft program added from your calendar.} other{{count} draft programs added from your calendar.}}'**
+  String calendarImportCommitted(int count);
+
+  /// Shown on the calendar import preview when the calendar has no events in range.
+  ///
+  /// In en, this message translates to:
+  /// **'No events in the date range.'**
+  String get calendarImportNothingFound;
+
+  /// Summary at the top of the calendar import preview.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No new events.} =1{1 new event.} other{{count} new events.}}'**
+  String calendarImportSummary(int count);
+
+  /// Heading over the new calendar events, ticked, in the calendar import preview.
+  ///
+  /// In en, this message translates to:
+  /// **'New in your calendar'**
+  String get calendarImportNewHeader;
+
+  /// Heading over calendar events whose imported program is in Recently deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'You deleted these programs'**
+  String get calendarImportDeletedHeader;
+
+  /// Note on a calendar event whose imported program is in Recently deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'You deleted the program made from this event. Tick it to import it again.'**
+  String get calendarImportDeletedNote;
+
+  /// Heading over calendar events already imported as programs; they are not offered again.
+  ///
+  /// In en, this message translates to:
+  /// **'Already imported'**
+  String get calendarImportAlreadyHeader;
+
+  /// Heading over calendar events that this app exported from its own programs; they are not offered.
+  ///
+  /// In en, this message translates to:
+  /// **'From this app'**
+  String get calendarImportFromThisAppHeader;
+
+  /// Heading over repeating calendar events whose repeat rule the app cannot read.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeating events the app can\'t read'**
+  String get calendarImportUnreadableHeader;
+
+  /// Body under the heading for unreadable repeating events.
+  ///
+  /// In en, this message translates to:
+  /// **'These repeat in a way the app doesn\'t understand, so they are not imported.'**
+  String get calendarImportUnreadableBody;
+
+  /// Note in the calendar import preview: events with no UID cannot be recognised again, so they are skipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 event has no identifier and was skipped.} other{{count} events have no identifier and were skipped.}}'**
+  String calendarImportSkippedNoUid(int count);
+
+  /// Note in the calendar import preview when the feed is over the event cap.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, other{The calendar has more than {count} events. Only the first {count} were read.}}'**
+  String calendarImportTruncated(int count);
+
+  /// Settings ▸ Program subsection heading for the calendar import.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get calendarSettingsHeader;
+
+  /// Snack bar when a calendar setting could not be saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save that setting. Try again.'**
+  String get calendarSettingsSaveError;
+
+  /// Subtitle of the calendar address setting when an address is stored. The address itself is never shown.
+  ///
+  /// In en, this message translates to:
+  /// **'Set. Tap to change it.'**
+  String get calendarAddressSet;
+
+  /// Subtitle of the calendar address setting when none is stored.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get calendarAddressNotSet;
+
+  /// Title of the calendar import's date-window setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Which events'**
+  String get calendarWindowTitle;
+
+  /// Subtitle of the calendar import's date-window setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Events from today up to this far ahead. Repeating events are read only 30 days ahead.'**
+  String get calendarWindowSubtitle;
+
+  /// An option in the calendar import's date-window setting.
+  ///
+  /// In en, this message translates to:
+  /// **'{months, plural, =1{1 month} other{{months} months}}'**
+  String calendarWindowOption(int months);
+
+  /// Title of the calendar import's title-filter setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Only events whose title contains'**
+  String get calendarTitleFilterTitle;
+
+  /// Helper text of the calendar import's title-filter field.
+  ///
+  /// In en, this message translates to:
+  /// **'For a calendar that also holds other events. Leave empty for every event.'**
+  String get calendarTitleFilterHelper;
+
+  /// Subtitle of the title-filter setting when no filter is set.
+  ///
+  /// In en, this message translates to:
+  /// **'Every event'**
+  String get calendarTitleFilterNone;
+
+  /// Subtitle of the title-filter setting showing the stored filter in quotes.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{filter}\"'**
+  String calendarTitleFilterValue(String filter);
+
+  /// Settings item that opens the calendar import.
+  ///
+  /// In en, this message translates to:
+  /// **'Pull now'**
+  String get calendarPullNowTitle;
+
+  /// Subtitle of the Pull now settings item.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the calendar and choose events to add as draft programs.'**
+  String get calendarPullNowSubtitle;
 }
 
 class _AppLocalizationsDelegate

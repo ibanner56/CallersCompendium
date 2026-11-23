@@ -49,6 +49,7 @@ void main() {
     List<String> authorIds = const [],
     String? difficultyLevelLabel,
     int? rating,
+    String? form,
   }) => {
     'id': id,
     'title': title,
@@ -59,6 +60,7 @@ void main() {
     'authorIds': authorIds,
     'difficultyLevelLabel': ?difficultyLevelLabel,
     'rating': ?rating,
+    'form': ?form,
     'figures': figures,
   };
 
@@ -812,13 +814,16 @@ void main() {
       final existingId = await seedExisting();
       await dances.update(
         (await dances.getById(existingId))!.copyWith(
+          form: DanceForm.ecd,
           alternateTitles: ['Monymusk'],
           barnesReference: 'BIII p. 92',
         ),
       );
       final session = await pipeline.commit(
         await pipeline.plan(
-          FakeSourceAdapter([record('fake-2', 'Nice Combination')]),
+          FakeSourceAdapter([
+            record('fake-2', 'Nice Combination', form: 'ecd'),
+          ]),
           const ImportRequest(),
         ),
         now: now,
@@ -830,6 +835,33 @@ void main() {
       expect(linked.title, 'Nice Combination');
       expect(linked.alternateTitles, ['Monymusk']);
       expect(linked.barnesReference, 'BIII p. 92');
+    });
+
+    // A link takes the record's form, and only an English dance keeps a
+    // Barnes reference, so linking a contra record clears it.
+    test('resolution link to a contra record keeps the other titles but not '
+        'the Barnes reference', () async {
+      final existingId = await seedExisting();
+      await dances.update(
+        (await dances.getById(existingId))!.copyWith(
+          form: DanceForm.ecd,
+          alternateTitles: ['Monymusk'],
+          barnesReference: 'BIII p. 92',
+        ),
+      );
+      await pipeline.commit(
+        await pipeline.plan(
+          FakeSourceAdapter([record('fake-2', 'Nice Combination')]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.link(existingId)},
+      );
+      final linked = (await dances.getById(existingId))!;
+      expect(linked.form, DanceForm.contra);
+      expect(linked.alternateTitles, ['Monymusk']);
+      expect(linked.barnesReference, '');
     });
 
     test('resolution duplicate imports a separate new dance', () async {
