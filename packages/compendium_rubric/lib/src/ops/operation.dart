@@ -81,14 +81,25 @@ sealed class Operation {
   /// carrying its flag.
   ///
   /// `slide_along_set` is one, and `slice`, which dances one or two slides, is
-  /// the other (a flagged diagonal slice is a known limit, see [Slice]): the slide's own displacement is what carries dancers on to the
-  /// next couple, so flagging it as the progression
-  /// names the movement that has already happened. Every other figure that
+  /// the other: the slide's own displacement is what carries dancers on to the
+  /// next couple, so flagging it as the progression names the movement that
+  /// has already happened. Every other figure that
   /// re-bands the set — a figure danced with the next neighbours — is *not* a
   /// progression, so a progression flag on top of it advances the set a second
   /// time (§8.1). See [OperationInvocation.apply], which is where the
   /// difference is applied.
   bool get isItsOwnProgression => false;
+
+  /// The steps this figure is danced in when it carries the progression flag,
+  /// one per progression the flag spends.
+  ///
+  /// Almost every figure is one step, itself, so a flag on it is one
+  /// progression. A `slice` back on the diagonal is two slides, and as the
+  /// progression it is **two progressions** *(user-ruled 2026-11-23: "diagonal
+  /// is double, straight back is single")*: [OperationInvocation] runs each
+  /// step with its own change-over, exactly as two flagged slides would be,
+  /// and the progression count advances once per step.
+  List<Operation> get progressionSteps => [this];
 
   /// Whether this figure reads the wave offsets rather than needing them
   /// settled away first (`docs/fundamentals.md` §8.5.4).

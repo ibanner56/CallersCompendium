@@ -751,7 +751,8 @@ void main() {
     });
 
     test('a Becket dance opening with a double slice does not', () {
-      // A diagonal return is two slides; a flag on it is not ruled, so the
+      // A diagonal return flagged is two progressions, and single-progression
+      // dances open with one too, so (agent's call) the
       // bridge does not assume one there.
       final dance = _shapedLike(
         shape: core.FormationShape.becketCw,

@@ -1101,25 +1101,31 @@ To be defined later with worked examples.
 - **interaction scope:** cross-h4, like the slide.
 - **h4 contribution** (D7): **+1** per slide, so +1 straight and +2 diagonal.
 - **progression-eligible:** yes, and it is **its own progression**, like the slide: a flag on a
-  straight slice names the shift it has already made. ⚠️ **Known limit:** a diagonal return is
-  two slides, but a flag end-normalizes once, so a progression-flagged diagonal slice compiles
-  as a mismatch. Whether a flag on a double slice means one progression or two is not ruled.
-  The ruling (2026-11-22) says how far a diagonal return shifts the set, not how many
-  progressions a flag on it counts. On the Caller's Box mirror (measured 2026-11-23), 21 dances
+  straight slice names the shift it has already made. **A flagged diagonal slice is two
+  progressions** *(user-ruled 2026-11-23: "diagonal is double, straight back is single")*: it
+  runs as two flagged slides, each with its own change-over, and the progression count
+  advances by two (`Operation.progressionSteps`). So a double-progression dance can progress
+  on one double slice, and a single-progression dance flagged on one is a mismatch. On the
+  Caller's Box mirror (measured 2026-11-23), 21 dances
   hold a "Double slice". `compendium_core`'s importer structures only the 3 written "go
   forward to S1, fall back to S2": all three are mid-dance shifts in single-progression
   improper dances, and none is flagged. It leaves the other 18 as free text, so none of them
   reaches the compiler: 17 go forward to a neighbour and fall back to the next (N1 to N2, or N2
   to N3), and one goes forward to a shadow and falls back to partner. 13 of the 18 are in
   dances Caller's Box marks as a double or quadruple progression, and 5 of those open with the
-  double slice (Warren's Roadhouse Reel, in the Seattle core set, is one). The bridge does not
-  assume a progression on a Becket opener double slice, but a dance ending in one can still get
-  the last-figure flag.
+  double slice (Warren's Roadhouse Reel, in the Seattle core set, is one). A double slice
+  inside a `modifier` or `meanwhile` is a known limit: the container is one progression step,
+  so a flag on it counts one.
 - **assumed progression (Caller's Box):** a Becket dance that **opens with a slice left** and a
   straight return is assumed to progress on it, exactly as one opening with a slide left is
   (user-ruled 2026-11-22, extending the slide rule in `callersbox_source.dart`). A diagonal
-  return is not, for the reason above.
-- **sources:** user ruling 2026-11-22 (slice = slide; straight one couple, diagonal two;
+  return is not *(agent's call, 2026-11-23)*: flagged, it spends two progressions, and
+  single-progression Becket dances open with one too (Plaid Shirts in Tennessee {Will Mentor
+  variant}, A Second Slice of Cake), so assuming it would turn those into mismatches. A dance
+  ending in one can still get the ordinary last-figure flag. Reading the dance's progression
+  tier before assuming would settle it, but no double slice that opens a dance imports today.
+- **sources:** user rulings 2026-11-22 (slice = slide; straight one couple, diagonal two) and
+  2026-11-23 (a flagged diagonal slice is two progressions;
   measured on the Caller's Box mirror before the ruling was asked); CallersCompendium taxonomy
   `slice` MoveDef. The prior verifier's "swap rows" fallback is not followed.
 

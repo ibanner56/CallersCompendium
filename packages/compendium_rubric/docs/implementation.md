@@ -162,7 +162,7 @@ behind §3.5's equality rule.
                                any held progression is overtaken (given up, reported)
                              else, if a progression is held:
                                finishHeldProgression(...) once a whole couple is at an end
-                             if flagged, progressions++ (counted where flagged, held or not)
+                             if flagged, progressions += progressionCount (counted where flagged, held or not; a flagged diagonal slice counts two)
                         c. Err  -> return CompileError(opIndex, opName, error, warnings)
                         d. Ok   -> state = value
    then            <- a held progression never finished -> heldProgressionUnfinished warning
@@ -772,7 +772,7 @@ rest cannot pass for the wrong reason.
 
 ## 15. Current state and known debt
 
-- **1,313 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,317 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

@@ -54,6 +54,74 @@ void main() {
     }
   });
 
+  group('a flagged double slice is two progressions (user-ruled 2026-11-23)', () {
+    // "Diagonal is double, straight back is single": a diagonal return is two
+    // slides, and as the progression it is both of a double progression.
+    Map<String, Object?> record(
+      List<Map<String, Object?>> figures, {
+      String progression = 'double',
+    }) => {
+      'title': 'double slice',
+      'formation': {'shape': 'becket'},
+      'progression': progression,
+      'figures': figures,
+    };
+    Map<String, Object?> flagged(String move, [Map<String, Object?>? params]) =>
+        {
+          'move': move,
+          'params': params ?? <String, Object?>{},
+          'progression': true,
+        };
+    CompileResult compiled(Map<String, Object?> raw) {
+      final parsed = parseDance(raw);
+      expect(parsed, isA<Ok<Dance, DanceParseError>>(), reason: '$parsed');
+      return compile((parsed as Ok<Dance, DanceParseError>).value);
+    }
+
+    for (final dir in SlideDirection.values) {
+      test(
+        'slice ${dir.key} on the diagonal, flagged, is two flagged slides',
+        () {
+          final start = startingFormation(FormationType.becketCw, handsFour: 3);
+          final once = progressing(SlideAlongSet(slide: dir), start);
+          expect(
+            progressing(Slice(slice: dir, back: SliceReturn.diagonal), start),
+            progressing(SlideAlongSet(slide: dir), once),
+          );
+        },
+      );
+    }
+
+    test('a double-progression dance compiles on one flagged double slice', () {
+      // Positive control first: the same dance written as two flagged slides.
+      expect(
+        compiled(
+          record([flagged('slide_along_set'), flagged('slide_along_set')]),
+        ),
+        isA<Compiled>(),
+      );
+      expect(
+        compiled(
+          record([
+            flagged('slice', {'return': 'diagonal'}),
+          ]),
+        ),
+        isA<Compiled>(),
+      );
+    });
+
+    test('and it is not a single progression', () {
+      expect(
+        compiled(
+          record([
+            flagged('slice', {'return': 'diagonal'}),
+          ], progression: 'single'),
+        ),
+        isNot(isA<Compiled>()),
+      );
+    });
+  });
+
   group('slice deferrals refuse rather than approximate', () {
     test('by a single dancer', () {
       final error = applyErr(const Slice(by: SliceBy.dancer), becketStart);

@@ -90,7 +90,7 @@ class Dance {
       if (widest < 1 && figure.operation.dancerSets.contains(WhoSet.shadows)) {
         widest = 1;
       }
-      if (figure.progression) progressions++;
+      progressions += figure.progressionCount;
     }
     return widest;
   }
