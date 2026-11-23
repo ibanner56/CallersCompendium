@@ -486,8 +486,9 @@ class Program {
   /// The one group with no primary is a leading run of orphaned alternates
   /// (`orphaned_alt`, reachable by dragging an alternate to the top). Inserting
   /// before it would make the run the new dance's alternates, so the run's
-  /// first slot becomes its primary instead, which is how the program is
-  /// already shown ([grouped]).
+  /// first slot is promoted to a planned primary instead: it loses its ALT
+  /// badge, gains a dance number, and is no longer hidden by
+  /// `hideAlternates`. The rest of the run stays its alternates.
   static List<ProgramSlot> insertSlotAtGroupBoundary(
     List<ProgramSlot> slots,
     int index,

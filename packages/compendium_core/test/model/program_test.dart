@@ -559,6 +559,9 @@ void main() {
       );
       expect(ids(next), ['new', 'o', 'o2', 'p']);
       expect(next.first.isAlt, isFalse);
+      // o is promoted to a planned dance of its own: new, o and p.
+      expect(next[1].isAlt, isFalse);
+      expect(Program.plannedDanceCountOf(next), 3);
       // The new dance is a group of its own; o and o2 still share theirs.
       final groups = Program.alternateGroupsForSlots(next);
       expect(groups[0], isNot(groups[1]));
