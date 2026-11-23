@@ -81,13 +81,13 @@ void main() {
   });
 
   testWidgets('shown by this build, which advertises glossary.v1, '
-      'glossary.v2 and programTemplates.v1 (#709, #1023, #2337)', (
-    tester,
-  ) async {
+      'glossary.v2, programTemplates.v1 and suggestions.v1 (#709, #1023, '
+      '#2337, #2343)', (tester) async {
     expect(SyncCapabilityPolicy.build.advertised, {
       SyncCapabilities.glossaryV1,
       SyncCapabilities.glossaryV2,
       SyncCapabilities.programTemplatesV1,
+      SyncCapabilities.suggestionsV1,
     });
     for (final path in const ['create', 'connect']) {
       await pump(tester, SyncCapabilityPolicy.build);

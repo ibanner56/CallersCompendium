@@ -54,7 +54,7 @@ Future<void> main() async {
   try {
     stdout.writeln('Seeding $danceCount dances into $dbPath …');
     final seedWatch = Stopwatch()..start();
-    await _seed(dbPath);
+    final seeded = await _seed(dbPath);
     seedWatch.stop();
     stdout.writeln('Seeded in ${seedWatch.elapsedMilliseconds} ms.');
 
@@ -135,6 +135,51 @@ Future<void> main() async {
 
     await db.close();
 
+    // Suggestions (#2343): the builder's Suggested sort ranks the picker's
+    // current results, which can be the whole collection, off the UI thread,
+    // and ranks them again after each dance added. This times it as the app
+    // does it, through a SuggestionWorker, for every seeded dance at the end of
+    // a ten-dance program at a venue: building the request (the per-candidate
+    // projection), sending it, ranking and returning. The longest block is
+    // the longest the calling (UI) isolate went without a turn of its event
+    // loop meanwhile, which is what a dropped frame would be.
+    //
+    // Cold: a new worker, sent every candidate. Re-rank: the same worker
+    // after one more dance is added, which sends only the program and ids.
+    final cold = <({double build, double total, double block})>[];
+    final warm = <({double build, double total, double block})>[];
+    for (var i = 0; i <= rankIterations; i++) {
+      final worker = SuggestionWorker();
+      try {
+        final first = await _timeRank(worker, seeded, programLength: 10);
+        final again = await _timeRank(worker, seeded, programLength: 11);
+        if (i == 0) continue; // warm-up
+        cold.add(first);
+        warm.add(again);
+      } finally {
+        worker.dispose();
+      }
+    }
+    final rankMedian = _median([for (final r in cold) r.total]);
+    final rankOk = rankMedian < failRankMedianMs;
+    failed = failed || !rankOk;
+    stdout.writeln(
+      '\nSuggested sort: ranking $danceCount dances '
+      '(median of $rankIterations runs):',
+    );
+    for (final (label, runs) in [('first rank', cold), ('re-rank', warm)]) {
+      stdout.writeln(
+        '  $label: build ${_median([for (final r in runs) r.build]).toStringAsFixed(2)} ms, '
+        'longest block ${_median([for (final r in runs) r.block]).toStringAsFixed(2)} ms, '
+        'total ${_median([for (final r in runs) r.total]).toStringAsFixed(2)} ms',
+      );
+    }
+    stdout.writeln(
+      '  ${rankOk ? 'ok ' : 'SLOW'}  first rank total '
+      '${rankMedian.toStringAsFixed(2).padLeft(7)} ms '
+      '(threshold ${failRankMedianMs.toStringAsFixed(0)} ms)',
+    );
+
     stdout.writeln(
       '\nWorst median: ${worstMedian.toStringAsFixed(2)} ms '
       '(threshold ${failMedianMs.toStringAsFixed(0)} ms).',
@@ -150,6 +195,80 @@ Future<void> main() async {
   } finally {
     await dir.delete(recursive: true);
   }
+}
+
+/// Runs of the ranking case. Fewer than the queries: one run ranks the whole
+/// collection.
+const int rankIterations = 5;
+
+/// Fail threshold for ranking the whole collection (median). The ranking runs
+/// off the UI thread, behind results already shown in their plain order, so
+/// this guards against a pathological regression, not a frame budget; the
+/// reported median is the signal.
+const double failRankMedianMs = 5000.0;
+
+/// The request the builder would send: every seeded dance as a candidate, in
+/// seed order, for the end of a program of the first ten, at a venue where
+/// one dance in ten was called on a date across the last year.
+SuggestionRequest _rankRequest(List<Dance> dances, {int programLength = 10}) {
+  final program = dances.take(programLength).toList();
+  return SuggestionRequest(
+    slotsBefore: [
+      for (var i = 0; i < program.length; i++)
+        ProgramSlot(id: 'slot-$i', position: i, danceId: program[i].id),
+    ],
+    programDances: {
+      for (final d in program) d.id: SuggestionCandidate.fromDance(d),
+    },
+    candidates: [for (final d in dances) SuggestionCandidate.fromDance(d)],
+    taxonomy: shippedTaxonomies.anyForm,
+    settings: SuggestionSettings.defaults,
+    today: DateTime.utc(2026, 11, 23),
+    levels: DifficultyLevel.shipped,
+    hasVenue: true,
+    calledHere: {
+      for (var i = 0; i < dances.length; i += 10)
+        dances[i].id: DateTime.utc(2025, 12, 1).add(Duration(days: i % 365)),
+    },
+  );
+}
+
+/// One rank through [worker], as the picker does it, with a probe that
+/// records the longest stretch the calling isolate's event loop was blocked.
+Future<({double build, double total, double block})> _timeRank(
+  SuggestionWorker worker,
+  List<Dance> seeded, {
+  required int programLength,
+}) async {
+  final clock = Stopwatch()..start();
+  var done = false;
+  var longest = 0;
+  final probe = () async {
+    while (!done) {
+      final before = clock.elapsedMicroseconds;
+      await Future<void>.delayed(Duration.zero);
+      longest = max(longest, clock.elapsedMicroseconds - before);
+    }
+  }();
+  // Let the probe take its first turn.
+  await Future<void>.delayed(Duration.zero);
+  final start = clock.elapsedMicroseconds;
+  final request = _rankRequest(seeded, programLength: programLength);
+  final built = clock.elapsedMicroseconds - start;
+  await worker.rank(request);
+  final total = clock.elapsedMicroseconds - start;
+  done = true;
+  await probe;
+  return (
+    build: built / 1000.0,
+    total: total / 1000.0,
+    block: longest / 1000.0,
+  );
+}
+
+double _median(List<double> samples) {
+  final sorted = [...samples]..sort();
+  return sorted[sorted.length ~/ 2];
 }
 
 Future<double> _time(Future<void> Function() run) async {
@@ -171,7 +290,11 @@ Future<double> _time(Future<void> Function() run) async {
 /// measures query time, not seed time). The schema — including the v2 `section`
 /// column, indexes and the FTS5 table — is created first by opening through
 /// [CompendiumDatabase].
-Future<void> _seed(String dbPath) async {
+///
+/// Returns the same dances as models, figures included, for the ranking case:
+/// the seeded rows store their figures in `dance_figures`, not `figures_json`.
+Future<List<Dance>> _seed(String dbPath) async {
+  final models = <Dance>[];
   // 1. Create the schema via the real database (onCreate), then close.
   final schemaDb = CompendiumDatabase(NativeDatabase(File(dbPath)));
   await schemaDb.customSelect('SELECT 1').get();
@@ -267,6 +390,7 @@ Future<void> _seed(String dbPath) async {
 
     final figureCount = 8 + rng.nextInt(5); // 8..12
     final figuresText = StringBuffer();
+    final figures = <Figure>[];
     var beat = 0;
     for (var f = 0; f < figureCount; f++) {
       final move = _moves[rng.nextInt(_moves.length)];
@@ -275,8 +399,22 @@ Future<void> _seed(String dbPath) async {
       final params = '{"who":"$who","beats":16}';
       figuresText.write('$who $move ');
       insFigure.execute([id, f, move, 16, 0, params, '$who $move', section]);
+      figures.add(Figure(move: move, params: {'who': who, 'beats': 16}));
       beat += 16;
     }
+    models.add(
+      Dance(
+        id: id,
+        title: title,
+        form: forms[i % forms.length],
+        formation: Formation(shapes[i % shapes.length]),
+        figures: figures,
+        difficultyLevelId:
+            DifficultyLevel.shipped[i % DifficultyLevel.shipped.length].id,
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      ),
+    );
 
     insAuthorLink.execute([id, 'author-${i % _authorCount}', 0]);
 
@@ -309,6 +447,7 @@ Future<void> _seed(String dbPath) async {
   raw.execute('COMMIT');
   raw.execute('PRAGMA wal_checkpoint(TRUNCATE)');
   raw.close();
+  return models;
 }
 
 String _titleWord(Random rng) {

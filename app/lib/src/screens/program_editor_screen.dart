@@ -58,6 +58,7 @@ import '../widgets/exclude_focus_when_collapsed.dart';
 import '../widgets/app_bar_text_action.dart';
 import '../widgets/app_shortcuts.dart';
 import '../widgets/collection_picker.dart';
+import '../widgets/picker_suggestions.dart' show PickerProgramContext;
 import '../widgets/confirm_discard_changes.dart';
 import '../widgets/dirty_dialog_guard.dart';
 import '../widgets/notice_card.dart';
@@ -3988,6 +3989,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                                   dialect: _dialect,
                                   enrichment: _enrichment,
                                   addedDanceCounts: _pickerCounts.value,
+                                  programContext: _pickerProgramContext(
+                                    atEnd: _insertion == null,
+                                  ),
                                   onAddDance: _addDanceSlot,
                                   onDanceImported: _rememberImportedDance,
                                   onImportingChanged: _setPickerImportActivity,
@@ -4444,6 +4448,27 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
+  /// The program, as the add-dance picker needs it (history-filters Q3,
+  /// #2343): its id, its venue as calling history keys it, and, when the
+  /// picker adds at the end ([atEnd]), its slots for Suggested. An insertion
+  /// before or after a slot passes no slots, so the picker does not offer
+  /// Suggested there (#2344).
+  PickerProgramContext _pickerProgramContext({required bool atEnd}) {
+    final typed = _venueController.text.trim();
+    final venueId = _venueId;
+    return PickerProgramContext(
+      programId: _existing?.id ?? widget.programId,
+      venueId: venueId,
+      venue: typed.isEmpty ? null : typed,
+      // As the venue hint names it; with no name to show, the picker falls
+      // back to the hint's own words.
+      venueLabel: venueId != null
+          ? (_linkedVenue?.displayName ?? (typed.isEmpty ? null : typed))
+          : (typed.isEmpty ? null : typed),
+      slots: atEnd ? List.unmodifiable(_slots) : null,
+    );
+  }
+
   /// The narrow-screen dance picker sheet. With [insertion] (#2339) it is
   /// titled with the target and closes on the first dance chosen, which lands
   /// there; closing it without a pick ends the insertion. Without one it stays
@@ -4535,6 +4560,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                             enrichment: _enrichment,
                             scrollController: scrollController,
                             addedDanceCounts: counts,
+                            programContext: _pickerProgramContext(
+                              atEnd: insertion == null,
+                            ),
                             // Keep the sheet open so callers can add several
                             // dances, unless this sheet is for one insertion.
                             onAddDance: insertion == null

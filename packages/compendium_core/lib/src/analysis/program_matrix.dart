@@ -567,12 +567,29 @@ class ProgramMatrix {
     if (kind == MatrixColumnKind.custom || kind == MatrixColumnKind.compound) {
       return false;
     }
-    final moveId = columns[colIndex].moveId;
-    return switch (collisionMode) {
-      MatrixCollisionMode.exactBeats => _isExactBeatCollision(rowIndex, moveId),
-      MatrixCollisionMode.phrase => _isPhraseCollision(rowIndex, moveId),
-    };
+    return isCollisionOnMove(rowIndex, columns[colIndex].moveId);
   }
+
+  /// [isCollision] by the move's column key rather than a column index, for a
+  /// row whose moves need not have a column in [columns] (a candidate row
+  /// added to a program's rows, as suggestions compare one, #2343). The custom
+  /// and compound keys never collide here either: neither
+  /// [MatrixRow.phraseLabelsByMove] nor [MatrixRow.beatSpansByMove] carries
+  /// them.
+  bool isCollisionOnMove(int rowIndex, String moveId) =>
+      switch (collisionMode) {
+        MatrixCollisionMode.exactBeats => _isExactBeatCollision(
+          rowIndex,
+          moveId,
+        ),
+        MatrixCollisionMode.phrase => _isPhraseCollision(rowIndex, moveId),
+      };
+
+  /// The rows [rowIndex] can be danced directly next to, exactly as
+  /// [isCollision] compares them: every row of the alternate group before and
+  /// after its own, never across a break.
+  Iterable<int> neighborRowIndices(int rowIndex) =>
+      _neighborRowIndices(rowIndex);
 
   /// The rows [rowIndex] can be danced directly next to: every row of the
   /// alternate group immediately before its own and every row of the group
@@ -835,6 +852,179 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
   variant: variant,
 );
 
+/// One dance routed into matrix columns: its [MatrixRow], the column keys it
+/// adds to the matrix's columns (every routed key but [customMove] and a
+/// routed key that names a compound, plus every compound sequence it
+/// contains), whether it has a custom figure, and which partner/neighbor swing
+/// baseline columns a plain swing of it would fill.
+typedef _RoutedDance = ({
+  MatrixRow row,
+  Set<String> columnKeys,
+  bool hasCustom,
+  Set<String> plainSwingBaselineCandidates,
+});
+
+_RoutedDance _routeDance(
+  Dance dance,
+  Taxonomy tax,
+  MatrixColumnConfig config,
+  UserFigureCatalog userFigures, {
+  int? section,
+  int? alternateGroup,
+}) => _routeFigures(
+  danceId: dance.id,
+  title: dance.title,
+  structure: dance.phraseStructure,
+  danceFigures: switch (dance.figuresSource) {
+    DecodedFigures(:final figures) => figures,
+    // Nothing to read: an undecodable transcription contributes no figures.
+    UnreadableFigures() => const <Figure>[],
+  },
+  formation: dance.formation,
+  tax: tax,
+  config: config,
+  userFigures: userFigures,
+  section: section,
+  alternateGroup: alternateGroup,
+);
+
+/// [_routeDance] over the parts of a dance it reads, for a caller that holds
+/// only those ([buildMatrixRowFromFigures]).
+_RoutedDance _routeFigures({
+  required String danceId,
+  required String title,
+  required PhraseStructure structure,
+  required List<Figure> danceFigures,
+  required Formation formation,
+  required Taxonomy tax,
+  required MatrixColumnConfig config,
+  required UserFigureCatalog userFigures,
+  int? section,
+  int? alternateGroup,
+}) {
+  final compoundIds = {for (final compound in config.compound) compound.id};
+  final rowMoves = <String>{};
+  final columnKeys = <String>{};
+  final plainSwingBaselineCandidates = <String>{};
+  var hasCustom = false;
+  final phraseLabels = <String, Set<String>>{};
+  final beatSpans = <String, List<BeatSpan>>{};
+  // Phrase/beat positions are derived from cumulative *effective* beats
+  // ([Taxonomy.effectiveParams]) — the taxonomy defaults and unknown-move
+  // fallback the rest of the analysis uses — NOT raw [Figure.beats] (which is
+  // 0 when a figure carries no explicitly-stored count, mislabelling every
+  // such figure as A1 and producing false collisions). A figure is labelled
+  // by the phrase it *starts* in; every figure (custom included) advances the
+  // beat cursor so later figures land in the right phrase/position.
+  var beat = 0;
+  for (final figure in danceFigures) {
+    final key = columnKeyForFigure(figure, tax, config, userFigures);
+    final canonicalId = tax.resolve(figure.move)?.id;
+    if (canonicalId == swingMoveId) {
+      final effective = tax.effectiveParams(figure);
+      final fallbackKey = swingColumnKey(effective['who'], effective['prefix']);
+      if (swingBaselineVariants.any(
+        (variant) => '$swingMoveId:$variant' == fallbackKey,
+      )) {
+        plainSwingBaselineCandidates.add(fallbackKey);
+      }
+    }
+    final effBeats = _effectiveBeats(tax, figure);
+    rowMoves.add(key);
+    if (key == customMove) {
+      hasCustom = true;
+    } else if (compoundIds.contains(key)) {
+      // Compound ids are per-dance booleans and are never collision
+      // candidates, just like the collapsed custom column.
+    } else {
+      columnKeys.add(key);
+      // Track the phrase in which this move starts, and its exact beat
+      // span, so strictly-adjacent dances can be checked for same-figure
+      // collisions under either [MatrixCollisionMode]. Custom and compound
+      // columns are excluded (they are un-comparable) but still advance the
+      // beat cursor below.
+      (phraseLabels[key] ??= <String>{}).add(
+        labelForFigure(beat, effBeats, structure),
+      );
+      (beatSpans[key] ??= <BeatSpan>[]).add(BeatSpan(beat, effBeats));
+    }
+    beat += effBeats;
+  }
+  for (final compound in config.compound) {
+    if (_containsCompoundRun(danceFigures, compound, tax)) {
+      rowMoves.add(compound.id);
+      columnKeys.add(compound.id);
+    }
+  }
+  return (
+    row: MatrixRow(
+      danceId: danceId,
+      title: title,
+      firstMoveId: danceFigures.isEmpty
+          ? null
+          : columnKeyForFigure(danceFigures.first, tax, config, userFigures),
+      presentMoveIds: rowMoves,
+      phraseLabelsByMove: phraseLabels,
+      beatSpansByMove: beatSpans,
+      section: section,
+      alternateGroup: alternateGroup,
+      formation: formation,
+    ),
+    columnKeys: columnKeys,
+    hasCustom: hasCustom,
+    plainSwingBaselineCandidates: plainSwingBaselineCandidates,
+  );
+}
+
+/// The [MatrixRow] [buildProgramMatrix] builds for [dance], with the same
+/// routing ([columnKeyForFigure]), phrase labels and beat spans, for a caller
+/// that compares one dance with a matrix's rows without rebuilding the whole
+/// matrix (suggestions, #2343). [taxonomy], [config] and [userFigures] mean
+/// what they mean to [buildProgramMatrix]; pass the same values, or the row's
+/// column keys will not match the matrix's.
+MatrixRow buildMatrixRow(
+  Dance dance, {
+  Taxonomy? taxonomy,
+  int? section,
+  int? alternateGroup,
+  MatrixColumnConfig config = MatrixColumnConfig.empty,
+  UserFigureCatalog userFigures = UserFigureCatalog.empty,
+}) => _routeDance(
+  dance,
+  taxonomy ?? shippedTaxonomies.anyForm,
+  config,
+  userFigures,
+  section: section,
+  alternateGroup: alternateGroup,
+).row;
+
+/// [buildMatrixRow] for a dance known only by the parts a row reads: its id,
+/// phrase structure, figures and formation. Suggestions (#2343) send these to
+/// another isolate instead of whole dances.
+MatrixRow buildMatrixRowFromFigures({
+  required String danceId,
+  required List<Figure> figures,
+  PhraseStructure phraseStructure = PhraseStructure.standard,
+  Formation formation = const Formation(FormationShape.dupleImproper),
+  String title = '',
+  Taxonomy? taxonomy,
+  int? section,
+  int? alternateGroup,
+  MatrixColumnConfig config = MatrixColumnConfig.empty,
+  UserFigureCatalog userFigures = UserFigureCatalog.empty,
+}) => _routeFigures(
+  danceId: danceId,
+  title: title,
+  structure: phraseStructure,
+  danceFigures: figures,
+  formation: formation,
+  tax: taxonomy ?? shippedTaxonomies.anyForm,
+  config: config,
+  userFigures: userFigures,
+  section: section,
+  alternateGroup: alternateGroup,
+).row;
+
 /// Builds the [ProgramMatrix] for [dances] (rows, in the given order) using
 /// [taxonomy] (defaults to [TaxonomyRegistry.anyForm], since a program can mix
 /// forms) to order and classify columns.
@@ -952,84 +1142,20 @@ ProgramMatrix buildProgramMatrix(
   final present = <String>{};
   var hasCustom = false;
   final plainSwingBaselineCandidates = <String>{};
-  final compoundIds = {for (final compound in config.compound) compound.id};
 
   for (var i = 0; i < dances.length; i++) {
-    final dance = dances[i];
-    final rowMoves = <String>{};
-    final phraseLabels = <String, Set<String>>{};
-    final beatSpans = <String, List<BeatSpan>>{};
-    // Phrase/beat positions are derived from cumulative *effective* beats
-    // ([Taxonomy.effectiveParams]) — the taxonomy defaults and unknown-move
-    // fallback the rest of the analysis uses — NOT raw [Figure.beats] (which is
-    // 0 when a figure carries no explicitly-stored count, mislabelling every
-    // such figure as A1 and producing false collisions). A figure is labelled
-    // by the phrase it *starts* in; every figure (custom included) advances the
-    // beat cursor so later figures land in the right phrase/position.
-    final structure = dance.phraseStructure;
-    final danceFigures = switch (dance.figuresSource) {
-      DecodedFigures(:final figures) => figures,
-      // Nothing to read: an undecodable transcription contributes no figures.
-      UnreadableFigures() => const <Figure>[],
-    };
-    var beat = 0;
-    for (final figure in danceFigures) {
-      final key = columnKeyForFigure(figure, tax, config, userFigures);
-      final canonicalId = tax.resolve(figure.move)?.id;
-      if (canonicalId == swingMoveId) {
-        final effective = tax.effectiveParams(figure);
-        final fallbackKey = swingColumnKey(
-          effective['who'],
-          effective['prefix'],
-        );
-        if (swingBaselineVariants.any(
-          (variant) => '$swingMoveId:$variant' == fallbackKey,
-        )) {
-          plainSwingBaselineCandidates.add(fallbackKey);
-        }
-      }
-      final effBeats = _effectiveBeats(tax, figure);
-      rowMoves.add(key);
-      if (key == customMove) {
-        hasCustom = true;
-      } else if (compoundIds.contains(key)) {
-        // Compound ids are per-dance booleans and are never collision
-        // candidates, just like the collapsed custom column.
-      } else {
-        present.add(key);
-        // Track the phrase in which this move starts, and its exact beat
-        // span, so strictly-adjacent dances can be checked for same-figure
-        // collisions under either [MatrixCollisionMode]. Custom and compound
-        // columns are excluded (they are un-comparable) but still advance the
-        // beat cursor below.
-        (phraseLabels[key] ??= <String>{}).add(
-          labelForFigure(beat, effBeats, structure),
-        );
-        (beatSpans[key] ??= <BeatSpan>[]).add(BeatSpan(beat, effBeats));
-      }
-      beat += effBeats;
-    }
-    for (final compound in config.compound) {
-      if (_containsCompoundRun(danceFigures, compound, tax)) {
-        rowMoves.add(compound.id);
-        present.add(compound.id);
-      }
-    }
-    rows.add(
-      MatrixRow(
-        danceId: dance.id,
-        title: dance.title,
-        firstMoveId: danceFigures.isEmpty
-            ? null
-            : columnKeyForFigure(danceFigures.first, tax, config, userFigures),
-        presentMoveIds: rowMoves,
-        phraseLabelsByMove: phraseLabels,
-        beatSpansByMove: beatSpans,
-        section: sections == null ? null : sections[i],
-        alternateGroup: alternateGroups == null ? null : alternateGroups[i],
-        formation: dance.formation,
-      ),
+    final routed = _routeDance(
+      dances[i],
+      tax,
+      config,
+      userFigures,
+      section: sections == null ? null : sections[i],
+      alternateGroup: alternateGroups == null ? null : alternateGroups[i],
     );
+    rows.add(routed.row);
+    present.addAll(routed.columnKeys);
+    hasCustom = hasCustom || routed.hasCustom;
+    plainSwingBaselineCandidates.addAll(routed.plainSwingBaselineCandidates);
   }
 
   final columns = <MatrixColumn>[];
@@ -1484,3 +1610,47 @@ Iterable<String> _listedAliasesOf(String moveId, Taxonomy taxonomy) => [
   for (final alias in taxonomy.aliases.values)
     if (alias.listedAsMove && alias.targetMove == moveId) alias.id,
 ];
+
+/// The [MatrixColumn] that [buildProgramMatrix] would make for the column key
+/// [key] (a key [buildMatrixRow] routes a figure to), so a caller holding only
+/// a key — a suggestion's reason names the move it is about (#2343) — can
+/// label it with [matrixColumnLabel]. [taxonomy], [config] and [userFigures]
+/// must be the ones the key was routed with.
+MatrixColumn matrixColumnForKey(
+  String key, {
+  Taxonomy? taxonomy,
+  MatrixColumnConfig config = MatrixColumnConfig.empty,
+  UserFigureCatalog userFigures = UserFigureCatalog.empty,
+}) {
+  if (key == customMove) {
+    return const MatrixColumn(
+      moveId: customMove,
+      kind: MatrixColumnKind.custom,
+    );
+  }
+  if (isUserFigureKey(key)) {
+    final id = key.substring(userFigureRefPrefix.length);
+    return _userFigureColumn(key, userFigures[id]?.name ?? id);
+  }
+  if (config.parameterized.any((column) => column.id == key)) {
+    return MatrixColumn(moveId: key, kind: MatrixColumnKind.parameterized);
+  }
+  if (config.compound.any((column) => column.id == key)) {
+    return MatrixColumn(moveId: key, kind: MatrixColumnKind.compound);
+  }
+  final colon = key.indexOf(':');
+  if (colon > 0) {
+    final base = key.substring(0, colon);
+    if (base == swingMoveId ||
+        base == heyMoveId ||
+        base == allemandeMoveId ||
+        base == chainMoveId) {
+      return _splitColumn(base, key.substring(colon + 1));
+    }
+  }
+  final tax = taxonomy ?? shippedTaxonomies.anyForm;
+  if (tax.resolve(key) != null) {
+    return MatrixColumn(moveId: key, kind: MatrixColumnKind.known);
+  }
+  return MatrixColumn(moveId: key, kind: MatrixColumnKind.unknown);
+}

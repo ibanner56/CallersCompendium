@@ -7,6 +7,7 @@ import '../../model/program.dart';
 import '../../model/provenance.dart' as model;
 import '../../model/stored_timestamp.dart';
 import '../../search/filter.dart';
+import '../../search/filter_compiler.dart' show calledSlotConditionsSql;
 import '../../sync/sync_record_kind.dart';
 import '../database.dart';
 import '../existence.dart';
@@ -1468,6 +1469,51 @@ class ProgramRepository {
       _programDerivedRows(_normalizedCallerFilter(callerFilter)).get().then(
         (rows) => _lastCalledFromRows(rows, requireEventDate: requireEventDate),
       );
+
+  /// Maps each dance that [filter] would find called (its
+  /// [CalledFilter.called] is ignored) to the latest recency date among the
+  /// slots it counts, or to null when none of them has one.
+  ///
+  /// The slots are chosen by exactly the SQL a [CalledFilter] compiles to
+  /// ([calledSlotConditionsSql]): the calling-history settings, the venue,
+  /// and [CalledFilter.currentProgramId], so a program being built never
+  /// counts as its own history. The date is the recency date
+  /// ([callingHistoryRecencyDateSql] under [CalledFilter.tracking]), the one
+  /// a recency window compares, so a slot with none still makes the dance
+  /// called but dates nothing (N1-3). Suggestions read it for "called at this
+  /// venue" (#2343); pass no [CalledFilter.since], or dances called only
+  /// before it are left out.
+  Future<Map<String, DateTime?>> latestCallByDance(CalledFilter filter) async {
+    final binds = <Object?>[];
+    final conditions = calledSlotConditionsSql(filter, binds);
+    final date = callingHistoryRecencyDateSql(
+      slotTable: 'ps',
+      programTable: 'p',
+      requireEventDate: filter.tracking.recencyRequireEventDate,
+      requirePerformed: filter.tracking.recencyRequirePerformed,
+    );
+    final rows = await _db
+        .customSelect(
+          'SELECT ps.dance_id AS dance_id, MAX($date) AS last_called '
+          'FROM program_slots ps '
+          'JOIN programs p ON p.id = ps.program_id '
+          'WHERE ps.dance_id IS NOT NULL AND p.deleted_at IS NULL'
+          '$conditions '
+          'GROUP BY ps.dance_id',
+          variables: [for (final b in binds) Variable(b)],
+          readsFrom: _programDerivedTables,
+        )
+        .get();
+    return {
+      for (final row in rows)
+        row.read<String>('dance_id'): switch (row.read<DateTime?>(
+          'last_called',
+        )) {
+          final date? => asUtc(date),
+          null => null,
+        },
+    };
+  }
 
   /// Maps dance id → its [DanceCallCounts] across every counted slot (every
   /// primary, plus each alternate marked performed) of every non-deleted

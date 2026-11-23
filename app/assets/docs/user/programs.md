@@ -384,6 +384,41 @@ show its details in the picker pane; letting go puts the pane back. On a narrow
 screen, details open on top of the picker, so your search is still there when
 you close them.
 
+### Let the app suggest the next dance
+
+*Experimental.* With **Suggest the next dance** on in
+[Settings ▸ Experimental ▸ Suggestions](./settings.md#suggestions), the picker's
+**Sort** menu has one more choice, **Suggested**. It orders the dances the
+picker is showing (your search and filters still decide which ones) by how well
+each would fit as the next dance at the end of your program, best first. It
+looks at variety on the [matrix](#check-your-evening-with-the-matrix), the
+balance of formations, the difficulty of the evening, and when you last called
+each dance at the program's venue, as much as you chose under
+**What suggestions look for**.
+
+Each dance shows a short line under its details with the one or two things that
+moved it most, such as *Never called at the Grange · Same swing beats as the
+previous dance*. Select the question mark on a row to see why that dance is
+suggested there: every reason, each marked as raising or lowering it.
+
+- The picker always opens in your usual order. Suggested lasts until you
+  choose another sort or close the picker, and re-orders as you search or add
+  dances.
+- Ordering takes a moment on a large collection. Meanwhile the list shows in
+  its plain order with a spinner by the count, and you can add dances as usual.
+- Suggested is only offered when the dance will go at the end of the program:
+  not while you are adding a dance before or after a slot, nor when you replace
+  a slot's dance.
+- English dances aren't covered yet. They are listed after the ordered
+  dances, in their usual order, and say so.
+- A dance already in the program stays in the list but goes to the very
+  bottom, after the English dances, marked *Already in this program*. Any
+  type of dance goes there, English included. Dances there keep their usual
+  order.
+- If the dances can't be ordered, the list stays in its usual order and says
+  so above the first dance.
+- Nothing is saved by suggesting: it only changes the order of the list.
+
 ### Save your program
 
 Choose **Save** at the end of the top bar to keep your changes; it is there

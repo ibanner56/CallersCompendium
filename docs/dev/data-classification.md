@@ -494,7 +494,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**132 settings keys**: 86 shareable, 13 device-local, 31 device-scoped, 1 protocol-identifier, 1 store-address. 5 personal data by category.
+**134 settings keys**: 88 shareable, 13 device-local, 31 device-scoped, 1 protocol-identifier, 1 store-address. 5 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -609,6 +609,8 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `show_program_slot_caller_notes` | `dpv:NonPersonalData` | app user | shareable |  |
 | `soft_delete_retention_days` | `dpv:NonPersonalData` | app user | shareable |  |
 | `sort_ignore_articles` | `dpv:NonPersonalData` | app user | shareable |  |
+| `suggestion_settings` | `dpv:NonPersonalData` | app user | shareable | The user's chosen weights for the program builder's Suggested sort (Off / A little / A lot per factor, the difficulty curve's shape and the venue window), plus a reserved list of preferences that will hold saved-search ids. How the user likes dances suggested, the same on every device, so it travels like any preference. Ranking reads calling history and venues locally and stores nothing. |
+| `suggestions_enabled` | `dpv:NonPersonalData` | app user | shareable |  |
 | `sync_device_id` | `dpv:NonPersonalData` | — | **protocol-identifier** | Opaque per-attachment routing identifier, minted anew each time the device attaches so that the identifier itself never links one attachment to the next. Synced content and its blob hashes can still be correlated by the operator; this removes only the identifier as a link. It must travel in protocol metadata but must never be adopted from another device or restored from a backup. |
 | `sync_enabled` | `dpv:NonPersonalData` | — | device-scoped | Per-installation Device Sync consent. Never synced and never restored from a backup: consent given on one device is not consent on another. |
 | `sync_endpoint` | `dpv:NonPersonalData` | — | device-scoped | The Athenaeum server this installation pairs and syncs with. Never synced, because a synced endpoint would let one device silently redirect another, and never restored from a backup. |
