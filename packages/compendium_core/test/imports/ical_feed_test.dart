@@ -550,38 +550,81 @@ void main() {
       ));
     });
 
-    test('calendarFingerprintLocalDate recovers a UTC event\'s old local '
-        'date from its stored start', () {
+    test('calendarFingerprintLocalDateMoved compares the event\'s own '
+        'local date, whatever wrote the fingerprint', () {
       DateTime minus4(DateTime u) => u.subtract(const Duration(hours: 4));
-      CalendarImportCandidate utcAt(int minute) => CalendarImportCandidate(
+      // Now: 20 June locally (UTC-4), written as UTC.
+      CalendarImportCandidate utcAt(DateTime utcDate, int minute) =>
+          CalendarImportCandidate(
+            eventKey: 'k',
+            title: 'T',
+            date: DateTime.utc(2030, 6, 20),
+            asWritten: (date: utcDate, startMinute: minute, endMinute: null),
+            startsInUtc: true,
+          );
+      final now = utcAt(DateTime.utc(2030, 6, 21), 30); // 00:30Z = 20:30
+      // Stored from UTC: 23:30Z on 20 June is 19:30 on 20 June: not moved.
+      expect(
+        calendarFingerprintLocalDateMoved(
+          utcAt(DateTime.utc(2030, 6, 20), 23 * 60 + 30).fingerprint,
+          now,
+          minus4,
+        ),
+        isFalse,
+      );
+      // Stored from UTC: 23:30Z on 21 June is 21 June locally: moved.
+      expect(
+        calendarFingerprintLocalDateMoved(
+          utcAt(DateTime.utc(2030, 6, 21), 23 * 60 + 30).fingerprint,
+          now,
+          minus4,
+        ),
+        isTrue,
+      );
+      // Stored from a local time or all-day, on 20 June: not moved; on 21
+      // June: moved. Its minute is never read as UTC.
+      for (final (day, moved) in [(20, false), (21, true)]) {
+        for (final minute in [null, 23 * 60]) {
+          expect(
+            calendarFingerprintLocalDateMoved(
+              calendarEventFingerprint(
+                title: 'T',
+                date: DateTime.utc(2030, 6, day),
+                startMinute: minute,
+              ),
+              now,
+              minus4,
+            ),
+            moved,
+            reason: '$day June, minute $minute',
+          );
+        }
+      }
+      // Stored from UTC on the date that is now the local date: 02:00Z on
+      // 21 June was 20 June locally, so a reading of 21 June has moved. The
+      // UTC mark keeps it from passing as a local 21 June.
+      final now21 = CalendarImportCandidate(
         eventKey: 'k',
         title: 'T',
-        date: DateTime.utc(2030, 6, 20),
+        date: DateTime.utc(2030, 6, 21),
         asWritten: (
           date: DateTime.utc(2030, 6, 21),
-          startMinute: minute,
+          startMinute: 20 * 60,
           endMinute: null,
         ),
         startsInUtc: true,
       );
-      // 21 June 00:00Z is 20 June locally; 21 June 23:00Z is 21 June.
-      final stored = utcAt(0).fingerprint;
       expect(
-        calendarFingerprintLocalDate(stored, utcAt(23 * 60), minus4),
-        DateTime.utc(2030, 6, 20),
+        calendarFingerprintLocalDateMoved(
+          utcAt(DateTime.utc(2030, 6, 21), 2 * 60).fingerprint,
+          now21,
+          minus4,
+        ),
+        isTrue,
       );
-      // An all-day event then started on its written date.
-      final allDay = calendarEventFingerprint(
-        title: 'T',
-        date: DateTime.utc(2030, 6, 21),
-      );
+      expect(calendarFingerprintLocalDateMoved(null, now, minus4), isNull);
       expect(
-        calendarFingerprintLocalDate(allDay, utcAt(18 * 60), minus4),
-        DateTime.utc(2030, 6, 21),
-      );
-      expect(calendarFingerprintLocalDate(null, utcAt(60), minus4), isNull);
-      expect(
-        calendarFingerprintLocalDate('v1:a:b:c', utcAt(60), minus4),
+        calendarFingerprintLocalDateMoved('v1:a:b:c', now, minus4),
         isNull,
       );
     });

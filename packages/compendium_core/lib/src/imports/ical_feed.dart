@@ -650,6 +650,7 @@ class CalendarImportCandidate {
     venueLabel: venueLabel,
     startMinute: asWritten == null ? startMinute : asWritten!.startMinute,
     endMinute: asWritten == null ? endMinute : asWritten!.endMinute,
+    utc: startsInUtc,
   );
 }
 
@@ -701,7 +702,8 @@ class CalendarImportPlan {
 /// What a calendar import last wrote from an event (#2354): its title, date,
 /// first location segment, start time and end time (#2423), each as a
 /// 16-hex-digit SHA-256 prefix, joined as
-/// `v2:<title>:<date>:<location>:<start>:<end>`. Kept per field so a later import
+/// `v2:<title>:<date>:<location>:<start>:<end>`. For a UTC event ([utc]) the
+/// date and minutes are UTC, and the date is hashed marked as UTC. Kept per field so a later import
 /// can say which of them changed upstream. A hash rather than the values: all
 /// of them are already stored on the program, which the caller may edit.
 String calendarEventFingerprint({
@@ -710,52 +712,58 @@ String calendarEventFingerprint({
   String? venueLabel,
   int? startMinute,
   int? endMinute,
+  bool utc = false,
 }) {
   final h = _fingerprintHash;
-  final d = '${date.year}-${date.month}-${date.day}';
-  return 'v2:${h(title)}:${h(d)}:${h(venueLabel ?? '')}'
+  return 'v2:${h(title)}:${h(_fingerprintDate(date, utc: utc))}'
+      ':${h(venueLabel ?? '')}'
       ':${h('${startMinute ?? ''}')}:${h('${endMinute ?? ''}')}';
 }
+
+/// The date as the fingerprint writes it: a UTC date is marked `Z:`, so a
+/// later reading can tell it from a local one (#2354).
+String _fingerprintDate(DateTime d, {required bool utc}) =>
+    '${utc ? 'Z:' : ''}${d.year}-${d.month}-${d.day}';
 
 String _fingerprintHash(String s) =>
     sha256.convert(utf8.encode(s)).toString().substring(0, 16);
 
-/// The local date [now]'s event started on when [stored] was written, if
-/// that was within a day of [now]'s local date, for a UTC event (#2354).
-/// A UTC event's fingerprint holds its UTC date and minutes, which can move
-/// while its local date stays, and the other way round, so the caller asks
-/// this whether the local date moved.
+/// Whether the local date [now]'s event started on has moved since [stored]
+/// was written (#2354), or null when that cannot be told. Not the same as
+/// the date part changing: a UTC event's date part is its UTC date, which
+/// can move while the local date stays and the other way round, and a
+/// calendar can re-save an event from a local time to UTC or back.
 ///
-/// An old local date equal to [now]'s has a UTC date within a day of it, so
-/// those three dates are tried against the stored date part. On a match,
-/// the start minute (one of 1,440) is found from its hash and read through
-/// [toLocal]; an event that was all-day then started on its written date.
-/// Null when it cannot be told, including when the old date was further
-/// away: then the local date moved.
-DateTime? calendarFingerprintLocalDate(
+/// A date part written from a local time is that local date, so it either
+/// is [now]'s local date or the date moved. One written from UTC (marked
+/// `Z:`) whose old local date is [now]'s has a UTC date within a day of it:
+/// those three are tried, then the start minute (one of 1,440) is found
+/// from its hash and read through [toLocal].
+bool? calendarFingerprintLocalDateMoved(
   String? stored,
   CalendarImportCandidate now,
   DateTime Function(DateTime utc) toLocal,
 ) {
   final parts = _fingerprintParts(stored);
-  if (parts == null || !now.startsInUtc) return null;
+  if (parts == null) return null;
+  if (parts[1] == _fingerprintHash(_fingerprintDate(now.date, utc: false))) {
+    return false;
+  }
   for (final offset in const [-1, 0, 1]) {
     final day = now.date.add(Duration(days: offset));
-    if (_fingerprintHash('${day.year}-${day.month}-${day.day}') != parts[1]) {
+    if (_fingerprintHash(_fingerprintDate(day, utc: true)) != parts[1]) {
       continue;
     }
-    // All-day then: its date was written as is.
-    if (parts[3] == _fingerprintHash('')) return day;
     for (var m = 0; m < 24 * 60; m++) {
       if (_fingerprintHash('$m') != parts[3]) continue;
       final local = toLocal(
         DateTime.utc(day.year, day.month, day.day, m ~/ 60, m % 60),
       );
-      return DateTime.utc(local.year, local.month, local.day);
+      return DateTime.utc(local.year, local.month, local.day) != now.date;
     }
     return null;
   }
-  return null;
+  return true;
 }
 
 /// Which of title, date, location, start and end differ between two

@@ -708,6 +708,50 @@ void main() {
           },
         );
 
+        // At UTC+5: 20 June 23:00 written as a floating time, then as UTC.
+        DateTime plus5(DateTime u) => u.add(const Duration(hours: 5));
+        for (final (label, before, after) in [
+          (
+            'from a local time to UTC',
+            ['DTSTART:20300620T230000', 'DTEND:20300620T235000'],
+            ['DTSTART:20300620T180000Z', 'DTEND:20300620T185000Z'],
+          ),
+          (
+            'from UTC to a local time',
+            ['DTSTART:20300620T180000Z', 'DTEND:20300620T185000Z'],
+            ['DTSTART:20300620T230000', 'DTEND:20300620T235000'],
+          ),
+        ]) {
+          test('a caller\'s edited date is not offered back when the calendar '
+              're-saves the same time $label', () async {
+            final repos = openTestRepositories();
+            await importAt(
+              repos,
+              _cal([
+                ['UID:z', ...before, 'SUMMARY:Contra Z'],
+              ]),
+              plus5,
+            );
+            final p = await _only(repos);
+            expect(p.eventDate, DateTime.utc(2030, 6, 20));
+            await repos.programs.update(
+              p.copyWith(
+                eventDate: DateTime.utc(2030, 6, 21),
+                updatedAt: _t0.add(const Duration(hours: 1)),
+              ),
+            );
+            final preview = await read(
+              repos,
+              _cal([
+                ['UID:z', ...after, 'SUMMARY:Contra Z'],
+              ]),
+              plus5,
+            );
+            final offers = preview.changes.where(calendarOfferVisible);
+            expect(offers.where((o) => o.date), isEmpty);
+          });
+        }
+
         test('a real change is offered, read in this time zone', () async {
           final repos = openTestRepositories();
           await importAt(

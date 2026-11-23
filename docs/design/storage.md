@@ -933,8 +933,8 @@ steps that can still fire are v40 onward.
   (#2354). Adds three nullable `programs` columns: `calendar_event_fingerprint`
   (`Program.calendarEventFingerprint`, per-field truncated hashes of the
   event's title, date, first location segment, and start and end times as
-  last imported, `v2:`; for a UTC event the date and times as written, so a
-  reader in another time zone sees no change),
+  last imported, `v2:`; for a UTC event the date and times as written, the
+  date marked as UTC, so a reader in another time zone sees no change),
   `calendar_written_at` (`Program.calendarWrittenAt`, the `updated_at` the
   import last wrote; a Draft whose `updated_at` still equals it is
   "untouched") and `calendar_flag` (`Program.calendarFlag`: `cancelled`,
