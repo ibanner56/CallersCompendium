@@ -167,6 +167,10 @@ When you give the app a web address to fetch:
 Refusals never echo the address back at you, so a link that happened to contain
 something private does not end up on your screen or in a log.
 
+A [calendar address](./programs.md#import-programs-from-your-calendar) follows
+the same rules, except that it may be on any host — it is your calendar, not an
+archive. A `webcal://` address is fetched as `https://`.
+
 ## Import a published collection
 
 Published collections are curated dance collections delivered through the
@@ -780,7 +784,8 @@ watches for matches:
   of your custom fields are kept. Your star rating is kept whenever the
   incoming file carries none, as share files and The Caller's Box never do; a
   rating the file does carry replaces yours. The same goes for who
-  interpreted the dance and when, its other titles and its Barnes reference. The review warns
+  interpreted the dance and when, its other titles and its Barnes reference
+  (which stays only when the imported dance is an English dance). The review warns
   how many existing dances will be overwritten before you commit.
 - **Same dance, written another way.** Archives spell and annotate titles
   differently: The Caller's Box has `A-1 Reel {variant}` where your collection

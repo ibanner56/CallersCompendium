@@ -7,18 +7,21 @@
 # and the text it displays as.
 Canonical	box_circulate	{"balance":false}	box circulate - role2s cross while role1s loop right
 Canonical	mad_robin	{"who":"unspecified"}	mad robin
+Canonical	form_long_waves	{"who":"unspecified"}	form long waves
 Canonical	down_the_hall	{"ender":"bendTheLine"}	down the hall and bend the line
 Canonical	up_the_hall	{"ender":"bendTheLine"}	up the hall and bend the line
 Canonical	slice	{"return":"none"}	slice left
 Canonical	figure_8	{"where":"none"}	ones half figure 8
 Larks/Robins	box_circulate	{"balance":false}	box circulate - robins cross while larks loop right
 Larks/Robins	mad_robin	{"who":"unspecified"}	mad robin
+Larks/Robins	form_long_waves	{"who":"unspecified"}	form long waves
 Larks/Robins	down_the_hall	{"ender":"bendTheLine"}	down the hall and bend the line
 Larks/Robins	up_the_hall	{"ender":"bendTheLine"}	up the hall and bend the line
 Larks/Robins	slice	{"return":"none"}	slice left
 Larks/Robins	figure_8	{"where":"none"}	ones half figure 8
 Leads/Follows	box_circulate	{"balance":false}	box circulate - follows cross while leads loop right
 Leads/Follows	mad_robin	{"who":"unspecified"}	mad robin
+Leads/Follows	form_long_waves	{"who":"unspecified"}	form long waves
 Leads/Follows	down_the_hall	{"ender":"bendTheLine"}	down the hall and bend the line
 Leads/Follows	up_the_hall	{"ender":"bendTheLine"}	up the hall and bend the line
 Leads/Follows	slice	{"return":"none"}	slice left

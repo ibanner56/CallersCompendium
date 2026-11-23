@@ -1,3 +1,4 @@
+import 'calendar_import_settings.dart' show kCalendarFeedUrlKey;
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 
@@ -146,7 +147,12 @@ const String kNormalisationDerivedIndexRepairDoneKey =
 ///   consent on another, so a restore must leave sync off (spec §6.1):
 ///   [kSyncEnabledKey], [kSyncEndpointKey], [kSyncWifiOnlyKey],
 ///   [kSyncExcludeImportsKey], [kSyncLastSuccessAtKey].
+/// - **the calendar feed address** ([kCalendarFeedUrlKey], #2352) — a private
+///   calendar's secret address embeds an access token, so it is kept out of
+///   backup files (maintainer decision, issue draft review, 2026-11-22). After
+///   a restore the caller enters it again.
 const Set<String> kBackupSettingsDenylist = {
+  kCalendarFeedUrlKey,
   kCustomDialectsKey,
   kActiveDialectRefKey,
   kActiveDialectKey,

@@ -502,6 +502,8 @@ void main() {
         final harness = await _pumpSettings(tester);
         await openProgram(tester);
 
+        await tester.ensureVisible(find.byKey(trackAllCallersKey));
+        await tester.pumpAndSettle();
         await tester.tap(find.byKey(trackAllCallersKey));
         await tester.pumpAndSettle();
 
@@ -526,6 +528,8 @@ void main() {
         );
         await openProgram(tester);
 
+        await tester.ensureVisible(find.byKey(trackAllCallersKey));
+        await tester.pumpAndSettle();
         await tester.tap(find.byKey(trackAllCallersKey));
         await tester.pumpAndSettle();
 

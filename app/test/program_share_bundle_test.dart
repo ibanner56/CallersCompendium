@@ -3,6 +3,7 @@ import 'package:compendium_app/src/export/share_sanitization.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/program_template_seed.dart';
 import 'support/test_repositories.dart';
 
 final _now = DateTime.utc(2026, 1, 1);
@@ -1101,8 +1102,10 @@ void main() {
       );
     });
 
-    test('the bundle imports completely on the receiver', () async {
+    test('the bundle imports completely on the receiver, and the received '
+        'program takes nothing from the Default template (#2337)', () async {
       final repos = openTestRepositories();
+      await seedDefaultProgramTemplate(repos);
       final json = build();
       final archive = decodeArchive(json).archive;
       await CompendiumArchiveImporter(
@@ -1126,6 +1129,11 @@ void main() {
       expect(dance.tagIds, hasLength(1));
       expect(dance.sourceCitations, hasLength(1));
       expect(dance.customFields.single.value, 'yes');
+      final programs = await repos.programs.listAll();
+      expect(programs, isNotEmpty);
+      for (final program in programs) {
+        expect(hasSeededTemplateSlot(program), isFalse);
+      }
     });
   });
 }

@@ -206,6 +206,13 @@ An ordered set list for one event — a Saturday dance, a weekend, or a one-off
 gig. Its individual entries are [slots](#slot), and a backup choice on a slot is
 an [alt](#alt).
 
+## Program template
+
+A named starting shape for a new [program](#program): an ordered list of
+dances, notes and breaks for one kind of evening. **New program** asks which
+template to start from when you have two or more. Set them up in Settings ▸
+Defaults ▸ Program defaults.
+
 ## Progression
 
 How dancers move on to the next couple as a dance repeats. Like
@@ -297,8 +304,8 @@ place. A venue record holds a name, address, contacts, schedule, sponsor,
 website, price, and notes. Turn on **Use reusable venue records** in
 [Settings](./settings.md#venues) to link programs to saved venues; switching
 this on or off never discards your free-text label or a linked record. When you
-share a program, a venue's address is left out and its contact details are
-included only if you choose — see
+share a program, a venue's address is left out (a calendar file asks whether to
+include it) and its contact details are included only if you choose — see
 [What stays private](./sharing.md#what-stays-private).
 
 ## Walkthrough

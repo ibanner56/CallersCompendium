@@ -119,6 +119,7 @@
     "payMinorUnits": "backupSchemaVersionProgramPay",
     "payCurrency": "backupSchemaVersionProgramPay",
     "archivedAt": "backupSchemaVersionArchivedPrograms",
+    "calendarEventKey": "backupSchemaVersionCalendarEventKeys",
     "slots": "baseline",
     "provenance": "baseline",
     "createdAt": "baseline",

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -7,9 +8,11 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/program_forms.dart';
 import '../data/display_defaults.dart';
+import '../data/program_templates.dart' show ProgramTemplateChoice;
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../export/program_calendar_export.dart';
 import '../search/program_sort.dart';
 import '../search/program_sort_labels.dart';
 import '../theme/app_spacing.dart';
@@ -17,13 +20,17 @@ import '../utils/confirm_delete.dart';
 import '../utils/row_focus.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/brand_mark.dart';
+import '../widgets/calendar_export_dialogs.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/export_guard.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/program_list_tile.dart';
+import '../widgets/program_template_chooser.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/sync_now_action.dart';
 import '../widgets/weekday_header_strip.dart';
 import 'app_shell_search_scope.dart';
+import 'calendar_import_screen.dart';
 import 'contradb_program_import_screen.dart';
 import 'plaintext_program_import_screen.dart';
 import 'program_editor_screen.dart';
@@ -33,11 +40,13 @@ import 'recently_deleted_screen.dart';
 import '../widgets/adaptive_fab.dart';
 
 /// The program-import sources offered by the Programs list "Import" menu.
-enum _ProgramImportSource { plaintext, contraDb }
+enum _ProgramImportSource { plaintext, contraDb, calendar }
 
 enum _ProgramsCompactAction {
   importPlaintext,
   importContraDb,
+  importCalendar,
+  exportCalendar,
   toggleArchived,
   recentlyDeleted,
 }
@@ -72,6 +81,7 @@ class ProgramsListScreen extends StatefulWidget {
     this.performResumeStore,
     this.isActive = true,
     this.onSelectedProgramHidden,
+    this.calendarExportDelivery,
   });
 
   final void Function(String programId)? onSelectProgram;
@@ -91,15 +101,20 @@ class ProgramsListScreen extends StatefulWidget {
   /// false) hides archived programs again; see the class comment.
   final bool isActive;
 
-  /// Called (split-pane mode) when the user taps "New program" so the parent
-  /// can host the create flow in a pane. When null, a route is pushed.
-  final VoidCallback? onCreateProgram;
+  /// Called (split-pane mode) when the user taps "New program", with the
+  /// program template they chose (#2337), so the parent can host the create
+  /// flow in a pane. When null, a route is pushed.
+  final void Function(ProgramTemplateChoice templateChoice)? onCreateProgram;
 
   final String? selectedProgramId;
 
   /// Handed to the summary this list opens in narrow mode: see
   /// [ProgramSummaryPane.performResumeStore].
   final PerformResumeStore? performResumeStore;
+
+  /// Test seam for "Export calendar (.ics)"; defaults to the production
+  /// dialogs and file delivery.
+  final CalendarExportDelivery? calendarExportDelivery;
 
   @override
   State<ProgramsListScreen> createState() => _ProgramsListScreenState();
@@ -649,13 +664,19 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     return programs;
   }
 
+  /// New program: asks which template to start from when there are two or
+  /// more (#2337), then opens the builder. Dismissing the chooser cancels.
   Future<void> _openNewProgram() async {
+    final choice = await chooseProgramTemplate(context);
+    if (choice == null || !mounted) return;
     if (widget.onCreateProgram != null) {
-      widget.onCreateProgram!();
+      widget.onCreateProgram!(choice);
       return;
     }
     await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const ProgramEditorScreen()),
+      MaterialPageRoute(
+        builder: (_) => ProgramEditorScreen(templateChoice: choice),
+      ),
     );
     // No reload: the save is a write to `programs`/`program_slots`, so the
     // stream has already delivered it (issue #768).
@@ -715,6 +736,16 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       // The commit is a write, so the stream has already delivered it.
       widget.onSelectProgram?.call(result);
     }
+  }
+
+  /// Opens the calendar import (#2352). It creates drafts and offers Undo
+  /// itself; the list shows them through its stream.
+  Future<void> _openCalendarImport() async {
+    await Navigator.of(context).push<List<String>>(
+      MaterialPageRoute<List<String>>(
+        builder: (_) => const CalendarImportScreen(),
+      ),
+    );
   }
 
   Future<void> _softDelete(Program program, List<String> focusAfter) async {
@@ -863,6 +894,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                 onSelected: (source) => switch (source) {
                   _ProgramImportSource.plaintext => _openPlaintextImport(),
                   _ProgramImportSource.contraDb => _openContraDbImport(),
+                  _ProgramImportSource.calendar => _openCalendarImport(),
                 },
                 itemBuilder: (context) => [
                   PopupMenuItem(
@@ -880,6 +912,15 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                     child: ListTile(
                       leading: const Icon(Icons.cloud_download_outlined),
                       title: Text(l10n.importFromContraDb),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  PopupMenuItem(
+                    key: const ValueKey('programs-import-calendar'),
+                    value: _ProgramImportSource.calendar,
+                    child: ListTile(
+                      leading: const Icon(Icons.event_outlined),
+                      title: Text(l10n.importFromCalendar),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
@@ -941,9 +982,11 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                 onSelected: (action) => switch (action) {
                   _ProgramsCompactAction.toggleArchived =>
                     _toggleShowArchived(),
+                  _ProgramsCompactAction.exportCalendar => _exportCalendar(),
                   _ => _openRecentlyDeleted(),
                 },
                 itemBuilder: (context) => [
+                  _exportCalendarMenuItem(l10n),
                   _showArchivedMenuItem(l10n),
                   PopupMenuItem(
                     key: const ValueKey('programs-recently-deleted'),
@@ -971,6 +1014,59 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     );
   }
 
+  /// "Export calendar (.ics)" in the ⋮ menu on every layout (#2351).
+  PopupMenuItem<_ProgramsCompactAction> _exportCalendarMenuItem(
+    AppLocalizations l10n,
+  ) => PopupMenuItem(
+    key: const ValueKey('programs-export-calendar'),
+    value: _ProgramsCompactAction.exportCalendar,
+    child: Text(l10n.programsExportCalendar),
+  );
+
+  /// Picks programs for a calendar file and exports them (#2351): upcoming
+  /// ones ticked, past ones behind a switch, as [calendarExportCandidates]
+  /// splits them at today's date ([clock], so tests can move it).
+  Future<void> _exportCalendar() async {
+    final programs = _programs;
+    if (programs == null) return;
+    final venuesById = _venuesById;
+    // The share sheet's anchor, captured before any await: on iPad,
+    // share_plus needs a non-zero origin for its popover. The list's own
+    // rect stands in for the ⋮ button, which the menu has closed by now.
+    final box = context.findRenderObject() as RenderBox?;
+    final origin = box != null && box.hasSize
+        ? box.localToGlobal(Offset.zero) & box.size
+        : null;
+    final now = clock.now();
+    final candidates = calendarExportCandidates(
+      programs,
+      DateTime(now.year, now.month, now.day),
+    );
+    final chosen = await CalendarProgramPickerDialog.show(
+      context,
+      upcoming: candidates.upcoming,
+      past: candidates.past,
+    );
+    if (chosen == null || chosen.isEmpty || !mounted) return;
+    final l10n = AppLocalizations.of(context);
+    await guardExport(
+      ScaffoldMessenger.of(context),
+      l10n.exportCalendarShareError,
+      () => (widget.calendarExportDelivery ?? const CalendarExportDelivery())
+          .export(
+            context,
+            programs: chosen,
+            venuesById: venuesById,
+            fileName: chosen.length == 1
+                ? programCalendarFileName(chosen.single)
+                : calendarMultiFileName,
+            subject: l10n.exportCalendarPickTitle,
+            sharePositionOrigin: origin,
+          ),
+      source: 'programs_list_screen._exportCalendar',
+    );
+  }
+
   /// "Show archived" / "Hide archived", just above "Recently deleted" in the
   /// ⋮ menu on every layout.
   PopupMenuItem<_ProgramsCompactAction> _showArchivedMenuItem(
@@ -994,6 +1090,10 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
             _openPlaintextImport();
           case _ProgramsCompactAction.importContraDb:
             _openContraDbImport();
+          case _ProgramsCompactAction.importCalendar:
+            _openCalendarImport();
+          case _ProgramsCompactAction.exportCalendar:
+            _exportCalendar();
           case _ProgramsCompactAction.toggleArchived:
             _toggleShowArchived();
           case _ProgramsCompactAction.recentlyDeleted:
@@ -1009,6 +1109,12 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
           value: _ProgramsCompactAction.importContraDb,
           child: Text(l10n.importProgramFromContraDb),
         ),
+        PopupMenuItem(
+          key: const ValueKey('programs-import-calendar'),
+          value: _ProgramsCompactAction.importCalendar,
+          child: Text(l10n.importProgramFromCalendar),
+        ),
+        _exportCalendarMenuItem(l10n),
         _showArchivedMenuItem(l10n),
         PopupMenuItem(
           key: const ValueKey('programs-recently-deleted'),

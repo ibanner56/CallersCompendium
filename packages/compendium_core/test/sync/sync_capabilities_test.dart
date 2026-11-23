@@ -85,27 +85,77 @@ void main() {
       recordsByDevice: records,
     );
 
-    test(
-      'advertises glossary.v1 and glossary.v2, and gates on both (#1023)',
-      () {
-        expect(build.advertised, {
-          SyncCapabilities.glossaryV1,
-          SyncCapabilities.glossaryV2,
-        });
-        // Saved searches (#2325) are gated but not yet advertised: a
-        // capability is advertised only once the whole feature is in the
-        // build, so this build publishes none and nothing writes one.
-        expect(build.gatedCapabilities, {
-          SyncCapabilities.glossaryV1,
-          SyncCapabilities.glossaryV2,
-          SyncCapabilities.savedSearchesV1,
-        });
+    test('advertises glossary.v1, glossary.v2 and programTemplates.v1, and '
+        'gates on each (#1023, #2337)', () {
+      expect(build.advertised, {
+        SyncCapabilities.glossaryV1,
+        SyncCapabilities.glossaryV2,
+        SyncCapabilities.programTemplatesV1,
+      });
+      // Saved searches (#2325) are gated but not yet advertised: a
+      // capability is advertised only once the whole feature is in the build,
+      // so this build publishes none and nothing writes one.
+      expect(build.gatedCapabilities, {
+        SyncCapabilities.glossaryV1,
+        SyncCapabilities.glossaryV2,
+        SyncCapabilities.programTemplatesV1,
+        SyncCapabilities.savedSearchesV1,
+      });
+      expect(
+        build.advertised,
+        isNot(contains(SyncCapabilities.savedSearchesV1)),
+      );
+    });
+
+    test('rollout: with no record from any peer, every peer holds each '
+        'closed', () {
+      expect(closedBeside(['a', 'b'], const {}), {
+        SyncCapabilities.glossaryV1: {'a', 'b'},
+        SyncCapabilities.glossaryV2: {'a', 'b'},
+        SyncCapabilities.programTemplatesV1: {'a', 'b'},
+        // Not advertised by this build, so closed with no device to name.
+        SyncCapabilities.savedSearchesV1: <String>{},
+      });
+    });
+
+    test('rollout: beside peers on the build before this one, which '
+        'advertise only the glossary capabilities, every peer holds '
+        'programTemplates.v1 closed', () {
+      expect(
+        closedBeside(
+          ['a', 'b'],
+          {
+            'a': {SyncCapabilities.glossaryV1, SyncCapabilities.glossaryV2},
+            'b': {SyncCapabilities.glossaryV1, SyncCapabilities.glossaryV2},
+          },
+        ),
+        {
+          SyncCapabilities.programTemplatesV1: {'a', 'b'},
+          SyncCapabilities.savedSearchesV1: <String>{},
+        },
+      );
+    });
+
+    test('every program template key waits on programTemplates.v1, by prefix '
+        'for the per-template keys (#2337)', () {
+      for (final key in [
+        'program_template:starting_program',
+        'program_template:3f1c9a52-6a0f-4d7b-9a51-0b5e4f2d7c11',
+        'program_template_order',
+        'program_template_default',
+      ]) {
         expect(
-          build.advertised,
-          isNot(contains(SyncCapabilities.savedSearchesV1)),
+          build.capabilityFor(SyncRecordKind.setting, key),
+          SyncCapabilities.programTemplatesV1,
+          reason: key,
         );
-      },
-    );
+      }
+      // The legacy Starting program stays ungated: older builds read it.
+      expect(
+        build.capabilityFor(SyncRecordKind.setting, 'default_starting_program'),
+        isNull,
+      );
+    });
 
     test('gates every saved_search: key on savedSearches.v1', () {
       for (final key in ['saved_search:abc', 'saved_search:x:y']) {
@@ -135,34 +185,7 @@ void main() {
       expect(c?.subject, DataSubject.appUser);
     });
 
-    test('rollout: with no record from any peer, every peer holds both '
-        'closed', () {
-      expect(closedBeside(['a', 'b'], const {}), {
-        SyncCapabilities.glossaryV1: {'a', 'b'},
-        SyncCapabilities.glossaryV2: {'a', 'b'},
-        // Not advertised by this build, so closed with no device to name.
-        SyncCapabilities.savedSearchesV1: <String>{},
-      });
-    });
-
-    test('rollout: beside peers on the build before this one, which '
-        'advertise only glossary.v1, every peer holds glossary.v2 closed', () {
-      expect(
-        closedBeside(
-          ['a', 'b'],
-          {
-            'a': {SyncCapabilities.glossaryV1},
-            'b': {SyncCapabilities.glossaryV1},
-          },
-        ),
-        {
-          SyncCapabilities.glossaryV2: {'a', 'b'},
-          SyncCapabilities.savedSearchesV1: <String>{},
-        },
-      );
-    });
-
-    test('with every peer advertising what the build does, the glossary '
+    test('with every peer advertising what the build does, the advertised '
         'capabilities are open and saved searches stay closed', () {
       expect(
         closedBeside(
@@ -224,35 +247,22 @@ void main() {
     expect(policy.gatedCapabilities, {'v.v1', 's.v1'});
   });
 
-  group('a gated settings-key prefix', () {
+  test('a settings key prefix gates every key under it; an exact key wins, '
+      'then the longest prefix', () {
     const policy = SyncCapabilityPolicy(
       gatedSettingKeys: {'p:exact': 'exact.v1'},
       gatedSettingKeyPrefixes: {'p:': 'short.v1', 'p:long:': 'long.v1'},
     );
-
-    test('gates every key under it, and counts as gated', () {
-      expect(policy.capabilityFor(SyncRecordKind.setting, 'p:abc'), 'short.v1');
-      expect(policy.capabilityFor(SyncRecordKind.setting, 'q:abc'), isNull);
-      expect(
-        policy.gatedCapabilities,
-        containsAll(['exact.v1', 'short.v1', 'long.v1']),
-      );
-    });
-
-    test('the longest prefix wins, and an exact key beats any prefix', () {
-      expect(
-        policy.capabilityFor(SyncRecordKind.setting, 'p:long:abc'),
-        'long.v1',
-      );
-      expect(
-        policy.capabilityFor(SyncRecordKind.setting, 'p:exact'),
-        'exact.v1',
-      );
-    });
-
-    test('does not gate other kinds of record', () {
-      expect(policy.capabilityFor(SyncRecordKind.dance, 'p:abc'), isNull);
-    });
+    String? forKey(String key) =>
+        policy.capabilityFor(SyncRecordKind.setting, key);
+    expect(forKey('p:anything'), 'short.v1');
+    expect(forKey('p:long:x'), 'long.v1');
+    expect(forKey('p:exact'), 'exact.v1');
+    expect(forKey('p'), isNull);
+    expect(forKey('other:p:x'), isNull);
+    // Only settings keys are matched by prefix.
+    expect(policy.capabilityFor(SyncRecordKind.tag, 'p:x'), isNull);
+    expect(policy.gatedCapabilities, {'exact.v1', 'short.v1', 'long.v1'});
   });
 
   test('a glossary entry waits on its own kind\'s capability when it has one '

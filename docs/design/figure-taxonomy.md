@@ -2351,6 +2351,33 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     edit syncs. Every dancer token added before (v38's corners, v39's single
     dancers) has the same exposure. The maintainer accepted this for the beta
     (2026-11-19), so no guard is added.
+  - **`form_long_waves` holds both hands and may leave the facing unstated**
+    (issue #2331, the maintainer's rulings of 2026-11-23). The Caller's Box
+    writes `Balance long wave (N2R,N1L, women face in)`: next neighbors by
+    the right, neighbors by the left, women facing in. `whom2` (default
+    `unspecified`) is the pair held by the hand opposite `whomHand`, so it has
+    no hand of its own; the display reads "next neighbor by the right,
+    neighbor by the left, …". `who` now admits `unspecified` (its default
+    stays `role1s`, so ContraDB imports and new figures read as before), for
+    the bare `form long wave` that states long waves but not who faces in;
+    that facing then renders nothing, and the canonical text is the bare
+    `form long waves`. `who` offers no manual Clear, as `promenade.direction`
+    does not: a stated facing is not returned to "not stated" by hand. The
+    same rulings read a bare TCB `form long wave` as `form_long_waves` —
+    forming a long wave in the center (`form long wave in center`,
+    `form_a_long_wave`) is a different figure — and fold its balance into it,
+    across a phrase boundary too; see `docs/design/imports.md`.
+    **Older devices (v39)** have neither change. A synced
+    `form_long_waves{who: unspecified}` renders through v39's display line,
+    which names a subject and its inverse unconditionally, so it reads
+    "form long waves - unspecified facing in, others facing out"; v39's
+    `who` domain does not admit the sentinel, so opening that figure's
+    editor there writes back the default `role1s`, and that edit syncs as a
+    facing the source never stated. v39's renderer reads no `whom2`, so a
+    two-hand long wave shows only its first hold there; whether v39's editor
+    keeps or drops a param it does not declare when it saves was not
+    checked. Whether the beta acceptance recorded above for the new dancer
+    tokens also covers these is the maintainer's call, not assumed here.
   - Migration: none, and no rebuild: a new move and alias, nothing renamed or
     removed, so no stored figure changes and every canonical text stays as it
     was. **Older devices (v39)** show a synced `cast` as the bare word "cast"

@@ -46,6 +46,7 @@ import 'package:compendium_app/src/data/require_performed_for_history_scope.dart
 import 'package:compendium_app/src/data/set_list_color_coding_scope.dart';
 import 'package:compendium_app/src/data/mark_all_sets_status_scope.dart';
 import 'package:compendium_app/src/data/show_performed_toggles_scope.dart';
+import 'package:compendium_app/src/data/show_program_pay_scope.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
@@ -102,6 +103,7 @@ const _expectedAppScopeTypes = <Type>[
   ColourDanceThemeScope,
   SetListColorCodingScope,
   ShowPerformedTogglesScope,
+  ShowProgramPayScope,
   MarkAllSetsStatusScope,
   ShareSetListTitleScope,
   ShareSetListCallerBandScope,

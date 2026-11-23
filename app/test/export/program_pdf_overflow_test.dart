@@ -54,6 +54,7 @@ Program _program({
 
 DanceCardLabels _cardLabels(Dance _) => (
   authorNames: const ['山田'],
+  interpreterNames: const <String>[],
   formationLabel: '二列・デュープル',
   levelLabel: null,
   statusLabel: '現役',

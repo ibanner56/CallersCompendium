@@ -69,6 +69,7 @@ import 'src/data/program_matrix_column_config_scope.dart';
 import 'src/data/program_auto_commit_scope.dart';
 import 'src/data/set_list_color_coding_scope.dart';
 import 'src/data/show_performed_toggles_scope.dart';
+import 'src/data/show_program_pay_scope.dart';
 import 'src/data/shorthand_mappings_controller.dart';
 import 'src/data/shorthand_mappings_scope.dart';
 import 'src/data/single_instance_guard.dart';
@@ -751,6 +752,12 @@ class _CompendiumAppState extends State<CompendiumApp>
     decode: (Object? v) => v is bool ? v : true,
     encode: (v) => v,
   );
+  final _showProgramPayNotifier = PreferenceNotifier<bool>(
+    key: kShowProgramPayKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
+  );
   final _markAllSetsStatusNotifier = PreferenceNotifier<bool>(
     key: kMarkAllSetsStatusKey,
     defaultValue: true,
@@ -1391,6 +1398,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _colourDanceThemeNotifier,
     _setListColorCodingNotifier,
     _showPerformedTogglesNotifier,
+    _showProgramPayNotifier,
     _markAllSetsStatusNotifier,
     _shareSetListTitleNotifier,
     _shareSetListCallerBandNotifier,
@@ -2267,6 +2275,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _colourDanceThemeNotifier.dispose();
     _setListColorCodingNotifier.dispose();
     _showPerformedTogglesNotifier.dispose();
+    _showProgramPayNotifier.dispose();
     _markAllSetsStatusNotifier.dispose();
     _shareSetListTitleNotifier.dispose();
     _shareSetListCallerBandNotifier.dispose();
@@ -2955,6 +2964,8 @@ class _CompendiumAppState extends State<CompendiumApp>
       notifier: _showPerformedTogglesNotifier,
       child: child,
     ),
+    (child) =>
+        ShowProgramPayScope(notifier: _showProgramPayNotifier, child: child),
     (child) => MarkAllSetsStatusScope(
       notifier: _markAllSetsStatusNotifier,
       child: child,

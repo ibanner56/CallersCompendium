@@ -34,6 +34,13 @@ abstract final class SyncCapabilities {
   /// `saved_search:`. An older build keeps such a value whole but cannot read
   /// it, so they wait for every device to understand them.
   static const String savedSearchesV1 = 'savedSearches.v1';
+
+  /// Program templates (#2337): one settings value per template
+  /// (`program_template:<id>`), their order and the default template. An
+  /// older build only knows the single Starting program, so it would keep
+  /// these keys whole without using them; they wait so a peer is never shown
+  /// a "template" it cannot apply.
+  static const String programTemplatesV1 = 'programTemplates.v1';
 }
 
 /// What this build understands and what it holds back until every attached
@@ -58,9 +65,10 @@ final class SyncCapabilityPolicy {
   /// Settings keys whose records wait for a capability.
   final Map<String, String> gatedSettingKeys;
 
-  /// Settings-key prefixes whose records wait for a capability: every key that
-  /// starts with one (a record per key, as a saved search is). An exact key in
-  /// [gatedSettingKeys] wins, then the longest matching prefix.
+  /// Prefixes of settings keys built at runtime (one key per item, such as
+  /// `program_template:<id>`) whose records wait for a capability. An exact
+  /// entry in [gatedSettingKeys] wins; otherwise the longest matching prefix
+  /// does, as `classifySettingsKey` resolves the privacy registry's prefixes.
   final Map<String, String> gatedSettingKeyPrefixes;
 
   /// Kinds of user glossary entry (the `kind` in a `glossaryEntry` record's
@@ -91,8 +99,17 @@ final class SyncCapabilityPolicy {
   /// capability is advertised only once the whole feature, sync included, is in
   /// the build, as for glossary.v2 before #1023 completed. Until then this
   /// build publishes none, and nothing writes one.
+
+  /// [SyncCapabilities.programTemplatesV1] (#2337) gates every program
+  /// template (by its key prefix), the templates' order and the default
+  /// template, and this build advertises it. The legacy Starting program key
+  /// is not gated: older builds read it, and it is no longer written.
   static const SyncCapabilityPolicy build = SyncCapabilityPolicy(
-    advertised: {SyncCapabilities.glossaryV1, SyncCapabilities.glossaryV2},
+    advertised: {
+      SyncCapabilities.glossaryV1,
+      SyncCapabilities.glossaryV2,
+      SyncCapabilities.programTemplatesV1,
+    },
     gatedRecordKinds: {
       SyncRecordKind.glossaryEntry: SyncCapabilities.glossaryV1,
       SyncRecordKind.figureNote: SyncCapabilities.glossaryV1,
@@ -101,8 +118,11 @@ final class SyncCapabilityPolicy {
       'show_custom_figures': SyncCapabilities.glossaryV1,
       'compound_shorthands': SyncCapabilities.glossaryV1,
       'user_figure_shorthands': SyncCapabilities.glossaryV2,
+      'program_template_order': SyncCapabilities.programTemplatesV1,
+      'program_template_default': SyncCapabilities.programTemplatesV1,
     },
     gatedSettingKeyPrefixes: {
+      'program_template:': SyncCapabilities.programTemplatesV1,
       savedSearchKeyPrefix: SyncCapabilities.savedSearchesV1,
     },
     gatedGlossaryEntryKinds: {
@@ -121,9 +141,7 @@ final class SyncCapabilityPolicy {
     String recordId, {
     Map<String, Object?>? body,
   }) {
-    if (kind == SyncRecordKind.setting) {
-      return gatedSettingKeys[recordId] ?? _gatedByPrefix(recordId);
-    }
+    if (kind == SyncRecordKind.setting) return _settingCapability(recordId);
     if (kind == SyncRecordKind.glossaryEntry) {
       final entryKind = body?['kind'];
       if (entryKind is String) {
@@ -134,18 +152,19 @@ final class SyncCapabilityPolicy {
     return gatedRecordKinds[kind];
   }
 
-  /// The capability of the longest prefix in [gatedSettingKeyPrefixes] that
-  /// [key] starts with, as `classifySettingsKey` picks a prefix's
-  /// classification.
-  String? _gatedByPrefix(String key) {
+  String? _settingCapability(String key) {
+    final exact = gatedSettingKeys[key];
+    if (exact != null) return exact;
     String? best;
-    for (final prefix in gatedSettingKeyPrefixes.keys) {
-      if (key.startsWith(prefix) &&
-          (best == null || prefix.length > best.length)) {
-        best = prefix;
+    String? capability;
+    for (final entry in gatedSettingKeyPrefixes.entries) {
+      if (!key.startsWith(entry.key)) continue;
+      if (best == null || entry.key.length > best.length) {
+        best = entry.key;
+        capability = entry.value;
       }
     }
-    return best == null ? null : gatedSettingKeyPrefixes[best];
+    return capability;
   }
 
   /// Every capability something is gated on.

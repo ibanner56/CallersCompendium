@@ -14,9 +14,13 @@ import '../storage/fixtures.dart';
 import '../storage/test_database.dart';
 
 Dance _named() => sampleDance().copyWith(
+  form: DanceForm.ecd,
   alternateTitles: ['Monymusk', 'Sir Archibald Grant of Monemusk'],
   barnesReference: 'BIII p. 92',
 );
+
+/// A sample dance in the one form that keeps a Barnes reference.
+Dance _ecd() => sampleDance().copyWith(form: DanceForm.ecd);
 
 Map<String, Object?> _danceJson(Dance dance) =>
     archiveDanceToJson(dance, const {}, includeOptionalFields: true);
@@ -62,12 +66,30 @@ void main() {
     test('every dance holds the Barnes bound, counted in code units and cut '
         'on a character boundary', () {
       // 60 fiddles are 60 characters but 120 code units.
-      final dance = sampleDance().copyWith(barnesReference: '\u{1F3BB}' * 60);
+      final dance = _ecd().copyWith(barnesReference: '\u{1F3BB}' * 60);
       expect(dance.barnesReference, '\u{1F3BB}' * 50);
-      final odd = sampleDance().copyWith(
+      final odd = _ecd().copyWith(
         barnesReference: '${'b' * (kMaxBarnesReferenceLength - 1)}\u{1F3BB}',
       );
       expect(odd.barnesReference, 'b' * (kMaxBarnesReferenceLength - 1));
+    });
+
+    test('only an English dance keeps a Barnes reference: another form '
+        'clears it, whatever it was built from', () {
+      expect(formHasBarnesReference(DanceForm.ecd), isTrue);
+      expect([
+        for (final form in DanceForm.values)
+          if (form != DanceForm.ecd) formHasBarnesReference(form),
+      ], everyElement(isFalse));
+      final ecd = _named();
+      expect(ecd.barnesReference, 'BIII p. 92');
+      final contra = ecd.copyWith(form: DanceForm.contra);
+      expect(contra.barnesReference, '');
+      expect(contra.alternateTitles, ecd.alternateTitles);
+      expect(
+        sampleDance().copyWith(barnesReference: 'NiB').barnesReference,
+        '',
+      );
     });
 
     test('a column value reads back as the list it was written from', () {
@@ -120,7 +142,7 @@ void main() {
 
     for (final (name, dance) in [
       ('an other title', sampleDance().copyWith(alternateTitles: ['Other'])),
-      ('a Barnes reference', sampleDance().copyWith(barnesReference: 'NiB')),
+      ('a Barnes reference', _ecd().copyWith(barnesReference: 'NiB')),
     ]) {
       test('$name alone stamps v8, so an older reader warns rather than '
           'dropping it', () {
@@ -133,8 +155,22 @@ void main() {
       });
     }
 
+    test('a file that gives a contra dance a Barnes reference loses it on '
+        'read', () {
+      final body = _danceJson(sampleDance())..['barnesReference'] = 'NiB';
+      final read = decodeArchive(
+        jsonEncode({
+          'schemaVersion': archiveSchemaVersionEcdDanceFields,
+          'exportedAt': '2026-01-01T00:00:00.000Z',
+          'dances': [body],
+        }),
+      );
+      expect(read.errors, isEmpty);
+      expect(read.archive.dances.single.barnesReference, '');
+    });
+
     test('bounds untrusted values instead of rejecting the dance', () {
-      final body = _danceJson(sampleDance())
+      final body = _danceJson(_ecd())
         ..['alternateTitles'] = [
           't' * (kMaxAlternateTitleLength + 5),
           ' ',
@@ -187,7 +223,7 @@ void main() {
         'does', () {
       expect(
         choreographyFingerprintForDance(_named()),
-        choreographyFingerprintForDance(sampleDance()),
+        choreographyFingerprintForDance(_ecd()),
       );
     });
   });
@@ -219,6 +255,7 @@ void main() {
       dances = DanceRepository(db, contraTaxonomy);
       await dances.create(
         sampleDance(id: 'money', title: 'Money Musk').copyWith(
+          form: DanceForm.ecd,
           alternateTitles: ['Monymusk', 'Sir Archibald Grant'],
           barnesReference: 'BIII p. 92',
         ),
@@ -227,7 +264,7 @@ void main() {
         sampleDance(
           id: 'nib',
           title: 'Unprinted',
-        ).copyWith(barnesReference: 'NiB'),
+        ).copyWith(form: DanceForm.ecd, barnesReference: 'NiB'),
       );
       await dances.create(sampleDance(id: 'plain', title: 'Plain Dance'));
     });

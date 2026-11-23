@@ -4016,7 +4016,10 @@ rewrites it through the alias.
 
 A fresh-attach merge also unions `alternateTitles`, every copy's other titles
 in order with repeats dropped, and takes `barnesReference` from the latest
-copy, as it takes `meter`; neither is part of the choreography fingerprint,
+copy, as it takes `meter`, but only when that copy has the merged dance's
+form: only an ECD dance holds one, and a merge the person chose may join
+copies of different forms, so a newer copy of another form leaves the
+survivor's value alone. Neither is part of the choreography fingerprint,
 which a build older than v42 computes without them.
 
 **A field the receiver does not sync is kept, not dropped and not applied.**
@@ -5028,7 +5031,9 @@ version. So data of that kind waits, per store, until every attached device
 says it can read it.
 
 **Capabilities.** A capability is a name (`glossary.v1`) for a set of record
-kinds and settings keys, and of `glossaryEntry` records by the entry's `kind`
+kinds and settings keys (exact keys, or every key under a prefix such as
+`program_template:`, an exact key winning over a prefix and a longer prefix
+over a shorter one; #2337), and of `glossaryEntry` records by the entry's `kind`
 (#1023): an entry of a kind gated on a capability of its own waits for that
 one, and any other entry for its record kind's. A build advertises the
 capabilities it fully supports, sync included. Named rather than numbered, so
@@ -5173,14 +5178,28 @@ held back on every pass with no notice. That change is subject to *Rollout*:
 a device on a build that lists only `glossary.v1` holds `glossary.v2` closed and
 is named for it, while what `glossary.v1` gates publishes past it.
 
+**`programTemplates.v1`.** Gates the program templates (#2337): every
+settings key under the `program_template:` prefix (one key per template), and
+the exact keys `program_template_order` and `program_template_default`,
+tombstones included. A build without it knows only the single
+`default_starting_program` setting, which stays ungated and is no longer
+written. The reference client advertises it from the change that adds
+templates, so it is subject to *Rollout*: a device on a build that lists only
+the glossary capabilities holds it closed and is named for it.
+Until a device's first change to its templates, it shows the legacy Starting
+program as the first template without writing anything, and copies it into
+`program_template:starting_program` (with the default and order keys) at that
+change, stamped like the change. A device that has not yet synced therefore
+writes nothing merely by opening a screen that could overwrite, or bring back,
+what a peer already did with the copy.
+
 **`savedSearches.v1`.** Gates every settings key that starts with
 `saved_search:`, tombstones included: one saved search is one setting record
 (#2325, amended 2026-11-23). A build that does not know the prefix keeps such a
 record whole (ADR-004) but cannot read its search, so they wait for every device
-to advertise the capability. This is the first capability that gates a settings
-**prefix**: a gated key that is not an exact entry matches the longest gated
-prefix it starts with, as the registry's classification does, and an exact key
-still wins. The reference client gates the prefix from the change that adds
+to advertise the capability. Like `programTemplates.v1`, it gates a settings **prefix**: a gated key that is
+not an exact entry matches the longest gated prefix it starts with, as the
+registry's classification does, and an exact key still wins. The reference client gates the prefix from the change that adds
 storage for saved searches and advertises the capability from the change that
 completes the feature (the menu), as `glossary.v2` was gated before #1023 was
 complete; until then nothing writes a saved search and none is published.

@@ -1,5 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 
+import '../data/calendar_import_settings.dart' show kCalendarFeedUrlKey;
+
 /// Collects the user-content strings that the *default* (scrubbed) diagnostics
 /// export must redact (issue #458): dance / program / figure titles, notes,
 /// walkthroughs, free-text figure params, link labels, custom-field values and
@@ -141,6 +143,9 @@ Future<Set<String>> collectSensitiveTerms(
     add(program.venue);
     add(program.dancerLevel);
     add(program.dialectName);
+    // A digest of a third party's calendar event id (#2352): pseudonymous,
+    // so a failed statement echoing it is redacted like the rest of the row.
+    add(program.calendarEventKey);
     // Pay is private bookkeeping. A failed statement echoes the stored minor
     // units, while the editor shows the decimal form: redact both.
     final pay = program.payMinorUnits;
@@ -288,6 +293,17 @@ Future<Set<String>> collectSensitiveTerms(
   }
   for (final row in await repositories.syncLocal.listRetainedSyncFields()) {
     add(row.payload);
+  }
+
+  // The calendar feed address (#2352). A private calendar's address embeds a
+  // secret token, so the whole address goes in, and so does its scheme-less
+  // form: a fetch error can name the `https://` URL a `webcal://` one was
+  // rewritten to.
+  final feedUrl = await repositories.settings.get(kCalendarFeedUrlKey);
+  if (feedUrl is String) {
+    add(feedUrl);
+    final schemeEnd = feedUrl.indexOf('://');
+    if (schemeEnd >= 0) add(feedUrl.substring(schemeEnd + 3));
   }
 
   return terms;
