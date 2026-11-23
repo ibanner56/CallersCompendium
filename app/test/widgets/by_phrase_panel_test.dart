@@ -195,9 +195,7 @@ void main() {
     expect(find.byKey(const ValueKey('by-phrase-C1')), findsOneWidget);
     final chip = find.byKey(const ValueKey('exclude-C1-chip-swing'));
     expect(chip, findsOneWidget);
-    await tester.tap(
-      find.descendant(of: chip, matching: find.byIcon(Icons.cancel)),
-    );
+    tester.widget<InputChip>(chip).onDeleted!();
     await tester.pumpAndSettle();
     expect(selections.isEmpty, isTrue);
     expect(changes, 1);
