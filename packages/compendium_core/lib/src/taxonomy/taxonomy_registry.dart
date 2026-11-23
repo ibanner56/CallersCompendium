@@ -11,7 +11,8 @@ import 'taxonomy.dart';
 ///
 /// A form whose own taxonomy is registered must have an entry here. ECD's
 /// `ecd_` is decided in ADR-006 §5.1. Squares have no entry yet: ADR-007
-/// proposes `sq_`, and the entry is added when that ADR is accepted.
+/// §5.1 decides `sq_`, and the entry is added when the square taxonomy is
+/// registered.
 const Map<DanceForm, String> danceFormMovePrefixes = {DanceForm.ecd: 'ecd_'};
 
 /// Every dance form's taxonomy, and which one resolves a move.

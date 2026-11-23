@@ -177,7 +177,7 @@ void main() {
     test('formOfMoveId reads the prefix', () {
       expect(registry.formOfMoveId('ecd_set'), DanceForm.ecd);
       expect(registry.formOfMoveId('swing'), DanceForm.contra);
-      // Squares have no prefix until ADR-007 is accepted.
+      // Squares have no prefix until their taxonomy is registered (ADR-007).
       expect(registry.formOfMoveId('sq_do_paso'), DanceForm.contra);
     });
   });

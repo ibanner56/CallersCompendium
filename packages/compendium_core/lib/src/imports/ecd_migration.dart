@@ -66,7 +66,9 @@ class EcdMigration {
 ///   the reading would drop or change a value it stores;
 /// - an import-gap custom line is re-read by the ECD parser
 ///   ([reparseImportGapFigures] with ECD's taxonomy), a bar range counted by
-///   [meter], or [phraseStructure] when it states none;
+///   [meter], or [phraseStructure] when it states none, or, where
+///   [phraseStructure]'s phrases differ in beats per bar, by the phrase each
+///   bar falls in;
 /// - the shape becomes the ECD shape it names ([ecdFormationFromContra]).
 ///
 /// In a twin, only a value the contra figure *stores* is carried, never a contra
@@ -93,7 +95,7 @@ EcdMigration migrateEcdDance({
     rewritten[i] = result.figure;
     converted += result.count;
   }
-  // A line's bar range counts by the dance's meter, as in Re-check.
+  // A line's bar range counts by the dance's meter or phrases, as in Re-check.
   final reread = reparseImportGapFigures(
     rewritten ?? figures,
     taxonomy: shippedTaxonomies.forForm(DanceForm.ecd),
