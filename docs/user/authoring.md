@@ -336,6 +336,11 @@ Select a figure to open it. What you can change depends on the move:
 - **Parameters** — most moves have a few (which role, how far, which way round).
   Common ones show straight away; choose **More options** to see the rest, and
   **Fewer options** to fold them back.
+- **Who** — on an English figure, the dancers it names, any number of them:
+  tap the field to open the list, check each group (type to narrow the list),
+  and the field reads them in the order you checked them, as in "twos,
+  threes". **Everyone** stands alone, so checking it clears the others.
+  Unchecking them all leaves it *not stated*.
 - **Beats** — every figure has a beat count you can raise or lower.
 - **Progression** — mark the figure the dance
   [progresses](./glossary.md#progression) on. Moves that can carry the

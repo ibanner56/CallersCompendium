@@ -13831,6 +13831,12 @@ abstract class AppLocalizations {
   /// **'Choose…'**
   String get danceEditorChooseHint;
 
+  /// Hint in the search box of the open list of dancers a figure names (its Who field), which narrows the list.
+  ///
+  /// In en, this message translates to:
+  /// **'Search dancers'**
+  String get figureParamSearchDancersHint;
+
   /// Type-ahead option label for creating a new item with the typed name/title.
   ///
   /// In en, this message translates to:

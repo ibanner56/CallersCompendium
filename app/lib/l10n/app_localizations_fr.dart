@@ -9400,6 +9400,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceEditorChooseHint => 'Choisir…';
 
   @override
+  String get figureParamSearchDancersHint => 'Rechercher des danseurs';
+
+  @override
   String danceEditorCreateQuotedName(String name) {
     return 'Créer « $name »';
   }

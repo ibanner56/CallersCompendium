@@ -36,6 +36,38 @@ Future<Object? Function()> _pumpEditor(
   return () => captured;
 }
 
+/// Like [_pumpEditor], but the host rebuilds the editor with each value it
+/// reports, as the dance editor does.
+Future<Object? Function()> _pumpLiveEditor(
+  WidgetTester tester, {
+  required String paramKey,
+  required ParamSpec spec,
+  required Object? value,
+}) async {
+  Object? current = value;
+  await tester.pumpWidget(
+    MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
+      home: Scaffold(
+        body: Center(
+          child: StatefulBuilder(
+            builder: (context, setState) => FigureParamEditor(
+              keyPrefix: 'p',
+              paramKey: paramKey,
+              spec: spec,
+              value: current,
+              dialect: Dialect.canonical,
+              onChanged: (v) => setState(() => current = v),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  return () => current;
+}
+
 Future<void> _selectFromDropdown(
   WidgetTester tester,
   String fieldKey,
@@ -66,6 +98,56 @@ void main() {
   group('dancer list (ECD who, ADR-006 §5.2)', () {
     final spec = ecdTaxonomy.moves['ecd_circle']!.params['who']!;
 
+    Future<void> openWho(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('p-who-field')));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> check(WidgetTester tester, String token) async {
+      final row = find.byKey(ValueKey('p-who-$token'));
+      // `hitTestable`: a row built below the list's edge is in the tree, but a
+      // tap there would land outside the list and close it.
+      await tester.scrollUntilVisible(
+        row.hitTestable(),
+        100,
+        scrollable: find.descendant(
+          of: find.byKey(const ValueKey('p-who-options')),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+    }
+
+    String fieldText(WidgetTester tester) =>
+        tester.widget<Text>(find.byKey(const ValueKey('p-who-names'))).data!;
+
+    testWidgets('the closed field reads the dancers picked, not a chip each', (
+      tester,
+    ) async {
+      await _pumpEditor(
+        tester,
+        paramKey: 'who',
+        spec: spec,
+        value: const ['twos', 'threes'],
+      );
+      expect(fieldText(tester), 'twos, threes');
+      // The list of every selector is not on the screen until it is opened.
+      expect(find.byKey(const ValueKey('p-who-ones')), findsNothing);
+      expect(find.byType(FilterChip), findsNothing);
+    });
+
+    testWidgets('an unstated list reads "not stated"', (tester) async {
+      await _pumpEditor(
+        tester,
+        paramKey: 'who',
+        spec: spec,
+        value: const [ParamVocab.unspecified],
+      );
+      expect(fieldText(tester), isEmpty);
+      expect(find.text('not stated'), findsOneWidget);
+    });
+
     testWidgets('adds a selector after those already picked', (tester) async {
       final read = await _pumpEditor(
         tester,
@@ -73,8 +155,8 @@ void main() {
         spec: spec,
         value: const ['twos'],
       );
-      await tester.ensureVisible(find.byKey(const ValueKey('p-who-threes')));
-      await tester.tap(find.byKey(const ValueKey('p-who-threes')));
+      await openWho(tester);
+      await check(tester, 'threes');
       expect(read(), ['twos', 'threes']);
     });
 
@@ -85,8 +167,8 @@ void main() {
         spec: spec,
         value: const ['twos', 'threes'],
       );
-      await tester.ensureVisible(find.byKey(const ValueKey('p-who-everyone')));
-      await tester.tap(find.byKey(const ValueKey('p-who-everyone')));
+      await openWho(tester);
+      await check(tester, 'everyone');
       expect(read(), ['everyone']);
     });
 
@@ -97,8 +179,8 @@ void main() {
         spec: spec,
         value: const ['everyone'],
       );
-      await tester.ensureVisible(find.byKey(const ValueKey('p-who-ones')));
-      await tester.tap(find.byKey(const ValueKey('p-who-ones')));
+      await openWho(tester);
+      await check(tester, 'ones');
       expect(read(), ['ones']);
     });
 
@@ -111,12 +193,119 @@ void main() {
         spec: spec,
         value: const ['ones'],
       );
-      await tester.ensureVisible(find.byKey(const ValueKey('p-who-ones')));
-      await tester.tap(find.byKey(const ValueKey('p-who-ones')));
+      await openWho(tester);
+      await check(tester, 'ones');
       expect(read(), [ParamVocab.unspecified]);
       expect(
         find.byKey(const ValueKey('p-who-${ParamVocab.unspecified}')),
         findsNothing,
+      );
+    });
+
+    testWidgets('the list stays open for several picks, and follows them', (
+      tester,
+    ) async {
+      final read = await _pumpLiveEditor(
+        tester,
+        paramKey: 'who',
+        spec: spec,
+        value: const [ParamVocab.unspecified],
+      );
+      await openWho(tester);
+      await check(tester, 'twos');
+      await check(tester, 'threes');
+      expect(read(), ['twos', 'threes']);
+      expect(
+        tester
+            .widget<CheckboxListTile>(
+              find.byKey(const ValueKey('p-who-threes')),
+            )
+            .value,
+        isTrue,
+      );
+      await tester.tap(find.byKey(const ValueKey('p-who-done')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('p-who-options')), findsNothing);
+      expect(fieldText(tester), 'twos, threes');
+    });
+
+    testWidgets('two quick checks both stick', (tester) async {
+      // The open list hears of the owner's rebuild a frame or two late; a
+      // second check before then must not overwrite the first.
+      final read = await _pumpLiveEditor(
+        tester,
+        paramKey: 'who',
+        spec: spec,
+        value: const [ParamVocab.unspecified],
+      );
+      await openWho(tester);
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('p-who-threes')).hitTestable(),
+        100,
+        scrollable: find.descendant(
+          of: find.byKey(const ValueKey('p-who-options')),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      expect(
+        find.byKey(const ValueKey('p-who-twos')).hitTestable(),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('p-who-twos')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('p-who-threes')));
+      await tester.pumpAndSettle();
+      expect(read(), ['twos', 'threes']);
+    });
+
+    testWidgets('an unstated field reads "not stated" to a screen reader', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await _pumpEditor(
+        tester,
+        paramKey: 'who',
+        spec: spec,
+        value: const [ParamVocab.unspecified],
+      );
+      expect(
+        tester.getSemantics(find.byKey(const ValueKey('p-who-field'))),
+        matchesSemantics(
+          label: 'who',
+          value: 'not stated',
+          isButton: true,
+          isFocusable: true,
+          hasTapAction: true,
+          hasFocusAction: true,
+        ),
+      );
+      handle.dispose();
+    });
+
+    testWidgets('typing narrows the list; Enter checks the first match', (
+      tester,
+    ) async {
+      final read = await _pumpLiveEditor(
+        tester,
+        paramKey: 'who',
+        spec: spec,
+        value: const ['ones'],
+      );
+      await openWho(tester);
+      await tester.enterText(find.byKey(const ValueKey('p-who-input')), 'thr');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('p-who-threes')), findsOneWidget);
+      expect(find.byKey(const ValueKey('p-who-twos')), findsNothing);
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      expect(read(), ['ones', 'threes']);
+      // The box empties for the next name, and the whole list is back.
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('p-who-input')))
+            .controller!
+            .text,
+        isEmpty,
       );
     });
   });

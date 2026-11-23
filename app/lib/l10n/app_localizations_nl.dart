@@ -9344,6 +9344,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorChooseHint => 'Kies…';
 
   @override
+  String get figureParamSearchDancersHint => 'Dansers zoeken';
+
+  @override
   String danceEditorCreateQuotedName(String name) {
     return '“$name” aanmaken';
   }

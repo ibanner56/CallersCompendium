@@ -199,6 +199,11 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   maintainer found cluttered and hard to use (22 November 2026). The list
   drops down under the field on a wide window and is a bottom sheet on a
   phone or short window, above the keyboard.
+- **A figure's Who list** (an English figure's `who`, a `dancerList`) is the
+  same dropdown, without the create row or edit buttons: its rows are the
+  selectors in the vocabulary's order, and the closed field reads the picked
+  ones in the order picked. It replaced a wall of over forty filter chips,
+  which the maintainer called "a disaster" (23 November 2026).
 - **Field labels**: a text field or dropdown carries a floating label inside
   the field (Title, Type, Formation); a name picker (authors, tags) or a
   repeating group of fields (tunes, links, sources, related dances, custom
