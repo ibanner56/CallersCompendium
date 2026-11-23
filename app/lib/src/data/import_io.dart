@@ -9,7 +9,6 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 
-import '../search/collection_query.dart' show ByPhraseSelections;
 import 'file_dialog_labels.dart';
 import 'picker_extensions.dart';
 import 'usr_archive_isolate.dart';
