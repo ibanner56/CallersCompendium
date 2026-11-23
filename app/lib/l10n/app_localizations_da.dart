@@ -9277,6 +9277,9 @@ class AppLocalizationsDa extends AppLocalizations {
       'Skriv for at tilføje eller oprette…';
 
   @override
+  String get danceEditorChooseHint => 'Vælg…';
+
+  @override
   String danceEditorCreateQuotedName(String name) {
     return 'Opret „$name“';
   }
