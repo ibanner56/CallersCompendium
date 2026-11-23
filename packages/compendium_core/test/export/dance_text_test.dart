@@ -577,26 +577,26 @@ void main() {
     const labels = DanceExportLabels();
     test('bars with a bar, beats without one', () {
       const two = BarTiming.fixed(2);
-      expect(labels.count(8, two), '4 bars');
-      expect(labels.count(0, two), '0 bars');
-      expect(labels.count(2, two), '1 bar');
-      expect(labels.count(1, two), '½ bar');
-      expect(labels.count(3, two), '1½ bars');
-      expect(labels.count(8, null), '8 beats');
-      expect(labels.count(4, const BarTiming.fixed(3)), '4 beats');
+      expect(labels.count(8, two, 0), '4 bars');
+      expect(labels.count(0, two, 0), '0 bars');
+      expect(labels.count(2, two, 0), '1 bar');
+      expect(labels.count(1, two, 0), '½ bar');
+      expect(labels.count(3, two, 0), '1½ bars');
+      expect(labels.count(8, null, 0), '8 beats');
+      expect(labels.count(4, const BarTiming.fixed(3), 0), '4 beats');
     });
 
     test('counts from where the figure starts where the phrases differ', () {
       final mixed = BarTiming.byPhrase(
         PhraseStructure.parse('A:2*4*3 + B:1*8*2'),
       );
-      expect(labels.count(12, mixed), '4 bars');
+      expect(labels.count(12, mixed, 0), '4 bars');
       expect(labels.count(8, mixed, 24), '4 bars');
       // Bars at 18 (3), 21 (3), 24 (2), 26 (2).
       expect(labels.count(10, mixed, 18), '4 bars');
       expect(labels.count(9, mixed, 18), '3½ bars');
       expect(labels.count(1, mixed, 24), '½ bar');
-      expect(labels.count(4, mixed), '4 beats');
+      expect(labels.count(4, mixed, 0), '4 beats');
     });
   });
 }

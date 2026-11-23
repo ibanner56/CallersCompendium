@@ -11,7 +11,7 @@
   },
   "core": {
     "added": [
-      "`barTimingFor` gives how a dance counts its figures in bars; `BarTiming.maxBarsWithin`, `doubledBeatsForHalfBars`, `beatsPerBarOfHalfAt` and `isFixed` serve the Bars field; `PhraseStructure.longestPhraseStart` and `childStartBeats` give where a phrase and a group's children start; `barTimingForMixedMeter` gives the timing a typed bar range counts by.",
+      "`barTimingFor` gives how a dance counts its figures in bars; `BarTiming.maxBarsWithin`, `doubledBeatsForHalfBars`, `beatsPerBarOfHalfAt` and `isFixed` serve the Bars field; `PhraseStructure.longestPhraseStart` and `childStartBeats` give where a phrase and a group's children start.",
       "The `sequence_exceeds_phrase` warning carries the `startBeat` of the sequence and the `limitStart` of the phrase that is its limit."
     ],
     "changed": [

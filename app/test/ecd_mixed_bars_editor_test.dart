@@ -26,6 +26,7 @@ void main() {
     Future<CompendiumRepositories> pump(
       WidgetTester tester, {
       bool customFigures = true,
+      List<Figure>? figures,
     }) async {
       await tester.binding.setSurfaceSize(const Size(1200, 3200));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -38,10 +39,12 @@ void main() {
             form: DanceForm.ecd,
             formation: const Formation(FormationShape.dupleMinor),
             phraseStructure: 'A:2*4*3 + B:1*8*2',
-            figures: [
-              for (final beats in [12, 12, 8])
-                Figure(move: 'ecd_siding', params: {'beats': beats}),
-            ],
+            figures:
+                figures ??
+                [
+                  for (final beats in [12, 12, 8])
+                    Figure(move: 'ecd_siding', params: {'beats': beats}),
+                ],
             createdAt: created,
             updatedAt: created,
           ),
@@ -150,6 +153,32 @@ void main() {
       await tester.enterText(find.byKey(const ValueKey('figure-0-beats')), '2');
       await tester.pumpAndSettle();
       expect((await savedBeats(tester, repos)).first, 6);
+    });
+
+    testWidgets('a sequence whose steps do not add up to its span is warned '
+        'of in the bars of its own phrases', (tester) async {
+      // The sequence starts at 18 and its steps (12 beats: 5 bars, 3 + 3 + 2
+      // + 2 + 2) do not add up to its span (10 beats: 4 bars).
+      await pump(
+        tester,
+        figures: [
+          Figure(move: 'ecd_siding', params: const {'beats': 18}),
+          Figure.sequence(
+            figures: [
+              Figure(move: 'ecd_lead', params: const {'beats': 6}),
+              Figure(move: 'ecd_set', params: const {'beats': 6}),
+            ],
+            beats: 10,
+          ),
+        ],
+      );
+      expect(
+        find.textContaining(
+          'The steps of the sequence in figure 2 take 5 bars; the sequence '
+          'takes 4 bars.',
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('half a bar is refused where the bar is 3 beats and taken '

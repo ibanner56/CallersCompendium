@@ -333,6 +333,83 @@ void main() {
       expect(_fieldText(tester, 'figure-1-side-1-beats'), '2');
     });
 
+    testWidgets('a sequence longer than a phrase reads the phrase in its own '
+        'bars', (tester) async {
+      // 18 beats of other figures put the sequence at the end of A2: its 20
+      // beats are 9 bars (3, 3 then 7 of 2). The longest phrase is B, 16 beats
+      // or 8 bars of 2, which a count from the sequence's start would give as 7.
+      final drafts = [
+        _step('ecd_lead', 18),
+        FigureDraft(
+          sequenceFigures: [_step('ecd_lead', 10), _step('ecd_set', 10)],
+        )..setSequenceSpan(20),
+      ];
+      await _pump(tester, drafts, structure: structure);
+      await _open(tester, 1);
+      expect(
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey('figure-1-sequence-over-phrase')),
+            )
+            .data,
+        'This sequence is 9 bars, longer than one phrase (8 bars).',
+      );
+    });
+
+    testWidgets('a limit with no one bar length reads the whole message in '
+        'beats', (tester) async {
+      // A is 8 bars of 2 and B 4 bars of 4: both 16 beats, no one bar length.
+      final tied = PhraseStructure.parse('A:1*8*2 + B:1*4*4');
+      final drafts = [
+        FigureDraft(
+          sequenceFigures: [_step('ecd_lead', 10), _step('ecd_set', 10)],
+        )..setSequenceSpan(20),
+      ];
+      await _pump(tester, drafts, structure: tied);
+      await _open(tester, 0);
+      expect(
+        tester
+            .widget<Text>(
+              find.byKey(const ValueKey('figure-0-sequence-over-phrase')),
+            )
+            .data,
+        'This sequence is 20 beats, longer than one phrase (16 beats).',
+      );
+    });
+
+    testWidgets('a group nested in a sequence starts where the steps before '
+        'it end', (tester) async {
+      // The sequence starts at 18; its first step ends at 24, where the group
+      // starts, and its 4 beats are 2 bars of 2 there.
+      final group = FigureDraft(
+        meanwhileSides: [_step('ecd_lead', 4), _step('ecd_set', 4)],
+        params: {'beats': 4},
+      );
+      final drafts = [
+        _step('ecd_lead', 18),
+        FigureDraft(sequenceFigures: [_step('ecd_lead', 6), group]),
+      ];
+      await _pump(tester, drafts, structure: structure);
+      await _open(tester, 1);
+      await tester.tap(
+        find.byKey(const ValueKey('figure-1-nested-1-0-summary')),
+      );
+      await tester.pumpAndSettle();
+      expect(_fieldText(tester, 'figure-1-nested-1-0-meanwhile-beats'), '2');
+    });
+
+    testWidgets('the field reads a count anew when the tune it is in changes', (
+      tester,
+    ) async {
+      // 6 beats from the start: 2 bars of 3, then, in 2, 3 bars.
+      final drafts = [_step('ecd_lead', 6)];
+      await _pump(tester, drafts);
+      await _open(tester, 0);
+      expect(_fieldText(tester, 'figure-0-beats'), '2');
+      await _pump(tester, drafts, beatsPerBar: 2);
+      expect(_fieldText(tester, 'figure-0-beats'), '3');
+    });
+
     testWidgets('half a bar is refused by the bar it falls in', (tester) async {
       // 12 + 12 + 8 + 4 beats put the fifth figure at 36, in a bar of 2: two
       // and a half bars from there end in the first bar of the next time

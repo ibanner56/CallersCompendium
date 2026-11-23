@@ -106,7 +106,7 @@ String? _localizedValidation(
     return texts.contains(null) ? null : [...texts.nonNulls];
   }
 
-  int startOf(Object? start) => start is int ? start : 0;
+  int startOf(Object? start) => start is int && start >= 0 ? start : 0;
 
   switch (issue.code) {
     case 'phrase_overflow':

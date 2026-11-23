@@ -119,7 +119,7 @@ class DanceExportLabels {
   /// where the figure starts ([startBeat]) by [timing], for a dance timed in
   /// bars ([barTimingFor]), or in beats where [timing] is null or the count is
   /// not a whole number of half bars, as the editor shows it.
-  String count(int beats, BarTiming? timing, [int startBeat = 0]) {
+  String count(int beats, BarTiming? timing, int startBeat) {
     final counted = timing?.barsTextAt(startBeat, beats);
     return counted == null
         ? this.beats(beats)

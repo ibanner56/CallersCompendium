@@ -1028,7 +1028,9 @@ class _FigureListEditorState extends State<FigureListEditor>
     // beats per bar ([FigureStartScope]); the rows of a nested editor start
     // where the group they are in does. Only a dance timed in bars reads it.
     final starts = <String, int>{};
-    if (BarTimingScope.maybeOf(context) != null) {
+    // A tune in one bar length reads a count the same wherever it starts.
+    if (BarTimingScope.maybeOf(context) case final scope?
+        when !scope.timing.isFixed) {
       var start = FigureStartScope.startOf(context);
       for (final draft in drafts) {
         starts[draft.id] = start;
@@ -3019,14 +3021,25 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     return scope.withUntimed(false, child: child);
   }
 
-  /// [beats], the length of the longest phrase, in the bars of that phrase
-  /// ([PhraseStructure.longestPhraseStart]), or in beats where phrases tied
-  /// for longest differ in bars.
-  String _phraseLengthLabel(BuildContext context, int beats) {
+  /// A sequence's [length] and the longest phrase's [limit], for the message
+  /// that the first is longer than the second: the limit in the bars of its
+  /// own phrase ([PhraseStructure.longestPhraseStart]), as the dance's
+  /// warning reads it. Where phrases tied for longest differ in bars it has
+  /// none, and both read in beats, so the message never mixes the two.
+  (String, String) _overPhraseLabels(
+    BuildContext context,
+    int length,
+    int limit,
+  ) {
     final start = widget.phraseStructure.longestPhraseStart;
-    return start == null
-        ? AppLocalizations.of(context).danceFigureBeats(beats)
-        : timingLabel(context, beats, startBeat: start);
+    if (start == null) {
+      final l10n = AppLocalizations.of(context);
+      return (l10n.danceFigureBeats(length), l10n.danceFigureBeats(limit));
+    }
+    return (
+      timingLabel(context, length),
+      timingLabel(context, limit, startBeat: start),
+    );
   }
 
   /// An English dance's sequence ([BarTimingScope]): the bars it spans, which
@@ -3054,6 +3067,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final errorStyle = theme.textTheme.bodySmall?.copyWith(
       color: theme.colorScheme.error,
     );
+    final over = draft.beats > beatLimit
+        ? _overPhraseLabels(context, draft.beats, beatLimit)
+        : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -3094,14 +3110,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
               style: errorStyle,
             ),
           ),
-        if (draft.beats > beatLimit)
+        if (over != null)
           Padding(
             padding: const EdgeInsets.only(top: AppSpacing.xxs),
             child: Text(
-              l10n.danceEditorSequenceOverPhraseTimed(
-                timingLabel(context, draft.beats),
-                _phraseLengthLabel(context, beatLimit),
-              ),
+              l10n.danceEditorSequenceOverPhraseTimed(over.$1, over.$2),
               key: ValueKey('$keyPrefix-sequence-over-phrase'),
               style: errorStyle,
             ),

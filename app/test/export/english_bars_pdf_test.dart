@@ -113,6 +113,7 @@ void main() {
       'each phrase', () async {
     // 12 beats are 4 bars of 3, and 8 from beat 24 are 4 bars of 2.
     final text = await _card(mixed([12, 12, 8]));
+    expect(text, contains('4'));
     expect(text, isNot(contains('12')));
     expect(text, isNot(contains('8')));
   });

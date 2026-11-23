@@ -339,7 +339,8 @@ class PhraseStructure {
   /// numbers, so finer timing goes in a note instead. Whole bars are always
   /// accepted. Only the meter at [atBeat] is read: a span that starts in one
   /// part of the tune and runs into a part in another meter is judged by the
-  /// part it starts in.
+  /// part it starts in. ([BarTiming.beatsForHalfBars] counts each of a span's
+  /// bars by the part it starts in; this reads only the first.)
   int? beatsForHalfBars(int halfBars, {int atBeat = 0}) {
     if (halfBars < 0) {
       throw ArgumentError.value(halfBars, 'halfBars', 'must be >= 0');
