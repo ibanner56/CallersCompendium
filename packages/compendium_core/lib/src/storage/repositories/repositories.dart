@@ -332,6 +332,7 @@ class CompendiumRepositories {
     db,
     dances,
     syncLocal,
+    savedSearches,
   );
 
   /// Runs a cross-repository write as one database transaction.
