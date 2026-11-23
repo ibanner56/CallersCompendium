@@ -103,9 +103,10 @@ bool calendarExportNeedsAddressConsent(
 /// does not resolve, uses the typed venue label as written.
 ///
 /// The program's start and end times (#2350) become a timed event; with no
-/// start it stays all-day. [scheduleLine] is the already-formatted lesson
-/// and arrival line ([programCalendarScheduleLine]); the calendar export is
-/// the caller's own, so Arrive by is in it (maintainer ruling, #2350).
+/// start it stays all-day. [scheduleLine] is the already-formatted lesson,
+/// arrival and (with no start) end line ([programCalendarScheduleLine]); the
+/// calendar export is the caller's own, so Arrive by is in it (maintainer
+/// ruling, #2350).
 ///
 /// Pay, notes, band, caller and slots are not read at all.
 ProgramCalendarEvent programCalendarEvent(
@@ -155,13 +156,14 @@ CalendarTimeOfDay? _timeOfDay(int? minuteOfDay) => minuteOfDay == null
     ? null
     : CalendarTimeOfDay(minuteOfDay ~/ 60, minuteOfDay % 60);
 
-/// The lesson and arrival times as one line for an event's description, such
-/// as "Lesson 7:00 PM · Arrive by 6:30 PM", in the words and clock of the
-/// program summary; `null` when neither is set.
+/// The lesson and arrival times, and an end time that has no start, as one
+/// line for an event's description, such as "Lesson 7:00 PM · Arrive by
+/// 6:30 PM", in the words and clock of the program summary; `null` when none
+/// of them is set.
 ///
-/// A program with an end time but no start is an all-day event, so its end
-/// goes here too ("Dance until 10:30 PM"), or it would appear nowhere in the
-/// event.
+/// The end is here only when there is no start: such a program is an all-day
+/// event, so without this line ("Dance until 10:30 PM") its end would appear
+/// nowhere in the event. With a start, the end is in the event's times.
 String? programCalendarScheduleLine(AppLocalizations l10n, Program program) {
   final endOnly = program.startMinute == null
       ? danceTimesText(
