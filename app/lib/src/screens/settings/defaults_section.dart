@@ -1,5 +1,6 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
 import '../../widgets/reorder_move_buttons.dart';
+
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -36,6 +37,7 @@ import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/settings_dropdown_row.dart';
 import '../glossary/compound_editor_screen.dart';
+import '../dance_editor/phrase_groups_editor.dart';
 import 'default_import_tags_editor.dart';
 import 'program_templates_screen.dart';
 import 'settings_keys.dart';
@@ -2184,6 +2186,40 @@ class _DefaultsView extends StatelessWidget {
                       label: progressionLabel(l10n, progression),
                     ),
                 ],
+              ),
+            ),
+            // The default as rows (#2304), over the same text as the field
+            // below. A default with phrase names (an English dance's) or one
+            // that does not parse is left to the field: the rows write
+            // unnamed text only.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.xs,
+                AppSpacing.md,
+                0,
+              ),
+              child: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: dancePhraseController,
+                builder: (context, value, _) {
+                  PhraseStructure? structure;
+                  try {
+                    structure = PhraseStructure.parse(value.text);
+                  } on FormatException {
+                    // diagnostics: silent — the field below holds text that
+                    // does not parse; the rows wait for a valid default.
+                    structure = null;
+                  }
+                  return PhraseGroupsEditor(
+                    key: const ValueKey('defaults-dance-phrase-rows'),
+                    title: l10n.settingsDefaultsPhraseLabel,
+                    structure: structure,
+                    onChanged: (raw, {required typed}) {
+                      dancePhraseController.text = raw;
+                      onDefaultDancePhraseChanged(raw);
+                    },
+                  );
+                },
               ),
             ),
             Padding(

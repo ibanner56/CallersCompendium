@@ -528,6 +528,10 @@
   "@userFigureSwitchConfirmDefaults": {
     "x-sourceSha256": "c1697c77ab5e374a3eb47917625a399901be0df1dfb4c4e07ab46a731af2ac62"
   },
+  "userFigureSwitchConfirmKeepsWording": "{name} にないダンサーのグループを使っている箇所は、切り替わらず現在の表現のまま残ります。",
+  "@userFigureSwitchConfirmKeepsWording": {
+    "x-sourceSha256": "38cbf9dfabe885db16d60fc3b6b10594bf921426b00794f1c979e7307c3045c4"
+  },
   "userFigureSwitchConfirmShorthands": "{count, plural, other{{count}件のショートハンドは {name} を挿入するようになります。}}",
   "@userFigureSwitchConfirmShorthands": {
     "x-sourceSha256": "d4d2a6ad284fafd94197e4b565bfaedc778486cc6870c4ca4b32137325c8edc7"
@@ -8042,6 +8046,10 @@
   "@importIssueBarsMeterUnstated": {
     "x-sourceSha256": "c5a034e9d32006995c2a5565b567e500f8eaac762943f9fde54b3e9554d145d9"
   },
+  "importIssueBarsMeterMixed": "このダンスは小節で数えていますが、小節の長さが異なる拍子が記載されているため、1小節を2拍として数えました。カウントを確認してください。",
+  "@importIssueBarsMeterMixed": {
+    "x-sourceSha256": "044e9303e3fac0fe97aa2b5ab81f6987a2dd83bf7e777dae12c439d55751df6a"
+  },
   "importIssueUnmappedType": "ダンスの種類を認識できませんでした。コントラとしてインポートし、ノートに保持しました。",
   "@importIssueUnmappedType": {
     "x-sourceSha256": "845eca2d00487b37f677dfd37b12132d108d17c2ad7805c7945b02388a64d06e"
@@ -8574,6 +8582,46 @@
   "@danceEditorPhraseRemove": {
     "x-sourceSha256": "ac53653b0502a2963db64c69011dbd463efc6e80b1d2020418209439d3e33e52"
   },
+  "danceEditorPhraseRowsHelp": "各行は、同じ長さのフレーズの並びです。フレーズの数、各フレーズの小節数、1小節の拍数を指定します。下のフレーズ構造は行に合わせて変わります。",
+  "@danceEditorPhraseRowsHelp": {
+    "x-sourceSha256": "6f0ab175d6660a4825350727f257f4d9a04f8d9236ec55aaba61f64f41cd7dca"
+  },
+  "danceEditorPhraseRowsPhrasesLabel": "フレーズ数",
+  "@danceEditorPhraseRowsPhrasesLabel": {
+    "x-sourceSha256": "076bcf6aae77baad87996fdcdd36b513bb44458288adb5cf5d1b4827c4d40fb9"
+  },
+  "danceEditorPhraseRowsBarsLabel": "フレーズごとの小節数",
+  "@danceEditorPhraseRowsBarsLabel": {
+    "x-sourceSha256": "895f6d494f86d0cea1bc369363139d049887e92231cafacc0a11d56157c3940e"
+  },
+  "danceEditorPhraseRowsBeatsLabel": "1小節の拍数",
+  "@danceEditorPhraseRowsBeatsLabel": {
+    "x-sourceSha256": "f9a399427d599a2a2fb742a9c24c04063e09494590e492f5e00fe36775770c5e"
+  },
+  "danceEditorPhraseRowsRange": "1〜{max}",
+  "@danceEditorPhraseRowsRange": {
+    "x-sourceSha256": "bfa7cdf134bbeb548cd4f923b76b40b9d9f16882792d502e0657e9e611bcdbf5"
+  },
+  "danceEditorPhraseRowsAdd": "行を追加",
+  "@danceEditorPhraseRowsAdd": {
+    "x-sourceSha256": "1868a8dd78ad959415c742898477ab2848e5dfd80205604c86b9acc80a7e7bdf"
+  },
+  "danceEditorPhraseRowsRemove": "{number}行目を削除",
+  "@danceEditorPhraseRowsRemove": {
+    "x-sourceSha256": "5d1e14b6c4353c8b98e78ebd9904ec2da1cfd0312165096b4e426a686372bba8"
+  },
+  "danceEditorPhraseRowsInvalid": "各欄に1から{max}までの整数を入力してください。長すぎる構造にはできません。それまでは最後の有効なフレーズ構造が保たれます。",
+  "@danceEditorPhraseRowsInvalid": {
+    "x-sourceSha256": "136099aeff18e01fd168bc79ef22b4d6f416ab4f52bacc44c997852a7e31de66"
+  },
+  "danceEditorPhraseRowsSummary": "{labels} · {beats, plural, =1{1拍} other{{beats}拍}}",
+  "@danceEditorPhraseRowsSummary": {
+    "x-sourceSha256": "20214a3d4f5e9106147b26c337e5e7e79c565f84e9d2fd7add17b4345dbd5627"
+  },
+  "danceEditorPhraseRowsDisabledNote": "これらの行には最後の有効なフレーズ構造が表示されています。再び編集するには、下のフレーズ構造を修正してください。",
+  "@danceEditorPhraseRowsDisabledNote": {
+    "x-sourceSha256": "ed2891c29ccd52f3beb3972e5ea4c77a1f0c609bd7375a8a9a50df9aa1e48423"
+  },
   "danceEditorFiguresSection": "フィギュア",
   "@danceEditorFiguresSection": {
     "x-sourceSha256": "f2f410e7009e9a31dcc7c971e662285f4071150ef1e211f76e838efb35082d1e"
@@ -8989,6 +9037,10 @@
   "validationOtherFormFigures": "これは{danceForm}のダンスですが、{count, plural, other{{count}個のフィギュア}}が{figureForm}のものです。そのまま残りますが、フィギュアの選択肢には{pickerForm}のフィギュアだけが表示されます。",
   "@validationOtherFormFigures": {
     "x-sourceSha256": "c9ecc275ac684f779261f8efede22076a2dd84f87b5d8b0f4ec812630fbc8e77"
+  },
+  "validationFigureCrossesPhrase": "フィギュア{position}が{label}の終わりを越えています。スクエアダンスでは、各フレーズのコールがそのフレーズをちょうど埋めるようにします。",
+  "@validationFigureCrossesPhrase": {
+    "x-sourceSha256": "30e0b45cbe0c7888f4176602ea75398eb936512e6ddb481cd4f98626fc9d1ba7"
   },
   "validationIncompleteFigure": "フィギュア{position}は未完成のため、保存しても含まれません。",
   "@validationIncompleteFigure": {
@@ -12593,5 +12645,141 @@
   "calendarPullNowSubtitle": "カレンダーを読み取り、下書きプログラムとして追加する予定を選びます。",
   "@calendarPullNowSubtitle": {
     "x-sourceSha256": "73279edb72cf7422e6dc07f05f4aed6c205c2c347a74deb627eb6eda203d1b5c"
+  },
+  "collectionExportCsv": "CSVでエクスポート",
+  "@collectionExportCsv": {
+    "x-sourceSha256": "868da4093e746112392a0701d855a3d8170062351c0ea61d5cf26d8acc9df089"
+  },
+  "settingsExportDancesCsvTitle": "ダンスを表計算ファイルでエクスポート",
+  "@settingsExportDancesCsvTitle": {
+    "x-sourceSha256": "8fe0504e6fe1473204015ec0d08ddb6aafe55000d03f160ab20b6759278960f3"
+  },
+  "settingsExportDancesCsvSubtitle": "コレクションのすべてのダンスを、Excel、Numbers、Googleスプレッドシート用のCSVファイルにします。共有と同じルールが適用され、星の評価も含まれます。バックアップではないため、復元はできません。",
+  "@settingsExportDancesCsvSubtitle": {
+    "x-sourceSha256": "31afd8d62fdea8bc9b72d2a377468eff48c65c5db402629d047070b026a92f6a"
+  },
+  "settingsExportDancesCsvAction": "エクスポート",
+  "@settingsExportDancesCsvAction": {
+    "x-sourceSha256": "3664895579f0a7e68c4aa09c91316e20239bc74499010e6423ece40cad7c28f7"
+  },
+  "exportCsvDialogTitle": "表計算ファイル（CSV）をエクスポート",
+  "@exportCsvDialogTitle": {
+    "x-sourceSha256": "a19ee99914fc3af962c373f12347b3a2d21f397831952733044bcd9ea3fd5cf1"
+  },
+  "exportCsvDialogMessage": "ファイルを保存するか、ほかのアプリと共有します。Excel、Numbers、LibreOffice、Googleスプレッドシートで開けます。",
+  "@exportCsvDialogMessage": {
+    "x-sourceSha256": "d43a42b985681b87e305a0ef9ff710eae9c12dba40ea1ca888deb98c29b621ae"
+  },
+  "exportCsvSavedGeneric": "表計算ファイルを保存しました。",
+  "@exportCsvSavedGeneric": {
+    "x-sourceSha256": "3a3206f9a39102d9aecbad3368efff3b21d13fbe0413ae85e0a96431ed0d85d8"
+  },
+  "exportCsvSaveError": "この表計算ファイルを保存できませんでした。もう一度お試しください。",
+  "@exportCsvSaveError": {
+    "x-sourceSha256": "895b982c695cec0bd023cd40191cb194720521656cc03c63022b10f6ff59967b"
+  },
+  "exportCsvShareError": "この表計算ファイルを共有できませんでした。もう一度お試しください。",
+  "@exportCsvShareError": {
+    "x-sourceSha256": "06fe1bbb44ac5227b9bb9640b86c69fda9a1288c853399b79447fbdae8ccb736"
+  },
+  "exportCsvError": "この表計算ファイルを作成できませんでした。もう一度お試しください。",
+  "@exportCsvError": {
+    "x-sourceSha256": "21b8afe4fe7c2b1fc10215848d2ac1d35e0162304bc9ea5a3b3a490f2355ded7"
+  },
+  "csvDancesFileStem": "ダンス",
+  "@csvDancesFileStem": {
+    "x-sourceSha256": "7802798a6c0852e490313b5ffe51d742aa927904e95aa53f4555f3b77ec5fc25"
+  },
+  "csvColumnTitle": "タイトル",
+  "@csvColumnTitle": {
+    "x-sourceSha256": "7e8cd2056da73a7fefb6cd91f4e5d199d08d9058c517b9a2476b1b520324d674"
+  },
+  "csvColumnAuthors": "作者",
+  "@csvColumnAuthors": {
+    "x-sourceSha256": "2c00c9aaa72c717ad6d901a09c4d698a68b2e9740be3769e0af7d6bd85d72d5d"
+  },
+  "csvColumnInterpreters": "解釈者",
+  "@csvColumnInterpreters": {
+    "x-sourceSha256": "7a3eef2a0a39813c78bae859524207a201116b461ca4bb4157637f384b1af050"
+  },
+  "csvColumnForm": "タイプ",
+  "@csvColumnForm": {
+    "x-sourceSha256": "baaddf70fb5d432b8bd948ef91d6f910124a6d138edae4d5f000c4610ddc8eae"
+  },
+  "csvColumnFormation": "フォーメーション",
+  "@csvColumnFormation": {
+    "x-sourceSha256": "49a63d72be2fc0e6aa6de315ca626d27816fe9d584a01484daa694221f1ef7e1"
+  },
+  "csvColumnProgression": "プログレッション",
+  "@csvColumnProgression": {
+    "x-sourceSha256": "f193d07c37765ecb1de9acb1af52d788851273a68ddd8b3791e4288c5e85ef77"
+  },
+  "csvColumnLevel": "レベル",
+  "@csvColumnLevel": {
+    "x-sourceSha256": "1709305c9fa966d14f56f0da3c3614bbc10adcf53d72f90341bb96d24afcfca3"
+  },
+  "csvColumnMixedLevel": "ミックスレベル",
+  "@csvColumnMixedLevel": {
+    "x-sourceSha256": "c76f62265cdc2f4c343ae17292b236551fe66a38bb839fec2218e365ca293316"
+  },
+  "csvColumnMixer": "ミキサー",
+  "@csvColumnMixer": {
+    "x-sourceSha256": "8ae012d51747c9a3e51613b1ba8305b377fcada7de30e2b7156d51c19f0b89e0"
+  },
+  "csvColumnStatus": "ステータス",
+  "@csvColumnStatus": {
+    "x-sourceSha256": "920e413c7d411b61ef3e8c63b1cb6ad058d5f95f8b481dbafe60248387d8c355"
+  },
+  "csvColumnRating": "評価",
+  "@csvColumnRating": {
+    "x-sourceSha256": "9f29530464f730bd28f137cfc9ea941af137187b57c21e8ff5fefed520764d99"
+  },
+  "csvColumnTags": "タグ",
+  "@csvColumnTags": {
+    "x-sourceSha256": "1331275bc537b4c2bf1e46f7275677967515342e30b572e6852fa6f51b831fe8"
+  },
+  "csvColumnTunes": "チューン",
+  "@csvColumnTunes": {
+    "x-sourceSha256": "4b5c504ca989a4a17e54b974db8a6d4aa156fa63da39902c66ecec59f5e46412"
+  },
+  "csvColumnMeter": "拍子",
+  "@csvColumnMeter": {
+    "x-sourceSha256": "2293b30e539a68427851a623737eb92b4dd7ecdc432f67e62dc2f550dd33a907"
+  },
+  "csvColumnKey": "調",
+  "@csvColumnKey": {
+    "x-sourceSha256": "99a52df3ff3d499488e2fa28150c4106a2cb5e928891a830a9aa3922b2d32160"
+  },
+  "csvColumnSources": "公開ソース",
+  "@csvColumnSources": {
+    "x-sourceSha256": "9593fa8262f88c0e015f31d4cda44a91f2669472ab28224ac1a91df6bf3c8bd2"
+  },
+  "csvColumnHook": "フック",
+  "@csvColumnHook": {
+    "x-sourceSha256": "536ff5051d2541c9be5975c589b2b2bfecd85c1eb316522080db20c2bf27ccee"
+  },
+  "csvColumnCallingNotes": "コーリングノート",
+  "@csvColumnCallingNotes": {
+    "x-sourceSha256": "d929944e5b1d40ac916a7b526de1016a08cf6c56c19d490bb365c62d58962298"
+  },
+  "csvColumnWalkthrough": "ウォークスルー",
+  "@csvColumnWalkthrough": {
+    "x-sourceSha256": "b463b316cebfc24441413d705d65e7707fae189ff880ff9e704aad73c5353be6"
+  },
+  "csvColumnFigures": "フィギュア",
+  "@csvColumnFigures": {
+    "x-sourceSha256": "f2f410e7009e9a31dcc7c971e662285f4071150ef1e211f76e838efb35082d1e"
+  },
+  "csvColumnComposed": "振付年",
+  "@csvColumnComposed": {
+    "x-sourceSha256": "48f8b936056c4a698e3bde4460b37d246596eda04eabdde954820dbd0bc877b2"
+  },
+  "csvColumnInterpreted": "解釈年",
+  "@csvColumnInterpreted": {
+    "x-sourceSha256": "83512bf0aa63b8443c4367033657fdd3212ff4116b4d28bf73b6ad6d93d5f706"
+  },
+  "csvColumnBarnes": "Barnes 掲載箇所",
+  "@csvColumnBarnes": {
+    "x-sourceSha256": "a87089c5e6ee0a0b519cc8136c7dc9e8133ed36735490fdb09559feefdb097a5"
   }
 }

@@ -575,6 +575,11 @@ class AppLocalizationsNl extends AppLocalizations {
       'Je standaardfiguren gebruiken hem ook en worden op dezelfde manier overgezet.';
 
   @override
+  String userFigureSwitchConfirmKeepsWording(String name) {
+    return 'Elk gebruik van een groep dansers die $name niet heeft, behoudt in plaats daarvan zijn tekst.';
+  }
+
+  @override
   String userFigureSwitchConfirmShorthands(int count, String name) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -8238,6 +8243,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Deze dans telt in maten maar vermeldt geen maatsoort, dus elke maat is als 2 tellen geteld. Controleer de tellingen.';
 
   @override
+  String get importIssueBarsMeterMixed =>
+      'Deze dans telt in maten maar vermeldt maatsoorten met verschillende maatlengtes, dus elke maat is als 2 tellen geteld. Controleer de tellingen.';
+
+  @override
   String get importIssueUnmappedType =>
       'Een danstype werd niet herkend; geïmporteerd als contra en bewaard in de notities.';
 
@@ -8840,6 +8849,52 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get danceEditorPhraseRowsHelp =>
+      'Elke rij is een reeks gelijke frasen: hoeveel het er zijn, de maten in elke frase en de beats in een maat. De fraseopbouw hieronder verandert mee met de rijen.';
+
+  @override
+  String get danceEditorPhraseRowsPhrasesLabel => 'Frasen';
+
+  @override
+  String get danceEditorPhraseRowsBarsLabel => 'Maten per frase';
+
+  @override
+  String get danceEditorPhraseRowsBeatsLabel => 'Beats per maat';
+
+  @override
+  String danceEditorPhraseRowsRange(int max) {
+    return '1 tot $max';
+  }
+
+  @override
+  String get danceEditorPhraseRowsAdd => 'Rij toevoegen';
+
+  @override
+  String danceEditorPhraseRowsRemove(int number) {
+    return 'Rij $number verwijderen';
+  }
+
+  @override
+  String danceEditorPhraseRowsInvalid(int max) {
+    return 'Vul in elk veld een geheel getal van 1 tot $max in, in een structuur die niet te lang is. Tot dan blijft de laatste geldige fraseopbouw behouden.';
+  }
+
+  @override
+  String danceEditorPhraseRowsSummary(String labels, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats beats',
+      one: '1 beat',
+    );
+    return '$labels · $_temp0';
+  }
+
+  @override
+  String get danceEditorPhraseRowsDisabledNote =>
+      'Deze rijen tonen de laatste geldige fraseopbouw. Corrigeer de fraseopbouw hieronder om ze weer te bewerken.';
+
+  @override
   String get danceEditorFiguresSection => 'Figuren';
 
   @override
@@ -9231,6 +9286,11 @@ class AppLocalizationsNl extends AppLocalizations {
       one: '1 figuur komt',
     );
     return 'Dit is een $danceForm-dans, maar $_temp0 uit $figureForm. Ze blijven zoals ze zijn, maar de figuurkiezer biedt alleen $pickerForm-figuren aan.';
+  }
+
+  @override
+  String validationFigureCrossesPhrase(int position, String label) {
+    return 'Figuur $position loopt door tot voorbij het einde van $label. In een squaredans horen de calls van elke frase die precies te vullen.';
   }
 
   @override
@@ -13132,4 +13192,112 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get calendarPullNowSubtitle =>
       'Lees de agenda en kies afspraken om als conceptprogramma\'s toe te voegen.';
+
+  @override
+  String get collectionExportCsv => 'Exporteren als CSV';
+
+  @override
+  String get settingsExportDancesCsvTitle =>
+      'Dansen exporteren als spreadsheet';
+
+  @override
+  String get settingsExportDancesCsvSubtitle =>
+      'Alle dansen in je collectie, als CSV-bestand voor Excel, Numbers of Google Sheets. De regels voor delen gelden, plus je sterbeoordelingen. Het is geen back-up en kan niet worden hersteld.';
+
+  @override
+  String get settingsExportDancesCsvAction => 'Exporteren';
+
+  @override
+  String get exportCsvDialogTitle => 'Een spreadsheet exporteren (CSV)';
+
+  @override
+  String get exportCsvDialogMessage =>
+      'Sla het bestand op of deel het met een andere app. Het opent in Excel, Numbers, LibreOffice of Google Sheets.';
+
+  @override
+  String get exportCsvSavedGeneric => 'Spreadsheet opgeslagen.';
+
+  @override
+  String get exportCsvSaveError =>
+      'Deze spreadsheet kon niet worden opgeslagen. Probeer het opnieuw.';
+
+  @override
+  String get exportCsvShareError =>
+      'Deze spreadsheet kon niet worden gedeeld. Probeer het opnieuw.';
+
+  @override
+  String get exportCsvError =>
+      'Deze spreadsheet kon niet worden gemaakt. Probeer het opnieuw.';
+
+  @override
+  String get csvDancesFileStem => 'dansen';
+
+  @override
+  String get csvColumnTitle => 'Titel';
+
+  @override
+  String get csvColumnAuthors => 'Auteurs';
+
+  @override
+  String get csvColumnInterpreters => 'Geïnterpreteerd door';
+
+  @override
+  String get csvColumnForm => 'Type';
+
+  @override
+  String get csvColumnFormation => 'Formatie';
+
+  @override
+  String get csvColumnProgression => 'Progressie';
+
+  @override
+  String get csvColumnLevel => 'Niveau';
+
+  @override
+  String get csvColumnMixedLevel => 'Gemengd niveau';
+
+  @override
+  String get csvColumnMixer => 'Mixer';
+
+  @override
+  String get csvColumnStatus => 'Status';
+
+  @override
+  String get csvColumnRating => 'Beoordeling';
+
+  @override
+  String get csvColumnTags => 'Tags';
+
+  @override
+  String get csvColumnTunes => 'Deuntjes';
+
+  @override
+  String get csvColumnMeter => 'Maatsoort';
+
+  @override
+  String get csvColumnKey => 'Toonsoort';
+
+  @override
+  String get csvColumnSources => 'Gepubliceerde bronnen';
+
+  @override
+  String get csvColumnHook => 'Hook';
+
+  @override
+  String get csvColumnCallingNotes => 'Callnotities';
+
+  @override
+  String get csvColumnWalkthrough => 'Doorloop';
+
+  @override
+  String get csvColumnFigures => 'Figuren';
+
+  @override
+  String get csvColumnComposed => 'Gecomponeerd';
+
+  @override
+  String get csvColumnInterpreted => 'Geïnterpreteerd';
+
+  @override
+  String get csvColumnBarnes => 'Barnes-verwijzing';
 }

@@ -49,6 +49,11 @@ Choreographer sanitizeChoreographerForShare(Choreographer choreographer) =>
 /// and Backup keep them; share files drop them". Egress class cannot express
 /// that split, so the strip lives here, in the share bundles, rather than in
 /// the archive codec's share mode, which the import-side re-encodes also use.
+///
+/// The dances CSV export (#2332) is the one output a user sends on that keeps
+/// the rating, by the maintainer's decision; it reads the rating from the
+/// unsanitised dance and does not call this, so this stays the strip for every
+/// share file.
 Dance sanitizeDanceForShare(Dance dance) =>
     dance.rating == null ? dance : dance.copyWith(clearRating: true);
 

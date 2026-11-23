@@ -349,6 +349,8 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     String stored(String text) => canonicalizeGlossaryText(text, dialect);
     return _renderer.userFigureWordingVocabulary(
       UserFigureDefinition(
+        // The groups a condition may test are the form's own (#2294).
+        form: _form,
         template: '{$userFigureMoveSlot}',
         defaultBeats: 0,
         params: [
@@ -707,9 +709,11 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
           ? store(label)
           : null,
     );
-    // A default the parameter's kind or choices no longer take is dropped,
-    // not saved broken: a kind changed after the default was chosen.
-    if (defaultValue == null || !withoutDefault.spec.validate(defaultValue)) {
+    // A default the parameter's kind, choices or form's dancer groups no
+    // longer take is dropped, not saved broken: a kind or form changed after
+    // the default was chosen.
+    if (defaultValue == null ||
+        !withoutDefault.specIn(_form).validate(defaultValue)) {
       return withoutDefault;
     }
     return UserFigureParam(
@@ -1618,6 +1622,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                       ),
                       keyPrefix: 'user-figure-param-$index-default',
                       param: param,
+                      form: _form,
                       value: row.defaultValue,
                       dialect: dialect,
                       label: l10n.userFigureEditorDefault,
@@ -1648,6 +1653,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     // wrong with it is said under its row ([_badNameShown]).
     final figure = _figureNow((text) => text);
     final slots = UserFigureDefinition(
+      form: _form,
       template: figure.template,
       defaultBeats: figure.defaultBeats,
       params: [

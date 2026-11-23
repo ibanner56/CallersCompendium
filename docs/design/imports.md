@@ -2388,9 +2388,13 @@ ECD dance.
   no meter unless its own word names it (`Meter 3/2 of Playford`), and an
   opening `A` before a meter and a lower-case word or a kind of tune
   (`A 3/2 hornpipe`, `A 3/2 Hornpipe`) is the article, not key A; such a text
-  may give its key as `in G`. When a bar range is
-  counted with no stated meter, the dance gets the info issue
-  `cc_bars_meter_unstated`.
+  may give its key as `in G`. A Music text naming meters of different bars
+  (`Meter: 3/4 and 6/8`, #2365) keeps them as its meter as written, from the
+  first to the last (`3/4 and 6/8`), which states none, so its bars count 2
+  beats; meters of the same bar (`2/2 or 6/8`) keep the first. When a bar
+  range is counted with no stated meter, the dance gets the info issue
+  `cc_bars_meter_unstated`, or `cc_bars_meter_mixed` when its Music names
+  meters of different bars.
 - **Caller's Companion English phrase structure** (ADR-006 §9.2 point 8).
   An English dance whose sections are all labeled `A`, `B` or `C`, alone
   or numbered `1` then `2`, each letter's sections together, takes them as

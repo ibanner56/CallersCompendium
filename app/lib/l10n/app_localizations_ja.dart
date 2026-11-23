@@ -545,6 +545,11 @@ class AppLocalizationsJa extends AppLocalizations {
       '既定のフィギュアもこのフィギュアを使っており、同じように切り替わります。';
 
   @override
+  String userFigureSwitchConfirmKeepsWording(String name) {
+    return '$name にないダンサーのグループを使っている箇所は、切り替わらず現在の表現のまま残ります。';
+  }
+
+  @override
   String userFigureSwitchConfirmShorthands(int count, String name) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -7859,6 +7864,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'このダンスは小節で数えていますが拍子の記載がないため、1小節を2拍として数えました。カウントを確認してください。';
 
   @override
+  String get importIssueBarsMeterMixed =>
+      'このダンスは小節で数えていますが、小節の長さが異なる拍子が記載されているため、1小節を2拍として数えました。カウントを確認してください。';
+
+  @override
   String get importIssueUnmappedType =>
       'ダンスの種類を認識できませんでした。コントラとしてインポートし、ノートに保持しました。';
 
@@ -8428,6 +8437,52 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get danceEditorPhraseRowsHelp =>
+      '各行は、同じ長さのフレーズの並びです。フレーズの数、各フレーズの小節数、1小節の拍数を指定します。下のフレーズ構造は行に合わせて変わります。';
+
+  @override
+  String get danceEditorPhraseRowsPhrasesLabel => 'フレーズ数';
+
+  @override
+  String get danceEditorPhraseRowsBarsLabel => 'フレーズごとの小節数';
+
+  @override
+  String get danceEditorPhraseRowsBeatsLabel => '1小節の拍数';
+
+  @override
+  String danceEditorPhraseRowsRange(int max) {
+    return '1〜$max';
+  }
+
+  @override
+  String get danceEditorPhraseRowsAdd => '行を追加';
+
+  @override
+  String danceEditorPhraseRowsRemove(int number) {
+    return '$number行目を削除';
+  }
+
+  @override
+  String danceEditorPhraseRowsInvalid(int max) {
+    return '各欄に1から$maxまでの整数を入力してください。長すぎる構造にはできません。それまでは最後の有効なフレーズ構造が保たれます。';
+  }
+
+  @override
+  String danceEditorPhraseRowsSummary(String labels, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats拍',
+      one: '1拍',
+    );
+    return '$labels · $_temp0';
+  }
+
+  @override
+  String get danceEditorPhraseRowsDisabledNote =>
+      'これらの行には最後の有効なフレーズ構造が表示されています。再び編集するには、下のフレーズ構造を修正してください。';
+
+  @override
   String get danceEditorFiguresSection => 'フィギュア';
 
   @override
@@ -8805,6 +8860,11 @@ class AppLocalizationsJa extends AppLocalizations {
       other: '$count個のフィギュア',
     );
     return 'これは$danceFormのダンスですが、$_temp0が$figureFormのものです。そのまま残りますが、フィギュアの選択肢には$pickerFormのフィギュアだけが表示されます。';
+  }
+
+  @override
+  String validationFigureCrossesPhrase(int position, String label) {
+    return 'フィギュア$positionが$labelの終わりを越えています。スクエアダンスでは、各フレーズのコールがそのフレーズをちょうど埋めるようにします。';
   }
 
   @override
@@ -12534,4 +12594,108 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get calendarPullNowSubtitle => 'カレンダーを読み取り、下書きプログラムとして追加する予定を選びます。';
+
+  @override
+  String get collectionExportCsv => 'CSVでエクスポート';
+
+  @override
+  String get settingsExportDancesCsvTitle => 'ダンスを表計算ファイルでエクスポート';
+
+  @override
+  String get settingsExportDancesCsvSubtitle =>
+      'コレクションのすべてのダンスを、Excel、Numbers、Googleスプレッドシート用のCSVファイルにします。共有と同じルールが適用され、星の評価も含まれます。バックアップではないため、復元はできません。';
+
+  @override
+  String get settingsExportDancesCsvAction => 'エクスポート';
+
+  @override
+  String get exportCsvDialogTitle => '表計算ファイル（CSV）をエクスポート';
+
+  @override
+  String get exportCsvDialogMessage =>
+      'ファイルを保存するか、ほかのアプリと共有します。Excel、Numbers、LibreOffice、Googleスプレッドシートで開けます。';
+
+  @override
+  String get exportCsvSavedGeneric => '表計算ファイルを保存しました。';
+
+  @override
+  String get exportCsvSaveError => 'この表計算ファイルを保存できませんでした。もう一度お試しください。';
+
+  @override
+  String get exportCsvShareError => 'この表計算ファイルを共有できませんでした。もう一度お試しください。';
+
+  @override
+  String get exportCsvError => 'この表計算ファイルを作成できませんでした。もう一度お試しください。';
+
+  @override
+  String get csvDancesFileStem => 'ダンス';
+
+  @override
+  String get csvColumnTitle => 'タイトル';
+
+  @override
+  String get csvColumnAuthors => '作者';
+
+  @override
+  String get csvColumnInterpreters => '解釈者';
+
+  @override
+  String get csvColumnForm => 'タイプ';
+
+  @override
+  String get csvColumnFormation => 'フォーメーション';
+
+  @override
+  String get csvColumnProgression => 'プログレッション';
+
+  @override
+  String get csvColumnLevel => 'レベル';
+
+  @override
+  String get csvColumnMixedLevel => 'ミックスレベル';
+
+  @override
+  String get csvColumnMixer => 'ミキサー';
+
+  @override
+  String get csvColumnStatus => 'ステータス';
+
+  @override
+  String get csvColumnRating => '評価';
+
+  @override
+  String get csvColumnTags => 'タグ';
+
+  @override
+  String get csvColumnTunes => 'チューン';
+
+  @override
+  String get csvColumnMeter => '拍子';
+
+  @override
+  String get csvColumnKey => '調';
+
+  @override
+  String get csvColumnSources => '公開ソース';
+
+  @override
+  String get csvColumnHook => 'フック';
+
+  @override
+  String get csvColumnCallingNotes => 'コーリングノート';
+
+  @override
+  String get csvColumnWalkthrough => 'ウォークスルー';
+
+  @override
+  String get csvColumnFigures => 'フィギュア';
+
+  @override
+  String get csvColumnComposed => '振付年';
+
+  @override
+  String get csvColumnInterpreted => '解釈年';
+
+  @override
+  String get csvColumnBarnes => 'Barnes 掲載箇所';
 }

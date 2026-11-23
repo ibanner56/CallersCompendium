@@ -574,6 +574,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'Deine Standardfiguren verwenden sie auch und wechseln ebenso.';
 
   @override
+  String userFigureSwitchConfirmKeepsWording(String name) {
+    return 'Jede Verwendung einer Tänzergruppe, die $name nicht hat, behält stattdessen ihren Wortlaut.';
+  }
+
+  @override
   String userFigureSwitchConfirmShorthands(int count, String name) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -8263,6 +8268,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieser Tanz zählt in Takten, nennt aber keine Taktart, daher wurde jeder Takt als 2 Schläge gezählt. Prüfen Sie die Zählungen.';
 
   @override
+  String get importIssueBarsMeterMixed =>
+      'Dieser Tanz zählt in Takten, nennt aber Taktarten mit unterschiedlicher Taktlänge, daher wurde jeder Takt als 2 Schläge gezählt. Prüfen Sie die Zählungen.';
+
+  @override
   String get importIssueUnmappedType =>
       'Ein Tanztyp wurde nicht erkannt; als Contra importiert und in den Notizen erhalten.';
 
@@ -8869,6 +8878,52 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get danceEditorPhraseRowsHelp =>
+      'Jede Zeile ist eine Folge gleicher Phrasen: wie viele es sind, die Takte in jeder und die Schläge in einem Takt. Die Phrasierungsstruktur darunter ändert sich mit den Zeilen.';
+
+  @override
+  String get danceEditorPhraseRowsPhrasesLabel => 'Phrasen';
+
+  @override
+  String get danceEditorPhraseRowsBarsLabel => 'Takte pro Phrase';
+
+  @override
+  String get danceEditorPhraseRowsBeatsLabel => 'Schläge pro Takt';
+
+  @override
+  String danceEditorPhraseRowsRange(int max) {
+    return '1 bis $max';
+  }
+
+  @override
+  String get danceEditorPhraseRowsAdd => 'Zeile hinzufügen';
+
+  @override
+  String danceEditorPhraseRowsRemove(int number) {
+    return 'Zeile $number entfernen';
+  }
+
+  @override
+  String danceEditorPhraseRowsInvalid(int max) {
+    return 'Gib in jedes Feld eine ganze Zahl von 1 bis $max ein, in einer Struktur, die nicht zu lang ist. Bis dahin bleibt die letzte gültige Phrasierungsstruktur erhalten.';
+  }
+
+  @override
+  String danceEditorPhraseRowsSummary(String labels, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats Schläge',
+      one: '1 Schlag',
+    );
+    return '$labels · $_temp0';
+  }
+
+  @override
+  String get danceEditorPhraseRowsDisabledNote =>
+      'Diese Zeilen zeigen die letzte gültige Phrasierungsstruktur. Korrigiere die Phrasierungsstruktur darunter, um sie wieder zu bearbeiten.';
+
+  @override
   String get danceEditorFiguresSection => 'Figuren';
 
   @override
@@ -9262,6 +9317,11 @@ class AppLocalizationsDe extends AppLocalizations {
       one: '1 Figur stammt',
     );
     return 'Dies ist ein Tanz der Art $danceForm, aber $_temp0 aus $figureForm. Sie bleiben, wie sie sind, aber die Figurenauswahl bietet nur Figuren der Art $pickerForm an.';
+  }
+
+  @override
+  String validationFigureCrossesPhrase(int position, String label) {
+    return 'Figur $position reicht über das Ende von $label hinaus. In einem Square Dance sollten die Calls jeder Phrase sie genau füllen.';
   }
 
   @override
@@ -13166,4 +13226,111 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get calendarPullNowSubtitle =>
       'Den Kalender lesen und Termine auswählen, die als Programmentwürfe hinzugefügt werden.';
+
+  @override
+  String get collectionExportCsv => 'Als CSV exportieren';
+
+  @override
+  String get settingsExportDancesCsvTitle => 'Tänze als Tabelle exportieren';
+
+  @override
+  String get settingsExportDancesCsvSubtitle =>
+      'Alle Tänze deiner Sammlung als CSV-Datei für Excel, Numbers oder Google Sheets. Es gelten die Regeln fürs Teilen, dazu kommen deine Sternbewertungen. Das ist keine Sicherung und lässt sich nicht wiederherstellen.';
+
+  @override
+  String get settingsExportDancesCsvAction => 'Exportieren';
+
+  @override
+  String get exportCsvDialogTitle => 'Tabelle exportieren (CSV)';
+
+  @override
+  String get exportCsvDialogMessage =>
+      'Speichere die Datei oder teile sie mit einer anderen App. Sie lässt sich in Excel, Numbers, LibreOffice oder Google Sheets öffnen.';
+
+  @override
+  String get exportCsvSavedGeneric => 'Tabelle gespeichert.';
+
+  @override
+  String get exportCsvSaveError =>
+      'Diese Tabelle konnte nicht gespeichert werden. Versuche es erneut.';
+
+  @override
+  String get exportCsvShareError =>
+      'Diese Tabelle konnte nicht geteilt werden. Versuche es erneut.';
+
+  @override
+  String get exportCsvError =>
+      'Diese Tabelle konnte nicht erstellt werden. Versuche es erneut.';
+
+  @override
+  String get csvDancesFileStem => 'tänze';
+
+  @override
+  String get csvColumnTitle => 'Titel';
+
+  @override
+  String get csvColumnAuthors => 'Autoren';
+
+  @override
+  String get csvColumnInterpreters => 'Interpretiert von';
+
+  @override
+  String get csvColumnForm => 'Typ';
+
+  @override
+  String get csvColumnFormation => 'Formation';
+
+  @override
+  String get csvColumnProgression => 'Progression';
+
+  @override
+  String get csvColumnLevel => 'Niveau';
+
+  @override
+  String get csvColumnMixedLevel => 'Gemischtes Niveau';
+
+  @override
+  String get csvColumnMixer => 'Mixer';
+
+  @override
+  String get csvColumnStatus => 'Status';
+
+  @override
+  String get csvColumnRating => 'Bewertung';
+
+  @override
+  String get csvColumnTags => 'Tags';
+
+  @override
+  String get csvColumnTunes => 'Melodien';
+
+  @override
+  String get csvColumnMeter => 'Taktart';
+
+  @override
+  String get csvColumnKey => 'Tonart';
+
+  @override
+  String get csvColumnSources => 'Veröffentlichte Quellen';
+
+  @override
+  String get csvColumnHook => 'Hook';
+
+  @override
+  String get csvColumnCallingNotes => 'Calling-Notizen';
+
+  @override
+  String get csvColumnWalkthrough => 'Ablauf';
+
+  @override
+  String get csvColumnFigures => 'Figuren';
+
+  @override
+  String get csvColumnComposed => 'Komponiert';
+
+  @override
+  String get csvColumnInterpreted => 'Interpretiert';
+
+  @override
+  String get csvColumnBarnes => 'Barnes-Verweis';
 }

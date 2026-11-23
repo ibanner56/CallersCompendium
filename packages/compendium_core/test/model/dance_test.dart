@@ -64,6 +64,25 @@ void main() {
       expect(make(figures: [fig(32), fig(32)]).validate(), isEmpty);
     });
 
+    test('only a square dance flags a figure across a phrase (ADR-007)', () {
+      final figures = [fig(12), fig(8), fig(44)];
+      expect(
+        make(
+          figures: figures,
+        ).copyWith(form: DanceForm.square).validate().map((i) => i.code),
+        [figureCrossesPhraseCode, figureCrossesPhraseCode],
+      );
+      for (final form in [DanceForm.contra, DanceForm.ecd]) {
+        expect(
+          make(
+            figures: figures,
+          ).copyWith(form: form).validate().map((i) => i.code),
+          isNot(contains(figureCrossesPhraseCode)),
+          reason: form.name,
+        );
+      }
+    });
+
     test('overflow surfaces as a warning', () {
       final issues = make(figures: [fig(64), fig(8)]).validate();
       expect(issues.single.severity, ValidationSeverity.warning);

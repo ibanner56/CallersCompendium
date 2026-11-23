@@ -288,6 +288,65 @@ void main() {
       expect(sections.map((s) => s.label), ['A1', 'A2', 'B1', 'B2']);
     });
 
+    group('with checkPhraseFill (ADR-007 §5.3)', () {
+      List<ValidationIssue> crossings(List<Figure> figures, [String? raw]) {
+        final issues = <ValidationIssue>[];
+        deriveSections(
+          figures,
+          raw == null ? PhraseStructure.standard : PhraseStructure.parse(raw),
+          issues: issues,
+          checkPhraseFill: true,
+        );
+        return [
+          for (final issue in issues)
+            if (issue.code == figureCrossesPhraseCode) issue,
+        ];
+      }
+
+      test('a figure that ends on a phrase line fills it', () {
+        expect(crossings([fig(8), fig(8), fig(16), fig(16), fig(16)]), isEmpty);
+      });
+
+      test('a figure from one phrase line to another fills every phrase it '
+          'takes', () {
+        expect(crossings([fig(32), fig(32)]), isEmpty);
+        expect(crossings([fig(16), fig(48)]), isEmpty);
+        // Starting off a phrase line, it is flagged where it crosses.
+        expect(crossings([fig(8), fig(32), fig(24)]).map((i) => i.data), [
+          {'position': 2, 'label': 'A1'},
+          {'position': 3, 'label': 'B1'},
+        ]);
+      });
+
+      test('a figure that runs past a phrase is flagged once, at the first '
+          'phrase it crosses', () {
+        final issues = crossings([fig(12), fig(8), fig(44)]);
+        expect(issues.map((i) => i.data), [
+          {'position': 2, 'label': 'A1'},
+          {'position': 3, 'label': 'A2'},
+        ]);
+        expect(issues.first.severity, ValidationSeverity.warning);
+      });
+
+      test('follows a structure of other phrase lengths', () {
+        expect(crossings([fig(8), fig(8)], '4*4*2'), isEmpty);
+        expect(crossings([fig(4), fig(8)], '4*4*2').single.data, {
+          'position': 2,
+          'label': 'A1',
+        });
+      });
+
+      test('is off unless asked for', () {
+        final issues = <ValidationIssue>[];
+        deriveSections(
+          [fig(12), fig(8), fig(44)],
+          PhraseStructure.standard,
+          issues: issues,
+        );
+        expect(issues, isEmpty);
+      });
+    });
+
     test('exact fit produces no issues', () {
       final issues = <ValidationIssue>[];
       deriveSections(

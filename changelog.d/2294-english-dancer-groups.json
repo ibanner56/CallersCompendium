@@ -1,0 +1,17 @@
+{
+  "id": "2294-english-dancer-groups",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A figure of your own made for English offers English's groups of dancers, such as the ends, the top and the corners, for a group or a pair of dancers, as a default and in a dance. It no longer offers the two groups only contra has, third corners and opposites; an English figure that already holds one of those needs repair. An older version of the app can't read an English figure that holds a group only English has: it is marked Needs repair there, and kept as it is."
+    ],
+    "changed": [
+      "Switching an English figure to the app's figure of the same name says that a use of a group of dancers the app's figure lacks keeps its wording instead of switching."
+    ]
+  },
+  "core": {
+    "changed": [
+      "UserFigureParam.spec is replaced by specIn(form), and a dancerSet or dancerPair parameter of a figure made for ecd takes ecdSelectors (userFigureDancerChoices); every other form keeps ParamVocab.dancerSets. userFigureSeedFromMove validates a copy as a figure of its taxonomy's form, and no longer starts a group of dancers from the unspecified default."
+    ]
+  }
+}
