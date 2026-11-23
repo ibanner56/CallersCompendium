@@ -870,6 +870,8 @@ void main() {
       );
       await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
       expect((await repositories.programs.getById('p1'))!.startMinute, isNull);
+      // Promotion ran and settled it: nothing is left kept to retry.
+      expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
     });
   });
 

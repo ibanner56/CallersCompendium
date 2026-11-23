@@ -81,6 +81,7 @@ Future<void> _pumpEditor(
   bool enriched = true,
   Locale locale = const Locale('en', 'US'),
   bool use24Hour = false,
+  bool autoCommit = false,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 2000));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -88,8 +89,8 @@ Future<void> _pumpEditor(
   addTearDown(dialect.dispose);
   final mode = ValueNotifier<bool>(enriched);
   addTearDown(mode.dispose);
-  final autoCommit = ValueNotifier<bool>(false);
-  addTearDown(autoCommit.dispose);
+  final autoCommitNotifier = ValueNotifier<bool>(autoCommit);
+  addTearDown(autoCommitNotifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
       locale: locale,
@@ -102,7 +103,7 @@ Future<void> _pumpEditor(
           child: ActiveDialectScope(
             notifier: dialect,
             child: ProgramAutoCommitScope(
-              notifier: autoCommit,
+              notifier: autoCommitNotifier,
               child: VenueEntityModeScope(notifier: mode, child: child!),
             ),
           ),
@@ -264,6 +265,37 @@ void main() {
       expect(saved.lessonMinute, 18 * 60 + 30, reason: 'untouched');
       expect(saved.endMinute, 22 * 60 + 30, reason: 'the person\'s edit');
     });
+  });
+
+  testWidgets('a time picked before a bulk Undo is still saved', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      Dance(id: 'd1', title: 'Newly Called', createdAt: _now, updatedAt: _now),
+    );
+    await repos.programs.create(
+      _program(start: 19 * 60).copyWith(
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpEditor(tester, repos, use24Hour: true, autoCommit: true);
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    // Pick another start, then Undo before auto-commit stores the pick.
+    await _typeTime(tester, 'start', 20, 0);
+    await tester.tap(find.byType(SnackBarAction));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    expect(_fieldValue(tester, 'start'), '8:00 PM');
+
+    await _save(tester);
+    final saved = (await repos.programs.getById('p1'))!;
+    expect(saved.slots.single.performedAt, isNull, reason: 'Undo applied');
+    expect(saved.startMinute, 20 * 60, reason: 'the pick was not reverted');
   });
 
   group('summary', () {

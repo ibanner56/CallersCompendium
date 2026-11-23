@@ -33,6 +33,14 @@ class ProgramTimes {
     ProgramTimeField.arrival => arrival,
   };
 
+  /// Whether the end is earlier than the start, so the dance ends the next
+  /// day: the same rule as [Program.endsNextDay].
+  bool get endsNextDay {
+    final s = start;
+    final e = end;
+    return s != null && e != null && e < s;
+  }
+
   /// A copy with [field] set to [minute], or cleared when [minute] is `null`.
   ProgramTimes withField(ProgramTimeField field, int? minute) => ProgramTimes(
     start: field == ProgramTimeField.start ? minute : start,

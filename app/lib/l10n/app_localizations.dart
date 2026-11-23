@@ -8920,7 +8920,7 @@ abstract class AppLocalizations {
   /// **'Not set'**
   String get programsNoTimeSet;
 
-  /// Button that opens the time picker for a program time field that has no time yet. Short: four of these sit side by side.
+  /// Button that opens the time picker for a program time field that has no time yet. Short: it sits beside the time, with up to two time fields to a row.
   ///
   /// In en, this message translates to:
   /// **'Set'**

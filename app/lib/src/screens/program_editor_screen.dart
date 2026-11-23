@@ -2730,6 +2730,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             restored,
             payBaseline: _pendingBulkUndoBaseline ?? _existing!,
             venueIdBaseline: (value: live.venueId),
+            timesBaseline: ProgramTimes.of(live),
           );
           await _refreshLinkedVenueForId(restored.venueId);
           if (!mounted) return;
@@ -4528,7 +4529,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       children: [
         LayoutBuilder(
           builder: (context, constraints) {
-            if (constraints.maxWidth < 520) {
+            // Two to a row only where each still fits its label, value and
+            // buttons at the current text size.
+            final twoUp = MediaQuery.textScalerOf(context).scale(520);
+            if (constraints.maxWidth < twoUp) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -4585,7 +4589,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Widget _buildTimeField(AppLocalizations l10n, ProgramTimeField field) {
     final label = programTimeFieldLabel(l10n, field);
     final minute = _times[field];
-    final next = field == ProgramTimeField.end && _endsNextDay;
+    final next = field == ProgramTimeField.end && _times.endsNextDay;
     return InputDecorator(
       key: ValueKey('program-time-${field.name}'),
       decoration: InputDecoration(
@@ -4626,14 +4630,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         ],
       ),
     );
-  }
-
-  /// Whether the edited end time is earlier than the start time, so the
-  /// dance ends the next day ([Program.endsNextDay]).
-  bool get _endsNextDay {
-    final start = _times.start;
-    final end = _times.end;
-    return start != null && end != null && end < start;
   }
 
   Widget _buildMoreDetails(AppLocalizations l10n) {

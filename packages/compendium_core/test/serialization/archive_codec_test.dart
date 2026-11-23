@@ -1294,6 +1294,16 @@ void main() {
           final result = decodeOne(json);
           expect(result.hasErrors, isTrue, reason: '$key = $bad');
           expect(result.errors.single.entityType, 'program');
+          // Refused by the codec's own check, before the constructor.
+          expect(
+            result.errors.single.message,
+            contains(
+              bad is int
+                  ? '"$key" must be 0-1439'
+                  : '"$key" must be an integer',
+            ),
+            reason: '$key = $bad',
+          );
         }
       }
     });

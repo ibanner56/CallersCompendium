@@ -451,7 +451,8 @@ final Map<String, DataClassification> settingsClassifications = {
     egress: EgressClass.shareable,
     note:
         'A behaviour preference: whether a shared or copied set list (the text '
-        'export) includes the date and venue. It names no person and holds no content. It '
+        'export) includes the date, the program\'s start, end and lesson '
+        'times, and the venue. It names no person and holds no content. It '
         'never governs the .ccshare or JSON bundle, which always carries the '
         'whole program, and it follows the caller rather than the screen, so '
         'it travels like the other sharing preferences.',
