@@ -2478,10 +2478,12 @@ class FigureRenderer {
       final value = use.args.containsKey(param.key)
           ? use.args[param.key]
           : param.defaultValue;
-      if (value != null && !param.spec.validate(value)) return null;
-      subjects[param.key] = WordingSubject(param.spec, value);
+      final spec = param.specIn(definition.form);
+      if (value != null && !spec.validate(value)) return null;
+      subjects[param.key] = WordingSubject(spec, value);
       slots[param.key] = _renderUserFigureValue(
         param,
+        definition.form,
         value,
         dialect,
         verbose: verbose,
@@ -2490,8 +2492,9 @@ class FigureRenderer {
       );
       if (ParamOpposites.coverage(param.kind) != OppositeCoverage.none) {
         final opposite = ParamOpposites.of(param.kind, value);
+        final oppositeSpec = param.bareSpecIn(definition.form);
         subjects[userFigureOppositeSlot(param.key)] = WordingSubject(
-          ParamSpec(param.kind, defaultValue: null),
+          oppositeSpec,
           opposite,
         );
         slots[userFigureOppositeSlot(param.key)] = opposite == null
@@ -2499,7 +2502,7 @@ class FigureRenderer {
             : _renderValue(
                 'value',
                 opposite,
-                ParamSpec(param.kind, defaultValue: null),
+                oppositeSpec,
                 dialect,
                 verbose,
                 decimals,
@@ -2547,6 +2550,7 @@ class FigureRenderer {
 
   String _renderUserFigureValue(
     UserFigureParam param,
+    String form,
     Object? value,
     Dialect dialect, {
     required bool verbose,
@@ -2572,7 +2576,7 @@ class FigureRenderer {
         return _renderValue(
           'value',
           value,
-          param.spec,
+          param.specIn(form),
           dialect,
           verbose,
           decimals,
