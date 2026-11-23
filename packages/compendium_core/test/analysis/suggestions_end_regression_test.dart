@@ -9,7 +9,7 @@ import 'suggestions_end_fixture.dart';
 /// [_pinned] was printed by the #2343 scorer (main at 6826cf5), before any
 /// #2344 change, from the fixture in suggestions_end_fixture.dart: every
 /// candidate's place, score and reasons (kind, side, weighted effect), for
-/// four settings. A change that alters any of them for the end of the
+/// five variants. A change that alters any of them for the end of the
 /// program fails here.
 void main() {
   String line(RankedSuggestion s) {
@@ -73,6 +73,20 @@ const _pinned = <String, List<String>>{
     'c-triplet -2.1000 | beatOverlap/previous:-3.0000, fitsCurve:0.5000, firstFormationTonight:0.4000, venueSkippedNoVenue:0.0000',
     'c-square -2.2000 | beatOverlap/previous:-1.8000, formationCommonTonight:-0.4000, venueSkippedNoVenue:0.0000',
     'c-long-ago -3.2000 | beatOverlap/previous:-1.8000, harderThanCurve:-1.0000, formationCommonTonight:-0.4000, venueSkippedNoVenue:0.0000',
+    'c-english 0.0000 | englishNotCovered:0.0000',
+    'p-b -20.0000 | alreadyInProgram:-20.0000',
+  ],
+  'a long evening': [
+    'c-triplet 1.8000 | neverCalledHere:0.9000, fitsCurve:0.5000, firstFormationTonight:0.4000',
+    'c-becket 1.4000 | neverCalledHere:0.9000, fitsCurve:0.5000',
+    'c-proper 0.3000 | easierThanCurve:-1.0000, neverCalledHere:0.9000, firstFormationTonight:0.4000',
+    'c-square -0.1000 | neverCalledHere:0.9000, sameFormationAsNeighbor/previous:-0.6000, formationCommonTonight:-0.4000',
+    'c-no-level -1.0000 | sameFormationAsNeighbor/previous:-0.6000, formationCommonTonight:-0.4000',
+    'c-fresh -1.1000 | easierThanCurve:-1.0000, neverCalledHere:0.9000, sameFormationAsNeighbor/previous:-0.6000, formationCommonTonight:-0.4000',
+    'c-overlap -1.1000 | harderThanCurve:-1.0000, neverCalledHere:0.9000, sameFormationAsNeighbor/previous:-0.6000, formationCommonTonight:-0.4000',
+    'c-long-ago -1.1000 | harderThanCurve:-1.0000, notCalledHereSince:0.9000, sameFormationAsNeighbor/previous:-0.6000, formationCommonTonight:-0.4000',
+    'c-new-moves -1.4000 | beatOverlap/previous:-1.8000, neverCalledHere:0.9000, sameFormationAsNeighbor/previous:-0.6000, fitsCurve:0.5000, formationCommonTonight:-0.4000',
+    'c-recent -5.0000 | calledHereRecently:-3.0000, harderThanCurve:-1.0000, sameFormationAsNeighbor/previous:-0.6000, formationCommonTonight:-0.4000',
     'c-english 0.0000 | englishNotCovered:0.0000',
     'p-b -20.0000 | alreadyInProgram:-20.0000',
   ],

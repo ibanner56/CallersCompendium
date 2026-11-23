@@ -121,15 +121,35 @@ final endFixtureCalledHere = <String, DateTime?>{
   'c-no-level': null,
 };
 
-/// The end-of-program request for [settings] under [mode].
+/// Ten more dances, for an evening longer than the curve's nominal 12.
+final _moreDances = <Dance>[
+  for (var i = 0; i < 10; i++)
+    _dance('p-more-$i', [
+      _fig(i.isEven ? 'long_lines' : 'pass_through', 16),
+    ], level: DifficultyLevel.intermediateId),
+];
+
+/// The end-of-program request for [settings] under [mode]; with [long], the
+/// program goes on for ten more dances.
 SuggestionRequest endFixtureRequest({
   SuggestionSettings settings = SuggestionSettings.defaults,
   MatrixCollisionMode mode = MatrixCollisionMode.exactBeats,
   bool hasVenue = true,
+  bool long = false,
 }) => SuggestionRequest(
-  slotsBefore: endFixtureSlots,
+  slotsBefore: [
+    ...endFixtureSlots,
+    if (long)
+      for (var i = 0; i < _moreDances.length; i++)
+        ProgramSlot(
+          id: 's-more-$i',
+          position: endFixtureSlots.length + i,
+          danceId: _moreDances[i].id,
+        ),
+  ],
   programDances: {
-    for (final d in endFixtureProgram) d.id: SuggestionCandidate.fromDance(d),
+    for (final d in [...endFixtureProgram, if (long) ..._moreDances])
+      d.id: SuggestionCandidate.fromDance(d),
   },
   candidates: [
     for (final d in endFixtureCandidates) SuggestionCandidate.fromDance(d),
@@ -153,6 +173,7 @@ final endFixtureVariants = <String, SuggestionRequest Function()>{
     ),
     hasVenue: false,
   ),
+  'a long evening': () => endFixtureRequest(long: true),
   'every factor a lot': () {
     var settings = SuggestionSettings.defaults;
     for (final f in SuggestionFactor.values) {
