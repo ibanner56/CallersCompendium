@@ -173,16 +173,14 @@ class SuggestionReasonLabels {
         ),
       },
       SuggestionReasonKind.phraseOverlap => switch ((next, dance)) {
-        (true, final String d) =>
-          l10n.suggestionReasonPhraseOverlapBeforeDance(
-            _move(reason.moveKey!),
-            d,
-          ),
-        (false, final String d) =>
-          l10n.suggestionReasonPhraseOverlapAfterDance(
-            _move(reason.moveKey!),
-            d,
-          ),
+        (true, final String d) => l10n.suggestionReasonPhraseOverlapBeforeDance(
+          _move(reason.moveKey!),
+          d,
+        ),
+        (false, final String d) => l10n.suggestionReasonPhraseOverlapAfterDance(
+          _move(reason.moveKey!),
+          d,
+        ),
         (true, null) => l10n.suggestionReasonPhraseOverlapNext(
           _move(reason.moveKey!),
         ),
@@ -193,10 +191,14 @@ class SuggestionReasonLabels {
       SuggestionReasonKind.alreadyInProgram =>
         l10n.suggestionReasonAlreadyInProgram,
       SuggestionReasonKind.sameFormationAsNeighbor => switch ((next, dance)) {
-        (true, final String d) =>
-          l10n.suggestionReasonSameFormationBeforeDance(formation, d),
-        (false, final String d) =>
-          l10n.suggestionReasonSameFormationAfterDance(formation, d),
+        (true, final String d) => l10n.suggestionReasonSameFormationBeforeDance(
+          formation,
+          d,
+        ),
+        (false, final String d) => l10n.suggestionReasonSameFormationAfterDance(
+          formation,
+          d,
+        ),
         (true, null) => l10n.suggestionReasonSameFormationNext(formation),
         (false, null) => l10n.suggestionReasonSameFormationPrevious(formation),
       },
