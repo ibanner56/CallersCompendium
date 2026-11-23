@@ -938,7 +938,9 @@ Names, definitions and examples of the built-in figures follow your active
 them. Your own figures, combinations and terms read in the dialect of the type
 they were made for, and a shorthand reads in the dialect of the type of the
 figure it stands for; a shorthand whose figure is gone reads in your contra
-dialect. The built-in
+dialect. A few places still name them in the dialect of the screen you are on,
+not of their type: the dance list's advanced search and the reasons the dance
+picker gives for a suggestion. The built-in
 figures come with the app, and turning the Glossary off only removes it from
 the navigation; your notes are kept, and come back when you turn it on again.
 The built-in definitions and descriptions are in English whatever language the

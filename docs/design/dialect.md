@@ -152,7 +152,10 @@ wording, saved unchanged, reads as the default line. Imported
   their links to a figure's own defaults, the card and matrix-column layouts,
   and the program templates' dance picker) and import review's name checks.
   The dance list's advanced search names a figure of your own in the list's
-  dialect, whatever its form. Program-wide text and the switch screen's names
+  dialect, whatever its form. So do the reasons the dance picker gives for a
+  suggestion ("overlaps with ..."): `SuggestionReasonLabels` takes the picker's
+  one dialect, so a column it names reads in that dialect where the program
+  matrix names the same column in its figure's form's. Program-wide text and the switch screen's names
   for the app's figure, which is always one of contra's, also read in contra's
   dialect. Plain shorthands are matched against contra's figures only, and read
   in contra's dialect.
