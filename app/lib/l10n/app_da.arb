@@ -8654,9 +8654,9 @@
   "@danceEditorPhrasesAdd": {
     "x-sourceSha256": "523c6e63a15b0cd78bb315d87053f141d1ae58f5ecb7c344ff3892e50a9d9833"
   },
-  "danceEditorPhrasesInvalid": "Giv hver frase fra 1 til {max} takter og fra 1 til {max} slag i takten. Indtil da beholder dansen sine sidste gyldige fraser, og Gem gemmer dem.",
+  "danceEditorPhrasesInvalid": "Giv hver frase fra 1 til {maxBars} takter og fra 1 til {maxBeats} slag i takten. Indtil da beholder dansen sine sidste gyldige fraser, og Gem gemmer dem.",
   "@danceEditorPhrasesInvalid": {
-    "x-sourceSha256": "6a5a586f9cbb1f72717649e174712444f7076e149f73331b7ce56c8c2b3c371b"
+    "x-sourceSha256": "60dd2d6400c5d2c89e8e962b7cfc1af7f11c5f4b02ff6d74414f6dc608e7e8de"
   },
   "danceEditorPhraseBarsLabel": "Takter i {name}",
   "@danceEditorPhraseBarsLabel": {
@@ -12558,9 +12558,9 @@
   "@settingsSuggestionsEnabledTitle": {
     "x-sourceSha256": "d872df21f53748993e2c03eb283c92a6f90b0457b9c462a68aa29e685eb4ae0e"
   },
-  "settingsSuggestionsEnabledSubtitle": "Tilføjer Foreslået til menuen Sortér i programbyggerens danseliste. Den ordner danserne til slutningen af programmet og fortæller hvorfor.",
+  "settingsSuggestionsEnabledSubtitle": "Tilføjer Foreslået til menuen Sortér i programbyggerens danselister. Den ordner danserne efter, hvor den nye dans skal stå, og fortæller hvorfor.",
   "@settingsSuggestionsEnabledSubtitle": {
-    "x-sourceSha256": "c8ba45ca4ba6a61e90aa0d9effcee74aac0a4a8cdf9c2bc0d3965f8a5af82e2a"
+    "x-sourceSha256": "193f4023841f384da42426d70da634dc5d4d49ee61e7badccda4d0a10b121202"
   },
   "settingsSuggestionsEditorTitle": "Hvad forslag tager hensyn til",
   "@settingsSuggestionsEditorTitle": {
@@ -12717,6 +12717,30 @@
   "suggestionReasonPhraseOverlapNext": "{move} i samme frase som i dansen efter",
   "@suggestionReasonPhraseOverlapNext": {
     "x-sourceSha256": "2f1291f7cc84eaed2809534ec7e5d2abdaa2bba20b9625624f2132b5dcbd3194"
+  },
+  "suggestionReasonBeatOverlapAfterDance": "Samme slag til {move} som i {dance} lige før",
+  "@suggestionReasonBeatOverlapAfterDance": {
+    "x-sourceSha256": "984a339d4ee3a23aa222f16324a79496c81f5d5ff0b0dd7e7659d1b2af00f354"
+  },
+  "suggestionReasonBeatOverlapBeforeDance": "Samme slag til {move} som i {dance} lige efter",
+  "@suggestionReasonBeatOverlapBeforeDance": {
+    "x-sourceSha256": "11d1dfdb3e94d7f990f08c708484140265b874b7b44bac1b37a54552495ce4c8"
+  },
+  "suggestionReasonPhraseOverlapAfterDance": "{move} i samme frase som i {dance} lige før",
+  "@suggestionReasonPhraseOverlapAfterDance": {
+    "x-sourceSha256": "f017b76c451be8abc65c828be281eb48fde1d154159e5abd8e79c8723cb4a352"
+  },
+  "suggestionReasonPhraseOverlapBeforeDance": "{move} i samme frase som i {dance} lige efter",
+  "@suggestionReasonPhraseOverlapBeforeDance": {
+    "x-sourceSha256": "ffb0128b46a9d23657784d170aa6f7bc738b317a18fc75d9008c903a58c01009"
+  },
+  "suggestionReasonSameFormationAfterDance": "{formation} ligesom {dance} lige før",
+  "@suggestionReasonSameFormationAfterDance": {
+    "x-sourceSha256": "f34b90be943fa3566b00e280d4156905e0580f2220c83b1368564b2d82684e81"
+  },
+  "suggestionReasonSameFormationBeforeDance": "{formation} ligesom {dance} lige efter",
+  "@suggestionReasonSameFormationBeforeDance": {
+    "x-sourceSha256": "9a9373da2f73deb9f9eb67d2b6770e716f46191f4d0e79feeaa306dbb18f7fcb"
   },
   "suggestionReasonAlreadyInProgram": "Allerede i dette program",
   "@suggestionReasonAlreadyInProgram": {

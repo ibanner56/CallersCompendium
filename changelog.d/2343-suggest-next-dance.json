@@ -10,7 +10,7 @@
       "Both Suggestions settings are in your backup, and sync to your other devices once every device in the store has a version of the app that knows them."
     ],
     "changed": [
-      "In the program builder's add-dance list (not Replace dance), the Called and Not called filters and the Last called sort no longer count the program you are building as calling history."
+      "In the program builder's add-dance list, the Called and Not called filters and the Last called sort no longer count the program you are building as calling history."
     ]
   },
   "core": {

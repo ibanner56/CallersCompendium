@@ -163,4 +163,58 @@ void main() {
     expect(ids(await worker.rank(req)), ['c']);
     expect(worker.debugIsolate, isNot(same(first)));
   });
+
+  test('a re-rank for a new position, with the candidates already held, '
+      'ranks for that position (#2344)', () async {
+    final worker = SuggestionWorker();
+    addTearDown(worker.dispose);
+    // "next" swings on beats 16-32; "prev" (above) does too.
+    final next = candidate('next', [('circle', 16), ('swing', 16)]);
+    final overlaps = candidate('overlaps', [('petronella', 16), ('swing', 16)]);
+    final clean = candidate('clean', [('swing', 16), ('petronella', 16)]);
+    SuggestionRequest at(SuggestionPosition position) => SuggestionRequest(
+      slotsBefore: position.slotsBefore,
+      slotsAfter: position.slotsAfter,
+      candidateIsAlternate: position.isAlternate,
+      programDances: {'prev': previous, 'next': next},
+      candidates: [overlaps, clean],
+      settings: SuggestionSettings.defaults,
+      today: today,
+      taxonomy: shippedTaxonomies.anyForm,
+    );
+    final slots = [
+      ProgramSlot(id: 's0', position: 0, danceId: 'prev'),
+      ProgramSlot(id: 's1', position: 1, text: Program.breakSlotText),
+      ProgramSlot(id: 's2', position: 2, danceId: 'next'),
+      ProgramSlot(id: 's3', position: 3, danceId: 'prev', isAlt: true),
+    ];
+    String reasonsOf(SuggestionRanking r) => [
+      for (final s in r.order)
+        '${s.danceId}: ${[for (final x in s.reasons) '${x.kind.name}/${x.neighbor?.name}/${x.neighborDanceId}'].join(', ')}',
+    ].join('\n');
+    for (final position in [
+      SuggestionPosition.atEnd(slots),
+      SuggestionPosition.inserting(slots, 2, after: false),
+      SuggestionPosition.replacing(slots, 3),
+      SuggestionPosition.replacing(slots, 2),
+    ]) {
+      // The first pass sends the candidates; the later ones only their ids.
+      final direct = rankSuggestions(at(position));
+      expect(
+        reasonsOf(await worker.rank(at(position))),
+        reasonsOf(direct),
+        reason: '${position.slotsBefore.length} before',
+      );
+    }
+    // The positions really differ: before "next", the overlap is with it.
+    final before = await worker.rank(
+      at(SuggestionPosition.inserting(slots, 2, after: false)),
+    );
+    expect(ids(before), ['clean', 'overlaps']);
+    final reason = before.order.last.reasons.firstWhere(
+      (x) => x.kind == SuggestionReasonKind.beatOverlap,
+    );
+    expect(reason.neighborDanceId, 'next');
+    expect(reason.neighbor, SuggestionNeighbor.next);
+  });
 }

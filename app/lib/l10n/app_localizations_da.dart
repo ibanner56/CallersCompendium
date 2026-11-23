@@ -8874,8 +8874,8 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorPhrasesAdd => 'Tilføj frase';
 
   @override
-  String danceEditorPhrasesInvalid(int max) {
-    return 'Giv hver frase fra 1 til $max takter og fra 1 til $max slag i takten. Indtil da beholder dansen sine sidste gyldige fraser, og Gem gemmer dem.';
+  String danceEditorPhrasesInvalid(int maxBars, int maxBeats) {
+    return 'Giv hver frase fra 1 til $maxBars takter og fra 1 til $maxBeats slag i takten. Indtil da beholder dansen sine sidste gyldige fraser, og Gem gemmer dem.';
   }
 
   @override
@@ -13031,7 +13031,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSuggestionsEnabledSubtitle =>
-      'Tilføjer Foreslået til menuen Sortér i programbyggerens danseliste. Den ordner danserne til slutningen af programmet og fortæller hvorfor.';
+      'Tilføjer Foreslået til menuen Sortér i programbyggerens danselister. Den ordner danserne efter, hvor den nye dans skal stå, og fortæller hvorfor.';
 
   @override
   String get settingsSuggestionsEditorTitle => 'Hvad forslag tager hensyn til';
@@ -13193,6 +13193,42 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String suggestionReasonPhraseOverlapNext(String move) {
     return '$move i samme frase som i dansen efter';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapAfterDance(String move, String dance) {
+    return 'Samme slag til $move som i $dance lige før';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapBeforeDance(String move, String dance) {
+    return 'Samme slag til $move som i $dance lige efter';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapAfterDance(String move, String dance) {
+    return '$move i samme frase som i $dance lige før';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapBeforeDance(String move, String dance) {
+    return '$move i samme frase som i $dance lige efter';
+  }
+
+  @override
+  String suggestionReasonSameFormationAfterDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation ligesom $dance lige før';
+  }
+
+  @override
+  String suggestionReasonSameFormationBeforeDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation ligesom $dance lige efter';
   }
 
   @override

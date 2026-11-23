@@ -37,6 +37,11 @@ int? _beatsPerBar(String topText, String bottomText) {
   return compound ? top ~/ 3 : top;
 }
 
+/// The most beats in a bar that [ecdMeterForBars] can name a meter for. A bar
+/// of more has no meter to name it, and a typed bar range counts the default 2
+/// beats a bar, so the editor offers no more (#2303).
+const int ecdMaxBeatsPerBar = 12;
+
 /// The meter an English dance's bars are counted by: [meter] when it states
 /// one ([ecdBeatsPerBar]), else the beats per bar of [structure] when its parts
 /// all agree (a `4*8*3` tune is read as `3/4`), else [meter] as it is.
@@ -51,8 +56,11 @@ int? _beatsPerBar(String topText, String bottomText) {
 String ecdMeterForBars(String? meter, PhraseStructure structure) {
   if (ecdBeatsPerBar(meter).stated) return meter!;
   final perBar = {for (final c in structure.components) c.beatsPerBar};
-  // A bar of more than 12 beats has no meter to name it; the parser counts 2.
-  if (perBar.length != 1 || perBar.single > 12) return meter ?? '';
+  // A bar of more than [ecdMaxBeatsPerBar] has no meter to name it; the
+  // parser counts 2.
+  if (perBar.length != 1 || perBar.single > ecdMaxBeatsPerBar) {
+    return meter ?? '';
+  }
   final beats = perBar.single;
   // Over a half note, 6, 9 and 12 stay simple: `6/4` would count 2 dotted
   // beats, where the structure says 6.

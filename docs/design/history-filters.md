@@ -376,6 +376,11 @@ so nothing in the picker reads the program's date. Rejected: passing it anyway
   passes the id as `currentProgramId` to its Called filter and its Last called
   sort (N1-6), in those two mounts only. The Not
   called here chip, the marker and the other H3 pieces are still not built.
+- *Update, #2344:* the context carries a `SuggestionPosition` in place of the
+  slots, and Replace… passes it too (the slot's place), so all three
+  `CollectionPicker` mounts in `program_editor_screen.dart` now pass the
+  program's id as `currentProgramId`. `perform_adjust_sheet.dart` still does
+  not.
 - It defaults to null, so B14's stable constructor API still holds, and all five
   mounts compile unchanged.
 - Four of the mounts are edited to pass it:

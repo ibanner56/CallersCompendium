@@ -3,14 +3,14 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "Dances imported from The Caller's Box keep more of what they say. An allemande that offers a choice of amounts, like \"(1 or 2)\", stays as text instead of showing 1½. \"Single file promenade counterclockwise around the major set to N2\" is now a single file promenade to your next neighbors, not a three-place circle.",
+      "Dances imported from The Caller's Box keep more of what they say. An allemande that offers a choice of amounts, like \"(1 or 2)\", now takes the first amount and notes that either works, instead of showing 1½. \"Single file promenade counterclockwise around the major set to N2\" is now a single file promenade to your next neighbors, not a three-place circle.",
       "A Caller's Box \"form long wave\" now reads as long waves along the sides of the set; \"form long wave in center\" is still the long wave in the center. The balance that follows it becomes part of the same figure, even when it starts the next part of the dance, and keeps whom each dancer holds by each hand and who faces in, for example \"next neighbor by the right, neighbor by the left, robins facing in\". Typing \"form long wave\" after another figure on the same line reads the same way.",
       "Long waves have a second hand-hold, \"whom2\": the pair each dancer holds by the other hand. When a dance does not say who faces in, long waves now show no facing rather than a made-up one."
     ]
   },
   "core": {
     "changed": [
-      "`form_long_waves` gains `whom2` and its `who` admits `unspecified` (contra taxonomy v40, unshipped; defaults unchanged). The Caller's Box dialect reads a bare `form long wave` as `form_long_waves`, decodes two-hand long-wave balances, folds a long wave's balance across a phrase boundary, reads a single-file promenade around the major set as `promenade`, and keeps a line offering a choice of amounts (`(1 or 2)`) as text."
+      "`form_long_waves` gains `whom2` and its `who` admits `unspecified` (contra taxonomy v40, unshipped; defaults unchanged). The Caller's Box dialect reads a bare `form long wave` as `form_long_waves`, decodes two-hand long-wave balances, folds a long wave's balance across a phrase boundary, reads a single-file promenade around the major set as `promenade`, and reads a choice of amounts (`(1 or 2)`) as the first amount, with the choice as the note."
     ]
   }
 }

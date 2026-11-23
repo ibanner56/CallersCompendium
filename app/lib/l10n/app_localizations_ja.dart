@@ -8512,8 +8512,8 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorPhrasesAdd => 'フレーズを追加';
 
   @override
-  String danceEditorPhrasesInvalid(int max) {
-    return '各フレーズの小節数と1小節の拍数を、それぞれ1から$maxで入力してください。それまでは最後の有効なフレーズが保たれ、保存するとそれが保存されます。';
+  String danceEditorPhrasesInvalid(int maxBars, int maxBeats) {
+    return '各フレーズの小節数は1から$maxBars、1小節の拍数は1から$maxBeatsで入力してください。それまでは最後の有効なフレーズが保たれ、保存するとそれが保存されます。';
   }
 
   @override
@@ -12519,7 +12519,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsSuggestionsEnabledSubtitle =>
-      'プログラム作成画面のダンス一覧の「並べ替え」メニューに「おすすめ順」を追加します。プログラムの最後に入れるダンスを並べ、その理由を示します。';
+      'プログラム作成画面のダンス一覧の「並べ替え」メニューに「おすすめ順」を追加します。新しいダンスを入れる位置に合わせてダンスを並べ、その理由を示します。';
 
   @override
   String get settingsSuggestionsEditorTitle => '提案で考慮すること';
@@ -12673,6 +12673,42 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String suggestionReasonPhraseOverlapNext(String move) {
     return '$moveが次のダンスと同じフレーズ';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapAfterDance(String move, String dance) {
+    return '$moveが直前の$danceと同じ拍';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapBeforeDance(String move, String dance) {
+    return '$moveが直後の$danceと同じ拍';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapAfterDance(String move, String dance) {
+    return '$moveが直前の$danceと同じフレーズ';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapBeforeDance(String move, String dance) {
+    return '$moveが直後の$danceと同じフレーズ';
+  }
+
+  @override
+  String suggestionReasonSameFormationAfterDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation（直前の$danceと同じ）';
+  }
+
+  @override
+  String suggestionReasonSameFormationBeforeDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation（直後の$danceと同じ）';
   }
 
   @override
