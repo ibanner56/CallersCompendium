@@ -395,6 +395,23 @@ void main() {
       expect(_order(slots), ['a', 'b-alt2', 'brk', 'c', 'NEW']);
     });
 
+    testWidgets('dropping below two-pane while the banner is up ends the '
+        'insertion and says so', (tester) async {
+      final announcements = _recordAnnouncements();
+      final repos = await _seed();
+      await _pump(tester, repos);
+
+      await _chooseFromSlotMenu(tester, 5, 'add-before');
+      expect(find.byKey(const ValueKey('insertion-banner')), findsOneWidget);
+      tester.view.physicalSize = const Size(600, 2000);
+      await tester.pumpAndSettle();
+      expect(announcements, contains('Canceled. New dances go at the end.'));
+
+      tester.view.physicalSize = const Size(1200, 2000);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('insertion-banner')), findsNothing);
+    });
+
     testWidgets('a dance imported from online search lands at the target', (
       tester,
     ) async {

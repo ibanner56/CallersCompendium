@@ -543,6 +543,29 @@ void main() {
     ProgramSlot fresh() => ProgramSlot(id: 'new', position: 0, danceId: 'dn');
     List<String> ids(List<ProgramSlot> list) => [for (final s in list) s.id];
 
+    test('before a leading run of orphaned alternates keeps the run its own '
+        'group, as it is shown', () {
+      final orphans = [
+        ProgramSlot(id: 'o', position: 0, danceId: 'd0', isAlt: true),
+        ProgramSlot(id: 'o2', position: 1, danceId: 'd1', isAlt: true),
+        ProgramSlot(id: 'p', position: 2, danceId: 'd2'),
+      ];
+      final before = Program.alternateGroupsForSlots(orphans);
+      final next = Program.insertSlotAtGroupBoundary(
+        orphans,
+        1,
+        fresh(),
+        after: false,
+      );
+      expect(ids(next), ['new', 'o', 'o2', 'p']);
+      expect(next.first.isAlt, isFalse);
+      // The new dance is a group of its own; o and o2 still share theirs.
+      final groups = Program.alternateGroupsForSlots(next);
+      expect(groups[0], isNot(groups[1]));
+      expect(groups[1], groups[2]);
+      expect(before[0], before[1]);
+    });
+
     test('before a primary with alternates goes ahead of the whole group', () {
       final next = Program.insertSlotAtGroupBoundary(
         slots,

@@ -482,6 +482,12 @@ class Program {
   /// dance among a group's alternates, splitting the group or making its
   /// alternates belong to the new dance (#2339). [slot] is inserted with
   /// `isAlt` cleared. Positions are left for the caller to renumber.
+  ///
+  /// The one group with no primary is a leading run of orphaned alternates
+  /// (`orphaned_alt`, reachable by dragging an alternate to the top). Inserting
+  /// before it would make the run the new dance's alternates, so the run's
+  /// first slot becomes its primary instead, which is how the program is
+  /// already shown ([grouped]).
   static List<ProgramSlot> insertSlotAtGroupBoundary(
     List<ProgramSlot> slots,
     int index,
@@ -489,7 +495,11 @@ class Program {
     required bool after,
   }) {
     final range = alternateGroupRange(slots, index);
-    return [...slots]
+    final next = [...slots];
+    if (!after && next[range.start].isAlt) {
+      next[range.start] = next[range.start].copyWith(isAlt: false);
+    }
+    return next
       ..insert(after ? range.end : range.start, slot.copyWith(isAlt: false));
   }
 
