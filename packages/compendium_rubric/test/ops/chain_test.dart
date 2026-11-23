@@ -104,6 +104,54 @@ void main() {
       ]);
     });
 
+    test('after an across chain, a diagonal chain pairs by where dancers '
+        'stand', () {
+      // The Glass Goddess (Caller's Box #15677): a ladies chain across, then
+      // on the right diagonal to the shadow. The across chain has put the
+      // #1 robins on the west line, so pairing by couple number would chain
+      // on the other diagonal (user-ruled 2026-11-23).
+      final after = applyOk(
+        const Chain(who: WhoSet.role2s, dir: ChainDirection.rightDiagonal),
+        becket(const [
+          'L2-B . . . R2-B',
+          'R1-A . . . L1-A',
+          'L2-D . . . R2-D',
+          'R1-C . . . L1-C',
+          'L2-F . . . R2-F',
+          'R1-E . . . L1-E',
+        ]),
+      );
+      expect(after.toRolesNotation(), [
+        'L2-B . . . R2-B',
+        'R2-D . . . L1-A',
+        'L2-D . . . R1-A',
+        'R2-F . . . L1-C',
+        'L2-F . . . R1-C',
+        'R1-E . . . L1-E',
+      ]);
+    });
+
+    test('across pairs by line when the numbers name no pair', () {
+      // After a diagonal chain both robins of a hands four can carry one
+      // number; facing each other across the set they still chain.
+      final after = applyOk(
+        const Chain(who: WhoSet.role2s),
+        becket(const ['L2-B . . . R1-A', 'R1-C . . . L2-D']),
+      );
+      expect(after.toRolesNotation(), ['L2-B . . . R1-C', 'R1-A . . . L2-D']);
+    });
+
+    test('a diagonal with two chaining dancers on one line is refused', () {
+      final result = const Chain(
+        who: WhoSet.role2s,
+        dir: ChainDirection.leftDiagonal,
+      ).apply(becket(const ['R2-B . . . L1-A', 'R1-A . . . L2-B']));
+      expect(
+        (result as Err<Formation, OpError>).error.kind,
+        ErrorKind.unresolvableDancerSet,
+      );
+    });
+
     test('the top grouping\'s #2 has nothing above, so it stays put', () {
       final before = judgeOp4Input();
       final after = applyOk(
@@ -177,8 +225,7 @@ void main() {
 
   group('Chain across waiting-out ends', () {
     // The case the taxonomy singles out: a waiting couple participates as its
-    // own single-couple grouping, which is exactly why the pairing rule is
-    // stated in couple numbers rather than columns.
+    // own single-couple grouping.
     Formation setWithEndsOut() => markWaitingOut(
       startingFormation(FormationType.dupleImproper, handsFour: 3),
       rows: [0, 5],
@@ -195,35 +242,56 @@ void main() {
       expect(groupings.map((g) => g.isWaiting), [true, false, false, true]);
     });
 
-    test('a waiting couple at the top receives a left_diagonal chain', () {
+    // In this set the top waiting robin stands on the west line and the
+    // bottom one on the east line. Pairing is by where they stand
+    // (user-ruled 2026-11-23): from the west line the right diagonal runs
+    // down the set, from the east line up it.
+    DancerId waitingRobin(Formation set, int row) =>
+        set.dancersInRow(row).firstWhere((id) => id.role == Role.robin);
+
+    test('a waiting couple at the top takes part on a right_diagonal', () {
       final before = setWithEndsOut();
+      final robin = waitingRobin(before, 0);
+      expect(before.stateOf(robin).position.col, 0);
       final after = applyOk(
-        const Chain(who: WhoSet.role2s, dir: ChainDirection.leftDiagonal),
+        const Chain(who: WhoSet.role2s, dir: ChainDirection.rightDiagonal),
         before,
       );
-      final waitingRobin = before
-          .dancersInRow(0)
-          .firstWhere((id) => '$id'.startsWith('R'));
       expect(
-        after.stateOf(waitingRobin).position,
-        isNot(before.stateOf(waitingRobin).position),
+        after.stateOf(robin).position,
+        isNot(before.stateOf(robin).position),
         reason: 'the waiting couple must take part as its own grouping',
       );
     });
 
-    test('a waiting couple at the bottom initiates a left_diagonal chain', () {
+    test('a waiting couple at the bottom takes part on a right_diagonal', () {
+      final before = setWithEndsOut();
+      final robin = waitingRobin(before, 5);
+      expect(before.stateOf(robin).position.col, kColumnCount - 1);
+      final after = applyOk(
+        const Chain(who: WhoSet.role2s, dir: ChainDirection.rightDiagonal),
+        before,
+      );
+      expect(
+        after.stateOf(robin).position,
+        isNot(before.stateOf(robin).position),
+      );
+    });
+
+    test('a waiting dancer whose diagonal leads out of the set stays', () {
       final before = setWithEndsOut();
       final after = applyOk(
         const Chain(who: WhoSet.role2s, dir: ChainDirection.leftDiagonal),
         before,
       );
-      final waitingRobin = before
-          .dancersInRow(5)
-          .firstWhere((id) => '$id'.startsWith('R'));
-      expect(
-        after.stateOf(waitingRobin).position,
-        isNot(before.stateOf(waitingRobin).position),
-      );
+      for (final row in [0, 5]) {
+        final robin = waitingRobin(before, row);
+        expect(
+          after.stateOf(robin).position,
+          before.stateOf(robin).position,
+          reason: '$robin',
+        );
+      }
     });
 
     test('waiting-out state itself is untouched by the chain', () {
