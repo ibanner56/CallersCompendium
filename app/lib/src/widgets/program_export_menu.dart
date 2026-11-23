@@ -205,19 +205,21 @@ class ProgramExportMenu extends StatelessWidget {
 
   /// Names each slot's dance form in the set list when the program mixes
   /// forms, as the program screens do (ADR-006 S5); null, naming none, when
-  /// its dances share one form or none resolves.
+  /// its dances share one form or none resolves. A dance in Recently deleted
+  /// counts for nothing and names no form, as on the program screens.
   String? Function(String danceId)? _formLabelFor(AppLocalizations l10n) {
     final resolveDance = danceFor;
     if (resolveDance == null) return null;
     final forms = <DanceForm>{
       for (final slot in program.slots)
         if (slot.danceId case final id?)
-          if (resolveDance(id) case final dance?) dance.form,
+          if (resolveDance(id) case final dance? when !dance.isDeleted)
+            dance.form,
     };
     if (forms.length < 2) return null;
     return (danceId) => switch (resolveDance(danceId)) {
-      final dance? => danceFormLabel(l10n, dance.form),
-      null => null,
+      final dance? when !dance.isDeleted => danceFormLabel(l10n, dance.form),
+      _ => null,
     };
   }
 

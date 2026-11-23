@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/collection_facets_scope.dart';
-import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/widgets/facet_panel.dart';
 import '../support/facet_selection_table.dart';
 import '../support/l10n_harness.dart';
@@ -75,6 +74,8 @@ Future<ValueNotifier<Set<String>>> _pump(
       hasCallingHistory: has,
       authors: has ? [Choreographer(id: 'a1', name: 'Folk Process')] : const [],
       tunes: has ? const ['Dmaj'] : const [],
+      meters: has ? const ['6/8'] : const [],
+      musicalKeys: has ? const ['D minor'] : const [],
       tags: has ? [Tag(id: 't1', name: 'Beginner')] : const [],
       citedSources: has
           ? [PublishedSource(id: 's1', title: 'Zesty Contras')]

@@ -214,6 +214,34 @@ void main() {
     expect(find.text('Fresh Choreographer'), findsOneWidget);
   });
 
+  testWidgets('perform names the interpreters, with the years', (tester) async {
+    final data = await _dataWith(const []);
+    final dance =
+        _dance(
+          id: 'fresh',
+          title: 'Fresh Dance',
+          authorIds: const ['author-1'],
+        ).copyWith(
+          composedOn: PartialDate(1651),
+          interpreterIds: const ['interp-1'],
+          interpretedOn: PartialDate(1916),
+        );
+
+    await _pumpProgram(
+      tester,
+      program: _program([_slot(id: 's1', position: 0, danceId: dance.id)]),
+      data: data,
+      danceOverrides: {dance.id: dance},
+      authorNameOverrides: const {
+        'author-1': 'John Playford',
+        'interp-1': 'Cecil Sharp',
+      },
+    );
+
+    expect(find.text('John Playford (1651)'), findsOneWidget);
+    expect(find.text('Interpreted by Cecil Sharp (1916)'), findsOneWidget);
+  });
+
   setUp(installFakeWakelock);
 
   testWidgets('next/prev moves between groups', (tester) async {
@@ -1005,6 +1033,36 @@ void main() {
 
       expect(resolved.keys, ['dead']);
       expect(resolved['dead']!.isDeleted, isTrue);
+    },
+  );
+
+  test(
+    "resolveDeletedSlotDances names a deleted dance's deleted interpreter",
+    () async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'i1', name: 'Cecil Sharp'),
+      );
+      await repos.dances.create(
+        _dance(
+          id: 'dead',
+          title: 'Dead Dance',
+        ).copyWith(interpreterIds: const ['i1']),
+      );
+      await repos.dances.softDelete('dead', at: _now);
+      await repos.choreographers.delete('i1', at: _now);
+      final data = await CollectionData.load(repos);
+      expect(data.choreographerNames.containsKey('i1'), isFalse);
+
+      final resolved = await resolveDeletedSlotDances(
+        repos.dances,
+        repos.choreographers,
+        _program([_slot(id: 's1', position: 0, danceId: 'dead')]).slots,
+        data,
+      );
+
+      expect(resolved.authorNames, {'i1': 'Cecil Sharp'});
     },
   );
 
@@ -3390,6 +3448,62 @@ void main() {
         find.textContaining('English (ECD) · Duple minor'),
         findsOneWidget,
       );
+    });
+
+    testWidgets('a dance in Recently deleted makes no mix', (tester) async {
+      final english = _dance(id: 'e', title: 'Hole in the Wall').copyWith(
+        form: DanceForm.ecd,
+        formation: const Formation(FormationShape.dupleMinor),
+        figures: [
+          Figure(move: 'ecd_siding', params: const {'beats': 8}),
+        ],
+        deletedAt: DateTime.utc(2026, 2),
+      );
+      final contra = _dance(id: 'c', title: 'Contra One');
+      final data = await _dataWith([contra]);
+      await _pumpProgram(
+        tester,
+        program: _program([
+          _slot(id: 's1', position: 0, danceId: 'e'),
+          _slot(id: 's2', position: 1, danceId: 'c'),
+        ]),
+        data: data,
+        danceOverrides: {english.id: english},
+      );
+      expect(find.textContaining('English (ECD) ·'), findsNothing);
+    });
+
+    testWidgets('a dance in Recently deleted names no form in a mixed '
+        'program', (tester) async {
+      final gone = _dance(id: 'g', title: 'Gone Dance').copyWith(
+        form: DanceForm.ecd,
+        formation: const Formation(FormationShape.dupleMinor),
+        figures: [
+          Figure(move: 'ecd_siding', params: const {'beats': 8}),
+        ],
+        deletedAt: DateTime.utc(2026, 2),
+      );
+      final english = _dance(id: 'e', title: 'Hole in the Wall').copyWith(
+        form: DanceForm.ecd,
+        formation: const Formation(FormationShape.dupleMinor),
+        figures: [
+          Figure(move: 'ecd_siding', params: const {'beats': 8}),
+        ],
+      );
+      final contra = _dance(id: 'c', title: 'Contra One');
+      final data = await _dataWith([english, contra]);
+      await _pumpProgram(
+        tester,
+        program: _program([
+          _slot(id: 's1', position: 0, danceId: 'g'),
+          _slot(id: 's2', position: 1, danceId: 'e'),
+          _slot(id: 's3', position: 2, danceId: 'c'),
+        ]),
+        data: data,
+        danceOverrides: {gone.id: gone},
+      );
+      // The first card is the deleted dance's.
+      expect(find.textContaining('English (ECD) ·'), findsNothing);
     });
 
     testWidgets('a program of one form names none', (tester) async {

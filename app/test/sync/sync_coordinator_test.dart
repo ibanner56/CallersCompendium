@@ -3433,45 +3433,18 @@ void main() {
     },
   );
 
-  for (final entry in const {
-    'dance': SyncRecordKind.dance,
-    'program': SyncRecordKind.program,
-  }.entries) {
+  for (final kind in _raceKinds) {
     test(
-      'protects a ${entry.key} from hard-delete during blob publication',
+      'protects a ${kind.name} from hard-delete during blob publication',
       () async {
         final repositories = openTestRepositories();
         final stamp = DateTime.utc(2026, 7, 15, 12);
-        final recordId = 'publication-race-${entry.key}';
-        if (entry.value == SyncRecordKind.dance) {
-          await repositories.dances.create(
-            Dance(
-              id: recordId,
-              title: 'Publication race dance',
-              createdAt: stamp,
-              updatedAt: stamp,
-            ),
-          );
-        } else {
-          await repositories.programs.create(
-            Program(
-              id: recordId,
-              title: 'Publication race program',
-              createdAt: stamp,
-              updatedAt: stamp,
-            ),
-          );
-        }
+        final recordId = 'publication-race-${kind.name}';
+        await kind.create(repositories, recordId, stamp);
         await repositories.syncLocal.resetEpoch(epoch: 'epoch-1');
 
         final transport = _FakeTransport(
-          onPostMissing: (_) async {
-            if (entry.value == SyncRecordKind.dance) {
-              await repositories.dances.hardDelete([recordId]);
-            } else {
-              await repositories.programs.hardDelete([recordId]);
-            }
-          },
+          onPostMissing: (_) => kind.hardDelete(repositories, recordId),
         );
         final coordinator = SyncCoordinator(
           syncId: 'configured',
@@ -3483,27 +3456,15 @@ void main() {
         final result = await coordinator.syncNow();
 
         expect(result.status, SyncPassStatus.completed);
-        final DateTime? deletedAt;
-        if (entry.value == SyncRecordKind.dance) {
-          final retained = await repositories.dances.getById(
-            recordId,
-            includeDeleted: true,
-          );
-          expect(retained, isNotNull);
-          deletedAt = retained?.deletedAt;
-        } else {
-          final retained = await repositories.programs.getById(
-            recordId,
-            includeDeleted: true,
-          );
-          expect(retained, isNotNull);
-          deletedAt = retained?.deletedAt;
-        }
-        expect(deletedAt, isNotNull);
+        expect(
+          await kind.remains(repositories, recordId),
+          _Remains.tombstone,
+          reason: 'a ${kind.name} the manifest names must keep a tombstone',
+        );
         final manifest = decodeSyncManifest(
           utf8.decode(transport.manifestBodies.single),
         );
-        expect(manifest.records[entry.value]?[recordId], isNotNull);
+        expect(manifest.records[kind.kind]?[recordId], isNotNull);
       },
     );
   }
@@ -3514,15 +3475,12 @@ void main() {
   // Before its marker, the record reads as never published and the delete
   // goes through, so the build is redone under the lock and leaves it out.
   // After it, the delete reads the marker and tombstones instead.
-  for (final entry in const {
-    'dance': SyncRecordKind.dance,
-    'program': SyncRecordKind.program,
-  }.entries) {
+  for (final kind in _raceKinds) {
     for (final afterMarker in const [false, true]) {
       test(
         afterMarker
-            ? 'tombstones a ${entry.key} hard-deleted after its marker'
-            : 'leaves out a ${entry.key} hard-deleted between the scan and '
+            ? 'tombstones a ${kind.name} hard-deleted after its marker'
+            : 'leaves out a ${kind.name} hard-deleted between the scan and '
                   'its marker',
         () async {
           final directory = await Directory.systemTemp.createTemp(
@@ -3558,34 +3516,13 @@ void main() {
           });
 
           final stamp = DateTime.utc(2026, 7, 15, 12);
-          final recordId = 'publication-marker-race-${entry.key}';
-          if (entry.value == SyncRecordKind.dance) {
-            await repositories.dances.create(
-              Dance(
-                id: recordId,
-                title: 'Publication marker race dance',
-                createdAt: stamp,
-                updatedAt: stamp,
-              ),
-            );
-            expect(
-              await deletingRepositories.dances.getById(recordId),
-              isNotNull,
-            );
-          } else {
-            await repositories.programs.create(
-              Program(
-                id: recordId,
-                title: 'Publication marker race program',
-                createdAt: stamp,
-                updatedAt: stamp,
-              ),
-            );
-            expect(
-              await deletingRepositories.programs.getById(recordId),
-              isNotNull,
-            );
-          }
+          final recordId = 'publication-marker-race-${kind.name}';
+          await kind.create(repositories, recordId, stamp);
+          expect(
+            await kind.remains(deletingRepositories, recordId),
+            _Remains.live,
+            reason: 'the deleting connection must see the record',
+          );
           await repositories.syncLocal.resetEpoch(epoch: 'epoch-1');
           deleteTransactionGate.arm();
 
@@ -3593,9 +3530,7 @@ void main() {
           final store = _SnapshotInterleavingStore(
             CompendiumSyncCoordinatorStore(repositories),
             afterFinalSnapshot: () async {
-              deleteFuture = entry.value == SyncRecordKind.dance
-                  ? deletingRepositories.dances.hardDelete([recordId])
-                  : deletingRepositories.programs.hardDelete([recordId]);
+              deleteFuture = kind.hardDelete(deletingRepositories, recordId);
               await deleteTransactionGate.started;
             },
             afterTransaction: () async {
@@ -3616,33 +3551,19 @@ void main() {
           await deleteFuture;
 
           expect(result.status, SyncPassStatus.completed);
-          final Object? retained = entry.value == SyncRecordKind.dance
-              ? await deletingRepositories.dances.getById(
-                  recordId,
-                  includeDeleted: true,
-                )
-              : await deletingRepositories.programs.getById(
-                  recordId,
-                  includeDeleted: true,
-                );
-          final deletedAt = switch (retained) {
-            Dance(:final deletedAt) => deletedAt,
-            Program(:final deletedAt) => deletedAt,
-            _ => null,
-          };
+          final remains = await kind.remains(deletingRepositories, recordId);
           final manifest = decodeSyncManifest(
             utf8.decode(transport.manifestBodies.single),
           );
-          final named = manifest.records[entry.value]?[recordId];
+          final named = manifest.records[kind.kind]?[recordId];
           if (afterMarker) {
-            expect(retained, isNotNull);
-            expect(deletedAt, isNotNull);
+            expect(remains, _Remains.tombstone);
             expect(named, isNotNull);
             expect(store.snapshotCalls, 2);
           } else {
             // Gone with no tombstone, so the manifest must not offer it: a peer
             // that took it would hand it back to the next pass.
-            expect(retained, isNull);
+            expect(remains, _Remains.absent);
             expect(named, isNull);
             // The build that saw it was dropped and redone under the lock.
             expect(store.snapshotCalls, 3);
@@ -9412,6 +9333,106 @@ final class _FakeStore implements SyncCoordinatorStore {
     droppedRecords.addAll(drop);
   }
 }
+
+/// What is left of a record after a hard delete.
+enum _Remains { absent, tombstone, live }
+
+/// A record kind the publication-marker race tests cover: how to make one, how
+/// to hard-delete it the way the app's own paths do (import undo, which asks the
+/// repository for a hard delete and leaves the marker check to it), and what is
+/// left of it afterwards.
+class _RaceKind {
+  const _RaceKind(
+    this.name,
+    this.kind,
+    this.create,
+    this.hardDelete,
+    this.remains,
+  );
+
+  final String name;
+  final SyncRecordKind kind;
+  final Future<void> Function(CompendiumRepositories, String, DateTime) create;
+  final Future<void> Function(CompendiumRepositories, String) hardDelete;
+  final Future<_Remains> Function(CompendiumRepositories, String) remains;
+}
+
+_Remains _remainsOf({required bool inAll, required bool live}) =>
+    !inAll ? _Remains.absent : (live ? _Remains.live : _Remains.tombstone);
+
+final _raceKinds = <_RaceKind>[
+  _RaceKind(
+    'dance',
+    SyncRecordKind.dance,
+    (repos, id, stamp) => repos.dances.create(
+      Dance(
+        id: id,
+        title: 'Publication race dance',
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    ),
+    (repos, id) => repos.dances.hardDelete([id]),
+    (repos, id) async {
+      final row = await repos.dances.getById(id, includeDeleted: true);
+      return _remainsOf(inAll: row != null, live: row?.deletedAt == null);
+    },
+  ),
+  _RaceKind(
+    'program',
+    SyncRecordKind.program,
+    (repos, id, stamp) => repos.programs.create(
+      Program(
+        id: id,
+        title: 'Publication race program',
+        createdAt: stamp,
+        updatedAt: stamp,
+      ),
+    ),
+    (repos, id) => repos.programs.hardDelete([id]),
+    (repos, id) async {
+      final row = await repos.programs.getById(id, includeDeleted: true);
+      return _remainsOf(inAll: row != null, live: row?.deletedAt == null);
+    },
+  ),
+  // The two kinds import undo hard-deletes besides dances and programs. A
+  // choreographer is erased with `delete(permanent: true)`, a venue with
+  // `hardDelete`; neither model carries `deletedAt`, so a tombstone is a row
+  // that only the include-deleted list shows.
+  _RaceKind(
+    'choreographer',
+    SyncRecordKind.choreographer,
+    (repos, id, stamp) async {
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: id, name: 'Publication Race'),
+        at: stamp,
+      );
+    },
+    (repos, id) => repos.choreographers.delete(id, permanent: true),
+    (repos, id) async => _remainsOf(
+      inAll: (await repos.choreographers.listAll(
+        includeDeleted: true,
+      )).any((c) => c.id == id),
+      live: (await repos.choreographers.listAll()).any((c) => c.id == id),
+    ),
+  ),
+  _RaceKind(
+    'venue',
+    SyncRecordKind.venue,
+    (repos, id, stamp) => repos.venues.upsert(
+      Venue(id: id, name: 'Publication Race'),
+      at: stamp,
+    ),
+    (repos, id) => repos.venues.hardDelete([id]),
+    (repos, id) async => _remainsOf(
+      inAll: (await repos.venues.listAll(
+        includeDeleted: true,
+      )).any((v) => v.id == id),
+      live: (await repos.venues.listAll()).any((v) => v.id == id),
+    ),
+  ),
+];
 
 final class _FakeTransport implements SyncCoordinatorTransport {
   _FakeTransport({

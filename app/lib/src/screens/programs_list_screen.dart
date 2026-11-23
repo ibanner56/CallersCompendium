@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/program_forms.dart';
 import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
@@ -138,6 +139,21 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
 
   List<Program>? _programs;
   Map<String, Venue> _venuesById = const {};
+
+  /// The forms of each program's dances, live
+  /// ([ProgramRepository.watchFormsByProgram]).
+  Map<String, Set<DanceForm>> _formsById = const {};
+  StreamSubscription<Map<String, Set<DanceForm>>>? _formsSub;
+
+  /// The type filter: only programs whose dances are of these forms, compared
+  /// as [_formMatch] says ([formsMatch]), and the open program whatever its
+  /// forms. Null shows every program. Dropped once it is no longer one of the
+  /// chips. Not saved.
+  Set<DanceForm>? _formFilter;
+
+  /// Whether the type filter keeps programs of only the chosen forms or every
+  /// program that includes them. Not saved, like the filter.
+  FormMatch _formMatch = FormMatch.only;
   Object? _loadError;
   ProgramSort _sort = ProgramSort.title;
   SortDirection _sortDir = ProgramSort.title.defaultDirection;
@@ -163,8 +179,17 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   }
 
   void _toggleShowArchived() {
-    setState(() => _showArchived = !_showArchived);
+    setState(() {
+      _showArchived = !_showArchived;
+      _dropStaleFormFilter();
+    });
     _closeHiddenSelection();
+  }
+
+  /// Clears [_formFilter] once it is no longer one of the chips, so it can't
+  /// come back on its own when a later program does. Call within setState.
+  void _dropStaleFormFilter() {
+    if (_activeFormFilter == null) _formFilter = null;
   }
 
   /// Tells the host when the selected program is in the data but no longer
@@ -266,6 +291,23 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
             if (mounted) setState(() => _loadError = error);
           },
         );
+    // A stream of its own: a program's forms change when one of its dances
+    // is deleted, restored or changes form, none of which [watchAll] sees.
+    _formsSub = _repos.programs.watchFormsByProgram().listen(
+      (forms) {
+        if (!mounted) return;
+        setState(() {
+          _formsById = forms;
+          _dropStaleFormFilter();
+        });
+        _closeHiddenSelection();
+      },
+      onError: (Object error, StackTrace stackTrace) => logCaughtError(
+        error,
+        stackTrace,
+        source: 'programs_list_screen._subscribe forms',
+      ),
+    );
   }
 
   /// Pairs a program list with the venues its rows need.
@@ -390,6 +432,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   @override
   void dispose() {
     unawaited(_programsSub?.cancel());
+    unawaited(_formsSub?.cancel());
     super.dispose();
   }
 
@@ -400,6 +443,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     setState(() {
       _programs = snapshot.programs;
       _venuesById = snapshot.venuesById;
+      _dropStaleFormFilter();
       _loadError = null;
     });
     _closeHiddenSelection();
@@ -440,11 +484,139 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   };
 
   /// The programs this list shows: all of them with "Show archived" on, else
-  /// the ones not archived.
-  List<Program> get _visiblePrograms => [
-    for (final program in _programs ?? const <Program>[])
-      if (_showArchived || !program.isArchived) program,
-  ];
+  /// the ones not archived; with a type filter, those of its forms. The open
+  /// program stays listed whatever its forms, so neither a chip nor a dance
+  /// of another form added to it closes it.
+  List<Program> get _visiblePrograms {
+    final filter = _activeFormFilter;
+    final open = widget.selectedProgramId;
+    return [
+      for (final program in _unfilteredPrograms)
+        if (filter == null ||
+            program.id == open ||
+            formsMatch(_formsById[program.id], filter, _formMatch))
+          program,
+    ];
+  }
+
+  /// The programs shown before the type filter: all, or the unarchived.
+  Iterable<Program> get _unfilteredPrograms => (_programs ?? const <Program>[])
+      .where((p) => _showArchived || !p.isArchived);
+
+  /// [_formFilter] while it is still one of the chips; null once it is not
+  /// (its last program changed, or was archived or deleted, no second mix is
+  /// left to offer chips at all, or the switch between Only and Includes
+  /// changed the chips), so a filter is never on without a chip to show it
+  /// and clear it.
+  Set<DanceForm>? get _activeFormFilter {
+    final filter = _formFilter;
+    if (filter == null) return null;
+    return _formChoiceSets().any((m) => sameForms(m, filter)) ? filter : null;
+  }
+
+  /// The sets of forms the type filter offers as chips, in no particular
+  /// order; empty unless there are at least two mixes among the programs
+  /// shown with no type filter. With [FormMatch.only], each mix is a chip.
+  /// With [FormMatch.includes], each form in any of them is one, so Contra
+  /// can list every program with a contra dance even when none is contra
+  /// only. A form every program with dances has gets a chip too, though it
+  /// hides only programs with no dances, so that no type present goes
+  /// missing from the row (Hudson, 21 November 2026).
+  List<Set<DanceForm>> _formChoiceSets() {
+    final mixes = _distinctMixes();
+    if (mixes.length < 2) return const [];
+    return switch (_formMatch) {
+      FormMatch.only => mixes,
+      FormMatch.includes => [
+        for (final form in DanceForm.values)
+          if (mixes.any((m) => m.contains(form))) {form},
+      ],
+    };
+  }
+
+  /// Each distinct set of forms among the programs shown with no type
+  /// filter, in no particular order.
+  List<Set<DanceForm>> _distinctMixes() {
+    final mixes = <String, Set<DanceForm>>{};
+    for (final program in _unfilteredPrograms) {
+      final forms = _formsById[program.id];
+      if (forms == null || forms.isEmpty) continue;
+      mixes[([for (final f in forms) f.name]..sort()).join('+')] = forms;
+    }
+    return mixes.values.toList();
+  }
+
+  /// The type filter's chips ([_formChoiceSets]) in the order of their
+  /// labels.
+  List<Set<DanceForm>> _formChoices(AppLocalizations l10n) {
+    final choices = <String, Set<DanceForm>>{
+      for (final forms in _formChoiceSets())
+        programFormsLabel(l10n, forms)!: forms,
+    };
+    final labels = choices.keys.toList()..sort();
+    return [for (final label in labels) choices[label]!];
+  }
+
+  Widget _formFilterRow(AppLocalizations l10n, List<Set<DanceForm>> choices) =>
+      Padding(
+        key: const ValueKey('programs-form-filter'),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.xs,
+          AppSpacing.md,
+          0,
+        ),
+        child: Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: Wrap(
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xxs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Semantics(
+                container: true,
+                label: l10n.programsFormMatchLabel,
+                child: SegmentedButton<FormMatch>(
+                  key: const ValueKey('programs-form-match'),
+                  segments: [
+                    ButtonSegment(
+                      value: FormMatch.only,
+                      label: Text(l10n.programsFormMatchOnly),
+                      tooltip: l10n.programsFormMatchOnlyTooltip,
+                    ),
+                    ButtonSegment(
+                      value: FormMatch.includes,
+                      label: Text(l10n.programsFormMatchIncludes),
+                      tooltip: l10n.programsFormMatchIncludesTooltip,
+                    ),
+                  ],
+                  selected: {_formMatch},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (selection) => setState(() {
+                    _formMatch = selection.single;
+                    // A chip that the other mode doesn't offer is dropped,
+                    // such as Contra + English (ECD) under Includes.
+                    _dropStaleFormFilter();
+                  }),
+                ),
+              ),
+              for (final forms in choices)
+                FilterChip(
+                  key: ValueKey(
+                    'programs-form-${[for (final f in DanceForm.values)
+                      if (forms.contains(f)) f.name].join('+')}',
+                  ),
+                  label: Text(programFormsLabel(l10n, forms)!),
+                  selected:
+                      _activeFormFilter != null &&
+                      sameForms(forms, _activeFormFilter!),
+                  onSelected: (selected) =>
+                      setState(() => _formFilter = selected ? forms : null),
+                ),
+            ],
+          ),
+        ),
+      );
 
   List<Program> _sortedPrograms({required bool ignoreLeadingArticles}) {
     final programs = _visiblePrograms;
@@ -925,6 +1097,8 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
           ),
           child: WeekdayHeaderStrip(markedDates: _programEventDates(sorted)),
         ),
+        if (_formChoices(l10n) case final choices when choices.isNotEmpty)
+          _formFilterRow(l10n, choices),
         Padding(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.md,
@@ -981,6 +1155,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                 child: ProgramListTile(
                   program: program,
                   venuesById: _venuesById,
+                  forms: _formsById[program.id],
                   selected:
                       widget.onSelectProgram != null &&
                       widget.selectedProgramId == program.id,

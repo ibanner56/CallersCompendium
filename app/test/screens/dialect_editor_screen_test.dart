@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -479,11 +480,11 @@ void main() {
     await reveal(tester, moveToggle);
     await tester.tap(moveToggle);
     await tester.pumpAndSettle();
-    final moves = tester.widget<DropdownButton<String>>(
+    final moves = tester.widget<AppDropdownField<String?>>(
       find.byKey(const ValueKey('dialect-add-move')),
     );
     moves.onChanged!(
-      moves.items!
+      moves.entries
           .map((item) => item.value)
           .firstWhere((id) => id == 'balance'),
     );
@@ -521,10 +522,10 @@ void main() {
     expect(row, findsOneWidget);
     expect(tester.widget<TextField>(row).controller!.text, 'lines');
     expect(find.text('long lines'), findsWidgets);
-    final moves = tester.widget<DropdownButton<String>>(
+    final moves = tester.widget<AppDropdownField<String?>>(
       find.byKey(const ValueKey('dialect-add-move')),
     );
-    final offered = moves.items!.map((item) => item.value).toSet();
+    final offered = moves.entries.map((item) => item.value).toSet();
     expect(offered, contains('forward_and_back'));
     expect(offered, isNot(contains('long_lines')));
 
@@ -534,11 +535,11 @@ void main() {
     await reveal(tester, wordingsToggle);
     await tester.tap(wordingsToggle);
     await tester.pumpAndSettle();
-    final wordings = tester.widget<DropdownButton<String>>(
+    final wordings = tester.widget<AppDropdownField<String?>>(
       find.byKey(const ValueKey('dialect-add-move-wording')),
     );
     expect(
-      wordings.items!.map((item) => item.value),
+      wordings.entries.map((item) => item.value),
       containsAll(['long_lines', 'forward_and_back']),
     );
   });
@@ -573,10 +574,10 @@ void main() {
       expect(find.text('circle · Contra'), findsWidgets);
       expect(find.text('circle'), findsWidgets);
       expect(find.textContaining('English (ECD)'), findsNothing);
-      final moves = tester.widget<DropdownButton<String>>(
+      final moves = tester.widget<AppDropdownField<String?>>(
         find.byKey(const ValueKey('dialect-add-move')),
       );
-      final offered = moves.items!.map((item) => item.value!).toList();
+      final offered = moves.entries.map((item) => item.value!).toList();
       expect(offered, contains('ecd_hand_cast'));
       expect(offered.where((id) => !id.startsWith('ecd_')), isEmpty);
 
@@ -586,10 +587,10 @@ void main() {
       await reveal(tester, wordingsToggle);
       await tester.tap(wordingsToggle);
       await tester.pumpAndSettle();
-      final wordings = tester.widget<DropdownButton<String>>(
+      final wordings = tester.widget<AppDropdownField<String?>>(
         find.byKey(const ValueKey('dialect-add-move-wording')),
       );
-      final worded = wordings.items!.map((item) => item.value!).toList();
+      final worded = wordings.entries.map((item) => item.value!).toList();
       expect(worded, containsAll(['ecd_circle', 'ecd_hand_cast']));
       expect(worded.where((id) => !id.startsWith('ecd_')), isEmpty);
     },
@@ -674,11 +675,11 @@ void main() {
     await tester.tap(toggle);
     await tester.pumpAndSettle();
 
-    final menu = tester.widget<DropdownButton<String>>(
+    final menu = tester.widget<AppDropdownField<String?>>(
       find.byKey(const ValueKey('dialect-add-move-wording')),
     );
     menu.onChanged!(
-      menu.items!
+      menu.entries
           .map((item) => item.value)
           .firstWhere((value) => value == 'swing'),
     );
@@ -707,11 +708,11 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('dialect-wordings-toggle')));
     await tester.pumpAndSettle();
 
-    final menu = tester.widget<DropdownButton<String>>(
+    final menu = tester.widget<AppDropdownField<String?>>(
       find.byKey(const ValueKey('dialect-add-move-wording')),
     );
     expect(
-      menu.items!.map((item) => item.value),
+      menu.entries.map((item) => item.value),
       containsAll(['form_a_long_wave', 'promenade', 'circle']),
     );
     expect(
@@ -724,7 +725,7 @@ void main() {
     );
 
     menu.onChanged!(
-      menu.items!
+      menu.entries
           .map((item) => item.value)
           .firstWhere((value) => value == 'form_a_long_wave'),
     );
@@ -747,11 +748,11 @@ void main() {
       findsNothing,
     );
 
-    final updatedMenu = tester.widget<DropdownButton<String>>(
+    final updatedMenu = tester.widget<AppDropdownField<String?>>(
       find.byKey(const ValueKey('dialect-add-move-wording')),
     );
     updatedMenu.onChanged!(
-      updatedMenu.items!
+      updatedMenu.entries
           .map((item) => item.value)
           .firstWhere((value) => value == 'circle'),
     );
@@ -1077,12 +1078,12 @@ void main() {
     ({List<String?> values, List<String?> labels}) addMenu(
       WidgetTester tester,
     ) {
-      final dropdown = tester.widget<DropdownButton<String>>(
+      final dropdown = tester.widget<AppDropdownField<String?>>(
         find.byKey(const ValueKey('dialect-add-dancer')),
       );
       return (
-        values: [for (final i in dropdown.items!) i.value],
-        labels: [for (final i in dropdown.items!) (i.child as Text).data],
+        values: [for (final i in dropdown.entries) i.value],
+        labels: [for (final i in dropdown.entries) i.label],
       );
     }
 
@@ -1225,11 +1226,11 @@ void main() {
       // that the entry is never laid out, so tapping it is not reachable.
       // The value comes FROM the menu, so this is red when the menu does not
       // offer the token rather than reaching a state the UI cannot produce.
-      final menu = tester.widget<DropdownButton<String>>(
+      final menu = tester.widget<AppDropdownField<String?>>(
         find.byKey(const ValueKey('dialect-add-dancer')),
       );
       menu.onChanged!(
-        menu.items!.map((i) => i.value).firstWhere((v) => v == 'twosRole2'),
+        menu.entries.map((i) => i.value).firstWhere((v) => v == 'twosRole2'),
       );
       await tester.pumpAndSettle();
 

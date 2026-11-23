@@ -5,30 +5,49 @@
 // menu whose border is configured but never drawn.
 import 'package:compendium_app/src/screens/dance_editor/editor_fields.dart';
 import 'package:compendium_app/src/theme/app_theme.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
+import 'package:compendium_app/src/widgets/settings_dropdown_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 enum _Pick { first, second, third }
 
+/// A form field, as the dance editor's enum fields build it.
+Widget _formField() => EnumDropdown<_Pick>(
+  fieldKey: 'pick',
+  label: 'Pick',
+  value: _Pick.first,
+  values: _Pick.values,
+  labelOf: (v) => v.name,
+  onChanged: (_) {},
+);
+
+/// A Settings row's trailing control, as every Settings dropdown row builds
+/// it.
+Widget _rowControl() => SettingsDropdownRow(
+  title: const Text('Row'),
+  dropdownBuilder: (expanded) => AppDropdownField<_Pick>(
+    key: const ValueKey('pick-field'),
+    compact: true,
+    fillWidth: expanded,
+    value: _Pick.first,
+    entries: [
+      for (final v in _Pick.values) AppDropdownEntry(value: v, label: v.name),
+    ],
+    onChanged: (_) {},
+  ),
+);
+
 Future<void> _openRepresentativeField(
   WidgetTester tester,
-  ThemeData theme,
-) async {
+  ThemeData theme, {
+  Widget Function() field = _formField,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: theme,
       home: Scaffold(
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: EnumDropdown<_Pick>(
-            fieldKey: 'pick',
-            label: 'Pick',
-            value: _Pick.first,
-            values: _Pick.values,
-            labelOf: (v) => v.name,
-            onChanged: (_) {},
-          ),
-        ),
+        body: Padding(padding: const EdgeInsets.all(16), child: field()),
       ),
     ),
   );
@@ -116,6 +135,22 @@ void main() {
           (method, args) =>
               _outlinesPanel(size, theme.colorScheme.outline, method, args),
         ),
+      ),
+    );
+  });
+
+  testWidgets('High contrast paints an outline around the open menu of a '
+      "Settings row's dropdown", (tester) async {
+    final theme = AppTheme.highContrast;
+    await _openRepresentativeField(tester, theme, field: _rowControl);
+    final menu = _openMenu(tester);
+    final size = menu.entries.size;
+    expect(size.height, greaterThan(80));
+    expect(
+      menu.layer,
+      paints..something(
+        (method, args) =>
+            _outlinesPanel(size, theme.colorScheme.outline, method, args),
       ),
     );
   });

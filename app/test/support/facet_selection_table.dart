@@ -1,8 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
 
-import 'package:compendium_app/src/data/collection_facets_scope.dart';
-import 'package:compendium_app/src/search/collection_query.dart';
-
 /// One selection per built-in filter section, with the getter that says it is
 /// held. Kept table-driven so a section added to [CollectionFacetIds] without a
 /// row here fails the coverage check below.
@@ -57,6 +54,14 @@ final builtInFacetSelections =
       CollectionFacetIds.tunes: (
         select: (f) => f.addTune('Dmaj'),
         held: (f) => f.tunes.isNotEmpty,
+      ),
+      CollectionFacetIds.meter: (
+        select: (f) => f.meters.add('6/8'),
+        held: (f) => f.meters.isNotEmpty,
+      ),
+      CollectionFacetIds.musicalKey: (
+        select: (f) => f.musicalKeys.add('D minor'),
+        held: (f) => f.musicalKeys.isNotEmpty,
       ),
       CollectionFacetIds.tags: (
         select: (f) => f.tagIds.add('t1'),

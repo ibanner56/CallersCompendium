@@ -2147,6 +2147,87 @@ class AppLocalizationsDa extends AppLocalizations {
   String get appThemeGroupDark => 'Mørk';
 
   @override
+  String get themeScreenSearchHint => 'Søg temaer…';
+
+  @override
+  String get themeScreenClearSearchTooltip => 'Ryd søgning';
+
+  @override
+  String get themeScreenNoMatches => 'Ingen temaer matcher din søgning.';
+
+  @override
+  String themeScreenResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count temaer',
+      one: '1 tema',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get themeScreenNewCustomTheme => 'Brugerdefineret tema';
+
+  @override
+  String get themeScreenNewCustomThemeSemantic => 'Nyt brugerdefineret tema';
+
+  @override
+  String get appThemeKeywordRed => 'rød, karminrød, skarlagen, koral';
+
+  @override
+  String get appThemeKeywordOrange => 'orange, rav, kobber';
+
+  @override
+  String get appThemeKeywordYellow => 'gul, guld, sennep';
+
+  @override
+  String get appThemeKeywordGreen => 'grøn, salvie, oliven, skov';
+
+  @override
+  String get appThemeKeywordTeal => 'blågrøn, cyan, turkis, aqua, mint';
+
+  @override
+  String get appThemeKeywordBlue => 'blå, marineblå, azur, himmelblå';
+
+  @override
+  String get appThemeKeywordPurple => 'lilla, violet, syren, lavendel';
+
+  @override
+  String get appThemeKeywordPink => 'lyserød, pink, magenta, rosa, fuchsia';
+
+  @override
+  String get appThemeKeywordBrown => 'brun, beige, sand, creme, sepia';
+
+  @override
+  String get appThemeKeywordGrey => 'grå, koksgrå, skifer, sølv';
+
+  @override
+  String get appThemeKeywordWarm => 'varm, hyggelig, jordfarvet';
+
+  @override
+  String get appThemeKeywordCool => 'kølig, kold, iskold, arktisk, frostklar';
+
+  @override
+  String get appThemeKeywordPastel => 'pastel, blød, sart';
+
+  @override
+  String get appThemeKeywordVivid => 'levende, mættet, neon, kraftig';
+
+  @override
+  String get appThemeKeywordMuted => 'dæmpet, afdæmpet, rolig, mild';
+
+  @override
+  String get appThemeKeywordRetro => 'retro, vintage, klassisk';
+
+  @override
+  String get appThemeKeywordAccessible =>
+      'tilgængelig, læselig, letlæselig, kontrast';
+
+  @override
+  String get appThemeKeywordAutomatic => 'automatisk, auto, enhed, følg';
+
+  @override
   String get appThemeLabelSystem => 'System';
 
   @override
@@ -2485,14 +2566,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsAppearancePreviewBody => 'Eksempel på brødtekst';
 
   @override
-  String get settingsAppearanceNewThemeButton => 'Nyt brugerdefineret tema';
-
-  @override
   String get settingsAppearanceNewThemeDefaultName => 'Mit tema';
-
-  @override
-  String get settingsAppearanceCustomThemesEmpty =>
-      'Kopier det aktuelle tema og juster en vilkårlig farve. Brugerdefinerede temaer synkroniseres til dine andre enheder, når synkronisering er slået til.';
 
   @override
   String settingsAppearanceCustomThemeSemantic(String name) {
@@ -4139,6 +4213,41 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorMusicalKeyHint => 'f.eks. g-mol';
 
   @override
+  String danceAuthorsWithYear(String names, String year) {
+    return '$names ($year)';
+  }
+
+  @override
+  String danceComposedYear(String year) {
+    return 'Komponeret i $year';
+  }
+
+  @override
+  String danceInterpretedBy(String names) {
+    return 'Fortolket af $names';
+  }
+
+  @override
+  String danceInterpretedByWithYear(String names, String year) {
+    return 'Fortolket af $names ($year)';
+  }
+
+  @override
+  String danceInterpretedYear(String year) {
+    return 'Fortolket i $year';
+  }
+
+  @override
+  String danceMeterValue(String meter) {
+    return 'Taktart: $meter';
+  }
+
+  @override
+  String danceMusicalKeyValue(String key) {
+    return 'Toneart: $key';
+  }
+
+  @override
   String get commonMixedLevel => 'Blandet niveau';
 
   @override
@@ -4701,6 +4810,12 @@ class AppLocalizationsDa extends AppLocalizations {
       'Vis danse, der har mindst ét af de valgte tags';
 
   @override
+  String get collectionFacetMeter => 'Taktart';
+
+  @override
+  String get collectionFacetMusicalKey => 'Toneart';
+
+  @override
   String get collectionFacetSource => 'Kilde';
 
   @override
@@ -5030,6 +5145,17 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String exportNamedPhrases(String order, String bars) {
+    return '$order ($bars)';
+  }
+
+  @override
+  String get exportNamedPhraseSeparator => ', ';
+
+  @override
+  String get exportLabelSeparator => ': ';
+
+  @override
   String danceFigureBars(String bars, int halfBars) {
     String _temp0 = intl.Intl.pluralLogic(
       halfBars,
@@ -5115,6 +5241,23 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsMoreActions => 'Flere handlinger';
+
+  @override
+  String get programsFormMatchLabel => 'Krav til typer';
+
+  @override
+  String get programsFormMatchOnly => 'Kun';
+
+  @override
+  String get programsFormMatchOnlyTooltip =>
+      'Programmer med kun de valgte typer';
+
+  @override
+  String get programsFormMatchIncludes => 'Indeholder';
+
+  @override
+  String get programsFormMatchIncludesTooltip =>
+      'Programmer, der har den valgte type';
 
   @override
   String get danceSectionFigures => 'Figurer';
@@ -11607,6 +11750,27 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get compoundEditorInvalidFigures =>
       'En af figurerne er endnu ikke fuldstændig eller gyldig.';
+
+  @override
+  String compoundEditorOtherFormFigures(
+    int count,
+    String figureForm,
+    String entryForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figurer er',
+      one: '1 figur er',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'dem',
+      one: 'den',
+    );
+    return '$_temp0 fra $figureForm, ikke $entryForm. Skift dansetypen tilbage, eller fjern $_temp1.';
+  }
 
   @override
   String get compoundEditorTooLong => 'Et af felterne er for langt.';

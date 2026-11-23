@@ -49,6 +49,38 @@ void main() {
       ]);
     });
 
+    test('named phrases print in playing order with their bars', () {
+      String phrase(String stored) => danceCardMetaLines(
+        dance(phraseStructure: stored),
+        formationLabel: '',
+        statusLabel: '',
+        labels: const DanceExportLabels(),
+        fields: {DanceShareField.phraseStructure},
+      ).single;
+      expect(phrase('A:2*4*2 + B:1*8*2'), 'Phrase: AAB (A 4 bars, B 8 bars)');
+      expect(phrase('A:2*8*3 + B:2*8*3'), 'Phrase: AABB (A 8 bars, B 8 bars)');
+      expect(
+        phrase('A:1*4*2 + B:1*4*2 + C:1*8*2'),
+        'Phrase: ABC (A 4 bars, B 4 bars, C 8 bars)',
+      );
+      expect(phrase('A:1*1*4'), 'Phrase: A (A 1 bar)');
+      // Not named: printed as stored (issue #2304 tracks contra's).
+      expect(phrase(' 2*8*2 + 2*10*2 '), 'Phrase: 2*8*2 + 2*10*2');
+    });
+
+    test('named phrases use the injected bars label', () {
+      final line = danceCardMetaLines(
+        dance(phraseStructure: 'A:2*4*2 + B:1*8*2'),
+        formationLabel: '',
+        statusLabel: '',
+        labels: DanceExportLabels(
+          bars: (bars, halfBars) => '$bars T($halfBars)',
+        ),
+        fields: {DanceShareField.phraseStructure},
+      ).single;
+      expect(line, 'Phrase: AAB (A 4 T(8), B 8 T(16))');
+    });
+
     test('omits each line individually when its field is deselected', () {
       for (final field in const [
         DanceShareField.formation,

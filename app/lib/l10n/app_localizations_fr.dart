@@ -2174,6 +2174,87 @@ class AppLocalizationsFr extends AppLocalizations {
   String get appThemeGroupDark => 'Sombre';
 
   @override
+  String get themeScreenSearchHint => 'Rechercher des thèmes…';
+
+  @override
+  String get themeScreenClearSearchTooltip => 'Effacer la recherche';
+
+  @override
+  String get themeScreenNoMatches =>
+      'Aucun thème ne correspond à votre recherche.';
+
+  @override
+  String themeScreenResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count thèmes',
+      one: '1 thème',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get themeScreenNewCustomTheme => 'Thème personnalisé';
+
+  @override
+  String get themeScreenNewCustomThemeSemantic => 'Nouveau thème personnalisé';
+
+  @override
+  String get appThemeKeywordRed => 'rouge, cramoisi, écarlate, corail';
+
+  @override
+  String get appThemeKeywordOrange => 'orange, ambre, cuivre';
+
+  @override
+  String get appThemeKeywordYellow => 'jaune, or, doré, moutarde';
+
+  @override
+  String get appThemeKeywordGreen => 'vert, sauge, olive, forêt';
+
+  @override
+  String get appThemeKeywordTeal => 'sarcelle, cyan, turquoise, aqua, menthe';
+
+  @override
+  String get appThemeKeywordBlue => 'bleu, marine, azur, ciel';
+
+  @override
+  String get appThemeKeywordPurple => 'violet, pourpre, lilas, lavande, mauve';
+
+  @override
+  String get appThemeKeywordPink => 'rose, magenta, fuchsia';
+
+  @override
+  String get appThemeKeywordBrown => 'marron, brun, beige, crème, sépia';
+
+  @override
+  String get appThemeKeywordGrey => 'gris, anthracite, ardoise, argent';
+
+  @override
+  String get appThemeKeywordWarm => 'chaud, chaleureux, terreux';
+
+  @override
+  String get appThemeKeywordCool => 'froid, frais, glacé, arctique, givré';
+
+  @override
+  String get appThemeKeywordPastel => 'pastel, doux, bonbon';
+
+  @override
+  String get appThemeKeywordVivid => 'vif, éclatant, saturé, néon, intense';
+
+  @override
+  String get appThemeKeywordMuted => 'sourd, atténué, calme, discret';
+
+  @override
+  String get appThemeKeywordRetro => 'rétro, vintage, classique';
+
+  @override
+  String get appThemeKeywordAccessible => 'accessible, lisible, contraste';
+
+  @override
+  String get appThemeKeywordAutomatic => 'automatique, auto, appareil, suivre';
+
+  @override
   String get appThemeLabelSystem => 'Système';
 
   @override
@@ -2524,14 +2605,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsAppearancePreviewBody => 'Exemple de texte courant';
 
   @override
-  String get settingsAppearanceNewThemeButton => 'Nouveau thème personnalisé';
-
-  @override
   String get settingsAppearanceNewThemeDefaultName => 'Mon thème';
-
-  @override
-  String get settingsAppearanceCustomThemesEmpty =>
-      'Copiez le thème actuel et ajustez n’importe quelle couleur. Les thèmes personnalisés se synchronisent avec vos autres appareils lorsque la synchronisation est activée.';
 
   @override
   String settingsAppearanceCustomThemeSemantic(String name) {
@@ -4198,6 +4272,41 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceEditorMusicalKeyHint => 'ex. sol mineur';
 
   @override
+  String danceAuthorsWithYear(String names, String year) {
+    return '$names ($year)';
+  }
+
+  @override
+  String danceComposedYear(String year) {
+    return 'Composée en $year';
+  }
+
+  @override
+  String danceInterpretedBy(String names) {
+    return 'Interprétée par $names';
+  }
+
+  @override
+  String danceInterpretedByWithYear(String names, String year) {
+    return 'Interprétée par $names ($year)';
+  }
+
+  @override
+  String danceInterpretedYear(String year) {
+    return 'Interprétée en $year';
+  }
+
+  @override
+  String danceMeterValue(String meter) {
+    return 'Mesure : $meter';
+  }
+
+  @override
+  String danceMusicalKeyValue(String key) {
+    return 'Tonalité : $key';
+  }
+
+  @override
   String get commonMixedLevel => 'Niveau mixte';
 
   @override
@@ -4765,6 +4874,12 @@ class AppLocalizationsFr extends AppLocalizations {
       'Afficher les danses qui ont au moins un des tags choisis';
 
   @override
+  String get collectionFacetMeter => 'Mesure';
+
+  @override
+  String get collectionFacetMusicalKey => 'Tonalité';
+
+  @override
   String get collectionFacetSource => 'Source';
 
   @override
@@ -5095,6 +5210,17 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String exportNamedPhrases(String order, String bars) {
+    return '$order ($bars)';
+  }
+
+  @override
+  String get exportNamedPhraseSeparator => ', ';
+
+  @override
+  String get exportLabelSeparator => ' : ';
+
+  @override
   String danceFigureBars(String bars, int halfBars) {
     String _temp0 = intl.Intl.pluralLogic(
       halfBars,
@@ -5180,6 +5306,23 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programsMoreActions => 'Plus d’actions';
+
+  @override
+  String get programsFormMatchLabel => 'Correspondance des types';
+
+  @override
+  String get programsFormMatchOnly => 'Uniquement';
+
+  @override
+  String get programsFormMatchOnlyTooltip =>
+      'Programmes composés uniquement des types choisis';
+
+  @override
+  String get programsFormMatchIncludes => 'Contient';
+
+  @override
+  String get programsFormMatchIncludesTooltip =>
+      'Programmes qui contiennent le type choisi';
 
   @override
   String get danceSectionFigures => 'Figures';
@@ -11743,6 +11886,27 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get compoundEditorInvalidFigures =>
       'L’une des figures n’est pas encore complète ou valide.';
+
+  @override
+  String compoundEditorOtherFormFigures(
+    int count,
+    String figureForm,
+    String entryForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figures viennent',
+      one: '1 figure vient',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'retirez-les',
+      one: 'retirez-la',
+    );
+    return '$_temp0 de $figureForm, pas de $entryForm. Rétablissez le type de danse, ou $_temp1.';
+  }
 
   @override
   String get compoundEditorTooLong => 'L’un des champs est trop long.';

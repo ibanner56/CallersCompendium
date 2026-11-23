@@ -14,6 +14,7 @@ import 'package:compendium_app/src/widgets/figure_diff_view.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -2392,10 +2393,10 @@ void main() {
     ];
 
     ImportSource selectedSource(WidgetTester tester) => tester
-        .widget<DropdownButton<ImportSource>>(
+        .widget<AppDropdownField<ImportSource>>(
           find.byKey(const ValueKey('import-source-select')),
         )
-        .value!;
+        .initialValue!;
 
     Future<void> typeUrl(WidgetTester tester, String url) async {
       await tester.enterText(

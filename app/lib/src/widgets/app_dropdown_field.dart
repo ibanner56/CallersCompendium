@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -59,6 +61,18 @@ class AppDropdownEntry<T> {
 /// Esc closes an open menu; with the menu closed, the go-back keys (Esc,
 /// Ctrl/Cmd-W) reach whatever is around the field, as from any other control:
 /// an inline editor that closes on Esc, or the app's go-back.
+///
+/// Set [compact] for a list row's own control (a Settings row's trailing
+/// control, a match picker inside a sentence): no filled box, only the value,
+/// an arrow and a thin underline, 48 dp tall as a row's control is, while the
+/// open menu is the same outlined menu as every other field's.
+///
+/// With [fillWidth] off the field is as wide as its widest entry (or hint, or
+/// label) needs at the current text size, measured with the text style the
+/// closed field draws with, so the value is never cut off. Where its parent
+/// bounds the width (a Wrap or a Column) and that is narrower, it takes the
+/// whole width; a parent that does not bound it (a Row's fixed child) gets
+/// the measured width.
 class AppDropdownField<T> extends FormField<T> {
   AppDropdownField({
     super.key,
@@ -68,6 +82,9 @@ class AppDropdownField<T> extends FormField<T> {
     this.decoration = const InputDecoration(),
     this.filterable = false,
     this.fillWidth = true,
+    this.compact = false,
+    this.clearsAfterPick = false,
+    this.widthFits = const [],
     super.validator,
     super.onSaved,
     super.autovalidateMode,
@@ -89,14 +106,51 @@ class AppDropdownField<T> extends FormField<T> {
   final bool filterable;
 
   /// Whether the field fills the width it is given, as a text field does.
-  /// When false it is as wide as its longest entry, for a short list beside a
-  /// field that should take the rest of the row: the closed field cannot
+  /// When false it is as wide as its longest entry needs, but no wider than
+  /// its parent allows: for a short list beside a field that should take the
+  /// rest of the row, or a row's trailing control. The closed field cannot
   /// ellipsize, so a fixed narrow width would cut its value off.
   final bool fillWidth;
+
+  /// Whether the field is a list row's own control rather than a form field:
+  /// no fill and no box, the value in the weight a row's control uses, and a
+  /// compact arrow. It is 48 dp tall at every density, and as tall as one
+  /// line of its value once the text is large enough that the line is taller.
+  final bool compact;
+
+  /// Whether a pick is an action, not a choice: [onChanged] runs and the field
+  /// goes back to showing [value] (usually nothing, with a hint such as
+  /// "Add…"), so the next pick starts from the same place.
+  final bool clearsAfterPick;
+
+  /// Further text a field that does not [fillWidth] makes room for, in its
+  /// hint style: a hint shown only at times, so the field keeps one width
+  /// whether it shows a value or the hint.
+  final List<String> widthFits;
 
   @override
   FormFieldState<T> createState() => _AppDropdownFieldState<T>();
 }
+
+/// [DropdownMenu]'s padding on each side of its arrow button.
+const double _arrowPadding = 4;
+
+/// A compact field's arrow, as wide as a plain dropdown's.
+const double _compactArrow = 24;
+
+/// A compact field's room before its value.
+const double _compactStartPadding = 8;
+
+/// The widest horizontal padding Material gives a text field with none set.
+const double _defaultHorizontalPadding = 16;
+
+/// The gap a text field leaves between its text and a suffix icon, in place
+/// of its end padding.
+const double _suffixGap = 4;
+
+/// Room the text field keeps beside its text for the caret (its width and its
+/// gap), plus a pixel against rounding.
+const double _caretRoom = 4;
 
 class _AppDropdownFieldState<T> extends FormFieldState<T> {
   final TextEditingController _text = TextEditingController();
@@ -112,6 +166,7 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
     skipTraversal: true,
   );
   final MenuController _menu = MenuController();
+  late final _tapOutside = _KeepFocusForMenuPress(_pressIsInMenu);
   bool _menuWasOpen = false;
   bool _focused = false;
   ScrollPosition? _scroll;
@@ -119,10 +174,6 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
   // True for the frames just after the field takes focus: the only time a
   // scroll is the field's own, not the user's.
   bool _justFocused = false;
-  // Whether a pick returns the focus to the field (on a desktop), set when the
-  // menu opens; and whether an entry was picked since then.
-  bool _focusBackOnClose = false;
-  bool _pickedSinceOpen = false;
   List<AppDropdownEntry<T>>? _builtFrom;
   List<DropdownMenuEntry<int>> _menuEntries = const [];
 
@@ -212,7 +263,8 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
   }
 
   /// Reopens a menu a scroll shut, once the scroll is over and the menu has
-  /// finished closing (it animates shut, and reads as open until then).
+  /// finished closing (it reads as open for a moment after it is told to
+  /// close).
   void _maybeReopen() {
     if (!_reopenAfterScroll || !mounted) return;
     if (_scroll?.isScrollingNotifier.value ?? false) return;
@@ -242,6 +294,17 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
     if (_menu.isOpen) _menu.close();
     _showCurrent();
   }
+
+  /// Whether [event] presses inside this field's open menu: its entries, its
+  /// padding, its scrollbar.
+  ///
+  /// The menu is a focus scope of its own under this field's node, laid out
+  /// over the panel, so its rect is the panel's. No other scope is under it.
+  bool _pressIsInMenu(PointerDownEvent event) =>
+      _menu.isOpen &&
+      _ownFocus.descendants.any(
+        (node) => node is FocusScopeNode && node.rect.contains(event.position),
+      );
 
   /// A go-back key (Esc, Ctrl/Cmd-W) in the field while its menu is closed.
   ///
@@ -296,31 +359,17 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
   /// menu then leaves it on the page instead of the field. Esc from either
   /// place misses the field and whatever surrounds it, such as an inline
   /// editor that closes on Esc. So when the menu opens on a desktop, move the
-  /// focus to the field, and give it back to the field if the menu closes
-  /// with the focus dropped to the page; and when the menu closes with the
-  /// focus still on that node of the menu's, move it to the field, or on
-  /// touch to the arrow.
+  /// focus to the field; and when the menu closes with the focus still on
+  /// that node of the menu's, move it to the field, or on touch to the arrow.
+  /// A press in the open menu leaves the field its focus
+  /// ([_KeepFocusForMenuPress]), so a mouse pick ends on the field too.
   void _reclaimFocus({required bool opening}) {
     final primary = FocusManager.instance.primaryFocus;
-    if (opening) {
-      _focusBackOnClose = _fieldTakesFocus(context);
-      _pickedSinceOpen = false;
-    }
     if (primary == null || primary == _fieldFocus || primary == _arrowFocus) {
       return;
     }
     final inMenu = primary.ancestors.contains(_ownFocus);
-    // A mouse pick from the menu takes the focus off the field, back to the
-    // page's scope; return it, as a menu returns it to its button.
-    final dropped =
-        primary is FocusScopeNode && _ownFocus.ancestors.contains(primary);
-    // Only after a pick: a click elsewhere that dismissed the menu keeps the
-    // focus where that click left it.
-    final backOnClose = _focusBackOnClose && _pickedSinceOpen;
-    if (!opening) _focusBackOnClose = _pickedSinceOpen = false;
     if (opening && _fieldTakesFocus(context) && _fieldFocus.canRequestFocus) {
-      _fieldFocus.requestFocus();
-    } else if (!opening && dropped && backOnClose) {
       _fieldFocus.requestFocus();
     } else if (inMenu) {
       // On touch, the arrow rather than a filterable field: focusing the
@@ -380,7 +429,6 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
   }
 
   void _onSelected(int? index) {
-    if (index != null) _pickedSinceOpen = true;
     // Null is "nothing matched what was typed", never a choice: entries are
     // addressed by position, so a null value is an index like any other.
     if (index == null) {
@@ -388,6 +436,11 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
       return;
     }
     final picked = widget.entries[index].value;
+    if (widget.clearsAfterPick) {
+      _showCurrent();
+      widget.onChanged?.call(picked);
+      return;
+    }
     if (picked == value) {
       _showCurrent();
       return;
@@ -425,6 +478,117 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
     return decoration;
   }
 
+  /// The closed field's width that shows its widest entry, hint or label in
+  /// full: the text at the current text size, plus the field's padding, the
+  /// arrow, any leading icon and the caret's room.
+  double _contentWidth(
+    TextStyle? style,
+    InputDecorationThemeData decorationTheme, {
+    required double arrowWidth,
+  }) {
+    final scaler = MediaQuery.textScalerOf(context);
+    final direction = Directionality.of(context);
+    var widest = 0.0;
+    void measure(String? text, TextStyle? textStyle, {double factor = 1}) {
+      if (text == null || text.isEmpty) return;
+      final painter = TextPainter(
+        text: TextSpan(text: text, style: textStyle),
+        textDirection: direction,
+        textScaler: scaler,
+        maxLines: 1,
+      )..layout();
+      widest = math.max(widest, painter.width * factor);
+      painter.dispose();
+    }
+
+    for (final entry in widget.entries) {
+      measure(entry.label, style);
+    }
+    final decoration = widget.decoration;
+    measure(decoration.hintText, style?.merge(decoration.hintStyle));
+    for (final text in widget.widthFits) {
+      measure(text, style?.merge(decoration.hintStyle));
+    }
+    // A floating label is drawn at three quarters of the field's text size.
+    measure(decoration.labelText, style, factor: 0.75);
+    final padding =
+        (decoration.contentPadding ?? decorationTheme.contentPadding)?.resolve(
+          Directionality.of(context),
+        ) ??
+        const EdgeInsets.symmetric(horizontal: _defaultHorizontalPadding);
+    final leading = widget.entries.any((e) => e.leadingIcon != null)
+        ? kMinInteractiveDimension
+        : 0.0;
+    // A suffix replaces the end padding with a fixed gap; count whichever is
+    // wider.
+    final ltr = Directionality.of(context) == TextDirection.ltr;
+    final (start, end) = ltr
+        ? (padding.left, padding.right)
+        : (padding.right, padding.left);
+    final horizontal = start + math.max(end, _suffixGap);
+    return (widest + horizontal + arrowWidth + leading + _caretRoom)
+        .ceilToDouble();
+  }
+
+  /// The closed field of a [AppDropdownField.compact] field: no fill or box,
+  /// only an underline in the theme's divider (heavier in High contrast), and
+  /// the theme's focus ring colour under a focused field.
+  static InputDecorationThemeData _compactDecorationTheme(
+    ThemeData theme,
+    TextStyle? style,
+    TextScaler scaler,
+  ) {
+    final line = BorderSide(
+      color: theme.dividerTheme.color ?? theme.colorScheme.outlineVariant,
+      width: theme.dividerTheme.thickness ?? 1,
+    );
+    final focus =
+        theme.inputDecorationTheme.focusedBorder?.borderSide ??
+        BorderSide(color: theme.colorScheme.primary, width: 2);
+    final error = BorderSide(color: theme.colorScheme.error, width: line.width);
+    final fontSize = style?.fontSize ?? 16;
+    final lineHeight = scaler.scale(fontSize) * (style?.height ?? 1.5);
+    // The decorator adds the density's height adjustment (8 dp less at a
+    // desktop's compact density) to whatever the padding gives.
+    final density = theme.visualDensity.baseSizeAdjustment.dy;
+    final vertical = math.max(
+      0.0,
+      (kMinInteractiveDimension - lineHeight - density) / 2,
+    );
+    return InputDecorationThemeData(
+      filled: false,
+      isDense: true,
+      // Padding that makes the field 48 dp tall, a row control's height, at
+      // any density; once a line of large text is taller than that, the
+      // field is one line tall and no more (a list tile's trailing slot is at
+      // most 56 dp tall, 48 dp at a desktop's compact density).
+      contentPadding: EdgeInsetsDirectional.fromSTEB(
+        _compactStartPadding,
+        vertical,
+        0,
+        vertical,
+      ),
+      // [DropdownMenu] hands these to its arrow button as well as to the
+      // decorator, so they are the arrow's own size, not its slot's.
+      suffixIconConstraints: const BoxConstraints(
+        minWidth: _compactArrow,
+        minHeight: _compactArrow,
+      ),
+      border: UnderlineInputBorder(borderSide: line),
+      enabledBorder: UnderlineInputBorder(borderSide: line),
+      focusedBorder: UnderlineInputBorder(borderSide: focus),
+      errorBorder: UnderlineInputBorder(borderSide: error),
+      focusedErrorBorder: UnderlineInputBorder(
+        borderSide: focus.copyWith(color: theme.colorScheme.error),
+      ),
+      disabledBorder: UnderlineInputBorder(
+        borderSide: line.copyWith(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.12),
+        ),
+      ),
+    );
+  }
+
   static bool _fieldTakesFocus(BuildContext context) =>
       switch (Theme.of(context).platform) {
         TargetPlatform.android ||
@@ -445,20 +609,31 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
     // With a node of its own, [DropdownMenu] asks the node, not
     // `requestFocusOnTap`, whether a tap focuses the field.
     _fieldFocus.canRequestFocus = filterable || _fieldTakesFocus(context);
+    final theme = Theme.of(context);
+    final compact = widget.compact;
+    final textStyle = compact
+        ? theme.textTheme.titleMedium
+        : theme.dropdownMenuTheme.textStyle ?? theme.textTheme.bodyLarge;
+    final decorationTheme = compact
+        ? _compactDecorationTheme(
+            theme,
+            textStyle,
+            MediaQuery.textScalerOf(context),
+          )
+        : null;
+    final denseArrow =
+        (widget.decoration.isDense ?? false) &&
+        theme.visualDensity.vertical < 0;
     Widget field = DropdownMenu<int>(
-      // A field sized to its widest entry measures the entries once; measure
-      // again when their labels change (another language, say).
-      key: widget.fillWidth
-          ? null
-          : ValueKey(Object.hashAll(widget.entries.map((e) => e.label))),
       controller: _text,
       menuController: _menu,
       focusNode: _fieldFocus,
       enabled: widget.enabled,
       initialSelection: selected < 0 ? null : selected,
-      // Fill the slot, as the text fields beside it do, unless asked to size
-      // to the widest entry.
-      expandedInsets: widget.fillWidth ? EdgeInsets.zero : null,
+      // Fill the slot: the text fields' slot, or the width set below.
+      expandedInsets: EdgeInsets.zero,
+      textStyle: compact ? textStyle : null,
+      inputDecorationTheme: decorationTheme,
       decorationBuilder: _decorate,
       trailingIconFocusNode: _arrowFocus,
       onSelected: _onSelected,
@@ -474,8 +649,38 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
       requestFocusOnTap: filterable || _fieldTakesFocus(context),
       dropdownMenuEntries: _entriesForMenu(),
     );
-    if ((widget.decoration.isDense ?? false) &&
-        Theme.of(context).visualDensity.vertical < 0) {
+    if (!widget.fillWidth) {
+      // As wide as the widest entry needs, but no wider than the slot (a box
+      // wider than its constraints is clamped to them). Measured here rather
+      // than left to [DropdownMenu]: its own measure reads the entries in the
+      // menu's smaller label style, so a long value would not fit the field
+      // it measured.
+      field = SizedBox(
+        width: _contentWidth(
+          textStyle,
+          decorationTheme ?? theme.inputDecorationTheme,
+          arrowWidth: compact
+              ? _compactArrow + 2 * _arrowPadding
+              : (denseArrow ? 32 : kMinInteractiveDimension) +
+                    2 * _arrowPadding,
+        ),
+        child: field,
+      );
+    }
+    if (compact) {
+      // The arrow is a row control's arrow, not a full-size button: the whole
+      // field is the tap target, 48 dp tall as a row's control is.
+      field = IconButtonTheme(
+        data: IconButtonThemeData(
+          style: IconButton.styleFrom(
+            padding: EdgeInsets.zero,
+            minimumSize: const Size.square(_compactArrow),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+        child: field,
+      );
+    } else if (denseArrow) {
       // A dense field stays dense at a compact (pointer) density: the menu's
       // arrow button would otherwise hold it at a full-size button's height.
       // At a touch density the arrow keeps its full-size target.
@@ -496,9 +701,38 @@ class _AppDropdownFieldState<T> extends FormFieldState<T> {
       child: Actions(
         actions: {
           GoBackIntent: CallbackAction<GoBackIntent>(onInvoke: _goBack),
+          EditableTextTapOutsideIntent: _tapOutside,
         },
         child: field,
       ),
     );
+  }
+}
+
+/// Keeps the text field's focus for a press inside its own open menu.
+///
+/// A text field drops its focus on a press outside itself: any press on a
+/// desktop, a mouse or stylus press on a phone or tablet. [DropdownMenu]'s
+/// menu is outside its text field, so a mouse click on an entry would take
+/// the field's focus, the field would close its menu on that blur
+/// ([_AppDropdownFieldState._onFocusChange]), and the release would find
+/// nothing to pick (#2292). A press in the menu that picks nothing (its
+/// padding, a right-click) must not strand the focus on the page either,
+/// out of reach of Esc and Tab while the menu is still open. So a press in
+/// the menu leaves the focus where it is; any other press is the text
+/// field's own, as before.
+class _KeepFocusForMenuPress
+    extends ContextAction<EditableTextTapOutsideIntent> {
+  _KeepFocusForMenuPress(this.inMenu);
+
+  final bool Function(PointerDownEvent event) inMenu;
+
+  @override
+  Object? invoke(EditableTextTapOutsideIntent intent, [BuildContext? context]) {
+    if (inMenu(intent.pointerDownEvent)) return null;
+    final standard = callingAction;
+    return standard is ContextAction<EditableTextTapOutsideIntent>
+        ? standard.invoke(intent, context)
+        : standard?.invoke(intent);
   }
 }

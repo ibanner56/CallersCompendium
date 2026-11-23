@@ -2646,47 +2646,149 @@
   },
   "settingsAppearanceThemeHeader": "Theme",
   "@settingsAppearanceThemeHeader": {
-    "description": "Section header above the built-in theme gallery in Appearance settings."
+    "description": "Section header above the theme row in Appearance settings, the title of that row (the theme in use is shown under it), and the title of the Theme screen it opens."
   },
   "settingsAppearanceCustomThemesHeader": "Custom themes",
   "@settingsAppearanceCustomThemesHeader": {
-    "description": "Section header above the user's saved custom themes in Appearance settings."
+    "description": "Heading above the user's saved custom themes on the Theme screen. Also names the custom-themes setting in sync conflict lists."
   },
   "appThemeGroupSystem": "System",
   "@appThemeGroupSystem": {
-    "description": "Section heading above the \"System\" themes in the Appearance theme gallery."
+    "description": "Section heading above the \"System\" themes on the Theme screen (Settings > Appearance > Theme)."
   },
   "appThemeGroupDefault": "Default",
   "@appThemeGroupDefault": {
-    "description": "Section heading above the \"Default\" themes in the Appearance theme gallery."
+    "description": "Section heading above the \"Default\" themes on the Theme screen (Settings > Appearance > Theme)."
   },
   "appThemeGroupLight": "Light",
   "@appThemeGroupLight": {
-    "description": "Section heading above the \"Light\" themes in the Appearance theme gallery."
+    "description": "Section heading above the \"Light\" themes on the Theme screen (Settings > Appearance > Theme)."
   },
   "appThemeGroupDark": "Dark",
   "@appThemeGroupDark": {
-    "description": "Section heading above the \"Dark\" themes in the Appearance theme gallery."
+    "description": "Section heading above the \"Dark\" themes on the Theme screen (Settings > Appearance > Theme)."
+  },
+  "themeScreenSearchHint": "Search themes…",
+  "@themeScreenSearchHint": {
+    "description": "Hint in the search box at the top of the Theme screen. Themes can be found by name or by color and character words."
+  },
+  "themeScreenClearSearchTooltip": "Clear search",
+  "@themeScreenClearSearchTooltip": {
+    "description": "Tooltip for the button that clears the Theme screen search box."
+  },
+  "themeScreenNoMatches": "No themes match your search.",
+  "@themeScreenNoMatches": {
+    "description": "Shown on the Theme screen when no theme matches the search."
+  },
+  "themeScreenResultCount": "{count, plural, =1{1 theme} other{{count} themes}}",
+  "@themeScreenResultCount": {
+    "description": "How many themes match the Theme screen search, shown above the results and read out by screen readers as the search changes.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "themeScreenNewCustomTheme": "Custom theme",
+  "@themeScreenNewCustomTheme": {
+    "description": "Label of the floating button on the Theme screen (shown with a + icon) that starts a new custom theme from the theme in use."
+  },
+  "themeScreenNewCustomThemeSemantic": "New custom theme",
+  "@themeScreenNewCustomThemeSemantic": {
+    "description": "What a screen reader says for the floating \"Custom theme\" button on the Theme screen. Keep the visible button text (themeScreenNewCustomTheme) inside it, so voice control can still find the button by what it shows."
+  },
+  "appThemeKeywordRed": "red, crimson, scarlet, coral",
+  "@appThemeKeywordRed": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as red. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordOrange": "orange, amber, copper",
+  "@appThemeKeywordOrange": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as orange. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordYellow": "yellow, gold, mustard",
+  "@appThemeKeywordYellow": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as yellow. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordGreen": "green, sage, olive, forest",
+  "@appThemeKeywordGreen": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as green. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordTeal": "teal, cyan, turquoise, aqua, mint",
+  "@appThemeKeywordTeal": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as teal or cyan. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordBlue": "blue, navy, azure, sky",
+  "@appThemeKeywordBlue": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as blue. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordPurple": "purple, violet, lilac, lavender, mauve",
+  "@appThemeKeywordPurple": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as purple. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordPink": "pink, magenta, rose, fuchsia",
+  "@appThemeKeywordPink": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as pink. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordBrown": "brown, beige, tan, cream, sepia",
+  "@appThemeKeywordBrown": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as brown or cream. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordGrey": "grey, gray, charcoal, slate, silver",
+  "@appThemeKeywordGrey": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as grey. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordWarm": "warm, cozy, earthy",
+  "@appThemeKeywordWarm": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as warm. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordCool": "cool, cold, icy, arctic, frosty",
+  "@appThemeKeywordCool": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as cool. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordPastel": "pastel, soft, candy",
+  "@appThemeKeywordPastel": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as pastel. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordVivid": "vivid, saturated, neon, bold",
+  "@appThemeKeywordVivid": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as vivid. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordMuted": "muted, subdued, calm, gentle",
+  "@appThemeKeywordMuted": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as muted. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordRetro": "retro, vintage, classic",
+  "@appThemeKeywordRetro": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as retro. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordAccessible": "accessible, legible, readable, contrast",
+  "@appThemeKeywordAccessible": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as accessible (high-contrast). Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
+  },
+  "appThemeKeywordAutomatic": "automatic, auto, device, follow",
+  "@appThemeKeywordAutomatic": {
+    "description": "Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as automatic (following the device setting). Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs."
   },
   "appThemeLabelSystem": "System",
   "@appThemeLabelSystem": {
-    "description": "Name of the built-in \"System\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+    "description": "Name of the built-in \"System\" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
   },
   "appThemeLabelLight": "Light",
   "@appThemeLabelLight": {
-    "description": "Name of the built-in \"Light\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+    "description": "Name of the built-in \"Light\" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
   },
   "appThemeLabelDark": "Dark",
   "@appThemeLabelDark": {
-    "description": "Name of the built-in \"Dark\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+    "description": "Name of the built-in \"Dark\" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
   },
   "appThemeLabelSoftDark": "Soft dark",
   "@appThemeLabelSoftDark": {
-    "description": "Name of the built-in \"Soft dark\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+    "description": "Name of the built-in \"Soft dark\" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
   },
   "appThemeLabelHighContrast": "High contrast",
   "@appThemeLabelHighContrast": {
-    "description": "Name of the built-in \"High contrast\" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
+    "description": "Name of the built-in \"High contrast\" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated."
   },
   "appThemeDescriptionSystem": "Match the device light/dark setting",
   "@appThemeDescriptionSystem": {
@@ -3080,17 +3182,9 @@
   "@settingsAppearancePreviewBody": {
     "description": "Sample body text shown in a theme preview swatch."
   },
-  "settingsAppearanceNewThemeButton": "New custom theme",
-  "@settingsAppearanceNewThemeButton": {
-    "description": "Button that starts creating a new custom theme from the active theme."
-  },
   "settingsAppearanceNewThemeDefaultName": "My theme",
   "@settingsAppearanceNewThemeDefaultName": {
     "description": "Default name a brand-new custom theme is seeded with before the user renames it."
-  },
-  "settingsAppearanceCustomThemesEmpty": "Copy the current theme and tune any color. Custom themes sync to your other devices when sync is on.",
-  "@settingsAppearanceCustomThemesEmpty": {
-    "description": "Helper text shown when the user has no saved custom themes yet."
   },
   "settingsAppearanceCustomThemeSemantic": "Custom theme {name}",
   "@settingsAppearanceCustomThemeSemantic": {
@@ -5219,6 +5313,84 @@
   "@danceEditorMusicalKeyHint": {
     "description": "Hint in the dance editor's key field: an example of a musical key."
   },
+  "danceAuthorsWithYear": "{names} ({year})",
+  "@danceAuthorsWithYear": {
+    "description": "On the dance detail screen and the Perform card: the dance's authors followed by the year it was composed. {names} is the authors' names joined with commas; {year} is a four-digit year such as 1951, shown as written (not a formatted number).",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "Pat Shaw"
+      },
+      "year": {
+        "type": "String",
+        "example": "1951"
+      }
+    }
+  },
+  "danceComposedYear": "Composed {year}",
+  "@danceComposedYear": {
+    "description": "On the dance detail screen and the Perform card, when the dance has a composed year but no authors: the year it was composed. {year} is a four-digit year such as 1651.",
+    "placeholders": {
+      "year": {
+        "type": "String",
+        "example": "1651"
+      }
+    }
+  },
+  "danceInterpretedBy": "Interpreted by {names}",
+  "@danceInterpretedBy": {
+    "description": "On the dance detail screen and the Perform card: who reconstructed (interpreted) the dance from its original source. {names} is the interpreters' names joined with commas.",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "Cecil Sharp"
+      }
+    }
+  },
+  "danceInterpretedByWithYear": "Interpreted by {names} ({year})",
+  "@danceInterpretedByWithYear": {
+    "description": "On the dance detail screen and the Perform card: who reconstructed (interpreted) the dance from its original source, and the year they did. {names} is the interpreters' names joined with commas; {year} is a four-digit year such as 1916.",
+    "placeholders": {
+      "names": {
+        "type": "String",
+        "example": "Cecil Sharp"
+      },
+      "year": {
+        "type": "String",
+        "example": "1916"
+      }
+    }
+  },
+  "danceInterpretedYear": "Interpreted {year}",
+  "@danceInterpretedYear": {
+    "description": "On the dance detail screen and the Perform card, when the dance has an interpretation year but no interpreters: the year it was reconstructed from its original source. {year} is a four-digit year such as 1916.",
+    "placeholders": {
+      "year": {
+        "type": "String",
+        "example": "1916"
+      }
+    }
+  },
+  "danceMeterValue": "Meter: {meter}",
+  "@danceMeterValue": {
+    "description": "On the dance detail screen and the Perform card: the dance's written meter (time signature), labelled. {meter} is free text the caller typed, such as 3/2 or 6/8. Shown beside the key, separated by a middle dot.",
+    "placeholders": {
+      "meter": {
+        "type": "String",
+        "example": "6/8"
+      }
+    }
+  },
+  "danceMusicalKeyValue": "Key: {key}",
+  "@danceMusicalKeyValue": {
+    "description": "On the dance detail screen and the Perform card: the musical key of the dance's tune, labelled. {key} is free text the caller typed, such as G minor. Shown beside the meter, separated by a middle dot.",
+    "placeholders": {
+      "key": {
+        "type": "String",
+        "example": "G minor"
+      }
+    }
+  },
   "commonMixedLevel": "Mixed level",
   "@commonMixedLevel": {
     "description": "Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip."
@@ -5937,6 +6109,14 @@
   "@collectionFacetTagsMatchAnyTooltip": {
     "description": "Tooltip for the 'Any tag' segment of the Tags filter's match choice."
   },
+  "collectionFacetMeter": "Meter",
+  "@collectionFacetMeter": {
+    "description": "Filter section heading for the meter facet: the time signature a dance's tune is in, such as 6/8 or 3/2."
+  },
+  "collectionFacetMusicalKey": "Key",
+  "@collectionFacetMusicalKey": {
+    "description": "Filter section heading for the musical key facet: the key a dance's tune is in, such as D minor."
+  },
   "collectionFacetSource": "Source",
   "@collectionFacetSource": {
     "description": "Filter section heading for the cited-source facet."
@@ -6400,6 +6580,28 @@
       }
     }
   },
+  "exportNamedPhrases": "{order} ({bars})",
+  "@exportNamedPhrases": {
+    "description": "An English country dance's named phrases on a printed or shared dance card, after the Phrase label: {order} is the phrases in playing order, such as AAB (letters, not translated); {bars} is each phrase's length, such as \"A 4 bars, B 8 bars\", joined by exportNamedPhraseSeparator. Use the locale's parentheses.",
+    "placeholders": {
+      "order": {
+        "type": "String",
+        "example": "AAB"
+      },
+      "bars": {
+        "type": "String",
+        "example": "A 4 bars, B 8 bars"
+      }
+    }
+  },
+  "exportNamedPhraseSeparator": ", ",
+  "@exportNamedPhraseSeparator": {
+    "description": "Between two phrases' lengths inside exportNamedPhrases, such as the comma and space in \"A 4 bars, B 8 bars\". Use the locale's list separator; keep any trailing space it needs."
+  },
+  "exportLabelSeparator": ": ",
+  "@exportLabelSeparator": {
+    "description": "Between a field's label and its value on a printed or shared dance card or set list, such as the colon and space in \"Phrase: AAB\" or \"Band: The Moving Violations\". A section heading uses it without the trailing space, such as \"Figures:\". Use the locale's punctuation; keep any space it needs."
+  },
   "danceFigureBars": "{halfBars, plural, =1{{bars} bar} =2{{bars} bar} other{{bars} bars}}",
   "@danceFigureBars": {
     "description": "A figure's length in bars, for an English country dance: {bars} is the count as written, such as 4 or 1½; {halfBars} is the same count in half bars, which picks the plural (1 is half a bar, 2 is one bar).",
@@ -6531,6 +6733,26 @@
   "programsMoreActions": "More actions",
   "@programsMoreActions": {
     "description": "Tooltip for the overflow (⋮) menu holding Mark all performed, Duplicate, Archive and Delete on the program builder's and summary's narrow toolbars."
+  },
+  "programsFormMatchLabel": "Match types",
+  "@programsFormMatchLabel": {
+    "description": "Screen-reader label for the Only / Includes choice beside the programs list's type chips: whether a chip keeps programs of only that type mix, or every program that includes that type."
+  },
+  "programsFormMatchOnly": "Only",
+  "@programsFormMatchOnly": {
+    "description": "Programs list type filter: segment that keeps only programs whose dances are of exactly the chosen type(s), e.g. Contra leaves out a program that also has English dances. Keep very short; it sits beside the type chips."
+  },
+  "programsFormMatchOnlyTooltip": "Programs of only the chosen types",
+  "@programsFormMatchOnlyTooltip": {
+    "description": "Tooltip for the programsFormMatchOnly segment of the programs list type filter."
+  },
+  "programsFormMatchIncludes": "Includes",
+  "@programsFormMatchIncludes": {
+    "description": "Programs list type filter: segment that keeps every program that has the chosen type, e.g. Contra also lists a program with both contra and English dances. In this mode each chip is a single type. Keep very short; it sits beside the type chips."
+  },
+  "programsFormMatchIncludesTooltip": "Programs that have the chosen type",
+  "@programsFormMatchIncludesTooltip": {
+    "description": "Tooltip for the programsFormMatchIncludes segment of the programs list type filter."
   },
   "danceSectionFigures": "Figures",
   "@danceSectionFigures": {
@@ -15263,6 +15485,21 @@
   "compoundEditorInvalidFigures": "One of the figures isn't complete or valid yet.",
   "@compoundEditorInvalidFigures": {
     "description": "Error shown when a custom figure's parts don't validate."
+  },
+  "compoundEditorOtherFormFigures": "{count, plural, =1{1 figure is} other{{count} figures are}} from {figureForm}, not {entryForm}. Change the dance type back, or remove {count, plural, =1{it} other{them}}.",
+  "@compoundEditorOtherFormFigures": {
+    "description": "Error shown when saving a combination whose figures belong to another dance type than the one picked for it, for example after its type was changed from English to Contra. {figureForm} and {entryForm} are dance type names such as 'Contra' or 'English (ECD)'.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "figureForm": {
+        "type": "String"
+      },
+      "entryForm": {
+        "type": "String"
+      }
+    }
   },
   "compoundEditorTooLong": "One of the fields is too long.",
   "@compoundEditorTooLong": {

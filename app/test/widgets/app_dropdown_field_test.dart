@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:compendium_app/src/theme/app_theme.dart';
 import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:compendium_app/src/widgets/app_shortcuts.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -32,6 +33,8 @@ Future<void> _pump(
   AutovalidateMode? autovalidateMode,
   double textScale = 1,
   List<AppDropdownEntry<String?>> entries = _entries,
+  bool compact = false,
+  bool clearsAfterPick = false,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -54,7 +57,12 @@ Future<void> _pump(
                   value: value,
                   entries: entries,
                   filterable: filterable,
-                  decoration: const InputDecoration(labelText: 'Pick'),
+                  compact: compact,
+                  fillWidth: !compact,
+                  clearsAfterPick: clearsAfterPick,
+                  decoration: compact
+                      ? const InputDecoration(hintText: 'Pick')
+                      : const InputDecoration(labelText: 'Pick'),
                   validator: validator,
                   onSaved: onSaved,
                   autovalidateMode: autovalidateMode,
@@ -394,6 +402,33 @@ void main() {
       expect(_shown(tester), 'Bravo');
     });
 
+    // On every platform a mouse press outside a focused text field would take
+    // its focus, so a filterable field (focused while it filters) would lose
+    // it to the press on an entry even on a tablet with a mouse, and the
+    // blur would close the menu and put the filter back under the pointer.
+    testWidgets('a mouse click picks from the filtered menu', (tester) async {
+      String? picked = 'a';
+      await _pump(
+        tester,
+        value: 'a',
+        filterable: true,
+        onChanged: (v) => picked = v,
+      );
+      await press(tester, find.byKey(_fieldKey), kind: PointerDeviceKind.mouse);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(_fieldKey), 'rav');
+      await tester.pumpAndSettle();
+      expect(find.text('None'), findsNothing, reason: 'the menu is filtered');
+      await press(
+        tester,
+        dropdownEntry('Bravo'),
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pumpAndSettle();
+      expect(picked, 'b');
+      expect(_shown(tester), 'Bravo');
+    }, variant: TargetPlatformVariant.all());
+
     testWidgets('a scroll the user makes closes the menu for good', (
       tester,
     ) async {
@@ -572,6 +607,119 @@ void main() {
       expect(field.focusNode.hasFocus, isFalse);
     }, variant: TargetPlatformVariant.desktop());
 
+    // A text field drops its focus on a press outside itself, and the menu
+    // is outside it. Had the press on an entry taken the field's focus, the
+    // menu, which closes on that blur, would be gone before the release, and
+    // no click would pick anything (#2292).
+    testWidgets('a mouse click picks an entry, and the field keeps the '
+        'focus', (tester) async {
+      String? picked = 'a';
+      await _pump(tester, value: 'a', onChanged: (v) => picked = v);
+      await press(tester, find.byKey(_fieldKey));
+      await tester.pumpAndSettle();
+      await press(tester, dropdownEntry('Bravo'));
+      await tester.pumpAndSettle();
+      expect(picked, 'b');
+      expect(_shown(tester), 'Bravo');
+      expect(find.byType(MenuItemButton), findsNothing);
+      final field = tester.widget<EditableText>(
+        find.descendant(
+          of: find.byKey(_fieldKey),
+          matching: find.byType(EditableText),
+        ),
+      );
+      expect(field.focusNode.hasFocus, isTrue);
+    }, variant: TargetPlatformVariant.desktop());
+
+    // A press inside the menu that picks nothing (a right-click, the menu's
+    // padding, a press dragged off its entry) leaves the menu open. It must
+    // leave the field its focus too, or Esc would go back past a menu still
+    // on screen and Tab would leave it open over the next field.
+    testWidgets('a press in the menu that picks nothing leaves the keys with '
+        'the menu', (tester) async {
+      final pageEsc = await _pumpWithPageEsc(tester);
+      final field = find.descendant(
+        of: find.byKey(_fieldKey),
+        matching: find.byType(EditableText),
+      );
+      await press(tester, find.byKey(_fieldKey));
+      await tester.pumpAndSettle();
+      final rightClick = await tester.createGesture(
+        kind: PointerDeviceKind.mouse,
+        buttons: kSecondaryMouseButton,
+      );
+      await rightClick.down(tester.getCenter(dropdownEntry('Bravo')));
+      await tester.pump();
+      await rightClick.up();
+      await rightClick.removePointer();
+      await tester.pumpAndSettle();
+      expect(find.byType(MenuItemButton), findsWidgets, reason: 'still open');
+      expect(tester.widget<EditableText>(field).focusNode.hasFocus, isTrue);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(find.byType(MenuItemButton), findsNothing);
+      expect(pageEsc(), 0, reason: 'Esc closed the menu, not the page');
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(pageEsc(), 1);
+    }, variant: TargetPlatformVariant.desktop());
+
+    testWidgets('a press on the menu\'s padding, then Tab, leaves no menu '
+        'open', (tester) async {
+      await _pump(tester, value: 'a', onChanged: (_) {});
+      await press(tester, find.byKey(_fieldKey));
+      await tester.pumpAndSettle();
+      // Just inside the menu's top edge, above its first entry.
+      final menu = tester.getRect(
+        find
+            .ancestor(
+              of: dropdownEntry('None'),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      final first = tester.getRect(dropdownEntry('None'));
+      expect(first.top, greaterThan(menu.top), reason: 'the menu has padding');
+      final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await gesture.down(Offset(first.center.dx, (menu.top + first.top) / 2));
+      await tester.pump();
+      await gesture.up();
+      await gesture.removePointer();
+      await tester.pumpAndSettle();
+      expect(find.byType(MenuItemButton), findsWidgets, reason: 'still open');
+      expect(
+        tester
+            .widget<EditableText>(
+              find.descendant(
+                of: find.byKey(_fieldKey),
+                matching: find.byType(EditableText),
+              ),
+            )
+            .focusNode
+            .hasFocus,
+        isTrue,
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+      expect(find.byType(MenuItemButton), findsNothing);
+    }, variant: TargetPlatformVariant.desktop());
+
+    testWidgets('the window losing focus closes the menu', (tester) async {
+      await _pump(tester, value: 'a', onChanged: (_) {});
+      await press(tester, find.byKey(_fieldKey));
+      await tester.pumpAndSettle();
+      expect(find.byType(MenuItemButton), findsWidgets);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      addTearDown(
+        () => tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(MenuItemButton), findsNothing);
+    }, variant: TargetPlatformVariant.desktop());
+
     testWidgets('Tab away closes an open menu', (tester) async {
       await _pump(tester, value: 'a', onChanged: (_) {});
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
@@ -611,68 +759,225 @@ void main() {
       expect(picked, 'b');
     }, variant: TargetPlatformVariant.desktop());
 
-    testWidgets('Tab reaches the field, the arrows and Enter pick, Esc '
-        'closes without a pick', (tester) async {
-      String? picked = 'a';
-      await _pump(tester, value: 'a', onChanged: (v) => picked = v);
+    for (final compact in [false, true]) {
+      testWidgets(
+        'Tab reaches the ${compact ? 'compact ' : ''}field, the arrows '
+        'and Enter pick, Esc closes without a pick',
+        (tester) async {
+          String? picked = 'a';
+          await _pump(
+            tester,
+            value: 'a',
+            compact: compact,
+            onChanged: (v) => picked = v,
+          );
 
-      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-      await tester.pumpAndSettle();
-      final field = find.descendant(
-        of: find.byKey(_fieldKey),
-        matching: find.byType(EditableText),
+          await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+          await tester.pumpAndSettle();
+          final field = find.descendant(
+            of: find.byKey(_fieldKey),
+            matching: find.byType(EditableText),
+          );
+          expect(
+            tester.widget<EditableText>(field).focusNode.hasFocus,
+            isTrue,
+            reason: 'the first Tab stop is the field itself',
+          );
+
+          // Enter opens; Down highlights an entry, which the field shows; Esc
+          // closes and the field shows the current choice again.
+          await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+          await tester.pumpAndSettle();
+          expect(find.text('Bravo'), findsOneWidget);
+          await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+          await tester.pumpAndSettle();
+          expect(_shown(tester), isNot('Alpha'), reason: 'a highlight shows');
+          await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+          await tester.pumpAndSettle();
+          expect(find.text('Bravo'), findsNothing);
+          expect(picked, 'a');
+          expect(_shown(tester), 'Alpha');
+
+          // Enter opens; the arrows move the highlight, which the field shows;
+          // Enter picks the highlighted entry.
+          await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+          await tester.pumpAndSettle();
+          for (
+            var i = 0;
+            i < _entries.length && _shown(tester) != 'Bravo';
+            i++
+          ) {
+            await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+            await tester.pumpAndSettle();
+          }
+          expect(_shown(tester), 'Bravo');
+          await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+          await tester.pumpAndSettle();
+          expect(find.text('Charlie'), findsNothing, reason: 'the menu closed');
+          expect(picked, 'b');
+          expect(_shown(tester), 'Bravo');
+
+          // The next Tab leaves the field for the next control, not the arrow.
+          await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+          await tester.pumpAndSettle();
+          expect(
+            tester
+                .widget<EditableText>(
+                  find.descendant(
+                    of: find.byKey(const ValueKey('after')),
+                    matching: find.byType(EditableText),
+                  ),
+                )
+                .focusNode
+                .hasFocus,
+            isTrue,
+          );
+        },
+        variant: TargetPlatformVariant.desktop(),
       );
+    }
+  });
+
+  group('a compact field, a list row\'s trailing control', () {
+    testWidgets('has no fill or box, only an underline, and keeps a 48 dp '
+        'touch target', (tester) async {
+      await _pump(tester, value: 'a', compact: true, onChanged: (_) {});
+      final decorator = tester.widget<InputDecorator>(
+        find.descendant(
+          of: find.byKey(_fieldKey),
+          matching: find.byType(InputDecorator),
+        ),
+      );
+      expect(decorator.decoration.filled, isFalse);
+      expect(decorator.decoration.enabledBorder, isA<UnderlineInputBorder>());
+      expect(decorator.decoration.border, isA<UnderlineInputBorder>());
       expect(
-        tester.widget<EditableText>(field).focusNode.hasFocus,
-        isTrue,
-        reason: 'the first Tab stop is the field itself',
+        tester.getSize(find.byKey(_fieldKey)).height,
+        greaterThanOrEqualTo(44),
       );
+    });
 
-      // Enter opens; Down highlights an entry, which the field shows; Esc
-      // closes and the field shows the current choice again.
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.pumpAndSettle();
-      expect(find.text('Bravo'), findsOneWidget);
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-      await tester.pumpAndSettle();
-      expect(_shown(tester), isNot('Alpha'), reason: 'a highlight shows');
-      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-      await tester.pumpAndSettle();
-      expect(find.text('Bravo'), findsNothing);
-      expect(picked, 'a');
-      expect(_shown(tester), 'Alpha');
-
-      // Enter opens; the arrows move the highlight, which the field shows;
-      // Enter picks the highlighted entry.
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.pumpAndSettle();
-      for (var i = 0; i < _entries.length && _shown(tester) != 'Bravo'; i++) {
-        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-        await tester.pumpAndSettle();
+    testWidgets('is as wide as its widest entry, never cuts a value off, and '
+        'starts its value where the field starts', (tester) async {
+      await loadBundledFonts();
+      for (final scale in [1.0, 2.0]) {
+        // Enabled entries only, so the widest entry the field is sized by is
+        // one of those measured.
+        final entries = _entries.where((e) => e.enabled).toList();
+        for (final entry in entries) {
+          await _pump(
+            tester,
+            value: entry.value,
+            entries: entries,
+            compact: true,
+            textScale: scale,
+            onChanged: (_) {},
+          );
+          expect(_shown(tester), entry.label);
+          expectClosedValueFits(tester, find.byKey(_fieldKey));
+        }
       }
-      expect(_shown(tester), 'Bravo');
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.pumpAndSettle();
-      expect(find.text('Charlie'), findsNothing, reason: 'the menu closed');
-      expect(picked, 'b');
-      expect(_shown(tester), 'Bravo');
-
-      // The next Tab leaves the field for the next control, not the arrow.
-      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-      await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<EditableText>(
-              find.descendant(
-                of: find.byKey(const ValueKey('after')),
-                matching: find.byType(EditableText),
-              ),
-            )
-            .focusNode
-            .hasFocus,
-        isTrue,
+      final editable = tester.widget<EditableText>(
+        find.descendant(
+          of: find.byKey(_fieldKey),
+          matching: find.byType(EditableText),
+        ),
       );
-    }, variant: TargetPlatformVariant.desktop());
+      expect(editable.textAlign, TextAlign.start);
+      // Narrower than the page: sized to its entries, not filling the row.
+      expect(tester.getSize(find.byKey(_fieldKey)).width, lessThan(400));
+    });
+
+    testWidgets('right to left, too, never cuts its widest value off', (
+      tester,
+    ) async {
+      await loadBundledFonts();
+      final entries = _entries.where((e) => e.enabled).toList();
+      for (final entry in entries) {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: Directionality(
+              textDirection: TextDirection.rtl,
+              child: Scaffold(
+                body: Center(
+                  child: AppDropdownField<String?>(
+                    key: _fieldKey,
+                    compact: true,
+                    fillWidth: false,
+                    value: entry.value,
+                    entries: entries,
+                    onChanged: (_) {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(_shown(tester), entry.label);
+        expectClosedValueFits(tester, find.byKey(_fieldKey));
+      }
+    });
+
+    for (final density in [VisualDensity.standard, VisualDensity.compact]) {
+      testWidgets('is 48 dp tall at 1x text at $density', (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light.copyWith(visualDensity: density),
+            home: Scaffold(
+              body: Center(
+                child: AppDropdownField<String?>(
+                  key: _fieldKey,
+                  compact: true,
+                  fillWidth: false,
+                  value: 'a',
+                  entries: _entries,
+                  onChanged: (_) {},
+                ),
+              ),
+            ),
+          ),
+        );
+        expect(tester.getSize(find.byKey(_fieldKey)).height, 48);
+      });
+    }
+
+    testWidgets('announces its value', (tester) async {
+      final handle = tester.ensureSemantics();
+      await _pump(tester, value: 'b', compact: true, onChanged: (_) {});
+      expect(
+        tester.getSemantics(
+          find.descendant(
+            of: find.byKey(_fieldKey),
+            matching: find.byType(TextField),
+          ),
+        ),
+        isSemantics(value: 'Bravo'),
+      );
+      handle.dispose();
+    });
+  });
+
+  testWidgets('with clearsAfterPick, a pick is reported and the field goes '
+      'back to its hint', (tester) async {
+    final picks = <String?>[];
+    await _pump(
+      tester,
+      value: null,
+      entries: _entries.skip(1).toList(),
+      compact: true,
+      clearsAfterPick: true,
+      onChanged: picks.add,
+    );
+    expect(_shown(tester), '');
+    await pickDropdownEntry(tester, find.byKey(_fieldKey), 'Alpha');
+    expect(picks, ['a']);
+    expect(_shown(tester), '', reason: 'back to the hint');
+    // The same entry again is a second action, not "no change".
+    await pickDropdownEntry(tester, find.byKey(_fieldKey), 'Alpha');
+    expect(picks, ['a', 'a']);
+    expect(_shown(tester), '');
   });
 
   testWidgets('at 2x text on a phone, the field stays one line and the open '

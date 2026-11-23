@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/program_forms.dart';
 import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
@@ -1099,6 +1100,12 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           _buildProminentPerform(program),
         ],
         const SizedBox(height: 16),
+        if (programFormsLabel(l10n, programSlotForms(program.slots, _dances))
+            case final formsLabel?)
+          KeyedSubtree(
+            key: const ValueKey('program-summary-forms'),
+            child: _summaryRow(Icons.category_outlined, formsLabel),
+          ),
         if (dateLabel != null) _summaryRow(Icons.event_outlined, dateLabel),
         if (resolveVenueLabel(program, _venuesById) case final venueLabel?)
           _summaryRow(Icons.place_outlined, venueLabel),
@@ -1727,8 +1734,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       }
 
       // The dance's form, named only when the program mixes forms, as the
-      // builder names it (ADR-006 S5).
-      final formLabel = dance != null && _mixesForms
+      // builder and Perform name it (ADR-006 S5). A dance in Recently deleted
+      // names none, as it counts toward no mix.
+      final formLabel = dance != null && !dance.isDeleted && _mixesForms
           ? danceFormLabel(l10n, dance.form)
           : null;
       final secondaryParts = <String>[
@@ -1957,14 +1965,14 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
 
   /// Whether the program's dances are of more than one form, when each
   /// dance's row names its form (ADR-006 S5).
-  bool get _mixesForms {
-    final forms = <DanceForm>{
-      for (final slot in _program?.slots ?? const <ProgramSlot>[])
-        if (slot.danceId case final id?)
-          if (_dances[id] case final dance?) dance.form,
-    };
-    return forms.length > 1;
-  }
+  /// The same set as the type line at the top ([programSlotForms]), so a
+  /// dance in Recently deleted counts for neither.
+  bool get _mixesForms =>
+      programSlotForms(
+        _program?.slots ?? const <ProgramSlot>[],
+        _dances,
+      ).length >
+      1;
 
   DifficultyLevel? _difficultyLevelFor(Dance? dance) {
     if (dance == null) return null;

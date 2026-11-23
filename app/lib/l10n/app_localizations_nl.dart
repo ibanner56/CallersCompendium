@@ -2156,6 +2156,87 @@ class AppLocalizationsNl extends AppLocalizations {
   String get appThemeGroupDark => 'Donker';
 
   @override
+  String get themeScreenSearchHint => 'Thema\'s zoeken…';
+
+  @override
+  String get themeScreenClearSearchTooltip => 'Zoekopdracht wissen';
+
+  @override
+  String get themeScreenNoMatches =>
+      'Geen thema\'s komen overeen met je zoekopdracht.';
+
+  @override
+  String themeScreenResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count thema\'s',
+      one: '1 thema',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get themeScreenNewCustomTheme => 'Aangepast thema';
+
+  @override
+  String get themeScreenNewCustomThemeSemantic => 'Nieuw aangepast thema';
+
+  @override
+  String get appThemeKeywordRed => 'rood, karmijn, scharlaken, koraal';
+
+  @override
+  String get appThemeKeywordOrange => 'oranje, amber, koper';
+
+  @override
+  String get appThemeKeywordYellow => 'geel, goud, mosterd';
+
+  @override
+  String get appThemeKeywordGreen => 'groen, salie, olijf, bos';
+
+  @override
+  String get appThemeKeywordTeal => 'blauwgroen, cyaan, turquoise, aqua, mint';
+
+  @override
+  String get appThemeKeywordBlue => 'blauw, marine, azuur, hemelsblauw';
+
+  @override
+  String get appThemeKeywordPurple => 'paars, violet, lila, lavendel';
+
+  @override
+  String get appThemeKeywordPink => 'roze, magenta, fuchsia';
+
+  @override
+  String get appThemeKeywordBrown => 'bruin, beige, zand, crème, sepia';
+
+  @override
+  String get appThemeKeywordGrey => 'grijs, antraciet, leisteen, zilver';
+
+  @override
+  String get appThemeKeywordWarm => 'warm, gezellig, aards';
+
+  @override
+  String get appThemeKeywordCool => 'koel, koud, ijzig, arctisch';
+
+  @override
+  String get appThemeKeywordPastel => 'pastel, zacht, snoep';
+
+  @override
+  String get appThemeKeywordVivid => 'levendig, fel, verzadigd, neon, krachtig';
+
+  @override
+  String get appThemeKeywordMuted => 'gedempt, ingetogen, rustig, mild';
+
+  @override
+  String get appThemeKeywordRetro => 'retro, vintage, klassiek';
+
+  @override
+  String get appThemeKeywordAccessible => 'toegankelijk, leesbaar, contrast';
+
+  @override
+  String get appThemeKeywordAutomatic => 'automatisch, auto, apparaat, volgen';
+
+  @override
   String get appThemeLabelSystem => 'Systeem';
 
   @override
@@ -2499,14 +2580,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsAppearancePreviewBody => 'Voorbeeld van tekst';
 
   @override
-  String get settingsAppearanceNewThemeButton => 'Nieuw aangepast thema';
-
-  @override
   String get settingsAppearanceNewThemeDefaultName => 'Mijn thema';
-
-  @override
-  String get settingsAppearanceCustomThemesEmpty =>
-      'Kopieer het huidige thema en pas elke kleur aan. Aangepaste thema\'s worden gesynchroniseerd met je andere apparaten wanneer synchronisatie aan staat.';
 
   @override
   String settingsAppearanceCustomThemeSemantic(String name) {
@@ -4168,6 +4242,41 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorMusicalKeyHint => 'bijv. g mineur';
 
   @override
+  String danceAuthorsWithYear(String names, String year) {
+    return '$names ($year)';
+  }
+
+  @override
+  String danceComposedYear(String year) {
+    return 'Gecomponeerd in $year';
+  }
+
+  @override
+  String danceInterpretedBy(String names) {
+    return 'Geïnterpreteerd door $names';
+  }
+
+  @override
+  String danceInterpretedByWithYear(String names, String year) {
+    return 'Geïnterpreteerd door $names ($year)';
+  }
+
+  @override
+  String danceInterpretedYear(String year) {
+    return 'Geïnterpreteerd in $year';
+  }
+
+  @override
+  String danceMeterValue(String meter) {
+    return 'Maatsoort: $meter';
+  }
+
+  @override
+  String danceMusicalKeyValue(String key) {
+    return 'Toonsoort: $key';
+  }
+
+  @override
   String get commonMixedLevel => 'Gemengd niveau';
 
   @override
@@ -4729,6 +4838,12 @@ class AppLocalizationsNl extends AppLocalizations {
       'Dansen tonen die minstens één van de gekozen tags hebben';
 
   @override
+  String get collectionFacetMeter => 'Maatsoort';
+
+  @override
+  String get collectionFacetMusicalKey => 'Toonsoort';
+
+  @override
   String get collectionFacetSource => 'Bron';
 
   @override
@@ -5057,6 +5172,17 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String exportNamedPhrases(String order, String bars) {
+    return '$order ($bars)';
+  }
+
+  @override
+  String get exportNamedPhraseSeparator => ', ';
+
+  @override
+  String get exportLabelSeparator => ': ';
+
+  @override
   String danceFigureBars(String bars, int halfBars) {
     String _temp0 = intl.Intl.pluralLogic(
       halfBars,
@@ -5142,6 +5268,23 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsMoreActions => 'Meer acties';
+
+  @override
+  String get programsFormMatchLabel => 'Types matchen';
+
+  @override
+  String get programsFormMatchOnly => 'Alleen';
+
+  @override
+  String get programsFormMatchOnlyTooltip =>
+      'Programma\'s met alleen de gekozen types';
+
+  @override
+  String get programsFormMatchIncludes => 'Bevat';
+
+  @override
+  String get programsFormMatchIncludesTooltip =>
+      'Programma\'s met het gekozen type';
 
   @override
   String get danceSectionFigures => 'Figuren';
@@ -11675,6 +11818,27 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get compoundEditorInvalidFigures =>
       'Een van de figuren is nog niet volledig of geldig.';
+
+  @override
+  String compoundEditorOtherFormFigures(
+    int count,
+    String figureForm,
+    String entryForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figuren komen',
+      one: '1 figuur komt',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'ze',
+      one: 'hem',
+    );
+    return '$_temp0 uit $figureForm, niet uit $entryForm. Zet het danstype terug, of verwijder $_temp1.';
+  }
 
   @override
   String get compoundEditorTooLong => 'Een van de velden is te lang.';

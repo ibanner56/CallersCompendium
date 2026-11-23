@@ -92,6 +92,11 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   petronella in B1", "chain **then** swing") built with a friendly query
   builder (ContraDB ez-query lesson: common cases one-tap, advanced tree
   behind "advanced").
+- The row of search tools (with the online source selector) and the result
+  count are pinned headers in the Collection's scroll view; the open tool's
+  panel scrolls between them. Each stays pinned only while the pinned headers
+  together cover at most half the list's viewport, so large text on a short
+  screen falls back to scrolling (`PinnedWhileRoomSliver`).
 - Search input is dialect-canonicalized; result counts announced politely to AT.
   The calling-history facet follows the active caller and performed-only scope;
   it is omitted when that scope has no qualifying calls.
@@ -119,8 +124,12 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   before adding it again (N3-A1; `docs/design/add-to-program-sheet.md`).
 
 ### 2. Dance detail / card
-- Header: title, authors, formation, hook, tags, status banner (deprecated/
-  broken), provenance line ("via The Caller's Box · CC-BY-NC").
+- Header: title, authors with the composed year ("Pat Shaw (1951)"),
+  interpreters with the interpreted year on their own line ("Interpreted by
+  Cecil Sharp (1916)"; either line shows a year alone, labelled, when there
+  are no names), formation, meter and key (one labelled line, only
+  when either is set), hook, tags, status banner (deprecated/broken),
+  provenance line ("via The Caller's Box · CC-BY-NC").
 - Figure table grouped by derived section (A1…), beats column, progression ¶
   marker; dialect applied. Toggle: canonical ⇄ dialect view. A `meanwhile`
   container (#590/#594) renders its concurrent sides joined by "while" on one
@@ -264,10 +273,13 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 
 ### 5. Performance mode
 - Full-screen card: current dance, huge type (user-set size/weight/spacing,
-  no upper bound), 7:1 contrast themes (dark-stage default), wake-lock on. A
-  `meanwhile` container (#590/#594) shows both concurrent sides on one card
-  row joined by "while", on their single shared beat span; the screen-reader
-  announcement reads the pair as one continuous "A while B" phrase.
+  no upper bound), 7:1 contrast themes (dark-stage default), wake-lock on.
+  The header adds the composed year to the authors line, the interpreters and
+  interpreted year on their own line, and the dance's meter and key on one
+  labelled row when either is set. A `meanwhile` container (#590/#594) shows both concurrent sides on one
+  card row joined by "while", on their single shared beat span; the
+  screen-reader announcement reads the pair as one continuous "A while B"
+  phrase.
 - Full screen (PLAT-9): phones and tablets go immersive for the whole view.
   Desktop offers a toolbar toggle plus F11 (Ctrl-Cmd-F on macOS); Esc leaves
   full screen but never Perform. Ctrl/Cmd-W and mouse Back reach Perform's

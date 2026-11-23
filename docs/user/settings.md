@@ -375,19 +375,32 @@ The **Appearance** section controls how the app looks.
 
 ### Theme
 
-A gallery of built-in themes: **System** (follows your device), **Light**,
-**Dark**, and a set of named color palettes, including high-contrast and
-editor-inspired schemes. The default themes are listed Light, Dark, Soft dark,
-then High contrast, and on a phone the theme cards sit in two columns. Selecting
-a theme previews and applies it right away.
+The **Theme** row shows the theme you're using under its title; tap it to open
+the **Theme** screen. There the built-in themes are grouped under **System** (follows your
+device), **Default** (Light, Dark, Soft dark, then High contrast), **Light** and
+**Dark** — named color palettes, including editor-inspired schemes — with your
+saved custom themes under **Custom themes** after them. On a phone the built-in
+theme cards sit in two columns (one at larger text sizes). Selecting a theme
+previews and applies it right away.
 There's a **High contrast** theme for maximum legibility — see the
 [Accessibility guide](./accessibility.md) for when it helps.
 
+Type in **Search themes…** to find a theme by its name, or by a color or
+character word such as *purple*, *green*, *warm*, *pastel*, *muted* or *retro*.
+On a computer the box is ready to type in as soon as the screen opens; on a
+phone, tap it first. The headings give way to just the matching themes, with a
+count of them above, which a screen reader reads out as you type. Every word you
+type has to match, so *dark purple* finds the dark themes that are purple, and
+accents are optional: *frappe* finds *Catppuccin Frappé*.
+
 ### Custom themes
 
-- **New custom theme** — opens an editor seeded from your current theme, so you
-  start from something familiar. You can tune any color in it.
-- Saved custom themes can be selected, edited, duplicated, or deleted at any time.
+- **+ Custom theme** — the floating button on the Theme screen opens an editor
+  seeded from your current theme, so you start from something familiar. You can
+  tune any color in it. When you save, the new theme becomes your theme and the
+  screen scrolls to its card.
+- Saved custom themes are listed under **Custom themes** on the Theme screen,
+  and can be selected, edited, duplicated, or deleted at any time.
   Deleting one offers **Undo**, which also makes it your theme again if it was.
   They sync to your other devices along with your other settings when sync is on, and deleting a theme deletes it on those devices too.
 
@@ -966,9 +979,14 @@ The Glossary lists them too, when it is shown. While it is on:
   and once the figure is gone, typing one is read as an ordinary line (see
   [Figure shorthands](./authoring.md#figure-shorthands)). A figure that can no longer be used
   is marked **Needs repair**; one whose name is also another figure's is
-  marked **Rename needed**.
+  marked **Rename needed**. A figure's name is checked against the app's
+  figures for its own dance form: an English figure of yours named *Siding*
+  needs a new name, a contra one doesn't.
 - If a later version of the app comes with a figure that has the name of one
-  of your new figures, your figure's page says so, with two choices.
+  of your new figures, your figure's page says so, with two choices. (When the
+  app has an English figure of that name, such as *Swing* or *Circle* for an
+  English figure of yours, yours is marked **Rename needed** instead, even if
+  the app has a contra figure of that name too.)
   **Rename mine** opens it to give it another name. **Switch to the app's figure**
   opens a page where you choose which of the app's figure's parameters each of
   yours becomes, and which of its values each of your options becomes; where a

@@ -2047,6 +2047,85 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appThemeGroupDark => 'ダーク';
 
   @override
+  String get themeScreenSearchHint => 'テーマを検索…';
+
+  @override
+  String get themeScreenClearSearchTooltip => '検索をクリア';
+
+  @override
+  String get themeScreenNoMatches => '検索に一致するテーマがありません。';
+
+  @override
+  String themeScreenResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のテーマ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get themeScreenNewCustomTheme => 'カスタムテーマ';
+
+  @override
+  String get themeScreenNewCustomThemeSemantic => '新しいカスタムテーマ';
+
+  @override
+  String get appThemeKeywordRed => '赤, 赤い, 紅, 深紅, コーラル, レッド';
+
+  @override
+  String get appThemeKeywordOrange => 'オレンジ, だいだい色, アンバー, 銅';
+
+  @override
+  String get appThemeKeywordYellow => '黄, 黄色, 金, 金色, からし色, イエロー';
+
+  @override
+  String get appThemeKeywordGreen => '緑, 緑色, セージ, オリーブ, 森, グリーン';
+
+  @override
+  String get appThemeKeywordTeal => '青緑, シアン, ターコイズ, 水色, ミント, ティール';
+
+  @override
+  String get appThemeKeywordBlue => '青, 青い, 紺, 藍, 空色, ブルー';
+
+  @override
+  String get appThemeKeywordPurple => '紫, 紫色, すみれ色, ライラック, ラベンダー, パープル';
+
+  @override
+  String get appThemeKeywordPink => 'ピンク, 桃色, マゼンタ, ローズ';
+
+  @override
+  String get appThemeKeywordBrown => '茶, 茶色, ベージュ, クリーム, セピア, ブラウン';
+
+  @override
+  String get appThemeKeywordGrey => '灰, 灰色, グレー, チャコール, 銀';
+
+  @override
+  String get appThemeKeywordWarm => '暖かい, 温かみ, 暖色, ウォーム';
+
+  @override
+  String get appThemeKeywordCool => '涼しい, 冷たい, 寒色, 氷, クール';
+
+  @override
+  String get appThemeKeywordPastel => 'パステル, 淡い, やわらかい';
+
+  @override
+  String get appThemeKeywordVivid => '鮮やか, ビビッド, ネオン';
+
+  @override
+  String get appThemeKeywordMuted => '落ち着いた, くすんだ, 穏やか, 控えめ';
+
+  @override
+  String get appThemeKeywordRetro => 'レトロ, ヴィンテージ, クラシック';
+
+  @override
+  String get appThemeKeywordAccessible => 'アクセシブル, 読みやすい, 見やすい, コントラスト';
+
+  @override
+  String get appThemeKeywordAutomatic => '自動, オート, デバイス, 端末';
+
+  @override
   String get appThemeLabelSystem => 'システム';
 
   @override
@@ -2360,14 +2439,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsAppearancePreviewBody => '本文テキストのサンプル';
 
   @override
-  String get settingsAppearanceNewThemeButton => '新しいカスタムテーマ';
-
-  @override
   String get settingsAppearanceNewThemeDefaultName => 'マイテーマ';
-
-  @override
-  String get settingsAppearanceCustomThemesEmpty =>
-      '現在のテーマをコピーして色を調整できます。カスタムテーマは、同期がオンのとき、他のデバイスと同期されます。';
 
   @override
   String settingsAppearanceCustomThemeSemantic(String name) {
@@ -3943,6 +4015,41 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorMusicalKeyHint => '例: ト短調';
 
   @override
+  String danceAuthorsWithYear(String names, String year) {
+    return '$names（$year年）';
+  }
+
+  @override
+  String danceComposedYear(String year) {
+    return '$year年振付';
+  }
+
+  @override
+  String danceInterpretedBy(String names) {
+    return '解釈：$names';
+  }
+
+  @override
+  String danceInterpretedByWithYear(String names, String year) {
+    return '解釈：$names（$year年）';
+  }
+
+  @override
+  String danceInterpretedYear(String year) {
+    return '$year年解釈';
+  }
+
+  @override
+  String danceMeterValue(String meter) {
+    return '拍子：$meter';
+  }
+
+  @override
+  String danceMusicalKeyValue(String key) {
+    return '調：$key';
+  }
+
+  @override
   String get commonMixedLevel => 'ミックスレベル';
 
   @override
@@ -4477,6 +4584,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionFacetTagsMatchAnyTooltip => '選択したタグのうち少なくとも1つを持つダンスを表示';
 
   @override
+  String get collectionFacetMeter => '拍子';
+
+  @override
+  String get collectionFacetMusicalKey => '調';
+
+  @override
   String get collectionFacetSource => 'ソース';
 
   @override
@@ -4795,6 +4908,17 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String exportNamedPhrases(String order, String bars) {
+    return '$order（$bars）';
+  }
+
+  @override
+  String get exportNamedPhraseSeparator => '、';
+
+  @override
+  String get exportLabelSeparator => '：';
+
+  @override
   String danceFigureBars(String bars, int halfBars) {
     String _temp0 = intl.Intl.pluralLogic(
       halfBars,
@@ -4877,6 +5001,21 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsMoreActions => 'その他のアクション';
+
+  @override
+  String get programsFormMatchLabel => 'タイプの一致条件';
+
+  @override
+  String get programsFormMatchOnly => '完全一致';
+
+  @override
+  String get programsFormMatchOnlyTooltip => '選んだタイプだけのプログラム';
+
+  @override
+  String get programsFormMatchIncludes => '含む';
+
+  @override
+  String get programsFormMatchIncludesTooltip => '選んだタイプを含むプログラム';
 
   @override
   String get danceSectionFigures => 'フィギュア';
@@ -6501,7 +6640,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String exportSlotAuthorSuffix(String names) {
-    return '作: $names';
+    return '作：$names';
   }
 
   @override
@@ -11139,6 +11278,25 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get compoundEditorInvalidFigures => 'いずれかのフィギュアがまだ不完全か無効です。';
+
+  @override
+  String compoundEditorOtherFormFigures(
+    int count,
+    String figureForm,
+    String entryForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count個のフィギュア',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'それら',
+    );
+    return '$_temp0は$entryFormではなく$figureFormのものです。ダンスの種類を戻すか、$_temp1を削除してください。';
+  }
 
   @override
   String get compoundEditorTooLong => 'いずれかの欄が長すぎます。';

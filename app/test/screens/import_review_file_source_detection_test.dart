@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -32,8 +33,8 @@ Future<void> _pump(
 
 Uint8List _bytes(String s) => Uint8List.fromList(s.codeUnits);
 
-DropdownButton<ImportSource> _dropdown(WidgetTester tester) =>
-    tester.widget<DropdownButton<ImportSource>>(
+AppDropdownField<ImportSource> _dropdown(WidgetTester tester) =>
+    tester.widget<AppDropdownField<ImportSource>>(
       find.byKey(const ValueKey('import-source-select')),
     );
 
@@ -71,12 +72,12 @@ void main() {
       filePicker: () async =>
           PickedImportFile(name: 'x.ccshare', bytes: _bytes('{}')),
     );
-    expect(_dropdown(tester).value!.kind, ImportSourceKind.callersBox);
+    expect(_dropdown(tester).initialValue!.kind, ImportSourceKind.callersBox);
 
     await tester.tap(find.byKey(const ValueKey('import-choose-file')));
     await tester.pumpAndSettle();
 
-    expect(_dropdown(tester).value!.kind, ImportSourceKind.genericJson);
+    expect(_dropdown(tester).initialValue!.kind, ImportSourceKind.genericJson);
   });
 
   testWidgets('picking a .usr switches to the Companion source with bytes', (
@@ -90,7 +91,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('import-choose-file')));
     await tester.pumpAndSettle();
 
-    expect(_dropdown(tester).value!.kind, ImportSourceKind.callersCompanionUsr);
+    expect(
+      _dropdown(tester).initialValue!.kind,
+      ImportSourceKind.callersCompanionUsr,
+    );
     expect(find.byKey(const ValueKey('import-usr-chosen')), findsOneWidget);
   });
 
@@ -105,6 +109,6 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('import-choose-file')));
     await tester.pumpAndSettle();
 
-    expect(_dropdown(tester).value!.kind, ImportSourceKind.callersBox);
+    expect(_dropdown(tester).initialValue!.kind, ImportSourceKind.callersBox);
   });
 }

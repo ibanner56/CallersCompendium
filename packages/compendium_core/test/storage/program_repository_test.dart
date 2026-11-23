@@ -40,6 +40,86 @@ void main() {
 
   tearDown(() => db.close());
 
+  group('formsByProgram (ADR-006)', () {
+    Dance dance(String id, DanceForm form) => Dance(
+      id: id,
+      title: id,
+      form: form,
+      createdAt: DateTime.utc(2026),
+      updatedAt: DateTime.utc(2026),
+    );
+
+    test('lists the forms of each program\'s live dances', () async {
+      await dances.create(dance('c1', DanceForm.contra));
+      await dances.create(dance('c2', DanceForm.contra));
+      await dances.create(dance('e1', DanceForm.ecd));
+      await dances.create(dance('gone', DanceForm.ecd));
+      await repo.create(
+        sampleProgram(
+          id: 'mixed',
+          slots: [
+            ProgramSlot(id: 'm1', position: 0, danceId: 'c1'),
+            ProgramSlot(id: 'm2', position: 1, danceId: 'e1', isAlt: true),
+            ProgramSlot(id: 'm3', position: 2, text: 'Waltz'),
+          ],
+        ),
+      );
+      await repo.create(
+        sampleProgram(
+          id: 'contra',
+          slots: [
+            ProgramSlot(id: 'c1s', position: 0, danceId: 'c1'),
+            ProgramSlot(id: 'c2s', position: 1, danceId: 'c2'),
+            ProgramSlot(id: 'gs', position: 2, danceId: 'gone'),
+          ],
+        ),
+      );
+      await repo.create(
+        sampleProgram(
+          id: 'breaks',
+          slots: [ProgramSlot(id: 'b1', position: 0, text: 'Break')],
+        ),
+      );
+      await dances.softDelete('gone', at: DateTime.utc(2026, 2));
+      expect(await repo.formsByProgram(), {
+        'mixed': {DanceForm.contra, DanceForm.ecd},
+        'contra': {DanceForm.contra},
+      });
+    });
+
+    test('is one statement however many programs there are', () async {
+      // The programs list re-reads it on every dance write (ADR-006), so it
+      // must not fan out per program as the library grows.
+      final counter = QueryCounter();
+      final countingDb = openCountingTestDatabase(counter);
+      addTearDown(countingDb.close);
+      final programs = ProgramRepository(countingDb);
+      final library = DanceRepository(countingDb, contraTaxonomy);
+      await library.create(dance('c', DanceForm.contra));
+      await library.create(dance('e', DanceForm.ecd));
+      Future<int> statementsFor(int count) async {
+        for (var i = 0; i < count; i++) {
+          await programs.create(
+            sampleProgram(
+              id: 'n$count-$i',
+              slots: [
+                ProgramSlot(id: 'n$count-$i-a', position: 0, danceId: 'c'),
+                ProgramSlot(id: 'n$count-$i-b', position: 1, danceId: 'e'),
+              ],
+            ),
+          );
+        }
+        counter.reset();
+        final forms = await programs.formsByProgram();
+        expect(forms.values.every((f) => f.length == 2), isTrue);
+        return counter.count;
+      }
+
+      expect(await statementsFor(3), 1);
+      expect(await statementsFor(200), 1);
+    });
+  });
+
   group('create / getById', () {
     test('bulk validation rejects a tombstoned venue', () async {
       final venues = VenueRepository(db);

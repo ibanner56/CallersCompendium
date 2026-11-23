@@ -11,7 +11,6 @@ import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/widgets/app_shortcuts.dart';
-import 'package:compendium_app/src/widgets/search_panel_bar.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/gestures.dart';
@@ -708,12 +707,12 @@ void main() {
 
     testWidgets('not when focus is on a search-panel control', (tester) async {
       await _pump(tester);
-      final control = find
-          .descendant(
-            of: find.byType(SearchPanelBar),
-            matching: find.byType(Icon),
-          )
-          .first;
+      // The Filters toggle's chevron: the bar now also holds the results, so
+      // it is scoped to a toggle rather than to the bar.
+      final control = find.descendant(
+        of: find.byKey(const ValueKey('filters-panel')),
+        matching: find.byType(Icon),
+      );
       Focus.of(tester.element(control)).requestFocus();
       await tester.pump();
 

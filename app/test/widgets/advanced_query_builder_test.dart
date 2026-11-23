@@ -1,7 +1,7 @@
-import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/widgets/advanced_query_builder.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -170,10 +170,10 @@ void main() {
       final figure = BuilderFigure(move: 'forward_and_back');
       await _pump(tester, root: BuilderGroup(children: [figure]));
       expect(find.text('Any formation'), findsOneWidget);
-      final dropdown = tester.widget<DropdownButton<String?>>(
+      final dropdown = tester.widget<AppDropdownField<String?>>(
         find.byKey(ValueKey('param-${figure.id}-formation')),
       );
-      final values = [for (final item in dropdown.items!) item.value];
+      final values = [for (final item in dropdown.entries) item.value];
       expect(values, [
         null,
         for (final formation in forwardAndBackFormations)

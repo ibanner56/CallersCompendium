@@ -144,6 +144,8 @@ class _Walk {
           SourceFilter() ||
           SourceIdFilter() ||
           TunesFilter() ||
+          MeterFilter() ||
+          MusicalKeyFilter() ||
           FormFilter() ||
           FormationFilter() ||
           ProgressionFilter() ||

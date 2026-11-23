@@ -9,7 +9,10 @@ import '../theme/app_breakpoints.dart';
 ///
 /// Folded, the label moves into the tooltip, so the button keeps its name for
 /// a screen reader and on long press; extended, the visible label is the name
-/// and no tooltip repeats it.
+/// and no tooltip repeats it. [semanticLabel], when given, is the name a
+/// screen reader speaks instead of [label] (and the folded tooltip): for a
+/// short visible label that needs a fuller spoken one. It should contain
+/// [label], so speech input can still find the button by what it shows.
 FloatingActionButton adaptiveExtendedFab(
   BuildContext context, {
   required Key key,
@@ -17,6 +20,7 @@ FloatingActionButton adaptiveExtendedFab(
   required VoidCallback? onPressed,
   required Widget icon,
   required String label,
+  String? semanticLabel,
 }) {
   final short = AppBreakpoints.isShort(context);
   return FloatingActionButton.extended(
@@ -24,8 +28,8 @@ FloatingActionButton adaptiveExtendedFab(
     heroTag: heroTag,
     onPressed: onPressed,
     isExtended: !short,
-    tooltip: short ? label : null,
+    tooltip: short ? (semanticLabel ?? label) : null,
     icon: icon,
-    label: Text(label),
+    label: Text(label, semanticsLabel: semanticLabel),
   );
 }

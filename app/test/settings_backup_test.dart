@@ -34,6 +34,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart' show NativeDatabase;
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -42,6 +43,7 @@ import 'package:path_provider_platform_interface/path_provider_platform_interfac
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:share_plus/share_plus.dart' show ShareResult, ShareResultStatus;
 
+import 'support/finders.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 import 'support/noop_sync_transport.dart';
@@ -244,7 +246,7 @@ void main() {
     await tester.scrollUntilVisible(
       lastBackup,
       200,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: verticalScrollable(),
     );
     expect(lastBackup, findsOneWidget);
   });
@@ -341,10 +343,10 @@ void main() {
     await _pumpGeneral(tester, repos, onRestored: () async => refreshed = true);
     expect(
       tester
-          .widget<DropdownButton<int>>(
+          .widget<AppDropdownField<int>>(
             find.byKey(const ValueKey('general-soft-delete-retention')),
           )
-          .value,
+          .initialValue,
       90,
     );
 
@@ -366,10 +368,10 @@ void main() {
     expect(await repos.settings.get(kSoftDeleteRetentionKey), isNull);
     expect(
       tester
-          .widget<DropdownButton<int>>(
+          .widget<AppDropdownField<int>>(
             find.byKey(const ValueKey('general-soft-delete-retention')),
           )
-          .value,
+          .initialValue,
       kSoftDeleteRetentionDefaultDays,
     );
     expect(find.text('Backup restored.'), findsOneWidget);
@@ -1128,10 +1130,10 @@ void main() {
       );
       expect(
         tester
-            .widget<DropdownButton<int>>(
+            .widget<AppDropdownField<int>>(
               find.byKey(const ValueKey('general-soft-delete-retention')),
             )
-            .value,
+            .initialValue,
         90,
       );
 
@@ -1160,10 +1162,10 @@ void main() {
       expect(await target.repos.settings.get(kSoftDeleteRetentionKey), isNull);
       expect(
         tester
-            .widget<DropdownButton<int>>(
+            .widget<AppDropdownField<int>>(
               find.byKey(const ValueKey('general-soft-delete-retention')),
             )
-            .value,
+            .initialValue,
         kSoftDeleteRetentionDefaultDays,
       );
 
@@ -1187,10 +1189,10 @@ void main() {
       expect(await target.repos.settings.get(kSoftDeleteRetentionKey), isNull);
       expect(
         tester
-            .widget<DropdownButton<int>>(
+            .widget<AppDropdownField<int>>(
               find.byKey(const ValueKey('general-soft-delete-retention')),
             )
-            .value,
+            .initialValue,
         kSoftDeleteRetentionDefaultDays,
       );
     },
@@ -1306,7 +1308,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('backup-reminder-cadence')),
       200,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: verticalScrollable(),
     );
     await tester.pumpAndSettle();
     // A dropdown inside a ListTile's trailing slot cannot wrap.
@@ -1332,7 +1334,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('backup-reminder-cadence')),
       200,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: verticalScrollable(),
     );
     // scrollUntilVisible stops once any of the control shows; it can be left
     // on the viewport's edge, where its centre does not take a tap.

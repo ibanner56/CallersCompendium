@@ -54,9 +54,9 @@ import '../theme/app_breakpoints.dart';
 import '../widgets/adaptive_fab.dart';
 
 /// Dance detail / card (`docs/design/ux.md` §2): header (title, authors,
-/// formation, hook, tags, status banner, provenance line), a figure table
-/// grouped by derived section with a canonical ⇄ dialect toggle, and the
-/// calling notes / links / custom-field sections. The Edit action opens the
+/// formation, meter and key, hook, tags, status banner, provenance line), a
+/// figure table grouped by derived section with a canonical ⇄ dialect toggle,
+/// and the calling notes / links / custom-field sections. The Edit action opens the
 /// [DanceEditorScreen] (roadmap 3.3).
 ///
 /// [onRestored] is called (if provided) when the user taps the Undo action
@@ -471,6 +471,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           dance: detail.dance,
           renderer: renderer,
           authorNames: detail.authorNames,
+          interpreterNames: detail.interpreterNames,
           difficultyLevel: detail.difficultyLevel,
         ),
       ),
@@ -1177,12 +1178,30 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                     style: theme.textTheme.headlineMedium,
                   ),
                 ),
-                if (detail.authorNames.isNotEmpty) ...[
+                if (authorsWithYearLabel(
+                      l10n,
+                      detail.authorNames,
+                      dance.composedOn,
+                    )
+                    case final authors?) ...[
                   const SizedBox(height: AppSpacing.xxs),
                   SelectableLine(
+                    key: const ValueKey('dance-detail-authors'),
+                    child: Text(authors, style: theme.textTheme.bodyLarge),
+                  ),
+                ],
+                if (interpretersWithYearLabel(
+                      l10n,
+                      detail.interpreterNames,
+                      dance.interpretedOn,
+                    )
+                    case final interpreters?) ...[
+                  const SizedBox(height: AppSpacing.xxs),
+                  SelectableLine(
+                    key: const ValueKey('dance-detail-interpreters'),
                     child: Text(
-                      detail.authorNames.join(', '),
-                      style: theme.textTheme.bodyLarge,
+                      interpreters,
+                      style: theme.textTheme.bodyMedium,
                     ),
                   ),
                 ],
@@ -1239,6 +1258,28 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                       const Icon(Icons.sync_alt, size: 18),
                       const SizedBox(width: AppSpacing.xs),
                       Text(l10n.commonMixer),
+                    ],
+                  ),
+                ],
+                if (meterAndKeyLabel(
+                      l10n,
+                      dance,
+                      render: (value) => canonicalDiscouragedTerms
+                          ? _proseRenderer
+                                .renderFreeTextWithCanonicalDiscouragedTerms(
+                                  value,
+                                  dialect,
+                                )
+                          : _proseRenderer.renderFreeText(value, dialect),
+                    )
+                    case final tuneDetails?) ...[
+                  const SizedBox(height: AppSpacing.xxs),
+                  Row(
+                    key: const ValueKey('dance-detail-tune-details'),
+                    children: [
+                      const Icon(tuneDetailsIcon, size: 18),
+                      const SizedBox(width: AppSpacing.xs),
+                      Expanded(child: SelectableLine(child: Text(tuneDetails))),
                     ],
                   ),
                 ],

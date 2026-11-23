@@ -8,6 +8,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/finders.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 
@@ -113,7 +114,7 @@ void main() {
     await tester.scrollUntilVisible(
       button,
       300,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: verticalScrollable(),
     );
     await tester.pumpAndSettle();
     final title = tester.getRect(find.text('Import dances').last);
@@ -127,7 +128,7 @@ void main() {
       await tester.scrollUntilVisible(
         find.byKey(ValueKey(key)),
         300,
-        scrollable: find.byType(Scrollable).last,
+        scrollable: verticalScrollable(),
       );
       expect(
         tester.getRect(find.byKey(ValueKey(key))).right,

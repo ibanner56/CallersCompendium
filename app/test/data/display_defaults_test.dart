@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:compendium_app/src/data/display_defaults.dart';
-import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/search/program_sort.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -482,7 +481,7 @@ void main() {
     });
 
     test('every "Last used" entry is equal regardless of its fallback sort — '
-        'required for DropdownButton to highlight the right item by ==', () {
+        'required for the dropdown to find the chosen entry by ==', () {
       expect(
         const SortDefaultSetting.lastUsed(CollectionSort.title),
         const SortDefaultSetting.lastUsed(CollectionSort.author),

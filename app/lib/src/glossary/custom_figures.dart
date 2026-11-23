@@ -59,14 +59,27 @@ class CustomGlossaryItem {
 /// it can never equal a shipped move or alias id.
 String customSelectionId(String entryId) => 'custom:$entryId';
 
+/// The shipped figures whose names an entry with [payload] must not take:
+/// those of the dance form it is made for, as the editor checks it, or
+/// contra's for a form this build does not know.
+Taxonomy glossaryEntryNameTaxonomy(Object? payload) {
+  final form = glossaryEntryForm(payload);
+  for (final value in DanceForm.values) {
+    if (value.name == form) return shippedTaxonomies.forForm(value);
+  }
+  return shippedTaxonomies.forForm(DanceForm.contra);
+}
+
 /// Resolves [entries] for display, in their stored order.
 ///
-/// [dialects] and [shorthandTokens] are the names a custom figure's name must
-/// not take (the active dialect and the user's own dialects; every shorthand
-/// token), as the editor checks them.
+/// Each entry's name is checked against the shipped figures of its own form
+/// ([glossaryEntryNameTaxonomy]), so an English figure of the user's named
+/// like a shipped English figure needs renaming, as the editor says.
+/// [dialects] and [shorthandTokens] are the other names a custom figure's
+/// name must not take (the active dialect and the user's own dialects; every
+/// shorthand token), as the editor checks them.
 List<CustomGlossaryItem> resolveCustomGlossary(
   List<UserGlossaryEntry> entries, {
-  required Taxonomy taxonomy,
   Iterable<Dialect> dialects = const [],
   Iterable<String> shorthandTokens = const [],
 }) {
@@ -81,7 +94,7 @@ List<CustomGlossaryItem> resolveCustomGlossary(
     final name = normalizeGlossaryName(entry.name);
     final elsewhere = glossaryNameCollisions(
       entry.name,
-      taxonomy: taxonomy,
+      taxonomy: glossaryEntryNameTaxonomy(entry.payload),
       dialects: dialects,
       shorthandTokens: shorthandTokens,
       // A dialect's own name for this figure is not a clash with it.
@@ -96,7 +109,9 @@ List<CustomGlossaryItem> resolveCustomGlossary(
       CustomGlossaryItem._(
         entry,
         definition: entry.kind == UserGlossaryEntryKind.compound
-            ? decodeCompoundDefinition(entry.payload, taxonomy)
+            // Decoded with every form's figures, so an English combination
+            // built from English figures decodes.
+            ? decodeCompoundDefinition(entry.payload, shippedTaxonomies.anyForm)
             : null,
         figure: entry.kind == UserGlossaryEntryKind.customFigure
             ? decodeUserFigureDefinition(entry.payload)
@@ -142,4 +157,44 @@ Map<String, Object?>? previewArguments(
     args[param.key] = allowed.first;
   }
   return args;
+}
+
+/// The ids, as they came, of the shared figures in [items] whose name is
+/// taken here (#1023): by one of the app's figures for the figure's own form
+/// ([glossaryEntryNameTaxonomy]), a dialect name, a shorthand, one of the
+/// user's entries in [live], or another figure the file brings. A figure
+/// already here as it came is never listed.
+Set<String> importedFiguresWithTakenNames(
+  List<UserFigureImportItem> items, {
+  required List<UserGlossaryEntry> live,
+  Iterable<Dialect> dialects = const [],
+  Iterable<String> shorthandTokens = const [],
+}) {
+  return {
+    for (final item in items)
+      if (item.kind != UserFigureImportKind.same &&
+          glossaryNameCollisions(
+            item.incoming.name,
+            taxonomy: glossaryEntryNameTaxonomy(item.incoming.payload),
+            dialects: dialects,
+            shorthandTokens: shorthandTokens,
+            // Taking theirs replaces the figure with the same id, so its
+            // name is not a clash; a copy's id belongs to another entry.
+            userEntryNames: [
+              for (final entry in live)
+                if (item.kind != UserFigureImportKind.differs ||
+                    entry.id != item.incoming.id)
+                  entry.name,
+              // Another figure this file brings may take the name too.
+              for (final other in items)
+                if (other.kind != UserFigureImportKind.same &&
+                    !identical(other, item))
+                  other.incoming.name,
+            ],
+            exceptUserFigureId: item.kind == UserFigureImportKind.copy
+                ? null
+                : item.incoming.id,
+          ).isNotEmpty)
+        item.incoming.id,
+  };
 }

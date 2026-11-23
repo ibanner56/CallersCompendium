@@ -257,9 +257,8 @@ class _GlossaryScreenState extends State<GlossaryScreen> {
     final figuresShown = customFiguresShown(context);
     final all = resolveCustomGlossary(
       _userEntries,
-      // Checked against contra's figures, as the detail and the editor
-      // check them.
-      taxonomy: contraTaxonomy,
+      // Each name is checked against its own form's figures, as the editor
+      // and the detail check it.
       dialects: [
         dialect,
         ...?DialectLibraryScope.maybeOf(context)?.allCustomDialects,

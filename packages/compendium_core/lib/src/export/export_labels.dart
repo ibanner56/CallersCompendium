@@ -24,6 +24,8 @@ import '../model/bar_count.dart';
 
 String _englishBeats(int beats) => '$beats ${beats == 1 ? 'beat' : 'beats'}';
 
+String _englishNamedPhrases(String order, String bars) => '$order ($bars)';
+
 String _englishBars(String bars, int halfBars) =>
     '$bars ${halfBars == 1 || halfBars == 2 ? 'bar' : 'bars'}';
 
@@ -56,6 +58,9 @@ class DanceExportLabels {
     this.sources = 'Sources',
     this.beats = _englishBeats,
     this.bars = _englishBars,
+    this.namedPhrases = _englishNamedPhrases,
+    this.namedPhraseSeparator = ', ',
+    this.labelSeparator = ': ',
     this.pageOf = _englishPageOf,
   });
 
@@ -88,6 +93,27 @@ class DanceExportLabels {
   /// the count as written ([barsText]) and `halfBars` the same count in half
   /// bars, which picks the plural (1 is half a bar, 2 is one bar).
   final String Function(String bars, int halfBars) bars;
+
+  /// Named phrases as a card prints them: [order] is the phrases in playing
+  /// order, such as `AAB`, and `bars` each phrase's bars, joined by
+  /// [namedPhraseSeparator], such as `A 4 bars, B 8 bars`. English writes
+  /// `AAB (A 4 bars, B 8 bars)`; Japanese uses full-width parentheses.
+  final String Function(String order, String bars) namedPhrases;
+
+  /// Between two phrases' bars in [namedPhrases]: `", "` in English, `"、"`
+  /// in Japanese.
+  final String namedPhraseSeparator;
+
+  /// Between a field's label and its value, such as `Phrase: AAB`: `": "` in
+  /// English, the full-width `"："` in Japanese.
+  final String labelSeparator;
+
+  /// [label] followed by [labelSeparator], to put before a field's value.
+  String labelled(String label) => '$label$labelSeparator';
+
+  /// [label] as a section heading with the field's value on the lines below,
+  /// such as `Figures:`: [labelSeparator] without a trailing space.
+  String heading(String label) => '$label${labelSeparator.trimRight()}';
 
   /// A figure's count of [beats] as an export shows it: in bars of
   /// [beatsPerBar] beats for a dance timed in bars ([danceBeatsPerBar]), or in
@@ -127,6 +153,7 @@ class ProgramExportLabels {
     this.figures = 'Figures',
     this.alternate = 'Alternate',
     this.by = _englishBy,
+    this.labelSeparator = ': ',
     this.pageOf = _englishPageOf,
   });
 
@@ -157,6 +184,17 @@ class ProgramExportLabels {
   /// guest/minutes suffixes, only when the caller resolves at
   /// least one non-blank author name for that slot's dance.
   final String Function(String names) by;
+
+  /// Between a field's label and its value, such as `Band: Reel Time`: `": "`
+  /// in English, the full-width `"："` in Japanese.
+  final String labelSeparator;
+
+  /// [label] followed by [labelSeparator], to put before a field's value.
+  String labelled(String label) => '$label$labelSeparator';
+
+  /// [label] as a section heading with the field's value on the lines below,
+  /// such as `Figures:`: [labelSeparator] without a trailing space.
+  String heading(String label) => '$label${labelSeparator.trimRight()}';
 
   /// Page footer of the set-list PDF, e.g. `"Page 2 of 3"`.
   final String Function(int page, int pages) pageOf;

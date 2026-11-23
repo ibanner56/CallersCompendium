@@ -23,6 +23,7 @@ import 'package:compendium_app/src/widgets/figure_list_editor.dart';
 import 'package:compendium_app/src/widgets/lingo_text_editing_controller.dart';
 import 'package:compendium_app/src/widgets/section_header.dart';
 
+import 'support/dropdown.dart';
 import 'support/test_repositories.dart';
 import 'support/new_dance_draft.dart';
 import 'support/l10n_harness.dart';
@@ -69,6 +70,7 @@ Future<void> _pumpEditor(
   ThemeData? theme,
   Size surfaceSize = const Size(1200, 3200),
   Dialect? activeDialect,
+  TextScaler? textScaler,
 }) async {
   // Tall surface so the full editor form (which grew with the walkthrough
   // field, #370) lays out without the trailing controls falling beyond a
@@ -83,10 +85,18 @@ Future<void> _pumpEditor(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       theme: theme,
-      builder: (context, child) => RepositoriesScope(
-        repositories: repos,
-        child: ActiveDialectScope(notifier: notifier, child: child!),
-      ),
+      builder: (context, child) {
+        final scoped = RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(notifier: notifier, child: child!),
+        );
+        return textScaler == null
+            ? scoped
+            : MediaQuery(
+                data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+                child: scoped,
+              );
+      },
       home: Scaffold(
         body: Builder(
           builder: (context) => TextButton(
@@ -614,6 +624,47 @@ void main() {
     final saved = await repos.dances.getById('d1');
     expect(saved!.form, DanceForm.square);
   });
+
+  testWidgets('type: a new dance changed to English starts on duple minor, '
+      'and its list has no contra formations', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpEditor(tester, repos);
+    expect(
+      _dropdownValue<FormationShape>(tester),
+      FormationShape.dupleImproper,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('form-field')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('English (ECD)').last);
+    await tester.pumpAndSettle();
+
+    expect(_dropdownValue<FormationShape>(tester), FormationShape.dupleMinor);
+    final formation = find.byKey(const ValueKey('formation-field'));
+    await tester.ensureVisible(formation);
+    await tester.tap(formation);
+    await tester.pumpAndSettle();
+    expect(find.text('Duple minor'), findsWidgets);
+    expect(find.text('Improper'), findsNothing);
+  });
+
+  testWidgets('type: a mouse click on a desktop picks another type', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpEditor(tester, repos);
+    expect(_dropdownValue<DanceForm>(tester), DanceForm.contra);
+
+    // A press, a frame, a release: the menu once closed on the press, so no
+    // click picked anything (#2292).
+    await pickDropdownEntry(
+      tester,
+      find.byKey(const ValueKey('form-field')),
+      'Square',
+    );
+
+    expect(_dropdownValue<DanceForm>(tester), DanceForm.square);
+  }, variant: TargetPlatformVariant.desktop());
 
   testWidgets('selecting Unspecified clears an existing level', (tester) async {
     final repos = openTestRepositories();
@@ -2918,6 +2969,124 @@ void main() {
       expect(saved.authorIds, ['playford']);
     });
 
+    testWidgets('an English dance takes each credit as a year, beside its '
+        'names where there is room', (tester) async {
+      final repos = await withEcdDance();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      for (final (line, names, year) in [
+        ('authors-credit-line', 'author-input', 'composed-on-year'),
+        (
+          'interpreters-credit-line',
+          'interpreter-input',
+          'interpreted-on-year',
+        ),
+      ]) {
+        final inLine = find.descendant(
+          of: find.byKey(ValueKey(line)),
+          matching: find.byKey(ValueKey(year)),
+        );
+        expect(inLine, findsOneWidget);
+        // Same line: the year box starts beside the names, not under them.
+        final namesBox = tester.getRect(find.byKey(ValueKey(names)));
+        final yearBox = tester.getRect(inLine);
+        expect(yearBox.left, greaterThan(namesBox.right), reason: line);
+        expect(yearBox.top, lessThan(namesBox.bottom), reason: line);
+      }
+      // A year, with no month or day to pick.
+      expect(find.byKey(const ValueKey('composed-on-month')), findsNothing);
+      expect(find.byKey(const ValueKey('interpreted-on-day')), findsNothing);
+      expect(
+        find.text('When the dance was composed (year, or add month/day)'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('on a narrow screen an English credit year goes under its '
+        'names', (tester) async {
+      final repos = await withEcdDance();
+      await _pumpEditor(
+        tester,
+        repos,
+        danceId: 'd1',
+        surfaceSize: const Size(300, 3200),
+      );
+
+      final namesBox = tester.getRect(
+        find.byKey(const ValueKey('author-input')),
+      );
+      final yearBox = tester.getRect(
+        find.byKey(const ValueKey('composed-on-year')),
+      );
+      expect(yearBox.top, greaterThanOrEqualTo(namesBox.bottom));
+    });
+
+    testWidgets('with large text an English credit year goes under its '
+        'names, even where the system scales large sizes less', (tester) async {
+      final repos = await withEcdDance();
+      await _pumpEditor(
+        tester,
+        repos,
+        danceId: 'd1',
+        // A phone at 200% text with a nonlinear scaler, as Android 14 has:
+        // body text doubles, a large size barely grows.
+        surfaceSize: const Size(411, 3200),
+        textScaler: const _NonlinearTextScaler(),
+      );
+
+      final namesBox = tester.getRect(
+        find.byKey(const ValueKey('author-input')),
+      );
+      final yearBox = tester.getRect(
+        find.byKey(const ValueKey('composed-on-year')),
+      );
+      expect(yearBox.top, greaterThanOrEqualTo(namesBox.bottom));
+    });
+
+    testWidgets('an English credit picker keeps its typed text when its '
+        'line flips from beside the year to above it', (tester) async {
+      final repos = await withEcdDance();
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      final input = find.byKey(const ValueKey('interpreter-input'));
+      await tester.enterText(input, 'Jo');
+      await tester.pumpAndSettle();
+      await tester.binding.setSurfaceSize(const Size(300, 3200));
+      await tester.pumpAndSettle();
+
+      final names = tester.getRect(input);
+      final year = tester.getRect(
+        find.byKey(const ValueKey('interpreted-on-year')),
+      );
+      expect(year.top, greaterThanOrEqualTo(names.bottom));
+      expect(tester.widget<TextField>(input).controller?.text, 'Jo');
+    });
+
+    testWidgets('an English credit keeps a stored month and day until its '
+        'year is edited, which stores the year alone', (tester) async {
+      final repos = await withEcdDance();
+      final stored = (await repos.dances.getById('d1'))!;
+      await repos.dances.update(
+        stored.copyWith(
+          composedOn: PartialDate(1695, 3, 14),
+          interpretedOn: PartialDate(1975, 6),
+        ),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      final interpreted = find.byKey(const ValueKey('interpreted-on-year'));
+      expect(tester.widget<TextField>(interpreted).controller?.text, '1975');
+      await tester.enterText(interpreted, '1976');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.dances.getById('d1'))!;
+      expect(saved.interpretedOn, PartialDate(1976));
+      // Not edited, so not rewritten.
+      expect(saved.composedOn, PartialDate(1695, 3, 14));
+    });
+
     testWidgets('a contra dance keeps them in More details, with no '
         'improper checkbox', (tester) async {
       final repos = openTestRepositories();
@@ -4887,4 +5056,18 @@ class _FailingDraftRemoveSettingsRepository extends SettingsRepository {
     }
     return super.remove(key, at: at, permanent: permanent);
   }
+}
+
+/// Android 14's kind of text scaling at 200%: body sizes double, while a
+/// size of 100 or more grows by only a tenth.
+class _NonlinearTextScaler extends TextScaler {
+  const _NonlinearTextScaler();
+
+  @override
+  double scale(double fontSize) =>
+      fontSize >= 100 ? fontSize * 1.1 : fontSize * 2;
+
+  @override
+  // The linear equivalent the framework asks for in a few places.
+  double get textScaleFactor => 2;
 }

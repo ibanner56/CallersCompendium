@@ -19,8 +19,8 @@
 // re-running the full 20k corpus each time):
 //   SCALE_DANCES=20000    number of dances to seed
 //   SCALE_PROGRAMS=500     number of programs to seed
-//   SCALE_ONLY=load,collection,export,snapshot,snapshotparts,batch,author,
-//              lastcalled,narrow,search,rebuild
+//   SCALE_ONLY=load,collection,export,snapshot,snapshotparts,programforms,
+//              batch,author,lastcalled,narrow,search,rebuild
 //                          comma-separated scenario keys to run (default: all)
 //
 // `collection`, `snapshot`, `snapshotparts` and `batch` are the baselines the
@@ -382,6 +382,47 @@ Future<void> main() async {
             }
           },
         ),
+      );
+    }
+
+    // 2d. The programs list (ADR-006 program types): what it reads on open
+    // and after every write. It lists every program and, beside them, each
+    // program's dance forms in one query; a dance edit re-runs only the
+    // second. Cold on a fresh connection, then warm.
+    if (wants('programforms')) {
+      results.addAll(
+        await _measureSeries(dbPath, [
+          (
+            'Programs list: listAll + formsByProgram (cold)',
+            (repos, _) async {
+              final programs = await repos.programs.listAll();
+              await repos.programs.formsByProgram();
+              return programs.length;
+            },
+          ),
+          (
+            'Programs list: listAll + formsByProgram (warm)',
+            (repos, _) async {
+              final programs = await repos.programs.listAll();
+              await repos.programs.formsByProgram();
+              return programs.length;
+            },
+          ),
+          (
+            'Programs list: formsByProgram only (warm)',
+            (repos, _) async {
+              final forms = await repos.programs.formsByProgram();
+              return forms.length;
+            },
+          ),
+          (
+            'Programs list: watchFormsByProgram first emit',
+            (repos, _) async {
+              final forms = await repos.programs.watchFormsByProgram().first;
+              return forms.length;
+            },
+          ),
+        ]),
       );
     }
 

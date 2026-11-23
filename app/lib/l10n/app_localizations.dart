@@ -3072,67 +3072,211 @@ abstract class AppLocalizations {
   /// **'Name'**
   String get settingsDialectNameLabel;
 
-  /// Section header above the built-in theme gallery in Appearance settings.
+  /// Section header above the theme row in Appearance settings, the title of that row (the theme in use is shown under it), and the title of the Theme screen it opens.
   ///
   /// In en, this message translates to:
   /// **'Theme'**
   String get settingsAppearanceThemeHeader;
 
-  /// Section header above the user's saved custom themes in Appearance settings.
+  /// Heading above the user's saved custom themes on the Theme screen. Also names the custom-themes setting in sync conflict lists.
   ///
   /// In en, this message translates to:
   /// **'Custom themes'**
   String get settingsAppearanceCustomThemesHeader;
 
-  /// Section heading above the "System" themes in the Appearance theme gallery.
+  /// Section heading above the "System" themes on the Theme screen (Settings > Appearance > Theme).
   ///
   /// In en, this message translates to:
   /// **'System'**
   String get appThemeGroupSystem;
 
-  /// Section heading above the "Default" themes in the Appearance theme gallery.
+  /// Section heading above the "Default" themes on the Theme screen (Settings > Appearance > Theme).
   ///
   /// In en, this message translates to:
   /// **'Default'**
   String get appThemeGroupDefault;
 
-  /// Section heading above the "Light" themes in the Appearance theme gallery.
+  /// Section heading above the "Light" themes on the Theme screen (Settings > Appearance > Theme).
   ///
   /// In en, this message translates to:
   /// **'Light'**
   String get appThemeGroupLight;
 
-  /// Section heading above the "Dark" themes in the Appearance theme gallery.
+  /// Section heading above the "Dark" themes on the Theme screen (Settings > Appearance > Theme).
   ///
   /// In en, this message translates to:
   /// **'Dark'**
   String get appThemeGroupDark;
 
-  /// Name of the built-in "System" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  /// Hint in the search box at the top of the Theme screen. Themes can be found by name or by color and character words.
+  ///
+  /// In en, this message translates to:
+  /// **'Search themes…'**
+  String get themeScreenSearchHint;
+
+  /// Tooltip for the button that clears the Theme screen search box.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get themeScreenClearSearchTooltip;
+
+  /// Shown on the Theme screen when no theme matches the search.
+  ///
+  /// In en, this message translates to:
+  /// **'No themes match your search.'**
+  String get themeScreenNoMatches;
+
+  /// How many themes match the Theme screen search, shown above the results and read out by screen readers as the search changes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 theme} other{{count} themes}}'**
+  String themeScreenResultCount(int count);
+
+  /// Label of the floating button on the Theme screen (shown with a + icon) that starts a new custom theme from the theme in use.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom theme'**
+  String get themeScreenNewCustomTheme;
+
+  /// What a screen reader says for the floating "Custom theme" button on the Theme screen. Keep the visible button text (themeScreenNewCustomTheme) inside it, so voice control can still find the button by what it shows.
+  ///
+  /// In en, this message translates to:
+  /// **'New custom theme'**
+  String get themeScreenNewCustomThemeSemantic;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as red. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'red, crimson, scarlet, coral'**
+  String get appThemeKeywordRed;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as orange. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'orange, amber, copper'**
+  String get appThemeKeywordOrange;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as yellow. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'yellow, gold, mustard'**
+  String get appThemeKeywordYellow;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as green. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'green, sage, olive, forest'**
+  String get appThemeKeywordGreen;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as teal or cyan. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'teal, cyan, turquoise, aqua, mint'**
+  String get appThemeKeywordTeal;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as blue. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'blue, navy, azure, sky'**
+  String get appThemeKeywordBlue;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as purple. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'purple, violet, lilac, lavender, mauve'**
+  String get appThemeKeywordPurple;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as pink. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'pink, magenta, rose, fuchsia'**
+  String get appThemeKeywordPink;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as brown or cream. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'brown, beige, tan, cream, sepia'**
+  String get appThemeKeywordBrown;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as grey. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'grey, gray, charcoal, slate, silver'**
+  String get appThemeKeywordGrey;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as warm. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'warm, cozy, earthy'**
+  String get appThemeKeywordWarm;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as cool. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'cool, cold, icy, arctic, frosty'**
+  String get appThemeKeywordCool;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as pastel. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'pastel, soft, candy'**
+  String get appThemeKeywordPastel;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as vivid. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'vivid, saturated, neon, bold'**
+  String get appThemeKeywordVivid;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as muted. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'muted, subdued, calm, gentle'**
+  String get appThemeKeywordMuted;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as retro. Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'retro, vintage, classic'**
+  String get appThemeKeywordRetro;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as accessible (high-contrast). Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'accessible, legible, readable, contrast'**
+  String get appThemeKeywordAccessible;
+
+  /// Search words, never shown on screen: a comma-separated list of words a user might type on the Theme screen to find the themes that read as automatic (following the device setting). Translate the idea rather than each word, keep the commas, and add or drop synonyms as your language needs.
+  ///
+  /// In en, this message translates to:
+  /// **'automatic, auto, device, follow'**
+  String get appThemeKeywordAutomatic;
+
+  /// Name of the built-in "System" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
   ///
   /// In en, this message translates to:
   /// **'System'**
   String get appThemeLabelSystem;
 
-  /// Name of the built-in "Light" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  /// Name of the built-in "Light" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
   ///
   /// In en, this message translates to:
   /// **'Light'**
   String get appThemeLabelLight;
 
-  /// Name of the built-in "Dark" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  /// Name of the built-in "Dark" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
   ///
   /// In en, this message translates to:
   /// **'Dark'**
   String get appThemeLabelDark;
 
-  /// Name of the built-in "Soft dark" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  /// Name of the built-in "Soft dark" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
   ///
   /// In en, this message translates to:
   /// **'Soft dark'**
   String get appThemeLabelSoftDark;
 
-  /// Name of the built-in "High contrast" theme, shown on its card in the Appearance theme gallery and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
+  /// Name of the built-in "High contrast" theme, shown on its card in the theme gallery on the Theme screen (Settings > Appearance > Theme) and read aloud by screen readers. Brand palette names (Catppuccin, Nord, …) are not translated.
   ///
   /// In en, this message translates to:
   /// **'High contrast'**
@@ -3726,23 +3870,11 @@ abstract class AppLocalizations {
   /// **'Body text sample'**
   String get settingsAppearancePreviewBody;
 
-  /// Button that starts creating a new custom theme from the active theme.
-  ///
-  /// In en, this message translates to:
-  /// **'New custom theme'**
-  String get settingsAppearanceNewThemeButton;
-
   /// Default name a brand-new custom theme is seeded with before the user renames it.
   ///
   /// In en, this message translates to:
   /// **'My theme'**
   String get settingsAppearanceNewThemeDefaultName;
-
-  /// Helper text shown when the user has no saved custom themes yet.
-  ///
-  /// In en, this message translates to:
-  /// **'Copy the current theme and tune any color. Custom themes sync to your other devices when sync is on.'**
-  String get settingsAppearanceCustomThemesEmpty;
 
   /// Screen-reader label for a saved custom-theme card.
   ///
@@ -6442,6 +6574,48 @@ abstract class AppLocalizations {
   /// **'e.g. G minor'**
   String get danceEditorMusicalKeyHint;
 
+  /// On the dance detail screen and the Perform card: the dance's authors followed by the year it was composed. {names} is the authors' names joined with commas; {year} is a four-digit year such as 1951, shown as written (not a formatted number).
+  ///
+  /// In en, this message translates to:
+  /// **'{names} ({year})'**
+  String danceAuthorsWithYear(String names, String year);
+
+  /// On the dance detail screen and the Perform card, when the dance has a composed year but no authors: the year it was composed. {year} is a four-digit year such as 1651.
+  ///
+  /// In en, this message translates to:
+  /// **'Composed {year}'**
+  String danceComposedYear(String year);
+
+  /// On the dance detail screen and the Perform card: who reconstructed (interpreted) the dance from its original source. {names} is the interpreters' names joined with commas.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted by {names}'**
+  String danceInterpretedBy(String names);
+
+  /// On the dance detail screen and the Perform card: who reconstructed (interpreted) the dance from its original source, and the year they did. {names} is the interpreters' names joined with commas; {year} is a four-digit year such as 1916.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted by {names} ({year})'**
+  String danceInterpretedByWithYear(String names, String year);
+
+  /// On the dance detail screen and the Perform card, when the dance has an interpretation year but no interpreters: the year it was reconstructed from its original source. {year} is a four-digit year such as 1916.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted {year}'**
+  String danceInterpretedYear(String year);
+
+  /// On the dance detail screen and the Perform card: the dance's written meter (time signature), labelled. {meter} is free text the caller typed, such as 3/2 or 6/8. Shown beside the key, separated by a middle dot.
+  ///
+  /// In en, this message translates to:
+  /// **'Meter: {meter}'**
+  String danceMeterValue(String meter);
+
+  /// On the dance detail screen and the Perform card: the musical key of the dance's tune, labelled. {key} is free text the caller typed, such as G minor. Shown beside the meter, separated by a middle dot.
+  ///
+  /// In en, this message translates to:
+  /// **'Key: {key}'**
+  String danceMusicalKeyValue(String key);
+
   /// Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip.
   ///
   /// In en, this message translates to:
@@ -7160,6 +7334,18 @@ abstract class AppLocalizations {
   /// **'Show dances that have at least one selected tag'**
   String get collectionFacetTagsMatchAnyTooltip;
 
+  /// Filter section heading for the meter facet: the time signature a dance's tune is in, such as 6/8 or 3/2.
+  ///
+  /// In en, this message translates to:
+  /// **'Meter'**
+  String get collectionFacetMeter;
+
+  /// Filter section heading for the musical key facet: the key a dance's tune is in, such as D minor.
+  ///
+  /// In en, this message translates to:
+  /// **'Key'**
+  String get collectionFacetMusicalKey;
+
   /// Filter section heading for the cited-source facet.
   ///
   /// In en, this message translates to:
@@ -7718,6 +7904,24 @@ abstract class AppLocalizations {
   /// **'{beats, plural, =1{1 beat} other{{beats} beats}}'**
   String danceFigureBeats(int beats);
 
+  /// An English country dance's named phrases on a printed or shared dance card, after the Phrase label: {order} is the phrases in playing order, such as AAB (letters, not translated); {bars} is each phrase's length, such as "A 4 bars, B 8 bars", joined by exportNamedPhraseSeparator. Use the locale's parentheses.
+  ///
+  /// In en, this message translates to:
+  /// **'{order} ({bars})'**
+  String exportNamedPhrases(String order, String bars);
+
+  /// Between two phrases' lengths inside exportNamedPhrases, such as the comma and space in "A 4 bars, B 8 bars". Use the locale's list separator; keep any trailing space it needs.
+  ///
+  /// In en, this message translates to:
+  /// **', '**
+  String get exportNamedPhraseSeparator;
+
+  /// Between a field's label and its value on a printed or shared dance card or set list, such as the colon and space in "Phrase: AAB" or "Band: The Moving Violations". A section heading uses it without the trailing space, such as "Figures:". Use the locale's punctuation; keep any space it needs.
+  ///
+  /// In en, this message translates to:
+  /// **': '**
+  String get exportLabelSeparator;
+
   /// A figure's length in bars, for an English country dance: {bars} is the count as written, such as 4 or 1½; {halfBars} is the same count in half bars, which picks the plural (1 is half a bar, 2 is one bar).
   ///
   /// In en, this message translates to:
@@ -7843,6 +8047,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'More actions'**
   String get programsMoreActions;
+
+  /// Screen-reader label for the Only / Includes choice beside the programs list's type chips: whether a chip keeps programs of only that type mix, or every program that includes that type.
+  ///
+  /// In en, this message translates to:
+  /// **'Match types'**
+  String get programsFormMatchLabel;
+
+  /// Programs list type filter: segment that keeps only programs whose dances are of exactly the chosen type(s), e.g. Contra leaves out a program that also has English dances. Keep very short; it sits beside the type chips.
+  ///
+  /// In en, this message translates to:
+  /// **'Only'**
+  String get programsFormMatchOnly;
+
+  /// Tooltip for the programsFormMatchOnly segment of the programs list type filter.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs of only the chosen types'**
+  String get programsFormMatchOnlyTooltip;
+
+  /// Programs list type filter: segment that keeps every program that has the chosen type, e.g. Contra also lists a program with both contra and English dances. In this mode each chip is a single type. Keep very short; it sits beside the type chips.
+  ///
+  /// In en, this message translates to:
+  /// **'Includes'**
+  String get programsFormMatchIncludes;
+
+  /// Tooltip for the programsFormMatchIncludes segment of the programs list type filter.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs that have the chosen type'**
+  String get programsFormMatchIncludesTooltip;
 
   /// Heading of the figures section on the dance detail screen.
   ///
@@ -17015,6 +17249,16 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'One of the figures isn\'t complete or valid yet.'**
   String get compoundEditorInvalidFigures;
+
+  /// Error shown when saving a combination whose figures belong to another dance type than the one picked for it, for example after its type was changed from English to Contra. {figureForm} and {entryForm} are dance type names such as 'Contra' or 'English (ECD)'.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 figure is} other{{count} figures are}} from {figureForm}, not {entryForm}. Change the dance type back, or remove {count, plural, =1{it} other{them}}.'**
+  String compoundEditorOtherFormFigures(
+    int count,
+    String figureForm,
+    String entryForm,
+  );
 
   /// Error shown when a custom figure's text is over its length limit.
   ///

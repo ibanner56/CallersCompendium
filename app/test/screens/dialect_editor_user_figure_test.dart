@@ -5,6 +5,7 @@ import 'package:compendium_app/src/data/show_glossary_scope.dart';
 import 'package:compendium_app/src/data/user_figures_scope.dart';
 import 'package:compendium_app/src/screens/dialect_editor_screen.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -112,14 +113,14 @@ void main() {
   }
 
   List<String?> offered(WidgetTester tester, String menuKey) => tester
-      .widget<DropdownButton<String>>(find.byKey(ValueKey(menuKey)))
-      .items!
+      .widget<AppDropdownField<String?>>(find.byKey(ValueKey(menuKey)))
+      .entries
       .map((item) => item.value)
       .toList();
 
   Future<void> pick(WidgetTester tester, String menuKey, String value) async {
     tester
-        .widget<DropdownButton<String>>(find.byKey(ValueKey(menuKey)))
+        .widget<AppDropdownField<String?>>(find.byKey(ValueKey(menuKey)))
         .onChanged!(value);
     await tester.pumpAndSettle();
   }
@@ -135,12 +136,12 @@ void main() {
     await open(tester, 'dialect-moves-toggle');
     expect(offered(tester, 'dialect-add-move'), contains(key));
     final item = tester
-        .widget<DropdownButton<String>>(
+        .widget<AppDropdownField<String?>>(
           find.byKey(const ValueKey('dialect-add-move')),
         )
-        .items!
+        .entries
         .firstWhere((item) => item.value == key);
-    expect((item.child as Text).data, 'larks zoom');
+    expect(item.label, 'larks zoom');
     await pick(tester, 'dialect-add-move', key);
     await tester.enterText(find.byKey(ValueKey('dialect-move-$key')), 'whizz');
     await tester.pump();

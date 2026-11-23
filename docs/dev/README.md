@@ -16,7 +16,7 @@ rendering.
 | Where is a 2026-10 audit finding or maintainer decision recorded? | [`audits/2026-10-behavior/`](audits/2026-10-behavior/README.md) — the October 2026 behaviour audit, kept as a historical record (see [Citing a record](#citing-a-record)) |
 | How do I contribute / set up the toolchain? | [`CONTRIBUTING.md`](../../CONTRIBUTING.md) |
 | What is planned, and what is done? | [`docs/ROADMAP.md`](../ROADMAP.md) (open work), [`docs/ROADMAP-archive.md`](../ROADMAP-archive.md) (completed phases) |
-| Why is the stack what it is? | [`docs/adr/`](../adr/) — 001 stack, 002 distribution/update channels, 003 Linux packaging, 004 Device Sync and the Athenaeum server, 005 difficulty vocabulary, 006 English country dance grammar, 007 square dance grammar |
+| Why is the stack what it is? | [`docs/adr/`](../adr/) — 001 stack, 002 distribution/update channels, 003 Linux packaging, 004 Device Sync and the Athenaeum server, 005 difficulty vocabulary, 006 English country dance grammar, 007 square dance grammar, 008 Rubric choreography checking and assistance |
 | How does Device Sync work? | [`docs/design/sync.md`](../design/sync.md), [`sync-spec.md`](../design/sync-spec.md) (the wire contract), [`sync-implementation.md`](../design/sync-implementation.md); the server is [`server/README.md`](../../server/README.md) |
 | What does the data model look like? | [`docs/design/domain-model.md`](../design/domain-model.md), [`docs/design/storage.md`](../design/storage.md) |
 | How do imports work? | [`docs/design/imports.md`](../design/imports.md) (large; read the section index at its head) |
@@ -53,6 +53,17 @@ whose only record is on a branch loses its provenance with it. So:
   (an audit report, a decision log), bring the record onto `main` in the same
   PR and cite its path there. Copy it byte-for-byte if anything cites it by
   `file:line`.
+- A `file.dart:N` line citation in `docs/**/*.md` goes stale whenever lines are
+  added above it. Prefer a stable anchor (a symbol or widget key) where one
+  exists. `python3 tools/ci/check_doc_line_citations.py` counts citations that
+  now land on a blank line, a comment or past the end of the file, or whose path
+  no longer resolves (missing, or no longer unique), against
+  `tools/ci/doc_line_citations_ceiling.json` (`docs/dev/audits/` is excluded:
+  dated records). The ceiling is exact: a new stale citation fails, and so does
+  a cleanup that does not lower the ceiling in the same PR. It runs in
+  `_checks.yml` (code PRs can move cited lines) and in its own
+  `.github/workflows/doc-line-citations.yml` (`ci.yml` skips `_checks.yml` for
+  a Markdown-only PR); the latter is not a required check.
 - To say where work was done, cite the merged PR (`#N`) or a commit SHA that
   is on `main`, not the branch it was built on. A GitHub link pins such a SHA
   or `main`, never a branch. A SHA that exists only on a branch is a branch

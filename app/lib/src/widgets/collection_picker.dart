@@ -23,7 +23,6 @@ import '../models/dance_list_entry.dart';
 import '../search/called_venue_choices.dart';
 import '../search/collection_data.dart';
 import '../search/collection_opening_sort.dart';
-import '../search/collection_query.dart';
 import '../theme/app_spacing.dart';
 import 'advanced_query_builder.dart';
 import 'by_phrase_panel.dart';
@@ -1126,6 +1125,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
       tags: data.tags,
       citedSources: data.citedSources,
       tunes: data.tunes,
+      meters: data.meters,
+      musicalKeys: data.musicalKeys,
       choiceFields: data.choiceFields,
       booleanFields: data.booleanFields,
       textFields: data.textFields,

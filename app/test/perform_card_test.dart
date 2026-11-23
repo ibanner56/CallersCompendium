@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:compendium_app/l10n/app_localizations.dart';
+import 'package:compendium_app/src/data/canonical_discouraged_terms_scope.dart';
 import 'package:compendium_app/src/data/formation_colors_controller.dart';
 import 'package:compendium_app/src/data/formation_colors_scope.dart';
 import 'package:compendium_app/src/data/reduce_motion_scope.dart';
@@ -771,4 +772,132 @@ void main() {
       );
     });
   }
+
+  group('tune details (meter and key)', () {
+    Future<void> pumpCard(
+      WidgetTester tester,
+      Dance dance, {
+      bool canonicalDiscouragedTerms = false,
+    }) async {
+      final c = await _controllerWith(null);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: CanonicalDiscouragedTermsScope(
+              notifier: ValueNotifier<bool>(canonicalDiscouragedTerms),
+              child: FormationColorsScope(
+                controller: c,
+                child: PerformCard(
+                  dance: dance,
+                  renderer: _renderer,
+                  dialect: Dialect.larksRobins,
+                  textScale: 1.0,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('shows the meter and key on one labelled row', (tester) async {
+      await pumpCard(
+        tester,
+        _dance().copyWith(meter: '3/2', musicalKey: 'A minor'),
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('perform-tune-details')),
+          matching: find.text('Meter: 3/2 · Key: A minor'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('shows only the meter when no key is set', (tester) async {
+      await pumpCard(tester, _dance().copyWith(meter: '6/8'));
+      expect(find.text('Meter: 6/8'), findsOneWidget);
+      expect(find.textContaining('Key:'), findsNothing);
+    });
+
+    testWidgets('has no row when neither is set', (tester) async {
+      await pumpCard(tester, _dance());
+      expect(find.byKey(const ValueKey('perform-tune-details')), findsNothing);
+    });
+
+    testWidgets('renders a discouraged term in the typed value canonically', (
+      tester,
+    ) async {
+      await pumpCard(
+        tester,
+        _dance().copyWith(musicalKey: 'Gypsy'),
+        canonicalDiscouragedTerms: true,
+      );
+      expect(find.text('Key: Shoulder round'), findsOneWidget);
+      expect(find.textContaining('Gypsy'), findsNothing);
+    });
+  });
+
+  group('credits with years', () {
+    Future<void> pumpCard(
+      WidgetTester tester,
+      Dance dance, {
+      List<String> authorNames = const [],
+      List<String> interpreterNames = const [],
+    }) async {
+      final c = await _controllerWith(null);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: FormationColorsScope(
+              controller: c,
+              child: PerformCard(
+                dance: dance,
+                renderer: _renderer,
+                dialect: Dialect.larksRobins,
+                textScale: 1.0,
+                authorNames: authorNames,
+                interpreterNames: interpreterNames,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('shows the authors with the composed year and the '
+        'interpreters with the interpreted year', (tester) async {
+      await pumpCard(
+        tester,
+        _dance().copyWith(
+          composedOn: PartialDate(1651),
+          interpretedOn: PartialDate(1916, 5),
+        ),
+        authorNames: const ['John Playford'],
+        interpreterNames: const ['Cecil Sharp', 'George Butterworth'],
+      );
+      expect(
+        tester.widget<Text>(find.byKey(const ValueKey('perform-authors'))).data,
+        'John Playford (1651)',
+      );
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('perform-interpreters')))
+            .data,
+        'Interpreted by Cecil Sharp, George Butterworth (1916)',
+      );
+    });
+
+    testWidgets('has no interpreter line without interpreters or a year', (
+      tester,
+    ) async {
+      await pumpCard(tester, _dance(), authorNames: const ['Pat Shaw']);
+      expect(find.text('Pat Shaw'), findsOneWidget);
+      expect(find.byKey(const ValueKey('perform-interpreters')), findsNothing);
+    });
+  });
 }

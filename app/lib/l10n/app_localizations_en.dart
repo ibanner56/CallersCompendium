@@ -2132,6 +2132,87 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appThemeGroupDark => 'Dark';
 
   @override
+  String get themeScreenSearchHint => 'Search themes…';
+
+  @override
+  String get themeScreenClearSearchTooltip => 'Clear search';
+
+  @override
+  String get themeScreenNoMatches => 'No themes match your search.';
+
+  @override
+  String themeScreenResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count themes',
+      one: '1 theme',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get themeScreenNewCustomTheme => 'Custom theme';
+
+  @override
+  String get themeScreenNewCustomThemeSemantic => 'New custom theme';
+
+  @override
+  String get appThemeKeywordRed => 'red, crimson, scarlet, coral';
+
+  @override
+  String get appThemeKeywordOrange => 'orange, amber, copper';
+
+  @override
+  String get appThemeKeywordYellow => 'yellow, gold, mustard';
+
+  @override
+  String get appThemeKeywordGreen => 'green, sage, olive, forest';
+
+  @override
+  String get appThemeKeywordTeal => 'teal, cyan, turquoise, aqua, mint';
+
+  @override
+  String get appThemeKeywordBlue => 'blue, navy, azure, sky';
+
+  @override
+  String get appThemeKeywordPurple => 'purple, violet, lilac, lavender, mauve';
+
+  @override
+  String get appThemeKeywordPink => 'pink, magenta, rose, fuchsia';
+
+  @override
+  String get appThemeKeywordBrown => 'brown, beige, tan, cream, sepia';
+
+  @override
+  String get appThemeKeywordGrey => 'grey, gray, charcoal, slate, silver';
+
+  @override
+  String get appThemeKeywordWarm => 'warm, cozy, earthy';
+
+  @override
+  String get appThemeKeywordCool => 'cool, cold, icy, arctic, frosty';
+
+  @override
+  String get appThemeKeywordPastel => 'pastel, soft, candy';
+
+  @override
+  String get appThemeKeywordVivid => 'vivid, saturated, neon, bold';
+
+  @override
+  String get appThemeKeywordMuted => 'muted, subdued, calm, gentle';
+
+  @override
+  String get appThemeKeywordRetro => 'retro, vintage, classic';
+
+  @override
+  String get appThemeKeywordAccessible =>
+      'accessible, legible, readable, contrast';
+
+  @override
+  String get appThemeKeywordAutomatic => 'automatic, auto, device, follow';
+
+  @override
   String get appThemeLabelSystem => 'System';
 
   @override
@@ -2465,14 +2546,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAppearancePreviewBody => 'Body text sample';
 
   @override
-  String get settingsAppearanceNewThemeButton => 'New custom theme';
-
-  @override
   String get settingsAppearanceNewThemeDefaultName => 'My theme';
-
-  @override
-  String get settingsAppearanceCustomThemesEmpty =>
-      'Copy the current theme and tune any color. Custom themes sync to your other devices when sync is on.';
 
   @override
   String settingsAppearanceCustomThemeSemantic(String name) {
@@ -4106,6 +4180,41 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorMusicalKeyHint => 'e.g. G minor';
 
   @override
+  String danceAuthorsWithYear(String names, String year) {
+    return '$names ($year)';
+  }
+
+  @override
+  String danceComposedYear(String year) {
+    return 'Composed $year';
+  }
+
+  @override
+  String danceInterpretedBy(String names) {
+    return 'Interpreted by $names';
+  }
+
+  @override
+  String danceInterpretedByWithYear(String names, String year) {
+    return 'Interpreted by $names ($year)';
+  }
+
+  @override
+  String danceInterpretedYear(String year) {
+    return 'Interpreted $year';
+  }
+
+  @override
+  String danceMeterValue(String meter) {
+    return 'Meter: $meter';
+  }
+
+  @override
+  String danceMusicalKeyValue(String key) {
+    return 'Key: $key';
+  }
+
+  @override
   String get commonMixedLevel => 'Mixed level';
 
   @override
@@ -4667,6 +4776,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Show dances that have at least one selected tag';
 
   @override
+  String get collectionFacetMeter => 'Meter';
+
+  @override
+  String get collectionFacetMusicalKey => 'Key';
+
+  @override
   String get collectionFacetSource => 'Source';
 
   @override
@@ -4993,6 +5108,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String exportNamedPhrases(String order, String bars) {
+    return '$order ($bars)';
+  }
+
+  @override
+  String get exportNamedPhraseSeparator => ', ';
+
+  @override
+  String get exportLabelSeparator => ': ';
+
+  @override
   String danceFigureBars(String bars, int halfBars) {
     String _temp0 = intl.Intl.pluralLogic(
       halfBars,
@@ -5078,6 +5204,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programsMoreActions => 'More actions';
+
+  @override
+  String get programsFormMatchLabel => 'Match types';
+
+  @override
+  String get programsFormMatchOnly => 'Only';
+
+  @override
+  String get programsFormMatchOnlyTooltip =>
+      'Programs of only the chosen types';
+
+  @override
+  String get programsFormMatchIncludes => 'Includes';
+
+  @override
+  String get programsFormMatchIncludesTooltip =>
+      'Programs that have the chosen type';
 
   @override
   String get danceSectionFigures => 'Figures';
@@ -11559,6 +11702,27 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get compoundEditorInvalidFigures =>
       'One of the figures isn\'t complete or valid yet.';
+
+  @override
+  String compoundEditorOtherFormFigures(
+    int count,
+    String figureForm,
+    String entryForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figures are',
+      one: '1 figure is',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'them',
+      one: 'it',
+    );
+    return '$_temp0 from $figureForm, not $entryForm. Change the dance type back, or remove $_temp1.';
+  }
 
   @override
   String get compoundEditorTooLong => 'One of the fields is too long.';

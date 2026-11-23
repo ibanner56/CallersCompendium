@@ -30,6 +30,7 @@ class DanceDetailData {
     required this.dance,
     this.difficultyLevel,
     required this.authorNames,
+    this.interpreterNames = const [],
     required this.tagNames,
     this.tags = const [],
     this.choreographersById = const {},
@@ -45,6 +46,11 @@ class DanceDetailData {
   final Dance dance;
   final DifficultyLevel? difficultyLevel;
   final List<String> authorNames;
+
+  /// The names of the people who interpreted the dance ([Dance.interpreterIds])
+  /// that resolve, in order. Kept apart from [authorNames], which also decides
+  /// whether the choreographer asked for larks and robins.
+  final List<String> interpreterNames;
   final List<String> tagNames;
 
   /// The dance's tags as `(id, name, color)` triples, in [Dance.tagIds] order,
@@ -265,6 +271,10 @@ class DanceDetailData {
       difficultyLevel: difficultyLevel,
       authorNames: [
         for (final id in dance.authorIds)
+          if (choreographerNames[id] != null) choreographerNames[id]!,
+      ],
+      interpreterNames: [
+        for (final id in dance.interpreterIds)
           if (choreographerNames[id] != null) choreographerNames[id]!,
       ],
       tagNames: [

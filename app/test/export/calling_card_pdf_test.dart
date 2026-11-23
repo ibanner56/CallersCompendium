@@ -58,6 +58,7 @@ Future<String> _text(
   Set<DanceShareField> fields = DanceShareField.allExceptTunes,
   String programTitle = '',
   CallingCardFitReport? report,
+  DanceExportLabels labels = const DanceExportLabels(),
 }) async => pdfText(
   await buildCallingCardsPdf(
     entries,
@@ -68,6 +69,7 @@ Future<String> _text(
     programTitle: programTitle,
     theme: _theme,
     report: report,
+    labels: labels,
   ),
 );
 
@@ -155,6 +157,34 @@ notes label=""
     expect(text, contains('Hello hall'.split(' ').first));
     expect(text, contains('NB:'));
     expect(text, isNot(contains('Calling')));
+  });
+
+  test('a block label takes the labels separator, in every example '
+      'layout', () async {
+    // The labels decide the punctuation after a block's label (`：` in
+    // Japanese); no example layout writes its own English label in its place.
+    const labels = DanceExportLabels(
+      callingNotes: 'CN',
+      walkthrough: 'WT',
+      labelSeparator: '|',
+    );
+    for (final MapEntry(key: name, value: layout) in {
+      'default': kDefaultCallingCardLayout,
+      ...kCallingCardLayoutExamples,
+    }.entries) {
+      final text = await _text(
+        [_entry(_dance(walkthrough: 'Walk it'))],
+        layout: layout,
+        labels: labels,
+      );
+      if (layout.contains(RegExp(r'^notes', multiLine: true))) {
+        expect(text, contains('CN|'), reason: name);
+      }
+      if (layout.contains(RegExp(r'^walkthrough', multiLine: true))) {
+        expect(text, contains('WT|'), reason: name);
+      }
+      expect(text, isNot(contains('Calling notes')), reason: name);
+    }
   });
 
   test('figure options drop beats, phrases and figure notes', () async {

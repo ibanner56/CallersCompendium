@@ -2160,6 +2160,87 @@ class AppLocalizationsDe extends AppLocalizations {
   String get appThemeGroupDark => 'Dunkel';
 
   @override
+  String get themeScreenSearchHint => 'Designs suchen…';
+
+  @override
+  String get themeScreenClearSearchTooltip => 'Suche löschen';
+
+  @override
+  String get themeScreenNoMatches => 'Keine Designs entsprechen Ihrer Suche.';
+
+  @override
+  String themeScreenResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Designs',
+      one: '1 Design',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get themeScreenNewCustomTheme => 'Eigenes Design';
+
+  @override
+  String get themeScreenNewCustomThemeSemantic => 'Neues eigenes Design';
+
+  @override
+  String get appThemeKeywordRed => 'rot, karmin, scharlach, koralle';
+
+  @override
+  String get appThemeKeywordOrange => 'orange, bernstein, kupfer';
+
+  @override
+  String get appThemeKeywordYellow => 'gelb, gold, senf';
+
+  @override
+  String get appThemeKeywordGreen => 'grün, salbei, oliv, wald';
+
+  @override
+  String get appThemeKeywordTeal => 'petrol, cyan, türkis, aqua, mint';
+
+  @override
+  String get appThemeKeywordBlue => 'blau, marine, azur, himmelblau';
+
+  @override
+  String get appThemeKeywordPurple => 'lila, violett, flieder, lavendel, mauve';
+
+  @override
+  String get appThemeKeywordPink => 'rosa, pink, magenta, fuchsia';
+
+  @override
+  String get appThemeKeywordBrown => 'braun, beige, sand, creme, sepia';
+
+  @override
+  String get appThemeKeywordGrey => 'grau, anthrazit, schiefer, silber';
+
+  @override
+  String get appThemeKeywordWarm => 'warm, gemütlich, erdig';
+
+  @override
+  String get appThemeKeywordCool => 'kühl, kalt, eisig, arktisch, frostig';
+
+  @override
+  String get appThemeKeywordPastel => 'pastell, sanft, zart';
+
+  @override
+  String get appThemeKeywordVivid => 'lebhaft, leuchtend, kräftig, neon, satt';
+
+  @override
+  String get appThemeKeywordMuted => 'gedämpft, dezent, ruhig, sanft';
+
+  @override
+  String get appThemeKeywordRetro => 'retro, vintage, klassisch';
+
+  @override
+  String get appThemeKeywordAccessible =>
+      'barrierefrei, lesbar, gut lesbar, kontrast';
+
+  @override
+  String get appThemeKeywordAutomatic => 'automatisch, auto, gerät, folgen';
+
+  @override
   String get appThemeLabelSystem => 'System';
 
   @override
@@ -2507,15 +2588,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsAppearancePreviewBody => 'Beispiel Fließtext';
 
   @override
-  String get settingsAppearanceNewThemeButton =>
-      'Neues benutzerdefiniertes Design';
-
-  @override
   String get settingsAppearanceNewThemeDefaultName => 'Mein Design';
-
-  @override
-  String get settingsAppearanceCustomThemesEmpty =>
-      'Aktuelles Design kopieren und beliebige Farben anpassen. Benutzerdefinierte Designs werden mit Ihren anderen Geräten synchronisiert, wenn die Synchronisierung aktiviert ist.';
 
   @override
   String settingsAppearanceCustomThemeSemantic(String name) {
@@ -4179,6 +4252,41 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceEditorMusicalKeyHint => 'z. B. g-Moll';
 
   @override
+  String danceAuthorsWithYear(String names, String year) {
+    return '$names ($year)';
+  }
+
+  @override
+  String danceComposedYear(String year) {
+    return 'Komponiert $year';
+  }
+
+  @override
+  String danceInterpretedBy(String names) {
+    return 'Interpretiert von $names';
+  }
+
+  @override
+  String danceInterpretedByWithYear(String names, String year) {
+    return 'Interpretiert von $names ($year)';
+  }
+
+  @override
+  String danceInterpretedYear(String year) {
+    return 'Interpretiert $year';
+  }
+
+  @override
+  String danceMeterValue(String meter) {
+    return 'Taktart: $meter';
+  }
+
+  @override
+  String danceMusicalKeyValue(String key) {
+    return 'Tonart: $key';
+  }
+
+  @override
   String get commonMixedLevel => 'Gemischtes Niveau';
 
   @override
@@ -4744,6 +4852,12 @@ class AppLocalizationsDe extends AppLocalizations {
       'Tänze anzeigen, die mindestens eines der gewählten Tags haben';
 
   @override
+  String get collectionFacetMeter => 'Taktart';
+
+  @override
+  String get collectionFacetMusicalKey => 'Tonart';
+
+  @override
   String get collectionFacetSource => 'Quelle';
 
   @override
@@ -5075,6 +5189,17 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String exportNamedPhrases(String order, String bars) {
+    return '$order ($bars)';
+  }
+
+  @override
+  String get exportNamedPhraseSeparator => ', ';
+
+  @override
+  String get exportLabelSeparator => ': ';
+
+  @override
   String danceFigureBars(String bars, int halfBars) {
     String _temp0 = intl.Intl.pluralLogic(
       halfBars,
@@ -5160,6 +5285,23 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get programsMoreActions => 'Weitere Aktionen';
+
+  @override
+  String get programsFormMatchLabel => 'Typ-Übereinstimmung';
+
+  @override
+  String get programsFormMatchOnly => 'Nur';
+
+  @override
+  String get programsFormMatchOnlyTooltip =>
+      'Programme nur mit den gewählten Typen';
+
+  @override
+  String get programsFormMatchIncludes => 'Enthält';
+
+  @override
+  String get programsFormMatchIncludesTooltip =>
+      'Programme mit dem gewählten Typ';
 
   @override
   String get danceSectionFigures => 'Figuren';
@@ -11718,6 +11860,21 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get compoundEditorInvalidFigures =>
       'Eine der Figuren ist noch nicht vollständig oder gültig.';
+
+  @override
+  String compoundEditorOtherFormFigures(
+    int count,
+    String figureForm,
+    String entryForm,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Figuren stammen',
+      one: '1 Figur stammt',
+    );
+    return '$_temp0 aus $figureForm, nicht aus $entryForm. Stelle den Tanztyp zurück oder entferne sie.';
+  }
 
   @override
   String get compoundEditorTooLong => 'Eines der Felder ist zu lang.';

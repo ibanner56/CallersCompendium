@@ -59,7 +59,9 @@ VirtualVideos[], VariantVideos[], VariantVirtualVideos[]`.
   a formation-based fallback for Circle/Scatter Mixer records whose `Mixer?` is
   blank — see design/imports.md for the inference rule and its Sicilian Circle
   exclusion. `Virtual?` remains unread (no model field yet).
-- `PhraseStructure` empty = default `4*8*2`; else e.g. `6*8*2` for 48-bar.
+- `PhraseStructure` empty = default `4*8*2`; else e.g. `6*8*2` for 48-bar. A formula may be
+  followed by one parenthesised note, as in Hardiman the Fiddler (id 8206), `4*4*3 (slip jig)`:
+  the adapter stores `4*4*3` and puts the note in the calling notes as `Phrase structure note: …`.
 - **`License` (e.g. CC-BY-NC on some dances) appears only in HTML, not JSON** — a
   snapshot pipeline that cares about licenses must scrape HTML too.
 - HTML pages are `windows-1252` encoded; JSON is the cleaner source (no gloss-link
@@ -893,14 +895,14 @@ side. This is the same over-count issue #769 tracks in the coverage metric.
 
 **That last claim depends on one call site, so state it precisely rather than
 structurally.** `Figure.meanwhile` *does* take a `note`
-(`figure.dart:112`), and three construction sites populate it: the ContraDB
-allemande-while-orbit templates (`contradb_figure_dialect.dart:378`,
-`contradb_adapter.dart:481`) and the in-app editor
-(`figure_draft.dart:221`), where a user hand-authoring a meanwhile group can
+(`figure.dart`), and three construction sites populate it: the ContraDB
+allemande-while-orbit templates (`_allemandeOrbitMeanwhile` in `contradb_figure_dialect.dart`,
+`contradb_adapter.dart`) and the in-app editor
+(the meanwhile-group draft in `figure_draft.dart`), where a user hand-authoring a meanwhile group can
 give it one. What makes the census's reasoning hold is narrower: the **TCB**
-`||` fan-out (`callersbox_figure_dialect.dart:463`) constructs the container
+`||` fan-out (`meanwhileFromDoublePipe` in `callersbox_figure_dialect.dart`) constructs the container
 with `figures`/`beats`/`progression` and no `note:`, as does the generic
-ContraDB `whiles` fan-out (`contradb_figure_dialect.dart:171`). If a future
+ContraDB `whiles` fan-out (`parseContraDbFigureLine` in `contradb_figure_dialect.dart`). If a future
 change teaches the TCB fan-out to annotate a container, a dropped qualifier
 could then belong to the container and this section's reasoning would stop
 holding — silently, since nothing tests for it.

@@ -174,9 +174,9 @@ sources, custom field values, hooks and notes, and at each dance's meter, key
 and the people who interpreted it, and finds each word exactly as you typed
 it: `3/2`, `D minor` or `Sharp` each find the dances that have them. A word of
 one or two letters must start a word, so `D` finds the key "D minor" but `in`
-does not. A letter with an accent in a meter, key or interpreter's name must be
-typed as it was entered, capital included. **Author** looks only at the people
-who wrote a dance, not those who interpreted it. It skips yes/no fields, which you find with their filter, and
+does not. Accents and capitals don't matter in a meter, key or interpreter's
+name: `emile` finds Émile. **Author** looks at the people who wrote a dance and
+the people who interpreted it. All fields skips yes/no fields, which you find with their filter, and
 any custom field with **Searchable** turned off (see
 [Make your own fields](#make-your-own-fields)).
 
@@ -211,6 +211,13 @@ applies to your own library. **By phrase** stays available for The Caller's Box,
 and **Advanced** for ContraDB; each is grayed out for the archive that cannot
 use it. A source selector appears under the row so you can choose which archive
 to search.
+
+The row of buttons (with the source selector, while it shows) and the count of
+matching dances above the list stay at the top of the list as you scroll, so
+you can always see how many dances match and change your search without
+scrolling back up. An open panel scrolls away between the two. On a short
+screen with very large text, either one that would leave less than half of the
+list showing scrolls with it instead.
 
 On ContraDB, **Advanced** searches the archive with the same **All of**,
 **Any of**, and **None of** groups of **Has figure** and **Sequence (then)**
@@ -261,6 +268,10 @@ the **Filters** panel. It lets you narrow by:
   [Filter by calling history](#filter-by-calling-history) below
 - **Author**
 - **Tunes** — see [Filter by tunes](#filter-by-tunes) below
+- **Meter** and **Key** — the meters and keys your dances have, such as *6/8*
+  or *D minor*. A chip finds the dances whose whole meter or key is that
+  value, ignoring capitals and accents, so *6/8* does not find *6/8 and 9/8*.
+  Each appears once at least one dance has a meter or a key.
 - **Tags** — including **Untagged**, for dances that have no tags yet
 - **Source** — the book or collection a dance was published in
 - your own [custom fields](./glossary.md#custom-field) — the choice, yes/no,
@@ -448,9 +459,12 @@ your dialect and neutral wording.*
 
 The detail view brings together:
 
-- **A header** — title, authors, formation and progression (and **Mixer**, if
-  the dance is one), plus a status banner if the dance is flagged (for example,
-  deprecated or broken), a line saying where an imported dance came from, and
+- **A header** — title, authors with the year the dance was composed (such as
+  *Pat Shaw (1951)*), who interpreted it and when on a line of its own (such as
+  *Interpreted by Cecil Sharp (1916)*), formation and progression (and
+  **Mixer**, if the dance is one), the tune's **Meter** and **Key** on one line when either is
+  filled in (such as *Meter: 6/8 · Key: G minor*), plus a status banner if the
+  dance is flagged (for example, deprecated or broken), a line saying where an imported dance came from, and
   its **Hook**, the one line on why you would call it.
 - **The figures**, laid out by section (A1, A2, B1, B2), each with a beats column
   and a marker showing where the [progression](./glossary.md#progression) happens.

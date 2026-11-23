@@ -69,7 +69,8 @@ class ComponentThemes {
   // High contrast where the component is a container or control boundary.
   // Sheets and the menus themed here (popup, anchored and M3 dropdown menus)
   // sit on distinct surface tiers, and High contrast outlines them, as it
-  // does cards and dialogs. Plain DropdownButton menus take no theme border.
+  // does cards and dialogs. Every dropdown in the app is a DropdownMenu, so
+  // every dropdown's menu takes the outline.
   final BottomSheetThemeData bottomSheet;
   final PopupMenuThemeData popupMenu;
   final MenuThemeData menu;

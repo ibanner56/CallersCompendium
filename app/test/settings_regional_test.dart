@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -181,10 +182,10 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<DateFormatPref>>(
+          .widget<AppDropdownField<DateFormatPref>>(
             find.byKey(const ValueKey('regional-date-format')),
           )
-          .value,
+          .initialValue,
       DateFormatPref.ymd,
     );
   });
@@ -307,10 +308,10 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<DateFormatPref>>(
+          .widget<AppDropdownField<DateFormatPref>>(
             find.byKey(const ValueKey('regional-date-format')),
           )
-          .value,
+          .initialValue,
       DateFormatPref.custom,
     );
     expect(
@@ -333,10 +334,10 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<Locale?>>(
+          .widget<AppDropdownField<Locale?>>(
             find.byKey(const ValueKey('regional-language')),
           )
-          .value,
+          .initialValue,
       isNull,
     );
     expect(notifiers.locale.value, isNull);
@@ -366,10 +367,10 @@ void main() {
     expect(notifiers.locale.value, const Locale('en'));
     expect(
       tester
-          .widget<DropdownButton<Locale?>>(
+          .widget<AppDropdownField<Locale?>>(
             find.byKey(const ValueKey('regional-language')),
           )
-          .value,
+          .initialValue,
       const Locale('en'),
     );
   });
@@ -384,10 +385,10 @@ void main() {
     expect(notifiers.locale.value, const Locale('en'));
     expect(
       tester
-          .widget<DropdownButton<Locale?>>(
+          .widget<AppDropdownField<Locale?>>(
             find.byKey(const ValueKey('regional-language')),
           )
-          .value,
+          .initialValue,
       const Locale('en'),
     );
   });
@@ -415,10 +416,10 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<FirstDayOfWeekPref>>(
+          .widget<AppDropdownField<FirstDayOfWeekPref>>(
             find.byKey(const ValueKey('regional-first-day-of-week-dropdown')),
           )
-          .value,
+          .initialValue,
       FirstDayOfWeekPref.monday,
     );
     expect(notifiers.firstDayOfWeek.value, FirstDayOfWeekPref.monday);
@@ -446,10 +447,10 @@ void main() {
     expect(notifiers.firstDayOfWeek.value, FirstDayOfWeekPref.sunday);
     expect(
       tester
-          .widget<DropdownButton<FirstDayOfWeekPref>>(
+          .widget<AppDropdownField<FirstDayOfWeekPref>>(
             find.byKey(const ValueKey('regional-first-day-of-week-dropdown')),
           )
-          .value,
+          .initialValue,
       FirstDayOfWeekPref.sunday,
     );
   });
@@ -463,10 +464,10 @@ void main() {
     expect(notifiers.firstDayOfWeek.value, FirstDayOfWeekPref.system);
     expect(
       tester
-          .widget<DropdownButton<FirstDayOfWeekPref>>(
+          .widget<AppDropdownField<FirstDayOfWeekPref>>(
             find.byKey(const ValueKey('regional-first-day-of-week-dropdown')),
           )
-          .value,
+          .initialValue,
       FirstDayOfWeekPref.system,
     );
   });

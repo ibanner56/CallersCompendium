@@ -1,0 +1,12 @@
+{
+  "id": "2228-theme-screen",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Themes have their own screen. Settings › Appearance now shows a single Theme row naming the theme you're using, so the rest of Appearance no longer sits below several screens of theme cards. Tap it to see the themes grouped as before, with your custom themes after them and a floating + Custom theme button to make a new one."
+    ],
+    "added": [
+      "Search themes on the Theme screen by name, or by a color or character word such as purple, warm, pastel or retro. Searching shows just the matching themes, without the headings."
+    ]
+  }
+}

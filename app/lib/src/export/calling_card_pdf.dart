@@ -529,11 +529,11 @@ class _CardBuilder {
   /// The label a block prints before its text unless the layout says
   /// otherwise: the field's own label for the long-text fields.
   String _defaultLabel(CallingCardBlockKind kind) => switch (kind) {
-    CallingCardBlockKind.notes => '${labels.callingNotes}: ',
-    CallingCardBlockKind.walkthrough => '${labels.walkthrough}: ',
-    CallingCardBlockKind.hook => '${labels.hook}: ',
-    CallingCardBlockKind.tunes => '${labels.tunes}: ',
-    CallingCardBlockKind.sources => '${labels.sources}: ',
+    CallingCardBlockKind.notes => labels.labelled(labels.callingNotes),
+    CallingCardBlockKind.walkthrough => labels.labelled(labels.walkthrough),
+    CallingCardBlockKind.hook => labels.labelled(labels.hook),
+    CallingCardBlockKind.tunes => labels.labelled(labels.tunes),
+    CallingCardBlockKind.sources => labels.labelled(labels.sources),
     _ => '',
   };
 

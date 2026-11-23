@@ -334,6 +334,15 @@ class DanceEditorController extends ChangeNotifier {
     debugLabel: 'interpreted-on',
   );
 
+  /// Keys for the Authors and Interpreted by pickers, so a picker keeps its
+  /// typed search text and focus when an English dance's credit line flips
+  /// between names beside the year and names above it (a window resize or a
+  /// text size change), or moves when the form changes.
+  final GlobalKey authorsPickerKey = GlobalKey(debugLabel: 'authors-picker');
+  final GlobalKey interpretersPickerKey = GlobalKey(
+    debugLabel: 'interpreters-picker',
+  );
+
   /// Whether the interpretation credits (Interpreted by, Interpreted in) and
   /// the Composed date are shown up front, beside the authors, rather than
   /// in More details: for ECD, where most dances credit both an original and
@@ -482,7 +491,7 @@ class DanceEditorController extends ChangeNotifier {
     _compounds = {
       for (final entry in entries)
         if (entry.kind == UserGlossaryEntryKind.compound)
-          if (decodeCompoundDefinition(entry.payload, contraTaxonomy)
+          if (decodeCompoundDefinition(entry.payload, shippedTaxonomies.anyForm)
               case final definition?)
             entry.id: (entry: entry, definition: definition),
     };
@@ -1810,6 +1819,7 @@ class DanceEditorController extends ChangeNotifier {
   // -------------------------------------------------------------------------
 
   void setForm(DanceForm value) {
+    _fitFormationToForm(from: _form, to: value);
     _form = value;
     _followForm();
     _fitSequenceTimingToForm(figureDrafts);
@@ -1818,6 +1828,26 @@ class DanceEditorController extends ChangeNotifier {
     pushUndoNow();
     scheduleAutosave();
     _notify();
+  }
+
+  /// Starts the formation over when the dance changes to a form that does not
+  /// offer its shape: the shape becomes that form's first
+  /// ([core.offeredFormationShapes], duple minor for ECD and duple improper
+  /// for contra and square). A shape from the old form's list, such as
+  /// contra's "Improper", would otherwise stay selected and keep showing in
+  /// the new form's list ([offeredFormationShapes]). A shape the new form
+  /// offers is kept: triple minor, Sicilian circle and other are in both
+  /// lists, contra and square share theirs, and an English dance still on a
+  /// contra shape (converted or imported before ECD's shapes) keeps it when
+  /// changed back to contra. Choosing the form the dance already has changes
+  /// nothing. [improper] is left as it is: a new dance starts proper, and an
+  /// English dance changed to contra and back keeps its checkbox. Undo
+  /// restores the old shape.
+  void _fitFormationToForm({required DanceForm from, required DanceForm to}) {
+    if (from == to) return;
+    final offered = core.offeredFormationShapes(to);
+    if (offered.contains(_formationShape)) return;
+    _formationShape = offered.first;
   }
 
   void setImproper(bool value) {

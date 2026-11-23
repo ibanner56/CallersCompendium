@@ -128,14 +128,14 @@ String programToPlainText(
           authorNamesFor: authorNamesFor,
           formLabelFor: formLabelFor,
         );
-        lines.add('   ${labels.alt}: $alternate');
+        lines.add('   ${labels.labelled(labels.alt)}$alternate');
       }
     }
   }
 
   if (_has(program.notes)) {
     if (lines.isNotEmpty) lines.add('');
-    lines.add('${labels.notes}:');
+    lines.add(labels.heading(labels.notes));
     lines.add(
       !canonicalizeDiscouragedTerms || renderer == null || dialect == null
           ? program.notes.trim()
@@ -164,7 +164,7 @@ String setListPrimaryLine(
   int Function() nextNumber,
 ) {
   if (primary.isPlannedDance) return '${nextNumber()}. $line';
-  if (primary.isAlt) return '${labels.alt}: $line';
+  if (primary.isAlt) return '${labels.labelled(labels.alt)}$line';
   return line;
 }
 
@@ -225,10 +225,10 @@ List<String> programHeaderLines(
   }
 
   if (includeCallerBand && _has(program.band)) {
-    lines.add('${labels.band}: ${program.band!.trim()}');
+    lines.add('${labels.labelled(labels.band)}${program.band!.trim()}');
   }
   if (includeCallerBand && _has(program.caller)) {
-    lines.add('${labels.caller}: ${program.caller!.trim()}');
+    lines.add('${labels.labelled(labels.caller)}${program.caller!.trim()}');
   }
   if (_has(program.dancerLevel)) {
     final level =
@@ -238,7 +238,7 @@ List<String> programHeaderLines(
             program.dancerLevel!.trim(),
             dialect,
           );
-    lines.add('${labels.level}: $level');
+    lines.add('${labels.labelled(labels.level)}$level');
   }
   return lines;
 }
@@ -306,7 +306,8 @@ String programSlotLine(
       : formLabelFor?.call(slot.danceId!);
   final meta = <String>[
     if (_has(formLabel)) formLabel!.trim(),
-    if (_has(slot.guestCaller)) '${labels.guest}: ${slot.guestCaller!.trim()}',
+    if (_has(slot.guestCaller))
+      '${labels.labelled(labels.guest)}${slot.guestCaller!.trim()}',
     if (slot.plannedTotalMinutes != null)
       labels.minutes(slot.plannedTotalMinutes!),
   ];
