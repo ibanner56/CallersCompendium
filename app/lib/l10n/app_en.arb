@@ -12131,6 +12131,10 @@
   "@danceEditorTypeToAddOrCreateHint": {
     "description": "Hint text for a type-ahead field that can add an existing item or create a new one."
   },
+  "danceEditorChooseHint": "Choose…",
+  "@danceEditorChooseHint": {
+    "description": "Hint in an empty multi-select field (Authors, Interpreted by, Tags) that opens a list to pick from or add to."
+  },
   "danceEditorCreateQuotedName": "Create \"{name}\"",
   "@danceEditorCreateQuotedName": {
     "description": "Type-ahead option label for creating a new item with the typed name/title.",

@@ -34,10 +34,9 @@ class _TestPicker extends StatefulWidget {
   final TextEditingValue? initialValue;
   final FocusNode? focusNode;
 
-  /// Mirrors `name_picker.dart`'s `_AddAutocomplete.onSelected`
-  /// (`:162-163`): clears the field and re-requests focus after every pick,
-  /// which is what turns a successful selection into "reopen the sheet" on
-  /// a phone. Requires [focusNode] to be non-null (the test needs a handle
+  /// Mirrors a caller that clears the field and calls `requestFocus()`
+  /// after a pick (issue #894), which is what turns a successful selection
+  /// into "reopen the sheet" on a phone. Requires [focusNode] to be non-null (the test needs a handle
   /// on the same node the widget refocuses to assert on it).
   final bool refocusAfterSelect;
 
@@ -46,8 +45,8 @@ class _TestPicker extends StatefulWidget {
 }
 
 class _TestPickerState extends State<_TestPicker> {
-  // Owned only so `refocusAfterSelect` has something to clear — mirrors
-  // `_AddAutocompleteState._controller` in name_picker.dart.
+  // Owned only so `refocusAfterSelect` has something to clear, as a caller
+  // that clears the field after a pick would own its controller.
   TextEditingController? _ownedController;
   TextEditingController get _controller =>
       _ownedController ??= TextEditingController();
