@@ -1,0 +1,9 @@
+{
+  "id": "2303-ecd-phrase-beats-cap",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "An English dance's named phrase now takes 1 to 12 Beats per bar, where it took up to 1000. A bar of more than 12 beats has no meter to name it, so a bar range typed over it was counted by 2 beats to the bar; a phrase already saved with more beats than that shows the error and is kept, with the error shown, until you set its beats."
+    ]
+  }
+}

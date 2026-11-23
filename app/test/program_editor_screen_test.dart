@@ -5841,8 +5841,9 @@ void main() {
           .widget<CollectionPicker>(find.byKey(ValueKey(pickerKey)))
           .programContext;
 
-  testWidgets('the add-dance pickers get the program, its venue and its '
-      'slots; Replace dance gets no program context (#2343)', (tester) async {
+  testWidgets('the add-dance pickers get the program, its venue and the end '
+      "of it; Replace dance gets the program and the slot's place (#2343, "
+      '#2344)', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
     await repos.dances.create(_dance(id: 'd2', title: 'Petronella Reel'));
@@ -5860,12 +5861,13 @@ void main() {
     expect(context?.programId, 'p1');
     expect(context?.venue, 'The Grange');
     expect(context?.venueLabel, 'The Grange');
-    expect(context?.slots?.map((s) => s.danceId), ['d1']);
+    expect(context?.position?.slotsBefore.map((s) => s.danceId), ['d1']);
+    expect(context?.position?.slotsAfter, isEmpty);
 
     await tester.tap(find.byKey(const ValueKey('picker-add-d2')));
     await tester.pumpAndSettle();
     context = contextOf(tester, 'inline-picker');
-    expect(context?.slots?.map((s) => s.danceId), ['d1', 'd2']);
+    expect(context?.position?.slotsBefore.map((s) => s.danceId), ['d1', 'd2']);
 
     await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
     await tester.pumpAndSettle();
@@ -5874,10 +5876,15 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('slot-edit-replace-dance')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('replace-picker')), findsOneWidget);
-    expect(contextOf(tester, 'replace-picker'), isNull);
+    context = contextOf(tester, 'replace-picker');
+    expect(context?.programId, 'p1');
+    expect(context?.venue, 'The Grange');
+    // The first slot's place: nothing before it, d2 after, d1 left out.
+    expect(context?.position?.slotsBefore, isEmpty);
+    expect(context?.position?.slotsAfter.map((s) => s.danceId), ['d2']);
   });
 
-  testWidgets('the sheet picker gets the program and its slots (#2343)', (
+  testWidgets('the sheet picker gets the program and its end (#2343)', (
     tester,
   ) async {
     final repos = openTestRepositories();
@@ -5901,7 +5908,8 @@ void main() {
     final context = contextOf(tester, 'sheet-picker');
     expect(context?.programId, 'p1');
     expect(context?.venue, isNull);
-    expect(context?.slots?.map((s) => s.danceId), ['d1']);
+    expect(context?.position?.slotsBefore.map((s) => s.danceId), ['d1']);
+    expect(context?.position?.slotsAfter, isEmpty);
   });
 
   testWidgets('free-text and break slots contribute no dance counts (#796)', (
