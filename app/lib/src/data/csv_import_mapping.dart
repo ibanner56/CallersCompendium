@@ -96,9 +96,18 @@ Map<String, String> customFieldCsvHeaders(
   Iterable<String> reserved,
 ) {
   final used = {for (final name in reserved) csvFold(name)};
+  // Numbered in (label, id) order, not the caller's: the repository orders
+  // fields by label only, so equal labels have no defined order there.
+  final ordered =
+      [
+        for (final f in fields)
+          if (customFieldLeavesIn(f, ArchiveSerializationMode.share)) f,
+      ]..sort((a, b) {
+        final byLabel = csvFold(a.label).compareTo(csvFold(b.label));
+        return byLabel != 0 ? byLabel : a.id.compareTo(b.id);
+      });
   final headers = <String, String>{};
-  for (final field in fields) {
-    if (!customFieldLeavesIn(field, ArchiveSerializationMode.share)) continue;
+  for (final field in ordered) {
     var header = field.label;
     for (var n = 2; used.contains(csvFold(header)); n++) {
       header = '${field.label} ($n)';
@@ -109,11 +118,21 @@ Map<String, String> customFieldCsvHeaders(
   return headers;
 }
 
-/// Every header a built-in column answers to in [languages], plus the phrase
-/// labels: the names [customFieldCsvHeaders] must not reuse.
+/// Every header a built-in column answers to or is written under in
+/// [languages] (the dances export's own columns, including those the import
+/// has no target for), plus the phrase labels: the names
+/// [customFieldCsvHeaders] must not reuse.
 List<String> csvReservedHeaders(List<AppLocalizations> languages) => [
-  for (final l10n in languages)
+  for (final l10n in languages) ...[
     for (final names in csvTargetHeaderNames(l10n).values) ...names,
+    l10n.csvColumnComposed,
+    l10n.csvColumnInterpreters,
+    l10n.csvColumnInterpreted,
+    l10n.csvColumnMixedLevel,
+    l10n.csvColumnRating,
+    l10n.csvColumnBarnes,
+    l10n.csvColumnSources,
+  ],
   ...csvPhraseLabels,
 ];
 
@@ -143,8 +162,15 @@ CsvColumnMapping? csvTargetForHeader(
       return CsvColumnMapping.customField(f.id);
     }
   }
+  // The plain label, for a field the export never writes and for a file from
+  // before headers were made unique. A field whose header was changed to tell
+  // it apart ("Rating (2)") no longer answers to its bare label: that header
+  // belongs to the built-in column it was kept apart from.
   for (final f in fields) {
-    if (csvFold(f.label) == folded) return CsvColumnMapping.customField(f.id);
+    final header = exported[f.id];
+    if ((header == null || header == f.label) && csvFold(f.label) == folded) {
+      return CsvColumnMapping.customField(f.id);
+    }
   }
   return null;
 }

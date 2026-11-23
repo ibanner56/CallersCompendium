@@ -134,6 +134,8 @@ void main() {
         field('b', 'Story'),
         field('c', en.csvColumnTitle),
         field('d', 'story (2)'),
+        field('e', en.csvColumnRating),
+        field('f', en.csvColumnBarnes),
       ];
       final withValues = dance(
         customFields: [
@@ -150,7 +152,14 @@ void main() {
       );
       final header = csvRecords(csv).single.keys.toList();
       final custom = header.skip(header.indexOf(en.csvColumnFigures) + 1);
-      expect(custom, ['Story', 'Story (2)', 'Title (2)', 'story (2) (2)']);
+      expect(custom, [
+        'Story',
+        'Story (2)',
+        'Title (2)',
+        'story (2) (2)',
+        'Rating (2)',
+        'Barnes reference (2)',
+      ]);
       expect(
         {for (final h in header) h.toLowerCase()}.length,
         header.length,
@@ -166,6 +175,8 @@ void main() {
         CsvColumnMapping.customField('b'),
         CsvColumnMapping.customField('c'),
         CsvColumnMapping.customField('d'),
+        CsvColumnMapping.customField('e'),
+        CsvColumnMapping.customField('f'),
       ]);
       expect(
         mapped[header.indexOf(en.csvColumnTitle)],
