@@ -1915,7 +1915,7 @@ To be defined later with worked examples.
 - **interaction scope:** the caster's column, across hands-four boundaries when `places` ≥ 2.
 - **h4 contribution** (D7): 0.
 - **progression-eligible:** yes (not its own progression).
-- **corpus note (2026-11-23, measured after `circular_hey`):** 202 Caller's Box dances stopped at
+- **corpus note (2026-11-23, `rubric` at `2bf7a0e1`):** 202 Caller's Box dances stopped at
   this figure before it was built. None compiles yet: 147 first stop at a `down_the_hall` led
   by the ones alone ("ones lead down"; `who: ones` on a hall figure is deferred), 34 at a
   `swing`, 10 at `form_short_waves` and 1 at a `two_hand_turn` before the cast. 6 refuse at the cast itself (5
