@@ -2890,7 +2890,9 @@ To be defined later with worked examples.
   `[[. R2-B . . L2-B], [L1-A . . R1-A .]]`.
 - **preconditions:** inherited wholesale from the delegate — including its `sides` / `center`
   cross-checks and its axis restriction — because the delegation goes through the public `apply`
-  rather than round the outside of it.
+  rather than round the outside of it. An **unstated** `sides` or `center` that does not hold on
+  the landed wave raises the **`unstatedPairing` warning** in this figure's own name, as the
+  delegate does *(user-ruled 2026-11-23)*.
 - **interaction scope:** the whole set.
 - **h4 contribution** (D7): 0.
 - **progression-eligible:** no.

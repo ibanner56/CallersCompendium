@@ -221,8 +221,17 @@ final class FormShortWaves extends Operation {
   /// An [WarningKind.unstatedPairing] warning when [sides] or [center] was not
   /// stated and its default does not hold in [formation]. A stated one that
   /// fails is refused by [checkPreconditions] instead.
-  Iterable<Warning> unstatedPairingLint(Formation formation) {
+  ///
+  /// Read on the settled set, as [Operation.apply] settles it before the
+  /// figure runs: a set already standing in waves is read from its side
+  /// columns. [figure] names the figure in the warning, for a caller that
+  /// lands in this wave.
+  Iterable<Warning> unstatedPairingLint(
+    Formation handed, {
+    String figure = 'form_short_waves',
+  }) {
     if (sides != null && center != null) return const [];
+    final formation = normalizeWaveOffsets(handed);
     final hand = _outerHand(formation);
     for (final entry in _corneredBands(formation)) {
       final corners = entry.corners;
@@ -236,7 +245,7 @@ final class FormShortWaves extends Operation {
             Warning(
               WarningKind.unstatedPairing,
               detail:
-                  '$name states no sides, and ${pair.a} and ${pair.b}, the '
+                  '$figure states no sides, and ${pair.a} and ${pair.b}, the '
                   'pair standing face to face, are not '
                   '${_defaultSides.key}; the wave forms with them',
             ),
@@ -250,7 +259,7 @@ final class FormShortWaves extends Operation {
             Warning(
               WarningKind.unstatedPairing,
               detail:
-                  '$name states no center, and ${centre.a} and ${centre.b} '
+                  '$figure states no center, and ${centre.a} and ${centre.b} '
                   'end in the middle, not ${_defaultCenter.key}; the wave '
                   'forms with them',
             ),
@@ -803,7 +812,7 @@ final class PassTheOcean extends Operation {
               'passing',
         ),
       // The wave is formed after the pass, so its pairing is read there.
-      ..._wave.unstatedPairingLint(_passed(formation)),
+      ..._wave.unstatedPairingLint(_passed(formation), figure: name),
     ];
   }
 

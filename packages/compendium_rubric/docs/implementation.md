@@ -861,8 +861,8 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
   what an omitted parameter means, and deriving would have broken the alignment
   invariant (an omitted param must build the same figure as the stated default)
   for no gain. *(Since then, 2026-11-23: `sides` and `center` are left
-  unstated when omitted, by ruling; `centerHand` still takes the default.)* The figure keeps its `center`-derives-hand path for direct
-  construction.
+  unstated when omitted, by ruling; `centerHand` still takes the default.)*
+  The figure keeps its `center`-derives-hand path for direct construction.
 - **`hey` has a full `docs/taxonomy.md` entry** and is out of the Held table.
 - **`hey` is covered by a golden.** `last_hey.json` (Caller's Box #14417) is the
   first sourced dance containing one. Two things had to be settled to land it:

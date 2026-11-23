@@ -172,9 +172,9 @@ enum WarningKind {
   /// *verifies* its `sides` and `center`; they never move anyone. A stated one
   /// that disagrees with the set is still `whoMismatch`, but an unstated one is
   /// the taxonomy's default, not the source's word, so the wave forms and this
-  /// says the default did not hold. *(Hudson's suggestion, 2026-11-23, on Real
-  /// to Unreal: warn rather than refuse when only a defaulted parameter fails;
-  /// applied to these two figures by the agent.)*
+  /// says the default did not hold. *(User-ruled 2026-11-23, from the
+  /// maintainer's own suggestion on Real to Unreal: warn rather than refuse
+  /// when only a defaulted parameter fails.)*
   ///
   /// **State-dependent**, raised by the operation and stamped by the engine.
   unstatedPairing(

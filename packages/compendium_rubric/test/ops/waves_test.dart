@@ -177,21 +177,48 @@ void main() {
         );
       });
 
-      test('pass_the_ocean forms its wave with no pairing stated', () {
+      test('an unstated center that does not hold warns too', () {
+        // A right-hand centre join sends the larks in, not the default robins.
+        const op = FormShortWaves(
+          centerHand: Hand.right,
+          center: null,
+          sides: null,
+        );
+        expect(op.apply(start), isA<Ok<Formation, OpError>>());
+        expect(
+          op.lint(start).map((w) => w.detail),
+          contains(contains('states no center')),
+        );
+      });
+
+      test('a set already standing in waves is read from its sides', () {
+        final waved = applyOk(unstated, partnersFacing);
+        expect(
+          unstated.lint(waved).map((w) => w.kind),
+          contains(WarningKind.unstatedPairing),
+        );
+      });
+
+      test('pass_the_ocean warns in its own name, after the pass', () {
         const ocean = PassTheOcean(
           centerHand: Hand.left,
           center: null,
           sides: null,
         );
-        final across = start.withUpdates({
-          for (final entry in start.dancers.entries)
+        final across = di(const ['R1-A . . . L2-B', 'L1-A . . . R2-B']);
+        final facingAcross = across.withUpdates({
+          for (final entry in across.dancers.entries)
             entry.key: entry.value.copyWith(
               facing: entry.value.col == 0
                   ? Facing.acrossEast
                   : Facing.acrossWest,
             ),
         });
-        expect(ocean.apply(across), isA<Ok<Formation, OpError>>());
+        expect(ocean.apply(facingAcross), isA<Ok<Formation, OpError>>());
+        expect(
+          ocean.lint(facingAcross).map((w) => w.detail),
+          contains(startsWith('pass_the_ocean states no sides')),
+        );
       });
     });
 
