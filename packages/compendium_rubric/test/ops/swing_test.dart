@@ -187,4 +187,121 @@ void main() {
       expect(whoMatches(f, lark1, lark2, WhoSet.ones), isFalse);
     });
   });
+
+  group('"Ones swing" in their own row (user-ruled 2026-11-23)', () {
+    // The ones stand across the set from each other in one row; they swing
+    // there and finish facing down the hall, toward the twos.
+    test('the ones finish facing down, lark on the east line', () {
+      // Crossed over and facing in, so the swing has to move them.
+      final after = applyOk(
+        const Swing(who: WhoSet.ones),
+        di(const ['L1-A . . . R1-A', 'L2-B . . . R2-B']),
+      );
+      expect(after.toRolesNotation(), ['R1-A . . . L1-A', 'L2-B . . . R2-B']);
+      for (final id in after.dancersInRow(0)) {
+        expect(after.stateOf(id).facing, Facing.down, reason: '$id');
+      }
+    });
+
+    test('ones in the bottom row still face down, toward new twos', () {
+      final after = applyOk(
+        const Swing(who: WhoSet.ones),
+        di(const ['L2-B . . . R2-B', 'L1-A . . . R1-A']),
+      );
+      expect(after.toRolesNotation(), ['L2-B . . . R2-B', 'R1-A . . . L1-A']);
+      for (final id in after.dancersInRow(1)) {
+        expect(after.stateOf(id).facing, Facing.down, reason: '$id');
+      }
+    });
+
+    test('a stated face: up is honoured', () {
+      final after = applyOk(
+        const Swing(who: WhoSet.ones, face: FaceDirection.up),
+        di(const ['R1-A . . . L1-A', 'L2-B . . . R2-B']),
+      );
+      expect(after.toRolesNotation(), ['L1-A . . . R1-A', 'L2-B . . . R2-B']);
+      for (final id in after.dancersInRow(0)) {
+        expect(after.stateOf(id).facing, Facing.up, reason: '$id');
+      }
+    });
+
+    test('ones not sharing a row are still refused', () {
+      final result = const Swing(who: WhoSet.ones).apply(
+        base().withUpdates({
+          for (final entry in base().dancers.entries)
+            entry.key: entry.value.copyWith(
+              position: Position(
+                entry.key.role == Role.lark ? 0 : 1,
+                entry.value.col,
+              ),
+            ),
+        }),
+      );
+      expect(
+        (result as Err<Formation, OpError>).error.kind,
+        ErrorKind.whoMismatch,
+      );
+    });
+
+    test('face: out for ones in their own row is deferred', () {
+      final result = const Swing(
+        who: WhoSet.ones,
+        face: FaceDirection.awayFromSet,
+      ).apply(di(const ['R1-A . . . L1-A', 'L2-B . . . R2-B']));
+      expect(
+        (result as Err<Formation, OpError>).error.kind,
+        ErrorKind.unsupportedParam,
+      );
+    });
+
+    test('ones at the ends of a line of four do not swing in that row', () {
+      // The ones stand at c0 and c4 of a line, facing in. A ones-in-a-row
+      // swing would turn them down the hall; here nobody moves or turns.
+      final line = di(const ['R1-A L2-B . R2-B L1-A', '. . . . .']);
+      final after = applyOk(const Swing(who: WhoSet.ones), line);
+      for (final id in line.dancers.keys) {
+        expect(after.stateOf(id), line.stateOf(id), reason: '$id');
+      }
+    });
+
+    test(
+      'a hands four with ones in both rows is not a ones-in-a-row swing',
+      () {
+        // Synthetic: every dancer numbered one. The side-column swing then
+        // runs, so the dancers are paired by column, not by row.
+        final set = di(const ['R1-A . . . L1-A', 'L2-B . . . R2-B']);
+        final allOnes = set.withUpdates({
+          for (final entry in set.dancers.entries)
+            entry.key: entry.value.copyWith(number: CoupleNumber.one),
+        });
+        final after = applyOk(const Swing(who: WhoSet.ones), allOnes);
+        for (final id in after.dancers.keys) {
+          expect(after.stateOf(id).facing.isAcross, isTrue, reason: '$id');
+        }
+      },
+    );
+
+    test('a couple standing out does not swing', () {
+      final set = di(const [
+        'L1-A . . . R1-A',
+        'L1-C . . . R1-C',
+        'L2-B . . . R2-B',
+        'L2-D . . . R2-D',
+      ]);
+      final out = set.withUpdates({
+        for (final id in set.dancersInRow(3))
+          id: set.stateOf(id).copyWith(waitingOut: true),
+        for (final id in set.dancersInRow(0))
+          id: set.stateOf(id).copyWith(waitingOut: true),
+      });
+      final after = applyOk(const Swing(who: WhoSet.ones), out);
+      for (final row in [0, 3]) {
+        for (final id in out.dancersInRow(row)) {
+          expect(after.stateOf(id), out.stateOf(id), reason: '$id');
+        }
+      }
+      // The ones of the one active hands four did swing.
+      expect(after.toRolesNotation()[1], 'R1-C . . . L1-C');
+    });
+  });
 }

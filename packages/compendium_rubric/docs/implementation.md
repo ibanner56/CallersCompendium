@@ -789,7 +789,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,365 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,372 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,
@@ -965,8 +965,11 @@ post-taxonomy-v35 snapshot.
   `unsupportedParam` 332, `unresolvableDancerSet` 23, `notAdjacent` 9. The
   single largest genuine gap in the compiler is **`swing` raising
   `whoMismatch` in 587 dances** — bigger than every deferred move except
-  `promenade`, and it sits squarely inside the in-scope denominator. It has not
-  been investigated; it is the highest-value next piece of work. Among deferred
+  `promenade`, and it sits squarely inside the in-scope denominator.
+  *(Since then, 2026-11-23: its largest cause, "Ones swing" in the ones' own
+  row, is built on a user ruling (`taxonomy.md`, `swing`), with the measurement
+  in `status.md`; "Twos swing" in a row and the line of four that follows the
+  ones' swing remain open.)* Among deferred
   parameters, **diagonal `right_left_through` (78 dances) is the highest-value
   unblock** — it also gates the hey diagonals.
 - **What the 1,724 deferred dances are blocked by**, first blocker only (the
