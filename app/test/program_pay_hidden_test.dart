@@ -183,6 +183,13 @@ void main() {
       expect(_payField, findsOneWidget);
 
       await tester.enterText(_payField, '6000');
+      // Any other edit rebuilds the editor; the corrected field must not
+      // vanish while the person is still on it.
+      final hideAlternates = find.byKey(
+        const ValueKey('program-hide-alternates'),
+      );
+      await tester.ensureVisible(hideAlternates);
+      await tester.tap(hideAlternates);
       await tester.pumpAndSettle();
       expect(_payField, findsOneWidget, reason: 'it does not vanish mid-fix');
       await _save(tester);
