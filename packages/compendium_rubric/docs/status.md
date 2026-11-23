@@ -53,6 +53,16 @@
 > 4,539 to 4,824, as dances these had blocked now reach a verdict), and the
 > core set from 410 to 435, with no previously compiling dance lost. No
 > corpus dance has two meanwhile parts moving the same dancer.
+>
+> **Hall figures led by part of the set (2026-11-23)** are built on Hudson's
+> rulings ("ones lead down/up" and "go down/up the outside" move the set like a
+> cast). Against `rubric` at `ee39d32f` they took the count from 3,031 to
+> 3,116 compiled in scope (the denominator grew from 4,824 to 4,970), with the
+> core set unchanged at 435 and no previously compiling dance lost. Of the 85
+> new passes, 36 are triple-minor dances, which this compiler reads as Duple
+> Improper (with its existing warning). Five of the 85 (two duple, three
+> triple) lead past two couples in their text, which the import drops, and
+> compile on a one-place reading. Five dances that refused now mismatch.
 
 The compiler implements 53 canonical figures. Twenty-eight have no deliberately
 deferred parameter values, 25 have an implemented core with explicit
@@ -196,7 +206,12 @@ from this table because the compiler never ran against them. **Pass rate** is
 
 ### Hall figures
 
-- `down_the_hall` and `up_the_hall` require `who:everyone` and `moving:all`.
+- A whole-hands-four `down_the_hall` or `up_the_hall` requires `moving:all`.
+- Led by part of the set (`who:ones`, `twos`, `role1s` or `role2s`; user-ruled
+  2026-11-23), the leaders move one place and the dancers they pass step back
+  one. They take `moving:center` or `outsides`, `facing:forward`, and the
+  `none` or `turnAlone` enders; leads by `partners`, ending `turnCouple`, and
+  the rest stay deferred.
 - The `cozy`, `cloverleaf`, `threadNeedle`, and `rightHandHigh` enders remain
   deferred.
 

@@ -1,6 +1,6 @@
 part of '../operation.dart';
 
-/// Which part of the line travels. Only [HallMoving.all] is implemented.
+/// Which part of the line travels.
 enum HallMoving {
   all('all'),
   center('center'),
@@ -99,10 +99,13 @@ sealed class HallFigure extends Operation {
     required this.ender,
   });
 
-  /// Which dancers travel. Only the whole hands four is defined.
+  /// Which dancers travel: the whole hands four, or leaders named by
+  /// membership (see [_leadPlan]).
   final WhoSet who;
 
-  /// Which part of the line travels. Only [HallMoving.all] is implemented.
+  /// Which part of the line travels. For the whole hands four only
+  /// [HallMoving.all] is implemented; a partial lead takes `center` or
+  /// `outsides`.
   final HallMoving moving;
 
   /// Orientation relative to travel; sets the ending facing.
@@ -118,6 +121,11 @@ sealed class HallFigure extends Operation {
   @override
   Iterable<WhoSet?> get dancerSets => [who];
 
+  /// A partial lead moves dancers along the set, as [Cast] does, and is
+  /// eligible as [Cast] is; the line of four is inert and is not.
+  @override
+  bool get progressionEligible => _ledByPart;
+
   /// The facing the line finishes the *travel* on, before any ender.
   Facing get _travelEndFacing =>
       facing == HallFacing.backward ? travel.reversed : travel;
@@ -126,14 +134,107 @@ sealed class HallFigure extends Operation {
   FaceDirection get _gatherFace =>
       _travelEndFacing == Facing.down ? FaceDirection.down : FaceDirection.up;
 
+  /// Whether part of the set leads, rather than the whole hands four.
+  bool get _ledByPart => who != WhoSet.everyone;
+
+  /// The leaders and the dancers they pass, for a figure [_ledByPart].
+  ///
+  /// **User-ruled (2026-11-23):** "ones lead down/up" moves the set the way a
+  /// [Cast] does: the leaders move along the set and each dancer they pass
+  /// steps one place the other way. A hall figure carries no count (the
+  /// Caller's Box import drops "past N1;N2"), so the leaders go **one place**, to the other end of their own hands four; that
+  /// is the reading the ruling was asked on ("ones lead down, turn alone, lead
+  /// up, cast off" compiles).
+  ///
+  /// What falls outside these limits is refused as deferred
+  /// ([ErrorKind.unsupportedParam]) rather than guessed. The limits are the
+  /// agent's call, not ruled, except where marked:
+  ///
+  /// - `who` must name leaders by membership (`ones`, `twos`, `role1s`,
+  ///   `role2s`); a pair relation such as `partners` stays deferred.
+  /// - `moving` must be `center` (between the dancers passed) or `outsides`
+  ///   (behind them). That both move the set the same way, since on the grid
+  ///   they pass the same dancers, is user-ruled (2026-11-23).
+  /// - `facing` must be `forward`.
+  /// - The ender must be `none` or `turnAlone`. A `turnCouple` ender would
+  ///   decide which side of the set each leader ends on, which is a
+  ///   choreography question not yet asked; the others reshape a line of four
+  ///   that a partial lead does not form.
+  Result<List<DancerPair>, OpError> _leadPlan(Formation formation) {
+    if (!_passerMemberships.contains(who)) {
+      return Err(
+        OpError(
+          ErrorKind.unsupportedParam,
+          '$name led by ${who.key} is deferred: only the whole hands four, or '
+          'leaders named by membership (ones, twos, role1s, role2s), is built',
+        ),
+      );
+    }
+    if (moving == HallMoving.all) {
+      return Err(
+        OpError(
+          ErrorKind.unsupportedParam,
+          '$name who:${who.key} moving:all is deferred: part of the set '
+          'leads, so it travels down the center or the outsides',
+        ),
+      );
+    }
+    if (facing != HallFacing.forward) {
+      return Err(
+        OpError(
+          ErrorKind.unsupportedParam,
+          '$name who:${who.key} facing:${facing.key} is deferred',
+        ),
+      );
+    }
+    if (ender != HallEnder.none && ender != HallEnder.turnAlone) {
+      return Err(
+        OpError(
+          ErrorKind.unsupportedParam,
+          '$name who:${who.key} ender:${ender.key} is deferred',
+        ),
+      );
+    }
+    return _onePlacePasses(
+      formation,
+      who,
+      step: travel == Facing.down ? 1 : -1,
+      figure: name,
+      label: '$name who:${who.key}',
+      passer: 'pass',
+    );
+  }
+
+  /// Moves the leaders one place and steps the passed dancers back one.
+  ///
+  /// Leaders finish facing the way they travelled, or the other way after a
+  /// `turnAlone`. The dancers passed end with flexible facing, as in [Cast]:
+  /// they step along to make room.
+  Result<Formation, OpError> _performLead(Formation formation) =>
+      _leadPlan(formation).map((pairs) {
+        final leaderFacing = ender == HallEnder.turnAlone
+            ? travel.reversed
+            : travel;
+        // A leader is the one whose destination lies along its travel.
+        final leaderDestinations = {
+          for (final pair in pairs) formation.stateOf(pair.b).position,
+        };
+        return swapPairs(
+          formation,
+          pairs,
+          facing: (before, after, other) => leaderDestinations.contains(after)
+              ? leaderFacing
+              : Facing.flexible,
+        );
+      });
+
   @override
   OpError? checkPreconditions(Formation formation) {
-    if (who != WhoSet.everyone) {
-      return OpError(
-        ErrorKind.unsupportedParam,
-        '$name is defined for the whole hands four; who:${who.key} is '
-        'deferred',
-      );
+    if (_ledByPart) {
+      return switch (_leadPlan(formation)) {
+        Ok() => null,
+        Err(:final error) => error,
+      };
     }
     if (moving != HallMoving.all) {
       return OpError(
@@ -257,6 +358,8 @@ sealed class HallFigure extends Operation {
   /// nothing to disagree with either.
   @override
   Iterable<Warning> lint(Formation formation) {
+    // A partial lead forms no line of four and gathers nobody.
+    if (_ledByPart) return const [];
     for (final band in handsFourBands(formation)) {
       final row = lineOfFourRow(formation, band);
       if (row == null) continue;
@@ -278,6 +381,8 @@ sealed class HallFigure extends Operation {
 
   @override
   Result<Formation, OpError> perform(Formation formation) {
+    if (_ledByPart) return _performLead(formation);
+
     // Phase 1 - gather. `swing where:sides` verbatim. It is self-limiting: a
     // band already standing as a line has no side column holding two dancers,
     // so the swing leaves it alone and the conditionality falls out.

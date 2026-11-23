@@ -66,13 +66,6 @@ final class Cast extends Operation {
   @override
   bool get progressionEligible => true;
 
-  static const _memberships = {
-    WhoSet.ones,
-    WhoSet.twos,
-    WhoSet.role1s,
-    WhoSet.role2s,
-  };
-
   /// The caster and the dancer it passes, for every caster in every active
   /// hands four.
   Result<List<DancerPair>, OpError> _plan(Formation formation) {
@@ -123,7 +116,7 @@ final class Cast extends Operation {
         ),
       );
     }
-    if (!_memberships.contains(casters)) {
+    if (!_passerMemberships.contains(casters)) {
       return Err(
         OpError(
           ErrorKind.unresolvableDancerSet,
@@ -133,55 +126,14 @@ final class Cast extends Operation {
       );
     }
 
-    final step = dir == CastDirection.down ? 1 : -1;
-    final plan = <DancerPair>[];
-    // Only the active hands fours: a couple standing out at an end is outside
-    // every one of them, and no figure moves it (`end_normalization.dart`).
-    for (final band in handsFourBands(formation)) {
-      final inBand = [
-        ...formation.dancersInRow(band.topRow),
-        ...formation.dancersInRow(band.bottomRow),
-      ];
-      final casterIds = {
-        for (final id in inBand)
-          if (whoIncludes(formation, id, casters)) id,
-      };
-      for (final id in casterIds) {
-        final at = formation.stateOf(id).position;
-        final row = at.row + step;
-        final other = row == band.topRow || row == band.bottomRow
-            ? formation.dancerAt(Position(row, at.col))
-            : null;
-        if (other == null) {
-          return Err(
-            OpError(
-              ErrorKind.unresolvableDancerSet,
-              'cast ${dir.key} 1: $id has nobody to cast around in its hands '
-              'four (rows ${band.topRow}-${band.bottomRow})',
-            ),
-          );
-        }
-        if (casterIds.contains(other)) {
-          return Err(
-            OpError(
-              ErrorKind.unresolvableDancerSet,
-              'cast ${dir.key} 1: $id would pass $other, who is a '
-              '${casters.key} casting too',
-            ),
-          );
-        }
-        plan.add((a: id, b: other));
-      }
-    }
-    if (plan.isEmpty) {
-      return Err(
-        OpError(
-          ErrorKind.unresolvableDancerSet,
-          'cast: no ${casters.key} stands in an active hands four',
-        ),
-      );
-    }
-    return Ok(plan);
+    return _onePlacePasses(
+      formation,
+      casters,
+      step: dir == CastDirection.down ? 1 : -1,
+      figure: 'cast',
+      label: 'cast ${dir.key} 1',
+      passer: 'cast around',
+    );
   }
 
   @override
@@ -217,4 +169,82 @@ final class Cast extends Operation {
   @override
   String toString() =>
       'cast(${who?.key ?? '?'}, ${direction?.key ?? '?'}, ${places ?? '?'})';
+}
+
+/// The membership sets that name the dancers who move past others one place
+/// along the set: [Cast] and a [HallFigure] led by part of the set.
+const _passerMemberships = {
+  WhoSet.ones,
+  WhoSet.twos,
+  WhoSet.role1s,
+  WhoSet.role2s,
+};
+
+/// Each dancer of [members] in every active hands four, paired with the dancer
+/// one row [step] away in its column inside that hands four: the dancer it
+/// passes, who steps one place the other way.
+///
+/// Shared by [Cast] and by a [HallFigure] led by part of the set, which move
+/// the set the same way *(user-ruled 2026-11-23)*. Only the active hands fours
+/// are read: a couple standing out at an end is outside every one of them, and
+/// no figure moves it (`end_normalization.dart`). A mover with nobody beside it
+/// in that direction, or whose neighbour there is moving too, is refused
+/// ([ErrorKind.unresolvableDancerSet]); so is a plan that moves nobody.
+///
+/// [figure] names the figure in the empty-plan message, [label] the move in the
+/// others, and [passer] what the movers do to the dancer they pass.
+Result<List<DancerPair>, OpError> _onePlacePasses(
+  Formation formation,
+  WhoSet members, {
+  required int step,
+  required String figure,
+  required String label,
+  required String passer,
+}) {
+  final plan = <DancerPair>[];
+  for (final band in handsFourBands(formation)) {
+    final inBand = [
+      ...formation.dancersInRow(band.topRow),
+      ...formation.dancersInRow(band.bottomRow),
+    ];
+    final movers = {
+      for (final id in inBand)
+        if (whoIncludes(formation, id, members)) id,
+    };
+    for (final id in movers) {
+      final at = formation.stateOf(id).position;
+      final row = at.row + step;
+      final other = row == band.topRow || row == band.bottomRow
+          ? formation.dancerAt(Position(row, at.col))
+          : null;
+      if (other == null) {
+        return Err(
+          OpError(
+            ErrorKind.unresolvableDancerSet,
+            '$label: $id has nobody to $passer in its hands four (rows '
+            '${band.topRow}-${band.bottomRow})',
+          ),
+        );
+      }
+      if (movers.contains(other)) {
+        return Err(
+          OpError(
+            ErrorKind.unresolvableDancerSet,
+            '$label: $id would pass $other, who is a ${members.key} '
+            'moving too',
+          ),
+        );
+      }
+      plan.add((a: id, b: other));
+    }
+  }
+  if (plan.isEmpty) {
+    return Err(
+      OpError(
+        ErrorKind.unresolvableDancerSet,
+        '$figure: no ${members.key} stands in an active hands four',
+      ),
+    );
+  }
+  return Ok(plan);
 }

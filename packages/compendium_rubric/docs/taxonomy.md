@@ -165,7 +165,7 @@ Precondition/error kinds accumulated as figures are defined:
 | `whoMismatch` | the stated `who` relation is not in position. Two cases: a `swing`'s relation isn't in swing position (e.g. a `sides` swing where the column-mate isn't the stated relation), **or** a distance dancer set names a grouping that isn't the one standing there — checked by home grouping, see "The neighbor-distance sets" | figure |
 | `notAdjacent` | a trade figure requires the two interacting dancers to be **adjacent** — same row or same column — but they are diagonal, so neither can give the other a hand (e.g. `box_the_gnat`). This is about *where dancers stand*, not which way they face, which is why it survives the ruling below. **Renamed from `notFacing`**, which named the symptom rather than the cause and read as an exception to that ruling; the kind has never been serialized outside this repository | figure |
 | `unresolvableDancerSet` | a `who` / pair selection cannot be resolved in the current arrangement (e.g. `turn_as_couples` where the pair isn't standing together; `down_the_hall` where the column pairs aren't complete) | figure |
-| `unsupportedParam` | a parameter value is valid in the baseline but **deliberately not implemented** — the Held-table cases (e.g. quarter-turn `gate` / `two_hand_turn`, `down_the_hall` `moving: center`, the four held hall `ender`s) | figure |
+| `unsupportedParam` | a parameter value is valid in the baseline but **deliberately not implemented** — the Held-table cases (e.g. quarter-turn `gate` / `two_hand_turn`, a whole-hands-four `down_the_hall` `moving: center`, the four held hall `ender`s) | figure |
 | `unperformedProgression` | a dance claims a progression in its success criterion but flags **no figure** as performing it, so the progression could never happen. The **only dance-level** kind: it is owned by no single figure, so `CompileError.opIndex` and `.opName` are `null` (§10.1). Deliberately not inferred onto the last eligible figure — guessing which figure progresses is exactly the judgement the flag exists to record | dance |
 
 > **⚠️ Ruled: facing is never fatal.** There was an `invalidFacing` kind here. There is no
@@ -560,7 +560,7 @@ To be defined later with worked examples.
 |---|---|
 | `orbit` — couple `who` (**meanwhile**) | The move itself is **implemented** (see `orbit`); this row holds only the **couple-`who` (`ones`/`twos`) semantics**. A true 180° orbit carries a couple onto the *other* couple's cells, so it resolves only in combination with the centre figure — the **meanwhile** mechanism. *(Replaces the former `allemande_orbit` row: that fused move was **retired at Compendium v19** and its figures migrated to `meanwhile[allemande, orbit]`, so the name no longer exists in the taxonomy.)* The prior verifier also lists `^ones orbit` in its unsupported-patterns table. Revisit with the meanwhile conversation. (`meanwhile` itself is now built — see "Containers" above — but runs each part as it already runs, so this row still stands.) |
 | hall `ender` values — `cozy`, `cloverleaf`, `threadNeedle`, `rightHandHigh` | `down_the_hall` / `up_the_hall` are **implemented** (see their entries); this row holds only these four `ender` values, which raise `UnsupportedParam`. No verifier basis for any: there is **no handler at all** for `cozy`, `threadNeedle`, or `slidingDoors`; `TryCloverleaf` (FigureSimulator.cs:1224) is a **different, standalone** figure (an h4 ring rotation) and "cloverleaf turn single" sits in the unsupported-patterns list (:800); `TryRightHandHigh` (:4229) needs a named pivot dancer parsed from free text, and the structured ender carries no dancer param, so it is degenerate. Each needs a worked example. |
-| hall `moving` values — `center`, `outsides` | Held with the above. They move only part of the line, leaving a shape that is **not a line of four**, so §8.1 does not cover the result. Revisit with a worked example. |
+| hall `moving` values — `center`, `outsides`, for the **whole hands four** | Held with the above. They move only part of the line, leaving a shape that is **not a line of four**, so §8.1 does not cover the result. Revisit with a worked example. A hall figure **led by part of the set** (`who: ones` and the like) takes these values and is built; see `down_the_hall`, "Led by part of the set". |
 | `dolphin_hey` | Hey variant (a couple travels as a unit — a "dolphin" — led by `whom`), so it needs a rule for how a *pair* occupies one place in the line of four that the base `hey` weaves along; `hey` itself is now **implemented** (see its entry) and no longer blocks this. Verifier has **no implementation** (in the unsupported-patterns list). Needs a worked example. |
 
 ---
@@ -1978,6 +1978,7 @@ To be defined later with worked examples.
   itself (5 casts of two places, 1 cast right). 4 refuse at a later hall figure led by part of
   the set (`who: ones` twice, `who: twos`, `moving: center`). The in-scope denominator grows
   (4,506 to 4,539) because these dances are no longer stopped by a deferred move.
+  Hall figures led by part of the set were built next; what that unblocked is in `status.md`.
 - **sources:** user ruling 2026-11-23 ("casters move N, passed couples step 1"; left/right,
   "back" and unnamed casts refuse for now); CallersCompendium taxonomy `cast` MoveDef and figure
   definition.
@@ -2343,10 +2344,11 @@ To be defined later with worked examples.
   of the entire matrix — so every real state change comes from the **gather** and the **ender**.
 - **params** (meets CallersCompendium baseline `{who, moving, facing, ender, beats}`):
   - `who` — dancer set, default `everyone`. The baseline couples this to `moving`
-    (`everyone` ↔ `all`). Only the `everyone` / whole-h4 case is defined here.
-  - `moving` — choice `{all, center, outsides}`, default `all`. Only **`all`** implemented;
-    `center` / `outsides` → **deferred** (`UnsupportedParam`) — they leave part of the line
-    behind, producing a shape that is not a line of four.
+    (`everyone` ↔ `all`). `everyone` is the line of four specified below; leaders named by
+    membership are the separate case "Led by part of the set", further down.
+  - `moving` — choice `{all, center, outsides}`, default `all`. For the whole hands four only
+    **`all`** is implemented; `center` / `outsides` → **deferred** (`UnsupportedParam`) — they
+    leave part of the line behind, producing a shape that is not a line of four.
   - `facing` — choice `{forward, forwardThenBackward, backward}`, default `forward`. Sets the
     **ending facing** (below); does not affect position, since travel is inert.
   - `ender` — choice, default `turnCouple`. 6 of 10 values implemented (below).
@@ -2443,6 +2445,38 @@ To be defined later with worked examples.
   parse. User: travel is "not a matrix transformation, but a movement of the entire matrix";
   one-sided hall is a warning, not an error; `circle` and `bend the line` are synonymous;
   `slidingDoors` worked example supplied directly.
+- **Led by part of the set** (`who` other than `everyone`: "ones lead down the center"):
+  - **user-ruled (2026-11-23):** the leaders move the set the way a `cast` does — they move
+    along the set and each dancer they pass steps one place the other way. No line of four is
+    formed and nobody gathers. A hall figure carries no count, so the leaders go **one place**,
+    to the other end of their own hands four; that is the reading the ruling was asked on ("ones
+    lead down, turn alone, lead up, cast off" compiles, and the ones progress one place exactly
+    as a cast off alone would).
+  - Base `[[R1-A,0,0,0,L1-A],[L2-B,0,0,0,R2-B]]`, `who: ones`, `moving: center`, `ender:
+    turnAlone` → `[[L2-B,0,0,0,R2-B],[R1-A,0,0,0,L1-A]]`; the ones face **Up**, the twos are
+    flexible.
+  - **facing (output):** leaders face their travel, reversed by `turnAlone`. The dancers passed
+    end flexible, as in `cast`: they step along to make room.
+  - Only the active hands fours lead; a couple standing out at an end neither leads nor is
+    passed. A leader with nobody beside it in its column in the travel direction, inside its
+    hands four, or whose neighbour there is leading too (every `ones` lead in Becket), is refused
+    (`UnresolvableDancerSet`).
+  - **agent's calls, not ruled** (each refused as deferred, `UnsupportedParam`, rather than
+    guessed): `who` must name leaders by membership (`ones`, `twos`, `role1s`, `role2s`) — a pair
+    relation such as `partners` stays deferred; `moving` must be `center` or `outsides`
+    (`all` with part of the set leading is refused); `facing` must be `forward`; the `ender`
+    must be `none` or `turnAlone` — `turnCouple` would decide which side of the set each leader
+    ends on, a question not yet asked, and the other enders reshape a line of four that a
+    partial lead does not form.
+  - **user-ruled (2026-11-23):** `moving: outsides` ("ones go down the outside") moves the set
+    exactly as `center` does: on the grid both pass the same dancers.
+  - **progression-eligible:** yes, like `cast` (the whole-hands-four figure stays no).
+  - **known gap:** the Caller's Box import does not carry how far the leaders go ("past N1;N2"
+    is dropped), so a lead written as passing two couples is read as one place. Most such
+    leads are followed by a cast of two places, which is deferred, but five corpus dances
+    compile on the one-place reading although their text leads past two couples (see
+    `status.md`). Carrying the count belongs to the import (`compendium_core`).
+  - **corpus note (2026-11-23, `rubric` at `ee39d32f`):** see `status.md`.
 
 ### `up_the_hall`
 
@@ -2458,7 +2492,9 @@ To be defined later with worked examples.
   - the gather from a base ring yields `[[0,0,0,0,0],[L2-B,R1-A,0,L1-A,R2-B]]` — identical to
     `swing` `where:sides face:up`, as required;
   - `bendTheLine` / `circle` place the **ends** in the **upper** row (the row toward travel) and
-    the centers in the lower — the mirror of the `down_the_hall` case.
+    the centers in the lower — the mirror of the `down_the_hall` case;
+  - led by part of the set, the leaders move one place **up** and the dancers they pass step
+    down (`down_the_hall`, "Led by part of the set").
 - **interaction scope:** within the hands four.
 - **h4 contribution** (D7): 0.
 - **progression-eligible:** no.

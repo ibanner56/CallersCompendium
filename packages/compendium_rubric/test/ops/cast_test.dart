@@ -74,7 +74,7 @@ void main() {
           places: 1,
         ).checkPreconditions(becket);
         expect(error?.kind, ErrorKind.unresolvableDancerSet);
-        expect(error?.message, contains('casting too'));
+        expect(error?.message, contains('moving too'));
       },
     );
 
