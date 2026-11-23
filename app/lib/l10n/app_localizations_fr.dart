@@ -12981,4 +12981,59 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get programTemplateSaveError =>
       'Impossible d’enregistrer cette modification de vos modèles. Réessayez.';
+
+  @override
+  String get exportAddToCalendar => 'Ajouter au calendrier (.ics)';
+
+  @override
+  String get programsExportCalendar => 'Exporter le calendrier (.ics)';
+
+  @override
+  String get exportCalendarPickTitle => 'Exporter le calendrier';
+
+  @override
+  String get exportCalendarPickBody =>
+      'Choisissez les programmes à mettre dans le fichier de calendrier.';
+
+  @override
+  String get exportCalendarShowPast => 'Afficher les programmes passés';
+
+  @override
+  String get exportCalendarNoUpcoming =>
+      'Aucun programme à venir à afficher. Les programmes archivés ne sont pas listés ici. Activez « Afficher les programmes passés » pour en choisir un plus ancien.';
+
+  @override
+  String get exportCalendarNoDated =>
+      'Aucun programme n’a encore de date. Donnez une date à un programme pour l’ajouter à un calendrier.';
+
+  @override
+  String get exportCalendarPickConfirm => 'Exporter';
+
+  @override
+  String get exportCalendarAddressTitle => 'Inclure l’adresse du lieu ?';
+
+  @override
+  String get exportCalendarAddressBody =>
+      'Le fichier de calendrier nomme le lieu. Son adresse postale est omise, sauf si vous l’incluez. Les calendriers sont souvent synchronisés ou partagés avec d’autres personnes.';
+
+  @override
+  String get exportCalendarAddressInclude => 'Inclure l’adresse du lieu';
+
+  @override
+  String get exportCalendarDialogTitle => 'Exporter le fichier de calendrier';
+
+  @override
+  String get exportCalendarDialogMessage =>
+      'Choisissez comment transmettre ce fichier de calendrier.';
+
+  @override
+  String get exportCalendarSavedGeneric => 'Fichier de calendrier enregistré.';
+
+  @override
+  String get exportCalendarSaveError =>
+      'Impossible d’enregistrer ce fichier de calendrier. Réessayez.';
+
+  @override
+  String get exportCalendarShareError =>
+      'Impossible de partager ce fichier de calendrier. Réessayez.';
 }

@@ -18808,6 +18808,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t save that change to your templates. Try again.'**
   String get programTemplateSaveError;
+
+  /// Program export-menu item: save or share the program as an iCalendar (.ics) file so a calendar app shows it. Shown only when the program has an event date.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to calendar (.ics)'**
+  String get exportAddToCalendar;
+
+  /// Programs list More actions item: pick several programs and save or share them as one iCalendar (.ics) file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export calendar (.ics)'**
+  String get programsExportCalendar;
+
+  /// Title of the checklist dialog where the user picks which programs go into a calendar (.ics) file. Also the share-sheet subject for that file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export calendar'**
+  String get exportCalendarPickTitle;
+
+  /// Body of the calendar export checklist dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the programs to put in the calendar file.'**
+  String get exportCalendarPickBody;
+
+  /// Switch in the calendar export checklist that adds programs whose date has passed to the list, unticked.
+  ///
+  /// In en, this message translates to:
+  /// **'Show past programs'**
+  String get exportCalendarShowPast;
+
+  /// Shown in the calendar export checklist when there are dated programs but none dated today or later that is not archived, and past programs are hidden. Upcoming archived programs are never listed in the checklist.
+  ///
+  /// In en, this message translates to:
+  /// **'No upcoming programs to list. Archived programs aren\'t listed here. Turn on Show past programs to choose an earlier one.'**
+  String get exportCalendarNoUpcoming;
+
+  /// Shown in the calendar export checklist when no program has an event date.
+  ///
+  /// In en, this message translates to:
+  /// **'No program has an event date yet. Give a program a date to add it to a calendar.'**
+  String get exportCalendarNoDated;
+
+  /// Confirm button of the calendar export checklist dialog; disabled until at least one program is ticked.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get exportCalendarPickConfirm;
+
+  /// Title of the consent dialog shown before a calendar (.ics) export when a chosen program's venue has a street address.
+  ///
+  /// In en, this message translates to:
+  /// **'Include the venue\'s address?'**
+  String get exportCalendarAddressTitle;
+
+  /// Body of the calendar export's venue-address consent dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'The calendar file names the venue. Its street address is left out unless you include it. Calendars are often synced or shared with others.'**
+  String get exportCalendarAddressBody;
+
+  /// The single checkbox, unticked by default, in the calendar export's venue-address consent dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Include the venue\'s address'**
+  String get exportCalendarAddressInclude;
+
+  /// Title of the dialog that asks how to deliver a calendar (.ics) file: Save, Share or Cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Export calendar file'**
+  String get exportCalendarDialogTitle;
+
+  /// Body of the dialog that asks how to deliver a calendar (.ics) file.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how to deliver this calendar file.'**
+  String get exportCalendarDialogMessage;
+
+  /// Snack bar after a calendar (.ics) file was saved, when the platform does not report its file name.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar file saved.'**
+  String get exportCalendarSavedGeneric;
+
+  /// Snack bar when saving a calendar (.ics) file failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save this calendar file. Try again.'**
+  String get exportCalendarSaveError;
+
+  /// Snack bar when building or sharing a calendar (.ics) file failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t share this calendar file. Try again.'**
+  String get exportCalendarShareError;
 }
 
 class _AppLocalizationsDelegate

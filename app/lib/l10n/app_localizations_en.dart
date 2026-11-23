@@ -12788,4 +12788,59 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get programTemplateSaveError =>
       'Couldn\'t save that change to your templates. Try again.';
+
+  @override
+  String get exportAddToCalendar => 'Add to calendar (.ics)';
+
+  @override
+  String get programsExportCalendar => 'Export calendar (.ics)';
+
+  @override
+  String get exportCalendarPickTitle => 'Export calendar';
+
+  @override
+  String get exportCalendarPickBody =>
+      'Choose the programs to put in the calendar file.';
+
+  @override
+  String get exportCalendarShowPast => 'Show past programs';
+
+  @override
+  String get exportCalendarNoUpcoming =>
+      'No upcoming programs to list. Archived programs aren\'t listed here. Turn on Show past programs to choose an earlier one.';
+
+  @override
+  String get exportCalendarNoDated =>
+      'No program has an event date yet. Give a program a date to add it to a calendar.';
+
+  @override
+  String get exportCalendarPickConfirm => 'Export';
+
+  @override
+  String get exportCalendarAddressTitle => 'Include the venue\'s address?';
+
+  @override
+  String get exportCalendarAddressBody =>
+      'The calendar file names the venue. Its street address is left out unless you include it. Calendars are often synced or shared with others.';
+
+  @override
+  String get exportCalendarAddressInclude => 'Include the venue\'s address';
+
+  @override
+  String get exportCalendarDialogTitle => 'Export calendar file';
+
+  @override
+  String get exportCalendarDialogMessage =>
+      'Choose how to deliver this calendar file.';
+
+  @override
+  String get exportCalendarSavedGeneric => 'Calendar file saved.';
+
+  @override
+  String get exportCalendarSaveError =>
+      'Couldn\'t save this calendar file. Try again.';
+
+  @override
+  String get exportCalendarShareError =>
+      'Couldn\'t share this calendar file. Try again.';
 }

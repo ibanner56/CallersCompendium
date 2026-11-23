@@ -1564,6 +1564,8 @@ void main() {
         'Copy set list',
         'Export as JSON file',
         'Export / print PDF',
+        // Last, because the program has a date (#2351).
+        'Add to calendar (.ics)',
       ]);
     });
 

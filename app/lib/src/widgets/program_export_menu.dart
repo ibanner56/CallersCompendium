@@ -18,6 +18,7 @@ import '../data/set_list_share_scope.dart';
 import '../export/calling_card_pdf.dart';
 import '../export/dance_source_lines.dart';
 import '../export/export_labels_l10n.dart';
+import '../export/program_calendar_export.dart';
 import '../export/program_pdf.dart';
 import '../export/program_share_bundle.dart';
 import '../export/json_export.dart';
@@ -38,6 +39,7 @@ enum _ExportAction {
   copyText,
   shareJson,
   pdf,
+  calendar,
   callingCards,
 }
 
@@ -66,6 +68,9 @@ typedef PdfLayouter =
 ///   for a recipient without the app, an email attachment, or plain inspection.
 /// - **Export / print PDF** — hands a generated PDF to the OS print/save dialog
 ///   (`printing`, all platforms including Linux).
+/// - **Add to calendar (.ics)** — only when the program has an event date, past
+///   or upcoming: one `VEVENT` through [CalendarExportDelivery] (issue #2351),
+///   which asks before including the venue's address.
 /// - **Print calling cards** — only while Settings › Experimental › Calling
 ///   cards is on, and gated on [danceFor] like the file actions: one small
 ///   card per dance, in output order, each alternate after its primary, and
@@ -94,6 +99,8 @@ class ProgramExportMenu extends StatelessWidget {
     this.bundleFileWriter,
     this.pdfLayouter,
     this.jsonExportDelivery,
+    this.calendarExportDelivery,
+    this.offerCalendarExport = true,
   });
 
   final Program program;
@@ -163,6 +170,18 @@ class ProgramExportMenu extends StatelessWidget {
   /// Its `saveInvoker` also receives the `.ccshare` bundle on platforms where
   /// [isBundleShareUnsupported] (Linux) turns the bundle action into Save As.
   final JsonExportDelivery? jsonExportDelivery;
+
+  /// Test seam for "Add to calendar (.ics)"; defaults to the production
+  /// dialogs and file delivery.
+  final CalendarExportDelivery? calendarExportDelivery;
+
+  /// Whether to offer "Add to calendar (.ics)" at all (it also needs an event
+  /// date). The builder passes `false` while its [program] is not the stored
+  /// one — never saved, or with unsaved edits — because the event's `UID`
+  /// comes from the program's id and its `SEQUENCE` from its last save: an
+  /// unsaved program has the placeholder id `draft`, so two new programs would
+  /// share one `UID`.
+  final bool offerCalendarExport;
 
   String _formatDate(BuildContext context, DateTime date) => formatEventDate(
     date,
@@ -785,6 +804,21 @@ class ProgramExportMenu extends StatelessWidget {
           () => _exportPdf(context),
           source: 'program_export_menu._guard',
         );
+      case _ExportAction.calendar:
+        await guardExport(
+          messenger,
+          l10n.exportCalendarShareError,
+          () =>
+              (calendarExportDelivery ?? const CalendarExportDelivery()).export(
+                context,
+                programs: [program],
+                venuesById: venuesById,
+                fileName: programCalendarFileName(program),
+                subject: program.title,
+                sharePositionOrigin: origin,
+              ),
+          source: 'program_export_menu._guard',
+        );
       case _ExportAction.callingCards:
         await _printCallingCards(context, messenger);
     }
@@ -854,6 +888,17 @@ class ProgramExportMenu extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
           ),
         ),
+        // A calendar event needs a day: no date, no item (#2351).
+        if (offerCalendarExport && program.eventDate != null)
+          PopupMenuItem<_ExportAction>(
+            key: const ValueKey('program-export-calendar'),
+            value: _ExportAction.calendar,
+            child: ListTile(
+              leading: const Icon(Icons.event_outlined),
+              title: Text(l10n.exportAddToCalendar),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
         if (callingCards)
           PopupMenuItem<_ExportAction>(
             key: const ValueKey('program-export-calling-cards'),

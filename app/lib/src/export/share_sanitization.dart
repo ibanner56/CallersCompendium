@@ -115,13 +115,18 @@ Set<VenueContactField> populatedVenueContactFields(Venue venue) => {
 /// still gets full redaction — PII can only survive through an explicit,
 /// positive [include] entry, populated only from the pre-share consent dialog.
 ///
-/// **Postal address — always cleared.** `address1`, `address2`, `city`,
-/// `stateProv`, `country`, `postalCode` and `plus4` are classified
-/// `deviceLocal` (registry `venues.address1` … `venues.plus4`, DPV
+/// **Postal address — cleared unless [includeAddress].** `address1`,
+/// `address2`, `city`, `stateProv`, `country`, `postalCode` and `plus4` are
+/// classified `deviceLocal` (registry `venues.address1` … `venues.plus4`, DPV
 /// `street`/`city`/`region`/`country`/`postalCode`, subject `thirdParty`), and
 /// the registry's own venues note puts it plainly: *"a hall's identity is
-/// public, its address book is not."* They are cleared unconditionally — there
-/// is no opt-in for them, because none was ever offered to the user.
+/// public, its address book is not."* Program share files, Export JSON and the
+/// PDF never pass [includeAddress], so for them the address is always cleared
+/// with no opt-in. The one exception is the calendar export (#2351): the
+/// maintainer decided (issue draft review, 2026-11-22) that the user may tick
+/// "Include the venue's address" for that one export, and only then does it
+/// pass `includeAddress: true`. The flag defaults to `false`, so a caller that
+/// forgets the argument still gets full redaction, as with [include].
 ///
 /// This corrects a real leak (issue #853). This helper previously kept the
 /// address block, reasoning that "a dance hall's address is effectively
@@ -140,14 +145,15 @@ Set<VenueContactField> populatedVenueContactFields(Venue venue) => {
 Venue sanitizeVenueForShare(
   Venue venue, {
   Set<VenueContactField> include = const {},
+  bool includeAddress = false,
 }) => venue.copyWith(
-  clearAddress1: true,
-  clearAddress2: true,
-  clearCity: true,
-  clearStateProv: true,
-  clearCountry: true,
-  clearPostalCode: true,
-  clearPlus4: true,
+  clearAddress1: !includeAddress,
+  clearAddress2: !includeAddress,
+  clearCity: !includeAddress,
+  clearStateProv: !includeAddress,
+  clearCountry: !includeAddress,
+  clearPostalCode: !includeAddress,
+  clearPlus4: !includeAddress,
   clearContact1Name: !include.contains(VenueContactField.contact1Name),
   clearContact1Phone: !include.contains(VenueContactField.contact1Phone),
   clearContact1Email: !include.contains(VenueContactField.contact1Email),
@@ -155,6 +161,18 @@ Venue sanitizeVenueForShare(
   clearContact2Phone: !include.contains(VenueContactField.contact2Phone),
   clearContact2Email: !include.contains(VenueContactField.contact2Email),
 );
+
+/// Whether [venue] has any part of a postal address set — what decides
+/// whether the calendar export asks about including it (#2351).
+bool venueHasAddress(Venue venue) => [
+  venue.address1,
+  venue.address2,
+  venue.city,
+  venue.stateProv,
+  venue.country,
+  venue.postalCode,
+  venue.plus4,
+].any((part) => part != null && part.trim().isNotEmpty);
 
 /// Returns a shallow copy of [venuesById] with the entry for [venueId] (when
 /// present) replaced by its [sanitizeVenueForShare] form for the [include] set;

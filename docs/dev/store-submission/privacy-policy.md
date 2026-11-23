@@ -15,7 +15,7 @@
 
 ## Privacy Policy for Caller's Compendium
 
-**Effective date:** November 12, 2026 · **Last updated:** November 12, 2026
+**Effective date:** November 23, 2026 · **Last updated:** November 23, 2026
 
 Caller's Compendium ("the app") is a free, open-source, local-first application
 for dance callers, developed by Isaac Banner ("we," "us"). This policy explains
@@ -88,11 +88,13 @@ country, postal or ZIP code, or contact name, phone, or email fields. **Freeform
 venue notes** are shareable, however, and can contain names or phone numbers;
 avoid putting private contact information there.
 
-Some fields are never sent to a sync service or included in shared content. A
-choreographer's email address, location, and deceased flag, and a venue's street
-address, city, state or region, postal code and country are always excluded.
-Venue contact names, phone numbers and email addresses are also excluded from
-shared content unless you explicitly choose to include them. All of these fields
+Some fields are never sent to a sync service and are left out of shared
+content. A choreographer's email address, location, and deceased flag, and a
+venue's street address, city, state or region, postal code and country are
+excluded, except that a calendar (.ics) export includes the venue's address when
+you tick that option for that export. Venue contact names, phone numbers and
+email addresses are also excluded from shared content unless you explicitly
+choose to include them. All of these fields
 are still included in a complete backup file, which stays under your control.
 Notes fields are shared, so a contact detail typed into a note travels with the
 note.
