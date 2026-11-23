@@ -7943,6 +7943,22 @@ class AppLocalizationsDa extends AppLocalizations {
   String get archiveIntakeRejectedEmpty => 'Den fil er tom.';
 
   @override
+  String get danceLinkRefusedNewerVersion =>
+      'Denne dansekode er lavet af en nyere version af Caller’s Compendium. Opdater appen for at åbne den.';
+
+  @override
+  String get danceLinkRefusedDamaged =>
+      'Denne dansekode er beskadiget eller ufuldstændig og kan ikke åbnes.';
+
+  @override
+  String get danceLinkRefusedNotADance =>
+      'Denne kode er ikke en dansekode fra Caller\'s Compendium.';
+
+  @override
+  String get danceLinkRefusedNoContent =>
+      'Denne dansekode indeholder ingen danse eller programmer.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'Den fil er ikke en delefil fra Caller’s Compendium.';
 
@@ -8172,7 +8188,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importIssueArchiveNewerSchema =>
-      'Denne fil er lavet med en nyere version af Caller\'s Compendium. Opdater appen, før du importerer, ellers kan nogle detaljer mangle.';
+      'Dette er lavet med en nyere version af Caller\'s Compendium. Opdater appen, før du importerer, ellers kan nogle detaljer mangle.';
 
   @override
   String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
@@ -8833,14 +8849,14 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorPhrasesHelp =>
-      'Navngiv hver del af melodien A, B eller C, angiv dens takter, og vælg om den spilles én eller to gange. En frase, der spilles to gange, får betegnelserne A1 og A2.';
+      'Navngiv hver del af melodien A, B eller C, angiv dens takter og slagene i hver takt, og vælg om den spilles én eller to gange. En frase, der spilles to gange, får betegnelserne A1 og A2.';
 
   @override
   String get danceEditorPhrasesAdd => 'Tilføj frase';
 
   @override
   String danceEditorPhrasesInvalid(int max) {
-    return 'Giv hver frase fra 1 til $max takter. Indtil da beholder dansen sine sidste gyldige fraser, og Gem gemmer dem.';
+    return 'Giv hver frase fra 1 til $max takter og fra 1 til $max slag i takten. Indtil da beholder dansen sine sidste gyldige fraser, og Gem gemmer dem.';
   }
 
   @override
@@ -8850,6 +8866,16 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String danceEditorPhraseBarsRange(int max) {
+    return '1 til $max';
+  }
+
+  @override
+  String danceEditorPhraseBeatsPerBarLabel(String name) {
+    return 'Slag pr. takt i $name';
+  }
+
+  @override
+  String danceEditorPhraseBeatsPerBarRange(int max) {
     return '1 til $max';
   }
 
@@ -10497,6 +10523,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get shorthandsUserFigureSyncLabel => 'Forkortelser til nye figurer';
+
+  @override
+  String get syncSavedSearchLabel => 'Gemt søgning';
 
   @override
   String get shorthandsCompoundIntro =>

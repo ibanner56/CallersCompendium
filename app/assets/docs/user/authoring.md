@@ -108,9 +108,7 @@ of the phrase structure, as the **Bars** field does. Where the phrase
 structure's phrases differ in beats per bar (`A:2*4*3 + B:1*8*2`, an A in 3/4
 and a B in 6/8), the Meter does not decide it: each bar is as long as the
 phrase it falls in, and the bars count from where the line is placed in the
-dance (this holds for a Meter that names none or several meters, such as
-"3/4 and 6/8"; while the Meter field states one meter, editing it sets every
-named phrase to that meter's beats to the bar), so the numbers you type give how many bars, not where they sit. In that
+dance, so the numbers you type give how many bars, not where they sit. In that
 example `1-4` placed first is 12 beats, and `9-12` placed after the two A
 phrases is 8. A line that runs across the change counts each bar by its own
 phrase.
@@ -732,12 +730,24 @@ nothing in it to lose.
   shows no rows until it can.
 - **Phrases** (English dances) — choose **Name the phrases** to give the
   tune's parts their own names instead: one row each for A, B and C, with
-  its **Bars** and whether it plays **Once** or **Twice**, the repeat
-  straight after it. A=4 played twice and B=8 played once labels the figures
-  A1, A2 and B; A=4, B=4 and C=8 each once labels them A, B and C. The bars
-  count in the dance's **Meter**, and changing the meter keeps each phrase's
-  bars. Each phrase has 1 to 1000 bars; while one is left empty or past
-  that, the dance keeps its last valid phrases, and **Save** saves those.
+  its **Bars**, its **Beats per bar** and whether it plays **Once** or
+  **Twice**, the repeat straight after it. A=4 played twice and B=8 played once
+  labels the figures A1, A2 and B; A=4, B=4 and C=8 each once labels them A, B
+  and C. A phrase's beats to the bar start as the dance's **Meter** gives them
+  (a meter naming several meters gives each new phrase the first phrase's), and
+  you can set each phrase's own, such as 3 for an A in 3/4 and 2 for a B in
+  6/8: the dance is then counted in bars phrase by phrase (see
+  [English dances are timed in bars](#english-dances-are-timed-in-bars)).
+  Changing the **Meter** to one that now states other beats to the bar sets
+  every phrase to them, keeping each one's bars, but only while the phrases
+  all have the same beats to the bar: phrases that differ are never rewritten
+  from the Meter. A Meter that still states the same beats (a word added after
+  `3/4`), or names two meters (`3/4 and 6/8`), leaves them as they are too.
+  **Name the phrases** on a structure that differs keeps each part's own beats
+  where its parts group into named phrases.
+  Each phrase has 1 to 1000 bars and 1
+  to 1000 beats to the bar; while one is left empty or past that, the dance
+  keeps its last valid phrases, and **Save** saves those.
   Remove every phrase to go back to unnamed phrases: the standard A1 A2 B1
   B2, counted in the dance's meter. You can also
   type names into the **Phrase structure** field (`A:2*4*2 + B:1*8*2`);

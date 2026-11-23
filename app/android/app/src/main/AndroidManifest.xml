@@ -78,6 +78,25 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <data android:mimeType="text/plain"/>
             </intent-filter>
+            <!-- A dance link (issue #2335): a dance's QR code holds a
+                 ccdance://1/... link. A camera app, Google Lens or a browser
+                 opens it with VIEW, so this filter must be BROWSABLE. That is
+                 safe because the link carries the dance itself, never a
+                 file: or content: URI to read with the app's identity
+                 (security-6; tools/ci/check_android_intent_filters.py), and
+                 opening one only starts the import review: nothing is written
+                 until the user commits. Dart caps and validates the link. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="ccdance"/>
+            </intent-filter>
+            <!-- The app reads every opened link itself (above), so Flutter's
+                 own deep-link routing would only push it again as a route. -->
+            <meta-data
+                android:name="flutter_deeplinking_enabled"
+                android:value="false" />
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/main.dart';
+import 'package:compendium_app/src/data/app_database.dart' show AppData;
 import 'package:compendium_app/src/data/archive_intake_service.dart';
 import 'package:compendium_app/src/data/incoming_file_channel.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
@@ -22,6 +23,7 @@ import 'package:flutter/services.dart' show MethodChannel, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'support/noop_sync_transport.dart';
 import 'support/sync_test_network.dart';
+import 'support/dance_links.dart';
 import 'support/full_app_harness.dart';
 
 /// A fake [IncomingFileChannel] that delivers a caller-chosen cold-start file
@@ -895,6 +897,136 @@ void main() {
       expect(sink.sources, ['main._handleIncomingUrl']);
     },
   );
+
+  group('issue #2335: a dance link from a camera app', () {
+    // Every test here records the URL fetcher: opening a link must not touch
+    // the network.
+    late List<String> fetched;
+    setUp(() => fetched = []);
+
+    Future<(AppData, _FakeIncomingFileChannel)> pumpWithLink(
+      WidgetTester tester, {
+      String? coldLink,
+    }) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final appData = openTestAppData();
+      final channel = _FakeIncomingFileChannel(initialSharedUrl: coldLink);
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: channel,
+          incomingUrlFetcher: (url) async {
+            fetched.add(url);
+            throw StateError('no network while opening a dance link');
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+      return (appData, channel);
+    }
+
+    testWidgets('opens the import review at launch, writes nothing until '
+        'commit, and Undo removes the dance', (tester) async {
+      final (appData, _) = await pumpWithLink(
+        tester,
+        coldLink: goodDanceLink(),
+      );
+
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(find.byKey(const ValueKey('import-review-list')), findsOneWidget);
+      expect(find.text(danceLinkTitle), findsWidgets);
+      expect(await appData.repositories.dances.listAll(), isEmpty);
+
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+      expect(
+        (await appData.repositories.dances.listAll()).map((d) => d.title),
+        [danceLinkTitle],
+      );
+
+      await tester.tap(find.byKey(const ValueKey('import-undo-button')));
+      await tester.pumpAndSettle();
+      expect(await appData.repositories.dances.listAll(), isEmpty);
+      expect(fetched, isEmpty);
+    });
+
+    testWidgets('a link opened while the app is running opens the review', (
+      tester,
+    ) async {
+      final (appData, channel) = await pumpWithLink(tester);
+
+      channel._urlController.add(goodDanceLink());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(find.text(danceLinkTitle), findsWidgets);
+      expect(await appData.repositories.dances.listAll(), isEmpty);
+      expect(fetched, isEmpty);
+    });
+
+    testWidgets('an archive from a newer schema opens in review with the '
+        'newer-version warning', (tester) async {
+      await pumpWithLink(tester, coldLink: newerSchemaDanceLink());
+
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(
+        find.text(AppLocalizationsEn().importIssueArchiveNewerSchema),
+        findsOneWidget,
+      );
+      expect(fetched, isEmpty);
+    });
+
+    final l10n = AppLocalizationsEn();
+    final refused = <String, (String Function(), String)>{
+      'a link over the length cap': (
+        overLengthDanceLink,
+        l10n.danceLinkRefusedDamaged,
+      ),
+      'a link with an unknown version': (
+        unknownVersionDanceLink,
+        l10n.danceLinkRefusedNewerVersion,
+      ),
+      'a truncated payload': (truncatedDanceLink, l10n.danceLinkRefusedDamaged),
+      'a payload that inflates past the cap': (
+        inflateBombDanceLink,
+        l10n.danceLinkRefusedDamaged,
+      ),
+    };
+    for (final MapEntry(key: name, value: (link, message)) in refused.entries) {
+      testWidgets('$name is refused with a message and writes nothing', (
+        tester,
+      ) async {
+        final (appData, _) = await pumpWithLink(tester, coldLink: link());
+
+        expect(find.byKey(const ValueKey('dance-link-error')), findsOneWidget);
+        expect(find.text(message), findsOneWidget);
+        expect(find.byType(ImportReviewScreen), findsNothing);
+        expect(await appData.repositories.dances.listAll(), isEmpty);
+        expect(fetched, isEmpty);
+      });
+    }
+
+    testWidgets('a link to an archive with nothing in it is refused in '
+        "a code's words", (tester) async {
+      await pumpWithLink(tester, coldLink: emptyArchiveDanceLink());
+
+      expect(find.byKey(const ValueKey('shared-import-error')), findsOneWidget);
+      expect(find.text(l10n.danceLinkRefusedNoContent), findsOneWidget);
+      expect(find.byType(ImportReviewScreen), findsNothing);
+    });
+
+    testWidgets('a link that carries no dance is refused in a code\'s words', (
+      tester,
+    ) async {
+      await pumpWithLink(tester, coldLink: notADanceLink());
+
+      expect(find.byKey(const ValueKey('shared-import-error')), findsOneWidget);
+      expect(find.text(l10n.danceLinkRefusedNotADance), findsOneWidget);
+      expect(find.byType(ImportReviewScreen), findsNothing);
+    });
+  });
 }
 
 /// A minimal, real-shaped ContraDB program page for the shared-URL auto-fetch:

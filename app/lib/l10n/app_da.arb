@@ -7798,6 +7798,22 @@
   "@archiveIntakeRejectedEmpty": {
     "x-sourceSha256": "df8ae7fb82013ee8878a5dc2266a1f03c6d5d57ab6a93f5d8b05cefcdbc33799"
   },
+  "danceLinkRefusedNewerVersion": "Denne dansekode er lavet af en nyere version af Caller’s Compendium. Opdater appen for at åbne den.",
+  "@danceLinkRefusedNewerVersion": {
+    "x-sourceSha256": "795cff95aed1a03d6269045ea7ae32efb22911f6c6dde7277b64a361a8081e42"
+  },
+  "danceLinkRefusedDamaged": "Denne dansekode er beskadiget eller ufuldstændig og kan ikke åbnes.",
+  "@danceLinkRefusedDamaged": {
+    "x-sourceSha256": "24da96c8326613af1ad3348ff0b53893be9ba08d5f5e2ee69103d8a8c96c0e59"
+  },
+  "danceLinkRefusedNotADance": "Denne kode er ikke en dansekode fra Caller's Compendium.",
+  "@danceLinkRefusedNotADance": {
+    "x-sourceSha256": "f4a9058d924f5ecb3eb48b7de611ea451980ef99faf8ce0eecd43ef73b2327ff"
+  },
+  "danceLinkRefusedNoContent": "Denne dansekode indeholder ingen danse eller programmer.",
+  "@danceLinkRefusedNoContent": {
+    "x-sourceSha256": "12e1e0997cdbb1ae3cc25202f1823287ba7b1c8bd1985263e73edcbf668b7b0e"
+  },
   "archiveIntakeRejectedNotArchive": "Den fil er ikke en delefil fra Caller’s Compendium.",
   "@archiveIntakeRejectedNotArchive": {
     "x-sourceSha256": "80dd7dada7feaccdf4d83c86ca2567fad99deb5ad4b25ffc22cdd87c7d4de1d8"
@@ -8022,9 +8038,9 @@
   "@importIssueArchiveReadWarning": {
     "x-sourceSha256": "fe85dd330b19b95b4d3576c70949c46fe4cd90ad9f04668ad5c5f7e35d08043b"
   },
-  "importIssueArchiveNewerSchema": "Denne fil er lavet med en nyere version af Caller's Compendium. Opdater appen, før du importerer, ellers kan nogle detaljer mangle.",
+  "importIssueArchiveNewerSchema": "Dette er lavet med en nyere version af Caller's Compendium. Opdater appen, før du importerer, ellers kan nogle detaljer mangle.",
   "@importIssueArchiveNewerSchema": {
-    "x-sourceSha256": "55b8932da3e9592c9bf8da0f1b79c8728970f80ff2204193a6db17fbe1bc61df"
+    "x-sourceSha256": "9b86962b90d1d14a52c0efda353106a377827ed244a142001fc923380f1bc902"
   },
   "importIssueArchiveCustomFieldKeyConflict": "Dit brugerdefinerede felt „{label}“ har en anden type eller andre valgmuligheder i denne fil, så filens værdier for det lægges i stedet i feltet med nøglen „{key}“, som tilføjes, hvis du ikke har det endnu. Dit felt er uændret.",
   "@importIssueArchiveCustomFieldKeyConflict": {
@@ -8618,17 +8634,17 @@
   "@danceEditorPhrasesTitle": {
     "x-sourceSha256": "076bcf6aae77baad87996fdcdd36b513bb44458288adb5cf5d1b4827c4d40fb9"
   },
-  "danceEditorPhrasesHelp": "Navngiv hver del af melodien A, B eller C, angiv dens takter, og vælg om den spilles én eller to gange. En frase, der spilles to gange, får betegnelserne A1 og A2.",
+  "danceEditorPhrasesHelp": "Navngiv hver del af melodien A, B eller C, angiv dens takter og slagene i hver takt, og vælg om den spilles én eller to gange. En frase, der spilles to gange, får betegnelserne A1 og A2.",
   "@danceEditorPhrasesHelp": {
-    "x-sourceSha256": "edebc10c51273964bc9a05c909981b77787dce7a2b475a83725c526777f92c91"
+    "x-sourceSha256": "59b4c9c0ce8ed07afd9066db4a03b9a025a7b9b485c8e34bea1e40e3c1a0a012"
   },
   "danceEditorPhrasesAdd": "Tilføj frase",
   "@danceEditorPhrasesAdd": {
     "x-sourceSha256": "523c6e63a15b0cd78bb315d87053f141d1ae58f5ecb7c344ff3892e50a9d9833"
   },
-  "danceEditorPhrasesInvalid": "Giv hver frase fra 1 til {max} takter. Indtil da beholder dansen sine sidste gyldige fraser, og Gem gemmer dem.",
+  "danceEditorPhrasesInvalid": "Giv hver frase fra 1 til {max} takter og fra 1 til {max} slag i takten. Indtil da beholder dansen sine sidste gyldige fraser, og Gem gemmer dem.",
   "@danceEditorPhrasesInvalid": {
-    "x-sourceSha256": "a3cba7054af95cf515f04202ae1426f98e82977fb78851c6ea4b2ed8ee4f6a53"
+    "x-sourceSha256": "6a5a586f9cbb1f72717649e174712444f7076e149f73331b7ce56c8c2b3c371b"
   },
   "danceEditorPhraseBarsLabel": "Takter i {name}",
   "@danceEditorPhraseBarsLabel": {
@@ -8636,6 +8652,14 @@
   },
   "danceEditorPhraseBarsRange": "1 til {max}",
   "@danceEditorPhraseBarsRange": {
+    "x-sourceSha256": "bfa7cdf134bbeb548cd4f923b76b40b9d9f16882792d502e0657e9e611bcdbf5"
+  },
+  "danceEditorPhraseBeatsPerBarLabel": "Slag pr. takt i {name}",
+  "@danceEditorPhraseBeatsPerBarLabel": {
+    "x-sourceSha256": "17b29f875c43235d3035266bf0bcc4fcaf5e92779a7c0178eac4fde0e758e16a"
+  },
+  "danceEditorPhraseBeatsPerBarRange": "1 til {max}",
+  "@danceEditorPhraseBeatsPerBarRange": {
     "x-sourceSha256": "bfa7cdf134bbeb548cd4f923b76b40b9d9f16882792d502e0657e9e611bcdbf5"
   },
   "danceEditorPhraseNameLabel": "Frasens navn",
@@ -10157,6 +10181,10 @@
   "shorthandsUserFigureSyncLabel": "Forkortelser til nye figurer",
   "@shorthandsUserFigureSyncLabel": {
     "x-sourceSha256": "0d3bbcab1f6e886cc37a28859a00354f3bbc29474f53b2d49120becbf6b6b5fe"
+  },
+  "syncSavedSearchLabel": "Gemt søgning",
+  "@syncSavedSearchLabel": {
+    "x-sourceSha256": "b0e17e59d9f6e5bc3e78c1a3e9b9d40c3238a69046c0726a97282e9e03a14703"
   },
   "shorthandsCompoundIntro": "Når fri tekstindtastning er slået til, tilføjer du en af dine egne figurer med de værdier, der er valgt her, ved at skrive en af disse kortformer som en hel linje, mens du redigerer en dans.",
   "@shorthandsCompoundIntro": {

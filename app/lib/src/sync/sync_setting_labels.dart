@@ -1,5 +1,5 @@
 import 'package:compendium_core/compendium_core.dart'
-    show shownDialectName, syncCapabilityKeyPrefix;
+    show savedSearchKeyPrefix, shownDialectName, syncCapabilityKeyPrefix;
 
 import '../../l10n/app_localizations.dart';
 
@@ -140,6 +140,10 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   // list.
   final key when key.startsWith(syncCapabilityKeyPrefix) =>
     l10n.settingsSyncDevicesTitle,
+  // One saved search per key (#2325): the name of the setting, not the search's
+  // own name, which syncSettingValueText shows.
+  final key when key.startsWith(savedSearchKeyPrefix) =>
+    l10n.syncSavedSearchLabel,
   // One program template per key (#2337), whatever its id.
   final key when key.startsWith('program_template:') =>
     l10n.settingsProgramTemplatesTitle,
@@ -159,6 +163,12 @@ String syncSettingValueText(
   // (ADR-006 §9.1, point 7).
   if (key != null && key.startsWith('active_dialect_ref') && value is String) {
     value = shownDialectName(value);
+  }
+  // A saved search is one object holding its name and its search; showing the
+  // name tells two versions apart, where a count of its parts would not.
+  if (key != null && key.startsWith(savedSearchKeyPrefix) && value is Map) {
+    final name = value['name'];
+    if (name is String && name.trim().isNotEmpty) return _clip(name);
   }
   switch (value) {
     case null:
