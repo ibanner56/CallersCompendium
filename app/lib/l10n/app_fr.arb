@@ -7798,6 +7798,22 @@
   "@archiveIntakeRejectedEmpty": {
     "x-sourceSha256": "df8ae7fb82013ee8878a5dc2266a1f03c6d5d57ab6a93f5d8b05cefcdbc33799"
   },
+  "danceLinkRefusedNewerVersion": "Ce code de danse a été créé par une version plus récente de Caller’s Compendium. Mettez l'application à jour pour l'ouvrir.",
+  "@danceLinkRefusedNewerVersion": {
+    "x-sourceSha256": "795cff95aed1a03d6269045ea7ae32efb22911f6c6dde7277b64a361a8081e42"
+  },
+  "danceLinkRefusedDamaged": "Ce code de danse est endommagé ou incomplet ; impossible de l'ouvrir.",
+  "@danceLinkRefusedDamaged": {
+    "x-sourceSha256": "24da96c8326613af1ad3348ff0b53893be9ba08d5f5e2ee69103d8a8c96c0e59"
+  },
+  "danceLinkRefusedNotADance": "Ce code n'est pas un code de danse de Caller's Compendium.",
+  "@danceLinkRefusedNotADance": {
+    "x-sourceSha256": "f4a9058d924f5ecb3eb48b7de611ea451980ef99faf8ce0eecd43ef73b2327ff"
+  },
+  "danceLinkRefusedNoContent": "Ce code de danse ne contient aucune danse ni aucun programme.",
+  "@danceLinkRefusedNoContent": {
+    "x-sourceSha256": "12e1e0997cdbb1ae3cc25202f1823287ba7b1c8bd1985263e73edcbf668b7b0e"
+  },
   "archiveIntakeRejectedNotArchive": "Ce fichier n'est pas un fichier de partage Caller’s Compendium.",
   "@archiveIntakeRejectedNotArchive": {
     "x-sourceSha256": "80dd7dada7feaccdf4d83c86ca2567fad99deb5ad4b25ffc22cdd87c7d4de1d8"
@@ -8022,9 +8038,9 @@
   "@importIssueArchiveReadWarning": {
     "x-sourceSha256": "fe85dd330b19b95b4d3576c70949c46fe4cd90ad9f04668ad5c5f7e35d08043b"
   },
-  "importIssueArchiveNewerSchema": "Ce fichier a été créé avec une version plus récente de Caller's Compendium. Mettez l'application à jour avant d'importer, sinon certains détails risquent d'être omis.",
+  "importIssueArchiveNewerSchema": "Ceci a été créé avec une version plus récente de Caller's Compendium. Mettez l'application à jour avant d'importer, sinon certains détails risquent d'être omis.",
   "@importIssueArchiveNewerSchema": {
-    "x-sourceSha256": "55b8932da3e9592c9bf8da0f1b79c8728970f80ff2204193a6db17fbe1bc61df"
+    "x-sourceSha256": "9b86962b90d1d14a52c0efda353106a377827ed244a142001fc923380f1bc902"
   },
   "importIssueArchiveCustomFieldKeyConflict": "Votre champ personnalisé « {label} » a un autre type ou d’autres choix dans ce fichier : ses valeurs venant du fichier vont donc dans le champ avec la clé « {key} », qui est ajouté si vous ne l’avez pas encore. Votre champ n’est pas modifié.",
   "@importIssueArchiveCustomFieldKeyConflict": {
@@ -8618,17 +8634,17 @@
   "@danceEditorPhrasesTitle": {
     "x-sourceSha256": "076bcf6aae77baad87996fdcdd36b513bb44458288adb5cf5d1b4827c4d40fb9"
   },
-  "danceEditorPhrasesHelp": "Nommez chaque partie de l’air A, B ou C, indiquez ses mesures et si elle est jouée une ou deux fois. Une phrase jouée deux fois est notée A1 et A2.",
+  "danceEditorPhrasesHelp": "Nommez chaque partie de l’air A, B ou C, indiquez ses mesures et les temps de chaque mesure, et si elle est jouée une ou deux fois. Une phrase jouée deux fois est notée A1 et A2.",
   "@danceEditorPhrasesHelp": {
-    "x-sourceSha256": "edebc10c51273964bc9a05c909981b77787dce7a2b475a83725c526777f92c91"
+    "x-sourceSha256": "59b4c9c0ce8ed07afd9066db4a03b9a025a7b9b485c8e34bea1e40e3c1a0a012"
   },
   "danceEditorPhrasesAdd": "Ajouter une phrase",
   "@danceEditorPhrasesAdd": {
     "x-sourceSha256": "523c6e63a15b0cd78bb315d87053f141d1ae58f5ecb7c344ff3892e50a9d9833"
   },
-  "danceEditorPhrasesInvalid": "Donnez à chaque phrase de 1 à {max} mesures. D’ici là, la danse garde ses dernières phrases valides, et Enregistrer enregistre celles-ci.",
+  "danceEditorPhrasesInvalid": "Donnez à chaque phrase de 1 à {max} mesures et de 1 à {max} temps par mesure. D’ici là, la danse garde ses dernières phrases valides, et Enregistrer enregistre celles-ci.",
   "@danceEditorPhrasesInvalid": {
-    "x-sourceSha256": "a3cba7054af95cf515f04202ae1426f98e82977fb78851c6ea4b2ed8ee4f6a53"
+    "x-sourceSha256": "6a5a586f9cbb1f72717649e174712444f7076e149f73331b7ce56c8c2b3c371b"
   },
   "danceEditorPhraseBarsLabel": "Mesures de {name}",
   "@danceEditorPhraseBarsLabel": {
@@ -8636,6 +8652,14 @@
   },
   "danceEditorPhraseBarsRange": "1 à {max}",
   "@danceEditorPhraseBarsRange": {
+    "x-sourceSha256": "bfa7cdf134bbeb548cd4f923b76b40b9d9f16882792d502e0657e9e611bcdbf5"
+  },
+  "danceEditorPhraseBeatsPerBarLabel": "Temps par mesure de {name}",
+  "@danceEditorPhraseBeatsPerBarLabel": {
+    "x-sourceSha256": "17b29f875c43235d3035266bf0bcc4fcaf5e92779a7c0178eac4fde0e758e16a"
+  },
+  "danceEditorPhraseBeatsPerBarRange": "1 à {max}",
+  "@danceEditorPhraseBeatsPerBarRange": {
     "x-sourceSha256": "bfa7cdf134bbeb548cd4f923b76b40b9d9f16882792d502e0657e9e611bcdbf5"
   },
   "danceEditorPhraseNameLabel": "Nom de la phrase",
@@ -10157,6 +10181,10 @@
   "shorthandsUserFigureSyncLabel": "Abréviations pour les nouvelles figures",
   "@shorthandsUserFigureSyncLabel": {
     "x-sourceSha256": "0d3bbcab1f6e886cc37a28859a00354f3bbc29474f53b2d49120becbf6b6b5fe"
+  },
+  "syncSavedSearchLabel": "Recherche enregistrée",
+  "@syncSavedSearchLabel": {
+    "x-sourceSha256": "b0e17e59d9f6e5bc3e78c1a3e9b9d40c3238a69046c0726a97282e9e03a14703"
   },
   "shorthandsCompoundIntro": "Quand la saisie en texte libre est activée, taper l’une de ces abréviations seule sur une ligne pendant que vous modifiez une danse ajoute l’une de vos propres figures, avec les valeurs choisies ici.",
   "@shorthandsCompoundIntro": {

@@ -1,0 +1,10 @@
+{
+  "id": "2325-saved-search-storage",
+  "user_visible": false,
+  "core": {
+    "added": [
+      "SavedSearchRepository stores each saved search as its own settings value under the saved_search: prefix (Repositories.savedSearches): create, update, list (an unreadable value is listed as needing attention, never skipped), and delete as a tombstone that a later save of the same id revives. create refuses to add one while the device already holds 128 live ones (counting those a peer synced); updating or restoring one is not limited. SavedSearchUsageRegistry lets a dependent feature register a lookup so deleting a saved search that something uses is refused (SavedSearchInUse).",
+      "The saved_search: prefix is classified as the user's own shareable configuration, and the savedSearches.v1 sync capability gates every key under it, through SyncCapabilityPolicy.gatedSettingKeyPrefixes. This build gates saved searches but does not advertise the capability yet, so none is published."
+    ]
+  }
+}

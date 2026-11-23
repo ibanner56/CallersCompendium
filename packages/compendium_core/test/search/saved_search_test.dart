@@ -890,6 +890,50 @@ void main() {
     );
   });
 
+  group('decodeAsStored reads a value as the settings store keeps it', () {
+    SavedSearch search(String name) => SavedSearch(
+      id: 'x',
+      name: name,
+      spec: specOf(CollectionPanelState(text: 'a')),
+    );
+
+    test('a name of only invisible characters is unreadable', () {
+      final json = viaJson(search('\u200B').toJson());
+      expect(SavedSearch.decode('x', json).isOk, isTrue);
+      expect(SavedSearch.decodeAsStored('x', json).isOk, isFalse);
+    });
+
+    test('a value with no id is unreadable, as stored or not', () {
+      final json = viaJson(search('Easy mixers').toJson());
+      for (final id in ['', '  ']) {
+        expect(SavedSearch.decode(id, json).isOk, isFalse, reason: '"$id"');
+        expect(SavedSearch.decodeAsStored(id, json).isOk, isFalse);
+      }
+    });
+
+    test('an ordinary value reads the same either way', () {
+      final json = viaJson(search('Easy mixers').toJson());
+      expect(SavedSearch.decodeAsStored('x', json).value!.name, 'Easy mixers');
+    });
+
+    test('colliding keys are unreadable, never thrown', () {
+      final panel = CollectionPanelState();
+      panel.byPhrase.match['A1'] = ['swing'];
+      panel.byPhrase.match['A1\u200B'] = ['star'];
+      final json = viaJson(
+        SavedSearch(id: 'x', name: 'n', spec: specOf(panel)).toJson(),
+      );
+      expect(() => SavedSearch.decodeAsStored('x', json), returnsNormally);
+      expect(SavedSearch.decodeAsStored('x', json).isOk, isFalse);
+    });
+
+    test('anything else is unreadable and never thrown', () {
+      for (final v in <Object?>[null, 3, 'x', <Object?>[]]) {
+        expect(SavedSearch.decodeAsStored('x', v).isOk, isFalse);
+      }
+    });
+  });
+
   group('what the compiler sees: the resolved search is the panel\'s search', () {
     final dialect = Dialect.larksRobins;
     final renderer = FigureRenderer(contraTaxonomy);

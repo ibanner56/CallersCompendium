@@ -11854,6 +11854,30 @@ abstract class AppLocalizations {
   /// **'That file is empty.'**
   String get archiveIntakeRejectedEmpty;
 
+  /// Shown when a dance's QR code link (ccdance://) uses a format version this build cannot read. Nothing is imported.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance code was made by a newer version of Caller\'s Compendium. Update the app to open it.'**
+  String get danceLinkRefusedNewerVersion;
+
+  /// Shown when a dance's QR code link (ccdance://) cannot be read: too long, cut short, or corrupted. Generic; never echoes the link. Nothing is imported.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance code is damaged or incomplete, so it can\'t be opened.'**
+  String get danceLinkRefusedDamaged;
+
+  /// Shown when a dance's QR code link (ccdance://) reads correctly but what it carries is not a dance share (for example, a backup or unrelated JSON). Generic; never echoes the link. Nothing is imported.
+  ///
+  /// In en, this message translates to:
+  /// **'This code isn\'t a Caller\'s Compendium dance code.'**
+  String get danceLinkRefusedNotADance;
+
+  /// Shown when a dance's QR code link (ccdance://) reads correctly but carries neither dances nor programs. Nothing is imported.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance code doesn\'t contain any dances or programs.'**
+  String get danceLinkRefusedNoContent;
+
   /// Rejection shown when a shared file is not a well-formed Caller's Compendium archive (bad text, non-archive JSON, or an unreadable envelope). Generic; never echoes parser detail.
   ///
   /// In en, this message translates to:
@@ -12190,10 +12214,10 @@ abstract class AppLocalizations {
   /// **'The shared file reported a warning while decoding.'**
   String get importIssueArchiveReadWarning;
 
-  /// Import review warning: the shared file was written by a newer app version than this one, so fields the newer version added are dropped. Tells the user to update first. Shown once for the whole file.
+  /// Import review warning: what is being imported (a shared file, pasted JSON, or a dance code) was written by a newer app version than this one, so fields the newer version added are dropped. Tells the user to update first. Worded without "file" because a dance code reaches the same review (issue #2335). Shown once for the whole import.
   ///
   /// In en, this message translates to:
-  /// **'This file was made by a newer version of Caller\'s Compendium. Update the app before importing, or some details may be left out.'**
+  /// **'This was made by a newer version of Caller\'s Compendium. Update the app before importing, or some details may be left out.'**
   String get importIssueArchiveNewerSchema;
 
   /// Import review warning for a shared file (INTAKE-2): the file has a custom field under the same key as one of the user's, but of another type or with other choices for a choice field, so its values go into the field under the key shown (the user's key plus _2, _3, …), which is created unless an earlier import made it; the user's own field is not changed. {label} is the user's own field's name and {key} the new field's key, both rendered as plain text.
@@ -13087,7 +13111,7 @@ abstract class AppLocalizations {
   /// Help under the Phrases heading in an English dance's editor. A, B, C, A1 and A2 are phrase labels of English country dance music and stay as written.
   ///
   /// In en, this message translates to:
-  /// **'Name each part of the tune A, B or C, give its bars, and say whether it plays once or twice. A phrase played twice is labeled A1 and A2.'**
+  /// **'Name each part of the tune A, B or C, give its bars and the beats in each bar, and say whether it plays once or twice. A phrase played twice is labeled A1 and A2.'**
   String get danceEditorPhrasesHelp;
 
   /// Button that adds a named phrase (the next unused of A, B, C) to an English dance's phrases. Hidden when all three are used.
@@ -13096,10 +13120,10 @@ abstract class AppLocalizations {
   /// **'Add phrase'**
   String get danceEditorPhrasesAdd;
 
-  /// Error under an English dance's named phrases when a bar count is empty, zero or above {max}, or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.
+  /// Error under an English dance's named phrases when a bar count or a beats-to-the-bar count is empty, zero or above {max}, or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.
   ///
   /// In en, this message translates to:
-  /// **'Give each phrase from 1 to {max} bars. Until then the dance keeps its last valid phrases, and Save saves those.'**
+  /// **'Give each phrase from 1 to {max} bars and from 1 to {max} beats to the bar. Until then the dance keeps its last valid phrases, and Save saves those.'**
   String danceEditorPhrasesInvalid(int max);
 
   /// Label of the number field for how many bars of music one named phrase of an English dance has. The name is A, B or C, a phrase label of English country dance music.
@@ -13113,6 +13137,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'1 to {max}'**
   String danceEditorPhraseBarsRange(int max);
+
+  /// Label of the number field for how many beats one bar of one named phrase of an English dance has, as in 3 for a phrase in 3/4 and 2 for one in 6/8. The name is A, B or C, a phrase label of English country dance music.
+  ///
+  /// In en, this message translates to:
+  /// **'Beats per bar in {name}'**
+  String danceEditorPhraseBeatsPerBarLabel(String name);
+
+  /// Short error under one named phrase's beats-to-the-bar field in an English dance when its count is empty, zero or too large: the beats a bar may have.
+  ///
+  /// In en, this message translates to:
+  /// **'1 to {max}'**
+  String danceEditorPhraseBeatsPerBarRange(int max);
 
   /// Label of the dropdown that picks one named phrase's name (A, B or C) in an English dance's phrases.
   ///
@@ -15425,6 +15461,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Shorthands for new figures'**
   String get shorthandsUserFigureSyncLabel;
+
+  /// The name of a saved search (#2325), a setting a device syncs under its own key, in sync notices and the sync conflict view.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved search'**
+  String get syncSavedSearchLabel;
 
   /// Explains the compound shorthands section.
   ///

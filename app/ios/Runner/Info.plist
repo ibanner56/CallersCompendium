@@ -16,7 +16,19 @@
 				<string>callerscompendium</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>org.callerscompendium.compendiumApp.dance</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>ccdance</string>
+			</array>
+		</dict>
 	</array>
+	<key>FlutterDeepLinkingEnabled</key>
+	<false/>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>

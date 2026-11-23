@@ -7620,6 +7620,20 @@ class AppLocalizationsJa extends AppLocalizations {
   String get archiveIntakeRejectedEmpty => 'そのファイルは空です。';
 
   @override
+  String get danceLinkRefusedNewerVersion =>
+      'このダンスのコードは、新しいバージョンのCaller’s Compendiumで作成されています。開くには、アプリをアップデートしてください。';
+
+  @override
+  String get danceLinkRefusedDamaged => 'このダンスのコードは破損しているか不完全なため、開けません。';
+
+  @override
+  String get danceLinkRefusedNotADance =>
+      'このコードは Caller\'s Compendium のダンスのコードではありません。';
+
+  @override
+  String get danceLinkRefusedNoContent => 'このダンスのコードにはダンスもプログラムも含まれていません。';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'そのファイルはCaller’s Compendiumの共有ファイルではありません。';
 
@@ -7841,7 +7855,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importIssueArchiveNewerSchema =>
-      'このファイルは新しいバージョンの Caller\'s Compendium で作成されました。インポートする前にアプリを更新してください。更新しないと、一部の詳細が含まれない場合があります。';
+      'これは新しいバージョンの Caller\'s Compendium で作成されました。インポートする前にアプリを更新してください。更新しないと、一部の詳細が含まれない場合があります。';
 
   @override
   String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
@@ -8474,14 +8488,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorPhrasesHelp =>
-      '曲の各部分にA、B、Cの名前を付け、小節数と、1回演奏するか2回演奏するかを指定します。2回演奏するフレーズはA1、A2と表示されます。';
+      '曲の各部分にA、B、Cの名前を付け、小節数と1小節の拍数、そして1回演奏するか2回演奏するかを指定します。2回演奏するフレーズはA1、A2と表示されます。';
 
   @override
   String get danceEditorPhrasesAdd => 'フレーズを追加';
 
   @override
   String danceEditorPhrasesInvalid(int max) {
-    return '各フレーズの小節数を1から$maxで入力してください。それまでは最後の有効なフレーズが保たれ、保存するとそれが保存されます。';
+    return '各フレーズの小節数と1小節の拍数を、それぞれ1から$maxで入力してください。それまでは最後の有効なフレーズが保たれ、保存するとそれが保存されます。';
   }
 
   @override
@@ -8491,6 +8505,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String danceEditorPhraseBarsRange(int max) {
+    return '1〜$max';
+  }
+
+  @override
+  String danceEditorPhraseBeatsPerBarLabel(String name) {
+    return '$nameの1小節の拍数';
+  }
+
+  @override
+  String danceEditorPhraseBeatsPerBarRange(int max) {
     return '1〜$max';
   }
 
@@ -10095,6 +10119,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get shorthandsUserFigureSyncLabel => '新しいフィギュア用のショートハンド';
+
+  @override
+  String get syncSavedSearchLabel => '保存した検索';
 
   @override
   String get shorthandsCompoundIntro =>

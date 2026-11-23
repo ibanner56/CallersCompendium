@@ -7987,6 +7987,22 @@ class AppLocalizationsNl extends AppLocalizations {
   String get archiveIntakeRejectedEmpty => 'Dat bestand is leeg.';
 
   @override
+  String get danceLinkRefusedNewerVersion =>
+      'Deze danscode is gemaakt met een nieuwere versie van Caller’s Compendium. Werk de app bij om de code te openen.';
+
+  @override
+  String get danceLinkRefusedDamaged =>
+      'Deze danscode is beschadigd of onvolledig en kan niet worden geopend.';
+
+  @override
+  String get danceLinkRefusedNotADance =>
+      'Deze code is geen danscode van Caller\'s Compendium.';
+
+  @override
+  String get danceLinkRefusedNoContent =>
+      'Deze danscode bevat geen dansen of programma\'s.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'Dat bestand is geen deelbestand van Caller’s Compendium.';
 
@@ -8217,7 +8233,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importIssueArchiveNewerSchema =>
-      'Dit bestand is gemaakt met een nieuwere versie van Caller\'s Compendium. Werk de app bij voordat je importeert, anders ontbreken mogelijk sommige details.';
+      'Dit is gemaakt met een nieuwere versie van Caller\'s Compendium. Werk de app bij voordat je importeert, anders ontbreken mogelijk sommige details.';
 
   @override
   String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
@@ -8886,14 +8902,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorPhrasesHelp =>
-      'Benoem elk deel van de melodie A, B of C, geef het aantal maten en kies of het één of twee keer gespeeld wordt. Een frase die twee keer gespeeld wordt, heet A1 en A2.';
+      'Benoem elk deel van de melodie A, B of C, geef het aantal maten en de tellen per maat, en kies of het één of twee keer gespeeld wordt. Een frase die twee keer gespeeld wordt, heet A1 en A2.';
 
   @override
   String get danceEditorPhrasesAdd => 'Frase toevoegen';
 
   @override
   String danceEditorPhrasesInvalid(int max) {
-    return 'Geef elke frase 1 tot $max maten. Tot dan houdt de dans zijn laatste geldige frasen, en Opslaan slaat die op.';
+    return 'Geef elke frase 1 tot $max maten en 1 tot $max tellen per maat. Tot dan houdt de dans zijn laatste geldige frasen, en Opslaan slaat die op.';
   }
 
   @override
@@ -8903,6 +8919,16 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String danceEditorPhraseBarsRange(int max) {
+    return '1 tot $max';
+  }
+
+  @override
+  String danceEditorPhraseBeatsPerBarLabel(String name) {
+    return 'Tellen per maat in $name';
+  }
+
+  @override
+  String danceEditorPhraseBeatsPerBarRange(int max) {
     return '1 tot $max';
   }
 
@@ -10559,6 +10585,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get shorthandsUserFigureSyncLabel => 'Afkortingen voor nieuwe figuren';
+
+  @override
+  String get syncSavedSearchLabel => 'Opgeslagen zoekopdracht';
 
   @override
   String get shorthandsCompoundIntro =>

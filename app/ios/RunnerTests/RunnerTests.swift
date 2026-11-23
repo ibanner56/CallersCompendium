@@ -323,3 +323,34 @@ private final class AtomicFlag {
     return flag
   }
 }
+
+/// Which opened URLs are dance links (issue #2335). A dance link must be told
+/// apart from a legacy Share Extension wake (`callerscompendium:`) and from an
+/// opened file, or it would drain the share queue or be staged as a file.
+final class DanceLinkRoutingTests: XCTestCase {
+  func testPicksOnlyDanceLinksVerbatim() {
+    let link = "ccdance://1/q1ZKzs8tyM9LzSvJzM-zVbJSKkosLU5VUqgGAA"
+    let urls = [
+      URL(string: "callerscompendium://wake")!,
+      URL(string: link)!,
+      URL(fileURLWithPath: "/tmp/dance.ccshare"),
+    ]
+
+    XCTAssertEqual(DanceLinkRouting.danceLinks(in: urls), [link])
+  }
+
+  func testSchemeIsCaseInsensitive() {
+    let link = "CCDANCE://1/abc"
+
+    XCTAssertEqual(DanceLinkRouting.danceLinks(in: [URL(string: link)!]), [link])
+  }
+
+  func testNoDanceLinkForAWakeOrAFile() {
+    let urls = [
+      URL(string: "callerscompendium://wake")!,
+      URL(fileURLWithPath: "/tmp/ccdance"),
+    ]
+
+    XCTAssertTrue(DanceLinkRouting.danceLinks(in: urls).isEmpty)
+  }
+}

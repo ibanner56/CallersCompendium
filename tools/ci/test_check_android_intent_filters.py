@@ -90,7 +90,20 @@ def _mutated_repo_manifest() -> None:
     text = (check.REPO_ROOT / rel).read_text(encoding="utf-8")
     needle = '<action android:name="android.intent.action.VIEW"/>'
     views = text.count(needle)
-    assert views == 2, "expected the json and octet-stream VIEW filters"
+    assert views == 3, (
+        "expected the json, octet-stream and ccdance (#2335) VIEW filters"
+    )
+    # The ccdance dance-link filter (#2335) is BROWSABLE by design, and passes
+    # as it stands: its custom scheme names no local file.
+    assert check.check(check.REPO_ROOT) == []
+    ccdance = [
+        f for f in ET.fromstring(text).iter("intent-filter")
+        if any(
+            d.get(check._NS + "scheme") == "ccdance" for d in f.findall("data")
+        )
+    ]
+    assert len(ccdance) == 1, "expected one ccdance filter"
+    assert check._BROWSABLE in check._names(ccdance[0], "category")
     with tempfile.TemporaryDirectory() as tmp:
         dest = Path(tmp) / rel
         dest.parent.mkdir(parents=True)
@@ -98,8 +111,9 @@ def _mutated_repo_manifest() -> None:
             text.replace(needle, needle + "\n" + _BROWSABLE), encoding="utf-8"
         )
         errors = check.check(Path(tmp))
-        # Both VIEW filters (json and the PLAT-4 octet-stream one) are caught.
-        assert len(errors) == views and str(rel) in errors[0], errors
+        # Both local-scheme VIEW filters (json and the PLAT-4 octet-stream
+        # one) are caught; the ccdance filter is not.
+        assert len(errors) == 2 and str(rel) in errors[0], errors
         # A tree with no manifest at all is an error, not a silent pass.
         dest.unlink()
         assert check.check(Path(tmp)) != []
