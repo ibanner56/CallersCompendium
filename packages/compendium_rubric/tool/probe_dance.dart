@@ -44,23 +44,22 @@ void main(List<String> args) {
           .value;
   print('${dance.name}  (${dance.requiredHandsFour} hands four)');
   var state = dance.instantiate();
-  var progressions = 0;
+  final fold = FigureFold(
+    holdsProgressions: dance.formation.couplesShareColumn,
+  );
   print('\nstart');
   render(state);
 
   for (var i = 0; i < dance.figures.length; i++) {
     final fig = dance.figures[i];
-    // Threaded exactly as the engine threads it: the distance-named dancer
-    // sets are anchored at the start of the dance, so a figure's reach depends
-    // on how many progressions ran before it. Omitting this made the trace
-    // disagree with `compile` on any dance that names a distance after
-    // progressing.
-    final r = fig.apply(state, progressions: progressions);
+    // Threaded exactly as the engine threads it (`FigureFold`): the distance
+    // count, and any progression held until a couple reaches an end. Folding
+    // by hand made the trace disagree with `compile` on both.
+    final r = fold.step(fig, state, index: i);
     print('\nop $i  $fig');
     switch (r) {
       case Ok(:final value):
         state = value;
-        if (fig.progression) progressions++;
         render(state);
       case Err(:final error):
         print('  REFUSED ${error.kind.name}: ${error.detail}');

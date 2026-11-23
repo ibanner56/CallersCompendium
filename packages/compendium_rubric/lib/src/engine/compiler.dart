@@ -9,6 +9,7 @@ import '../ops/params.dart';
 // For the §8.5.4 settler used to compare a dance that ends standing in a wave.
 import '../ops/transforms.dart';
 import 'compile_result.dart';
+import 'figure_fold.dart';
 import 'invocation.dart';
 import 'result.dart';
 import 'sizing.dart';
@@ -127,7 +128,9 @@ CompileResult compile(Dance dance) {
   final input = dance.instantiate();
 
   var state = input;
-  var progressions = 0;
+  final fold = FigureFold(
+    holdsProgressions: dance.formation.couplesShareColumn,
+  );
   for (var index = 0; index < dance.figures.length; index++) {
     final figure = dance.figures[index];
     // Linted against the state the figure is handed, before it runs -- a
@@ -140,11 +143,10 @@ CompileResult compile(Dance dance) {
                 Warning(warning.kind, opIndex: index, detail: warning.detail),
           ),
     );
-    final outcome = figure.apply(state, progressions: progressions);
+    final outcome = fold.step(figure, state, index: index);
     switch (outcome) {
       case Ok(:final value):
         state = value;
-        if (figure.progression) progressions++;
       case Err(:final error):
         // Short-circuit (§3.3): no expected/actual comparison is performed
         // once a figure refuses, so there is no final state to report.
@@ -156,6 +158,10 @@ CompileResult compile(Dance dance) {
         );
     }
   }
+  warnings.addAll([
+    for (final index in fold.unfinished)
+      Warning(WarningKind.heldProgressionUnfinished, opIndex: index),
+  ]);
 
   // Computed from the *input*, never from `state` — that independence is what
   // makes this a check rather than a restatement (§3.4).

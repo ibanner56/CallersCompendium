@@ -156,7 +156,9 @@ void main() {
       // The mutation this whole file exists to catch: if the compiler accepted
       // any progression placement, "it compiled" would assert nothing at all
       // about the choreography. Six of the seven placements must fail — and the
-      // one that succeeds must be the one the rule picks.
+      // one that succeeds must be the one the rule picks. This is a Duple
+      // Improper dance, so no progression is held: a flag that finds nobody at
+      // an end is spent where it stands.
       final dance = (await _draft()).dance;
       final outcomes = <int, DanceOutcome>{};
       for (var index = 0; index < decodedFigures(dance)!.length; index++) {
@@ -691,6 +693,53 @@ void main() {
         ],
       );
       expect(assumedProgressionIndex(dance), 1);
+    });
+
+    test('a Becket dance progresses on its first diagonal chain', () {
+      // User-ruled 2026-11-23: a Becket progression is the obvious move.
+      for (final where in ['leftDiagonal', 'rightDiagonal']) {
+        final dance = _shapedLike(
+          shape: core.FormationShape.becketCw,
+          figures: [
+            figure('circle'),
+            figure('chain', {'who': 'role2s', 'where': 'across'}),
+            figure('chain', {'who': 'role2s', 'where': where}),
+            figure('petronella'),
+            figure('swing'),
+          ],
+        );
+        expect(assumedProgressionIndex(dance), 2, reason: where);
+      }
+    });
+
+    test('a Becket dance progresses on a pass through along the set', () {
+      for (final params in [
+        {'where': 'along'},
+        <String, Object?>{},
+      ]) {
+        final dance = _shapedLike(
+          shape: core.FormationShape.becketCcw,
+          figures: [
+            figure('pass_through', {'where': 'across'}),
+            figure('circle'),
+            figure('pass_through', params),
+            figure('swing'),
+          ],
+        );
+        expect(assumedProgressionIndex(dance), 2, reason: '$params');
+      }
+    });
+
+    test('a Duple Improper dance still progresses on its last figure', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleImproper,
+        figures: [
+          figure('chain', {'who': 'role2s', 'where': 'leftDiagonal'}),
+          figure('pass_through', {'where': 'along'}),
+          figure('swing'),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 2);
     });
 
     test('a Becket dance slicing right does not', () {

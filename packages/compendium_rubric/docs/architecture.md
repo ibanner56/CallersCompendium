@@ -130,7 +130,9 @@ input formation to operation *i+1*. Each operation is a pure function
 then after the operation's own transformation the **end-normalization** is applied: the
 couples in the top row and bottom row turn to face into the set, switch number, and
 re-normalize (see `fundamentals.md` §10.2). Progression is only ever triggered by this
-explicit flag — never inferred from state (`fundamentals.md` §10.1).
+explicit flag — never inferred from state (`fundamentals.md` §10.1). In a Becket dance a
+flagged figure that leaves no whole couple at either end has its change-over **held** until a
+later figure does (`fundamentals.md` §10.2.1); the state decides when, never whether.
 
 ### 3.3 Preconditions (early error exit)
 

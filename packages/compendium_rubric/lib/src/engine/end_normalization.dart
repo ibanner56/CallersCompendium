@@ -97,7 +97,9 @@ Set<int> waitingCouples(Formation formation) => {
 /// Anything else is a **silent skip**: an empty row, a lone dancer, a
 /// non-partner pair, or a line of four (§8.1 — two whole couples in one row is
 /// an entire hands four, not an end couple). The figure's own transform stands
-/// and later figures are expected to resolve the shape.
+/// and later figures are expected to resolve the shape. When *both* ends would
+/// skip, the compiler holds the progression rather than running this at all
+/// (`OperationInvocation.applyHolding`, `docs/fundamentals.md` §10.2.1).
 ///
 /// A couple whose index is in [exempt] has just finished waiting out and is
 /// re-entering the set, so it is left entirely alone — position, number and
@@ -137,6 +139,31 @@ Formation _normalizeEndRow(
         ),
   });
 }
+
+/// Whether either end row of [formation] holds a sole whole couple: the shape
+/// [applyEndNormalization] works on (`docs/fundamentals.md` §10.2.1).
+///
+/// A couple that has just served a round counts. A change-over that finds only
+/// those still has work to do, bringing them back in, so it is not a reason to
+/// wait. A `false` here means both ends would be silently skipped, which is the
+/// signal `OperationInvocation.applyHolding` holds a progression on.
+bool endHasWholeCouple(Formation formation) => {
+  0,
+  formation.lastRow,
+}.any((row) => _soleWholeCoupleIn(formation, row) != null);
+
+/// Finishes one held progression (see `OperationInvocation.applyHolding`) on
+/// [formation] if a whole couple now stands at an end, or returns `null` if it
+/// must keep waiting.
+///
+/// [servedRound] is read, as for every change-over, from the state the
+/// finishing figure *started* in (see [applyEndNormalization]).
+Formation? finishHeldProgression(
+  Formation formation, {
+  required Set<int> servedRound,
+}) => endHasWholeCouple(formation)
+    ? applyEndNormalization(formation, servedRound: servedRound)
+    : null;
 
 /// The one couple with **both** partners in [row], or `null` when there is no
 /// such couple or more than one.
