@@ -3176,9 +3176,9 @@
   "@settingsProgramShowPayTitle": {
     "x-sourceSha256": "8c2f3778ed4fded2d26f171856e27c2734856431736a8a7f126b7ae2211d4d6b"
   },
-  "settingsProgramShowPaySubtitle": "Als dit uit staat, verbergen de programma-editor en het overzicht de gage, en laat de programmaspreadsheet hem weg. Al ingevoerde gages blijven bewaard en verschijnen weer als je dit opnieuw aanzet.",
+  "settingsProgramShowPaySubtitle": "Als dit uit staat, verbergen de editor, het overzicht en de programmaspreadsheet de gage. Al ingevoerde gages blijven bewaard en verschijnen weer als je dit opnieuw aanzet.",
   "@settingsProgramShowPaySubtitle": {
-    "x-sourceSha256": "fb7be0ac3c1b31cc90f17a85e1d06f861e265af32d0ef836280a77a60b9631e5"
+    "x-sourceSha256": "6ba2d11c7b6b6e8c97a9f75f39a04666e8e08949c1742bb5ecac07e25f607768"
   },
   "settingsMatrixColumnsHeader": "Matrixkolommen",
   "@settingsMatrixColumnsHeader": {

@@ -3203,7 +3203,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsProgramShowPaySubtitle =>
-      'Når den er slået fra, skjuler programeditoren og oversigten honoraret, og programregnearket udelader det. Honorar, der allerede er indtastet, bevares og vises igen, når du slår den til igen.';
+      'Når den er slået fra, skjuler editoren, oversigten og programregnearket honoraret. Honorar, der allerede er indtastet, bevares og vises igen, når du slår den til igen.';
 
   @override
   String get settingsMatrixColumnsHeader => 'Matrixkolonner';

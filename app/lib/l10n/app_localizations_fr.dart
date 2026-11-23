@@ -3250,7 +3250,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsProgramShowPaySubtitle =>
-      'Lorsque cette option est désactivée, l’éditeur et le résumé du programme masquent le cachet, et le tableur des programmes l’omet. Un cachet déjà saisi est conservé et réapparaît lorsque vous la réactivez.';
+      'Lorsque cette option est désactivée, l’éditeur, le résumé et le tableur des programmes masquent le cachet. Un cachet déjà saisi est conservé et réapparaît lorsque vous la réactivez.';
 
   @override
   String get settingsMatrixColumnsHeader => 'Colonnes de la matrice';

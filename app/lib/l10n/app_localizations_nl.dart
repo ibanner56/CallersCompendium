@@ -3221,7 +3221,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsProgramShowPaySubtitle =>
-      'Als dit uit staat, verbergen de programma-editor en het overzicht de gage, en laat de programmaspreadsheet hem weg. Al ingevoerde gages blijven bewaard en verschijnen weer als je dit opnieuw aanzet.';
+      'Als dit uit staat, verbergen de editor, het overzicht en de programmaspreadsheet de gage. Al ingevoerde gages blijven bewaard en verschijnen weer als je dit opnieuw aanzet.';
 
   @override
   String get settingsMatrixColumnsHeader => 'Matrixkolommen';

@@ -4885,7 +4885,7 @@ abstract class AppLocalizations {
   /// Subtitle of the Show pay switch: turning it off only hides pay in the program editor and summary; stored pay is never cleared.
   ///
   /// In en, this message translates to:
-  /// **'When off, the program editor and summary hide pay, and the programs spreadsheet leaves it out. Pay already entered is kept, and shows again when you turn this back on.'**
+  /// **'When off, the editor, summary and programs spreadsheet hide pay. Pay already entered is kept, and shows again when you turn this back on.'**
   String get settingsProgramShowPaySubtitle;
 
   /// Header for the Program settings editor that reorders, renames, and removes program-matrix columns.
