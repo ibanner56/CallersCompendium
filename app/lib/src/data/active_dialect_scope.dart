@@ -45,12 +45,19 @@ class ActiveDialectScope extends InheritedNotifier<Listenable> {
     return scope._read();
   }
 
-  /// Contra's dialect, for a surface that is still built on contra's
-  /// taxonomy alone, with no dance or form of its own to pick by: figures of
-  /// your own (their list, detail and compound editor), shorthands, parts of
-  /// import review, and the figure and layout defaults in Settings. Each
-  /// moves to the form it shows when it gains a form of its own (ADR-006
-  /// implementation plan, W5 to W7). Registers a rebuild dependency.
+  /// The dialect an entry with [payload] is shown in: that of the dance form
+  /// it is made for ([glossaryEntryDanceForm]), so a figure, combination or
+  /// term of your own made for English reads in your English dialect (#2294).
+  /// An entry that names no form, or one this build does not know, reads in
+  /// contra's. Registers a rebuild dependency.
+  static Dialect entryOf(BuildContext context, Object? payload) =>
+      of(context).forForm(glossaryEntryDanceForm(payload));
+
+  /// Contra's dialect, for a surface that is built on contra's taxonomy alone
+  /// and has no dance, form or entry of its own to pick by: the figure and
+  /// layout defaults in Settings, parts of import review, and the matrix
+  /// columns' and calling cards' settings. A surface that shows an entry of
+  /// your own uses [entryOf]. Registers a rebuild dependency.
   static Dialect contraOf(BuildContext context) =>
       of(context).forForm(DanceForm.contra);
 
