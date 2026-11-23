@@ -103,8 +103,9 @@ either by searching it online or by pasting a dance's link or ID number.
 
 A plain table that every spreadsheet program opens, such as Excel, Numbers,
 LibreOffice and Google Sheets: one line per row, with commas between the
-columns. Caller's Compendium can export your dances as one. See
-[Share, print & export](./sharing.md#export-dances-as-a-spreadsheet-csv).
+columns. Caller's Compendium can export your
+[dances](./sharing.md#export-dances-as-a-spreadsheet-csv) or your
+[programs](./sharing.md#export-programs-as-a-spreadsheet-csv) as one.
 
 ## Custom field
 
@@ -206,7 +207,8 @@ contras, or something else. The app assumes the standard structure unless you
 write your own in the dance editor, and it uses whatever you set to tell you
 whether a dance's beats add up. A contra or square dance's phrases are set as
 rows of phrases, bars per phrase and beats per bar; an English dance's phrases
-can be named A, B and C, each with its own bars and played once or twice.
+can be named A, B and C, each with its own bars and beats per bar (a tune that
+changes meter has a different count in each) and played once or twice.
 
 ## Program
 

@@ -4882,16 +4882,16 @@ abstract class AppLocalizations {
   /// **'When on, valid changes are saved as you work, so leaving the editor does not ask whether to discard them. Turn off to save programs explicitly.'**
   String get settingsProgramAutoCommitSubtitle;
 
-  /// Title of the Settings > Program > Programs switch that shows or hides each program's Pay field in the editor and its pay line on the summary. On by default.
+  /// Title of the Settings > Program > Programs switch that shows or hides each program's Pay field in the editor, its pay line on the summary and its pay columns in the programs CSV export. On by default.
   ///
   /// In en, this message translates to:
   /// **'Show pay'**
   String get settingsProgramShowPayTitle;
 
-  /// Subtitle of the Show pay switch: turning it off only hides pay in the program editor and summary; stored pay is never cleared.
+  /// Subtitle of the Show pay switch: turning it off hides pay in the program editor, on the summary and in the programs CSV export; stored pay is never cleared.
   ///
   /// In en, this message translates to:
-  /// **'When off, the program editor and summary hide pay. Pay already entered is kept, and shows again when you turn this back on.'**
+  /// **'When off, the editor, summary and programs spreadsheet hide pay. Pay already entered is kept, and shows again when you turn this back on.'**
   String get settingsProgramShowPaySubtitle;
 
   /// Header for the Program settings editor that reorders, renames, and removes program-matrix columns.
@@ -11854,6 +11854,30 @@ abstract class AppLocalizations {
   /// **'That file is empty.'**
   String get archiveIntakeRejectedEmpty;
 
+  /// Shown when a dance's QR code link (ccdance://) uses a format version this build cannot read. Nothing is imported.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance code was made by a newer version of Caller\'s Compendium. Update the app to open it.'**
+  String get danceLinkRefusedNewerVersion;
+
+  /// Shown when a dance's QR code link (ccdance://) cannot be read: too long, cut short, or corrupted. Generic; never echoes the link. Nothing is imported.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance code is damaged or incomplete, so it can\'t be opened.'**
+  String get danceLinkRefusedDamaged;
+
+  /// Shown when a dance's QR code link (ccdance://) reads correctly but what it carries is not a dance share (for example, a backup or unrelated JSON). Generic; never echoes the link. Nothing is imported.
+  ///
+  /// In en, this message translates to:
+  /// **'This code isn\'t a Caller\'s Compendium dance code.'**
+  String get danceLinkRefusedNotADance;
+
+  /// Shown when a dance's QR code link (ccdance://) reads correctly but carries neither dances nor programs. Nothing is imported.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance code doesn\'t contain any dances or programs.'**
+  String get danceLinkRefusedNoContent;
+
   /// Rejection shown when a shared file is not a well-formed Caller's Compendium archive (bad text, non-archive JSON, or an unreadable envelope). Generic; never echoes parser detail.
   ///
   /// In en, this message translates to:
@@ -12190,10 +12214,10 @@ abstract class AppLocalizations {
   /// **'The shared file reported a warning while decoding.'**
   String get importIssueArchiveReadWarning;
 
-  /// Import review warning: the shared file was written by a newer app version than this one, so fields the newer version added are dropped. Tells the user to update first. Shown once for the whole file.
+  /// Import review warning: what is being imported (a shared file, pasted JSON, or a dance code) was written by a newer app version than this one, so fields the newer version added are dropped. Tells the user to update first. Worded without "file" because a dance code reaches the same review (issue #2335). Shown once for the whole import.
   ///
   /// In en, this message translates to:
-  /// **'This file was made by a newer version of Caller\'s Compendium. Update the app before importing, or some details may be left out.'**
+  /// **'This was made by a newer version of Caller\'s Compendium. Update the app before importing, or some details may be left out.'**
   String get importIssueArchiveNewerSchema;
 
   /// Import review warning for a shared file (INTAKE-2): the file has a custom field under the same key as one of the user's, but of another type or with other choices for a choice field, so its values go into the field under the key shown (the user's key plus _2, _3, …), which is created unless an earlier import made it; the user's own field is not changed. {label} is the user's own field's name and {key} the new field's key, both rendered as plain text.
@@ -13087,7 +13111,7 @@ abstract class AppLocalizations {
   /// Help under the Phrases heading in an English dance's editor. A, B, C, A1 and A2 are phrase labels of English country dance music and stay as written.
   ///
   /// In en, this message translates to:
-  /// **'Name each part of the tune A, B or C, give its bars, and say whether it plays once or twice. A phrase played twice is labeled A1 and A2.'**
+  /// **'Name each part of the tune A, B or C, give its bars and the beats in each bar, and say whether it plays once or twice. A phrase played twice is labeled A1 and A2.'**
   String get danceEditorPhrasesHelp;
 
   /// Button that adds a named phrase (the next unused of A, B, C) to an English dance's phrases. Hidden when all three are used.
@@ -13096,10 +13120,10 @@ abstract class AppLocalizations {
   /// **'Add phrase'**
   String get danceEditorPhrasesAdd;
 
-  /// Error under an English dance's named phrases when a bar count is empty, zero or above {max}, or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.
+  /// Error under an English dance's named phrases when a bar count or a beats-to-the-bar count is empty, zero or above {max}, or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.
   ///
   /// In en, this message translates to:
-  /// **'Give each phrase from 1 to {max} bars. Until then the dance keeps its last valid phrases, and Save saves those.'**
+  /// **'Give each phrase from 1 to {max} bars and from 1 to {max} beats to the bar. Until then the dance keeps its last valid phrases, and Save saves those.'**
   String danceEditorPhrasesInvalid(int max);
 
   /// Label of the number field for how many bars of music one named phrase of an English dance has. The name is A, B or C, a phrase label of English country dance music.
@@ -13113,6 +13137,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'1 to {max}'**
   String danceEditorPhraseBarsRange(int max);
+
+  /// Label of the number field for how many beats one bar of one named phrase of an English dance has, as in 3 for a phrase in 3/4 and 2 for one in 6/8. The name is A, B or C, a phrase label of English country dance music.
+  ///
+  /// In en, this message translates to:
+  /// **'Beats per bar in {name}'**
+  String danceEditorPhraseBeatsPerBarLabel(String name);
+
+  /// Short error under one named phrase's beats-to-the-bar field in an English dance when its count is empty, zero or too large: the beats a bar may have.
+  ///
+  /// In en, this message translates to:
+  /// **'1 to {max}'**
+  String danceEditorPhraseBeatsPerBarRange(int max);
 
   /// Label of the dropdown that picks one named phrase's name (A, B or C) in an English dance's phrases.
   ///
@@ -15425,6 +15461,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Shorthands for new figures'**
   String get shorthandsUserFigureSyncLabel;
+
+  /// The name of a saved search (#2325), a setting a device syncs under its own key, in sync notices and the sync conflict view.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved search'**
+  String get syncSavedSearchLabel;
 
   /// Explains the compound shorthands section.
   ///
@@ -19798,6 +19840,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Barnes reference'**
   String get csvColumnBarnes;
+
+  /// Programs list overflow menu item that exports the programs in the current view as a CSV spreadsheet file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export programs as CSV'**
+  String get programsExportCsv;
+
+  /// Start of the file name of an exported programs CSV spreadsheet, before the date (for example programs_2026-11-23.csv). Lower case; a single word if possible.
+  ///
+  /// In en, this message translates to:
+  /// **'programs'**
+  String get csvProgramsFileStem;
+
+  /// Column heading in an exported programs CSV spreadsheet: the date of the event.
+  ///
+  /// In en, this message translates to:
+  /// **'Event date'**
+  String get csvColumnEventDate;
+
+  /// Column heading in an exported programs CSV spreadsheet: the venue's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue'**
+  String get csvColumnVenue;
+
+  /// Column heading in an exported programs CSV spreadsheet: the event's caller.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller'**
+  String get csvColumnCaller;
+
+  /// Column heading in an exported programs CSV spreadsheet: the band playing the event.
+  ///
+  /// In en, this message translates to:
+  /// **'Band'**
+  String get csvColumnBand;
+
+  /// Column heading in an exported programs CSV spreadsheet: the event's overall dancer level.
+  ///
+  /// In en, this message translates to:
+  /// **'Dancer level'**
+  String get csvColumnDancerLevel;
+
+  /// Column heading in an exported programs CSV spreadsheet: what the caller was paid, as a number.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay'**
+  String get csvColumnPayAmount;
+
+  /// Column heading in an exported programs CSV spreadsheet: the currency of the pay, such as USD.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get csvColumnPayCurrency;
+
+  /// Column heading in an exported programs CSV spreadsheet: the program's notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get csvColumnNotes;
+
+  /// Column heading in an exported programs CSV spreadsheet: how many dances the program has, not counting alternates.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of dances'**
+  String get csvColumnDanceCount;
+
+  /// Column heading in an exported programs CSV spreadsheet: the program's dances in order, one per line, alternates marked.
+  ///
+  /// In en, this message translates to:
+  /// **'Dances'**
+  String get csvColumnDances;
+
+  /// Shown in the export dialog of the programs CSV spreadsheet while the Show pay setting is off: the file has no pay columns. 'Show pay' is the setting's name (settingsProgramShowPayTitle).
+  ///
+  /// In en, this message translates to:
+  /// **'Pay is hidden in Settings, so it is left out. Turn on Show pay in Settings ▸ Program to include it.'**
+  String get exportCsvPayHiddenNotice;
 
   /// Snack bar part after a calendar import updated existing programs from calendar changes. Offers Undo.
   ///

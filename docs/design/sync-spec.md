@@ -2962,8 +2962,9 @@ republishes, which is an ordinary upload and needs no special path.
    than a UUID: two attached devices that each set the same shareable preference
    before the next pass reach exactly this state, and 64 settings keys are
    `shareable` (exact keys in `settingsClassifications` whose egress is
-   `shareable`, counted 2026-10-15), as is one prefix entry,
-   `sync_capabilities:` (§6.15). Records with UUID ids reach it too, because archive
+   `shareable`, counted 2026-10-15), as are three prefix entries,
+   `program_template:`, `saved_search:` and `sync_capabilities:` (§6.15).
+   Records with UUID ids reach it too, because archive
    import preserves ids, so two devices importing one bundle and then editing it
    locally collide on the same id.
 
@@ -5192,6 +5193,21 @@ program as the first template without writing anything, and copies it into
 change, stamped like the change. A device that has not yet synced therefore
 writes nothing merely by opening a screen that could overwrite, or bring back,
 what a peer already did with the copy.
+
+**`savedSearches.v1`.** Gates every settings key that starts with
+`saved_search:`, tombstones included: one saved search is one setting record
+(#2325, amended 2026-11-23). A build that does not know the prefix keeps such a
+record whole (ADR-004) but cannot read its search, so they wait for every device
+to advertise the capability. Like `programTemplates.v1`, it gates a settings **prefix**: a gated key that is
+not an exact entry matches the longest gated prefix it starts with, as the
+registry's classification does, and an exact key still wins. The reference client gates the prefix from the change that adds
+storage for saved searches and advertises the capability from the change that
+completes the feature (the menu), as `glossary.v2` was gated before #1023 was
+complete; until then nothing writes a saved search and none is published.
+Saved searches reach a peer on a build that predates the prefix as unknown,
+retained records, which is why the gate exists. Deleting one is a tombstone that
+keeps its value until the record is purged, so a held-back deletion is published
+once the gate opens, as any gated tombstone is.
 
 **`suggestions.v1`.** Gates the Suggestions settings (#2343): the exact keys
 `suggestions_enabled` and `suggestion_settings`, tombstones included. A build

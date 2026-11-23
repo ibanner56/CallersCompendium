@@ -240,6 +240,78 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   /// Renders this entry's figures with [_taxonomy].
   FigureRenderer get _renderer => glossaryRenderer(_danceForm);
 
+  /// The dialect every field is shown in: the one for the form the entry is
+  /// made for (#2294). Read once from the scope and held, so what is typed is
+  /// stored in the words it was typed in; a change of form shows each field
+  /// again in the new form's dialect ([_formChanged]) and holds that.
+  Dialect? _shownDialect;
+
+  Dialect _dialect(BuildContext context) =>
+      _shownDialect ??= ActiveDialectScope.of(context).forForm(_danceForm);
+
+  /// The form changed to [form]: every field is shown again in the new
+  /// form's dialect, from what it means in the old one, so no text typed in
+  /// one dialect is stored as if it were typed in another.
+  void _formChanged(String form) {
+    final from = _dialect(context);
+    // The wording is read while the form still is the one it was written
+    // for: its conditions are checked against that form's groups of dancers.
+    final storedWording = _template.text.trim().isEmpty
+        ? null
+        : _templateCheck(from).stored;
+    _form = form;
+    final to = ActiveDialectScope.of(context).forForm(_danceForm);
+    if (from != to) _reshowFields(from, to, storedWording);
+    _shownDialect = to;
+    _changed();
+  }
+
+  void _reshowFields(Dialect from, Dialect to, String? storedWording) {
+    String entryText(String text) => text.isEmpty
+        ? text
+        : _renderer.renderFreeText(canonicalizeGlossaryText(text, from), to);
+    String noteText(String text) => text.isEmpty
+        ? text
+        : _renderer.renderFreeText(canonicalizeText(text, from), to);
+    _name.text = entryText(_name.text);
+    _definition.text = entryText(_definition.text);
+    _description.text = entryText(_description.text);
+    _keywords.text = entryText(_keywords.text);
+    _notes.text = entryText(_notes.text);
+    for (final row in _params) {
+      row.label.text = entryText(row.label.text);
+      for (final choice in row.choices) {
+        choice.controller.text = entryText(choice.controller.text);
+      }
+      final value = row.defaultValue;
+      if (value is String && row.kind == ParamKind.text) {
+        row.defaultValue = entryText(value);
+        row.defaultEpoch++;
+      }
+    }
+    void reshowNotes(List<FigureDraft> drafts) {
+      for (final draft in drafts) {
+        draft.note = noteText(draft.note);
+        reshowNotes(draft.containerChildren ?? const []);
+      }
+    }
+
+    reshowNotes(_drafts);
+    final vocabulary = _templateVocabulary(to);
+    // The wording's literal words move too; its conditions and slots are kept.
+    final movedWording = storedWording == null
+        ? null
+        : mapUserFigureTemplateText(storedWording, entryText);
+    _template.text = movedWording == null
+        ? entryText(_template.text)
+        : wordingForEditing(movedWording, vocabulary);
+    _shownTemplate = movedWording == null
+        ? null
+        : (stored: movedWording, shown: _template.text);
+    _readTemplate = _shownTemplate;
+    _templateWords = _wordsOf(vocabulary);
+  }
+
   /// A new figure's wording template, shown in the active dialect, and its
   /// default beats.
   final _template = TextEditingController();
@@ -263,7 +335,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     if (initial == null) return;
     // The form comes first, so every field is shown through its renderer.
     _form = glossaryEntryForm(initial.payload);
-    final dialect = ActiveDialectScope.contraOf(context);
+    final dialect = _dialect(context);
     String shown(String text) => _renderer.renderFreeText(text, dialect);
     _name.text = shown(initial.name);
     _definition.text = shown(initial.definition);
@@ -487,7 +559,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   /// rename shows it again keeping that meaning. It isn't rewritten while
   /// being typed.
   void _templateEdited() {
-    final dialect = ActiveDialectScope.contraOf(context);
+    final dialect = _dialect(context);
     final stored = _templateCheck(dialect).stored;
     if (stored != null) {
       _readTemplate = (stored: stored, shown: _template.text);
@@ -514,7 +586,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     if (read == null || read.shown != _template.text) return;
     final nodes = parseStoredWording(read.stored);
     if (nodes == null || !wordingHasConditions(nodes)) return;
-    final dialect = ActiveDialectScope.contraOf(context);
+    final dialect = _dialect(context);
     final vocabulary = _templateVocabulary(dialect);
     final words = _wordsOf(vocabulary);
     if (words == _templateWords) return;
@@ -814,7 +886,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   /// it is stored and the editor closed.
   Future<bool> _trySave() async {
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.contraOf(context);
+    final dialect = _dialect(context);
     final repos = RepositoriesScope.of(context);
     final navigator = Navigator.of(context);
 
@@ -1064,7 +1136,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final dialect = ActiveDialectScope.contraOf(context);
+    final dialect = _dialect(context);
     final badFigureParams = _kind == UserGlossaryEntryKind.customFigure
         ? _badFigureParams()
         : const <int>{};
@@ -1250,10 +1322,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
                   if (!DanceForm.values.any((f) => f.name == _form))
                     AppDropdownEntry(value: _form, label: _form),
                 ],
-                onChanged: (form) {
-                  _form = form;
-                  _changed();
-                },
+                onChanged: _formChanged,
               ),
             ),
             if (_kind != UserGlossaryEntryKind.term) ...[

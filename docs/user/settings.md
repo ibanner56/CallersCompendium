@@ -246,7 +246,9 @@ details are handled when you export.
   If you had changed a pay amount just before hiding it, that change is still
   saved; an amount that isn't a valid number stays visible so you can fix it.
   A sync conflict still compares pay, so two versions that differ only in pay
-  don't look the same.
+  don't look the same. While pay is hidden, the
+  [programs spreadsheet](./sharing.md#export-programs-as-a-spreadsheet-csv) leaves
+  pay out too, and its export dialog says so.
 
 - **Matrix columns** — opens a dedicated editor for the columns of the
   [programming matrix](./programs.md#check-your-evening-with-the-matrix). These
@@ -935,8 +937,12 @@ then syncs to your other devices, so update the device instead.
 
 Names, definitions and examples of the built-in figures follow your active
 [dialect](dialects.md) for the type shown, so role words read the way you call
-them. Your own figures and terms read in your contra dialect for now, whatever
-their type. The built-in
+them. Your own figures, combinations and terms read in the dialect of the type
+they were made for, and a shorthand reads in the dialect of the type of the
+figure it stands for; a shorthand whose figure is gone reads in your contra
+dialect. A few places still name them in the dialect of the screen you are on,
+not of their type: the dance list's advanced search and the reasons the dance
+picker gives for a suggestion. The built-in
 figures come with the app, and turning the Glossary off only removes it from
 the navigation; your notes are kept, and come back when you turn it on again.
 The built-in definitions and descriptions are in English whatever language the

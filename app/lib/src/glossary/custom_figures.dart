@@ -62,13 +62,20 @@ String customSelectionId(String entryId) => 'custom:$entryId';
 /// The shipped figures whose names an entry with [payload] must not take:
 /// those of the dance form it is made for, as the editor checks it, or
 /// contra's for a form this build does not know.
-Taxonomy glossaryEntryNameTaxonomy(Object? payload) {
-  final form = glossaryEntryForm(payload);
-  for (final value in DanceForm.values) {
-    if (value.name == form) return shippedTaxonomies.forForm(value);
-  }
-  return shippedTaxonomies.forForm(DanceForm.contra);
-}
+Taxonomy glossaryEntryNameTaxonomy(Object? payload) =>
+    shippedTaxonomies.forForm(glossaryEntryDanceForm(payload));
+
+/// The dialect a shorthand is shown in: that of the form of the entry it
+/// stands for ([target], the figure or combination it points at), not one
+/// stored with the shorthand (#2294, maintainer decision). A target that is
+/// not here, deleted or not read yet, leaves the shorthand in contra's, as it
+/// has always read.
+Dialect shorthandDialect(DialectsByForm dialects, UserGlossaryEntry? target) =>
+    dialects.forForm(
+      target == null
+          ? DanceForm.contra
+          : glossaryEntryDanceForm(target.payload),
+    );
 
 /// Resolves [entries] for display, in their stored order.
 ///
@@ -76,11 +83,14 @@ Taxonomy glossaryEntryNameTaxonomy(Object? payload) {
 /// ([glossaryEntryNameTaxonomy]), so an English figure of the user's named
 /// like a shipped English figure needs renaming, as the editor says.
 /// [dialects] and [shorthandTokens] are the other names a custom figure's
-/// name must not take (the active dialect and the user's own dialects; every
-/// shorthand token), as the editor checks them.
+/// name must not take (the user's own dialects; every shorthand token), as
+/// the editor checks them. [dialectsFor] adds, for one entry, the dialects
+/// that entry is shown in: its own form's active dialect, whose words the
+/// other forms' dialects need not share (#2294).
 List<CustomGlossaryItem> resolveCustomGlossary(
   List<UserGlossaryEntry> entries, {
   Iterable<Dialect> dialects = const [],
+  Iterable<Dialect> Function(Object? payload)? dialectsFor,
   Iterable<String> shorthandTokens = const [],
 }) {
   final ordered = [...entries]
@@ -95,7 +105,7 @@ List<CustomGlossaryItem> resolveCustomGlossary(
     final elsewhere = glossaryNameCollisions(
       entry.name,
       taxonomy: glossaryEntryNameTaxonomy(entry.payload),
-      dialects: dialects,
+      dialects: [...dialects, ...?dialectsFor?.call(entry.payload)],
       shorthandTokens: shorthandTokens,
       // A dialect's own name for this figure is not a clash with it.
       exceptUserFigureId: entry.id,

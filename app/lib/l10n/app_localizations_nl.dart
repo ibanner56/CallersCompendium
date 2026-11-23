@@ -3226,7 +3226,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsProgramShowPaySubtitle =>
-      'Als dit uit staat, verbergen de programma-editor en het overzicht de gage. Al ingevoerde gages blijven bewaard en verschijnen weer als je dit opnieuw aanzet.';
+      'Als dit uit staat, verbergen de editor, het overzicht en de programmaspreadsheet de gage. Al ingevoerde gages blijven bewaard en verschijnen weer als je dit opnieuw aanzet.';
 
   @override
   String get settingsMatrixColumnsHeader => 'Matrixkolommen';
@@ -7987,6 +7987,22 @@ class AppLocalizationsNl extends AppLocalizations {
   String get archiveIntakeRejectedEmpty => 'Dat bestand is leeg.';
 
   @override
+  String get danceLinkRefusedNewerVersion =>
+      'Deze danscode is gemaakt met een nieuwere versie van Caller’s Compendium. Werk de app bij om de code te openen.';
+
+  @override
+  String get danceLinkRefusedDamaged =>
+      'Deze danscode is beschadigd of onvolledig en kan niet worden geopend.';
+
+  @override
+  String get danceLinkRefusedNotADance =>
+      'Deze code is geen danscode van Caller\'s Compendium.';
+
+  @override
+  String get danceLinkRefusedNoContent =>
+      'Deze danscode bevat geen dansen of programma\'s.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'Dat bestand is geen deelbestand van Caller’s Compendium.';
 
@@ -8217,7 +8233,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importIssueArchiveNewerSchema =>
-      'Dit bestand is gemaakt met een nieuwere versie van Caller\'s Compendium. Werk de app bij voordat je importeert, anders ontbreken mogelijk sommige details.';
+      'Dit is gemaakt met een nieuwere versie van Caller\'s Compendium. Werk de app bij voordat je importeert, anders ontbreken mogelijk sommige details.';
 
   @override
   String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
@@ -8886,14 +8902,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorPhrasesHelp =>
-      'Benoem elk deel van de melodie A, B of C, geef het aantal maten en kies of het één of twee keer gespeeld wordt. Een frase die twee keer gespeeld wordt, heet A1 en A2.';
+      'Benoem elk deel van de melodie A, B of C, geef het aantal maten en de tellen per maat, en kies of het één of twee keer gespeeld wordt. Een frase die twee keer gespeeld wordt, heet A1 en A2.';
 
   @override
   String get danceEditorPhrasesAdd => 'Frase toevoegen';
 
   @override
   String danceEditorPhrasesInvalid(int max) {
-    return 'Geef elke frase 1 tot $max maten. Tot dan houdt de dans zijn laatste geldige frasen, en Opslaan slaat die op.';
+    return 'Geef elke frase 1 tot $max maten en 1 tot $max tellen per maat. Tot dan houdt de dans zijn laatste geldige frasen, en Opslaan slaat die op.';
   }
 
   @override
@@ -8903,6 +8919,16 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String danceEditorPhraseBarsRange(int max) {
+    return '1 tot $max';
+  }
+
+  @override
+  String danceEditorPhraseBeatsPerBarLabel(String name) {
+    return 'Tellen per maat in $name';
+  }
+
+  @override
+  String danceEditorPhraseBeatsPerBarRange(int max) {
     return '1 tot $max';
   }
 
@@ -10559,6 +10585,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get shorthandsUserFigureSyncLabel => 'Afkortingen voor nieuwe figuren';
+
+  @override
+  String get syncSavedSearchLabel => 'Opgeslagen zoekopdracht';
 
   @override
   String get shorthandsCompoundIntro =>
@@ -13572,6 +13601,46 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get csvColumnBarnes => 'Barnes-verwijzing';
+
+  @override
+  String get programsExportCsv => 'Programma\'s exporteren als CSV';
+
+  @override
+  String get csvProgramsFileStem => 'programmas';
+
+  @override
+  String get csvColumnEventDate => 'Eventdatum';
+
+  @override
+  String get csvColumnVenue => 'Locatie';
+
+  @override
+  String get csvColumnCaller => 'Caller';
+
+  @override
+  String get csvColumnBand => 'Band';
+
+  @override
+  String get csvColumnDancerLevel => 'Dansersniveau';
+
+  @override
+  String get csvColumnPayAmount => 'Gage';
+
+  @override
+  String get csvColumnPayCurrency => 'Valuta';
+
+  @override
+  String get csvColumnNotes => 'Notities';
+
+  @override
+  String get csvColumnDanceCount => 'Aantal dansen';
+
+  @override
+  String get csvColumnDances => 'Dansen';
+
+  @override
+  String get exportCsvPayHiddenNotice =>
+      'De gage is verborgen in Instellingen en wordt daarom weggelaten. Zet ‘Gage tonen’ aan onder Instellingen ▸ Programma om hem op te nemen.';
 
   @override
   String calendarImportUpdated(int count) {

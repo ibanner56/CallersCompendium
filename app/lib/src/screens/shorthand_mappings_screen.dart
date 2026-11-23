@@ -9,6 +9,7 @@ import '../data/figure_summary.dart';
 import '../data/repositories_scope.dart';
 import '../data/show_custom_figures_scope.dart';
 import '../editor/figure_draft.dart';
+import '../glossary/custom_figures.dart';
 import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
@@ -439,7 +440,7 @@ class _CompoundShorthandsSectionState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.contraOf(context);
+    final dialects = ActiveDialectScope.of(context);
     final shorthands = widget.controller.compoundShorthands;
     final userFigureShorthands = widget.controller.userFigureShorthands;
     final figureTokens = {
@@ -492,12 +493,12 @@ class _CompoundShorthandsSectionState
             title: l10n.shorthandsCompoundEmpty,
           ),
         for (var i = 0; i < shorthands.length; i++)
-          _row(context, l10n, dialect, shorthands[i], i, figureTokens),
+          _row(context, l10n, dialects, shorthands[i], i, figureTokens),
         for (var i = 0; i < userFigureShorthands.length; i++)
           _userFigureRow(
             context,
             l10n,
-            dialect,
+            dialects,
             userFigureShorthands[i],
             i,
             figureTokens,
@@ -509,13 +510,14 @@ class _CompoundShorthandsSectionState
   Widget _row(
     BuildContext context,
     AppLocalizations l10n,
-    Dialect dialect,
+    DialectsByForm dialects,
     CompoundShorthand shorthand,
     int index,
     Set<String> figureTokens,
   ) {
     final theme = Theme.of(context);
     final entry = _entries?[shorthand.compoundId];
+    final dialect = shorthandDialect(dialects, entry);
     final name = _renderer.renderFreeText(
       entry?.name ?? shorthand.compoundName,
       dialect,
@@ -590,12 +592,13 @@ class _CompoundShorthandsSectionState
   Widget _userFigureRow(
     BuildContext context,
     AppLocalizations l10n,
-    Dialect dialect,
+    DialectsByForm dialects,
     UserFigureShorthand shorthand,
     int index,
     Set<String> figureTokens,
   ) {
     final theme = Theme.of(context);
+    final dialect = shorthandDialect(dialects, _entries?[shorthand.figureId]);
     // The entries this section watches, as the compound rows read them.
     final userFigures = UserFigureCatalog.fromEntries(
       _entries?.values ?? const [],

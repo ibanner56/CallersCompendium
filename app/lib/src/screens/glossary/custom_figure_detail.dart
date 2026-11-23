@@ -541,14 +541,14 @@ class _GlossaryCustomFigureDetailState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final dialect = ActiveDialectScope.contraOf(context);
+    final dialects = ActiveDialectScope.of(context);
     final entries = _entries;
     if (entries == null) return const SizedBox.shrink();
     final items = resolveCustomGlossary(
       entries,
-      dialects: [
-        dialect,
-        ...?DialectLibraryScope.maybeOf(context)?.allCustomDialects,
+      dialects: [...?DialectLibraryScope.maybeOf(context)?.allCustomDialects],
+      dialectsFor: (payload) => [
+        dialects.forForm(glossaryEntryDanceForm(payload)),
       ],
       shorthandTokens: ShorthandMappingsScope.tokensOf(context),
     );
@@ -566,6 +566,8 @@ class _GlossaryCustomFigureDetailState
       );
     }
     final entry = item.entry;
+    // The figure reads in the dialect of the form it was made for (#2294).
+    final dialect = dialects.forForm(glossaryEntryDanceForm(entry.payload));
     final name = _renderer.renderFreeText(entry.name, dialect);
     final definition = item.definition;
 
@@ -643,7 +645,11 @@ class _GlossaryCustomFigureDetailState
         if (shippedTarget != null)
           attention(
             l10n.glossaryCustomShippedNameBody(
-              _renderer.displayMoveName(shippedTarget, dialect),
+              // A figure the app ships for contra, so named as contra reads.
+              _renderer.displayMoveName(
+                shippedTarget,
+                dialects.forForm(DanceForm.contra),
+              ),
             ),
             'glossary-custom-shipped-name',
           )
@@ -907,6 +913,10 @@ class _CustomFigureTitleState extends State<CustomFigureTitle> {
   StreamSubscription<List<UserGlossaryEntry>>? _sub;
   String? _name;
 
+  /// The form the figure was made for, kept beside [_name]: what the title
+  /// reads in is that form's dialect (#2294).
+  DanceForm _form = DanceForm.contra;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -915,11 +925,13 @@ class _CustomFigureTitleState extends State<CustomFigureTitle> {
     _repos = repos;
     unawaited(_sub?.cancel());
     _sub = repos?.userGlossary.watchAll().listen((entries) {
-      final name = entries
-          .where((e) => e.id == widget.entryId)
-          .firstOrNull
-          ?.name;
-      if (mounted && name != null) setState(() => _name = name);
+      final entry = entries.where((e) => e.id == widget.entryId).firstOrNull;
+      if (mounted && entry != null) {
+        setState(() {
+          _name = entry.name;
+          _form = glossaryEntryDanceForm(entry.payload);
+        });
+      }
     });
   }
 
@@ -937,7 +949,7 @@ class _CustomFigureTitleState extends State<CustomFigureTitle> {
           ? widget.fallback
           : _renderer.renderFreeText(
               name,
-              ActiveDialectScope.contraOf(context),
+              ActiveDialectScope.of(context).forForm(_form),
             ),
       key: const ValueKey('glossary-custom-title'),
     );

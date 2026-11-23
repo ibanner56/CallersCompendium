@@ -699,7 +699,8 @@ is no longer any code path that migrates from them.
   pay recorded. Shareable, so it syncs and is exported in archives and
   backups, but share files (program share file and Export JSON) omit it
   (`sanitizeProgramForShare`, maintainer decision R2-out2-export,
-  2026-10-30), and it is not part of the shared program text or PDF and
+  2026-10-30), and it is not part of the shared program text or PDF; the
+  programs CSV export carries it (`sanitizeProgramForCsv`, ruling 2, #2333), and
   `Program.duplicate` does not copy it. A backup holding pay or a v37 dialect name is written under backup
   envelope v2 (`backupSchemaVersionProgramPay`), so 0.5.2 to 0.5.4 refuse it
   instead of restoring it without them; the core archive version is unchanged,
@@ -867,7 +868,8 @@ steps that can still fire are v40 onward.
   holds `Dance.barnesReference`, where the tune is printed in the Barnes books
   ("BIII p. 92", or "NiB", Not in Barnes), `''` when not given and always
   `''` for a form other than ECD (maintainer, 23 November 2026: "ECD only";
-  the `Dance` constructor clears it, `formHasBarnesReference`). Both default
+  the `Dance` constructor clears it, `formHasBarnesReference`, and a dance
+  moved off ECD loses it when saved: "Clear it"). Both default
   to `''`, so every existing dance has neither; other titles are stored for
   every form. Added in the `from < 42` step, each only if absent. No derived index
   reads them: the Title scope and All fields read the other titles, and All

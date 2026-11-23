@@ -138,9 +138,14 @@ the same privacy rules: authors' private details are removed (see
 sharing** turned off are left out, and your star rating and your notes on your
 own figures stay on your devices.
 
-Opening a code inside Caller's Compendium itself is not available yet. For now,
-another phone's camera app reads the code and shows the link as text; to hand a
-dance to another Caller's Compendium user, use **Share dance file**.
+The other caller reads the code with their phone's own camera app: the iPhone
+Camera, or the Android camera or Google Lens. The camera offers a link; tapping it
+opens the dance in Caller's Compendium's import review, where they add it as
+they would a file you sent. Their phone needs no network, and the app asks for
+no camera permission. See
+[Open a dance someone shows you as a code](./imports.md#open-a-dance-someone-shows-you-as-a-code).
+A computer has no camera app to do this; send a computer user the dance with
+**Share dance file**.
 
 A short dance is drawn with the Caller's Compendium logo in the middle. A longer
 one is drawn without it, because the logo would cover too much of a code that
@@ -264,7 +269,7 @@ The file leaves out what is private to you: the program's **Pay**, its
 **Perform dialect**, whether you [archived](./programs.md#create-and-manage-programs)
 it, and the star **rating** on each dance. Those stay on your own devices and in
 your [backup](./backup-portability.md), and still move with Device Sync. A
-program you archived arrives unarchived, so it shows in the other caller's list. Pay is never part of the shared set-list text or PDF either.
+program you archived arrives unarchived, so it shows in the other caller's list. Pay is never part of the shared set-list text or PDF either; apart from your backup, the only export that carries it is the [programs spreadsheet](#export-programs-as-a-spreadsheet-csv).
 
 On Linux the system has no file share sheet, so this action is labeled **Save
 program file…** and saves the file through the system dialog instead.
@@ -382,6 +387,34 @@ as a shared dance, with one exception: **it includes your star ratings**. See
 [What stays private](#what-stays-private). It is not a backup, and the app
 cannot restore from it.
 
+## Export programs as a spreadsheet (CSV)
+
+To keep a list of your gigs in a spreadsheet, open the **Programs** list's
+**More actions** menu (⋮) and choose **Export programs as CSV**. It exports the
+programs the list is showing, in its order: archived programs are included only
+while **Show archived** is on. Choose **Save** or **Share** (**Save as…** on
+Linux), or **Cancel**.
+
+Each row is one program: its title, event date, status, the venue's name,
+caller, band, dancer level, **pay** (the amount and its currency), notes, the
+number of dances, and the dances in order, one per line, with alternates marked
+**Alternate**. Event dates are written as year-month-day (for example
+`2026-03-01`), so any spreadsheet reads them as dates, and the pay amount uses
+a decimal point. Alternates a program hides are left out, as in its set list.
+Like the dances spreadsheet, the file always uses commas and UTF-8 whatever
+your region, and a title or note that starts like a formula gets an apostrophe
+in front so the spreadsheet shows it as text.
+
+The programs spreadsheet follows the same privacy rules as a shared program,
+with one exception: **it includes your pay**, because it is your own record of
+your gigs. It leaves out the venue's street address and contact people, the
+program's **Perform dialect** and whether you archived it.
+
+If you have turned off **Show pay** in
+[Settings ▸ Program ▸ Programs](./settings.md#programs), the spreadsheet has no
+pay columns at all, and the export dialog says that pay is hidden in Settings
+and so left out. Turn **Show pay** back on to include it.
+
 ## Put programs in your calendar
 
 A calendar file (`.ics`) puts your gigs in the calendar app you already use, so
@@ -497,7 +530,7 @@ convenience and does not narrow the export — every move column prints.
 ## What stays private
 
 Exports are a privacy boundary, and the app treats them as one. Some things are
-left out of everything you share, with the one exception noted below, and one
+left out of everything you share, with the exceptions noted below, and one
 thing asks you first.
 
 ### Never included
@@ -511,9 +544,11 @@ thing asks you first.
   file leaves out the program's **Pay**, its **Perform dialect** and whether you
   archived it, and every share file or code leaves out your star rating of a
   dance. They stay on your devices, still move with Device Sync, and are kept
-  in a [backup](./backup-portability.md). The one exception is the
-  [dances spreadsheet (CSV)](#export-dances-as-a-spreadsheet-csv), which
-  includes your star ratings.
+  in a [backup](./backup-portability.md). The spreadsheets are the exceptions:
+  the [dances spreadsheet (CSV)](#export-dances-as-a-spreadsheet-csv) includes
+  your star ratings, and the
+  [programs spreadsheet](#export-programs-as-a-spreadsheet-csv) includes your pay,
+  unless you have turned off **Show pay**.
 
 - **Your notes on your own figures.** A shared file or code carries each of
   [your own new figures](./authoring.md#your-own-figures) its dances use, but
@@ -523,7 +558,8 @@ thing asks you first.
 - **A venue's street address, except in a calendar file you ask for.** The
   address lines, city, state or province, country, and postcode of a saved
   venue record are left out of everything you share, print, or copy — the
-  `.ccshare` file, the JSON file, the PDF, and the text set list alike. There is
+  `.ccshare` file, the JSON file, the PDF, the text set list and the programs
+  spreadsheet alike. There is
   no tick box for these. The one exception is a
   [calendar file](#put-programs-in-your-calendar), which asks whether to include
   the venue's address and leaves it out unless you tick it. What
@@ -582,10 +618,10 @@ They are different tools for different jobs:
 
 | | Share / export | [Backup](./backup-portability.md) |
 |---|---|---|
-| **Covers** | One dance, one program, or the dances you choose as a spreadsheet | Everything: dances, programs, venues, authors, dialects, themes, custom fields, and settings |
+| **Covers** | One dance or one program; as a spreadsheet, the dances you select or the programs the list shows | Everything: dances, programs, venues, authors, dialects, themes, custom fields, and settings |
 | **Meant for** | Handing to another person | Keeping safe, or moving to your own new device |
-| **Privacy** | Private contact details stripped or opt-in; your pay, dialect and star ratings left out (the dances spreadsheet keeps the ratings) | Complete — it is your own data, unredacted |
-| **Where** | The **Export** menu on a dance or program; **Export as CSV** for selected dances | **Settings ▸ General ▸ Export a backup** |
+| **Privacy** | Private contact details stripped or opt-in; your pay, dialect and star ratings left out (the dances spreadsheet keeps the ratings, the programs spreadsheet the pay) | Complete — it is your own data, unredacted |
+| **Where** | The **Export** menu on a dance or program; **Export as CSV** for selected dances; **Export programs as CSV** in the Programs list | **Settings ▸ General ▸ Export a backup** |
 
 The **Include in sharing** setting on a custom field applies to share/export
 files sent to other people. Your own backup remains complete, including fields
