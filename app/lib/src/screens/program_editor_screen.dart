@@ -2085,7 +2085,20 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// collection; null otherwise, so the export names authors as usual. As in
   /// the program summary, the share bundle is unaffected: it embeds only the
   /// author records the collection holds.
-  List<String>? _authorNamesOverrideFor(String danceId) {
+  List<String>? _authorNamesOverrideFor(String danceId) =>
+      _deletedNamesOverrideFor(danceId, (dance) => dance.authorIds);
+
+  /// A dance's interpreter names, as [_authorNamesOverrideFor] gives its
+  /// authors' names.
+  List<String>? _interpreterNamesOverrideFor(String danceId) =>
+      _deletedNamesOverrideFor(danceId, (dance) => dance.interpreterIds);
+
+  /// The names of [idsOf] for a dance in Recently deleted when some of those
+  /// people are in Recently deleted too; null otherwise.
+  List<String>? _deletedNamesOverrideFor(
+    String danceId,
+    List<String> Function(Dance dance) idsOf,
+  ) {
     final dance = _deletedSlotDances[danceId];
     // Same precedence as [_danceById]: a dance the collection lists (restored
     // since the lookup) is credited from the collection.
@@ -2098,16 +2111,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _createdChoreographers[id]?.name ??
         _data?.choreographersById[id]?.name ??
         _deletedSlotAuthorNames[id];
+    final ids = idsOf(dance);
     final names = [
-      for (final id in dance.authorIds)
+      for (final id in ids)
         if (nameOf(id) case final String name when name.isNotEmpty) name,
     ];
-    final live = dance.authorIds.where(
+    final live = ids.where(
       (id) =>
           _createdChoreographers.containsKey(id) ||
           (_data?.choreographersById.containsKey(id) ?? false),
     );
-    return live.length == dance.authorIds.length ? null : names;
+    return live.length == ids.length ? null : names;
   }
 
   /// [dance]'s author names in credit order, as the exports credit them
@@ -3359,6 +3373,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                         _createdChoreographers[id] ??
                         _data?.choreographersById[id],
                     authorNamesOverrideFor: _authorNamesOverrideFor,
+                    interpreterNamesOverrideFor: _interpreterNamesOverrideFor,
                     tagFor: (id) => _data?.tagFor(id),
                     publishedSourceFor: (id) => _data?.publishedSourceFor(id),
                     customFieldFor: (id) => _data?.customFieldFor(id),

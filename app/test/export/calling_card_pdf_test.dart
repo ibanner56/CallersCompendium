@@ -685,4 +685,18 @@ notes label=""
     }
     expect(figures.where((f) => f.progression), hasLength(1));
   });
+
+  test(
+    'the editor sample fills the default layout\'s music and year',
+    () async {
+      final sample = callingCardSampleDance(
+        title: 'Sample',
+        notes: 'notes',
+        figureNote: 'note',
+      );
+      final text = await _text([_entry(sample)]);
+      expect(text, contains('Meter: 2/2'));
+      expect(text, contains(r'Pat Author \(2019\)'));
+    },
+  );
 }

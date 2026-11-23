@@ -166,15 +166,18 @@ cards, there is a sixth: **Print calling cards**, one small card for each of the
 
 The set list — text and PDF alike — is titles, event details, and slot notes by
 default, with each dance's author shown next to its title if you have authors
-turned on (see [Choose which dance fields
-appear](#choose-which-dance-fields-appear) below). When you choose **Share set
+turned on, and its meter and key if you have meter, key and Barnes turned on
+(see [Choose which dance fields appear](#choose-which-dance-fields-appear)
+below). When you choose **Share set
 list (text)**, **Copy set list**, or **Export / print PDF**, the app asks
 **Include figures?** with two choices:
 
-- **Set list only** — titles, event details, slot notes, and the author
-  (the default). None of your other selected dance fields appear here —
-  formation, level, mixer, status, phrase, calling notes, walkthrough,
-  tunes, hook, and sources only ever show up on the richer per-dance card described next.
+- **Set list only** — titles, event details, slot notes, the author, and the
+  meter and key (the default). None of your other selected dance fields appear
+  here — formation, level, mixer, status, phrase, calling notes, walkthrough,
+  tunes, hook, sources, the composed and interpreted years, the interpreters
+  and the Barnes reference only ever show up on the richer per-dance card
+  described next.
 - **Set list and figures** — appends a full card for each dance after the set
   list, showing every dance field you've selected alongside its figures. The
   cards use your app language for field labels; the figure text uses your
@@ -199,8 +202,8 @@ Settings ▸ Defaults has a checklist for every non-figures dance field a dance
 card can show: author, formation, level, mixer, status, phrase, calling
 notes, walkthrough, suggested tunes, hook, published sources, and meter, key
 and Barnes. Everything except suggested tunes, the hook and published sources
-is on by default, matching every export before this setting existed; those
-three are off by default, since no export showed them before.
+is on by default; those three are off by default, since no export showed them
+before.
 
 **Authors** also prints the year the dance was composed beside its authors,
 such as *Pat Shaw (1951)*, and who interpreted it and when on a line of its

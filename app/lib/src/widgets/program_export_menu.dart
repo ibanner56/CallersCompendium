@@ -85,6 +85,7 @@ class ProgramExportMenu extends StatelessWidget {
     this.danceFor,
     this.choreographerFor,
     this.authorNamesOverrideFor,
+    this.interpreterNamesOverrideFor,
     this.tagFor,
     this.publishedSourceFor,
     this.customFieldFor,
@@ -123,6 +124,11 @@ class ProgramExportMenu extends StatelessWidget {
   /// embeds author records, and a deleted author's record does not leave the
   /// device with a program (see [choreographerFor]).
   final List<String>? Function(String danceId)? authorNamesOverrideFor;
+
+  /// A dance's interpreter names when some of its interpreters are in
+  /// Recently deleted, as [authorNamesOverrideFor] is for its authors; null
+  /// when it has no such interpreter.
+  final List<String>? Function(String danceId)? interpreterNamesOverrideFor;
 
   /// Resolves the difficulty level of the dance with this id (dance-keyed, not
   /// level-keyed). Must cover every dance in the program, alternates included:
@@ -204,14 +210,16 @@ class ProgramExportMenu extends StatelessWidget {
   }
 
   /// Resolves [dance]'s interpreter names via [choreographerFor], names only,
-  /// as [_authorNamesFor] does. An interpreter the collection no longer lists
-  /// (in Recently deleted) is left out.
-  List<String> _interpreterNamesFor(Dance dance) => [
-    for (final id in dance.interpreterIds)
-      if (choreographerFor?.call(id)?.name case final String name
-          when name.isNotEmpty)
-        name,
-  ];
+  /// as [_authorNamesFor] does, or [interpreterNamesOverrideFor] for a dance
+  /// with an interpreter in Recently deleted.
+  List<String> _interpreterNamesFor(Dance dance) =>
+      interpreterNamesOverrideFor?.call(dance.id) ??
+      [
+        for (final id in dance.interpreterIds)
+          if (choreographerFor?.call(id)?.name case final String name
+              when name.isNotEmpty)
+            name,
+      ];
 
   /// Each slot's meter and key for the set list, such as
   /// "Meter: 6/8 · Key: G minor", as the dance detail screen writes them, when
@@ -231,7 +239,12 @@ class ProgramExportMenu extends StatelessWidget {
     return (danceId) {
       final dance = resolveDance(danceId);
       if (dance == null) return null;
-      final dialect = dialects.forDance(dance);
+      // The dialect the dance's own card uses (`dialectForDance`).
+      final dialect = dialectForDance(
+        dialects.forDance(dance),
+        title: dance.title,
+        authorNames: _authorNamesFor(danceId),
+      );
       return meterAndKeyLabel(
         l10n,
         dance,
@@ -330,9 +343,10 @@ class ProgramExportMenu extends StatelessWidget {
     return ProgramFiguresPromptDialog.show(context);
   }
 
-  /// Resolves the same four display strings for [dance]'s card that both the
+  /// Resolves the display strings for [dance]'s card that both the
   /// text-path appended card and the PDF appendix card need (issue #1434):
-  /// author names (via [_authorNamesFor]), formation/level/status labels.
+  /// author names (via [_authorNamesFor]), interpreter names (via
+  /// [_interpreterNamesFor]), formation/level/status labels and source lines.
   /// Shared so the two rendering paths can't drift on how a label is derived
   /// — level label mirrors the dance_detail_screen pattern.
   DanceCardLabels _cardLabelsFor(

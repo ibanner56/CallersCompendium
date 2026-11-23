@@ -242,6 +242,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// and [_dances] leave out. Only for the text and PDF exports, as Perform
   /// shows them (GIG-11).
   Map<String, List<String>> _authorNamesOverride = const {};
+
+  /// As [_authorNamesOverride], for a dance's interpreters.
+  Map<String, List<String>> _interpreterNamesOverride = const {};
   Map<String, Venue> _venuesById = const {};
   CollectionData? _collectionData;
   List<DifficultyLevel> _difficultyLevels = const [];
@@ -548,6 +551,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           _danceTitles = const {};
           _dances = const {};
           _authorNamesOverride = const {};
+          _interpreterNamesOverride = const {};
           _venuesById = const {};
           _collectionData = null;
           _loading = false;
@@ -586,6 +590,8 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       // can embed. A dance the collection lists is credited from the
       // collection, as before.
       final authorsToName = <String, List<String>>{};
+      // The same for the dance's interpreters, credited by name on its cards.
+      final interpretersToName = <String, List<String>>{};
       for (final dance in loaded) {
         if (dance != null) {
           titles[dance.id] = dance.title;
@@ -597,28 +603,37 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           if (!listed && live.length != dance.authorIds.length) {
             authorsToName[dance.id] = dance.authorIds;
           }
+          if (!listed &&
+              dance.interpreterIds.any(
+                (id) => !data.choreographersById.containsKey(id),
+              )) {
+            interpretersToName[dance.id] = dance.interpreterIds;
+          }
           dances[dance.id] = live.length == dance.authorIds.length
               ? dance
               : dance.copyWith(authorIds: live);
         }
       }
       final authorNames = <String, List<String>>{};
-      if (authorsToName.isNotEmpty) {
+      final interpreterNames = <String, List<String>>{};
+      if (authorsToName.isNotEmpty || interpretersToName.isNotEmpty) {
         final names = {
           for (final c in await _repos.choreographers.listAll(
             includeDeleted: true,
           ))
             c.id: c.name,
         };
-        authorNames.addAll({
-          for (final entry in authorsToName.entries)
+        Map<String, List<String>> named(Map<String, List<String>> ids) => {
+          for (final entry in ids.entries)
             entry.key: [
               for (final id in entry.value)
                 if ((data.choreographersById[id]?.name ?? names[id])
                     case final String name when name.isNotEmpty)
                   name,
             ],
-        });
+        };
+        authorNames.addAll(named(authorsToName));
+        interpreterNames.addAll(named(interpretersToName));
       }
       // Resolve only the linked venue (if any). The summary shows a single
       // program, so loading the whole catalogue just to look up one id is
@@ -636,6 +651,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         _danceTitles = titles;
         _dances = dances;
         _authorNamesOverride = authorNames;
+        _interpreterNamesOverride = interpreterNames;
         _venuesById = venuesById;
         _collectionData = data;
         _difficultyLevels = difficultyLevels;
@@ -987,6 +1003,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         danceFor: (id) => _dances[id],
         choreographerFor: (id) => _collectionData?.choreographersById[id],
         authorNamesOverrideFor: (id) => _authorNamesOverride[id],
+        interpreterNamesOverrideFor: (id) => _interpreterNamesOverride[id],
         tagFor: (id) => _collectionData?.tagFor(id),
         publishedSourceFor: (id) => _collectionData?.publishedSourceFor(id),
         customFieldFor: (id) => _collectionData?.customFieldFor(id),
