@@ -134,7 +134,9 @@ class DanceRun {
   /// means.
   final bool blockedByDeferral;
 
-  /// The figure this run assumed was the progression, when it assumed one.
+  /// The first figure this run assumed was a progression, when it assumed
+  /// any. A multiple progression's later assumed flags appear only in
+  /// [warnings] (`assumedProgression`).
   ///
   /// Like every figure index this path reports (warnings, a refusal's
   /// "figure N", a parse error's `figures[N]`), it is a position in
