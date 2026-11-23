@@ -3044,6 +3044,13 @@ class AppLocalizationsJa extends AppLocalizations {
       'オンにすると、有効な変更が作業中に保存されるため、エディターを終了するときに破棄するかどうかを確認されません。オフにすると、プログラムを明示的に保存します。';
 
   @override
+  String get settingsProgramShowPayTitle => '報酬を表示';
+
+  @override
+  String get settingsProgramShowPaySubtitle =>
+      'オフにすると、プログラムのエディターと概要で報酬が非表示になります。入力済みの報酬は保持され、再びオンにすると表示されます。';
+
+  @override
   String get settingsMatrixColumnsHeader => 'マトリクスの列';
 
   @override
@@ -5870,6 +5877,46 @@ class AppLocalizationsJa extends AppLocalizations {
   String programsMoreActionsForSlot(String title) {
     return '$titleのその他のアクション';
   }
+
+  @override
+  String get programsAddDanceBeforeMenu => '前にダンスを追加';
+
+  @override
+  String get programsAddDanceAfterMenu => '後にダンスを追加';
+
+  @override
+  String programsAddBeforeSheetTitle(String title) {
+    return '$title の前に追加';
+  }
+
+  @override
+  String programsAddAfterSheetTitle(String title) {
+    return '$title の後に追加';
+  }
+
+  @override
+  String programsAddingBeforeBanner(String title) {
+    return '$title の前に追加中';
+  }
+
+  @override
+  String programsAddingAfterBanner(String title) {
+    return '$title の後に追加中';
+  }
+
+  @override
+  String programsAddedDanceBeforeAnnounce(String title, String target) {
+    return '$title を $target の前に追加しました。';
+  }
+
+  @override
+  String programsAddedDanceAfterAnnounce(String title, String target) {
+    return '$title を $target の後に追加しました。';
+  }
+
+  @override
+  String get programsInsertionCancelledAnnounce =>
+      'キャンセルしました。新しいダンスは最後に追加されます。';
 
   @override
   String get programsEditSlotMenu => 'スロットを編集';
@@ -8869,6 +8916,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorChooseHint => '選択…';
+
+  @override
+  String get figureParamSearchDancersHint => 'ダンサーを検索';
 
   @override
   String danceEditorCreateQuotedName(String name) {

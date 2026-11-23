@@ -3199,6 +3199,13 @@ class AppLocalizationsDa extends AppLocalizations {
       'Når funktionen er slået til, gemmes gyldige ændringer, mens du arbejder, så du ikke bliver spurgt, om de skal kasseres, når du forlader editoren. Slå den fra for at gemme programmer eksplicit.';
 
   @override
+  String get settingsProgramShowPayTitle => 'Vis honorar';
+
+  @override
+  String get settingsProgramShowPaySubtitle =>
+      'Når den er slået fra, skjuler programeditoren og oversigten honoraret. Honorar, der allerede er indtastet, bevares og vises igen, når du slår den til igen.';
+
+  @override
   String get settingsMatrixColumnsHeader => 'Matrixkolonner';
 
   @override
@@ -6130,6 +6137,46 @@ class AppLocalizationsDa extends AppLocalizations {
   String programsMoreActionsForSlot(String title) {
     return 'Flere handlinger for $title';
   }
+
+  @override
+  String get programsAddDanceBeforeMenu => 'Tilføj en dans før';
+
+  @override
+  String get programsAddDanceAfterMenu => 'Tilføj en dans efter';
+
+  @override
+  String programsAddBeforeSheetTitle(String title) {
+    return 'Tilføj før $title';
+  }
+
+  @override
+  String programsAddAfterSheetTitle(String title) {
+    return 'Tilføj efter $title';
+  }
+
+  @override
+  String programsAddingBeforeBanner(String title) {
+    return 'Tilføjer før $title';
+  }
+
+  @override
+  String programsAddingAfterBanner(String title) {
+    return 'Tilføjer efter $title';
+  }
+
+  @override
+  String programsAddedDanceBeforeAnnounce(String title, String target) {
+    return '$title tilføjet før $target.';
+  }
+
+  @override
+  String programsAddedDanceAfterAnnounce(String title, String target) {
+    return '$title tilføjet efter $target.';
+  }
+
+  @override
+  String get programsInsertionCancelledAnnounce =>
+      'Annulleret. Nye danse tilføjes til sidst.';
 
   @override
   String get programsEditSlotMenu => 'Rediger slot';
@@ -9241,6 +9288,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorChooseHint => 'Vælg…';
+
+  @override
+  String get figureParamSearchDancersHint => 'Søg i dansere';
 
   @override
   String danceEditorCreateQuotedName(String name) {

@@ -4045,6 +4045,14 @@
   "@settingsProgramAutoCommitSubtitle": {
     "description": "Subtitle explaining the opt-in program-editor auto-commit preference and its effect on the discard warning."
   },
+  "settingsProgramShowPayTitle": "Show pay",
+  "@settingsProgramShowPayTitle": {
+    "description": "Title of the Settings > Program > Programs switch that shows or hides each program's Pay field in the editor and its pay line on the summary. On by default."
+  },
+  "settingsProgramShowPaySubtitle": "When off, the program editor and summary hide pay. Pay already entered is kept, and shows again when you turn this back on.",
+  "@settingsProgramShowPaySubtitle": {
+    "description": "Subtitle of the Show pay switch: turning it off only hides pay in the program editor and summary; stored pay is never cleared."
+  },
   "settingsMatrixColumnsHeader": "Matrix columns",
   "@settingsMatrixColumnsHeader": {
     "description": "Header for the Program settings editor that reorders, renames, and removes program-matrix columns."
@@ -8015,6 +8023,86 @@
         "example": "Chorus Jig"
       }
     }
+  },
+  "programsAddDanceBeforeMenu": "Add a dance before",
+  "@programsAddDanceBeforeMenu": {
+    "description": "Program builder slot overflow menu item: choose a dance from the collection and insert it before this slot's group (the slot, or its primary, and that primary's alternates)."
+  },
+  "programsAddDanceAfterMenu": "Add a dance after",
+  "@programsAddDanceAfterMenu": {
+    "description": "Program builder slot overflow menu item: choose a dance from the collection and insert it after this slot's group (after the last alternate of the slot's primary)."
+  },
+  "programsAddBeforeSheetTitle": "Add before {title}",
+  "@programsAddBeforeSheetTitle": {
+    "description": "Title of the dance picker sheet opened by 'Add a dance before' on a narrow screen. {title} names the slot the new dance will go before.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
+  },
+  "programsAddAfterSheetTitle": "Add after {title}",
+  "@programsAddAfterSheetTitle": {
+    "description": "Title of the dance picker sheet opened by 'Add a dance after' on a narrow screen. {title} names the slot the new dance will go after.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
+  },
+  "programsAddingBeforeBanner": "Adding before {title}",
+  "@programsAddingBeforeBanner": {
+    "description": "Banner above the dance picker beside the program on a wide screen while 'Add a dance before' waits for a dance. Also announced to screen readers. {title} names the target slot.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
+  },
+  "programsAddingAfterBanner": "Adding after {title}",
+  "@programsAddingAfterBanner": {
+    "description": "Banner above the dance picker beside the program on a wide screen while 'Add a dance after' waits for a dance. Also announced to screen readers. {title} names the target slot.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
+  },
+  "programsAddedDanceBeforeAnnounce": "Added {title} before {target}.",
+  "@programsAddedDanceBeforeAnnounce": {
+    "description": "Screen-reader announcement when a dance is inserted before a slot in the program being edited. {title} is the added dance; {target} is the slot it went before.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Rory O'More"
+      },
+      "target": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
+  },
+  "programsAddedDanceAfterAnnounce": "Added {title} after {target}.",
+  "@programsAddedDanceAfterAnnounce": {
+    "description": "Screen-reader announcement when a dance is inserted after a slot in the program being edited. {title} is the added dance; {target} is the slot it went after.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Rory O'More"
+      },
+      "target": {
+        "type": "String",
+        "example": "Chorus Jig"
+      }
+    }
+  },
+  "programsInsertionCancelledAnnounce": "Canceled. New dances go at the end.",
+  "@programsInsertionCancelledAnnounce": {
+    "description": "Screen-reader announcement when the caller cancels 'Add a dance before/after' from the banner beside the dance picker; the next dance added goes at the end of the program."
   },
   "programsEditSlotMenu": "Edit slot",
   "@programsEditSlotMenu": {
@@ -12130,6 +12218,10 @@
   "danceEditorChooseHint": "Choose…",
   "@danceEditorChooseHint": {
     "description": "Hint in an empty multi-select field (Authors, Interpreted by, Tags) that opens a list to pick from or add to."
+  },
+  "figureParamSearchDancersHint": "Search dancers",
+  "@figureParamSearchDancersHint": {
+    "description": "Hint in the search box of the open list of dancers a figure names (its Who field), which narrows the list."
   },
   "danceEditorCreateQuotedName": "Create \"{name}\"",
   "@danceEditorCreateQuotedName": {

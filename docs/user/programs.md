@@ -249,6 +249,24 @@ types you choose.
 **Add note or break** adds a free-text slot (a note, a waltz, an announcement), and **Insert break** adds a break.
 On a narrow screen, **Add dance** opens the collection picker.
 
+New slots go at the end of the program. To put a dance somewhere else, choose
+**Add a dance before** or **Add a dance after** from a slot's **…** menu. On a
+narrow screen the collection picker opens titled with the slot, such as
+**Add before Chorus Jig**, and closes once you choose a dance. On a wide
+screen the picker beside your program shows **Adding before Chorus Jig** with
+**Cancel**, and the slot is highlighted. The dance you choose goes there,
+including one you import from online search, and the next dance you add goes at
+the end again. The new dance is always a primary: **before** puts it ahead of
+the slot's alternates as well, and **after** puts it after the last of them, so
+it never becomes, or splits up, another dance's alternates. Choosing either
+from an alternate's menu gives the same place as from its primary's. If the
+slot is one of a run of alternates at the top of the program, with no dance
+above them, choosing **Add a dance before** turns the first of them into a
+dance of its own, and the rest become its alternates. A break or note slot counts on
+its own. Screen readers announce where the dance went:
+*Added Rory O'More before Chorus Jig*. To put a note or a break in the middle,
+add it and then move it.
+
 To bring in a dance you don't have yet, tap the **Online search** icon at the end of the
 picker's row of search tools to search The Caller's Box or ContraDB by title,
 author or figure, chosen with **Search in** as in the Collection. Selecting a
@@ -329,7 +347,9 @@ import that couldn't find a match.
 ### Reorder and remove slots
 
 To reorder slots, use the **drag handle** or the **move up / move down** buttons.
-Both do the same job, so you are never forced to drag.
+Both do the same job, so you are never forced to drag. To add a dance at a
+particular place in the first place, see **Add a dance before** and **Add a
+dance after** under [Build a program](#build-a-program).
 
 To remove a slot, choose the **scissors** button on its row (its tooltip reads
 **Cut** and the slot's name). The slot is removed immediately, the slots after
@@ -339,7 +359,8 @@ a program never deletes the dance from your collection.
 On a phone, or wherever the program pane is narrow, each row keeps only its drag
 handle and its **…** menu, so the slot's title has room. The menu then starts
 with **Move up** and **Move down**, followed by **View details** and the
-scissors **Cut** item, ahead of the slot's usual actions.
+scissors **Cut** item, ahead of **Add a dance before**, **Add a dance after**
+and the slot's usual actions.
 
 When you cut or move a dance that has alternates, its first alternate takes its
 place as the primary, and any other alternates stay with that one. They never
@@ -389,7 +410,9 @@ A program carries the details of its event:
 - program-level **Band**, **Caller**, and **Dancer level**;
 - **Pay**, an amount and currency under **More details**, shown on the
   program's summary but never in the shared set list, the PDF, or a program
-  file you share;
+  file you share. If you don't track pay, turn off **Show pay** in
+  [Settings › Program › Programs](./settings.md#programs) to hide it in the
+  editor and on the summary; pay already entered is kept;
 - a **Status** — **Draft**, **Finalized**, or **Performed** — shown on the
   Programs list. Saving a change to **Performed** marks every unmarked dance
   in the program performed, except alternates, and that writes calling

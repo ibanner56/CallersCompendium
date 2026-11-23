@@ -4876,6 +4876,18 @@ abstract class AppLocalizations {
   /// **'When on, valid changes are saved as you work, so leaving the editor does not ask whether to discard them. Turn off to save programs explicitly.'**
   String get settingsProgramAutoCommitSubtitle;
 
+  /// Title of the Settings > Program > Programs switch that shows or hides each program's Pay field in the editor and its pay line on the summary. On by default.
+  ///
+  /// In en, this message translates to:
+  /// **'Show pay'**
+  String get settingsProgramShowPayTitle;
+
+  /// Subtitle of the Show pay switch: turning it off only hides pay in the program editor and summary; stored pay is never cleared.
+  ///
+  /// In en, this message translates to:
+  /// **'When off, the program editor and summary hide pay. Pay already entered is kept, and shows again when you turn this back on.'**
+  String get settingsProgramShowPaySubtitle;
+
   /// Header for the Program settings editor that reorders, renames, and removes program-matrix columns.
   ///
   /// In en, this message translates to:
@@ -9388,6 +9400,60 @@ abstract class AppLocalizations {
   /// **'More actions for {title}'**
   String programsMoreActionsForSlot(String title);
 
+  /// Program builder slot overflow menu item: choose a dance from the collection and insert it before this slot's group (the slot, or its primary, and that primary's alternates).
+  ///
+  /// In en, this message translates to:
+  /// **'Add a dance before'**
+  String get programsAddDanceBeforeMenu;
+
+  /// Program builder slot overflow menu item: choose a dance from the collection and insert it after this slot's group (after the last alternate of the slot's primary).
+  ///
+  /// In en, this message translates to:
+  /// **'Add a dance after'**
+  String get programsAddDanceAfterMenu;
+
+  /// Title of the dance picker sheet opened by 'Add a dance before' on a narrow screen. {title} names the slot the new dance will go before.
+  ///
+  /// In en, this message translates to:
+  /// **'Add before {title}'**
+  String programsAddBeforeSheetTitle(String title);
+
+  /// Title of the dance picker sheet opened by 'Add a dance after' on a narrow screen. {title} names the slot the new dance will go after.
+  ///
+  /// In en, this message translates to:
+  /// **'Add after {title}'**
+  String programsAddAfterSheetTitle(String title);
+
+  /// Banner above the dance picker beside the program on a wide screen while 'Add a dance before' waits for a dance. Also announced to screen readers. {title} names the target slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Adding before {title}'**
+  String programsAddingBeforeBanner(String title);
+
+  /// Banner above the dance picker beside the program on a wide screen while 'Add a dance after' waits for a dance. Also announced to screen readers. {title} names the target slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Adding after {title}'**
+  String programsAddingAfterBanner(String title);
+
+  /// Screen-reader announcement when a dance is inserted before a slot in the program being edited. {title} is the added dance; {target} is the slot it went before.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {title} before {target}.'**
+  String programsAddedDanceBeforeAnnounce(String title, String target);
+
+  /// Screen-reader announcement when a dance is inserted after a slot in the program being edited. {title} is the added dance; {target} is the slot it went after.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {title} after {target}.'**
+  String programsAddedDanceAfterAnnounce(String title, String target);
+
+  /// Screen-reader announcement when the caller cancels 'Add a dance before/after' from the banner beside the dance picker; the next dance added goes at the end of the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Canceled. New dances go at the end.'**
+  String get programsInsertionCancelledAnnounce;
+
   /// Overflow menu item to edit a program slot.
   ///
   /// In en, this message translates to:
@@ -13770,6 +13836,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose…'**
   String get danceEditorChooseHint;
+
+  /// Hint in the search box of the open list of dancers a figure names (its Who field), which narrows the list.
+  ///
+  /// In en, this message translates to:
+  /// **'Search dancers'**
+  String get figureParamSearchDancersHint;
 
   /// Type-ahead option label for creating a new item with the typed name/title.
   ///

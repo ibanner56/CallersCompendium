@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/show_program_pay_scope.dart';
 import 'package:compendium_app/src/data/user_figures_scope.dart';
 import 'package:compendium_app/src/screens/sync_conflict_details.dart';
 import 'package:compendium_app/src/screens/sync_conflict_sheet.dart';
@@ -1190,6 +1191,64 @@ void main() {
   });
 
   group('showing every saved detail', () {
+    testWidgets('a program whose versions differ only in pay shows the pay, '
+        'even while Show pay is off (#2355)', (tester) async {
+      Map<String, Object?> body(int pay, String currency) => {
+        'id': 'p1',
+        'title': 'Night',
+        'status': 'draft',
+        'notes': '',
+        'hideAlternates': false,
+        'slots': const <Object?>[],
+        'payMinorUnits': pay,
+        'payCurrency': currency,
+        'createdAt': '2026-09-01T00:00:00.000Z',
+      };
+      final theirs = SyncRecordBlob(
+        kind: SyncRecordKind.program,
+        id: 'p1',
+        updatedAt: DateTime.utc(2026, 9, 30),
+        deletedAt: null,
+        existenceAt: DateTime.utc(2026, 9, 30),
+        body: body(30000, 'EUR'),
+      );
+      final showPay = ValueNotifier<bool>(false);
+      addTearDown(showPay.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) =>
+              ShowProgramPayScope(notifier: showPay, child: child!),
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: SyncConflictComparison(
+                group: SyncConflictGroup(
+                  kind: SyncRecordKind.program,
+                  recordId: 'p1',
+                  localBody: body(25000, 'USD'),
+                  candidates: syncConflictGroupFor(
+                    SyncConflictReconsideration(
+                      kind: SyncRecordKind.program,
+                      recordId: 'p1',
+                      before: null,
+                      offered: [theirs],
+                      writtenWireHash: 'written',
+                      writtenAt: DateTime.utc(2026, 9, 30),
+                    ),
+                  ).candidates,
+                ),
+                lookups: const SyncConflictLookups(),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.textContaining('250.00 USD'), findsOneWidget);
+      expect(find.textContaining('300.00 EUR'), findsOneWidget);
+    });
+
     testWidgets('one of the user\'s own figures is compared in the active '
         'dialect, by what it becomes (#709)', (tester) async {
       final compound = canonicalJson(

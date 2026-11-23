@@ -137,6 +137,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kConfirmBeforeDeleteKey,
     kSetListColorCodingKey,
     kShowPerformedTogglesKey,
+    kShowProgramPayKey,
     kMarkAllSetsStatusKey,
     kShareSetListIncludeTitleKey,
     kShareSetListIncludeCallerBandKey,

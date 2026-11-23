@@ -3175,6 +3175,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'When on, valid changes are saved as you work, so leaving the editor does not ask whether to discard them. Turn off to save programs explicitly.';
 
   @override
+  String get settingsProgramShowPayTitle => 'Show pay';
+
+  @override
+  String get settingsProgramShowPaySubtitle =>
+      'When off, the program editor and summary hide pay. Pay already entered is kept, and shows again when you turn this back on.';
+
+  @override
   String get settingsMatrixColumnsHeader => 'Matrix columns';
 
   @override
@@ -6091,6 +6098,46 @@ class AppLocalizationsEn extends AppLocalizations {
   String programsMoreActionsForSlot(String title) {
     return 'More actions for $title';
   }
+
+  @override
+  String get programsAddDanceBeforeMenu => 'Add a dance before';
+
+  @override
+  String get programsAddDanceAfterMenu => 'Add a dance after';
+
+  @override
+  String programsAddBeforeSheetTitle(String title) {
+    return 'Add before $title';
+  }
+
+  @override
+  String programsAddAfterSheetTitle(String title) {
+    return 'Add after $title';
+  }
+
+  @override
+  String programsAddingBeforeBanner(String title) {
+    return 'Adding before $title';
+  }
+
+  @override
+  String programsAddingAfterBanner(String title) {
+    return 'Adding after $title';
+  }
+
+  @override
+  String programsAddedDanceBeforeAnnounce(String title, String target) {
+    return 'Added $title before $target.';
+  }
+
+  @override
+  String programsAddedDanceAfterAnnounce(String title, String target) {
+    return 'Added $title after $target.';
+  }
+
+  @override
+  String get programsInsertionCancelledAnnounce =>
+      'Canceled. New dances go at the end.';
 
   @override
   String get programsEditSlotMenu => 'Edit slot';
@@ -9202,6 +9249,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorChooseHint => 'Choose…';
+
+  @override
+  String get figureParamSearchDancersHint => 'Search dancers';
 
   @override
   String danceEditorCreateQuotedName(String name) {

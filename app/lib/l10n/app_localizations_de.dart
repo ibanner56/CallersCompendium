@@ -3223,6 +3223,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wenn diese Option aktiviert ist, werden gültige Änderungen während der Arbeit gespeichert, sodass beim Verlassen des Editors nicht gefragt wird, ob sie verworfen werden sollen. Deaktiviere sie, um Programme ausdrücklich zu speichern.';
 
   @override
+  String get settingsProgramShowPayTitle => 'Gage anzeigen';
+
+  @override
+  String get settingsProgramShowPaySubtitle =>
+      'Wenn deaktiviert, blenden Programmeditor und Übersicht die Gage aus. Bereits eingetragene Gagen bleiben erhalten und erscheinen wieder, wenn du dies erneut aktivierst.';
+
+  @override
   String get settingsMatrixColumnsHeader => 'Matrixspalten';
 
   @override
@@ -6182,6 +6189,46 @@ class AppLocalizationsDe extends AppLocalizations {
   String programsMoreActionsForSlot(String title) {
     return 'Weitere Aktionen für $title';
   }
+
+  @override
+  String get programsAddDanceBeforeMenu => 'Tanz davor einfügen';
+
+  @override
+  String get programsAddDanceAfterMenu => 'Tanz danach einfügen';
+
+  @override
+  String programsAddBeforeSheetTitle(String title) {
+    return 'Vor $title einfügen';
+  }
+
+  @override
+  String programsAddAfterSheetTitle(String title) {
+    return 'Nach $title einfügen';
+  }
+
+  @override
+  String programsAddingBeforeBanner(String title) {
+    return 'Einfügen vor $title';
+  }
+
+  @override
+  String programsAddingAfterBanner(String title) {
+    return 'Einfügen nach $title';
+  }
+
+  @override
+  String programsAddedDanceBeforeAnnounce(String title, String target) {
+    return '$title vor $target eingefügt.';
+  }
+
+  @override
+  String programsAddedDanceAfterAnnounce(String title, String target) {
+    return '$title nach $target eingefügt.';
+  }
+
+  @override
+  String get programsInsertionCancelledAnnounce =>
+      'Abgebrochen. Neue Tänze kommen ans Ende.';
 
   @override
   String get programsEditSlotMenu => 'Slot bearbeiten';
@@ -9330,6 +9377,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get danceEditorChooseHint => 'Auswählen…';
+
+  @override
+  String get figureParamSearchDancersHint => 'Tänzer suchen';
 
   @override
   String danceEditorCreateQuotedName(String name) {

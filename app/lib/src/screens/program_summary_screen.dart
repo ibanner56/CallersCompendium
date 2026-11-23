@@ -20,6 +20,7 @@ import '../data/formation_colors_scope.dart';
 import '../data/set_list_color_coding_scope.dart';
 import '../data/mark_all_sets_status_scope.dart';
 import '../data/show_performed_toggles_scope.dart';
+import '../data/show_program_pay_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
 import '../data/venue_label.dart';
@@ -1141,10 +1142,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             Icons.signal_cellular_alt_outlined,
             l10n.programsSummaryLevel(_displayProse(program.dancerLevel!)),
           ),
+        // Hidden while Show pay is off (#2355); the stored pay is untouched.
         if ((program.payMinorUnits, program.payCurrency) case (
           final pay?,
           final currency?,
-        ))
+        ) when ShowProgramPayScope.of(context))
           _summaryRow(
             Icons.payments_outlined,
             l10n.programsSummaryPay(
