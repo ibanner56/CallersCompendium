@@ -3259,7 +3259,8 @@ void main() {
       await repos.settings.set(kDefaultDanceFormKey, DanceForm.square.name);
       await repos.settings.set(
         kDefaultDanceFormationShapeKey,
-        FormationShape.longways.name,
+        // A shape squares offer (ADR-007 §8.1) other than their default.
+        FormationShape.circle.name,
       );
       await repos.settings.set(
         kDefaultDanceProgressionKey,
@@ -3278,7 +3279,7 @@ void main() {
         '6*8*2',
       );
       // The seeded formation shows in the formation dropdown.
-      expect(_dropdownValue<FormationShape>(tester), FormationShape.longways);
+      expect(_dropdownValue<FormationShape>(tester), FormationShape.circle);
       // ...and the seeded type shows in the type dropdown (issue #1418).
       expect(_dropdownValue<DanceForm>(tester), DanceForm.square);
 
@@ -3291,7 +3292,7 @@ void main() {
 
       final saved = (await repos.dances.listAll()).single;
       expect(saved.form, DanceForm.square);
-      expect(saved.formation.shape, FormationShape.longways);
+      expect(saved.formation.shape, FormationShape.circle);
       expect(saved.progression, Progression.triple);
       expect(saved.phraseStructure.raw, '6*8*2');
     });

@@ -682,11 +682,13 @@ nothing in it to lose.
   anything worth adding in words. An English dance offers English formations,
   such as duple minor, triple minor and three-couple longways, with a
   **Starts improper** checkbox; leave it unchecked for a dance that starts
-  proper. Changing the type to one whose list doesn't have the dance's
-  formation starts the formation over: on **Duple minor** for English, and
-  on **Improper** for contra or square. A formation both lists have, such
-  as triple minor, is kept, and contra and square share all of theirs.
-  Undo brings the old formation back.
+  proper. A square offers **Square**, **Circle** for a big-circle dance such
+  as a running set, and **Other**. Changing the type to one whose list
+  doesn't have the dance's formation starts the formation over: on **Duple
+  minor** for English, **Improper** for contra, and **Square** for a square.
+  A formation both lists have, such as triple minor between contra and
+  English or circle between English and square, is kept. Undo brings the
+  old formation back.
 - **Mixer** — tick this when the dance is a
   [mixer](./glossary.md#mixer): one where you change partners each time through.
   It's kept separate from the formation, because a mixer can be danced in many
