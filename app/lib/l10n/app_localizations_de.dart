@@ -12940,4 +12940,61 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get programTemplateSaveError =>
       'Die Änderung an deinen Vorlagen konnte nicht gespeichert werden. Versuche es noch einmal.';
+
+  @override
+  String get exportAddToCalendar => 'Zum Kalender hinzufügen (.ics)';
+
+  @override
+  String get programsExportCalendar => 'Kalender exportieren (.ics)';
+
+  @override
+  String get exportCalendarPickTitle => 'Kalender exportieren';
+
+  @override
+  String get exportCalendarPickBody =>
+      'Wähle die Programme für die Kalenderdatei aus.';
+
+  @override
+  String get exportCalendarShowPast => 'Vergangene Programme anzeigen';
+
+  @override
+  String get exportCalendarNoUpcoming =>
+      'Keine kommenden Programme zum Auflisten. Archivierte Programme werden hier nicht aufgeführt. Schalte „Vergangene Programme anzeigen“ ein, um ein früheres auszuwählen.';
+
+  @override
+  String get exportCalendarNoDated =>
+      'Noch kein Programm hat ein Veranstaltungsdatum. Gib einem Programm ein Datum, um es zu einem Kalender hinzuzufügen.';
+
+  @override
+  String get exportCalendarPickConfirm => 'Exportieren';
+
+  @override
+  String get exportCalendarAddressTitle =>
+      'Adresse des Veranstaltungsorts einschließen?';
+
+  @override
+  String get exportCalendarAddressBody =>
+      'Die Kalenderdatei nennt den Veranstaltungsort. Seine Adresse wird weggelassen, außer du schließt sie ein. Kalender werden oft synchronisiert oder mit anderen geteilt.';
+
+  @override
+  String get exportCalendarAddressInclude =>
+      'Adresse des Veranstaltungsorts einschließen';
+
+  @override
+  String get exportCalendarDialogTitle => 'Kalenderdatei exportieren';
+
+  @override
+  String get exportCalendarDialogMessage =>
+      'Wähle, wie diese Kalenderdatei übergeben werden soll.';
+
+  @override
+  String get exportCalendarSavedGeneric => 'Kalenderdatei gespeichert.';
+
+  @override
+  String get exportCalendarSaveError =>
+      'Diese Kalenderdatei konnte nicht gespeichert werden. Versuche es erneut.';
+
+  @override
+  String get exportCalendarShareError =>
+      'Diese Kalenderdatei konnte nicht geteilt werden. Versuche es erneut.';
 }

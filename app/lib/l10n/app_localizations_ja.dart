@@ -12325,4 +12325,55 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programTemplateSaveError => 'テンプレートへの変更を保存できませんでした。もう一度お試しください。';
+
+  @override
+  String get exportAddToCalendar => 'カレンダーに追加（.ics）';
+
+  @override
+  String get programsExportCalendar => 'カレンダーを書き出す（.ics）';
+
+  @override
+  String get exportCalendarPickTitle => 'カレンダーを書き出す';
+
+  @override
+  String get exportCalendarPickBody => 'カレンダーファイルに入れるプログラムを選んでください。';
+
+  @override
+  String get exportCalendarShowPast => '過去のプログラムを表示';
+
+  @override
+  String get exportCalendarNoUpcoming =>
+      '表示できる今後のプログラムはありません。アーカイブ済みのプログラムはここには表示されません。以前のプログラムを選ぶには「過去のプログラムを表示」をオンにしてください。';
+
+  @override
+  String get exportCalendarNoDated =>
+      '日付のあるプログラムはまだありません。カレンダーに追加するには、プログラムに日付を設定してください。';
+
+  @override
+  String get exportCalendarPickConfirm => '書き出す';
+
+  @override
+  String get exportCalendarAddressTitle => '会場の住所を含めますか？';
+
+  @override
+  String get exportCalendarAddressBody =>
+      'カレンダーファイルには会場名が入ります。住所は、含めることを選ばない限り省かれます。カレンダーは同期されたり、他の人と共有されたりすることがよくあります。';
+
+  @override
+  String get exportCalendarAddressInclude => '会場の住所を含める';
+
+  @override
+  String get exportCalendarDialogTitle => 'カレンダーファイルを書き出す';
+
+  @override
+  String get exportCalendarDialogMessage => 'このカレンダーファイルの渡し方を選んでください。';
+
+  @override
+  String get exportCalendarSavedGeneric => 'カレンダーファイルを保存しました。';
+
+  @override
+  String get exportCalendarSaveError => 'このカレンダーファイルを保存できませんでした。もう一度お試しください。';
+
+  @override
+  String get exportCalendarShareError => 'このカレンダーファイルを共有できませんでした。もう一度お試しください。';
 }

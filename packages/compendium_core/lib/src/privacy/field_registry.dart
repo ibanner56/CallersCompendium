@@ -940,11 +940,17 @@ final Set<String> syncBookkeepingTables = {
 const _venueAddressNote =
     'A venue\'s postal address, classified third-party like the venue\'s '
     'contacts: the people it identifies never use this app and cannot consent '
-    'to a transfer. Never reaches a share, a PDF, Device Sync or other '
-    'project-operated infrastructure: a program share or PDF always clears it, '
-    'with no opt-in (sanitizeVenueForShare, after issue #853 found shares '
-    'carrying it), and Device Sync carries only fields classified shareable. '
-    'Only the owner\'s own full backup holds it.';
+    'to a transfer. Never reaches Device Sync or other project-operated '
+    'infrastructure, which carries only fields classified shareable. A program '
+    'share file, Export JSON or PDF always clears it, with no opt-in '
+    '(sanitizeVenueForShare, after issue #853 found shares carrying it). One '
+    'narrower exception, decided by the maintainer (issue draft review, '
+    '2026-11-22, #2351): in the calendar (.ics) export only, the address goes '
+    'into the event location when the user ticks "Include the venue\'s '
+    'address" for that one export. It is unticked by default and nothing is '
+    'remembered for the next export. The tick is the user\'s consent, not the '
+    'venue\'s, which is why the subject stays third-party. Otherwise only the '
+    'owner\'s own full backup holds it.';
 
 const _contactStreet = DataClassification(
   term: DpvTerm.street,
@@ -977,8 +983,8 @@ const _contactPostal = DataClassification(
   note: _venueAddressNote,
 );
 
-/// Shared by the six `venues.contact*` columns: the one recorded exception to
-/// [EgressClass.deviceLocal], kept as a note rather than a new egress class
+/// Shared by the six `venues.contact*` columns: one of the two recorded
+/// exceptions to [EgressClass.deviceLocal], kept as a note rather than a new egress class
 /// (post-audit finding flows-9; the maintainer stated no preference, and the
 /// note was the sweep's call because it changes no behaviour).
 const _venueContactConsentNote =
