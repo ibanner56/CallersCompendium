@@ -234,6 +234,163 @@ void main() {
     });
   });
 
+  group('times of day (#2423)', () {
+    CalendarImportCandidate one(
+      List<String> event, {
+      DateTime Function(DateTime utc)? toLocal,
+    }) => plan(_cal([event]), toLocal: toLocal).candidates.single;
+    (int?, int?) minutes(CalendarImportCandidate c) =>
+        (c.startMinute, c.endMinute);
+    DateTime Function(DateTime) offset(int hours) =>
+        (u) => u.add(Duration(hours: hours));
+
+    test('a floating start and end are taken as written', () {
+      final c = one([
+        'UID:a',
+        'DTSTART:20300620T193000',
+        'DTEND:20300620T223000',
+      ]);
+      expect(minutes(c), (1170, 1350));
+    });
+
+    test('a TZID time is taken as written, under any reader zone', () {
+      for (final hours in [-8, 0, 9]) {
+        final c = one([
+          'UID:t',
+          'DTSTART;TZID=America/New_York:20300620T193000',
+          'DTEND;TZID=America/New_York:20300620T223000',
+        ], toLocal: offset(hours));
+        expect(minutes(c), (1170, 1350), reason: 'UTC$hours');
+        expect(c.date, utcDay(2030, 6, 20));
+      }
+    });
+
+    test(
+      'a Z time is converted to the reader\'s local time, with its date',
+      () {
+        // 02:30Z-05:30Z: 18:30-21:30 the previous day at UTC-8.
+        final west = one([
+          'UID:z',
+          'DTSTART:20300621T023000Z',
+          'DTEND:20300621T053000Z',
+        ], toLocal: offset(-8));
+        expect(west.date, utcDay(2030, 6, 20));
+        expect(minutes(west), (1110, 1290));
+        // The same event at UTC+9: 11:30-14:30 on the 21st.
+        final east = one([
+          'UID:z',
+          'DTSTART:20300621T023000Z',
+          'DTEND:20300621T053000Z',
+        ], toLocal: offset(9));
+        expect(east.date, utcDay(2030, 6, 21));
+        expect(minutes(east), (690, 870));
+      },
+    );
+
+    test('an end after midnight is earlier than the start', () {
+      final c = one([
+        'UID:n',
+        'DTSTART:20300620T210000',
+        'DTEND:20300621T010000',
+      ]);
+      expect(minutes(c), (1260, 60));
+    });
+
+    test('an event of no length, or a day or more, keeps only its start', () {
+      for (final end in [
+        '20300620T193000', // no time at all
+        '20300621T193000', // exactly a day
+        '20300622T200000', // two days
+      ]) {
+        final c = one(['UID:l', 'DTSTART:20300620T193000', 'DTEND:$end']);
+        expect(minutes(c), (1170, null), reason: end);
+      }
+    });
+
+    test('DURATION gives the same end as DTEND; a day or more gives none', () {
+      expect(
+        minutes(one(['UID:d', 'DTSTART:20300620T193000', 'DURATION:PT3H'])),
+        (1170, 1350),
+      );
+      expect(
+        minutes(one(['UID:d', 'DTSTART:20300620T193000', 'DURATION:PT2H45M'])),
+        (1170, 1335),
+      );
+      expect(
+        minutes(one(['UID:d', 'DTSTART:20300620T230000', 'DURATION:PT2H'])),
+        (1380, 60),
+      );
+      for (final d in ['P1D', 'P1W', 'PT24H', 'nonsense', '-PT1H', 'PT']) {
+        expect(
+          minutes(one(['UID:d', 'DTSTART:20300620T193000', 'DURATION:$d'])),
+          (1170, null),
+          reason: d,
+        );
+      }
+    });
+
+    test('a start with no end or duration keeps only its start', () {
+      expect(minutes(one(['UID:s', 'DTSTART:20300620T193000'])), (1170, null));
+    });
+
+    test('an all-day event has no times', () {
+      expect(
+        minutes(
+          one([
+            'UID:all',
+            'DTSTART;VALUE=DATE:20300620',
+            'DTEND;VALUE=DATE:20300621',
+          ]),
+        ),
+        (null, null),
+      );
+    });
+
+    test("round-trips this app's own timed export", () {
+      final ics = programsToICalendar([
+        ProgramCalendarEvent(
+          programId: 'p-1',
+          title: 'Contra',
+          date: DateTime.utc(2030, 6, 20),
+          updatedAt: DateTime.utc(2030, 1, 1),
+          start: const CalendarTimeOfDay(21, 0),
+          end: const CalendarTimeOfDay(0, 30),
+        ),
+      ], now: DateTime.utc(2030));
+      final c = plan(ics).candidates.single;
+      expect(c.date, utcDay(2030, 6, 20));
+      expect(minutes(c), (1260, 30));
+    });
+
+    test('every occurrence of a series keeps its times; an override has its '
+        'own', () {
+      final p = plan(
+        _cal([
+          [
+            'UID:r',
+            'DTSTART:20300615T193000',
+            'DTEND:20300615T223000',
+            'RRULE:FREQ=WEEKLY;COUNT=3',
+          ],
+          [
+            'UID:r',
+            'RECURRENCE-ID:20300622T193000',
+            'DTSTART:20300622T200000',
+            'DTEND:20300622T230000',
+          ],
+        ]),
+      );
+      expect(
+        [for (final c in p.candidates) (c.date, c.startMinute, c.endMinute)],
+        [
+          (utcDay(2030, 6, 15), 1170, 1350),
+          (utcDay(2030, 6, 22), 1200, 1380),
+          (utcDay(2030, 6, 29), 1170, 1350),
+        ],
+      );
+    });
+  });
+
   group('sanitizing and what is kept', () {
     test('bidi overrides and zero-width characters are stripped from SUMMARY '
         'and LOCATION', () {
