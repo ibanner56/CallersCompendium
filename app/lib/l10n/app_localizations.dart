@@ -10270,6 +10270,36 @@ abstract class AppLocalizations {
   /// **'Save dance file…'**
   String get exportSaveDanceBundle;
 
+  /// Export-menu item: show the dance as a full-screen QR code for another caller to scan in person. The code holds the same dance file as 'Share dance file'.
+  ///
+  /// In en, this message translates to:
+  /// **'Show code'**
+  String get exportShowCode;
+
+  /// Snackbar shown when the dance could not be turned into a QR code.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t show the code. Your dance is unchanged. Try again.'**
+  String get exportShowCodeError;
+
+  /// Title bar of the full-screen view that shows a dance as a QR code (and of the notice that replaces it when the dance is too long for one).
+  ///
+  /// In en, this message translates to:
+  /// **'Dance code'**
+  String get danceCodeScreenTitle;
+
+  /// Accessible name of the QR code image on the full-screen dance code view. The code itself cannot be read aloud.
+  ///
+  /// In en, this message translates to:
+  /// **'QR code for {title}'**
+  String danceCodeSemanticLabel(String title);
+
+  /// Message shown instead of a QR code when the dance holds more than any QR code can. A button below it shares or saves the dance file.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance is too long to share as a code. Share it as a file instead.'**
+  String get danceCodeTooLong;
+
   /// Export-menu item: copy the dance's plain-text card to the clipboard.
   ///
   /// In en, this message translates to:
@@ -13552,7 +13582,7 @@ abstract class AppLocalizations {
   /// **'The timed steps of the sequence in figure {position} take {actual} beats, leaving none of its {expected} for the rest.'**
   String validationSequenceSpanNoRoom(int position, int actual, int expected);
 
-  /// Editor warning when a dance holds figures of another dance type than its own, for example after its type was changed. {danceForm} and {figureForm} are dance type names such as 'Contra' or 'English (ECD)'. {pickerForm} is the type whose figures the picker offers: the dance's own, or Contra's for a type that has no figure list of its own yet (Square).
+  /// Editor warning when a dance holds figures of another dance type than its own, for example after its type was changed. {danceForm} and {figureForm} are dance type names such as 'Contra' or 'English (ECD)'. {pickerForm} is the type whose figures the picker offers: the dance's own, or Contra's for a type that has no figure list of its own.
   ///
   /// In en, this message translates to:
   /// **'This dance is {danceForm}, but {count, plural, =1{1 figure is} other{{count} figures are}} from {figureForm}. They are kept as they are, but the figure picker offers only {pickerForm} figures.'**

@@ -851,13 +851,12 @@ figure to see:
   own, such as how you call it or what to watch for. Clear the text to remove
   them.
 
-Choose **Contra** or **English (ECD)** at the top of the Glossary to see
-that type's figures. Each time you go to the Glossary, it shows the type a
+Choose **Contra**, **English (ECD)** or **Square** at the top of the
+Glossary to see that type's figures. Each time you go to the Glossary, it shows the type a
 new dance starts as (the **Type** default for new dances, which can be
-**Last used**), until you choose one yourself. English figures don't have
-definitions yet. Your own figures and terms are listed under the type they
-were made for, and a square dance's under Contra, whose figures square dances
-use for now. One you add is made for the type shown. Copying an English
+**Last used**), until you choose one yourself. English figures and square
+calls don't have definitions yet. Your own figures and terms are listed under
+the type they were made for. One you add is made for the type shown. Copying an English
 figure as one of your own makes it an English figure, though it offers
 contra's groups of dancers for now, so English-only ones such as ends or top
 can't be chosen in it yet.
@@ -1711,7 +1710,8 @@ The **About** section tells you what you're running and where it comes from.
 - **View licenses** — the full license texts, including the bundled fonts,
   `fmptools` (MIT), the project the Caller's Companion importer is ported from,
   the EFF long wordlist (CC BY 3.0 US) that generated sync IDs are drawn from,
-  ContraDB (AGPL-3.0), whose figure wording the dance-text renderer follows, and,
+  ContraDB (AGPL-3.0), whose figure wording the dance-text renderer follows,
+  CALLERLAB's notice for the square-call timing the default beats follow, and,
   on Linux and Windows, PDFium (BSD-3-Clause, with the notices of the libraries
   built into it), which the app uses there to print and preview PDFs.
 

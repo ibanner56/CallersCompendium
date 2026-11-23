@@ -1277,7 +1277,8 @@ class DanceEditorController extends ChangeNotifier {
   /// shown as they are, but this form's picker does not offer them, and the
   /// other form's checks do not apply. Null when every figure is the form's
   /// own (a form with no figures of its own uses contra's), or a custom or
-  /// structural one, which every form shares.
+  /// structural one, which every form shares, or a stand still in a square
+  /// dance.
   ValidationIssue? _otherFormFiguresWarning() {
     final ownForm = shippedTaxonomies.ownTaxonomy(_form) == null
         ? shippedTaxonomies.base.form
@@ -1293,6 +1294,11 @@ class DanceEditorController extends ChangeNotifier {
           shippedTaxonomies.anyForm.resolve(move) == null) {
         return;
       }
+      // A new dance's template rows and a new meanwhile's sides are contra's
+      // stand still in every form. Until squares get a placeholder of their
+      // own (ADR-007 §9, phase 1), a square dance does not count them, so a
+      // new square dance opens without this warning.
+      if (_form == DanceForm.square && move == 'stand_still') return;
       final form = shippedTaxonomies.formOfMoveId(move);
       if (form != ownForm) counts[form] = (counts[form] ?? 0) + 1;
     }

@@ -3682,18 +3682,40 @@ void main() {
           'pickerForm': 'contra',
         });
 
-        // A square dance uses contra's figures, so contra ones are its own.
+        // Squares have calls of their own (ADR-007 §5.1), so a contra move
+        // in a square dance is another form's, as it is in an ECD dance.
         final square = await openEcd(openTestRepositories(), [
           Figure(move: 'swing', params: const {'beats': 8}),
+          Figure(move: 'sq_swing', params: const {'beats': 8}),
         ]);
         addTearDown(square.dispose);
         square.setForm(DanceForm.square);
         expect(
-          square.warnings.where((w) => w.code == 'other_form_figures'),
+          square.warnings
+              .singleWhere((w) => w.code == 'other_form_figures')
+              .data,
+          {
+            'count': 1,
+            'figureForm': 'contra',
+            'danceForm': 'square',
+            'pickerForm': 'square',
+          },
+        );
+
+        // A stand still, the new-dance template's row, is not counted in a
+        // square dance until squares have a placeholder of their own.
+        final squareTemplate = await openEcd(openTestRepositories(), [
+          Figure(move: 'stand_still', params: const {'beats': 8}),
+          Figure(move: 'sq_swing', params: const {'beats': 8}),
+        ]);
+        addTearDown(squareTemplate.dispose);
+        squareTemplate.setForm(DanceForm.square);
+        expect(
+          squareTemplate.warnings.where((w) => w.code == 'other_form_figures'),
           isEmpty,
         );
 
-        // English figures in a square dance: its picker offers contra's.
+        // English figures in a square dance: its picker offers the squares'.
         final squareEcd = await openEcd(openTestRepositories(), [
           Figure(move: 'ecd_lead', params: const {'beats': 4}),
         ]);
@@ -3707,7 +3729,7 @@ void main() {
             'count': 1,
             'figureForm': 'ecd',
             'danceForm': 'square',
-            'pickerForm': 'contra',
+            'pickerForm': 'square',
           },
         );
       },

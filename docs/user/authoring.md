@@ -54,9 +54,11 @@ Typing `sw` and pressing Enter, for example, gives you a swing.
 
 The moves offered are those of the dance's **Type**: an English dance offers
 English figures, such as set, turn single, siding and the heys, and a contra
-dance offers contra figures. A square dance has no figures of its own yet, so
-it offers contra's. A figure the dance already holds from another type stays as
-it is; it just isn't offered for a new row.
+dance offers contra figures, and a square dance offers square calls, such as
+promenade, allemande left, circle, chain and separate. A figure the dance
+already holds from another type stays as it is; it just isn't offered for a
+new row. Square calls are picked here for now: a line you type with
+**Free-text entry** in a square dance is still read with contra's figures.
 
 With **Free-text entry** on, **Add figure** opens **Type a figure** instead: one
 box that takes a whole line and offers no move suggestions. Press Enter and the
@@ -619,8 +621,10 @@ move's usual length; **Undo** puts them back.
 If a dance holds figures of another type than its own, for example English
 figures in a dance you have just changed to contra, **Warnings** says how
 many. They are kept and shown as they are, but the figure picker offers only
-the dance's own type's figures (contra's, for a square dance, which has no
-figure list of its own yet).
+the dance's own type's figures. Imports and **Free-text entry** still read a
+square dance's lines as contra figures, so a square typed or imported that
+way shows this warning; a **stand still** row, such as those a new dance
+starts with, isn't counted.
 
 ### Keep an eye on the beats
 

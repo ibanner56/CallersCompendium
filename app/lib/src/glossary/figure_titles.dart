@@ -4,7 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart';
 
 /// The taxonomy the Glossary lists for [form]: the form's own figures, or
-/// contra's for a form that has none of its own yet (square).
+/// contra's for a form that has none of its own.
 Taxonomy glossaryTaxonomy(DanceForm form) =>
     shippedTaxonomies.ownTaxonomy(form) ?? shippedTaxonomies.base;
 

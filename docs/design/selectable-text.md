@@ -15,7 +15,7 @@ UX rules". Docs-only: this note changes no app code and settles no D-11 question
 
 A desktop caller who wants one figure line, the calling notes or a program's
 notes in an email has one option: the whole-card **Copy dance** action
-(`app/lib/src/widgets/dance_export_actions.dart:170-176`). The dance detail,
+(`DanceExportActions.copyText` in `app/lib/src/widgets/dance_export_actions.dart`). The dance detail,
 the program summary and Perform draw their text with plain `Text`, which a
 pointer cannot select.
 

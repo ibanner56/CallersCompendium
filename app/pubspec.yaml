@@ -87,6 +87,11 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  # A standard QR decoder for one test (#2334): it reads the pixels of a
+  # rendered Show code screen, so the test shows the brand mark in the middle
+  # still leaves a code a scanner can read. Pure Dart; dev-only, so it does not
+  # ship in the app.
+  zxing2: ^0.2.4
   path_provider_platform_interface: ^2.1.3
   plugin_platform_interface: ^2.1.8
   url_launcher_platform_interface: ^2.3.2
@@ -138,6 +143,9 @@ flutter:
     # follows. Both loaded the same way, via licenses.dart.
     - assets/licenses/eff-wordlist-NOTICE.txt
     - assets/licenses/contradb-NOTICE.txt
+    # The notice CALLERLAB asks for when its timing data is reproduced: the
+    # square calls' default beats follow its timing lists (ADR-007 Q1).
+    - assets/licenses/callerlab-NOTICE.txt
     # pdfium's LICENSE (PDFium plus the notices of the libraries built into
     # it), from the pdfium-binaries release pinned in
     # packaging/pdfium/pdfium.cmake. The printing plugin ships that pdfium in

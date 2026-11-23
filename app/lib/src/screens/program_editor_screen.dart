@@ -622,10 +622,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       };
 
   /// The dialect a column of [matrix] is named in: its figure's form's. A
-  /// figure of a form with its own taxonomy (an `ecd_` move) reads in that
-  /// form's. A figure with no prefix is contra's, and a dance of any form
-  /// can use it (squares have no taxonomy of their own yet; an English dance
-  /// may keep a contra figure): it reads in the form of the dances that use
+  /// figure of a form with its own taxonomy (an `ecd_` or `sq_` move) reads
+  /// in that form's. A figure with no prefix is contra's, and a dance of any
+  /// form can use it (an English or square dance may keep a contra figure
+  /// from an earlier import): it reads in the form of the dances that use
   /// it when they are all of one form, and in [_dialect] when they mix forms. A column no dance uses (a baseline swing column the
   /// matrix always shows) reads in the program's form when all its dances are
   /// of one form. A column of a figure of the user's own, or one that isn't a

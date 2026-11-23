@@ -1,0 +1,9 @@
+{
+  "id": "callerlab-timing-notice",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Settings ▸ About ▸ View licenses now lists CALLERLAB's notice, \"Reprinted with permission of CALLERLAB\", for the square dance timing the app's default beats follow."
+    ]
+  }
+}
