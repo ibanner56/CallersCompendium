@@ -1868,14 +1868,15 @@ class DanceEditorController extends ChangeNotifier {
 
   /// Starts the formation over when the dance changes to a form that does not
   /// offer its shape: the shape becomes that form's first
-  /// ([core.offeredFormationShapes], duple minor for ECD and duple improper
-  /// for contra and square). A shape from the old form's list, such as
-  /// contra's "Improper", would otherwise stay selected and keep showing in
-  /// the new form's list ([offeredFormationShapes]). A shape the new form
-  /// offers is kept: triple minor, Sicilian circle and other are in both
-  /// lists, contra and square share theirs, and an English dance still on a
-  /// contra shape (converted or imported before ECD's shapes) keeps it when
-  /// changed back to contra. Choosing the form the dance already has changes
+  /// ([core.offeredFormationShapes], duple minor for ECD, duple improper for
+  /// contra and the square set for a square). A shape from the old form's
+  /// list, such as contra's "Improper", would otherwise stay selected and keep
+  /// showing in the new form's list ([offeredFormationShapes]). A shape the
+  /// new form offers is kept: triple minor, Sicilian circle and other are in
+  /// both the contra and ECD lists, circle, square and other in both the ECD
+  /// and square lists, and an English dance still on a contra shape
+  /// (converted or imported before ECD's shapes) keeps it when changed back
+  /// to contra. Choosing the form the dance already has changes
   /// nothing. [improper] is left as it is: a new dance starts proper, and an
   /// English dance changed to contra and back keeps its checkbox. Undo
   /// restores the old shape.
