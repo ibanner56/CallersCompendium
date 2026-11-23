@@ -257,6 +257,15 @@ void main() {
     'amount': const Orbit(amount: 1),
   });
 
+  checkValueSemantics(const ArchAndDive(), const ArchAndDive(), {
+    'who': const ArchAndDive(who: WhoSet.ones),
+  });
+
+  checkValueSemantics(const ContraCorners(), const ContraCorners(), {
+    'who': const ContraCorners(who: WhoSet.twos),
+    'custom': const ContraCorners(custom: 'same-role'),
+  });
+
   checkValueSemantics(const Slice(), const Slice(), {
     'slice': const Slice(slice: SlideDirection.right),
     'by': const Slice(by: SliceBy.dancer),

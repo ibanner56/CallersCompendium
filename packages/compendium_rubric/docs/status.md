@@ -8,8 +8,8 @@
 >
 > **Stale since the taxonomy-v40 sync.** `main` was merged again at `a5281105`
 > (taxonomy v40), which changed what an omitted parameter means for eleven
-> moves (v37's `courtesy_turn` and v38's ten; `arch_and_dive` among them is not
-> implemented here), made `long_lines` an alias of `forward_and_back` (v39),
+> moves (v37's `courtesy_turn` and v38's ten; `arch_and_dive` among them was not
+> implemented then), made `long_lines` an alias of `forward_and_back` (v39),
 > added `hand_cast` as an alias of `gate` (v40), and added five moves this
 > compiler defers (`circular_hey`, `trade_the_wave`, `starburst`,
 > `hey_for_three`, `cast`), on top of many Caller's Box adapter changes. The
@@ -20,21 +20,24 @@
 > are built on user rulings (`taxonomy.md` has each entry). Measured on the
 > same mirror against `rubric` at `eb52b309`, they took the in-scope count
 > from 2,517 to 2,759 compiled, and Hudson's Seattle core set from 360 to 391,
-> with no previously compiling dance lost. The tables below count them in their
-> new rows but keep the September per-figure numbers.
+> with no previously compiling dance lost. `arch_and_dive` and
+> `contra_corners` followed, also on rulings: against `rubric` at `11b1860a`
+> they took the count from 2,759 to 2,795 and the core set from 391 to 397,
+> again losing nothing. The tables below count all five in their new rows but
+> keep the September per-figure numbers.
 >
 > **Becket progressions (2026-11-23):** the Caller's Box bridge now places a
 > Becket dance's progression on its first diagonal `chain` or `pass_through`
 > along the set, and a Becket progression with no whole couple at an end is
 > held until one gets there (both user-ruled). Measured against `rubric` at
-> `11b1860a`: 2,759 to 2,807 compiled in scope (49 gained, 1 lost: *More
+> `e88bc9ce`: 2,795 to 2,843 compiled in scope (49 gained, 1 lost: *More
 > Summer Haze*, whose pass through along goes to the previous neighbours), and
-> the core set from 391 to 404.
+> the core set from 397 to 410.
 
-The compiler implements 49 canonical figures. Twenty-six have no deliberately
+The compiler implements 51 canonical figures. Twenty-eight have no deliberately
 deferred parameter values, 23 have an implemented core with explicit
-deferrals, and three of the figures this table has tracked since September
-remain entirely deferred (taxonomy v36 to v40 added five more; see
+deferrals, and one of the figures this table has tracked since September
+remains entirely deferred (taxonomy v36 to v40 added five more; see
 `implementation.md` §15). The `meanwhile` and `modifier` structural containers are also
 deferred, but they are not normal taxonomy moves and are therefore counted
 separately. A `sequence` container is danced as the figures it holds
@@ -54,13 +57,13 @@ the implementation may have a defect.
 
 | Status | Count | Figures |
 | --- | ---: | --- |
-| **Full parameter surface** | 26 | `balance`, `balance_the_ring`, `box_circulate`, `box_the_gnat`, `butterfly_whirl`, `california_twirl`, `circle`, `courtesy_turn`, `facing_star`, `form_a_long_wave`, `form_long_waves`, `give_and_take`*, `pass_by`, `pass_the_ocean`, `petronella`, `revolving_door`, `roll_away`, `rory_o_more`, `slide_along_set`, `square_through`, `stand_still`, `star`, `star_through`, `turn_alone`, `turn_as_couples`, `zig_zag` |
+| **Full parameter surface** | 28 | `arch_and_dive`, `balance`, `balance_the_ring`, `box_circulate`, `box_the_gnat`, `butterfly_whirl`, `california_twirl`, `circle`, `contra_corners`, `courtesy_turn`, `facing_star`, `form_a_long_wave`, `form_long_waves`, `give_and_take`*, `pass_by`, `pass_the_ocean`, `petronella`, `revolving_door`, `roll_away`, `rory_o_more`, `slide_along_set`, `square_through`, `stand_still`, `star`, `star_through`, `turn_alone`, `turn_as_couples`, `zig_zag` |
 | **Implemented with explicit deferrals** | 23 | `allemande`, `chain`, `cross_trails`, `do_si_do`, `down_the_hall`, `figure_8`, `form_short_waves`, `gate`, `hey`, `long_lines`, `mad_robin`, `orbit`, `pass_through`, `poussette`, `promenade`, `pull_by`, `right_left_through`, `shoulder_round`, `slice`, `star_promenade`, `swing`, `two_hand_turn`, `up_the_hall` |
-| **Entirely deferred canonical figures** | 3 | `arch_and_dive`, `contra_corners`, `dolphin_hey` |
+| **Entirely deferred canonical figures** | 1 | `dolphin_hey` |
 | **Deferred structural constructs** | 2 | `meanwhile`, which represents simultaneous figures, and `modifier`, which changes a core figure with ordered modifier figures; neither is an ordinary taxonomy move |
 
-The external vocabulary (`supportedMoves`) reports 56 supported names because
-seven aliases resolve onto the 49 canonical implementations:
+The external vocabulary (`supportedMoves`) reports 58 supported names because
+seven aliases resolve onto the 51 canonical implementations:
 
 - `meltdown_swing` resolves to `swing`;
 - `pull_by_dancers` and `pull_by_direction` resolve to `pull_by`;
@@ -217,12 +220,11 @@ opportunity.
 | Deferred surface | Dances mentioning it | First unsupported blocker |
 | --- | ---: | ---: |
 | `meanwhile` structural container | 1,540 | **131** |
-| `contra_corners` | 201 | **40** |
-| `arch_and_dive` | 0 | 0 |
 | `dolphin_hey` | 0 | 0 |
 
 `promenade` left this table when its `across` form was built, and
-`butterfly_whirl`, `slice` and `revolving_door` when they were (2026-11-22).
+`butterfly_whirl`, `slice`, `revolving_door`, `arch_and_dive` and
+`contra_corners` when they were (2026-11-22).
 On the Caller's Box mirror, 98 more dances hold a promenade that imports with no `where`
 (whole-set, counter-rotating, around-a-dancer and mixer promenades). They are
 reported as `unstructured`, an import-pipeline problem, not as a deferral.

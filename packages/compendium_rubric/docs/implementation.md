@@ -387,16 +387,17 @@ into "malformed input".
 `unperformedProgression` is the only **dance-level** error and carries no figure
 index.
 
-### 7.2 Warnings — seven kinds
+### 7.2 Warnings — eight kinds
 
 | Kind | Raised by | When |
 |---|---|---|
 | `oneSidedHall` | engine pre-scan | a hall figure with no matching return |
 | `hallFacingConflict` | figure lint | the line was already facing the other way along the hall; it turns around before travelling |
 | `facingPrecondition` | figure lint | dancers are not facing the way the figure assumes |
+| `archFromLine` | figure lint | `arch_and_dive` was called on a line of four; the row swap moves the whole line *(user-ruled 2026-11-23)* |
 | `anchorMismatch` | figure lint | a descriptive param contradicts the derived arrangement |
 | `unrecognizedFormation` | **the parser** | unknown shape; falls back to `dupleImproper` |
-| `assumedProgression` | **an import bridge** | the source flagged no progression, so one was assumed |
+| `assumedProgression` | **an import bridge** | the source flagged no progression, so one was assumed (§10.1) |
 | `heldProgressionUnfinished` | engine (`FigureFold`) | a held Becket progression's change-over never ran |
 
 Three rules about warnings:
@@ -765,10 +766,10 @@ rest cannot pass for the wrong reason.
 
 ## 15. Current state and known debt
 
-- **1,178 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,209 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
-- **49 figures registered**, plus 7 upstream aliases resolved to them
+- **51 figures registered**, plus 7 upstream aliases resolved to them
   (`hand_cast` → `gate`, `long_lines` → `forward_and_back`, `meltdown_swing`,
   `pull_by_dancers`, `pull_by_direction`, `see_saw`, `swat_the_flea`).
 - **Schema-aligned with `compendium_core`** (`test/io/core_taxonomy_alignment_test.dart`).
@@ -817,8 +818,8 @@ rest cannot pass for the wrong reason.
 - **Deferred, with worked examples still needed** (the Held table, and the
   deferrals in each figure's `docs/taxonomy.md` entry): `promenade`
   beyond `where: across` (single-file, whole-set, and stated destinations),
-  `arch_and_dive` (progression half only), `slice` by a single dancer or
-  with no return, `contra_corners`, `dolphin_hey`, and the moves taxonomy v36–v40
+  `slice` by a single dancer or with no return, `dolphin_hey`, and the moves
+  taxonomy v36–v40
   added (`circular_hey`, `trade_the_wave`, `starburst`, `hey_for_three`,
   `cast`), `orbit` couple-`who` (the
   **meanwhile** mechanism), hall `ender` values `cozy`/`cloverleaf`/
@@ -922,8 +923,8 @@ post-taxonomy-v35 snapshot.
   exercised by real choreography. The genuine backlog named by the corpus is
   `butterfly_whirl`, `contra_corners`, `promenade`, `revolving_door` and `slice`.
   *(Since then `promenade` across is built, its other forms still deferred,
-  and `butterfly_whirl`, `revolving_door` and `slice` are built on user
-  rulings of 2026-11-22.)*
+  and `butterfly_whirl`, `revolving_door`, `slice`, `arch_and_dive` and
+  `contra_corners` are built on user rulings of 2026-11-22.)*
 - **`rory_o_more` appears in none of the 24,107 dances**, which is not credible
   for a figure this common — the likely explanation is that core's adapter does
   not recognise its wording. Worth confirming; it would be an upstream finding.
