@@ -545,6 +545,11 @@ class AppLocalizationsJa extends AppLocalizations {
       '既定のフィギュアもこのフィギュアを使っており、同じように切り替わります。';
 
   @override
+  String userFigureSwitchConfirmKeepsWording(String name) {
+    return '$name にないダンサーのグループを使っている箇所は、切り替わらず現在の表現のまま残ります。';
+  }
+
+  @override
   String userFigureSwitchConfirmShorthands(int count, String name) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

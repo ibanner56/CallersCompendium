@@ -568,6 +568,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your default figures use it too, and switch the same way.';
 
   @override
+  String userFigureSwitchConfirmKeepsWording(String name) {
+    return 'Any use of a group of dancers that $name doesn\'t have keeps its wording instead.';
+  }
+
+  @override
   String userFigureSwitchConfirmShorthands(int count, String name) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

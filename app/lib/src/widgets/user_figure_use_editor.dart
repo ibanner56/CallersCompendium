@@ -69,6 +69,7 @@ class UserFigureUseEditor extends StatelessWidget {
             child: UserFigureArgumentEditor(
               keyPrefix: keyPrefix,
               param: param,
+              form: definition.form,
               value: args.containsKey(param.key)
                   ? args[param.key]
                   : param.defaultValue,

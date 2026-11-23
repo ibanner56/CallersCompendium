@@ -902,6 +902,12 @@ abstract class AppLocalizations {
   /// **'Your default figures use it too, and switch the same way.'**
   String get userFigureSwitchConfirmDefaults;
 
+  /// Added to the dialog confirming a switch to the app's figure {name} (#2294) when the user's figure is for English country dance, whose groups of dancers (the ends, the top) contra's figures lack: a dance that uses one of them keeps the wording it has instead of switching.
+  ///
+  /// In en, this message translates to:
+  /// **'Any use of a group of dancers that {name} doesn\'t have keeps its wording instead.'**
+  String userFigureSwitchConfirmKeepsWording(String name);
+
   /// Added to the dialog confirming a switch to the app's figure {name} (#1023) when the user has shorthands for their figure.
   ///
   /// In en, this message translates to:

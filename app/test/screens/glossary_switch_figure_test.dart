@@ -240,6 +240,77 @@ void main() {
     );
   });
 
+  testWidgets('switching an English figure with a group of dancers says a use '
+      'of a group the app\'s figure lacks keeps its wording (#2294)', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      entry: mine(
+        name: 'allemande',
+        form: DanceForm.ecd.name,
+        template: '{who} {move}',
+        params: [
+          {'key': 'who', 'kind': 'dancerSet'},
+        ],
+      ),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('glossary-custom-switch-to-shipped')),
+    );
+    await tester.pumpAndSettle();
+    final save = find.byKey(const ValueKey('user-figure-switch-save'));
+    expect(tester.widget<AppBarTextAction>(save).onPressed, isNotNull);
+    await tester.tap(save);
+    await settle(tester);
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey('user-figure-switch-confirm-body')),
+          )
+          .data,
+      contains(
+        'Any use of a group of dancers that allemande doesn\'t have keeps its '
+        'wording instead.',
+      ),
+    );
+  });
+
+  testWidgets('switching an English figure with no group of dancers says '
+      'nothing about wording kept (#2294)', (tester) async {
+    await pump(
+      tester,
+      entry: mine(
+        name: 'allemande',
+        form: DanceForm.ecd.name,
+        template: '{hand} {move}',
+        params: [
+          {'key': 'hand', 'kind': 'handedness'},
+        ],
+      ),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('glossary-custom-switch-to-shipped')),
+    );
+    await tester.pumpAndSettle();
+    final save = find.byKey(const ValueKey('user-figure-switch-save'));
+    expect(tester.widget<AppBarTextAction>(save).onPressed, isNotNull);
+    await tester.tap(save);
+    await settle(tester);
+    final body = tester
+        .widget<Text>(
+          find.byKey(const ValueKey('user-figure-switch-confirm-body')),
+        )
+        .data!;
+    // Exactly the one sentence: no use or default holds a group of dancers,
+    // and the figure has none to keep.
+    expect(
+      body,
+      'No dance in your collection uses your figure. It\'s removed from your '
+      'Glossary.',
+    );
+  });
+
   testWidgets('a figure no shipped figure is named is offered no switch', (
     tester,
   ) async {

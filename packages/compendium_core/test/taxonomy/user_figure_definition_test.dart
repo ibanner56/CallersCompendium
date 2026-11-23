@@ -517,4 +517,145 @@ void main() {
       expect(glossaryTermSource('not a map'), isNull);
     });
   });
+  group('a figure\'s dancer groups follow its form (#2294)', () {
+    Map<String, Object?> madeFor(
+      String form, {
+      Object? who = 'neighbors',
+      String template = '{who} zoom',
+    }) => {
+      'form': form,
+      'template': template,
+      'defaultBeats': 8,
+      'params': [
+        {'key': 'who', 'kind': 'dancerSet', 'default': ?who},
+      ],
+    };
+
+    // Groups only English has, and groups only contra has: the two sides of
+    // the domain a form changes.
+    const englishOnly = ['ends', 'top', 'corners', 'fives'];
+    const contraOnly = ['thirdCorners', 'opposites'];
+
+    test('an English figure takes English\'s groups', () {
+      for (final group in englishOnly) {
+        expect(
+          decodeUserFigureDefinition(madeFor('ecd', who: group)),
+          isNotNull,
+          reason: group,
+        );
+      }
+    });
+
+    test('a figure of any other form keeps the shared groups', () {
+      // `future` is a form a later build adds: it reads as contra's.
+      for (final form in ['contra', 'square', 'future']) {
+        for (final group in englishOnly) {
+          expect(
+            decodeUserFigureDefinition(madeFor(form, who: group)),
+            isNull,
+            reason: '$form $group',
+          );
+        }
+        expect(
+          decodeUserFigureDefinition(madeFor(form, who: 'thirdCorners')),
+          isNotNull,
+          reason: form,
+        );
+      }
+    });
+
+    test('a group both forms have reads the same in both', () {
+      for (final form in ['contra', 'ecd']) {
+        expect(
+          decodeUserFigureDefinition(madeFor(form, who: 'neighbors')),
+          isNotNull,
+          reason: form,
+        );
+      }
+    });
+
+    test('an English figure no longer takes a group only contra has', () {
+      // Maintainer decision (#2294): the domain is exactly English's, so
+      // such a figure is repaired, as one holding any value its form lacks.
+      for (final group in contraOnly) {
+        expect(
+          decodeUserFigureDefinition(madeFor('ecd', who: group)),
+          isNull,
+          reason: group,
+        );
+      }
+    });
+
+    test('"not stated" is a value of English\'s groups, not contra\'s', () {
+      expect(
+        decodeUserFigureDefinition(madeFor('ecd', who: 'unspecified')),
+        isNotNull,
+      );
+      expect(
+        decodeUserFigureDefinition(madeFor('contra', who: 'unspecified')),
+        isNull,
+      );
+    });
+
+    test('a condition on a group is checked against the form\'s groups', () {
+      String testing(String group) => "[{?if who is '$group'}x{?else}y] {who}";
+      expect(
+        decodeUserFigureDefinition(
+          madeFor('ecd', who: null, template: testing('ends')),
+        ),
+        isNotNull,
+      );
+      expect(
+        decodeUserFigureDefinition(
+          madeFor('ecd', who: null, template: testing('thirdCorners')),
+        ),
+        isNull,
+        reason: 'a condition on a group English lacks does not fit',
+      );
+      expect(
+        decodeUserFigureDefinition(
+          madeFor('contra', who: null, template: testing('ends')),
+        ),
+        isNull,
+      );
+      expect(
+        decodeUserFigureDefinition(
+          madeFor('contra', who: null, template: testing('thirdCorners')),
+        ),
+        isNotNull,
+      );
+    });
+
+    test('a pair of dancers takes the form\'s groups, as a set does', () {
+      Map<String, Object?> pair(String form, Object who) => {
+        'form': form,
+        'template': '{who} zoom',
+        'defaultBeats': 8,
+        'params': [
+          {'key': 'who', 'kind': 'dancerPair', 'default': who},
+        ],
+      };
+      expect(decodeUserFigureDefinition(pair('ecd', 'ends')), isNotNull);
+      expect(decodeUserFigureDefinition(pair('ecd', 'thirdCorners')), isNull);
+      expect(decodeUserFigureDefinition(pair('contra', 'ends')), isNull);
+      expect(
+        decodeUserFigureDefinition(pair('contra', 'thirdCorners')),
+        isNotNull,
+      );
+    });
+
+    test('a parameter reads its form\'s groups through specIn', () {
+      for (final kind in [ParamKind.dancerSet, ParamKind.dancerPair]) {
+        final param = UserFigureParam(key: 'who', kind: kind);
+        expect(param.specIn('ecd').validate('ends'), isTrue, reason: '$kind');
+        expect(param.specIn('contra').validate('ends'), isFalse);
+        expect(param.specIn('ecd').validate('thirdCorners'), isFalse);
+        expect(param.specIn('contra').validate('thirdCorners'), isTrue);
+      }
+      // A kind that takes no groups is the same in every form.
+      final hand = UserFigureParam(key: 'hand', kind: ParamKind.handedness);
+      expect(hand.specIn('ecd').choices, isNull);
+      expect(hand.specIn('contra').choices, isNull);
+    });
+  });
 }

@@ -572,6 +572,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'Dine standardfigurer bruger den også og skifter på samme måde.';
 
   @override
+  String userFigureSwitchConfirmKeepsWording(String name) {
+    return 'Enhver brug af en dansergruppe, som $name ikke har, beholder i stedet sin ordlyd.';
+  }
+
+  @override
   String userFigureSwitchConfirmShorthands(int count, String name) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

@@ -729,6 +729,15 @@
   "@userFigureSwitchConfirmDefaults": {
     "description": "Added to the dialog confirming a switch to the app's figure (#1023) when the user's default figure lists in Settings use their figure."
   },
+  "userFigureSwitchConfirmKeepsWording": "Any use of a group of dancers that {name} doesn't have keeps its wording instead.",
+  "@userFigureSwitchConfirmKeepsWording": {
+    "description": "Added to the dialog confirming a switch to the app's figure {name} (#2294) when the user's figure is for English country dance, whose groups of dancers (the ends, the top) contra's figures lack: a dance that uses one of them keeps the wording it has instead of switching.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "userFigureSwitchConfirmShorthands": "{count, plural, =1{Its shorthand will insert {name}.} other{Its {count} shorthands will insert {name}.}}",
   "@userFigureSwitchConfirmShorthands": {
     "description": "Added to the dialog confirming a switch to the app's figure {name} (#1023) when the user has shorthands for their figure.",

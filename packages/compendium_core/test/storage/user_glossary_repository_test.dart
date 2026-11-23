@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/native.dart';
 import 'package:test/test.dart';
@@ -84,6 +86,48 @@ void main() {
       expect(read.kind, isNull);
       expect(read.kindName, 'fromTheFuture');
       expect(read.payload, isNull);
+    });
+
+    test('an English figure holding a group only English has arrives by '
+        'sync whole, and is a figure to repair for a reader that takes '
+        'contra\'s groups (#2294)', () async {
+      // The payload as a build that offers English's groups writes it. This
+      // is a characterisation, not a guard: sync never decodes a figure's
+      // payload, so nothing here could drop the value.
+      const payload =
+          '{"form":"ecd","template":"{who} {move}","defaultBeats":8,'
+          '"params":[{"key":"who","kind":"dancerSet","default":"ends"}]}';
+      await glossary.writeFromSync(
+        StoredUserGlossaryEntry(
+          id: 'f1',
+          kind: 'customFigure',
+          name: 'ends zoom',
+          definition: 'A zoom.',
+          description: 'Fast.',
+          payloadJson: payload,
+          createdAt: created,
+        ),
+      );
+      final row = await (db.select(
+        db.userGlossaryEntries,
+      )..where((t) => t.id.equals('f1'))).getSingle();
+      final published = UserGlossaryRepository.storedFromRow(row);
+      // What a peer is sent is the stored text, normalised on the way in.
+      expect(jsonDecode(published.payloadJson!), jsonDecode(payload));
+      // This build reads it as the figure it is.
+      expect(
+        decodeUserFigureDefinition(jsonDecode(published.payloadJson!)),
+        isNotNull,
+      );
+      // A reader that takes every figure's groups to be contra's (what a
+      // build before #2294 does) cannot use it: it shows "Needs repair",
+      // and keeps the entry.
+      final asContra = {
+        ...(jsonDecode(published.payloadJson!) as Map<String, Object?>),
+        'form': 'contra',
+      };
+      expect(decodeUserFigureDefinition(asContra), isNull);
+      expect(published.kind, 'customFigure');
     });
 
     test(
