@@ -19918,6 +19918,270 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pay is hidden in Settings, so it is left out. Turn on Show pay in Settings ▸ Program to include it.'**
   String get exportCsvPayHiddenNotice;
+
+  /// Collection More actions menu item that opens the Repertoire page (#2357, Experimental).
+  ///
+  /// In en, this message translates to:
+  /// **'Repertoire'**
+  String get collectionRepertoireMenuItem;
+
+  /// App bar title of the Repertoire page: a read-only summary of the collection and its calling history (#2357).
+  ///
+  /// In en, this message translates to:
+  /// **'Repertoire'**
+  String get repertoireTitle;
+
+  /// Shown when the Repertoire page fails to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t work out your repertoire'**
+  String get repertoireLoadError;
+
+  /// Label of the Repertoire page's period chips.
+  ///
+  /// In en, this message translates to:
+  /// **'Period'**
+  String get repertoirePeriodLabel;
+
+  /// Repertoire period chip: every call, whenever it was.
+  ///
+  /// In en, this message translates to:
+  /// **'All time'**
+  String get repertoirePeriodAllTime;
+
+  /// Repertoire period chip: calls in the last N calendar months (1, 3 or 6).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Last month} other{Last {count} months}}'**
+  String repertoirePeriodMonths(int count);
+
+  /// Repertoire period chip that opens a date picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Since a date…'**
+  String get repertoirePeriodSinceDate;
+
+  /// Repertoire period chip once a date is chosen. {date} is the formatted date.
+  ///
+  /// In en, this message translates to:
+  /// **'Since {date}'**
+  String repertoirePeriodSince(String date);
+
+  /// Label of the Repertoire page's dance type chips.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance type'**
+  String get repertoireTypeLabel;
+
+  /// Repertoire dance type chip: every dance type.
+  ///
+  /// In en, this message translates to:
+  /// **'All types'**
+  String get repertoireTypeAll;
+
+  /// Summary line at the top of the Repertoire page.
+  ///
+  /// In en, this message translates to:
+  /// **'Calls in this period: {calls}. Dances called: {called} of {total}.'**
+  String repertoireSummary(int calls, int called, int total);
+
+  /// Repertoire section header: the dances called most in the period.
+  ///
+  /// In en, this message translates to:
+  /// **'Most called'**
+  String get repertoireMostCalledHeader;
+
+  /// Repertoire section header: the dances called least in the period, among those called at least once.
+  ///
+  /// In en, this message translates to:
+  /// **'Least called (of those you have called)'**
+  String get repertoireLeastCalledHeader;
+
+  /// Shown under Least called when ten or fewer dances were called, so all of them are under Most called.
+  ///
+  /// In en, this message translates to:
+  /// **'Every dance you called in this period is already listed under Most called.'**
+  String get repertoireLeastCalledAllShown;
+
+  /// Shown in a Repertoire section when nothing was called in the period.
+  ///
+  /// In en, this message translates to:
+  /// **'No counted calls in this period.'**
+  String get repertoireNoCalls;
+
+  /// How many times a dance was called in the period, beside its title.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{called once} other{called {count} times}}'**
+  String repertoireDanceCalls(int count);
+
+  /// Screen reader label of a dance row on the Repertoire page.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}: {count, plural, =1{called once} other{called {count} times}}'**
+  String repertoireDanceSemantics(String title, int count);
+
+  /// Repertoire section header: dances with no counted call ever.
+  ///
+  /// In en, this message translates to:
+  /// **'Never called'**
+  String get repertoireNeverCalledHeader;
+
+  /// Row label: dances with no counted call ever. Tapping it shows them in Collection.
+  ///
+  /// In en, this message translates to:
+  /// **'Never called'**
+  String get repertoireNeverCalledLabel;
+
+  /// A number of dances out of the collection's total.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of {total} dances'**
+  String repertoireOfDances(int count, int total);
+
+  /// Screen reader label of the Never called row.
+  ///
+  /// In en, this message translates to:
+  /// **'Never called: {count} of {total} dances'**
+  String repertoireNeverCalledSemantics(int count, int total);
+
+  /// Screen reader label of one never-called dance listed under the Never called row.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}: never called'**
+  String repertoireNeverCalledDanceSemantics(String title);
+
+  /// Row label: dances with no counted call in the chosen period, including never-called ones.
+  ///
+  /// In en, this message translates to:
+  /// **'Not called in this period'**
+  String get repertoireNotCalledInPeriodLabel;
+
+  /// Screen reader label of the Not called in this period row.
+  ///
+  /// In en, this message translates to:
+  /// **'Not called in this period: {count} of {total} dances'**
+  String repertoireNotCalledInPeriodSemantics(int count, int total);
+
+  /// Repertoire section header: for each move, how many dances contain it.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure frequency'**
+  String get repertoireFigureHeader;
+
+  /// Shown under Figure frequency when no dance has figures.
+  ///
+  /// In en, this message translates to:
+  /// **'None of these dances has figures entered.'**
+  String get repertoireNoFigures;
+
+  /// A figure row's numbers: how many dances contain the move, as a share, and how many calls in the period were of such a dance.
+  ///
+  /// In en, this message translates to:
+  /// **'in {dances} of {total} dances ({percent}%) · {calls, plural, =1{1 call} other{{calls} calls}}'**
+  String repertoireFigureValue(int dances, int total, int percent, int calls);
+
+  /// Screen reader label of a figure row. {move} is the move's name.
+  ///
+  /// In en, this message translates to:
+  /// **'{move}: in {dances} of {total} dances, {percent} percent; {calls, plural, =1{1 call} other{{calls} calls}} in this period'**
+  String repertoireFigureSemantics(
+    String move,
+    int dances,
+    int total,
+    int percent,
+    int calls,
+  );
+
+  /// Button that expands a Repertoire list to every row.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all {count}'**
+  String repertoireShowAll(int count);
+
+  /// Button that collapses an expanded Repertoire list.
+  ///
+  /// In en, this message translates to:
+  /// **'Show fewer'**
+  String get repertoireShowFewer;
+
+  /// Repertoire section header: the authors of the dances called in the period.
+  ///
+  /// In en, this message translates to:
+  /// **'Authors you call'**
+  String get repertoireAuthorsHeader;
+
+  /// How many distinct authors' dances were called in the period.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No author called in this period.} =1{1 author called in this period.} other{{count} authors called in this period.}}'**
+  String repertoireAuthorsSummary(int count);
+
+  /// A row's calls in the period and their share of all calls in it.
+  ///
+  /// In en, this message translates to:
+  /// **'{calls, plural, =1{1 call} other{{calls} calls}} ({percent}%)'**
+  String repertoireShareValue(int calls, int percent);
+
+  /// Screen reader label of a choreographer or formation row. {label} is the name.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: {calls, plural, =1{1 call} other{{calls} calls}}, {percent} percent of calls in this period'**
+  String repertoireShareSemantics(String label, int calls, int percent);
+
+  /// Repertoire section header: calls in the period by formation.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation mix'**
+  String get repertoireFormationHeader;
+
+  /// Repertoire section header: for each venue, the dances called there more than once in the period.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeats per venue'**
+  String get repertoireVenuesHeader;
+
+  /// Shown under Repeats per venue when there are none.
+  ///
+  /// In en, this message translates to:
+  /// **'No dance was called more than once at one venue in this period.'**
+  String get repertoireNoRepeats;
+
+  /// Label for a venue with no name to show.
+  ///
+  /// In en, this message translates to:
+  /// **'Unnamed venue'**
+  String get repertoireVenueUnnamed;
+
+  /// How many dances were called more than once at a venue in the period.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dance repeated} other{{count} dances repeated}}'**
+  String repertoireVenueRepeats(int count);
+
+  /// Screen reader label of a venue row. {venue} is the venue's name.
+  ///
+  /// In en, this message translates to:
+  /// **'{venue}: {count, plural, =1{1 dance called more than once} other{{count} dances called more than once}}'**
+  String repertoireVenueSemantics(String venue, int count);
+
+  /// Header of the Experimental settings section for the Repertoire page (#2357).
+  ///
+  /// In en, this message translates to:
+  /// **'Repertoire'**
+  String get settingsExperimentalRepertoireHeader;
+
+  /// Title of the switch that adds Repertoire to Collection's More actions menu.
+  ///
+  /// In en, this message translates to:
+  /// **'Repertoire'**
+  String get settingsExperimentalShowRepertoireTitle;
+
+  /// Subtitle of the Repertoire switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds Repertoire to Collection\'s More actions menu: your most and least called dances, what you\'ve never called, figure frequency, authors, formations and repeats per venue.'**
+  String get settingsExperimentalShowRepertoireSubtitle;
 }
 
 class _AppLocalizationsDelegate
