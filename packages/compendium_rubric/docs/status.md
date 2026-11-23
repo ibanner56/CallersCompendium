@@ -40,11 +40,12 @@
 > from 2,843 to 2,849 compiled in scope, with the core set unchanged at 410 and
 > nothing lost.
 >
-> **`cast` (2026-11-23)** is built on Hudson's ruling for up and down casts.
-> Against `rubric` at `2bf7a0e1` it compiles no new dance yet: 147 of the 202
-> dances it unblocked first stop at a `down_the_hall` led by the ones alone
-> ("ones lead down"), which is still deferred. The count stays at 2,849, the
-> core set at 410, and nothing is lost.
+> **`cast` (2026-11-23)** is built on Hudson's ruling for up and down casts,
+> one place only. Against `rubric` at `2bf7a0e1` it compiles no new dance yet:
+> 147 of the 202 dances it unblocked first stop at a `down_the_hall` led by part
+> of the set (mostly "ones lead down"), which is still deferred. The count stays
+> at 2,849 (the in-scope denominator grows from 4,506 to 4,539), the core set at
+> 410, and nothing is lost.
 
 The compiler implements 53 canonical figures. Twenty-eight have no deliberately
 deferred parameter values, 25 have an implemented core with explicit

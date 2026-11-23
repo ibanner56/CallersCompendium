@@ -258,8 +258,8 @@ const Map<String, _FigureBuilder> _registry = {
   'box_the_gnat': _buildBoxTheGnat,
   'butterfly_whirl': _buildButterflyWhirl,
   'california_twirl': _buildCaliforniaTwirl,
-  'chain': _buildChain,
   'cast': _buildCast,
+  'chain': _buildChain,
   'circle': _buildCircle,
   'circular_hey': _buildCircularHey,
   'contra_corners': _buildContraCorners,
@@ -639,7 +639,7 @@ Operation _buildCrossTrails(_Params p) => CrossTrails(
 Operation _buildCast(_Params p) => Cast(
   who: p.optionalWhoBesidesShadows(['who']),
   direction: p.optionalEnum(['direction'], CastDirection.fromKey),
-  places: p._first(['places']) == null ? null : p.intOr(['places'], 0),
+  places: p._first(['places']) == null ? null : p.intOr(['places'], 1),
   // Descriptive, and outside the band-phase choice: shadows is deferred.
   whom: p.optionalWhoBesidesShadows(['whom']),
   destination: p.optionalString(['destination']),

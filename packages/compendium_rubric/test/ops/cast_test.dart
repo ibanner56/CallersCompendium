@@ -44,30 +44,7 @@ void main() {
       );
     });
 
-    test('ones cast up two: they pass two couples, who each step down one', () {
-      final input = di(const [
-        'L2-B . . . R2-B',
-        'L2-D . . . R2-D',
-        'R1-A . . . L1-A',
-        '. . . . .',
-      ]);
-      final after = const Cast(
-        who: WhoSet.ones,
-        direction: CastDirection.up,
-        places: 2,
-      ).perform(input);
-      expect(after, isA<Ok<Formation, OpError>>(), reason: '$after');
-      expect((after as Ok<Formation, OpError>).value.toRolesNotation(), [
-        'R1-A . . . L1-A',
-        'L2-B . . . R2-B',
-        'L2-D . . . R2-D',
-        '. . . . .',
-      ]);
-    });
-
-    test('two casters passing the same dancers are refused, not guessed', () {
-      // Every ones couple casting down two in an ordinary duple set: A would
-      // pass B and C, but C is casting too.
+    test('a cast of two places is deferred: it leaves its hands four', () {
       final error =
           const Cast(
             who: WhoSet.ones,
@@ -81,7 +58,81 @@ void main() {
               'L2-D . . . R2-D',
             ]),
           );
-      expect(error?.kind, ErrorKind.unresolvableDancerSet);
+      expect(error?.kind, ErrorKind.unsupportedParam);
+    });
+
+    test(
+      'in Becket the ones share a column, so they would pass each other',
+      () {
+        final becket = parseRolesNotation(const [
+          'L2-B . . . R1-A',
+          'R2-B . . . L1-A',
+        ], type: FormationType.becketCw);
+        final error = const Cast(
+          who: WhoSet.ones,
+          direction: CastDirection.down,
+          places: 1,
+        ).checkPreconditions(becket);
+        expect(error?.kind, ErrorKind.unresolvableDancerSet);
+        expect(error?.message, contains('casting too'));
+      },
+    );
+
+    test('every hands four casts, and only inside itself', () {
+      expect(
+        applyOk(
+          const Cast(
+            who: WhoSet.ones,
+            direction: CastDirection.down,
+            places: 1,
+          ),
+          di(const [
+            'R1-A . . . L1-A',
+            'L2-B . . . R2-B',
+            'R1-C . . . L1-C',
+            'L2-D . . . R2-D',
+          ]),
+        ).toRolesNotation(),
+        [
+          'L2-B . . . R2-B',
+          'R1-A . . . L1-A',
+          'L2-D . . . R2-D',
+          'R1-C . . . L1-C',
+        ],
+      );
+    });
+
+    test('a couple standing out at an end neither casts nor is passed', () {
+      // Cast off as the progression, then dance it again: the second cast
+      // happens in the shifted phase, with a couple standing out at each end.
+      var state = startingFormation(FormationType.dupleImproper, handsFour: 3);
+      const castOff = Cast(
+        who: WhoSet.ones,
+        direction: CastDirection.down,
+        places: 1,
+      );
+      final first = OperationInvocation(
+        castOff,
+        progression: true,
+      ).apply(state);
+      expect(first, isA<Ok<Formation, OpError>>(), reason: '$first');
+      state = (first as Ok<Formation, OpError>).value;
+      final outBefore = {
+        for (final entry in state.dancers.entries)
+          if (entry.value.waitingOut) entry.key: entry.value.position,
+      };
+      expect(outBefore, isNotEmpty);
+
+      final second = const OperationInvocation(castOff).apply(state);
+      expect(second, isA<Ok<Formation, OpError>>(), reason: '$second');
+      final after = (second as Ok<Formation, OpError>).value;
+      for (final entry in outBefore.entries) {
+        expect(after.stateOf(entry.key).position, entry.value);
+        expect(after.stateOf(entry.key).waitingOut, isTrue);
+      }
+      for (final band in handsFourBands(after)) {
+        expect(band.bottomRow, band.topRow + 1);
+      }
     });
 
     test('casting dancers end with flexible facing; passed dancers too', () {

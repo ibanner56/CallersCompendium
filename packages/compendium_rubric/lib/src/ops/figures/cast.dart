@@ -4,11 +4,13 @@ part of '../operation.dart';
 /// around the outside to a new place (`docs/taxonomy.md`).
 ///
 /// **User-ruled (2026-11-23):** the casting dancers move [places] places up or
-/// down the set, and each dancer they pass steps one place the other way. On
-/// the grid that is a rotation within the caster's own column: a dancer in row
-/// `r` casting down `N` lands in row `r + N`, and the dancers in rows
-/// `r + 1 … r + N` of that column each move up one row. "Cast off" is a cast
-/// down one place, the importer's reading (`compendium_core`).
+/// down the set, and each dancer they pass steps one place the other way.
+/// Only a cast of **one** place is built: on the grid the caster and the
+/// dancer beside it in its column, inside its own hands four, trade rows.
+/// "Cast off" is a cast down one place, the importer's reading
+/// (`compendium_core`). A cast of two or more places crosses into the next
+/// hands four, and in an ordinary duple set every ones couple casting at once
+/// would pass the same dancers, so it is deferred.
 ///
 /// Everything the ruling leaves open is refused rather than guessed
 /// ([ErrorKind.unsupportedParam]): a cast `left` or `right` (casting back),
@@ -22,11 +24,12 @@ part of '../operation.dart';
 ///
 /// Two more calls are the agent's, not ruled:
 ///
-/// - A caster whose path leaves the set, or meets an empty place, waits out,
-///   as dancers at an end of the set do. If no caster can move at all, the
-///   figure is refused ([ErrorKind.unresolvableDancerSet]).
-/// - Two casters that would pass the same dancer, or a caster that would pass
-///   another caster, are refused rather than ordered.
+/// - The cast is danced in the active hands fours only, like every other
+///   figure; a couple standing out at an end does not cast and is not passed.
+/// - A caster with nobody beside it in its hands four in the cast's direction,
+///   or whose neighbour there is casting too (every `ones` cast in Becket,
+///   where the ones share a column), is refused
+///   ([ErrorKind.unresolvableDancerSet]) rather than left to wait.
 ///
 /// Everyone who moved ends with flexible facing: casting turns the casters
 /// out and around, and the dancers stepping along turn to follow.
@@ -70,13 +73,9 @@ final class Cast extends Operation {
     WhoSet.role2s,
   };
 
-  /// The moves this cast makes: for each caster that can cast, the column it
-  /// casts in, the row it starts from, and the rows it passes.
-  Result<
-    List<({DancerId caster, int col, int from, List<int> passed})>,
-    OpError
-  >
-  _plan(Formation formation) {
+  /// The caster and the dancer it passes, for every caster in every active
+  /// hands four.
+  Result<List<DancerPair>, OpError> _plan(Formation formation) {
     final casters = who;
     final dir = direction;
     final count = places;
@@ -99,12 +98,20 @@ final class Cast extends Operation {
         ),
       );
     }
-    if (count == null || count < 1) {
+    if (count == null) {
       return Err(
         OpError(
           ErrorKind.unsupportedParam,
-          'cast ${dir.key} with ${count ?? 'an unstated number of'} places is '
-          'deferred',
+          'cast ${dir.key} with an unstated number of places is deferred',
+        ),
+      );
+    }
+    if (count != 1) {
+      return Err(
+        OpError(
+          ErrorKind.unsupportedParam,
+          'cast ${dir.key} $count places is deferred: only a cast of one '
+          'place, which stays inside its hands four, is built',
         ),
       );
     }
@@ -127,44 +134,50 @@ final class Cast extends Operation {
     }
 
     final step = dir == CastDirection.down ? 1 : -1;
-    final casterIds = {
-      for (final id in formation.dancers.keys)
-        if (whoIncludes(formation, id, casters)) id,
-    };
-    final plan = <({DancerId caster, int col, int from, List<int> passed})>[];
-    final passedIds = <DancerId>{};
-    for (final id in casterIds) {
-      final at = formation.stateOf(id).position;
-      final rows = [for (var k = 1; k <= count; k++) at.row + step * k];
-      final passed = <DancerId>[];
-      for (final row in rows) {
-        if (row < 0 || row > formation.lastRow) break;
-        final other = formation.dancerAt(Position(row, at.col));
-        if (other == null) break;
-        passed.add(other);
-      }
-      // Off the end of the set, or into an empty place: this caster waits.
-      if (passed.length < count) continue;
-      for (final other in passed) {
-        if (casterIds.contains(other) || !passedIds.add(other)) {
+    final plan = <DancerPair>[];
+    // Only the active hands fours: a couple standing out at an end is outside
+    // every one of them, and no figure moves it (`end_normalization.dart`).
+    for (final band in handsFourBands(formation)) {
+      final inBand = [
+        ...formation.dancersInRow(band.topRow),
+        ...formation.dancersInRow(band.bottomRow),
+      ];
+      final casterIds = {
+        for (final id in inBand)
+          if (whoIncludes(formation, id, casters)) id,
+      };
+      for (final id in casterIds) {
+        final at = formation.stateOf(id).position;
+        final row = at.row + step;
+        final other = row == band.topRow || row == band.bottomRow
+            ? formation.dancerAt(Position(row, at.col))
+            : null;
+        if (other == null) {
           return Err(
             OpError(
               ErrorKind.unresolvableDancerSet,
-              'cast ${dir.key} $count would have $id pass $other, who is '
-              '${casterIds.contains(other) ? 'casting too' : 'already being passed by another caster'}; '
-              'overlapping casts are not ordered',
+              'cast ${dir.key} 1: $id has nobody to cast around in its hands '
+              'four (rows ${band.topRow}-${band.bottomRow})',
             ),
           );
         }
+        if (casterIds.contains(other)) {
+          return Err(
+            OpError(
+              ErrorKind.unresolvableDancerSet,
+              'cast ${dir.key} 1: $id would pass $other, who is a '
+              '${casters.key} casting too',
+            ),
+          );
+        }
+        plan.add((a: id, b: other));
       }
-      plan.add((caster: id, col: at.col, from: at.row, passed: rows));
     }
     if (plan.isEmpty) {
       return Err(
         OpError(
           ErrorKind.unresolvableDancerSet,
-          'cast ${dir.key} $count: no ${casters.key} has $count dancers to '
-          'cast around',
+          'cast: no ${casters.key} stands in an active hands four',
         ),
       );
     }
@@ -180,28 +193,13 @@ final class Cast extends Operation {
 
   @override
   Result<Formation, OpError> perform(Formation formation) =>
-      _plan(formation).map((plan) {
-        final changes = <DancerId, DancerState>{};
-        for (final move in plan) {
-          final step = move.passed.last > move.from ? -1 : 1;
-          for (final row in move.passed) {
-            final id = formation.dancerAt(Position(row, move.col))!;
-            changes[id] = formation
-                .stateOf(id)
-                .copyWith(
-                  position: Position(row + step, move.col),
-                  facing: Facing.flexible,
-                );
-          }
-          changes[move.caster] = formation
-              .stateOf(move.caster)
-              .copyWith(
-                position: Position(move.passed.last, move.col),
-                facing: Facing.flexible,
-              );
-        }
-        return formation.withUpdates(changes);
-      });
+      _plan(formation).map(
+        (pairs) => swapPairs(
+          formation,
+          pairs,
+          facing: (before, after, other) => Facing.flexible,
+        ),
+      );
 
   @override
   bool operator ==(Object other) =>

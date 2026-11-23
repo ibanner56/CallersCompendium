@@ -1888,38 +1888,42 @@ To be defined later with worked examples.
   beats}`; every default is `unspecified`):
   - `who` — dancer set. The casters, named by membership: `ones`, `twos`, `role1s` or `role2s`.
   - `direction` — `up`, `down`, `left` or `right`. Only `up` and `down` are built.
-  - `places` — int. How many places the casters move.
+  - `places` — int. How many places the casters move. Only 1 is built.
   - `whom` — dancer set. Whom the casters go around. **Descriptive**: the dancers in the
     caster's path are the ones passed.
   - `destination` — a stated endpoint (`place`, `top`, `bottom`, …). Deferred.
   - `beats` — int, default 4.
-- **preconditions:** casters named, `direction` up or down, `places` ≥ 1, no `destination`;
-  anything else is deferred (`UnsupportedParam`). A `who` naming pairs rather than members
-  (`partners`, `neighbors`, `everyone`, a distance set) is refused (`UnresolvableDancerSet`);
-  `shadows` is deferred at parse time.
+- **preconditions:** casters named, `direction` up or down, `places` stated and equal to 1, no
+  `destination`; anything else is deferred (`UnsupportedParam`). A `who` naming pairs rather
+  than members (`partners`, `neighbors`, `everyone`) is refused (`UnresolvableDancerSet`); a
+  distance set is refused earlier, by the engine's reach check (`WhoMismatch`); `shadows` is
+  deferred at parse time. In every active hands four, each caster must have a dancer beside it
+  in its column, in the cast's direction, who is not casting too (`UnresolvableDancerSet`
+  otherwise).
 - **effect (user-ruled 2026-11-23):** the casters move `places` places up or down the set, and
-  each dancer they pass steps one place the other way. On the grid that is a rotation within the
-  caster's own column: a dancer in row `r` casting down `N` lands in row `r + N`, and the
-  dancers in rows `r + 1 … r + N` of that column each move up one row.
+  each dancer they pass steps one place the other way. For the one place that is built, the
+  caster and the dancer beside it in its column, inside its own hands four, trade rows.
   - *Worked check:* from the base ring `R1-A . . . L1-A / L2-B . . . R2-B`, ones cast down one
     land `L2-B . . . R2-B / R1-A . . . L1-A`.
-  - **Agent's calls, not ruled:** a caster whose path leaves the set or meets an empty place
-    waits out, as dancers at an end of the set do, and the figure refuses
-    (`UnresolvableDancerSet`) only when no caster can move. Two casters passing the same
-    dancer, or a caster passing another caster, are refused rather than ordered. So in an
-    ordinary duple set, where every ones couple casts at once, a cast of two places is
-    refused.
+  - **Agent's calls, not ruled:** the cast is danced in the active hands fours only, like
+    every other figure, so a couple standing out at an end neither casts nor is passed. A cast
+    of two or more places is deferred: it would cross into the next hands four, and in an
+    ordinary duple set every ones couple casting at once would pass the same dancers. In
+    Becket the ones share a column, so a `ones` or `twos` cast is refused (each would pass a
+    caster).
 - **normalization:** none.
 - **facing (output):** **flexible** for everyone who moved; casting turns the casters out and
   around, and the dancers stepping along turn to follow.
-- **interaction scope:** the caster's column, across hands-four boundaries when `places` ≥ 2.
+- **interaction scope:** within the hands four (the caster's column).
 - **h4 contribution** (D7): 0.
 - **progression-eligible:** yes (not its own progression).
 - **corpus note (2026-11-23, `rubric` at `2bf7a0e1`):** 202 Caller's Box dances stopped at
-  this figure before it was built. None compiles yet: 147 first stop at a `down_the_hall` led
-  by the ones alone ("ones lead down"; `who: ones` on a hall figure is deferred), 34 at a
-  `swing`, 10 at `form_short_waves` and 1 at a `two_hand_turn` before the cast. 6 refuse at the cast itself (5
-  overlapping casts, 1 cast right) and 4 at a ones-only hall figure after it.
+  this figure before it was built. None compiles yet. 192 refuse before the cast: 147 at a
+  `down_the_hall` led by part of the set (144 `who: ones`, 2 `role1s`, 1 `partners`; deferred),
+  34 at a `swing`, 10 at `form_short_waves` and 1 at a `two_hand_turn`. 6 refuse at the cast
+  itself (5 casts of two places, 1 cast right). 4 refuse at a later hall figure led by part of
+  the set (`who: ones` twice, `who: twos`, `moving: center`). The in-scope denominator grows
+  (4,506 to 4,539) because these dances are no longer stopped by a deferred move.
 - **sources:** user ruling 2026-11-23 ("casters move N, passed couples step 1"; left/right,
   "back" and unnamed casts refuse for now); CallersCompendium taxonomy `cast` MoveDef and figure
   definition.
