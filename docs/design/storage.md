@@ -932,7 +932,8 @@ steps that can still fire are v40 onward.
   Also in v42, before it shipped: the calendar import's change tracking
   (#2354). Adds three nullable `programs` columns: `calendar_event_fingerprint`
   (`Program.calendarEventFingerprint`, per-field truncated hashes of the
-  event's title, date and first location segment as last imported),
+  event's title, date, first location segment, and start and end times as
+  last imported, `v2:`),
   `calendar_written_at` (`Program.calendarWrittenAt`, the `updated_at` the
   import last wrote; a Draft whose `updated_at` still equals it is
   "untouched") and `calendar_flag` (`Program.calendarFlag`: `cancelled`,

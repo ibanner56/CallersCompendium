@@ -394,7 +394,8 @@ class Programs extends Table {
   IntColumn get arrivalMinute => integer().nullable()();
 
   /// What the calendar import last wrote from the event (#2354, schema v42):
-  /// a per-field hash of its title, date and first location segment.
+  /// a per-field hash of its title, date, first location segment, and start
+  /// and end times.
   TextColumn get calendarEventFingerprint => text().nullable()();
 
   /// The `updated_at` the calendar import last wrote (#2354, schema v42).

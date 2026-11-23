@@ -293,11 +293,13 @@ calendar before either has synced, both create the program; delete one.)
 **When an event changes or is canceled.** The app never changes a program
 behind your back, and never deletes one because of your calendar.
 
-- **Updated in your calendar** — the event's title, date or location changed,
-  and you haven't touched the draft since it was imported (it is still a
-  **Draft** and you haven't edited anything, even a slot). The review shows the
-  old and new values ("Date: 20 Jun → 27 Jun"), ticked. **Import** updates the
-  program.
+- **Updated in your calendar** — the event's title, date, location or times
+  changed, and you haven't touched the draft since it was imported (it is
+  still a **Draft** and you haven't edited anything, even a slot). The review
+  shows the old and new values ("Date: 20 Jun → 27 Jun", "Time: 7:00 PM–10:00
+  PM → 7:30 PM–10:30 PM"), ticked. **Import** updates the program. An event
+  made all-day clears the start and end times. The **Beginner lesson** and
+  **Arrive by** times are never changed.
 - **Changed in your calendar** — the same, for a program you have worked on,
   here or on another device. It starts unticked; tick it and **Import**
   updates only what changed in the calendar. A program imported before this

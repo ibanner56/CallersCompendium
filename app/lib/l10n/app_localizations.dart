@@ -20207,6 +20207,12 @@ abstract class AppLocalizations {
   /// **'Title: {before} → {after}'**
   String calendarChangeTitle(String before, String after);
 
+  /// A program's start and end time as it is and as the calendar now has it, in the calendar import review. Each side is already formatted, e.g. '7:00 PM–10:00 PM', or a dash when there is none.
+  ///
+  /// In en, this message translates to:
+  /// **'Time: {before} → {after}'**
+  String calendarChangeTime(String before, String after);
+
   /// A program's venue as it is and as the calendar now has it, in the calendar import review.
   ///
   /// In en, this message translates to:

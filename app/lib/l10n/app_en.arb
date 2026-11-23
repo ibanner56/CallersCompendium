@@ -18595,6 +18595,18 @@
       }
     }
   },
+  "calendarChangeTime": "Time: {before} → {after}",
+  "@calendarChangeTime": {
+    "description": "A program's start and end time as it is and as the calendar now has it, in the calendar import review. Each side is already formatted, e.g. '7:00 PM–10:00 PM', or a dash when there is none.",
+    "placeholders": {
+      "before": {
+        "type": "String"
+      },
+      "after": {
+        "type": "String"
+      }
+    }
+  },
   "calendarChangeVenue": "Venue: {before} → {after}",
   "@calendarChangeVenue": {
     "description": "A program's venue as it is and as the calendar now has it, in the calendar import review.",

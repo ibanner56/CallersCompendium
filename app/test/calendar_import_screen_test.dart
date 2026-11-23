@@ -182,6 +182,61 @@ void main() {
     });
   });
 
+  testWidgets('the review offers a changed time as "Time: old → new" '
+      '(#2354 with #2423)', (tester) async {
+    await withClock(fixed, () async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kCalendarFeedUrlKey, _secret);
+      final at = DateTime.utc(2030, 6, 1);
+      await repos.programs.create(
+        Program(
+          id: 'p',
+          title: 'Timed contra',
+          eventDate: DateTime.utc(2030, 6, 20),
+          startMinute: 19 * 60,
+          endMinute: 22 * 60,
+          calendarEventKey: calendarEventKey('t', ''),
+          calendarEventFingerprint: calendarEventFingerprint(
+            title: 'Timed contra',
+            date: DateTime.utc(2030, 6, 20),
+            startMinute: 19 * 60,
+            endMinute: 22 * 60,
+          ),
+          calendarWrittenAt: at,
+          createdAt: at,
+          updatedAt: at,
+        ),
+      );
+      await pump(
+        tester,
+        repos,
+        CalendarImportScreen(
+          fetcher: (_) async => _cal([
+            [
+              'UID:t',
+              'DTSTART:20300620T193000',
+              'DTEND:20300620T223000',
+              'SUMMARY:Timed contra',
+            ],
+          ]),
+          toLocal: (u) => u,
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('calendar-import-fetch')));
+      await tester.pumpAndSettle();
+      // intl may put a narrow no-break space before AM/PM.
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Text &&
+              (w.data ?? '').replaceAll(' ', ' ') ==
+                  'Time: 7:00 PM–10:00 PM → 7:30 PM–10:30 PM',
+        ),
+        findsOneWidget,
+      );
+    });
+  });
+
   testWidgets('Settings shows the address as set, never its text', (
     tester,
   ) async {

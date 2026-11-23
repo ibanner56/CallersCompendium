@@ -233,6 +233,8 @@ class CalendarChangeOffer {
     required this.title,
     required this.date,
     required this.venue,
+    this.start = false,
+    this.end = false,
     this.shownVenue,
     this.venueId,
   });
@@ -256,6 +258,14 @@ class CalendarChangeOffer {
   final bool title;
   final bool date;
   final bool venue;
+
+  /// The start and the end time (#2423), each on its own like the other
+  /// fields: an all-day event has neither, so taking it clears them.
+  final bool start;
+  final bool end;
+
+  /// Whether either time is offered: one "Time" line in the review.
+  bool get time => start || end;
 
   /// The saved venue record the new location matches, if one does.
   final String? venueId;
@@ -289,10 +299,14 @@ CalendarChangeOffer? _changeOffer(
       ? program.venue
       : (venueName(program.venueId!) ?? program.venue);
   final venueDiffers = (c.venueLabel ?? '') != (shownVenue ?? '');
+  final startDiffers = c.startMinute != program.startMinute;
+  final endDiffers = c.endMinute != program.endMinute;
   final title = titleDiffers && (upstream?.title ?? true);
   final date = dateDiffers && (upstream?.date ?? true);
   final venue = venueDiffers && (upstream?.venue ?? true);
-  if (!title && !date && !venue) {
+  final start = startDiffers && (upstream?.start ?? true);
+  final end = endDiffers && (upstream?.end ?? true);
+  if (!title && !date && !venue && !start && !end) {
     // Changed upstream to what the program already says: nothing to offer,
     // but the new fingerprint is recorded on the next Import.
     return CalendarChangeOffer(
@@ -311,6 +325,8 @@ CalendarChangeOffer? _changeOffer(
     title: title,
     date: date,
     venue: venue,
+    start: start,
+    end: end,
     shownVenue: shownVenue,
     venueId: venueIdFor(c.venueLabel),
   );
@@ -318,7 +334,7 @@ CalendarChangeOffer? _changeOffer(
 
 /// Whether [offer] has anything to show the caller.
 bool calendarOfferVisible(CalendarChangeOffer offer) =>
-    offer.title || offer.date || offer.venue;
+    offer.title || offer.date || offer.venue || offer.time;
 
 /// The stamp a calendar import writes: [now] at the store's one-second
 /// precision, and after [prior] so the write wins last-writer-wins.
@@ -375,6 +391,10 @@ Future<List<CalendarUpdateRecord>> applyCalendarUpdates(
         // becomes the new one: linked to the record it matches, or unlinked.
         venueId: offer.venue ? offer.venueId : null,
         clearVenueId: offer.venue && offer.venueId == null,
+        startMinute: offer.start ? c.startMinute : null,
+        clearStartMinute: offer.start && c.startMinute == null,
+        endMinute: offer.end ? c.endMinute : null,
+        clearEndMinute: offer.end && c.endMinute == null,
       );
     }
     stage(offer.program, next);

@@ -631,6 +631,8 @@ class CalendarImportCandidate {
     title: title,
     date: date,
     venueLabel: venueLabel,
+    startMinute: startMinute,
+    endMinute: endMinute,
   );
 }
 
@@ -679,39 +681,49 @@ class CalendarImportPlan {
   final bool truncated;
 }
 
-/// What a calendar import last wrote from an event (#2354): its title, date
-/// and first location segment, each as a 16-hex-digit SHA-256 prefix, joined
-/// as `v1:<title>:<date>:<location>`. Kept per field so a later import can
-/// say which of them changed upstream. A hash rather than the values: all
-/// three are already stored on the program, which the caller may edit.
+/// What a calendar import last wrote from an event (#2354): its title, date,
+/// first location segment, start time and end time (#2423), each as a
+/// 16-hex-digit SHA-256 prefix, joined as
+/// `v2:<title>:<date>:<location>:<start>:<end>`. Kept per field so a later import
+/// can say which of them changed upstream. A hash rather than the values: all
+/// of them are already stored on the program, which the caller may edit.
 String calendarEventFingerprint({
   required String title,
   required DateTime date,
   String? venueLabel,
+  int? startMinute,
+  int? endMinute,
 }) {
   String h(String s) =>
       sha256.convert(utf8.encode(s)).toString().substring(0, 16);
   final d = '${date.year}-${date.month}-${date.day}';
-  return 'v1:${h(title)}:${h(d)}:${h(venueLabel ?? '')}';
+  return 'v2:${h(title)}:${h(d)}:${h(venueLabel ?? '')}'
+      ':${h('${startMinute ?? ''}')}:${h('${endMinute ?? ''}')}';
 }
 
-/// Which of title, date and location differ between two fingerprints
+/// Which of title, date, location, start and end differ between two
+/// fingerprints
 /// ([calendarEventFingerprint]). Null when either is missing or not one this
-/// build reads: the caller then knows nothing about what changed.
-({bool title, bool date, bool venue})? calendarFingerprintChanges(
-  String? before,
-  String after,
-) {
+/// build reads (a `v1` fingerprint, written before times were imported, is
+/// not): the caller then knows nothing about what changed.
+({bool title, bool date, bool venue, bool start, bool end})?
+calendarFingerprintChanges(String? before, String after) {
   final a = _fingerprintParts(before);
   final b = _fingerprintParts(after);
   if (a == null || b == null) return null;
-  return (title: a[0] != b[0], date: a[1] != b[1], venue: a[2] != b[2]);
+  return (
+    title: a[0] != b[0],
+    date: a[1] != b[1],
+    venue: a[2] != b[2],
+    start: a[3] != b[3],
+    end: a[4] != b[4],
+  );
 }
 
 List<String>? _fingerprintParts(String? f) {
   if (f == null) return null;
   final parts = f.split(':');
-  if (parts.length != 4 || parts.first != 'v1') return null;
+  if (parts.length != 6 || parts.first != 'v2') return null;
   return parts.sublist(1);
 }
 

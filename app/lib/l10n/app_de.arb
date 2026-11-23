@@ -13314,6 +13314,10 @@
   "@calendarChangeTitle": {
     "x-sourceSha256": "0318a23428e2c61a0bf541126aec5d6fb7e83e0231c4fb82630e88eaf4286a56"
   },
+  "calendarChangeTime": "Uhrzeit: {before} → {after}",
+  "@calendarChangeTime": {
+    "x-sourceSha256": "67199899e02aa6128a22606137672135a164931b2e025d9ca9f2ca342455a04f"
+  },
   "calendarChangeVenue": "Veranstaltungsort: {before} → {after}",
   "@calendarChangeVenue": {
     "x-sourceSha256": "8b60cf0ee9dd2aa34c02b13d42531f743f69dc6bb09f436f65c38aec52fec0bc"

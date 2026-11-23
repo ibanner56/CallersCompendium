@@ -511,6 +511,52 @@ void main() {
     });
   });
 
+  group('calendarFingerprintChanges (#2354)', () {
+    String fp({
+      String title = 'T',
+      int day = 20,
+      String? venue = 'Hall',
+      int? start = 1140,
+      int? end = 1320,
+    }) => calendarEventFingerprint(
+      title: title,
+      date: DateTime.utc(2030, 6, day),
+      venueLabel: venue,
+      startMinute: start,
+      endMinute: end,
+    );
+
+    test('names each field that changed, start and end apart', () {
+      expect(calendarFingerprintChanges(fp(), fp(end: 1350)), (
+        title: false,
+        date: false,
+        venue: false,
+        start: false,
+        end: true,
+      ));
+      expect(calendarFingerprintChanges(fp(), fp(start: null, end: null)), (
+        title: false,
+        date: false,
+        venue: false,
+        start: true,
+        end: true,
+      ));
+      expect(calendarFingerprintChanges(fp(), fp(title: 'U', day: 27)), (
+        title: true,
+        date: true,
+        venue: false,
+        start: false,
+        end: false,
+      ));
+    });
+
+    test('an unknown or v1 fingerprint, or none, reads as unknown', () {
+      expect(calendarFingerprintChanges(null, fp()), isNull);
+      expect(calendarFingerprintChanges('v1:a:b:c', fp()), isNull);
+      expect(calendarFingerprintChanges('v3:a:b:c:d:e', fp()), isNull);
+    });
+  });
+
   group('sanitizing and what is kept', () {
     test('bidi overrides and zero-width characters are stripped from SUMMARY '
         'and LOCATION', () {

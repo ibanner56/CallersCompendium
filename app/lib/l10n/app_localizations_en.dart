@@ -13772,6 +13772,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String calendarChangeTime(String before, String after) {
+    return 'Time: $before → $after';
+  }
+
+  @override
   String calendarChangeVenue(String before, String after) {
     return 'Venue: $before → $after';
   }

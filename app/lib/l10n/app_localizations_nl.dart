@@ -13903,6 +13903,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String calendarChangeTime(String before, String after) {
+    return 'Tijd: $before → $after';
+  }
+
+  @override
   String calendarChangeVenue(String before, String after) {
     return 'Locatie: $before → $after';
   }

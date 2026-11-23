@@ -347,12 +347,15 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
         : e.candidate.title;
     // The event's times beside its date (#2423), phrased as the set list
     // phrases a program's start and end.
-    String? timesOf(CalendarImportEntry e) => danceTimesText(
-      startMinute: e.candidate.startMinute,
-      endMinute: e.candidate.endMinute,
+    // Times as the program summary shows them, "(next day)" included.
+    String? rangeOf(int? start, int? end) => danceTimesText(
+      startMinute: start,
+      endMinute: end,
       formatTime: (m) => formatTimeOfDay(m, l10n),
       labels: programExportLabels(l10n),
     );
+    String? timesOf(CalendarImportEntry e) =>
+        rangeOf(e.candidate.startMinute, e.candidate.endMinute);
     String subtitleOf(CalendarImportEntry e) =>
         [dateOf(e), ?timesOf(e), ?e.candidate.venueLabel].join(' · ');
 
@@ -389,6 +392,16 @@ class _CalendarImportScreenState extends State<CalendarImportScreen> {
         l10n.calendarChangeVenue(
           c.shownVenue ?? '—',
           c.candidate.venueLabel ?? '—',
+        ),
+      if (c.time)
+        l10n.calendarChangeTime(
+          rangeOf(c.program.startMinute, c.program.endMinute) ?? '—',
+          // Only the offered times change; an unoffered one stays as is.
+          rangeOf(
+                c.start ? c.candidate.startMinute : c.program.startMinute,
+                c.end ? c.candidate.endMinute : c.program.endMinute,
+              ) ??
+              '—',
         ),
     ].join('\n');
     Widget offerTile(CalendarChangeOffer c) => CheckboxListTile(

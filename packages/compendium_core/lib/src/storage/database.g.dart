@@ -4620,7 +4620,8 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
   final int? arrivalMinute;
 
   /// What the calendar import last wrote from the event (#2354, schema v42):
-  /// a per-field hash of its title, date and first location segment.
+  /// a per-field hash of its title, date, first location segment, and start
+  /// and end times.
   final String? calendarEventFingerprint;
 
   /// The `updated_at` the calendar import last wrote (#2354, schema v42).

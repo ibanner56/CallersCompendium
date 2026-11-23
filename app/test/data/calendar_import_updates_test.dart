@@ -480,6 +480,160 @@ void main() {
     }
   });
 
+  group(
+    'event times (#2423) are offered and applied like the other fields',
+    () {
+      String timed(String day, String start, String end) => _cal([
+        [
+          'UID:t',
+          'DTSTART:${day}T$start',
+          'DTEND:${day}T$end',
+          'SUMMARY:Contra T',
+        ],
+      ]);
+      final original = timed('20300620', '190000', '220000');
+
+      test('a date and time move on an untouched draft updates both', () async {
+        final repos = openTestRepositories();
+        await _importNew(repos, original);
+        final before = await _only(repos);
+        expect((before.startMinute, before.endMinute), (19 * 60, 22 * 60));
+        final moved = timed('20300626', '200000', '230000');
+        final offer = (await _preview(repos, moved)).changes.single;
+        expect((offer.date, offer.time, offer.untouched), (true, true, true));
+        await _apply(repos, moved);
+        final after = await _only(repos);
+        expect(after.eventDate, DateTime.utc(2030, 6, 26));
+        expect((after.startMinute, after.endMinute), (20 * 60, 23 * 60));
+        expect(after.isUntouchedCalendarDraft, isTrue);
+      });
+
+      test('a time-only change is offered, and Import applies it', () async {
+        final repos = openTestRepositories();
+        await _importNew(repos, original);
+        final later = timed('20300620', '193000', '223000');
+        final offer = (await _preview(repos, later)).changes.single;
+        expect(
+          (offer.title, offer.date, offer.venue, offer.time),
+          (false, false, false, true),
+        );
+        expect(calendarOfferVisible(offer), isTrue);
+        await _apply(repos, later);
+        final after = await _only(repos);
+        expect(
+          (after.startMinute, after.endMinute),
+          (19 * 60 + 30, 22 * 60 + 30),
+        );
+      });
+
+      test('an event made all-day clears the times', () async {
+        final repos = openTestRepositories();
+        await _importNew(repos, original);
+        final allDay = _cal([
+          ['UID:t', 'DTSTART;VALUE=DATE:20300620', 'SUMMARY:Contra T'],
+        ]);
+        await _apply(repos, allDay);
+        final after = await _only(repos);
+        expect((after.startMinute, after.endMinute), (null, null));
+      });
+
+      Future<void> workOn(CompendiumRepositories repos, {int? start}) async {
+        final p = await _only(repos);
+        await repos.programs.update(
+          p.copyWith(
+            notes: 'mine',
+            startMinute: start,
+            lessonMinute: 18 * 60,
+            arrivalMinute: 18 * 60 + 30,
+            updatedAt: _t0.add(const Duration(hours: 1)),
+          ),
+        );
+      }
+
+      test('on a worked-on program only the time that changed upstream is '
+          'offered, so the caller\'s own start survives a new end', () async {
+        final repos = openTestRepositories();
+        await _importNew(repos, original);
+        await workOn(repos, start: 19 * 60 + 30);
+        final later = timed('20300620', '190000', '223000');
+        final offer = (await _preview(repos, later)).changes.single;
+        expect((offer.start, offer.end, offer.untouched), (false, true, false));
+        await _apply(repos, later, accepted: {offer.program.id});
+        final after = await _only(repos);
+        expect(
+          (after.startMinute, after.endMinute),
+          (19 * 60 + 30, 22 * 60 + 30),
+        );
+        expect(
+          (after.lessonMinute, after.arrivalMinute),
+          (18 * 60, 18 * 60 + 30),
+          reason: 'lesson and arrival times are never touched',
+        );
+      });
+
+      test('a caller\'s edited time is not offered back when only the title '
+          'changes upstream', () async {
+        final repos = openTestRepositories();
+        await _importNew(repos, original);
+        await workOn(repos, start: 19 * 60 + 30);
+        final renamed = _cal([
+          [
+            'UID:t',
+            'DTSTART:20300620T190000',
+            'DTEND:20300620T220000',
+            'SUMMARY:Contra T, renamed',
+          ],
+        ]);
+        final offer = (await _preview(repos, renamed)).changes.single;
+        expect((offer.title, offer.time), (true, false));
+      });
+
+      test(
+        'a ticked time offer leaves lesson and arrival times alone',
+        () async {
+          final repos = openTestRepositories();
+          await _importNew(repos, original);
+          final p = await _only(repos);
+          // Set lesson and arrival through the import's own stamp, so the draft
+          // stays untouched and its offer starts ticked.
+          await repos.programs.update(
+            p.copyWith(lessonMinute: 18 * 60, arrivalMinute: 18 * 60 + 30),
+          );
+          final later = timed('20300620', '193000', '223000');
+          await _apply(repos, later);
+          final after = await _only(repos);
+          expect(
+            (after.startMinute, after.endMinute),
+            (19 * 60 + 30, 22 * 60 + 30),
+          );
+          expect(
+            (after.lessonMinute, after.arrivalMinute),
+            (18 * 60, 18 * 60 + 30),
+          );
+        },
+      );
+
+      test('on a worked-on program the time change starts unticked, and '
+          'leaving it unticked keeps the caller\'s times', () async {
+        final repos = openTestRepositories();
+        await _importNew(repos, original);
+        final p = await _only(repos);
+        await repos.programs.update(
+          p.copyWith(
+            notes: 'mine',
+            updatedAt: _t0.add(const Duration(hours: 1)),
+          ),
+        );
+        final later = timed('20300620', '193000', '223000');
+        final offer = (await _preview(repos, later)).changes.single;
+        expect((offer.time, offer.untouched), (true, false));
+        await _apply(repos, later, accepted: const {});
+        final after = await _only(repos);
+        expect((after.startMinute, after.endMinute), (19 * 60, 22 * 60));
+      });
+    },
+  );
+
   test('a feed not read whole flags nothing as gone', () async {
     final repos = openTestRepositories();
     await _importNew(repos, _original);
