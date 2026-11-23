@@ -3024,7 +3024,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSharingCallerBandTitle => 'セットリストを共有するときにコーラーとバンドを含める';
 
   @override
-  String get settingsSharingDateVenueTitle => 'セットリストを共有するときに日付と会場を含める';
+  String get settingsSharingDateVenueTitle => 'セットリストを共有するときに日付、時刻、会場を含める';
 
   @override
   String get settingsSharingSubtitle =>
@@ -5536,6 +5536,65 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsClearEventDate => 'イベント日をクリア';
 
   @override
+  String get programsStartTimeLabel => '開始時刻';
+
+  @override
+  String get programsEndTimeLabel => '終了時刻';
+
+  @override
+  String get programsLessonTimeLabel => '初心者レッスン';
+
+  @override
+  String get programsArrivalTimeLabel => '到着時刻';
+
+  @override
+  String get programsNoTimeSet => '未設定';
+
+  @override
+  String get programsSetTime => '設定';
+
+  @override
+  String get programsChangeTime => '変更';
+
+  @override
+  String programsSetTimeFor(String field) {
+    return '$fieldを設定';
+  }
+
+  @override
+  String programsChangeTimeFor(String field) {
+    return '$fieldを変更';
+  }
+
+  @override
+  String programsClearTime(String field) {
+    return '$fieldをクリア';
+  }
+
+  @override
+  String get programsTimeNextDay => '翌日に終了';
+
+  @override
+  String programsVenueUsualTimeHint(String time) {
+    return '会場の通常の時間：$time';
+  }
+
+  @override
+  String programsSummaryLessonTime(String time) {
+    return 'レッスン $time';
+  }
+
+  @override
+  String programsSummaryDanceTime(String times) {
+    return 'ダンス $times';
+  }
+
+  @override
+  String programsSummaryArriveBy(String time) {
+    return '到着 $time';
+  }
+
+  @override
   String get programsVenueLabel => '会場';
 
   @override
@@ -6716,6 +6775,24 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String exportPageOfPages(int page, int pages) {
     return '$page / $pages ページ';
+  }
+
+  @override
+  String get exportLabelLesson => 'レッスン';
+
+  @override
+  String exportTimeRange(String start, String end) {
+    return '$start～$end';
+  }
+
+  @override
+  String exportEndsAt(String end) {
+    return '$endまで';
+  }
+
+  @override
+  String exportNextDay(String times) {
+    return '$times（翌日）';
   }
 
   @override

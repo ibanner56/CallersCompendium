@@ -50,6 +50,10 @@ ProgramExportLabels programExportLabels(AppLocalizations l10n) =>
       by: l10n.exportSlotAuthorSuffix,
       labelSeparator: l10n.exportLabelSeparator,
       pageOf: l10n.exportPageOfPages,
+      lesson: l10n.exportLabelLesson,
+      timeRange: l10n.exportTimeRange,
+      endsAt: l10n.exportEndsAt,
+      nextDay: l10n.exportNextDay,
     );
 
 ProgramMatrixExportLabels programMatrixExportLabels(AppLocalizations l10n) =>

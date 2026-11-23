@@ -241,6 +241,7 @@ class ProgramExportMenu extends StatelessWidget {
       titleFor: titleFor,
       venueNameFor: _venueNameFor,
       formatDate: (d) => _formatDate(context, d),
+      formatTime: (m) => formatTimeOfDay(m, AppLocalizations.of(context)),
       labels: programExportLabels(AppLocalizations.of(context)),
       renderer: FigureRenderer(shippedTaxonomies.anyForm),
       // The set list's own text (slot notes) has no dance form: contra's.
@@ -614,6 +615,7 @@ class ProgramExportMenu extends StatelessWidget {
         venuesById: venuesById,
         includeVenueContact: includeVenueContact,
         formatDate: (d) => formatEventDate(d, dateSetting, localizations, l10n),
+        formatTime: (m) => formatTimeOfDay(m, l10n),
         labels: labels,
         appendDances: appendDances,
         danceLabels: includeFigures ? danceExportLabels(l10n) : null,

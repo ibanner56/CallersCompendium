@@ -35,6 +35,12 @@ String _englishBy(String names) => 'by $names';
 
 String _englishPageOf(int page, int pages) => 'Page $page of $pages';
 
+String _englishTimeRange(String start, String end) => '$start–$end';
+
+String _englishEndsAt(String end) => 'until $end';
+
+String _englishNextDay(String times) => '$times (next day)';
+
 String _englishOmittedCaption(int count) =>
     '$count free-text ${count == 1 ? 'slot' : 'slots'} '
     '(breaks, notes) omitted — the matrix shows dances only.';
@@ -155,6 +161,10 @@ class ProgramExportLabels {
     this.by = _englishBy,
     this.labelSeparator = ': ',
     this.pageOf = _englishPageOf,
+    this.lesson = 'Lesson',
+    this.timeRange = _englishTimeRange,
+    this.endsAt = _englishEndsAt,
+    this.nextDay = _englishNextDay,
   });
 
   final String band;
@@ -198,6 +208,20 @@ class ProgramExportLabels {
 
   /// Page footer of the set-list PDF, e.g. `"Page 2 of 3"`.
   final String Function(int page, int pages) pageOf;
+
+  /// Label of the beginner lesson's time, as in `Lesson: 7:00 PM` (#2350).
+  final String lesson;
+
+  /// A dance's start and end time as one phrase, e.g. `"7:30 PM–10:30 PM"`;
+  /// both arguments are already formatted.
+  final String Function(String start, String end) timeRange;
+
+  /// A dance's end time when no start is recorded, e.g. `"until 10:30 PM"`.
+  final String Function(String end) endsAt;
+
+  /// [timeRange]'s result marked as ending the next day, e.g.
+  /// `"7:30 PM–1:00 AM (next day)"`.
+  final String Function(String times) nextDay;
 }
 
 /// Labels and fixed captions for the Programming Matrix PDF

@@ -805,6 +805,10 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   /// every existing program stays unarchived. It joined v42 while v42 was
   /// unreleased (CONTRIBUTING.md, "Adding to an unreleased version").
   ///
+  /// Also the program times (#2350): `programs.start_minute`, `end_minute`,
+  /// `lesson_minute` and `arrival_minute`, all nullable, so every existing
+  /// program has none. They joined v42 while v42 was unreleased.
+  ///
   /// The live-schema checks only keep the step idempotent.
   Future<void> _ensureV42Schema(Migrator m) async {
     final columns = await customSelect(
@@ -830,10 +834,19 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     final programColumns = await customSelect(
       "SELECT name FROM pragma_table_info('${programs.actualTableName}')",
     ).get();
-    if (!{
+    final presentProgramColumns = {
       for (final row in programColumns) row.read<String>('name'),
-    }.contains(programs.archivedAt.name)) {
-      await m.addColumn(programs, programs.archivedAt);
+    };
+    for (final column in <GeneratedColumn<Object>>[
+      programs.archivedAt,
+      programs.startMinute,
+      programs.endMinute,
+      programs.lessonMinute,
+      programs.arrivalMinute,
+    ]) {
+      if (!presentProgramColumns.contains(column.name)) {
+        await m.addColumn(programs, column);
+      }
     }
   }
 

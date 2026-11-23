@@ -348,6 +348,17 @@ String formatEventDateTime(
   return '$date $time';
 }
 
+/// Formats a time of day, given as minutes after midnight (`0`–`1439`), in
+/// the app language's 12- or 24-hour form: `7:30 PM` in English, `19:30` in
+/// German (#2350).
+///
+/// The same `DateFormat.jm` path [formatEventDateTime] uses for its time, so
+/// a program's times read like every other time in the app. The minutes are a
+/// wall-clock time at the hall, with no time zone, so no conversion is made.
+String formatTimeOfDay(int minuteOfDay, AppLocalizations l10n) => DateFormat.jm(
+  l10n.localeName,
+).format(DateTime(2000, 1, 1, minuteOfDay ~/ 60, minuteOfDay % 60));
+
 /// Returns the fixed zero-padded pattern for [date] under [setting], or `null`
 /// for [DateFormatPref.system] and any invalid custom pattern (which have no
 /// fixed pattern and defer to the platform locale). Pure and Flutter-free so the

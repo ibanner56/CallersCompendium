@@ -3154,7 +3154,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSharingDateVenueTitle =>
-      'Include date and venue when sharing a set list';
+      'Include date, times and venue when sharing a set list';
 
   @override
   String get settingsSharingSubtitle =>
@@ -5750,6 +5750,65 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsClearEventDate => 'Clear event date';
 
   @override
+  String get programsStartTimeLabel => 'Start time';
+
+  @override
+  String get programsEndTimeLabel => 'End time';
+
+  @override
+  String get programsLessonTimeLabel => 'Beginner lesson';
+
+  @override
+  String get programsArrivalTimeLabel => 'Arrive by';
+
+  @override
+  String get programsNoTimeSet => 'Not set';
+
+  @override
+  String get programsSetTime => 'Set';
+
+  @override
+  String get programsChangeTime => 'Change';
+
+  @override
+  String programsSetTimeFor(String field) {
+    return 'Set $field';
+  }
+
+  @override
+  String programsChangeTimeFor(String field) {
+    return 'Change $field';
+  }
+
+  @override
+  String programsClearTime(String field) {
+    return 'Clear $field';
+  }
+
+  @override
+  String get programsTimeNextDay => 'Ends the next day';
+
+  @override
+  String programsVenueUsualTimeHint(String time) {
+    return 'Venue\'s usual time: $time';
+  }
+
+  @override
+  String programsSummaryLessonTime(String time) {
+    return 'Lesson $time';
+  }
+
+  @override
+  String programsSummaryDanceTime(String times) {
+    return 'Dance $times';
+  }
+
+  @override
+  String programsSummaryArriveBy(String time) {
+    return 'Arrive by $time';
+  }
+
+  @override
   String get programsVenueLabel => 'Venue';
 
   @override
@@ -6959,6 +7018,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String exportPageOfPages(int page, int pages) {
     return 'Page $page of $pages';
+  }
+
+  @override
+  String get exportLabelLesson => 'Lesson';
+
+  @override
+  String exportTimeRange(String start, String end) {
+    return '$start–$end';
+  }
+
+  @override
+  String exportEndsAt(String end) {
+    return 'until $end';
+  }
+
+  @override
+  String exportNextDay(String times) {
+    return '$times (next day)';
   }
 
   @override

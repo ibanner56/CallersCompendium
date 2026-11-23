@@ -4840,10 +4840,10 @@ abstract class AppLocalizations {
   /// **'Include caller and band when sharing a set list'**
   String get settingsSharingCallerBandTitle;
 
-  /// Title of the toggle that includes the date and venue when a set list is shared.
+  /// Title of the toggle that includes the date, the program's start, end and lesson times, and the venue when a set list is shared.
   ///
   /// In en, this message translates to:
-  /// **'Include date and venue when sharing a set list'**
+  /// **'Include date, times and venue when sharing a set list'**
   String get settingsSharingDateVenueTitle;
 
   /// Subtitle shared by the three set-list sharing toggles, saying they do not affect sharing the whole program.
@@ -8890,6 +8890,96 @@ abstract class AppLocalizations {
   /// **'Clear event date'**
   String get programsClearEventDate;
 
+  /// Field label in the program editor for when the dance starts (a time of day). Optional.
+  ///
+  /// In en, this message translates to:
+  /// **'Start time'**
+  String get programsStartTimeLabel;
+
+  /// Field label in the program editor for when the dance ends (a time of day). Optional; earlier than the start time means the next day.
+  ///
+  /// In en, this message translates to:
+  /// **'End time'**
+  String get programsEndTimeLabel;
+
+  /// Field label in the program editor for when the beginner lesson before the dance starts (a time of day). Optional.
+  ///
+  /// In en, this message translates to:
+  /// **'Beginner lesson'**
+  String get programsLessonTimeLabel;
+
+  /// Field label in the program editor for when the caller needs to be at the hall (a time of day). Optional; the caller's own logistics, not printed on the shared set list.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrive by'**
+  String get programsArrivalTimeLabel;
+
+  /// Shown in a program time field (start, end, lesson or arrive by) when no time has been chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get programsNoTimeSet;
+
+  /// Button that opens the time picker for a program time field that has no time yet. Short: four of these sit side by side.
+  ///
+  /// In en, this message translates to:
+  /// **'Set'**
+  String get programsSetTime;
+
+  /// Button that opens the time picker to change a program time that is already set.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get programsChangeTime;
+
+  /// Screen-reader label for the button that sets a program time, naming the field, e.g. 'Set Start time'.
+  ///
+  /// In en, this message translates to:
+  /// **'Set {field}'**
+  String programsSetTimeFor(String field);
+
+  /// Screen-reader label for the button that changes a program time, naming the field, e.g. 'Change Start time'.
+  ///
+  /// In en, this message translates to:
+  /// **'Change {field}'**
+  String programsChangeTimeFor(String field);
+
+  /// Tooltip for the button that clears a program time, naming the field, e.g. 'Clear Start time'.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear {field}'**
+  String programsClearTime(String field);
+
+  /// Helper text under the program's end time when it is earlier than the start time, so the dance ends after midnight.
+  ///
+  /// In en, this message translates to:
+  /// **'Ends the next day'**
+  String get programsTimeNextDay;
+
+  /// Hint under the program's time fields showing the linked venue's usual schedule, as the caller typed it on the venue (free text, e.g. '7:30-10:30pm'). It is not read into the fields.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue\'s usual time: {time}'**
+  String programsVenueUsualTimeHint(String time);
+
+  /// Part of the times line on the program summary: when the beginner lesson starts, e.g. 'Lesson 7:00 PM'.
+  ///
+  /// In en, this message translates to:
+  /// **'Lesson {time}'**
+  String programsSummaryLessonTime(String time);
+
+  /// Part of the times line on the program summary: when the dance starts and ends, e.g. 'Dance 7:30 PM-10:30 PM'. {times} is already formatted and may end with '(next day)'.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance {times}'**
+  String programsSummaryDanceTime(String times);
+
+  /// Part of the times line on the program summary: when the caller needs to be at the hall, e.g. 'Arrive by 6:30 PM'.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrive by {time}'**
+  String programsSummaryArriveBy(String time);
+
   /// Field label for the program's venue in the editor.
   ///
   /// In en, this message translates to:
@@ -10617,6 +10707,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Page {page} of {pages}'**
   String exportPageOfPages(int page, int pages);
+
+  /// Label for the beginner lesson's time on an exported set list (text and PDF), followed by the label separator and the time, e.g. 'Lesson: 7:00 PM'.
+  ///
+  /// In en, this message translates to:
+  /// **'Lesson'**
+  String get exportLabelLesson;
+
+  /// A dance's start and end time as one phrase on an exported set list and the program summary, e.g. '7:30 PM–10:30 PM'. Both are already formatted.
+  ///
+  /// In en, this message translates to:
+  /// **'{start}–{end}'**
+  String exportTimeRange(String start, String end);
+
+  /// A dance's end time on an exported set list and the program summary when no start time is recorded, e.g. 'until 10:30 PM'.
+  ///
+  /// In en, this message translates to:
+  /// **'until {end}'**
+  String exportEndsAt(String end);
+
+  /// Marks a dance's times as ending the next day (the end time is earlier than the start), e.g. '7:30 PM–1:00 AM (next day)'.
+  ///
+  /// In en, this message translates to:
+  /// **'{times} (next day)'**
+  String exportNextDay(String times);
 
   /// Heading for the venue detail block on an exported set-list PDF.
   ///

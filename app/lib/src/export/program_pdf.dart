@@ -127,6 +127,9 @@ Future<pw.Font> loadProgramMatrixMarkerFont() async {
 ///   text renderer); [ProgramExportLabels.unknownDance] (`labels.unknownDance`)
 ///   is used when it returns null.
 /// - [formatDate] formats the event date; defaults to ISO `yyyy-MM-dd`.
+/// - [formatTime] formats the start, end and lesson times (minutes after
+///   midnight); defaults to 24-hour `HH:mm`. Arrive by is never printed: the
+///   PDF is made for other people (#2350).
 /// - [venuesById] maps venue ids to the loaded [Venue] records. When the
 ///   program links a resolvable venue ([Program.venueId]), its
 ///   [Venue.displayName] wins in the header date·venue line and a richer venue
@@ -170,6 +173,7 @@ Future<Uint8List> buildProgramPdf(
   required String? Function(String danceId) titleFor,
   Map<String, Venue> venuesById = const {},
   String Function(DateTime date)? formatDate,
+  String Function(int minuteOfDay)? formatTime,
   ProgramExportLabels labels = const ProgramExportLabels(),
   pw.ThemeData? theme,
   List<({Dance dance, bool isAlternate})>? appendDances,
@@ -204,6 +208,9 @@ Future<Uint8List> buildProgramPdf(
     program,
     venueNameFor: (_) => venueText.headerLabel,
     formatDate: formatDate,
+    // Start, end and lesson only: the header never prints Arrive by, the
+    // caller's own logistics (maintainer ruling, #2350).
+    formatTime: formatTime,
     labels: labels,
     renderer: fig,
     dialect: resolvedDialect,
