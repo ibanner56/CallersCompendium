@@ -781,15 +781,17 @@ void main() {
       );
     });
 
-    test('in a semicolon sheet a leading zero is never a thousands group',
-        () async {
-      expect(await barsOf(';', ['0.500', '0.125', '00.500', '-0.500']), [
-        0.5,
-        0.125,
-        0.5,
-        -0.5,
-      ]);
-    });
+    test(
+      'in a semicolon sheet a leading zero is never a thousands group',
+      () async {
+        expect(await barsOf(';', ['0.500', '0.125', '00.500', '-0.500']), [
+          0.5,
+          0.125,
+          0.5,
+          -0.5,
+        ]);
+      },
+    );
 
     test('in a semicolon sheet a value that is neither style stays in the '
         'notes', () async {
@@ -876,7 +878,10 @@ void main() {
         CsvColumnMapping.newCustomField('Mood', CustomFieldType.choice),
         CsvColumnMapping.newCustomField('Mood', CustomFieldType.choice),
       ];
-      final batch = await plan('Title,A,B\r\nD,\u200b,calm\r\n', mapping(',', cols: cols));
+      final batch = await plan(
+        'Title,A,B\r\nD,\u200b,calm\r\n',
+        mapping(',', cols: cols),
+      );
       final dance = batch.records.single.draft.dance;
       expect(dance.callingNotes, '');
       expect(dance.customFields.single.value, 'calm');
@@ -903,7 +908,10 @@ void main() {
       final draft = batch.records.single.draft;
       expect(draft.dance.callingNotes, '');
       expect(draft.dance.customFields, isEmpty);
-      expect(draft.issues.where((i) => i.code == kCsvValueKeptInNotes), isEmpty);
+      expect(
+        draft.issues.where((i) => i.code == kCsvValueKeptInNotes),
+        isEmpty,
+      );
     });
 
     test('a column of only invisible characters makes no field', () async {
