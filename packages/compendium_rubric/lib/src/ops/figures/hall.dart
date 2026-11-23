@@ -111,7 +111,8 @@ sealed class HallFigure extends Operation {
   /// out already danced (see [pairedWith]).
   final bool isReturnLeg;
 
-  /// This figure with [back] as its lead back.
+  /// This figure with [returnLeg] as its lead back, or marked as a lead back
+  /// when [isReturnLeg]; the other parameters are copied unchanged.
   HallFigure _withLegs({HallFigure? returnLeg, bool isReturnLeg = false});
 
   /// Whether [out] and [back] are a lead out immediately followed by a lead
@@ -220,8 +221,10 @@ sealed class HallFigure extends Operation {
   /// [Cast] does: the leaders move along the set and each dancer they pass
   /// steps one place the other way. A hall figure carries no count (the
   /// Caller's Box import drops "past N1;N2"), so the leaders go **one place**, to the other end of their own hands four; that
-  /// is the reading the ruling was asked on ("ones lead down, turn alone, lead
-  /// up, cast off" compiles).
+  /// is the reading the ruling was asked on. That example ("ones lead down,
+  /// turn alone, lead up, cast off") now parses as a round trip (see
+  /// [pairedWith]); the one-place reading applies to a lead that is not
+  /// immediately followed by its lead back, such as "ones lead down, cast up".
   ///
   /// What falls outside these limits is refused as deferred
   /// ([ErrorKind.unsupportedParam]) rather than guessed. The limits are the
