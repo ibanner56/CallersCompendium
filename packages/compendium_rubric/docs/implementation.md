@@ -773,7 +773,7 @@ rest cannot pass for the wrong reason.
 
 ## 15. Current state and known debt
 
-- **1,296 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,313 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,
@@ -832,7 +832,9 @@ rest cannot pass for the wrong reason.
   added and not yet built (`trade_the_wave`, `starburst`, `hey_for_three`),
   `orbit` couple-`who` (still the swap rule; `meanwhile` is now built but
   runs each part as it already runs), hall `ender` values `cozy`/`cloverleaf`/
-  `threadNeedle`/`rightHandHigh`, and hall `moving` values `center`/`outsides`.
+  `threadNeedle`/`rightHandHigh`, hall `moving` values `center`/`outsides`
+  for the whole hands four, and hall figures led by a pair relation
+  (`partners`) or ending `turnCouple`.
 - **Deferred param values inside implemented figures** raise
   `unsupportedParam` — notably diagonal and `along` `right_left_through`,
   `chain dir:along`, `swing where:center`, `long_lines goBack:false`, and
