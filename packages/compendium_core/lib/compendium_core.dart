@@ -27,6 +27,7 @@ export 'src/export/export_labels.dart';
 export 'src/export/program_calendar.dart';
 export 'src/export/program_text.dart';
 export 'src/imports/author_tokenizer.dart';
+export 'src/imports/ical_feed.dart';
 export 'src/imports/callers_companion_mapping.dart';
 export 'src/imports/callers_companion_programs.dart';
 export 'src/imports/callers_companion_related_dances.dart';

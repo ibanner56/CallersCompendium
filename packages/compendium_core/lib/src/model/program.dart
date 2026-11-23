@@ -250,6 +250,7 @@ class Program {
     required this.updatedAt,
     this.deletedAt,
     this.archivedAt,
+    this.calendarEventKey,
     this.provenance,
   }) : slots = List.unmodifiable(
          <ProgramSlot>[...slots]
@@ -355,6 +356,15 @@ class Program {
   /// program share files (`sanitizeProgramForShare`), so a recipient always
   /// gets an unarchived program.
   final DateTime? archivedAt;
+
+  /// The calendar event this program was imported from (#2352): a SHA-256
+  /// digest of the event's `UID` and recurrence id (`calendarEventKey` in
+  /// `ical_feed.dart`), never the `UID` itself. A later calendar import
+  /// matches on it and does not offer the event again. It travels in Device
+  /// Sync, so another device recognises the import too, and in the caller's
+  /// own backups, but not in share files (`sanitizeProgramForShare`). Null
+  /// for a program not imported from a calendar.
+  final String? calendarEventKey;
 
   /// Import provenance: where this program came from, keyed on
   /// `(source, externalId)`. For a CC `.USR` import the key makes a re-import
@@ -707,6 +717,7 @@ class Program {
     DateTime? updatedAt,
     DateTime? deletedAt,
     DateTime? archivedAt,
+    String? calendarEventKey,
     Provenance? provenance,
     bool clearEventDate = false,
     bool clearVenue = false,
@@ -717,6 +728,7 @@ class Program {
     bool clearDialectName = false,
     bool clearDeletedAt = false,
     bool clearArchivedAt = false,
+    bool clearCalendarEventKey = false,
     bool clearPay = false,
     bool clearProvenance = false,
   }) => Program(
@@ -739,6 +751,9 @@ class Program {
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
     archivedAt: clearArchivedAt ? null : (archivedAt ?? this.archivedAt),
+    calendarEventKey: clearCalendarEventKey
+        ? null
+        : (calendarEventKey ?? this.calendarEventKey),
     provenance: clearProvenance ? null : (provenance ?? this.provenance),
   );
 
@@ -748,6 +763,8 @@ class Program {
   /// Provenance is dropped (the copy is the user's own record, not an import),
   /// mirroring [Dance.duplicate]. The copy is never archived: it is for a new
   /// event, so it belongs in the Programs list even when its source does not.
+  /// Nor does it keep [calendarEventKey]: it was not imported from that event,
+  /// and a calendar import must keep recognising the original alone.
   Program duplicate({
     required String newId,
     required String Function() newSlotId,
@@ -855,7 +872,8 @@ class Program {
       other.createdAt == createdAt &&
       other.updatedAt == updatedAt &&
       other.deletedAt == deletedAt &&
-      other.archivedAt == archivedAt;
+      other.archivedAt == archivedAt &&
+      other.calendarEventKey == calendarEventKey;
 
   @override
   int get hashCode => Object.hash(id, title, updatedAt);

@@ -12969,4 +12969,164 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get exportCalendarShareError =>
       'Dit agendabestand kon niet worden gedeeld. Probeer het opnieuw.';
+
+  @override
+  String get importErrorNotACalendar =>
+      'Dat adres gaf geen agenda terug. Gebruik bij een Google-agenda het adres in iCal-indeling (Instellingen en delen ▸ Agenda integreren), niet de gewone link.';
+
+  @override
+  String get importFromCalendar => 'Uit agenda';
+
+  @override
+  String get importProgramFromCalendar => 'Importeren uit agenda';
+
+  @override
+  String get calendarImportTitle => 'Importeren uit agenda';
+
+  @override
+  String get calendarImportImport => 'Importeren';
+
+  @override
+  String get calendarAddressLabel => 'Agenda-adres';
+
+  @override
+  String get calendarAddressHelper =>
+      'Het iCal-adres van de agenda, beginnend met https:// of webcal://. Het geheime adres van een privé-agenda werkt ook; houd het voor jezelf.';
+
+  @override
+  String get calendarImportFetch => 'Afspraken ophalen';
+
+  @override
+  String get calendarImportFailed =>
+      'Importeren uit de agenda is mislukt. Probeer het opnieuw.';
+
+  @override
+  String get calendarImportUntitled => 'Afspraak zonder titel';
+
+  @override
+  String calendarImportCommitted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count conceptprogramma\'s toegevoegd uit je agenda.',
+      one: '1 conceptprogramma toegevoegd uit je agenda.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportNothingFound => 'Geen afspraken in deze periode.';
+
+  @override
+  String calendarImportSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nieuwe afspraken.',
+      one: '1 nieuwe afspraak.',
+      zero: 'Geen nieuwe afspraken.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportNewHeader => 'Nieuw in je agenda';
+
+  @override
+  String get calendarImportDeletedHeader =>
+      'Programma\'s die je hebt verwijderd';
+
+  @override
+  String get calendarImportDeletedNote =>
+      'Je hebt het programma verwijderd dat van deze afspraak is gemaakt. Vink het aan om het opnieuw te importeren.';
+
+  @override
+  String get calendarImportAlreadyHeader => 'Al geïmporteerd';
+
+  @override
+  String get calendarImportFromThisAppHeader => 'Uit deze app';
+
+  @override
+  String get calendarImportUnreadableHeader =>
+      'Terugkerende afspraken die de app niet kan lezen';
+
+  @override
+  String get calendarImportUnreadableBody =>
+      'Deze herhalen zich op een manier die de app niet begrijpt, dus ze worden niet geïmporteerd.';
+
+  @override
+  String calendarImportSkippedNoUid(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count afspraken hebben geen id en zijn overgeslagen.',
+      one: '1 afspraak heeft geen id en is overgeslagen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarImportTruncated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'De agenda heeft meer dan $count afspraken. Alleen de eerste $count zijn gelezen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarSettingsHeader => 'Agenda';
+
+  @override
+  String get calendarSettingsSaveError =>
+      'Die instelling kon niet worden opgeslagen. Probeer het opnieuw.';
+
+  @override
+  String get calendarAddressSet => 'Ingesteld. Tik om het te wijzigen.';
+
+  @override
+  String get calendarAddressNotSet => 'Niet ingesteld';
+
+  @override
+  String get calendarWindowTitle => 'Welke afspraken';
+
+  @override
+  String get calendarWindowSubtitle =>
+      'Afspraken vanaf vandaag tot zo ver vooruit. Terugkerende afspraken worden maar 30 dagen vooruit gelezen.';
+
+  @override
+  String calendarWindowOption(int months) {
+    String _temp0 = intl.Intl.pluralLogic(
+      months,
+      locale: localeName,
+      other: '$months maanden',
+      one: '1 maand',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarTitleFilterTitle =>
+      'Alleen afspraken waarvan de titel bevat';
+
+  @override
+  String get calendarTitleFilterHelper =>
+      'Voor een agenda waar ook andere afspraken in staan. Laat leeg voor alle afspraken.';
+
+  @override
+  String get calendarTitleFilterNone => 'Alle afspraken';
+
+  @override
+  String calendarTitleFilterValue(String filter) {
+    return '‘$filter’';
+  }
+
+  @override
+  String get calendarPullNowTitle => 'Nu ophalen';
+
+  @override
+  String get calendarPullNowSubtitle =>
+      'Lees de agenda en kies afspraken om als conceptprogramma\'s toe te voegen.';
 }

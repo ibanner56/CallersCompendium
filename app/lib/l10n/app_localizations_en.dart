@@ -12843,4 +12843,162 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exportCalendarShareError =>
       'Couldn\'t share this calendar file. Try again.';
+
+  @override
+  String get importErrorNotACalendar =>
+      'That address didn\'t return a calendar. For a Google Calendar, use its address in iCal format (Settings and sharing ▸ Integrate calendar), not the ordinary link.';
+
+  @override
+  String get importFromCalendar => 'From calendar';
+
+  @override
+  String get importProgramFromCalendar => 'Import from calendar';
+
+  @override
+  String get calendarImportTitle => 'Import from calendar';
+
+  @override
+  String get calendarImportImport => 'Import';
+
+  @override
+  String get calendarAddressLabel => 'Calendar address';
+
+  @override
+  String get calendarAddressHelper =>
+      'The calendar\'s iCal address, starting https:// or webcal://. A private calendar\'s secret address works too; keep it to yourself.';
+
+  @override
+  String get calendarImportFetch => 'Fetch events';
+
+  @override
+  String get calendarImportFailed =>
+      'Couldn\'t import from the calendar. Try again.';
+
+  @override
+  String get calendarImportUntitled => 'Untitled event';
+
+  @override
+  String calendarImportCommitted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count draft programs added from your calendar.',
+      one: '1 draft program added from your calendar.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportNothingFound => 'No events in the date range.';
+
+  @override
+  String calendarImportSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count new events.',
+      one: '1 new event.',
+      zero: 'No new events.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportNewHeader => 'New in your calendar';
+
+  @override
+  String get calendarImportDeletedHeader => 'You deleted these programs';
+
+  @override
+  String get calendarImportDeletedNote =>
+      'You deleted the program made from this event. Tick it to import it again.';
+
+  @override
+  String get calendarImportAlreadyHeader => 'Already imported';
+
+  @override
+  String get calendarImportFromThisAppHeader => 'From this app';
+
+  @override
+  String get calendarImportUnreadableHeader =>
+      'Repeating events the app can\'t read';
+
+  @override
+  String get calendarImportUnreadableBody =>
+      'These repeat in a way the app doesn\'t understand, so they are not imported.';
+
+  @override
+  String calendarImportSkippedNoUid(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count events have no identifier and were skipped.',
+      one: '1 event has no identifier and was skipped.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarImportTruncated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'The calendar has more than $count events. Only the first $count were read.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarSettingsHeader => 'Calendar';
+
+  @override
+  String get calendarSettingsSaveError =>
+      'Couldn\'t save that setting. Try again.';
+
+  @override
+  String get calendarAddressSet => 'Set. Tap to change it.';
+
+  @override
+  String get calendarAddressNotSet => 'Not set';
+
+  @override
+  String get calendarWindowTitle => 'Which events';
+
+  @override
+  String get calendarWindowSubtitle =>
+      'Events from today up to this far ahead. Repeating events are read only 30 days ahead.';
+
+  @override
+  String calendarWindowOption(int months) {
+    String _temp0 = intl.Intl.pluralLogic(
+      months,
+      locale: localeName,
+      other: '$months months',
+      one: '1 month',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarTitleFilterTitle => 'Only events whose title contains';
+
+  @override
+  String get calendarTitleFilterHelper =>
+      'For a calendar that also holds other events. Leave empty for every event.';
+
+  @override
+  String get calendarTitleFilterNone => 'Every event';
+
+  @override
+  String calendarTitleFilterValue(String filter) {
+    return '\"$filter\"';
+  }
+
+  @override
+  String get calendarPullNowTitle => 'Pull now';
+
+  @override
+  String get calendarPullNowSubtitle =>
+      'Read the calendar and choose events to add as draft programs.';
 }

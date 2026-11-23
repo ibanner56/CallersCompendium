@@ -17340,5 +17340,176 @@
   "exportCalendarShareError": "Couldn't share this calendar file. Try again.",
   "@exportCalendarShareError": {
     "description": "Snack bar when building or sharing a calendar (.ics) file failed."
+  },
+  "importErrorNotACalendar": "That address didn't return a calendar. For a Google Calendar, use its address in iCal format (Settings and sharing ▸ Integrate calendar), not the ordinary link.",
+  "@importErrorNotACalendar": {
+    "description": "Error when a calendar import's address returns something that is not an iCalendar file, often a web page. Mentions where Google Calendar shows its iCal address."
+  },
+  "importFromCalendar": "From calendar",
+  "@importFromCalendar": {
+    "description": "Programs import menu item: import gigs from the user's online calendar as draft programs."
+  },
+  "importProgramFromCalendar": "Import from calendar",
+  "@importProgramFromCalendar": {
+    "description": "More actions menu item on narrow screens: import gigs from the user's online calendar as draft programs."
+  },
+  "calendarImportTitle": "Import from calendar",
+  "@calendarImportTitle": {
+    "description": "Title of the calendar import screen."
+  },
+  "calendarImportImport": "Import",
+  "@calendarImportImport": {
+    "description": "App-bar button on the calendar import screen that creates the ticked draft programs."
+  },
+  "calendarAddressLabel": "Calendar address",
+  "@calendarAddressLabel": {
+    "description": "Label of the field holding the online calendar's iCal (.ics) address."
+  },
+  "calendarAddressHelper": "The calendar's iCal address, starting https:// or webcal://. A private calendar's secret address works too; keep it to yourself.",
+  "@calendarAddressHelper": {
+    "description": "Helper text under the calendar address field."
+  },
+  "calendarImportFetch": "Fetch events",
+  "@calendarImportFetch": {
+    "description": "Button on the calendar import screen that reads the calendar now."
+  },
+  "calendarImportFailed": "Couldn't import from the calendar. Try again.",
+  "@calendarImportFailed": {
+    "description": "Generic failure message of the calendar import."
+  },
+  "calendarImportUntitled": "Untitled event",
+  "@calendarImportUntitled": {
+    "description": "Title given to a calendar event with no usable title, in the preview and on the draft program it becomes."
+  },
+  "calendarImportCommitted": "{count, plural, =1{1 draft program added from your calendar.} other{{count} draft programs added from your calendar.}}",
+  "@calendarImportCommitted": {
+    "description": "Snack bar after a calendar import created draft programs; offers Undo.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarImportNothingFound": "No events in the date range.",
+  "@calendarImportNothingFound": {
+    "description": "Shown on the calendar import preview when the calendar has no events in range."
+  },
+  "calendarImportSummary": "{count, plural, =0{No new events.} =1{1 new event.} other{{count} new events.}}",
+  "@calendarImportSummary": {
+    "description": "Summary at the top of the calendar import preview.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarImportNewHeader": "New in your calendar",
+  "@calendarImportNewHeader": {
+    "description": "Heading over the new calendar events, ticked, in the calendar import preview."
+  },
+  "calendarImportDeletedHeader": "You deleted these programs",
+  "@calendarImportDeletedHeader": {
+    "description": "Heading over calendar events whose imported program is in Recently deleted."
+  },
+  "calendarImportDeletedNote": "You deleted the program made from this event. Tick it to import it again.",
+  "@calendarImportDeletedNote": {
+    "description": "Note on a calendar event whose imported program is in Recently deleted."
+  },
+  "calendarImportAlreadyHeader": "Already imported",
+  "@calendarImportAlreadyHeader": {
+    "description": "Heading over calendar events already imported as programs; they are not offered again."
+  },
+  "calendarImportFromThisAppHeader": "From this app",
+  "@calendarImportFromThisAppHeader": {
+    "description": "Heading over calendar events that this app exported from its own programs; they are not offered."
+  },
+  "calendarImportUnreadableHeader": "Repeating events the app can't read",
+  "@calendarImportUnreadableHeader": {
+    "description": "Heading over repeating calendar events whose repeat rule the app cannot read."
+  },
+  "calendarImportUnreadableBody": "These repeat in a way the app doesn't understand, so they are not imported.",
+  "@calendarImportUnreadableBody": {
+    "description": "Body under the heading for unreadable repeating events."
+  },
+  "calendarImportSkippedNoUid": "{count, plural, =1{1 event has no identifier and was skipped.} other{{count} events have no identifier and were skipped.}}",
+  "@calendarImportSkippedNoUid": {
+    "description": "Note in the calendar import preview: events with no UID cannot be recognised again, so they are skipped.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarImportTruncated": "{count, plural, other{The calendar has more than {count} events. Only the first {count} were read.}}",
+  "@calendarImportTruncated": {
+    "description": "Note in the calendar import preview when the feed is over the event cap.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarSettingsHeader": "Calendar",
+  "@calendarSettingsHeader": {
+    "description": "Settings ▸ Program subsection heading for the calendar import."
+  },
+  "calendarSettingsSaveError": "Couldn't save that setting. Try again.",
+  "@calendarSettingsSaveError": {
+    "description": "Snack bar when a calendar setting could not be saved."
+  },
+  "calendarAddressSet": "Set. Tap to change it.",
+  "@calendarAddressSet": {
+    "description": "Subtitle of the calendar address setting when an address is stored. The address itself is never shown."
+  },
+  "calendarAddressNotSet": "Not set",
+  "@calendarAddressNotSet": {
+    "description": "Subtitle of the calendar address setting when none is stored."
+  },
+  "calendarWindowTitle": "Which events",
+  "@calendarWindowTitle": {
+    "description": "Title of the calendar import's date-window setting."
+  },
+  "calendarWindowSubtitle": "Events from today up to this far ahead. Repeating events are read only 30 days ahead.",
+  "@calendarWindowSubtitle": {
+    "description": "Subtitle of the calendar import's date-window setting."
+  },
+  "calendarWindowOption": "{months, plural, =1{1 month} other{{months} months}}",
+  "@calendarWindowOption": {
+    "description": "An option in the calendar import's date-window setting.",
+    "placeholders": {
+      "months": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarTitleFilterTitle": "Only events whose title contains",
+  "@calendarTitleFilterTitle": {
+    "description": "Title of the calendar import's title-filter setting."
+  },
+  "calendarTitleFilterHelper": "For a calendar that also holds other events. Leave empty for every event.",
+  "@calendarTitleFilterHelper": {
+    "description": "Helper text of the calendar import's title-filter field."
+  },
+  "calendarTitleFilterNone": "Every event",
+  "@calendarTitleFilterNone": {
+    "description": "Subtitle of the title-filter setting when no filter is set."
+  },
+  "calendarTitleFilterValue": "\"{filter}\"",
+  "@calendarTitleFilterValue": {
+    "description": "Subtitle of the title-filter setting showing the stored filter in quotes.",
+    "placeholders": {
+      "filter": {
+        "type": "String",
+        "example": "Contra"
+      }
+    }
+  },
+  "calendarPullNowTitle": "Pull now",
+  "@calendarPullNowTitle": {
+    "description": "Settings item that opens the calendar import."
+  },
+  "calendarPullNowSubtitle": "Read the calendar and choose events to add as draft programs.",
+  "@calendarPullNowSubtitle": {
+    "description": "Subtitle of the Pull now settings item."
   }
 }
