@@ -46,6 +46,12 @@ dependencies:
   path_provider: ^2.1.6
   sqlite3: ^3.7.0
   pdf: ^3.13.1
+  # QR encoder for "Show code" (#2334): `lib/src/export/dance_code.dart` draws a
+  # dance's share link as a QR code through `Barcode.qrCode`. Already resolved
+  # transitively through `pdf`; promoted to a direct dependency because app/lib
+  # imports it (approved in #2334; `qr_flutter` was rejected). The range's
+  # floor is the version already in the root lock.
+  barcode: ^2.2.9
   printing: ^5.15.1
   screen_retriever: ^0.2.2
   share_plus: ^13.3.1
