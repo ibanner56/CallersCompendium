@@ -272,8 +272,10 @@ to two hands four where a nominal reading would demand three and then refuse.
   both golden fixtures. This rule is **total** and formation-independent.
 - **`groupingsDownTheSet`** — bands *plus* single-row waiting couples, ordered by
   top row. The diagonal figures are defined over **groupings**, because a
-  waiting couple still participates as its own single-couple grouping. This is
-  why `chain`'s pairing rule is stated in couple *number* rather than column.
+  waiting couple still participates as its own single-couple grouping. A
+  diagonal `chain` pairs by line within groupings *(user-ruled 2026-11-23)*;
+  `across` pairs by couple number, falling back to line when the numbers name
+  no pair.
 - **`toggleBandPhase`** — the band grid has exactly two phases: aligned (bands
   from row 0, nobody out) and shifted (from row 1, ends stranded). Toggling is
   what a figure does when it carries dancers into the grouping beside them.
@@ -787,7 +789,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,339 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,343 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

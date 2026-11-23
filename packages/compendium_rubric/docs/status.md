@@ -38,6 +38,15 @@
 > dance's outcome (3,031 compiled in scope, core set 435): 21 dances that
 > already mismatched gain a `heldProgressionUnfinished` warning.
 >
+> **Diagonal `chain` (2026-11-23)** pairs the dancers who stand on the
+> diagonal rather than pairing by couple number (user-ruled). Against
+> `rubric` at `64c2803e`, together with an across chain falling back to
+> pairing by line when the numbers name no pair (the agent's call), it took
+> the count from 3,298 to 3,352 compiled in scope (36 refused and 18
+> mismatched dances now compile), and the core set from 473 to 485, with no
+> previously compiling dance lost. 8 dances that refused now mismatch and 3
+> that mismatched now refuse.
+>
 > **`circular_hey` (2026-11-23)** is built on the agent's reading of the core
 > definition, not yet ruled. Against `rubric` at `5f683503` it took the count
 > from 2,843 to 2,849 compiled in scope, with the core set unchanged at 410 and

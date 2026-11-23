@@ -255,8 +255,9 @@ place on in their direction of travel** — in Duple Improper the 1s look one gr
 hall and the 2s one grouping up; in Becket it is the line their number names that sets the way. `thirdNeighbors` is two groupings on, `fourthNeighbors` three, and `prevNeighbors`
 one grouping *back*. Direction of travel is §10.3.1's: Duple Improper couples share a row and
 travel by **number**, Becket couples share a column and travel by **line** (the line their number
-names, not the column they happen to stand in). This is the same
-number-based, grouping-based shape the diagonal `chain` already uses.
+names, not the column they happen to stand in). The same grouping-based shape
+`chain` uses, though a diagonal `chain` pairs by line rather than by number
+(user-ruled 2026-11-23).
 
 ### ⭐ The distance sets are **absolute**, and only `neighbors` is relative — **ruled**
 
@@ -635,29 +636,37 @@ To be defined later with worked examples.
   reported as the **`facingPrecondition` warning** and the chain runs, per the ruling that
   facing is never fatal. A **Flexible** input facing (fundamentals §6) is not reported at all —
   it resolves to whatever the figure needs.
-- **effect:** Chain trades `who`-role dancers by **couple number**, across **groupings**.
+- **effect:** Chain trades `who`-role dancers across **groupings**.
   - A **grouping** is a complete hands-four (fundamentals §10.3) **or** a **waiting-out couple**
     at the top/bottom of the set — each waiting couple participates as its own single-couple
-    grouping. An h4 grouping has one #1 and one #2 `who`-dancer; a waiting-couple grouping has
-    just one (of that couple's number).
-  - Each **#2 `who`-dancer** swaps cells with the **#1 `who`-dancer** of:
-    - `across` → the **same** grouping,
-    - `leftDiagonal` → the grouping **above**,
-    - `rightDiagonal` → the grouping **below**.
+    grouping. An h4 grouping has two `who`-dancers; a waiting-couple grouping has just one.
+  - `across` → the **#2 `who`-dancer** swaps cells with the **#1 `who`-dancer** of the **same**
+    grouping (by couple number). When the numbers name no pair (both `who`-dancers carry one
+    number, as an earlier diagonal chain can leave them) and the two stand on opposite lines,
+    they are paired by line instead *(agent's call)*; a pair the numbers name is never
+    overridden.
+  - `leftDiagonal` / `rightDiagonal` → paired by **where they stand** *(user-ruled
+    2026-11-23)*: the `who`-dancer on the **west line** (`c0`) swaps cells with the `who`-dancer on
+    the **east line** (`c4`) of the grouping **above** (`leftDiagonal`) or **below**
+    (`rightDiagonal`). Those are the two who stand on that diagonal: facing across from the west
+    line, your left is up the set and your right down it. Pairing a diagonal by couple number read
+    the right pair only while the #2s stood on the west line; after an across chain had traded
+    sides (*The Glass Goddess*, Caller's Box #15677) it chained on the other diagonal. A grouping
+    with two `who`-dancers on one line, or one off the side lines, has no diagonal to read and is
+    refused (`unresolvableDancerSet`).
   - Role, number, and couple-identity travel with each dancer. If the needed partner grouping
-    (or its #1 / #2 `who`-dancer) doesn't exist, the dancer **stays put** — e.g. a top
-    grouping's #2 has nothing above (`leftDiagonal`); a bottom grouping's #1 has nothing below
-    (`rightDiagonal`). Non-`who` dancers and un-paired `who`-dancers stay in place.
-  - **Each dancer is swapped at most once — vital.** Iterate the **#2 `who`-dancers** only
-    (the initiators); a dancer already involved in a swap is never swapped again. This is the
-    invariant the original "only scan c0" rule enforced — in a chain-ready line the #2s sit in
-    c0 and #1s in c4, so scanning c0 = iterating the #2s exactly once. The generalized
-    invariant is **couple number**, which is what makes the waiting-out ends work (a waiting
-    couple's `who`-dancer can sit in either column).
+    (or its `who`-dancer) doesn't exist, the dancer **stays put** — e.g. the top grouping has
+    nothing above (`leftDiagonal`), the bottom nothing below (`rightDiagonal`), and a waiting
+    couple's dancer on the line whose diagonal leads out of the set has nobody to reach.
+    Non-`who` dancers and un-paired `who`-dancers stay in place.
+  - **Each dancer is swapped at most once — vital.** Iterate the starting dancers only — the #2s
+    across, the west-line dancers on a diagonal; a dancer already involved in a swap is never
+    swapped again.
   - `hand` (left/right) does not change end positions (Op1 vs Op2).
   - **Verified against:** base Op1 (across/robins), Op2 (across/larks), Op3 (leftDiagonal),
     Op4 (rightDiagonal), and the waiting-out `leftDiagonal` example (couples B & E out at the
-    ends).
+    ends); all still hold under the where-they-stand pairing, as does The Judge's golden trace.
+    *The Glass Goddess* (#15677) pins the across-then-diagonal case.
 - **normalization:** none — not required if implemented correctly. The chain's closing **courtesy
   turn** is a **rigid wheel**, so it *preserves* the couple's left/right relationship rather than
   imposing one: **the crossing (turned) dancer ends on the RIGHT, the stationary turner on the
