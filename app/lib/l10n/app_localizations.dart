@@ -13759,6 +13759,12 @@ abstract class AppLocalizations {
   /// **'Type to add or create…'**
   String get danceEditorTypeToAddOrCreateHint;
 
+  /// Hint in an empty multi-select field (Authors, Interpreted by, Tags) that opens a list to pick from or add to.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose…'**
+  String get danceEditorChooseHint;
+
   /// Type-ahead option label for creating a new item with the typed name/title.
   ///
   /// In en, this message translates to:

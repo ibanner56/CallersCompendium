@@ -8865,6 +8865,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorTypeToAddOrCreateHint => '追加または作成するには入力…';
 
   @override
+  String get danceEditorChooseHint => '選択…';
+
+  @override
   String danceEditorCreateQuotedName(String name) {
     return '「$name」を作成';
   }

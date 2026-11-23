@@ -9294,6 +9294,9 @@ class AppLocalizationsNl extends AppLocalizations {
       'Typ om toe te voegen of aan te maken…';
 
   @override
+  String get danceEditorChooseHint => 'Kies…';
+
+  @override
   String danceEditorCreateQuotedName(String name) {
     return '“$name” aanmaken';
   }
