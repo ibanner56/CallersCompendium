@@ -525,6 +525,11 @@ List<pw.Widget> _slotWidgets(
 /// is printed only when it is in [includeVenueContact]. Callers pass the raw
 /// venue; they need no redaction of their own.
 ///
+/// When [program] records its own start or end time (#2350), the block leaves
+/// out the venue's free-text `time`: that is the series' usual schedule, and
+/// printing it beside this evening's times would give the reader two answers.
+/// A lesson time alone does not say when the dance runs, so it keeps it.
+///
 /// Extracted so the redaction is testable without decoding PDF bytes; it is the
 /// single path [buildProgramPdf] draws from.
 @visibleForTesting
@@ -548,6 +553,8 @@ List<pw.Widget> _slotWidgets(
         : _venueLines(
             sanitizeVenueForShare(linkedVenue, include: includeVenueContact),
             labels,
+            includeTime:
+                program.startMinute == null && program.endMinute == null,
           ),
   );
 }
@@ -556,10 +563,16 @@ List<pw.Widget> _slotWidgets(
 /// descriptive fields, then the contact lines that survived the consent
 /// choice. Each line/field is emitted only when present (relying on the model's
 /// trim/empty→null normalization) so an unset field never shows a placeholder.
-List<String> _venueLines(Venue venue, ProgramExportLabels labels) {
+/// [includeTime] is false when the program's own times replace the venue's.
+List<String> _venueLines(
+  Venue venue,
+  ProgramExportLabels labels, {
+  required bool includeTime,
+}) {
   final detail = <String>[
     if (_has(venue.eventName)) venue.eventName!,
-    if (_has(venue.time)) '${labels.labelled(labels.time)}${venue.time}',
+    if (includeTime && _has(venue.time))
+      '${labels.labelled(labels.time)}${venue.time}',
     if (_has(venue.genericSchedule))
       '${labels.labelled(labels.schedule)}${venue.genericSchedule}',
     if (_has(venue.price)) '${labels.labelled(labels.price)}${venue.price}',

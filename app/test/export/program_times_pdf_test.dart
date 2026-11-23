@@ -39,4 +39,61 @@ void main() {
     expect(text, isNot(contains('minute1093')));
     expect(text, isNot(contains('18:13')));
   });
+
+  group('the venue block and the program\'s own times', () {
+    final venues = {'v1': Venue(id: 'v1', name: 'Grange Hall', time: '8-11pm')};
+    Program linked({int? start, int? end, int? lesson}) => Program(
+      id: 'p',
+      title: 'Program',
+      venueId: 'v1',
+      startMinute: start,
+      endMinute: end,
+      lessonMinute: lesson,
+      createdAt: now,
+      updatedAt: now,
+    );
+    bool printsVenueTime(Program p) => programPdfVenueText(
+      p,
+      venues,
+      const ProgramExportLabels(),
+    ).blockLines.contains('Time: 8-11pm');
+
+    test('a program without times keeps the venue\'s usual time', () {
+      expect(printsVenueTime(linked()), isTrue);
+    });
+
+    test('a start or an end replaces it', () {
+      expect(printsVenueTime(linked(start: 1170)), isFalse);
+      expect(printsVenueTime(linked(end: 1350)), isFalse);
+      expect(printsVenueTime(linked(start: 1170, end: 1350)), isFalse);
+    });
+
+    test('a lesson time alone does not', () {
+      expect(printsVenueTime(linked(lesson: 1140)), isTrue);
+    });
+
+    test('the printed PDF shows only the program\'s times', () async {
+      final text = pdfText(
+        await buildProgramPdf(
+          linked(start: 1170, end: 1350),
+          titleFor: (_) => null,
+          venuesById: venues,
+          formatTime: (m) => 'minute$m',
+          theme: pw.ThemeData.base(),
+        ),
+      );
+      expect(text, contains('minute1170'));
+      expect(text, isNot(contains('8-11pm')));
+      // Positive control: the probe reads the venue's time when it is drawn.
+      final without = pdfText(
+        await buildProgramPdf(
+          linked(),
+          titleFor: (_) => null,
+          venuesById: venues,
+          theme: pw.ThemeData.base(),
+        ),
+      );
+      expect(without, contains('8-11pm'));
+    });
+  });
 }
