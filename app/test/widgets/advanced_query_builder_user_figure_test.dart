@@ -36,6 +36,7 @@ void main() {
     required List<UserGlossaryEntry> entries,
     bool customFigures = true,
     BuilderFigure? row,
+    DialectsByForm? dialects,
   }) async {
     final repos = openTestRepositories();
     for (final entry in entries) {
@@ -69,6 +70,7 @@ void main() {
                       root: root,
                       taxonomy: contraTaxonomy,
                       dialect: Dialect.larksRobins,
+                      dialects: dialects,
                       sectionLabels: const [],
                       tags: const [],
                       onChanged: () => setState(() {}),
@@ -186,5 +188,158 @@ void main() {
     await tester.pumpAndSettle();
     expect(row.move, customMove);
     expect(row.params, isEmpty);
+  });
+
+  group('each figure in its own form\'s dialect (#2294)', () {
+    // Contra's dialect words the first role "larks"; English leaves it as the
+    // canonical dialect writes it, so the two read differently.
+    final contra = Dialect.larksRobins;
+    final english = Dialect.canonical;
+    final dialects = DialectsByForm({
+      DanceForm.contra: contra,
+      DanceForm.ecd: english,
+    });
+    final renderer = FigureRenderer(contraTaxonomy);
+    String inContra(String text) => renderer.renderFreeText(text, contra);
+    String inEnglish(String text) => renderer.renderFreeText(text, english);
+
+    Map<String, Object?> madeFor(String form) => {
+      'form': form,
+      'template': '{move}',
+      'defaultBeats': 8,
+      'params': const <Object?>[],
+    };
+
+    Finder labelOf(BuilderFigure row, String id) => find.descendant(
+      of: option(row, 'userFigure:$id'),
+      matching: find.byType(Text),
+    );
+
+    String restingText(WidgetTester tester, BuilderFigure row) => tester
+        .widget<TextField>(find.byKey(ValueKey('has-figure-${row.id}-input')))
+        .controller!
+        .text;
+
+    test('controls: the two dialects read a role word differently', () {
+      expect(inEnglish('role1s swoop'), isNot(inContra('role1s swoop')));
+    });
+
+    testWidgets('an option reads in the dialect of the figure\'s form, and is '
+        'found by it', (tester) async {
+      final row = await pump(
+        tester,
+        dialects: dialects,
+        entries: [
+          figure('e', 'role1s swoop', payload: madeFor('ecd')),
+          figure('c', 'role1s swoop dive', payload: madeFor('contra')),
+        ],
+      );
+      await type(tester, row, 'swoop');
+      expect(
+        find.descendant(
+          of: option(row, 'userFigure:e'),
+          matching: find.text(inEnglish('role1s swoop')),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: option(row, 'userFigure:c'),
+          matching: find.text(inContra('role1s swoop dive')),
+        ),
+        findsOneWidget,
+      );
+      // Each is found by the words of its own form's dialect, and not by the
+      // other form's.
+      await type(tester, row, inContra('role1s swoop dive'));
+      expect(option(row, 'userFigure:c'), findsOneWidget);
+      await type(tester, row, inEnglish('role1s swoop'));
+      expect(option(row, 'userFigure:e'), findsOneWidget);
+      expect(option(row, 'userFigure:c'), findsNothing);
+      await type(tester, row, inContra('role1s swoop'));
+      expect(option(row, 'userFigure:e'), findsNothing);
+    });
+
+    testWidgets('a row asking for a figure rests as the option that set it '
+        'read', (tester) async {
+      final row = BuilderFigure(
+        move: customMove,
+        params: {userFigureRefKey: 'e'},
+      );
+      await pump(
+        tester,
+        dialects: dialects,
+        row: row,
+        entries: [figure('e', 'role1s swoop', payload: madeFor('ecd'))],
+      );
+      expect(restingText(tester, row), inEnglish('role1s swoop'));
+    });
+
+    testWidgets('two figures of different forms that read alike are told '
+        'apart by their form', (tester) async {
+      final row = await pump(
+        tester,
+        dialects: dialects,
+        entries: [
+          figure('e', 'swoop', payload: madeFor('ecd')),
+          figure('c', 'swoop', payload: madeFor('contra')),
+        ],
+      );
+      await type(tester, row, 'swoop');
+      expect(
+        find.descendant(
+          of: option(row, 'userFigure:e'),
+          matching: find.text('swoop · English (ECD)'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: option(row, 'userFigure:c'),
+          matching: find.text('swoop · Contra'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a row for one of two alike figures rests with its form too, '
+        'as the option read', (tester) async {
+      final row = BuilderFigure(
+        move: customMove,
+        params: {userFigureRefKey: 'e'},
+      );
+      await pump(
+        tester,
+        dialects: dialects,
+        row: row,
+        entries: [
+          figure('e', 'swoop', payload: madeFor('ecd')),
+          figure('c', 'swoop', payload: madeFor('contra')),
+        ],
+      );
+      expect(restingText(tester, row), 'swoop · English (ECD)');
+    });
+
+    testWidgets('with no dialects every figure reads in the search\'s dialect, '
+        'and none is told apart, as before', (tester) async {
+      final row = await pump(
+        tester,
+        entries: [
+          figure('e', 'role1s swoop', payload: madeFor('ecd')),
+          figure('c', 'swoop', payload: madeFor('contra')),
+          figure('d', 'swoop', payload: madeFor('ecd')),
+        ],
+      );
+      await type(tester, row, 'swoop');
+      expect(
+        find.descendant(
+          of: option(row, 'userFigure:e'),
+          matching: find.text(inContra('role1s swoop')),
+        ),
+        findsOneWidget,
+      );
+      expect(labelOf(row, 'c'), findsWidgets);
+      expect(find.textContaining('·'), findsNothing);
+    });
   });
 }

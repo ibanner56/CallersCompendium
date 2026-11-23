@@ -8,6 +8,7 @@ import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
 import 'app_dropdown_field.dart';
 import 'move_autocomplete.dart';
+import 'user_figure_search_labels.dart';
 
 /// The "Advanced" boolean-tree query builder (`docs/design/search.md`
 /// "Query-builder UX"). Edits the mutable [BuilderGroup] [root] in place and
@@ -20,6 +21,7 @@ class AdvancedQueryBuilder extends StatelessWidget {
     required this.root,
     required this.taxonomy,
     required this.dialect,
+    this.dialects,
     required this.sectionLabels,
     required this.tags,
     required this.onChanged,
@@ -35,6 +37,11 @@ class AdvancedQueryBuilder extends StatelessWidget {
   /// Threaded explicitly rather than read from `ActiveDialectScope` so this
   /// widget has no hidden inherited dependency.
   final Dialect dialect;
+
+  /// The dialect of each dance form, to name a figure of your own in its own
+  /// form's (#2294). Null names every figure in [dialect]. Threaded explicitly,
+  /// like [dialect], for the same reason.
+  final DialectsByForm? dialects;
   final List<String> sectionLabels;
 
   /// The tags a "Has tag" row can pick from — the same set the Tag facet
@@ -59,6 +66,7 @@ class AdvancedQueryBuilder extends StatelessWidget {
       group: root,
       taxonomy: taxonomy,
       dialect: dialect,
+      dialects: dialects,
       sectionLabels: sectionLabels,
       tags: tags,
       allTagNames: allTagNames,
@@ -75,6 +83,7 @@ class _GroupView extends StatelessWidget {
     required this.group,
     required this.taxonomy,
     required this.dialect,
+    this.dialects,
     required this.sectionLabels,
     required this.tags,
     required this.allTagNames,
@@ -87,6 +96,10 @@ class _GroupView extends StatelessWidget {
   final BuilderGroup group;
   final Taxonomy taxonomy;
   final Dialect dialect;
+
+  /// The dialect of each dance form, to name a figure of your own in its own
+  /// form's (#2294); null names every figure in [dialect].
+  final DialectsByForm? dialects;
   final List<String> sectionLabels;
   final List<Tag> tags;
   final Map<String, String> allTagNames;
@@ -196,6 +209,7 @@ class _GroupView extends StatelessWidget {
           group: child,
           taxonomy: taxonomy,
           dialect: dialect,
+          dialects: dialects,
           sectionLabels: sectionLabels,
           tags: tags,
           allTagNames: allTagNames,
@@ -209,6 +223,7 @@ class _GroupView extends StatelessWidget {
           figure: child,
           taxonomy: taxonomy,
           dialect: dialect,
+          dialects: dialects,
           sectionLabels: sectionLabels,
           onChanged: onChanged,
           onRemove: () {
@@ -232,6 +247,7 @@ class _GroupView extends StatelessWidget {
           node: child,
           taxonomy: taxonomy,
           dialect: dialect,
+          dialects: dialects,
           sectionLabels: sectionLabels,
           onChanged: onChanged,
           onRemove: () {
@@ -321,6 +337,7 @@ class _FigureRow extends StatelessWidget {
     required this.figure,
     required this.taxonomy,
     required this.dialect,
+    this.dialects,
     required this.sectionLabels,
     required this.onChanged,
     required this.onRemove,
@@ -329,6 +346,10 @@ class _FigureRow extends StatelessWidget {
   final BuilderFigure figure;
   final Taxonomy taxonomy;
   final Dialect dialect;
+
+  /// The dialect of each dance form, to name a figure of your own in its own
+  /// form's (#2294); null names every figure in [dialect].
+  final DialectsByForm? dialects;
   final List<String> sectionLabels;
   final VoidCallback onChanged;
   final VoidCallback onRemove;
@@ -345,6 +366,7 @@ class _FigureRow extends StatelessWidget {
       figure: figure,
       taxonomy: taxonomy,
       dialect: dialect,
+      dialects: dialects,
       sectionLabels: sectionLabels,
       onChanged: onChanged,
     );
@@ -489,6 +511,7 @@ class _ThenRow extends StatelessWidget {
     required this.node,
     required this.taxonomy,
     required this.dialect,
+    this.dialects,
     required this.sectionLabels,
     required this.onChanged,
     required this.onRemove,
@@ -497,6 +520,10 @@ class _ThenRow extends StatelessWidget {
   final BuilderThen node;
   final Taxonomy taxonomy;
   final Dialect dialect;
+
+  /// The dialect of each dance form, to name a figure of your own in its own
+  /// form's (#2294); null names every figure in [dialect].
+  final DialectsByForm? dialects;
   final List<String> sectionLabels;
   final VoidCallback onChanged;
   final VoidCallback onRemove;
@@ -526,6 +553,7 @@ class _ThenRow extends StatelessWidget {
                   },
                   taxonomy: taxonomy,
                   dialect: dialect,
+                  dialects: dialects,
                   sectionLabels: sectionLabels,
                   onChanged: onChanged,
                 ),
@@ -548,6 +576,7 @@ class _ThenRow extends StatelessWidget {
                   },
                   taxonomy: taxonomy,
                   dialect: dialect,
+                  dialects: dialects,
                   sectionLabels: sectionLabels,
                   onChanged: onChanged,
                 ),
@@ -579,6 +608,7 @@ class _FigureOperandEditor extends StatelessWidget {
     required this.onReplace,
     required this.taxonomy,
     required this.dialect,
+    this.dialects,
     required this.sectionLabels,
     required this.onChanged,
   });
@@ -593,6 +623,10 @@ class _FigureOperandEditor extends StatelessWidget {
 
   final Taxonomy taxonomy;
   final Dialect dialect;
+
+  /// The dialect of each dance form, to name a figure of your own in its own
+  /// form's (#2294); null names every figure in [dialect].
+  final DialectsByForm? dialects;
   final List<String> sectionLabels;
   final VoidCallback onChanged;
 
@@ -611,6 +645,7 @@ class _FigureOperandEditor extends StatelessWidget {
           figure: figure,
           taxonomy: taxonomy,
           dialect: dialect,
+          dialects: dialects,
           sectionLabels: sectionLabels,
           onChanged: onChanged,
         ),
@@ -633,6 +668,7 @@ class _FigureOperandEditor extends StatelessWidget {
       group: group,
       taxonomy: taxonomy,
       dialect: dialect,
+      dialects: dialects,
       sectionLabels: sectionLabels,
       onChanged: onChanged,
       onFlatten: canFlatten
@@ -651,6 +687,7 @@ class _FigureGroupEditor extends StatelessWidget {
     required this.group,
     required this.taxonomy,
     required this.dialect,
+    this.dialects,
     required this.sectionLabels,
     required this.onChanged,
     this.onFlatten,
@@ -659,6 +696,10 @@ class _FigureGroupEditor extends StatelessWidget {
   final BuilderFigureGroup group;
   final Taxonomy taxonomy;
   final Dialect dialect;
+
+  /// The dialect of each dance form, to name a figure of your own in its own
+  /// form's (#2294); null names every figure in [dialect].
+  final DialectsByForm? dialects;
   final List<String> sectionLabels;
   final VoidCallback onChanged;
 
@@ -739,6 +780,7 @@ class _FigureGroupEditor extends StatelessWidget {
                   figure: child,
                   taxonomy: taxonomy,
                   dialect: dialect,
+                  dialects: dialects,
                   sectionLabels: sectionLabels,
                   onChanged: onChanged,
                 ),
@@ -772,6 +814,7 @@ class _FigureGroupEditor extends StatelessWidget {
                   group: child,
                   taxonomy: taxonomy,
                   dialect: dialect,
+                  dialects: dialects,
                   sectionLabels: sectionLabels,
                   onChanged: onChanged,
                 ),
@@ -798,6 +841,7 @@ class _FigureEditor extends StatelessWidget {
     required this.figure,
     required this.taxonomy,
     required this.dialect,
+    this.dialects,
     required this.sectionLabels,
     required this.onChanged,
   });
@@ -805,6 +849,10 @@ class _FigureEditor extends StatelessWidget {
   final BuilderFigure figure;
   final Taxonomy taxonomy;
   final Dialect dialect;
+
+  /// The dialect of each dance form, to name a figure of your own in its own
+  /// form's (#2294); null names every figure in [dialect].
+  final DialectsByForm? dialects;
   final List<String> sectionLabels;
   final VoidCallback onChanged;
 
@@ -856,6 +904,7 @@ class _FigureEditor extends StatelessWidget {
                   figure: figure,
                   taxonomy: taxonomy,
                   dialect: dialect,
+                  dialects: dialects,
                   onChanged: onChanged,
                 ),
               ),
@@ -929,12 +978,17 @@ class _MoveField extends StatelessWidget {
     required this.figure,
     required this.taxonomy,
     required this.dialect,
+    this.dialects,
     required this.onChanged,
   });
 
   final BuilderFigure figure;
   final Taxonomy taxonomy;
   final Dialect dialect;
+
+  /// The dialect of each dance form, to name a figure of your own in its own
+  /// form's (#2294); null names every figure in [dialect].
+  final DialectsByForm? dialects;
   final VoidCallback onChanged;
 
   /// The id of the figure of your own this row asks for (#1023), if any.
@@ -950,15 +1004,36 @@ class _MoveField extends StatelessWidget {
     final userFigureId = _userFigureId;
     // A row asking for one of your figures names it, from every figure you
     // have, so it still reads if Custom Figures is turned off after picking.
-    final userFigureName = userFigureId == null
+    final userFigure = userFigureId == null
         ? null
-        : UserFiguresScope.catalogOf(context)[userFigureId]?.name;
+        : UserFiguresScope.catalogOf(context)[userFigureId];
+    // As the option that set it reads: the figure is named in its own form's
+    // dialect, and told apart from another form's figure named alike (#2294).
+    // A figure the picker no longer offers reads as it would alone.
+    final userFigureLabel = userFigure == null
+        ? null
+        : userFigureSearchLabels(
+                [
+                  for (final view in UserFiguresScope.shownCatalogOf(
+                    context,
+                  ).figures)
+                    if (view.definition != null) view,
+                ],
+                l10n: AppLocalizations.of(context),
+                renderer: renderer,
+                dialect: dialect,
+                dialects: dialects,
+              )[userFigure.id] ??
+              userFigureSearchLabels(
+                [userFigure],
+                l10n: AppLocalizations.of(context),
+                renderer: renderer,
+                dialect: dialect,
+                dialects: dialects,
+              )[userFigure.id];
     final current = switch (figure.move) {
       null => '',
-      _ when userFigureName != null => renderer.renderFreeText(
-        userFigureName,
-        dialect,
-      ),
+      _ when userFigureLabel != null => userFigureLabel,
       // In the active dialect, as the suggestion that set it read, its form
       // named when another form's figure is named alike ("circle · English
       // (ECD)").
@@ -982,6 +1057,7 @@ class _MoveField extends StatelessWidget {
       fieldKey: 'has-figure-${figure.id}',
       userFigures: UserFiguresScope.shownCatalogOf(context),
       dialect: dialect,
+      dialects: dialects,
       onSelected: (id) {
         if (figure.move != id || _userFigureId != null) {
           figure.move = id;
@@ -1035,6 +1111,7 @@ class MoveTypeAheadField extends StatelessWidget {
     this.fieldKey,
     this.userFigures = UserFigureCatalog.empty,
     this.dialect,
+    this.dialects,
     this.onUserFigureSelected,
   });
 
@@ -1050,6 +1127,12 @@ class MoveTypeAheadField extends StatelessWidget {
   /// The dialect [userFigures]' names are shown and matched in; canonical
   /// when null.
   final Dialect? dialect;
+
+  /// The dialect of each dance form. With it, each of [userFigures] is shown
+  /// and matched in the dialect of the form it was made for, and told apart
+  /// from another form's figure named alike ([userFigureSearchLabels], #2294);
+  /// without it, every one is in [dialect].
+  final DialectsByForm? dialects;
 
   /// Fires when the user picks one of [userFigures].
   final ValueChanged<UserFigureView>? onUserFigureSelected;
@@ -1080,6 +1163,15 @@ class MoveTypeAheadField extends StatelessWidget {
         for (final view in userFigures.figures)
           if (view.definition != null) view.id: view,
     };
+    final labels = renderer == null
+        ? const <String, String>{}
+        : userFigureSearchLabels(
+            mine.values,
+            l10n: l10n,
+            renderer: renderer,
+            dialect: dialect ?? Dialect.canonical,
+            dialects: dialects,
+          );
     // The dance editor's own picker does the matching and ranking, so a
     // dialect's move names, exact-name-first order and the cap are the
     // editor's, not a second copy of them. Aliases are not offered: a figure
@@ -1101,10 +1193,7 @@ class MoveTypeAheadField extends StatelessWidget {
           MoveOption(
             id: view.id,
             kind: MoveOptionKind.userFigure,
-            displayName: renderer!.renderFreeText(
-              view.name,
-              dialect ?? Dialect.canonical,
-            ),
+            displayName: labels[view.id]!,
           ),
       ],
       onCleared: onCleared,
