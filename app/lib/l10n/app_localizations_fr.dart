@@ -6207,6 +6207,46 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get programsAddDanceBeforeMenu => 'Ajouter une danse avant';
+
+  @override
+  String get programsAddDanceAfterMenu => 'Ajouter une danse après';
+
+  @override
+  String programsAddBeforeSheetTitle(String title) {
+    return 'Ajouter avant $title';
+  }
+
+  @override
+  String programsAddAfterSheetTitle(String title) {
+    return 'Ajouter après $title';
+  }
+
+  @override
+  String programsAddingBeforeBanner(String title) {
+    return 'Ajout avant $title';
+  }
+
+  @override
+  String programsAddingAfterBanner(String title) {
+    return 'Ajout après $title';
+  }
+
+  @override
+  String programsAddedDanceBeforeAnnounce(String title, String target) {
+    return '$title ajoutée avant $target.';
+  }
+
+  @override
+  String programsAddedDanceAfterAnnounce(String title, String target) {
+    return '$title ajoutée après $target.';
+  }
+
+  @override
+  String get programsInsertionCancelledAnnounce =>
+      'Annulé. Les nouvelles danses s\'ajoutent à la fin.';
+
+  @override
   String get programsEditSlotMenu => 'Modifier le créneau';
 
   @override

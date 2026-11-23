@@ -6169,6 +6169,46 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get programsAddDanceBeforeMenu => 'Dans ervoor toevoegen';
+
+  @override
+  String get programsAddDanceAfterMenu => 'Dans erna toevoegen';
+
+  @override
+  String programsAddBeforeSheetTitle(String title) {
+    return 'Toevoegen vóór $title';
+  }
+
+  @override
+  String programsAddAfterSheetTitle(String title) {
+    return 'Toevoegen na $title';
+  }
+
+  @override
+  String programsAddingBeforeBanner(String title) {
+    return 'Toevoegen vóór $title';
+  }
+
+  @override
+  String programsAddingAfterBanner(String title) {
+    return 'Toevoegen na $title';
+  }
+
+  @override
+  String programsAddedDanceBeforeAnnounce(String title, String target) {
+    return '$title toegevoegd vóór $target.';
+  }
+
+  @override
+  String programsAddedDanceAfterAnnounce(String title, String target) {
+    return '$title toegevoegd na $target.';
+  }
+
+  @override
+  String get programsInsertionCancelledAnnounce =>
+      'Geannuleerd. Nieuwe dansen komen aan het eind.';
+
+  @override
   String get programsEditSlotMenu => 'Slot bewerken';
 
   @override

@@ -261,6 +261,23 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   A dance slot's edit dialog offers **Replace…**, swapping its dance via the
   collection picker while preserving the slot's note/guest caller/planned
   minutes/mark-performed status (issue #964).
+- Insert: every slot's overflow menu offers **Add a dance before** and **Add a
+  dance after**, after the compact row's move up / move down / View details /
+  cut (D-2's order is unchanged) and before Edit slot (#2339). Below the
+  two-pane breakpoint it opens the collection picker sheet titled "Add before
+  *dance*" / "Add after *dance*", which closes on the first pick; in two-pane
+  the inline picker shows an "Adding before *dance*" banner with Cancel and
+  the target's alternate group is highlighted. The chosen dance, an online
+  import included, is inserted as a primary at a group boundary — before the
+  group's primary or after its last alternate, never inside it; an
+  alternate's menu targets its primary's group, and a break or note is a group
+  of one (`Program.insertSlotAtGroupBoundary`). The insertion is one-shot: the
+  next add goes to the end. The banner, sheet title and announcements name
+  the group's primary as it is at that moment; cutting that primary ends the
+  insertion, as does dropping below the two-pane breakpoint while the banner
+  is up, and either is announced. It is announced ("Added *X* before *Y*");
+  Cancel and the menu items meet the 24 px target minimum and are
+  keyboard-operable.
 - Reorder: drag + non-drag alternative; slot notes inline. Below the 600dp
   compact breakpoint (or in a program pane narrower than the full row), a slot
   row keeps only its drag handle and overflow menu; move up / move down lead
