@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:meta/meta.dart';
 
 import '../domain/couple_number.dart';
@@ -18,6 +20,7 @@ part 'figures/axis_swaps.dart';
 part 'figures/butterfly_whirl.dart';
 part 'figures/cast.dart';
 part 'figures/circle.dart';
+part 'figures/containers.dart';
 part 'figures/circular_hey.dart';
 part 'figures/chain.dart';
 part 'figures/contra_corners.dart';

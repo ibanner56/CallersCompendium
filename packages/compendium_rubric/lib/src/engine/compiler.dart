@@ -223,30 +223,43 @@ OpError? _unperformedProgression(Dance dance) {
 /// This is the first diagnostic in the taxonomy that is not a single state
 /// transition, which is exactly why it lives here: an operation only ever sees
 /// one formation, so it could not detect this if it wanted to.
+///
+/// A hall figure inside a container (`modifier`, `meanwhile`, nested
+/// `sequence`) is paired like one on its own line, and a warning about it
+/// points at the container's position, which is where it is danced.
 List<Warning> _oneSidedHallWarnings(Dance dance) {
-  final outbound = <int>[];
-  final inbound = <int>[];
+  final outbound = <(int, HallFigure)>[];
+  final inbound = <(int, HallFigure)>[];
   for (var index = 0; index < dance.figures.length; index++) {
-    final operation = dance.figures[index].operation;
-    if (operation is! HallFigure) continue;
-    if (operation.facing == HallFacing.forwardThenBackward) continue;
-    (operation is DownTheHall ? outbound : inbound).add(index);
+    for (final hall in _hallFiguresIn(dance.figures[index].operation)) {
+      if (hall.facing == HallFacing.forwardThenBackward) continue;
+      (hall is DownTheHall ? outbound : inbound).add((index, hall));
+    }
   }
 
   final matched = outbound.length < inbound.length
       ? outbound.length
       : inbound.length;
   return [
-    for (final index in [
+    for (final (index, hall) in [
       ...outbound.skip(matched),
       ...inbound.skip(matched),
-    ]..sort())
+    ]..sort((a, b) => a.$1.compareTo(b.$1)))
       Warning(
         WarningKind.oneSidedHall,
         opIndex: index,
         detail:
-            '${dance.figures[index].name} has no matching return; the set may '
-            'be left off-balance',
+            '${hall.name} has no matching return; the set may be left '
+            'off-balance',
       ),
   ];
 }
+
+/// The hall figures [operation] dances: itself, or those inside it.
+Iterable<HallFigure> _hallFiguresIn(Operation operation) => switch (operation) {
+  HallFigure() => [operation],
+  FiguresInOrder(:final figures) || Meanwhile(:final figures) => [
+    for (final child in figures) ..._hallFiguresIn(child),
+  ],
+  _ => const [],
+};

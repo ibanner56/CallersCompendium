@@ -450,7 +450,7 @@ void main() {
 
     test('a sequence inside another container is left inside it', () {
       // Only a top-level sequence is spliced; a meanwhile stays a meanwhile,
-      // and stays deferred, whatever it holds.
+      // whatever it holds, and the parser builds it as one.
       final meanwhile = core.Figure.meanwhile(
         figures: [
           core_test.testFigure(move: 'swing'),
@@ -479,7 +479,7 @@ void main() {
 
     test('a container inside a sequence comes up to the top level', () {
       // The splice is one level deep: a meanwhile the sequence held is danced
-      // in its place, and stays deferred there.
+      // in its place, as a meanwhile.
       final meanwhile = core.Figure.meanwhile(
         figures: [
           core_test.testFigure(move: 'swing'),
@@ -516,18 +516,16 @@ void main() {
       int index,
       Map<String, Object?> params, {
       bool inSequence = false,
+      bool inMeanwhile = false,
     }) async {
       final draft = await _draft();
       final figures = [...decodedFigures(draft.dance)!];
       final promenade = core_test.testFigure(move: 'promenade', params: params);
+      final partner = core_test.testFigure(move: 'swing');
       figures[index] = inSequence
-          ? core.Figure.sequence(
-              figures: [
-                core_test.testFigure(move: 'swing'),
-                promenade,
-              ],
-              beats: 8,
-            )
+          ? core.Figure.sequence(figures: [partner, promenade], beats: 8)
+          : inMeanwhile
+          ? core.Figure.meanwhile(figures: [partner, promenade], beats: 8)
           : promenade;
       return core.StructuredDraft(
         dance: draft.dance.copyWith(figures: figures),
@@ -562,6 +560,20 @@ void main() {
         run.detail,
         startsWith('figure 4 (promenade) imported with no where'),
       );
+    });
+
+    test('one inside a meanwhile is found in its slot', () async {
+      // The bridge does not splice a meanwhile, but the promenade inside it is
+      // still danced, so compiling it as `across` would be the same guess.
+      final run = runCoreDance(
+        await withPromenadeAt(2, {'who': 'partners'}, inMeanwhile: true),
+      );
+      expect(run.outcome, DanceOutcome.unstructured);
+      expect(
+        run.detail,
+        startsWith('figure 3 (promenade) imported with no where'),
+      );
+      expect(run.moves, containsAll(<String>['meanwhile', 'promenade']));
     });
 
     for (final params in <Map<String, Object?>>[
@@ -681,6 +693,60 @@ void main() {
         }
       },
     );
+
+    test('a modifier opening a Becket dance is read by its main figure', () {
+      // User-ruled 2026-11-23: a modifier carrying the progression carries it
+      // for its main figure, so "slice left while partner roll away" opens the
+      // dance with a slice left. Its modifier (a roll away) does not count.
+      for (final (children, expected) in [
+        ([figure('slice'), figure('roll_away')], 0),
+        ([figure('long_lines'), figure('slice')], 2),
+      ]) {
+        final dance = _shapedLike(
+          shape: core.FormationShape.becketCw,
+          figures: [
+            core.Figure.modifier(figures: children, beats: 8),
+            figure('circle'),
+            figure('swing'),
+          ],
+        );
+        expect(
+          assumedProgressionIndex(dance),
+          expected,
+          reason: children.map((child) => child.move).join(' while '),
+        );
+      }
+    });
+
+    test('a modifier carries a container child to the record as a figure', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleImproper,
+        figures: [
+          core.Figure.modifier(
+            figures: [
+              figure('long_lines'),
+              figure('roll_away', {'whom': 'neighbors'}),
+            ],
+            beats: 8,
+          ),
+          figure('swing'),
+        ],
+      );
+      final record = bridgeCoreDance(dance).record;
+      final container =
+          (record['figures']! as List<Object?>).first! as Map<String, Object?>;
+      final children =
+          (container['params']! as Map<String, Object?>)['figures']!
+              as List<Object?>;
+      expect(children, [
+        {'move': 'long_lines', 'params': <String, Object?>{}},
+        {
+          'move': 'roll_away',
+          'params': {'whom': 'neighbors'},
+        },
+      ]);
+      expect(parseDance(record), isA<Ok<Dance, DanceParseError>>());
+    });
 
     test('a Becket dance opening with a double slice does not', () {
       // A diagonal return is two slides; a flag on it is not ruled, so the
@@ -871,6 +937,27 @@ void main() {
         ],
       );
       expect(nextNeighborsProgressionIndex(dance), isNull);
+    });
+
+    test('finds a reach inside a container', () {
+      // Agent's call, 2026-11-23: a container's children are danced in its
+      // slot, so a roll away with the next neighbours inside a modifier reaches
+      // for them as surely as one on its own line.
+      final dance = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        figures: [
+          figure('circle'),
+          figure('swing'),
+          core.Figure.modifier(
+            figures: [
+              figure('long_lines'),
+              figure('roll_away', {'whom': 'nextNeighbors'}),
+            ],
+            beats: 8,
+          ),
+        ],
+      );
+      expect(nextNeighborsProgressionIndex(dance), 1);
     });
 
     test('declines a dance that never reaches for the next couple', () {

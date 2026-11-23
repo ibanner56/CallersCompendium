@@ -46,16 +46,24 @@
 > of the set (mostly "ones lead down"), which is still deferred. The count stays
 > at 2,849 (the in-scope denominator grows from 4,506 to 4,539), the core set at
 > 410, and nothing is lost.
+>
+> **`modifier` and `meanwhile` (2026-11-23)** are built on user rulings
+> (`taxonomy.md`, "Containers"). Against `rubric` at `14ada564` they took the
+> count from 2,849 to 3,031 compiled in scope (the denominator grew too, from
+> 4,539 to 4,824, as dances these had blocked now reach a verdict), and the
+> core set from 410 to 435, with no previously compiling dance lost. No
+> corpus dance has two meanwhile parts moving the same dancer.
 
 The compiler implements 53 canonical figures. Twenty-eight have no deliberately
 deferred parameter values, 25 have an implemented core with explicit
 deferrals, and one of the figures this table has tracked since September
 remains entirely deferred (taxonomy v36 to v40 added five more, of which
 `circular_hey` and `cast` are now built; see `implementation.md` §15). The
-`meanwhile` and `modifier` structural containers are also
-deferred, but they are not normal taxonomy moves and are therefore counted
-separately. A `sequence` container is danced as the figures it holds
-(`implementation.md` §10.1).
+`meanwhile` and `modifier` structural containers are built too, but they are
+not normal taxonomy moves and are therefore counted separately. A top-level
+`sequence` container is danced as the figures it holds (`implementation.md`
+§10.1), and one nested in a container is danced in order (`taxonomy.md`,
+"Containers").
 
 The current headline result is **2,035 of 3,254 in-scope dances compiled
 (62.5%)**. "In scope" means the dance parsed without a custom/free-text figure
@@ -74,10 +82,11 @@ the implementation may have a defect.
 | **Full parameter surface** | 28 | `arch_and_dive`, `balance`, `balance_the_ring`, `box_circulate`, `box_the_gnat`, `butterfly_whirl`, `california_twirl`, `circle`, `contra_corners`, `courtesy_turn`, `facing_star`, `form_a_long_wave`, `form_long_waves`, `give_and_take`*, `pass_by`, `pass_the_ocean`, `petronella`, `revolving_door`, `roll_away`, `rory_o_more`, `slide_along_set`, `square_through`, `stand_still`, `star`, `star_through`, `turn_alone`, `turn_as_couples`, `zig_zag` |
 | **Implemented with explicit deferrals** | 25 | `allemande`, `cast`, `chain`, `circular_hey`, `cross_trails`, `do_si_do`, `down_the_hall`, `figure_8`, `form_short_waves`, `gate`, `hey`, `long_lines`, `mad_robin`, `orbit`, `pass_through`, `poussette`, `promenade`, `pull_by`, `right_left_through`, `shoulder_round`, `slice`, `star_promenade`, `swing`, `two_hand_turn`, `up_the_hall` |
 | **Entirely deferred canonical figures** | 1 | `dolphin_hey` |
-| **Deferred structural constructs** | 2 | `meanwhile`, which represents simultaneous figures, and `modifier`, which changes a core figure with ordered modifier figures; neither is an ordinary taxonomy move |
+| **Structural containers** | 3 | `meanwhile` (simultaneous figures by different dancers), `modifier` (a main figure changed by ordered modifier figures) and a nested `sequence`; none is an ordinary taxonomy move. Built 2026-11-23 |
 
-The external vocabulary (`supportedMoves`) reports 60 supported names because
-seven aliases resolve onto the 53 canonical implementations:
+The external vocabulary (`supportedMoves`) reports 63 supported names: the 53
+canonical implementations, the three containers, and seven aliases that resolve
+onto the canonical figures:
 
 - `meltdown_swing` resolves to `swing`;
 - `pull_by_dancers` and `pull_by_direction` resolve to `pull_by`;
@@ -233,12 +242,12 @@ opportunity.
 
 | Deferred surface | Dances mentioning it | First unsupported blocker |
 | --- | ---: | ---: |
-| `meanwhile` structural container | 1,540 | **131** |
 | `dolphin_hey` | 0 | 0 |
 
 `promenade` left this table when its `across` form was built, and
 `butterfly_whirl`, `slice`, `revolving_door`, `arch_and_dive` and
-`contra_corners` when they were (2026-11-22).
+`contra_corners` when they were (2026-11-22), and `meanwhile` when it was
+(2026-11-23).
 On the Caller's Box mirror, 98 more dances hold a promenade that imports with no `where`
 (whole-set, counter-rotating, around-a-dancer and mixer promenades). They are
 reported as `unstructured`, an import-pipeline problem, not as a deferral.
@@ -299,7 +308,9 @@ committed Caller's Box corpus is deliberately one dance.
 - `orbit`, `stand_still`, and `two_hand_turn` have no compiler-attempted corpus
   dances.
 - `orbit` appears in four source records, but none reaches compilation: one is
-  unsupported and three are unstructured.
+  unsupported and three are unstructured. (September figures. Since
+  2026-11-23 an orbit inside a `meanwhile` is compiled, as in *Binary System*
+  (Caller's Box #10296), so this no longer holds; not re-counted.)
 - `turn_as_couples` has one attempted example, so its nominal 100% rate is not
   meaningful.
 - `rory_o_more` is now recognized in 74 attempted dances. Only four compile;

@@ -56,7 +56,7 @@ lib/
       geometry.dart             bands, groupings, waiting-out, rings, travel direction
     ops/
       operation.dart            sealed Operation base + `part` directives for every figure
-      figures/*.dart            21 part files, one family each
+      figures/*.dart            30 part files, one family each (containers.dart: modifier, meanwhile, nested sequence)
       params.dart               shared param enums (Hand, WhoSet, Direction, ...)
       who.dart                  who-set resolution + cross-hands-four refusal
       transforms.dart           reusable state transforms (swaps, reflections, waves)
@@ -552,9 +552,10 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
   shown on one line, so splicing is that definition read literally, and doing it
   first means the progression rules below see the figures actually danced. A
   sequence flagged as the progression hands the flag to its last child *(agent's
-  call, unratified; the alternative was refusing it)*. `meanwhile` and
-  `modifier` containers, and anything inside them, are left alone and stay
-  deferred. Every figure index reported from here on (warnings, a refusal's
+  call, unratified; the alternative was refusing it)*. A `meanwhile` or
+  `modifier` stays one figure here, children and all (a sequence inside one
+  stays inside it), and the parser builds it as a container
+  (`docs/taxonomy.md`, "Containers"). Every figure index reported from here on (warnings, a refusal's
   "figure N", `assumedProgressionAt`) counts danced figures, not source lines,
   so after a sequence it can run past `totalFigures` *(agent's call,
   unratified; the alternative was mapping each index back to a source line)*.
@@ -562,7 +563,8 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
   parser reads: `title`, `form`, `formation.shape`, `progression` (the success
   criterion — single or double — not the flag), and `figures` (the danced
   figures above), each carrying its
-  `move` and `params`, plus `progression: true` on the one figure that
+  `move` and `params` (a container's child figures become figure records of
+  their own under `params.figures`), plus `progression: true` on the one figure that
   progresses. That flag is the only field the bridge *adds* rather than
   translates, and where the assumed-progression rule below takes effect.
 - **`DanceOutcome`** keeps eight buckets deliberately separate, because they name
@@ -587,7 +589,10 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > one, user-ruled 2026-11-22), progresses; otherwise the **first diagonal
 > `chain` or `pass_through` along the set** does (user-ruled 2026-11-23: a
 > Becket progression is the obvious move), and only a Becket dance with
-> neither falls back to the last figure. (Core's `slide_along_set.slide` and
+> neither falls back to the last figure. A `modifier` is read by its main
+> figure for both Becket rules, so "slice left while partner roll away"
+> opening the dance progresses there (user-ruled 2026-11-23: a modifier's
+> progression is its main figure's). (Core's `slide_along_set.slide` and
 > `slice.slice` both default to `left`, so a bare slide or slice takes the
 > Becket branch.) A diagonal chain or pass through usually progresses before
 > any couple stands whole at an end, so the compiler **holds** such a
@@ -606,7 +611,9 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > reaching for the next couple is naming people this hands four has not met yet,
 > so the progression must already have happened — which makes the figure before
 > it the latest point the progression can sit and still leave that reach meaning
-> what it says.
+> what it says. A reach inside a container counts: a roll away with the next
+> neighbours inside a modifier is danced in the modifier's slot *(agent's call,
+> 2026-11-23)*.
 >
 > This stays inside rule 5 because the landmark comes from the *record*: it reads
 > figure parameters, exactly as the positional rule reads formation and move
@@ -766,10 +773,12 @@ rest cannot pass for the wrong reason.
 
 ## 15. Current state and known debt
 
-- **1,269 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,296 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
-- **53 figures registered**, plus 7 upstream aliases resolved to them
+- **53 figures registered**, plus the three containers (`modifier`,
+  `meanwhile`, and `sequence` when nested in one; `docs/taxonomy.md`,
+  "Containers"), plus 7 upstream aliases resolved to them
   (`hand_cast` → `gate`, `long_lines` → `forward_and_back`, `meltdown_swing`,
   `pull_by_dancers`, `pull_by_direction`, `see_saw`, `swat_the_flea`).
 - **Schema-aligned with `compendium_core`** (`test/io/core_taxonomy_alignment_test.dart`).
@@ -821,8 +830,8 @@ rest cannot pass for the wrong reason.
   `slice` by a single dancer or with no return, `dolphin_hey`, and the moves
   taxonomy v36–v40
   added and not yet built (`trade_the_wave`, `starburst`, `hey_for_three`),
-  `orbit` couple-`who` (the
-  **meanwhile** mechanism), hall `ender` values `cozy`/`cloverleaf`/
+  `orbit` couple-`who` (still the swap rule; `meanwhile` is now built but
+  runs each part as it already runs), hall `ender` values `cozy`/`cloverleaf`/
   `threadNeedle`/`rightHandHigh`, and hall `moving` values `center`/`outsides`.
 - **Deferred param values inside implemented figures** raise
   `unsupportedParam` — notably diagonal and `along` `right_left_through`,

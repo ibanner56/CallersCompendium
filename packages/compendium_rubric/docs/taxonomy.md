@@ -485,6 +485,60 @@ L2-F . . . R2-F
 
 ---
 
+## Containers: `modifier`, `meanwhile` and a nested `sequence` — **ruled**
+
+`compendium_core` holds some lines as **containers**: figures whose `params.figures` is a list of
+whole figures rather than ordinary parameters. None of them moves anyone itself. Each child is
+run through its own `apply`, so a child that reaches along the set or names shadows is resolved
+exactly as it would be on a line of its own. Implemented in `lib/src/ops/figures/containers.dart`.
+
+- **`modifier`** — "in long lines, go forward and back **while** partner roll away", "slice left
+  **while** partner roll away". The first child is the main figure, the later ones modify it.
+  **The set ends exactly as if the main figure were danced and then each modifier after it**
+  *(user-ruled 2026-11-23)*. A modifier carrying the progression carries it for its main figure,
+  so it is its own progression exactly when the main figure is *(user-ruled 2026-11-23)*. The
+  Caller's Box bridge reads a modifier by its main figure for the Becket opener and diagonal-chain
+  rules, so "slice left while partner roll away" at the top of a Becket dance is where it
+  progresses.
+- **`meanwhile`** — "women allemande left 1½ **||** men orbit clockwise ½". **The parts are
+  danced by different dancers, and the set ends as if each part were danced on its own**
+  *(user-ruled 2026-11-23)*. That is done literally: every part is danced from the same
+  starting state (wave offsets settled once, first), and each dancer ends where the part that
+  moved them put them, so the order the parts are written in cannot matter. Two parts that move
+  the same dancer to another cell, or that would put two dancers in one cell, are refused with
+  `unresolvableDancerSet` rather than guessed at. "Moved" means a new cell; facing is left out
+  because several figures re-face their whole hands four and facing is not part of the oracle,
+  and a dancer no part moves keeps the facing the last part to change it gave them *(agent's
+  call)*. **Known limit:** a part that leaves its dancers in the cells they started in (an
+  allemande once around) is not seen to move anyone, so a dancer named in it and in another part
+  is not caught; catching it would need each figure to report who dances it. A `meanwhile` is
+  its own progression if any part is *(agent's call)*.
+- **`sequence`** — a top-level sequence is spliced into its children by the bridge
+  (`implementation.md` §10.1). One **inside** a container is one side of it, so it stays
+  together and is danced in order, like a modifier. Having no main figure, it is its own
+  progression if any child is *(agent's call)*.
+- **A flagged modifier is progressed as one figure** (known limit): the change-over runs after
+  its last modifier, and a Becket hold is judged on the state the modifiers leave. Splitting the
+  flag's effects at the main figure would need the engine to see inside the container. The two
+  readings differ most when a modifier reaches another hands four, which no importer writes.
+- **Import checks look inside containers.** A Caller's Box promenade with no `where` inside a
+  container is `unstructured`, as one on its own line is, and the moves a run records include a
+  container's children.
+- **The progression flag goes on the container**, never on a child. A flagged child is refused at
+  parse time *(agent's call; the alternative was moving the flag up, which would read a flag the
+  source put somewhere else)*. A container needs at least two children, as core's own
+  constructors require.
+- **What the engine reads off a container** is gathered from its children: `hands4Contribution`
+  is their sum, `reachAfter` their widest reach, and `dancerSets` all of theirs (so a child
+  naming shadows sizes the set). Lint warnings are the main figure's for a modifier and every
+  part's for a meanwhile; a modifier's later children start from states that exist only part-way
+  through and are not linted *(agent's call)*. The dance-level `oneSidedHall` lint pairs a hall
+  figure inside a container like one on its own line, and places its warning at the container.
+- **Couple-`who` `orbit` is unchanged.** A meanwhile runs each part as that part already runs,
+  so an orbit by `ones` or `twos` keeps the swap rule recorded under `orbit` and its caveat.
+
+---
+
 ## Held figures (reviewed, deferred to a directed conversation)
 
 Figures present in the CallersCompendium taxonomy that we reviewed against the prior verifier and
@@ -504,7 +558,7 @@ To be defined later with worked examples.
 
 | Figure | Why held |
 |---|---|
-| `orbit` — couple `who` (**meanwhile**) | The move itself is **implemented** (see `orbit`); this row holds only the **couple-`who` (`ones`/`twos`) semantics**. A true 180° orbit carries a couple onto the *other* couple's cells, so it resolves only in combination with the centre figure — the **meanwhile** mechanism. *(Replaces the former `allemande_orbit` row: that fused move was **retired at Compendium v19** and its figures migrated to `meanwhile[allemande, orbit]`, so the name no longer exists in the taxonomy.)* The prior verifier also lists `^ones orbit` in its unsupported-patterns table. Revisit with the meanwhile conversation. |
+| `orbit` — couple `who` (**meanwhile**) | The move itself is **implemented** (see `orbit`); this row holds only the **couple-`who` (`ones`/`twos`) semantics**. A true 180° orbit carries a couple onto the *other* couple's cells, so it resolves only in combination with the centre figure — the **meanwhile** mechanism. *(Replaces the former `allemande_orbit` row: that fused move was **retired at Compendium v19** and its figures migrated to `meanwhile[allemande, orbit]`, so the name no longer exists in the taxonomy.)* The prior verifier also lists `^ones orbit` in its unsupported-patterns table. Revisit with the meanwhile conversation. (`meanwhile` itself is now built — see "Containers" above — but runs each part as it already runs, so this row still stands.) |
 | hall `ender` values — `cozy`, `cloverleaf`, `threadNeedle`, `rightHandHigh` | `down_the_hall` / `up_the_hall` are **implemented** (see their entries); this row holds only these four `ender` values, which raise `UnsupportedParam`. No verifier basis for any: there is **no handler at all** for `cozy`, `threadNeedle`, or `slidingDoors`; `TryCloverleaf` (FigureSimulator.cs:1224) is a **different, standalone** figure (an h4 ring rotation) and "cloverleaf turn single" sits in the unsupported-patterns list (:800); `TryRightHandHigh` (:4229) needs a named pivot dancer parsed from free text, and the structured ender carries no dancer param, so it is degenerate. Each needs a worked example. |
 | hall `moving` values — `center`, `outsides` | Held with the above. They move only part of the line, leaving a shape that is **not a line of four**, so §8.1 does not cover the result. Revisit with a worked example. |
 | `dolphin_hey` | Hey variant (a couple travels as a unit — a "dolphin" — led by `whom`), so it needs a rule for how a *pair* occupies one place in the line of four that the base `hey` weaves along; `hey` itself is now **implemented** (see its entry) and no longer blocks this. Verifier has **no implementation** (in the unsupported-patterns list). Needs a worked example. |

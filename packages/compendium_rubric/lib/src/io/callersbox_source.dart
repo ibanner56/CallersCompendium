@@ -290,7 +290,7 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
   final sourceId = draft.raw.externalId;
   final figures = dancedFigures(dance);
   final moves = {
-    for (final figure in figures ?? const <core.Figure>[]) figure.move,
+    for (final figure in figures ?? const <core.Figure>[]) ..._movesIn(figure),
   };
 
   DanceRun finish(
@@ -502,7 +502,7 @@ BridgedDance bridgeCoreDance(
         for (var index = 0; index < figures.length; index++)
           {
             'move': figures[index].move,
-            'params': figures[index].params,
+            'params': _recordParams(figures[index].params),
             if (figures[index].progression || index == assumedAt)
               'progression': true,
           },
@@ -512,6 +512,37 @@ BridgedDance bridgeCoreDance(
     assumedProgressionAt: assumedAt,
   );
 }
+
+/// [params] as the record carries them: a container's child figures become
+/// figure records in their own right, as [parseDance] reads them.
+Map<String, Object?> _recordParams(Map<String, Object?> params) => {
+  for (final entry in params.entries)
+    entry.key: entry.key == 'figures' && entry.value is List
+        ? [
+            for (final child in entry.value! as List)
+              if (child is core.Figure)
+                {
+                  'move': child.move,
+                  'params': _recordParams(child.params),
+                  if (child.progression) 'progression': true,
+                }
+              else
+                child,
+          ]
+        : entry.value,
+};
+
+/// The figure that stands for [figure] when the importer asks what move a line
+/// is: a `modifier`'s main figure, its first child, which the later ones only
+/// change the styling of; otherwise [figure] itself.
+///
+/// So "slice left while partner roll away" opens a Becket dance with a slice,
+/// and is where it progresses *(user-ruled 2026-11-23: a modifier carrying the
+/// progression carries it for its main figure)*.
+core.Figure _mainFigure(core.Figure figure) =>
+    figure.move == 'modifier' && figure.subFigures.isNotEmpty
+    ? figure.subFigures.first
+    : figure;
 
 /// Which figure to treat as the progression when the source never said.
 ///
@@ -549,7 +580,7 @@ int? assumedProgressionIndex(core.Dance dance) {
       shape == core.FormationShape.becketCw ||
       shape == core.FormationShape.becketCcw;
   if (isBecket) {
-    final opener = figures.first;
+    final opener = _mainFigure(figures.first);
     // `slide` defaults to `left` upstream, so an unparameterised slide is a
     // slide left and must be read as one.
     // A slice lands like a slide (user-ruled 2026-11-22), so a Becket dance
@@ -573,7 +604,7 @@ int? assumedProgressionIndex(core.Dance dance) {
     // end until a figure or two later; the compiler holds the progression
     // until they do (`OperationInvocation.applyHolding`).
     for (var index = 0; index < figures.length; index++) {
-      if (_movesAlongTheSet(figures[index])) return index;
+      if (_movesAlongTheSet(_mainFigure(figures[index]))) return index;
     }
   }
 
@@ -612,14 +643,22 @@ bool _movesAlongTheSet(core.Figure figure) => switch (figure.move) {
 int? nextNeighborsProgressionIndex(core.Dance dance) {
   final figures = _requireDecoded(dance);
   for (var index = 0; index < figures.length; index++) {
-    final mentions = figures[index].params.values.any(
-      (value) => value == 'nextNeighbors' || value == 'nextNeighbor',
-    );
-    if (!mentions) continue;
+    if (!_mentionsNextNeighbors(figures[index])) continue;
     return index == 0 ? null : index - 1;
   }
   return null;
 }
+
+/// Whether [figure], or any figure inside it, names `nextNeighbors`.
+///
+/// A container's children are danced in its slot, so a roll away with the next
+/// neighbours inside a modifier reaches for them as surely as one on its own
+/// line. *(Agent's call, 2026-11-23.)*
+bool _mentionsNextNeighbors(core.Figure figure) =>
+    figure.params.values.any(
+      (value) => value == 'nextNeighbors' || value == 'nextNeighbor',
+    ) ||
+    figure.subFigures.any(_mentionsNextNeighbors);
 
 /// [dance]'s figures when its transcription decoded, or `null` when it did not.
 ///
@@ -649,16 +688,28 @@ List<core.Figure>? decodedFigures(core.Dance dance) =>
 /// as [DanceOutcome.unstructured]: the line did not import cleanly, which is
 /// the import pipeline's problem rather than this compiler's. *(User-ruled
 /// 2026-11-22; measured on the 24,107-file mirror.)*
+///
+/// A promenade inside a container counts, and the position is the container's:
+/// it is danced in that slot, and compiling it as `across` there would be the
+/// same guess.
 int? _promenadeWithNoWhere(List<core.Figure> figures) {
   for (var index = 0; index < figures.length; index++) {
-    final figure = figures[index];
-    if (figure.move != 'promenade') continue;
-    // `compendium_core` has neither a legacy `dir` spelling nor an
-    // `unspecified` value for `promenade.where`, so absence is the only case.
-    if (figure.params['where'] == null) return index;
+    if (_hasPromenadeWithNoWhere(figures[index])) return index;
   }
   return null;
 }
+
+// `compendium_core` has neither a legacy `dir` spelling nor an `unspecified`
+// value for `promenade.where`, so absence is the only case.
+bool _hasPromenadeWithNoWhere(core.Figure figure) =>
+    (figure.move == 'promenade' && figure.params['where'] == null) ||
+    figure.subFigures.any(_hasPromenadeWithNoWhere);
+
+/// [figure]'s move and those of every figure inside it.
+Iterable<String> _movesIn(core.Figure figure) => [
+  figure.move,
+  for (final child in figure.subFigures) ..._movesIn(child),
+];
 
 /// [dance]'s figures as the compiler dances them: [decodedFigures] with every
 /// `sequence` container replaced by its children, or `null` when the
@@ -674,10 +725,11 @@ int? _promenadeWithNoWhere(List<core.Figure> figures) {
 /// were written on.
 ///
 /// Only a top-level sequence is spliced. A sequence inside a `meanwhile` or
-/// `modifier` stays inside it, and those containers stay deferred. A sequence
-/// with no readable children (core's own constructor requires two, so only a
-/// malformed record gets here) is left in place and refused as an unsupported
-/// move, rather than silently vanishing.
+/// `modifier` stays inside it, and the parser builds those containers
+/// (`docs/taxonomy.md`, "Containers"). A sequence with no readable children
+/// (core's own constructor requires two, so only a malformed record gets here)
+/// is left in place and refused by the parser, rather than silently
+/// vanishing.
 ///
 /// Every figure index reported downstream counts positions in this list, not
 /// the source's lines.

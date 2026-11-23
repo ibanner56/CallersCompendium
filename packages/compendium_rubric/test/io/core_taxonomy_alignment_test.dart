@@ -40,9 +40,14 @@ Operation? buildFigure(String move, Map<String, Object?> params) {
 void main() {
   group('move vocabulary is owned upstream', () {
     test('every move this compiler builds exists in the core taxonomy', () {
+      // A container (`modifier`, `meanwhile`, `sequence`) is not a taxonomy
+      // move but a structural id core defines beside it, so it is checked
+      // against that list instead.
       final unknown = [
         for (final move in supportedMoves)
-          if (core.contraTaxonomy.resolve(move) == null) move,
+          if (core.contraTaxonomy.resolve(move) == null &&
+              !core.containerMoves.contains(move))
+            move,
       ];
       expect(
         unknown,
@@ -56,10 +61,17 @@ void main() {
     test('supportedMoves reports exactly what the parser can build', () {
       for (final move in supportedMoves) {
         expect(
-          buildFigure(
-            move,
-            move == 'pull_by' ? const {'where': 'along'} : const {},
-          ),
+          buildFigure(move, switch (move) {
+            'pull_by' => const {'where': 'along'},
+            // A container is nothing without its figures; core requires two.
+            _ when core.containerMoves.contains(move) => const {
+              'figures': [
+                {'move': 'long_lines'},
+                {'move': 'roll_away'},
+              ],
+            },
+            _ => const {},
+          }),
           isNotNull,
           reason: '$move is advertised as supported but does not parse',
         );
@@ -70,6 +82,9 @@ void main() {
   group('parameter defaults match the taxonomy', () {
     for (final move in supportedMoves) {
       if (move == 'pull_by') continue;
+      // A container has no parameter defaults to agree on: its only param is
+      // its figures (`test/ops/containers_test.dart`).
+      if (core.containerMoves.contains(move)) continue;
       test('$move assumes the same values the taxonomy does', () {
         final def = core.contraTaxonomy.resolve(move);
         expect(def, isNotNull, reason: '$move is not in the core taxonomy');

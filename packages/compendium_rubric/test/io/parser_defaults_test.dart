@@ -109,7 +109,13 @@ void main() {
     test('the table covers the registry exactly', () {
       // The guard that keeps this file honest: registering a new figure
       // without pinning its defaults fails here rather than shipping unproven.
-      expect([...defaults.keys, 'pull_by']..sort(), supportedMoves);
+      // The containers have no bare form (core requires two figures) and no
+      // defaults to pin: `test/ops/containers_test.dart` covers them.
+      expect(
+        [...defaults.keys, 'pull_by', 'meanwhile', 'modifier', 'sequence']
+          ..sort(),
+        supportedMoves,
+      );
     });
 
     defaults.forEach((move, expected) {
