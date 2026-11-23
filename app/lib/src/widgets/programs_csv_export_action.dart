@@ -59,13 +59,14 @@ Future<void> exportProgramsCsv(
         d.id: d,
     };
     final venues = {for (final v in await repos.venues.listAll()) v.id: v};
-    final csv = buildProgramsCsv(
+    final rows = buildProgramsCsvRows(
       programs,
       l10n: l10n,
       danceFor: (id) => dances[id],
       venuesById: venues,
       includePay: includePay,
     );
+    final csv = await encodeCsvOffUiIsolate(rows);
     if (!context.mounted) return;
     await delivery.deliver(
       context,

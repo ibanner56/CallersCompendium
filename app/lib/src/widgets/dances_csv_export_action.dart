@@ -54,7 +54,7 @@ Future<void> exportDancesCsv(
         ? await repos.dances.listAll()
         : await repos.dances.getByIds(ids);
     final lookups = await DancesCsvLookups.load(repos);
-    final csv = buildDancesCsv(
+    final rows = buildDancesCsvRows(
       dances,
       l10n: l10n,
       dialects: dialects,
@@ -62,6 +62,7 @@ Future<void> exportDancesCsv(
       canonicalizeDiscouragedTerms: canonicalize,
       lookups: lookups,
     );
+    final csv = await encodeCsvOffUiIsolate(rows);
     if (!context.mounted) return;
     await delivery.deliver(
       context,

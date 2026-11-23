@@ -126,4 +126,27 @@ void main() {
       }
     }
   });
+
+  test('a bare "Rating" column maps to a shared custom field of that name '
+      'unless the sheet has the export\'s "Rating (2)"', () {
+    final rating = CustomFieldDef(
+      id: 'f-rating',
+      key: 'rating',
+      label: 'Rating',
+      type: CustomFieldType.text,
+    );
+    expect(autoMapCsvColumns(['Title', 'Rating'], 2, [en], [rating]), [
+      const CsvColumnMapping(CsvColumnTarget.title),
+      CsvColumnMapping.customField('f-rating'),
+    ]);
+    expect(
+      autoMapCsvColumns(['Title', 'Rating', 'Rating (2)'], 3, [en], [rating]),
+      [
+        const CsvColumnMapping(CsvColumnTarget.title),
+        CsvColumnMapping.ignore,
+        CsvColumnMapping.customField('f-rating'),
+      ],
+      reason: 'the exported pair: the bare one is the built-in column',
+    );
+  });
 }
