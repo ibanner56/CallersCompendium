@@ -13788,6 +13788,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Deze keuzes zijn opgeslagen door een nieuwere versie van de app en kunnen hier niet worden gewijzigd. Werk de app bij om ze te wijzigen.';
 
   @override
+  String get settingsPerformSwapReadError =>
+      'Je keuzes voor ‘Een dans wisselen’ konden niet worden gelezen en kunnen nu niet worden gewijzigd. Sluit dit scherm en probeer het opnieuw.';
+
+  @override
   String get collectionRepertoireMenuItem => 'Repertoire';
 
   @override

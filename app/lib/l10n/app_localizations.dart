@@ -20123,6 +20123,12 @@ abstract class AppLocalizations {
   /// **'These choices were saved by a newer version of the app, so they can\'t be changed here. Update the app to change them.'**
   String get settingsPerformSwapNewerVersion;
 
+  /// Error in Settings ▸ Program ▸ Perform mode ▸ Swap a dance when the stored choices could not be read; the switches are shown read-only and nothing is saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Swap a dance choices couldn\'t be read, so they can\'t be changed now. Close this screen and try again.'**
+  String get settingsPerformSwapReadError;
+
   /// Collection More actions menu item that opens the Repertoire page (#2357, Experimental).
   ///
   /// In en, this message translates to:

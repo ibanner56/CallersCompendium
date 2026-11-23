@@ -13711,6 +13711,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Disse valg blev gemt af en nyere version af appen og kan ikke ændres her. Opdater appen for at ændre dem.';
 
   @override
+  String get settingsPerformSwapReadError =>
+      'Dine valg for “Byt en dans” kunne ikke læses og kan ikke ændres lige nu. Luk denne skærm, og prøv igen.';
+
+  @override
   String get collectionRepertoireMenuItem => 'Repertoire';
 
   @override

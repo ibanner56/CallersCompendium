@@ -13823,6 +13823,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Diese Auswahl wurde von einer neueren App-Version gespeichert und kann hier nicht geändert werden. Aktualisiere die App, um sie zu ändern.';
 
   @override
+  String get settingsPerformSwapReadError =>
+      'Deine Auswahl für „Tanz tauschen“ konnte nicht gelesen werden und lässt sich gerade nicht ändern. Schließe diesen Bildschirm und versuche es erneut.';
+
+  @override
   String get collectionRepertoireMenuItem => 'Repertoire';
 
   @override

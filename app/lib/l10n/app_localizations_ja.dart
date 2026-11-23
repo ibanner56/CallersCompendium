@@ -13174,6 +13174,10 @@ class AppLocalizationsJa extends AppLocalizations {
       'この設定は新しいバージョンのアプリで保存されたため、ここでは変更できません。変更するにはアプリを更新してください。';
 
   @override
+  String get settingsPerformSwapReadError =>
+      '「ダンスの入れ替え」の設定を読み込めなかったため、今は変更できません。この画面を閉じて、もう一度お試しください。';
+
+  @override
   String get collectionRepertoireMenuItem => 'レパートリー';
 
   @override

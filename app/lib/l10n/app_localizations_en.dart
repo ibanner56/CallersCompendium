@@ -13657,6 +13657,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'These choices were saved by a newer version of the app, so they can\'t be changed here. Update the app to change them.';
 
   @override
+  String get settingsPerformSwapReadError =>
+      'Your Swap a dance choices couldn\'t be read, so they can\'t be changed now. Close this screen and try again.';
+
+  @override
   String get collectionRepertoireMenuItem => 'Repertoire';
 
   @override

@@ -10,11 +10,31 @@ import 'package:compendium_app/src/screens/settings/perform_swap_defaults_screen
 import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
+/// Settings whose read of the Swap a dance key fails, recording any write.
+class _UnreadableSwapSettings extends SettingsRepository {
+  _UnreadableSwapSettings(super.db);
+
+  final writes = <String>[];
+
+  @override
+  Future<Object?> get(String key) async {
+    if (key == kPerformSwapDefaultsKey) throw StateError('unreadable');
+    return super.get(key);
+  }
+
+  @override
+  Future<void> set(String key, Object? value, {DateTime? at}) {
+    writes.add(key);
+    return super.set(key, value, at: at);
+  }
+}
+
 Future<CompendiumRepositories> _pump(
   WidgetTester tester, {
   Object? stored,
+  CompendiumRepositories? repositories,
 }) async {
-  final repos = openTestRepositories();
+  final repos = repositories ?? openTestRepositories();
   if (stored != null) {
     await repos.settings.set(kPerformSwapDefaultsKey, stored);
   }
@@ -103,5 +123,33 @@ void main() {
     await tester.tap(_switch(PerformSwapKeepItem.formation));
     await tester.pumpAndSettle();
     expect(await repos.settings.get(kPerformSwapDefaultsKey), newer);
+  });
+
+  testWidgets('a failed read shows the switches read-only with an error and '
+      'writes nothing', (tester) async {
+    final db = openWidgetTestDatabase();
+    final settings = _UnreadableSwapSettings(db);
+    await _pump(
+      tester,
+      repositories: CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: settings,
+      ),
+    );
+    expect(
+      find.byKey(const ValueKey('perform-swap-defaults-read-error')),
+      findsOneWidget,
+    );
+    for (final item in PerformSwapKeepItem.values) {
+      expect(
+        tester.widget<SwitchListTile>(_switch(item)).onChanged,
+        isNull,
+        reason: item.name,
+      );
+    }
+    await tester.tap(_switch(PerformSwapKeepItem.formation));
+    await tester.pumpAndSettle();
+    expect(settings.writes, isEmpty);
   });
 }

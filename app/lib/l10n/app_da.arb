@@ -13258,6 +13258,10 @@
   "@settingsPerformSwapNewerVersion": {
     "x-sourceSha256": "2a254caa1dda5cf8027427ef99d36604519c94756e9c61a2cb19eab1795d7376"
   },
+  "settingsPerformSwapReadError": "Dine valg for “Byt en dans” kunne ikke læses og kan ikke ændres lige nu. Luk denne skærm, og prøv igen.",
+  "@settingsPerformSwapReadError": {
+    "x-sourceSha256": "639bb23bf8d638bbe909bbd0c2060faf16c5b7af09edd63ddec51439436e0427"
+  },
   "collectionRepertoireMenuItem": "Repertoire",
   "@collectionRepertoireMenuItem": {
     "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"

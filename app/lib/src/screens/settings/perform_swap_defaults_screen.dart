@@ -17,7 +17,8 @@ import '../../theme/app_spacing.dart';
 /// not understand. A value saved by a newer build
 /// ([PerformSwapDefaultsRead.isNewer]) is shown as the defaults, read-only,
 /// with a notice: an edit here would overwrite choices this build cannot
-/// read.
+/// read. A failed read shows the shipped defaults read-only too, with an
+/// error, and writes nothing: a toggle would overwrite whatever is stored.
 class PerformSwapDefaultsScreen extends StatefulWidget {
   const PerformSwapDefaultsScreen({super.key});
 
@@ -31,6 +32,9 @@ class _PerformSwapDefaultsScreenState extends State<PerformSwapDefaultsScreen> {
   /// late read can never overwrite a change.
   PerformSwapDefaultsRead? _read;
   bool _requested = false;
+
+  /// The stored value could not be read: nothing may be written.
+  bool _readFailed = false;
 
   @override
   void didChangeDependencies() {
@@ -51,19 +55,13 @@ class _PerformSwapDefaultsScreenState extends State<PerformSwapDefaultsScreen> {
             source: 'perform_swap_defaults_screen.read',
           );
           if (!mounted) return;
-          // As the swap sheet does after a failed read: every item on.
-          setState(
-            () => _read = (
-              defaults: PerformSwapDefaults.defaults,
-              isNewer: false,
-            ),
-          );
+          setState(() => _readFailed = true);
         });
   }
 
   Future<void> _set(PerformSwapKeepItem item, bool on) async {
     final read = _read;
-    if (read == null || read.isNewer) return;
+    if (read == null || read.isNewer || _readFailed) return;
     final next = read.defaults.withItem(item, on);
     setState(() => _read = (defaults: next, isNewer: false));
     final repos = RepositoriesScope.of(context);
@@ -79,7 +77,7 @@ class _PerformSwapDefaultsScreenState extends State<PerformSwapDefaultsScreen> {
     final l10n = AppLocalizations.of(context);
     final read = _read;
     final defaults = read?.defaults ?? PerformSwapDefaults.defaults;
-    final editable = read != null && !read.isNewer;
+    final editable = read != null && !read.isNewer && !_readFailed;
 
     Widget item(PerformSwapKeepItem which, String title, {String? subtitle}) =>
         SwitchListTile(
@@ -96,6 +94,17 @@ class _PerformSwapDefaultsScreenState extends State<PerformSwapDefaultsScreen> {
         padding: const EdgeInsets.only(bottom: AppSpacing.lg),
         children: [
           ListTile(title: Text(l10n.settingsPerformSwapSubtitle)),
+          if (_readFailed)
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Card(
+                key: const ValueKey('perform-swap-defaults-read-error'),
+                child: ListTile(
+                  leading: const Icon(Icons.error_outline),
+                  title: Text(l10n.settingsPerformSwapReadError),
+                ),
+              ),
+            ),
           if (read != null && read.isNewer)
             Padding(
               padding: const EdgeInsets.all(AppSpacing.md),

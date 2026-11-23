@@ -18512,6 +18512,10 @@
   "@settingsPerformSwapNewerVersion": {
     "description": "Notice in Settings ▸ Program ▸ Perform mode ▸ Swap a dance when the stored choices came from a newer version of the app; the switches are shown read-only."
   },
+  "settingsPerformSwapReadError": "Your Swap a dance choices couldn't be read, so they can't be changed now. Close this screen and try again.",
+  "@settingsPerformSwapReadError": {
+    "description": "Error in Settings ▸ Program ▸ Perform mode ▸ Swap a dance when the stored choices could not be read; the switches are shown read-only and nothing is saved."
+  },
   "collectionRepertoireMenuItem": "Repertoire",
   "@collectionRepertoireMenuItem": {
     "description": "Collection More actions menu item that opens the Repertoire page (#2357, Experimental)."

@@ -13856,6 +13856,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ces choix ont été enregistrés par une version plus récente de l’application et ne peuvent pas être modifiés ici. Mettez l’application à jour pour les modifier.';
 
   @override
+  String get settingsPerformSwapReadError =>
+      'Vos choix pour « Échanger une danse » n’ont pas pu être lus et ne peuvent pas être modifiés pour l’instant. Fermez cet écran et réessayez.';
+
+  @override
   String get collectionRepertoireMenuItem => 'Répertoire';
 
   @override
