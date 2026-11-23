@@ -8,7 +8,10 @@ import 'phrase_structure.dart';
 /// beats per bar, where one count of bars would mean different beats in
 /// different parts. A bar holds the beats [meter] states (Hudson, 19 November
 /// 2026: "the meter is the rule"), or with none the beats per bar of
-/// [structure], as a typed bar range counts them ([ecdBeatsPerBar]).
+/// [structure], as a typed bar range counts them ([ecdBeatsPerBar]). A typed
+/// bar range in a tune whose parts differ is counted by [BarTiming.byPhrase],
+/// phrase by phrase (#2303); the figures are shown in beats until the editor
+/// and exports show them so.
 ///
 /// The editor, Perform and every export count a dance's bars by this one
 /// rule, so a figure reads "4 bars" on screen and on paper alike.

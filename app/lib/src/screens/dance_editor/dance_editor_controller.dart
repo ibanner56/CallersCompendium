@@ -2666,6 +2666,12 @@ class DanceEditorController extends ChangeNotifier {
   /// The Meter field changed. Named phrases count their bars by it (Hudson,
   /// 19 November 2026: "the meter is the rule"), so a meter that states its
   /// beats in a bar rewrites them in each named phrase, keeping its bars.
+  ///
+  /// That includes a structure whose phrases differ in beats per bar: while the
+  /// Meter states one meter, editing it sets every named phrase to it, so the
+  /// phrases keep their own beats per bar (#2303) only where the Meter states
+  /// none or several meters ("3/4 and 6/8"). An unnamed structure is not
+  /// rewritten.
   void onMeterChanged() {
     final perBar = statedBeatsPerBar;
     final phrases = typedPhraseStructure?.namedPhrases;

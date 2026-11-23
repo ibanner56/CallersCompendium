@@ -223,6 +223,13 @@ class PhraseStructure {
         : null;
   }
 
+  /// Whether the components differ in beats per bar, so that one count of
+  /// bars would mean different lengths in different parts of the tune.
+  bool get hasMixedMeter {
+    final first = components.first.beatsPerBar;
+    return components.any((component) => component.beatsPerBar != first);
+  }
+
   /// Beats in the longest phrase: [beatsPerPhrase] when the phrases are
   /// uniform, and the largest component's phrase length when they are not.
   ///

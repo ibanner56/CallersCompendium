@@ -134,7 +134,7 @@ implementation notes and deviations against each item — is in
 
 ## Later milestones
 
-- ECD and Squares support — the ECD figure grammar is accepted in [ADR-006](adr/006-english-country-dance-canonical-grammar.md) (November 2026); implementation is under way: the dance-form taxonomy slot (W1) and the ECD figure registry (W2) have landed, and the editor, typed entry, dialects, search and print follow (ADR-006 §12)
+- ECD and Squares support — the ECD figure grammar is accepted in [ADR-006](adr/006-english-country-dance-canonical-grammar.md) (November 2026); implementation is mostly complete: the taxonomy registry, the ECD figure registry, the editor, typed entry, per-form dialects, the glossary's form selector, the conversion of earlier imports, search and print have landed (ADR-006 §12 records the implementation decisions); the square dance call grammar is accepted in [ADR-007](adr/007-square-dance-canonical-grammar.md) (22 November 2026), and its pilot implementation has started
 - ~~Optional device-to-device sync, beyond Apple-native AirDrop support.~~ —
   **Cut**: [ADR-004](adr/004-device-sync-and-athenaeum.md) rules out local
   network discovery. Device-local data (venue addresses and contacts) moves by
