@@ -85,17 +85,19 @@ void main() {
       recordsByDevice: records,
     );
 
-    test('advertises glossary.v1, glossary.v2 and programTemplates.v1, and '
-        'gates on each (#1023, #2337)', () {
+    test('advertises glossary.v1, glossary.v2, programTemplates.v1 and '
+        'suggestions.v1, and gates on each (#1023, #2337, #2343)', () {
       expect(build.advertised, {
         SyncCapabilities.glossaryV1,
         SyncCapabilities.glossaryV2,
         SyncCapabilities.programTemplatesV1,
+        SyncCapabilities.suggestionsV1,
       });
       expect(build.gatedCapabilities, {
         SyncCapabilities.glossaryV1,
         SyncCapabilities.glossaryV2,
         SyncCapabilities.programTemplatesV1,
+        SyncCapabilities.suggestionsV1,
       });
     });
 
@@ -105,24 +107,31 @@ void main() {
         SyncCapabilities.glossaryV1: {'a', 'b'},
         SyncCapabilities.glossaryV2: {'a', 'b'},
         SyncCapabilities.programTemplatesV1: {'a', 'b'},
+        SyncCapabilities.suggestionsV1: {'a', 'b'},
       });
     });
 
     test('rollout: beside peers on the build before this one, which '
-        'advertise only the glossary capabilities, every peer holds '
-        'programTemplates.v1 closed', () {
-      expect(
-        closedBeside(
-          ['a', 'b'],
-          {
-            'a': {SyncCapabilities.glossaryV1, SyncCapabilities.glossaryV2},
-            'b': {SyncCapabilities.glossaryV1, SyncCapabilities.glossaryV2},
-          },
-        ),
-        {
-          SyncCapabilities.programTemplatesV1: {'a', 'b'},
-        },
-      );
+        'advertise the glossary and program template capabilities, every '
+        'peer holds suggestions.v1 closed', () {
+      const previous = {
+        SyncCapabilities.glossaryV1,
+        SyncCapabilities.glossaryV2,
+        SyncCapabilities.programTemplatesV1,
+      };
+      expect(closedBeside(['a', 'b'], {'a': previous, 'b': previous}), {
+        SyncCapabilities.suggestionsV1: {'a', 'b'},
+      });
+    });
+
+    test('both suggestions keys wait on suggestions.v1 (#2343)', () {
+      for (final key in ['suggestions_enabled', 'suggestion_settings']) {
+        expect(
+          build.capabilityFor(SyncRecordKind.setting, key),
+          SyncCapabilities.suggestionsV1,
+          reason: key,
+        );
+      }
     });
 
     test('every program template key waits on programTemplates.v1, by prefix '

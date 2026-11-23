@@ -137,6 +137,22 @@ final Map<String, DataClassification> settingsClassifications = {
   'capitalize_figures': _preference,
   'show_glossary': _preference,
   'show_custom_figures': _preference,
+  // Experimental Suggestions (#2343): the toggle, and what the builder's
+  // Suggested sort looks for.
+  'suggestions_enabled': _preference,
+  'suggestion_settings': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'The user\'s chosen weights for the program builder\'s Suggested '
+        'sort (Off / A little / A lot per factor, the difficulty curve\'s '
+        'shape and the venue window), plus a reserved list of preferences '
+        'that will hold saved-search ids. How the user likes dances '
+        'suggested, the same on every device, so it travels like any '
+        'preference. Ranking reads calling history and venues locally and '
+        'stores nothing.',
+  ),
   'calling_card_print': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.appUser,
