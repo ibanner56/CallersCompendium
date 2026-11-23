@@ -92,6 +92,11 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   petronella in B1", "chain **then** swing") built with a friendly query
   builder (ContraDB ez-query lesson: common cases one-tap, advanced tree
   behind "advanced").
+- The row of search tools (with the online source selector) and the result
+  count are pinned headers in the Collection's scroll view; the open tool's
+  panel scrolls between them. Each stays pinned only while the pinned headers
+  together cover at most half the list's viewport, so large text on a short
+  screen falls back to scrolling (`PinnedWhileRoomSliver`).
 - Search input is dialect-canonicalized; result counts announced politely to AT.
   The calling-history facet follows the active caller and performed-only scope;
   it is omitted when that scope has no qualifying calls.
