@@ -12713,5 +12713,17 @@
   "csvColumnFigures": "Figuren",
   "@csvColumnFigures": {
     "x-sourceSha256": "f2f410e7009e9a31dcc7c971e662285f4071150ef1e211f76e838efb35082d1e"
+  },
+  "csvColumnComposed": "Komponiert",
+  "@csvColumnComposed": {
+    "x-sourceSha256": "48f8b936056c4a698e3bde4460b37d246596eda04eabdde954820dbd0bc877b2"
+  },
+  "csvColumnInterpreted": "Interpretiert",
+  "@csvColumnInterpreted": {
+    "x-sourceSha256": "83512bf0aa63b8443c4367033657fdd3212ff4116b4d28bf73b6ad6d93d5f706"
+  },
+  "csvColumnBarnes": "Barnes-Verweis",
+  "@csvColumnBarnes": {
+    "x-sourceSha256": "a87089c5e6ee0a0b519cc8136c7dc9e8133ed36735490fdb09559feefdb097a5"
   }
 }

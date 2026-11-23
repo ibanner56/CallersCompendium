@@ -13293,4 +13293,13 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get csvColumnFigures => 'Figures';
+
+  @override
+  String get csvColumnComposed => 'Composée';
+
+  @override
+  String get csvColumnInterpreted => 'Interprétée';
+
+  @override
+  String get csvColumnBarnes => 'Référence Barnes';
 }

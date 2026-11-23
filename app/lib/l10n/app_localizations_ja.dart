@@ -12626,4 +12626,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get csvColumnFigures => 'フィギュア';
+
+  @override
+  String get csvColumnComposed => '振付年';
+
+  @override
+  String get csvColumnInterpreted => '解釈年';
+
+  @override
+  String get csvColumnBarnes => 'Barnes 掲載箇所';
 }

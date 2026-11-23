@@ -307,6 +307,31 @@ void main() {
     expect(cell, contains('follows end on the right'));
   });
 
+  test('the Barnes reference and the composed and interpreted dates have '
+      'columns of their own', () {
+    final ecd = Dance(
+      id: 'e1',
+      title: 'Hole in the Wall',
+      form: DanceForm.ecd,
+      authorIds: [author.id],
+      interpreterIds: [interpreter.id],
+      barnesReference: 'BIII p. 92',
+      composedOn: PartialDate(1951),
+      interpretedOn: PartialDate(1916, 3, 14),
+      createdAt: now,
+      updatedAt: now,
+    );
+    final row = csvRecords(build([ecd])).single;
+    expect(row[en.csvColumnBarnes], 'BIII p. 92');
+    expect(row[en.csvColumnComposed], '1951');
+    expect(row[en.csvColumnInterpreted], '1916-03-14');
+
+    final contra = csvRecords(build([dance()])).single;
+    expect(contra[en.csvColumnBarnes], '');
+    expect(contra[en.csvColumnComposed], '');
+    expect(contra[en.csvColumnInterpreted], '');
+  });
+
   test('the file name is the localized stem and the date', () {
     expect(
       dancesCsvFileName('dances', DateTime(2026, 11, 23)),

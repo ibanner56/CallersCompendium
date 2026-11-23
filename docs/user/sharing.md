@@ -351,12 +351,15 @@ Then choose **Save** or **Share**, or **Cancel** to export nothing. On Linux
 the second button reads **Save as…** instead of **Share** and saves the file
 through the system dialog, because there is no file share sheet to open.
 
-Each row holds the dance's title, authors, who interpreted it, type,
-formation, progression, level, whether it is a mixed-level dance and a mixer,
-status, your star **rating** (empty when unrated), tags, tunes, meter, key,
+Each row holds the dance's title, authors and when it was composed, who
+interpreted it and when, type, formation, progression, level, whether it is a
+mixed-level dance and a mixer, status, your star **rating** (empty when
+unrated), tags, tunes, meter, key, its Barnes reference (English dances),
 published sources, hook, calling notes, walkthrough and figures, then one
-column for each custom field with **Include in sharing** on. The figures are in
-one cell, one per line with their phrase labels, worded in your active
+column for each custom field with **Include in sharing** on. Dates are written
+as a year, year-month or year-month-day, as precisely as you know them (for
+example `1951`, `1951-03` or `1951-03-14`). The figures are in one cell, one
+per line with their phrase labels, worded in your active
 [dialect](./dialects.md) exactly as the dance's text export words them.
 
 The file is the same wherever you are: the columns are always separated by

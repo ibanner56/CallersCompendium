@@ -17635,5 +17635,17 @@
   "csvColumnFigures": "Figures",
   "@csvColumnFigures": {
     "description": "Column heading in an exported dances CSV spreadsheet: the dance's figures, one per line."
+  },
+  "csvColumnComposed": "Composed",
+  "@csvColumnComposed": {
+    "description": "Column heading in an exported dances CSV spreadsheet: when the dance was composed, as a year or a date."
+  },
+  "csvColumnInterpreted": "Interpreted in",
+  "@csvColumnInterpreted": {
+    "description": "Column heading in an exported dances CSV spreadsheet: when a historical dance was interpreted (reconstructed), as a year or a date."
+  },
+  "csvColumnBarnes": "Barnes reference",
+  "@csvColumnBarnes": {
+    "description": "Column heading in an exported dances CSV spreadsheet: where an English country dance appears in the Barnes books."
   }
 }

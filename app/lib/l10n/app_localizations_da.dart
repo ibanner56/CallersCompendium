@@ -13151,4 +13151,13 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get csvColumnFigures => 'Figurer';
+
+  @override
+  String get csvColumnComposed => 'Komponeret';
+
+  @override
+  String get csvColumnInterpreted => 'Fortolket';
+
+  @override
+  String get csvColumnBarnes => 'Barnes-henvisning';
 }

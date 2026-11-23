@@ -113,9 +113,13 @@ enum DanceShareField {
   }
 }
 
-/// The dance-card fields a dances spreadsheet (CSV) export carries (#2332):
-/// every one. A spreadsheet has one column per field, so it does not follow
-/// the caller's **Choose which dance fields appear** selection, which shapes
-/// cards, set lists and PDFs. Kept here, beside the other field sets, so the
-/// app's export code chooses no fields of its own.
+/// The dance-card fields a dances spreadsheet (CSV) export builds its
+/// `DanceCardContent` with (#2332): every one. A spreadsheet has fixed
+/// columns, so it does not follow the caller's **Choose which dance fields
+/// appear** selection, which shapes cards, set lists and PDFs. The export takes
+/// the dialect-rendered text (hook, calling notes, walkthrough) and the tunes
+/// from that content; structured values the card combines into lines (meter,
+/// key, Barnes reference, the composed and interpreted dates) get columns of
+/// their own, read from the dance. Kept here, beside the other field sets, so
+/// the app's export code chooses no fields of its own.
 const Set<DanceShareField> spreadsheetDanceFields = DanceShareField.all;

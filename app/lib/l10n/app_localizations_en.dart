@@ -13098,4 +13098,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get csvColumnFigures => 'Figures';
+
+  @override
+  String get csvColumnComposed => 'Composed';
+
+  @override
+  String get csvColumnInterpreted => 'Interpreted in';
+
+  @override
+  String get csvColumnBarnes => 'Barnes reference';
 }

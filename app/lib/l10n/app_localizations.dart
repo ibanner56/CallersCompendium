@@ -19300,6 +19300,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Figures'**
   String get csvColumnFigures;
+
+  /// Column heading in an exported dances CSV spreadsheet: when the dance was composed, as a year or a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Composed'**
+  String get csvColumnComposed;
+
+  /// Column heading in an exported dances CSV spreadsheet: when a historical dance was interpreted (reconstructed), as a year or a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted in'**
+  String get csvColumnInterpreted;
+
+  /// Column heading in an exported dances CSV spreadsheet: where an English country dance appears in the Barnes books.
+  ///
+  /// In en, this message translates to:
+  /// **'Barnes reference'**
+  String get csvColumnBarnes;
 }
 
 class _AppLocalizationsDelegate

@@ -67,11 +67,13 @@ class DancesCsvLookups {
 /// figure. The hook, calling notes and walkthrough are rendered in the same
 /// dialect, as on the text card.
 ///
-/// Columns: title, authors, interpreters, form, formation, progression, level,
-/// mixed level, mixer, status, rating, tags, tunes, meter, key, sources, hook,
-/// calling notes, walkthrough, figures, then one per shared custom field. The
-/// headers follow the UI language; the separator and encoding never do
-/// ([encodeCsv]).
+/// Columns: title, authors, when composed, interpreters, when interpreted,
+/// form, formation, progression, level, mixed level, mixer, status, rating,
+/// tags, tunes, meter, key, Barnes reference, sources, hook, calling notes,
+/// walkthrough, figures, then one per shared custom field. The two dates are
+/// written as [PartialDate.serialize] writes them (`YYYY`, `YYYY-MM` or
+/// `YYYY-MM-DD`), so any spreadsheet reads them the same way. The headers
+/// follow the UI language; the separator and encoding never do ([encodeCsv]).
 String buildDancesCsv(
   Iterable<Dance> dances, {
   required AppLocalizations l10n,
@@ -112,7 +114,9 @@ String buildDancesCsv(
   final header = [
     l10n.csvColumnTitle,
     l10n.csvColumnAuthors,
+    l10n.csvColumnComposed,
     l10n.csvColumnInterpreters,
+    l10n.csvColumnInterpreted,
     l10n.csvColumnForm,
     l10n.csvColumnFormation,
     l10n.csvColumnProgression,
@@ -125,6 +129,7 @@ String buildDancesCsv(
     l10n.csvColumnTunes,
     l10n.csvColumnMeter,
     l10n.csvColumnKey,
+    l10n.csvColumnBarnes,
     l10n.csvColumnSources,
     l10n.csvColumnHook,
     l10n.csvColumnCallingNotes,
@@ -161,7 +166,9 @@ String buildDancesCsv(
     rows.add([
       dance.title.trim(),
       authorNames.join(', '),
+      dance.composedOn?.serialize() ?? '',
       namesOf(dance.interpreterIds).join(', '),
+      dance.interpretedOn?.serialize() ?? '',
       danceFormLabel(l10n, dance.form),
       formationDisplayLabel(
         l10n,
@@ -183,6 +190,7 @@ String buildDancesCsv(
       content.tuneNames.join(', '),
       dance.meter.trim(),
       dance.musicalKey.trim(),
+      formHasBarnesReference(dance.form) ? dance.barnesReference.trim() : '',
       danceSourceLines(l10n, dance, (id) => lookups.sourcesById[id]).join('\n'),
       content.hook ?? '',
       content.callingNotes ?? '',
