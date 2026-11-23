@@ -30,6 +30,7 @@ import 'package:compendium_app/src/export/json_export.dart';
 import 'package:compendium_app/src/export/share_file.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
+import 'package:compendium_app/src/widgets/dance_code_view.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/widgets/dance_export_menu.dart'
@@ -1281,8 +1282,9 @@ void main() {
       tester,
     ) async {
       // Characterisation test for the DanceExportActions extraction (CS-10b):
-      // passes before and after the move, pinning that all five compact items
-      // keep reaching the same seams. The bundle item runs the Linux Save-As
+      // passes before and after the move, pinning that the compact export items
+      // (all but Show code, which opens a screen and is tested below) keep
+      // reaching the same seams. The bundle item runs the Linux Save-As
       // branch so it is observable through `saveInvoker` without a temp dir.
       isBundleShareUnsupported = () => true;
       final repos = openTestRepositories();
@@ -1357,6 +1359,35 @@ void main() {
       expect(pdfNames, ['Narrow_Dance']);
 
       expect(shares, hasLength(1));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('the overflow Show code item opens that dance as a code', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+      final library = await buildLibrary(repos);
+      await _pumpDetail(
+        tester,
+        repos,
+        'd1',
+        surfaceSize: const Size(360, 800),
+        dialectLibrary: library,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('overflow-show-code')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DanceCodeScreen), findsOneWidget);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('dance-code-title')))
+            .data,
+        'Narrow Dance',
+      );
       expect(tester.takeException(), isNull);
     });
 

@@ -67,6 +67,9 @@ const List<_BundledLicense> _bundledFontLicenses = [
 /// 3.0 US) is compiled into `compendium_core`'s `eff_long_wordlist.dart` and
 /// drives generated sync IDs. ContraDB (AGPL-3.0) is the source of the figure
 /// sentence structure and modifier phrasing the dialect renderer follows.
+/// CALLERLAB's timing lists give the default beats of square calls no
+/// traditional source counts, and CALLERLAB asks for its notice wherever that
+/// data is reproduced (ADR-007 Q1).
 /// `THIRD_PARTY_NOTICES.md` at the repo root carries the same texts (and the
 /// ported/copied source files carry them in their heads);
 /// `test/licenses_notice_test.dart` keeps the copies identical.
@@ -82,6 +85,10 @@ const List<_BundledLicense> _bundledCodeLicenses = [
   _BundledLicense(
     packages: ['ContraDB (AGPL-3.0)'],
     assetPath: 'assets/licenses/contradb-NOTICE.txt',
+  ),
+  _BundledLicense(
+    packages: ['CALLERLAB timing'],
+    assetPath: 'assets/licenses/callerlab-NOTICE.txt',
   ),
 ];
 
