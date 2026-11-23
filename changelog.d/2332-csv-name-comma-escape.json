@@ -1,0 +1,9 @@
+{
+  "id": "2332-csv-name-comma-escape",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A tag or tune whose name has a comma (like \"Hey, Ho\") no longer splits in two when you import the dances spreadsheet the app exported. The export writes that comma as \\, and the import reads it back."
+    ]
+  }
+}

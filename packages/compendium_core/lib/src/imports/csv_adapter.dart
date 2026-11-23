@@ -4,6 +4,7 @@ library;
 
 import 'package:meta/meta.dart';
 
+import '../csv/csv_name_list.dart';
 import '../csv/csv_reader.dart';
 import '../csv/csv_writer.dart' show guardCsvFormula;
 import '../model/custom_field.dart';
@@ -196,8 +197,9 @@ final RegExp _whitespace = RegExp(r'\s+');
 /// A cell RFC 4180 must quote.
 final RegExp _needsQuotes = RegExp('[",\r\n]');
 
-/// Between tunes in a tunes cell: a line break, a semicolon or a comma.
-final RegExp _tuneSeparators = RegExp(r'[\n;,]');
+/// Between tunes in a tunes cell, besides a comma: a line break or a
+/// semicolon. Only the comma can be escaped (`\,`), as the export writes it.
+const Set<String> _tuneSeparators = {'\n', ';'};
 
 /// A line break of any style.
 final RegExp _lineBreak = RegExp(r'\r\n|\r|\n');
@@ -481,16 +483,9 @@ StructuredDraft csvRowToDraft(
           mixer = b;
         }
       case CsvColumnTarget.tags:
-        tagNames.addAll(
-          value.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty),
-        );
+        tagNames.addAll(splitNameList(value));
       case CsvColumnTarget.tunes:
-        tunes.addAll(
-          value
-              .split(_tuneSeparators)
-              .map((t) => t.trim())
-              .where((t) => t.isNotEmpty),
-        );
+        tunes.addAll(splitNameList(value, extraSeparators: _tuneSeparators));
       case CsvColumnTarget.meter:
         meter = value;
       case CsvColumnTarget.key:

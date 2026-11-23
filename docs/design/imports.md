@@ -1557,7 +1557,7 @@ and `barWords`, in the export's languages and English), so `(3 places)` stays
 in the figure; a count in bars is left to the figure's default. A Level cell
 resolves through `CsvValueVocabulary.levels`, the caller's configured levels by
 their own and localized label, into `difficultyLevelId`. Authors go through
-`splitAuthorNames`; tags and tunes split on commas. A value that does not fit
+`splitAuthorNames`; tags and tunes split on commas (tunes also on semicolons and line breaks) through `splitNameList` (`csv/csv_name_list.dart`), which reads `\,` as a comma and `\\` as a backslash in a name, as the dances export writes them (`joinNameList`); any other backslash stays literal. A value that does not fit
 its field, and a second column for a single-valued field (everything but
 figures, authors, tags, tunes and notes) once an earlier column's value has
 filled it, is appended to the calling notes as
