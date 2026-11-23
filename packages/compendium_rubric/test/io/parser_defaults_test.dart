@@ -48,6 +48,7 @@ const Map<String, Operation> defaults = {
   'butterfly_whirl': ButterflyWhirl(),
   'california_twirl': CaliforniaTwirl(),
   'chain': Chain(who: WhoSet.role2s),
+  'cast': Cast(),
   'circle': Circle(turn: CircleDirection.left, places: 3),
   'circular_hey': CircularHey(),
   'contra_corners': ContraCorners(),

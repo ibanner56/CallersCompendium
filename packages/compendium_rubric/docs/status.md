@@ -39,12 +39,19 @@
 > definition, not yet ruled. Against `rubric` at `5f683503` it took the count
 > from 2,843 to 2,849 compiled in scope, with the core set unchanged at 410 and
 > nothing lost.
+>
+> **`cast` (2026-11-23)** is built on Hudson's ruling for up and down casts.
+> Measured after `circular_hey` it compiles no new dance yet: 147 of the 202
+> dances it unblocked first stop at a `down_the_hall` led by the ones alone
+> ("ones lead down"), which is still deferred. The count stays at 2,849, the
+> core set at 410, and nothing is lost.
 
-The compiler implements 52 canonical figures. Twenty-eight have no deliberately
-deferred parameter values, 24 have an implemented core with explicit
+The compiler implements 53 canonical figures. Twenty-eight have no deliberately
+deferred parameter values, 25 have an implemented core with explicit
 deferrals, and one of the figures this table has tracked since September
 remains entirely deferred (taxonomy v36 to v40 added five more, of which
-`circular_hey` is now built; see `implementation.md` §15). The `meanwhile` and `modifier` structural containers are also
+`circular_hey` and `cast` are now built; see `implementation.md` §15). The
+`meanwhile` and `modifier` structural containers are also
 deferred, but they are not normal taxonomy moves and are therefore counted
 separately. A `sequence` container is danced as the figures it holds
 (`implementation.md` §10.1).
@@ -64,12 +71,12 @@ the implementation may have a defect.
 | Status | Count | Figures |
 | --- | ---: | --- |
 | **Full parameter surface** | 28 | `arch_and_dive`, `balance`, `balance_the_ring`, `box_circulate`, `box_the_gnat`, `butterfly_whirl`, `california_twirl`, `circle`, `contra_corners`, `courtesy_turn`, `facing_star`, `form_a_long_wave`, `form_long_waves`, `give_and_take`*, `pass_by`, `pass_the_ocean`, `petronella`, `revolving_door`, `roll_away`, `rory_o_more`, `slide_along_set`, `square_through`, `stand_still`, `star`, `star_through`, `turn_alone`, `turn_as_couples`, `zig_zag` |
-| **Implemented with explicit deferrals** | 24 | `allemande`, `chain`, `circular_hey`, `cross_trails`, `do_si_do`, `down_the_hall`, `figure_8`, `form_short_waves`, `gate`, `hey`, `long_lines`, `mad_robin`, `orbit`, `pass_through`, `poussette`, `promenade`, `pull_by`, `right_left_through`, `shoulder_round`, `slice`, `star_promenade`, `swing`, `two_hand_turn`, `up_the_hall` |
+| **Implemented with explicit deferrals** | 25 | `allemande`, `cast`, `chain`, `circular_hey`, `cross_trails`, `do_si_do`, `down_the_hall`, `figure_8`, `form_short_waves`, `gate`, `hey`, `long_lines`, `mad_robin`, `orbit`, `pass_through`, `poussette`, `promenade`, `pull_by`, `right_left_through`, `shoulder_round`, `slice`, `star_promenade`, `swing`, `two_hand_turn`, `up_the_hall` |
 | **Entirely deferred canonical figures** | 1 | `dolphin_hey` |
 | **Deferred structural constructs** | 2 | `meanwhile`, which represents simultaneous figures, and `modifier`, which changes a core figure with ordered modifier figures; neither is an ordinary taxonomy move |
 
-The external vocabulary (`supportedMoves`) reports 59 supported names because
-seven aliases resolve onto the 52 canonical implementations:
+The external vocabulary (`supportedMoves`) reports 60 supported names because
+seven aliases resolve onto the 53 canonical implementations:
 
 - `meltdown_swing` resolves to `swing`;
 - `pull_by_dancers` and `pull_by_direction` resolve to `pull_by`;

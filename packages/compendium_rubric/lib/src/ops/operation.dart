@@ -16,6 +16,7 @@ import 'who.dart';
 part 'figures/arch_and_dive.dart';
 part 'figures/axis_swaps.dart';
 part 'figures/butterfly_whirl.dart';
+part 'figures/cast.dart';
 part 'figures/circle.dart';
 part 'figures/circular_hey.dart';
 part 'figures/chain.dart';

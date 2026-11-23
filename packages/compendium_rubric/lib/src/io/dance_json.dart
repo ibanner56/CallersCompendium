@@ -259,6 +259,7 @@ const Map<String, _FigureBuilder> _registry = {
   'butterfly_whirl': _buildButterflyWhirl,
   'california_twirl': _buildCaliforniaTwirl,
   'chain': _buildChain,
+  'cast': _buildCast,
   'circle': _buildCircle,
   'circular_hey': _buildCircularHey,
   'contra_corners': _buildContraCorners,
@@ -630,6 +631,18 @@ Operation _buildCrossTrails(_Params p) => CrossTrails(
   dir: p.enumOr(['where', 'dir'], Direction.fromKey, Direction.across),
   shoulder: p.enumOr(['shoulder'], Hand.fromKey, Hand.right),
   who2: p.enumOr(['who2'], WhoSet.fromKey, WhoSet.neighbors),
+);
+
+/// `cast` keeps every unstated slot unstated: its taxonomy defaults are all
+/// `unspecified`, and the figure refuses what is missing rather than the
+/// parser guessing it.
+Operation _buildCast(_Params p) => Cast(
+  who: p.optionalWhoBesidesShadows(['who']),
+  direction: p.optionalEnum(['direction'], CastDirection.fromKey),
+  places: p._first(['places']) == null ? null : p.intOr(['places'], 0),
+  // Descriptive, and outside the band-phase choice: shadows is deferred.
+  whom: p.optionalWhoBesidesShadows(['whom']),
+  destination: p.optionalString(['destination']),
 );
 
 Operation _buildCircularHey(_Params p) => CircularHey(

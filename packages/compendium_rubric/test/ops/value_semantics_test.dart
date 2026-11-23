@@ -261,6 +261,13 @@ void main() {
     'who': const ArchAndDive(who: WhoSet.ones),
   });
 
+  checkValueSemantics(const Cast(), const Cast(), {
+    'who': const Cast(who: WhoSet.ones),
+    'direction': const Cast(direction: CastDirection.down),
+    'places': const Cast(places: 1),
+    'whom': const Cast(whom: WhoSet.neighbors),
+    'destination': const Cast(destination: 'place'),
+  });
   checkValueSemantics(const CircularHey(), const CircularHey(), {
     'who': const CircularHey(who: WhoSet.partners),
     'changes': const CircularHey(changes: 3),
