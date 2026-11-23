@@ -549,6 +549,10 @@ before you know the date.
   to when the dance runs. The matrix PDF shows the start and end beside its
   date too. A program file you share keeps all four, so a guest caller you
   send it to knows when to arrive. See [Sharing](./sharing.md).
+- A [calendar file](./sharing.md#put-programs-in-your-calendar) uses the start
+  and end times for the event, so it shows at the right time instead of all
+  day, and its notes give the lesson and **Arrive by** times: it is for your
+  own calendar.
 
 If you often play the same role, set a default caller or band in
 [Settings ▸ Defaults](./settings.md#program-defaults) and new programs will

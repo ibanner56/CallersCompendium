@@ -365,10 +365,15 @@ for a JSON file. Open the file with your calendar app, or import it there.
 Each program becomes one calendar event:
 
 - **Title:** the program's title.
-- **When:** the program's date, as an all-day event.
+- **When:** the program's date, from its [start time](./programs.md#times) to
+  its end time when you've set them, or as an all-day event when it has no
+  start time. The times are local to the hall, so your calendar shows them at
+  that clock time wherever you are. An end earlier than the start ends the next
+  day; with a start and no end, the event has no end time.
 - **Where:** the venue's name — a linked venue's name, or the venue you typed.
-- **Notes:** the program's status (Draft, Finalized or Performed), and a linked
-  venue's time, if it has one.
+- **Notes:** the program's status (Draft, Finalized or Performed); the
+  beginner lesson and **Arrive by** times, if you've set them; and a linked
+  venue's time, if it has one and the program has no start time.
 
 **The venue's street address is yours to include.** If a chosen program is
 linked to a venue with an address, the app asks first:
