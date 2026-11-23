@@ -968,20 +968,23 @@ class DanceEditorForm extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         meterAndKey,
-        const SizedBox(height: AppSpacing.sm),
-        field(
-          key: 'barnes-reference',
-          textController: controller.barnesReferenceController,
-          label: l10n.danceEditorBarnesReferenceLabel,
-          hint: l10n.danceEditorBarnesReferenceHint,
-          // Counted in code units, as the [Dance] constructor bounds it,
-          // not in characters as `maxLength` counts, so nothing typed is
-          // cut on save.
-          maxLength: null,
-          inputFormatters: const [
-            CodeUnitLimitInputFormatter(kMaxBarnesReferenceLength),
-          ],
-        ),
+        // Only an English dance keeps one; any other form clears it on save.
+        if (formHasBarnesReference(controller.form)) ...[
+          const SizedBox(height: AppSpacing.sm),
+          field(
+            key: 'barnes-reference',
+            textController: controller.barnesReferenceController,
+            label: l10n.danceEditorBarnesReferenceLabel,
+            hint: l10n.danceEditorBarnesReferenceHint,
+            // Counted in code units, as the [Dance] constructor bounds it,
+            // not in characters as `maxLength` counts, so nothing typed is
+            // cut on save.
+            maxLength: null,
+            inputFormatters: const [
+              CodeUnitLimitInputFormatter(kMaxBarnesReferenceLength),
+            ],
+          ),
+        ],
       ],
     );
   }

@@ -2532,10 +2532,6 @@
   "@settingsDefaultsStartingProgramTitle": {
     "x-sourceSha256": "d43a18c5072c7c93f504cb049a3aaa925ee72aded0ece0cdfbbd0a623c312d6f"
   },
-  "settingsDefaultsStartingProgramSubtitle": "Danses et notes ajoutées aux programmes créés manuellement.",
-  "@settingsDefaultsStartingProgramSubtitle": {
-    "x-sourceSha256": "5263ff112c8931c2a4483aad83d69af9478ace82f9f0606180306ef902ddddd3"
-  },
   "settingsDefaultsStartingProgramPickerTitle": "Ajouter une danse",
   "@settingsDefaultsStartingProgramPickerTitle": {
     "x-sourceSha256": "162eb23854f7ecaf9a9fe6662f96f732bace7ea5999b540e4b6e4b189d0a01b1"
@@ -2719,6 +2715,10 @@
   "settingsDefaultsShareFieldsSources": "Sources",
   "@settingsDefaultsShareFieldsSources": {
     "x-sourceSha256": "caf85b0888d78f1f83771a07b25c3d30fa1210242f2fae6e5ae5d9a686602800"
+  },
+  "settingsDefaultsShareFieldsMusic": "Mesure, tonalité et Barnes",
+  "@settingsDefaultsShareFieldsMusic": {
+    "x-sourceSha256": "108a07a195ce0e89dc552794035bf799b093036e1ff08f16ee18d49cb56a7312"
   },
   "settingsDefaultsCollectionFiltersHeader": "Filtres de la collection",
   "@settingsDefaultsCollectionFiltersHeader": {
@@ -3171,6 +3171,14 @@
   "settingsProgramAutoCommitSubtitle": "Lorsque cette option est activée, les modifications valides sont enregistrées au fil du travail et l’éditeur ne demande pas de les abandonner à la fermeture. Désactivez-la pour enregistrer les programmes explicitement.",
   "@settingsProgramAutoCommitSubtitle": {
     "x-sourceSha256": "dab382a008252ca4221a2fea20b8df985621a2d1c177cc36af31550940324e44"
+  },
+  "settingsProgramShowPayTitle": "Afficher le cachet",
+  "@settingsProgramShowPayTitle": {
+    "x-sourceSha256": "8c2f3778ed4fded2d26f171856e27c2734856431736a8a7f126b7ae2211d4d6b"
+  },
+  "settingsProgramShowPaySubtitle": "Lorsque cette option est désactivée, l’éditeur et le résumé du programme masquent le cachet. Un cachet déjà saisi est conservé et réapparaît lorsque vous la réactivez.",
+  "@settingsProgramShowPaySubtitle": {
+    "x-sourceSha256": "23d1c431f016beafe23a6e667bcf0a2542e3c0a39e82c598c44778a5c6f34fc2"
   },
   "settingsMatrixColumnsHeader": "Colonnes de la matrice",
   "@settingsMatrixColumnsHeader": {
@@ -6182,6 +6190,42 @@
   "@programsMoreActionsForSlot": {
     "x-sourceSha256": "0fecec43e33a7122c7aea042070347d4fc3a225bec127933efbcaecd15ad267a"
   },
+  "programsAddDanceBeforeMenu": "Ajouter une danse avant",
+  "@programsAddDanceBeforeMenu": {
+    "x-sourceSha256": "cc6ba8aaee74313f0eb7b6fa07b75b99436d514edb1b8e5d1046b0f86db4bdd8"
+  },
+  "programsAddDanceAfterMenu": "Ajouter une danse après",
+  "@programsAddDanceAfterMenu": {
+    "x-sourceSha256": "b72837ffab72297a4fcce18efef0571d36aff7ae4745281c88b540437ace8c9b"
+  },
+  "programsAddBeforeSheetTitle": "Ajouter avant {title}",
+  "@programsAddBeforeSheetTitle": {
+    "x-sourceSha256": "7a561a41d345a23eabea902a44fb778618b1aeb1308ac0d37150aa6cca3ffd5b"
+  },
+  "programsAddAfterSheetTitle": "Ajouter après {title}",
+  "@programsAddAfterSheetTitle": {
+    "x-sourceSha256": "56022171b3ae774e18e5540594fad7d9b1d637ba953f598b1af16863131a98e7"
+  },
+  "programsAddingBeforeBanner": "Ajout avant {title}",
+  "@programsAddingBeforeBanner": {
+    "x-sourceSha256": "02da4f428e224712b59816b2a4aae08d5c1b425f823caa4900eb8ed7525beb66"
+  },
+  "programsAddingAfterBanner": "Ajout après {title}",
+  "@programsAddingAfterBanner": {
+    "x-sourceSha256": "0ae70c1950f92cb7229bd5a15698219c7c52791c055ef7358312e3a6c50ed8bd"
+  },
+  "programsAddedDanceBeforeAnnounce": "{title} ajoutée avant {target}.",
+  "@programsAddedDanceBeforeAnnounce": {
+    "x-sourceSha256": "6035503a47a1f83dbab1be09684893d7447a658f864f9da0780f8257bf7b29df"
+  },
+  "programsAddedDanceAfterAnnounce": "{title} ajoutée après {target}.",
+  "@programsAddedDanceAfterAnnounce": {
+    "x-sourceSha256": "72604b8c9c1a284e9dea48533a10b8e8d1536dacb139287aac6a5a7356ca40be"
+  },
+  "programsInsertionCancelledAnnounce": "Annulé. Les nouvelles danses s'ajoutent à la fin.",
+  "@programsInsertionCancelledAnnounce": {
+    "x-sourceSha256": "9ccb1b0b15958deae5614ceedac379720ac2762f5af8e5ca0763375b7ee50280"
+  },
   "programsEditSlotMenu": "Modifier le créneau",
   "@programsEditSlotMenu": {
     "x-sourceSha256": "dc765649e1c9d7087613808c4b45216d003c0b79d49716ddb4f3b1283481b552"
@@ -7998,6 +8042,10 @@
   "@importIssueBarsMeterUnstated": {
     "x-sourceSha256": "c5a034e9d32006995c2a5565b567e500f8eaac762943f9fde54b3e9554d145d9"
   },
+  "importIssueBarsMeterMixed": "Cette danse compte en mesures mais indique des métriques de longueurs de mesure différentes ; chaque mesure a donc été comptée pour 2 temps. Vérifiez ses comptes.",
+  "@importIssueBarsMeterMixed": {
+    "x-sourceSha256": "044e9303e3fac0fe97aa2b5ab81f6987a2dd83bf7e777dae12c439d55751df6a"
+  },
   "importIssueUnmappedType": "Un type de danse n'a pas été reconnu ; importé comme contra et conservé dans les notes.",
   "@importIssueUnmappedType": {
     "x-sourceSha256": "845eca2d00487b37f677dfd37b12132d108d17c2ad7805c7945b02388a64d06e"
@@ -9057,6 +9105,14 @@
   "danceEditorTypeToAddOrCreateHint": "Tapez pour ajouter ou créer…",
   "@danceEditorTypeToAddOrCreateHint": {
     "x-sourceSha256": "51aedd35e5160fcd65b816429ffa4fb5bd895fcec71e985794ecfa4d5c5e5a59"
+  },
+  "danceEditorChooseHint": "Choisir…",
+  "@danceEditorChooseHint": {
+    "x-sourceSha256": "7ca41615c19be38d63b5defd85e2db57712e18014c8d9e985f449245c0fdabc4"
+  },
+  "figureParamSearchDancersHint": "Rechercher des danseurs",
+  "@figureParamSearchDancersHint": {
+    "x-sourceSha256": "1cdb21a9c736e3bc9e88c5bcc9a28a50c318e243475c3cc00b9e60e284d1c917"
   },
   "danceEditorCreateQuotedName": "Créer « {name} »",
   "@danceEditorCreateQuotedName": {
@@ -12070,9 +12126,9 @@
   "@callingCardHelpBlockTitle": {
     "x-sourceSha256": "5d5fe3e0ea5489236a7644326e57abae2a692cd5c127e7e594c6f2d0848c68cc"
   },
-  "callingCardHelpBlockAuthors": "Qui a écrit la danse.",
+  "callingCardHelpBlockAuthors": "Qui a écrit la danse et quand, puis qui l’a interprétée et quand.",
   "@callingCardHelpBlockAuthors": {
-    "x-sourceSha256": "9cfbd8aba0a013c5676fe67625a5c40e1ae9efb9b03e589675302355901f410c"
+    "x-sourceSha256": "e731cc93fac58c222da22ce8c93e02f6dc3eb996c4c38c275f0d79337d3c5290"
   },
   "callingCardHelpBlockFormation": "La formation, comme Improper ou Becket.",
   "@callingCardHelpBlockFormation": {
@@ -12085,6 +12141,10 @@
   "callingCardHelpBlockMeta": "Formation, niveau, mixer, statut et phrase sur une ligne, chacun avec son libellé.",
   "@callingCardHelpBlockMeta": {
     "x-sourceSha256": "1928a9d33c4ba8624ec07f3fca1ea6e98c0a289f9874f6f63a0307d616555f75"
+  },
+  "callingCardHelpBlockMusic": "La mesure et la tonalité de l’air, ainsi que sa référence Barnes, sur une ligne.",
+  "@callingCardHelpBlockMusic": {
+    "x-sourceSha256": "f4aa25ebd36e9bd35718ab99ebb5fca1119d764965c467a703d6a0a05b1afb6d"
   },
   "callingCardHelpBlockFigures": "Les figures, regroupées par phrase (A1, A2, B1, B2), avec leur durée : en temps, ou en mesures pour une danse anglaise.",
   "@callingCardHelpBlockFigures": {
@@ -12233,5 +12293,305 @@
   "exportCallingCardsBiggerThanPaper": "Ces fiches sont plus grandes que le papier : chacune a donc été imprimée en plus petit, une par page.",
   "@exportCallingCardsBiggerThanPaper": {
     "x-sourceSha256": "b72cf3ae14970e26d9ca98cdea00c2c9a23b004b7d9084777486e2730750cbd6"
+  },
+  "settingsProgramTemplatesTitle": "Modèles de programme",
+  "@settingsProgramTemplatesTitle": {
+    "x-sourceSha256": "11cd9e91ebbb36605908424c91e329671d971a944d570168b37201b99f76f397"
+  },
+  "settingsProgramTemplatesCount": "{count, plural, =0{Aucun modèle pour l’instant} =1{1 modèle} other{{count} modèles}}",
+  "@settingsProgramTemplatesCount": {
+    "x-sourceSha256": "6e246ac27df2c22a960f8dff2363985d16182090dabefb998062bcd076fa09ce"
+  },
+  "settingsProgramTemplateDefaultTitle": "Modèle par défaut",
+  "@settingsProgramTemplateDefaultTitle": {
+    "x-sourceSha256": "0b1bdec38bf09a6abf20489be107408d5d5e4ea91dba0951e3ca83e2af4caa88"
+  },
+  "settingsProgramTemplateDefaultSubtitle": "Point de départ d’un nouveau programme quand on ne vous demande pas de choisir.",
+  "@settingsProgramTemplateDefaultSubtitle": {
+    "x-sourceSha256": "152866b3039d16c9556d44a06972b71f1572a510cba9f38564b896e1705e708d"
+  },
+  "settingsProgramTemplatesMigratedName": "Programme de départ",
+  "@settingsProgramTemplatesMigratedName": {
+    "x-sourceSha256": "d43a18c5072c7c93f504cb049a3aaa925ee72aded0ece0cdfbbd0a623c312d6f"
+  },
+  "programTemplateBlankProgram": "Programme vide",
+  "@programTemplateBlankProgram": {
+    "x-sourceSha256": "f8af9f215bfd9627cc76c0ca62ec2d33f6a166c637acce90837a9ea35774f56c"
+  },
+  "programTemplateDefaultBadge": "Par défaut",
+  "@programTemplateDefaultBadge": {
+    "x-sourceSha256": "21b111cbfe6e8fca2d181c43f53ad548b22e38aca955b9824706a504b0a07a2d"
+  },
+  "programTemplateChooserTitle": "Partir d’un modèle",
+  "@programTemplateChooserTitle": {
+    "x-sourceSha256": "8e9184c3b766b987df340fc4f8563a4a2d37ba40706045a96be59fdd988d4502"
+  },
+  "programTemplateNew": "Nouveau modèle",
+  "@programTemplateNew": {
+    "x-sourceSha256": "30d87ec4525974fbbdf2792b629bc913fa0eb557f33775a17735d9d4952de73b"
+  },
+  "programTemplatesEmptyTitle": "Aucun modèle pour l’instant",
+  "@programTemplatesEmptyTitle": {
+    "x-sourceSha256": "2d1ae3be976e99c97bbd3b9bf5ed19b7f308520631a5a34d8ac37785ac99edd2"
+  },
+  "programTemplatesEmptyBody": "Un modèle est une liste de départ de danses, de notes et de pauses pour un type de soirée. À partir de deux modèles, Nouveau programme vous demande lequel utiliser.",
+  "@programTemplatesEmptyBody": {
+    "x-sourceSha256": "0d53a2e44c15c407520df68a4527fbcec3d2519c02f2f1e76bb36e2f333a57d1"
+  },
+  "programTemplateNameLabel": "Nom du modèle",
+  "@programTemplateNameLabel": {
+    "x-sourceSha256": "7b905ed0eaf2ffb075ddffcda38046791eda31090b5117e51b52b5f9e10d93a2"
+  },
+  "programTemplateRename": "Renommer",
+  "@programTemplateRename": {
+    "x-sourceSha256": "3064d79a295cefe4b384b8fe5cb29fd6b06d7eb1ad94b8895f4148039d06b330"
+  },
+  "programTemplateRenameTitle": "Renommer le modèle",
+  "@programTemplateRenameTitle": {
+    "x-sourceSha256": "91f36a2250b203a91a2b09783812d84e64a0110058536e03f5c874a8b9503a08"
+  },
+  "programTemplateCopyName": "{name} (copie)",
+  "@programTemplateCopyName": {
+    "x-sourceSha256": "83ad538bfc05256cb89d845837c5f87e1d0ec2fd94e60dff972956f30e99b2b8"
+  },
+  "programTemplateUntitled": "Modèle sans nom",
+  "@programTemplateUntitled": {
+    "x-sourceSha256": "1be215111c621aa61c875e2465020509380ba44d3e2d8d49dd273ecd57a35478"
+  },
+  "programTemplateSlotCount": "{count, plural, =0{Vide} =1{1 emplacement} other{{count} emplacements}}",
+  "@programTemplateSlotCount": {
+    "x-sourceSha256": "df0ff3b27ae67a905e56ad963b150ced99e977245f78dc66bce4e845adac2c3f"
+  },
+  "programTemplateDefaultWithSlots": "Par défaut · {slots}",
+  "@programTemplateDefaultWithSlots": {
+    "x-sourceSha256": "bef5d7b9d5be1a10e03211b2269b7eca30d1d682e63faa02eb2e2e4d3b787c38"
+  },
+  "programTemplateActionsTooltip": "Actions pour {name}",
+  "@programTemplateActionsTooltip": {
+    "x-sourceSha256": "aac6defa1846338bb822f6a929e67cacd9a3fb2018b0af746592e77d5afb0625"
+  },
+  "programTemplateEditorTitle": "Modifier le modèle",
+  "@programTemplateEditorTitle": {
+    "x-sourceSha256": "708c9a5c56a40ed01a39b15ffc68023028d600264f6976715639182a0943f8b6"
+  },
+  "programTemplateSlotsHeader": "Emplacements",
+  "@programTemplateSlotsHeader": {
+    "x-sourceSha256": "4fd72c06bcff79710b0a5bd292b1f6408ec8cfa357e08566b663e4f14cbfc7f0"
+  },
+  "programTemplateSlotsSubtitle": "Danses, notes et pauses par lesquelles commence un programme créé à partir de ce modèle.",
+  "@programTemplateSlotsSubtitle": {
+    "x-sourceSha256": "d4272a4214fd2b3a38d903e2977581f47d8231c37c6e78b18eaf9f7c0f489420"
+  },
+  "programTemplatesLoadError": "Impossible de charger vos modèles de programme.",
+  "@programTemplatesLoadError": {
+    "x-sourceSha256": "82c29ffc0ee79721cbad1f290f844694166d4cefe1f3f9667aacc6316cb2be9d"
+  },
+  "programTemplateSaveError": "Impossible d’enregistrer cette modification de vos modèles. Réessayez.",
+  "@programTemplateSaveError": {
+    "x-sourceSha256": "ccd2779aa982c2a20d48a6c1edb35883736c674d626a6cc6981d3465ce6b44d0"
+  },
+  "exportAddToCalendar": "Ajouter au calendrier (.ics)",
+  "@exportAddToCalendar": {
+    "x-sourceSha256": "31e4f0aa94451560029a2d96bd786f7e184eba170090b42de83aa7c1dc9e3a19"
+  },
+  "programsExportCalendar": "Exporter le calendrier (.ics)",
+  "@programsExportCalendar": {
+    "x-sourceSha256": "86b003eef617962e68f7c96cd8b1ffe6b22f3e407cf427e78c4624d1b82efacf"
+  },
+  "exportCalendarPickTitle": "Exporter le calendrier",
+  "@exportCalendarPickTitle": {
+    "x-sourceSha256": "08b44debb5e5e2751b4cab06ba83defc0fce32f05958a0c43641caf7f33ff267"
+  },
+  "exportCalendarPickBody": "Choisissez les programmes à mettre dans le fichier de calendrier.",
+  "@exportCalendarPickBody": {
+    "x-sourceSha256": "a43694d55ecf6529fcd0238a35991f54e9a1122fe886c4f7c6437821694352ea"
+  },
+  "exportCalendarShowPast": "Afficher les programmes passés",
+  "@exportCalendarShowPast": {
+    "x-sourceSha256": "3f94290ca9527673e8b23273869540e2a57224cd8ada68cf042e53b1b6fca0ee"
+  },
+  "exportCalendarNoUpcoming": "Aucun programme à venir à afficher. Les programmes archivés ne sont pas listés ici. Activez « Afficher les programmes passés » pour en choisir un plus ancien.",
+  "@exportCalendarNoUpcoming": {
+    "x-sourceSha256": "1a64efc53cf4aa10bbb236edb8b21869c2a8333d70f3eea80aaf32162bbe53e0"
+  },
+  "exportCalendarNoDated": "Aucun programme n’a encore de date. Donnez une date à un programme pour l’ajouter à un calendrier.",
+  "@exportCalendarNoDated": {
+    "x-sourceSha256": "b7a7be72847071936ec34552731a763659f9a443a3872bad9a0c8b1eba3716be"
+  },
+  "exportCalendarPickConfirm": "Exporter",
+  "@exportCalendarPickConfirm": {
+    "x-sourceSha256": "3664895579f0a7e68c4aa09c91316e20239bc74499010e6423ece40cad7c28f7"
+  },
+  "exportCalendarAddressTitle": "Inclure l’adresse du lieu ?",
+  "@exportCalendarAddressTitle": {
+    "x-sourceSha256": "fab5026a2199b657c01748136578015b3c02c4747c03898ac16b53b6a7913266"
+  },
+  "exportCalendarAddressBody": "Le fichier de calendrier nomme le lieu. Son adresse postale est omise, sauf si vous l’incluez. Les calendriers sont souvent synchronisés ou partagés avec d’autres personnes.",
+  "@exportCalendarAddressBody": {
+    "x-sourceSha256": "8b1013c914481bc3a487e99844c4a27701f5dec8ca30c9f230fc61dc7404c8fd"
+  },
+  "exportCalendarAddressInclude": "Inclure l’adresse du lieu",
+  "@exportCalendarAddressInclude": {
+    "x-sourceSha256": "2ec8652944af313644e3e72e40771235130f8627123fefe955506ca8530c3ea5"
+  },
+  "exportCalendarDialogTitle": "Exporter le fichier de calendrier",
+  "@exportCalendarDialogTitle": {
+    "x-sourceSha256": "bde2345dc1ffa1d83facef2dec3f0c553ed1d32cff88ec5191b6beabeb684afd"
+  },
+  "exportCalendarDialogMessage": "Choisissez comment transmettre ce fichier de calendrier.",
+  "@exportCalendarDialogMessage": {
+    "x-sourceSha256": "166796fbf5beba4abe49be5f4ce64438923b8eaaa46cc7a5b65a5f99a7c435c2"
+  },
+  "exportCalendarSavedGeneric": "Fichier de calendrier enregistré.",
+  "@exportCalendarSavedGeneric": {
+    "x-sourceSha256": "c596bc8fa7b3430e59f6b548b1ae0323dc0bd8cf098246bb5cc65671bc2eaafd"
+  },
+  "exportCalendarSaveError": "Impossible d’enregistrer ce fichier de calendrier. Réessayez.",
+  "@exportCalendarSaveError": {
+    "x-sourceSha256": "2fc41316829b2fdc9ab4618e245d737365ce66fc802908ba0e66e917a3cec2ff"
+  },
+  "exportCalendarShareError": "Impossible de partager ce fichier de calendrier. Réessayez.",
+  "@exportCalendarShareError": {
+    "x-sourceSha256": "59c6b29f097723c0ffa242aec5f53af9c45340534f0a13260560b1892481c0c1"
+  },
+  "importErrorNotACalendar": "Cette adresse n’a pas renvoyé de calendrier. Pour un agenda Google, utilisez son adresse au format iCal (Paramètres et partage ▸ Intégrer l’agenda), pas le lien ordinaire.",
+  "@importErrorNotACalendar": {
+    "x-sourceSha256": "b8e19e0ee578e5b80d461e5ec229f004068cf8d20e62ac1743e94061b71c940b"
+  },
+  "importFromCalendar": "Depuis un calendrier",
+  "@importFromCalendar": {
+    "x-sourceSha256": "002282229856e8c96d2c98a4bd46ee4fa59e35a7ed554cb0a0cbb367ef727a9a"
+  },
+  "importProgramFromCalendar": "Importer depuis un calendrier",
+  "@importProgramFromCalendar": {
+    "x-sourceSha256": "adc33439e17016cbd58d6906f34183735aec593e4a8b7c07d3a85b1cf4804fba"
+  },
+  "calendarImportTitle": "Importer depuis un calendrier",
+  "@calendarImportTitle": {
+    "x-sourceSha256": "adc33439e17016cbd58d6906f34183735aec593e4a8b7c07d3a85b1cf4804fba"
+  },
+  "calendarImportImport": "Importer",
+  "@calendarImportImport": {
+    "x-sourceSha256": "2cff9baabf56ca002610e113bc94deb6ededddfc3c130365b6e88ed5195bf774"
+  },
+  "calendarAddressLabel": "Adresse du calendrier",
+  "@calendarAddressLabel": {
+    "x-sourceSha256": "82d059d6ab34cf05495d14a2a7380acf886f9f19f41b43b2e18393911618c4a6"
+  },
+  "calendarAddressHelper": "L’adresse iCal du calendrier, commençant par https:// ou webcal://. L’adresse secrète d’un calendrier privé fonctionne aussi ; gardez-la pour vous.",
+  "@calendarAddressHelper": {
+    "x-sourceSha256": "dfd76f5e8fe150a437fe07d1ba64a015774ac4c525e3a4941133ab63447ff338"
+  },
+  "calendarImportFetch": "Récupérer les événements",
+  "@calendarImportFetch": {
+    "x-sourceSha256": "ee5d2a4fd1be7fb2e265b25d1bffe68cf492878d286905625c044a7283f63c82"
+  },
+  "calendarImportFailed": "Impossible d’importer depuis le calendrier. Réessayez.",
+  "@calendarImportFailed": {
+    "x-sourceSha256": "e15756b8675d1e7aa27a7298f38913ee2d0d7c016cc75f10fae3048687bef082"
+  },
+  "calendarImportUntitled": "Événement sans titre",
+  "@calendarImportUntitled": {
+    "x-sourceSha256": "a79be2403a6c8c5725fde28627c4120e71dd3cf1e9bfdce3698ffa73870ace8e"
+  },
+  "calendarImportCommitted": "{count, plural, =1{1 programme brouillon ajouté depuis votre calendrier.} other{{count} programmes brouillons ajoutés depuis votre calendrier.}}",
+  "@calendarImportCommitted": {
+    "x-sourceSha256": "ffa27547f5038d8098ab37a2fbdbd80df7ff2d82697530f283850b17ccc2e8ba"
+  },
+  "calendarImportNothingFound": "Aucun événement dans la période.",
+  "@calendarImportNothingFound": {
+    "x-sourceSha256": "b864af5819906a18e0c9d99165bff0491502955efba02712836e546281ae47c8"
+  },
+  "calendarImportSummary": "{count, plural, =0{Aucun nouvel événement.} =1{1 nouvel événement.} other{{count} nouveaux événements.}}",
+  "@calendarImportSummary": {
+    "x-sourceSha256": "7272bf4b9b57eba993001c1c09e523949c55df3acec850c96f4d6532f9f8298c"
+  },
+  "calendarImportNewHeader": "Nouveau dans votre calendrier",
+  "@calendarImportNewHeader": {
+    "x-sourceSha256": "e73c840ddbd91c768f1c7e4eddee2d8471637e2600bfe4136be3d25545239b0b"
+  },
+  "calendarImportDeletedHeader": "Programmes que vous avez supprimés",
+  "@calendarImportDeletedHeader": {
+    "x-sourceSha256": "7784751e4af0be485344cf593a9c46fa822ac628549c7f50c12e6eaf17718ca6"
+  },
+  "calendarImportDeletedNote": "Vous avez supprimé le programme créé à partir de cet événement. Cochez-le pour l’importer à nouveau.",
+  "@calendarImportDeletedNote": {
+    "x-sourceSha256": "c85f0ed29df9d992811426af6e14078a7f96e1d530cf47fc8ead7e2c1f6539fa"
+  },
+  "calendarImportAlreadyHeader": "Déjà importé",
+  "@calendarImportAlreadyHeader": {
+    "x-sourceSha256": "e47fafe0a1c6f8d6b5c641c5d9cc7ca61e66a1c50bbc3b619c8ff5912444bfa8"
+  },
+  "calendarImportFromThisAppHeader": "Depuis cette app",
+  "@calendarImportFromThisAppHeader": {
+    "x-sourceSha256": "ffa9a609ab8ec522375948278e663e8f7ce0200da5ce309a75c4c4aef2db8b6d"
+  },
+  "calendarImportUnreadableHeader": "Événements récurrents que l’app ne sait pas lire",
+  "@calendarImportUnreadableHeader": {
+    "x-sourceSha256": "cf94fe9fa6b305bebba557e31a0e8f44661f772609715900599c082becdaf8a0"
+  },
+  "calendarImportUnreadableBody": "Ils se répètent d’une façon que l’app ne comprend pas, ils ne sont donc pas importés.",
+  "@calendarImportUnreadableBody": {
+    "x-sourceSha256": "697d99c6cd18247c5bddb75f7b3419a2c349c53ded906464dd966596ed154e33"
+  },
+  "calendarImportSkippedNoUid": "{count, plural, =1{1 événement n’a pas d’identifiant et a été ignoré.} other{{count} événements n’ont pas d’identifiant et ont été ignorés.}}",
+  "@calendarImportSkippedNoUid": {
+    "x-sourceSha256": "957369e2925755b73b3b208a96574ba86511d5a84e9536ac01dd88d77eecff3c"
+  },
+  "calendarImportTruncated": "{count, plural, other{Le calendrier contient plus de {count} événements. Seuls les {count} premiers ont été lus.}}",
+  "@calendarImportTruncated": {
+    "x-sourceSha256": "9d05f4e12d75a6e091de66518cbca2f6f8929efa055f5030b2bfb3da1a685554"
+  },
+  "calendarSettingsHeader": "Calendrier",
+  "@calendarSettingsHeader": {
+    "x-sourceSha256": "d5d0a30b517e3beab07609d7e54c378db5e15066f22280af453f587f7eec7474"
+  },
+  "calendarSettingsSaveError": "Impossible d’enregistrer ce réglage. Réessayez.",
+  "@calendarSettingsSaveError": {
+    "x-sourceSha256": "afb7fce00e9db820a9c31819934f2efcf56a33aa9e17e95fc6a6f3e819a10c8e"
+  },
+  "calendarAddressSet": "Définie. Touchez pour la modifier.",
+  "@calendarAddressSet": {
+    "x-sourceSha256": "95d15fd85197cc3abb4398ab18ff6363b390289f35928e7f9769e807eb0635e5"
+  },
+  "calendarAddressNotSet": "Non définie",
+  "@calendarAddressNotSet": {
+    "x-sourceSha256": "4895f73177ab5d67c30c183a49d2477e014a2ef69b65150762d17e877f4f5b95"
+  },
+  "calendarWindowTitle": "Quels événements",
+  "@calendarWindowTitle": {
+    "x-sourceSha256": "de70eb5bd7ca099a4a351403c9d06442811ec7ca994b4b1129213bf81c78e286"
+  },
+  "calendarWindowSubtitle": "Événements d’aujourd’hui jusqu’à cette échéance. Les événements récurrents ne sont lus que 30 jours à l’avance.",
+  "@calendarWindowSubtitle": {
+    "x-sourceSha256": "555b12bf8825781d801e41569f6bd36e40dba6f70ff2dfb6833289c40fa54215"
+  },
+  "calendarWindowOption": "{months, plural, =1{1 mois} other{{months} mois}}",
+  "@calendarWindowOption": {
+    "x-sourceSha256": "631f45b95cebbfa4d5b244bb0b7ca576b986f23baa4210e50e53f13cb4cda2c0"
+  },
+  "calendarTitleFilterTitle": "Seulement les événements dont le titre contient",
+  "@calendarTitleFilterTitle": {
+    "x-sourceSha256": "0c05ca687d56fb039d20676b546deb50864b237cf085bc122921f88b272c24fb"
+  },
+  "calendarTitleFilterHelper": "Pour un calendrier qui contient aussi d’autres événements. Laissez vide pour tous les événements.",
+  "@calendarTitleFilterHelper": {
+    "x-sourceSha256": "a283eb418c1160ffa0a80e3d189da462121a4c6435d00e30191833fa56d36474"
+  },
+  "calendarTitleFilterNone": "Tous les événements",
+  "@calendarTitleFilterNone": {
+    "x-sourceSha256": "b7f2d4d2a0a4ece4829298102dd9699f9e06dc64e608bf8eb5e7e435ac0ec634"
+  },
+  "calendarTitleFilterValue": "« {filter} »",
+  "@calendarTitleFilterValue": {
+    "x-sourceSha256": "78c29619af308f2172bbdaf859713c2df78d0b7dfaac3733df58e2b2f9daf41c"
+  },
+  "calendarPullNowTitle": "Récupérer maintenant",
+  "@calendarPullNowTitle": {
+    "x-sourceSha256": "48e87c0190bc981ad643259b55e6b7ab737e84947c1e0f5424034bbf48fc6d5e"
+  },
+  "calendarPullNowSubtitle": "Lire le calendrier et choisir les événements à ajouter comme programmes brouillons.",
+  "@calendarPullNowSubtitle": {
+    "x-sourceSha256": "73279edb72cf7422e6dc07f05f4aed6c205c2c347a74deb627eb6eda203d1b5c"
   }
 }

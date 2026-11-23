@@ -1302,15 +1302,22 @@ recommendation; the answer is quoted.
    "Alternate titles would be useful generally", and asked for "a
    free-text field tracking the book and page number for each dance (in
    one field)" for where a dance's tune is printed in the Barnes books
-   ("BIII p. 92" is book III, page 92; "NiB" is Not in Barnes). Both are
-   stored for every dance form, not only ECD: `dances.alternate_titles`
-   (plain text, one title per line) and `dances.barnes_reference` (free
-   text), joining the unreleased v42 schema and archive v8. Implementer's
-   calls, not yet ratified: one title per line rather than a JSON list, so
-   a stored value can never fail to decode; at most 20 other titles of 512
-   characters each, held by every dance (the editor stops at them, so a
-   synced or restored copy never differs from the one saved), and 100
-   characters of Barnes reference; a fresh-attach sync merge unions other titles and takes
+   ("BIII p. 92" is book III, page 92; "NiB" is Not in Barnes). They are
+   `dances.alternate_titles` (plain text, one title per line), for every
+   dance form, and `dances.barnes_reference` (free text), for ECD only,
+   joining the unreleased v42 schema and archive v8. Asked on 23 November
+   2026, the maintainer kept one title per line rather than a JSON list (so
+   a stored value can never fail to decode), and the limits: at most 20
+   other titles of 512 characters each and 100 characters of Barnes
+   reference, held by every dance (the editor stops at them, so a synced or
+   restored copy never differs from the one saved). Asked whether the
+   Barnes reference was for every form, the answer was "ECD only": the
+   `Dance` constructor clears it for any other form
+   (`formHasBarnesReference`), as it clears the improper flag (point 2), so
+   a dance moved off ECD loses it. Also kept: an import that links over an
+   existing dance keeps its other titles and Barnes reference when the
+   record carries none (the record's form still applies). Implementer's
+   calls, not yet ratified: a fresh-attach sync merge unions other titles and takes
    the latest copy's Barnes reference; the choreography fingerprint
    ignores both, so a build from before them agrees on duplicates; the
    Title search scope reads other titles and All fields reads both. Also

@@ -1,9 +1,12 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../theme/touch_density.dart';
+import '../theme/app_spacing.dart';
 import 'app_dropdown_field.dart';
+import 'multi_select_dropdown.dart';
 import '../search/facet_labels.dart';
 import 'bar_timing.dart';
 
@@ -113,7 +116,7 @@ class FigureParamEditor extends StatelessWidget {
           offerableDancerSets(rawDomain, mixer: mixer, currentValue: value),
         );
       case ParamKind.dancerList:
-        return _DancerListChips(
+        return _DancerListDropdown(
           fieldKey: _key,
           label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
           domain: [
@@ -722,13 +725,13 @@ class _TextParamFieldState extends State<_TextParamField> {
   }
 }
 
-/// The editor of a [ParamKind.dancerList] (ECD's `who`, ADR-006 §5.2): one
-/// chip per selector, any number picked, in the order picked. `everyone`
-/// stands alone, so picking it clears the others and picking another clears
-/// it; clearing the last chip leaves the list as "not stated"
-/// (`["unspecified"]`).
-class _DancerListChips extends StatelessWidget {
-  const _DancerListChips({
+/// The editor of a [ParamKind.dancerList] (ECD's `who`, ADR-006 §5.2): a
+/// field that reads the dancers picked, in the order picked, and opens a list
+/// with a checkbox per selector and a search box that narrows it. `everyone`
+/// stands alone, so checking it clears the others and checking another clears
+/// it; clearing the last leaves the list as "not stated" (`["unspecified"]`).
+class _DancerListDropdown extends StatelessWidget {
+  const _DancerListDropdown({
     required this.fieldKey,
     required this.label,
     required this.domain,
@@ -750,47 +753,199 @@ class _DancerListChips extends StatelessWidget {
         if (token is String && token != ParamVocab.unspecified) token,
   ];
 
-  void _toggle(String token, bool selected) {
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     final picked = _picked;
+    return MultiSelectDropdown(
+      key: ValueKey(fieldKey),
+      fieldKey: fieldKey,
+      valueText: picked.map(labelOf).join(', '),
+      decoration: InputDecoration(
+        labelText: label,
+        isDense: denseControls(context),
+        // As the single-choice fields show it: the label stays above, so
+        // "not stated" is on view as a value would be.
+        hintText: l10n.danceEditorParamNotStated,
+        hintStyle: theme.textTheme.bodyMedium?.copyWith(
+          fontStyle: FontStyle.italic,
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+      ),
+      panelBuilder: (context, placement) => _DancerListPanel(
+        fieldKey: fieldKey,
+        domain: domain,
+        picked: picked,
+        labelOf: labelOf,
+        onChanged: onChanged,
+        autofocus: placement.autofocus,
+        scrollController: placement.scrollController,
+      ),
+    );
+  }
+}
+
+/// The open list of a [_DancerListDropdown]: a search box, when the list is
+/// long, and a checkbox row per selector, in the vocabulary's order.
+class _DancerListPanel extends StatefulWidget {
+  const _DancerListPanel({
+    required this.fieldKey,
+    required this.domain,
+    required this.picked,
+    required this.labelOf,
+    required this.onChanged,
+    required this.autofocus,
+    this.scrollController,
+  });
+
+  final String fieldKey;
+  final List<String> domain;
+  final List<String> picked;
+  final String Function(String token) labelOf;
+  final ValueChanged<Object?> onChanged;
+  final bool autofocus;
+  final ScrollController? scrollController;
+
+  @override
+  State<_DancerListPanel> createState() => _DancerListPanelState();
+}
+
+class _DancerListPanelState extends State<_DancerListPanel> {
+  final TextEditingController _query = TextEditingController();
+  final FocusNode _queryFocus = FocusNode();
+
+  /// The picks, changed here as each box is checked. The owner's rebuild
+  /// reaches this list a frame or two later, so a second check made before
+  /// then must build on the first, not on the owner's older value.
+  late List<String> _picked = widget.picked;
+
+  @override
+  void didUpdateWidget(covariant _DancerListPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!listEquals(widget.picked, oldWidget.picked)) _picked = widget.picked;
+  }
+
+  /// Checks or unchecks [token]. `everyone` stands alone, so checking it
+  /// clears the others and checking another clears it; unchecking the last
+  /// leaves the list "not stated".
+  void _toggle(String token, bool selected) {
     final List<String> next;
     if (!selected) {
       next = [
-        for (final t in picked)
+        for (final t in _picked)
           if (t != token) t,
       ];
     } else if (ParamVocab.soloDancerTokens.contains(token)) {
       next = [token];
     } else {
       next = [
-        for (final t in picked)
+        for (final t in _picked)
           if (!ParamVocab.soloDancerTokens.contains(t)) t,
         token,
       ];
     }
-    onChanged(next.isEmpty ? const [ParamVocab.unspecified] : next);
+    setState(() => _picked = next);
+    widget.onChanged(next.isEmpty ? const [ParamVocab.unspecified] : next);
+  }
+
+  bool get _searchable => widget.domain.length >= appDropdownFilterFrom;
+
+  @override
+  void initState() {
+    super.initState();
+    _query.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _query.dispose();
+    _queryFocus.dispose();
+    super.dispose();
+  }
+
+  /// The selectors whose label holds the typed text.
+  List<String> get _rows {
+    final wanted = _query.text.trim().toLowerCase();
+    if (wanted.isEmpty) return widget.domain;
+    return [
+      for (final token in widget.domain)
+        if (widget.labelOf(token).toLowerCase().contains(wanted)) token,
+    ];
+  }
+
+  /// Enter in the search box: checks the first match not yet picked, then
+  /// clears the box for the next. With every match picked, Enter does
+  /// nothing and the typed text stays.
+  void _submit() {
+    if (_query.text.trim().isEmpty) return;
+    final first = _rows.where((t) => !_picked.contains(t)).firstOrNull;
+    if (first == null) return;
+    _toggle(first, true);
+    _query.clear();
+    _queryFocus.requestFocus();
   }
 
   @override
   Widget build(BuildContext context) {
-    final picked = _picked;
+    final l10n = AppLocalizations.of(context);
+    final rows = _rows;
     return Column(
-      key: ValueKey(fieldKey),
-      crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(label, style: Theme.of(context).textTheme.labelMedium),
-        Wrap(
-          spacing: 4,
-          runSpacing: 4,
-          children: [
-            for (final token in domain)
-              FilterChip(
-                key: ValueKey('$fieldKey-$token'),
-                label: Text(labelOf(token)),
-                selected: picked.contains(token),
-                onSelected: (selected) => _toggle(token, selected),
+        if (_searchable)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.sm,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
+            child: TextField(
+              key: ValueKey('${widget.fieldKey}-input'),
+              controller: _query,
+              focusNode: _queryFocus,
+              autofocus: widget.autofocus,
+              decoration: InputDecoration(
+                hintText: l10n.figureParamSearchDancersHint,
+                prefixIcon: const Icon(Icons.search),
+                isDense: true,
               ),
-          ],
+              onSubmitted: (_) => _submit(),
+            ),
+          ),
+        Flexible(
+          child: ListView.builder(
+            key: ValueKey('${widget.fieldKey}-options'),
+            controller: widget.scrollController,
+            shrinkWrap: true,
+            itemCount: rows.length,
+            itemBuilder: (context, i) {
+              final token = rows[i];
+              final checked = _picked.contains(token);
+              return CheckboxListTile(
+                key: ValueKey('${widget.fieldKey}-$token'),
+                dense: true,
+                controlAffinity: ListTileControlAffinity.leading,
+                value: checked,
+                title: Text(widget.labelOf(token)),
+                onChanged: (_) => _toggle(token, !checked),
+              );
+            },
+          ),
+        ),
+        Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.xs),
+            child: TextButton(
+              key: ValueKey('${widget.fieldKey}-done'),
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n.commonDone),
+            ),
+          ),
         ),
       ],
     );

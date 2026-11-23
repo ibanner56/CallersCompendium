@@ -325,8 +325,10 @@ exceptions: it keeps the dance's **rating** whenever the incoming record
 carries none (*B19 follow-up*, maintainer decision of 2026-10-30, "Keep my
 rating"), and likewise its interpreters, interpretation date, other titles and
 Barnes reference (implementer's call, extending the rating rule to fields most
-sources never carry). A value the record does carry replaces the existing
-one. The rule lives in
+sources never carry; the maintainer kept it on 23 November 2026). A value the
+record does carry replaces the existing one. The record's form still applies,
+so a link to a record of a form other than ECD clears the Barnes reference,
+which only an ECD dance holds. The rule lives in
 `_rebuildWithIdentity`'s `keepFrom`, beside the custom-field merge, so it holds
 for every source that links: share files, archives, Caller's Box and `.USR`.
 Otherwise a link is out of scope of the re-import decision. Provenance is refreshed on a re-import, unlike the detail-screen
@@ -1593,15 +1595,24 @@ Which is which, derived from the code rather than from memory:
   `_handBalanceSquareThrough`, `_squareThroughPassList`,
   `_balanceHandAnnotation`, `_balancePairHandAnnotation`, `_gateAnnotation`,
   `_courtesyTurnAnnotation`, `_tcbCast`, `_walkForwardAnnotation`,
-  `_chainAnnotation`, `_starPromenadeAnnotation`, `_promenadeAnnotation`,
+  `_tcbBareLongWave`, `_chainAnnotation`, `_starPromenadeAnnotation`,
+  `_singleFileWholeSetPromenade`, `_promenadeAnnotation`,
   `_rightLeftThroughAnnotation`, `_singleFileCircleRecognizer`,
   `_bracketAnnotation`, `_weaveSlideAnnotation`, `_perRoleChoreoAnnotation`,
-  `_proseAnnotation` and `_decodeSideRunAnnotation`. All but three are the
+  `_proseAnnotation` and `_decodeSideRunAnnotation`. All but five are the
   falls-through kind. `_squareThroughPassList` sends a `without hands` line
   whose pass list does not decode to `custom` (#1971),
   `_bracketAnnotation` does the same for a leading bracket that names no
-  modelled subject, and `_tcbCast` (taxonomy v40) does it for a `(past …)`
-  list it cannot count, or a count the line contradicts. The front end also has a veto (`_tcbDeclineToCustom`).
+  modelled subject, `_tcbCast` (taxonomy v40) does it for a `(past …)`
+  list it cannot count, or a count the line contradicts, `_tcbBareLongWave`
+  (#2331) for a bare `form long wave` whose annotation names holds
+  (`(P2L,P3R, women face in)`, `[M1 with N2, W1 with N1]`), and
+  `_singleFileWholeSetPromenade` (#2331) for a single-file promenade around
+  the major set it cannot read whole (an unresolved destination, a places
+  amount, or a counter-rotation annotation). The front end also has a veto
+  (`_tcbDeclineToCustom`): a single-file circle amount that is not a
+  fraction, a per-role amount (`(M 1 & 1/2, W 2)`), and, since #2331, a
+  parenthetical that opens with a choice of amounts (`(1 or 2)`).
 - `contraDbHtmlFigureFrontEnd` registers its **entire grammar** as
   pre-recognizers, **and** supplies a veto. Both halves matter, and they pull in
   opposite directions, which is why this front end is the one most likely to be
@@ -1627,7 +1638,7 @@ Which is which, derived from the code rather than from memory:
   and will claim the line anyway. Both `contraDbHtmlFigureFrontEnd`
   (`_declineStarPromenade`) and `tcbFigureFrontEnd` (`_tcbDeclineToCustom`)
   supply one. A source can also force `custom` from a pre-recognizer that
-  returns `FigureMatch.customFallback()`, as the two TCB ones listed above do.
+  returns `FigureMatch.customFallback()`, as the five TCB ones listed above do.
 
 **"Verbatim" — say verbatim *against what*.** The word carries at least three
 senses here, and only one of them is ever wrong. The custom fallback stores the
@@ -1721,13 +1732,25 @@ has to be judged in its own context.
   (→ structured turn plus a preserved note; a `to <dancer>` tail or
   `(to <dancer>)` annotation also fills `destination`, and its words stay in
   the note because the v30 render gate hides the clause at the `across`
-  default), pass the ocean +
+  default; a SINGLE-FILE promenade `clockwise`/`counterclockwise` around the
+  major set (#2331) is `promenade{singleFile, where: along, direction,
+  destination}`, whose `along` renders the destination, so only `around the
+  major set` stays in the note — one it cannot read whole stays custom, never
+  a single-file circle), pass the ocean +
   trailing balance wave (→ `pass_the_ocean` / `form_short_waves` /
   `form_a_long_wave` / `form_long_waves` with `balance: true`, beats summed;
   #577; a balance line whose annotation does not decode — `(Ph1R,WL)`,
   `(SRNR,1CL)` — is not folded and stays custom, since the fold carries only
   decoded params; since taxonomy v38 a square corner decodes, so `(C2R,WL)`
-  folds with `opposites` as the sides), diagonal chain /
+  folds with `opposites` as the sides; since #2331 a bare `form long wave` is
+  `form_long_waves` with an unstated facing (its own line's beats aside, a
+  bare wave states nothing else), its `Balance long wave (…, <role>
+  face in)` fills the facing and the holds — also when the balance opens the
+  next phrase, the one fold that crosses a section, since the wave takes no
+  beats — a balance whose other words that wave cannot carry (`Men balance
+  long wave`, `… for all`) stays custom, and one that says `in center` makes
+  the pair the centre wave, `form_a_long_wave`, as `form long wave in center`
+  reads), diagonal chain /
   hey
   / right-&-left-through (→ `dir: left/rightDiagonal`), same-role right & left
   through (variant kept as a note), weave-the-line `with <dancer>`, relationship
@@ -2365,9 +2388,13 @@ ECD dance.
   no meter unless its own word names it (`Meter 3/2 of Playford`), and an
   opening `A` before a meter and a lower-case word or a kind of tune
   (`A 3/2 hornpipe`, `A 3/2 Hornpipe`) is the article, not key A; such a text
-  may give its key as `in G`. When a bar range is
-  counted with no stated meter, the dance gets the info issue
-  `cc_bars_meter_unstated`.
+  may give its key as `in G`. A Music text naming meters of different bars
+  (`Meter: 3/4 and 6/8`, #2365) keeps them as its meter as written, from the
+  first to the last (`3/4 and 6/8`), which states none, so its bars count 2
+  beats; meters of the same bar (`2/2 or 6/8`) keep the first. When a bar
+  range is counted with no stated meter, the dance gets the info issue
+  `cc_bars_meter_unstated`, or `cc_bars_meter_mixed` when its Music names
+  meters of different bars.
 - **Caller's Companion English phrase structure** (ADR-006 §9.2 point 8).
   An English dance whose sections are all labeled `A`, `B` or `C`, alone
   or numbered `1` then `2`, each letter's sections together, takes them as
@@ -2596,6 +2623,7 @@ without it would destroy detail the custom text preserved verbatim):
 | `Balance wave of four (<pair><H>, <role><H'>)` | `form_short_waves{balance, sides: <pair>, center: <role>, centerHand: <H'>}` |
 | `Balance wave of four` (no annotation) | `form_short_waves{balance}` (MoveDef defaults, as a bare "Form a wave" line already does) |
 | `Balance long wave (<pair><H>, <role> face in)` | `form_long_waves{balance, whom: <pair>, hand: <H>, who: <role>}` |
+| `Balance long wave (<pair><H>, <pair'><H'>, <role> face in)` (#2331; the hands opposite, the pairs different) | the same plus `whom2: <pair'>`, the pair held by the other hand |
 
 The role pair is the wave's **centre** and the relationship pair its **sides**,
 with the two hands OPPOSITE — verified on the corpus (2,560 of 2,764 wave-of-four
@@ -2607,14 +2635,16 @@ Roles reach the decoder already canonicalized ("women face in" is stored as
 
 **Deliberately still custom** (prefer-custom — the whole line must be accounted
 for): wave sizes we do not model (`wave of two/three/five/six/seven/eight`),
-exotic formations (`intersecting`, `interlocking`, `circular wave`), annotations
-naming two hand-holds at once (`(N2R,N1L, women face in)`), people codes with no
+exotic formations (`intersecting`, `interlocking`, `circular wave`), two
+hand-holds by the same hand or with the same pair (`(N2R,N1R, women face in)`),
+people codes with no
 taxonomy slot (`C2`, `1CC`, `O`, `TB`, `SRN…`, `?` — the omissions documented
 on `tcbPassPeople`, whose single map this decoder reuses), `someone face
 in`, and `Balance long wave for all in center`. The singular
 `form_a_long_wave` sense (ONE long wave in the centre formed by a subset) is
 never guessed at either — a line meaning that reaches it through Fold 4 from the
-preceding `form long wave in center` line.
+preceding `form long wave in center` line, or from a bare `form long wave`
+whose balance says `in center` (#2331).
 
 **Supporting recognizer change.** `form (a) wave of four [with <dancer>]` — TCB's
 dominant forming wording (~1,000 clauses) — now structures as `form_short_waves`

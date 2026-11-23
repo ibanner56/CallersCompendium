@@ -35,6 +35,9 @@ import 'export_labels.dart';
 ///   precedent, ROADMAP 4b.4: a shared export must never carry a Choreographer
 ///   record, so private contact fields like email/location have no path in —
 ///   this renderer only ever sees names).
+/// - [interpreterNames] are the already-resolved names of the people who
+///   interpreted the dance, under the same contract; they print with the
+///   authors, under [DanceShareField.authors], and never choose the dialect.
 /// - [formationLabel], [levelLabel] and [statusLabel] are the app's
 ///   human-readable facet labels; [levelLabel] is `null` when unspecified and
 ///   the Level line is omitted. The Status line is omitted for an active dance.
@@ -49,20 +52,22 @@ import 'export_labels.dart';
 ///
 /// [fields] selects which non-figures fields appear (issue #1434); figures
 /// are controlled separately (unaffected by this parameter). Defaults to
-/// [DanceShareField.allExceptTunes], matching every block this renderer
-/// emitted before the picker existed — so a caller that doesn't pass [fields]
-/// (every call site before this parameter was added) sees no change, and
-/// tunes stays off until explicitly selected.
+/// [DanceShareField.allExceptTunes]: every block this renderer emitted
+/// before the picker existed, plus the meter, key and Barnes lines; tunes,
+/// the hook and sources stay off until explicitly selected.
 ///
 /// Layout:
 /// ```
 /// <TITLE>
-/// <author, author>
+/// <author, author> (<composed year>)
+/// Interpreted by <interpreter, interpreter> (<interpreted year>)
 /// Formation: <formationLabel>
 /// Level: <levelLabel>
 /// Mixer
 /// Status: <statusLabel>
 /// Phrase: <phrase structure, see phraseStructureText>
+/// Meter: <meter> · Key: <key>
+/// Barnes: <Barnes reference>
 /// Hook: <hook>
 ///
 /// Figures:
@@ -88,6 +93,7 @@ String danceToPlainText(
   Dance dance, {
   required Dialect dialect,
   required List<String> authorNames,
+  List<String> interpreterNames = const [],
   required String formationLabel,
   String? levelLabel,
   required String statusLabel,
@@ -102,6 +108,7 @@ String danceToPlainText(
     dance,
     dialect: dialect,
     authorNames: authorNames,
+    interpreterNames: interpreterNames,
     formationLabel: formationLabel,
     levelLabel: levelLabel,
     statusLabel: statusLabel,
@@ -119,11 +126,9 @@ String danceToPlainText(
 
   lines.add(content.title);
 
-  if (content.authorNames.isNotEmpty) {
-    lines.add(content.authorNames.join(', '));
-  }
-
+  lines.addAll(content.creditLines);
   lines.addAll(content.metaLines);
+  lines.addAll(content.musicLines);
 
   if (content.hook case final hook?) {
     lines.add('${labels.labelled(labels.hook)}$hook');

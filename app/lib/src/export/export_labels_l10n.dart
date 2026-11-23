@@ -28,6 +28,16 @@ DanceExportLabels danceExportLabels(AppLocalizations l10n) => DanceExportLabels(
   namedPhraseSeparator: l10n.exportNamedPhraseSeparator,
   labelSeparator: l10n.exportLabelSeparator,
   pageOf: l10n.exportPageOfPages,
+  // The dance detail screen's own credit and tune-detail lines, so a card
+  // reads as the screen does.
+  authorsWithYear: l10n.danceAuthorsWithYear,
+  composedYear: l10n.danceComposedYear,
+  interpretedBy: l10n.danceInterpretedBy,
+  interpretedByWithYear: l10n.danceInterpretedByWithYear,
+  interpretedYear: l10n.danceInterpretedYear,
+  meter: l10n.danceMeterValue,
+  musicalKey: l10n.danceMusicalKeyValue,
+  barnes: l10n.danceBarnesValue,
 );
 
 ProgramExportLabels programExportLabels(AppLocalizations l10n) =>

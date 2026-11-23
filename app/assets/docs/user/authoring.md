@@ -336,6 +336,11 @@ Select a figure to open it. What you can change depends on the move:
 - **Parameters** — most moves have a few (which role, how far, which way round).
   Common ones show straight away; choose **More options** to see the rest, and
   **Fewer options** to fold them back.
+- **Who** — on an English figure, the dancers it names, any number of them:
+  tap the field to open the list, check each group (type to narrow the list),
+  and the field reads them in the order you checked them, as in "twos,
+  threes". **Everyone** stands alone, so checking it clears the others.
+  Unchecking them all leaves it *not stated*.
 - **Beats** — every figure has a beat count you can raise or lower.
 - **Progression** — mark the figure the dance
   [progresses](./glossary.md#progression) on. Moves that can carry the
@@ -664,7 +669,10 @@ nothing in it to lose.
 
 - **Title** — required.
 - **Authors** — the [author](./glossary.md#author) or authors of the dance.
-  Type to find an existing author or create a new one.
+  Tap the field to open the list of people: check each author, type in the
+  search box to narrow the list, or choose **Create** to add someone new. The
+  pencil beside a name edits that person's details. **Interpreted by** works
+  the same way, and so does **Tags**, without the pencil.
 - For an **English (ECD)** dance, the credits for its original and its
   interpretation come next, each as names with a year beside them: **Authors**
   with **Composed**, then **Interpreted by** with **Interpreted in**. Many
@@ -687,11 +695,13 @@ nothing in it to lose.
   anything worth adding in words. An English dance offers English formations,
   such as duple minor, triple minor and three-couple longways, with a
   **Starts improper** checkbox; leave it unchecked for a dance that starts
-  proper. Changing the type to one whose list doesn't have the dance's
-  formation starts the formation over: on **Duple minor** for English, and
-  on **Improper** for contra or square. A formation both lists have, such
-  as triple minor, is kept, and contra and square share all of theirs.
-  Undo brings the old formation back.
+  proper. A square offers **Square**, **Circle** for a big-circle dance such
+  as a running set, and **Other**. Changing the type to one whose list
+  doesn't have the dance's formation starts the formation over: on **Duple
+  minor** for English, **Improper** for contra, and **Square** for a square.
+  A formation both lists have, such as triple minor between contra and
+  English or circle between English and square, is kept. Undo brings the
+  old formation back.
 - **Mixer** — tick this when the dance is a
   [mixer](./glossary.md#mixer): one where you change partners each time through.
   It's kept separate from the formation, because a mixer can be danced in many
@@ -719,9 +729,10 @@ nothing in it to lose.
   such as `G minor`, in your own words. They sit here for an English dance and
   in **More details** for other types. The dance's detail view and its Perform
   card show them on one line, such as *Meter: 6/8 · Key: G minor*.
-- **Barnes reference** — where the tune is printed in the Barnes books, book and
-  page in one line, such as `BIII p. 92`, or `NiB` when it is not in them. It
-  sits under **Meter** and **Key**. The dance's detail view shows it under
+- **Barnes reference** — for an English dance only: where the tune is printed
+  in the Barnes books, book and page in one line, such as `BIII p. 92`, or `NiB`
+  when it is not in them. It sits under **Meter** and **Key**. Changing a
+  dance to another type clears it when you save. The dance's detail view shows it under
   **Barnes books**, and its Perform card as *Barnes: BIII p. 92*.
 
 ### Notes
@@ -771,7 +782,7 @@ updates the default used everywhere.
 | **Rating** | Your own star rating, with **Clear rating** to unset it |
 | **Composed** / **Revised** | A year, optionally with a month and day; for an English dance, Composed is a year, up front beside the authors |
 | **Interpreted by** / **Interpreted in** | Who reconstructed the dance from its original, and when; for an English dance, up front, with Interpreted in as a year beside the names |
-| **Meter** / **Key** / **Barnes reference** | The tune's written meter and key, and where it is printed in the Barnes books; up front for an English dance |
+| **Meter** / **Key** | The tune's written meter and key; up front for an English dance, with its **Barnes reference** |
 | **Tags** | Your own labels |
 | **Tunes** | Tunes you like with this dance |
 | **Links** | A URL with an optional label, marked **Source**, **Video**, or **Other** |

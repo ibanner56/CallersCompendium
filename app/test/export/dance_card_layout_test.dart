@@ -146,6 +146,70 @@ void main() {
     });
   });
 
+  group('credits and tune details', () {
+    final english = Dance(
+      id: 'e1',
+      title: 'Hole in the Wall',
+      form: DanceForm.ecd,
+      composedOn: PartialDate(1951),
+      interpretedOn: PartialDate(1916),
+      meter: '3/2',
+      musicalKey: 'D minor',
+      barnesReference: 'BI p. 63',
+      figures: [
+        Figure(move: 'swing', params: {'who': 'partners', 'beats': 8}),
+      ],
+      createdAt: now,
+      updatedAt: now,
+    );
+    DanceCardContent englishContent(Set<DanceShareField> fields) =>
+        DanceCardContent.build(
+          english,
+          dialect: Dialect.canonical,
+          authorNames: const ['Pat Shaw'],
+          interpreterNames: const ['Cecil Sharp'],
+          formationLabel: 'Duple minor',
+          statusLabel: 'Active',
+          renderer: fig,
+          labels: labels,
+          fields: fields,
+        );
+    const expected = [
+      'Pat Shaw (1951)',
+      'Interpreted by Cecil Sharp (1916)',
+      'Meter: 3/2 · Key: D minor',
+      'Barnes: BI p. 63',
+    ];
+
+    test('the dance PDF and the program appendix both print them', () {
+      final c = englishContent(DanceShareField.allExceptTunes);
+      final card = textsOf(danceCard(english, c, Dialect.canonical));
+      final appended = textsOf(
+        programAppendixWidgets(
+          [(dance: english, isAlternate: false, content: c)],
+          fig,
+          DialectsByForm.all(Dialect.canonical),
+          labels,
+          const ProgramExportLabels(),
+        ),
+      );
+      for (final line in expected) {
+        expect(card, contains(line));
+        expect(appended, contains(line));
+      }
+    });
+
+    test('the dance PDF drops meter, key and Barnes with their field', () {
+      final c = englishContent(
+        {...DanceShareField.allExceptTunes}..remove(DanceShareField.music),
+      );
+      final card = textsOf(danceCard(english, c, Dialect.canonical));
+      expect(card, contains('Pat Shaw (1951)'));
+      expect(card, isNot(contains('Meter: 3/2 · Key: D minor')));
+      expect(card, isNot(contains('Barnes: BI p. 63')));
+    });
+  });
+
   group('programAppendixWidgets', () {
     List<pw.Widget> appendix(
       Dance d, {

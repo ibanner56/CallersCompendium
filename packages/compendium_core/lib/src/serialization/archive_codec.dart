@@ -963,7 +963,20 @@ Program _programFromJson(Map<String, Object?> m) => Program(
   updatedAt: _dt(m, 'updatedAt'),
   deletedAt: _dtOrNull(m, 'deletedAt'),
   archivedAt: _dtOrNull(m, 'archivedAt'),
+  calendarEventKey: _calendarEventKeyOrNull(m),
 );
+
+/// A program's calendar event key (#2352): 64 lower-case hex digits, the
+/// SHA-256 digest `calendarEventKey` writes. Anything else is dropped rather
+/// than refusing the program: the key only stops a calendar import offering
+/// the event again, so losing a malformed one costs at most a repeat offer.
+String? _calendarEventKeyOrNull(Map<String, Object?> m) {
+  final v = m['calendarEventKey'];
+  if (v is! String || !_calendarEventKeyPattern.hasMatch(v)) return null;
+  return v;
+}
+
+final _calendarEventKeyPattern = RegExp(r'^[0-9a-f]{64}$');
 
 List<ProgramSlot> _programSlotsFromJson(Object? raw) {
   if (raw == null) return const [];

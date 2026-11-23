@@ -51,6 +51,7 @@ class DanceExportActions {
     required this.dance,
     required this.dialect,
     required this.authorNames,
+    this.interpreterNames = const [],
     required this.formationLabel,
     required this.statusLabel,
     required this.canonicalizeDiscouragedTerms,
@@ -73,6 +74,10 @@ class DanceExportActions {
   final Dance dance;
   final Dialect dialect;
   final List<String> authorNames;
+
+  /// The resolved names of whoever interpreted the dance; they print with
+  /// the authors and never choose the dialect.
+  final List<String> interpreterNames;
   final String formationLabel;
   final String statusLabel;
   final String? levelLabel;
@@ -119,6 +124,7 @@ class DanceExportActions {
     dance,
     dialect: dialect,
     authorNames: authorNames,
+    interpreterNames: interpreterNames,
     formationLabel: formationLabel,
     levelLabel: levelLabel,
     statusLabel: statusLabel,
@@ -275,6 +281,7 @@ class DanceExportActions {
         dance,
         dialect: dialect,
         authorNames: authorNames,
+        interpreterNames: interpreterNames,
         formationLabel: formationLabel,
         levelLabel: levelLabel,
         statusLabel: statusLabel,
@@ -304,6 +311,7 @@ class DanceExportActions {
         dance: dance,
         labels: (
           authorNames: authorNames,
+          interpreterNames: interpreterNames,
           formationLabel: formationLabel,
           levelLabel: levelLabel,
           statusLabel: statusLabel,

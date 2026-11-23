@@ -54,6 +54,7 @@ class DanceExportMenu extends StatelessWidget {
     required this.dance,
     required this.dialect,
     required this.authorNames,
+    this.interpreterNames = const [],
     required this.formationLabel,
     required this.statusLabel,
     this.levelLabel,
@@ -73,14 +74,19 @@ class DanceExportMenu extends StatelessWidget {
   final Dance dance;
   final Dialect dialect;
   final List<String> authorNames;
+
+  /// The resolved names of whoever interpreted the dance; they print with
+  /// the authors and never choose the dialect.
+  final List<String> interpreterNames;
   final String formationLabel;
   final String statusLabel;
   final String? levelLabel;
   final FigureRenderer? renderer;
 
   /// Which non-figures fields appear on the exported card (issue #1434).
-  /// Defaults to every field this widget rendered unconditionally before the
-  /// picker existed, minus the opt-in tunes, hook and sources — see
+  /// Defaults to the default set: every field this widget rendered
+  /// unconditionally before the picker existed, plus the meter, key and
+  /// Barnes lines, without the opt-in tunes, hook and sources — see
   /// [DanceShareField.allExceptTunes].
   final Set<DanceShareField> fields;
   final Map<String, Choreographer> choreographersById;
@@ -113,6 +119,7 @@ class DanceExportMenu extends StatelessWidget {
     dance: dance,
     dialect: dialect,
     authorNames: authorNames,
+    interpreterNames: interpreterNames,
     formationLabel: formationLabel,
     statusLabel: statusLabel,
     levelLabel: levelLabel,

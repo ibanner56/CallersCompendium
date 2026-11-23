@@ -117,6 +117,7 @@ Future<Uint8List> buildCallingCardsPdf(
       entry.dance,
       dialect: dialect,
       authorNames: entry.labels.authorNames,
+      interpreterNames: entry.labels.interpreterNames,
       formationLabel: entry.labels.formationLabel,
       levelLabel: entry.labels.levelLabel,
       statusLabel: entry.labels.statusLabel,
@@ -508,10 +509,11 @@ class _CardBuilder {
   String _textFor(CallingCardBlockKind kind, CallingCardBlock b) =>
       switch (kind) {
         CallingCardBlockKind.title => content.title,
-        CallingCardBlockKind.authors => content.authorNames.join(', '),
+        CallingCardBlockKind.authors => content.creditLines.join('  ·  '),
         CallingCardBlockKind.formation => content.formation ?? '',
         CallingCardBlockKind.level => content.level ?? '',
         CallingCardBlockKind.meta => content.metaLines.join('  ·  '),
+        CallingCardBlockKind.music => content.musicLines.join('  ·  '),
         CallingCardBlockKind.notes => content.callingNotes ?? '',
         CallingCardBlockKind.walkthrough => content.walkthrough ?? '',
         CallingCardBlockKind.hook => content.hook ?? '',

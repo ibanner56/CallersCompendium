@@ -33,6 +33,23 @@ String _englishMinutes(int minutes) => '$minutes min';
 
 String _englishBy(String names) => 'by $names';
 
+String _englishAuthorsWithYear(String names, String year) => '$names ($year)';
+
+String _englishComposedYear(String year) => 'Composed $year';
+
+String _englishInterpretedBy(String names) => 'Interpreted by $names';
+
+String _englishInterpretedByWithYear(String names, String year) =>
+    'Interpreted by $names ($year)';
+
+String _englishInterpretedYear(String year) => 'Interpreted $year';
+
+String _englishMeter(String meter) => 'Meter: $meter';
+
+String _englishMusicalKey(String key) => 'Key: $key';
+
+String _englishBarnes(String reference) => 'Barnes: $reference';
+
 String _englishPageOf(int page, int pages) => 'Page $page of $pages';
 
 String _englishOmittedCaption(int count) =>
@@ -62,6 +79,14 @@ class DanceExportLabels {
     this.namedPhraseSeparator = ', ',
     this.labelSeparator = ': ',
     this.pageOf = _englishPageOf,
+    this.authorsWithYear = _englishAuthorsWithYear,
+    this.composedYear = _englishComposedYear,
+    this.interpretedBy = _englishInterpretedBy,
+    this.interpretedByWithYear = _englishInterpretedByWithYear,
+    this.interpretedYear = _englishInterpretedYear,
+    this.meter = _englishMeter,
+    this.musicalKey = _englishMusicalKey,
+    this.barnes = _englishBarnes,
   });
 
   final String formation;
@@ -128,6 +153,35 @@ class DanceExportLabels {
 
   /// Page footer of the dance PDF, e.g. `"Page 2 of 3"`.
   final String Function(int page, int pages) pageOf;
+
+  /// The authors' names with the year the dance was composed, such as
+  /// `"Pat Shaw (1951)"`; the detail screen's line, `danceAuthorsWithYear`.
+  final String Function(String names, String year) authorsWithYear;
+
+  /// The year a dance was composed when no author is named, such as
+  /// `"Composed 1651"`.
+  final String Function(String year) composedYear;
+
+  /// The interpreters' names without a year, such as
+  /// `"Interpreted by Cecil Sharp"`.
+  final String Function(String names) interpretedBy;
+
+  /// The interpreters' names with the year of the interpretation, such as
+  /// `"Interpreted by Cecil Sharp (1916)"`.
+  final String Function(String names, String year) interpretedByWithYear;
+
+  /// The year of the interpretation when no interpreter is named, such as
+  /// `"Interpreted 1916"`.
+  final String Function(String year) interpretedYear;
+
+  /// The tune's meter with its label, such as `"Meter: 6/8"`.
+  final String Function(String meter) meter;
+
+  /// The tune's key with its label, such as `"Key: G minor"`.
+  final String Function(String key) musicalKey;
+
+  /// The Barnes reference with its label, such as `"Barnes: BIII p. 92"`.
+  final String Function(String reference) barnes;
 }
 
 /// Field-name labels for the set-list export ([programToPlainText] and the

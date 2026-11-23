@@ -291,7 +291,7 @@ editor was open (this offer, or sync) is not undone by that editor's next save.
 | band?, caller?, dancerLevel? | text? (used when danceId null, or per-slot caller note) |
 | status: draft/finalized/performed | isAlt: bool (alternate dance, decided at event time) |
 | createdAt/updatedAt/deletedAt | guestCaller?, walkthroughMinutes?, danceMinutes? (structured, not folded into `text`) |
-| | performedAt? (set when marked performed → the "called" flag for dance calling history; its time dates the call only when the program has no eventDate) |
+| calendarEventKey? (calendar import, #2352) | performedAt? (set when marked performed → the "called" flag for dance calling history; its time dates the call only when the program has no eventDate) |
 
 `band`, `caller` (primary/host caller), and `dancerLevel` are the CC-parity
 event-metadata fields (schema v3). `dancerLevel` is nullable free-text for now;
@@ -308,8 +308,14 @@ combined planned length is the sum of non-null values.
 alongside the free-text `venue` label; the two persist independently (see Venue
 above) so switching venue-entry modes is lossless.
 
-Duplicate-program = deep copy of slots, as a Draft with performed marks, pay
-and event date cleared (a copy is for a different event; LIFE-7). The
+`calendarEventKey` (schema v42) is set on a program a calendar import created:
+a SHA-256 digest of the event's `UID` and recurrence id, never the `UID`, so the
+next import (on any of the caller's devices, since it syncs) does not offer the
+event again. It is not shown anywhere, and share files drop it.
+
+Duplicate-program = deep copy of slots, as a Draft with performed marks, pay,
+event date and calendar event key cleared (a copy is for a different event;
+LIFE-7). The
 programming matrix is a **view**
 computed from structured figures (no manual "elements" checklist — the fix for
 CC's biggest weakness).
