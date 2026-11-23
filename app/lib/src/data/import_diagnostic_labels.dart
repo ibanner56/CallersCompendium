@@ -37,6 +37,7 @@ const Set<String> mappedImportIssueCodes = {
   'callersbox_phrase_structure_unreadable',
   'callersbox_progression_unmapped',
   'callersbox_search_tier',
+  'cc_bars_meter_mixed',
   'cc_bars_meter_unstated',
   'cc_date_assumed_mdy',
   'cc_date_reduced_precision',
@@ -181,6 +182,8 @@ String? _localizedImportIssue(AppLocalizations l10n, ImportIssue issue) {
       return l10n.importIssueUnmappedProgression;
     case 'cc_unmapped_type':
       return l10n.importIssueUnmappedType;
+    case 'cc_bars_meter_mixed':
+      return l10n.importIssueBarsMeterMixed;
     case 'cc_bars_meter_unstated':
       return l10n.importIssueBarsMeterUnstated;
     case 'cc_unparsed_date':

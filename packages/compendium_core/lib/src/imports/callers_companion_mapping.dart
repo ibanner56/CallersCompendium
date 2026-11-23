@@ -692,7 +692,18 @@ CcDanceMapping mapCallersCompanionDance(
     createdAt: now,
     updatedAt: now,
   );
-  if (countedBarsUnstated) {
+  // A meter kept but not stated names meters of different bars (#2365).
+  if (countedBarsUnstated && meter.isNotEmpty) {
+    issues.add(
+      const ImportIssue(
+        severity: ImportIssueSeverity.info,
+        code: 'cc_bars_meter_mixed',
+        message:
+            'The dance counts in bars but its Music names meters of '
+            'different bar lengths; each bar was counted as 2 beats.',
+      ),
+    );
+  } else if (countedBarsUnstated) {
     issues.add(
       const ImportIssue(
         severity: ImportIssueSeverity.info,
@@ -1086,28 +1097,68 @@ List<Figure> _ecdLineFigures(
 /// kind of tune (`A 3/2 hornpipe`, `A 3/2 Hornpipe`) is the article, not the
 /// key, which such a text may give as `in G`: `A 6/8` alone, or
 /// `A 6/8 Trad.`, still reads key A. A meter after its own word
-/// (`Meter 3/2 of Playford`) is always the meter. Bounded to [kMaxMusicLabelLength] characters each.
+/// (`Meter 3/2 of Playford`) is always the meter. A text naming meters of
+/// different bars (`Meter: 3/4 and 6/8`, #2365) keeps them as written, from
+/// the first to the last (`3/4 and 6/8`), which [ecdBeatsPerBar] reads as
+/// stating no meter; meters of the same bar (`2/2 or 6/8`) keep the first.
+/// Bounded to [kMaxMusicLabelLength] characters each.
 ({String meter, String key}) ccMusicMeterAndKey(String? music) {
   final text = music ?? '';
-  // A meter its own word names (`Meter 3/2 of Playford`) first; otherwise a
-  // track or disc number (`Track 3/4 of CD`, `CD 2/3`) is no meter.
-  final meter = _ccNamedMeter.firstMatch(text) ?? _ccMeter.firstMatch(text);
+  // A meter its own word names (`Meter 3/2 of Playford`) and every other
+  // meter; a track or disc number (`Track 3/4 of CD`, `CD 2/3`) is no meter.
+  final meters = _ccMeters(text);
   final key =
       _ccKeyWord.firstMatch(text) ??
       // `A 3/2 hornpipe` is a hornpipe, not one in A; it may say `in G`.
       (_ccArticle.hasMatch(text)
           ? _ccInKey.firstMatch(text)
           : _ccLeadingKey.firstMatch(text));
-  // Only a meter the bars can be counted by: `track 3/12` is no meter.
-  final meterText = meter == null ? '' : '${meter.group(1)}/${meter.group(2)}';
-  final stated = ecdBeatsPerBar(meterText).stated;
   String clip(String value) => value.length > kMaxMusicLabelLength
       ? value.substring(0, kMaxMusicLabelLength)
       : value;
   return (
-    meter: stated ? clip(meterText) : '',
+    meter: _ccMeterText(text, meters),
     key: key == null ? '' : clip(key.group(1)!),
   );
+}
+
+/// Every meter in a Music [text] the bars can be counted by, in text order:
+/// a meter its own word names, and any other the track and disc words leave
+/// (`track 3/12` is no meter either way).
+List<RegExpMatch> _ccMeters(String text) {
+  final byStart = <int, RegExpMatch>{
+    for (final match in _ccMeter.allMatches(text)) _ccMeterStart(match): match,
+    // Keyed where the numbers start, so the numbers of a named meter, found
+    // bare too, are one meter.
+    for (final match in _ccNamedMeter.allMatches(text))
+      _ccMeterStart(match): match,
+  };
+  final starts = byStart.keys.toList()..sort();
+  return [
+    for (final start in starts)
+      if (ecdBeatsPerBar(_ccMeterOf(byStart[start]!)).stated) byStart[start]!,
+  ];
+}
+
+String _ccMeterOf(RegExpMatch match) => '${match.group(1)}/${match.group(2)}';
+
+/// Where [match]'s meter numbers start: after its word, for a named meter.
+int _ccMeterStart(RegExpMatch match) =>
+    match.start + match.group(0)!.indexOf(match.group(1)!);
+
+/// The meter [meters] state in [text]: the first, when they all count the
+/// same beats per bar; otherwise the text from the first to the last, as the
+/// source wrote it, which states none ([ecdBeatsPerBar]). `''` for none, or
+/// for meters of different bars too far apart to keep whole, since a clipped
+/// text could lose all but one and read as stating it.
+String _ccMeterText(String text, List<RegExpMatch> meters) {
+  if (meters.isEmpty) return '';
+  final first = _ccMeterOf(meters.first);
+  if (ecdBeatsPerBar(meters.map(_ccMeterOf).join(' ')).stated) return first;
+  final written = text
+      .substring(_ccMeterStart(meters.first), meters.last.end)
+      .trim();
+  return written.length > kMaxMusicLabelLength ? '' : written;
 }
 
 /// A meter, but not a number after a word that numbers a recording or page

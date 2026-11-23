@@ -8363,6 +8363,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cette danse compte en mesures mais n\'indique aucune métrique ; chaque mesure a donc été comptée pour 2 temps. Vérifiez ses comptes.';
 
   @override
+  String get importIssueBarsMeterMixed =>
+      'Cette danse compte en mesures mais indique des métriques de longueurs de mesure différentes ; chaque mesure a donc été comptée pour 2 temps. Vérifiez ses comptes.';
+
+  @override
   String get importIssueUnmappedType =>
       'Un type de danse n\'a pas été reconnu ; importé comme contra et conservé dans les notes.';
 

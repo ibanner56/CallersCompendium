@@ -12334,6 +12334,12 @@ abstract class AppLocalizations {
   /// **'This dance counts in bars but states no meter, so each bar was counted as 2 beats. Check its counts.'**
   String get importIssueBarsMeterUnstated;
 
+  /// Import note: an English dance's figure lines count in bars ("1-4 partners set"), but its music names meters of different bar lengths ("3/4 and 6/8"), so bars were counted as 2 beats each.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance counts in bars but names meters of different bar lengths, so each bar was counted as 2 beats. Check its counts.'**
+  String get importIssueBarsMeterMixed;
+
   /// Import note: a dance-type string wasn't recognized; the dance was imported as a contra with the original value kept in the notes.
   ///
   /// In en, this message translates to:
