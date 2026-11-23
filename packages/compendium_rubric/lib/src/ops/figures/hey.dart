@@ -59,6 +59,19 @@ typedef _HeyLine = ({DancerPair centers, DancerPair ends, bool sideStart});
 /// exchanges places within its own slot**, and nobody moves between the centre
 /// and the ends. A full hey is that twice, which is the identity.
 ///
+/// A hey that **opens on the side** ends the same way. Walking it from
+/// `[a, b, c, d]` with the side passes first:
+///
+/// 1. each pair at the ends passes        → `b a d c`
+/// 2. `a, d` — now the centres — pass     → `b d a c`
+/// 3. each pair at the ends passes        → `d b c a`
+/// 4. `b, c` pass in the centre           → `d c b a`
+///
+/// Reversed again, so the pair who meet first in the middle exchange, and so
+/// does the other pair. The half-way point of a side-opening half hey is
+/// therefore the one a centre-opening half hey reaches, with the centre pair
+/// read from `pass2` *(user-ruled 2026-11-23)*.
+///
 /// Mapped onto the matrix, an across-the-set line of four runs
 /// `west-outer, west-inner | east-inner, east-outer`. The two dancers standing
 /// *inner* are whichever pair [pass1] names — that is the whole content of the
@@ -251,8 +264,6 @@ final class HeyForFour extends Operation {
         middle = opening.single;
         sideStart = false;
       } else if (_coversBothSides(opening, spans)) {
-        final error = _deferredSideStart();
-        if (error != null) return Err<List<_HeyLine>, OpError>(error);
         final centers = _resolveSideStartCenters(formation, band, spans, where);
         switch (centers) {
           case Err(:final error):
@@ -335,30 +346,6 @@ final class HeyForFour extends Operation {
       for (final pair in opening) ...[pair.a, pair.b],
     };
     return named.length == 4;
-  }
-
-  /// Why a hey that opens on the side is deferred unless it is a full one.
-  ///
-  /// Opening on the side shifts every later pass by one, so the **half-way
-  /// point** lands somewhere this model has no worked example for. A full hey
-  /// is exempt because the whole weave is danced either way.
-  ///
-  /// Ricochets are *not* deferred. They count centre meetings rather than
-  /// passes (user-ruled), and opening on the side changes neither how many
-  /// centre meetings a pair has nor which pair has the first one — it only
-  /// moves that meeting from pass 1 to pass 2. Since [_exchanges] reads
-  /// nothing but the per-pair meeting parity, the shift cannot reach it.
-  OpError? _deferredSideStart() {
-    if (length != HeyLength.full) {
-      return OpError(
-        ErrorKind.unsupportedParam,
-        'hey length:${length.key} opening on the side is deferred: opening '
-        'there shifts every pass by one, so where the weave stops half way is '
-        'not the place a centre-opening half hey stops, and no worked example '
-        'pins it',
-      );
-    }
-    return null;
   }
 
   /// Who meets in the centre when `pass1` named the side passes.

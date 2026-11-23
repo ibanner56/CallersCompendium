@@ -344,11 +344,14 @@ void main() {
       expect(hey.lint(di(carousel)), isEmpty);
     });
 
-    test('a half hey opening on the side is deferred, not guessed', () {
+    test('a half hey opening on the side exchanges each pair', () {
+      // The Larks meet first in the middle (pass2), so they exchange, and so
+      // do the Robins: each couple ends on the other side of the set.
       const hey = HeyForFour(pass1: WhoSet.partners, pass2: WhoSet.role1s);
-      final error = applyErr(hey, di(carousel));
-      expect(error.kind, ErrorKind.unsupportedParam);
-      expect(error.message, contains('half way'));
+      expect(applyOk(hey, di(carousel)).toRolesNotation(), [
+        'R1-A . . . L2-B',
+        'L1-A . . . R2-B',
+      ]);
     });
 
     test('rico1 suppresses the meeting of whichever pair meets first', () {

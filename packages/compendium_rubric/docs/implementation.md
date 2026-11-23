@@ -719,6 +719,8 @@ weave *can* be guarded is the unit layer, on the state the dance actually
 reaches — `test/ops/hey_test.dart` §'HeyForFour opening on the side', which
 opens with a precondition test asserting the state really is side-on, so the
 rest cannot pass for the wrong reason.
+*(Since 2026-11-23 a side-opening half hey is built, on a user ruling, and
+The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ---
 
@@ -874,9 +876,11 @@ rest cannot pass for the wrong reason.
   side-opening case `pass2` stops being an anchor and becomes the selector for
   the centre pair — necessarily, because in the state *The Carousel* reaches its
   hey from, both role pairs span the set and nothing else could choose. An
-  absent `pass2` there is a refusal, never a guess. **Deferred:** a side opening
-  at any length but `full`, since opening on the side shifts every later pass by
-  one and no worked example pins where the half-way point then lands.
+  absent `pass2` there is a refusal, never a guess. A side-opening **half** hey
+  is built too (user-ruled 2026-11-23): walking its four passes reverses the
+  line exactly as a centre opening does, so the pair who meet first in the
+  middle exchange and so does the other pair. *(Until then it was deferred for
+  want of a worked example.)*
 - **Ricochets survive the side opening, on a user ruling.** `rico1`–`rico4`
   always name **centre passes** — the user ruled the exceptions out of scope.
   That is what makes them portable: opening on the side moves the first centre

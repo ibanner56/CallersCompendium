@@ -67,6 +67,13 @@
 > Improper (with its existing warning). Five of the 85 (two duple, three
 > triple) lead past two couples in their text, which the import drops, and
 > compile on a one-place reading. Five dances that refused now mismatch.
+>
+> **Side-opening half heys (2026-11-23)** are built on Hudson's ruling: they
+> end like a centre-opening half hey, each pair exchanging. Against `rubric` at
+> `f18e1b68` they took the count from 3,116 to 3,236 compiled in scope (the
+> denominator grew from 4,970 to 5,104), and the core set from 435 to 458, with
+> no previously compiling dance lost. All 120 new passes are duple improper or
+> Becket; 17 dances that refused now mismatch.
 
 The compiler implements 53 canonical figures. Twenty-eight have no deliberately
 deferred parameter values, 25 have an implemented core with explicit
@@ -205,8 +212,8 @@ from this table because the compiler never ran against them. **Pass rate** is
 ### Amounts and fractions
 
 - `poussette` and `figure_8` support half and full amounts only.
-- `hey` defers mid-pass lengths, late ricochets that cannot occur at the stated
-  length, and side-opening heys shorter than full.
+- `hey` defers mid-pass lengths and late ricochets that cannot occur at the
+  stated length. A side-opening half hey is built (user-ruled 2026-11-23).
 
 ### Hall figures
 
