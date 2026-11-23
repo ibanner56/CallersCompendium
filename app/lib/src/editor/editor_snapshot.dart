@@ -182,6 +182,8 @@ class EditorSnapshot {
     required this.formationDetail,
     this.meter = '',
     this.musicalKey = '',
+    this.alternateTitles = '',
+    this.barnesReference = '',
     required this.form,
     required this.formationShape,
     this.improper = false,
@@ -228,6 +230,8 @@ class EditorSnapshot {
     formationDetail: formationDetail,
     meter: meter,
     musicalKey: musicalKey,
+    alternateTitles: alternateTitles,
+    barnesReference: barnesReference,
     form: form,
     formationShape: formationShape,
     improper: improper,
@@ -274,6 +278,12 @@ class EditorSnapshot {
   /// [Dance.musicalKey]).
   final String meter;
   final String musicalKey;
+
+  /// The other titles as typed, one per line ([Dance.alternateTitles]).
+  final String alternateTitles;
+
+  /// The Barnes book reference as typed ([Dance.barnesReference]).
+  final String barnesReference;
 
   // ---- Enum fields ----
   final DanceForm form;

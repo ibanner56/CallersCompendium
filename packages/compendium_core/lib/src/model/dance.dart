@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 
+import '../imports/figure_parser.dart' show truncateOnRuneBoundary;
 import '../validation/validation.dart';
 import 'custom_field.dart';
 import 'dance_link.dart';
@@ -36,6 +37,60 @@ const int kMaxWalkthroughLength = 20000;
 /// decoder clamps a longer value rather than rejecting the dance.
 const int kMaxMusicLabelLength = 100;
 
+/// Upper bound on the length of one of [Dance.alternateTitles], in UTF-16
+/// code units. [normalizeAlternateTitles] cuts a longer title (on a character
+/// boundary), so every [Dance] holds the bound and a file or sync body is
+/// clamped rather than rejected; the editor stops typing at it.
+const int kMaxAlternateTitleLength = 512;
+
+/// Upper bound on how many [Dance.alternateTitles] a dance keeps. A dance
+/// rarely has more than two other names; the bound only stops a hostile file
+/// from carrying an unbounded list. [normalizeAlternateTitles] keeps the first
+/// this many, so every [Dance] holds the bound; the editor stops at it.
+const int kMaxAlternateTitles = 20;
+
+/// Upper bound on the length of [Dance.barnesReference], in UTF-16 code
+/// units. The [Dance] constructor cuts a longer value (on a character
+/// boundary), so every [Dance] holds the bound and a file or sync body is
+/// clamped rather than rejected; the editor stops typing at it.
+const int kMaxBarnesReferenceLength = 100;
+
+/// [titles] as [Dance.alternateTitles] holds them: each with its runs of
+/// whitespace (line breaks included) made one space, trimmed, and cut to
+/// [kMaxAlternateTitleLength]; then the empty ones and the repeats of an
+/// earlier one dropped, in the order given; then the first
+/// [kMaxAlternateTitles] kept.
+///
+/// A line break can never survive, which is what lets storage keep the list
+/// as one line per title. Because the [Dance] constructor applies it, the
+/// list a device stores, syncs and backs up is the list every reader decodes,
+/// so a receiver never rewrites it into a different value.
+List<String> normalizeAlternateTitles(Iterable<String> titles) {
+  final seen = <String>{};
+  final result = <String>[];
+  for (final title in titles) {
+    if (result.length == kMaxAlternateTitles) break;
+    final t = truncateOnRuneBoundary(
+      title.replaceAll(_alternateTitleWhitespace, ' ').trim(),
+      kMaxAlternateTitleLength,
+    ).trimRight();
+    if (t.isNotEmpty && seen.add(t)) result.add(t);
+  }
+  return result;
+}
+
+final RegExp _alternateTitleWhitespace = RegExp(r'\s+');
+
+/// [titles] as the `dances.alternate_titles` column stores them: one per
+/// line. Safe because a normalized title holds no line break.
+String alternateTitlesColumnText(List<String> titles) =>
+    normalizeAlternateTitles(titles).join('\n');
+
+/// The titles a `dances.alternate_titles` value holds, normalized; `''` holds
+/// none. Plain text, so no stored value can fail to read.
+List<String> alternateTitlesFromColumnText(String text) =>
+    text.isEmpty ? const [] : normalizeAlternateTitles(text.split('\n'));
+
 /// A dance transcription — the central entity of the collection.
 ///
 /// Hard invariants (thrown at construction): non-empty title, parseable
@@ -46,6 +101,7 @@ class Dance {
   Dance({
     required this.id,
     required this.title,
+    List<String> alternateTitles = const [],
     List<String> authorIds = const [],
     this.form = DanceForm.contra,
     Formation formation = const Formation(FormationShape.dupleImproper),
@@ -58,6 +114,7 @@ class Dance {
     this.walkthrough = '',
     this.meter = '',
     this.musicalKey = '',
+    String barnesReference = '',
     this.status = DanceStatus.active,
     String? difficultyLevelId,
     DifficultyLevel? level,
@@ -85,6 +142,13 @@ class Dance {
        formation = formation.improper && !formHasImproperFlag(form)
            ? formation.copyWith(improper: false)
            : formation,
+       barnesReference = truncateOnRuneBoundary(
+         barnesReference,
+         kMaxBarnesReferenceLength,
+       ),
+       alternateTitles = List.unmodifiable(
+         normalizeAlternateTitles(alternateTitles),
+       ),
        authorIds = List.unmodifiable(authorIds),
        interpreterIds = List.unmodifiable(interpreterIds),
        // Parse eagerly so an invalid structure fails at construction.
@@ -129,6 +193,12 @@ class Dance {
   final String id;
   final String title;
 
+  /// Other names the dance is known by ("Monymusk" for "Money Musk"), in the
+  /// order entered; empty when it has none. Normalized at construction
+  /// ([normalizeAlternateTitles]): no blank titles, no repeats, no line
+  /// breaks. Shown under the title and found by a title search.
+  final List<String> alternateTitles;
+
   /// Ordered Choreographer ids ("Traditional"/"Unknown" are real rows).
   final List<String> authorIds;
   final DanceForm form;
@@ -169,6 +239,12 @@ class Dance {
   /// The tune's key, as free text ("G minor", "D"), or `''` when not given
   /// (ADR-006 §12, F3).
   final String musicalKey;
+
+  /// Where the tune is printed in the Barnes books, as free text with the
+  /// book and page in one value ("BIII p. 92"), or "NiB" for a tune Not in
+  /// Barnes; `''` when not given. Never parsed: shown on the dance page and
+  /// searched as typed. Printed cards and shared text don't show it yet.
+  final String barnesReference;
   final DanceStatus status;
 
   /// ID of the selected [DifficultyLevel], or `null` when unspecified.
@@ -317,6 +393,7 @@ class Dance {
   /// `clearProvenance`.
   Dance copyWith({
     String? title,
+    List<String>? alternateTitles,
     List<String>? authorIds,
     DanceForm? form,
     Formation? formation,
@@ -328,6 +405,7 @@ class Dance {
     String? walkthrough,
     String? meter,
     String? musicalKey,
+    String? barnesReference,
     DanceStatus? status,
     String? difficultyLevelId,
     @Deprecated('Use difficultyLevelId.') DifficultyLevel? level,
@@ -356,6 +434,7 @@ class Dance {
   }) => Dance(
     id: id,
     title: title ?? this.title,
+    alternateTitles: alternateTitles ?? this.alternateTitles,
     authorIds: authorIds ?? this.authorIds,
     form: form ?? this.form,
     formation: formation ?? this.formation,
@@ -373,6 +452,7 @@ class Dance {
     walkthrough: walkthrough ?? this.walkthrough,
     meter: meter ?? this.meter,
     musicalKey: musicalKey ?? this.musicalKey,
+    barnesReference: barnesReference ?? this.barnesReference,
     status: status ?? this.status,
     difficultyLevelId: clearDifficultyLevel
         ? null
@@ -430,6 +510,7 @@ class Dance {
     return Dance(
       id: newId,
       title: newTitle ?? title,
+      alternateTitles: alternateTitles,
       authorIds: authorIds,
       form: form,
       formation: formation,
@@ -443,6 +524,7 @@ class Dance {
       walkthrough: walkthrough,
       meter: meter,
       musicalKey: musicalKey,
+      barnesReference: barnesReference,
       status: status,
       difficultyLevelId: difficultyLevelId,
       mixedLevel: mixedLevel,
@@ -478,6 +560,7 @@ class Dance {
       other is Dance &&
       other.id == id &&
       other.title == title &&
+      _listEq.equals(other.alternateTitles, alternateTitles) &&
       _listEq.equals(other.authorIds, authorIds) &&
       other.form == form &&
       other.formation == formation &&
@@ -489,6 +572,7 @@ class Dance {
       other.walkthrough == walkthrough &&
       other.meter == meter &&
       other.musicalKey == musicalKey &&
+      other.barnesReference == barnesReference &&
       other.status == status &&
       other.difficultyLevelId == difficultyLevelId &&
       other.mixedLevel == mixedLevel &&

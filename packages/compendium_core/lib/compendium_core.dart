@@ -83,6 +83,7 @@ export 'src/imports/title_punctuation.dart';
 export 'src/imports/venue_dedupe.dart';
 export 'src/imports/while_container.dart';
 export 'src/model/bar_count.dart';
+export 'src/model/bar_timing.dart';
 export 'src/model/choreographer.dart';
 export 'src/model/collection_import_event.dart';
 export 'src/model/custom_field.dart';

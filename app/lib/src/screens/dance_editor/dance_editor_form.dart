@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../widgets/exclude_focus_when_collapsed.dart';
@@ -225,6 +226,18 @@ class DanceEditorForm extends StatelessWidget {
     if (clauses == null || clauses.length < 2) return 0;
     final drafts = <FigureDraft>[];
     var anyOfOurs = false;
+    // Each clause is placed after the ones before it, so a bar range counts
+    // from where it will start: the figures before the line, then the rows its
+    // earlier clauses become (not the beats the parser gave, which leave out
+    // the count a row takes by default).
+    final timing = _barTimingForBars;
+    final lineStart = timing == null
+        ? 0
+        : figureStartBeat(
+            replacing == null
+                ? controller.figureDrafts
+                : controller.figureDrafts.takeWhile((d) => d != replacing),
+          );
     for (final clause in clauses) {
       final draft = _shorthandDraft(clause);
       if (draft != null) {
@@ -241,6 +254,8 @@ class DanceEditorForm extends StatelessWidget {
         dialect: dialect,
         formationShape: controller.formationShape,
         meter: _meterForBars,
+        timing: timing,
+        startBeat: timing == null ? 0 : lineStart + figureStartBeat(drafts),
       );
       if (figures.isEmpty ||
           (!_isPlainShorthandClause(clause) &&
@@ -538,6 +553,7 @@ class DanceEditorForm extends StatelessWidget {
                     mixer: controller.mixer,
                     formationShape: controller.formationShape,
                     meterOf: () => _meterForBars,
+                    barTimingOf: () => _barTimingForBars,
                     moveParamDefaults: moveParamDefaults,
                     onChanged: controller.onFiguresChanged,
                     onAdd: controller.addFigure,
@@ -718,11 +734,17 @@ class DanceEditorForm extends StatelessWidget {
   }
 
   /// The meter a typed bar range counts by: the Meter field's, or with none
-  /// the phrase structure's beats per bar, as the bar timing does.
+  /// the phrase structure's beats per bar, as the bar timing does. Not read
+  /// where the phrases differ in beats per bar: [_barTimingForBars] counts it.
   String get _meterForBars => ecdMeterForBars(
     controller.meterController.text,
     controller.phraseStructure,
   );
+
+  /// How a typed bar range is counted where the tune's phrases differ in
+  /// beats per bar (#2303), else null: [_meterForBars] counts it.
+  BarTiming? get _barTimingForBars =>
+      barTimingForMixedMeter(controller.form, controller.phraseStructure);
 
   /// [child] timed in bars where the dance is ([BarTimingScope.beatsPerBarFor]):
   /// an English dance whose tune has one meter throughout.
@@ -882,7 +904,8 @@ class DanceEditorForm extends StatelessWidget {
     ];
   }
 
-  /// The tune's written meter and key, side by side.
+  /// The tune's written meter and key, side by side, and below them where the
+  /// tune is printed in the Barnes books.
   Widget _musicFields(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     Widget field({
@@ -890,13 +913,16 @@ class DanceEditorForm extends StatelessWidget {
       required LingoTextEditingController textController,
       required String label,
       required String hint,
+      int? maxLength = kMaxMusicLabelLength,
+      List<TextInputFormatter>? inputFormatters,
     }) => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         TextFormField(
           key: ValueKey('$key-field'),
           controller: textController,
-          maxLength: kMaxMusicLabelLength,
+          maxLength: maxLength,
+          inputFormatters: inputFormatters,
           decoration: InputDecoration(
             labelText: label,
             hintText: hint,
@@ -915,7 +941,7 @@ class DanceEditorForm extends StatelessWidget {
         ),
       ],
     );
-    return Row(
+    final meterAndKey = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
@@ -934,6 +960,26 @@ class DanceEditorForm extends StatelessWidget {
             label: l10n.danceEditorMusicalKeyLabel,
             hint: l10n.danceEditorMusicalKeyHint,
           ),
+        ),
+      ],
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        meterAndKey,
+        const SizedBox(height: AppSpacing.sm),
+        field(
+          key: 'barnes-reference',
+          textController: controller.barnesReferenceController,
+          label: l10n.danceEditorBarnesReferenceLabel,
+          hint: l10n.danceEditorBarnesReferenceHint,
+          // Counted in code units, as the [Dance] constructor bounds it,
+          // not in characters as `maxLength` counts, so nothing typed is
+          // cut on save.
+          maxLength: null,
+          inputFormatters: const [
+            CodeUnitLimitInputFormatter(kMaxBarnesReferenceLength),
+          ],
         ),
       ],
     );
@@ -980,6 +1026,29 @@ class DanceEditorForm extends StatelessWidget {
           builder: (context) => Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Other names the dance goes by, one per line; a title search
+              // finds the dance by any of them.
+              TextFormField(
+                key: const ValueKey('alternate-titles-field'),
+                controller: controller.alternateTitlesController,
+                minLines: 1,
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
+                // The bounds every saved dance holds, so nothing typed here
+                // is cut on save.
+                inputFormatters: const [AlternateTitlesInputFormatter()],
+                decoration: InputDecoration(
+                  labelText: l10n.danceEditorAlternateTitlesLabel,
+                  helperText: l10n.danceEditorAlternateTitlesHelper,
+                ),
+                onChanged: (_) => controller.onTextEdited(),
+              ),
+              LingoDiscouragedHint(
+                controller: controller.alternateTitlesController,
+                dialect: dialect,
+                fieldKey: 'alternate-titles',
+              ),
+              const SizedBox(height: AppSpacing.md),
               EnumDropdown<DanceStatus>(
                 fieldKey: 'status',
                 label: l10n.danceEditorStatusLabel,
@@ -1269,4 +1338,127 @@ Future<void> _fillWalkthroughFromSnippets(
   }
 
   controller.setWalkthroughText(assembled);
+}
+
+/// Whether [text] fits the bounds every [Dance] holds for its other titles:
+/// at most [kMaxAlternateTitles] lines of at most [kMaxAlternateTitleLength]
+/// code units each.
+bool _alternateTitlesFit(String text) {
+  final lines = text.split('\n');
+  return lines.length <= kMaxAlternateTitles &&
+      lines.every((line) => line.length <= kMaxAlternateTitleLength);
+}
+
+/// [newValue] made to [fits] without losing any of [oldValue]'s text, when
+/// [oldValue] fits and the edit only inserted text at a collapsed cursor
+/// (typing, or a paste with nothing selected): the longest part of the
+/// insertion that fits is kept, cut on a character boundary, and nothing
+/// already there is cut. A keystroke at the bound is refused, as
+/// `LengthLimitingTextInputFormatter` refuses it. Null for any other edit,
+/// and when [oldValue] is empty, since then there is nothing to keep and the
+/// caller's own cut (line by line, for other titles) loses less of a paste.
+TextEditingValue? _fitInsertion(
+  TextEditingValue oldValue,
+  TextEditingValue newValue,
+  bool Function(String text) fits,
+) {
+  final old = oldValue.text;
+  final next = newValue.text;
+  final at = oldValue.selection.start;
+  if (old.isEmpty ||
+      !fits(old) ||
+      !oldValue.selection.isValid ||
+      !oldValue.selection.isCollapsed ||
+      at > old.length ||
+      next.length <= old.length) {
+    return null;
+  }
+  final before = old.substring(0, at);
+  final after = old.substring(at);
+  if (!next.startsWith(before) || !next.endsWith(after)) return null;
+  final inserted = next.substring(at, next.length - after.length);
+  // Growing the insertion never makes the text fit again (it adds lines and
+  // length, never removes them), so the longest fitting prefix is found by
+  // halving.
+  var low = 0;
+  var high = inserted.length;
+  while (low < high) {
+    final mid = (low + high + 1) ~/ 2;
+    if (fits(before + truncateOnRuneBoundary(inserted, mid) + after)) {
+      low = mid;
+    } else {
+      high = mid - 1;
+    }
+  }
+  final kept = truncateOnRuneBoundary(inserted, low);
+  return TextEditingValue(
+    text: before + kept + after,
+    selection: TextSelection.collapsed(offset: at + kept.length),
+  );
+}
+
+/// Keeps the editor's "Other titles" text inside the bounds every [Dance]
+/// holds: at most [kMaxAlternateTitles] lines of at most
+/// [kMaxAlternateTitleLength] code units each, so what the person sees is
+/// what [normalizeAlternateTitles] keeps on save. Typing or pasting at the
+/// cursor keeps what is already there and cuts only what was inserted (a
+/// line break at 20 titles is refused); any other edit that goes past the
+/// bounds is cut back to them.
+@visibleForTesting
+class AlternateTitlesInputFormatter extends TextInputFormatter {
+  const AlternateTitlesInputFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (_alternateTitlesFit(newValue.text)) return newValue;
+    final insertion = _fitInsertion(oldValue, newValue, _alternateTitlesFit);
+    if (insertion != null) return insertion;
+    final text = [
+      for (final line in newValue.text.split('\n').take(kMaxAlternateTitles))
+        truncateOnRuneBoundary(line, kMaxAlternateTitleLength),
+    ].join('\n');
+    final end = newValue.selection.end.clamp(0, text.length);
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: end),
+    );
+  }
+}
+
+/// Keeps a field's text to at most [maxLength] UTF-16 code units, the unit
+/// the model's bounds count in. `TextField.maxLength` counts characters
+/// instead, so text made of characters outside the Basic Multilingual Plane
+/// could pass it and still be cut on save. Typing or pasting at the cursor
+/// keeps what is already there and cuts only what was inserted (a keystroke
+/// at the bound is refused); any other edit past the bound is cut back to it
+/// on a character boundary.
+@visibleForTesting
+class CodeUnitLimitInputFormatter extends TextInputFormatter {
+  const CodeUnitLimitInputFormatter(this.maxLength);
+
+  final int maxLength;
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.length <= maxLength) return newValue;
+    final insertion = _fitInsertion(
+      oldValue,
+      newValue,
+      (text) => text.length <= maxLength,
+    );
+    if (insertion != null) return insertion;
+    final text = truncateOnRuneBoundary(newValue.text, maxLength);
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(
+        offset: newValue.selection.end.clamp(0, text.length),
+      ),
+    );
+  }
 }

@@ -3759,6 +3759,41 @@ void main() {
       expect(find.byType(FigureTable), findsOneWidget);
     });
   });
+  group('other titles and the Barnes reference', () {
+    testWidgets('show under the title and in their own section', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Money Musk').copyWith(
+          alternateTitles: ['Monymusk', 'Sir Archibald Grant'],
+          barnesReference: 'BIII p. 92',
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(
+        find.text('Also known as Monymusk; Sir Archibald Grant'),
+        findsOneWidget,
+      );
+      expect(find.text('Barnes books'), findsOneWidget);
+      expect(find.text('BIII p. 92'), findsOneWidget);
+    });
+
+    testWidgets('a dance without them shows neither', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Plain'));
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(
+        find.byKey(const ValueKey('dance-alternate-titles')),
+        findsNothing,
+      );
+      expect(find.text('Barnes books'), findsNothing);
+    });
+  });
   group('the floating Edit', () {
     // Not the 320 dp case: there, at 2× text, a row on this page overflows by
     // a few pixels on `main` too, a large-text bug of its own. This group is

@@ -102,7 +102,16 @@ formation, two in a duple minor and three in a triple minor. A line that
 starts with a bar range (`1-4 partners set and turn single`, `(5-8) circle
 left`, `A1 1-8 lead up`) counts those bars by the dance's **Meter**: `1-4` is
 8 beats in 2/2 and 12 in 3/2 or 3/4. With no meter, a bar counts the beats
-of the phrase structure, as the **Bars** field does.
+of the phrase structure, as the **Bars** field does. Where the phrase
+structure's phrases differ in beats per bar (`A:2*4*3 + B:1*8*2`, an A in 3/4
+and a B in 6/8), the Meter does not decide it: each bar is as long as the
+phrase it falls in, and the bars count from where the line is placed in the
+dance (this holds for a Meter that names none or several meters, such as
+"3/4 and 6/8"; while the Meter field states one meter, editing it sets every
+named phrase to that meter's beats to the bar), so the numbers you type give how many bars, not where they sit. In that
+example `1-4` placed first is 12 beats, and `9-12` placed after the two A
+phrases is 8. A line that runs across the change counts each bar by its own
+phrase.
 The bars are the count. A line that also states a count in beats
 (`1-4 (6) circle left`) is kept as you typed it, with the bars' count, so you
 can see the two disagree and fix whichever is wrong. A line with several bar
@@ -698,6 +707,9 @@ nothing in it to lose.
   such as `G minor`, in your own words. They sit here for an English dance and
   in **More details** for other types. The dance's detail view and its Perform
   card show them on one line, such as *Meter: 6/8 · Key: G minor*.
+- **Barnes reference** — where the tune is printed in the Barnes books, book and
+  page in one line, such as `BIII p. 92`, or `NiB` when it is not in them. It
+  sits under **Meter** and **Key**.
 
 ### Notes
 
@@ -740,12 +752,13 @@ updates the default used everywhere.
 
 | Field | Notes |
 |---|---|
+| **Other titles** | Other names the dance goes by, one per line; the dance page shows them under the title, and searching by **Title** finds them |
 | **Level** and **Status** | How hard it is, and where it is in your workflow |
 | **Mixed level** | For dances that span the difficulty scale |
 | **Rating** | Your own star rating, with **Clear rating** to unset it |
 | **Composed** / **Revised** | A year, optionally with a month and day; for an English dance, Composed is a year, up front beside the authors |
 | **Interpreted by** / **Interpreted in** | Who reconstructed the dance from its original, and when; for an English dance, up front, with Interpreted in as a year beside the names |
-| **Meter** / **Key** | The tune's written meter and key; up front for an English dance |
+| **Meter** / **Key** / **Barnes reference** | The tune's written meter and key, and where it is printed in the Barnes books; up front for an English dance |
 | **Tags** | Your own labels |
 | **Tunes** | Tunes you like with this dance |
 | **Links** | A URL with an optional label, marked **Source**, **Video**, or **Other** |

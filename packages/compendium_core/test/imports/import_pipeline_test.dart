@@ -806,6 +806,32 @@ void main() {
       expect(linked.interpretedOn, PartialDate.parse('1985'));
     });
 
+    // Likewise a source that names no other title or Barnes reference.
+    test('resolution link keeps the existing other titles and Barnes '
+        'reference when the incoming record has none', () async {
+      final existingId = await seedExisting();
+      await dances.update(
+        (await dances.getById(existingId))!.copyWith(
+          alternateTitles: ['Monymusk'],
+          barnesReference: 'BIII p. 92',
+        ),
+      );
+      final session = await pipeline.commit(
+        await pipeline.plan(
+          FakeSourceAdapter([record('fake-2', 'Nice Combination')]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.link(existingId)},
+      );
+      expect(session.records.single.action, CommitAction.link);
+      final linked = (await dances.getById(existingId))!;
+      expect(linked.title, 'Nice Combination');
+      expect(linked.alternateTitles, ['Monymusk']);
+      expect(linked.barnesReference, 'BIII p. 92');
+    });
+
     test('resolution duplicate imports a separate new dance', () async {
       await seedExisting();
       final incoming = FakeSourceAdapter([

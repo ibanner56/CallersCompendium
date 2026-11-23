@@ -103,8 +103,8 @@ const List<FormationShape> contraFormationShapes = [
 
 /// The shapes a dance of [form] offers when its formation is chosen.
 ///
-/// Squares have no shapes of their own yet (ADR-007 is a proposal), so they
-/// offer contra's, as every form did before ECD's shapes were added. A stored
+/// Squares have no shapes of their own yet (ADR-007 §8.1 assigns them), so
+/// they offer contra's, as every form did before ECD's shapes were added. A stored
 /// shape outside this list is still read and shown: an ECD dance imported
 /// before the ECD shapes existed keeps its contra shape until it is migrated
 /// (ADR-006 §12, F5).

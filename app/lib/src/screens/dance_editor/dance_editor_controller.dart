@@ -58,6 +58,8 @@ class DanceEditorController extends ChangeNotifier {
        formationDetailController = _lingo(dialects),
        meterController = _lingo(dialects),
        musicalKeyController = _lingo(dialects),
+       alternateTitlesController = _lingo(dialects),
+       barnesReferenceController = _lingo(dialects),
        tuneController = _lingo(dialects),
        _draftKey = danceId == null
            ? danceEditorDraftKey('$kNewDanceDraftIdPrefix${uuidV4()}')
@@ -243,6 +245,14 @@ class DanceEditorController extends ChangeNotifier {
   /// [Dance.musicalKey]): free text, ADR-006 §12.1 F3.
   final LingoTextEditingController meterController;
   final LingoTextEditingController musicalKeyController;
+
+  /// Editor for the dance's other titles ([Dance.alternateTitles]), one per
+  /// line; saving drops blank lines and repeats ([normalizeAlternateTitles]).
+  final LingoTextEditingController alternateTitlesController;
+
+  /// Editor for where the tune is printed in the Barnes books
+  /// ([Dance.barnesReference]), free text.
+  final LingoTextEditingController barnesReferenceController;
   final LingoTextEditingController tuneController;
 
   /// The user's Move defaults (DD.3), by move id, which a typed line's rows
@@ -266,6 +276,8 @@ class DanceEditorController extends ChangeNotifier {
     formationDetailController,
     meterController,
     musicalKeyController,
+    alternateTitlesController,
+    barnesReferenceController,
     tuneController,
     ...customTextControllers.values,
   ];
@@ -856,6 +868,8 @@ class DanceEditorController extends ChangeNotifier {
       formationDetailController.text = dance.formation.detail ?? '';
       meterController.text = dance.meter;
       musicalKeyController.text = dance.musicalKey;
+      alternateTitlesController.text = dance.alternateTitles.join('\n');
+      barnesReferenceController.text = dance.barnesReference;
       _improper = dance.formation.improper;
       _form = dance.form;
       _followForm();
@@ -1337,6 +1351,8 @@ class DanceEditorController extends ChangeNotifier {
     formationDetail: formationDetailController.text,
     meter: meterController.text,
     musicalKey: musicalKeyController.text,
+    alternateTitles: alternateTitlesController.text,
+    barnesReference: barnesReferenceController.text,
     form: _form,
     formationShape: _formationShape,
     improper: _improper,
@@ -1420,6 +1436,12 @@ class DanceEditorController extends ChangeNotifier {
     if (meterController.text != s.meter) meterController.text = s.meter;
     if (musicalKeyController.text != s.musicalKey) {
       musicalKeyController.text = s.musicalKey;
+    }
+    if (alternateTitlesController.text != s.alternateTitles) {
+      alternateTitlesController.text = s.alternateTitles;
+    }
+    if (barnesReferenceController.text != s.barnesReference) {
+      barnesReferenceController.text = s.barnesReference;
     }
 
     // Enum fields.
@@ -1741,6 +1763,10 @@ class DanceEditorController extends ChangeNotifier {
     );
     final meter = meterController.text.trim();
     final musicalKey = musicalKeyController.text.trim();
+    final alternateTitles = normalizeAlternateTitles(
+      alternateTitlesController.text.split('\n'),
+    );
+    final barnesReference = barnesReferenceController.text.trim();
     final linkList = [for (final l in links) ?l.toLink()];
     final citationList = [for (final c in sourceCitations) c.toCitation()];
     final customFields = collectCustomFields();
@@ -1748,12 +1774,14 @@ class DanceEditorController extends ChangeNotifier {
     if (_original case final original?) {
       return original.copyWith(
         title: titleController.text.trim(),
+        alternateTitles: alternateTitles,
         authorIds: List.of(authorIds),
         interpreterIds: List.of(interpreterIds),
         interpretedOn: _interpretedOn,
         clearInterpretedOn: _interpretedOn == null,
         meter: meter,
         musicalKey: musicalKey,
+        barnesReference: barnesReference,
         form: _form,
         formation: formation,
         progression: _progression,
@@ -1784,11 +1812,13 @@ class DanceEditorController extends ChangeNotifier {
     return Dance(
       id: uuidV4(),
       title: titleController.text.trim(),
+      alternateTitles: alternateTitles,
       authorIds: List.of(authorIds),
       interpreterIds: List.of(interpreterIds),
       interpretedOn: _interpretedOn,
       meter: meter,
       musicalKey: musicalKey,
+      barnesReference: barnesReference,
       form: _form,
       formation: formation,
       progression: _progression,
@@ -2636,6 +2666,12 @@ class DanceEditorController extends ChangeNotifier {
   /// The Meter field changed. Named phrases count their bars by it (Hudson,
   /// 19 November 2026: "the meter is the rule"), so a meter that states its
   /// beats in a bar rewrites them in each named phrase, keeping its bars.
+  ///
+  /// That includes a structure whose phrases differ in beats per bar: while the
+  /// Meter states one meter, editing it sets every named phrase to it, so the
+  /// phrases keep their own beats per bar (#2303) only where the Meter states
+  /// none or several meters ("3/4 and 6/8"). An unnamed structure is not
+  /// rewritten.
   void onMeterChanged() {
     final perBar = statedBeatsPerBar;
     final phrases = typedPhraseStructure?.namedPhrases;
@@ -2697,6 +2733,8 @@ class DanceEditorController extends ChangeNotifier {
     formationDetailController.dispose();
     meterController.dispose();
     musicalKeyController.dispose();
+    alternateTitlesController.dispose();
+    barnesReferenceController.dispose();
     tuneController.dispose();
     for (final c in customTextControllers.values) {
       c.dispose();

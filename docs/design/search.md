@@ -21,7 +21,8 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    through `canonicalize()` at the compiler boundary, mirroring how data was
    canonicalized on the way in — so a dialect user's "robins allemande"
    query matches stored `role2s`/`allemande` (see [dialect.md](dialect.md)).
-   Collection text search may explicitly scope to raw title text, derived
+   Collection text search may explicitly scope to raw title text (with a
+   dance's other titles), derived
    author names, or canonical figure text; Omni is the OR of the canonical
    cross-field query and a raw branch matching the query as typed over title,
    authors, sources, custom values, hook and notes (never `figures_text`, which
@@ -827,12 +828,14 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
   removed (`filter_compiler.dart`, `_figureMatchWithoutRoleTokens`). The
   Figure scope is unchanged.
 - **Meter, key and interpreters (ADR-006 F3, §9.2).** In All fields each word
-  also matches the dance's `meter`, its `musical_key` and the names of its
+  also matches the dance's `meter`, its `musical_key`, its
+  `barnes_reference`, its other titles (`alternate_titles`, one per line, each
+  line break read as a space; `_alternateTitleMatch`) and the names of its
   live interpreters (`dance_interpreters` joined to `choreographers` with
   `deleted_at IS NULL`), in a dance of any form. They are read with a folded
   `LIKE` (below) from those rows rather than from the text index
-  (`_musicAndInterpreterMatch`), as two `id IN` subqueries beside the index
-  branches, so they need no index column, no rebuild, and follow a rename at
+  (`_musicAndInterpreterMatch`), as three `id IN` subqueries beside the index
+  branches (the dance's own columns, its other titles, its interpreters), so they need no index column, no rebuild, and follow a rename at
   once. Measured with `benchmark/search_benchmark.dart` (20,000 dances, every
   one with a meter and a key, one in twenty with a key outside ASCII; median
   of 25 runs on one machine), All fields `swing` took 3.1 ms before the
@@ -855,8 +858,10 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
   setup fails these searches with "no such function". The Author scope reads
   the interpreters' names the same way (`_interpreterMatch`) beside the
   `authors` column, so it finds a dance by who wrote it or who interpreted it
-  (Hudson, 2026-11-20); it does not read the meter or key. The Title and
-  Figure scopes read none of them.
+  (Hudson, 2026-11-20); it does not read the meter or key. The Title scope
+  reads the other titles the same way (`_alternateTitleMatch`) beside the
+  `title` column, so it finds a dance by any name it goes by; it reads none
+  of the rest. The Figure scope reads none of them.
   Best match adds them as one more branch with a score of 0, the worst a
   `bm25` score can be: a dance found only by its meter, key or interpreter
   ranks after every dance the text index scored, and before them when the
