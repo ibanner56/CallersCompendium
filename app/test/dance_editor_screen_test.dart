@@ -2950,10 +2950,11 @@ void main() {
         'one title per line with blanks and repeats dropped', (tester) async {
       final repos = openTestRepositories();
       await repos.dances.create(
-        _dance(
-          id: 'd1',
-          title: 'Money Musk',
-        ).copyWith(alternateTitles: ['Monymusk'], barnesReference: 'NiB'),
+        _dance(id: 'd1', title: 'Money Musk').copyWith(
+          form: DanceForm.ecd,
+          alternateTitles: ['Monymusk'],
+          barnesReference: 'NiB',
+        ),
       );
       await _pumpEditor(tester, repos, danceId: 'd1');
       await _expandMoreDetails(tester);
@@ -3007,11 +3008,31 @@ void main() {
       expect(saved!.alternateTitles, shown);
     });
 
+    testWidgets('only an English dance has a Barnes reference field', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Money Musk'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await _expandMoreDetails(tester);
+
+      expect(
+        find.byKey(const ValueKey('alternate-titles-field')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('barnes-reference-field')),
+        findsNothing,
+      );
+    });
+
     testWidgets('the Barnes reference stops at its bound in code units, so '
         'characters outside the Basic Multilingual Plane are not cut on '
         'save', (tester) async {
       final repos = openTestRepositories();
-      await repos.dances.create(_dance(id: 'd1', title: 'Money Musk'));
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Money Musk').copyWith(form: DanceForm.ecd),
+      );
       await _pumpEditor(tester, repos, danceId: 'd1');
       await _expandMoreDetails(tester);
 

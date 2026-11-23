@@ -317,6 +317,25 @@ void main() {
       );
     }
 
+    // A column whose stored value another column decides: a dance's form
+    // clears its Barnes reference unless the form is ECD
+    // (`formHasBarnesReference`), so moving the form off ECD also moves that
+    // column. Declared, like the key aliases, so an undeclared dependency
+    // still fails; both sides are asserted to share a classification.
+    const derivedColumns = <String, Set<String>>{
+      'dances.form': {'dances.barnes_reference'},
+    };
+    for (final MapEntry(key: column, value: derived)
+        in derivedColumns.entries) {
+      for (final other in derived) {
+        expect(
+          fieldClassifications[other]!.egress,
+          fieldClassifications[column]!.egress,
+          reason: '$other and $column must not be classified apart',
+        );
+      }
+    }
+
     final baseline = await _storedColumns(_Fixture(null));
     final misplaced = <String>[];
     for (final column in _inScopeColumns) {
@@ -328,6 +347,7 @@ void main() {
       final expected = <String>{
         column,
         if (keyAliases.containsKey(column)) keyAliases[column]!,
+        ...?derivedColumns[column],
       };
       if (!(changed.length == expected.length &&
           changed.containsAll(expected))) {
