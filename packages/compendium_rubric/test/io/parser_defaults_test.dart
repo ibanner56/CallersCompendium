@@ -40,6 +40,7 @@ Operation parseFigure(String move, [Map<String, Object?> params = const {}]) {
 /// stated here, so the table pins the taxonomy's meaning rather than ours.
 const Map<String, Operation> defaults = {
   'allemande': Allemande(turn: 1.5),
+  'arch_and_dive': ArchAndDive(),
   'balance': Balance(),
   'balance_the_ring': BalanceTheRing(),
   'box_circulate': BoxCirculate(who: WhoSet.role2s),
@@ -48,6 +49,7 @@ const Map<String, Operation> defaults = {
   'california_twirl': CaliforniaTwirl(),
   'chain': Chain(who: WhoSet.role2s),
   'circle': Circle(turn: CircleDirection.left, places: 3),
+  'contra_corners': ContraCorners(),
   'courtesy_turn': CourtesyTurn(),
   'cross_trails': CrossTrails(),
   'do_si_do': DoSiDo(who: WhoSet.neighbors),

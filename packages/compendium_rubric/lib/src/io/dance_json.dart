@@ -251,6 +251,7 @@ int _statedPlaces(_Params p, String move, int fallback) {
 /// change the dance and then cheerfully compare it against the oracle.
 const Map<String, _FigureBuilder> _registry = {
   'allemande': _buildAllemande,
+  'arch_and_dive': _buildArchAndDive,
   'balance': _buildBalance,
   'balance_the_ring': _buildBalanceTheRing,
   'box_circulate': _buildBoxCirculate,
@@ -259,6 +260,7 @@ const Map<String, _FigureBuilder> _registry = {
   'california_twirl': _buildCaliforniaTwirl,
   'chain': _buildChain,
   'circle': _buildCircle,
+  'contra_corners': _buildContraCorners,
   'courtesy_turn': _buildCourtesyTurn,
   'cross_trails': _buildCrossTrails,
   'do_si_do': _buildDoSiDo,
@@ -480,6 +482,15 @@ Operation _buildOrbit(_Params p) => Orbit(
 Operation _buildStarPromenade(_Params p) => StarPromenade(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.role1s),
   turn: p.numberOr(['travel', 'turn'], 0.5),
+);
+
+// Taxonomy default `twos` (the arch couple).
+Operation _buildArchAndDive(_Params p) =>
+    ArchAndDive(who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.twos));
+
+Operation _buildContraCorners(_Params p) => ContraCorners(
+  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.ones),
+  custom: p.optionalString(['custom']) ?? '',
 );
 
 // Taxonomy v20: both default to `unspecified`, which this parser reads as

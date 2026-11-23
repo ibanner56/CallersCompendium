@@ -188,6 +188,7 @@ Precondition/error kinds accumulated as figures are defined:
 | `oneSidedHall` | a dance contains a `down_the_hall` without a corresponding `up_the_hall`, or vice versa. Non-fatal because the two need not be adjacent. Not raised when `facing: forwardThenBackward` completes the round trip within one figure. This is a **dance-level lint**, not a per-figure precondition — the first diagnostic in the taxonomy evaluated over the whole figure list rather than a single state transition. |
 | `hallFacingConflict` | a hall figure is danced from a line of four that is already facing *against* the figure's travel facing, so the line turns around on the spot before travelling. The figure still runs and `facing` still wins; the warning reports the uncalled turn. **State-dependent**, so unlike `oneSidedHall` it is raised by the operation against the formation it is handed, and stamped with its index by the engine. |
 | `facingPrecondition` | a figure is danced by dancers facing the wrong way for it (e.g. `pass_through dir:along` from dancers left facing across the set). The figure runs as though they had turned to it first; the warning reports the turn nobody called. Dancers whose facing is `Flexible` are skipped entirely — this figure is what resolves them, so there is nothing to report. **State-dependent**, raised by the operation and stamped by the engine. |
+| `archFromLine` | `arch_and_dive` is called on a hands four standing as a **line of four**, typically left by a hall figure. Its unconditional row swap then moves the whole line to the band's other row, usually back along the set, instead of trading two facing couples. The figure still runs as ruled; the warning says the order of figures probably needs a look. **State-dependent**, raised by the operation and stamped by the engine. *(User-ruled, 2026-11-23.)* |
 | `anchorMismatch` | a **descriptive anchor** contradicts the arrangement the figure produced — `form_long_waves` naming a `whom`/`hand` hold the wave it forms cannot offer. An anchor states a fact the figure does not need in order to run, so the figure runs unchanged and only the description is at fault. Anchors are still worth carrying: they **disambiguate** (a record naming the hold but not the pair has said everything needed) and they **corroborate** (a claim about the arrangement can be checked rather than trusted). **State-dependent**, raised by the operation and stamped by the engine. *(User-ruled.)* |
 | `unrecognizedFormation` | a record declares a starting formation shape this compiler does not model (`"other"` is already in the corpus). Read as **Duple Improper** rather than refused: the shape vocabulary is owned upstream and grows, and the declared type does less work than its name suggests — it fixes the starting matrix and never tracks where the dancers stand (`architecture.md` §3.2), so a dance whose own opening figures establish its arrangement is fully determined regardless. **Raised at parse time**, not by any figure, and carried on the `Dance` so the compile it belongs to reports it — the first diagnostic that is not an observation about a formation at all. *(User-ruled.)* |
 
@@ -501,11 +502,9 @@ To be defined later with worked examples.
 
 | Figure | Why held |
 |---|---|
-| `arch_and_dive` | Prior verifier makes it an unconditional row swap `(r0,c)↔(r1,c)` with **baked-in progression** and **ignores `who`**. **User-ruled: the unconditional row swap is correct** — this is the one place the prior verifier's reading governs over ours (§1.1 waived by explicit confirmation). Still held on the **progression** half: their baked-in progression conflicts with our explicit-flag model, and `who` needs a reading. Needs a worked example for those two points only. |
 | `orbit` — couple `who` (**meanwhile**) | The move itself is **implemented** (see `orbit`); this row holds only the **couple-`who` (`ones`/`twos`) semantics**. A true 180° orbit carries a couple onto the *other* couple's cells, so it resolves only in combination with the centre figure — the **meanwhile** mechanism. *(Replaces the former `allemande_orbit` row: that fused move was **retired at Compendium v19** and its figures migrated to `meanwhile[allemande, orbit]`, so the name no longer exists in the taxonomy.)* The prior verifier also lists `^ones orbit` in its unsupported-patterns table. Revisit with the meanwhile conversation. |
 | hall `ender` values — `cozy`, `cloverleaf`, `threadNeedle`, `rightHandHigh` | `down_the_hall` / `up_the_hall` are **implemented** (see their entries); this row holds only these four `ender` values, which raise `UnsupportedParam`. No verifier basis for any: there is **no handler at all** for `cozy`, `threadNeedle`, or `slidingDoors`; `TryCloverleaf` (FigureSimulator.cs:1224) is a **different, standalone** figure (an h4 ring rotation) and "cloverleaf turn single" sits in the unsupported-patterns list (:800); `TryRightHandHigh` (:4229) needs a named pivot dancer parsed from free text, and the structured ender carries no dancer param, so it is degenerate. Each needs a worked example. |
 | hall `moving` values — `center`, `outsides` | Held with the above. They move only part of the line, leaving a shape that is **not a line of four**, so §8.1 does not cover the result. Revisit with a worked example. |
-| `contra_corners` | Verifier `TryContraCorners` is a **no-op** (no usable logic). Compendium models it as a **container with a free-text `custom` param** — arbitrary embedded turning figures, so no single fixed permutation. 16-beat variant-dependent sequence. Needs a worked example. |
 | `dolphin_hey` | Hey variant (a couple travels as a unit — a "dolphin" — led by `whom`), so it needs a rule for how a *pair* occupies one place in the line of four that the base `hey` weaves along; `hey` itself is now **implemented** (see its entry) and no longer blocks this. Verifier has **no implementation** (in the unsupported-patterns list). Needs a worked example. |
 
 ---
@@ -1444,6 +1443,75 @@ To be defined later with worked examples.
   diagonal/opposite-corner swap, whole = no-op, FigureSimulator.cs:3793); user (implement
   whole=no-op, half=diagonal swap, quarter deferred, facing flexible); CallersCompendium taxonomy
   `star_promenade` MoveDef.
+
+### `arch_and_dive`
+
+- **summary:** One couple raises an arch, the couple facing them ducks under it, and the two
+  couples trade places along the set.
+- **params** (meets CallersCompendium baseline `{who, beats}`):
+  - `who` — dancer set, default `twos`. The couple that makes the arch. Descriptive; no
+    positional effect.
+  - `beats` — int, default 4.
+- **preconditions:** none beyond a hands four.
+- **effect:** the **row swap** of every hands four, `(r0,c) ↔ (r1,c)`. **User-ruled:** the
+  prior verifier's unconditional row swap is correct, the one place its reading governs over
+  ours (§1.1 waived by explicit confirmation).
+- **progression:** **user-ruled (2026-11-22): nothing is baked in.** Unlike the prior verifier,
+  the figure carries the dance's progression only when the record flags it, or when the
+  Caller's Box bridge assumes it there by its ordinary last-figure rule. Assuming the
+  progression on the arch itself was measured on the corpus before the ruling, and it did
+  worse (2 dances gained, 4 lost).
+- **normalization:** none of its own.
+- **facing (output):** preserved; both couples walk forward through.
+- **interaction scope:** within the hands four.
+- **h4 contribution** (D7): 0.
+- **progression-eligible:** yes (not its own progression: a flag adds the usual
+  end-normalization).
+- **known limit and lint (user-ruled 2026-11-23: keep the plain swap, warn):** the swap is
+  unconditional, so after a figure that has already moved the couples along the set it can
+  move them back. The usual case is a line of four left by a hall figure: the arch moves the
+  whole line to the band's other row, and the next neighbour swing then refuses. That case
+  raises the **`archFromLine` warning**. A ring left out of step with the bands (seen after a
+  `circle` in the corpus) is not covered by the lint. On the corpus at `rubric` `11b1860a`,
+  115 dances stopped at this figure before it was built: 34 now compile, 20 compile to the
+  wrong progression (16 of those with the bridge assuming the arch is the progression), 59
+  refuse at a later figure and 2 still name another unbuilt figure.
+- **sources:** user rulings (row swap; 2026-11-22 on `who` and progression; 2026-11-23 on
+  the lint); ContraDanceVerifier row swap; CallersCompendium taxonomy `arch_and_dive` MoveDef (`who` default `twos`).
+
+### `contra_corners`
+
+- **summary:** The actives turn each other by the right, a corner by the left, each other
+  again, and the other corner by the left. **User-ruled (2026-11-22): a full-phrase contra
+  corners returns the actives to their partner's place, in the centre facing each other.**
+- **params** (meets CallersCompendium baseline `{who, custom, beats}`):
+  - `who` — dancer set, default `ones`. The actives.
+  - `custom` — free text, default `''`. The record's note on the variation ("same-role",
+    "opposite-role", …). Carried for fidelity; it does not change the landing, since whichever
+    corners are turned, they turn once around and end home.
+  - `beats` — int, default 16.
+- **preconditions:** exactly one `who` pair in each hands four. Anything else is refused
+  (`UnresolvableDancerSet`) rather than guessed. Where the pair stands is not checked: the
+  ruling fixes the landing (each in the other's place), not the start.
+- **effect:** the two actives in each hands four **swap places**; the corners do not move.
+  *Worked check:* from the base ring `R1-A . . . L1-A / L2-B . . . R2-B`, ones active land
+  `L1-A . . . R1-A / L2-B . . . R2-B`.
+- **normalization:** none.
+- **facing (output):** the two actives **face each other** (across the set when they stand in
+  one row, along it when they share a column); the corners keep their facing. The grid does
+  not hold "in the centre" as a separate place, so the actives sit in each other's side
+  places.
+- **interaction scope:** within the hands four for positions (the corners on the far
+  diagonal turn once around and end home).
+- **h4 contribution** (D7): 0.
+- **progression-eligible:** no.
+- **corpus note (2026-11-23, `rubric` at `11b1860a`):** 43 Caller's Box dances stopped at
+  this figure before it was built; one still names another unbuilt figure. Of the other 42, 2
+  compile. 33 refuse at a `swing` with `whoMismatch` (typically "ones swing" or "twos swing",
+  which a side swing pairs by column while the actives stand across the set), 4 at this
+  figure's own `who` check, and 3 at other figures.
+- **sources:** user ruling 2026-11-22; CallersCompendium taxonomy `contra_corners` MoveDef. The
+  prior verifier's `TryContraCorners` is a no-op and was not followed.
 
 ### `butterfly_whirl`
 
