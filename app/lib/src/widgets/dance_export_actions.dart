@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/calling_card_settings_scope.dart';
 import '../export/calling_card_pdf.dart';
 import '../export/dance_pdf.dart';
+import '../export/dance_code.dart';
 import '../export/dance_share_bundle.dart';
 import '../export/dance_source_lines.dart';
 import '../export/export_labels_l10n.dart';
@@ -15,6 +16,7 @@ import '../export/json_export.dart';
 import '../export/share_file.dart';
 import '../utils/safe_name.dart';
 import 'calling_card_print.dart';
+import 'dance_code_view.dart';
 import 'export_guard.dart';
 
 /// Hands the shareable card to the OS share sheet. Defaults to
@@ -65,6 +67,7 @@ class DanceExportActions {
     this.bundleFileWriter,
     this.pdfLayouter,
     this.jsonExportDelivery,
+    this.now,
   });
 
   final Dance dance;
@@ -107,6 +110,11 @@ class DanceExportActions {
   /// Save As.
   final JsonExportDelivery? jsonExportDelivery;
 
+  /// Clock for the `exportedAt` stamp in the share bundle; defaults to the
+  /// system clock. A seam so a test can fix it and compare a bundle byte for
+  /// byte.
+  final DateTime Function()? now;
+
   String _plainText(AppLocalizations l10n) => danceToPlainText(
     dance,
     dialect: dialect,
@@ -133,6 +141,7 @@ class DanceExportActions {
       customFieldFor: (id) => customFieldsById[id],
       difficultyLevelFor: difficultyLevelFor,
       userFigureFor: userFigureFor,
+      now: now?.call(),
     );
     final fileName = danceShareBundleFileName(
       dance.title,
@@ -202,6 +211,34 @@ class DanceExportActions {
     );
     announceBundleSaved(messenger, l10n, result);
   }, source: 'dance_export_actions.shareBundle');
+
+  /// Shows the dance as a full-screen QR code (#2334), or, when the dance is
+  /// too long for one, says so and offers the dance file instead.
+  ///
+  /// The code holds the same bundle [shareBundle] sends ([_buildBundle]), so it
+  /// carries the same privacy filtering: this builds no second copy.
+  /// [navigator] is resolved by the caller before any menu closes, as the
+  /// messenger is. Nothing here touches the network.
+  Future<void> showCode(
+    NavigatorState navigator,
+    ScaffoldMessengerState messenger,
+    AppLocalizations l10n,
+  ) => guardExport(messenger, l10n.exportShowCodeError, () async {
+    final bundle = _buildBundle(extension: danceShareBundleExtension);
+    final plan = planDanceCode(bundle.json);
+    await navigator.push(
+      MaterialPageRoute<void>(
+        builder: (_) => switch (plan) {
+          DanceCodeShown() => DanceCodeScreen(plan: plan, title: dance.title),
+          DanceCodeTooLong() => DanceCodeTooLongScreen(
+            title: dance.title,
+            onShareFile: (origin) =>
+                shareBundle(messenger, l10n, origin: origin),
+          ),
+        },
+      ),
+    );
+  }, source: 'dance_export_actions.showCode');
 
   /// Builds the plain-JSON export, asks the user how to deliver it (Save, Copy
   /// or Share), then delivers it. [context] is used for the choice dialog and
