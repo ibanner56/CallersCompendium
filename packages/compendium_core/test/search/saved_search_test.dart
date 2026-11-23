@@ -547,13 +547,9 @@ void main() {
         );
       }
       expect(SavedSearch.decode('x', {...valid(), 'name': 4}).isOk, isFalse);
-      expect(
-        SavedSearch.decode(
-          'x',
-          viaJson(search('A').toJson()),
-        ).value!.settingsKey,
-        'saved_search:x',
-      );
+      final read = SavedSearch.decode('x', viaJson(search('A').toJson()));
+      expect(read.value!.id, 'x');
+      expect(read.value!.name, 'A');
     });
   });
 
