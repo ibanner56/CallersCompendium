@@ -12630,4 +12630,101 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exportCallingCardsBiggerThanPaper =>
       'These cards are bigger than the paper, so each was printed smaller, one to a page.';
+
+  @override
+  String get collectionExportCsv => 'Export as CSV';
+
+  @override
+  String get settingsExportDancesCsvTitle => 'Export dances as a spreadsheet';
+
+  @override
+  String get settingsExportDancesCsvSubtitle =>
+      'Every dance in your collection, as a CSV file for Excel, Numbers or Google Sheets. It follows the sharing rules, plus your star ratings. It is not a backup and can\'t be restored.';
+
+  @override
+  String get settingsExportDancesCsvAction => 'Export';
+
+  @override
+  String get exportCsvDialogTitle => 'Export a spreadsheet (CSV)';
+
+  @override
+  String get exportCsvDialogMessage =>
+      'Save the file, or share it with another app. It opens in Excel, Numbers, LibreOffice or Google Sheets.';
+
+  @override
+  String get exportCsvSavedGeneric => 'Spreadsheet saved.';
+
+  @override
+  String get exportCsvSaveError =>
+      'Couldn\'t save this spreadsheet. Try again.';
+
+  @override
+  String get exportCsvShareError =>
+      'Couldn\'t share this spreadsheet. Try again.';
+
+  @override
+  String get exportCsvError => 'Couldn\'t make this spreadsheet. Try again.';
+
+  @override
+  String get csvDancesFileStem => 'dances';
+
+  @override
+  String get csvColumnTitle => 'Title';
+
+  @override
+  String get csvColumnAuthors => 'Authors';
+
+  @override
+  String get csvColumnInterpreters => 'Interpreted by';
+
+  @override
+  String get csvColumnForm => 'Type';
+
+  @override
+  String get csvColumnFormation => 'Formation';
+
+  @override
+  String get csvColumnProgression => 'Progression';
+
+  @override
+  String get csvColumnLevel => 'Level';
+
+  @override
+  String get csvColumnMixedLevel => 'Mixed level';
+
+  @override
+  String get csvColumnMixer => 'Mixer';
+
+  @override
+  String get csvColumnStatus => 'Status';
+
+  @override
+  String get csvColumnRating => 'Rating';
+
+  @override
+  String get csvColumnTags => 'Tags';
+
+  @override
+  String get csvColumnTunes => 'Tunes';
+
+  @override
+  String get csvColumnMeter => 'Meter';
+
+  @override
+  String get csvColumnKey => 'Key';
+
+  @override
+  String get csvColumnSources => 'Published sources';
+
+  @override
+  String get csvColumnHook => 'Hook';
+
+  @override
+  String get csvColumnCallingNotes => 'Calling notes';
+
+  @override
+  String get csvColumnWalkthrough => 'Walkthrough';
+
+  @override
+  String get csvColumnFigures => 'Figures';
 }

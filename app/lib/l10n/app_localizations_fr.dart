@@ -12823,4 +12823,101 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get exportCallingCardsBiggerThanPaper =>
       'Ces fiches sont plus grandes que le papier : chacune a donc été imprimée en plus petit, une par page.';
+
+  @override
+  String get collectionExportCsv => 'Exporter en CSV';
+
+  @override
+  String get settingsExportDancesCsvTitle => 'Exporter les danses en tableur';
+
+  @override
+  String get settingsExportDancesCsvSubtitle =>
+      'Toutes les danses de votre collection, dans un fichier CSV pour Excel, Numbers ou Google Sheets. Les règles de partage s’appliquent, avec en plus vos notes en étoiles. Ce n’est pas une sauvegarde et il ne peut pas être restauré.';
+
+  @override
+  String get settingsExportDancesCsvAction => 'Exporter';
+
+  @override
+  String get exportCsvDialogTitle => 'Exporter un tableur (CSV)';
+
+  @override
+  String get exportCsvDialogMessage =>
+      'Enregistrez le fichier ou partagez-le avec une autre app. Il s’ouvre dans Excel, Numbers, LibreOffice ou Google Sheets.';
+
+  @override
+  String get exportCsvSavedGeneric => 'Tableur enregistré.';
+
+  @override
+  String get exportCsvSaveError =>
+      'Impossible d’enregistrer ce tableur. Réessayez.';
+
+  @override
+  String get exportCsvShareError =>
+      'Impossible de partager ce tableur. Réessayez.';
+
+  @override
+  String get exportCsvError => 'Impossible de créer ce tableur. Réessayez.';
+
+  @override
+  String get csvDancesFileStem => 'danses';
+
+  @override
+  String get csvColumnTitle => 'Titre';
+
+  @override
+  String get csvColumnAuthors => 'Auteurs';
+
+  @override
+  String get csvColumnInterpreters => 'Interprétée par';
+
+  @override
+  String get csvColumnForm => 'Type';
+
+  @override
+  String get csvColumnFormation => 'Formation';
+
+  @override
+  String get csvColumnProgression => 'Progression';
+
+  @override
+  String get csvColumnLevel => 'Niveau';
+
+  @override
+  String get csvColumnMixedLevel => 'Niveau mixte';
+
+  @override
+  String get csvColumnMixer => 'Mixer';
+
+  @override
+  String get csvColumnStatus => 'Statut';
+
+  @override
+  String get csvColumnRating => 'Note';
+
+  @override
+  String get csvColumnTags => 'Tags';
+
+  @override
+  String get csvColumnTunes => 'Airs';
+
+  @override
+  String get csvColumnMeter => 'Mesure';
+
+  @override
+  String get csvColumnKey => 'Tonalité';
+
+  @override
+  String get csvColumnSources => 'Sources publiées';
+
+  @override
+  String get csvColumnHook => 'Accroche';
+
+  @override
+  String get csvColumnCallingNotes => 'Notes d’appel';
+
+  @override
+  String get csvColumnWalkthrough => 'Déroulé';
+
+  @override
+  String get csvColumnFigures => 'Figures';
 }

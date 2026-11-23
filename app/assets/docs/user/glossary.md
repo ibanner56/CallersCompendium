@@ -99,6 +99,13 @@ settings, your collection is part of your library.
 An online database of contra dances that the app can [import](#import) from,
 either by searching it online or by pasting a dance's link or ID number.
 
+## CSV file
+
+A plain table that every spreadsheet program opens, such as Excel, Numbers,
+LibreOffice and Google Sheets: one line per row, with commas between the
+columns. Caller's Compendium can export your dances as one. See
+[Share, print & export](./sharing.md#export-dances-as-a-spreadsheet-csv).
+
 ## Custom field
 
 An extra piece of information you define yourself and attach to dances — beyond

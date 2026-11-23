@@ -38,6 +38,8 @@ import '../../diagnostics/error_log.dart';
 import '../../published_collections/published_collection_service.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
+import '../../export/csv_export.dart';
+import '../../widgets/dances_csv_export_action.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/settings_action_row.dart';
@@ -61,7 +63,12 @@ class GeneralSection extends StatefulWidget {
     this.importPicker,
     this.urlFetcher,
     this.publishedCollectionService,
+    this.csvExportDelivery = const CsvExportDelivery(),
   });
+
+  /// Delivers the **Export dances as a spreadsheet** file (#2332); a test
+  /// seam.
+  final CsvExportDelivery csvExportDelivery;
 
   /// Test seam for delivering an exported backup file; defaults to
   /// [saveBackupToFile] (temp file + OS share sheet).
@@ -672,6 +679,11 @@ class _GeneralSectionState extends State<GeneralSection> {
       onBackupCadenceChanged: _onBackupCadenceChanged,
       lastBackupAt: _lastBackupAt,
       onExportBackup: _onExportBackup,
+      onExportDancesCsv: () => exportDancesCsv(
+        context,
+        delivery: widget.csvExportDelivery,
+        source: 'general_section._onExportDancesCsv',
+      ),
       onRestoreBackup: _onRestoreBackup,
       onImportDances: _onImportDances,
       onPublishedCollections: _onPublishedCollections,
@@ -708,6 +720,7 @@ class _GeneralView extends StatelessWidget {
     required this.onBackupCadenceChanged,
     required this.lastBackupAt,
     required this.onExportBackup,
+    required this.onExportDancesCsv,
     required this.onRestoreBackup,
     required this.onImportDances,
     required this.onPublishedCollections,
@@ -745,6 +758,7 @@ class _GeneralView extends StatelessWidget {
   /// When the last successful backup export happened, or `null` for "never".
   final DateTime? lastBackupAt;
   final Future<void> Function() onExportBackup;
+  final Future<void> Function() onExportDancesCsv;
   final Future<void> Function() onRestoreBackup;
 
   /// Opens the import review flow (ROADMAP 6.3).
@@ -965,6 +979,16 @@ class _GeneralView extends StatelessWidget {
           onPressed: onExportBackup,
           icon: const Icon(Icons.file_upload_outlined),
           label: Text(l10n.backupExportAction),
+        ),
+      ),
+      SettingsActionRow(
+        title: Text(l10n.settingsExportDancesCsvTitle),
+        subtitle: Text(l10n.settingsExportDancesCsvSubtitle),
+        button: OutlinedButton.icon(
+          key: const ValueKey('export-dances-csv-button'),
+          onPressed: onExportDancesCsv,
+          icon: const Icon(Icons.table_view_outlined),
+          label: Text(l10n.settingsExportDancesCsvAction),
         ),
       ),
       SettingsActionRow(

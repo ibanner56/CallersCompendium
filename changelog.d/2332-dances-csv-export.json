@@ -1,0 +1,16 @@
+{
+  "id": "2332-dances-csv-export",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can export dances as a spreadsheet (CSV) that opens in Excel, Numbers, LibreOffice or Google Sheets: select dances in the Collection and choose More batch actions ▸ Export as CSV, or export every dance from Settings ▸ General ▸ Backup & restore. Each row holds a dance's details, its figures worded in your dialect and your star rating. Like a shared file, it leaves out authors' private details, your notes on your own figures and custom fields you don't share."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add an RFC 4180 CSV writer (`encodeCsv`, `encodeCsvCell`, `guardCsvFormula`): comma separator, CRLF, UTF-8 with a byte-order mark, and formula-like cells written as text.",
+      "Add `danceCardFigureLines`, the figure lines `danceToPlainText` writes, so other exports can word figures the same way.",
+      "Add `customFieldLeavesIn`, the one rule for whether a custom field leaves the device in a share or a backup."
+    ]
+  }
+}

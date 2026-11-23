@@ -111,10 +111,6 @@ String danceToPlainText(
     fields: fields,
     sourceLines: sourceLines,
   );
-  final cardDialect = content.dialect;
-  String renderText(String text) => canonicalizeDiscouragedTerms
-      ? fig.renderFreeTextWithCanonicalDiscouragedTerms(text, cardDialect)
-      : fig.renderFreeText(text, cardDialect);
   final lines = <String>[];
 
   lines.add(content.title);
@@ -132,28 +128,15 @@ String danceToPlainText(
   if (content.figures.isNotEmpty) {
     lines.add('');
     lines.add(labels.heading(labels.figures));
-    final sectioned = deriveSections(content.figures, dance.phraseStructure);
-    final beatsPerBar = danceBeatsPerBar(
-      dance.form,
-      dance.phraseStructure,
-      meter: dance.meter,
+    lines.addAll(
+      danceCardFigureLines(
+        dance,
+        content,
+        renderer: fig,
+        labels: labels,
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      ),
     );
-    for (final sf in sectioned) {
-      final text = canonicalizeDiscouragedTerms
-          ? fig.renderSummaryWithCanonicalDiscouragedTerms(
-              sf.figure,
-              cardDialect,
-            )
-          : fig.renderSummary(sf.figure, cardDialect);
-      final beatsLabel = labels.count(sf.figure.beats, beatsPerBar);
-      final marker = sf.figure.progression ? ' ¶' : '';
-      lines.add('${sf.label}  $text ($beatsLabel)$marker');
-      final note = sf.figure.note?.trim();
-      if (note != null && note.isNotEmpty) {
-        final renderedNote = renderText(note);
-        lines.add('    $renderedNote');
-      }
-    }
   }
 
   if (content.callingNotes case final notes?) {
@@ -181,4 +164,54 @@ String danceToPlainText(
   }
 
   return lines.join('\n');
+}
+
+/// The figure lines of [dance]'s card, one per figure with its phrase label,
+/// beat count and progression mark, each followed by its indented note when it
+/// has one. They are worded in [content]'s dialect, exactly as
+/// [danceToPlainText] words them: that renderer writes these lines under its
+/// Figures heading, and the dances CSV export (#2332) writes them in its Figures
+/// cell, so the two cannot drift.
+///
+/// [content] must be built from [dance] with the same [renderer] and
+/// [canonicalizeDiscouragedTerms]. Empty when the dance has no readable
+/// figures.
+List<String> danceCardFigureLines(
+  Dance dance,
+  DanceCardContent content, {
+  required FigureRenderer renderer,
+  DanceExportLabels labels = const DanceExportLabels(),
+  bool canonicalizeDiscouragedTerms = false,
+}) {
+  if (content.figures.isEmpty) return const [];
+  final cardDialect = content.dialect;
+  final lines = <String>[];
+  final sectioned = deriveSections(content.figures, dance.phraseStructure);
+  final beatsPerBar = danceBeatsPerBar(
+    dance.form,
+    dance.phraseStructure,
+    meter: dance.meter,
+  );
+  for (final sf in sectioned) {
+    final text = canonicalizeDiscouragedTerms
+        ? renderer.renderSummaryWithCanonicalDiscouragedTerms(
+            sf.figure,
+            cardDialect,
+          )
+        : renderer.renderSummary(sf.figure, cardDialect);
+    final beatsLabel = labels.count(sf.figure.beats, beatsPerBar);
+    final marker = sf.figure.progression ? ' ¶' : '';
+    lines.add('${sf.label}  $text ($beatsLabel)$marker');
+    final note = sf.figure.note?.trim();
+    if (note != null && note.isNotEmpty) {
+      final renderedNote = canonicalizeDiscouragedTerms
+          ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+              note,
+              cardDialect,
+            )
+          : renderer.renderFreeText(note, cardDialect);
+      lines.add('    $renderedNote');
+    }
+  }
+  return lines;
 }

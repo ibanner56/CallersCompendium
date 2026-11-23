@@ -8,6 +8,7 @@ import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/export/csv_export.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 
 import 'l10n_harness.dart';
@@ -18,6 +19,7 @@ Future<void> pumpBatchScreen(
   WidgetTester tester,
   CompendiumRepositories repos, {
   bool confirmBeforeDelete = false,
+  CsvExportDelivery csvExportDelivery = const CsvExportDelivery(),
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 3000));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -49,7 +51,7 @@ Future<void> pumpBatchScreen(
           ),
         ),
       ),
-      home: const DanceListScreen(),
+      home: DanceListScreen(csvExportDelivery: csvExportDelivery),
     ),
   );
   await tester.pumpAndSettle();

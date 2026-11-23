@@ -271,7 +271,7 @@ the copies you can move between devices and store wherever you like.
 
 ## Backups vs. sharing vs. importing
 
-Three related features are easy to mix up:
+Four related features are easy to mix up:
 
 - **Backup & restore** (this guide) works with your *entire* library at
   once — one file in, one file out.
@@ -279,6 +279,10 @@ Three related features are easy to mix up:
   another caller can import — happens from that dance or program, not here,
   and leaves out private details a backup keeps. See
   [Share, print & export](./sharing.md).
+- **A spreadsheet of your dances** (CSV) opens in Excel, Numbers or Google
+  Sheets, but it follows the sharing rules and can't be restored, so it is no
+  substitute for a backup. See
+  [Export dances as a spreadsheet](./sharing.md#export-dances-as-a-spreadsheet-csv).
 - **Importing** brings dances in from other apps and sources — such as
   The Caller's Box, ContraDB, or another Caller's Compendium file — and
   *merges* them alongside what you already have. See
