@@ -139,6 +139,7 @@ Future<_Harness> _pump(
   Object? storedDefaults,
   Set<String> hiddenFacets = const {},
   SettingsRepository Function(CompendiumDatabase db)? settings,
+  DialectsByForm? dialects,
 }) async {
   tester.view.physicalSize = const Size(1400, 2400);
   tester.view.devicePixelRatio = 1;
@@ -161,6 +162,10 @@ Future<_Harness> _pump(
   final data = await CollectionData.load(repos);
   final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
   addTearDown(notifier.dispose);
+  final byForm = ValueNotifier<DialectsByForm>(
+    dialects ?? DialectsByForm.all(Dialect.larksRobins),
+  );
+  addTearDown(byForm.dispose);
   final hidden = ValueNotifier<Set<String>>(hiddenFacets);
   addTearDown(hidden.dispose);
   final persisted = <Program>[];
@@ -172,7 +177,9 @@ Future<_Harness> _pump(
         repositories: repos,
         child: CollectionFacetsScope(
           notifier: hidden,
-          child: ActiveDialectScope(notifier: notifier, child: child!),
+          child: dialects == null
+              ? ActiveDialectScope(notifier: notifier, child: child!)
+              : ActiveDialectScope.byForm(dialects: byForm, child: child!),
         ),
       ),
       home: PerformProgramScreen(
@@ -677,6 +684,37 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('adjust-swap-sheet'), skipOffstage: false),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('an upcoming dance of another type is named in its own type\'s '
+      'dialect', (tester) async {
+    final slots = _slots();
+    slots[5] = ProgramSlot(id: 's4', position: 5, danceId: 'sq');
+    await _pump(
+      tester,
+      program: _program(slots),
+      extra: [
+        _dance('sq', 'Square Hey', form: DanceForm.square),
+        _match,
+      ],
+      dialects: DialectsByForm({
+        DanceForm.contra: Dialect.larksRobins,
+        DanceForm.square: Dialect.larksRobins.copyWith(
+          moves: {'hey': 'grand weave'},
+        ),
+      }),
+    );
+    await _openAdjust(tester);
+    await _tap(tester, find.byKey(const ValueKey('adjust-swap-s4')));
+    expect(
+      _inSwap(
+        find.descendant(
+          of: find.byKey(const ValueKey('swap-keep-figure-1')),
+          matching: find.textContaining('grand weave'),
+        ),
+      ),
       findsOneWidget,
     );
   });

@@ -1158,6 +1158,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           _danceForSlot(_currentSlot)?.form ?? DanceForm.contra,
         ),
         enrichment: enrichment,
+        dialectForForm: (form) => _effectiveDialect(context, form),
       ),
       sheetAnimationStyle: AppMotion.styleFor(context),
     );

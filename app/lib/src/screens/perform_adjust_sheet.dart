@@ -42,6 +42,7 @@ class PerformAdjustSheet extends StatefulWidget {
     required this.data,
     required this.dialect,
     required this.enrichment,
+    this.dialectForForm,
     this.danceOverrides = const {},
     this.authorNameOverrides = const {},
     this.onEdited,
@@ -75,6 +76,10 @@ class PerformAdjustSheet extends StatefulWidget {
 
   /// Active dialect for the quick-search picker's canonicalization.
   final Dialect dialect;
+
+  /// The dialect a dance of a given form is shown in, for the swap sheet of a
+  /// dance whose form differs from the one on screen. Null uses [dialect].
+  final Dialect Function(DanceForm form)? dialectForForm;
 
   /// Always-on search enrichment (union of every saved dialect) for the
   /// quick-search picker, so its search resolves saved-dialect vocabulary
@@ -354,7 +359,11 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
               key: const ValueKey('adjust-swap-sheet'),
               title: title,
               data: widget.data,
-              dialect: widget.dialect,
+              // The swapped dance's own form's dialect: its Keep chips name
+              // its moves, and the query asks for them.
+              dialect: dance == null
+                  ? widget.dialect
+                  : widget.dialectForForm?.call(dance.form) ?? widget.dialect,
               enrichment: widget.enrichment,
               danceOverrides: widget.danceOverrides,
               authorNameOverrides: widget.authorNameOverrides,
