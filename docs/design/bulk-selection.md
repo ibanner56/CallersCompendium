@@ -379,7 +379,7 @@ drops mixer and mixed level, so only status remains.)*
 **Fit.** `dances.status` is a plain column, classified
 (`privacy/field_registry.dart:365-368`) and edited today in the dance editor
 (`screens/dance_editor/dance_editor_form.dart:667`). The Collection already
-filters on it (`CollectionSort.lastCalled` in `search/collection_query.dart`), so the batch action closes
+filters on it (`CollectionSort.lastCalled` in `packages/compendium_core/lib/src/search/collection_sort.dart`), so the batch action closes
 the "find, then fix" loop the audit describes.
 
 **Shape.**

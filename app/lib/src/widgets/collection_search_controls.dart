@@ -2,7 +2,6 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
 import '../theme/app_spacing.dart';
 import 'app_dropdown_field.dart';
