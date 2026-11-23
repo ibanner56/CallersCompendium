@@ -207,6 +207,18 @@ final RegExp _phraseLabel = RegExp(r'^[A-Za-z][0-9]{1,2}[:.]?\s+');
 /// A leading beat count in brackets, as Caller's Companion writes one: `(8)`.
 final RegExp _leadingBeats = RegExp(r'^\(\s*(\d{1,4})\s*\)\s*');
 
+/// The existing field a new-field [column] will reuse at commit, as
+/// [CsvImporter] matches one: the first of the same type and folded label.
+CustomFieldDef? _existingFieldNamed(
+  CsvImportMapping mapping,
+  CsvColumnMapping column,
+) {
+  final label = csvFold(column.newFieldLabel!);
+  return mapping.existingFields.values
+      .where((f) => f.type == column.newFieldType && csvFold(f.label) == label)
+      .firstOrNull;
+}
+
 /// A trailing count as this app's own export writes one, in any language and
 /// with or without the progression mark: `(16 beats)`, `(16 Schläge) ¶`,
 /// `(1½ bars)`. The count is group 1 (a half only for bars); the
@@ -376,18 +388,15 @@ StructuredDraft csvRowToDraft(
       CsvColumnTarget.meter ||
       CsvColumnTarget.key ||
       CsvColumnTarget.hook ||
-      CsvColumnTarget.walkthrough => column.target,
-      // A custom field, existing or new, by the name and type commit reuses
-      // a field by: an existing "Story" and a new text "Story" are one field.
-      CsvColumnTarget.customField =>
-        switch (mapping.existingFields[column.customFieldId]) {
-          final def? => (csvFold(def.label), def.type),
-          null => column.customFieldId,
-        },
-      CsvColumnTarget.newCustomField => (
-        csvFold(column.newFieldLabel!.trim()),
-        column.newFieldType!,
-      ),
+      CsvColumnTarget.walkthrough ||
+      CsvColumnTarget.title => column.target,
+      CsvColumnTarget.customField => column.customFieldId,
+      // A new field is the one commit will give it: an existing field of that
+      // name and type, else one shared by every new column of that name and
+      // type. Two existing fields stay two, whatever their names.
+      CsvColumnTarget.newCustomField =>
+        _existingFieldNamed(mapping, column)?.id ??
+            (csvFold(column.newFieldLabel!), column.newFieldType!),
       _ => null,
     };
     if (single != null && filled.contains(single)) {

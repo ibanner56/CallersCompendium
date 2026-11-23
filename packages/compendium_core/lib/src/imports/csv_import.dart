@@ -170,7 +170,7 @@ class CsvImporter {
     List<String> created,
   ) async {
     final result = <String, String>{};
-    final existing = await _customFields.listAll();
+    final existing = [...await _customFields.listAll()];
     final usedKeys = {for (final f in existing) f.key};
     for (var i = 0; i < mapping.columns.length; i++) {
       final column = mapping.columns[i];
@@ -188,8 +188,8 @@ class CsvImporter {
           ? {for (final v in values) ?normalizeChoiceOption(v.toString())}
           : const <String>{};
       // A field of this name and type already there (made by an earlier
-      // commit from this sheet, such as Import and edit on one row, or the
-      // caller's own) is reused rather than doubled; a choice field gains the
+      // commit from this sheet, such as Import and edit on one row, an
+      // earlier column of this one, or the caller's own) is reused rather than doubled; a choice field gains the
       // options it lacks. It is not this commit's to remove.
       final same = existing
           .where((f) => f.type == type && csvFold(f.label) == csvFold(label))
@@ -234,6 +234,17 @@ class CsvImporter {
       // commit's to remove.
       if (id == fresh) created.add(id);
       result[placeholder] = id;
+      // A later column of the same name and type, filled on other rows,
+      // reuses this one rather than making a second.
+      existing.add(
+        CustomFieldDef(
+          id: id,
+          key: key,
+          label: label,
+          type: type,
+          choices: type == CustomFieldType.choice ? choices.toList() : null,
+        ),
+      );
     }
     return result;
   }

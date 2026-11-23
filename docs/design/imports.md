@@ -1553,12 +1553,15 @@ resolves through `CsvValueVocabulary.levels`, the caller's configured levels by
 their own and localized label, into `difficultyLevelId`. Authors go through
 `splitAuthorNames`; tags and tunes split on commas. A value that does not fit
 its field, and a second column for a single-valued field (everything but
-figures, authors, tags, tunes and notes; a custom field by folded label and
-type, the key commit reuses a field by) once an earlier column's value has
+figures, authors, tags, tunes and notes) once an earlier column's value has
 filled it, is appended to the calling notes as
 `Column: value` with a `csv_value_kept_in_notes` issue. Only a new **choice**
 field's values are clamped to the choice length at commit; a new text field's
-are stored whole.
+are stored whole. A new-field column counts as the field commit will give it:
+an existing field of the same type and folded label (`CsvImporter` reuses the
+first such), else the field every new column of that label and type shares, as
+commit creates one and reuses it for the next. Two existing fields stay two
+whatever their labels.
 
 #### Bounding untrusted input
 

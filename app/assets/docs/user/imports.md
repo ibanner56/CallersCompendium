@@ -310,9 +310,10 @@ How the values come in:
   know, or text in a number field — goes into the dance's **calling notes**,
   with a note on the review row, so nothing is lost.
 - When two columns are set to the same field, the first value that fits fills
-  it and the other goes into the calling notes. A new custom field named like
-  one of yours, with the same type, counts as the same field. Two columns for the same phrase of
-  **Figures** are both kept, one after the other.
+  it and the other goes into the calling notes. A new custom field counts as
+  one of yours with the same name and type, and two new ones with the same
+  name and type are one field. Two columns for the same phrase of **Figures**
+  are both kept, one after the other.
 - A dance from your own spreadsheet records **no source**, just like one you
   typed in. If you import the same file again, the dances you already have show
   up as possible matches by title and author, and default to **Skip**.

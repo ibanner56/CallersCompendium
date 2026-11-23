@@ -255,7 +255,7 @@ void main() {
     });
   });
 
-  group('review round 1 (#2429)', () {
+  group('review round 1 (#2329)', () {
     CsvImportMapping m(
       List<CsvColumnMapping> cols, {
       CsvValueVocabulary vocab = const CsvValueVocabulary(),
@@ -323,7 +323,7 @@ void main() {
     });
   });
 
-  group('review round 2 (#2429)', () {
+  group('review round 2 (#2329)', () {
     CsvImportMapping m(
       List<CsvColumnMapping> cols, {
       CsvValueVocabulary vocab = const CsvValueVocabulary(),
@@ -369,33 +369,68 @@ void main() {
       expect(dance.callingNotes, 'Level: Wizard');
     });
 
-    test('a new field named like an existing one of the same type, or like '
-        'another new one, is the same field', () async {
+    test('a new field named like an existing one of the same type is that '
+        'field; two existing fields stay two', () async {
       final story = CustomFieldDef(
         id: 'f-story',
         key: 'story',
         label: 'Story',
         type: CustomFieldType.text,
       );
+      final story2 = CustomFieldDef(
+        id: 'f-story-2',
+        key: 'story_2',
+        label: 'story ',
+        type: CustomFieldType.text,
+      );
       final batch = await plan(
-        'Title,Story,Story,Story\r\nA,one,two,three\r\n',
+        'Title,S1,S2,S3,S4\r\nA,one,two,three,four\r\n',
         m(
           const [
             CsvColumnMapping(CsvColumnTarget.title),
             CsvColumnMapping.customField('f-story'),
+            CsvColumnMapping.customField('f-story-2'),
             CsvColumnMapping.newCustomField('story', CustomFieldType.text),
             CsvColumnMapping.newCustomField('Story', CustomFieldType.number),
           ],
-          existingFields: {'f-story': story},
+          existingFields: {'f-story': story, 'f-story-2': story2},
         ),
       );
       final dance = batch.records.single.draft.dance;
       expect(dance.customFields.map((v) => (v.fieldId, v.value)), [
         ('f-story', 'one'),
+        ('f-story-2', 'two'),
       ]);
-      // The number column is another field (another type), but `three` is
+      // The number column is another field (another type), but `four` is
       // not a number.
-      expect(dance.callingNotes, 'Story: two\n\nStory: three');
+      expect(dance.callingNotes, 'S3: three\n\nS4: four');
+    });
+
+    test('two new fields of one name and type are one field', () async {
+      final batch = await plan(
+        'Title,Story,Story\r\nA,one,two\r\n',
+        m(const [
+          CsvColumnMapping(CsvColumnTarget.title),
+          CsvColumnMapping.newCustomField('Story', CustomFieldType.text),
+          CsvColumnMapping.newCustomField('story', CustomFieldType.text),
+        ]),
+      );
+      final dance = batch.records.single.draft.dance;
+      expect(dance.customFields.map((v) => v.value), ['one']);
+      expect(dance.callingNotes, 'Story: two');
+    });
+
+    test('a second Title column keeps its value in the notes', () async {
+      final batch = await plan(
+        'Title,Name\r\nA,Alias\r\n',
+        m(const [
+          CsvColumnMapping(CsvColumnTarget.title),
+          CsvColumnMapping(CsvColumnTarget.title),
+        ]),
+      );
+      final dance = batch.records.single.draft.dance;
+      expect(dance.title, 'A');
+      expect(dance.callingNotes, 'Name: Alias');
     });
   });
 
@@ -507,6 +542,35 @@ void main() {
       final defs = await fields.listAll();
       expect(defs, hasLength(1));
       expect(defs.single.choices!.toSet(), {'Winter', 'Summer'});
+    });
+
+    test('two new columns of one name and type, filled on different rows, '
+        'make one field', () async {
+      const cols = [
+        CsvColumnMapping(CsvColumnTarget.title),
+        CsvColumnMapping.newCustomField('Story', CustomFieldType.text),
+        CsvColumnMapping.newCustomField('story', CustomFieldType.text),
+      ];
+      final batch = await plan(
+        'Title,Story,Story\r\nA,one,\r\nB,,two\r\n',
+        mapping(',', cols: cols),
+      );
+      await importer.commit(
+        batch,
+        mapping: mapping(',', cols: cols),
+        now: now,
+        newId: _ids(),
+      );
+      final defs = await fields.listAll();
+      expect(defs, hasLength(1));
+      final byTitle = {
+        for (final d in await dances.listAll())
+          d.title: d.customFields.map((v) => (v.fieldId, v.value)).toList(),
+      };
+      expect(byTitle, {
+        'A': [(defs.single.id, 'one')],
+        'B': [(defs.single.id, 'two')],
+      });
     });
 
     test('a new text field keeps a long value whole', () async {
