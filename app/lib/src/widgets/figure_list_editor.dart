@@ -3159,14 +3159,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       draft,
       FigureStartScope.startOf(context),
     );
-    // With a span of its own, a sequence may take another untimed step
-    // however much of the phrase the span fills: only its timed steps count.
-    final phraseFull =
-        isSequence &&
-        (draft.sequenceSpanStated
-                ? sides.fold(0, (sum, step) => sum + step.beats)
-                : draft.beats) >=
-            beatLimit;
+    final phraseFull = isSequence && _beatsTowardPhrase(draft) >= beatLimit;
     String childLabel(int i) => isModifier
         ? i == 0
               ? l10n.danceEditorModifierCoreLabel
@@ -3512,15 +3505,25 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     widget.onChanged();
   }
 
+  /// The beats of sequence [draft] that count toward its phrase: all of
+  /// them, or, with a span of its own, only its steps' (an untimed step counts
+  /// none), so a spanned sequence may take another untimed step however much
+  /// of the phrase its span fills.
+  static int _beatsTowardPhrase(FigureDraft draft) => draft.sequenceSpanStated
+      ? draft.containerChildren!.fold(0, (sum, step) => sum + step.beats)
+      : draft.beats;
+
   /// Appends a fresh blank child, capped at the kind's [maxContainerChildren]
-  /// and, for a sequence, refused once its steps fill a phrase — the add
-  /// button is already hidden then, so this is a defensive no-op guard.
+  /// and, for a sequence, refused once its steps fill the phrase it starts in
+  /// ([_beatsTowardPhrase]) — the add button is already hidden then, by the
+  /// same count, so this is a defensive no-op guard.
   void _addSide() {
     final draft = widget.draft;
     final sides = draft.containerChildren!;
     if (sides.length >= maxContainerChildren(draft.containerKind!)) return;
     if (draft.isSequenceGroup &&
-        draft.beats >= widget.phraseStructure.phraseBeatsAt(widget.startBeat)) {
+        _beatsTowardPhrase(draft) >=
+            widget.phraseStructure.phraseBeatsAt(widget.startBeat)) {
       return;
     }
     sides.add(FigureDraft());

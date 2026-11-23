@@ -674,6 +674,43 @@ void main() {
       expect(inB.last.containerTitle, 'Allemande run');
     });
 
+    test('a block later in a phrase entry starts after the figures and blocks '
+        'before it', () async {
+      // A is 16 beats, then two phrases of 8 from 16. In one entry: a block
+      // at 0 fits A; after it and a 4-beat line, the same block starts at
+      // 16, in an 8-beat phrase, and stays flat.
+      final payload = jsonEncode({
+        'ID': '9004',
+        'Name': 'Long then short phrases',
+        'Permission': 'full',
+        'PhraseStructure': '1*8*2 + 2*4*2',
+        'phrases': [
+          {
+            'name': 'A',
+            'figures': [
+              '(12) Allemande run:',
+              '     (4) Neighbor allemande right 1/2',
+              '     (4) Partner allemande left 1/2',
+              '     (4) Neighbor allemande right 1/2',
+              '(4) Partner allemande left 1/2',
+              '(12) Allemande run:',
+              '     (4) Neighbor allemande right 1/2',
+              '     (4) Partner allemande left 1/2',
+              '     (4) Neighbor allemande right 1/2',
+            ],
+          },
+        ],
+      });
+      final adapter = CallersBoxAdapter();
+      final found = await adapter.discover(ImportRequest(payload: payload));
+      final figures = figuresOf(
+        adapter.parse(await adapter.fetch(found.single)).dance,
+      );
+      expect(figures.first.isSequence, isTrue);
+      expect(figures.where((f) => f.isSequence), hasLength(1));
+      expect(figures, hasLength(5));
+    });
+
     test('more figures than a sequence holds keeps it flat', () async {
       final figures = await _figures([
         '(20) Allemande marathon:',

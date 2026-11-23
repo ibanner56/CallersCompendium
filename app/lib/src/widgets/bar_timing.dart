@@ -189,9 +189,11 @@ class _BarsFieldState extends State<BarsField> {
   @override
   void didUpdateWidget(BarsField old) {
     super.didUpdateWidget(old);
+    // A start that moves matters only where bars differ in length: in one
+    // bar length the count reads the same, and half-typed text is kept.
     if ((widget.beats != old.beats ||
             widget.timing != old.timing ||
-            widget.startBeat != old.startBeat) &&
+            (widget.startBeat != old.startBeat && !widget.timing.isFixed)) &&
         _beatsOf(_controller.text) != widget.beats) {
       _controller.text = _textOf(widget.beats);
       _error = null;

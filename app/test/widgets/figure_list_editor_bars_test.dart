@@ -230,6 +230,28 @@ void main() {
     expect(find.text('Enter whole or half bars, up to 21'), findsOneWidget);
   });
 
+  testWidgets('in one bar length, a step\'s half-typed bars survive an edit '
+      'to the step before it', (tester) async {
+    // 3 beats to the bar: half a bar is refused, and the text stays to fix.
+    final drafts = [
+      FigureDraft(sequenceFigures: [_step('ecd_lead', 6), _step('ecd_set', 6)]),
+    ];
+    await _pump(tester, drafts);
+    await _open(tester, 0);
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-side-1-beats')),
+      '2.5',
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-side-0-beats')),
+      '3',
+    );
+    await tester.pumpAndSettle();
+    expect(drafts.single.sequenceFigures!.first.beats, 9);
+    expect(_fieldText(tester, 'figure-0-side-1-beats'), '2.5');
+  });
+
   testWidgets('a span that fills the phrase still takes an untimed step', (
     tester,
   ) async {
@@ -244,6 +266,11 @@ void main() {
     await _pump(tester, drafts);
     await _open(tester, 0);
     expect(find.byKey(const ValueKey('figure-0-add-side')), findsOneWidget);
+    // And tapping it adds the step: only the timed steps count toward the
+    // phrase, for the button and for what it does alike.
+    await tester.tap(find.byKey(const ValueKey('figure-0-add-side')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.sequenceFigures, hasLength(3));
   });
 
   testWidgets('a group inside a spanned sequence keeps a count of its own', (
