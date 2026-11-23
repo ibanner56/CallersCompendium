@@ -102,7 +102,6 @@ class CollectionPicker extends StatefulWidget {
     this.initialPanel,
     this.header,
     this.pinned,
-    this.excludedDanceIds = const {},
     this.offerSuggested = true,
   });
 
@@ -195,11 +194,6 @@ class CollectionPicker extends StatefulWidget {
   /// when set, makes Suggested available and is what Suggested ranks for.
   final PickerProgramContext? programContext;
 
-  /// Dances this picker never lists, such as the dance a Replace… would
-  /// replace: choosing it would change nothing. Applied to the local results
-  /// before Suggested ranks them, so they are never ranked either.
-  final Set<String> excludedDanceIds;
-
   /// Ranks for Suggested. A test seam: when null, as in the app, the picker
   /// ranks on a [SuggestionWorker] of its own, which keeps the candidates it
   /// was sent so a re-rank after an add sends only the program and ids.
@@ -240,9 +234,11 @@ class CollectionPicker extends StatefulWidget {
   /// alternates**). Rows act as result rows do.
   final PickerPinnedDances? pinned;
 
-  /// Dances never listed, whatever the query (the swap sheet's dance being
-  /// swapped, and the program's dances under **Not already in tonight's
-  /// program**).
+  /// Dances never listed, whatever the query: the dance a Replace… or a swap
+  /// would replace (choosing it would change nothing), and the swap sheet's
+  /// program dances under **Not already in tonight's program**. Applied to
+  /// the local results before Suggested ranks them, so they are never ranked
+  /// either.
   final Set<String> excludedDanceIds;
 
   /// Whether the Sort menu may offer **Suggested** at all. False keeps a host
