@@ -7907,6 +7907,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get archiveIntakeRejectedEmpty => 'Ce fichier est vide.';
 
   @override
+  String get danceLinkRefusedNewerVersion =>
+      'Ce code de danse a été créé par une version plus récente de Caller’s Compendium. Mettez l\'application à jour pour l\'ouvrir.';
+
+  @override
+  String get danceLinkRefusedDamaged =>
+      'Ce code de danse est endommagé ou incomplet ; impossible de l\'ouvrir.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'Ce fichier n\'est pas un fichier de partage Caller’s Compendium.';
 

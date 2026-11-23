@@ -11668,6 +11668,18 @@ abstract class AppLocalizations {
   /// **'That file is empty.'**
   String get archiveIntakeRejectedEmpty;
 
+  /// Shown when a dance's QR code link (ccdance://) uses a format version this build cannot read. Nothing is imported.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance code was made by a newer version of Caller\'s Compendium. Update the app to open it.'**
+  String get danceLinkRefusedNewerVersion;
+
+  /// Shown when a dance's QR code link (ccdance://) cannot be read: too long, cut short, or corrupted. Generic; never echoes the link. Nothing is imported.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance code is damaged or incomplete, so it can\'t be opened.'**
+  String get danceLinkRefusedDamaged;
+
   /// Rejection shown when a shared file is not a well-formed Caller's Compendium archive (bad text, non-archive JSON, or an unreadable envelope). Generic; never echoes parser detail.
   ///
   /// In en, this message translates to:

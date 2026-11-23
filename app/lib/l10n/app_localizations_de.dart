@@ -7883,6 +7883,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get archiveIntakeRejectedEmpty => 'Diese Datei ist leer.';
 
   @override
+  String get danceLinkRefusedNewerVersion =>
+      'Dieser Tanzcode wurde mit einer neueren Version von Caller’s Compendium erstellt. Aktualisiere die App, um ihn zu öffnen.';
+
+  @override
+  String get danceLinkRefusedDamaged =>
+      'Dieser Tanzcode ist beschädigt oder unvollständig und kann nicht geöffnet werden.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'Diese Datei ist keine Freigabedatei von Caller’s Compendium.';
 

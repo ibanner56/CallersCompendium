@@ -10219,6 +10219,14 @@
   "@archiveIntakeRejectedEmpty": {
     "description": "Rejection shown when a shared archive file contained no bytes."
   },
+  "danceLinkRefusedNewerVersion": "This dance code was made by a newer version of Caller's Compendium. Update the app to open it.",
+  "@danceLinkRefusedNewerVersion": {
+    "description": "Shown when a dance's QR code link (ccdance://) uses a format version this build cannot read. Nothing is imported."
+  },
+  "danceLinkRefusedDamaged": "This dance code is damaged or incomplete, so it can't be opened.",
+  "@danceLinkRefusedDamaged": {
+    "description": "Shown when a dance's QR code link (ccdance://) cannot be read: too long, cut short, or corrupted. Generic; never echoes the link. Nothing is imported."
+  },
   "archiveIntakeRejectedNotArchive": "That file isn't a Caller's Compendium share file.",
   "@archiveIntakeRejectedNotArchive": {
     "description": "Rejection shown when a shared file is not a well-formed Caller's Compendium archive (bad text, non-archive JSON, or an unreadable envelope). Generic; never echoes parser detail."

@@ -19,6 +19,8 @@ import 'src/data/app_database.dart';
 import 'src/data/app_theme_scope.dart';
 import 'src/data/archive_intake_labels.dart';
 import 'src/data/archive_intake_service.dart';
+import 'src/data/dance_link_intake.dart';
+import 'src/export/dance_code.dart' show DanceLinkException;
 import 'src/data/backup_export_labels.dart';
 import 'src/data/backup_io.dart' show BackupSaver, saveBackupToFile;
 import 'src/data/backup_reminder.dart';
@@ -1576,7 +1578,14 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// source-allowlisted program or dance-page shape *before* it reaches an
   /// import pipeline. A bad share surfaces a generic snackbar (never echoing
   /// the raw input) and never navigates or writes.
+  ///
+  /// A `ccdance:` link (issue #2335) is routed first, to
+  /// [_handleIncomingDanceLink]: it carries a dance, not a page to fetch.
   Future<void> _handleIncomingUrl(String raw) async {
+    if (looksLikeDanceLink(raw)) {
+      await _handleIncomingDanceLink(raw);
+      return;
+    }
     String? programUrl;
     SharedDanceLink? danceLink;
     try {
@@ -1619,6 +1628,59 @@ class _CompendiumAppState extends State<CompendiumApp>
         builder: (_) => ContraDbProgramImportScreen(
           initialUrl: programUrl,
           programFetcher: widget.incomingUrlFetcher,
+        ),
+      ),
+    );
+  }
+
+  /// Opens a dance link (issue #2335) — the `ccdance://` link in a dance's QR
+  /// code, handed over by the phone's camera app — in the same import review
+  /// an opened share file gets ([_handleIncomingFile]). Nothing is written
+  /// until the user commits, and the result offers Undo.
+  ///
+  /// The link is **untrusted input**: any web page or app can open one.
+  /// [validateDanceLink] caps its length and inflated size before reading it,
+  /// then validates the archive as a file's bytes are. A link that cannot be
+  /// read, or an archive intake refuses, gets a snackbar that never echoes the
+  /// link. No network is involved.
+  Future<void> _handleIncomingDanceLink(String raw) async {
+    if (_incomingIntakeDisposed) return;
+    final ArchiveIntakeValidation validation;
+    try {
+      validation = await validateDanceLink(raw);
+    } on DanceLinkException catch (e, stackTrace) {
+      // Log-safe: the exception carries only its typed failure, never the link.
+      logCaughtError(e, stackTrace, source: 'main._handleIncomingDanceLink');
+      if (!mounted) return;
+      final messengerContext = _messengerKey.currentContext;
+      if (messengerContext == null || !messengerContext.mounted) return;
+      _messengerKey.currentState?.showSnackBar(
+        SnackBar(
+          key: const ValueKey('dance-link-error'),
+          content: Text(
+            danceLinkRefusalMessage(
+              AppLocalizations.of(messengerContext),
+              e.failure,
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+    if (!mounted) return;
+    if (validation.isRejected) {
+      _showIncomingFileRejection(validation.reason!);
+      return;
+    }
+    await _navigatorKey.currentState?.push(
+      MaterialPageRoute<void>(
+        builder: (_) => ImportReviewScreen(
+          sources: defaultImportSources(),
+          sharedBundle: SharedBundleImport(
+            json: validation.json!,
+            archive: validation.archive!,
+            entityCount: validation.entityCount,
+          ),
         ),
       ),
     );

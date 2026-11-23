@@ -17,7 +17,10 @@ import '../theme/app_spacing.dart';
 import 'import_cc_terms_screen.dart';
 import 'import_user_figures_screen.dart';
 import '../data/callersbox_online.dart';
+import '../data/archive_intake_labels.dart';
+import '../data/dance_link_intake.dart';
 import '../data/dance_reimport.dart';
+import '../export/dance_code.dart' show DanceLinkException;
 import '../data/import_diagnostic_labels.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
@@ -373,6 +376,17 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// that reset it to null.
   SharedBundleImport? _cachedPickedBundle;
 
+  /// The bundle a dance link pasted into this screen carried (issue #2335),
+  /// decoded and validated by [_openDanceLink]. It stands in for
+  /// [ImportReviewScreen.sharedBundle], which a link pasted here cannot set,
+  /// and like it is authoritative only while the paste field still holds its
+  /// JSON.
+  SharedBundleImport? _linkBundle;
+
+  /// The shared bundle this screen was seeded with: the share target's, else a
+  /// pasted dance link's.
+  SharedBundleImport? get _seededBundle => widget.sharedBundle ?? _linkBundle;
+
   /// The text [_cachedPickedBundle] was computed from (null before the first
   /// plan). Lets a re-plan of unchanged text (e.g. the error screen's back
   /// button, "Try again" or "Try another file", without an edit) skip the
@@ -401,7 +415,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// original shared bundle (issue #880).
   SharedBundleImport? get _effectiveSharedBundle {
     if (_isPublishedImport) return null;
-    final sharedBundle = widget.sharedBundle;
+    final sharedBundle = _seededBundle;
     if (sharedBundle != null && _pasteController.text == sharedBundle.json) {
       return sharedBundle;
     }
@@ -879,10 +893,77 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     }
   }
 
+  /// Reads a dance link (issue #2335) pasted into the link or text field and,
+  /// when it holds a dance, seeds its bundle and plans it: the same review an
+  /// opened share file gets, so nothing is written until the user commits.
+  /// The link is untrusted ([validateDanceLink] caps and validates it); one
+  /// that cannot be read leaves the input as it was and says why. No network.
+  Future<void> _openDanceLink(String link) async {
+    final l10n = AppLocalizations.of(context);
+    String? refusal;
+    SharedBundleImport? bundle;
+    try {
+      final validation = await validateDanceLink(link);
+      if (validation.isRejected) {
+        refusal = archiveIntakeRejectionMessage(l10n, validation.reason!);
+      } else {
+        bundle = SharedBundleImport(
+          json: validation.json!,
+          archive: validation.archive!,
+          entityCount: validation.entityCount,
+        );
+      }
+    } on DanceLinkException catch (e, stackTrace) {
+      // Log-safe: the exception carries only its typed failure, never the link.
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'import_review_screen._openDanceLink',
+      );
+      refusal = danceLinkRefusalMessage(l10n, e.failure);
+    }
+    if (!mounted) return;
+    if (bundle == null) {
+      setState(() {
+        _phase = _Phase.input;
+        if (_isPastedTextSource) {
+          _titleListError = refusal;
+        } else {
+          _fetchError = refusal;
+        }
+      });
+      return;
+    }
+    // A dance link is a share file in another form: it goes to the source a
+    // picked `.ccshare` goes to.
+    ImportSource? shareSource;
+    for (final source in widget.sources) {
+      if (source.kind == ImportSourceKind.genericJson) shareSource = source;
+    }
+    if (shareSource != null && shareSource != _selected) {
+      _switchSourceForPickedFile(shareSource);
+    }
+    final seeded = bundle;
+    setState(() {
+      _linkBundle = seeded;
+      _cachedPickedBundle = null;
+      _bundleMemoText = null;
+      _pasteController.text = seeded.json;
+      _urlController.clear();
+      _sourceUri = null;
+      _payloadFromFile = true;
+      _fetchError = null;
+      _titleListError = null;
+    });
+    await _plan();
+  }
+
   Future<void> _fetchFromUrl() async {
     final fetcher = widget.fetcher ?? fetchImportUrl;
     final l10n = AppLocalizations.of(context);
     final input = _urlController.text.trim();
+    // A dance link is read here, never fetched (issue #2335).
+    if (looksLikeDanceLink(input)) return _openDanceLink(input);
     // The source this request is for; the failure is worded for it. (The
     // dropdown is disabled while fetching, so this is request-local by intent
     // rather than because the selection can change mid-flight.)
@@ -975,6 +1056,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     } else if (payload.trim().isEmpty) {
       return;
     }
+    // A dance link pasted into the text field (issue #2335) is read here, with
+    // no network, before any source sees it: the title-list source would
+    // otherwise look it up online as a title.
+    if (!_isByteSource &&
+        publishedBytes == null &&
+        looksLikeDanceLink(payload)) {
+      return _openDanceLink(payload);
+    }
     if (_isPastedTextSource) {
       _cachedPickedBundle = null;
       _bundleMemoText = null;
@@ -1025,7 +1114,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       if (_isByteSource || _isPublishedImport) {
         _cachedPickedBundle = null;
         _bundleMemoText = null;
-      } else if (widget.sharedBundle?.json != payload) {
+      } else if (_seededBundle?.json != payload) {
         _refreshPickedBundle(payload);
       }
       final adapterFactory =

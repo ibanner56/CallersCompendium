@@ -7815,6 +7815,14 @@ class AppLocalizationsDa extends AppLocalizations {
   String get archiveIntakeRejectedEmpty => 'Den fil er tom.';
 
   @override
+  String get danceLinkRefusedNewerVersion =>
+      'Denne dansekode er lavet af en nyere version af Caller’s Compendium. Opdater appen for at åbne den.';
+
+  @override
+  String get danceLinkRefusedDamaged =>
+      'Denne dansekode er beskadiget eller ufuldstændig og kan ikke åbnes.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'Den fil er ikke en delefil fra Caller’s Compendium.';
 

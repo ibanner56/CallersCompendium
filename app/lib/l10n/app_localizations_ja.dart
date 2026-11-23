@@ -7492,6 +7492,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get archiveIntakeRejectedEmpty => 'そのファイルは空です。';
 
   @override
+  String get danceLinkRefusedNewerVersion =>
+      'このダンスのコードは、新しいバージョンのCaller’s Compendiumで作成されています。開くには、アプリをアップデートしてください。';
+
+  @override
+  String get danceLinkRefusedDamaged => 'このダンスのコードは破損しているか不完全なため、開けません。';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'そのファイルはCaller’s Compendiumの共有ファイルではありません。';
 

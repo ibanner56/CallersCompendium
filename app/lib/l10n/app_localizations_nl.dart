@@ -7858,6 +7858,14 @@ class AppLocalizationsNl extends AppLocalizations {
   String get archiveIntakeRejectedEmpty => 'Dat bestand is leeg.';
 
   @override
+  String get danceLinkRefusedNewerVersion =>
+      'Deze danscode is gemaakt met een nieuwere versie van Caller’s Compendium. Werk de app bij om de code te openen.';
+
+  @override
+  String get danceLinkRefusedDamaged =>
+      'Deze danscode is beschadigd of onvolledig en kan niet worden geopend.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'Dat bestand is geen deelbestand van Caller’s Compendium.';
 

@@ -7674,6 +7674,14 @@
   "@archiveIntakeRejectedEmpty": {
     "x-sourceSha256": "df8ae7fb82013ee8878a5dc2266a1f03c6d5d57ab6a93f5d8b05cefcdbc33799"
   },
+  "danceLinkRefusedNewerVersion": "Dieser Tanzcode wurde mit einer neueren Version von Caller’s Compendium erstellt. Aktualisiere die App, um ihn zu öffnen.",
+  "@danceLinkRefusedNewerVersion": {
+    "x-sourceSha256": "795cff95aed1a03d6269045ea7ae32efb22911f6c6dde7277b64a361a8081e42"
+  },
+  "danceLinkRefusedDamaged": "Dieser Tanzcode ist beschädigt oder unvollständig und kann nicht geöffnet werden.",
+  "@danceLinkRefusedDamaged": {
+    "x-sourceSha256": "24da96c8326613af1ad3348ff0b53893be9ba08d5f5e2ee69103d8a8c96c0e59"
+  },
   "archiveIntakeRejectedNotArchive": "Diese Datei ist keine Freigabedatei von Caller’s Compendium.",
   "@archiveIntakeRejectedNotArchive": {
     "x-sourceSha256": "80dd7dada7feaccdf4d83c86ca2567fad99deb5ad4b25ffc22cdd87c7d4de1d8"
