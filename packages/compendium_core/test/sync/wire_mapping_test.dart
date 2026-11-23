@@ -1049,6 +1049,8 @@ class _Fixture {
     walkthrough: _str('dances.walkthrough'),
     meter: _str('dances.meter'),
     musicalKey: _str('dances.musical_key'),
+    alternateTitles: [_str('dances.alternate_titles')],
+    barnesReference: _str('dances.barnes_reference'),
     status: DanceStatus.values.byName(_str('dances.status')),
     difficultyLevelId: _str('dances.level_id'),
     mixedLevel: _flag('dances.mixed_level'),

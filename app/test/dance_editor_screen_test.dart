@@ -2946,6 +2946,88 @@ void main() {
       expect(saved.composedOn, PartialDate(1695));
     });
 
+    testWidgets('other titles and the Barnes reference load, and save '
+        'one title per line with blanks and repeats dropped', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Money Musk',
+        ).copyWith(alternateTitles: ['Monymusk'], barnesReference: 'NiB'),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await _expandMoreDetails(tester);
+
+      final titles = find.byKey(const ValueKey('alternate-titles-field'));
+      final barnes = find.byKey(const ValueKey('barnes-reference-field'));
+      expect(tester.widget<TextFormField>(titles).controller?.text, 'Monymusk');
+      expect(tester.widget<TextFormField>(barnes).controller?.text, 'NiB');
+
+      await tester.enterText(
+        titles,
+        'Monymusk\n\n  Sir Archibald Grant  \nMonymusk',
+      );
+      await tester.enterText(barnes, ' BIII p. 92 ');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.alternateTitles, ['Monymusk', 'Sir Archibald Grant']);
+      expect(saved.barnesReference, 'BIII p. 92');
+    });
+
+    testWidgets('other titles stop at the bounds a saved dance keeps, so '
+        'nothing typed is cut on save', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Money Musk'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await _expandMoreDetails(tester);
+
+      final titles = find.byKey(const ValueKey('alternate-titles-field'));
+      await tester.enterText(
+        titles,
+        [
+          'x' * (kMaxAlternateTitleLength + 10),
+          for (var i = 0; i < kMaxAlternateTitles + 3; i++) 'Title $i',
+        ].join('\n'),
+      );
+      await tester.pumpAndSettle();
+      final shown = tester
+          .widget<TextFormField>(titles)
+          .controller!
+          .text
+          .split('\n');
+      expect(shown, hasLength(kMaxAlternateTitles));
+      expect(shown.first, 'x' * kMaxAlternateTitleLength);
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.alternateTitles, shown);
+    });
+
+    testWidgets('the Barnes reference stops at its bound in code units, so '
+        'characters outside the Basic Multilingual Plane are not cut on '
+        'save', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Money Musk'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await _expandMoreDetails(tester);
+
+      final barnes = find.byKey(const ValueKey('barnes-reference-field'));
+      // 60 fiddles: 60 characters, 120 code units.
+      await tester.enterText(barnes, '\u{1F3BB}' * 60);
+      await tester.pumpAndSettle();
+      final shown = tester.widget<TextFormField>(barnes).controller!.text;
+      expect(shown, '\u{1F3BB}' * (kMaxBarnesReferenceLength ~/ 2));
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      final saved = await repos.dances.getById('d1');
+      expect(saved!.barnesReference, shown);
+    });
+
     testWidgets('an interpreter is picked from the people list', (
       tester,
     ) async {

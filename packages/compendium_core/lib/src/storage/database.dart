@@ -789,6 +789,11 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   /// empty. No data is rewritten and no derived index reads them, so no
   /// rebuild is needed.
   ///
+  /// Also `dances.alternate_titles` and `dances.barnes_reference` (a dance's
+  /// other titles and its Barnes book reference), both `''` by default, so
+  /// every existing dance has neither. They joined v42 while v42 was
+  /// unreleased.
+  ///
   /// Also `programs.archived_at` (program archiving, #2218), nullable, so
   /// every existing program stays unarchived. It joined v42 while v42 was
   /// unreleased (CONTRIBUTING.md, "Adding to an unreleased version").
@@ -804,6 +809,8 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       dances.meter,
       dances.musicalKey,
       dances.interpretedOn,
+      dances.alternateTitles,
+      dances.barnesReference,
     ]) {
       if (!present.contains(column.name)) await m.addColumn(dances, column);
     }

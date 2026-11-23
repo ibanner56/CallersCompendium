@@ -190,6 +190,8 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'walkthrough': l10n.danceEditorWalkthroughLabel,
         'meter': l10n.danceEditorMeterLabel,
         'musicalKey': l10n.danceEditorMusicalKeyLabel,
+        'alternateTitles': l10n.danceEditorAlternateTitlesLabel,
+        'barnesReference': l10n.danceEditorBarnesReferenceLabel,
         'difficultyLevelId': l10n.danceEditorLevelLabel,
         'mixedLevel': l10n.commonMixedLevel,
         'mixer': l10n.commonMixer,

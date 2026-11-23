@@ -113,6 +113,9 @@ bool isNewDanceEditorDraftKey(String key) {
 ///   writes that over the stored dance; such a draft predates v42, so the
 ///   dance can hold them only if sync has brought them since, which the
 ///   restore prompt reports as a change to the dance (AUTH-10).
+/// - `alternateTitles` (the other titles as typed, one per line) and
+///   `barnesReference`, each omitted when empty. They joined v42 while it was
+///   unreleased, so the same holds for them.
 ///
 /// - `spanStated` (true, or omitted) on a sequence that states its own span
 ///   (ADR-006 §5.5). A sequence's `beatsTouched` is read from it alone, since
@@ -147,6 +150,7 @@ const _kDraftVersionWithoutCompounds = 13;
 ///   "walkthrough": "...",
 ///   "phrase": "...", "formationDetail": "...",
 ///   "meter": "3/2", "musicalKey": "G minor",
+///   "alternateTitles": "Monymusk", "barnesReference": "BIII p. 92",
 ///   "form": "contra", "formationShape": "dupleImproper", "improper": true,
 ///   "progression": "single", "status": "active",
 ///   "level": "intermediate", "mixedLevel": false, "mixer": false,
@@ -205,6 +209,10 @@ String encodeDraft(EditorSnapshot snapshot) {
     'formationDetail': snapshot.formationDetail,
     if (snapshot.meter.isNotEmpty) 'meter': snapshot.meter,
     if (snapshot.musicalKey.isNotEmpty) 'musicalKey': snapshot.musicalKey,
+    if (snapshot.alternateTitles.isNotEmpty)
+      'alternateTitles': snapshot.alternateTitles,
+    if (snapshot.barnesReference.isNotEmpty)
+      'barnesReference': snapshot.barnesReference,
     'form': snapshot.form.name,
     'formationShape': snapshot.formationShape.name,
     if (snapshot.improper) 'improper': true,
@@ -311,6 +319,8 @@ EditorSnapshot decodeDraft(Object? value, {Iterable<DifficultyLevel>? levels}) {
     formationDetail: _str(json, 'formationDetail'),
     meter: _str(json, 'meter'),
     musicalKey: _str(json, 'musicalKey'),
+    alternateTitles: _str(json, 'alternateTitles'),
+    barnesReference: _str(json, 'barnesReference'),
     form: _parseEnum(DanceForm.values, _str(json, 'form')),
     formationShape: _parseEnum(
       FormationShape.values,

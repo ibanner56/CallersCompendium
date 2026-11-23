@@ -4304,6 +4304,34 @@
   "@danceEditorMusicalKeyHint": {
     "x-sourceSha256": "f4b6292e746248db6dcdf014a506b1ebbdfa323e4761c71b7eeda3e64eb5166b"
   },
+  "danceEditorAlternateTitlesLabel": "Autres titres",
+  "@danceEditorAlternateTitlesLabel": {
+    "x-sourceSha256": "befe494f481dc6103fe5f47704fa36dc82739c5d8b5086e57ee8e8bf39504e3b"
+  },
+  "danceEditorAlternateTitlesHelper": "Un par ligne. La recherche par titre trouve la danse sous chacun d’eux.",
+  "@danceEditorAlternateTitlesHelper": {
+    "x-sourceSha256": "e6f92b1bba9299f59f2931c46f8c571713a7e2ae46b86773a50e42b5bcf3ed12"
+  },
+  "danceEditorBarnesReferenceLabel": "Référence Barnes",
+  "@danceEditorBarnesReferenceLabel": {
+    "x-sourceSha256": "a87089c5e6ee0a0b519cc8136c7dc9e8133ed36735490fdb09559feefdb097a5"
+  },
+  "danceEditorBarnesReferenceHint": "ex. BIII p. 92, ou NiB",
+  "@danceEditorBarnesReferenceHint": {
+    "x-sourceSha256": "83e5191f97ef94a027c93d3356c7bd2c7947b73178d462afa2f482cc4e1717f6"
+  },
+  "danceAlsoKnownAs": "Aussi appelée {titles}",
+  "@danceAlsoKnownAs": {
+    "x-sourceSha256": "27dba4b0559050be164ca848e7b23141326a01c6b65fdbc71b9baf35e2056a83"
+  },
+  "danceAlsoKnownAsSeparator": " ; ",
+  "@danceAlsoKnownAsSeparator": {
+    "x-sourceSha256": "0a2d3f8f9b727cf73e6c7e44f2feefc41855195b3010a3c4f6b05c33aeb484a9"
+  },
+  "danceSectionBarnes": "Recueils Barnes",
+  "@danceSectionBarnes": {
+    "x-sourceSha256": "49a8e8a9f8339a6e0ce62b696d610c4a164ecc6268d021da155f11944946b95a"
+  },
   "danceAuthorsWithYear": "{names} ({year})",
   "@danceAuthorsWithYear": {
     "x-sourceSha256": "9da3518c560f6302cab54100ad68898ef4e9cae6d5a57560f30b2fbe27c30bd9"

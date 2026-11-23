@@ -33,6 +33,8 @@ const _danceFields = [
   SyncWireField('walkthrough', ['dances.walkthrough']),
   SyncWireField('meter', ['dances.meter']),
   SyncWireField('musicalKey', ['dances.musical_key']),
+  SyncWireField('alternateTitles', ['dances.alternate_titles']),
+  SyncWireField('barnesReference', ['dances.barnes_reference']),
   SyncWireField('status', ['dances.status']),
   SyncWireField('difficultyLevelId', ['dances.level_id']),
   SyncWireField('mixedLevel', ['dances.mixed_level']),

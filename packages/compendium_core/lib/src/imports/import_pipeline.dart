@@ -1541,8 +1541,8 @@ class ImportPipeline {
   /// null to preserve them. [interpreterIds] are always the pipeline's
   /// resolved ids, never [src]'s. [keepFrom] is the dance being linked over:
   /// its custom-field values for fields [src] does not carry survive, and so
-  /// do its rating, interpreters and interpretation date when [src] carries
-  /// none.
+  /// do its rating, interpreters, interpretation date, other titles and
+  /// Barnes reference when [src] carries none.
   Dance _rebuildWithIdentity(
     Dance src, {
     required String id,
@@ -1555,6 +1555,12 @@ class ImportPipeline {
   }) => Dance(
     id: id,
     title: src.title,
+    // A source that names no other title, or no Barnes reference (every
+    // adapter but the native archive), must not erase the ones the
+    // linked-over dance holds, as for [rating].
+    alternateTitles: src.alternateTitles.isNotEmpty
+        ? src.alternateTitles
+        : keepFrom?.alternateTitles ?? const [],
     authorIds: authorIds ?? src.authorIds,
     form: src.form,
     formation: src.formation,
@@ -1568,6 +1574,9 @@ class ImportPipeline {
     walkthrough: src.walkthrough,
     meter: src.meter,
     musicalKey: src.musicalKey,
+    barnesReference: src.barnesReference.isNotEmpty
+        ? src.barnesReference
+        : keepFrom?.barnesReference ?? '',
     status: src.status,
     difficultyLevelId: src.difficultyLevelId,
     mixedLevel: src.mixedLevel,

@@ -698,6 +698,9 @@ nothing in it to lose.
   such as `G minor`, in your own words. They sit here for an English dance and
   in **More details** for other types. The dance's detail view and its Perform
   card show them on one line, such as *Meter: 6/8 · Key: G minor*.
+- **Barnes reference** — where the tune is printed in the Barnes books, book and
+  page in one line, such as `BIII p. 92`, or `NiB` when it is not in them. It
+  sits under **Meter** and **Key**.
 
 ### Notes
 
@@ -740,12 +743,13 @@ updates the default used everywhere.
 
 | Field | Notes |
 |---|---|
+| **Other titles** | Other names the dance goes by, one per line; the dance page shows them under the title, and searching by **Title** finds them |
 | **Level** and **Status** | How hard it is, and where it is in your workflow |
 | **Mixed level** | For dances that span the difficulty scale |
 | **Rating** | Your own star rating, with **Clear rating** to unset it |
 | **Composed** / **Revised** | A year, optionally with a month and day; for an English dance, Composed is a year, up front beside the authors |
 | **Interpreted by** / **Interpreted in** | Who reconstructed the dance from its original, and when; for an English dance, up front, with Interpreted in as a year beside the names |
-| **Meter** / **Key** | The tune's written meter and key; up front for an English dance |
+| **Meter** / **Key** / **Barnes reference** | The tune's written meter and key, and where it is printed in the Barnes books; up front for an English dance |
 | **Tags** | Your own labels |
 | **Tunes** | Tunes you like with this dance |
 | **Links** | A URL with an optional label, marked **Source**, **Video**, or **Other** |

@@ -739,6 +739,40 @@ void main() {
       expect(decoded.interpreterIds, isEmpty);
     });
 
+    test('other titles and the Barnes reference round-trip as typed, and '
+        'are omitted when empty', () {
+      final encoded = encodeDraft(_minimalSnapshot());
+      expect(encoded, isNot(contains('"alternateTitles"')));
+      expect(encoded, isNot(contains('"barnesReference"')));
+      final empty = decodeDraft(encoded);
+      expect(empty.alternateTitles, '');
+      expect(empty.barnesReference, '');
+
+      final snapshot = EditorSnapshot(
+        title: 'Money Musk',
+        hook: '',
+        notes: '',
+        phrase: '',
+        formationDetail: '',
+        alternateTitles: 'Monymusk\n  half typed',
+        barnesReference: 'BIII p. 92',
+        form: DanceForm.ecd,
+        formationShape: FormationShape.tripleMinor,
+        progression: Progression.single,
+        status: DanceStatus.active,
+        authorIds: const [],
+        tagIds: const [],
+        tunes: const [],
+        links: const [],
+        sourceCitations: const [],
+        customValues: const {},
+        figureDrafts: const [],
+      );
+      final decoded = decodeDraft(encodeDraft(snapshot));
+      expect(decoded.alternateTitles, 'Monymusk\n  half typed');
+      expect(decoded.barnesReference, 'BIII p. 92');
+    });
+
     test('rating round-trips', () {
       final snapshot = EditorSnapshot(
         title: 'Test',

@@ -107,7 +107,8 @@ the FTS and index DDL is `database.dart`.
 ```sql
 dances(id PK, title, form, formation_shape, formation_detail,
        formation_improper, progression, phrase_structure, figures_json, hook,
-       calling_notes, meter, musical_key, status, level_id NULL,
+       calling_notes, meter, musical_key, alternate_titles,
+       barnes_reference, status, level_id NULL,
        tunes_json,
        created_at, updated_at, deleted_at, existence_at)
 difficulty_levels(id PK, label UNIQUE, position,
@@ -855,6 +856,21 @@ steps that can still fire are v40 onward.
   matches the live interpreters' names through this join with `LIKE`, not
   through the text index ([search.md](search.md), "Meter, key and
   interpreters").
+
+  Also in v42, before it shipped: a dance's other titles and its Barnes
+  reference (maintainer, 22 November 2026: "Alternate titles would be useful
+  generally", and a free-text field for "the book and page number for each
+  dance (in one field)"). `dances.alternate_titles` holds
+  `Dance.alternateTitles`, one title per line in the order entered, `''` for
+  none; a title never holds a line break (`normalizeAlternateTitles`), so the
+  value is plain text that cannot fail to decode. `dances.barnes_reference`
+  holds `Dance.barnesReference`, where the tune is printed in the Barnes books
+  ("BIII p. 92", or "NiB", Not in Barnes), `''` when not given. Both default
+  to `''`, so every existing dance has neither; both are stored for every
+  form. Added in the `from < 42` step, each only if absent. No derived index
+  reads them: the Title scope and All fields read the other titles, and All
+  fields the Barnes reference, from these rows with `LIKE`
+  ([search.md](search.md), "Meter, key and interpreters").
 
   Also in v42, before it shipped: program archiving (#2218). Adds the
   nullable `programs.archived_at` column

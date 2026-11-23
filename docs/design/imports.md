@@ -320,10 +320,13 @@ this, a re-import rebuilt the dance wholesale from the draft, and sources that
 carry no rating, tags or links (Caller's Box, ContraDB) erased them.
 
 A **link** (`CommitAction.link`, a fuzzy match the caller chose to treat as the
-same dance) still replaces the dance's content wholesale, with one exception:
-it keeps the dance's **rating** whenever the incoming record carries none
-(*B19 follow-up*, maintainer decision of 2026-10-30, "Keep my rating"). A
-rating the record does carry replaces the existing one. The rule lives in
+same dance) still replaces the dance's content wholesale, with these
+exceptions: it keeps the dance's **rating** whenever the incoming record
+carries none (*B19 follow-up*, maintainer decision of 2026-10-30, "Keep my
+rating"), and likewise its interpreters, interpretation date, other titles and
+Barnes reference (implementer's call, extending the rating rule to fields most
+sources never carry). A value the record does carry replaces the existing
+one. The rule lives in
 `_rebuildWithIdentity`'s `keepFrom`, beside the custom-field merge, so it holds
 for every source that links: share files, archives, Caller's Box and `.USR`.
 Otherwise a link is out of scope of the re-import decision. Provenance is refreshed on a re-import, unlike the detail-screen
