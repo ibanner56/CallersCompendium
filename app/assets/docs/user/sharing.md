@@ -415,8 +415,9 @@ convenience and does not narrow the export — every move column prints.
 
 ## What stays private
 
-Exports are a privacy boundary, and the app treats them as one. Some things never
-leave, and one thing asks you first.
+Exports are a privacy boundary, and the app treats them as one. Some things are
+left out of everything you share, with the one exception noted below, and one
+thing asks you first.
 
 ### Never included
 
@@ -428,10 +429,10 @@ leave, and one thing asks you first.
 - **Your pay, Perform dialect, archived state and star ratings.** A program
   file leaves out the program's **Pay**, its **Perform dialect** and whether you
   archived it, and every share file or code leaves out your star rating of a
-  dance. The one exception is the
+  dance. They stay on your devices, still move with Device Sync, and are kept
+  in a [backup](./backup-portability.md). The one exception is the
   [dances spreadsheet (CSV)](#export-dances-as-a-spreadsheet-csv), which
-  includes your star ratings. They stay on your devices, still move with
-  Device Sync, and are kept in a [backup](./backup-portability.md).
+  includes your star ratings.
 
 - **Your notes on your own figures.** A shared file or code carries each of
   [your own new figures](./authoring.md#your-own-figures) its dances use, but
