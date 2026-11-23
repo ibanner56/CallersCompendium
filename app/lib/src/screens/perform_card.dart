@@ -138,8 +138,8 @@ bool scrollPerformBy(
 }
 
 /// Large-print card body for a dance-backed slot: header (title / authors /
-/// formation / level / meter and key / status) + section-grouped figures +
-/// calling notes.
+/// interpreters / formation / level / meter and key / Barnes reference /
+/// status) + section-grouped figures + calling notes.
 ///
 /// Applies the composed large-print [textScale] to its subtree so it renders
 /// the same whether shown by the single-dance or program Perform view.
@@ -1038,6 +1038,22 @@ class _Header extends StatelessWidget {
             key: const ValueKey('perform-tune-details'),
             icon: tuneDetailsIcon,
             text: tuneDetails,
+          ),
+        ],
+        if (dance.barnesReference.trim() case final barnes
+            when barnes.isNotEmpty) ...[
+          SizedBox(height: AppSpacing.xs * chromeScale),
+          _MetaRow(
+            key: const ValueKey('perform-barnes-reference'),
+            icon: barnesReferenceIcon,
+            text: l10n.danceBarnesValue(
+              canonicalizeDiscouragedTerms
+                  ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                      barnes,
+                      dialect,
+                    )
+                  : renderer.renderFreeText(barnes, dialect),
+            ),
           ),
         ],
         if (dance.status != DanceStatus.active) ...[

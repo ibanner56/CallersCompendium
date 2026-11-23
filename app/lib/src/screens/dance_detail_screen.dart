@@ -1537,7 +1537,15 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           const SizedBox(height: AppSpacing.xxs),
           SelectableLine(
             child: Text(
-              dance.barnesReference,
+              canonicalDiscouragedTerms
+                  ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                      dance.barnesReference,
+                      dialect,
+                    )
+                  : _proseRenderer.renderFreeText(
+                      dance.barnesReference,
+                      dialect,
+                    ),
               key: const ValueKey('dance-barnes-reference'),
             ),
           ),

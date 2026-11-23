@@ -3812,6 +3812,26 @@ void main() {
       expect(find.text('BIII p. 92'), findsOneWidget);
     });
 
+    testWidgets('a discouraged term in the Barnes reference reads '
+        'canonically', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Gypsy Dance',
+        ).copyWith(barnesReference: 'Gypsy p. 4'),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('dance-barnes-reference')))
+            .data,
+        'Shoulder round p. 4',
+      );
+    });
+
     testWidgets('a dance without them shows neither', (tester) async {
       final repos = openTestRepositories();
       await repos.dances.create(_dance(id: 'd1', title: 'Plain'));

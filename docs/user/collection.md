@@ -473,6 +473,8 @@ The detail view brings together:
   and a marker showing where the [progression](./glossary.md#progression) happens.
 - **Tags** — select one to add it to the Collection's **Tags** filter; see
   [Filter by tags](#filter-by-tags).
+- **Barnes books** — where the tune is printed in the Barnes books, when you
+  have filled that in.
 - **A Canonical switch** — flip between your dialect and the neutral, shared
   wording without changing the saved dance. It appears once you turn on
   **Canonical figure text** in
