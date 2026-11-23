@@ -168,15 +168,18 @@ cards, there is one more: **Print calling cards**, one small card for each of th
 
 The set list — text and PDF alike — is titles, event details, and slot notes by
 default, with each dance's author shown next to its title if you have authors
-turned on (see [Choose which dance fields
-appear](#choose-which-dance-fields-appear) below). When you choose **Share set
+turned on, and its meter and key if you have meter, key and Barnes turned on
+(see [Choose which dance fields appear](#choose-which-dance-fields-appear)
+below). When you choose **Share set
 list (text)**, **Copy set list**, or **Export / print PDF**, the app asks
 **Include figures?** with two choices:
 
-- **Set list only** — titles, event details, slot notes, and the author
-  (the default). None of your other selected dance fields appear here —
-  formation, level, mixer, status, phrase, calling notes, walkthrough,
-  tunes, hook, and sources only ever show up on the richer per-dance card described next.
+- **Set list only** — titles, event details, slot notes, the author, and the
+  meter and key (the default). None of your other selected dance fields appear
+  here — formation, level, mixer, status, phrase, calling notes, walkthrough,
+  tunes, hook, sources, the composed and interpreted years, the interpreters
+  and the Barnes reference only ever show up on the richer per-dance card
+  described next.
 - **Set list and figures** — appends a full card for each dance after the set
   list, showing every dance field you've selected alongside its figures. The
   cards use your app language for field labels; the figure text uses your
@@ -199,10 +202,18 @@ If something goes wrong the app says so plainly — "Couldn't share this set lis
 
 Settings ▸ Defaults has a checklist for every non-figures dance field a dance
 card can show: author, formation, level, mixer, status, phrase, calling
-notes, walkthrough, suggested tunes, hook, and published sources. Everything
-except suggested tunes, the hook and published sources is on by default,
-matching every export before this setting existed; those three are off by
-default, since no export showed them before.
+notes, walkthrough, suggested tunes, hook, published sources, and meter, key
+and Barnes. Everything except suggested tunes, the hook and published sources
+is on by default; those three are off by default, since no export showed them
+before.
+
+**Authors** also prints the year the dance was composed beside its authors,
+such as *Pat Shaw (1951)*, and who interpreted it and when on a line of its
+own, such as *Interpreted by Cecil Sharp (1916)*. **Meter, key and Barnes**
+prints the tune's meter and key on one line, such as *Meter: 6/8 · Key: G
+minor*, and the Barnes reference on the next, such as *Barnes: BIII p. 92*.
+It is on for a new install. If you had already changed this checklist before
+it was added, it starts off: tick it to print them.
 
 A published source prints as one line per citation, such as *Give-and-Take —
 A. Author, 1990 (p. 12, no. 3)*: its title, author and year, then the page and
@@ -214,11 +225,13 @@ related dance) never appear on a card. Only a
 you marked it **Include in sharing**).
 
 Turning a field off removes it everywhere it would otherwise appear — but
-**author is the only one of these fields the plain numbered set-list line
-ever shows.** The rest only appear on the richer per-dance card: the "Set
-list and figures" appendix, a single dance's own **Share dance (text)**/
-**Copy dance** card, or a single dance's PDF. Figures are not part of this
-list; they stay controlled by the **Include figures?** choice above.
+**the plain numbered set-list line shows only the authors' names and the
+meter and key**, such as *1. Lilac Lane — by A. Author (English; Meter: 6/8 ·
+Key: G minor; 5 min)*, where the form is named only when the program mixes
+forms. The rest only appear on the richer per-dance card: the "Set list and
+figures" appendix, a single dance's own **Share dance (text)**/**Copy dance**
+card, a single dance's PDF, or a printed calling card. Figures are not part of
+this list; they stay controlled by the **Include figures?** choice above.
 
 ### Share a program with its dances
 

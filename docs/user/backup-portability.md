@@ -104,7 +104,9 @@ A backup holds **everything** you've built, including:
 - Your custom [dialects](./dialects.md) and which one is active.
 - Your custom themes and which one is active.
 - Your settings and preferences, including your figure shorthands and
-  walkthrough snippets.
+  walkthrough snippets — but not your
+  [calendar address](./settings.md#calendar), which can contain a secret. Enter
+  it again after a restore.
 - Your own figures from the Glossary and your notes on built-in figures (see
   [Glossary and Custom Figures](./settings.md#glossary-and-custom-figures)).
   Restoring a backup replaces them, but a backup made while you had none

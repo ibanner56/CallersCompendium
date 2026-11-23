@@ -79,6 +79,9 @@ const _sites = <String, List<(String, String)>>{
     ("const ValueKey('general-soft-delete-retention')", 'false'),
     ("const ValueKey('backup-reminder-cadence')", 'false'),
   ],
+  'lib/src/screens/settings/calendar_settings_tiles.dart': [
+    ("const ValueKey('calendar-settings-window-field')", 'false'),
+  ],
   'lib/src/screens/settings/matrix_column_editor.dart': [
     ("const ValueKey('matrix-parameterized-move')", 'true'),
     (r"ValueKey('matrix-compound-step-move-$index')", 'true'),

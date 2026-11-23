@@ -77,6 +77,68 @@ List<String> danceCardAuthorNames(
   return authorNames.map((n) => n.trim()).where((n) => n.isNotEmpty).toList();
 }
 
+/// The credit lines for the dance card, gated on [DanceShareField.authors]:
+/// the authors with the year the dance was composed (`Pat Shaw (1951)`), then
+/// the interpreters with the year of the interpretation
+/// (`Interpreted by Cecil Sharp (1916)`). Each line leaves out the names or
+/// the year when either is missing and is itself left out with neither, as on
+/// the dance detail screen. Blank names are dropped.
+List<String> danceCardCreditLines(
+  Dance dance, {
+  required List<String> authorNames,
+  required List<String> interpreterNames,
+  required DanceExportLabels labels,
+  required Set<DanceShareField> fields,
+}) {
+  if (!fields.contains(DanceShareField.authors)) return const [];
+  String names(List<String> raw) =>
+      raw.map((n) => n.trim()).where((n) => n.isNotEmpty).join(', ');
+  final authors = names(authorNames);
+  final composed = dance.composedOn?.year.toString();
+  final interpreters = names(interpreterNames);
+  final interpreted = dance.interpretedOn?.year.toString();
+  return [
+    ?switch ((authors.isEmpty, composed)) {
+      (true, null) => null,
+      (false, null) => authors,
+      (true, final year?) => labels.composedYear(year),
+      (false, final year?) => labels.authorsWithYear(authors, year),
+    },
+    ?switch ((interpreters.isEmpty, interpreted)) {
+      (true, null) => null,
+      (false, null) => labels.interpretedBy(interpreters),
+      (true, final year?) => labels.interpretedYear(year),
+      (false, final year?) => labels.interpretedByWithYear(interpreters, year),
+    },
+  ];
+}
+
+/// The tune-detail lines for the dance card, gated on
+/// [DanceShareField.music]: the meter and key on one line
+/// (`Meter: 6/8 · Key: G minor`, either part left out when blank), then the
+/// Barnes reference (`Barnes: BIII p. 92`). [render] is applied to each typed
+/// value, not to the labels, so the caller can pass the card's
+/// discouraged-term rendering.
+List<String> danceCardMusicLines(
+  Dance dance, {
+  required DanceExportLabels labels,
+  required Set<DanceShareField> fields,
+  required String Function(String value) render,
+}) {
+  if (!fields.contains(DanceShareField.music)) return const [];
+  final meter = dance.meter.trim();
+  final key = dance.musicalKey.trim();
+  final barnes = dance.barnesReference.trim();
+  final meterAndKey = [
+    if (meter.isNotEmpty) labels.meter(render(meter)),
+    if (key.isNotEmpty) labels.musicalKey(render(key)),
+  ];
+  return [
+    if (meterAndKey.isNotEmpty) meterAndKey.join(' · '),
+    if (barnes.isNotEmpty) labels.barnes(render(barnes)),
+  ];
+}
+
 /// Resolved, non-blank tune names for the dance card, gated on
 /// [DanceShareField.tunes]. Unreadable stored tunes
 /// render as absent, same as an unreadable figures

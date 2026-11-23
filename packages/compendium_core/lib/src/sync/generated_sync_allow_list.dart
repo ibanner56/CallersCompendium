@@ -63,6 +63,7 @@ const Map<SyncRecordKind, Set<String>> generatedShareableWirePaths = {
   SyncRecordKind.program: {
     'archivedAt',
     'band',
+    'calendarEventKey',
     'caller',
     'createdAt',
     'dancerLevel',

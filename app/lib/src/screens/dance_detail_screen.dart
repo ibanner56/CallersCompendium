@@ -688,6 +688,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       dance: detail.dance,
       dialect: dialect,
       authorNames: detail.authorNames,
+      interpreterNames: detail.interpreterNames,
       formationLabel: _formationDisplayLabel(
         l10n,
         detail.dance.formation,
@@ -804,6 +805,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       dance: detail.dance,
       dialect: dialect,
       authorNames: detail.authorNames,
+      interpreterNames: detail.interpreterNames,
       formationLabel: _formationDisplayLabel(
         l10n,
         detail.dance.formation,

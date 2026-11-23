@@ -167,6 +167,10 @@ When you give the app a web address to fetch:
 Refusals never echo the address back at you, so a link that happened to contain
 something private does not end up on your screen or in a log.
 
+A [calendar address](./programs.md#import-programs-from-your-calendar) follows
+the same rules, except that it may be on any host — it is your calendar, not an
+archive. A `webcal://` address is fetched as `https://`.
+
 ## Import a published collection
 
 Published collections are curated dance collections delivered through the

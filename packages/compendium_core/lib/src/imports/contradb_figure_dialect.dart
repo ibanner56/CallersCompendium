@@ -842,6 +842,13 @@ final RegExp _capital = RegExp('[A-Z]');
 /// "form long waves - [WHOM by the HAND,] WHO facing in, OTHER facing out [-
 /// and balance]". The display derives OTHER from WHO, so a line naming any
 /// other pair there is not this wording and is not read.
+///
+/// v40 (#2331): a second hold, `WHOM2 by the OTHER-HAND`, follows the first
+/// when the display states both hands; a second hold by the SAME hand is not
+/// this wording. A `who` of `unspecified` displays no facing, so a line with a
+/// hold and no facing clause reads back with that sentinel — only in this
+/// dashed form: the bare `form long waves` keeps its ContraDB meaning. With no
+/// hold either, the dashed form is `form long waves - and balance`.
 FigureMatch? _formLongWavesDisplay(String text) {
   final s = _Scan(text);
   if (!s.eatPhrase('form long waves -')) return null;
@@ -855,7 +862,35 @@ FigureMatch? _formLongWavesDisplay(String text) {
     s.take();
     params['whom'] = whom;
     params['whomHand'] = whomHand;
+    final second = s.pos;
+    final whom2 = _displaySubject(s);
+    final hand2 = whom2 == null || !s.eatPhrase('by the')
+        ? null
+        : _leftRight(s.peek());
+    if (hand2 != null) {
+      if (hand2 == whomHand) return null;
+      s.take();
+      params['whom2'] = whom2;
+    } else {
+      s.reset(second);
+    }
+    final rest = s.peek();
+    if (rest == null || rest == '-') {
+      params['who'] = ParamVocab.unspecified;
+      if (s.eatPhrase('- and balance')) params['balance'] = true;
+      if (s.peek() != null) return null;
+      return FigureMatch('form_long_waves', params: params);
+    }
   } else {
+    s.reset(hold);
+    // A bare long wave whose generic balance folded in states neither a hold
+    // nor a facing: its display is `form long waves - and balance` (#2331).
+    if (s.eatPhrase('and balance') && s.peek() == null) {
+      return const FigureMatch(
+        'form_long_waves',
+        params: {'who': ParamVocab.unspecified, 'balance': true},
+      );
+    }
     s.reset(hold);
   }
   final who = _displaySubject(s);

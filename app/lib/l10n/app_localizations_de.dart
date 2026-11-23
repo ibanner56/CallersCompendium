@@ -2776,6 +2776,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsDefaultsShareFieldsSources => 'Quellen';
 
   @override
+  String get settingsDefaultsShareFieldsMusic => 'Taktart, Tonart und Barnes';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'Sammlungsfilter';
 
   @override
@@ -12690,7 +12693,8 @@ class AppLocalizationsDe extends AppLocalizations {
   String get callingCardHelpBlockTitle => 'Der Titel des Tanzes.';
 
   @override
-  String get callingCardHelpBlockAuthors => 'Wer den Tanz geschrieben hat.';
+  String get callingCardHelpBlockAuthors =>
+      'Wer den Tanz geschrieben hat und wann, dann wer ihn interpretiert hat und wann.';
 
   @override
   String get callingCardHelpBlockFormation =>
@@ -12702,6 +12706,10 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get callingCardHelpBlockMeta =>
       'Aufstellung, Niveau, Mixer, Status und Phrase in einer Zeile, jeweils mit Bezeichnung.';
+
+  @override
+  String get callingCardHelpBlockMusic =>
+      'Taktart und Tonart der Melodie sowie die Barnes-Angabe in einer Zeile.';
 
   @override
   String get callingCardHelpBlockFigures =>
@@ -13198,4 +13206,162 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get exportCalendarShareError =>
       'Diese Kalenderdatei konnte nicht geteilt werden. Versuche es erneut.';
+
+  @override
+  String get importErrorNotACalendar =>
+      'Diese Adresse hat keinen Kalender geliefert. Nutze bei einem Google Kalender seine Adresse im iCal-Format (Einstellungen und Freigabe ▸ Kalender integrieren), nicht den normalen Link.';
+
+  @override
+  String get importFromCalendar => 'Aus Kalender';
+
+  @override
+  String get importProgramFromCalendar => 'Aus Kalender importieren';
+
+  @override
+  String get calendarImportTitle => 'Aus Kalender importieren';
+
+  @override
+  String get calendarImportImport => 'Importieren';
+
+  @override
+  String get calendarAddressLabel => 'Kalenderadresse';
+
+  @override
+  String get calendarAddressHelper =>
+      'Die iCal-Adresse des Kalenders, beginnend mit https:// oder webcal://. Die geheime Adresse eines privaten Kalenders funktioniert auch; behalte sie für dich.';
+
+  @override
+  String get calendarImportFetch => 'Termine abrufen';
+
+  @override
+  String get calendarImportFailed =>
+      'Import aus dem Kalender fehlgeschlagen. Versuche es erneut.';
+
+  @override
+  String get calendarImportUntitled => 'Unbenannter Termin';
+
+  @override
+  String calendarImportCommitted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Programmentwürfe aus deinem Kalender hinzugefügt.',
+      one: '1 Programmentwurf aus deinem Kalender hinzugefügt.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportNothingFound => 'Keine Termine im Zeitraum.';
+
+  @override
+  String calendarImportSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count neue Termine.',
+      one: '1 neuer Termin.',
+      zero: 'Keine neuen Termine.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportNewHeader => 'Neu in deinem Kalender';
+
+  @override
+  String get calendarImportDeletedHeader => 'Diese Programme hast du gelöscht';
+
+  @override
+  String get calendarImportDeletedNote =>
+      'Du hast das Programm zu diesem Termin gelöscht. Hake es an, um es erneut zu importieren.';
+
+  @override
+  String get calendarImportAlreadyHeader => 'Bereits importiert';
+
+  @override
+  String get calendarImportFromThisAppHeader => 'Aus dieser App';
+
+  @override
+  String get calendarImportUnreadableHeader =>
+      'Wiederkehrende Termine, die die App nicht lesen kann';
+
+  @override
+  String get calendarImportUnreadableBody =>
+      'Diese wiederholen sich auf eine Weise, die die App nicht versteht, daher werden sie nicht importiert.';
+
+  @override
+  String calendarImportSkippedNoUid(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Termine haben keine Kennung und wurden übersprungen.',
+      one: '1 Termin hat keine Kennung und wurde übersprungen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarImportTruncated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Der Kalender hat mehr als $count Termine. Nur die ersten $count wurden gelesen.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarSettingsHeader => 'Kalender';
+
+  @override
+  String get calendarSettingsSaveError =>
+      'Diese Einstellung konnte nicht gespeichert werden. Versuche es erneut.';
+
+  @override
+  String get calendarAddressSet => 'Festgelegt. Tippe, um sie zu ändern.';
+
+  @override
+  String get calendarAddressNotSet => 'Nicht festgelegt';
+
+  @override
+  String get calendarWindowTitle => 'Welche Termine';
+
+  @override
+  String get calendarWindowSubtitle =>
+      'Termine ab heute bis so weit voraus. Wiederkehrende Termine werden nur 30 Tage voraus gelesen.';
+
+  @override
+  String calendarWindowOption(int months) {
+    String _temp0 = intl.Intl.pluralLogic(
+      months,
+      locale: localeName,
+      other: '$months Monate',
+      one: '1 Monat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarTitleFilterTitle => 'Nur Termine, deren Titel enthält';
+
+  @override
+  String get calendarTitleFilterHelper =>
+      'Für einen Kalender, der auch andere Termine enthält. Leer lassen für alle Termine.';
+
+  @override
+  String get calendarTitleFilterNone => 'Alle Termine';
+
+  @override
+  String calendarTitleFilterValue(String filter) {
+    return '„$filter“';
+  }
+
+  @override
+  String get calendarPullNowTitle => 'Jetzt abrufen';
+
+  @override
+  String get calendarPullNowSubtitle =>
+      'Den Kalender lesen und Termine auswählen, die als Programmentwürfe hinzugefügt werden.';
 }

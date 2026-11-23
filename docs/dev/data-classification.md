@@ -218,7 +218,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**259 columns**: 178 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 30 personal data by category.
+**260 columns**: 179 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 31 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -379,6 +379,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `program_slots` | `walkthrough_minutes` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `programs` | `archived_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | When the caller archived the program (schema v42); NULL means not archived. A lifecycle stamp like programs.deleted_at, classified the same way: it says when the program left the list, not anything about a person. Egress: own devices and backups yes, share files no (the maintainer chose "sync and backups keep it, share files drop it" when archiving was added, 2026-11-18, recorded in #2218; sanitizeProgramForShare), so a recipient always gets an unarchived program. Kept shareable because deviceLocal would stop sync. |
 | `programs` | `band` | `pd:Name` | Identifying → Name | third party | shareable | Performer credit for a public event. CONTESTED — see the performer-names section of docs/dev/data-classification.md. |
+| `programs` | `calendar_event_key` | `dpv:PersonalData` | PersonalData | third party | shareable | The calendar event a program was imported from (#2352, schema v42): a SHA-256 digest of the event's UID and recurrence id, never the UID itself; NULL for a program not imported from a calendar. Possibly personal and third-party because UIDs are minted by whoever's calendar software created the event: most are opaque, but some generators build them from an email address or host name, and a digest of such a value is pseudonymous, still personal data. Storing the digest means the address itself is never stored. Shareable so Device Sync carries it and the caller's other devices do not offer the same event again; kept in the caller's own backups; stripped from share files (sanitizeProgramForShare), like pay, since a recipient has no use for it. Classification proposed by Claude and approved with the issue (maintainer, issue review, 2026-11-22). |
 | `programs` | `caller` | `pd:Name` | Identifying → Name | third party | shareable | Performer credit for a public event. CONTESTED — see the performer-names section of docs/dev/data-classification.md. |
 | `programs` | `created_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `programs` | `dancer_level` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
@@ -486,7 +487,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**131 settings keys**: 86 shareable, 12 device-local, 31 device-scoped, 1 protocol-identifier, 1 store-address. 4 personal data by category.
+**134 settings keys**: 88 shareable, 13 device-local, 31 device-scoped, 1 protocol-identifier, 1 store-address. 5 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -523,6 +524,9 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `auto_commit_program_changes` | `dpv:NonPersonalData` | app user | shareable |  |
 | `auto_size_perform_cards` | `dpv:NonPersonalData` | app user | **device-local** | Screen-bound: whether a Perform card should fit the screen depends on the screen, like perform_text_scale below. deviceLocal, not deviceScoped: it is withheld for what it means on another screen, not for what it contains, and deviceScoped would also drop it from the user's own backups, which should give it back on restore. Per-device by the maintainer's decision (settings-sync-scope, 2026-10-29). |
 | `backup_reminder_cadence` | `dpv:NonPersonalData` | app user | shareable |  |
+| `calendar_feed_url` | `dpv:PersonalData` | app user | **device-local** | The address of the online calendar the calendar import reads (#2352). Withheld for what it contains: a private calendar's secret address embeds an access token. deviceLocal, not deviceScoped: it means the same on another device. Never synced, so each device configures its own (one address per device, maintainer decision); kept out of backup files too, by the maintainer's decision (issue draft review, 2026-11-22), so a restore asks for it again (kBackupSettingsDenylist); redacted from diagnostics (collectSensitiveTerms) and never put into a message. |
+| `calendar_import_title_filter` | `dpv:NonPersonalData` | app user | shareable |  |
+| `calendar_import_window_months` | `dpv:NonPersonalData` | app user | shareable |  |
 | `calling_card_print` | `dpv:NonPersonalData` | app user | shareable | Whether calling cards are offered, the card size, whether they print several to a page, and the card layout: how the user likes their cards printed. The card stock is the same whichever device prints, and printing onto sheets is a habit more than a property of one printer, so it travels like any preference. The layout can hold free text the user typed for a text block; like walkthrough_snippets, that is configuration the user authored for their own use, classified by what the setting is for rather than by whatever words they choose to print. |
 | `canonical_discouraged_terms` | `dpv:NonPersonalData` | app user | shareable |  |
 | `canonical_figure_text` | `dpv:NonPersonalData` | app user | shareable |  |

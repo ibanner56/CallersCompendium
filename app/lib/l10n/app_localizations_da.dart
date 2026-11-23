@@ -2753,6 +2753,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsDefaultsShareFieldsSources => 'Kilder';
 
   @override
+  String get settingsDefaultsShareFieldsMusic => 'Taktart, toneart og Barnes';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader => 'Samlingsfiltre';
 
   @override
@@ -12582,7 +12585,8 @@ class AppLocalizationsDa extends AppLocalizations {
   String get callingCardHelpBlockTitle => 'Dansens titel.';
 
   @override
-  String get callingCardHelpBlockAuthors => 'Hvem der har skrevet dansen.';
+  String get callingCardHelpBlockAuthors =>
+      'Hvem der har skrevet dansen og hvornår, derefter hvem der har fortolket den og hvornår.';
 
   @override
   String get callingCardHelpBlockFormation =>
@@ -12594,6 +12598,10 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get callingCardHelpBlockMeta =>
       'Formation, niveau, mixer, status og frase på én linje, hver med sin etiket.';
+
+  @override
+  String get callingCardHelpBlockMusic =>
+      'Melodiens taktart og toneart samt Barnes-henvisningen på én linje.';
 
   @override
   String get callingCardHelpBlockFigures =>
@@ -13086,4 +13094,163 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get exportCalendarShareError =>
       'Kunne ikke dele denne kalenderfil. Prøv igen.';
+
+  @override
+  String get importErrorNotACalendar =>
+      'Den adresse returnerede ikke en kalender. Brug den adresse i iCal-format, som en Google Kalender har (Indstillinger og deling ▸ Integrer kalender), ikke det almindelige link.';
+
+  @override
+  String get importFromCalendar => 'Fra kalender';
+
+  @override
+  String get importProgramFromCalendar => 'Importér fra kalender';
+
+  @override
+  String get calendarImportTitle => 'Importér fra kalender';
+
+  @override
+  String get calendarImportImport => 'Importér';
+
+  @override
+  String get calendarAddressLabel => 'Kalenderadresse';
+
+  @override
+  String get calendarAddressHelper =>
+      'Kalenderens iCal-adresse, der starter med https:// eller webcal://. En privat kalenders hemmelige adresse virker også; hold den for dig selv.';
+
+  @override
+  String get calendarImportFetch => 'Hent begivenheder';
+
+  @override
+  String get calendarImportFailed =>
+      'Kunne ikke importere fra kalenderen. Prøv igen.';
+
+  @override
+  String get calendarImportUntitled => 'Begivenhed uden titel';
+
+  @override
+  String calendarImportCommitted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programudkast tilføjet fra din kalender.',
+      one: '1 programudkast tilføjet fra din kalender.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportNothingFound => 'Ingen begivenheder i perioden.';
+
+  @override
+  String calendarImportSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nye begivenheder.',
+      one: '1 ny begivenhed.',
+      zero: 'Ingen nye begivenheder.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportNewHeader => 'Nyt i din kalender';
+
+  @override
+  String get calendarImportDeletedHeader => 'Programmer, du har slettet';
+
+  @override
+  String get calendarImportDeletedNote =>
+      'Du har slettet programmet, der blev lavet ud fra denne begivenhed. Sæt flueben for at importere det igen.';
+
+  @override
+  String get calendarImportAlreadyHeader => 'Allerede importeret';
+
+  @override
+  String get calendarImportFromThisAppHeader => 'Fra denne app';
+
+  @override
+  String get calendarImportUnreadableHeader =>
+      'Gentagne begivenheder, appen ikke kan læse';
+
+  @override
+  String get calendarImportUnreadableBody =>
+      'De gentages på en måde, appen ikke forstår, så de importeres ikke.';
+
+  @override
+  String calendarImportSkippedNoUid(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count begivenheder har intet id og blev sprunget over.',
+      one: '1 begivenhed har intet id og blev sprunget over.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarImportTruncated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Kalenderen har mere end $count begivenheder. Kun de første $count blev læst.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarSettingsHeader => 'Kalender';
+
+  @override
+  String get calendarSettingsSaveError =>
+      'Kunne ikke gemme indstillingen. Prøv igen.';
+
+  @override
+  String get calendarAddressSet => 'Angivet. Tryk for at ændre den.';
+
+  @override
+  String get calendarAddressNotSet => 'Ikke angivet';
+
+  @override
+  String get calendarWindowTitle => 'Hvilke begivenheder';
+
+  @override
+  String get calendarWindowSubtitle =>
+      'Begivenheder fra i dag og så langt frem. Gentagne begivenheder læses kun 30 dage frem.';
+
+  @override
+  String calendarWindowOption(int months) {
+    String _temp0 = intl.Intl.pluralLogic(
+      months,
+      locale: localeName,
+      other: '$months måneder',
+      one: '1 måned',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarTitleFilterTitle =>
+      'Kun begivenheder, hvis titel indeholder';
+
+  @override
+  String get calendarTitleFilterHelper =>
+      'Til en kalender, der også rummer andre begivenheder. Lad feltet være tomt for alle begivenheder.';
+
+  @override
+  String get calendarTitleFilterNone => 'Alle begivenheder';
+
+  @override
+  String calendarTitleFilterValue(String filter) {
+    return '“$filter”';
+  }
+
+  @override
+  String get calendarPullNowTitle => 'Hent nu';
+
+  @override
+  String get calendarPullNowSubtitle =>
+      'Læs kalenderen, og vælg begivenheder, der skal tilføjes som programudkast.';
 }

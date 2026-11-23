@@ -6,6 +6,7 @@ import 'package:compendium_core/compendium_core.dart'
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import 'calendar_settings_tiles.dart';
 import 'matrix_column_editor_screen.dart';
 import 'settings_keys.dart';
 import '../../data/mark_all_sets_status_scope.dart';
@@ -721,6 +722,9 @@ class _ProgramView extends StatelessWidget {
           subtitle: Text(l10n.settingsHistoryOrderIgnoreUnperformedSubtitle),
           isThreeLine: true,
         ),
+        // Settings ▸ Program ▸ Calendar (#2352), last so the sections above
+        // keep their places. Reads and writes its own keys.
+        const CalendarSettingsTiles(),
       ],
     );
   }

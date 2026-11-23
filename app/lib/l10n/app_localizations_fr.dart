@@ -2794,6 +2794,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsDefaultsShareFieldsSources => 'Sources';
 
   @override
+  String get settingsDefaultsShareFieldsMusic => 'Mesure, tonalité et Barnes';
+
+  @override
   String get settingsDefaultsCollectionFiltersHeader =>
       'Filtres de la collection';
 
@@ -12721,7 +12724,8 @@ class AppLocalizationsFr extends AppLocalizations {
   String get callingCardHelpBlockTitle => 'Le titre de la danse.';
 
   @override
-  String get callingCardHelpBlockAuthors => 'Qui a écrit la danse.';
+  String get callingCardHelpBlockAuthors =>
+      'Qui a écrit la danse et quand, puis qui l’a interprétée et quand.';
 
   @override
   String get callingCardHelpBlockFormation =>
@@ -12733,6 +12737,10 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get callingCardHelpBlockMeta =>
       'Formation, niveau, mixer, statut et phrase sur une ligne, chacun avec son libellé.';
+
+  @override
+  String get callingCardHelpBlockMusic =>
+      'La mesure et la tonalité de l’air, ainsi que sa référence Barnes, sur une ligne.';
 
   @override
   String get callingCardHelpBlockFigures =>
@@ -13229,4 +13237,164 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get exportCalendarShareError =>
       'Impossible de partager ce fichier de calendrier. Réessayez.';
+
+  @override
+  String get importErrorNotACalendar =>
+      'Cette adresse n’a pas renvoyé de calendrier. Pour un agenda Google, utilisez son adresse au format iCal (Paramètres et partage ▸ Intégrer l’agenda), pas le lien ordinaire.';
+
+  @override
+  String get importFromCalendar => 'Depuis un calendrier';
+
+  @override
+  String get importProgramFromCalendar => 'Importer depuis un calendrier';
+
+  @override
+  String get calendarImportTitle => 'Importer depuis un calendrier';
+
+  @override
+  String get calendarImportImport => 'Importer';
+
+  @override
+  String get calendarAddressLabel => 'Adresse du calendrier';
+
+  @override
+  String get calendarAddressHelper =>
+      'L’adresse iCal du calendrier, commençant par https:// ou webcal://. L’adresse secrète d’un calendrier privé fonctionne aussi ; gardez-la pour vous.';
+
+  @override
+  String get calendarImportFetch => 'Récupérer les événements';
+
+  @override
+  String get calendarImportFailed =>
+      'Impossible d’importer depuis le calendrier. Réessayez.';
+
+  @override
+  String get calendarImportUntitled => 'Événement sans titre';
+
+  @override
+  String calendarImportCommitted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programmes brouillons ajoutés depuis votre calendrier.',
+      one: '1 programme brouillon ajouté depuis votre calendrier.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportNothingFound => 'Aucun événement dans la période.';
+
+  @override
+  String calendarImportSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nouveaux événements.',
+      one: '1 nouvel événement.',
+      zero: 'Aucun nouvel événement.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportNewHeader => 'Nouveau dans votre calendrier';
+
+  @override
+  String get calendarImportDeletedHeader =>
+      'Programmes que vous avez supprimés';
+
+  @override
+  String get calendarImportDeletedNote =>
+      'Vous avez supprimé le programme créé à partir de cet événement. Cochez-le pour l’importer à nouveau.';
+
+  @override
+  String get calendarImportAlreadyHeader => 'Déjà importé';
+
+  @override
+  String get calendarImportFromThisAppHeader => 'Depuis cette app';
+
+  @override
+  String get calendarImportUnreadableHeader =>
+      'Événements récurrents que l’app ne sait pas lire';
+
+  @override
+  String get calendarImportUnreadableBody =>
+      'Ils se répètent d’une façon que l’app ne comprend pas, ils ne sont donc pas importés.';
+
+  @override
+  String calendarImportSkippedNoUid(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count événements n’ont pas d’identifiant et ont été ignorés.',
+      one: '1 événement n’a pas d’identifiant et a été ignoré.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarImportTruncated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Le calendrier contient plus de $count événements. Seuls les $count premiers ont été lus.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarSettingsHeader => 'Calendrier';
+
+  @override
+  String get calendarSettingsSaveError =>
+      'Impossible d’enregistrer ce réglage. Réessayez.';
+
+  @override
+  String get calendarAddressSet => 'Définie. Touchez pour la modifier.';
+
+  @override
+  String get calendarAddressNotSet => 'Non définie';
+
+  @override
+  String get calendarWindowTitle => 'Quels événements';
+
+  @override
+  String get calendarWindowSubtitle =>
+      'Événements d’aujourd’hui jusqu’à cette échéance. Les événements récurrents ne sont lus que 30 jours à l’avance.';
+
+  @override
+  String calendarWindowOption(int months) {
+    String _temp0 = intl.Intl.pluralLogic(
+      months,
+      locale: localeName,
+      other: '$months mois',
+      one: '1 mois',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarTitleFilterTitle =>
+      'Seulement les événements dont le titre contient';
+
+  @override
+  String get calendarTitleFilterHelper =>
+      'Pour un calendrier qui contient aussi d’autres événements. Laissez vide pour tous les événements.';
+
+  @override
+  String get calendarTitleFilterNone => 'Tous les événements';
+
+  @override
+  String calendarTitleFilterValue(String filter) {
+    return '« $filter »';
+  }
+
+  @override
+  String get calendarPullNowTitle => 'Récupérer maintenant';
+
+  @override
+  String get calendarPullNowSubtitle =>
+      'Lire le calendrier et choisir les événements à ajouter comme programmes brouillons.';
 }
