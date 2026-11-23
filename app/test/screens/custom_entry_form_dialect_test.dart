@@ -373,6 +373,58 @@ void main() {
     }
   });
 
+  group('the figure editor, a condition only English has', () {
+    testWidgets('keeps the wording when the form changes away from English '
+        'and its words move (#2294)', (tester) async {
+      expectDialectsDiffer('role1s zoom');
+      // `ends` is a group of English only, so reading the wording against
+      // contra's groups first would refuse it and lose it.
+      const template = "[{?if who is 'ends'}role1s zoom{?else}{who} zoom]";
+      final entry = UserGlossaryEntry(
+        id: 'z',
+        kindName: UserGlossaryEntryKind.customFigure.name,
+        name: 'zoom',
+        definition: 'A zoom.',
+        description: '',
+        payload: {
+          'form': 'ecd',
+          'template': template,
+          'defaultBeats': 8,
+          'params': [
+            {'key': 'who', 'kind': 'dancerSet'},
+          ],
+        },
+        createdAt: DateTime.utc(2026, 11, 20),
+      );
+      await pumpScreen(tester, CompoundEditorScreen(initial: entry));
+      Future<String> wording() async {
+        final finder = find.byKey(const ValueKey('user-figure-wording'));
+        await tester.scrollUntilVisible(
+          finder,
+          300,
+          scrollable: find.byType(Scrollable).first,
+        );
+        return tester.widget<TextField>(finder).controller!.text;
+      }
+
+      expect(
+        await wording(),
+        '[if who is ends then ${inEnglish('role1s zoom')} else {who} zoom]',
+      );
+      await tester.drag(find.byType(ListView).first, const Offset(0, 5000));
+      await tester.pumpAndSettle();
+      await pickDropdownEntry(
+        tester,
+        find.byKey(const ValueKey('glossary-entry-form')),
+        'Contra',
+      );
+      expect(
+        await wording(),
+        '[if who is ends then ${inContra('role1s zoom')} else {who} zoom]',
+      );
+    });
+  });
+
   group('a sync conflict on an entry of your own', () {
     String payloadOf(String form) => canonicalJson(
       UserFigureDefinition(
@@ -418,6 +470,30 @@ void main() {
         DanceForm.contra,
       );
       expect(syncConflictEntryForm(null), DanceForm.contra);
+    });
+
+    testWidgets('is looked up for each entry of your own, by id', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await tester.runAsync(() async {
+        for (final (id, form) in [
+          ('e', 'ecd'),
+          ('c', 'contra'),
+          ('f', 'future'),
+        ]) {
+          await repos.userGlossary.upsert(figure(id: id, name: id, form: form));
+        }
+      });
+      final lookups = (await tester.runAsync(
+        () => SyncConflictLookups.load(repos),
+      ))!;
+      expect(lookups.glossaryForms, {
+        'e': DanceForm.ecd,
+        'c': DanceForm.contra,
+        // A form this build does not know reads as contra.
+        'f': DanceForm.contra,
+      });
     });
 
     testWidgets('names the entry in the dialect of its form', (tester) async {

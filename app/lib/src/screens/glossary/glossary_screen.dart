@@ -65,7 +65,7 @@ Dialect _dialectFor(BuildContext context, DanceForm form) =>
     ActiveDialectScope.of(context).forForm(form);
 
 /// Renders the free text of the user's own entries. Each is shown in the
-/// dialect of the form it was made for ([ActiveDialectScope.entryOf]), as its
+/// dialect of the form it was made for (`glossaryEntryDanceForm`), as its
 /// detail, the Custom Figures screen and the editor show it, so each reads the
 /// same everywhere (#2294). Free text takes a dialect and no taxonomy, so one
 /// renderer serves every form.

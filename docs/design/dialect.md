@@ -140,20 +140,22 @@ wording, saved unchanged, reads as the default line. Imported
   figure's form) are. The user's own figures, combinations and terms are shown
   in the dialect of the form each was made for (its stored `form`, as
   `glossaryEntryDanceForm` reads it; contra's for one that names none or a form
-  this build does not know), wherever they are shown: the Glossary, the
-  figure editors and detail, the Custom Figures screen and the sync-conflict
+  this build does not know) in the Glossary, the figure editors and detail, the
+  Custom Figures screen, the program matrix's column and the sync-conflict
   sheet (#2294). A shorthand for one reads in its target's form's dialect,
   derived and never stored; with no target here it reads in contra's. A
   shorthand is matched in a dance of any form, so the warning that its token
   reads as a figure checks each form's own figures and dialect. The figure
   editor keeps one dialect for its fields, that of the form being edited, and
-  shows every field again in the new form's dialect when the form changes. Two
+  shows every field again in the new form's dialect when the form changes. Some
   surfaces stay on contra's dialect: Settings (the defaults' figure lists and
   their links to a figure's own defaults, the card and matrix-column layouts,
-  and the program templates' dance picker), and import review's name checks; so do program-wide text and the
-  switch screen's names for the app's figure, which is always one of contra's.
-  Plain shorthands are matched against contra's figures only, and read in
-  contra's dialect.
+  and the program templates' dance picker) and import review's name checks.
+  The dance list's advanced search names a figure of your own in the list's
+  dialect, whatever its form. Program-wide text and the switch screen's names
+  for the app's figure, which is always one of contra's, also read in contra's
+  dialect. Plain shorthands are matched against contra's figures only, and read
+  in contra's dialect.
   Program-wide text (notes, set lists) is rendered in contra's dialect, while
   each dance in a program renders in its own form's (implementer's call; the
   alternative, rendering program text in the form of most of its dances, was
