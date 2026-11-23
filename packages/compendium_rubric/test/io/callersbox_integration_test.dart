@@ -1000,6 +1000,15 @@ void main() {
         expect(nextNeighborsProgressionIndex(dance), 1);
       });
 
+      test('others listed before N2 still count', () {
+        final dance = becket([
+          figure('circle'),
+          figure('swing'),
+          noted('balance', 'with shadow and N2'),
+        ]);
+        expect(nextNeighborsProgressionIndex(dance), 1);
+      });
+
       test('ending face N2 places the progression on that figure', () {
         final dance = becket([
           figure('circle'),
@@ -1085,6 +1094,8 @@ void main() {
           'pass N2 by right shoulder',
           'to N2',
           'with partner; to N2',
+          'with partner, to N2',
+          'with shadow, pass N2',
           'M1 with N2, W1 with N1',
           'Heads with N2, sides with N1',
           'with N2 phantoms',

@@ -693,9 +693,12 @@ bool _namesNeighbors(core.Figure figure) =>
     figure.subFigures.any(_namesNeighbors);
 
 /// A note clause that dances with the next neighbours: "with N2", or the
-/// import's `with nextNeighbors`, possibly with others alongside ("with N2,
-/// shadow").
-final _withNextNeighbors = RegExp(r'\bwith\b.*\b(N2|nextNeighbors?)\b');
+/// import's `with nextNeighbors`, possibly with other dancers listed
+/// alongside ("with N2, shadow", "with shadow and N2"). Only a list of names
+/// may sit between "with" and N2, so "with partner, to N2" is not a mention.
+final _withNextNeighbors = RegExp(
+  r'\bwith\s+(?:\w+\s*(?:,|\band\b)\s*)*(N2|nextNeighbors?)\b',
+);
 
 /// A note clause that ends facing the next neighbours: "face N2".
 final _faceNextNeighbors = RegExp(r'\bface\s+(N2|nextNeighbors?)\b');
