@@ -3456,16 +3456,29 @@ void main() {
       expect(controller.improper, isTrue);
     });
 
-    test('contra and square share their shapes, so the shape stays', () async {
+    test('a contra shape gives way to the square set (ADR-007 §8.1)', () async {
       final repos = openTestRepositories();
       final controller = await newDanceController(repos);
       addTearDown(controller.dispose);
       controller.setFormationShape(FormationShape.becketCw);
 
       controller.setForm(DanceForm.square);
-      expect(controller.formationShape, FormationShape.becketCw);
+      expect(controller.formationShape, FormationShape.square);
       controller.setForm(DanceForm.contra);
-      expect(controller.formationShape, FormationShape.becketCw);
+      expect(controller.formationShape, FormationShape.dupleImproper);
+    });
+
+    test('a circle is kept between English and square', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+      controller.setForm(DanceForm.ecd);
+      controller.setFormationShape(FormationShape.circle);
+
+      controller.setForm(DanceForm.square);
+      expect(controller.formationShape, FormationShape.circle);
+      controller.setForm(DanceForm.ecd);
+      expect(controller.formationShape, FormationShape.circle);
     });
 
     test('choosing the form the dance already has keeps its shape', () async {
