@@ -2,7 +2,6 @@ import 'package:clock/clock.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
-import '../export/export_labels_l10n.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/calendar_import.dart';
 import '../data/calendar_import_settings.dart';
@@ -12,6 +11,7 @@ import '../data/import_io.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../export/export_labels_l10n.dart';
 import '../theme/app_spacing.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/app_bar_text_action.dart';

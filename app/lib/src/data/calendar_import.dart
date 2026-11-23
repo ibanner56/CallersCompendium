@@ -141,7 +141,8 @@ Future<CalendarImportPreview> buildCalendarImportPreview(
 /// Creates one draft program per entry in [chosen] and returns their ids.
 ///
 /// Each draft has the event's title ([untitledTitle] when it has none), its
-/// date, its venue label (and linked venue record when one matched), status
+/// date, its start and end times when the event is timed (#2423), its venue
+/// label (and linked venue record when one matched), status
 /// Draft, the **Default template**'s slots (#2337,
 /// [defaultProgramTemplateEntries]; none for Blank program), the default
 /// caller and band, and the event's key.

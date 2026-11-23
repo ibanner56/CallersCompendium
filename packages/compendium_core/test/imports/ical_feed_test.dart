@@ -329,6 +329,126 @@ void main() {
       }
     });
 
+    // A New York reader: EDT (UTC-4) until 06:00Z on 3 November 2030, then
+    // EST (UTC-5).
+    DateTime newYork(DateTime u) => u.add(
+      Duration(hours: u.isBefore(DateTime.utc(2030, 11, 3, 6)) ? -4 : -5),
+    );
+
+    test('a Z event across a daylight-saving change ends at the right local '
+        'time, from DTEND or DURATION alike', () {
+      // 04:00Z-07:00Z: 00:00 EDT to 02:00 EST, three real hours.
+      final viaEnd = plan(
+        _cal([
+          ['UID:e', 'DTSTART:20301103T040000Z', 'DTEND:20301103T070000Z'],
+        ]),
+        toLocal: newYork,
+        on: DateTime(2030, 11, 1),
+      ).candidates.single;
+      final viaDuration = plan(
+        _cal([
+          ['UID:e', 'DTSTART:20301103T040000Z', 'DURATION:PT3H'],
+        ]),
+        toLocal: newYork,
+        on: DateTime(2030, 11, 1),
+      ).candidates.single;
+      expect(minutes(viaEnd), (0, 120));
+      expect(minutes(viaDuration), (0, 120));
+    });
+
+    test(
+      'a Z series carries its real length, not its first wall-clock span',
+      () {
+        // First occurrence 04:00Z-07:00Z on 3 Nov spans the change; the next
+        // (10 Nov, EST) is 23:00-02:00 local, three hours.
+        final p = plan(
+          _cal([
+            [
+              'UID:s',
+              'DTSTART:20301103T040000Z',
+              'DTEND:20301103T070000Z',
+              'RRULE:FREQ=WEEKLY;COUNT=2',
+            ],
+          ]),
+          toLocal: newYork,
+          on: DateTime(2030, 11, 1),
+        );
+        expect(
+          [for (final c in p.candidates) (c.date, c.startMinute, c.endMinute)],
+          [(utcDay(2030, 11, 3), 0, 120), (utcDay(2030, 11, 9), 1380, 120)],
+        );
+      },
+    );
+
+    test('a Z start with DURATION, away from any change', () {
+      expect(
+        minutes(
+          one([
+            'UID:zd',
+            'DTSTART:20300621T023000Z',
+            'DURATION:PT3H',
+          ], toLocal: offset(-8)),
+        ),
+        (1110, 1290),
+      );
+    });
+
+    test('an end before the start, or inside the start\'s own minute, keeps '
+        'only the start', () {
+      for (final end in ['20300620T183000', '20300620T193030']) {
+        expect(
+          minutes(one(['UID:b', 'DTSTART:20300620T193000', 'DTEND:$end'])),
+          (1170, null),
+          reason: end,
+        );
+      }
+    });
+
+    test('a DATE end on a timed start keeps only the start', () {
+      expect(
+        minutes(
+          one([
+            'UID:m',
+            'DTSTART:20300620T193000',
+            'DTEND;VALUE=DATE:20300621',
+          ]),
+        ),
+        (1170, null),
+      );
+    });
+
+    test('an override with no DTEND has no end: it does not take the '
+        'series\'', () {
+      final p = plan(
+        _cal([
+          [
+            'UID:o',
+            'DTSTART:20300615T193000',
+            'DTEND:20300615T223000',
+            'RRULE:FREQ=WEEKLY;COUNT=2',
+          ],
+          ['UID:o', 'RECURRENCE-ID:20300622T193000', 'DTSTART:20300622T200000'],
+        ]),
+      );
+      expect(p.candidates.last.date, utcDay(2030, 6, 22));
+      expect(minutes(p.candidates.last), (1200, null));
+    });
+
+    test('two events on one date are listed in start order, an all-day one '
+        'first', () {
+      final p = plan(
+        _cal([
+          ['UID:late', 'DTSTART:20300620T210000', 'SUMMARY:Late'],
+          ['UID:all', 'DTSTART;VALUE=DATE:20300620', 'SUMMARY:All day'],
+          ['UID:early', 'DTSTART:20300620T190000', 'SUMMARY:Early'],
+        ]),
+      );
+      expect(
+        [for (final c in p.candidates) c.title],
+        ['All day', 'Early', 'Late'],
+      );
+    });
+
     test('a start with no end or duration keeps only its start', () {
       expect(minutes(one(['UID:s', 'DTSTART:20300620T193000'])), (1170, null));
     });
