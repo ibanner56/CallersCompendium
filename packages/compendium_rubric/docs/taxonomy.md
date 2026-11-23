@@ -655,18 +655,25 @@ To be defined later with worked examples.
     sides (*The Glass Goddess*, Caller's Box #15677) it chained on the other diagonal. A grouping
     with two `who`-dancers on one line, or one off the side lines, has no diagonal to read and is
     refused (`unresolvableDancerSet`).
-  - Role, number, and couple-identity travel with each dancer. If the needed partner grouping
-    (or its `who`-dancer) doesn't exist, the dancer **stays put** — e.g. the top grouping has
-    nothing above (`leftDiagonal`), the bottom nothing below (`rightDiagonal`), and a waiting
-    couple's dancer on the line whose diagonal leads out of the set has nobody to reach.
-    Non-`who` dancers and un-paired `who`-dancers stay in place.
+  - A **waiting couple** takes part from whichever line its `who`-dancer stands on *(user-ruled
+    2026-11-23, on Ragtime Annie, Caller's Box #10098)*: it is the only couple on that diagonal,
+    so its one `who`-dancer is read as both the west and the east dancer of its grouping. With
+    one neighbouring grouping, it starts or receives at most one trade.
+    A waiting row with two `who`-dancers, or with one off the side lines, is read by line like
+    any other grouping *(agent's call)*.
+  - Role, number, and couple-identity travel with each dancer. A dancer chains with nobody, and
+    **stays put**, when no couple stands on the diagonal — the top grouping has nothing above
+    (`leftDiagonal`), the bottom nothing below (`rightDiagonal`) — or the couple there has no
+    `who`-dancer. Non-`who` dancers and un-paired `who`-dancers stay in place.
   - **Each dancer is swapped at most once — vital.** Iterate the starting dancers only — the #2s
     across, the west-line dancers on a diagonal; a dancer already involved in a swap is never
     swapped again.
   - `hand` (left/right) does not change end positions (Op1 vs Op2).
   - **Verified against:** base Op1 (across/robins), Op2 (across/larks), Op3 (leftDiagonal),
     Op4 (rightDiagonal), and the waiting-out `leftDiagonal` example (couples B & E out at the
-    ends); all still hold under the where-they-stand pairing, as does The Judge's golden trace.
+    ends); all still hold under the where-they-stand pairing, as does The Judge's golden trace,
+    except that the waiting robins in the `leftDiagonal` example now trade with the west-line
+    robin below (top) and the east-line robin above (bottom) under the waiting-couple ruling.
     *The Glass Goddess* (#15677) pins the across-then-diagonal case.
 - **normalization:** none — not required if implemented correctly. The chain's closing **courtesy
   turn** is a **rigid wheel**, so it *preserves* the couple's left/right relationship rather than

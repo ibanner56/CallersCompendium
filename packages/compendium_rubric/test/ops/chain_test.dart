@@ -243,9 +243,8 @@ void main() {
     });
 
     // In this set the top waiting robin stands on the west line and the
-    // bottom one on the east line. Pairing is by where they stand
-    // (user-ruled 2026-11-23): from the west line the right diagonal runs
-    // down the set, from the east line up it.
+    // bottom one on the east line. A waiting couple takes part from either
+    // line (user-ruled 2026-11-23), so both diagonals reach it.
     DancerId waitingRobin(Formation set, int row) =>
         set.dancersInRow(row).firstWhere((id) => id.role == Role.robin);
 
@@ -278,20 +277,51 @@ void main() {
       );
     });
 
-    test('a waiting dancer whose diagonal leads out of the set stays', () {
+    test('a waiting couple takes part from either line '
+        '(user-ruled 2026-11-23)', () {
+      // The ruling on Ragtime Annie (Caller's Box #10098): on a left diagonal
+      // the robin of the couple waiting out at the top still swaps with the
+      // west-line robin below it, though she stands on the west line herself.
       final before = setWithEndsOut();
+      final top = waitingRobin(before, 0);
+      final bottom = waitingRobin(before, 5);
+      expect(before.stateOf(top).position.col, 0);
+      expect(before.stateOf(bottom).position.col, kColumnCount - 1);
+      final westBelowTop = before
+          .dancersInRow(2)
+          .firstWhere((id) => id.role == Role.robin);
+      final eastAboveBottom = before
+          .dancersInRow(3)
+          .firstWhere((id) => id.role == Role.robin);
+      expect(before.stateOf(westBelowTop).position.col, 0);
+      expect(before.stateOf(eastAboveBottom).position.col, kColumnCount - 1);
       final after = applyOk(
         const Chain(who: WhoSet.role2s, dir: ChainDirection.leftDiagonal),
         before,
       );
-      for (final row in [0, 5]) {
-        final robin = waitingRobin(before, row);
-        expect(
-          after.stateOf(robin).position,
-          before.stateOf(robin).position,
-          reason: '$robin',
-        );
-      }
+      expect(
+        after.stateOf(top).position,
+        before.stateOf(westBelowTop).position,
+      );
+      expect(
+        after.stateOf(westBelowTop).position,
+        before.stateOf(top).position,
+      );
+      expect(
+        after.stateOf(bottom).position,
+        before.stateOf(eastAboveBottom).position,
+      );
+      expect(
+        after.stateOf(eastAboveBottom).position,
+        before.stateOf(bottom).position,
+      );
+      // Three trades in all: both ends and the two hands four between them.
+      final moved = before.dancers.keys
+          .where(
+            (id) => after.stateOf(id).position != before.stateOf(id).position,
+          )
+          .toList();
+      expect(moved.length, 6);
     });
 
     test('waiting-out state itself is untouched by the chain', () {

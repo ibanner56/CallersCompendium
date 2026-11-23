@@ -51,11 +51,14 @@ enum ChainDirection {
 /// the #2s stood on the west line; after an across chain had traded the
 /// chaining dancers' sides it chained them on the other diagonal.
 ///
+/// A couple waiting out at an end takes part from whichever line its
+/// chaining dancer stands on *(user-ruled 2026-11-23)*.
+///
 /// Iterating the starting dancers alone is what guarantees the taxonomy's
-/// *vital* invariant that **no dancer is swapped twice**. Where the needed
-/// grouping or dancer does not exist — the top grouping reaching further up,
-/// the bottom reaching further down, a waiting couple whose chaining dancer
-/// stands on the other line — the dancer simply stays put.
+/// *vital* invariant that **no dancer is swapped twice**. Where no couple
+/// stands on the diagonal — the top grouping reaching further up, the bottom
+/// reaching further down — or the couple there has no chaining dancer, the
+/// dancer simply stays put.
 ///
 /// [hand] does not affect end positions, and no normalization is applied: the
 /// closing courtesy turn is a rigid wheel that preserves the couple's
@@ -116,6 +119,8 @@ final class Chain extends Operation {
   /// A diagonal reads them by line: the west-line dancer starts, the east-line
   /// one receives. Two chaining dancers on one line, or one off the side
   /// lines, leave no diagonal to read; that is refused rather than guessed.
+  /// A waiting couple's lone chaining dancer on a side line is the exception:
+  /// it is read as both, so it takes part from either line.
   /// `across` keeps reading them by couple number (the #2 starts, the #1
   /// receives): the ruling was about diagonals, and number pairing is what
   /// lets a chain across between two dancers on one line, as in a proper
@@ -155,6 +160,24 @@ final class Chain extends Operation {
         }
       }
       return Ok((west: two, east: one));
+    }
+    if (grouping.isWaiting) {
+      // A couple waiting out at an end still takes part from whichever line
+      // its chaining dancer stands on: it is the only couple on that
+      // diagonal. *(User-ruled 2026-11-23, on Ragtime Annie.)* It has one
+      // neighbouring grouping, so it starts or receives at most one trade.
+      // Anything but one chaining dancer on a side line falls through to the
+      // line read below, which refuses what it cannot pair. *(Agent's call.)*
+      final chainers = [
+        for (final id in dancersInGrouping(formation, grouping))
+          if (id.role == _chainingRole) id,
+      ];
+      if (chainers.length == 1) {
+        final col = formation.stateOf(chainers.single).position.col;
+        if (col == 0 || col == kColumnCount - 1) {
+          return Ok((west: chainers.single, east: chainers.single));
+        }
+      }
     }
     DancerId? west;
     DancerId? east;

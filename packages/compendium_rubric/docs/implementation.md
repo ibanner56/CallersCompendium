@@ -273,7 +273,8 @@ to two hands four where a nominal reading would demand three and then refuse.
 - **`groupingsDownTheSet`** — bands *plus* single-row waiting couples, ordered by
   top row. The diagonal figures are defined over **groupings**, because a
   waiting couple still participates as its own single-couple grouping. A
-  diagonal `chain` pairs by line within groupings *(user-ruled 2026-11-23)*;
+  diagonal `chain` pairs by line within groupings *(user-ruled 2026-11-23)*,
+  and a waiting couple takes part from either line (also user-ruled);
   `across` pairs by couple number, falling back to line when the numbers name
   no pair.
 - **`toggleBandPhase`** — the band grid has exactly two phases: aligned (bands
