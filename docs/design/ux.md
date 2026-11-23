@@ -369,8 +369,10 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   seeded from the dance (same formation, this level or easier, same type in a
   mixed program, not already in the program, and figures with same-phrase and
   with-what-comes-before refinements). Defaults are a setting; the slot's
-  alternates are listed first; two taps with the defaults; the swapped-out
-  dance becomes an alternate; Undo restores the slot exactly.
+  alternates are listed first; two taps with the defaults; the swapped-in
+  dance takes the group's primary (an alternate being called is promoted)
+  and the swapped-out dance an unmarked alternate, so calling history counts
+  only the dance called; Undo restores the program exactly.
 
 ### 6. Settings
 - **Dialect manager**: named dialects, preset picker, role/move term editor

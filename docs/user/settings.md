@@ -316,8 +316,10 @@ They don't change what is shared when you share the whole program as a
   types) and **Not already in tonight's program**. All four start on. Figures to
   keep always start off. A backup includes this setting, and it syncs to your
   other devices once every device in the store has a version of the app that
-  knows it. If a newer version of the app saved these choices, this screen shows
-  them but can't change them until you update.
+  knows it. If a newer version of the app saved these choices, this screen can't
+  read them: it shows the choices the app starts with, all on, and can't change
+  them until you update (your saved choices are kept). If the choices can't be
+  read at all, it says so and changes nothing.
 
 ### Calling history
 

@@ -4,17 +4,17 @@
   "app": {
     "added": [
       "Swap a dance in Perform: Adjust program offers Swap this dance for the dance you are calling, and a swap button on each upcoming dance. It is not offered on a dance marked performed, a note, a break or an earlier slot, and swapping an upcoming dance keeps your place.",
-      "The swap sheet opens already searched, with Keep choices taken from the dance: same formation, this level or easier, same type in a program that mixes types, not already in tonight's program, and the dance's figures, each with In the same phrase and With what comes before it. Results change as you go, the slot's alternates are listed first, the dance being swapped is never listed, and More filters shows the same choices in the full search panels.",
-      "A swap keeps the slot's note, guest caller and times, makes the old dance the slot's first alternate so calling history does not count it, and can be undone. Choosing one of the slot's alternates trades the two dances.",
+      "The swap sheet opens already searched, with Keep choices taken from the dance: same formation, this level or easier, same type (contra, English or square) in a program that mixes types, not already in tonight's program, and the dance's figures, each with In the same phrase and With what comes before it. A filter hidden in Settings and a free-text figure are not offered. Results change as you go, the slot's alternates are listed first, the dance being swapped is never listed, and More filters shows the same choices in the full search panels.",
+      "A swap keeps the slot's note, guest caller and times and can be undone. The dance swapped in takes the planned slot, so calling history counts it, and the dance swapped out stays as an unmarked alternate, which it does not count: right after the slot, or, when you choose one of the slot's alternates, in that alternate's place. Swapping an alternate shown with Show alternate makes it the planned dance and the old planned dance an alternate.",
       "For English dances, same formation and the two figure refinements are not offered yet, and the swap sheet says so.",
-      "Settings ▸ Program ▸ Perform mode ▸ Swap a dance chooses which Keep choices start on. It is in your backup, and syncs to your other devices once every device in the store has a version of the app that knows it."
+      "Settings ▸ Program ▸ Perform mode ▸ Swap a dance chooses which Keep choices start on. It is in your backup, and syncs to your other devices once every device in the store has a version of the app that knows it. Choices saved by a newer version, or ones that can't be read, are shown read-only and never overwritten."
     ]
   },
   "core": {
     "added": [
-      "Add SwapKeepSeed, SwapKeepFigure, SwapKeepChoices, SwapFigureKeep and swapKeepPanelState: the Keep choices a dance seeds for Perform's swap sheet, and the CollectionPanelState they search for.",
+      "Add SwapKeepSeed (with hiddenFacets), SwapKeepFigure, SwapKeepChoices, SwapFigureKeep and swapKeepPanelState: the Keep choices a dance seeds for Perform's swap sheet, and the CollectionPanelState they search for.",
       "Add PerformSwapDefaults, PerformSwapDefaultsRead, PerformSwapKeepItem, performSwapDefaultsVersion, readPerformSwapDefaults and isValidStoredPerformSwapDefaults for the stored perform_swap_defaults value.",
-      "Add Program.swapSlotDanceKeepingAlternate, which swaps a slot's dance and keeps the old dance as the slot's first alternate, or trades with an unperformed alternate that already holds the new dance.",
+      "Add Program.swapSlotDanceKeepingAlternate, which swaps a slot's dance, keeps the old dance on an unmarked alternate in the same group (a new one after the slot, or an unperformed alternate that already holds the new dance, by trading), and makes an alternate slot its group's primary so the new dance is the one that counts.",
       "Add the performSwap.v1 sync capability (SyncCapabilities.performSwapV1), gating perform_swap_defaults, and classify the key in the settings privacy registry."
     ]
   }
