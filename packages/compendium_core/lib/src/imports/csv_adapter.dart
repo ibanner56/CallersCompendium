@@ -381,6 +381,18 @@ StructuredDraft csvRowToDraft(
     final column = mapping.columns[i];
     final value = unguardCsvFormula(cells[i].trim());
     if (value.isEmpty) continue;
+    // A choice cell with nothing visible in it is an empty cell: it fills
+    // nothing and is not kept in the notes.
+    final choiceCell = switch (column.target) {
+      CsvColumnTarget.newCustomField => column.newFieldType,
+      CsvColumnTarget.customField =>
+        mapping.existingFields[column.customFieldId]?.type,
+      _ => null,
+    };
+    if (choiceCell == CustomFieldType.choice &&
+        normalizeShareableText(value).trim().isEmpty) {
+      continue;
+    }
     final single = switch (column.target) {
       CsvColumnTarget.form ||
       CsvColumnTarget.formation ||
@@ -665,9 +677,10 @@ String _choiceKey(String value) => csvFold(normalizeShareableText(value));
 const String _groupingSpaces = ' \u00a0\u202f';
 
 /// A number with `.` or a space between groups of three digits and `,` before
-/// the decimals: `1.234,5`, `3,5`, `1 000`, `1.000`.
+/// the decimals: `1.234,5`, `3,5`, `1 000`, `1.000`. A leading group never
+/// starts with 0, so `0.500` is not grouped (it is a half).
 final RegExp _continentalNumber = RegExp(
-  '^[+-]?(?:\\d{1,3}([.$_groupingSpaces])\\d{3}(?:\\1\\d{3})*|\\d+)(?:,\\d+)?\$',
+  '^[+-]?(?:[1-9]\\d{0,2}([.$_groupingSpaces])\\d{3}(?:\\1\\d{3})*|\\d+)(?:,\\d+)?\$',
 );
 
 /// A number cell as [separator] says the sheet writes it. In a `;` sheet (the
