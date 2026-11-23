@@ -13306,4 +13306,44 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get csvColumnBarnes => 'Référence Barnes';
+
+  @override
+  String get programsExportCsv => 'Exporter les programmes en CSV';
+
+  @override
+  String get csvProgramsFileStem => 'programmes';
+
+  @override
+  String get csvColumnEventDate => 'Date de l’événement';
+
+  @override
+  String get csvColumnVenue => 'Lieu';
+
+  @override
+  String get csvColumnCaller => 'Caller';
+
+  @override
+  String get csvColumnBand => 'Orchestre';
+
+  @override
+  String get csvColumnDancerLevel => 'Niveau des danseurs';
+
+  @override
+  String get csvColumnPayAmount => 'Cachet';
+
+  @override
+  String get csvColumnPayCurrency => 'Devise';
+
+  @override
+  String get csvColumnNotes => 'Notes';
+
+  @override
+  String get csvColumnDanceCount => 'Nombre de danses';
+
+  @override
+  String get csvColumnDances => 'Danses';
+
+  @override
+  String get exportCsvPayHiddenNotice =>
+      'Le cachet est masqué dans les Paramètres, il est donc omis. Activez « Afficher le cachet » dans Paramètres ▸ Programme pour l’inclure.';
 }

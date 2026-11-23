@@ -17651,5 +17651,57 @@
   "csvColumnBarnes": "Barnes reference",
   "@csvColumnBarnes": {
     "description": "Column heading in an exported dances CSV spreadsheet: where an English country dance appears in the Barnes books."
+  },
+  "programsExportCsv": "Export programs as CSV",
+  "@programsExportCsv": {
+    "description": "Programs list overflow menu item that exports the programs in the current view as a CSV spreadsheet file."
+  },
+  "csvProgramsFileStem": "programs",
+  "@csvProgramsFileStem": {
+    "description": "Start of the file name of an exported programs CSV spreadsheet, before the date (for example programs_2026-11-23.csv). Lower case; a single word if possible."
+  },
+  "csvColumnEventDate": "Event date",
+  "@csvColumnEventDate": {
+    "description": "Column heading in an exported programs CSV spreadsheet: the date of the event."
+  },
+  "csvColumnVenue": "Venue",
+  "@csvColumnVenue": {
+    "description": "Column heading in an exported programs CSV spreadsheet: the venue's name."
+  },
+  "csvColumnCaller": "Caller",
+  "@csvColumnCaller": {
+    "description": "Column heading in an exported programs CSV spreadsheet: the event's caller."
+  },
+  "csvColumnBand": "Band",
+  "@csvColumnBand": {
+    "description": "Column heading in an exported programs CSV spreadsheet: the band playing the event."
+  },
+  "csvColumnDancerLevel": "Dancer level",
+  "@csvColumnDancerLevel": {
+    "description": "Column heading in an exported programs CSV spreadsheet: the event's overall dancer level."
+  },
+  "csvColumnPayAmount": "Pay",
+  "@csvColumnPayAmount": {
+    "description": "Column heading in an exported programs CSV spreadsheet: what the caller was paid, as a number."
+  },
+  "csvColumnPayCurrency": "Currency",
+  "@csvColumnPayCurrency": {
+    "description": "Column heading in an exported programs CSV spreadsheet: the currency of the pay, such as USD."
+  },
+  "csvColumnNotes": "Notes",
+  "@csvColumnNotes": {
+    "description": "Column heading in an exported programs CSV spreadsheet: the program's notes."
+  },
+  "csvColumnDanceCount": "Number of dances",
+  "@csvColumnDanceCount": {
+    "description": "Column heading in an exported programs CSV spreadsheet: how many dances the program has, not counting alternates."
+  },
+  "csvColumnDances": "Dances",
+  "@csvColumnDances": {
+    "description": "Column heading in an exported programs CSV spreadsheet: the program's dances in order, one per line, alternates marked."
+  },
+  "exportCsvPayHiddenNotice": "Pay is hidden in Settings, so it is left out. Turn on Show pay in Settings ▸ Program to include it.",
+  "@exportCsvPayHiddenNotice": {
+    "description": "Shown in the export dialog of the programs CSV spreadsheet while the Show pay setting is off: the file has no pay columns. 'Show pay' is the setting's name (settingsProgramShowPayTitle)."
   }
 }

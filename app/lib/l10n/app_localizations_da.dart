@@ -13164,4 +13164,44 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get csvColumnBarnes => 'Barnes-henvisning';
+
+  @override
+  String get programsExportCsv => 'Eksportér programmer som CSV';
+
+  @override
+  String get csvProgramsFileStem => 'programmer';
+
+  @override
+  String get csvColumnEventDate => 'Begivenhedsdato';
+
+  @override
+  String get csvColumnVenue => 'Spillested';
+
+  @override
+  String get csvColumnCaller => 'Caller';
+
+  @override
+  String get csvColumnBand => 'Band';
+
+  @override
+  String get csvColumnDancerLevel => 'Danserniveau';
+
+  @override
+  String get csvColumnPayAmount => 'Honorar';
+
+  @override
+  String get csvColumnPayCurrency => 'Valuta';
+
+  @override
+  String get csvColumnNotes => 'Noter';
+
+  @override
+  String get csvColumnDanceCount => 'Antal danse';
+
+  @override
+  String get csvColumnDances => 'Danse';
+
+  @override
+  String get exportCsvPayHiddenNotice =>
+      'Honoraret er skjult i Indstillinger, så det er udeladt. Slå »Vis honorar« til under Indstillinger ▸ Program for at tage det med.';
 }

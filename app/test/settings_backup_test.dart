@@ -1512,7 +1512,7 @@ void main() {
       tester,
       repos,
       csvExportDelivery: CsvExportDelivery(
-        choicePicker: (context) async => CsvExportChoice.save,
+        choicePicker: (context, {notice}) async => CsvExportChoice.save,
         saveInvoker: (content, name) async {
           csv = content;
           fileName = name;

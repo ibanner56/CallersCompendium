@@ -27,7 +27,7 @@ void main() {
 
     String? csv;
     final delivery = CsvExportDelivery(
-      choicePicker: (context) async => CsvExportChoice.save,
+      choicePicker: (context, {notice}) async => CsvExportChoice.save,
       saveInvoker: (content, name) async {
         csv = content;
         return JsonSaveResult(path: '', fileName: name);
@@ -140,7 +140,7 @@ void main() {
       tester,
       repos,
       csvExportDelivery: CsvExportDelivery(
-        choicePicker: (context) async => CsvExportChoice.save,
+        choicePicker: (context, {notice}) async => CsvExportChoice.save,
         saveInvoker: (content, name) async => throw StateError('disk full'),
       ),
     );

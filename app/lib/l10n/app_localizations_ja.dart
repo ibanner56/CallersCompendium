@@ -12639,4 +12639,44 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get csvColumnBarnes => 'Barnes 掲載箇所';
+
+  @override
+  String get programsExportCsv => 'プログラムをCSVでエクスポート';
+
+  @override
+  String get csvProgramsFileStem => 'プログラム';
+
+  @override
+  String get csvColumnEventDate => 'イベント日';
+
+  @override
+  String get csvColumnVenue => '会場';
+
+  @override
+  String get csvColumnCaller => 'コーラー';
+
+  @override
+  String get csvColumnBand => 'バンド';
+
+  @override
+  String get csvColumnDancerLevel => 'ダンサーレベル';
+
+  @override
+  String get csvColumnPayAmount => '報酬';
+
+  @override
+  String get csvColumnPayCurrency => '通貨';
+
+  @override
+  String get csvColumnNotes => 'ノート';
+
+  @override
+  String get csvColumnDanceCount => 'ダンス数';
+
+  @override
+  String get csvColumnDances => 'ダンス';
+
+  @override
+  String get exportCsvPayHiddenNotice =>
+      '報酬は設定で非表示になっているため、含まれません。含めるには、設定 ▸ プログラムで「報酬を表示」をオンにしてください。';
 }

@@ -613,7 +613,9 @@ final Map<String, DataClassification> fieldClassifications = {
         'the app omits it from program share files and Export JSON '
         '(maintainer decision R2-out2-export, 2026-10-30; '
         'sanitizeProgramForShare). It is never part of the shared set-list '
-        'text or PDF. Kept shareable rather than deviceLocal because '
+        'text or PDF. Besides the backup, the one export that carries it is '
+        'the programs CSV export (#2333; sanitizeProgramForCsv), by ruling 2 '
+        '(maintainer, feature triage, 2026-11-22). Kept shareable rather than deviceLocal because '
         'deviceLocal means never serialised and would stop sync. Sync can '
         'still reach another person when a store is shared (ADR-004 '
         'storeAddress), so "travels in sync" is not "stays on my devices".',
@@ -625,7 +627,8 @@ final Map<String, DataClassification> fieldClassifications = {
     note:
         'ISO 4217 code that programs.pay_minor_units is denominated in; '
         'meaningless without it, so it carries the same classification, '
-        'including the share-file omission (sanitizeProgramForShare).',
+        'including the share-file omission (sanitizeProgramForShare) and '
+        'the programs CSV export that carries it (#2333).',
   ),
   'programs.created_at': _recordStamp,
   'programs.updated_at': _recordStamp,

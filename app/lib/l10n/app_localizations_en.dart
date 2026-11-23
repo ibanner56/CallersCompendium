@@ -13111,4 +13111,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get csvColumnBarnes => 'Barnes reference';
+
+  @override
+  String get programsExportCsv => 'Export programs as CSV';
+
+  @override
+  String get csvProgramsFileStem => 'programs';
+
+  @override
+  String get csvColumnEventDate => 'Event date';
+
+  @override
+  String get csvColumnVenue => 'Venue';
+
+  @override
+  String get csvColumnCaller => 'Caller';
+
+  @override
+  String get csvColumnBand => 'Band';
+
+  @override
+  String get csvColumnDancerLevel => 'Dancer level';
+
+  @override
+  String get csvColumnPayAmount => 'Pay';
+
+  @override
+  String get csvColumnPayCurrency => 'Currency';
+
+  @override
+  String get csvColumnNotes => 'Notes';
+
+  @override
+  String get csvColumnDanceCount => 'Number of dances';
+
+  @override
+  String get csvColumnDances => 'Dances';
+
+  @override
+  String get exportCsvPayHiddenNotice =>
+      'Pay is hidden in Settings, so it is left out. Turn on Show pay in Settings ▸ Program to include it.';
 }

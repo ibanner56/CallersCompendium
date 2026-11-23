@@ -13274,4 +13274,44 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get csvColumnBarnes => 'Barnes-Verweis';
+
+  @override
+  String get programsExportCsv => 'Programme als CSV exportieren';
+
+  @override
+  String get csvProgramsFileStem => 'programme';
+
+  @override
+  String get csvColumnEventDate => 'Veranstaltungsdatum';
+
+  @override
+  String get csvColumnVenue => 'Veranstaltungsort';
+
+  @override
+  String get csvColumnCaller => 'Caller';
+
+  @override
+  String get csvColumnBand => 'Band';
+
+  @override
+  String get csvColumnDancerLevel => 'Tänzerniveau';
+
+  @override
+  String get csvColumnPayAmount => 'Gage';
+
+  @override
+  String get csvColumnPayCurrency => 'Währung';
+
+  @override
+  String get csvColumnNotes => 'Notizen';
+
+  @override
+  String get csvColumnDanceCount => 'Anzahl der Tänze';
+
+  @override
+  String get csvColumnDances => 'Tänze';
+
+  @override
+  String get exportCsvPayHiddenNotice =>
+      'Die Gage ist in den Einstellungen ausgeblendet und fehlt daher. Schalte „Gage anzeigen“ unter Einstellungen ▸ Programm ein, um sie aufzunehmen.';
 }
