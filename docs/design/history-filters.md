@@ -485,7 +485,7 @@ These hold on every surface.
 
 **When the section shows:**
 - The whole section stays hidden when nothing has been called
-  (`collection_picker.dart:844-851`, `docs/design/search.md:164-166`). Every
+  (`FacetPanel.hasCallingHistory`, `docs/design/search.md:164-166`). Every
   dance is then uncalled, so a scope cannot change the result.
 - The section's active count includes each active scope, so the Filters badge
   never hides an active narrowing.

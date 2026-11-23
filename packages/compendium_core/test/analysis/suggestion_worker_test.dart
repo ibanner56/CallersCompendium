@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -12,7 +13,7 @@ void main() {
     id: id,
     figures: [
       for (final (move, beats) in moves)
-        Figure(move: move, params: {'beats': beats}),
+        testFigure(move: move, params: {'beats': beats}),
     ],
     revision: revision,
   );
