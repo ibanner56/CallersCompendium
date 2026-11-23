@@ -3,6 +3,7 @@ import 'package:compendium_app/src/export/calling_card_pdf.dart';
 import 'package:compendium_app/src/export/dance_pdf.dart';
 import 'package:compendium_app/src/export/program_pdf.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -102,7 +103,7 @@ void main() {
     phraseStructure: 'A:2*4*3 + B:1*8*2',
     figures: [
       for (final (i, b) in beats.indexed)
-        Figure(
+        testFigure(
           move: i.isEven ? 'ecd_siding' : 'ecd_turn_single',
           params: {'beats': b},
         ),

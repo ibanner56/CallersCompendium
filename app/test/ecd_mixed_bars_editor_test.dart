@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -43,7 +44,7 @@ void main() {
                 figures ??
                 [
                   for (final beats in [12, 12, 8])
-                    Figure(move: 'ecd_siding', params: {'beats': beats}),
+                    testFigure(move: 'ecd_siding', params: {'beats': beats}),
                 ],
             createdAt: created,
             updatedAt: created,

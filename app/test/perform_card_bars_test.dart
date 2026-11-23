@@ -1,5 +1,6 @@
 import 'package:compendium_app/src/screens/perform_card.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -19,7 +20,10 @@ Future<void> _pump(WidgetTester tester, String phrase, List<int> beats) async {
     phraseStructure: phrase,
     figures: [
       for (final (i, b) in beats.indexed)
-        Figure(move: i.isEven ? 'ecd_lead' : 'ecd_set', params: {'beats': b}),
+        testFigure(
+          move: i.isEven ? 'ecd_lead' : 'ecd_set',
+          params: {'beats': b},
+        ),
     ],
     createdAt: _now,
     updatedAt: _now,
