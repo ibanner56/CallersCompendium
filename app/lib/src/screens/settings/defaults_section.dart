@@ -1,5 +1,6 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
 import '../../widgets/reorder_move_buttons.dart';
+
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -39,6 +40,7 @@ import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/settings_dropdown_row.dart';
 import '../glossary/compound_editor_screen.dart';
+import '../dance_editor/phrase_groups_editor.dart';
 import 'default_import_tags_editor.dart';
 import 'settings_keys.dart';
 import '../../widgets/app_dropdown_field.dart';
@@ -619,9 +621,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           children: [
             ListTile(
               title: Text(
-                AppLocalizations.of(
-                  context,
-                ).settingsDefaultsStartingProgramPickerTitle,
+                AppLocalizations.of(context)
+                    .settingsDefaultsStartingProgramPickerTitle,
               ),
               trailing: IconButton(
                 tooltip: AppLocalizations.of(context).commonClose,
@@ -1323,9 +1324,8 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
   }
 
   Future<void> _reload() async {
-    final levels = await RepositoriesScope.of(
-      context,
-    ).difficultyLevels.listAll();
+    final levels = await RepositoriesScope.of(context).difficultyLevels
+        .listAll();
     if (!mounted) return;
     final levelIds = {for (final level in levels) level.id};
     for (final entry in _labelControllers.entries.toList()) {
@@ -1345,9 +1345,8 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
 
   void _say(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   /// Shows [error] as a localized sentence. A caught exception is logged by its
@@ -1416,10 +1415,8 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     }
     if (label == level.label) return;
     try {
-      await RepositoriesScope.of(context).difficultyLevels.upsert(
-        level.copyWith(label: label),
-        localUserEdit: true,
-      );
+      await RepositoriesScope.of(context).difficultyLevels
+          .upsert(level.copyWith(label: label), localUserEdit: true);
       await _reload();
     } catch (error, stackTrace) {
       _labelControllers[level.id]?.text = level.label;
@@ -1504,9 +1501,8 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     updated.insert(newIndex, level);
     setState(() => _levels = updated);
     try {
-      await RepositoriesScope.of(
-        context,
-      ).difficultyLevels.reorder(updated.map((level) => level.id).toList());
+      await RepositoriesScope.of(context).difficultyLevels
+          .reorder(updated.map((level) => level.id).toList());
       await _reload();
       return level;
     } catch (error, stackTrace) {
@@ -2384,6 +2380,40 @@ class _DefaultsView extends StatelessWidget {
                 ],
               ),
             ),
+            // The default as rows (#2304), over the same text as the field
+            // below. A default with phrase names (an English dance's) or one
+            // that does not parse is left to the field: the rows write
+            // unnamed text only.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.xs,
+                AppSpacing.md,
+                0,
+              ),
+              child: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: dancePhraseController,
+                builder: (context, value, _) {
+                  PhraseStructure? structure;
+                  try {
+                    structure = PhraseStructure.parse(value.text);
+                  } on FormatException {
+                    // diagnostics: silent — the field below holds text that
+                    // does not parse; the rows wait for a valid default.
+                    structure = null;
+                  }
+                  return PhraseGroupsEditor(
+                    key: const ValueKey('defaults-dance-phrase-rows'),
+                    title: l10n.settingsDefaultsPhraseLabel,
+                    structure: structure,
+                    onChanged: (raw, {required typed}) {
+                      dancePhraseController.text = raw;
+                      onDefaultDancePhraseChanged(raw);
+                    },
+                  );
+                },
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.md,
@@ -2432,9 +2462,8 @@ class _DefaultsView extends StatelessWidget {
                 phraseStructure: PhraseStructure.standard,
                 dialect: ActiveDialectScope.contraOf(context),
                 freeTextEntry: freeTextEntry,
-                shorthandMappings: ShorthandMappingsScope.maybeOf(
-                  context,
-                )?.store,
+                shorthandMappings: ShorthandMappingsScope.maybeOf(context)
+                    ?.store,
                 userFigureOptions: userFigureOptions,
                 onChanged: onDanceFigureTemplateChanged,
                 onAdd: onDanceFigureTemplateAdd,
@@ -2478,9 +2507,8 @@ class _DefaultsView extends StatelessWidget {
                 phraseStructure: PhraseStructure.standard,
                 dialect: ActiveDialectScope.contraOf(context),
                 freeTextEntry: freeTextEntry,
-                shorthandMappings: ShorthandMappingsScope.maybeOf(
-                  context,
-                )?.store,
+                shorthandMappings: ShorthandMappingsScope.maybeOf(context)
+                    ?.store,
                 userFigureOptions: userFigureOptions,
                 onChanged: onMeanwhileSideChanged,
                 onAdd: onMeanwhileSideAdd,
@@ -2527,9 +2555,8 @@ class _DefaultsView extends StatelessWidget {
                 phraseStructure: PhraseStructure.standard,
                 dialect: ActiveDialectScope.contraOf(context),
                 freeTextEntry: freeTextEntry,
-                shorthandMappings: ShorthandMappingsScope.maybeOf(
-                  context,
-                )?.store,
+                shorthandMappings: ShorthandMappingsScope.maybeOf(context)
+                    ?.store,
                 userFigureOptions: userFigureOptions,
                 onChanged: onModifierChanged,
                 onAdd: onModifierAdd,

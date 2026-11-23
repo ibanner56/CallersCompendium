@@ -27,6 +27,7 @@ import '../../widgets/lingo_text_editing_controller.dart';
 import 'name_picker.dart';
 import '../../widgets/app_dropdown_field.dart';
 import 'named_phrases_editor.dart';
+import 'phrase_groups_editor.dart';
 import 'source_citations_editor.dart';
 import '../../theme/app_shapes.dart';
 
@@ -466,6 +467,16 @@ class DanceEditorForm extends StatelessWidget {
                     beatsPerBar: controller.statedBeatsPerBar,
                     onChanged: controller.setPhraseStructureText,
                   ),
+                // A form whose phrases are not named (contra, square) reads
+                // and sets its phrase structure as rows over the same text;
+                // the formula field below stays beside them (#2304).
+                if (!controller.offersNamedPhrases)
+                  PhraseGroupsEditor(
+                    key: const ValueKey('phrase-groups'),
+                    title: l10n.danceEditorPhraseStructureLabel,
+                    structure: controller.typedPhraseStructure,
+                    onChanged: controller.setPhraseStructureText,
+                  ),
                 if (!controller.offersNamedPhrases ||
                     controller.typedPhraseStructure?.isNamed != true ||
                     controller.phraseFocusNode.hasFocus)
@@ -535,9 +546,8 @@ class DanceEditorForm extends StatelessWidget {
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     l10n.danceEditorFiguresUnreadable,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall
+                        ?.copyWith(color: Theme.of(context).colorScheme.error),
                   ),
                 ],
                 const SizedBox(height: AppSpacing.xs),
@@ -947,9 +957,8 @@ class DanceEditorForm extends StatelessWidget {
               if (controller.openedWithUnreadableTunes) ...[
                 Text(
                   l10n.danceEditorTunesUnreadable,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: Theme.of(context).colorScheme.error),
                 ),
                 const SizedBox(height: AppSpacing.xs),
               ],

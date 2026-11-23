@@ -11254,6 +11254,74 @@
       }
     }
   },
+  "danceEditorPhraseRowsHelp": "Each row is a run of equal phrases: how many there are, the bars in each, and the beats in a bar. The phrase structure below changes with the rows.",
+  "@danceEditorPhraseRowsHelp": {
+    "description": "Help under the heading of the phrase-structure rows in a contra or square dance's editor. Each row is one part of the phrase structure text. The text field below the rows shows the same structure."
+  },
+  "danceEditorPhraseRowsPhrasesLabel": "Phrases",
+  "@danceEditorPhraseRowsPhrasesLabel": {
+    "description": "Label of the number field for how many equal phrases one row of a contra or square dance's phrase structure has."
+  },
+  "danceEditorPhraseRowsBarsLabel": "Bars per phrase",
+  "@danceEditorPhraseRowsBarsLabel": {
+    "description": "Label of the number field for how many bars of music each phrase of one row of a contra or square dance's phrase structure has."
+  },
+  "danceEditorPhraseRowsBeatsLabel": "Beats per bar",
+  "@danceEditorPhraseRowsBeatsLabel": {
+    "description": "Label of the number field for how many beats are in a bar in one row of a contra or square dance's phrase structure, such as 2 for a reel or 3 for a slip jig."
+  },
+  "danceEditorPhraseRowsRange": "1 to {max}",
+  "@danceEditorPhraseRowsRange": {
+    "description": "Short error under a number field of the phrase-structure rows in a contra or square dance when it is empty, zero or too large: the numbers it may hold.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "example": "1000"
+      }
+    }
+  },
+  "danceEditorPhraseRowsAdd": "Add row",
+  "@danceEditorPhraseRowsAdd": {
+    "description": "Button that adds a row to the phrase-structure rows of a contra or square dance."
+  },
+  "danceEditorPhraseRowsRemove": "Remove row {number}",
+  "@danceEditorPhraseRowsRemove": {
+    "description": "Tooltip of the button that removes one row from the phrase-structure rows of a contra or square dance. The number counts the rows from 1.",
+    "placeholders": {
+      "number": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "danceEditorPhraseRowsInvalid": "Give each field a whole number from 1 to {max}, in a structure that is not too long. Until then the dance keeps its last valid phrase structure, and Save saves that.",
+  "@danceEditorPhraseRowsInvalid": {
+    "description": "Error under the phrase-structure rows of a contra or square dance when a number is empty, zero or above {max}, or the structure is too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "example": "1000"
+      }
+    }
+  },
+  "danceEditorPhraseRowsSummary": "{labels} · {beats, plural, =1{1 beat} other{{beats} beats}}",
+  "@danceEditorPhraseRowsSummary": {
+    "description": "One line under the phrase-structure rows of a contra or square dance: the labels the phrases get, such as A1 A2 B1 B2 (a long list ends with an ellipsis), then the beats in all. The labels are music-phrase labels and stay as written.",
+    "placeholders": {
+      "labels": {
+        "type": "String",
+        "example": "A1 A2 B1 B2"
+      },
+      "beats": {
+        "type": "int",
+        "example": "64"
+      }
+    }
+  },
+  "danceEditorPhraseRowsDisabledNote": "These rows show the last valid phrase structure. Fix the phrase structure below to edit them again.",
+  "@danceEditorPhraseRowsDisabledNote": {
+    "description": "Note under the phrase-structure rows of a contra or square dance while the phrase structure text below them is not valid, or holds phrase names that only an English dance keeps. The rows are disabled until it is."
+  },
   "danceEditorFiguresSection": "Figures",
   "@danceEditorFiguresSection": {
     "description": "Section heading for the editable figure list in the dance editor."
