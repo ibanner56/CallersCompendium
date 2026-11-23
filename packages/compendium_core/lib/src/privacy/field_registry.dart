@@ -696,6 +696,42 @@ final Map<String, DataClassification> fieldClassifications = {
         'recipient has no use for it. Classification proposed by Claude and '
         'approved with the issue (maintainer, issue review, 2026-11-22).',
   ),
+  'programs.calendar_event_fingerprint': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
+    note:
+        'What the calendar import last wrote from an event (#2354, schema '
+        'v42): truncated hashes of its title, date, first location segment, '
+        'and start and end times, all of which are already stored on the '
+        'program. Shareable '
+        'so another device applies the same untouched test; stripped from '
+        'share files (sanitizeProgramForShare), since a recipient has no such '
+        'calendar. Classification proposed by Claude and approved with the '
+        'issue (maintainer, issue review, 2026-11-22).',
+  ),
+  'programs.calendar_written_at': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
+    note:
+        'The updated_at the calendar import last wrote (#2354, schema v42), '
+        'classified like the record stamps: it says when, not who. Shareable '
+        'so another device applies the same untouched test; stripped from '
+        'share files (sanitizeProgramForShare).',
+  ),
+  'programs.calendar_flag': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
+    note:
+        'Why the calendar flags the program (#2354, schema v42): cancelled, '
+        'missing, or NULL. A label about the program, not a person. Shareable '
+        'so the flag shows on every device; stripped from share files '
+        '(sanitizeProgramForShare), since a recipient has no such calendar. '
+        'Classified like choreography fields, as the issue proposed and the '
+        'maintainer approved (issue review, 2026-11-22).',
+  ),
 
   // --------------------------------------------------------- program_slots --
   'program_slots.id': _key,

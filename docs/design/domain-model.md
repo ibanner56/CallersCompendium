@@ -154,9 +154,13 @@ decide what counts and override all four.
   clockwise ½"). As for the other kinds, `params['beats']` is the count
   section math reads, but the editor keeps it equal to the **sum** of the
   steps' own counts: a step shows its own Beats field and the container shows
-  only the total. That total must fit **one phrase** of the dance
-  (`PhraseStructure.longestPhraseBeats`, 16 for the standard structure): the
-  editor will not group, convert, ungroup into, or add a step past it. Editing
+  only the total. That total must fit **the phrase it starts in**
+  (`PhraseStructure.phraseBeatsAt`, 16 for every phrase of the standard
+  structure; a sequence may start partway through that phrase and run over its
+  line, so long as it is no longer than the phrase): the editor will not
+  group, convert, ungroup into, or add a step past it. Until 23 November 2026
+  the limit was the dance's longest phrase, which let a sequence overrun a
+  shorter one unflagged; the maintainer changed it. Editing
   a step already in the sequence (its move or beats) or the phrase structure
   is not blocked, so `deriveSections` adds a `sequence_exceeds_phrase` warning
   for any sequence, top-level or nested, that is longer, and the dance can
@@ -340,7 +344,12 @@ event again. It is not shown anywhere, and share files drop it. A calendar
 import also sets `startMinute` and `endMinute` from a timed event (#2423): a
 floating or `TZID` time as written, a UTC time at the device's local time, and
 the end only when the event lasts more than no time and less than a day. It
-never sets `lessonMinute` or `arrivalMinute`.
+never sets `lessonMinute` or `arrivalMinute`. Beside the key,
+the import keeps `calendarEventFingerprint` and `calendarWrittenAt` (#2354), to
+tell what changed upstream and whether the caller has touched the draft since,
+and `calendarFlag` (`cancelled`/`missing`), a label shown on the Programs list
+and the summary. The import never edits a program without the caller's tick
+and never deletes one.
 
 Duplicate-program = deep copy of slots, as a Draft with performed marks, pay,
 event date and calendar event key cleared (a copy is for a different event;

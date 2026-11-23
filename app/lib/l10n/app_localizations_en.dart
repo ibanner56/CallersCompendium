@@ -5209,7 +5209,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String danceEditorSequenceOverPhraseTimed(String length, String limit) {
-    return 'This sequence is $length, longer than one phrase ($limit).';
+    return 'This sequence is $length, longer than its phrase ($limit).';
   }
 
   @override
@@ -9232,7 +9232,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String validationSequenceExceedsPhrase(int position, int actual, int limit) {
-    return 'A sequence in figure $position is $actual beats, longer than one phrase ($limit beats).';
+    return 'A sequence in figure $position is $actual beats, longer than its phrase ($limit beats).';
   }
 
   @override
@@ -9255,7 +9255,7 @@ class AppLocalizationsEn extends AppLocalizations {
     String actual,
     String limit,
   ) {
-    return 'A sequence in figure $position is $actual, longer than one phrase ($limit).';
+    return 'A sequence in figure $position is $actual, longer than its phrase ($limit).';
   }
 
   @override
@@ -9907,12 +9907,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String danceEditorSequenceOverPhrase(int beats, int limit) {
-    return 'This sequence is $beats beats, longer than one phrase ($limit beats).';
+    return 'This sequence is $beats beats, longer than its phrase ($limit beats).';
   }
 
   @override
   String danceEditorSequencePhraseFull(int limit) {
-    return 'These figures fill one phrase ($limit beats).';
+    return 'These figures fill their phrase ($limit beats).';
   }
 
   @override
@@ -13882,4 +13882,76 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get importCsvNoRows =>
       'This file has no rows of dances, only the column names.';
+
+  @override
+  String calendarImportUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programs updated from your calendar.',
+      one: '1 program updated from your calendar.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportReviewed =>
+      'Calendar checked. Nothing was added or changed.';
+
+  @override
+  String calendarChangeDate(String before, String after) {
+    return 'Date: $before → $after';
+  }
+
+  @override
+  String calendarChangeTitle(String before, String after) {
+    return 'Title: $before → $after';
+  }
+
+  @override
+  String calendarChangeTime(String before, String after) {
+    return 'Time: $before → $after';
+  }
+
+  @override
+  String calendarChangeVenue(String before, String after) {
+    return 'Venue: $before → $after';
+  }
+
+  @override
+  String get calendarImportUpdatedHeader => 'Updated in your calendar';
+
+  @override
+  String get calendarImportChangedHeader => 'Changed in your calendar';
+
+  @override
+  String get calendarImportChangedBody =>
+      'You\'ve worked on these programs, so nothing changes unless you tick it.';
+
+  @override
+  String get calendarImportFlaggedHeader =>
+      'Canceled or gone from your calendar';
+
+  @override
+  String get calendarImportFlaggedBody =>
+      'These programs are kept as they are and labeled. Archive or delete them yourself if you no longer need them.';
+
+  @override
+  String get calendarFlagCancelled => 'Canceled in your calendar';
+
+  @override
+  String get calendarFlagMissing => 'No longer in your calendar';
+
+  @override
+  String get calendarFlagOther => 'Flagged by your calendar';
+
+  @override
+  String get calendarFlagFieldLabel => 'Calendar flag';
+
+  @override
+  String get calendarClearFlag => 'Clear calendar flag';
+
+  @override
+  String get calendarClearFlagError =>
+      'Couldn\'t clear the calendar flag. Try again.';
 }

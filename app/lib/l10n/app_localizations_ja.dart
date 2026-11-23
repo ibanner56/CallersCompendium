@@ -5007,7 +5007,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String danceEditorSequenceOverPhraseTimed(String length, String limit) {
-    return 'このシーケンスは$lengthで、1フレーズ（$limit）より長くなっています。';
+    return 'このシーケンスは$lengthで、始まるフレーズ（$limit）より長くなっています。';
   }
 
   @override
@@ -8899,7 +8899,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String validationSequenceExceedsPhrase(int position, int actual, int limit) {
-    return 'フィギュア$positionのシーケンスは$actual拍で、1フレーズ（$limit拍）より長くなっています。';
+    return 'フィギュア$positionのシーケンスは$actual拍で、始まるフレーズ（$limit拍）より長くなっています。';
   }
 
   @override
@@ -8922,7 +8922,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String actual,
     String limit,
   ) {
-    return 'フィギュア$positionのシーケンスは$actualで、1フレーズ（$limit）より長くなっています。';
+    return 'フィギュア$positionのシーケンスは$actualで、始まるフレーズ（$limit）より長くなっています。';
   }
 
   @override
@@ -9555,12 +9555,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String danceEditorSequenceOverPhrase(int beats, int limit) {
-    return 'このシーケンスは$beats拍で、1フレーズ（$limit拍）より長くなっています。';
+    return 'このシーケンスは$beats拍で、始まるフレーズ（$limit拍）より長くなっています。';
   }
 
   @override
   String danceEditorSequencePhraseFull(int limit) {
-    return 'これらのフィギュアで1フレーズ（$limit拍）が埋まっています。';
+    return 'これらのフィギュアで、始まるフレーズ（$limit拍）が埋まっています。';
   }
 
   @override
@@ -13395,4 +13395,72 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importCsvNoRows => 'このファイルには列名だけで、ダンスの行がありません。';
+
+  @override
+  String calendarImportUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'カレンダーからプログラムを$count件更新しました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportReviewed => 'カレンダーを確認しました。追加や変更はありません。';
+
+  @override
+  String calendarChangeDate(String before, String after) {
+    return '日付: $before → $after';
+  }
+
+  @override
+  String calendarChangeTitle(String before, String after) {
+    return 'タイトル: $before → $after';
+  }
+
+  @override
+  String calendarChangeTime(String before, String after) {
+    return '時刻: $before → $after';
+  }
+
+  @override
+  String calendarChangeVenue(String before, String after) {
+    return '会場: $before → $after';
+  }
+
+  @override
+  String get calendarImportUpdatedHeader => 'カレンダーで更新された予定';
+
+  @override
+  String get calendarImportChangedHeader => 'カレンダーで変更された予定';
+
+  @override
+  String get calendarImportChangedBody =>
+      'これらのプログラムは編集済みのため、チェックを入れない限り何も変わりません。';
+
+  @override
+  String get calendarImportFlaggedHeader => 'カレンダーでキャンセルされた、または削除された予定';
+
+  @override
+  String get calendarImportFlaggedBody =>
+      'これらのプログラムはそのまま残り、ラベルが付きます。不要になったら自分でアーカイブまたは削除してください。';
+
+  @override
+  String get calendarFlagCancelled => 'カレンダーでキャンセル済み';
+
+  @override
+  String get calendarFlagMissing => 'カレンダーにもうありません';
+
+  @override
+  String get calendarFlagOther => 'カレンダーによるフラグ';
+
+  @override
+  String get calendarFlagFieldLabel => 'カレンダーのフラグ';
+
+  @override
+  String get calendarClearFlag => 'カレンダーのフラグを消す';
+
+  @override
+  String get calendarClearFlagError => 'カレンダーのフラグを消せませんでした。もう一度お試しください。';
 }

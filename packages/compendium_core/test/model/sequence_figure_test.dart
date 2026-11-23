@@ -290,11 +290,90 @@ void main() {
       expect(issues.where((i) => i.code == 'sequence_exceeds_phrase'), isEmpty);
     });
 
-    test('an uneven structure allows its longest phrase', () {
+    test('an uneven structure measures a sequence by the phrase it sits in '
+        '(23 November 2026)', () {
+      // Two phrases of 16 beats, then two of 24.
       final structure = PhraseStructure.parse('2*8*2 + 2*12*2');
       expect(structure.beatsPerPhrase, isNull);
-      expect(structure.longestPhraseBeats, 24);
-      expect(sequenceExceedsPhrase(balanceAndSwing, structure), isFalse);
+      final twenty = Figure.sequence(
+        figures: [balance(beats: 8), swing(beats: 12)],
+        beats: 20,
+      );
+      expect(
+        sequenceExceedsPhrase(balanceAndSwing, structure, startBeat: 0),
+        isFalse,
+      );
+      expect(sequenceExceedsPhrase(twenty, structure, startBeat: 0), isTrue);
+      // Halfway through the second 16-beat phrase: still that phrase.
+      expect(sequenceExceedsPhrase(twenty, structure, startBeat: 24), isTrue);
+      expect(sequenceExceedsPhrase(twenty, structure, startBeat: 32), isFalse);
+      // Past the end, the structure plays again from its first phrase.
+      expect(
+        sequenceExceedsPhrase(twenty, structure, startBeat: 80 + 4),
+        isTrue,
+      );
+    });
+
+    test('a sequence longer than the short phrase it sits in is flagged, '
+        'against that phrase', () {
+      // A1 and A2 are 8 beats each, B is 16.
+      final structure = PhraseStructure.parse('2*4*2 + 1*8*2');
+      final twelve = Figure.sequence(
+        figures: [balance(beats: 4), swing(beats: 8)],
+        beats: 12,
+      );
+      final inA = <ValidationIssue>[];
+      deriveSections(
+        [twelve, swing(beats: 4), swing(beats: 16)],
+        structure,
+        issues: inA,
+      );
+      expect(inA.singleWhere((i) => i.code == 'sequence_exceeds_phrase').data, {
+        'position': 1,
+        'actual': 12,
+        'limit': 8,
+        'startBeat': 0,
+        'limitStart': 0,
+      });
+      final inB = <ValidationIssue>[];
+      deriveSections(
+        [swing(beats: 8), swing(beats: 8), twelve, swing(beats: 4)],
+        structure,
+        issues: inB,
+      );
+      expect(inB.where((i) => i.code == 'sequence_exceeds_phrase'), isEmpty);
+    });
+
+    test('a sequence may start partway through its phrase and run past its '
+        'line, as long as it is no longer than the phrase', () {
+      final issues = <ValidationIssue>[];
+      deriveSections(
+        [swing(beats: 8), balanceAndSwing, swing(beats: 8)],
+        PhraseStructure.standard,
+        issues: issues,
+      );
+      expect(issues.where((i) => i.code == 'sequence_exceeds_phrase'), isEmpty);
+    });
+
+    test('a nested sequence is measured by the phrase its own start is in', () {
+      // A1 and A2 are 8 beats each, B is 16. The meanwhile starts at 16, in
+      // B, so a 12-beat sequence inside it fits.
+      final structure = PhraseStructure.parse('2*4*2 + 1*8*2');
+      final twelve = Figure.sequence(
+        figures: [balance(beats: 4), swing(beats: 8)],
+        beats: 12,
+      );
+      final issues = <ValidationIssue>[];
+      deriveSections(
+        [
+          swing(beats: 16),
+          Figure.meanwhile(figures: [twelve, swing(beats: 12)], beats: 12),
+          swing(beats: 4),
+        ],
+        structure,
+        issues: issues,
+      );
+      expect(issues.where((i) => i.code == 'sequence_exceeds_phrase'), isEmpty);
     });
   });
 

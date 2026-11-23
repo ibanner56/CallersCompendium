@@ -5246,7 +5246,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String danceEditorSequenceOverPhraseTimed(String length, String limit) {
-    return 'Denne sekvens varer $length, længere end én frase ($limit).';
+    return 'Denne sekvens varer $length, længere end frasen, den starter i ($limit).';
   }
 
   @override
@@ -9269,7 +9269,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String validationSequenceExceedsPhrase(int position, int actual, int limit) {
-    return 'En sekvens i figur $position er $actual slag, længere end én frase ($limit slag).';
+    return 'En sekvens i figur $position er $actual slag, længere end frasen, den starter i ($limit slag).';
   }
 
   @override
@@ -9292,7 +9292,7 @@ class AppLocalizationsDa extends AppLocalizations {
     String actual,
     String limit,
   ) {
-    return 'En sekvens i figur $position varer $actual, længere end én frase ($limit).';
+    return 'En sekvens i figur $position varer $actual, længere end frasen, den starter i ($limit).';
   }
 
   @override
@@ -9948,12 +9948,12 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String danceEditorSequenceOverPhrase(int beats, int limit) {
-    return 'Denne sekvens er $beats slag, længere end én frase ($limit slag).';
+    return 'Denne sekvens er $beats slag, længere end frasen, den starter i ($limit slag).';
   }
 
   @override
   String danceEditorSequencePhraseFull(int limit) {
-    return 'Disse figurer fylder én frase ($limit slag).';
+    return 'Disse figurer fylder frasen, de starter i ($limit slag).';
   }
 
   @override
@@ -13937,4 +13937,75 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get importCsvNoRows =>
       'Denne fil har ingen rækker med danse, kun kolonnenavnene.';
+
+  @override
+  String calendarImportUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programmer opdateret fra din kalender.',
+      one: '1 program opdateret fra din kalender.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportReviewed =>
+      'Kalenderen er tjekket. Intet blev tilføjet eller ændret.';
+
+  @override
+  String calendarChangeDate(String before, String after) {
+    return 'Dato: $before → $after';
+  }
+
+  @override
+  String calendarChangeTitle(String before, String after) {
+    return 'Titel: $before → $after';
+  }
+
+  @override
+  String calendarChangeTime(String before, String after) {
+    return 'Tid: $before → $after';
+  }
+
+  @override
+  String calendarChangeVenue(String before, String after) {
+    return 'Spillested: $before → $after';
+  }
+
+  @override
+  String get calendarImportUpdatedHeader => 'Opdateret i din kalender';
+
+  @override
+  String get calendarImportChangedHeader => 'Ændret i din kalender';
+
+  @override
+  String get calendarImportChangedBody =>
+      'Du har arbejdet på disse programmer, så intet ændres, medmindre du sætter flueben.';
+
+  @override
+  String get calendarImportFlaggedHeader => 'Aflyst eller væk fra din kalender';
+
+  @override
+  String get calendarImportFlaggedBody =>
+      'Disse programmer forbliver, som de er, og bliver markeret. Arkivér eller slet dem selv, hvis du ikke længere har brug for dem.';
+
+  @override
+  String get calendarFlagCancelled => 'Aflyst i din kalender';
+
+  @override
+  String get calendarFlagMissing => 'Ikke længere i din kalender';
+
+  @override
+  String get calendarFlagOther => 'Markeret af din kalender';
+
+  @override
+  String get calendarFlagFieldLabel => 'Kalendermarkering';
+
+  @override
+  String get calendarClearFlag => 'Fjern kalendermarkering';
+
+  @override
+  String get calendarClearFlagError =>
+      'Kunne ikke fjerne kalendermarkeringen. Prøv igen.';
 }

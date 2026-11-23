@@ -1,0 +1,9 @@
+{
+  "id": "replace-leaves-out-current-dance",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Replace… no longer lists the dance the slot already shows, since picking it would change nothing. A second Replace… in the same dialog leaves out your earlier pick and offers the saved dance again."
+    ]
+  }
+}
