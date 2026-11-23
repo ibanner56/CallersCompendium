@@ -349,6 +349,8 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     String stored(String text) => canonicalizeGlossaryText(text, dialect);
     return _renderer.userFigureWordingVocabulary(
       UserFigureDefinition(
+        // The groups a condition may test are the form's own (#2294).
+        form: _form,
         template: '{$userFigureMoveSlot}',
         defaultBeats: 0,
         params: [
@@ -1651,6 +1653,7 @@ class _CompoundEditorScreenState extends State<CompoundEditorScreen> {
     // wrong with it is said under its row ([_badNameShown]).
     final figure = _figureNow((text) => text);
     final slots = UserFigureDefinition(
+      form: _form,
       template: figure.template,
       defaultBeats: figure.defaultBeats,
       params: [
