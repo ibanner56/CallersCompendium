@@ -479,6 +479,31 @@ void main() {
       expect(_inSwap(find.textContaining('hey')), findsWidgets);
       expect(_tile('nohey'), findsNothing);
     });
+
+    testWidgets('after More filters, Not already in tonight\'s program changes '
+        'only the dances left out, keeping the panel edits', (tester) async {
+      await _pump(tester);
+      await _openAdjust(tester);
+      await _tap(tester, find.byKey(const ValueKey('adjust-swap-current')));
+      await _tap(
+        tester,
+        _inSwap(find.byKey(const ValueKey('swap-more-filters'))),
+      );
+      final formation = _inSwap(
+        find.byKey(const ValueKey('formation-becketCw')),
+      );
+      await _tap(tester, formation);
+      expect(_tile('improper'), findsOneWidget);
+      expect(_tile('d4'), findsNothing);
+
+      await _tap(
+        tester,
+        _inSwap(find.byKey(const ValueKey('swap-keep-not-in-program'))),
+      );
+      expect(_tile('d4'), findsOneWidget);
+      expect(tester.widget<FilterChip>(formation).selected, isFalse);
+      expect(_tile('improper'), findsOneWidget, reason: 'the edit is kept');
+    });
   });
 
   group('picking a replacement', () {

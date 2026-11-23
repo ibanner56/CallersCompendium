@@ -99,7 +99,9 @@ class _PerformSwapSheetState extends State<PerformSwapSheet> {
   void _update(SwapKeepChoices next) {
     setState(() {
       _choices = next;
-      _query = swapKeepPanelState(widget.seed, next);
+      // After More filters the panels hold the query, with the user's edits:
+      // a Keep change then touches only the dances left out by id.
+      if (!_moreFilters) _query = swapKeepPanelState(widget.seed, next);
     });
   }
 
