@@ -982,10 +982,38 @@ List<OperationInvocation> _parseFigures(Object? raw) {
       const DanceParseError('missing figure list', path: 'figures'),
     );
   }
-  return [
+  return _pairHallRoundTrips([
     for (var index = 0; index < raw.length; index++)
       _parseFigure(raw[index], index),
-  ];
+  ]);
+}
+
+/// [figures] with each lead out that is immediately followed by its lead back
+/// danced as one round trip (`HallFigure.pairedWith`; user-ruled 2026-11-23).
+///
+/// Only adjacent top-level figures pair, because the ruling covers a lead back
+/// that *immediately* follows. Each keeps its own line and progression flag.
+List<OperationInvocation> _pairHallRoundTrips(
+  List<OperationInvocation> figures,
+) {
+  final paired = [...figures];
+  for (var index = 0; index + 1 < paired.length; index++) {
+    final out = paired[index].operation;
+    final back = paired[index + 1].operation;
+    if (!HallFigure.areRoundTrip(out, back)) continue;
+    out as HallFigure;
+    back as HallFigure;
+    paired[index] = OperationInvocation(
+      out.pairedWith(back),
+      progression: paired[index].progression,
+    );
+    paired[index + 1] = OperationInvocation(
+      back.asReturnLeg,
+      progression: paired[index + 1].progression,
+    );
+    index++;
+  }
+  return paired;
 }
 
 OperationInvocation _parseFigure(Object? raw, int index) =>
