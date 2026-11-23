@@ -902,6 +902,12 @@ abstract class AppLocalizations {
   /// **'Your default figures use it too, and switch the same way.'**
   String get userFigureSwitchConfirmDefaults;
 
+  /// Added to the dialog confirming a switch to the app's figure {name} (#2294) when the user's figure is for English country dance, whose groups of dancers (the ends, the top) contra's figures lack: a dance that uses one of them keeps the wording it has instead of switching.
+  ///
+  /// In en, this message translates to:
+  /// **'Any use of a group of dancers that {name} doesn\'t have keeps its wording instead.'**
+  String userFigureSwitchConfirmKeepsWording(String name);
+
   /// Added to the dialog confirming a switch to the app's figure {name} (#1023) when the user has shorthands for their figure.
   ///
   /// In en, this message translates to:
@@ -12220,6 +12226,12 @@ abstract class AppLocalizations {
   /// **'This dance counts in bars but states no meter, so each bar was counted as 2 beats. Check its counts.'**
   String get importIssueBarsMeterUnstated;
 
+  /// Import note: an English dance's figure lines count in bars ("1-4 partners set"), but its music names meters of different bar lengths ("3/4 and 6/8"), so bars were counted as 2 beats each.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance counts in bars but names meters of different bar lengths, so each bar was counted as 2 beats. Check its counts.'**
+  String get importIssueBarsMeterMixed;
+
   /// Import note: a dance-type string wasn't recognized; the dance was imported as a contra with the original value kept in the notes.
   ///
   /// In en, this message translates to:
@@ -13018,6 +13030,66 @@ abstract class AppLocalizations {
   /// **'Remove phrase {name}'**
   String danceEditorPhraseRemove(String name);
 
+  /// Help under the heading of the phrase-structure rows in a contra or square dance's editor. Each row is one part of the phrase structure text. The text field below the rows shows the same structure. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Each row is a run of equal phrases: how many there are, the bars in each, and the beats in a bar. The phrase structure below changes with the rows.'**
+  String get danceEditorPhraseRowsHelp;
+
+  /// Label of the number field for how many equal phrases one row of a contra or square dance's phrase structure has. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Phrases'**
+  String get danceEditorPhraseRowsPhrasesLabel;
+
+  /// Label of the number field for how many bars of music each phrase of one row of a contra or square dance's phrase structure has. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Bars per phrase'**
+  String get danceEditorPhraseRowsBarsLabel;
+
+  /// Label of the number field for how many beats are in a bar in one row of a contra or square dance's phrase structure, such as 2 for a reel or 3 for a slip jig. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Beats per bar'**
+  String get danceEditorPhraseRowsBeatsLabel;
+
+  /// Short error under a number field of the phrase-structure rows in a contra or square dance when it is empty, zero or too large: the numbers it may hold. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'1 to {max}'**
+  String danceEditorPhraseRowsRange(int max);
+
+  /// Button that adds a row to the phrase-structure rows of a contra or square dance. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Add row'**
+  String get danceEditorPhraseRowsAdd;
+
+  /// Tooltip of the button that removes one row from the phrase-structure rows of a contra or square dance. The number counts the rows from 1. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove row {number}'**
+  String danceEditorPhraseRowsRemove(int number);
+
+  /// Error under the phrase-structure rows of a contra or square dance when a number is empty, zero or above {max}, or the structure is too long. The phrase structure is kept as it was until it is fixed, and anything that saves it saves that kept structure. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Give each field a whole number from 1 to {max}, in a structure that is not too long. Until then the last valid phrase structure is kept.'**
+  String danceEditorPhraseRowsInvalid(int max);
+
+  /// One line under the phrase-structure rows of a contra or square dance: the labels the phrases get, such as A1 A2 B1 B2 (a long list ends with an ellipsis), then the beats in all. The labels are music-phrase labels and stay as written. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'{labels} · {beats, plural, =1{1 beat} other{{beats} beats}}'**
+  String danceEditorPhraseRowsSummary(String labels, int beats);
+
+  /// Note under the phrase-structure rows of a contra or square dance while the phrase structure text below them is not valid, or holds phrase names that only an English dance keeps. The rows are disabled until it is. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'These rows show the last valid phrase structure. Fix the phrase structure below to edit them again.'**
+  String get danceEditorPhraseRowsDisabledNote;
+
   /// Section heading for the editable figure list in the dance editor.
   ///
   /// In en, this message translates to:
@@ -13658,6 +13730,12 @@ abstract class AppLocalizations {
     String figureForm,
     String pickerForm,
   );
+
+  /// Editor warning on a square dance for a figure whose beats run past the end of a phrase, so that phrase's calls do not fill it exactly (traditional squares are phrased call by call). {position} is the figure's number in the dance. {label} is the phrase's name from the dance's phrase structure, such as 'A1'.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure {position} runs past the end of {label}. In a square dance, the calls of each phrase should fill it exactly.'**
+  String validationFigureCrossesPhrase(int position, String label);
 
   /// Dance-editor warning (AUTH-2): the figure row at {position} (1-based, counting the rows of the figure list) is not complete, such as a group (meanwhile, modifier or sequence) with fewer than two of its figures filled in, a modifier group with no Core, or a row with no move that holds a walkthrough step, so saving the dance leaves it out. 'Save' is the editor's Save button (commonSave).
   ///
@@ -19402,6 +19480,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Read the calendar and choose events to add as draft programs.'**
   String get calendarPullNowSubtitle;
+
+  /// Collection selection-mode overflow menu item that exports the selected dances as a CSV spreadsheet file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export as CSV'**
+  String get collectionExportCsv;
+
+  /// Title of the Settings > General > Backup & restore row that exports every dance as a CSV spreadsheet file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export dances as a spreadsheet'**
+  String get settingsExportDancesCsvTitle;
+
+  /// Subtitle of the Settings row that exports every dance as a CSV spreadsheet. 'Sharing rules' are what the app leaves out of shared files (for example an author's email).
+  ///
+  /// In en, this message translates to:
+  /// **'Every dance in your collection, as a CSV file for Excel, Numbers or Google Sheets. It follows the sharing rules, plus your star ratings. It is not a backup and can\'t be restored.'**
+  String get settingsExportDancesCsvSubtitle;
+
+  /// Button label on the Settings row that exports every dance as a CSV spreadsheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get settingsExportDancesCsvAction;
+
+  /// Title of the dialog that asks how to deliver an exported CSV spreadsheet file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export a spreadsheet (CSV)'**
+  String get exportCsvDialogTitle;
+
+  /// Message of the dialog that asks how to deliver an exported CSV spreadsheet file.
+  ///
+  /// In en, this message translates to:
+  /// **'Save the file, or share it with another app. It opens in Excel, Numbers, LibreOffice or Google Sheets.'**
+  String get exportCsvDialogMessage;
+
+  /// Snackbar confirming a CSV spreadsheet was saved when the platform does not report a file name.
+  ///
+  /// In en, this message translates to:
+  /// **'Spreadsheet saved.'**
+  String get exportCsvSavedGeneric;
+
+  /// Snackbar when saving an exported CSV spreadsheet fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save this spreadsheet. Try again.'**
+  String get exportCsvSaveError;
+
+  /// Snackbar when sharing an exported CSV spreadsheet fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t share this spreadsheet. Try again.'**
+  String get exportCsvShareError;
+
+  /// Snackbar when reading the data for, or building, a CSV spreadsheet export fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t make this spreadsheet. Try again.'**
+  String get exportCsvError;
+
+  /// Start of the file name of an exported dances CSV spreadsheet, before the date (for example dances_2026-11-23.csv). Lower case; a single word if possible.
+  ///
+  /// In en, this message translates to:
+  /// **'dances'**
+  String get csvDancesFileStem;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance title.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get csvColumnTitle;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance's authors (choreographers).
+  ///
+  /// In en, this message translates to:
+  /// **'Authors'**
+  String get csvColumnAuthors;
+
+  /// Column heading in an exported dances CSV spreadsheet: the people who interpreted (reconstructed) a historical dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted by'**
+  String get csvColumnInterpreters;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance type, such as contra or English country. Matches the dance editor's Type field.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get csvColumnForm;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance formation.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation'**
+  String get csvColumnFormation;
+
+  /// Column heading in an exported dances CSV spreadsheet: how the dance progresses (single, double, and so on).
+  ///
+  /// In en, this message translates to:
+  /// **'Progression'**
+  String get csvColumnProgression;
+
+  /// Column heading in an exported dances CSV spreadsheet: the difficulty level.
+  ///
+  /// In en, this message translates to:
+  /// **'Level'**
+  String get csvColumnLevel;
+
+  /// Column heading in an exported dances CSV spreadsheet: whether the dance spans the difficulty scale (Yes or No).
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed level'**
+  String get csvColumnMixedLevel;
+
+  /// Column heading in an exported dances CSV spreadsheet: whether dancers change partners each time through (Yes or No).
+  ///
+  /// In en, this message translates to:
+  /// **'Mixer'**
+  String get csvColumnMixer;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance's status, such as active or retired.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get csvColumnStatus;
+
+  /// Column heading in an exported dances CSV spreadsheet: the star rating, 1 to 5, empty when unrated.
+  ///
+  /// In en, this message translates to:
+  /// **'Rating'**
+  String get csvColumnRating;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance's tags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get csvColumnTags;
+
+  /// Column heading in an exported dances CSV spreadsheet: suggested tunes.
+  ///
+  /// In en, this message translates to:
+  /// **'Tunes'**
+  String get csvColumnTunes;
+
+  /// Column heading in an exported dances CSV spreadsheet: the musical meter, such as 6/8.
+  ///
+  /// In en, this message translates to:
+  /// **'Meter'**
+  String get csvColumnMeter;
+
+  /// Column heading in an exported dances CSV spreadsheet: the musical key.
+  ///
+  /// In en, this message translates to:
+  /// **'Key'**
+  String get csvColumnKey;
+
+  /// Column heading in an exported dances CSV spreadsheet: books or collections the dance is published in, with page and number.
+  ///
+  /// In en, this message translates to:
+  /// **'Published sources'**
+  String get csvColumnSources;
+
+  /// Column heading in an exported dances CSV spreadsheet: the one-line reason to call the dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Hook'**
+  String get csvColumnHook;
+
+  /// Column heading in an exported dances CSV spreadsheet: the caller's notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Calling notes'**
+  String get csvColumnCallingNotes;
+
+  /// Column heading in an exported dances CSV spreadsheet: the step-by-step walkthrough.
+  ///
+  /// In en, this message translates to:
+  /// **'Walkthrough'**
+  String get csvColumnWalkthrough;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance's figures, one per line.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures'**
+  String get csvColumnFigures;
+
+  /// Column heading in an exported dances CSV spreadsheet: when the dance was composed, as a year or a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Composed'**
+  String get csvColumnComposed;
+
+  /// Column heading in an exported dances CSV spreadsheet: when a historical dance was interpreted (reconstructed), as a year or a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted in'**
+  String get csvColumnInterpreted;
+
+  /// Column heading in an exported dances CSV spreadsheet: where an English country dance appears in the Barnes books.
+  ///
+  /// In en, this message translates to:
+  /// **'Barnes reference'**
+  String get csvColumnBarnes;
 }
 
 class _AppLocalizationsDelegate

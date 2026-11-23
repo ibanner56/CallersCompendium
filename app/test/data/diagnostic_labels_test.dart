@@ -32,6 +32,7 @@ ValidationIssue _validationIssue(String code) => ValidationIssue(
       'danceForm': 'contra',
       'pickerForm': 'contra',
     },
+    figureCrossesPhraseCode => {'position': 3, 'label': 'A2'},
     'empty_substitution' => {'source': 'jays'},
     'dialect_collision' => {
       'source': 'jays',
@@ -106,6 +107,14 @@ void main() {
         ),
         'This dance is Square, but 1 figure is from English (ECD). They are '
         'kept as they are, but the figure picker offers only Square figures.',
+      );
+    });
+
+    test('a figure across a phrase names the figure and the phrase', () {
+      expect(
+        validationIssueMessage(l10n, _validationIssue(figureCrossesPhraseCode)),
+        'Figure 3 runs past the end of A2. In a square dance, the calls of '
+        'each phrase should fill it exactly.',
       );
     });
 
@@ -273,6 +282,7 @@ void main() {
       'cc_date_reduced_precision',
       'cc_missing_title',
       'cc_new_level',
+      'cc_bars_meter_mixed',
       'cc_bars_meter_unstated',
       'cc_inactive_level',
       'cc_program_deleted_dance',

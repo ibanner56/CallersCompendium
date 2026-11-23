@@ -363,7 +363,10 @@ URLs. (Every settings key is classified in
   contra's, since a move ID with no form prefix is a contra move in a dance
   of any form (ADR-006 §5.1). Until a form ships its own, it is contra's.
 - Beats ≥ 0; per-phrase overflow is a **warning**, not an error (real dances
-  bend phrasing; choreography validation is a later milestone).
+  bend phrasing; choreography validation is a later milestone). A square
+  dance also warns of each figure that runs past the end of a phrase
+  (`figure_crosses_phrase`), since traditional squares are phrased call by
+  call (ADR-007 §5.3); contra and English dances do not.
 - ProgramSlot requires at least one of `danceId` or `text` to be non-null;
   both may be set simultaneously (`text` is a per-slot caller note when a
   dance is attached, or the full slot content for free-text slots like breaks).

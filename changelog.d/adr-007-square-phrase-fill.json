@@ -1,0 +1,14 @@
+{
+  "id": "adr-007-square-phrase-fill",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "In a square dance, the editor and the dance's page now warn when a figure runs past the end of a phrase, since a traditional square's calls should fill each phrase exactly. Contra and English dances are not checked this way."
+    ]
+  },
+  "core": {
+    "added": [
+      "deriveSections takes checkPhraseFill, which adds a figure_crosses_phrase warning (figureCrossesPhraseCode) for each top-level figure that runs past the end of a phrase; Dance.validate turns it on for square dances (ADR-007 §5.3)."
+    ]
+  }
+}

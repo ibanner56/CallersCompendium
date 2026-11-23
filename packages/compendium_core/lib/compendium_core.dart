@@ -11,6 +11,7 @@ export 'src/analysis/program_matrix.dart';
 export 'src/analysis/suggestion_settings.dart';
 export 'src/analysis/suggestions.dart';
 export 'src/analysis/suggestion_worker.dart';
+export 'src/csv/csv_writer.dart';
 export 'src/diagnostics/crash_log_record.dart';
 export 'src/diagnostics/crash_redactor.dart';
 export 'src/dialect/author_role_terms.dart';

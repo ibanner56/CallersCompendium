@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:ui' show Rect;
 
+import 'package:compendium_core/compendium_core.dart'
+    show csvExtension, csvMimeType;
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
@@ -70,6 +72,15 @@ XTypeGroup bundleSaveTypeGroup(String extension, {bool? isLinux}) => XTypeGroup(
   mimeTypes: const ['application/json'],
 );
 
+/// The file-type filter for a CSV spreadsheet export (#2332). Like
+/// [jsonBundleTypeGroup], its label is the format name and stays a literal.
+XTypeGroup csvTypeGroup({bool? isLinux}) => XTypeGroup(
+  label: 'CSV',
+  extensions: pickerExtensions([csvExtension], isLinux),
+  uniformTypeIdentifiers: const ['public.comma-separated-values-text'],
+  mimeTypes: const [csvMimeType],
+);
+
 /// Writes [json] to a path-safe [fileName] in the temporary directory, typed
 /// as [mimeType] for the share sheet.
 Future<XFile> writeBundleFile(
@@ -88,6 +99,12 @@ Future<XFile> writeBundleFile(
 /// Default [BundleFileWriter] used by export menus.
 Future<XFile> writeBundleTempFile(String json, String fileName) =>
     writeBundleFile(json, fileName);
+
+/// [BundleFileWriter] for a CSV export: the same staging as
+/// [writeBundleTempFile], typed as CSV so the share sheet offers spreadsheet
+/// apps.
+Future<XFile> writeCsvTempFile(String csv, String fileName) =>
+    writeBundleFile(csv, fileName, mimeType: csvMimeType);
 
 /// Saves a JSON export through a user-reachable native file destination.
 ///
