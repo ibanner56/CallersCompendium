@@ -709,7 +709,8 @@ nothing in it to lose.
   card show them on one line, such as *Meter: 6/8 · Key: G minor*.
 - **Barnes reference** — where the tune is printed in the Barnes books, book and
   page in one line, such as `BIII p. 92`, or `NiB` when it is not in them. It
-  sits under **Meter** and **Key**.
+  sits under **Meter** and **Key**. The dance's detail view shows it under
+  **Barnes books**, and its Perform card as *Barnes: BIII p. 92*.
 
 ### Notes
 

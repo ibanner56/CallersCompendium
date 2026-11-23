@@ -134,6 +134,8 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   marker; dialect applied. Toggle: canonical ⇄ dialect view. A `meanwhile`
   container (#590/#594) renders its concurrent sides joined by "while" on one
   row with a single shared beat count — never split, never double-counted.
+- Sections after the figures include tunes and, when set, the Barnes
+  reference ("Barnes books").
 - Side panel/tabs: calling notes, links (source/video/related), calling
   history (from every program the dance is in by default; only from programs
   with the slot marked performed when *Require "mark performed"* is on, and an
@@ -275,11 +277,12 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 - Full-screen card: current dance, huge type (user-set size/weight/spacing,
   no upper bound), 7:1 contrast themes (dark-stage default), wake-lock on.
   The header adds the composed year to the authors line, the interpreters and
-  interpreted year on their own line, and the dance's meter and key on one
-  labelled row when either is set. A `meanwhile` container (#590/#594) shows both concurrent sides on one
-  card row joined by "while", on their single shared beat span; the
-  screen-reader announcement reads the pair as one continuous "A while B"
-  phrase.
+  interpreted year on their own line, the dance's meter and key on one
+  labelled row when either is set, and its Barnes reference on a labelled row
+  of its own ("Barnes: BIII p. 92") when set. A `meanwhile` container
+  (#590/#594) shows both concurrent sides on one card row joined by "while",
+  on their single shared beat span; the screen-reader announcement reads the
+  pair as one continuous "A while B" phrase.
 - Full screen (PLAT-9): phones and tablets go immersive for the whole view.
   Desktop offers a toolbar toggle plus F11 (Ctrl-Cmd-F on macOS); Esc leaves
   full screen but never Perform. Ctrl/Cmd-W and mouse Back reach Perform's

@@ -93,6 +93,10 @@ String? interpretersWithYearLabel(
   };
 }
 
+/// The glyph for a dance's Barnes reference (where its tune is printed in the
+/// Barnes books). Always paired with the labelled reference text.
+const IconData barnesReferenceIcon = Icons.menu_book_outlined;
+
 /// The glyph for a dance's tune details (meter and key). Always paired with
 /// the labelled [meterAndKeyLabel] text, never shown alone.
 const IconData tuneDetailsIcon = Icons.music_note_outlined;
