@@ -12631,6 +12631,42 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String suggestionReasonBeatOverlapAfterDance(String move, String dance) {
+    return '$moveが直前の$danceと同じ拍';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapBeforeDance(String move, String dance) {
+    return '$moveが直後の$danceと同じ拍';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapAfterDance(String move, String dance) {
+    return '$moveが直前の$danceと同じフレーズ';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapBeforeDance(String move, String dance) {
+    return '$moveが直後の$danceと同じフレーズ';
+  }
+
+  @override
+  String suggestionReasonSameFormationAfterDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation（直前の$danceと同じ）';
+  }
+
+  @override
+  String suggestionReasonSameFormationBeforeDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation（直後の$danceと同じ）';
+  }
+
+  @override
   String get suggestionReasonAlreadyInProgram => 'すでにこのプログラムにあります';
 
   @override

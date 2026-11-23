@@ -13148,6 +13148,42 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String suggestionReasonBeatOverlapAfterDance(String move, String dance) {
+    return 'Samme slag til $move som i $dance lige før';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapBeforeDance(String move, String dance) {
+    return 'Samme slag til $move som i $dance lige efter';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapAfterDance(String move, String dance) {
+    return '$move i samme frase som i $dance lige før';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapBeforeDance(String move, String dance) {
+    return '$move i samme frase som i $dance lige efter';
+  }
+
+  @override
+  String suggestionReasonSameFormationAfterDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation ligesom $dance lige før';
+  }
+
+  @override
+  String suggestionReasonSameFormationBeforeDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation ligesom $dance lige efter';
+  }
+
+  @override
   String get suggestionReasonAlreadyInProgram => 'Allerede i dette program';
 
   @override

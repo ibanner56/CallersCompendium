@@ -13221,6 +13221,42 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String suggestionReasonBeatOverlapAfterDance(String move, String dance) {
+    return '$move op dezelfde tellen als $dance, vlak ervoor';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapBeforeDance(String move, String dance) {
+    return '$move op dezelfde tellen als $dance, vlak erna';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapAfterDance(String move, String dance) {
+    return '$move in dezelfde frase als $dance, vlak ervoor';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapBeforeDance(String move, String dance) {
+    return '$move in dezelfde frase als $dance, vlak erna';
+  }
+
+  @override
+  String suggestionReasonSameFormationAfterDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation, net als $dance vlak ervoor';
+  }
+
+  @override
+  String suggestionReasonSameFormationBeforeDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation, net als $dance vlak erna';
+  }
+
+  @override
   String get suggestionReasonAlreadyInProgram => 'Al in dit programma';
 
   @override

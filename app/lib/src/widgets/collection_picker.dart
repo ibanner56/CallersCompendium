@@ -28,6 +28,7 @@ import '../search/called_venue_choices.dart';
 import '../search/collection_data.dart';
 import '../search/collection_opening_sort.dart';
 import '../theme/app_spacing.dart';
+import '../utils/slot_dance_title.dart';
 import 'advanced_query_builder.dart';
 import 'by_phrase_panel.dart';
 import 'collection_search_controls.dart';
@@ -56,9 +57,11 @@ import 'search_panel_bar.dart';
 /// never written back to Settings.
 ///
 /// With Settings ▸ Experimental ▸ Suggestions on and a [programContext] that
-/// carries the program's slots, the Sort menu also offers **Suggested**
-/// (#2343): the current results, ranked off the UI thread for the end of the
-/// program, each with a reason line and a **Why?** action. The picker never
+/// carries a position, the Sort menu also offers **Suggested** (#2343): the
+/// current results, ranked off the UI thread for that position (the end of
+/// the program, the place an add before or after a slot lands, or the slot
+/// **Replace…** fills, #2344), each with a reason line and a **Why?**
+/// action. The picker never
 /// opens in it, and ranking only reorders: until it finishes the results show
 /// in the plain order, and a tap adds a dance either way.
 ///
@@ -178,9 +181,9 @@ class CollectionPicker extends StatefulWidget {
   final void Function(OnlineSearchResultRow result)? onViewOnlineDetails;
 
   /// The program this picker adds to (history-filters Q3), or null for a
-  /// host with none (Perform, a template, the builder's Replace…). Its id
-  /// keeps the program's own slots out of every calling-history filter here
-  /// (N1-6), and its slots, when set, make Suggested available.
+  /// host with none (Perform, a template). Its id keeps the program's own
+  /// slots out of every calling-history filter here (N1-6), and its position,
+  /// when set, makes Suggested available and is what Suggested ranks for.
   final PickerProgramContext? programContext;
 
   /// Ranks for Suggested. A test seam: when null, as in the app, the picker
@@ -272,11 +275,14 @@ class _CollectionPickerState extends State<CollectionPicker> {
   // Suggested (#2343). [_suggested] is the chosen order; [_sort] and
   // [_sortDir] stay the plain order underneath it, which the search runs in
   // and which shows until [_ranking] is ready. [_rankedFor] is the result
-  // list [_ranking] orders: a new search shows plain again until re-ranked.
+  // list [_ranking] orders and [_rankedAt] the position it ranks for: a new
+  // search, or a new position (#2344), shows plain again until re-ranked, so
+  // a ranking for one place never shows for another.
   bool _suggested = false;
   SuggestionRanking? _ranking;
   Map<String, RankedSuggestion> _rankById = const {};
   List<DanceListEntry>? _rankedFor;
+  SuggestionPosition? _rankedAt;
   bool _rankPending = false;
   // The last ranking failed: the plain order shows, with a notice.
   bool _rankFailed = false;
@@ -365,7 +371,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   /// Whether the Sort menu offers Suggested.
   bool get _suggestedAvailable =>
-      _suggestionsEnabled && widget.programContext?.slots != null;
+      _suggestionsEnabled && widget.programContext?.position != null;
 
   /// Back to the plain order, dropping any ranking in flight.
   void _leaveSuggested() {
@@ -373,6 +379,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     _ranking = null;
     _rankById = const {};
     _rankedFor = null;
+    _rankedAt = null;
     _rankPending = false;
     _rankFailed = false;
     _rankSeq++;
@@ -452,7 +459,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _runOnlineSearch();
     }
     if (oldWidget.programContext != widget.programContext && _suggested) {
-      if (widget.programContext?.slots == null) {
+      if (widget.programContext?.position == null) {
         setState(_leaveSuggested);
       } else if (!dataChanged && !searchInputsChanged) {
         // A data change re-runs the search above, which re-ranks.
@@ -651,12 +658,13 @@ class _CollectionPickerState extends State<CollectionPicker> {
     unawaited(_rank());
   }
 
-  /// Ranks the current results for the end of the program, off the UI
-  /// thread. A newer call, a new search or leaving Suggested drops it.
+  /// Ranks the current results for the context's position, off the UI
+  /// thread. A newer call, a new search, a new position or leaving Suggested
+  /// drops it.
   Future<void> _rank() async {
     final programContext = widget.programContext;
-    final slots = programContext?.slots;
-    if (!_suggested || programContext == null || slots == null) return;
+    final position = programContext?.position;
+    if (!_suggested || programContext == null || position == null) return;
     final seq = ++_rankSeq;
     final results = _results;
     final data = widget.data;
@@ -685,9 +693,14 @@ class _CollectionPickerState extends State<CollectionPicker> {
           widget.rankSuggestions ?? (_worker ??= SuggestionWorker()).rank;
       final ranking = await rank(
         SuggestionRequest(
-          slotsBefore: slots,
+          slotsBefore: position.slotsBefore,
+          slotsAfter: position.slotsAfter,
+          candidateIsAlternate: position.isAlternate,
           programDances: {
-            for (final id in slots.map((slot) => slot.danceId).nonNulls)
+            for (final id in [
+              ...position.slotsBefore,
+              ...position.slotsAfter,
+            ].map((slot) => slot.danceId).nonNulls)
               if (_latestDanceFor(id, data) case final dance?)
                 id: SuggestionCandidate.fromDance(dance),
           },
@@ -713,6 +726,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         _ranking = ranking;
         _rankById = {for (final r in ranking.order) r.danceId: r};
         _rankedFor = results;
+        _rankedAt = position;
         _rankPending = false;
         _rankFailed = false;
       });
@@ -731,26 +745,33 @@ class _CollectionPickerState extends State<CollectionPicker> {
         _ranking = null;
         _rankById = const {};
         _rankedFor = null;
+        _rankedAt = null;
         _rankPending = false;
         _rankFailed = true;
       });
     }
   }
 
+  /// Whether the ranking held is for exactly the results and the position
+  /// showing now.
+  bool get _rankingIsCurrent =>
+      _suggested &&
+      _ranking != null &&
+      identical(_rankedFor, _results) &&
+      _rankedAt == widget.programContext?.position;
+
   /// The results as shown: ranked when Suggested has a ranking for exactly
-  /// these results, else in the plain order.
+  /// these results at this position, else in the plain order.
   List<DanceListEntry> get _shownResults {
     final ranking = _ranking;
-    if (!_suggested || ranking == null || !identical(_rankedFor, _results)) {
-      return _results;
-    }
+    if (!_rankingIsCurrent || ranking == null) return _results;
     final byId = {for (final entry in _results) entry.dance.id: entry};
     return [for (final ranked in ranking.order) ?byId[ranked.danceId]];
   }
 
   /// [danceId]'s place in the ranking being shown, or null when none is.
   RankedSuggestion? _shownRankFor(String danceId) =>
-      _suggested && identical(_rankedFor, _results) ? _rankById[danceId] : null;
+      _rankingIsCurrent ? _rankById[danceId] : null;
 
   SuggestionReasonLabels _reasonLabels(BuildContext context) =>
       SuggestionReasonLabels.of(
@@ -760,6 +781,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
         matrixConfig: _matrixConfig,
         userFigures: _userFigures,
         venueLabel: widget.programContext?.venueLabel,
+        danceTitle: (id) {
+          final dance = _latestDanceFor(id, widget.data);
+          return dance == null
+              ? null
+              : slotDanceTitle(AppLocalizations.of(context), dance);
+        },
       );
 
   void _toggleSortDirection() {

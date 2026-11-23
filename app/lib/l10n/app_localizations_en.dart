@@ -13095,6 +13095,42 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String suggestionReasonBeatOverlapAfterDance(String move, String dance) {
+    return 'Same $move beats as $dance, after it';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapBeforeDance(String move, String dance) {
+    return 'Same $move beats as $dance, before it';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapAfterDance(String move, String dance) {
+    return '$move in the same phrase as $dance, after it';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapBeforeDance(String move, String dance) {
+    return '$move in the same phrase as $dance, before it';
+  }
+
+  @override
+  String suggestionReasonSameFormationAfterDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation, like $dance, after it';
+  }
+
+  @override
+  String suggestionReasonSameFormationBeforeDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation, like $dance, before it';
+  }
+
+  @override
   String get suggestionReasonAlreadyInProgram => 'Already in this program';
 
   @override

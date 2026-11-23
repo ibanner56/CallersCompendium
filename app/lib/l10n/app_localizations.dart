@@ -19247,6 +19247,48 @@ abstract class AppLocalizations {
   /// **'{move} in the same phrase as the next dance'**
   String suggestionReasonPhraseOverlapNext(String move);
 
+  /// Suggestion reason: a move lands on the same beats as in the named dance, which this one would follow (the matrix's collision rule). {move} is the matrix column's name, such as partner swing. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'Same {move} beats as {dance}, after it'**
+  String suggestionReasonBeatOverlapAfterDance(String move, String dance);
+
+  /// Suggestion reason: a move lands on the same beats as in the named dance, which this one would come before. {move} is the matrix column's name. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'Same {move} beats as {dance}, before it'**
+  String suggestionReasonBeatOverlapBeforeDance(String move, String dance);
+
+  /// Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the named dance, which this one would follow. {move} is the matrix column's name. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} in the same phrase as {dance}, after it'**
+  String suggestionReasonPhraseOverlapAfterDance(String move, String dance);
+
+  /// Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the named dance, which this one would come before. {move} is the matrix column's name. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} in the same phrase as {dance}, before it'**
+  String suggestionReasonPhraseOverlapBeforeDance(String move, String dance);
+
+  /// Suggestion reason: the dance is in the same formation as the named dance, which this one would follow. {formation} is the formation's name. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'{formation}, like {dance}, after it'**
+  String suggestionReasonSameFormationAfterDance(
+    String formation,
+    String dance,
+  );
+
+  /// Suggestion reason: the dance is in the same formation as the named dance, which this one would come before. {formation} is the formation's name. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'{formation}, like {dance}, before it'**
+  String suggestionReasonSameFormationBeforeDance(
+    String formation,
+    String dance,
+  );
+
   /// Suggestion reason: the dance is already in the program being built, so the Suggested order puts it last (it is not removed).
   ///
   /// In en, this message translates to:

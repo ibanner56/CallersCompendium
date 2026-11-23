@@ -3975,7 +3975,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                                   enrichment: _enrichment,
                                   addedDanceCounts: _pickerCounts.value,
                                   programContext: _pickerProgramContext(
-                                    atEnd: _insertion == null,
+                                    _addPosition(),
                                   ),
                                   onAddDance: _addDanceSlot,
                                   onDanceImported: _rememberImportedDance,
@@ -4433,12 +4433,24 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
-  /// The program, as the add-dance picker needs it (history-filters Q3,
-  /// #2343): its id, its venue as calling history keys it, and, when the
-  /// picker adds at the end ([atEnd]), its slots for Suggested. An insertion
-  /// before or after a slot passes no slots, so the picker does not offer
-  /// Suggested there (#2344).
-  PickerProgramContext _pickerProgramContext({required bool atEnd}) {
+  /// Where the next dance added lands, for Suggested (#2344): the place a
+  /// pending insertion lands ([Program.insertSlotAtGroupBoundary], the rule
+  /// [_addDanceSlot] adds with), or the end of the program.
+  SuggestionPosition _addPosition() {
+    final insertion = _insertion;
+    final index = _insertionIndex;
+    if (insertion == null || index == null) {
+      return SuggestionPosition.atEnd(List.unmodifiable(_slots));
+    }
+    return SuggestionPosition.inserting(_slots, index, after: insertion.after);
+  }
+
+  /// The program, as the builder's pickers need it (history-filters Q3,
+  /// #2343, #2344): its id, its venue as calling history keys it, and
+  /// [position], where the chosen dance will go, which Suggested ranks for:
+  /// the end, the place a pending add before or after a slot lands
+  /// ([_addPosition]), or the slot **Replace…** fills.
+  PickerProgramContext _pickerProgramContext(SuggestionPosition? position) {
     final typed = _venueController.text.trim();
     final venueId = _venueId;
     return PickerProgramContext(
@@ -4450,7 +4462,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       venueLabel: venueId != null
           ? (_linkedVenue?.displayName ?? (typed.isEmpty ? null : typed))
           : (typed.isEmpty ? null : typed),
-      slots: atEnd ? List.unmodifiable(_slots) : null,
+      position: position,
     );
   }
 
@@ -4545,8 +4557,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                             enrichment: _enrichment,
                             scrollController: scrollController,
                             addedDanceCounts: counts,
+                            // The sheet is modal: [insertion] is the pending
+                            // one, or null for adds at the end.
                             programContext: _pickerProgramContext(
-                              atEnd: insertion == null,
+                              _addPosition(),
                             ),
                             // Keep the sheet open so callers can add several
                             // dances, unless this sheet is for one insertion.
@@ -4613,12 +4627,24 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   ///
   /// Unlike [_openPickerSheet] this pops on the **first** tap: replacing a
   /// slot's dance is a single choice, not an open-ended add session.
-  Future<String?> _pickReplacementDance() async {
+  ///
+  /// Its picker ranks Suggested for [slot]'s place, with [slot] itself left
+  /// out ([SuggestionPosition.replacing], #2344): its current dance is not a
+  /// neighbour, and is not "already in this program" unless another slot
+  /// holds it. A slot no longer in the program (it cannot leave while the
+  /// modal dialog is open) gets no position, so no Suggested.
+  Future<String?> _pickReplacementDance(ProgramSlot slot) async {
     // The sheet route would hand focus back to a focused field on close.
     FocusManager.instance.primaryFocus?.unfocus();
     final data = _data;
     if (data == null) return null;
     final l10n = AppLocalizations.of(context);
+    final slotIndex = _slots.indexWhere((s) => s.id == slot.id);
+    final programContext = _pickerProgramContext(
+      slotIndex < 0
+          ? null
+          : SuggestionPosition.replacing(List.unmodifiable(_slots), slotIndex),
+    );
     final importing = ValueNotifier(false);
     final importOwners = <Object>{};
     var importingDisposed = false;
@@ -4684,6 +4710,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                             enrichment: _enrichment,
                             scrollController: scrollController,
                             addedDanceCounts: counts,
+                            programContext: programContext,
                             rowAction: PickerRowAction.replace,
                             enableOnlineSearch: true,
                             onDanceImported: _rememberImportedDance,

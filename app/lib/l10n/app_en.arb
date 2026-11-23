@@ -17739,6 +17739,78 @@
       }
     }
   },
+  "suggestionReasonBeatOverlapAfterDance": "Same {move} beats as {dance}, after it",
+  "@suggestionReasonBeatOverlapAfterDance": {
+    "description": "Suggestion reason: a move lands on the same beats as in the named dance, which this one would follow (the matrix's collision rule). {move} is the matrix column's name, such as partner swing. \"after it\" means this dance would come after {dance} (the dance just before the place being filled); \"before it\" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.",
+    "placeholders": {
+      "move": {
+        "type": "String"
+      },
+      "dance": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonBeatOverlapBeforeDance": "Same {move} beats as {dance}, before it",
+  "@suggestionReasonBeatOverlapBeforeDance": {
+    "description": "Suggestion reason: a move lands on the same beats as in the named dance, which this one would come before. {move} is the matrix column's name. \"after it\" means this dance would come after {dance} (the dance just before the place being filled); \"before it\" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.",
+    "placeholders": {
+      "move": {
+        "type": "String"
+      },
+      "dance": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonPhraseOverlapAfterDance": "{move} in the same phrase as {dance}, after it",
+  "@suggestionReasonPhraseOverlapAfterDance": {
+    "description": "Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the named dance, which this one would follow. {move} is the matrix column's name. \"after it\" means this dance would come after {dance} (the dance just before the place being filled); \"before it\" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.",
+    "placeholders": {
+      "move": {
+        "type": "String"
+      },
+      "dance": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonPhraseOverlapBeforeDance": "{move} in the same phrase as {dance}, before it",
+  "@suggestionReasonPhraseOverlapBeforeDance": {
+    "description": "Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the named dance, which this one would come before. {move} is the matrix column's name. \"after it\" means this dance would come after {dance} (the dance just before the place being filled); \"before it\" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.",
+    "placeholders": {
+      "move": {
+        "type": "String"
+      },
+      "dance": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonSameFormationAfterDance": "{formation}, like {dance}, after it",
+  "@suggestionReasonSameFormationAfterDance": {
+    "description": "Suggestion reason: the dance is in the same formation as the named dance, which this one would follow. {formation} is the formation's name. \"after it\" means this dance would come after {dance} (the dance just before the place being filled); \"before it\" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.",
+    "placeholders": {
+      "formation": {
+        "type": "String"
+      },
+      "dance": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonSameFormationBeforeDance": "{formation}, like {dance}, before it",
+  "@suggestionReasonSameFormationBeforeDance": {
+    "description": "Suggestion reason: the dance is in the same formation as the named dance, which this one would come before. {formation} is the formation's name. \"after it\" means this dance would come after {dance} (the dance just before the place being filled); \"before it\" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.",
+    "placeholders": {
+      "formation": {
+        "type": "String"
+      },
+      "dance": {
+        "type": "String"
+      }
+    }
+  },
   "suggestionReasonAlreadyInProgram": "Already in this program",
   "@suggestionReasonAlreadyInProgram": {
     "description": "Suggestion reason: the dance is already in the program being built, so the Suggested order puts it last (it is not removed)."
