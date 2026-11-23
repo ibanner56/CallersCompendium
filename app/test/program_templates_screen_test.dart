@@ -160,6 +160,25 @@ void main() {
       expect(field.controller!.text, 'Starting program');
     });
 
+    testWidgets('the name field holds the name to the stored limit in '
+        'UTF-16 units, so 60 emoji are not let through', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, const ProgramTemplatesScreen());
+      await tester.tap(
+        find.byKey(const ValueKey('program-templates-empty-add')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('program-template-name-field')),
+        '\u{1F3BB}' * 60,
+      );
+      await tester.pump();
+      final field = tester.widget<TextField>(
+        find.byKey(const ValueKey('program-template-name-field')),
+      );
+      expect(field.controller!.text, '\u{1F3BB}' * 50);
+    });
+
     testWidgets('a new template leaves an explicit Blank program default '
         'alone', (tester) async {
       final repos = openTestRepositories();

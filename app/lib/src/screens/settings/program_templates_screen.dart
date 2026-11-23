@@ -22,6 +22,7 @@ import '../../utils/undo_snack_bar.dart';
 import '../../widgets/adaptive_fab.dart';
 import '../../widgets/app_dropdown_field.dart';
 import '../../widgets/collection_picker.dart';
+import '../../widgets/container_title_length_limit.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/load_error_view.dart';
 import '../../widgets/program_template_name.dart';
@@ -142,6 +143,16 @@ class _ProgramTemplatesSettingsRowsState
 String _displayName(AppLocalizations l10n, ProgramTemplate template) =>
     programTemplateDisplayName(l10n, template);
 
+/// Holds a name field to [kMaxProgramTemplateNameLength] UTF-16 code units of
+/// trimmed text, as the name is stored, so saving never cuts what the field
+/// shows (a plain `maxLength` counts characters, and lets 60 emoji through).
+const _nameLengthLimit = ContainerTitleLengthLimit(
+  measure: _trimmedLength,
+  max: kMaxProgramTemplateNameLength,
+);
+
+int _trimmedLength(String text) => text.trim().length;
+
 /// Asks for a template name, starting from [initial]. Returns the trimmed
 /// name, or `null` when cancelled or left blank.
 Future<String?> _askName(
@@ -191,7 +202,7 @@ class _TemplateNameDialogState extends State<_TemplateNameDialog> {
         key: const ValueKey('program-template-name-field'),
         controller: _controller,
         autofocus: true,
-        maxLength: kMaxProgramTemplateNameLength,
+        inputFormatters: const [_nameLengthLimit],
         textCapitalization: TextCapitalization.sentences,
         decoration: InputDecoration(labelText: l10n.programTemplateNameLabel),
         onSubmitted: (_) => _submit(),
@@ -725,7 +736,7 @@ class _ProgramTemplateEditorScreenState
               child: TextField(
                 key: const ValueKey('program-template-editor-name'),
                 controller: _nameController,
-                maxLength: kMaxProgramTemplateNameLength,
+                inputFormatters: const [_nameLengthLimit],
                 textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
                   labelText: l10n.programTemplateNameLabel,

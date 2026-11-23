@@ -80,9 +80,14 @@ class ProgramTemplate {
 /// Encodes [template]'s value (its id is the key, not part of the value).
 String encodeProgramTemplate(ProgramTemplate template) {
   final trimmed = template.name.trim();
-  final name = trimmed.length > kMaxProgramTemplateNameLength
-      ? trimmed.substring(0, kMaxProgramTemplateNameLength)
-      : trimmed;
+  var end = trimmed.length;
+  if (end > kMaxProgramTemplateNameLength) {
+    end = kMaxProgramTemplateNameLength;
+    // Never cut inside a surrogate pair.
+    final last = trimmed.codeUnitAt(end - 1);
+    if (last >= 0xD800 && last <= 0xDBFF) end--;
+  }
+  final name = trimmed.substring(0, end);
   return jsonEncode({
     'version': _programTemplateVersion,
     'name': name,

@@ -30,6 +30,15 @@ class _RecordingSettings extends SettingsRepository {
 
 void main() {
   group('template codec', () {
+    test('a long name is cut to the limit, never inside a surrogate pair', () {
+      final name = '${'a' * (kMaxProgramTemplateNameLength - 1)}\u{1F3BB}';
+      final decoded = tryDecodeProgramTemplate(
+        't',
+        encodeProgramTemplate(ProgramTemplate(id: 't', name: name)),
+      )!;
+      expect(decoded.name, 'a' * (kMaxProgramTemplateNameLength - 1));
+    });
+
     test('a template round-trips its name and slots in order', () {
       const template = ProgramTemplate(
         id: 'family',
