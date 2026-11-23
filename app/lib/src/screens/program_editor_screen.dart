@@ -13,6 +13,7 @@ import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
+import '../data/program_templates.dart';
 import '../data/editor_draft_shutdown_scope.dart';
 import '../data/mark_all_sets_status_scope.dart';
 import '../data/matrix_collision_mode_scope.dart';
@@ -140,9 +141,15 @@ class ProgramEditorScreen extends StatefulWidget {
     this.contraDbOnline,
     this.reimportPicker,
     this.pdfLayouter,
+    this.templateChoice = const ProgramTemplateChoice.useDefault(),
   });
 
   final String? programId;
+
+  /// For a new program ([isNew]), which program template it starts from
+  /// (#2337): the New program chooser's pick, else the Default template.
+  /// Ignored when opening an existing program.
+  final ProgramTemplateChoice templateChoice;
 
   /// Called after a successful save with the program's id (embedded mode).
   final void Function(String programId)? onSaved;
@@ -1002,7 +1009,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         // Only seeds a still-blank field, never overrides; a settings read
         // failure falls back silently to a blank field.
         await _prefillNewProgramDefaults();
-        newProgramSlots = await _loadStartingProgramSlots(data);
+        newProgramSlots = await _loadTemplateSlots(data);
       }
       // Guard again: the venue lookup / defaults prefill above are async, so the
       // widget may have been disposed while they were in-flight.
@@ -1106,43 +1113,31 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
-  /// Loads the configured semantic template for a manually-created program.
+  /// Loads the slots of the program template this new program starts from
+  /// ([ProgramEditorScreen.templateChoice], #2337).
   ///
-  /// Stale dance references can remain in a restored preference after a dance
-  /// was purged. They are omitted while valid entries retain their order and
-  /// fresh database identity is generated for every slot.
-  Future<List<ProgramSlot>> _loadStartingProgramSlots(
-    CollectionData data,
-  ) async {
-    Object? stored;
+  /// Stale dance references can remain in a template after a dance was
+  /// purged. They are omitted while valid entries retain their order and
+  /// fresh database identity is generated for every slot. A settings read
+  /// failure starts the program blank.
+  Future<List<ProgramSlot>> _loadTemplateSlots(CollectionData data) async {
+    if (!mounted) return const [];
+    final ProgramTemplates templates;
     try {
-      stored = await _repos.settings.get(kDefaultStartingProgramKey);
+      templates = await loadProgramTemplates(_repos.settings);
     } catch (error, stackTrace) {
       logCaughtError(
         error,
         stackTrace,
-        source: 'program_editor_screen.starting_program_template',
+        source: 'program_editor_screen.program_template',
       );
       return const [];
     }
-    final template = startingProgramTemplateFromStored(stored);
     final availableDances = _latestData?.dancesById ?? data.dancesById;
-    final slots = <ProgramSlot>[];
-    for (final entry in template) {
-      if (entry.danceId != null &&
-          !availableDances.containsKey(entry.danceId)) {
-        continue;
-      }
-      slots.add(
-        ProgramSlot(
-          id: uuidV4(),
-          position: slots.length,
-          danceId: entry.danceId,
-          text: entry.text,
-        ),
-      );
-    }
-    return slots;
+    return programSlotsFromTemplate(
+      programTemplateEntriesFor(templates, widget.templateChoice),
+      danceExists: availableDances.containsKey,
+    );
   }
 
   Future<void> _prefillControllerFromDefault(

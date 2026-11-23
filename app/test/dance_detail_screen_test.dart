@@ -38,6 +38,7 @@ import 'package:compendium_app/src/widgets/dance_export_menu.dart'
 import 'package:compendium_app/src/widgets/figure_table.dart';
 import 'package:compendium_app/src/widgets/program_status_chip.dart';
 
+import 'support/program_template_seed.dart';
 import 'support/dance_detail_actions.dart';
 import 'support/fake_url_launcher.dart';
 import 'support/pdf_probe.dart';
@@ -2801,6 +2802,23 @@ void main() {
         find.byKey(const ValueKey('created-program-snackbar')),
         findsOneWidget,
       );
+    });
+
+    testWidgets('Create a new program with this dance keeps its one slot and '
+        'takes nothing from the Default template (#2337)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Zesty'));
+      await seedDefaultProgramTemplate(repos);
+
+      await _pumpDetail(tester, repos, 'd1');
+      await tester.tap(find.byKey(const ValueKey('add-dance-to-program')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('add-to-program-create')));
+      await tester.pumpAndSettle();
+
+      final program = (await repos.programs.listAll()).single;
+      expect(program.slots.single.danceId, 'd1');
+      expect(hasSeededTemplateSlot(program), isFalse);
     });
   });
 

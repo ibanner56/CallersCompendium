@@ -7,6 +7,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/program_forms.dart';
 import '../data/display_defaults.dart';
+import '../data/program_templates.dart' show ProgramTemplateChoice;
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../diagnostics/error_log.dart';
@@ -20,6 +21,7 @@ import '../widgets/brand_mark.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/program_list_tile.dart';
+import '../widgets/program_template_chooser.dart';
 import '../widgets/skeleton.dart';
 import '../widgets/sync_now_action.dart';
 import '../widgets/weekday_header_strip.dart';
@@ -91,9 +93,10 @@ class ProgramsListScreen extends StatefulWidget {
   /// false) hides archived programs again; see the class comment.
   final bool isActive;
 
-  /// Called (split-pane mode) when the user taps "New program" so the parent
-  /// can host the create flow in a pane. When null, a route is pushed.
-  final VoidCallback? onCreateProgram;
+  /// Called (split-pane mode) when the user taps "New program", with the
+  /// program template they chose (#2337), so the parent can host the create
+  /// flow in a pane. When null, a route is pushed.
+  final void Function(ProgramTemplateChoice templateChoice)? onCreateProgram;
 
   final String? selectedProgramId;
 
@@ -649,13 +652,19 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     return programs;
   }
 
+  /// New program: asks which template to start from when there are two or
+  /// more (#2337), then opens the builder. Dismissing the chooser cancels.
   Future<void> _openNewProgram() async {
+    final choice = await chooseProgramTemplate(context);
+    if (choice == null || !mounted) return;
     if (widget.onCreateProgram != null) {
-      widget.onCreateProgram!();
+      widget.onCreateProgram!(choice);
       return;
     }
     await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const ProgramEditorScreen()),
+      MaterialPageRoute(
+        builder: (_) => ProgramEditorScreen(templateChoice: choice),
+      ),
     );
     // No reload: the save is a write to `programs`/`program_slots`, so the
     // stream has already delivered it (issue #768).

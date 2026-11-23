@@ -319,11 +319,13 @@ void main() {
       expect(find.byType(DanceEditorScreen), findsOneWidget);
     }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
 
-    testWidgets('Esc closes an autocomplete\'s options before the page', (
+    testWidgets('Esc closes a name picker\'s list before the page', (
       tester,
     ) async {
       await _pump(tester, size: _wide);
       await tester.tap(find.byKey(const ValueKey('new-dance')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('author-field')));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('author-input')),
