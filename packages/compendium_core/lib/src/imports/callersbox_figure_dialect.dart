@@ -39,7 +39,9 @@ import 'while_container.dart';
 /// `()`/`[]` recognition-only annotation strip. Pass this as the `frontEnd` to
 /// [parseFigureLine]/[parseFigureLines] to recognize the full TCB dialect.
 ///
-/// **Pre-recognizer ordering.** The first nineteen entries (through
+/// **Pre-recognizer ordering.** `_amountAlternativeAnnotation` is first: it
+/// writes a `(1 or 2)` line's first amount into the line and reads the result
+/// through every other entry. The next nineteen entries (through
 /// `_singleFileCircleRecognizer`) all anchor on a move keyword, and all
 /// require a successful resolution to their own move, so in most cases
 /// order is not correctness-critical.  Four overlapping anchor groups each

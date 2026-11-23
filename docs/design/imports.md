@@ -1590,7 +1590,8 @@ shared reading", "becomes an unrecognized figure") over the bare verb.
 
 Which is which, derived from the code rather than from memory:
 
-- `tcbFigureFrontEnd` registers **twenty-two** pre-recognizers: `_hey`,
+- `tcbFigureFrontEnd` registers **twenty-five** pre-recognizers:
+  `_amountAlternativeAnnotation`, `_hey`,
   `_circulate`, `_waveBalanceCirculate`, `_circulateCrossBracket`,
   `_handBalanceSquareThrough`, `_squareThroughPassList`,
   `_balanceHandAnnotation`, `_balancePairHandAnnotation`, `_gateAnnotation`,
@@ -1599,20 +1600,23 @@ Which is which, derived from the code rather than from memory:
   `_singleFileWholeSetPromenade`, `_promenadeAnnotation`,
   `_rightLeftThroughAnnotation`, `_singleFileCircleRecognizer`,
   `_bracketAnnotation`, `_weaveSlideAnnotation`, `_perRoleChoreoAnnotation`,
-  `_proseAnnotation` and `_decodeSideRunAnnotation`. All but five are the
-  falls-through kind. `_squareThroughPassList` sends a `without hands` line
+  `_proseAnnotation` and `_decodeSideRunAnnotation`. All but six are the
+  falls-through kind. `_amountAlternativeAnnotation` (#2331 follow-up) reads
+  `(1 or 2)` as the first amount, with the choice as the note, and sends the
+  line to `custom` when its move has no place for the amount (`C1 corner
+  promenade counterclockwise (3/8 or 5/8)`). `_squareThroughPassList` sends a `without hands` line
   whose pass list does not decode to `custom` (#1971),
   `_bracketAnnotation` does the same for a leading bracket that names no
   modelled subject, `_tcbCast` (taxonomy v40) does it for a `(past …)`
   list it cannot count, or a count the line contradicts, `_tcbBareLongWave`
-  (#2331) for a bare `form long wave` whose annotation names holds
-  (`(P2L,P3R, women face in)`, `[M1 with N2, W1 with N1]`), and
+  (#2331) for a `form long wave` whose hold annotation does not decode, or
+  that carries a square bracket (`[M1 with N2, W1 with N1]`, which names no
+  hand; a decoded `(P2L,P3R, women face in)` reads as the holds), and
   `_singleFileWholeSetPromenade` (#2331) for a single-file promenade around
   the major set it cannot read whole (an unresolved destination, a places
   amount, or a counter-rotation annotation). The front end also has a veto
   (`_tcbDeclineToCustom`): a single-file circle amount that is not a
-  fraction, a per-role amount (`(M 1 & 1/2, W 2)`), and, since #2331, a
-  parenthetical that opens with a choice of amounts (`(1 or 2)`).
+  fraction, and a per-role amount (`(M 1 & 1/2, W 2)`).
 - `contraDbHtmlFigureFrontEnd` registers its **entire grammar** as
   pre-recognizers, **and** supplies a veto. Both halves matter, and they pull in
   opposite directions, which is why this front end is the one most likely to be
@@ -1734,8 +1738,9 @@ has to be judged in its own context.
   the note because the v30 render gate hides the clause at the `across`
   default; a SINGLE-FILE promenade `clockwise`/`counterclockwise` around the
   major set (#2331) is `promenade{singleFile, where: along, direction,
-  destination}`, whose `along` renders the destination, so only `around the
-  major set` stays in the note — one it cannot read whole stays custom, never
+  destination}`, whose `along` renders the destination and, since the #2331
+  follow-up, always the rotation, so only `around the major set` stays in the
+  note — one it cannot read whole stays custom, never
   a single-file circle), pass the ocean +
   trailing balance wave (→ `pass_the_ocean` / `form_short_waves` /
   `form_a_long_wave` / `form_long_waves` with `balance: true`, beats summed;
@@ -2625,6 +2630,16 @@ without it would destroy detail the custom text preserved verbatim):
 | `Balance long wave (<pair><H>, <role> face in)` | `form_long_waves{balance, whom: <pair>, hand: <H>, who: <role>}` |
 | `Balance long wave (<pair><H>, <pair'><H'>, <role> face in)` (#2331; the hands opposite, the pairs different) | the same plus `whom2: <pair'>`, the pair held by the other hand |
 
+The same holds on the forming line itself, `form long wave (<pair><H>[,
+<pair'><H'>][, <role> face in])`, read the same way through the one decoder
+(`tcbLongWaveHolds`, #2331 follow-up); with no facing stated, `who` is
+`unspecified`. The balance after such a wave folds in only when the two
+lines' holds agree — together at most two pairs, by opposite hands, and one
+facing — and otherwise stays text; it is never promoted into a second
+long-waves figure beside the first, within a phrase or across one. Two
+forming lines in a row (`form long wave (release left hands)`, then `(0) Form
+long wave (P4R,P5L, women face in)`, dance 15461) are one figure.
+
 The role pair is the wave's **centre** and the relationship pair its **sides**,
 with the two hands OPPOSITE — verified on the corpus (2,560 of 2,764 wave-of-four
 lines match that shape, and only one of the parsed pairs states the same hand
@@ -2640,7 +2655,10 @@ hand-holds by the same hand or with the same pair (`(N2R,N1R, women face in)`),
 people codes with no
 taxonomy slot (`C2`, `1CC`, `O`, `TB`, `SRN…`, `?` — the omissions documented
 on `tcbPassPeople`, whose single map this decoder reuses), `someone face
-in`, and `Balance long wave for all in center`. The singular
+in`, and `Balance long wave for all in center`. After a bare `form long
+wave`, that `for all` balance keeps the wave's whole line as text too (dance
+1033, maintainer ruling 2026-11-23), as `…; form long wave for all in center`
+already is. The singular
 `form_a_long_wave` sense (ONE long wave in the centre formed by a subset) is
 never guessed at either — a line meaning that reaches it through Fold 4 from the
 preceding `form long wave in center` line, or from a bare `form long wave`
