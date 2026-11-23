@@ -112,6 +112,14 @@ void main() {
       });
     });
 
+    test('no hold and no facing, but a balance, reads back (#2331)', () {
+      // The display of a bare long wave whose generic balance folded in.
+      final f = only('form long waves - and balance');
+      expect(f.move, 'form_long_waves');
+      expect(f.params, {'who': ParamVocab.unspecified, 'balance': true});
+      expect(f.note, isNull);
+    });
+
     test('a second hold by the same hand is not this wording', () {
       final f = only(
         'form long waves - next neighbor by the right, neighbor by the right, '

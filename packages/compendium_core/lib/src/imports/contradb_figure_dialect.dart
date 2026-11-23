@@ -847,7 +847,8 @@ final RegExp _capital = RegExp('[A-Z]');
 /// when the display states both hands; a second hold by the SAME hand is not
 /// this wording. A `who` of `unspecified` displays no facing, so a line with a
 /// hold and no facing clause reads back with that sentinel — only in this
-/// dashed form: the bare `form long waves` keeps its ContraDB meaning.
+/// dashed form: the bare `form long waves` keeps its ContraDB meaning. With no
+/// hold either, the dashed form is `form long waves - and balance`.
 FigureMatch? _formLongWavesDisplay(String text) {
   final s = _Scan(text);
   if (!s.eatPhrase('form long waves -')) return null;
@@ -881,6 +882,15 @@ FigureMatch? _formLongWavesDisplay(String text) {
       return FigureMatch('form_long_waves', params: params);
     }
   } else {
+    s.reset(hold);
+    // A bare long wave whose generic balance folded in states neither a hold
+    // nor a facing: its display is `form long waves - and balance` (#2331).
+    if (s.eatPhrase('and balance') && s.peek() == null) {
+      return const FigureMatch(
+        'form_long_waves',
+        params: {'who': ParamVocab.unspecified, 'balance': true},
+      );
+    }
     s.reset(hold);
   }
   final who = _displaySubject(s);
