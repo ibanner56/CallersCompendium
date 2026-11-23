@@ -18,6 +18,9 @@ void main() {
     status: status,
     tunes: const ['Tune One', 'Tune Two'],
     hook: 'Open with a long swing',
+    // English, so the Barnes reference is kept (the model clears it for
+    // any other form).
+    form: DanceForm.ecd,
     meter: '6/8',
     musicalKey: 'G minor',
     barnesReference: 'BIII p. 92',
