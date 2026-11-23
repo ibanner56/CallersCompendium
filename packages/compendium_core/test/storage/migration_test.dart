@@ -1936,6 +1936,21 @@ void main() {
       await db.customSelect('SELECT 1').get();
 
       expect(await programColumns(db), containsAll(timeColumns));
+      // The same column order as a database created fresh at v42, which
+      // schema_verification_test does not check (it compares by name).
+      Future<List<String>> orderedColumns(DatabaseConnectionUser d) async => [
+        for (final row
+            in await d
+                .customSelect(
+                  "SELECT name FROM pragma_table_info('programs') ORDER BY cid",
+                )
+                .get())
+          row.read<String>('name'),
+      ];
+      final fresh = CompendiumDatabase(NativeDatabase.memory());
+      addTearDown(fresh.close);
+      await fresh.customSelect('SELECT 1').get();
+      expect(await orderedColumns(db), await orderedColumns(fresh));
       final program = await ProgramRepository(db).getById('p1');
       expect(program, isNotNull);
       expect(program!.title, 'Keep');

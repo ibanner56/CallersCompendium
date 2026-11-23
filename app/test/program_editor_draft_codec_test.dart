@@ -233,6 +233,19 @@ void main() {
       expect(decoded.hasVenueIdBaseline, isFalse);
     });
 
+    test('a null baseline reads as not recorded', () {
+      final decoded = decodeProgramDraft({
+        'v': 1,
+        'title': 'T',
+        'notes': '',
+        'status': 'draft',
+        'hideAlternates': false,
+        'timesBaseline': null,
+        'slots': <Object?>[],
+      });
+      expect(decoded.timesBaseline, isNull);
+    });
+
     test('a malformed baseline time is rejected', () {
       expect(
         () => decodeProgramDraft({

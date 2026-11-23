@@ -1477,6 +1477,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         }
         if (generation != _editGeneration) {
           _adoptOvertakenCommit(draft, persisted);
+          // Rewrite the draft as the second branch below does: one written
+          // while this commit was in flight still records the baselines from
+          // before it, and a restore would read the committed values as the
+          // person's own edits over anything synced since.
+          await _saveDraft();
+          if (!mounted) return _AutoCommitOutcome.notCommitted(generation);
           if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
           return _AutoCommitOutcome.notCommitted(generation);
         }

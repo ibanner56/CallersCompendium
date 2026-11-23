@@ -11,6 +11,7 @@ import '../widgets/calendar_export_dialogs.dart';
 import '../widgets/export_guard.dart';
 import '../widgets/program_status_labels.dart';
 import 'program_share_bundle.dart' show programShareBundleFileName;
+import 'export_labels_l10n.dart';
 import 'share_file.dart';
 import 'share_sanitization.dart';
 
@@ -157,10 +158,23 @@ CalendarTimeOfDay? _timeOfDay(int? minuteOfDay) => minuteOfDay == null
 /// The lesson and arrival times as one line for an event's description, such
 /// as "Lesson 7:00 PM · Arrive by 6:30 PM", in the words and clock of the
 /// program summary; `null` when neither is set.
+///
+/// A program with an end time but no start is an all-day event, so its end
+/// goes here too ("Dance until 10:30 PM"), or it would appear nowhere in the
+/// event.
 String? programCalendarScheduleLine(AppLocalizations l10n, Program program) {
+  final endOnly = program.startMinute == null
+      ? danceTimesText(
+          startMinute: null,
+          endMinute: program.endMinute,
+          formatTime: (m) => formatTimeOfDay(m, l10n),
+          labels: programExportLabels(l10n),
+        )
+      : null;
   final parts = [
     if (program.lessonMinute case final lesson?)
       l10n.programsSummaryLessonTime(formatTimeOfDay(lesson, l10n)),
+    ?(endOnly == null ? null : l10n.programsSummaryDanceTime(endOnly)),
     if (program.arrivalMinute case final arrival?)
       l10n.programsSummaryArriveBy(formatTimeOfDay(arrival, l10n)),
   ];

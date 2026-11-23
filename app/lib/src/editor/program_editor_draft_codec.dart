@@ -325,9 +325,11 @@ ProgramEditorDraft decodeProgramDraft(Object? value) {
     hasPay: json.containsKey('payText'),
     times: _parseTimes(json['times']),
     hasTimes: json.containsKey('times'),
-    timesBaseline: json.containsKey('timesBaseline')
-        ? _parseTimes(json['timesBaseline'], key: 'timesBaseline')
-        : null,
+    // A null value reads as not recorded, like a missing key: the encoder
+    // never writes one, and an empty baseline must not pass for a real one.
+    timesBaseline: json['timesBaseline'] == null
+        ? null
+        : _parseTimes(json['timesBaseline'], key: 'timesBaseline'),
     venueIdBaseline: _strOrNull(json, 'venueIdBaseline'),
     hasVenueIdBaseline: json.containsKey('venueIdBaseline'),
     slots: _parseSlots(json['slots']),

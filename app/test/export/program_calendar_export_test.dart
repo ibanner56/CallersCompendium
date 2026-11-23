@@ -270,9 +270,13 @@ void main() {
       expect(ics, isNot(contains('DTEND')));
     });
 
-    test('an end alone stays all-day', () {
+    test('an end alone stays all-day, with the end in DESCRIPTION', () {
       final ics = _unfolded(build([_program(end: 1350)]));
       expect(ics, contains('DTSTART;VALUE=DATE:20261205'));
+      expect(
+        _plain(ics).replaceAll('\u202f', ' '),
+        contains('Dance until 10:30 PM'),
+      );
     });
 
     test('the lesson and Arrive by go in DESCRIPTION, and a start replaces '

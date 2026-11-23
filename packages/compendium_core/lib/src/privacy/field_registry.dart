@@ -643,7 +643,8 @@ final Map<String, DataClassification> fieldClassifications = {
         'because a guest caller receiving the program needs it too (issue '
         'drafting call, approved with #2350). The set-list text and the PDF '
         'leave it out: they are made for other people, and the maintainer '
-        'ruled that Arrive by stays out of the PDF (2026-11-22, #2350).',
+        'ruled that Arrive by stays out of the PDF but in the caller\'s own '
+        'calendar export (2026-11-22, #2350), whose event notes carry it.',
   ),
   'programs.created_at': _recordStamp,
   'programs.updated_at': _recordStamp,
