@@ -85,8 +85,8 @@ class _NamePickerState extends State<NamePicker> {
   }
 }
 
-/// The open list: a search box, a checkbox row per option in [order], and a
-/// create row for a typed name nobody has.
+/// The open list: a search box, a checkbox row per option, the chosen ones
+/// first (see `_order`), and a create row for a typed name nobody has.
 class _NamePickerPanel extends StatefulWidget {
   const _NamePickerPanel({
     required this.owner,
