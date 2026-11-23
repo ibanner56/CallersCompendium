@@ -1,7 +1,6 @@
 import 'package:compendium_app/src/export/program_matrix_pdf.dart';
 import 'package:compendium_app/src/export/program_pdf.dart';
 import 'package:compendium_core/compendium_core.dart';
-import 'package:compendium_core/testing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pdf/widgets.dart' as pw;
 
