@@ -1410,6 +1410,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
               phraseStructure: dance.phraseStructure,
               renderer: UserFiguresScope.rendererOf(context),
               dialect: dialect,
+              checkPhraseFill: dance.form == DanceForm.square,
             ),
           ),
           // An empty table would say the dance has no figures, which is false

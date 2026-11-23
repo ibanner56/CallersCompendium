@@ -636,11 +636,11 @@ A saved dance whose beats do not add up shows the same warning above its figures
 on the dance's page, because the section labels (A1, A2, B1, B2) are then worked
 out from the wrong total. Perform and printing do not show it.
 
-In a square dance, **Warnings** also names a figure that starts in one phrase
-and runs past its end, such as a 16-beat promenade starting halfway through
-A1: the calls of each phrase should fill it exactly. A figure that starts at
-the top of a phrase and fills whole phrases, such as a 32-beat promenade
-across A1 and A2, is fine.
+In a square dance, **Warnings**, in the editor and on the dance's page, also
+names a figure that starts in one phrase and runs past its end, such as a
+16-beat promenade starting halfway through A1: the calls of each phrase should
+fill it exactly. A figure that starts at the top of a phrase and fills whole
+phrases, such as a 32-beat promenade across A1 and A2, is fine.
 
 The Total counts only rows that will be saved. A group that is not complete yet,
 such as a meanwhile group with one side filled in, is left out, and so is a row
