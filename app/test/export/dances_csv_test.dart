@@ -332,6 +332,34 @@ void main() {
     expect(contra[en.csvColumnInterpreted], '');
   });
 
+  test("a square's own fields have columns, blank for another form "
+      '(ADR-007 §8.1)', () {
+    final square = Dance(
+      id: 's1',
+      title: 'Circle Three Quarters',
+      form: DanceForm.square,
+      repeatOrder: SquareRepeatOrder.headsHeadsSidesSides,
+      newPartner: SquareNewPartner.other,
+      newPartnerText: 'The original corner',
+      createdAt: now,
+      updatedAt: now,
+    );
+    final row = csvRecords(build([square])).single;
+    expect(row[en.danceEditorSquareKindLabel], 'Main part');
+    expect(
+      row[en.danceEditorRepeatOrderLabel],
+      'Heads twice, then sides twice',
+    );
+    expect(row[en.danceEditorNewPartnerLabel], 'The original corner');
+    expect(row[en.danceEditorSingingLabel], en.commonNo);
+
+    final contra = csvRecords(
+      build([dance().copyWith(repeatOrder: SquareRepeatOrder.allFour)]),
+    ).single;
+    expect(contra[en.danceEditorRepeatOrderLabel], '');
+    expect(contra[en.danceEditorSingingLabel], '');
+  });
+
   test('the file name is the localized stem and the date', () {
     expect(
       dancesCsvFileName('dances', DateTime(2026, 11, 23)),

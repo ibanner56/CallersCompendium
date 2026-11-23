@@ -108,6 +108,33 @@ class Dances extends Table {
   /// as free text ("BIII p. 92", "NiB"); `''` when not given. Added in schema
   /// v42 while v42 was unreleased.
   TextColumn get barnesReference => text().withDefault(const Constant(''))();
+
+  /// What a square dance record holds, `Dance.squareKind`, as its wire name
+  /// (`main`, `break`, `patter`); `main` by default. Kept for every form
+  /// (ADR-007 §8.1). Plain text rather than an enum converter, so a value
+  /// this build does not know reads as the default instead of failing. Added
+  /// in schema v42 while v42 was unreleased, as are the square columns below.
+  TextColumn get squareKind => text().withDefault(const Constant('main'))();
+
+  /// How a square's main part is repeated, `Dance.repeatOrder`, as its wire
+  /// name (`HHSS`, `HSHS`, `allFour`, `other`); `unstated` by default.
+  TextColumn get repeatOrder =>
+      text().withDefault(const Constant('unstated'))();
+
+  /// What `other` means for [repeatOrder], `Dance.repeatOrderText`; `''`
+  /// unless the order is `other`.
+  TextColumn get repeatOrderText => text().withDefault(const Constant(''))();
+
+  /// Who the new partner is each time through a square, `Dance.newPartner`,
+  /// as its wire name; `unstated` by default.
+  TextColumn get newPartner => text().withDefault(const Constant('unstated'))();
+
+  /// What `other` means for [newPartner], `Dance.newPartnerText`; `''` unless
+  /// the new partner is `other`.
+  TextColumn get newPartnerText => text().withDefault(const Constant(''))();
+
+  /// Whether a square's main part is a singing call, `Dance.singing`.
+  BoolColumn get singing => boolean().withDefault(const Constant(false))();
   TextColumn get status =>
       text().map(const EnumNameConverter(DanceStatus.values))();
 

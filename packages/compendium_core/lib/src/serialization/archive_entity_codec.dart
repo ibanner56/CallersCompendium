@@ -2,6 +2,7 @@ import '../model/choreographer.dart';
 import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/dance_link.dart';
+import '../model/enums.dart';
 import '../model/figure_source.dart';
 import '../model/tunes_source.dart';
 import '../model/difficulty_level.dart';
@@ -128,6 +129,16 @@ Map<String, Object?> archiveDanceToJson(
   if (d.musicalKey.isNotEmpty) 'musicalKey': d.musicalKey,
   if (d.alternateTitles.isNotEmpty) 'alternateTitles': d.alternateTitles,
   if (d.barnesReference.isNotEmpty) 'barnesReference': d.barnesReference,
+  // The square fields (ADR-007 §8.1), written only when not the default for
+  // the same reason as the keys above.
+  if (d.squareKind != SquareKind.main) 'squareKind': d.squareKind.wireName,
+  if (d.repeatOrder != SquareRepeatOrder.unstated)
+    'repeatOrder': d.repeatOrder.wireName,
+  if (d.repeatOrderText.isNotEmpty) 'repeatOrderText': d.repeatOrderText,
+  if (d.newPartner != SquareNewPartner.unstated)
+    'newPartner': d.newPartner.wireName,
+  if (d.newPartnerText.isNotEmpty) 'newPartnerText': d.newPartnerText,
+  if (d.singing) 'singing': true,
   'status': d.status.name,
   if (includeOptionalFields || d.difficultyLevelId != null)
     'difficultyLevelId': d.difficultyLevelId,
@@ -190,6 +201,12 @@ const Map<String, Object?> omittedDanceDefaults = {
   'musicalKey': '',
   'alternateTitles': <String>[],
   'barnesReference': '',
+  'squareKind': 'main',
+  'repeatOrder': 'unstated',
+  'repeatOrderText': '',
+  'newPartner': 'unstated',
+  'newPartnerText': '',
+  'singing': false,
   'interpreterIds': <String>[],
   'interpretedOn': null,
 };

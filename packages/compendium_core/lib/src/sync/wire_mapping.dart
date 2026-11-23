@@ -37,6 +37,20 @@ const _danceFields = [
   // Only an ECD dance keeps one (`formHasBarnesReference`), so its form
   // decides whether the value is sent at all.
   SyncWireField('barnesReference', ['dances.barnes_reference', 'dances.form']),
+  SyncWireField('squareKind', ['dances.square_kind']),
+  SyncWireField('repeatOrder', ['dances.repeat_order']),
+  // Each text is kept only with `other`, so its value decides whether the
+  // text is sent at all.
+  SyncWireField('repeatOrderText', [
+    'dances.repeat_order_text',
+    'dances.repeat_order',
+  ]),
+  SyncWireField('newPartner', ['dances.new_partner']),
+  SyncWireField('newPartnerText', [
+    'dances.new_partner_text',
+    'dances.new_partner',
+  ]),
+  SyncWireField('singing', ['dances.singing']),
   SyncWireField('status', ['dances.status']),
   SyncWireField('difficultyLevelId', ['dances.level_id']),
   SyncWireField('mixedLevel', ['dances.mixed_level']),

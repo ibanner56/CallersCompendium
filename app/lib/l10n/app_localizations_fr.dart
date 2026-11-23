@@ -9204,6 +9204,80 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les danseurs changent de partenaire à chaque passage';
 
   @override
+  String danceDetailSquareField(String field, String value) {
+    return '$field : $value';
+  }
+
+  @override
+  String get danceEditorSquareKindLabel => 'Type de square';
+
+  @override
+  String get squareKindMain => 'Partie principale';
+
+  @override
+  String get squareKindBreak => 'Break';
+
+  @override
+  String get squareKindPatter => 'Patter';
+
+  @override
+  String get danceEditorRepeatOrderLabel => 'Ordre de répétition';
+
+  @override
+  String get squareRepeatOrderUnstated => 'Non précisé';
+
+  @override
+  String get squareRepeatOrderHeadsHeadsSidesSides =>
+      'Heads deux fois, puis sides deux fois';
+
+  @override
+  String get squareRepeatOrderHeadsSidesHeadsSides =>
+      'Heads et sides en alternance';
+
+  @override
+  String get squareRepeatOrderAllFour => 'Quatre fois, tout le monde actif';
+
+  @override
+  String get squareRepeatOrderOther => 'Autre';
+
+  @override
+  String get danceEditorRepeatOrderOtherLabel =>
+      'Ordre de répétition, dans vos propres mots';
+
+  @override
+  String get danceEditorNewPartnerLabel => 'Nouveau partenaire';
+
+  @override
+  String get squareNewPartnerUnstated => 'Non précisé';
+
+  @override
+  String get squareNewPartnerNone => 'Les partenaires restent les mêmes';
+
+  @override
+  String get squareNewPartnerCorner => 'Corner';
+
+  @override
+  String squareNewPartnerRightHand(String role) {
+    return '$role de droite';
+  }
+
+  @override
+  String get squareNewPartnerOpposite => 'Opposite';
+
+  @override
+  String get squareNewPartnerOther => 'Autre';
+
+  @override
+  String get danceEditorNewPartnerOtherLabel =>
+      'Nouveau partenaire, dans vos propres mots';
+
+  @override
+  String get danceEditorSingingLabel => 'Singing call';
+
+  @override
+  String get danceEditorSingingSubtitle => 'La chanson se saisit dans « Airs »';
+
+  @override
   String get danceEditorImproperLabel => 'Commence improper';
 
   @override

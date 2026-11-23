@@ -710,6 +710,19 @@ nothing in it to lose.
   [mixer](./glossary.md#mixer): one where you change partners each time through.
   It's kept separate from the formation, because a mixer can be danced in many
   shapes and not every circle is a mixer.
+- **Square fields** — a square dance shows four more fields here:
+  - **Kind of square**: **Main part** (the figure danced several times
+    through), **Break**, or **Patter**.
+  - **Repeat order**: **Heads twice, then sides twice**, **Heads and sides
+    alternating**, **Four times, everyone active**, or **Other**, which
+    opens a field to describe it.
+  - **New partner**: who each dancer ends with each time through, such as
+    **Corner** or **Partners stay the same**. **Other** opens a field here
+    too. **Mixer** still says whether partners change; this says to whom.
+  - **Singing call**: put the song under **Tunes**.
+
+  The dance's page shows each one you've set. Another type of dance keeps
+  them in **More details**, so changing the type and back loses nothing.
 - **Phrase structure** — leave it blank for the standard A1 A2 B1 B2, or write
   your own (the field suggests `6*8*2` as an example). The app checks that what you
   write is a valid structure, and uses it for the beat count above.
@@ -814,6 +827,7 @@ updates the default used everywhere.
 | **Composed** / **Revised** | A year, optionally with a month and day; for an English dance, Composed is a year, up front beside the authors |
 | **Interpreted by** / **Interpreted in** | Who reconstructed the dance from its original, and when; for an English dance, up front, with Interpreted in as a year beside the names |
 | **Meter** / **Key** | The tune's written meter and key; up front for an English dance, with its **Barnes reference** |
+| **Kind of square** / **Repeat order** / **New partner** / **Singing call** | A square's own fields; up front for a square dance |
 | **Tags** | Your own labels |
 | **Tunes** | Tunes you like with this dance |
 | **Links** | A URL with an optional label, marked **Source**, **Video**, or **Other** |

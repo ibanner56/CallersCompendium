@@ -60,6 +60,8 @@ class DanceEditorController extends ChangeNotifier {
        musicalKeyController = _lingo(dialects),
        alternateTitlesController = _lingo(dialects),
        barnesReferenceController = _lingo(dialects),
+       repeatOrderTextController = _lingo(dialects),
+       newPartnerTextController = _lingo(dialects),
        tuneController = _lingo(dialects),
        _draftKey = danceId == null
            ? danceEditorDraftKey('$kNewDanceDraftIdPrefix${uuidV4()}')
@@ -253,6 +255,12 @@ class DanceEditorController extends ChangeNotifier {
   /// Editor for where the tune is printed in the Barnes books
   /// ([Dance.barnesReference]), free text.
   final LingoTextEditingController barnesReferenceController;
+
+  /// Editors for what `other` means for a square's repeat order and new
+  /// partner ([Dance.repeatOrderText], [Dance.newPartnerText]). Kept as typed
+  /// whatever the dropdown holds; only `other` saves them.
+  final LingoTextEditingController repeatOrderTextController;
+  final LingoTextEditingController newPartnerTextController;
   final LingoTextEditingController tuneController;
 
   /// The user's Move defaults (DD.3), by move id, which a typed line's rows
@@ -278,6 +286,8 @@ class DanceEditorController extends ChangeNotifier {
     musicalKeyController,
     alternateTitlesController,
     barnesReferenceController,
+    repeatOrderTextController,
+    newPartnerTextController,
     tuneController,
     ...customTextControllers.values,
   ];
@@ -291,6 +301,10 @@ class DanceEditorController extends ChangeNotifier {
   List<DifficultyLevel> _difficultyLevels = DifficultyLevel.shipped;
   bool _mixedLevel = false;
   bool _mixer = false;
+  SquareKind _squareKind = SquareKind.main;
+  SquareRepeatOrder _repeatOrder = SquareRepeatOrder.unstated;
+  SquareNewPartner _newPartner = SquareNewPartner.unstated;
+  bool _singing = false;
   int? _rating;
   PartialDate? _composedOn;
   PartialDate? _revisedOn;
@@ -322,6 +336,13 @@ class DanceEditorController extends ChangeNotifier {
       List.unmodifiable(_difficultyLevels);
   bool get mixedLevel => _mixedLevel;
   bool get mixer => _mixer;
+
+  /// The square fields (ADR-007 §8.1). Kept whatever the form, as the dance
+  /// keeps them, so changing the form and back loses nothing.
+  SquareKind get squareKind => _squareKind;
+  SquareRepeatOrder get repeatOrder => _repeatOrder;
+  SquareNewPartner get newPartner => _newPartner;
+  bool get singing => _singing;
   int? get rating => _rating;
   PartialDate? get composedOn => _composedOn;
   PartialDate? get revisedOn => _revisedOn;
@@ -360,6 +381,11 @@ class DanceEditorController extends ChangeNotifier {
   /// in More details: for ECD, where most dances credit both an original and
   /// an interpreter (ADR-006 §9.2, point 7).
   bool get showsCreditsUpFront => _form == DanceForm.ecd;
+
+  /// Whether a square's own fields (ADR-007 §8.1) sit up front: for a square
+  /// dance. Other forms show them in More details, since the dance keeps
+  /// them whatever its form.
+  bool get showsSquareFieldsUpFront => _form == DanceForm.square;
 
   // ---- Multi-value draft lists ----
   final List<String> authorIds = [];
@@ -871,6 +897,8 @@ class DanceEditorController extends ChangeNotifier {
       musicalKeyController.text = dance.musicalKey;
       alternateTitlesController.text = dance.alternateTitles.join('\n');
       barnesReferenceController.text = dance.barnesReference;
+      repeatOrderTextController.text = dance.repeatOrderText;
+      newPartnerTextController.text = dance.newPartnerText;
       _improper = dance.formation.improper;
       _form = dance.form;
       _followForm();
@@ -886,6 +914,10 @@ class DanceEditorController extends ChangeNotifier {
       }
       _mixedLevel = dance.mixedLevel;
       _mixer = dance.mixer;
+      _squareKind = dance.squareKind;
+      _repeatOrder = dance.repeatOrder;
+      _newPartner = dance.newPartner;
+      _singing = dance.singing;
       _rating = dance.rating;
       _composedOn = dance.composedOn;
       _revisedOn = dance.revisedOn;
@@ -1376,6 +1408,12 @@ class DanceEditorController extends ChangeNotifier {
     musicalKey: musicalKeyController.text,
     alternateTitles: alternateTitlesController.text,
     barnesReference: barnesReferenceController.text,
+    squareKind: _squareKind,
+    repeatOrder: _repeatOrder,
+    repeatOrderText: repeatOrderTextController.text,
+    newPartner: _newPartner,
+    newPartnerText: newPartnerTextController.text,
+    singing: _singing,
     form: _form,
     formationShape: _formationShape,
     improper: _improper,
@@ -1469,6 +1507,12 @@ class DanceEditorController extends ChangeNotifier {
     if (barnesReferenceController.text != s.barnesReference) {
       barnesReferenceController.text = s.barnesReference;
     }
+    if (repeatOrderTextController.text != s.repeatOrderText) {
+      repeatOrderTextController.text = s.repeatOrderText;
+    }
+    if (newPartnerTextController.text != s.newPartnerText) {
+      newPartnerTextController.text = s.newPartnerText;
+    }
 
     // Enum fields.
     _form = s.form;
@@ -1479,6 +1523,10 @@ class DanceEditorController extends ChangeNotifier {
     _level = s.level;
     _mixedLevel = s.mixedLevel;
     _mixer = s.mixer;
+    _squareKind = s.squareKind;
+    _repeatOrder = s.repeatOrder;
+    _newPartner = s.newPartner;
+    _singing = s.singing;
     _rating = s.rating;
     _composedOn = s.composedOn;
     _revisedOn = s.revisedOn;
@@ -1793,6 +1841,8 @@ class DanceEditorController extends ChangeNotifier {
       alternateTitlesController.text.split('\n'),
     );
     final barnesReference = barnesReferenceController.text.trim();
+    final repeatOrderText = repeatOrderTextController.text.trim();
+    final newPartnerText = newPartnerTextController.text.trim();
     final linkList = [for (final l in links) ?l.toLink()];
     final citationList = [for (final c in sourceCitations) c.toCitation()];
     final customFields = collectCustomFields();
@@ -1808,6 +1858,12 @@ class DanceEditorController extends ChangeNotifier {
         meter: meter,
         musicalKey: musicalKey,
         barnesReference: barnesReference,
+        squareKind: _squareKind,
+        repeatOrder: _repeatOrder,
+        repeatOrderText: repeatOrderText,
+        newPartner: _newPartner,
+        newPartnerText: newPartnerText,
+        singing: _singing,
         form: _form,
         formation: formation,
         progression: _progression,
@@ -1845,6 +1901,12 @@ class DanceEditorController extends ChangeNotifier {
       meter: meter,
       musicalKey: musicalKey,
       barnesReference: barnesReference,
+      squareKind: _squareKind,
+      repeatOrder: _repeatOrder,
+      repeatOrderText: repeatOrderText,
+      newPartner: _newPartner,
+      newPartnerText: newPartnerText,
+      singing: _singing,
       form: _form,
       formation: formation,
       progression: _progression,
@@ -1958,6 +2020,34 @@ class DanceEditorController extends ChangeNotifier {
 
   void setMixer(bool value) {
     _mixer = value;
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void setSquareKind(SquareKind value) {
+    _squareKind = value;
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void setRepeatOrder(SquareRepeatOrder value) {
+    _repeatOrder = value;
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void setNewPartner(SquareNewPartner value) {
+    _newPartner = value;
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void setSinging(bool value) {
+    _singing = value;
     pushUndoNow();
     scheduleAutosave();
     _notify();
@@ -2775,6 +2865,8 @@ class DanceEditorController extends ChangeNotifier {
     musicalKeyController.dispose();
     alternateTitlesController.dispose();
     barnesReferenceController.dispose();
+    repeatOrderTextController.dispose();
+    newPartnerTextController.dispose();
     tuneController.dispose();
     for (final c in customTextControllers.values) {
       c.dispose();

@@ -11910,6 +11910,110 @@
   "@danceEditorMixerSubtitle": {
     "description": "Subtitle explaining the mixer checkbox in the dance editor: the dance progresses dancers to a new partner each time through the sequence."
   },
+  "danceDetailSquareField": "{field}: {value}",
+  "@danceDetailSquareField": {
+    "description": "One of a square dance's own fields on its page, such as 'Repeat order: Heads twice, then sides twice'. {field} is the field's label and {value} its value.",
+    "placeholders": {
+      "field": {
+        "type": "String",
+        "example": "Repeat order"
+      },
+      "value": {
+        "type": "String",
+        "example": "Heads twice, then sides twice"
+      }
+    }
+  },
+  "danceEditorSquareKindLabel": "Kind of square",
+  "@danceEditorSquareKindLabel": {
+    "description": "Label of the dance editor dropdown for what a square dance record holds: its main part, a break, or patter (square dance, ADR-007)."
+  },
+  "squareKindMain": "Main part",
+  "@squareKindMain": {
+    "description": "Square dance kind: the main part, a phrased figure danced several times through (callers often say 'main figure')."
+  },
+  "squareKindBreak": "Break",
+  "@squareKindBreak": {
+    "description": "Square dance kind: an intro, middle break or ending, danced between or around the main parts."
+  },
+  "squareKindPatter": "Patter",
+  "@squareKindPatter": {
+    "description": "Square dance kind: a free-form sequence the caller strings together, not set to phrases."
+  },
+  "danceEditorRepeatOrderLabel": "Repeat order",
+  "@danceEditorRepeatOrderLabel": {
+    "description": "Label of the dance editor dropdown for how a square dance's main part is repeated (which couples lead each time through)."
+  },
+  "squareRepeatOrderUnstated": "Not stated",
+  "@squareRepeatOrderUnstated": {
+    "description": "Square repeat order: the source does not say."
+  },
+  "squareRepeatOrderHeadsHeadsSidesSides": "Heads twice, then sides twice",
+  "@squareRepeatOrderHeadsHeadsSidesSides": {
+    "description": "Square repeat order: the head couples lead twice, then the side couples twice."
+  },
+  "squareRepeatOrderHeadsSidesHeadsSides": "Heads and sides alternating",
+  "@squareRepeatOrderHeadsSidesHeadsSides": {
+    "description": "Square repeat order: heads lead, then sides, then heads, then sides."
+  },
+  "squareRepeatOrderAllFour": "Four times, everyone active",
+  "@squareRepeatOrderAllFour": {
+    "description": "Square repeat order: danced four times through with every couple active each time."
+  },
+  "squareRepeatOrderOther": "Other",
+  "@squareRepeatOrderOther": {
+    "description": "Square repeat order: something else, described in a text field below."
+  },
+  "danceEditorRepeatOrderOtherLabel": "Repeat order, in your words",
+  "@danceEditorRepeatOrderOtherLabel": {
+    "description": "Label of the dance editor text field that describes a square's repeat order when the dropdown says Other."
+  },
+  "danceEditorNewPartnerLabel": "New partner",
+  "@danceEditorNewPartnerLabel": {
+    "description": "Label of the dance editor dropdown for who each dancer ends with as their new partner each time through a square."
+  },
+  "squareNewPartnerUnstated": "Not stated",
+  "@squareNewPartnerUnstated": {
+    "description": "Square new partner: the source does not say."
+  },
+  "squareNewPartnerNone": "Partners stay the same",
+  "@squareNewPartnerNone": {
+    "description": "Square new partner: dancers keep their partners."
+  },
+  "squareNewPartnerCorner": "Corner",
+  "@squareNewPartnerCorner": {
+    "description": "Square new partner: the corner becomes the new partner."
+  },
+  "squareNewPartnerRightHand": "Right-hand {role}",
+  "@squareNewPartnerRightHand": {
+    "description": "Square new partner: the dancer of the given role standing to the right becomes the new partner. {role} is the dialect's singular term for the second role (for example 'robin').",
+    "placeholders": {
+      "role": {
+        "type": "String",
+        "example": "robin"
+      }
+    }
+  },
+  "squareNewPartnerOpposite": "Opposite",
+  "@squareNewPartnerOpposite": {
+    "description": "Square new partner: the opposite becomes the new partner."
+  },
+  "squareNewPartnerOther": "Other",
+  "@squareNewPartnerOther": {
+    "description": "Square new partner: someone else, described in a text field below."
+  },
+  "danceEditorNewPartnerOtherLabel": "New partner, in your words",
+  "@danceEditorNewPartnerOtherLabel": {
+    "description": "Label of the dance editor text field that describes a square's new partner when the dropdown says Other."
+  },
+  "danceEditorSingingLabel": "Singing call",
+  "@danceEditorSingingLabel": {
+    "description": "Label of the dance editor checkbox marking a square dance's main part as a singing call (a square called to a song)."
+  },
+  "danceEditorSingingSubtitle": "The song goes under Tunes",
+  "@danceEditorSingingSubtitle": {
+    "description": "Subtitle under the singing call checkbox: the song's name is entered in the dance's Tunes field."
+  },
   "danceEditorImproperLabel": "Starts improper",
   "@danceEditorImproperLabel": {
     "description": "Checkbox in the dance editor, offered for English country dances only: the dance starts improper (the first couple crossed over). Unchecked means it starts proper, the default."

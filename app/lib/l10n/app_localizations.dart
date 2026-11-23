@@ -13486,6 +13486,138 @@ abstract class AppLocalizations {
   /// **'Dancers change partners each time through'**
   String get danceEditorMixerSubtitle;
 
+  /// One of a square dance's own fields on its page, such as 'Repeat order: Heads twice, then sides twice'. {field} is the field's label and {value} its value.
+  ///
+  /// In en, this message translates to:
+  /// **'{field}: {value}'**
+  String danceDetailSquareField(String field, String value);
+
+  /// Label of the dance editor dropdown for what a square dance record holds: its main part, a break, or patter (square dance, ADR-007).
+  ///
+  /// In en, this message translates to:
+  /// **'Kind of square'**
+  String get danceEditorSquareKindLabel;
+
+  /// Square dance kind: the main part, a phrased figure danced several times through (callers often say 'main figure').
+  ///
+  /// In en, this message translates to:
+  /// **'Main part'**
+  String get squareKindMain;
+
+  /// Square dance kind: an intro, middle break or ending, danced between or around the main parts.
+  ///
+  /// In en, this message translates to:
+  /// **'Break'**
+  String get squareKindBreak;
+
+  /// Square dance kind: a free-form sequence the caller strings together, not set to phrases.
+  ///
+  /// In en, this message translates to:
+  /// **'Patter'**
+  String get squareKindPatter;
+
+  /// Label of the dance editor dropdown for how a square dance's main part is repeated (which couples lead each time through).
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat order'**
+  String get danceEditorRepeatOrderLabel;
+
+  /// Square repeat order: the source does not say.
+  ///
+  /// In en, this message translates to:
+  /// **'Not stated'**
+  String get squareRepeatOrderUnstated;
+
+  /// Square repeat order: the head couples lead twice, then the side couples twice.
+  ///
+  /// In en, this message translates to:
+  /// **'Heads twice, then sides twice'**
+  String get squareRepeatOrderHeadsHeadsSidesSides;
+
+  /// Square repeat order: heads lead, then sides, then heads, then sides.
+  ///
+  /// In en, this message translates to:
+  /// **'Heads and sides alternating'**
+  String get squareRepeatOrderHeadsSidesHeadsSides;
+
+  /// Square repeat order: danced four times through with every couple active each time.
+  ///
+  /// In en, this message translates to:
+  /// **'Four times, everyone active'**
+  String get squareRepeatOrderAllFour;
+
+  /// Square repeat order: something else, described in a text field below.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get squareRepeatOrderOther;
+
+  /// Label of the dance editor text field that describes a square's repeat order when the dropdown says Other.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat order, in your words'**
+  String get danceEditorRepeatOrderOtherLabel;
+
+  /// Label of the dance editor dropdown for who each dancer ends with as their new partner each time through a square.
+  ///
+  /// In en, this message translates to:
+  /// **'New partner'**
+  String get danceEditorNewPartnerLabel;
+
+  /// Square new partner: the source does not say.
+  ///
+  /// In en, this message translates to:
+  /// **'Not stated'**
+  String get squareNewPartnerUnstated;
+
+  /// Square new partner: dancers keep their partners.
+  ///
+  /// In en, this message translates to:
+  /// **'Partners stay the same'**
+  String get squareNewPartnerNone;
+
+  /// Square new partner: the corner becomes the new partner.
+  ///
+  /// In en, this message translates to:
+  /// **'Corner'**
+  String get squareNewPartnerCorner;
+
+  /// Square new partner: the dancer of the given role standing to the right becomes the new partner. {role} is the dialect's singular term for the second role (for example 'robin').
+  ///
+  /// In en, this message translates to:
+  /// **'Right-hand {role}'**
+  String squareNewPartnerRightHand(String role);
+
+  /// Square new partner: the opposite becomes the new partner.
+  ///
+  /// In en, this message translates to:
+  /// **'Opposite'**
+  String get squareNewPartnerOpposite;
+
+  /// Square new partner: someone else, described in a text field below.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get squareNewPartnerOther;
+
+  /// Label of the dance editor text field that describes a square's new partner when the dropdown says Other.
+  ///
+  /// In en, this message translates to:
+  /// **'New partner, in your words'**
+  String get danceEditorNewPartnerOtherLabel;
+
+  /// Label of the dance editor checkbox marking a square dance's main part as a singing call (a square called to a song).
+  ///
+  /// In en, this message translates to:
+  /// **'Singing call'**
+  String get danceEditorSingingLabel;
+
+  /// Subtitle under the singing call checkbox: the song's name is entered in the dance's Tunes field.
+  ///
+  /// In en, this message translates to:
+  /// **'The song goes under Tunes'**
+  String get danceEditorSingingSubtitle;
+
   /// Checkbox in the dance editor, offered for English country dances only: the dance starts improper (the first couple crossed over). Unchecked means it starts proper, the default.
   ///
   /// In en, this message translates to:

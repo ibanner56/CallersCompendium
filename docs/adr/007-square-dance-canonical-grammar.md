@@ -1334,9 +1334,8 @@ below is this ADR author's call unless it says otherwise.
 The pilot implementation (square taxonomy version 1) differs from §6 and §7
 in the places below. The maintainer kept all nine on 23 November 2026 (§1.1,
 item 7). Where the tables above disagree with these, the code and this list
-win. The pilot lands in topic pull requests: the taxonomy (items 1–8) in
-#2385, and the per-phrase check (item 9) in a later one; until that one
-merges, item 9 describes code still in review.
+win. The pilot landed in topic pull requests: the taxonomy (items 1–8) in
+#2385, and the per-phrase check (item 9) in #2405.
 
 1. A turn's amount is `travel`, contra's name for it, not `turns`.
 2. Three quarters is contra's token `threeQuarter`, not `threeQuarters`.
@@ -1355,6 +1354,22 @@ merges, item 9 describes code still in review.
    value.
 9. The per-phrase check (§5.3) applies to squares only, and a figure that
    starts on a phrase boundary and ends on one is not flagged.
+
+### 12.2 The dance fields' departures from this text
+
+The dance fields of §8.1 differ from its text in these places (this ADR
+author's calls while implementing them):
+
+1. The repeat order is stored as `repeatOrder` (`dances.repeat_order`), not
+   `order`, which beside a dance's other fields reads as a sort order.
+2. What `other` means has its own field for each value, `repeatOrderText`
+   and `newPartnerText`, kept only while the value is `other`, so a value
+   moved off `other` leaves no text behind to store, send or show.
+3. `freeForm` is not stored yet. It is to land together with the editor
+   behavior it turns on, so no build stores a toggle that does nothing.
+4. The Caller's Companion importer reads a square's `SubType` as `HHSS` or
+   `HSHS` only (from "Keeper, H S H S" and the like); any other wording
+   leaves the order unstated rather than guessing.
 
 ---
 

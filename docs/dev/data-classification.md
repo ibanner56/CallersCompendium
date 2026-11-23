@@ -218,7 +218,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**264 columns**: 183 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 31 personal data by category.
+**270 columns**: 189 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 31 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -324,10 +324,16 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `dances` | `mixed_level` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `mixer` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `musical_key` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `dances` | `new_partner` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `dances` | `new_partner_text` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `phrase_structure` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `progression` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `rating` | `dpv:NonPersonalData` | NonPersonalData | app user | shareable | The caller's own curatorial star rating (1..5) of the dance: their opinion, not choreography, so the subject is the app user. Egress: own devices and backups yes, share files no. The app omits it from every dance and program share file (maintainer decision R2-out2-export, 2026-10-30), but Device Sync and Backup keep it. The one output the user sends on that carries it is the dances CSV export, which includes it by maintainer decision (#2332). Kept shareable rather than deviceLocal because deviceLocal means never serialised and would stop sync, which the maintainer wants to keep; the share-file strip lives in the share bundle builders (sanitizeDanceForShare), not in the archive codec. Sync can still reach another person when a store is shared (ADR-004 storeAddress), so "travels in sync" is not "stays on my devices". |
+| `dances` | `repeat_order` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `dances` | `repeat_order_text` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `revised_on` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `dances` | `singing` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `dances` | `square_kind` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `status` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `title` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `tunes_json` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |

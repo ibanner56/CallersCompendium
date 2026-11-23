@@ -9150,6 +9150,80 @@ class AppLocalizationsNl extends AppLocalizations {
       'Dansers wisselen elke keer van partner';
 
   @override
+  String danceDetailSquareField(String field, String value) {
+    return '$field: $value';
+  }
+
+  @override
+  String get danceEditorSquareKindLabel => 'Soort square';
+
+  @override
+  String get squareKindMain => 'Hoofddeel';
+
+  @override
+  String get squareKindBreak => 'Break';
+
+  @override
+  String get squareKindPatter => 'Patter';
+
+  @override
+  String get danceEditorRepeatOrderLabel => 'Herhalingsvolgorde';
+
+  @override
+  String get squareRepeatOrderUnstated => 'Niet vermeld';
+
+  @override
+  String get squareRepeatOrderHeadsHeadsSidesSides =>
+      'Twee keer heads, dan twee keer sides';
+
+  @override
+  String get squareRepeatOrderHeadsSidesHeadsSides =>
+      'Heads en sides om de beurt';
+
+  @override
+  String get squareRepeatOrderAllFour => 'Vier keer, iedereen actief';
+
+  @override
+  String get squareRepeatOrderOther => 'Overig';
+
+  @override
+  String get danceEditorRepeatOrderOtherLabel =>
+      'Herhalingsvolgorde in eigen woorden';
+
+  @override
+  String get danceEditorNewPartnerLabel => 'Nieuwe partner';
+
+  @override
+  String get squareNewPartnerUnstated => 'Niet vermeld';
+
+  @override
+  String get squareNewPartnerNone => 'Partners blijven hetzelfde';
+
+  @override
+  String get squareNewPartnerCorner => 'Corner';
+
+  @override
+  String squareNewPartnerRightHand(String role) {
+    return '$role rechts';
+  }
+
+  @override
+  String get squareNewPartnerOpposite => 'Opposite';
+
+  @override
+  String get squareNewPartnerOther => 'Overig';
+
+  @override
+  String get danceEditorNewPartnerOtherLabel =>
+      'Nieuwe partner in eigen woorden';
+
+  @override
+  String get danceEditorSingingLabel => 'Singing call';
+
+  @override
+  String get danceEditorSingingSubtitle => 'Het lied komt onder Deuntjes';
+
+  @override
   String get danceEditorImproperLabel => 'Begint improper';
 
   @override

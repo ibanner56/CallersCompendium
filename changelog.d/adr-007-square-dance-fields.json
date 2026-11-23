@@ -1,0 +1,15 @@
+{
+  "id": "adr-007-square-dance-fields",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A square dance now records what kind of square it is (main part, break or patter), its repeat order (such as heads twice, then sides twice), who the new partner is each time through, and whether it is a singing call. The editor shows these up front for a square, and the dance's page shows each one that is set.",
+      "Importing a square from Caller's Companion reads its repeat order from the SubType, such as \"Keeper, H S H S\"."
+    ]
+  },
+  "core": {
+    "added": [
+      "Dance.squareKind, repeatOrder, repeatOrderText, newPartner, newPartnerText and singing (ADR-007 §8.1), with the SquareKind, SquareRepeatOrder and SquareNewPartner enums. They join the unreleased schema v42 and archive v8, are kept for every form, and are omitted from archives and sync bodies at their defaults."
+    ]
+  }
+}

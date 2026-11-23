@@ -108,7 +108,8 @@ the FTS and index DDL is `database.dart`.
 dances(id PK, title, form, formation_shape, formation_detail,
        formation_improper, progression, phrase_structure, figures_json, hook,
        calling_notes, meter, musical_key, alternate_titles,
-       barnes_reference, status, level_id NULL,
+       barnes_reference, square_kind, repeat_order, repeat_order_text,
+       new_partner, new_partner_text, singing, status, level_id NULL,
        tunes_json,
        created_at, updated_at, deleted_at, existence_at)
 difficulty_levels(id PK, label UNIQUE, position,
@@ -875,6 +876,18 @@ steps that can still fire are v40 onward.
   reads them: the Title scope and All fields read the other titles, and All
   fields the Barnes reference, from these rows with `LIKE`
   ([search.md](search.md), "Meter, key and interpreters").
+
+  Also in v42, before it shipped: a square dance's own fields (ADR-007 §8.1).
+  `dances.square_kind` holds `Dance.squareKind` as its wire name (`main`,
+  `break`, `patter`; `main` by default); `repeat_order` and `new_partner`
+  hold `Dance.repeatOrder` and `Dance.newPartner` the same way (`unstated` by
+  default); `repeat_order_text` and `new_partner_text` hold what `other`
+  means, `''` unless the value is `other`; and `singing` is a flag, `false`
+  by default. Every existing dance reads as a main part with nothing stated.
+  The values are plain text rather than an enum converter, so a value a newer
+  build wrote reads as the default instead of failing the row. They are
+  stored for every form, as ADR-007 §8.1 chose. Added in the `from < 42`
+  step, each only if absent. No derived index reads them.
 
   Also in v42, before it shipped: program archiving (#2218). Adds the
   nullable `programs.archived_at` column

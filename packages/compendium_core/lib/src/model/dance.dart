@@ -55,6 +55,13 @@ const int kMaxAlternateTitles = 20;
 /// clears it, as it clears the improper flag ([formHasImproperFlag]).
 bool formHasBarnesReference(DanceForm form) => form == DanceForm.ecd;
 
+/// Upper bound on the length of [Dance.repeatOrderText] and
+/// [Dance.newPartnerText], in UTF-16 code units. The [Dance] constructor cuts
+/// a longer value (on a character boundary), so every [Dance] holds the bound
+/// and a file or sync body is clamped rather than rejected; the editor stops
+/// typing at it.
+const int kMaxSquareDetailLength = 200;
+
 /// Upper bound on the length of [Dance.barnesReference], in UTF-16 code
 /// units. The [Dance] constructor cuts a longer value (on a character
 /// boundary), so every [Dance] holds the bound and a file or sync body is
@@ -121,6 +128,12 @@ class Dance {
     this.meter = '',
     this.musicalKey = '',
     String barnesReference = '',
+    this.squareKind = SquareKind.main,
+    this.repeatOrder = SquareRepeatOrder.unstated,
+    String repeatOrderText = '',
+    this.newPartner = SquareNewPartner.unstated,
+    String newPartnerText = '',
+    this.singing = false,
     this.status = DanceStatus.active,
     String? difficultyLevelId,
     DifficultyLevel? level,
@@ -153,6 +166,15 @@ class Dance {
        // or shows it, whatever it was built from.
        barnesReference = formHasBarnesReference(form)
            ? truncateOnRuneBoundary(barnesReference, kMaxBarnesReferenceLength)
+           : '',
+       // The text says what `other` means, so it is kept only with `other`:
+       // a value the dropdown has moved off leaves nothing behind to store,
+       // send or show.
+       repeatOrderText = repeatOrder == SquareRepeatOrder.other
+           ? truncateOnRuneBoundary(repeatOrderText, kMaxSquareDetailLength)
+           : '',
+       newPartnerText = newPartner == SquareNewPartner.other
+           ? truncateOnRuneBoundary(newPartnerText, kMaxSquareDetailLength)
            : '',
        alternateTitles = List.unmodifiable(
          normalizeAlternateTitles(alternateTitles),
@@ -254,6 +276,34 @@ class Dance {
   /// ([formHasBarnesReference]). Never parsed: shown on the dance page and
   /// searched as typed. Printed cards and shared text don't show it yet.
   final String barnesReference;
+
+  /// What a square dance record holds: its main part, a break, or patter
+  /// (ADR-007 §8.1). Defaults to [SquareKind.main]. Like the other square
+  /// fields ([repeatOrder], [newPartner], [singing]) it is kept for every
+  /// form, so a dance whose form is changed and changed back loses nothing,
+  /// and it means something only when [form] is [DanceForm.square].
+  final SquareKind squareKind;
+
+  /// How a square's main part is repeated (ADR-007 §8.1); defaults to
+  /// [SquareRepeatOrder.unstated].
+  final SquareRepeatOrder repeatOrder;
+
+  /// What the order is when [repeatOrder] is [SquareRepeatOrder.other], as
+  /// free text; always `''` otherwise. Bounded by [kMaxSquareDetailLength].
+  final String repeatOrderText;
+
+  /// Who each dancer ends a time through the square with (ADR-007 §8.1);
+  /// defaults to [SquareNewPartner.unstated]. The [mixer] flag stays the
+  /// yes/no class; this says who the new partner is.
+  final SquareNewPartner newPartner;
+
+  /// Who the new partner is when [newPartner] is [SquareNewPartner.other], as
+  /// free text; always `''` otherwise. Bounded by [kMaxSquareDetailLength].
+  final String newPartnerText;
+
+  /// Whether a square's main part is a singing call (ADR-007 §8.1); its song
+  /// goes in the tunes. Defaults to `false`.
+  final bool singing;
   final DanceStatus status;
 
   /// ID of the selected [DifficultyLevel], or `null` when unspecified.
@@ -420,6 +470,12 @@ class Dance {
     String? meter,
     String? musicalKey,
     String? barnesReference,
+    SquareKind? squareKind,
+    SquareRepeatOrder? repeatOrder,
+    String? repeatOrderText,
+    SquareNewPartner? newPartner,
+    String? newPartnerText,
+    bool? singing,
     DanceStatus? status,
     String? difficultyLevelId,
     @Deprecated('Use difficultyLevelId.') DifficultyLevel? level,
@@ -467,6 +523,12 @@ class Dance {
     meter: meter ?? this.meter,
     musicalKey: musicalKey ?? this.musicalKey,
     barnesReference: barnesReference ?? this.barnesReference,
+    squareKind: squareKind ?? this.squareKind,
+    repeatOrder: repeatOrder ?? this.repeatOrder,
+    repeatOrderText: repeatOrderText ?? this.repeatOrderText,
+    newPartner: newPartner ?? this.newPartner,
+    newPartnerText: newPartnerText ?? this.newPartnerText,
+    singing: singing ?? this.singing,
     status: status ?? this.status,
     difficultyLevelId: clearDifficultyLevel
         ? null
@@ -539,6 +601,12 @@ class Dance {
       meter: meter,
       musicalKey: musicalKey,
       barnesReference: barnesReference,
+      squareKind: squareKind,
+      repeatOrder: repeatOrder,
+      repeatOrderText: repeatOrderText,
+      newPartner: newPartner,
+      newPartnerText: newPartnerText,
+      singing: singing,
       status: status,
       difficultyLevelId: difficultyLevelId,
       mixedLevel: mixedLevel,
@@ -587,6 +655,12 @@ class Dance {
       other.meter == meter &&
       other.musicalKey == musicalKey &&
       other.barnesReference == barnesReference &&
+      other.squareKind == squareKind &&
+      other.repeatOrder == repeatOrder &&
+      other.repeatOrderText == repeatOrderText &&
+      other.newPartner == newPartner &&
+      other.newPartnerText == newPartnerText &&
+      other.singing == singing &&
       other.status == status &&
       other.difficultyLevelId == difficultyLevelId &&
       other.mixedLevel == mixedLevel &&

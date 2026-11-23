@@ -732,8 +732,10 @@ Canonical JSON means:
   for a field that is not `shareable`, with one exception: a dance's `meter`,
   `musicalKey`, `formation.improper`, `interpreterIds`, `interpretedOn`,
   `alternateTitles` and `barnesReference` (schema v42) are omitted when they
-  hold their default (`''`, `''`, `false`, `[]`, `null`, `[]`, `''`), and a
-  receiver reads a missing one as that default (§6.7);
+  hold their default (`''`, `''`, `false`, `[]`, `null`, `[]`, `''`), as are
+  the square fields `squareKind` (`main`), `repeatOrder` and `newPartner`
+  (`unstated`), `repeatOrderText` and `newPartnerText` (`''`) and `singing`
+  (`false`), and a receiver reads a missing one as that default (§6.7);
 - **timestamps emitted at exactly one-tick precision** (§2), UTC, with the
   sub-tick component always zero;
 - **all strings in Unicode NFC**, normalised on write as described below.
@@ -3991,8 +3993,10 @@ The exception is the dance fields added after Device Sync shipped, listed in
 `omittedDanceDefaults` and `omittedFormationDefaults`
 (`archive_entity_codec.dart`): `meter`, `musicalKey` and `formation.improper`
 (ADR-006 §12, F2 and F3), `interpreterIds` and `interpretedOn` (ADR-006
-§9.2), and `alternateTitles` and `barnesReference` (ADR-006 §9.2, point 9).
-The sender omits each when it holds its default, so a
+§9.2), `alternateTitles` and `barnesReference` (ADR-006 §9.2, point 9), and
+the square fields `squareKind`, `repeatOrder`, `repeatOrderText`,
+`newPartner`, `newPartnerText` and `singing` (ADR-007 §8.1). The sender omits
+each when it holds its default, so a
 dance that never had one keeps the body, and the content hash, it had before
 the field existed: no device republishes every dance on updating, and a device
 on an older build has nothing to keep for it. A receiver that knows the field
@@ -4022,6 +4026,14 @@ form: only an ECD dance holds one, and a merge the person chose may join
 copies of different forms, so a newer copy of another form leaves the
 survivor's value alone. Neither is part of the choreography fingerprint,
 which a build older than v42 computes without them.
+
+The square fields are taken from the latest copy too, each one omitted when
+that copy leaves it at its default. They are kept for every form, so unlike
+`barnesReference` the latest copy's form does not matter. None is part of the
+choreography fingerprint. A value this build does not know (a newer build's)
+reads as the default, as an unknown `progression` or `status` does, so an
+edit here writes the default back. Each text depends on its value as well as its own
+column (`wire_mapping.dart`): a value moved off `other` drops the text.
 
 **A field the receiver does not sync is kept, not dropped and not applied.**
 Any part of an inbound body that the receiver does not classify `shareable` for

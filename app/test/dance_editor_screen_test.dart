@@ -3351,6 +3351,67 @@ void main() {
       expect(saved.composedOn, PartialDate(1695));
     });
 
+    testWidgets("a square's own fields sit up front for a square, and the "
+        "text of an `other` saves (ADR-007 §8.1)", (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Circle Three Quarters').copyWith(
+          form: DanceForm.square,
+          repeatOrder: SquareRepeatOrder.other,
+          newPartner: SquareNewPartner.rightHandRole2,
+        ),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      // Up front: found without opening More details.
+      for (final key in ['square-kind', 'repeat-order', 'new-partner']) {
+        expect(find.byKey(ValueKey('$key-field')), findsOneWidget);
+      }
+      expect(find.text('Right-hand robin'), findsOneWidget);
+      // The text field shows only for `other`.
+      expect(
+        find.byKey(const ValueKey('new-partner-text-field')),
+        findsNothing,
+      );
+      final text = find.byKey(const ValueKey('repeat-order-text-field'));
+      await tester.enterText(text, ' Heads once, sides once ');
+      await tester.tap(find.byKey(const ValueKey('singing-field')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      final saved = (await repos.dances.getById('d1'))!;
+      expect(saved.repeatOrderText, 'Heads once, sides once');
+      expect(saved.newPartner, SquareNewPartner.rightHandRole2);
+      expect(saved.singing, isTrue);
+    });
+
+    testWidgets('only a main part offers the singing call box', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Break',
+        ).copyWith(form: DanceForm.square, squareKind: SquareKind.breakPart),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      expect(find.byKey(const ValueKey('square-kind-field')), findsOneWidget);
+      expect(find.byKey(const ValueKey('singing-field')), findsNothing);
+    });
+
+    testWidgets("another form keeps a square's own fields in More details", (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Contra'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      expect(find.byKey(const ValueKey('square-kind-field')), findsNothing);
+      await _expandMoreDetails(tester);
+      expect(find.byKey(const ValueKey('square-kind-field')), findsOneWidget);
+    });
+
     testWidgets('other titles and the Barnes reference load, and save '
         'one title per line with blanks and repeats dropped', (tester) async {
       final repos = openTestRepositories();

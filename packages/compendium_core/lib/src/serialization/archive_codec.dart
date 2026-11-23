@@ -715,6 +715,20 @@ Dance _danceFromJson(Map<String, Object?> m) => Dance(
   musicalKey: _clampLength(_strOr(m, 'musicalKey', ''), kMaxMusicLabelLength),
   // Bounded by the [Dance] constructor, as every dance is.
   barnesReference: _strOr(m, 'barnesReference', ''),
+  // The square fields (ADR-007 §8.1). An unknown value (a newer build's)
+  // reads as the default rather than failing the dance; the texts are
+  // bounded by the [Dance] constructor.
+  squareKind:
+      SquareKind.fromWireName(_strOrNull(m, 'squareKind')) ?? SquareKind.main,
+  repeatOrder:
+      SquareRepeatOrder.fromWireName(_strOrNull(m, 'repeatOrder')) ??
+      SquareRepeatOrder.unstated,
+  repeatOrderText: _strOr(m, 'repeatOrderText', ''),
+  newPartner:
+      SquareNewPartner.fromWireName(_strOrNull(m, 'newPartner')) ??
+      SquareNewPartner.unstated,
+  newPartnerText: _strOr(m, 'newPartnerText', ''),
+  singing: _boolOr(m, 'singing', false),
   status: _enumByNameOr(
     DanceStatus.values,
     m['status'],
