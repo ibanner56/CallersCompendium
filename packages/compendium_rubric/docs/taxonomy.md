@@ -1495,7 +1495,7 @@ To be defined later with worked examples.
 - **h4 contribution** (D7): 0.
 - **progression-eligible:** no.
 - **corpus note (2026-11-22):** of the 42 Caller's Box dances this figure unblocked, 2
-  compile. Of the rest, 33 refuse at a `swing` with `whoMismatch` (typically "ones swing" or
+  compile. Of the rest, 32 refuse at a `swing` with `whoMismatch` (typically "ones swing" or
   "twos swing", which a side swing pairs by column while the actives stand across the set) and
   5 at this figure's own `who` check; the rest stop at other figures.
 - **sources:** user ruling 2026-11-22; CallersCompendium taxonomy `contra_corners` MoveDef. The
