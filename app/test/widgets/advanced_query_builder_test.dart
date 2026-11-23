@@ -1287,5 +1287,26 @@ void _paramChoiceTests() {
         findsOneWidget,
       );
     });
+
+    testWidgets('a section no dance has still shows as the row\'s phrase '
+        '(#2325)', (tester) async {
+      // A saved search can name a phrase the collection no longer has; the
+      // row still narrows the search by it, so it must not read as blank.
+      final figure = BuilderFigure(move: 'swing', section: 'C1');
+      await _pump(
+        tester,
+        root: BuilderGroup(children: [figure]),
+        sectionLabels: const ['A', 'B'],
+      );
+      expect(tester.takeException(), isNull);
+      expect(
+        find.descendant(
+          of: find.byKey(ValueKey('section-${figure.id}')),
+          matching: find.text('C1'),
+        ),
+        findsOneWidget,
+      );
+      expect(figure.section, 'C1');
+    });
   });
 }
