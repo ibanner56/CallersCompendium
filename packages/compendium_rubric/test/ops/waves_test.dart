@@ -395,6 +395,41 @@ void main() {
       }
     });
 
+    test('a couple standing out at an end does not step in', () {
+      // Gypsy for Chris & Sara (Caller's Box #9779) opens with a slide
+      // left, which leaves a couple standing out in each end row. "Men walk
+      // forward; form long wave in center" then "Women walk forward" crashed
+      // when the standing-out man had stepped in too: the settle does not
+      // cover his row, so the woman beside him stepped onto his cell.
+      final slid = OperationInvocation(
+        const SlideAlongSet(),
+        progression: true,
+      ).apply(startingFormation(FormationType.becketCw, handsFour: 3));
+      final out = (slid as Ok<Formation, OpError>).value;
+      final bands = handsFourBands(out);
+      final active = {
+        for (final band in bands) ...[band.topRow, band.bottomRow],
+      };
+      final standingOut = [
+        for (final entry in out.dancers.entries)
+          if (!active.contains(entry.value.row)) entry.key,
+      ];
+      expect(standingOut, isNotEmpty, reason: 'the slide leaves a couple out');
+
+      final men = applyOk(const FormALongWave(who: WhoSet.role1s), out);
+      for (final id in standingOut) {
+        expect(men.stateOf(id), out.stateOf(id), reason: '$id is standing out');
+      }
+      // And the women can follow them in: no two dancers share a cell.
+      final women = applyOk(
+        const FormALongWave(who: WhoSet.role2s, stepsOut: true),
+        men,
+      );
+      for (final id in standingOut) {
+        expect(women.stateOf(id), out.stateOf(id), reason: '$id');
+      }
+    });
+
     test('stepping out is the settling rule, and needs no code of its own', () {
       final centre = applyOk(const FormALongWave(who: WhoSet.role1s), start);
       final after = applyOk(
@@ -420,7 +455,10 @@ void main() {
     test('a rank that cannot seat the wave is refused, not approximated', () {
       final error = applyErr(
         const FormALongWave(who: WhoSet.role1s),
-        di(const ['R1-A . . . L1-A', 'L2-B . . . R2-B', 'R1-C . . . .']),
+        // The top rank holds two robins and no lark, inside an active hands
+        // four. Only rows inside a hands four step in, so the rank has to be
+        // inside one for the refusal to be reached.
+        di(const ['R1-A . . . R2-B', 'L2-B . . . L1-A']),
       );
 
       expect(error.kind, ErrorKind.unresolvableDancerSet);
