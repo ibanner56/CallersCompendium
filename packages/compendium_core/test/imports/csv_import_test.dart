@@ -573,6 +573,49 @@ void main() {
       });
     });
 
+    test('an existing choice field grown by two new columns keeps every '
+        'option', () async {
+      final _ = await fields.upsert(
+        CustomFieldDef(
+          id: 'f-mood',
+          key: 'mood',
+          label: 'Mood',
+          type: CustomFieldType.choice,
+          choices: const ['x'],
+        ),
+      );
+      final cols = [
+        const CsvColumnMapping(CsvColumnTarget.title),
+        const CsvColumnMapping.newCustomField('Mood', CustomFieldType.choice),
+        const CsvColumnMapping.newCustomField('Mood', CustomFieldType.choice),
+        const CsvColumnMapping.newCustomField('Mood', CustomFieldType.choice),
+      ];
+      final m = CsvImportMapping(
+        separator: ',',
+        hasHeader: true,
+        columns: cols,
+        existingFields: {for (final f in await fields.listAll()) f.id: f},
+      );
+      final batch = await plan(
+        'Title,M1,M2,M3\r\nA,a,,\r\nB,,b,\r\nC,,,c\r\n',
+        m,
+      );
+      final result = await importer.commit(
+        batch,
+        mapping: m,
+        now: now,
+        newId: _ids(),
+      );
+      expect(result.session.records.where((r) => r.error != null), isEmpty);
+      final defs = await fields.listAll();
+      expect(defs.single.choices, ['x', 'a', 'b', 'c']);
+      expect((await dances.listAll()).map((d) => d.title).toSet(), {
+        'A',
+        'B',
+        'C',
+      });
+    });
+
     test('a new text field keeps a long value whole', () async {
       const cols = [
         CsvColumnMapping(CsvColumnTarget.title),

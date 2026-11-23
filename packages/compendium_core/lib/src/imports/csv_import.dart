@@ -35,9 +35,11 @@ class CsvImportSession {
 ///
 /// - A tag is matched by name, ignoring case and surrounding space, or
 ///   created.
-/// - A new custom field is created once, under a key derived from its label
-///   and kept distinct from the caller's own keys; a choice field takes its
-///   choices from the values the committed rows carry.
+/// - A new custom field reuses a field of the same type and label, the
+///   caller's own or one an earlier column created; otherwise it is created
+///   once, under a key derived from its label and kept distinct from the
+///   caller's own keys. A choice field takes, or gains, its choices from the
+///   values the committed rows carry.
 ///
 /// If the commit fails, what it created is removed before the error is
 /// rethrown. [undo] reverts the dances, then removes the created tags and
@@ -189,8 +191,9 @@ class CsvImporter {
           : const <String>{};
       // A field of this name and type already there (made by an earlier
       // commit from this sheet, such as Import and edit on one row, an
-      // earlier column of this one, or the caller's own) is reused rather than doubled; a choice field gains the
-      // options it lacks. It is not this commit's to remove.
+      // earlier column of this one, or the caller's own) is reused rather
+      // than doubled; a choice field gains the options it lacks. It is not
+      // this commit's to remove.
       final same = existing
           .where((f) => f.type == type && csvFold(f.label) == csvFold(label))
           .firstOrNull;
@@ -198,18 +201,20 @@ class CsvImporter {
         final missing = choices.difference({...?same.choices});
         if (missing.isNotEmpty) {
           // An update in place: the id stays the field's own.
-          final _ = await _customFields.upsert(
-            CustomFieldDef(
-              id: same.id,
-              key: same.key,
-              label: same.label,
-              type: same.type,
-              choices: [...?same.choices, ...missing],
-              showInList: same.showInList,
-              searchable: same.searchable,
-              shareable: same.shareable,
-            ),
+          final grown = CustomFieldDef(
+            id: same.id,
+            key: same.key,
+            label: same.label,
+            type: same.type,
+            choices: [...?same.choices, ...missing],
+            showInList: same.showInList,
+            searchable: same.searchable,
+            shareable: same.shareable,
           );
+          final _ = await _customFields.upsert(grown);
+          // A later column of this name grows it from here, not from the
+          // options it had before.
+          existing[existing.indexOf(same)] = grown;
         }
         result[placeholder] = same.id;
         continue;
