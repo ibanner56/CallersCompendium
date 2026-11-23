@@ -13969,4 +13969,105 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsExperimentalShowRepertoireSubtitle =>
       'Fügt dem Menü „Weitere Aktionen“ der Sammlung „Repertoire“ hinzu: deine am häufigsten und seltensten aufgerufenen Tänze, was du nie aufgerufen hast, Häufigkeit der Figuren, Autoren, Formationen und Wiederholungen je Veranstaltungsort.';
+
+  @override
+  String get importSourceLabelCsv => 'Deine eigene Tabelle (CSV)';
+
+  @override
+  String get importCsvPickFile => 'CSV-Datei wählen …';
+
+  @override
+  String get importCsvSaveAsHint =>
+      'Wähle in deinem Tabellenprogramm Datei ▸ Speichern unter (oder Herunterladen) und „CSV UTF-8“, und wähle dann diese Datei hier.';
+
+  @override
+  String get importCsvMapTitle => 'Spalten zuordnen';
+
+  @override
+  String get importCsvMapIntro =>
+      'Wähle, was jede Spalte enthält. Spalten auf „Ignorieren“ werden ausgelassen. Nichts wird hinzugefügt, bevor du prüfst und bestätigst.';
+
+  @override
+  String get importCsvSeparatorLabel => 'Trennzeichen';
+
+  @override
+  String get importCsvSeparatorComma => 'Komma (,)';
+
+  @override
+  String get importCsvSeparatorSemicolon => 'Semikolon (;)';
+
+  @override
+  String get importCsvSeparatorTab => 'Tabulator';
+
+  @override
+  String get importCsvFirstRowHeader => 'Die erste Zeile benennt die Spalten';
+
+  @override
+  String importCsvColumnFallback(int number) {
+    return 'Spalte $number';
+  }
+
+  @override
+  String get importCsvTargetIgnore => 'Ignorieren';
+
+  @override
+  String importCsvTargetPhrase(String phrase) {
+    return 'Figuren, $phrase';
+  }
+
+  @override
+  String importCsvTargetNewField(String type) {
+    return 'Neues eigenes Feld ($type)';
+  }
+
+  @override
+  String importCsvTargetExistingField(String name) {
+    return 'Eigenes Feld: $name';
+  }
+
+  @override
+  String get importCsvNeedsTitle =>
+      'Wähle die Spalte, die den Titel jedes Tanzes enthält.';
+
+  @override
+  String get importCsvContinue => 'Weiter';
+
+  @override
+  String get importCsvPreviewHeading => 'Erste Zeilen';
+
+  @override
+  String get importCsvNotUtf8 =>
+      'Diese Datei ist nicht als UTF-8-Text gespeichert, daher kämen Umlaute und Akzente falsch an. Speichere sie in deinem Tabellenprogramm erneut als „CSV UTF-8“ und wähle diese Datei.';
+
+  @override
+  String get importCsvTooLarge =>
+      'Diese Datei ist zu groß zum Importieren. Teile sie in kleinere Dateien auf.';
+
+  @override
+  String importCsvTooManyRows(int limit) {
+    return 'Diese Datei hat mehr als $limit Zeilen. Teile sie in kleinere Dateien auf.';
+  }
+
+  @override
+  String importCsvTooManyColumns(int limit) {
+    return 'Eine Zeile dieser Datei hat mehr als $limit Spalten.';
+  }
+
+  @override
+  String importCsvCellTooLong(int limit) {
+    return 'Eine Zelle dieser Datei ist länger als $limit Zeichen.';
+  }
+
+  @override
+  String get importCsvUnterminatedQuote =>
+      'Diese Datei hat eine Zelle in Anführungszeichen, die nie endet, daher kann sie nicht gelesen werden.';
+
+  @override
+  String importCsvLargeBatch(int count) {
+    return 'Diese Datei hat $count Zeilen. Das Prüfen kann eine Weile dauern.';
+  }
+
+  @override
+  String get importCsvNoRows =>
+      'Diese Datei hat keine Zeilen mit Tänzen, nur die Spaltennamen.';
 }

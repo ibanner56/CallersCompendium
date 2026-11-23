@@ -13333,5 +13333,109 @@
   "settingsExperimentalShowRepertoireSubtitle": "Fügt dem Menü „Weitere Aktionen“ der Sammlung „Repertoire“ hinzu: deine am häufigsten und seltensten aufgerufenen Tänze, was du nie aufgerufen hast, Häufigkeit der Figuren, Autoren, Formationen und Wiederholungen je Veranstaltungsort.",
   "@settingsExperimentalShowRepertoireSubtitle": {
     "x-sourceSha256": "f537bb665c51db4ea2f7bebe359ced80907a25a71ab9fee34cf7c48159b6e946"
+  },
+  "importSourceLabelCsv": "Deine eigene Tabelle (CSV)",
+  "@importSourceLabelCsv": {
+    "x-sourceSha256": "9da38651a5a702664efb34eceb35b14d12b6934834c6b3d30162dcc1a8c20a96"
+  },
+  "importCsvPickFile": "CSV-Datei wählen …",
+  "@importCsvPickFile": {
+    "x-sourceSha256": "3bb43e45815cd926a5fdc5fc234a382e7ca35f88ece0d4f9d4ea4abf1a867690"
+  },
+  "importCsvSaveAsHint": "Wähle in deinem Tabellenprogramm Datei ▸ Speichern unter (oder Herunterladen) und „CSV UTF-8“, und wähle dann diese Datei hier.",
+  "@importCsvSaveAsHint": {
+    "x-sourceSha256": "3aa1ebd55b632f5a421fc0ed140c9486b22de931f544872cddeca51e7b3ca625"
+  },
+  "importCsvMapTitle": "Spalten zuordnen",
+  "@importCsvMapTitle": {
+    "x-sourceSha256": "2778414273d997932756c9192b6ef4fbe57879654b3ea446f34ef54f5d5da1f3"
+  },
+  "importCsvMapIntro": "Wähle, was jede Spalte enthält. Spalten auf „Ignorieren“ werden ausgelassen. Nichts wird hinzugefügt, bevor du prüfst und bestätigst.",
+  "@importCsvMapIntro": {
+    "x-sourceSha256": "4d62456f1068a41b7ca803b120ba5d409420b6a2a3d3b31d99a578c3278da1ab"
+  },
+  "importCsvSeparatorLabel": "Trennzeichen",
+  "@importCsvSeparatorLabel": {
+    "x-sourceSha256": "be237eda7fff4fd3596647c9665e5ec5f502602c74167b939b587a2abcbda156"
+  },
+  "importCsvSeparatorComma": "Komma (,)",
+  "@importCsvSeparatorComma": {
+    "x-sourceSha256": "88363d66de700d9e04f806c6061a9c51b45c97568683e215327efeee8ca0cbd2"
+  },
+  "importCsvSeparatorSemicolon": "Semikolon (;)",
+  "@importCsvSeparatorSemicolon": {
+    "x-sourceSha256": "599d532f1133a280ee5a238cf1e25ab1155a94281ad4636681c45bf12c04172d"
+  },
+  "importCsvSeparatorTab": "Tabulator",
+  "@importCsvSeparatorTab": {
+    "x-sourceSha256": "90ddf1963abb36c9921ce7f1ac9cbd94c9176d13e57c418d3d3c20ce44291c1c"
+  },
+  "importCsvFirstRowHeader": "Die erste Zeile benennt die Spalten",
+  "@importCsvFirstRowHeader": {
+    "x-sourceSha256": "ce568b5b5d818b6357d3f150a6917d074f9ea7f3867bb565f9b176122c1fd2a0"
+  },
+  "importCsvColumnFallback": "Spalte {number}",
+  "@importCsvColumnFallback": {
+    "x-sourceSha256": "e9a03bca31e4f537d8edfcd9d9b62cd8d8d848ead504e6f46fe121af6ecabc6c"
+  },
+  "importCsvTargetIgnore": "Ignorieren",
+  "@importCsvTargetIgnore": {
+    "x-sourceSha256": "fce77c34d3fec98733dd4c29f1592a92e60e93e43f0bfe8690c91160ae7efebe"
+  },
+  "importCsvTargetPhrase": "Figuren, {phrase}",
+  "@importCsvTargetPhrase": {
+    "x-sourceSha256": "ccde59a8941c6dda4db79f6be209702d4b154bfd4b38b9161fd87a905861a101"
+  },
+  "importCsvTargetNewField": "Neues eigenes Feld ({type})",
+  "@importCsvTargetNewField": {
+    "x-sourceSha256": "569155455b946e4dc1eba8e3f5d45cb8667f7bcd2e1429545770340d08f3296d"
+  },
+  "importCsvTargetExistingField": "Eigenes Feld: {name}",
+  "@importCsvTargetExistingField": {
+    "x-sourceSha256": "ccca5cc4ed6d5700d62324937469253825ff3c52ebc51b9430afb5135790b05b"
+  },
+  "importCsvNeedsTitle": "Wähle die Spalte, die den Titel jedes Tanzes enthält.",
+  "@importCsvNeedsTitle": {
+    "x-sourceSha256": "44f3de11d4f78aa9301dd21d319448923afea067c421fb741fe346e13af97301"
+  },
+  "importCsvContinue": "Weiter",
+  "@importCsvContinue": {
+    "x-sourceSha256": "31fbef162594de01bab0cd525c51f74de7bcb15063029fa1a54b2cf5944c80d8"
+  },
+  "importCsvPreviewHeading": "Erste Zeilen",
+  "@importCsvPreviewHeading": {
+    "x-sourceSha256": "6b6f9a093dd6fe0455e331bbe10ec04415c2970206d9ecd6ab16378c4739da2b"
+  },
+  "importCsvNotUtf8": "Diese Datei ist nicht als UTF-8-Text gespeichert, daher kämen Umlaute und Akzente falsch an. Speichere sie in deinem Tabellenprogramm erneut als „CSV UTF-8“ und wähle diese Datei.",
+  "@importCsvNotUtf8": {
+    "x-sourceSha256": "d1247bdaab67d98f64224bd3a8385c7c38636d89e8147210f0ddfa6926cccf22"
+  },
+  "importCsvTooLarge": "Diese Datei ist zu groß zum Importieren. Teile sie in kleinere Dateien auf.",
+  "@importCsvTooLarge": {
+    "x-sourceSha256": "624f8e7da215ff26de3e13d343254ba34a3c8a639b346197af3b342071d5f5a0"
+  },
+  "importCsvTooManyRows": "Diese Datei hat mehr als {limit} Zeilen. Teile sie in kleinere Dateien auf.",
+  "@importCsvTooManyRows": {
+    "x-sourceSha256": "9dd028326beac2b7c69df122c4e2a71a553ef4f5ac863b7d48d3281abddb3f84"
+  },
+  "importCsvTooManyColumns": "Eine Zeile dieser Datei hat mehr als {limit} Spalten.",
+  "@importCsvTooManyColumns": {
+    "x-sourceSha256": "33cf9e59d741fc496c92702b5feb2b945fe8571e2cec997b97a0c9bef2d96122"
+  },
+  "importCsvCellTooLong": "Eine Zelle dieser Datei ist länger als {limit} Zeichen.",
+  "@importCsvCellTooLong": {
+    "x-sourceSha256": "fb96e6d3fcf0208086dbc3e1de30edb1e86ee72c6b6d31df316215362767caa2"
+  },
+  "importCsvUnterminatedQuote": "Diese Datei hat eine Zelle in Anführungszeichen, die nie endet, daher kann sie nicht gelesen werden.",
+  "@importCsvUnterminatedQuote": {
+    "x-sourceSha256": "0cd019b41f719dea2fead39abe869ba4af54e5169d331d98347876f06e45909d"
+  },
+  "importCsvLargeBatch": "Diese Datei hat {count} Zeilen. Das Prüfen kann eine Weile dauern.",
+  "@importCsvLargeBatch": {
+    "x-sourceSha256": "080ae6dfc02b9c624a85963f3a307e9c9b9da220ea7d494ead52c35d7bc8e808"
+  },
+  "importCsvNoRows": "Diese Datei hat keine Zeilen mit Tänzen, nur die Spaltennamen.",
+  "@importCsvNoRows": {
+    "x-sourceSha256": "38b4b25fdfbc56624e65823fcc8e0f756c7ce28b778905609c4a58344eaf71d2"
   }
 }

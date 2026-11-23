@@ -13315,4 +13315,102 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsExperimentalShowRepertoireSubtitle =>
       'コレクションの「その他のアクション」メニューに「レパートリー」を追加します。コール回数が多いダンスと少ないダンス、一度もコールしていないダンス、フィギュアの出現頻度、作者、フォーメーション、会場ごとの繰り返しを表示します。';
+
+  @override
+  String get importSourceLabelCsv => '自分の表計算ファイル（CSV）';
+
+  @override
+  String get importCsvPickFile => 'CSV ファイルを選択…';
+
+  @override
+  String get importCsvSaveAsHint =>
+      '表計算アプリで［ファイル］▸［名前を付けて保存］（または［ダウンロード］）を選び、「CSV UTF-8」を選んでから、そのファイルをここで選択してください。';
+
+  @override
+  String get importCsvMapTitle => '列の割り当て';
+
+  @override
+  String get importCsvMapIntro =>
+      '各列の内容を選んでください。「無視」にした列は取り込まれません。確認して確定するまで何も追加されません。';
+
+  @override
+  String get importCsvSeparatorLabel => '区切り文字';
+
+  @override
+  String get importCsvSeparatorComma => 'カンマ（,）';
+
+  @override
+  String get importCsvSeparatorSemicolon => 'セミコロン（;）';
+
+  @override
+  String get importCsvSeparatorTab => 'タブ';
+
+  @override
+  String get importCsvFirstRowHeader => '1 行目は列名';
+
+  @override
+  String importCsvColumnFallback(int number) {
+    return '列 $number';
+  }
+
+  @override
+  String get importCsvTargetIgnore => '無視';
+
+  @override
+  String importCsvTargetPhrase(String phrase) {
+    return 'フィギュア、$phrase';
+  }
+
+  @override
+  String importCsvTargetNewField(String type) {
+    return '新しいカスタムフィールド（$type）';
+  }
+
+  @override
+  String importCsvTargetExistingField(String name) {
+    return 'カスタムフィールド：$name';
+  }
+
+  @override
+  String get importCsvNeedsTitle => '各ダンスのタイトルが入っている列を選んでください。';
+
+  @override
+  String get importCsvContinue => '続ける';
+
+  @override
+  String get importCsvPreviewHeading => '最初の行';
+
+  @override
+  String get importCsvNotUtf8 =>
+      'このファイルは UTF-8 テキストで保存されていないため、アクセント付きの文字が正しく取り込まれません。表計算アプリで「CSV UTF-8」として保存し直し、そのファイルを選択してください。';
+
+  @override
+  String get importCsvTooLarge => 'このファイルは大きすぎて取り込めません。小さなファイルに分けてください。';
+
+  @override
+  String importCsvTooManyRows(int limit) {
+    return 'このファイルには $limit 行を超える行があります。小さなファイルに分けてください。';
+  }
+
+  @override
+  String importCsvTooManyColumns(int limit) {
+    return 'このファイルのある行には $limit を超える列があります。';
+  }
+
+  @override
+  String importCsvCellTooLong(int limit) {
+    return 'このファイルのあるセルは $limit 文字を超えています。';
+  }
+
+  @override
+  String get importCsvUnterminatedQuote =>
+      'このファイルには終わりのない引用符付きのセルがあるため、読み込めません。';
+
+  @override
+  String importCsvLargeBatch(int count) {
+    return 'このファイルには $count 行あります。確認に時間がかかることがあります。';
+  }
+
+  @override
+  String get importCsvNoRows => 'このファイルには列名だけで、ダンスの行がありません。';
 }
