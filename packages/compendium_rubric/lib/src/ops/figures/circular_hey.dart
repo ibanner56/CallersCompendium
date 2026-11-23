@@ -13,10 +13,23 @@ part of '../operation.dart';
 ///
 /// The first axis is read from the formation rather than from `where`: the
 /// Caller's Box records almost never state `where`, so the import fills its
-/// default (`across`) even where neighbours stand along the set. `shoulder`,
-/// `who2` and `where` are carried for fidelity and move nobody.
+/// default (`across`) even where neighbours stand along the set. `shoulder`
+/// and `where` are carried for fidelity and move nobody.
 ///
-/// Facing is kept, as `square_through` keeps it.
+/// A stated `who2` is **checked**, not just carried: after the first pass it
+/// must name the two pairs then standing on the other axis, or the figure
+/// refuses with [ErrorKind.whoMismatch]. A `who2` reaching another hands four
+/// is deferred ([ErrorKind.unsupportedParam]), because only `who` chooses the
+/// band phase (`shadows` there is deferred at parse time for the same reason).
+///
+/// `who` must name two pairs in every hands four, so `ones`, `twos` and the
+/// role sets, which name one, are refused rather than read as implying the
+/// other pair. *(Agent's call.)*
+///
+/// Facing: one change keeps it, since everyone walked straight through. After
+/// more, each pass turned the dancers to face the next, so facing is left
+/// flexible for the next figure to resolve, as `square_through`'s contract
+/// says.
 final class CircularHey extends Operation {
   const CircularHey({
     this.who = WhoSet.neighbors,
@@ -53,6 +66,14 @@ final class CircularHey extends Operation {
   /// Whether the first pass is along the set (a row swap) rather than across
   /// it, read from where the `who` pairs stand in every hands four.
   Result<bool, OpError> _firstAlong(Formation formation) {
+    if (who == WhoSet.everyone) {
+      return const Err(
+        OpError(
+          ErrorKind.unresolvableDancerSet,
+          'circular_hey needs a pairing to pass first; everyone names none',
+        ),
+      );
+    }
     bool? along;
     for (final band in handsFourBands(formation)) {
       final pairs = resolveWhoPairs(
@@ -72,14 +93,8 @@ final class CircularHey extends Operation {
         );
       }
       for (final pair in pairs) {
-        final a = formation.stateOf(pair.a).position;
-        final b = formation.stateOf(pair.b).position;
-        final bool pairAlong;
-        if (a.col == b.col) {
-          pairAlong = true;
-        } else if (a.row == b.row) {
-          pairAlong = false;
-        } else {
+        final pairAlong = _isAlong(formation, pair);
+        if (pairAlong == null) {
           return Err(
             OpError(
               ErrorKind.unresolvableDancerSet,
@@ -103,27 +118,91 @@ final class CircularHey extends Operation {
     return Ok(along ?? true);
   }
 
+  /// `true` along the set, `false` across it, `null` diagonal.
+  static bool? _isAlong(Formation formation, DancerPair pair) {
+    final a = formation.stateOf(pair.a).position;
+    final b = formation.stateOf(pair.b).position;
+    if (a.col == b.col) return true;
+    if (a.row == b.row) return false;
+    return null;
+  }
+
+  /// The swap on one axis, for every hands four.
+  static Formation _pass(Formation formation, {required bool along}) =>
+      reflectBands(formation, rows: along, columns: !along);
+
+  /// Checks a stated [who2] against the ring after the first pass.
+  OpError? _checkWho2(Formation formation, bool firstAlong) {
+    final second = who2;
+    if (second == null || changes < 2) return null;
+    if (second.isCrossHandsFour || second == WhoSet.everyone) {
+      return OpError(
+        ErrorKind.unsupportedParam,
+        'circular_hey who2:${second.key} is deferred: only who chooses which '
+        'hands four the ring is danced in',
+      );
+    }
+    final afterFirst = _pass(formation, along: firstAlong);
+    for (final band in handsFourBands(afterFirst)) {
+      final pairs = resolveWhoPairs(
+        afterFirst,
+        second,
+        topRow: band.topRow,
+        bottomRow: band.bottomRow,
+      );
+      final onSecondAxis =
+          pairs.length == 2 &&
+          pairs.every((pair) => _isAlong(afterFirst, pair) == !firstAlong);
+      if (!onSecondAxis) {
+        return OpError(
+          ErrorKind.whoMismatch,
+          'circular_hey names ${second.key} to pass second, but after the '
+          'first pass the dancers facing each other '
+          '${firstAlong ? 'across' : 'along'} the set in rows '
+          '${band.topRow}-${band.bottomRow} are not ${second.key}',
+        );
+      }
+    }
+    return null;
+  }
+
+  Result<bool, OpError> _validate(Formation formation) {
+    if (changes < 1) {
+      return Err(
+        OpError(
+          ErrorKind.unsupportedParam,
+          'circular_hey needs at least one change, not $changes',
+        ),
+      );
+    }
+    return _firstAlong(formation).flatMap((firstAlong) {
+      final error = _checkWho2(formation, firstAlong);
+      return error == null ? Ok(firstAlong) : Err(error);
+    });
+  }
+
   @override
   OpError? checkPreconditions(Formation formation) =>
-      switch (_firstAlong(formation)) {
+      switch (_validate(formation)) {
         Ok() => null,
         Err(:final error) => error,
       };
 
   @override
   Result<Formation, OpError> perform(Formation formation) =>
-      _firstAlong(formation).map((firstAlong) {
+      _validate(formation).map((firstAlong) {
         // Passes alternate first axis, other axis, first, other: by `net`
         // changes the first axis has been crossed ceil(net/2) times and the
         // other floor(net/2) times, and only the parity of each matters.
         final net = changes % 4;
         final first = net == 1 || net == 2;
         final second = net == 2 || net == 3;
-        return reflectBands(
+        final moved = reflectBands(
           formation,
           rows: firstAlong ? first : second,
           columns: firstAlong ? second : first,
         );
+        return changes == 1 ? moved : loosenBandFacing(moved);
       });
 
   @override

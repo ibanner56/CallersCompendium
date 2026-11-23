@@ -636,7 +636,8 @@ Operation _buildCircularHey(_Params p) => CircularHey(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.neighbors),
   changes: p.intOr(['changes'], 4),
   shoulder: p.enumOr(['shoulder'], Hand.fromKey, Hand.right),
-  who2: p.optionalEnum(['who2'], WhoSet.fromKey),
+  // Outside dancerSets, so shadows here cannot choose the band phase.
+  who2: p.optionalWhoBesidesShadows(['who2']),
   where: p.enumOr(['where'], Direction.fromKey, Direction.across),
 );
 

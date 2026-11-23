@@ -28,11 +28,11 @@
 > count from 2,795 to 2,801, the core set unchanged at 397. The tables below
 > count all six in their new rows but keep the September per-figure numbers.
 
-The compiler implements 52 canonical figures. Twenty-nine have no deliberately
-deferred parameter values, 23 have an implemented core with explicit
+The compiler implements 52 canonical figures. Twenty-eight have no deliberately
+deferred parameter values, 24 have an implemented core with explicit
 deferrals, and one of the figures this table has tracked since September
-remains entirely deferred (taxonomy v36 to v40 added five more, of which `circular_hey` is now built; see
-`implementation.md` §15). The `meanwhile` and `modifier` structural containers are also
+remains entirely deferred (taxonomy v36 to v40 added five more, of which
+`circular_hey` is now built; see `implementation.md` §15). The `meanwhile` and `modifier` structural containers are also
 deferred, but they are not normal taxonomy moves and are therefore counted
 separately. A `sequence` container is danced as the figures it holds
 (`implementation.md` §10.1).
@@ -51,8 +51,8 @@ the implementation may have a defect.
 
 | Status | Count | Figures |
 | --- | ---: | --- |
-| **Full parameter surface** | 29 | `arch_and_dive`, `balance`, `balance_the_ring`, `box_circulate`, `box_the_gnat`, `butterfly_whirl`, `california_twirl`, `circle`, `circular_hey`, `contra_corners`, `courtesy_turn`, `facing_star`, `form_a_long_wave`, `form_long_waves`, `give_and_take`*, `pass_by`, `pass_the_ocean`, `petronella`, `revolving_door`, `roll_away`, `rory_o_more`, `slide_along_set`, `square_through`, `stand_still`, `star`, `star_through`, `turn_alone`, `turn_as_couples`, `zig_zag` |
-| **Implemented with explicit deferrals** | 23 | `allemande`, `chain`, `cross_trails`, `do_si_do`, `down_the_hall`, `figure_8`, `form_short_waves`, `gate`, `hey`, `long_lines`, `mad_robin`, `orbit`, `pass_through`, `poussette`, `promenade`, `pull_by`, `right_left_through`, `shoulder_round`, `slice`, `star_promenade`, `swing`, `two_hand_turn`, `up_the_hall` |
+| **Full parameter surface** | 28 | `arch_and_dive`, `balance`, `balance_the_ring`, `box_circulate`, `box_the_gnat`, `butterfly_whirl`, `california_twirl`, `circle`, `contra_corners`, `courtesy_turn`, `facing_star`, `form_a_long_wave`, `form_long_waves`, `give_and_take`*, `pass_by`, `pass_the_ocean`, `petronella`, `revolving_door`, `roll_away`, `rory_o_more`, `slide_along_set`, `square_through`, `stand_still`, `star`, `star_through`, `turn_alone`, `turn_as_couples`, `zig_zag` |
+| **Implemented with explicit deferrals** | 24 | `allemande`, `chain`, `circular_hey`, `cross_trails`, `do_si_do`, `down_the_hall`, `figure_8`, `form_short_waves`, `gate`, `hey`, `long_lines`, `mad_robin`, `orbit`, `pass_through`, `poussette`, `promenade`, `pull_by`, `right_left_through`, `shoulder_round`, `slice`, `star_promenade`, `swing`, `two_hand_turn`, `up_the_hall` |
 | **Entirely deferred canonical figures** | 1 | `dolphin_hey` |
 | **Deferred structural constructs** | 2 | `meanwhile`, which represents simultaneous figures, and `modifier`, which changes a core figure with ordered modifier figures; neither is an ordinary taxonomy move |
 

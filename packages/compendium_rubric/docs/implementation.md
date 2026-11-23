@@ -742,7 +742,7 @@ rest cannot pass for the wrong reason.
 
 ## 15. Current state and known debt
 
-- **1,219 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,230 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **52 figures registered**, plus 7 upstream aliases resolved to them
@@ -803,7 +803,9 @@ rest cannot pass for the wrong reason.
 - **Deferred param values inside implemented figures** raise
   `unsupportedParam` — notably diagonal and `along` `right_left_through`,
   `chain dir:along`, `swing where:center`, `long_lines goBack:false`, and
-  `hey`'s partial lengths and non-`across` `dir`. Three taxonomy v39 values are
+  `hey`'s partial lengths and non-`across` `dir`, and a `circular_hey` `who2`
+  reaching another hands four (`shadows` there is a parse-time deferral). Three
+  taxonomy v39 values are
   refused earlier, at parse time, as a deferred `DanceParseError`: a
   `forward_and_back` outside long lines, a `figure_8` marked `double`, and a
   `circle` or `star` whose `places` is stated `unspecified`.
