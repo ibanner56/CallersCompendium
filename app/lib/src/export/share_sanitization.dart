@@ -58,11 +58,15 @@ Dance sanitizeDanceForShare(Dance dance) =>
 /// was added, 2026-11-18, recorded in #2218: sync and backups keep it, share
 /// files drop it), so a
 /// recipient always gets a program that shows in their list.
+/// The calendar event key a calendar import stored (#2352) goes too: the
+/// recipient has no such calendar, and the key is a digest of a third party's
+/// event identifier (registry `programs.calendar_event_key`).
 /// See [sanitizeDanceForShare] for why this is not an egress class.
 Program sanitizeProgramForShare(Program program) => program.copyWith(
   clearPay: true,
   clearDialectName: true,
   clearArchivedAt: true,
+  clearCalendarEventKey: true,
 );
 
 /// The six contact-person PII fields on a [Venue] (the two contacts' name,

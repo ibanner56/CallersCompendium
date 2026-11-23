@@ -365,6 +365,11 @@ enum UrlFetchFailureReason {
   emptyResponse,
   // A URL shared through the operating system matched no supported import type.
   unsupportedSharedLink,
+
+  /// A calendar import (#2352) fetched something that is not an iCalendar
+  /// document — most often an HTML page, such as a private Google Calendar's
+  /// ordinary link instead of its iCal address.
+  notACalendar,
   // The Caller's Box.
   callersBoxEmptyInput,
   callersBoxInvalidUrl,
@@ -776,6 +781,109 @@ Future<String> fetchImportUrl(String url, {http.Client? client}) async {
   final body = response.body;
   if (body.trim().isEmpty) {
     throw const UrlFetchException(UrlFetchFailureReason.emptyResponse);
+  }
+  return body;
+}
+
+/// The address a calendar feed is fetched from: `webcal://` (and
+/// `webcals://`) rewritten to `https://`, anything else unchanged, so the
+/// usual address rules still apply (`https` only).
+String calendarFeedFetchUrl(String url) {
+  final trimmed = url.trim();
+  final lower = trimmed.toLowerCase();
+  for (final scheme in const ['webcals://', 'webcal://']) {
+    if (lower.startsWith(scheme)) {
+      return 'https://${trimmed.substring(scheme.length)}';
+    }
+  }
+  return trimmed;
+}
+
+/// Undoes RFC 5545 line folding (§3.1) on raw bytes: each line break (CRLF,
+/// or a bare LF) followed by one space or tab is removed. Done before UTF-8
+/// decoding because §3.1 warns that some generators fold in the middle of a
+/// multi-byte character, which decoding first would turn into U+FFFD.
+@visibleForTesting
+List<int> unfoldICalendarBytes(List<int> bytes) {
+  final out = <int>[];
+  var i = 0;
+  while (i < bytes.length) {
+    final b = bytes[i];
+    if (b == 0x0D &&
+        i + 2 < bytes.length &&
+        bytes[i + 1] == 0x0A &&
+        (bytes[i + 2] == 0x20 || bytes[i + 2] == 0x09)) {
+      i += 3;
+      continue;
+    }
+    if (b == 0x0A &&
+        i + 1 < bytes.length &&
+        (bytes[i + 1] == 0x20 || bytes[i + 1] == 0x09)) {
+      i += 2;
+      continue;
+    }
+    out.add(b);
+    i++;
+  }
+  return out;
+}
+
+/// Fetches a calendar feed (#2352) through the same guarded path as every
+/// other online import ([_sendGuarded]): `https` only, no redirect to `http`,
+/// the private-network guard ([isBlockedImportHost]) on every hop, at most
+/// [importMaxRedirects] redirects, [importFetchTimeout], and
+/// [importMaxResponseBytes].
+///
+/// `webcal://` is rewritten first ([calendarFeedFetchUrl]). The body is
+/// unfolded ([unfoldICalendarBytes]) and then decoded as UTF-8, iCalendar's
+/// default, whatever the response's charset says. A body with no `BEGIN:VCALENDAR` throws
+/// [UrlFetchFailureReason.notACalendar]. As in [fetchImportUrl], no failure
+/// carries the address.
+Future<String> fetchCalendarFeed(String url, {http.Client? client}) async {
+  final target = calendarFeedFetchUrl(url);
+  if (target.isEmpty) {
+    throw const UrlFetchException(UrlFetchFailureReason.emptyUrl);
+  }
+  final ownClient = client == null;
+  final effectiveClient = client ?? http.Client();
+  final http.Response response;
+  try {
+    response = await _sendGuarded(
+      target,
+      effectiveClient,
+    ).timeout(importFetchTimeout);
+  } on UrlFetchException {
+    // diagnostics: silent — rethrown as is; logged at the UI boundary
+    rethrow;
+  } on TimeoutException {
+    // diagnostics: silent — converts to UrlFetchException(timeout) and rethrows; logged at the UI boundary
+    throw UrlFetchException(
+      UrlFetchFailureReason.timeout,
+      timeoutSeconds: importFetchTimeout.inSeconds,
+    );
+  } on Object {
+    // diagnostics: silent — converts to UrlFetchException(unreachable) and rethrows;
+    // Never interpolate the error/URL here: a private calendar's address
+    // holds a secret token.
+    throw const UrlFetchException(UrlFetchFailureReason.unreachable);
+  } finally {
+    if (ownClient) effectiveClient.close();
+  }
+  if (response.statusCode < 200 || response.statusCode >= 300) {
+    throw UrlFetchException(
+      UrlFetchFailureReason.httpStatus,
+      statusCode: response.statusCode,
+    );
+  }
+  final body = utf8.decode(
+    unfoldICalendarBytes(response.bodyBytes),
+    allowMalformed: true,
+  );
+  if (body.trim().isEmpty) {
+    throw const UrlFetchException(UrlFetchFailureReason.emptyResponse);
+  }
+  if (!body.toUpperCase().contains('BEGIN:VCALENDAR')) {
+    throw const UrlFetchException(UrlFetchFailureReason.notACalendar);
   }
   return body;
 }

@@ -649,6 +649,25 @@ final Map<String, DataClassification> fieldClassifications = {
         'recipient always gets an unarchived program. Kept shareable because '
         'deviceLocal would stop sync.',
   ),
+  'programs.calendar_event_key': const DataClassification(
+    term: DpvTerm.unclassifiedPersonal,
+    subject: DataSubject.thirdParty,
+    egress: EgressClass.shareable,
+    note:
+        'The calendar event a program was imported from (#2352, schema v42): '
+        'a SHA-256 digest of the event\'s UID and recurrence id, never the '
+        'UID itself; NULL for a program not imported from a calendar. Possibly '
+        'personal and third-party because UIDs are minted by whoever\'s '
+        'calendar software created the event: most are opaque, but some '
+        'generators build them from an email address or host name, and a '
+        'digest of such a value is pseudonymous, still personal data. Storing '
+        'the digest means the address itself is never stored. Shareable so '
+        'Device Sync carries it and the caller\'s other devices do not offer '
+        'the same event again; kept in the caller\'s own backups; stripped '
+        'from share files (sanitizeProgramForShare), like pay, since a '
+        'recipient has no use for it. Classification proposed by Claude and '
+        'approved with the issue (maintainer, issue review, 2026-11-22).',
+  ),
 
   // --------------------------------------------------------- program_slots --
   'program_slots.id': _key,

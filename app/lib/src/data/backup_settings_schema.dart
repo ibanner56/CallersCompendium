@@ -9,6 +9,11 @@ import 'confirm_before_delete_scope.dart' show kConfirmBeforeDeleteKey;
 import 'capitalize_figures_scope.dart' show kCapitalizeFiguresKey;
 import 'decimal_turns_scope.dart' show kDecimalTurnsKey;
 import 'show_custom_figures_scope.dart' show kShowCustomFiguresKey;
+import 'calendar_import_settings.dart'
+    show
+        calendarImportWindowFromStored,
+        kCalendarImportTitleFilterKey,
+        kCalendarImportWindowMonthsKey;
 import 'calling_card_settings_scope.dart'
     show CallingCardSettings, kCallingCardSettingsKey;
 import 'show_glossary_scope.dart' show kShowGlossaryKey;
@@ -224,6 +229,10 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // Seconds the Undo prompt stays, or 0 for "until I close it": only a value
   // Settings offers, so a restore cannot set a duration the picker cannot show.
   kUndoPromptSecondsKey: _isUndoPromptSeconds,
+  // Only a window Settings offers (#2352).
+  kCalendarImportWindowMonthsKey: (v) =>
+      v is int && calendarImportWindowFromStored(v) == v,
+  kCalendarImportTitleFilterKey: _isString,
 
   // Structured container blobs. Their controllers decode the CONTENTS
   // defensively (skipping bad entries), so here we only enforce the outer

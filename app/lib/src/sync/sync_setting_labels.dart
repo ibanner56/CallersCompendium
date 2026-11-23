@@ -126,6 +126,8 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'track_history_for_all_callers' =>
     l10n.settingsGeneralTrackHistoryForAllCallersTitle,
   'undo_prompt_seconds' => l10n.settingsGeneralUndoPromptTitle,
+  'calendar_import_window_months' => l10n.calendarWindowTitle,
+  'calendar_import_title_filter' => l10n.calendarTitleFilterTitle,
   'venue_call_count' => l10n.settingsProgramVenueCallCountTitle,
   'venue_entity_mode' => l10n.settingsGeneralVenueEntityModeTitle,
   'verbose_figure_rendering' => l10n.settingsGeneralVerboseFiguresTitle,

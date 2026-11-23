@@ -30,6 +30,7 @@ import '../widgets/skeleton.dart';
 import '../widgets/sync_now_action.dart';
 import '../widgets/weekday_header_strip.dart';
 import 'app_shell_search_scope.dart';
+import 'calendar_import_screen.dart';
 import 'contradb_program_import_screen.dart';
 import 'plaintext_program_import_screen.dart';
 import 'program_editor_screen.dart';
@@ -39,11 +40,12 @@ import 'recently_deleted_screen.dart';
 import '../widgets/adaptive_fab.dart';
 
 /// The program-import sources offered by the Programs list "Import" menu.
-enum _ProgramImportSource { plaintext, contraDb }
+enum _ProgramImportSource { plaintext, contraDb, calendar }
 
 enum _ProgramsCompactAction {
   importPlaintext,
   importContraDb,
+  importCalendar,
   exportCalendar,
   toggleArchived,
   recentlyDeleted,
@@ -736,6 +738,16 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
     }
   }
 
+  /// Opens the calendar import (#2352). It creates drafts and offers Undo
+  /// itself; the list shows them through its stream.
+  Future<void> _openCalendarImport() async {
+    await Navigator.of(context).push<List<String>>(
+      MaterialPageRoute<List<String>>(
+        builder: (_) => const CalendarImportScreen(),
+      ),
+    );
+  }
+
   Future<void> _softDelete(Program program, List<String> focusAfter) async {
     _pendingFocusIds = focusAfter;
     var deleted = false;
@@ -882,6 +894,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                 onSelected: (source) => switch (source) {
                   _ProgramImportSource.plaintext => _openPlaintextImport(),
                   _ProgramImportSource.contraDb => _openContraDbImport(),
+                  _ProgramImportSource.calendar => _openCalendarImport(),
                 },
                 itemBuilder: (context) => [
                   PopupMenuItem(
@@ -899,6 +912,15 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
                     child: ListTile(
                       leading: const Icon(Icons.cloud_download_outlined),
                       title: Text(l10n.importFromContraDb),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  PopupMenuItem(
+                    key: const ValueKey('programs-import-calendar'),
+                    value: _ProgramImportSource.calendar,
+                    child: ListTile(
+                      leading: const Icon(Icons.event_outlined),
+                      title: Text(l10n.importFromCalendar),
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
@@ -1068,6 +1090,8 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
             _openPlaintextImport();
           case _ProgramsCompactAction.importContraDb:
             _openContraDbImport();
+          case _ProgramsCompactAction.importCalendar:
+            _openCalendarImport();
           case _ProgramsCompactAction.exportCalendar:
             _exportCalendar();
           case _ProgramsCompactAction.toggleArchived:
@@ -1084,6 +1108,11 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
         PopupMenuItem(
           value: _ProgramsCompactAction.importContraDb,
           child: Text(l10n.importProgramFromContraDb),
+        ),
+        PopupMenuItem(
+          key: const ValueKey('programs-import-calendar'),
+          value: _ProgramsCompactAction.importCalendar,
+          child: Text(l10n.importProgramFromCalendar),
         ),
         _exportCalendarMenuItem(l10n),
         _showArchivedMenuItem(l10n),

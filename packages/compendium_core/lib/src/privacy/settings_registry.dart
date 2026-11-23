@@ -489,6 +489,23 @@ final Map<String, DataClassification> settingsClassifications = {
   // data), so it gets the same classification.
   'ecd_convert_prompt_dismissed': _backupLocalState,
   'update_auto_check': _backupLocalState,
+  'calendar_feed_url': const DataClassification(
+    term: DpvTerm.unclassifiedPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.deviceLocal,
+    note:
+        'The address of the online calendar the calendar import reads (#2352). '
+        'Withheld for what it contains: a private calendar\'s secret address '
+        'embeds an access token. deviceLocal, not deviceScoped: it means the '
+        'same on another device. Never synced, so each device configures its '
+        'own (one address per device, maintainer decision); kept out of backup '
+        'files too, by the maintainer\'s decision (issue draft review, '
+        '2026-11-22), so a restore asks for it again (kBackupSettingsDenylist); '
+        'redacted from diagnostics (collectSensitiveTerms) and never put into '
+        'a message.',
+  ),
+  'calendar_import_window_months': _preference,
+  'calendar_import_title_filter': _preference,
   'update_beta_channel': _backupLocalState,
   'update_dismissed_version': _backupLocalState,
   // The end-of-life date the update manifest announced for *this build*. It

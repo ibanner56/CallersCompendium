@@ -1855,6 +1855,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     // The builder never edits this itself (Archive and Unarchive write it
     // directly), so the stored value always stands.
     archivedAt: live.archivedAt,
+    // The editor never edits it: the stored one stands (#2352).
+    calendarEventKey: live.calendarEventKey,
     provenance: live.provenance,
   );
 
@@ -3104,6 +3106,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       updatedAt: now,
       deletedAt: existing?.deletedAt,
       archivedAt: before != null ? before.archivedAt : existing?.archivedAt,
+      // Not editable here, so the stored key stands; dropping it would make
+      // the next calendar import offer the event again (#2352).
+      calendarEventKey: before != null
+          ? before.calendarEventKey
+          : existing?.calendarEventKey,
       provenance: existing?.provenance,
     );
     if (existing != null) {

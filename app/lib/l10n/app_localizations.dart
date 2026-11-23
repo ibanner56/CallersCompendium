@@ -18892,6 +18892,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t share this calendar file. Try again.'**
   String get exportCalendarShareError;
+
+  /// Error when a calendar import's address returns something that is not an iCalendar file, often a web page. Mentions where Google Calendar shows its iCal address.
+  ///
+  /// In en, this message translates to:
+  /// **'That address didn\'t return a calendar. For a Google Calendar, use its address in iCal format (Settings and sharing ▸ Integrate calendar), not the ordinary link.'**
+  String get importErrorNotACalendar;
+
+  /// Programs import menu item: import gigs from the user's online calendar as draft programs.
+  ///
+  /// In en, this message translates to:
+  /// **'From calendar'**
+  String get importFromCalendar;
+
+  /// More actions menu item on narrow screens: import gigs from the user's online calendar as draft programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from calendar'**
+  String get importProgramFromCalendar;
+
+  /// Title of the calendar import screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from calendar'**
+  String get calendarImportTitle;
+
+  /// App-bar button on the calendar import screen that creates the ticked draft programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get calendarImportImport;
+
+  /// Label of the field holding the online calendar's iCal (.ics) address.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar address'**
+  String get calendarAddressLabel;
+
+  /// Helper text under the calendar address field.
+  ///
+  /// In en, this message translates to:
+  /// **'The calendar\'s iCal address, starting https:// or webcal://. A private calendar\'s secret address works too; keep it to yourself.'**
+  String get calendarAddressHelper;
+
+  /// Button on the calendar import screen that reads the calendar now.
+  ///
+  /// In en, this message translates to:
+  /// **'Fetch events'**
+  String get calendarImportFetch;
+
+  /// Generic failure message of the calendar import.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t import from the calendar. Try again.'**
+  String get calendarImportFailed;
+
+  /// Title given to a calendar event with no usable title, in the preview and on the draft program it becomes.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled event'**
+  String get calendarImportUntitled;
+
+  /// Snack bar after a calendar import created draft programs; offers Undo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 draft program added from your calendar.} other{{count} draft programs added from your calendar.}}'**
+  String calendarImportCommitted(int count);
+
+  /// Shown on the calendar import preview when the calendar has no events in range.
+  ///
+  /// In en, this message translates to:
+  /// **'No events in the date range.'**
+  String get calendarImportNothingFound;
+
+  /// Summary at the top of the calendar import preview.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No new events.} =1{1 new event.} other{{count} new events.}}'**
+  String calendarImportSummary(int count);
+
+  /// Heading over the new calendar events, ticked, in the calendar import preview.
+  ///
+  /// In en, this message translates to:
+  /// **'New in your calendar'**
+  String get calendarImportNewHeader;
+
+  /// Heading over calendar events whose imported program is in Recently deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'You deleted these programs'**
+  String get calendarImportDeletedHeader;
+
+  /// Note on a calendar event whose imported program is in Recently deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'You deleted the program made from this event. Tick it to import it again.'**
+  String get calendarImportDeletedNote;
+
+  /// Heading over calendar events already imported as programs; they are not offered again.
+  ///
+  /// In en, this message translates to:
+  /// **'Already imported'**
+  String get calendarImportAlreadyHeader;
+
+  /// Heading over calendar events that this app exported from its own programs; they are not offered.
+  ///
+  /// In en, this message translates to:
+  /// **'From this app'**
+  String get calendarImportFromThisAppHeader;
+
+  /// Heading over repeating calendar events whose repeat rule the app cannot read.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeating events the app can\'t read'**
+  String get calendarImportUnreadableHeader;
+
+  /// Body under the heading for unreadable repeating events.
+  ///
+  /// In en, this message translates to:
+  /// **'These repeat in a way the app doesn\'t understand, so they are not imported.'**
+  String get calendarImportUnreadableBody;
+
+  /// Note in the calendar import preview: events with no UID cannot be recognised again, so they are skipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 event has no identifier and was skipped.} other{{count} events have no identifier and were skipped.}}'**
+  String calendarImportSkippedNoUid(int count);
+
+  /// Note in the calendar import preview when the feed is over the event cap.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, other{The calendar has more than {count} events. Only the first {count} were read.}}'**
+  String calendarImportTruncated(int count);
+
+  /// Settings ▸ Program subsection heading for the calendar import.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get calendarSettingsHeader;
+
+  /// Snack bar when a calendar setting could not be saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save that setting. Try again.'**
+  String get calendarSettingsSaveError;
+
+  /// Subtitle of the calendar address setting when an address is stored. The address itself is never shown.
+  ///
+  /// In en, this message translates to:
+  /// **'Set. Tap to change it.'**
+  String get calendarAddressSet;
+
+  /// Subtitle of the calendar address setting when none is stored.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get calendarAddressNotSet;
+
+  /// Title of the calendar import's date-window setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Which events'**
+  String get calendarWindowTitle;
+
+  /// Subtitle of the calendar import's date-window setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Events from today up to this far ahead. Repeating events are read only 30 days ahead.'**
+  String get calendarWindowSubtitle;
+
+  /// An option in the calendar import's date-window setting.
+  ///
+  /// In en, this message translates to:
+  /// **'{months, plural, =1{1 month} other{{months} months}}'**
+  String calendarWindowOption(int months);
+
+  /// Title of the calendar import's title-filter setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Only events whose title contains'**
+  String get calendarTitleFilterTitle;
+
+  /// Helper text of the calendar import's title-filter field.
+  ///
+  /// In en, this message translates to:
+  /// **'For a calendar that also holds other events. Leave empty for every event.'**
+  String get calendarTitleFilterHelper;
+
+  /// Subtitle of the title-filter setting when no filter is set.
+  ///
+  /// In en, this message translates to:
+  /// **'Every event'**
+  String get calendarTitleFilterNone;
+
+  /// Subtitle of the title-filter setting showing the stored filter in quotes.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{filter}\"'**
+  String calendarTitleFilterValue(String filter);
+
+  /// Settings item that opens the calendar import.
+  ///
+  /// In en, this message translates to:
+  /// **'Pull now'**
+  String get calendarPullNowTitle;
+
+  /// Subtitle of the Pull now settings item.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the calendar and choose events to add as draft programs.'**
+  String get calendarPullNowSubtitle;
 }
 
 class _AppLocalizationsDelegate

@@ -55,15 +55,18 @@ direction the list opens with, see
   have since deleted is left out). With two or more templates, **New program**
   first asks which one to start from — your **Default template** is listed
   first and marked — or **Blank program**; with one template or none it opens
-  the builder straight away, using the Default template. Templates apply only
-  here — not to imported or duplicated programs, programs someone shared with
-  you, or **Create a new program with this dance**.
+  the builder straight away, using the Default template. The Default template
+  also fills the drafts a [calendar import](#import-programs-from-your-calendar)
+  creates. Templates don't apply to other imported or duplicated programs,
+  programs someone shared with you, or **Create a new program with this
+  dance**.
 - **Import one** from the **Import program** menu (the import icon in the
-  **Programs** toolbar), which offers two sources — **From title list** (paste a
-  set list you already have) and **From ContraDB** (pull an event straight from
-  the online archive). On a narrow screen, these sit in the **More actions** menu
-  as **Import from title list** and **Import from ContraDB**. Both are described
-  below.
+  **Programs** toolbar), which offers three sources — **From title list** (paste
+  a set list you already have), **From ContraDB** (pull an event straight from
+  the online archive) and **From calendar** (draft programs for the gigs in your
+  online calendar). On a narrow screen, these sit in the **More actions** menu
+  as **Import from title list**, **Import from ContraDB** and **Import from
+  calendar**. All three are described below.
 - **Sync** with your other devices from the **Sync now** icon in the
   **Programs** toolbar. It appears only while [Device
   Sync](./settings.md#device-sync) is on and a store is connected, and shows a
@@ -214,6 +217,70 @@ dance at a time, and you can **Cancel** it. If the app can't reach the archives,
 or you cancel or leave the screen before it finishes, no program is created and
 any dances it had already brought in are removed again, so you can simply try
 again later.
+
+### Import programs from your calendar
+
+If you keep your bookings in an online calendar, the app can read it and turn
+each gig into a **draft program** for you to fill in. It only reads: nothing is
+ever written back to your calendar.
+
+1. Find your calendar's **iCal address** — a link ending in `.ics`, or starting
+   `webcal://`. In Google Calendar it is under the calendar's **Settings and
+   sharing ▸ Integrate calendar**: the public address in iCal format, or the
+   secret one for a private calendar. The calendar's ordinary link is a web page,
+   not a calendar, and the app says so.
+2. Choose **From calendar** in the **Import program** menu (or **Import from
+   calendar** on a narrow screen), or **Pull now** in
+   [Settings ▸ Program ▸ Calendar](./settings.md#calendar). Paste the address and
+   choose **Fetch events**. The app remembers it on this device.
+3. Review the list, then choose **Import**.
+
+The app goes online only when you choose **Fetch events**: never in the
+background, on a timer, or when you come back to the app.
+
+**Which events are offered.**
+
+- Events from **today** up to 6 months ahead. You can choose 3 or 12 months
+  instead, and offer only events whose title contains a word such as "contra",
+  in [Settings ▸ Program ▸ Calendar](./settings.md#calendar). Past events are
+  never offered, and nor are cancelled ones.
+- **Repeating events** are read only **30 days ahead**, whatever the date range,
+  so a weekly series never floods your list. Each occurrence becomes its own
+  draft, and a later import picks up the next ones as they come within 30 days.
+  A series that repeats in a way the app can't read (anything beyond every so
+  many days, weeks, months or years, on given weekdays such as "second
+  Saturday", or on given days of the month) is listed under **Repeating events
+  the app can't read** and not imported. The app never guesses.
+- Events with no identifier can't be recognised next time, so they are skipped,
+  and the list says how many.
+
+**What each draft gets.** The event's title (or **Untitled event**), its date,
+and the first part of its location as the venue — "Glen Echo Park, 7300
+MacArthur Blvd, …" becomes **Glen Echo Park**. If that matches the name of a
+saved [venue](./glossary.md#venue), the draft is linked to it. The rest of the
+location, usually a street address, is not kept. Nor is the event's
+description, organiser, guests or link: that is where other people's names,
+emails and phone numbers live. The draft starts with your **Default template**,
+**Default caller** and **Default band** from
+[Settings ▸ Defaults](./settings.md#program-defaults), and its status is
+**Draft**.
+
+**No duplicates.** Each imported program remembers which event it came from, so
+the next import lists that event as **Already imported** and does not offer it
+again — even if the event has since changed in your calendar. That memory
+travels with [Device Sync](./settings.md#device-sync), so your other devices
+recognise it too once they have synced. (If two devices import the same
+calendar before either has synced, both create the program; delete one.)
+
+- If you deleted the program made from an event, the event is listed under **You
+  deleted these programs**, unticked; tick it to import it again. Once the
+  program has left **Recently deleted** for good, the event counts as new.
+- Events you put in your calendar with **Add to calendar (.ics)** from this app
+  are listed under **From this app** and not offered, because the program is
+  already here.
+
+**Undo.** After **Import**, a message says how many draft programs were added,
+with **Undo** to remove them all again.
 
 ## Build a program
 
