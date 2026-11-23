@@ -131,6 +131,9 @@ void main() {
       // Counter-rotating two-ring single-file figure.
       'Single file promenade around the major set to N3 '
           '(men cw in center, women ccw on outside)',
+      // Not corpus wording: a single-file whole-set line with no rotation
+      // word names no direction to travel, annotation or not (#2331).
+      'Single file promenade around the major set to N2',
     ]) {
       test(line, () => expect(_single(line).isCustom, isTrue));
     }

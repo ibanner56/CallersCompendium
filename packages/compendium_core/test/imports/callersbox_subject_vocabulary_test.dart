@@ -94,6 +94,16 @@ void main() {
     }
   });
 
+  group('an "or" annotation that is not an amount alternative', () {
+    // Controls for the amount-alternative veto (#2331): an annotation that
+    // merely contains "or" still structures, with the words as its note.
+    test('"Neighbor allemande right (or LLFB)" structures', () {
+      final f = parse('Neighbor allemande right (or LLFB)');
+      expect(f.move, 'allemande');
+      expect(f.note, 'or LLFB');
+    });
+  });
+
   group('S-prefix shadow codes', () {
     const cases = <String, String>{
       'S-1 shadow allemande left 1': 'shadows',
