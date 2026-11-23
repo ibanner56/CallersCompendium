@@ -740,9 +740,9 @@ class _Scorer {
       rows: [..._rowsBefore, row, ..._rowsAfter],
       collisionMode: request.collisionMode,
     );
-    // Each colliding move, with the first neighbour it collides with (the
-    // dance before, then the dance after; within a side, a group's primary
-    // before its alternates).
+    // Each colliding move, with the first neighbour it collides with, in
+    // [ProgramMatrix.neighborRowIndices] order: the side before, then the
+    // side after, nearest row first.
     final colliding = <String, int>{};
     for (final key in row.beatSpansByMove.keys) {
       final first = matrix
