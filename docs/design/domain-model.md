@@ -154,9 +154,13 @@ decide what counts and override all four.
   clockwise ½"). As for the other kinds, `params['beats']` is the count
   section math reads, but the editor keeps it equal to the **sum** of the
   steps' own counts: a step shows its own Beats field and the container shows
-  only the total. That total must fit **one phrase** of the dance
-  (`PhraseStructure.longestPhraseBeats`, 16 for the standard structure): the
-  editor will not group, convert, ungroup into, or add a step past it. Editing
+  only the total. That total must fit **the phrase it starts in**
+  (`PhraseStructure.phraseBeatsAt`, 16 for every phrase of the standard
+  structure; a sequence may start partway through that phrase and run over its
+  line, so long as it is no longer than the phrase): the editor will not
+  group, convert, ungroup into, or add a step past it. Until 23 November 2026
+  the limit was the dance's longest phrase, which let a sequence overrun a
+  shorter one unflagged; the maintainer changed it. Editing
   a step already in the sequence (its move or beats) or the phrase structure
   is not blocked, so `deriveSections` adds a `sequence_exceeds_phrase` warning
   for any sequence, top-level or nested, that is longer, and the dance can

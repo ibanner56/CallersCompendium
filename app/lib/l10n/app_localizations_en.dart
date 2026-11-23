@@ -5209,7 +5209,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String danceEditorSequenceOverPhraseTimed(String length, String limit) {
-    return 'This sequence is $length, longer than one phrase ($limit).';
+    return 'This sequence is $length, longer than its phrase ($limit).';
   }
 
   @override
@@ -9232,7 +9232,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String validationSequenceExceedsPhrase(int position, int actual, int limit) {
-    return 'A sequence in figure $position is $actual beats, longer than one phrase ($limit beats).';
+    return 'A sequence in figure $position is $actual beats, longer than its phrase ($limit beats).';
   }
 
   @override
@@ -9255,7 +9255,7 @@ class AppLocalizationsEn extends AppLocalizations {
     String actual,
     String limit,
   ) {
-    return 'A sequence in figure $position is $actual, longer than one phrase ($limit).';
+    return 'A sequence in figure $position is $actual, longer than its phrase ($limit).';
   }
 
   @override
@@ -9907,12 +9907,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String danceEditorSequenceOverPhrase(int beats, int limit) {
-    return 'This sequence is $beats beats, longer than one phrase ($limit beats).';
+    return 'This sequence is $beats beats, longer than its phrase ($limit beats).';
   }
 
   @override
   String danceEditorSequencePhraseFull(int limit) {
-    return 'These figures fill one phrase ($limit beats).';
+    return 'These figures fill their phrase ($limit beats).';
   }
 
   @override

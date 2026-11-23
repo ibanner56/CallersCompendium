@@ -5007,7 +5007,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String danceEditorSequenceOverPhraseTimed(String length, String limit) {
-    return 'このシーケンスは$lengthで、1フレーズ（$limit）より長くなっています。';
+    return 'このシーケンスは$lengthで、始まるフレーズ（$limit）より長くなっています。';
   }
 
   @override
@@ -8899,7 +8899,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String validationSequenceExceedsPhrase(int position, int actual, int limit) {
-    return 'フィギュア$positionのシーケンスは$actual拍で、1フレーズ（$limit拍）より長くなっています。';
+    return 'フィギュア$positionのシーケンスは$actual拍で、始まるフレーズ（$limit拍）より長くなっています。';
   }
 
   @override
@@ -8922,7 +8922,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String actual,
     String limit,
   ) {
-    return 'フィギュア$positionのシーケンスは$actualで、1フレーズ（$limit）より長くなっています。';
+    return 'フィギュア$positionのシーケンスは$actualで、始まるフレーズ（$limit）より長くなっています。';
   }
 
   @override
@@ -9555,12 +9555,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String danceEditorSequenceOverPhrase(int beats, int limit) {
-    return 'このシーケンスは$beats拍で、1フレーズ（$limit拍）より長くなっています。';
+    return 'このシーケンスは$beats拍で、始まるフレーズ（$limit拍）より長くなっています。';
   }
 
   @override
   String danceEditorSequencePhraseFull(int limit) {
-    return 'これらのフィギュアで1フレーズ（$limit拍）が埋まっています。';
+    return 'これらのフィギュアで、始まるフレーズ（$limit拍）が埋まっています。';
   }
 
   @override

@@ -529,8 +529,9 @@ such a unit and reads it in one of three ways, in order:
     totals are unchanged; each child keeps only its own note.
   - The block stays **flat**, the children emitted one by one with the name
     as a `note` on the FIRST child (the reading before container titles),
-    when it cannot be a sequence: longer than the dance's longest phrase (a
-    sequence must fit one), fewer than two or more than four figures
+    when it cannot be a sequence: longer than the phrase it starts in, counted
+    from the beats of the figures before it (a sequence must fit that phrase,
+    as the editor requires), fewer than two or more than four figures
     (`kMaxSequenceFigures`), a figure that is itself a sequence or nests too
     deep, or a name longer than a title holds (80 units), which the title would
     have to shorten.

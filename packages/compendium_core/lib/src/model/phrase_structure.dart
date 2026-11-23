@@ -230,39 +230,6 @@ class PhraseStructure {
     return components.any((component) => component.beatsPerBar != first);
   }
 
-  /// Beats in the longest phrase: [beatsPerPhrase] when the phrases are
-  /// uniform, and the largest component's phrase length when they are not.
-  ///
-  /// This is the "one phrase" a `sequence` container must fit in
-  /// ([sequenceExceedsPhrase]). An uneven structure takes its longest phrase
-  /// rather than its shortest, so a sequence that fits the phrase it is danced
-  /// in is never flagged; the cost is that one overrunning a shorter phrase is
-  /// not flagged either.
-  int get longestPhraseBeats => components.fold(
-    0,
-    (longest, component) =>
-        component.beatsPerPhrase > longest ? component.beatsPerPhrase : longest,
-  );
-
-  /// The beat at which the longest phrase ([longestPhraseBeats]) starts, so
-  /// that its length reads in the bars of its own part of the tune; null where
-  /// phrases tied for longest differ in bars, which no one bar length reads.
-  int? get longestPhraseStart {
-    final longest = longestPhraseBeats;
-    int? start;
-    int? bars;
-    var offset = 0;
-    for (final component in components) {
-      if (component.beatsPerPhrase == longest) {
-        if (bars != null && bars != component.bars) return null;
-        start ??= offset;
-        bars = component.bars;
-      }
-      offset += component.totalBeats;
-    }
-    return start;
-  }
-
   /// The persisted representation (`""` for standard).
   final String raw;
 
@@ -328,6 +295,26 @@ class PhraseStructure {
       offset -= component.totalBeats;
     }
     throw StateError('could not find component for beat $beat');
+  }
+
+  /// Beats in the phrase that plays at [beat], wrapping past the end as
+  /// [componentAtBeat] does: the most a `sequence` that starts at [beat] may
+  /// hold ([sequenceExceedsPhrase]).
+  int phraseBeatsAt(int beat) => componentAtBeat(beat).beatsPerPhrase;
+
+  /// The beat at which the phrase that plays at [beat] starts: [beat] less
+  /// how far into that phrase it falls. Wraps past the end as
+  /// [componentAtBeat] does, so the result is never after [beat].
+  int phraseStartAt(int beat) {
+    if (beat < 0) throw ArgumentError.value(beat, 'beat', 'must be >= 0');
+    var offset = beat % totalBeats;
+    for (final component in components) {
+      if (offset < component.totalBeats) {
+        return beat - offset % component.beatsPerPhrase;
+      }
+      offset -= component.totalBeats;
+    }
+    throw StateError('could not find phrase for beat $beat');
   }
 
   /// Beats in [halfBars] half bars of the component that plays at [atBeat],
@@ -518,8 +505,10 @@ class SectionedFigure {
 /// own beats can never leak into the cumulative total.
 ///
 /// Each `sequence` container, top-level or nested, whose count is longer than
-/// one phrase ([sequenceExceedsPhrase]) also adds a `sequence_exceeds_phrase`
-/// warning. The editor will not add a step or form a sequence past a phrase,
+/// the phrase it starts in ([sequenceExceedsPhrase]) also adds a
+/// `sequence_exceeds_phrase` warning. A nested one starts where
+/// [childStartBeats] puts it. The editor will not add a step or form a
+/// sequence past that phrase,
 /// but it does not block editing a step's move or beats, or the phrase
 /// structure, so this is what flags a sequence left too long.
 ///
@@ -626,11 +615,21 @@ void _flagPhraseCrossing(
   }
 }
 
-/// Whether [sequence], a `sequence` container, is counted longer than one
-/// phrase of [structure] ([PhraseStructure.longestPhraseBeats]). False for any
-/// other figure.
-bool sequenceExceedsPhrase(Figure sequence, PhraseStructure structure) =>
-    sequence.isSequence && sequence.beats > structure.longestPhraseBeats;
+/// Whether [sequence], a `sequence` container that starts at [startBeat], is
+/// counted longer than the phrase of [structure] that plays there
+/// ([PhraseStructure.phraseBeatsAt]). False for any other figure.
+///
+/// The whole length of that phrase is the limit, not what is left of it from
+/// [startBeat]: a sequence may start partway through a phrase and run over its
+/// line, as a contra or English figure often does (maintainer, 23 November
+/// 2026; until then the limit was the dance's longest phrase, which let a
+/// sequence overrun a shorter phrase unflagged).
+bool sequenceExceedsPhrase(
+  Figure sequence,
+  PhraseStructure structure, {
+  required int startBeat,
+}) =>
+    sequence.isSequence && sequence.beats > structure.phraseBeatsAt(startBeat);
 
 void _flagLongSequences(
   Figure figure,
@@ -639,24 +638,23 @@ void _flagLongSequences(
   PhraseStructure structure,
   List<ValidationIssue> issues,
 ) {
-  if (sequenceExceedsPhrase(figure, structure)) {
+  if (sequenceExceedsPhrase(figure, structure, startBeat: startBeat)) {
+    final limit = structure.phraseBeatsAt(startBeat);
     issues.add(
       ValidationIssue(
         severity: ValidationSeverity.warning,
         code: 'sequence_exceeds_phrase',
         message:
             'a sequence in figure ${index + 1} is ${figure.beats} beats; '
-            'one phrase is ${structure.longestPhraseBeats}',
+            'its phrase is $limit',
         data: {
           'position': index + 1,
           'actual': figure.beats,
-          'limit': structure.longestPhraseBeats,
-          // Where the sequence starts, and where the phrase that is the limit
-          // does, so each reads in the bars of its own part of the tune. The
-          // phrase's start is absent where phrases tied for longest differ in
-          // bars.
+          'limit': limit,
+          // Where the sequence starts, and where the phrase it sits in does,
+          // so each reads in the bars of its own part of the tune.
           'startBeat': startBeat,
-          'limitStart': ?structure.longestPhraseStart,
+          'limitStart': structure.phraseStartAt(startBeat),
         },
       ),
     );

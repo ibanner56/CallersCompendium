@@ -8048,10 +8048,10 @@ abstract class AppLocalizations {
   /// **'The steps with bars of their own take {steps} of the sequence\'s {span}, leaving none for the rest.'**
   String danceEditorSequenceSpanNoRoom(String steps, String span);
 
-  /// Warning in a sequence of an English country dance that runs longer than one phrase. {length} and {limit} are lengths such as '10 bars'.
+  /// Warning in a sequence of an English country dance that runs longer than the phrase it starts in. {length} and {limit} are lengths such as '10 bars'; {limit} is the length of that phrase.
   ///
   /// In en, this message translates to:
-  /// **'This sequence is {length}, longer than one phrase ({limit}).'**
+  /// **'This sequence is {length}, longer than its phrase ({limit}).'**
   String danceEditorSequenceOverPhraseTimed(String length, String limit);
 
   /// Word inserted into a figure row's accessible label when the figure carries the progression.
@@ -13816,10 +13816,10 @@ abstract class AppLocalizations {
   /// **'The figures total {actual} beats; the phrase structure expects {expected}.'**
   String validationPhraseBeatMismatch(int actual, int expected);
 
-  /// Editor warning for a sequence group (figures danced in order on one line) whose beats run longer than one phrase of the dance. {position} is the dance's figure that is, or holds, the sequence: a sequence can be one side of a meanwhile group.
+  /// Editor warning for a sequence group (figures danced in order on one line) whose beats run longer than the phrase of the dance it starts in ({limit} is that phrase's length). {position} is the dance's figure that is, or holds, the sequence: a sequence can be one side of a meanwhile group.
   ///
   /// In en, this message translates to:
-  /// **'A sequence in figure {position} is {actual} beats, longer than one phrase ({limit} beats).'**
+  /// **'A sequence in figure {position} is {actual} beats, longer than its phrase ({limit} beats).'**
   String validationSequenceExceedsPhrase(int position, int actual, int limit);
 
   /// Editor warning for an English country dance's sequence whose steps each have a count that doesn't add up to the sequence's own. {position} is the figure holding it.
@@ -13834,10 +13834,10 @@ abstract class AppLocalizations {
   /// **'The figures total {actual}; the phrase structure expects {expected}.'**
   String validationPhraseCountMismatch(String actual, String expected);
 
-  /// Editor warning for an English country dance, timed in bars, whose sequence group runs longer than one phrase. {position} is the figure that is, or holds, the sequence; {actual} and {limit} are counts with their unit, such as '10 bars'.
+  /// Editor warning for an English country dance, timed in bars, whose sequence group runs longer than the phrase it starts in ({limit} is that phrase's length). {position} is the figure that is, or holds, the sequence; {actual} and {limit} are counts with their unit, such as '10 bars'.
   ///
   /// In en, this message translates to:
-  /// **'A sequence in figure {position} is {actual}, longer than one phrase ({limit}).'**
+  /// **'A sequence in figure {position} is {actual}, longer than its phrase ({limit}).'**
   String validationSequenceExceedsPhraseCount(
     int position,
     String actual,
@@ -14622,7 +14622,7 @@ abstract class AppLocalizations {
   /// **'Group with next as modifier'**
   String get danceEditorGroupWithNextAsModifier;
 
-  /// Menu item label that groups this figure row with the one immediately after it into a sequence: the two figures danced in order and shown on one line. Offered only while the two together fit in one phrase.
+  /// Menu item label that groups this figure row with the one immediately after it into a sequence: the two figures danced in order and shown on one line. Offered only while the two together fit in the phrase the first one starts in.
   ///
   /// In en, this message translates to:
   /// **'Group with next as sequence'**
@@ -14688,16 +14688,16 @@ abstract class AppLocalizations {
   /// **'{beats, plural, =1{1 beat in total} other{{beats} beats in total}}'**
   String danceEditorSequenceTotalBeats(int beats);
 
-  /// Warning in a sequence group's editor when its figures together run longer than one phrase of the dance.
+  /// Warning in a sequence group's editor when its figures together run longer than the phrase of the dance it starts in; {limit} is that phrase's length.
   ///
   /// In en, this message translates to:
-  /// **'This sequence is {beats} beats, longer than one phrase ({limit} beats).'**
+  /// **'This sequence is {beats} beats, longer than its phrase ({limit} beats).'**
   String danceEditorSequenceOverPhrase(int beats, int limit);
 
-  /// Shown in place of the add-figure button once a sequence's figures already fill a whole phrase, so no further figure fits.
+  /// Shown in place of the add-figure button once a sequence's figures already fill the whole phrase it starts in, so no further figure fits. {limit} is that phrase's length.
   ///
   /// In en, this message translates to:
-  /// **'These figures fill one phrase ({limit} beats).'**
+  /// **'These figures fill their phrase ({limit} beats).'**
   String danceEditorSequencePhraseFull(int limit);
 
   /// Inline message shown in place of the add-figure button once a sequence group holds the maximum number of figures.

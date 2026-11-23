@@ -574,13 +574,17 @@ new sequence. Each figure in the group is labeled **Figure 1**, **Figure 2**,
 and so on, and keeps its own **Beats**: the group's beats are their total, shown
 at the top (an English sequence can instead state its own **Bars for all**; see
 [English dances are timed in bars](#english-dances-are-timed-in-bars)). A
-sequence must fit in one phrase of the dance (16 beats in the
-usual structure), so **Group with next as sequence** is only offered when the
-two figures fit, and **Add next figure** goes away once the figures fill a
-phrase or there are four of them (with **Bars for all**, only figures with bars
-of their own count toward the phrase). Changing a figure already in the sequence,
-its move or its beats, is not stopped, and neither is a change to the phrase
-structure: if the sequence ends up longer than a phrase, the group and the
+sequence must fit in the phrase it starts in: 16 beats in the usual
+structure, and where phrases differ in length, such as an A of 4 bars and a B
+of 8, the length of the one it starts in. It may start partway through that
+phrase and run over its end, as long as it is no longer than the phrase. So
+**Group with next as sequence** is only offered when the two figures fit, and
+**Add next figure** goes away once the figures fill that phrase or there are
+four of them (with **Bars for all**, only figures with bars of their own count
+toward the phrase). Changing a figure already in the sequence, its move or its
+beats, is not stopped, and neither is a change to the phrase structure or to
+the figures before it, which can move it into a shorter phrase: if the
+sequence ends up longer than the phrase it starts in, the group and the
 dance's warnings say so, and you can still save it.
 
 **Convert to sequence**, **Convert to meanwhile** and **Convert to modifier**

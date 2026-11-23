@@ -451,7 +451,7 @@ class FigureDraft {
 
   /// Whether [first] and [second], adjacent rows, can be grouped into a new
   /// container of [kind]. A sequence must also fit in [sequenceBeatLimit]
-  /// beats, one phrase of the dance.
+  /// beats, the phrase of the dance that [first] starts in.
   static bool canGroup(
     String kind,
     FigureDraft first,
