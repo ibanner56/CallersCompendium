@@ -377,9 +377,8 @@ each would fit where the dance will go, best first:
 - **Adding before or after a slot** ([Add a dance before / after](#build-a-program)):
   between the dances on either side of that place, compared with both of them.
 - **[Replace…](#edit-a-slot)**: in that slot's place, between the dances
-  before and after it. The dance you are replacing is left out: it isn't
-  compared with, and isn't marked *Already in this program* (unless another
-  slot has it too), since picking it again would change nothing.
+  before and after it. The dance you are replacing isn't in the list, since
+  picking it again would change nothing, and it isn't compared with.
 
 It looks at variety on the [matrix](#check-your-evening-with-the-matrix), the
 balance of formations, the difficulty of the evening at that point, and when
@@ -471,7 +470,8 @@ The same dialog has a **Replace…** button:
 
 - **On a dance slot**, it swaps in a different dance and keeps everything else —
   note, guest caller, lengths, and performed mark — so you don't have to add the
-  new dance, drag it into place, and delete the old one.
+  new dance, drag it into place, and delete the old one. The list leaves out the
+  dance the slot shows now, since picking it would change nothing.
 - **On a note slot** (other than a break), it imports or selects a dance and
   puts it in the slot in place of the note, keeping the timing details.
 

@@ -2257,6 +2257,13 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('slot-edit-replace-dance')));
       await tester.pumpAndSettle();
+      Finder inReplacePicker(String key) => find.descendant(
+        of: find.byKey(const ValueKey('replace-picker')),
+        matching: find.byKey(ValueKey(key)),
+      );
+      // The dance being replaced is not offered: picking it changes nothing.
+      expect(inReplacePicker('picker-add-d1'), findsNothing);
+      expect(inReplacePicker('picker-add-d2'), findsOneWidget);
       // Scoped to the replacement sheet's own picker: the inline picker pane
       // underneath renders a same-keyed 'picker-add-d2' row too.
       await tester.tap(
@@ -2276,6 +2283,17 @@ void main() {
         ),
         findsOneWidget,
       );
+
+      // A second Replace… leaves out the dance the dialog now shows, and
+      // offers the slot's saved dance again.
+      await tester.tap(find.byKey(const ValueKey('slot-edit-replace-dance')));
+      await tester.pumpAndSettle();
+      expect(inReplacePicker('picker-add-d2'), findsNothing);
+      expect(inReplacePicker('picker-add-d1'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('replace-picker-sheet-close')),
+      );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('slot-edit-save')));
       await tester.pumpAndSettle();

@@ -136,8 +136,9 @@ results. The UI shows no numbers.
 
 **Already in this program.** A candidate the program already holds (in any
 slot, before or after the position) is kept, never removed, but not scored.
-For Replace…, the slot being replaced is in neither list, so its current dance
-is scored like any other unless another slot holds it (see "Positions").
+For Replace…, the slot being replaced is in neither list, and the picker
+leaves the dance it holds out of the candidates altogether
+(`CollectionPicker.excludedDanceIds`), so that dance is never ranked.
 The order is: the ranked dances, best first; then the English dances not in
 the program; then every dance already in the program, of any form, in the
 plain order. Each of those carries the one reason "Already in this program"
@@ -186,13 +187,20 @@ turned into slots before and after:
   the edit dialog's unsaved changes would leave it (an Alternate switch
   flipped in the dialog does not move the position).
 
+Maintainer ruling (2026-11-23):
+
+- *The dance being replaced is not a candidate.* A replacement list should
+  not contain the dance being replaced, since picking it changes nothing and
+  the caller can close the sheet instead. Replace… passes the dance the slot
+  edit dialog shows as `excludedDanceIds`, so a second Replace… in the same
+  dialog leaves out the earlier pick and offers the saved dance again.
+  Online rows are not filtered (their local id is unknown until import); one
+  that resolves to that dance hands it back, which changes nothing.
+  *Rejected (#2344's original call):* listing it and not marking it
+  *Already in this program*.
+
 Calls made in #2344 (not maintainer rulings):
 
-- *The dance being replaced does not count as already in this program.*
-  Replacing a dance with itself is a no-op the caller can see, and marking it
-  would sink a dance that may well be the best fit for the slot. *Rejected:*
-  treating it as in the program, which would push it to the bottom of every
-  Replace… list.
 - *The reason names one neighbour.* When a move collides on both sides, or
   with several alternates, the reason names the first (the side before, then
   after, nearest row first) and keeps the count of colliding moves; **Why?**

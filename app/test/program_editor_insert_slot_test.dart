@@ -656,8 +656,8 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
 
-    testWidgets("Replace… ranks for the slot's place, and the slot's own "
-        'dance is not "already in this program"', (tester) async {
+    testWidgets("Replace… ranks for the slot's place, and leaves the slot's "
+        'own dance out', (tester) async {
       final repos = await _seed();
       await _pump(
         tester,
@@ -679,11 +679,14 @@ void main() {
       expect(position.isAlternate, isFalse);
 
       await rankIn(tester, picker);
-      final replaced = reasonOf(tester, picker, 'd-b');
-      expect(replaced, isNotNull, reason: 'the dance being replaced is ranked');
+      // The dance being replaced is not listed at all: picking it would
+      // change nothing.
       expect(
-        replaced,
-        isNot(contains('Already in this program')),
+        find.descendant(
+          of: picker,
+          matching: find.byKey(const ValueKey('suggestion-reason-d-b')),
+        ),
+        findsNothing,
         reason: 'the dance being replaced',
       );
       for (final other in ['d-a', 'd-b1', 'd-c']) {
