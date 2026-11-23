@@ -362,6 +362,13 @@ chip and no marker.
 carries no event date, because N1-4 = (b) counts every window back from today,
 so nothing in the picker reads the program's date. Rejected: passing it anyway
 "in case", which is an unused parameter.
+- *Update, #2343:* the picker's `PickerProgramContext` exists now, for
+  Suggested ([suggestions.md](suggestions.md)). It carries the id, `venueId`
+  and typed venue as above, plus the venue's display name and, when the picker
+  adds at the end, the program's slots. The builder's two add-dance mounts pass
+  it; Replace… and `perform_adjust_sheet.dart` do not yet. The picker now also
+  passes the id as `currentProgramId` to its Called filter (N1-6). The Not
+  called here chip, the marker and the other H3 pieces are still not built.
 - It defaults to null, so B14's stable constructor API still holds, and all five
   mounts compile unchanged.
 - Four of the mounts are edited to pass it:

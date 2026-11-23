@@ -12322,4 +12322,178 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programTemplateSaveError => 'テンプレートへの変更を保存できませんでした。もう一度お試しください。';
+
+  @override
+  String get settingsSuggestionsHeader => '提案';
+
+  @override
+  String get settingsSuggestionsEnabledTitle => '次のダンスを提案';
+
+  @override
+  String get settingsSuggestionsEnabledSubtitle =>
+      'プログラム作成画面のダンス一覧の「並べ替え」メニューに「おすすめ順」を追加します。プログラムの最後に入れるダンスを並べ、その理由を示します。';
+
+  @override
+  String get settingsSuggestionsEditorTitle => '提案で考慮すること';
+
+  @override
+  String get settingsSuggestionsEditorSubtitle =>
+      'ダンスを提案するときに、それぞれをどれだけ重視するかを選びます。';
+
+  @override
+  String get suggestionFactorMatrixVarietyTitle => 'マトリクスの多様さ';
+
+  @override
+  String get suggestionFactorMatrixVarietyHelp =>
+      'プログラムでまだ使っていない動きのあるダンスを優先します。前のダンスと同じ拍の動きは避けます。';
+
+  @override
+  String get suggestionFactorFormationBalanceTitle => '隊形のバランス';
+
+  @override
+  String get suggestionFactorFormationBalanceHelp =>
+      '前のダンスと同じ隊形や、プログラムにすでに多い隊形を避けます。';
+
+  @override
+  String get suggestionFactorDifficultyCurveTitle => '難易度の流れ';
+
+  @override
+  String get suggestionFactorDifficultyCurveHelp => '夜全体の難易度を選んだ形に合わせます。';
+
+  @override
+  String get suggestionFactorVenueRecencyTitle => 'この会場での最近のコール';
+
+  @override
+  String get suggestionFactorVenueRecencyHelp =>
+      'プログラムの会場で最近コールしたダンスを避けます。会場のないプログラムではこの項目を使いません。';
+
+  @override
+  String get suggestionWeightOff => 'オフ';
+
+  @override
+  String get suggestionWeightALittle => '少し';
+
+  @override
+  String get suggestionWeightALot => '強く';
+
+  @override
+  String suggestionWeightSemantic(String factor) {
+    return '$factorの重み';
+  }
+
+  @override
+  String get suggestionCurveShapeLabel => '形';
+
+  @override
+  String get suggestionCurveBuildThenEase => '徐々に上げて、最後は落ち着かせる';
+
+  @override
+  String get suggestionCurveEven => '一定';
+
+  @override
+  String get suggestionsResetDefaults => '既定に戻す';
+
+  @override
+  String get suggestionsResetDone => '提案で考慮することを既定に戻しました。';
+
+  @override
+  String get suggestionsNewerVersion =>
+      'この設定は新しいバージョンのアプリで保存されたため、ここでは変更できません。変更するにはアプリを更新してください。';
+
+  @override
+  String get collectionSortSuggested => 'おすすめ順';
+
+  @override
+  String suggestionReasonNewMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '今夜初めての動きが$countつ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapPrevious(String move) {
+    return '$moveが前のダンスと同じ拍';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapNext(String move) {
+    return '$moveが次のダンスと同じ拍';
+  }
+
+  @override
+  String suggestionReasonSameFormationPrevious(String formation) {
+    return '$formation（前のダンスと同じ）';
+  }
+
+  @override
+  String suggestionReasonSameFormationNext(String formation) {
+    return '$formation（次のダンスと同じ）';
+  }
+
+  @override
+  String suggestionReasonFormationCommon(int count, String formation) {
+    return '今夜はすでに$formationが$count曲';
+  }
+
+  @override
+  String suggestionReasonFirstFormation(String formation) {
+    return '$formation：今夜初めて';
+  }
+
+  @override
+  String get suggestionReasonFitsCurve => 'ここでの難易度の流れに合う';
+
+  @override
+  String get suggestionReasonHarderThanCurve => 'ここでは難易度の流れより難しい';
+
+  @override
+  String get suggestionReasonEasierThanCurve => 'ここでは難易度の流れより易しい';
+
+  @override
+  String suggestionReasonCalledHereRecently(String venue, String date) {
+    return '$dateに$venueでコール済み';
+  }
+
+  @override
+  String suggestionReasonNotCalledHereSince(String venue, String date) {
+    return '$date以来$venueでコールしていない';
+  }
+
+  @override
+  String suggestionReasonNeverCalledHere(String venue) {
+    return '$venueでコールしたことがない';
+  }
+
+  @override
+  String get suggestionReasonVenueSkipped =>
+      'この会場での最近のコール：プログラムに会場がないため使っていません';
+
+  @override
+  String get suggestionReasonNoFactor => 'どの項目もこのダンスの順位を変えていません';
+
+  @override
+  String get suggestionReasonEnglishNotCovered => '提案はまだイングリッシュ・ダンスに対応していません';
+
+  @override
+  String suggestionWhyTooltip(String title) {
+    return '$titleがここで提案される理由';
+  }
+
+  @override
+  String suggestionWhyTitle(String title) {
+    return '$titleの理由';
+  }
+
+  @override
+  String suggestionWhyRaises(String reason) {
+    return '順位を上げる：$reason';
+  }
+
+  @override
+  String suggestionWhyLowers(String reason) {
+    return '順位を下げる：$reason';
+  }
 }

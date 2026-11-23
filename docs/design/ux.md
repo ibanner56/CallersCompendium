@@ -252,6 +252,21 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   also exposes a visible, keyboard-operable **View details** action that opens
   an explicitly closable, read-only preview; short taps keep their add/import
   behavior.
+- Suggested (#2343, Experimental, off by default): with Settings ▸
+  Experimental ▸ Suggestions on, the add-dance picker's Sort menu ends with
+  **Suggested** while the picker adds at the end of the program (not while
+  inserting before/after a slot, never in Replace… and never in Collection).
+  It ranks the current results for the next slot off the UI thread; until the
+  ranking arrives the plain order shows with the header spinner and rows stay
+  tappable. It is never the opening sort, hides the direction arrow (a ranking
+  has no direction) and lasts until another sort or the picker closes. Each
+  ranked row carries a one-line reason (the top one or two, lightbulb icon,
+  text not colour) and a **Why?** icon button whose dialog (AppMotion
+  animation) lists every reason as "Raises it" / "Lowers it" with an arrow
+  icon. Settings ▸ Experimental ▸ Suggestions holds the toggle and **What
+  suggestions look for**: Off / A little / A lot per factor as segmented
+  buttons, the curve shape and venue window as dropdowns, and Reset to
+  defaults; no numbers. See [suggestions.md](suggestions.md).
 - Slots: dance slots + free-text slots (break, waltz, announcements); **ALT
   flag** renders as an indented alternate under its primary (color + icon +
   text, never color alone). A free-text slot's overflow menu offers **create a

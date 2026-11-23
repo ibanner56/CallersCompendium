@@ -18,6 +18,10 @@ import '../data/calling_history_tracking_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
+import '../data/matrix_collision_mode_scope.dart';
+import '../data/program_matrix_column_config_scope.dart';
+import '../data/suggestions_scope.dart';
+import '../data/user_figures_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../models/dance_list_entry.dart';
 import '../search/called_venue_choices.dart';
@@ -34,6 +38,7 @@ import 'online_more_footer.dart';
 import 'online_result_count.dart';
 import 'online_result_tile.dart';
 import 'online_search_toggle.dart';
+import 'picker_suggestions.dart';
 import 'preview_hold_listener.dart';
 import 'search_panel_bar.dart';
 
@@ -49,6 +54,13 @@ import 'search_panel_bar.dart';
 /// The sort is the picker's own: it opens in the Collection's opening sort
 /// ([readCollectionOpeningSort]) and a change lasts as long as this picker,
 /// never written back to Settings.
+///
+/// With Settings ▸ Experimental ▸ Suggestions on and a [programContext] that
+/// carries the program's slots, the Sort menu also offers **Suggested**
+/// (#2343): the current results, ranked off the UI thread for the end of the
+/// program, each with a reason line and a **Why?** action. The picker never
+/// opens in it, and ranking only reorders: until it finishes the results show
+/// in the plain order, and a tap adds a dance either way.
 ///
 /// Unlike [DanceListScreen] this is a plain embeddable widget (no [Scaffold]/
 /// app bar): it renders inline as the builder's right pane on wide layouts, or
@@ -77,6 +89,9 @@ class CollectionPicker extends StatefulWidget {
     this.onPreviewOnlineStarted,
     this.onPreviewOnlineEnded,
     this.onViewOnlineDetails,
+    this.programContext,
+    this.rankSuggestions = rankSuggestionsOffUiThread,
+    this.clock = const SearchClock(),
   });
 
   /// Preloaded collection vocabulary/dances (loaded once by the builder and
@@ -162,6 +177,18 @@ class CollectionPicker extends StatefulWidget {
   /// Opens a persistent online-dance preview for keyboard and AT users.
   final void Function(OnlineSearchResultRow result)? onViewOnlineDetails;
 
+  /// The program this picker adds to (history-filters Q3), or null for a
+  /// host with none (Perform, a template, the builder's Replace…). Its id
+  /// keeps the program's own slots out of every calling-history filter here
+  /// (N1-6), and its slots, when set, make Suggested available.
+  final PickerProgramContext? programContext;
+
+  /// Ranks for Suggested. A test seam: the app ranks on a background isolate.
+  final SuggestionRanker rankSuggestions;
+
+  /// Where "today" comes from, for the venue window. A test seam.
+  final SearchClock clock;
+
   @override
   State<CollectionPicker> createState() => _CollectionPickerState();
 }
@@ -240,6 +267,25 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   List<DanceListEntry> _results = const [];
 
+  // Suggested (#2343). [_suggested] is the chosen order; [_sort] and
+  // [_sortDir] stay the plain order underneath it, which the search runs in
+  // and which shows until [_ranking] is ready. [_rankedFor] is the result
+  // list [_ranking] orders: a new search shows plain again until re-ranked.
+  bool _suggested = false;
+  SuggestionRanking? _ranking;
+  Map<String, RankedSuggestion> _rankById = const {};
+  List<DanceListEntry>? _rankedFor;
+  bool _rankPending = false;
+  int _rankSeq = 0;
+  bool _suggestionsEnabled = false;
+  SuggestionSettingsRead _suggestionSettings = (
+    settings: SuggestionSettings.defaults,
+    isNewer: false,
+  );
+  bool _exactBeatCollision = true;
+  MatrixColumnConfig _matrixConfig = MatrixColumnConfig.empty;
+  UserFigureCatalog _userFigures = UserFigureCatalog.empty;
+
   /// True from the start: the first search waits for the opening-sort read.
   bool _searching = true;
   Object? _searchError;
@@ -271,6 +317,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         _started &&
         _facets.clearFacets(newHiddenFacets.difference(_hiddenFacets));
     _hiddenFacets = newHiddenFacets;
+    final suggestionInputsChanged = _readSuggestionInputs();
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
@@ -284,7 +331,45 @@ class _CollectionPickerState extends State<CollectionPicker> {
             facetsCleared) &&
         !_onlineEnabled) {
       _runSearch();
+    } else if (suggestionInputsChanged && _suggested) {
+      unawaited(_rank());
     }
+  }
+
+  /// Reads what Suggested depends on from the tree; true when any of it
+  /// changed. Turning Suggestions off leaves Suggested for the plain order.
+  bool _readSuggestionInputs() {
+    final enabled = SuggestionsEnabledScope.of(context);
+    final settings = SuggestionSettingsScope.of(context);
+    final exact = MatrixCollisionModeScope.of(context);
+    final config = ProgramMatrixColumnConfigScope.of(context);
+    final userFigures = UserFiguresScope.shownCatalogOf(context);
+    final changed =
+        settings != _suggestionSettings ||
+        exact != _exactBeatCollision ||
+        config != _matrixConfig ||
+        userFigures != _userFigures;
+    _suggestionSettings = settings;
+    _exactBeatCollision = exact;
+    _matrixConfig = config;
+    _userFigures = userFigures;
+    _suggestionsEnabled = enabled;
+    if (!enabled && _suggested) _leaveSuggested();
+    return changed;
+  }
+
+  /// Whether the Sort menu offers Suggested.
+  bool get _suggestedAvailable =>
+      _suggestionsEnabled && widget.programContext?.slots != null;
+
+  /// Back to the plain order, dropping any ranking in flight.
+  void _leaveSuggested() {
+    _suggested = false;
+    _ranking = null;
+    _rankById = const {};
+    _rankedFor = null;
+    _rankPending = false;
+    _rankSeq++;
   }
 
   @override
@@ -359,6 +444,14 @@ class _CollectionPickerState extends State<CollectionPicker> {
     if (onlineServiceChanged && _onlineEnabled) {
       _onlineSeq++;
       _runOnlineSearch();
+    }
+    if (oldWidget.programContext != widget.programContext && _suggested) {
+      if (widget.programContext?.slots == null) {
+        setState(_leaveSuggested);
+      } else if (!dataChanged && !searchInputsChanged) {
+        // A data change re-runs the search above, which re-ranks.
+        unawaited(_rank());
+      }
     }
   }
 
@@ -443,6 +536,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
         performedOnly: _requirePerformedForHistory,
         requireEventDate: _requireEventDateForHistory,
         tracking: _tracking,
+        today: widget.clock.today(),
+        currentProgramId: widget.programContext?.programId,
       );
       final ids = await _repos.dances.search(
         filter,
@@ -475,6 +570,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         ];
         _searching = false;
       });
+      if (_suggested) unawaited(_rank());
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'collection_picker._runSearch');
       if (!mounted || seq != _searchSeq) return;
@@ -529,11 +625,114 @@ class _CollectionPickerState extends State<CollectionPicker> {
   void _selectSort(CollectionSort value) {
     setState(() {
       _sortUserSet = true;
+      _leaveSuggested();
       _sort = value;
       _sortDir = value.searchSort.defaultDirection;
     });
     _runSearch();
   }
+
+  /// Chooses Suggested. The results stay as they are, in the plain order,
+  /// until the ranking arrives.
+  void _selectSuggested() {
+    if (_suggested) return;
+    setState(() {
+      _sortUserSet = true;
+      _suggested = true;
+    });
+    unawaited(_rank());
+  }
+
+  /// Ranks the current results for the end of the program, off the UI
+  /// thread. A newer call, a new search or leaving Suggested drops it.
+  Future<void> _rank() async {
+    final programContext = widget.programContext;
+    final slots = programContext?.slots;
+    if (!_suggested || programContext == null || slots == null) return;
+    final seq = ++_rankSeq;
+    final results = _results;
+    final data = widget.data;
+    final settings = _suggestionSettings.settings;
+    setState(() => _rankPending = true);
+    try {
+      final venueKey = programContext.venueKey;
+      var calledHere = const <String, DateTime?>{};
+      if (venueKey != null && settings.venueRecency != SuggestionWeight.off) {
+        // "Called here" is the Called filter's own selection: the history
+        // settings, this venue, and never this program (N1-6).
+        calledHere = await _repos.programs.latestCallByDance(
+          CalledFilter(
+            called: true,
+            callerFilter: data.callerFilter,
+            performedOnly: _requirePerformedForHistory,
+            requireEventDate: _requireEventDateForHistory,
+            tracking: _tracking,
+            venue: venueKey,
+            currentProgramId: programContext.programId,
+          ),
+        );
+        if (!mounted || seq != _rankSeq) return;
+      }
+      final ranking = await widget.rankSuggestions(
+        SuggestionRequest(
+          slotsBefore: slots,
+          programDances: {
+            for (final id in slots.map((slot) => slot.danceId).nonNulls)
+              id: ?_latestDanceFor(id, data),
+          },
+          candidates: [for (final entry in results) entry.dance],
+          settings: settings,
+          today: widget.clock.today(),
+          collisionMode: _exactBeatCollision
+              ? MatrixCollisionMode.exactBeats
+              : MatrixCollisionMode.phrase,
+          taxonomy: data.taxonomy,
+          matrixConfig: _matrixConfig,
+          userFigures: _userFigures,
+          levels: data.levels,
+          hasVenue: venueKey != null,
+          calledHere: calledHere,
+        ),
+      );
+      if (!mounted || seq != _rankSeq) return;
+      setState(() {
+        _ranking = ranking;
+        _rankById = {for (final r in ranking.order) r.danceId: r};
+        _rankedFor = results;
+        _rankPending = false;
+      });
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'collection_picker._rank');
+      if (!mounted || seq != _rankSeq) return;
+      // The plain order stays: ranking only ever reorders.
+      setState(() => _rankPending = false);
+    }
+  }
+
+  /// The results as shown: ranked when Suggested has a ranking for exactly
+  /// these results, else in the plain order.
+  List<DanceListEntry> get _shownResults {
+    final ranking = _ranking;
+    if (!_suggested || ranking == null || !identical(_rankedFor, _results)) {
+      return _results;
+    }
+    final byId = {for (final entry in _results) entry.dance.id: entry};
+    return [for (final ranked in ranking.order) ?byId[ranked.danceId]];
+  }
+
+  /// [danceId]'s place in the ranking being shown, or null when none is.
+  RankedSuggestion? _shownRankFor(String danceId) =>
+      _suggested && identical(_rankedFor, _results) ? _rankById[danceId] : null;
+
+  SuggestionReasonLabels _reasonLabels(BuildContext context) =>
+      SuggestionReasonLabels.of(
+        context,
+        taxonomy: widget.data.taxonomy,
+        dialect: widget.dialect,
+        matrixConfig: _matrixConfig,
+        userFigures: _userFigures,
+        venueLabel: widget.programContext?.venueLabel,
+      );
 
   void _toggleSortDirection() {
     setState(() {
@@ -1208,7 +1407,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
                     ),
                   ),
                 ),
-                if (searching || _onlineImporting) ...[
+                if (searching ||
+                    _onlineImporting ||
+                    (!_onlineEnabled && _suggested && _rankPending)) ...[
                   const SizedBox(width: 8),
                   const SizedBox(
                     width: 12,
@@ -1225,12 +1426,20 @@ class _CollectionPickerState extends State<CollectionPicker> {
               sort: _sort,
               sorts: availableCollectionSorts(bareFullText: _isBareFullText),
               onSelected: _selectSort,
+              suggested: _suggestedAvailable
+                  ? SuggestedSortChoice(
+                      selected: _suggested,
+                      onSelected: _selectSuggested,
+                    )
+                  : null,
             ),
-            SortDirectionButton(
-              buttonKey: const ValueKey('picker-sort-direction'),
-              direction: _sortDir,
-              onPressed: _toggleSortDirection,
-            ),
+            // A ranking has no direction.
+            if (!_suggested)
+              SortDirectionButton(
+                buttonKey: const ValueKey('picker-sort-direction'),
+                direction: _sortDir,
+                onPressed: _toggleSortDirection,
+              ),
           ],
         ],
       ),
@@ -1255,10 +1464,13 @@ class _CollectionPickerState extends State<CollectionPicker> {
         ),
       );
     }
+    final shown = _shownResults;
+    final labels = _rankById.isEmpty ? null : _reasonLabels(context);
     return SliverList.builder(
-      itemCount: _results.length,
+      itemCount: shown.length,
       itemBuilder: (context, index) {
-        final entry = _results[index];
+        final entry = shown[index];
+        final ranked = _shownRankFor(entry.dance.id);
         final confirming = _confirmTimers.containsKey(entry.dance.id);
         final inProgramCount = widget.addedDanceCounts[entry.dance.id] ?? 0;
         // Tapping a row adds the dance — a keyboard/AT-accessible add
@@ -1294,6 +1506,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
                     visibleFields: CollectionTileFieldsScope.of(context),
                     onTap: () => _handleAdd(entry.dance.id),
                     showChevron: false,
+                    reasonLine: ranked == null ? null : labels?.line(ranked),
                   ),
                 ),
               ),
@@ -1326,6 +1539,18 @@ class _CollectionPickerState extends State<CollectionPicker> {
                         ),
                       const Icon(Icons.playlist_add_check, size: 20),
                     ],
+                  ),
+                ),
+              if (ranked != null && labels != null)
+                IconButton(
+                  key: ValueKey('picker-why-${entry.dance.id}'),
+                  tooltip: l10n.suggestionWhyTooltip(entry.dance.title),
+                  icon: const Icon(Icons.help_outline),
+                  onPressed: () => showSuggestionWhyDialog(
+                    context,
+                    title: entry.dance.title,
+                    suggestion: ranked,
+                    labels: labels,
                   ),
                 ),
               if (widget.onViewDanceDetails != null)

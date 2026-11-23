@@ -860,7 +860,7 @@ useful thing you can send.
 ## Experimental
 
 The **Experimental** section holds features that are still in development —
-today, that's the **Glossary**, **Calling cards**, **Device Sync** and **Developer options**. Anything here can change
+today, that's the **Glossary**, **Suggestions**, **Calling cards**, **Device Sync** and **Developer options**. Anything here can change
 before it becomes a regular setting. Each feature sits in its own section: select its heading to
 open or close it.
 
@@ -1060,6 +1060,57 @@ notes to make room, then try again. Shortening or deleting is always allowed.
 Figures and notes that arrive from another device with Device Sync, or from a
 backup you restore, are always kept, even if they take you past the limit; you
 can then edit them down but not add more.
+
+### Suggestions
+
+**Suggest the next dance** adds **Suggested** to the **Sort** menu of the
+collection picker in the program builder. It is **off by default**, and the
+section starts closed while it is off. Suggested orders the dances for the end
+of the program you are building, and each dance says why it is where it is.
+See [Let the app suggest the next dance](./programs.md#let-the-app-suggest-the-next-dance).
+Turning it off takes Suggested out of the menu, and a picker that is open goes
+back to its plain order.
+
+**What suggestions look for** opens a screen with one row for each thing
+suggestions weigh up. Each has **Off**, **A little** or **A lot**: Off leaves it
+out entirely. There are no numbers to tune.
+
+- **Variety on the matrix** — favours dances with moves the program hasn't
+  used yet, and keeps away from a move on the same beats as the dance before
+  (or the same phrase, if
+  [Flag exact beat overlap only](#programs) is off), the same thing the
+  [programming matrix](./programs.md#check-your-evening-with-the-matrix) flags.
+  A break between two dances means they are not next to each other.
+- **Formation balance** — keeps away from the formation of the dance before,
+  and from formations the program already has many of.
+- **Difficulty curve** — fits the difficulty of the evening to a **Shape**:
+  **Build up, then ease off** (easy at the start, building to your hardest
+  dances about two-thirds of the way through a dozen-dance evening, then easing
+  back to the middle), **Even** (dances near the program's usual level), or
+  **Off**. It uses each dance's **Difficulty**; a dance with none set
+  is not moved by it.
+- **Recent calls at this venue** — keeps away from dances called recently at
+  the program's venue, **Within** 1, 3 or 6 months, and favours ones not called
+  there for a while. A call counts the same way as in the Collection's
+  [calling history filter](./collection.md#filter-by-calling-history), with your
+  [Recency and history order](#recency-and-history-order) settings, and the
+  program you are building never counts as its own history. A program with no
+  venue skips this, and says so.
+
+The shipped defaults are: Variety on the matrix **A lot**, Formation balance
+**A little**, Difficulty curve **A little** with **Build up, then ease off**, and
+Recent calls at this venue **A lot** within **3 months**. **Reset to defaults**
+puts every choice back to these, and is grayed out while they are already the
+defaults.
+
+Both settings are in your [backup](#backup--restore), and sync with
+[Device Sync](#device-sync) once every device connected to your store has a
+version of the app that knows them (see
+[New kinds of data wait for every device](#new-kinds-of-data-wait-for-every-device)).
+If a newer version of the app saved these choices in a way this version can't
+read, the screen shows the defaults with a note, and can't be changed until you
+update, so nothing this version doesn't understand is overwritten. Suggestions
+use the defaults meanwhile.
 
 ### Calling cards
 
