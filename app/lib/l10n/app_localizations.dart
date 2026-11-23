@@ -7328,6 +7328,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 month} other{{count} months}}'**
   String collectionFacetWithinMonths(int count);
 
+  /// Selected time-window chip in the Calling history filter for a window of {count} calendar months that none of the 1/3/6-month choices offers, shown when the window came from a saved search. Without a saved search the chip reads like collectionFacetWithinMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 month, saved} other{{count} months, saved}}'**
+  String collectionFacetWithinMonthsSaved(int count);
+
   /// Time-window choice in the Calling history filter that opens a date picker: calls on or after the chosen date count.
   ///
   /// In en, this message translates to:
@@ -7435,6 +7441,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All filters are hidden. You can show them again in Settings ▸ Defaults.'**
   String get collectionFacetAllHidden;
+
+  /// Label of a selected filter chip (a level, author, tag or source) whose item no longer exists, e.g. it was deleted after a search naming it was saved. The chip stays so the filter can be seen and removed.
+  ///
+  /// In en, this message translates to:
+  /// **'Not in your library'**
+  String get collectionFacetMissingValue;
 
   /// Button that clears all active facet filters.
   ///
@@ -7801,6 +7813,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Any {param}'**
   String collectionQueryAnyParam(String param);
+
+  /// Removable notice on an Advanced search figure row: the row asks for a figure parameter value that the parameter's dropdown does not offer (it came in with a saved search). The value still narrows the search until the user removes it.
+  ///
+  /// In en, this message translates to:
+  /// **'{param}: {value} (not offered)'**
+  String collectionQueryParamNotOffered(String param, String value);
 
   /// Batch set-level option that clears (unsets) the level on the selected dances.
   ///

@@ -4584,6 +4584,16 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String collectionFacetWithinMonthsSaved(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countか月(保存済み)',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get collectionFacetWithinSince => '日付以降…';
 
   @override
@@ -4640,6 +4650,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get collectionFacetAllHidden => 'すべてのフィルターが非表示です。設定 ▸ 既定値で再表示できます。';
+
+  @override
+  String get collectionFacetMissingValue => 'ライブラリにありません';
 
   @override
   String get collectionFacetClear => 'フィルターをクリア';
@@ -4844,6 +4857,11 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String collectionQueryAnyParam(String param) {
     return '任意の$param';
+  }
+
+  @override
+  String collectionQueryParamNotOffered(String param, String value) {
+    return '$param: $value(選択肢にありません)';
   }
 
   @override

@@ -918,42 +918,86 @@ void _paramChoiceTests() {
     );
 
     testWidgets(
-      'changed by #741: an out-of-domain stored value is cleared from the MODEL',
+      'changed by #2325: an out-of-domain stored value is kept, and shown '
+      'with a notice the user can remove',
       (tester) async {
-        // Raised in review on PR #764. Coercing only the DISPLAY to "Any" would
-        // leave `_cleanParams` forwarding the stale token into the compiled
-        // `FigureLeaf` — a filter narrowing the results that the user cannot
-        // see, and cannot clear, because the control that would clear it
-        // already reads "Any hand".
-        //
-        // LATENT today: the builder tree is in-memory only and this dropdown is
-        // its sole writer, so the state is seeded directly here — which is
-        // exactly how a future saved-search/persistence layer would produce it.
+        // #741 made the DISPLAY never coerce such a value to "Any hand" while
+        // `_cleanParams` still forwarded it into the compiled `FigureLeaf` (a
+        // filter the user could neither see nor clear), and solved it by
+        // removing the value from the MODEL after a frame. Once a saved
+        // search can be opened, that removal is a silent drop: the panel
+        // would run a broader search than the one the saved-search resolver
+        // hands every other feature. So the value is kept, the compiled
+        // query and the screen agree, and the user removes it explicitly.
         final figure = BuilderFigure(move: 'wave');
         figure.params['hand'] = ParamVocab.unspecified;
         final root = BuilderGroup(
           children: [BuilderThen(before: figure, after: BuilderFigure())],
         );
+        var changes = 0;
         await _pump(
           tester,
           root: root,
           taxonomy: _taxonomyWithHandParam(
             choices: const [...ParamVocab.sides, ParamVocab.unspecified],
           ),
+          onChanged: () => changes++,
         );
 
-        expect(
-          figure.params.containsKey('hand'),
-          isFalse,
-          reason:
-              'a value the dropdown refuses to display must not survive in the '
-              'model and keep filtering',
-        );
-        // What the UI promises and what the query does now agree.
+        expect(figure.params['hand'], ParamVocab.unspecified);
         expect(
           (figure.toFigureQuery() as FigureLeaf?)?.params,
-          isNot(contains('hand')),
+          containsPair('hand', ParamVocab.unspecified),
         );
+        expect(
+          changes,
+          0,
+          reason: 'nothing changed the search behind its back',
+        );
+        // No dropdown reads "Any hand" over it; a notice names it instead.
+        expect(find.byKey(ValueKey('param-${figure.id}-hand')), findsNothing);
+        final notice = find.byKey(ValueKey('param-notice-${figure.id}-hand'));
+        expect(notice, findsOneWidget);
+        expect(
+          find.descendant(
+            of: notice,
+            matching: find.textContaining('(not offered)'),
+          ),
+          findsOneWidget,
+        );
+
+        await tester.tap(
+          find.descendant(of: notice, matching: find.byIcon(Icons.close)),
+        );
+        await tester.pumpAndSettle();
+        expect(figure.params.containsKey('hand'), isFalse);
+        expect(changes, 1);
+      },
+    );
+
+    testWidgets(
+      'added by #2325: a stored param the move does not declare is kept and '
+      'shown, not left applied with no control',
+      (tester) async {
+        // With no dropdown at all for the key, nothing used to show it while
+        // the compiled leaf still carried it.
+        final figure = BuilderFigure(move: 'wave');
+        figure.params['spin'] = 'cw';
+        final root = BuilderGroup(
+          children: [BuilderThen(before: figure, after: BuilderFigure())],
+        );
+        await _pump(
+          tester,
+          root: root,
+          taxonomy: _taxonomyWithHandParam(choices: null),
+        );
+        expect(figure.params['spin'], 'cw');
+        expect(
+          find.byKey(ValueKey('param-notice-${figure.id}-spin')),
+          findsOneWidget,
+        );
+        // The declared param keeps its ordinary dropdown.
+        expect(find.byKey(ValueKey('param-${figure.id}-hand')), findsOneWidget);
       },
     );
   });

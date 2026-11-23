@@ -19,6 +19,16 @@ import 'responsive_autocomplete.dart';
 /// Sections the user hid under Settings → Defaults (#1419, read from
 /// [CollectionFacetsScope]) are omitted unless they hold a selection. This is
 /// display-only: the parent clears a facet's selection when it becomes hidden.
+///
+/// A section offers the values the collection has, and **every selected value
+/// besides**: a level, author, tag, source, form, meter, custom-field choice
+/// or any other value that no dance has any more (or that came in with a saved
+/// search before any dance had it) still shows as a selected chip, so a filter
+/// that is narrowing the list can always be seen and removed. Such a chip is
+/// named from [allLevels], [authorNames], [allTagNames] or [sourceTitles]; an
+/// id none of them knows reads "Not in your library". A section the
+/// collection would hide (no dance has a mixer, say) shows while it holds a
+/// selection.
 class FacetPanel extends StatelessWidget {
   const FacetPanel({
     super.key,
@@ -43,6 +53,12 @@ class FacetPanel extends StatelessWidget {
     required this.booleanFields,
     required this.textFields,
     required this.numberFields,
+    this.allLevels = const [],
+    this.authorNames = const {},
+    this.allTagNames = const {},
+    this.sourceTitles = const {},
+    this.allCustomFields = const [],
+    this.historyFromSavedSearch = false,
     required this.onChanged,
   });
 
@@ -94,6 +110,29 @@ class FacetPanel extends StatelessWidget {
   final List<CustomFieldDef> booleanFields;
   final List<CustomFieldDef> textFields;
   final List<CustomFieldDef> numberFields;
+
+  /// Every configured level, to name a selected level no dance has.
+  final List<DifficultyLevel> allLevels;
+
+  /// Every choreographer's name by id, to name a selected author no dance
+  /// credits.
+  final Map<String, String> authorNames;
+
+  /// Every tag's name by id, to name a selected tag no dance carries.
+  final Map<String, String> allTagNames;
+
+  /// Every published source's title by id, to name a selected source no dance
+  /// cites.
+  final Map<String, String> sourceTitles;
+
+  /// Every custom field, so a selection on one that is not offered as a
+  /// filter (not searchable) still has a section.
+  final List<CustomFieldDef> allCustomFields;
+
+  /// Whether the panel state came from a saved search, which a **Within**
+  /// window outside the presets says ([CallingHistoryScopes]).
+  final bool historyFromSavedSearch;
+
   final VoidCallback onChanged;
 
   @override
@@ -119,7 +158,17 @@ class FacetPanel extends StatelessWidget {
       onChanged();
     }
 
-    if (forms.isNotEmpty && shown(CollectionFacetIds.form)) {
+    // The offered values, then every selected one the collection no longer
+    // offers, so no selection is left without a chip.
+    List<T> withPicked<T>(List<T> offered, Iterable<T> picked) => [
+      ...offered,
+      for (final p in picked)
+        if (!offered.contains(p)) p,
+    ];
+    final missing = l10n.collectionFacetMissingValue;
+
+    final formValues = withPicked(forms, facets.forms);
+    if (formValues.isNotEmpty && shown(CollectionFacetIds.form)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-form'),
@@ -127,7 +176,7 @@ class FacetPanel extends StatelessWidget {
           sectionId: 'form',
           activeCount: facets.forms.length,
           chips: [
-            for (final f in forms)
+            for (final f in formValues)
               _chip(
                 key: 'form-${f.name}',
                 label: danceFormLabel(l10n, f),
@@ -140,7 +189,8 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
-    if (formations.isNotEmpty && shown(CollectionFacetIds.formation)) {
+    final formationValues = withPicked(formations, facets.formations);
+    if (formationValues.isNotEmpty && shown(CollectionFacetIds.formation)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-formation'),
@@ -148,7 +198,7 @@ class FacetPanel extends StatelessWidget {
           sectionId: 'formation',
           activeCount: facets.formations.length,
           chips: [
-            for (final shape in formations)
+            for (final shape in formationValues)
               _chip(
                 key: 'formation-${shape.name}',
                 label: formationShapeLabel(l10n, shape),
@@ -161,7 +211,8 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
-    if (progressions.isNotEmpty && shown(CollectionFacetIds.progression)) {
+    final progressionValues = withPicked(progressions, facets.progressions);
+    if (progressionValues.isNotEmpty && shown(CollectionFacetIds.progression)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-progression'),
@@ -169,7 +220,7 @@ class FacetPanel extends StatelessWidget {
           sectionId: 'progression',
           activeCount: facets.progressions.length,
           chips: [
-            for (final p in progressions)
+            for (final p in progressionValues)
               _chip(
                 key: 'progression-${p.name}',
                 label: progressionLabel(l10n, p),
@@ -182,7 +233,8 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
-    if (statuses.isNotEmpty && shown(CollectionFacetIds.status)) {
+    final statusValues = withPicked(statuses, facets.statuses);
+    if (statusValues.isNotEmpty && shown(CollectionFacetIds.status)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-status'),
@@ -190,7 +242,7 @@ class FacetPanel extends StatelessWidget {
           sectionId: 'status',
           activeCount: facets.statuses.length,
           chips: [
-            for (final s in statuses)
+            for (final s in statusValues)
               _chip(
                 key: 'status-${s.name}',
                 label: danceStatusLabel(l10n, s),
@@ -203,7 +255,14 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
-    if (levels.isNotEmpty && shown(CollectionFacetIds.level)) {
+    final offeredLevelIds = {for (final l in levels) l.id};
+    final levelsById = {for (final l in allLevels) l.id: l};
+    final unofferedLevelIds = [
+      for (final id in facets.levels)
+        if (!offeredLevelIds.contains(id)) id,
+    ];
+    if ((levels.isNotEmpty || unofferedLevelIds.isNotEmpty) &&
+        shown(CollectionFacetIds.level)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-level'),
@@ -219,12 +278,24 @@ class FacetPanel extends StatelessWidget {
                 selected: facets.levels.contains(l.id),
                 onSelected: (sel) => toggle(facets.levels, l.id, sel),
               ),
+            for (final id in unofferedLevelIds)
+              _chip(
+                key: 'level-id-$id',
+                label: switch (levelsById[id]) {
+                  final level? => danceLevelLabel(l10n, level),
+                  null => missing,
+                },
+                icon: Icons.signal_cellular_alt,
+                selected: true,
+                onSelected: (sel) => toggle(facets.levels, id, sel),
+              ),
           ],
         ),
       );
     }
 
-    if (hasMixedLevel && shown(CollectionFacetIds.mixedLevel)) {
+    if ((hasMixedLevel || facets.mixedLevel != null) &&
+        shown(CollectionFacetIds.mixedLevel)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-mixed-level'),
@@ -242,12 +313,26 @@ class FacetPanel extends StatelessWidget {
                 onChanged();
               },
             ),
+            // The panel offers only "mixed level"; "not mixed level" comes in
+            // only with a given panel state, and is shown so it can be seen
+            // and removed.
+            if (facets.mixedLevel == false)
+              _chip(
+                key: 'mixed-level-no',
+                label: l10n.commonNo,
+                icon: Icons.close,
+                selected: true,
+                onSelected: (sel) {
+                  facets.mixedLevel = sel ? false : null;
+                  onChanged();
+                },
+              ),
           ],
         ),
       );
     }
 
-    if (hasMixer && shown(CollectionFacetIds.mixer)) {
+    if ((hasMixer || facets.mixer != null) && shown(CollectionFacetIds.mixer)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-mixer'),
@@ -265,12 +350,26 @@ class FacetPanel extends StatelessWidget {
                 onChanged();
               },
             ),
+            // As for Mixed level above.
+            if (facets.mixer == false)
+              _chip(
+                key: 'mixer-no',
+                label: l10n.commonNo,
+                icon: Icons.close,
+                selected: true,
+                onSelected: (sel) {
+                  facets.mixer = sel ? false : null;
+                  onChanged();
+                },
+              ),
           ],
         ),
       );
     }
 
-    if (hasRating && shown(CollectionFacetIds.minRating)) {
+    final minRating = facets.minRating;
+    if ((hasRating || minRating != null) &&
+        shown(CollectionFacetIds.minRating)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-min-rating'),
@@ -291,12 +390,25 @@ class FacetPanel extends StatelessWidget {
                   onChanged();
                 },
               ),
+            if (minRating != null && (minRating < 1 || minRating > 5))
+              _chip(
+                key: 'min-rating-$minRating',
+                label: l10n.collectionFacetMinRatingChip(minRating),
+                icon: Icons.star,
+                selected: true,
+                onSelected: (sel) {
+                  facets.minRating = sel ? minRating : null;
+                  onChanged();
+                },
+              ),
           ],
         ),
       );
     }
 
-    if (hasCallingHistory && shown(CollectionFacetIds.callStatus)) {
+    if ((hasCallingHistory ||
+            facets.hasSelectionFor(CollectionFacetIds.callStatus)) &&
+        shown(CollectionFacetIds.callStatus)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-call-status'),
@@ -322,13 +434,15 @@ class FacetPanel extends StatelessWidget {
           footer: CallingHistoryScopes(
             facets: facets,
             venues: venueChoices,
+            fromSavedSearch: historyFromSavedSearch,
             onChanged: onChanged,
           ),
         ),
       );
     }
 
-    if (authors.isNotEmpty && shown(CollectionFacetIds.author)) {
+    if ((authors.isNotEmpty || facets.authorIds.isNotEmpty) &&
+        shown(CollectionFacetIds.author)) {
       // #341: a searchable multi-select replaces the flat per-author chip list,
       // which grew unwieldy as collections accumulate choreographers. Selection
       // still lives in `facets.authorIds`, so filter semantics are unchanged.
@@ -336,6 +450,7 @@ class FacetPanel extends StatelessWidget {
         _AuthorFacet(
           key: const ValueKey('facet-row-author'),
           authors: authors,
+          authorNames: authorNames,
           facets: facets,
           onChanged: onChanged,
         ),
@@ -416,7 +531,13 @@ class FacetPanel extends StatelessWidget {
       icon: Icons.music_note_outlined,
     );
 
-    if (tags.isNotEmpty && shown(CollectionFacetIds.tags)) {
+    final offeredTagIds = {for (final t in tags) t.id};
+    final unofferedTagIds = [
+      for (final id in facets.tagIds)
+        if (!offeredTagIds.contains(id)) id,
+    ];
+    if ((tags.isNotEmpty || facets.tagIds.isNotEmpty || facets.untagged) &&
+        shown(CollectionFacetIds.tags)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-tags'),
@@ -452,6 +573,19 @@ class FacetPanel extends StatelessWidget {
                   onChanged();
                 },
               ),
+            // Selected, but carried by no live dance (or deleted): kept, so
+            // it can be seen and removed.
+            for (final id in unofferedTagIds)
+              _chip(
+                key: 'tag-$id',
+                label: allTagNames[id] ?? missing,
+                icon: Icons.label_outline,
+                selected: true,
+                onSelected: (s) {
+                  facets.setTag(id, selected: s);
+                  onChanged();
+                },
+              ),
           ],
           // Below the chips, so it appears where the second tag was just
           // picked without moving any chip.
@@ -462,7 +596,13 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
-    if (citedSources.isNotEmpty && shown(CollectionFacetIds.source)) {
+    final citedSourceIds = {for (final s in citedSources) s.id};
+    final unofferedSourceIds = [
+      for (final id in facets.sourceIds)
+        if (!citedSourceIds.contains(id)) id,
+    ];
+    if ((citedSources.isNotEmpty || unofferedSourceIds.isNotEmpty) &&
+        shown(CollectionFacetIds.source)) {
       sections.add(
         _FacetSection(
           key: const ValueKey('facet-row-source'),
@@ -478,12 +618,40 @@ class FacetPanel extends StatelessWidget {
                 selected: facets.sourceIds.contains(s.id),
                 onSelected: (sel) => toggle(facets.sourceIds, s.id, sel),
               ),
+            for (final id in unofferedSourceIds)
+              _chip(
+                key: 'source-$id',
+                label: sourceTitles[id] ?? missing,
+                icon: Icons.menu_book_outlined,
+                selected: true,
+                onSelected: (sel) => toggle(facets.sourceIds, id, sel),
+              ),
           ],
         ),
       );
     }
 
-    for (final def in choiceFields) {
+    // A field not offered as a filter (no longer searchable) still gets its
+    // section while it holds a selection, since the search still applies it.
+    List<CustomFieldDef> withSelectedFields(
+      List<CustomFieldDef> offered,
+      CustomFieldType type,
+    ) {
+      final offeredIds = {for (final d in offered) d.id};
+      return [
+        ...offered,
+        for (final d in allCustomFields)
+          if (d.type == type &&
+              !offeredIds.contains(d.id) &&
+              facets.hasSelectionFor(customFieldFacetId(d.id)))
+            d,
+      ];
+    }
+
+    for (final def in withSelectedFields(
+      choiceFields,
+      CustomFieldType.choice,
+    )) {
       if (!shown(customFieldFacetId(def.id))) continue;
       // Read-only during build: don't create a map entry here (builds must be
       // side-effect free). The entry is created lazily in onSelected.
@@ -495,7 +663,11 @@ class FacetPanel extends StatelessWidget {
           sectionId: 'cf-choice-${def.id}',
           activeCount: selected.length,
           chips: [
-            for (final choice in def.choices ?? const <String>[])
+            // A selected option the field no longer has stays a chip.
+            for (final choice in withPicked(
+              def.choices ?? const <String>[],
+              selected,
+            ))
               _chip(
                 key: 'cf-${def.id}-$choice',
                 label: choice,
@@ -513,7 +685,10 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
-    for (final def in booleanFields) {
+    for (final def in withSelectedFields(
+      booleanFields,
+      CustomFieldType.boolean,
+    )) {
       if (!shown(customFieldFacetId(def.id))) continue;
       final current = facets.booleanValues[def.id];
       sections.add(
@@ -552,7 +727,7 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
-    for (final def in textFields) {
+    for (final def in withSelectedFields(textFields, CustomFieldType.text)) {
       if (!shown(customFieldFacetId(def.id))) continue;
       sections.add(
         _TextFieldFacet(
@@ -564,7 +739,10 @@ class FacetPanel extends StatelessWidget {
       );
     }
 
-    for (final def in numberFields) {
+    for (final def in withSelectedFields(
+      numberFields,
+      CustomFieldType.number,
+    )) {
       if (!shown(customFieldFacetId(def.id))) continue;
       sections.add(
         _NumberFieldFacet(
@@ -788,11 +966,15 @@ class _AuthorFacet extends StatefulWidget {
   const _AuthorFacet({
     super.key,
     required this.authors,
+    required this.authorNames,
     required this.facets,
     required this.onChanged,
   });
 
   final List<Choreographer> authors;
+
+  /// Every choreographer's name by id, for a selected author no dance credits.
+  final Map<String, String> authorNames;
   final FacetSelections facets;
   final VoidCallback onChanged;
 
@@ -834,7 +1016,14 @@ class _AuthorFacetState extends State<_AuthorFacet> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final authorsById = {for (final a in widget.authors) a.id: a.name};
+    // A selected author no dance credits is named from every choreographer,
+    // or said to be missing; never shown as a bare id.
+    final missing = l10n.collectionFacetMissingValue;
+    final authorsById = {
+      for (final id in widget.facets.authorIds)
+        id: widget.authorNames[id] ?? missing,
+      for (final a in widget.authors) a.id: a.name,
+    };
     final selectedIds = widget.facets.authorIds;
     return _FacetExpansion(
       label: l10n.collectionFacetAuthor,
@@ -1109,10 +1298,16 @@ class _TextFieldFacetState extends State<_TextFieldFacet> {
   late final TextEditingController _controller;
   CustomFieldOp _op = CustomFieldOp.contains;
 
+  /// The value the field shows: the one it was opened with, last wrote, or
+  /// last took from the parent. Any other value in the facets was set from
+  /// outside and is shown instead ([didUpdateWidget]).
+  TextFacetState? _shown;
+
   @override
   void initState() {
     super.initState();
     final existing = widget.facets.textValues[widget.def.id];
+    _shown = existing;
     _controller = TextEditingController(text: existing?.value ?? '');
     if (existing != null) _op = existing.op;
   }
@@ -1120,11 +1315,17 @@ class _TextFieldFacetState extends State<_TextFieldFacet> {
   @override
   void didUpdateWidget(_TextFieldFacet oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Sync controller when the parent clears the facets (e.g. "Clear all").
+    // The parent changed the value: Clear all, or a whole panel state put in
+    // place of this one (a saved search). Show the new value, whatever it
+    // is, or the field would keep showing the old text while the new one
+    // filters. The field's own writes are [_shown] already, so typing is
+    // never rewritten under the cursor.
     final current = widget.facets.textValues[widget.def.id];
-    if (current == null && _controller.text.isNotEmpty) {
-      _controller.clear();
-    }
+    if (identical(current, _shown)) return;
+    _shown = current;
+    final text = current?.value ?? '';
+    if (_controller.text != text) _controller.text = text;
+    if (current != null) _op = current.op;
   }
 
   @override
@@ -1143,6 +1344,7 @@ class _TextFieldFacetState extends State<_TextFieldFacet> {
         value: text,
       );
     }
+    _shown = widget.facets.textValues[widget.def.id];
     widget.onChanged();
   }
 
@@ -1249,10 +1451,14 @@ class _NumberFieldFacetState extends State<_NumberFieldFacet> {
     _ => op.name,
   };
 
+  /// The value the fields show; see [_TextFieldFacetState._shown].
+  NumberFacetState? _shown;
+
   @override
   void initState() {
     super.initState();
     final existing = widget.facets.numberValues[widget.def.id];
+    _shown = existing;
     _lo = TextEditingController(
       text: existing != null ? existing.lo.toString() : '',
     );
@@ -1263,11 +1469,17 @@ class _NumberFieldFacetState extends State<_NumberFieldFacet> {
   @override
   void didUpdateWidget(_NumberFieldFacet oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // As for the text facet: a value the parent set (Clear all, or a whole
+    // panel state put in place) is shown, whatever it is; the fields' own
+    // writes are not, so a half-typed "-" or a lone lower bound stays.
     final current = widget.facets.numberValues[widget.def.id];
-    if (current == null) {
-      if (_lo.text.isNotEmpty) _lo.clear();
-      if (_hi.text.isNotEmpty) _hi.clear();
-    }
+    if (identical(current, _shown)) return;
+    _shown = current;
+    final lo = current == null ? '' : current.lo.toString();
+    final hi = current?.hi?.toString() ?? '';
+    if (_lo.text != lo) _lo.text = lo;
+    if (_hi.text != hi) _hi.text = hi;
+    if (current != null) _op = current.op;
   }
 
   @override
@@ -1278,10 +1490,15 @@ class _NumberFieldFacetState extends State<_NumberFieldFacet> {
   }
 
   void _commit() {
+    _write();
+    _shown = widget.facets.numberValues[widget.def.id];
+    widget.onChanged();
+  }
+
+  void _write() {
     final lo = num.tryParse(_lo.text.trim());
     if (lo == null) {
       widget.facets.numberValues.remove(widget.def.id);
-      widget.onChanged();
       return;
     }
     if (_op == CustomFieldOp.between) {
@@ -1289,7 +1506,6 @@ class _NumberFieldFacetState extends State<_NumberFieldFacet> {
       // Don't fire until the second bound is also valid.
       if (hi == null) {
         widget.facets.numberValues.remove(widget.def.id);
-        widget.onChanged();
         return;
       }
       widget.facets.numberValues[widget.def.id] = NumberFacetState(
@@ -1303,7 +1519,6 @@ class _NumberFieldFacetState extends State<_NumberFieldFacet> {
         lo: lo,
       );
     }
-    widget.onChanged();
   }
 
   @override

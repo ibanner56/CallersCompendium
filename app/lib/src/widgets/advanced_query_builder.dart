@@ -811,6 +811,19 @@ class _FigureEditor extends StatelessWidget {
         if (!pinned.containsKey(key)) key: value,
     };
     final any = figure.isAnyFigure;
+    // A stored param with no dropdown at all (a param the move does not
+    // declare, one its alias pins, or one with no closed vocabulary) is kept
+    // and shown, as a value out of a dropdown's domain is ([_ParamDropdown]):
+    // the same rule the saved-search resolver reports such a param by.
+    final undeclared = [
+      for (final MapEntry(:key, :value) in figure.params.entries)
+        if (value != null &&
+            key != userFigureRefKey &&
+            !userFigureReferenceKeys.contains(key) &&
+            (paramSpecs[key] == null ||
+                figureParamChoices(paramSpecs[key]!) == null))
+          key,
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -853,7 +866,7 @@ class _FigureEditor extends StatelessWidget {
             ),
           ],
         ),
-        if (paramSpecs.isNotEmpty)
+        if (paramSpecs.isNotEmpty || undeclared.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: AppSpacing.xxs),
             child: Wrap(
@@ -879,6 +892,14 @@ class _FigureEditor extends StatelessWidget {
                       dialect: dialect,
                       onChanged: onChanged,
                     ),
+                for (final key in undeclared)
+                  _ParamNotice(
+                    figure: figure,
+                    paramKey: key,
+                    spec: paramSpecs[key],
+                    dialect: dialect,
+                    onChanged: onChanged,
+                  ),
               ],
             ),
           ),
@@ -1117,6 +1138,12 @@ class _SectionDropdown extends StatelessWidget {
           AppDropdownEntry(value: null, label: l10n.collectionQueryAnySection),
           for (final label in sectionLabels)
             AppDropdownEntry(value: label, label: label),
+          // A phrase no dance has any more, or one a saved search came in
+          // with, is still shown as the row's phrase rather than as a blank
+          // field while it narrows the search.
+          if (figure.section case final section?
+              when !sectionLabels.contains(section))
+            AppDropdownEntry(value: section, label: section),
         ],
       ),
     );
@@ -1162,36 +1189,33 @@ class _ParamDropdown extends StatelessWidget {
     // they and the editor are three consumers of one contract (#726 / #746) and
     // must not disagree about what a param can hold.
     final selectable = figureParamSelectableChoices(choices);
+    final raw = figure.params[paramKey];
+    final stored = raw is String ? raw : null;
+    // A stored value the dropdown does not offer — the `unspecified`
+    // sentinel, or a value outside this param's domain — came in with a
+    // panel state (a saved search, or another caller's), since this dropdown
+    // is the only writer and offers neither. It is KEPT, and shown with a
+    // notice the user can remove, rather than coerced to "Any <param>":
+    // `_cleanParams` forwards every non-null param into the compiled
+    // `FigureLeaf`, so a value shown as "Any" would still narrow the search,
+    // a filter the user could neither see nor clear. Removing it silently
+    // instead (as this did before saved searches could be opened) would run
+    // a broader search than the one the saved-search resolver hands every
+    // other feature, which reports such a value as unresolvable by the same
+    // rule ([figureParamSelectableChoices]).
+    if (raw != null && (stored == null || !selectable.contains(stored))) {
+      return _ParamNotice(
+        figure: figure,
+        paramKey: paramKey,
+        spec: spec,
+        dialect: dialect,
+        onChanged: onChanged,
+      );
+    }
     // With nothing left to pick, "Any" alone is not a filter — offering a
     // one-item dropdown that cannot constrain anything is just noise.
     if (selectable.isEmpty) return const SizedBox.shrink();
     final label = figureParamKeyLabel(l10n, paramKey, moveId: figure.move);
-    final stored = figure.params[paramKey] as String?;
-    // Defensive: a value outside the selectable list would show as an empty
-    // field rather than "Any <param>". Unreachable through the UI — the only
-    // writer is this dropdown — but cheap next to a blank control.
-    final value = selectable.contains(stored) ? stored : null;
-    // Coercing the DISPLAY to "Any" is not enough on its own: `_cleanParams`
-    // forwards every non-null param into the compiled `FigureLeaf`, so a stored
-    // value the dropdown refuses to show would still narrow the search — a
-    // filter the user can neither see nor clear, because the control they would
-    // use to clear it already reads "Any <param>". So normalise the MODEL to
-    // match, and re-run the search.
-    //
-    // LATENT, not live: the builder tree is in-memory only (`_advancedRoot` is
-    // constructed fresh; core's `SavedSearchSpec` can persist a tree, but no
-    // host loads one yet) and the sole writer is this dropdown, which only ever stores a selectable value — and `_MoveField`
-    // clears `figure.params` when the move changes, so a param cannot outlive
-    // the move that declared it. This exists because none of that is
-    // load-bearing anywhere: the day the advanced query is persisted, or seeded
-    // from a saved search, an out-of-domain token becomes reachable and the
-    // failure is silent. Cheap to foreclose now, invisible to debug later.
-    if (stored != null && value == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        figure.params.remove(paramKey);
-        onChanged();
-      });
-    }
     return Semantics(
       label: label,
       // Sized like the section dropdown, and bounded by the line the same way.
@@ -1199,7 +1223,7 @@ class _ParamDropdown extends StatelessWidget {
         key: ValueKey('param-${figure.id}-$paramKey'),
         compact: true,
         fillWidth: false,
-        value: value,
+        value: stored,
         onChanged: (v) {
           v == null
               ? figure.params.remove(paramKey)
@@ -1218,6 +1242,50 @@ class _ParamDropdown extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// A stored figure param that no dropdown offers, kept and shown with a
+/// notice, removable ([_ParamDropdown] says when and why).
+class _ParamNotice extends StatelessWidget {
+  const _ParamNotice({
+    required this.figure,
+    required this.paramKey,
+    required this.spec,
+    required this.dialect,
+    required this.onChanged,
+  });
+
+  final BuilderFigure figure;
+  final String paramKey;
+
+  /// The param's spec, when the move declares it.
+  final ParamSpec? spec;
+  final Dialect dialect;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final stored = '${figure.params[paramKey]}';
+    final spec = this.spec;
+    final label = l10n.collectionQueryParamNotOffered(
+      figureParamKeyLabel(l10n, paramKey, moveId: figure.move),
+      spec == null
+          ? stored
+          : figureParamChoiceLabel(l10n, spec, dialect, stored),
+    );
+    return InputChip(
+      key: ValueKey('param-notice-${figure.id}-$paramKey'),
+      avatar: const Icon(Icons.info_outline, size: 18),
+      label: Text(label),
+      deleteIcon: const Icon(Icons.close, size: 18),
+      onDeleted: () {
+        figure.params.remove(paramKey);
+        onChanged();
+      },
+      deleteButtonTooltipMessage: l10n.commonRemove,
     );
   }
 }

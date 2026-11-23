@@ -4808,6 +4808,17 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String collectionFacetWithinMonthsSaved(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count måneder, gemt',
+      one: '1 måned, gemt',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get collectionFacetWithinSince => 'Siden en dato…';
 
   @override
@@ -4868,6 +4879,9 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get collectionFacetAllHidden =>
       'Alle filtre er skjult. Du kan vise dem igen under Indstillinger ▸ Standarder.';
+
+  @override
+  String get collectionFacetMissingValue => 'Ikke i dit bibliotek';
 
   @override
   String get collectionFacetClear => 'Ryd filtre';
@@ -5074,6 +5088,11 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String collectionQueryAnyParam(String param) {
     return 'Vilkårlig $param';
+  }
+
+  @override
+  String collectionQueryParamNotOffered(String param, String value) {
+    return '$param: $value (tilbydes ikke)';
   }
 
   @override

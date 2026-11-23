@@ -4804,6 +4804,10 @@
   "@collectionFacetWithinMonths": {
     "x-sourceSha256": "66be719ed3455ce0c8690aabb3c822e941f268edc163a37a050194e1f6d12926"
   },
+  "collectionFacetWithinMonthsSaved": "{count, plural, =1{1 Monat, gespeichert} other{{count} Monate, gespeichert}}",
+  "@collectionFacetWithinMonthsSaved": {
+    "x-sourceSha256": "e5c28ec8c3e855b65f5fa34934c782e7072929fddd7960b0195263ddf3a2670b"
+  },
   "collectionFacetWithinSince": "Seit einem Datum…",
   "@collectionFacetWithinSince": {
     "x-sourceSha256": "af507bf47251132ba4703a698935d64e15447d0ac82af7a649c56aeaba2b65a4"
@@ -4875,6 +4879,10 @@
   "collectionFacetAllHidden": "Alle Filter sind ausgeblendet. Du kannst sie unter Einstellungen ▸ Standardwerte wieder einblenden.",
   "@collectionFacetAllHidden": {
     "x-sourceSha256": "eec14e1a8c3ccd1c9f04b0b59373b768c4f5b28191e1c5d5263cc0e71bc07202"
+  },
+  "collectionFacetMissingValue": "Nicht in deiner Bibliothek",
+  "@collectionFacetMissingValue": {
+    "x-sourceSha256": "52e6640837ec2055afd1c0768ff09c3b4cff9dac7b6ff011c74c5f8d57ede77a"
   },
   "collectionFacetClear": "Filter löschen",
   "@collectionFacetClear": {
@@ -5119,6 +5127,10 @@
   "collectionQueryAnyParam": "Beliebig: {param}",
   "@collectionQueryAnyParam": {
     "x-sourceSha256": "768b0de301e56f0b42b07cb65a8700632abfe087fd187bfbff9111fd0173abdc"
+  },
+  "collectionQueryParamNotOffered": "{param}: {value} (nicht angeboten)",
+  "@collectionQueryParamNotOffered": {
+    "x-sourceSha256": "bb8f76af8c64c3aa8c3bad4605d23ba12e2559ec4fa22745e4b2ea8a0ed3d68a"
   },
   "collectionBatchLevelUnspecified": "Nicht angegeben (löschen)",
   "@collectionBatchLevelUnspecified": {
