@@ -2703,8 +2703,11 @@ class DanceEditorController extends ChangeNotifier {
   ///
   /// A Meter that states the same beats in a bar as before (a word added after
   /// "3/4"), or none or several meters ("3/4 and 6/8"), leaves the phrases as
-  /// they are, so beats to the bar a caller set phrase by phrase (#2303)
-  /// survive editing the Meter's words. An unnamed structure is not rewritten.
+  /// they are. So does any Meter when the phrases differ in beats to the bar
+  /// among themselves: a structure a caller set phrase by phrase (#2303) is
+  /// never flattened, whatever the Meter says, and typing the Meter a
+  /// character at a time cannot reach it. An unnamed structure is not
+  /// rewritten.
   void onMeterChanged() {
     final perBar = statedBeatsPerBar;
     final changed = perBar != _statedBeatsPerBarSeen;
@@ -2714,6 +2717,7 @@ class DanceEditorController extends ChangeNotifier {
         perBar != null &&
         changed &&
         phrases != null &&
+        phrases.every((p) => p.beatsPerBar == phrases.first.beatsPerBar) &&
         phrases.any((p) => p.beatsPerBar != perBar)) {
       try {
         setPhraseStructureText(

@@ -48,13 +48,16 @@ class NamedPhrasesEditor extends StatefulWidget {
 /// bars played twice. Each phrase keeps its part's bars, and its beats per
 /// bar are [beatsPerBar], or the part's own when that is null: so the
 /// standard structure in 4/4 is A and B of 8 bars, as an import gives it
-/// (`4*8*4`), not 4 bars of the standard's 2/2 beats.
+/// (`4*8*4`), not 4 bars of the standard's 2/2 beats. A structure whose parts
+/// differ in beats to the bar keeps each part's own, whatever [beatsPerBar]
+/// says: one stated meter cannot describe it (#2303).
 List<NamedPhrase> namedPhrasesFrom(
   PhraseStructure structure, {
   int? beatsPerBar,
 }) {
   final named = structure.namedPhrases;
   if (named != null) return named;
+  if (structure.hasMixedMeter) beatsPerBar = null;
   final fallbackPerBar = beatsPerBar ?? structure.components.first.beatsPerBar;
   final fallback = [
     NamedPhrase(name: 'A', plays: 2, bars: 8, beatsPerBar: fallbackPerBar),
