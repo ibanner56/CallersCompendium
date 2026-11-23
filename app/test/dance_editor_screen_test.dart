@@ -2970,8 +2970,8 @@ void main() {
         );
         await _pumpEditor(tester, repos, danceId: 'd3');
         await setBeatsPerBar(tester, 0, '');
-        expect(find.text('1 to 1000'), findsOneWidget);
-        await setBeatsPerBar(tester, 0, '1001');
+        expect(find.text('1 to 12'), findsOneWidget);
+        await setBeatsPerBar(tester, 0, '99');
         expect(find.text('1 to 12'), findsOneWidget);
         expect(await savedStructure(tester, repos), 'A:2*4*2 + B:1*8*2');
       });
@@ -2979,7 +2979,7 @@ void main() {
       // A bar of more than 12 beats has no meter to name it, so a bar range
       // typed over it is counted by the default 2 beats (ecdMeterForBars):
       // the field stops at 12, the beats a meter can name.
-      testWidgets('13 beats to the bar is refused where 12 is accepted', (
+      testWidgets('13 beats to the bar is refused and changes nothing', (
         tester,
       ) async {
         final repos = await ecdDance(
@@ -2990,6 +2990,14 @@ void main() {
         await setBeatsPerBar(tester, 0, '13');
         expect(find.text('1 to 12'), findsOneWidget);
         expect(await savedStructure(tester, repos), 'A:2*4*2 + B:1*8*2');
+      });
+
+      testWidgets('12 beats to the bar is accepted', (tester) async {
+        final repos = await ecdDance(
+          meter: '',
+          phraseStructure: 'A:2*4*2 + B:1*8*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
         await setBeatsPerBar(tester, 0, '12');
         expect(find.text('1 to 12'), findsNothing);
         expect(await savedStructure(tester, repos), 'A:2*4*12 + B:1*8*2');
@@ -3002,13 +3010,23 @@ void main() {
           phraseStructure: 'A:2*4*16 + B:1*8*2',
         );
         await _pumpEditor(tester, repos, danceId: 'd3');
+        expect(fieldText(tester, 'named-phrase-0-beats'), '16');
         expect(find.text('1 to 12'), findsOneWidget);
         // Editing another phrase writes nothing while the 16 stands.
         await setBars(tester, 1, '4');
         expect(await savedStructure(tester, repos), 'A:2*4*16 + B:1*8*2');
+      });
+
+      testWidgets('a stored phrase of more than 12 beats is fixed by typing '
+          'a count it can have', (tester) async {
+        final repos = await ecdDance(
+          meter: '',
+          phraseStructure: 'A:2*4*16 + B:1*8*2',
+        );
+        await _pumpEditor(tester, repos, danceId: 'd3');
         await setBeatsPerBar(tester, 0, '3');
         expect(find.text('1 to 12'), findsNothing);
-        expect(await savedStructure(tester, repos), 'A:2*4*3 + B:1*4*2');
+        expect(await savedStructure(tester, repos), 'A:2*4*3 + B:1*8*2');
       });
 
       testWidgets('an empty bar count changes nothing and says why', (
