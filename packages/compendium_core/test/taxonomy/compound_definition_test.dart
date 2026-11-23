@@ -343,38 +343,57 @@ void main() {
         expect(allowedValues(definition, 'who', ecd), {...ecdSelectors});
       });
 
-      // Characterisation, not a guard: no English-only group has an opposite,
-      // so the form changes nothing here, and the declared binding already
-      // limits the result to the slot's groups. It pins that the result stays
-      // inside English's groups and holds none only contra has.
-      test('through an opposite, the groups that have one are unchanged', () {
-        final definition = CompoundDefinition(
-          params: const [CompoundParam(key: 'who', kind: ParamKind.dancerSet)],
-          figures: [
-            Figure(move: 'ecd_honor'),
-            Figure(move: 'ecd_honor'),
-          ],
-          bindings: const [
-            CompoundSlotBinding(
-              figureIndex: 0,
-              slotKey: 'whom',
-              paramKey: 'who',
-            ),
-            CompoundSlotBinding(
-              figureIndex: 1,
-              slotKey: 'whom',
-              paramKey: 'who',
-              source: CompoundBindingSource.opposite,
-            ),
-          ],
-          form: 'ecd',
-        );
-        final allowed = allowedValues(definition, 'who', ecd)!;
-        expect(allowed, containsAll(['role1s', 'role2s', 'partners', u]));
-        expect(allowed.every(ecdSelectors.contains), isTrue);
-        expect(allowed, isNot(contains('thirdCorners')));
-        expect(allowed, isNot(contains('opposites')));
-      });
+      // The universe is English's groups, so the groups of English's own that
+      // have an opposite (the four pairs, `ParamOpposites`) are allowed, and
+      // the ones that have none are not: only the former can be used through
+      // an opposite.
+      test(
+        'through an opposite, English\'s groups that have one are allowed',
+        () {
+          final definition = CompoundDefinition(
+            params: const [
+              CompoundParam(key: 'who', kind: ParamKind.dancerSet),
+            ],
+            figures: [
+              Figure(move: 'ecd_honor'),
+              Figure(move: 'ecd_honor'),
+            ],
+            bindings: const [
+              CompoundSlotBinding(
+                figureIndex: 0,
+                slotKey: 'whom',
+                paramKey: 'who',
+              ),
+              CompoundSlotBinding(
+                figureIndex: 1,
+                slotKey: 'whom',
+                paramKey: 'who',
+                source: CompoundBindingSource.opposite,
+              ),
+            ],
+            form: 'ecd',
+          );
+          final allowed = allowedValues(definition, 'who', ecd)!;
+          expect(allowed, containsAll(['role1s', 'role2s', 'partners', u]));
+          expect(
+            allowed,
+            containsAll([
+              'top',
+              'bottom',
+              'ends',
+              'middles',
+              'leftFile',
+              'rightFile',
+              'firstDiagonals',
+              'secondDiagonals',
+            ]),
+          );
+          expect(allowed, isNot(contains('couples')));
+          expect(allowed.every(ecdSelectors.contains), isTrue);
+          expect(allowed, isNot(contains('thirdCorners')));
+          expect(allowed, isNot(contains('opposites')));
+        },
+      );
     });
 
     test('are the overlap of every slot a parameter fills', () {
