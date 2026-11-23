@@ -1,3 +1,4 @@
+import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
@@ -250,18 +251,18 @@ void main() {
   });
 
   group('importing a shared file', () {
-    CompendiumArchive archive() => CompendiumArchive(
+    CompendiumArchive archive({UserGlossaryEntry? shared}) => CompendiumArchive(
       exportedAt: now,
       dances: [
         Dance(
           id: 'd1',
           title: 'Zoom Reel',
-          figures: [use('zoom-id')],
+          figures: [use(shared?.id ?? 'zoom-id')],
           createdAt: created,
           updatedAt: created,
         ),
       ],
-      userFigures: [figure('zoom-id')],
+      userFigures: [shared ?? figure('zoom-id')],
     );
 
     Future<void> pumpShared(
@@ -269,14 +270,20 @@ void main() {
       CompendiumRepositories repos, {
       bool customFigures = true,
       bool picked = false,
+      UserGlossaryEntry? shared,
+      DialectsByForm? dialects,
     }) async {
       await tester.binding.setSurfaceSize(const Size(1000, 1600));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final glossary = ValueNotifier(true);
       final custom = ValueNotifier(customFigures);
+      final dialectNotifier = ValueNotifier(
+        dialects ?? DialectsByForm.defaults,
+      );
       addTearDown(glossary.dispose);
       addTearDown(custom.dispose);
-      final json = encodeArchive(archive());
+      addTearDown(dialectNotifier.dispose);
+      final json = encodeArchive(archive(shared: shared));
       final decoded = decodeArchive(json).archive;
       await tester.pumpWidget(
         MaterialApp(
@@ -284,10 +291,24 @@ void main() {
           supportedLocales: testSupportedLocales,
           builder: (context, child) => RepositoriesScope(
             repositories: repos,
-            child: ShowGlossaryScope(
-              notifier: glossary,
-              child: ShowCustomFiguresScope(notifier: custom, child: child!),
-            ),
+            child: dialects == null
+                ? ShowGlossaryScope(
+                    notifier: glossary,
+                    child: ShowCustomFiguresScope(
+                      notifier: custom,
+                      child: child!,
+                    ),
+                  )
+                : ActiveDialectScope.byForm(
+                    dialects: dialectNotifier,
+                    child: ShowGlossaryScope(
+                      notifier: glossary,
+                      child: ShowCustomFiguresScope(
+                        notifier: custom,
+                        child: child!,
+                      ),
+                    ),
+                  ),
           ),
           home: Builder(
             builder: (context) => Scaffold(
@@ -335,6 +356,38 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('import-commit-button')));
       await tester.pumpAndSettle();
     }
+
+    testWidgets('says an English figure\'s name is taken when English\'s '
+        'dialect has it, as the Glossary reads it (#2294)', (tester) async {
+      // English gives `swing` the name "zebra"; contra's dialect does not.
+      final english = Dialect.canonical.copyWith(moves: {'swing': 'zebra'});
+      final dialects = DialectsByForm({
+        DanceForm.contra: Dialect.larksRobins,
+        DanceForm.ecd: english,
+      });
+      final shared = UserGlossaryEntry(
+        id: 'zebra-id',
+        kindName: UserGlossaryEntryKind.customFigure.name,
+        name: 'zebra',
+        definition: 'A figure called zebra.',
+        description: 'Of your own.',
+        payload: const {
+          'form': 'ecd',
+          'template': '{move}',
+          'defaultBeats': 8,
+          'params': <Object?>[],
+        },
+        createdAt: created,
+      );
+      final repos = openTestRepositories();
+      await pumpShared(tester, repos, shared: shared, dialects: dialects);
+
+      expect(find.byType(ImportUserFiguresScreen), findsOneWidget);
+      expect(
+        find.textContaining('your Glossary will mark it Rename needed'),
+        findsOneWidget,
+      );
+    });
 
     testWidgets('offers the file\'s figures once its dances are in; Undo '
         'takes both back', (tester) async {

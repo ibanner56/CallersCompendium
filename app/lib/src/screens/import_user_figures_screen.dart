@@ -33,10 +33,9 @@ class UserFigureImportChoices {
 ///
 /// A figure whose name is taken here says so ([nameTaken]): it is added all
 /// the same, and the Glossary marks it Rename needed. [nameTaken] is checked
-/// against contra's dialect and the custom dialects only, while the Glossary
-/// checks a figure of another form against that form's own dialect too, so a
-/// figure it marks Rename needed may not have been said to be taken here
-/// (#2294).
+/// the way the Glossary checks a figure: against the app's figures and the
+/// active dialect of the figure's own form, the user's own dialects, the
+/// shorthands and the user's other entries (`importedFiguresWithTakenNames`).
 ///
 /// Pops a [UserFigureImportChoices]; empty when the user skips.
 class ImportUserFiguresScreen extends StatefulWidget {
