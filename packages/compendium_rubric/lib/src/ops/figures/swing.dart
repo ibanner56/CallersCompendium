@@ -12,6 +12,8 @@ part of '../operation.dart';
 /// and the one the taxonomy marks *verified*; `where: center` is partly
 /// deferred in the spec itself (its not-aligned branch is explicitly
 /// incomplete) and raises [ErrorKind.unsupportedParam] rather than guessing.
+/// The one exception is "Ones swing", the centre swing's aligned case, which
+/// the import writes as `where: sides`; see [_ownRowSwing].
 final class Swing extends Operation {
   const Swing({
     required this.who,
@@ -67,6 +69,7 @@ final class Swing extends Operation {
         'swing supports where:sides only; where:center is deferred',
       );
     }
+    if (_ownRowSwing(formation) != null) return null;
     for (final band in handsFourBands(formation)) {
       for (final pair in _columnPairs(formation, band)) {
         if (!whoMatches(formation, pair.top, pair.bottom, who)) {
@@ -87,8 +90,53 @@ final class Swing extends Operation {
     return face == FaceDirection.towardSet ? inward : inward.reversed;
   }
 
+  /// "Ones swing": the ones, standing across the set from each other in one
+  /// row of every hands four, swing there, in the middle of the set, and
+  /// finish in that row as a couple facing **down** the hall, toward the twos
+  /// — which after a progression may be new twos. *(User-ruled 2026-11-23.)*
+  ///
+  /// This is the taxonomy's `where: center` aligned case, which the import
+  /// never names: Caller's Box writes "Ones swing" and the record carries
+  /// only `who: ones`. A stated `face: up` or `down` is honoured; the default
+  /// `in` has no meaning for a couple standing along the hall, so it takes the
+  /// ruled `down`. `face: out` is still deferred.
+  ///
+  /// Returns `null`, leaving the side-column swing to run, unless every
+  /// active hands four has its ones in one row on the side lines. A couple
+  /// standing out is outside every band and does not swing (§10.3.2).
+  Map<DancerId, DancerState>? _ownRowSwing(Formation formation) {
+    if (who != WhoSet.ones || face == FaceDirection.awayFromSet) return null;
+    final facing = face == FaceDirection.up ? Facing.up : Facing.down;
+    final bands = handsFourBands(formation);
+    if (bands.isEmpty) return null;
+    final changes = <DancerId, DancerState>{};
+    for (final band in bands) {
+      ({int row, DancerId lark, DancerId robin})? ones;
+      for (final row in [band.topRow, band.bottomRow]) {
+        final west = formation.dancerAt(Position(row, 0));
+        final east = formation.dancerAt(Position(row, kColumnCount - 1));
+        if (west == null || east == null) continue;
+        if (west.role == east.role) continue;
+        if (!whoMatches(formation, west, east, who)) continue;
+        final lark = west.role == Role.lark ? west : east;
+        ones = (row: row, lark: lark, robin: lark == west ? east : west);
+      }
+      if (ones == null) return null;
+      final placement = normalizeAlongHall(row: ones.row, facing: facing);
+      changes[ones.lark] = formation
+          .stateOf(ones.lark)
+          .copyWith(position: placement.lark, facing: facing);
+      changes[ones.robin] = formation
+          .stateOf(ones.robin)
+          .copyWith(position: placement.robin, facing: facing);
+    }
+    return changes;
+  }
+
   @override
   Result<Formation, OpError> perform(Formation formation) {
+    final ownRow = _ownRowSwing(formation);
+    if (ownRow != null) return Ok(formation.withUpdates(ownRow));
     final changes = <DancerId, DancerState>{};
     for (final band in handsFourBands(formation)) {
       for (final pair in _columnPairs(formation, band)) {

@@ -47,6 +47,12 @@
 > previously compiling dance lost. 8 dances that refused now mismatch and 3
 > that mismatched now refuse.
 >
+> **"Ones swing" (2026-11-23)**: the ones swing in their own row and finish
+> facing down, toward the twos (user-ruled). Against `rubric` at `59dfdd15`
+> it took the count from 3,352 to 3,536 compiled in scope (65.6% to 69.4%),
+> and the core set from 485 to 487, with no previously compiling dance lost;
+> 65 dances that refused now get further and mismatch.
+>
 > **`circular_hey` (2026-11-23)** is built on the agent's reading of the core
 > definition, not yet ruled. Against `rubric` at `5f683503` it took the count
 > from 2,843 to 2,849 compiled in scope, with the core set unchanged at 410 and

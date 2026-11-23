@@ -788,6 +788,14 @@ To be defined later with worked examples.
     - `face:up` → `[[L2-B,0,0,0,R2-B],[L1-A,0,0,0,R1-A]]`
     - `face:down` → `[[L2-B,0,0,0,R2-B],[R1-A,0,0,0,L1-A]]`
     - `face:in` → N/A (not meaningful) · `face:out` → **deferred** (context-dependent).
+  - **"Ones swing" — built for `who: ones`** *(user-ruled 2026-11-23)*. Caller's Box writes it with
+    no `where`, so it arrives as `where: sides`. When every active hands four has its ones in one
+    row on the side lines, they swing there and finish in that row facing **down** the hall,
+    toward the twos (which after a progression may be new twos), lark-left. A stated `face: up` /
+    `down` is honoured; the default `in` means nothing for a couple along the hall and takes the
+    ruled `down`; `face: out` stays deferred. Otherwise the side-column swing runs as above. A
+    couple standing out does not swing (`fundamentals.md` §10.3.2). `who: twos` in a row is
+    not ruled and still refuses.
     - _Note (flagged, not implemented):_ if the following figure is a **line of four** (with
       these dancers, or the next h4's when `progression:true`), the up/down result is finessed
       into the `sides` line-of-four form. **The line-of-four side of this is now settled** —
@@ -2783,7 +2791,9 @@ To be defined later with worked examples.
   wave whatever `who` names; `who` still chooses who slides *(agent's call)*. Then it slides as
   below. *(User-ruled 2026-11-23: many Caller's Box records start in or form that wave and the
   import does not carry it; a dancer can slide only toward the hand they hold, so the slide names
-  the wave.)* A set already in a wave is slid as it stands.
+  the wave.)* A set already in a wave is slid as it stands. No warning is raised for the formed
+  wave: a Rory O'More implies its wave as a `petronella` implies its ring *(user-ruled
+  2026-11-23)*.
 - **standing out:** a couple standing out at an end neither steps into the wave nor slides
   (`fundamentals.md` §10.3.2).
 - **preconditions** (all `unresolvableDancerSet`):
