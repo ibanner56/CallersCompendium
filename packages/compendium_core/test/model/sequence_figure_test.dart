@@ -242,7 +242,13 @@ void main() {
       final warning = issues.singleWhere(
         (i) => i.code == 'sequence_exceeds_phrase',
       );
-      expect(warning.data, {'position': 1, 'actual': 20, 'limit': 16});
+      expect(warning.data, {
+        'position': 1,
+        'actual': 20,
+        'limit': 16,
+        'startBeat': 0,
+        'limitStart': 0,
+      });
       expect(warning.message, startsWith('a sequence in figure 1 is 20 beats'));
     });
 
@@ -262,7 +268,15 @@ void main() {
       );
       expect(
         issues.where((i) => i.code == 'sequence_exceeds_phrase').single.data,
-        {'position': 2, 'actual': 20, 'limit': 16},
+        {
+          'position': 2,
+          'actual': 20,
+          'limit': 16,
+          // The meanwhile starts after the first figure, and so does the
+          // sequence inside it.
+          'startBeat': 12,
+          'limitStart': 0,
+        },
       );
     });
 
