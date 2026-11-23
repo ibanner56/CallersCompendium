@@ -1,0 +1,23 @@
+{
+  "id": "2337-program-templates",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can keep several program templates, one for each kind of evening you call, in Settings ▸ Defaults ▸ Program defaults ▸ Program templates: add, rename, duplicate, reorder and delete them (with Undo), and choose a Default template or Blank program. The first template you add becomes the default unless you chose Blank program.",
+      "With two or more templates, New program asks which one to start from, with your Default template first. With one template or none it opens the builder straight away, as before.",
+      "Each template syncs to your other devices as its own setting, so editing two different templates on two devices keeps both edits. Templates wait to sync until every device in the store has a version of the app that knows them."
+    ],
+    "data_migrations": [
+      "A Starting program you had set up becomes your first program template, named \"Starting program\", and your Default template, so New program starts the same way it did. The old setting is kept as it was, so a device still on an older version keeps its starting program."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add the programTemplates.v1 sync capability, and let SyncCapabilityPolicy gate settings keys by prefix (gatedSettingKeyPrefixes; an exact key wins, then the longest prefix).",
+      "Classify program_template:<id>, program_template_order and program_template_default in the settings privacy registry."
+    ],
+    "changed": [
+      "The default_starting_program registry note says the key is legacy: read once and copied into the first program template."
+    ]
+  }
+}

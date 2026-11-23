@@ -5028,7 +5028,9 @@ version. So data of that kind waits, per store, until every attached device
 says it can read it.
 
 **Capabilities.** A capability is a name (`glossary.v1`) for a set of record
-kinds and settings keys, and of `glossaryEntry` records by the entry's `kind`
+kinds and settings keys (exact keys, or every key under a prefix such as
+`program_template:`, an exact key winning over a prefix and a longer prefix
+over a shorter one; #2337), and of `glossaryEntry` records by the entry's `kind`
 (#1023): an entry of a kind gated on a capability of its own waits for that
 one, and any other entry for its record kind's. A build advertises the
 capabilities it fully supports, sync included. Named rather than numbered, so
@@ -5172,6 +5174,15 @@ that change it gated them without advertising the capability, so they were
 held back on every pass with no notice. That change is subject to *Rollout*:
 a device on a build that lists only `glossary.v1` holds `glossary.v2` closed and
 is named for it, while what `glossary.v1` gates publishes past it.
+
+**`programTemplates.v1`.** Gates the program templates (#2337): every
+settings key under the `program_template:` prefix (one key per template), and
+the exact keys `program_template_order` and `program_template_default`,
+tombstones included. A build without it knows only the single
+`default_starting_program` setting, which stays ungated and is no longer
+written. The reference client advertises it from the change that adds
+templates, so it is subject to *Rollout*: a device on a build that lists only
+the glossary capabilities holds it closed and is named for it.
 
 **Server.** The server needs no code for the gate. It validates settings keys
 and record kinds through the registry it is built from, so it MUST be deployed

@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../widgets/brand_mark.dart';
 import '../widgets/empty_state.dart';
 import 'perform_program_screen.dart' show PerformResumeStore;
+import '../data/program_templates.dart' show ProgramTemplateChoice;
 import 'program_editor_screen.dart';
 import 'program_summary_screen.dart';
 import 'programs_list_screen.dart';
@@ -72,10 +73,18 @@ class _ProgramsShellState extends State<ProgramsShell> {
 
   /// Opens the full-screen builder route and refreshes the browse panes on
   /// return.
-  Future<void> _openBuilder(BuildContext context, {String? programId}) async {
+  Future<void> _openBuilder(
+    BuildContext context, {
+    String? programId,
+    ProgramTemplateChoice templateChoice =
+        const ProgramTemplateChoice.useDefault(),
+  }) async {
     final result = await Navigator.of(context).push<String>(
       MaterialPageRoute(
-        builder: (_) => ProgramEditorScreen(programId: programId),
+        builder: (_) => ProgramEditorScreen(
+          programId: programId,
+          templateChoice: templateChoice,
+        ),
       ),
     );
     if (!mounted) return;
@@ -125,7 +134,8 @@ class _ProgramsShellState extends State<ProgramsShell> {
             child: ProgramsListScreen(
               key: _listKey,
               onSelectProgram: _onSelectProgram,
-              onCreateProgram: () => _openBuilder(context),
+              onCreateProgram: (choice) =>
+                  _openBuilder(context, templateChoice: choice),
               selectedProgramId: _selectedProgramId,
               performResumeStore: _performResume,
               isActive: widget.isActive,

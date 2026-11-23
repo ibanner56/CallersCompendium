@@ -11,6 +11,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/plaintext_program_import_screen.dart';
 import 'package:compendium_app/src/widgets/app_bar_text_action.dart';
 
+import '../support/program_template_seed.dart';
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
 
@@ -144,10 +145,12 @@ void main() {
   });
 
   testWidgets(
-    'commit creates a program with ordered slots and undo removes it',
+    'commit creates a program with ordered slots and undo removes it, '
+    'taking nothing from the Default template (#2337)',
     (tester) async {
       final repos = openTestRepositories();
       await repos.dances.create(_dance(id: 'd1', title: 'Rockin\' Robin'));
+      await seedDefaultProgramTemplate(repos);
 
       await _pump(tester, repos);
 
@@ -174,6 +177,8 @@ void main() {
       expect(program.slots[1].danceId, isNull);
       expect(program.slots[1].text, 'Break');
       expect(program.slots[2].text, 'Unknown Dance');
+      expect(program.slots, hasLength(3));
+      expect(hasSeededTemplateSlot(program), isFalse);
 
       expect(
         find.byKey(const ValueKey('plaintext-import-committed-snackbar')),

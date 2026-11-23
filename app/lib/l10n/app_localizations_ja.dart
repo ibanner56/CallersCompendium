@@ -2463,10 +2463,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDefaultsStartingProgramTitle => '開始プログラム';
 
   @override
-  String get settingsDefaultsStartingProgramSubtitle =>
-      '手動で作成したプログラムに追加するダンスとメモ。';
-
-  @override
   String get settingsDefaultsStartingProgramPickerTitle => 'ダンスを追加';
 
   @override
@@ -12179,4 +12175,101 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get exportCallingCardsBiggerThanPaper =>
       'カードが用紙より大きいため、1ページに1枚ずつ縮小して印刷しました。';
+
+  @override
+  String get settingsProgramTemplatesTitle => 'プログラムのテンプレート';
+
+  @override
+  String settingsProgramTemplatesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'テンプレート $count 件',
+      zero: 'テンプレートはまだありません',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsProgramTemplateDefaultTitle => '既定のテンプレート';
+
+  @override
+  String get settingsProgramTemplateDefaultSubtitle =>
+      '選択を求められないときに新しいプログラムの元になるもの。';
+
+  @override
+  String get settingsProgramTemplatesMigratedName => '開始プログラム';
+
+  @override
+  String get programTemplateBlankProgram => '空のプログラム';
+
+  @override
+  String get programTemplateDefaultBadge => '既定';
+
+  @override
+  String get programTemplateChooserTitle => 'テンプレートから始める';
+
+  @override
+  String get programTemplateNew => '新しいテンプレート';
+
+  @override
+  String get programTemplatesEmptyTitle => 'テンプレートはまだありません';
+
+  @override
+  String get programTemplatesEmptyBody =>
+      'テンプレートは、ある種類の夜のためのダンス・メモ・休憩の初期リストです。2 つ以上あると、新しいプログラムを作るときにどれから始めるかを尋ねます。';
+
+  @override
+  String get programTemplateNameLabel => 'テンプレート名';
+
+  @override
+  String get programTemplateRename => '名前を変更';
+
+  @override
+  String get programTemplateRenameTitle => 'テンプレート名を変更';
+
+  @override
+  String programTemplateCopyName(String name) {
+    return '$name（コピー）';
+  }
+
+  @override
+  String get programTemplateUntitled => '名前のないテンプレート';
+
+  @override
+  String programTemplateSlotCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 枠',
+      zero: '空',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programTemplateDefaultWithSlots(String slots) {
+    return '既定 · $slots';
+  }
+
+  @override
+  String programTemplateActionsTooltip(String name) {
+    return '$name の操作';
+  }
+
+  @override
+  String get programTemplateEditorTitle => 'テンプレートを編集';
+
+  @override
+  String get programTemplateSlotsHeader => '枠';
+
+  @override
+  String get programTemplateSlotsSubtitle =>
+      'このテンプレートから作るプログラムに最初から入るダンス・メモ・休憩。';
+
+  @override
+  String get programTemplatesLoadError => 'プログラムのテンプレートを読み込めませんでした。';
+
+  @override
+  String get programTemplateSaveError => 'テンプレートへの変更を保存できませんでした。もう一度お試しください。';
 }

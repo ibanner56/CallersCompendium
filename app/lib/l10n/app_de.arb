@@ -2532,10 +2532,6 @@
   "@settingsDefaultsStartingProgramTitle": {
     "x-sourceSha256": "d43a18c5072c7c93f504cb049a3aaa925ee72aded0ece0cdfbbd0a623c312d6f"
   },
-  "settingsDefaultsStartingProgramSubtitle": "Tänze und Notizen, die zu manuell erstellten Programmen hinzugefügt werden.",
-  "@settingsDefaultsStartingProgramSubtitle": {
-    "x-sourceSha256": "5263ff112c8931c2a4483aad83d69af9478ace82f9f0606180306ef902ddddd3"
-  },
   "settingsDefaultsStartingProgramPickerTitle": "Tanz hinzufügen",
   "@settingsDefaultsStartingProgramPickerTitle": {
     "x-sourceSha256": "162eb23854f7ecaf9a9fe6662f96f732bace7ea5999b540e4b6e4b189d0a01b1"
@@ -12233,5 +12229,101 @@
   "exportCallingCardsBiggerThanPaper": "Diese Karten sind größer als das Papier, daher wurde jede verkleinert und einzeln auf eine Seite gedruckt.",
   "@exportCallingCardsBiggerThanPaper": {
     "x-sourceSha256": "b72cf3ae14970e26d9ca98cdea00c2c9a23b004b7d9084777486e2730750cbd6"
+  },
+  "settingsProgramTemplatesTitle": "Programmvorlagen",
+  "@settingsProgramTemplatesTitle": {
+    "x-sourceSha256": "11cd9e91ebbb36605908424c91e329671d971a944d570168b37201b99f76f397"
+  },
+  "settingsProgramTemplatesCount": "{count, plural, =0{Noch keine Vorlagen} =1{1 Vorlage} other{{count} Vorlagen}}",
+  "@settingsProgramTemplatesCount": {
+    "x-sourceSha256": "6e246ac27df2c22a960f8dff2363985d16182090dabefb998062bcd076fa09ce"
+  },
+  "settingsProgramTemplateDefaultTitle": "Standardvorlage",
+  "@settingsProgramTemplateDefaultTitle": {
+    "x-sourceSha256": "0b1bdec38bf09a6abf20489be107408d5d5e4ea91dba0951e3ca83e2af4caa88"
+  },
+  "settingsProgramTemplateDefaultSubtitle": "Womit ein neues Programm beginnt, wenn du nicht gefragt wirst.",
+  "@settingsProgramTemplateDefaultSubtitle": {
+    "x-sourceSha256": "152866b3039d16c9556d44a06972b71f1572a510cba9f38564b896e1705e708d"
+  },
+  "settingsProgramTemplatesMigratedName": "Startprogramm",
+  "@settingsProgramTemplatesMigratedName": {
+    "x-sourceSha256": "d43a18c5072c7c93f504cb049a3aaa925ee72aded0ece0cdfbbd0a623c312d6f"
+  },
+  "programTemplateBlankProgram": "Leeres Programm",
+  "@programTemplateBlankProgram": {
+    "x-sourceSha256": "f8af9f215bfd9627cc76c0ca62ec2d33f6a166c637acce90837a9ea35774f56c"
+  },
+  "programTemplateDefaultBadge": "Standard",
+  "@programTemplateDefaultBadge": {
+    "x-sourceSha256": "21b111cbfe6e8fca2d181c43f53ad548b22e38aca955b9824706a504b0a07a2d"
+  },
+  "programTemplateChooserTitle": "Mit einer Vorlage beginnen",
+  "@programTemplateChooserTitle": {
+    "x-sourceSha256": "8e9184c3b766b987df340fc4f8563a4a2d37ba40706045a96be59fdd988d4502"
+  },
+  "programTemplateNew": "Neue Vorlage",
+  "@programTemplateNew": {
+    "x-sourceSha256": "30d87ec4525974fbbdf2792b629bc913fa0eb557f33775a17735d9d4952de73b"
+  },
+  "programTemplatesEmptyTitle": "Noch keine Vorlagen",
+  "@programTemplatesEmptyTitle": {
+    "x-sourceSha256": "2d1ae3be976e99c97bbd3b9bf5ed19b7f308520631a5a34d8ac37785ac99edd2"
+  },
+  "programTemplatesEmptyBody": "Eine Vorlage ist eine Startliste mit Tänzen, Notizen und Pausen für eine Art von Abend. Ab zwei Vorlagen fragt „Neues Programm“, womit du beginnen möchtest.",
+  "@programTemplatesEmptyBody": {
+    "x-sourceSha256": "0d53a2e44c15c407520df68a4527fbcec3d2519c02f2f1e76bb36e2f333a57d1"
+  },
+  "programTemplateNameLabel": "Name der Vorlage",
+  "@programTemplateNameLabel": {
+    "x-sourceSha256": "7b905ed0eaf2ffb075ddffcda38046791eda31090b5117e51b52b5f9e10d93a2"
+  },
+  "programTemplateRename": "Umbenennen",
+  "@programTemplateRename": {
+    "x-sourceSha256": "3064d79a295cefe4b384b8fe5cb29fd6b06d7eb1ad94b8895f4148039d06b330"
+  },
+  "programTemplateRenameTitle": "Vorlage umbenennen",
+  "@programTemplateRenameTitle": {
+    "x-sourceSha256": "91f36a2250b203a91a2b09783812d84e64a0110058536e03f5c874a8b9503a08"
+  },
+  "programTemplateCopyName": "{name} (Kopie)",
+  "@programTemplateCopyName": {
+    "x-sourceSha256": "83ad538bfc05256cb89d845837c5f87e1d0ec2fd94e60dff972956f30e99b2b8"
+  },
+  "programTemplateUntitled": "Unbenannte Vorlage",
+  "@programTemplateUntitled": {
+    "x-sourceSha256": "1be215111c621aa61c875e2465020509380ba44d3e2d8d49dd273ecd57a35478"
+  },
+  "programTemplateSlotCount": "{count, plural, =0{Leer} =1{1 Eintrag} other{{count} Einträge}}",
+  "@programTemplateSlotCount": {
+    "x-sourceSha256": "df0ff3b27ae67a905e56ad963b150ced99e977245f78dc66bce4e845adac2c3f"
+  },
+  "programTemplateDefaultWithSlots": "Standard · {slots}",
+  "@programTemplateDefaultWithSlots": {
+    "x-sourceSha256": "bef5d7b9d5be1a10e03211b2269b7eca30d1d682e63faa02eb2e2e4d3b787c38"
+  },
+  "programTemplateActionsTooltip": "Aktionen für {name}",
+  "@programTemplateActionsTooltip": {
+    "x-sourceSha256": "aac6defa1846338bb822f6a929e67cacd9a3fb2018b0af746592e77d5afb0625"
+  },
+  "programTemplateEditorTitle": "Vorlage bearbeiten",
+  "@programTemplateEditorTitle": {
+    "x-sourceSha256": "708c9a5c56a40ed01a39b15ffc68023028d600264f6976715639182a0943f8b6"
+  },
+  "programTemplateSlotsHeader": "Einträge",
+  "@programTemplateSlotsHeader": {
+    "x-sourceSha256": "4fd72c06bcff79710b0a5bd292b1f6408ec8cfa357e08566b663e4f14cbfc7f0"
+  },
+  "programTemplateSlotsSubtitle": "Tänze, Notizen und Pausen, mit denen ein Programm aus dieser Vorlage beginnt.",
+  "@programTemplateSlotsSubtitle": {
+    "x-sourceSha256": "d4272a4214fd2b3a38d903e2977581f47d8231c37c6e78b18eaf9f7c0f489420"
+  },
+  "programTemplatesLoadError": "Deine Programmvorlagen konnten nicht geladen werden.",
+  "@programTemplatesLoadError": {
+    "x-sourceSha256": "82c29ffc0ee79721cbad1f290f844694166d4cefe1f3f9667aacc6316cb2be9d"
+  },
+  "programTemplateSaveError": "Die Änderung an deinen Vorlagen konnte nicht gespeichert werden. Versuche es noch einmal.",
+  "@programTemplateSaveError": {
+    "x-sourceSha256": "ccd2779aa982c2a20d48a6c1edb35883736c674d626a6cc6981d3465ce6b44d0"
   }
 }

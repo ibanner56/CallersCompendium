@@ -2630,10 +2630,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsDefaultsStartingProgramTitle => 'Programme de départ';
 
   @override
-  String get settingsDefaultsStartingProgramSubtitle =>
-      'Danses et notes ajoutées aux programmes créés manuellement.';
-
-  @override
   String get settingsDefaultsStartingProgramPickerTitle => 'Ajouter une danse';
 
   @override
@@ -12823,4 +12819,105 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get exportCallingCardsBiggerThanPaper =>
       'Ces fiches sont plus grandes que le papier : chacune a donc été imprimée en plus petit, une par page.';
+
+  @override
+  String get settingsProgramTemplatesTitle => 'Modèles de programme';
+
+  @override
+  String settingsProgramTemplatesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count modèles',
+      one: '1 modèle',
+      zero: 'Aucun modèle pour l’instant',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsProgramTemplateDefaultTitle => 'Modèle par défaut';
+
+  @override
+  String get settingsProgramTemplateDefaultSubtitle =>
+      'Point de départ d’un nouveau programme quand on ne vous demande pas de choisir.';
+
+  @override
+  String get settingsProgramTemplatesMigratedName => 'Programme de départ';
+
+  @override
+  String get programTemplateBlankProgram => 'Programme vide';
+
+  @override
+  String get programTemplateDefaultBadge => 'Par défaut';
+
+  @override
+  String get programTemplateChooserTitle => 'Partir d’un modèle';
+
+  @override
+  String get programTemplateNew => 'Nouveau modèle';
+
+  @override
+  String get programTemplatesEmptyTitle => 'Aucun modèle pour l’instant';
+
+  @override
+  String get programTemplatesEmptyBody =>
+      'Un modèle est une liste de départ de danses, de notes et de pauses pour un type de soirée. À partir de deux modèles, Nouveau programme vous demande lequel utiliser.';
+
+  @override
+  String get programTemplateNameLabel => 'Nom du modèle';
+
+  @override
+  String get programTemplateRename => 'Renommer';
+
+  @override
+  String get programTemplateRenameTitle => 'Renommer le modèle';
+
+  @override
+  String programTemplateCopyName(String name) {
+    return '$name (copie)';
+  }
+
+  @override
+  String get programTemplateUntitled => 'Modèle sans nom';
+
+  @override
+  String programTemplateSlotCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count emplacements',
+      one: '1 emplacement',
+      zero: 'Vide',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programTemplateDefaultWithSlots(String slots) {
+    return 'Par défaut · $slots';
+  }
+
+  @override
+  String programTemplateActionsTooltip(String name) {
+    return 'Actions pour $name';
+  }
+
+  @override
+  String get programTemplateEditorTitle => 'Modifier le modèle';
+
+  @override
+  String get programTemplateSlotsHeader => 'Emplacements';
+
+  @override
+  String get programTemplateSlotsSubtitle =>
+      'Danses, notes et pauses par lesquelles commence un programme créé à partir de ce modèle.';
+
+  @override
+  String get programTemplatesLoadError =>
+      'Impossible de charger vos modèles de programme.';
+
+  @override
+  String get programTemplateSaveError =>
+      'Impossible d’enregistrer cette modification de vos modèles. Réessayez.';
 }

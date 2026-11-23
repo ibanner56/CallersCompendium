@@ -1,0 +1,496 @@
+import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
+import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/program_templates.dart';
+import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
+import 'package:compendium_app/src/diagnostics/error_log.dart';
+import 'package:compendium_app/src/screens/settings/program_templates_screen.dart';
+import 'package:compendium_app/src/widgets/collection_picker.dart';
+import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'support/l10n_harness.dart';
+import 'support/test_repositories.dart';
+
+/// Counts and optionally fails the two dance reads the template editor
+/// makes: the titles-only projection and the full load behind
+/// `CollectionData`.
+class _CountingDances extends DanceRepository {
+  _CountingDances(CompendiumDatabase db) : super(db, contraTaxonomy);
+
+  bool failTitles = false;
+  bool failFullLoad = false;
+  int titleLoads = 0;
+  int fullLoads = 0;
+
+  @override
+  Future<List<({String id, String title})>> listIdsAndTitles({
+    bool includeDeleted = false,
+  }) async {
+    titleLoads++;
+    if (failTitles) throw StateError('titles load failed');
+    return super.listIdsAndTitles(includeDeleted: includeDeleted);
+  }
+
+  @override
+  Future<List<Dance>> listAll({bool includeDeleted = false}) async {
+    fullLoads++;
+    if (failFullLoad) throw StateError('full load failed');
+    return super.listAll(includeDeleted: includeDeleted);
+  }
+}
+
+class _RecordingCrashLogSink implements CrashLogSink {
+  final List<String> sources = [];
+
+  @override
+  void record(Object error, StackTrace? stack, {required String source}) {
+    sources.add(source);
+  }
+}
+
+final _now = DateTime.utc(2026, 1, 1);
+
+Dance _dance(String id, String title) =>
+    Dance(id: id, title: title, createdAt: _now, updatedAt: _now);
+
+Future<void> _pump(
+  WidgetTester tester,
+  CompendiumRepositories repos,
+  Widget home,
+) async {
+  await tester.binding.setSurfaceSize(const Size(900, 1600));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+  final confirm = ValueNotifier<bool>(false);
+  addTearDown(confirm.dispose);
+  final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
+  addTearDown(dialect.dispose);
+  await tester.pumpWidget(
+    MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
+      builder: (context, child) => RepositoriesScope(
+        repositories: repos,
+        child: ConfirmBeforeDeleteScope(
+          notifier: confirm,
+          child: ActiveDialectScope(notifier: dialect, child: child!),
+        ),
+      ),
+      home: home,
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<ProgramTemplates> _stored(CompendiumRepositories repos) =>
+    loadProgramTemplates(repos.settings, migratedName: 'Starting program');
+
+Future<void> _seed(
+  CompendiumRepositories repos,
+  List<ProgramTemplate> templates,
+) async {
+  for (final template in templates) {
+    await saveProgramTemplate(repos.settings, template);
+  }
+  await saveProgramTemplateOrder(repos.settings, [
+    for (final t in templates) t.id,
+  ]);
+}
+
+void main() {
+  group('the template manager', () {
+    testWidgets('an empty manager offers New template, which names a '
+        'template, saves it and opens its editor', (tester) async {
+      final repos = openTestRepositories();
+      await _pump(tester, repos, const ProgramTemplatesScreen());
+
+      expect(
+        find.byKey(const ValueKey('program-templates-empty')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('program-templates-add')), findsNothing);
+      await tester.tap(
+        find.byKey(const ValueKey('program-templates-empty-add')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('program-template-name-field')),
+        'Family dance',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-name-save')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ProgramTemplateEditorScreen), findsOneWidget);
+      final stored = await _stored(repos);
+      expect([for (final t in stored.templates) t.name], ['Family dance']);
+      // With one template there is no chooser, so the first one becomes the
+      // default: otherwise New program could never reach it.
+      expect(stored.defaultId, stored.templates.single.id);
+    });
+
+    testWidgets('a new template leaves an explicit Blank program default '
+        'alone', (tester) async {
+      final repos = openTestRepositories();
+      await saveProgramTemplateDefault(repos.settings, null);
+      await _pump(tester, repos, const ProgramTemplatesScreen());
+
+      await tester.tap(
+        find.byKey(const ValueKey('program-templates-empty-add')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('program-template-name-field')),
+        'Family dance',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-name-save')),
+      );
+      await tester.pumpAndSettle();
+
+      final stored = await _stored(repos);
+      expect(stored.templates, hasLength(1));
+      expect(stored.defaultId, isNull);
+    });
+
+    testWidgets('a failed save says so and does not open the editor', (
+      tester,
+    ) async {
+      final sink = _RecordingCrashLogSink();
+      installCaughtErrorLog(sink);
+      addTearDown(resetCaughtErrorLogForTesting);
+      final db = openWidgetTestDatabase();
+      final settings = FailingSettingsRepository(db);
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: settings,
+      );
+      await _pump(tester, repos, const ProgramTemplatesScreen());
+
+      await tester.tap(
+        find.byKey(const ValueKey('program-templates-empty-add')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('program-template-name-field')),
+        'Family dance',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-name-save')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ProgramTemplateEditorScreen), findsNothing);
+      expect(
+        find.text("Couldn't save that change to your templates. Try again."),
+        findsOneWidget,
+      );
+      expect(sink.sources, ['program_templates_screen.create']);
+    });
+
+    testWidgets('at the template cap, New template and Duplicate are '
+        'disabled', (tester) async {
+      final repos = openTestRepositories();
+      await _seed(repos, [
+        for (var i = 0; i < kMaxProgramTemplateOrderLength; i++)
+          ProgramTemplate(id: 't$i', name: 'Template $i'),
+      ]);
+      await _pump(tester, repos, const ProgramTemplatesScreen());
+
+      final fab = tester.widget<FloatingActionButton>(
+        find.byKey(const ValueKey('program-templates-add')),
+      );
+      expect(fab.onPressed, isNull);
+      await tester.tap(find.byKey(const ValueKey('program-template-menu-t0')));
+      await tester.pumpAndSettle();
+      final duplicate = tester.widget<PopupMenuItem<Object?>>(
+        find.byKey(const ValueKey('program-template-duplicate')),
+      );
+      expect(duplicate.enabled, isFalse);
+    });
+
+    testWidgets('rename, duplicate and reorder', (tester) async {
+      final repos = openTestRepositories();
+      await _seed(repos, const [
+        ProgramTemplate(
+          id: 'a',
+          name: 'Family',
+          entries: [ProgramTemplateEntry(text: 'Waltz')],
+        ),
+        ProgramTemplate(id: 'b', name: 'Saturday'),
+      ]);
+      await _pump(tester, repos, const ProgramTemplatesScreen());
+
+      // Rename.
+      await tester.tap(find.byKey(const ValueKey('program-template-menu-a')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-template-rename')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('program-template-name-field')),
+        'Family night',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-name-save')),
+      );
+      await tester.pumpAndSettle();
+      expect((await _stored(repos)).byId('a')!.name, 'Family night');
+
+      // Duplicate lands right after the original, with its slots.
+      await tester.tap(find.byKey(const ValueKey('program-template-menu-a')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-duplicate')),
+      );
+      await tester.pumpAndSettle();
+      var stored = await _stored(repos);
+      expect(
+        [for (final t in stored.templates) t.name],
+        ['Family night', 'Family night (copy)', 'Saturday'],
+      );
+      expect(stored.templates[1].entries, stored.templates[0].entries);
+      expect(stored.templates[1].id, isNot('a'));
+
+      // Move down writes the order key.
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-a-move-down')),
+      );
+      await tester.pumpAndSettle();
+      stored = await _stored(repos);
+      expect(
+        [for (final t in stored.templates) t.name],
+        ['Family night (copy)', 'Family night', 'Saturday'],
+      );
+    });
+
+    testWidgets('delete removes the template at once, and Undo brings it back '
+        'in place and as the default', (tester) async {
+      final repos = openTestRepositories();
+      await _seed(repos, const [
+        ProgramTemplate(id: 'a', name: 'Family'),
+        ProgramTemplate(id: 'b', name: 'Saturday'),
+      ]);
+      await saveProgramTemplateDefault(repos.settings, 'a');
+      await _pump(tester, repos, const ProgramTemplatesScreen());
+
+      await tester.tap(find.byKey(const ValueKey('program-template-menu-a')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-template-delete')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('program-template-tile-a')),
+        findsNothing,
+      );
+      expect(await repos.settings.contains(programTemplateKey('a')), isFalse);
+
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-delete-undo')),
+      );
+      await tester.pumpAndSettle();
+      final stored = await _stored(repos);
+      expect([for (final t in stored.templates) t.id], ['a', 'b']);
+      expect(stored.defaultId, 'a');
+      expect(
+        find.byKey(const ValueKey('program-template-tile-a')),
+        findsOneWidget,
+      );
+    });
+  });
+
+  group('the template editor', () {
+    testWidgets('notes keep their dance when edited and reordered, and only '
+        "the template's own key is written", (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance('d1', 'First dance'));
+      await repos.dances.create(_dance('d2', 'Second dance'));
+      const template = ProgramTemplate(
+        id: 'a',
+        name: 'Family',
+        entries: [
+          ProgramTemplateEntry(danceId: 'd1'),
+          ProgramTemplateEntry(danceId: 'd2'),
+        ],
+      );
+      await _seed(repos, const [template, ProgramTemplate(id: 'b', name: 'B')]);
+      final otherBefore = await repos.settings.get(programTemplateKey('b'));
+
+      await _pump(
+        tester,
+        repos,
+        const ProgramTemplateEditorScreen(template: template),
+      );
+      await tester.enterText(find.byType(TextFormField).first, 'Guest caller');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Move down').first);
+      await tester.pumpAndSettle();
+
+      final stored = (await _stored(repos)).byId('a')!;
+      expect(stored.entries.map((entry) => entry.danceId), ['d2', 'd1']);
+      expect(stored.entries.last.text, 'Guest caller');
+      expect(await repos.settings.get(programTemplateKey('b')), otherBefore);
+    });
+
+    testWidgets('renaming in the editor saves; a blank name keeps the last '
+        'one', (tester) async {
+      final repos = openTestRepositories();
+      const template = ProgramTemplate(id: 'a', name: 'Family');
+      await _seed(repos, const [template]);
+      await _pump(
+        tester,
+        repos,
+        const ProgramTemplateEditorScreen(template: template),
+      );
+      final name = find.byKey(const ValueKey('program-template-editor-name'));
+      await tester.enterText(name, 'Family night');
+      await tester.pumpAndSettle();
+      expect((await _stored(repos)).byId('a')!.name, 'Family night');
+      await tester.enterText(name, '   ');
+      await tester.pumpAndSettle();
+      expect((await _stored(repos)).byId('a')!.name, 'Family night');
+    });
+
+    testWidgets('notes and breaks are added to the end', (tester) async {
+      final repos = openTestRepositories();
+      const template = ProgramTemplate(id: 'a', name: 'Family');
+      await _seed(repos, const [template]);
+      await _pump(
+        tester,
+        repos,
+        const ProgramTemplateEditorScreen(template: template),
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('program-template-text-field')),
+        'Waltz',
+      );
+      await tester.tap(find.byKey(const ValueKey('program-template-add-text')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-insert-break')),
+      );
+      await tester.pumpAndSettle();
+      expect((await _stored(repos)).byId('a')!.entries, const [
+        ProgramTemplateEntry(text: 'Waltz'),
+        ProgramTemplateEntry(text: Program.breakSlotText),
+      ]);
+    });
+  });
+
+  group('dance titles and the full collection load', () {
+    late _RecordingCrashLogSink sink;
+
+    setUp(() {
+      sink = _RecordingCrashLogSink();
+      installCaughtErrorLog(sink);
+      addTearDown(resetCaughtErrorLogForTesting);
+    });
+
+    Future<({CompendiumRepositories repos, _CountingDances dances})> open({
+      bool failTitles = false,
+      bool failFullLoad = false,
+    }) async {
+      final db = openWidgetTestDatabase();
+      final dances = _CountingDances(db)
+        ..failTitles = failTitles
+        ..failFullLoad = failFullLoad;
+      final repos = CompendiumRepositories(db, contraTaxonomy, dances: dances);
+      await repos.dances.create(_dance('d1', 'First dance'));
+      dances.fullLoads = 0;
+      dances.titleLoads = 0;
+      return (repos: repos, dances: dances);
+    }
+
+    const template = ProgramTemplate(
+      id: 'a',
+      name: 'Family',
+      entries: [ProgramTemplateEntry(danceId: 'd1')],
+    );
+
+    Future<void> rebuildThrice(WidgetTester tester) async {
+      // Each break insertion calls the editor's setState, i.e. rebuilds it.
+      for (var i = 0; i < 3; i++) {
+        await tester.tap(
+          find.byKey(const ValueKey('program-template-insert-break')),
+        );
+        await tester.pumpAndSettle();
+      }
+    }
+
+    testWidgets('a failing titles load is logged once across rebuilds', (
+      tester,
+    ) async {
+      final opened = await open(failTitles: true);
+      await _pump(
+        tester,
+        opened.repos,
+        const ProgramTemplateEditorScreen(template: template),
+      );
+      await rebuildThrice(tester);
+      expect(
+        sink.sources.where((s) => s == 'program_templates_screen.dance_titles'),
+        hasLength(1),
+      );
+      expect(opened.dances.titleLoads, 1);
+    });
+
+    testWidgets('the slot list shows titles without loading the collection, '
+        'and rebuilding never loads it', (tester) async {
+      final opened = await open(failFullLoad: true);
+      await _pump(
+        tester,
+        opened.repos,
+        const ProgramTemplateEditorScreen(template: template),
+      );
+      expect(find.text('First dance'), findsOneWidget);
+      await rebuildThrice(tester);
+      expect(opened.dances.fullLoads, 0);
+      expect(sink.sources, isEmpty);
+    });
+
+    testWidgets('opening the dance picker loads the full collection once', (
+      tester,
+    ) async {
+      final opened = await open();
+      await _seed(opened.repos, const [template]);
+      await _pump(
+        tester,
+        opened.repos,
+        const ProgramTemplateEditorScreen(template: template),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-add-dance')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(CollectionPicker), findsOneWidget);
+      expect(opened.dances.fullLoads, 1);
+    });
+
+    testWidgets('a failed picker load is logged per tap and retried on the '
+        'next tap', (tester) async {
+      final opened = await open(failFullLoad: true);
+      await _pump(
+        tester,
+        opened.repos,
+        const ProgramTemplateEditorScreen(template: template),
+      );
+      final add = find.byKey(const ValueKey('program-template-add-dance'));
+
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+      expect(find.byType(CollectionPicker), findsNothing);
+      expect(
+        sink.sources.where((s) => s == 'program_templates_screen.picker'),
+        hasLength(1),
+      );
+
+      opened.dances.failFullLoad = false;
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+      expect(find.byType(CollectionPicker), findsOneWidget);
+      expect(opened.dances.fullLoads, 2);
+    });
+  });
+}

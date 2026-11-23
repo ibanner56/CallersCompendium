@@ -3912,12 +3912,6 @@ abstract class AppLocalizations {
   /// **'Starting program'**
   String get settingsDefaultsStartingProgramTitle;
 
-  /// Explanation of the starting program template.
-  ///
-  /// In en, this message translates to:
-  /// **'Dance and note entries added to manually created programs.'**
-  String get settingsDefaultsStartingProgramSubtitle;
-
   /// Title for the dance picker used by the starting program template.
   ///
   /// In en, this message translates to:
@@ -18580,6 +18574,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'These cards are bigger than the paper, so each was printed smaller, one to a page.'**
   String get exportCallingCardsBiggerThanPaper;
+
+  /// Settings ▸ Defaults ▸ Program defaults row and manager screen title for the list of program templates.
+  ///
+  /// In en, this message translates to:
+  /// **'Program templates'**
+  String get settingsProgramTemplatesTitle;
+
+  /// Subtitle of the Program templates row: how many templates there are.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No templates yet} =1{1 template} other{{count} templates}}'**
+  String settingsProgramTemplatesCount(int count);
+
+  /// Settings row choosing the template a new program starts from when the user is not asked to choose.
+  ///
+  /// In en, this message translates to:
+  /// **'Default template'**
+  String get settingsProgramTemplateDefaultTitle;
+
+  /// Subtitle of the Default template row.
+  ///
+  /// In en, this message translates to:
+  /// **'What a new program starts from when you aren\'t asked to choose.'**
+  String get settingsProgramTemplateDefaultSubtitle;
+
+  /// Name given to the template made from the old Starting program setting when the app is upgraded.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting program'**
+  String get settingsProgramTemplatesMigratedName;
+
+  /// Choice of starting a new program with no slots, in the New program chooser and the Default template setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Blank program'**
+  String get programTemplateBlankProgram;
+
+  /// Marks the default template in the New program chooser.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get programTemplateDefaultBadge;
+
+  /// Title of the sheet New program shows when there are two or more templates.
+  ///
+  /// In en, this message translates to:
+  /// **'Start from a template'**
+  String get programTemplateChooserTitle;
+
+  /// Button and dialog title that creates a program template.
+  ///
+  /// In en, this message translates to:
+  /// **'New template'**
+  String get programTemplateNew;
+
+  /// Empty state title in the program templates manager.
+  ///
+  /// In en, this message translates to:
+  /// **'No templates yet'**
+  String get programTemplatesEmptyTitle;
+
+  /// Empty state body in the program templates manager.
+  ///
+  /// In en, this message translates to:
+  /// **'A template is a starting list of dances, notes and breaks for one kind of evening. With two or more, New program asks which to start from.'**
+  String get programTemplatesEmptyBody;
+
+  /// Label of the program template name field.
+  ///
+  /// In en, this message translates to:
+  /// **'Template name'**
+  String get programTemplateNameLabel;
+
+  /// Menu action that renames a program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get programTemplateRename;
+
+  /// Dialog title for renaming a program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename template'**
+  String get programTemplateRenameTitle;
+
+  /// Name of a duplicated program template.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} (copy)'**
+  String programTemplateCopyName(String name);
+
+  /// Shown for a program template with no name.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled template'**
+  String get programTemplateUntitled;
+
+  /// How many slots a program template has, in the manager list.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Empty} =1{1 slot} other{{count} slots}}'**
+  String programTemplateSlotCount(int count);
+
+  /// Manager list subtitle of the default template; slots is the slot count text.
+  ///
+  /// In en, this message translates to:
+  /// **'Default · {slots}'**
+  String programTemplateDefaultWithSlots(String slots);
+
+  /// Tooltip and screen-reader label of a program template row menu.
+  ///
+  /// In en, this message translates to:
+  /// **'Actions for {name}'**
+  String programTemplateActionsTooltip(String name);
+
+  /// Title of the program template editor screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit template'**
+  String get programTemplateEditorTitle;
+
+  /// Heading over a program template slot list.
+  ///
+  /// In en, this message translates to:
+  /// **'Slots'**
+  String get programTemplateSlotsHeader;
+
+  /// Explains a program template slot list.
+  ///
+  /// In en, this message translates to:
+  /// **'Dances, notes and breaks a program made from this template starts with.'**
+  String get programTemplateSlotsSubtitle;
+
+  /// Error shown when program templates cannot be read.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your program templates.'**
+  String get programTemplatesLoadError;
+
+  /// Snackbar shown when creating, renaming, duplicating, reordering or deleting a program template fails to save.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save that change to your templates. Try again.'**
+  String get programTemplateSaveError;
 }
 
 class _AppLocalizationsDelegate
