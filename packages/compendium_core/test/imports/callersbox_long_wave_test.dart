@@ -231,8 +231,8 @@ void main() {
       // cannot say.
       '(4) Men balance long wave',
       '(4) Women balance long wave',
-      // Words the fold would drop.
-      '(4) Balance long wave for all',
+      // Words the fold would drop. (`for all` keeps the wave's line as text
+      // too: see the `for all` group.)
       '(4) Balance long wave (1R)',
     ]) {
       test('"$balance" after a bare long wave stays text', () async {
@@ -435,20 +435,6 @@ void main() {
       expect(_total(figures), 12);
     });
 
-    test('dance 1033 A2: "for all in center" folds as it does today', () async {
-      // `for all` is dropped: the same as `form long wave in center` and this
-      // line already import on main. Pinned, not fixed here.
-      final figures = await _import({
-        'A2': [
-          '(8) In long lines, go forward and back',
-          '(4) Partner allemande left 3/4 (in center); form long wave',
-          '(4) Balance long wave for all in center',
-        ],
-      });
-      expect(figures.last.move, 'form_a_long_wave');
-      expect(figures.last.params['balance'], isTrue);
-    });
-
     test('dance 7031: across a phrase, Women … in center folds', () async {
       final figures = await _import({
         'B1': [
@@ -531,5 +517,85 @@ void main() {
         expect(figures.last.isCustom, isTrue);
       });
     }
+  });
+
+  group('a "for all" balance after a bare wave keeps both lines as text', () {
+    // Maintainer ruling (2026-11-23): `for all` names everyone in the one
+    // wave, which neither long-wave move can say, and the sister wording
+    // `…; form long wave for all in center` (dance 1032) is already text.
+    test('dance 1033 A2', () async {
+      final figures = await _import({
+        'A2': [
+          '(8) In long lines, go forward and back',
+          '(4) Partner allemande left 3/4 (in center); form long wave',
+          '(4) Balance long wave for all in center',
+        ],
+      });
+      expect(figures.map((f) => f.move), ['long_lines', 'custom', 'custom']);
+      expect(figures[1].params, {
+        'text': 'Partner allemande left 3/4 (in center); form long wave',
+        'beats': 4,
+      });
+      expect(figures[2].params['text'], 'Balance long wave for all in center');
+      expect(_total(figures), 16);
+    });
+
+    test('a lone bare wave line goes back to its own text', () async {
+      // Not corpus wording.
+      final figures = await _import({
+        'A1': [
+          '(12) Partner swing',
+          '(4) Form long wave',
+          '(4) Balance long wave for all',
+        ],
+      });
+      expect(figures.map((f) => f.move), ['swing', 'custom', 'custom']);
+      expect(figures[1].params, {'text': 'Form long wave', 'beats': 4});
+      expect(_total(figures), 20);
+    });
+
+    test('across a phrase, the wave\'s line goes back to text', () async {
+      // Not corpus wording: the 1033 pair split across a phrase boundary.
+      final figures = await _import({
+        'A2': [
+          '(8) In long lines, go forward and back',
+          '(8) Partner allemande left 3/4 (in center); form long wave',
+        ],
+        'B1': ['(4) Balance long wave for all in center', '(12) Partner swing'],
+      });
+      expect(figures.map((f) => f.move), [
+        'long_lines',
+        'custom',
+        'custom',
+        'swing',
+      ]);
+      expect(figures[1].params['text'], contains('form long wave'));
+      expect(_total(figures), 32);
+    });
+
+    test(
+      'a line already folded into stays as it is; the balance stays text',
+      () async {
+        // Not corpus wording. Fold 1 took the balance into the swing, so the
+        // line's first figure is no longer its own; the wave is left as side
+        // waves and the `for all` balance is refused by the fold.
+        final figures = await _import({
+          'A1': [
+            '(4) Partner balance',
+            '(4) Partner swing; form long wave',
+            '(4) Balance long wave for all',
+            '(4) Neighbor allemande right 1',
+          ],
+        });
+        expect(figures.map((f) => f.move), [
+          'swing',
+          'form_long_waves',
+          'custom',
+          'allemande',
+        ]);
+        expect(figures[1].params, {'who': _unspecified});
+        expect(_total(figures), 16);
+      },
+    );
   });
 }

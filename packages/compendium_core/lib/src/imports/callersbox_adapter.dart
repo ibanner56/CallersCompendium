@@ -312,6 +312,7 @@ class CallersBoxAdapter implements SourceAdapter {
   }) {
     if (phrases is! List) return const [];
     final figures = <Figure>[];
+    var previousWaveLines = Map<Figure, _WaveLine>.identity();
     for (final phrase in phrases) {
       if (phrase is! Map) continue;
       final lines = phrase['figures'];
@@ -328,14 +329,17 @@ class CallersBoxAdapter implements SourceAdapter {
       final standaloneSquareThroughs = Map<Figure, String>.identity();
       final namedCompounds = <_NamedCompound>[];
       final promotedFrom = Map<Figure, Figure>.identity();
+      final waveLines = Map<Figure, _WaveLine>.identity();
       final merged = _groupNamedCompounds(
         _mergeCrossLineFigures(
           _parsePhraseFigures(
             rawLines,
             standaloneSquareThroughs,
             namedCompounds,
+            waveLines,
           ),
           promotedFrom: promotedFrom,
+          waveLines: waveLines,
         ),
         namedCompounds,
         longestPhraseBeats: longestPhraseBeats,
@@ -347,8 +351,14 @@ class CallersBoxAdapter implements SourceAdapter {
             null => f,
           },
       ];
-      _foldLongWaveAcrossPhrases(figures, phraseFigures, promotedFrom);
+      _foldLongWaveAcrossPhrases(
+        figures,
+        phraseFigures,
+        promotedFrom,
+        previousWaveLines,
+      );
       figures.addAll(phraseFigures);
+      previousWaveLines = waveLines;
     }
     return figures;
   }
@@ -371,10 +381,14 @@ class CallersBoxAdapter implements SourceAdapter {
   /// beats are, at the start of the later phrase. Only top-level figures take
   /// part: a wave inside a grouped compound is not the phrase's last figure.
   /// Progression is dance-level in TCB, so no per-figure flag is merged.
+  ///
+  /// A `for all` balance keeps the wave's whole line as text instead
+  /// ([_keepForAllWaveLineAsText]), as in the phrase.
   static void _foldLongWaveAcrossPhrases(
     List<Figure> figures,
     List<Figure> next,
     Map<Figure, Figure> promotedFrom,
+    Map<Figure, _WaveLine> waveLines,
   ) {
     if (figures.isEmpty || next.isEmpty) return;
     final wave = figures.last;
@@ -382,6 +396,7 @@ class CallersBoxAdapter implements SourceAdapter {
     final first = next.first;
     final balance = promotedFrom[first] ?? first;
     if (!_isBalanceWaveLine(balance)) return;
+    if (_keepForAllWaveLineAsText(figures, wave, balance, waveLines)) return;
     final followed = _inCenterFollower(wave, balance);
     figures[figures.length - 1] = followed;
     if (!_isOceanWaveMove(followed)) return;
@@ -397,11 +412,14 @@ class CallersBoxAdapter implements SourceAdapter {
   /// [standaloneSquareThroughs] collects the square throughs the per-line
   /// parser leaves for after the merge (see [_parseFigureLine]), and
   /// [namedCompounds] the named blocks emitted as their children, for
-  /// [_groupNamedCompounds] to group after the merge.
+  /// [_groupNamedCompounds] to group after the merge. [waveLines] records,
+  /// for each line that ends in a bare long wave, that line's figures and its
+  /// text (see [_WaveLine]).
   List<Figure> _parsePhraseFigures(
     List<String> rawLines,
     Map<Figure, String> standaloneSquareThroughs,
     List<_NamedCompound> namedCompounds,
+    Map<Figure, _WaveLine> waveLines,
   ) {
     final out = <Figure>[];
     var i = 0;
@@ -413,7 +431,9 @@ class CallersBoxAdapter implements SourceAdapter {
         i = compound.nextIndex;
         continue;
       }
-      out.addAll(_parseFigureLine(rawLines[i], standaloneSquareThroughs));
+      out.addAll(
+        _parseFigureLine(rawLines[i], standaloneSquareThroughs, waveLines),
+      );
       i += 1;
     }
     return out;
@@ -774,8 +794,9 @@ class CallersBoxAdapter implements SourceAdapter {
   /// folds: `(4) Partner balance` + `(12) Square through 4 (…)`.
   List<Figure> _parseFigureLine(
     String line,
-    Map<Figure, String> standaloneSquareThroughs,
-  ) {
+    Map<Figure, String> standaloneSquareThroughs, [
+    Map<Figure, _WaveLine>? waveLines,
+  ]) {
     final match = _beatsPrefix.firstMatch(line);
     int beats = 0;
     String text = line.trim();
@@ -809,7 +830,18 @@ class CallersBoxAdapter implements SourceAdapter {
       standaloneSquareThroughs[figures.single] = text;
       return figures;
     }
-    return withBeatImpliedBalance(text, figures);
+    final out = withBeatImpliedBalance(text, figures);
+    if (waveLines != null && out.isNotEmpty && _isBareLongWave(out.last)) {
+      waveLines[out.last] = _WaveLine(
+        figures: out,
+        asText: customFigure(
+          scrubFigureText(text),
+          beats: beats,
+          origin: CustomOrigin.importGap,
+        ),
+      );
+    }
+    return out;
   }
 
   // --- Cross-line merge (PR3b) -----------------------------------------------
@@ -898,6 +930,7 @@ class CallersBoxAdapter implements SourceAdapter {
   static List<Figure> _mergeCrossLineFigures(
     List<Figure> figures, {
     Map<Figure, Figure>? promotedFrom,
+    Map<Figure, _WaveLine> waveLines = const {},
   }) {
     final merged = <Figure>[];
     var i = 0;
@@ -982,6 +1015,21 @@ class CallersBoxAdapter implements SourceAdapter {
         // the centre wave (#2331, the follower decides). The wave is replaced
         // BEFORE the fold is tried, so a refused fold still leaves the centre
         // wave rather than the side-of-set long waves.
+        //
+        // A `for all` balance after a bare long wave keeps both lines as text,
+        // as `form long wave for all in center` already is (maintainer
+        // ruling, 2026-11-23): the wave's line is put back as text here and
+        // the balance is left for the next pass, where it stays text.
+        if (_keepForAllWaveLineAsText(
+          merged,
+          current,
+          next,
+          waveLines,
+          pending: true,
+        )) {
+          i += 1;
+          continue;
+        }
         current = _inCenterFollower(current, next);
         if (_isOceanWaveMove(current) && _isBalanceWaveLine(next)) {
           final folded = _foldTrailingBalanceIntoWave(current, next);
@@ -1489,6 +1537,50 @@ class CallersBoxAdapter implements SourceAdapter {
       walkthroughOverride: wave.walkthroughOverride,
       wordingOverride: wave.wordingOverride,
     );
+  }
+
+  /// A bare long wave followed by `Balance long wave for all …` (#2331
+  /// follow-up, maintainer ruling 2026-11-23): both lines stay text. `for all`
+  /// names everyone in the one wave, which neither long-wave move can say, and
+  /// the sister wording `…; form long wave for all in center` is already text.
+  /// Dance 1033: `Partner allemande left 3/4 (in center); form long wave` +
+  /// `Balance long wave for all in center`.
+  ///
+  /// Puts the wave's whole source line back as one custom figure: the line's
+  /// earlier figures are taken off the end of [out] (they must still be there,
+  /// unchanged), and the line's text is added in their place. [pending] says
+  /// the wave itself is not yet in [out] (the in-phrase merge); otherwise it
+  /// is [out]'s last figure (the cross-phrase fold). Returns false, changing
+  /// nothing, when the follower is not a `for all` balance-wave line or the
+  /// line's figures cannot be found intact; the fold then refuses the `for
+  /// all` balance by itself, so the balance still stays text.
+  static bool _keepForAllWaveLineAsText(
+    List<Figure> out,
+    Figure wave,
+    Figure balance,
+    Map<Figure, _WaveLine> waveLines, {
+    bool pending = false,
+  }) {
+    if (!_isBareLongWave(wave) || !_isBalanceWaveLine(balance)) return false;
+    final words = _figureWords(balance).map(_stripEdgePunctuation).toList();
+    var forAll = false;
+    for (var i = 0; i + 1 < words.length; i++) {
+      if (words[i] == 'for' && words[i + 1] == 'all') forAll = true;
+    }
+    if (!forAll) return false;
+    final line = waveLines[wave];
+    if (line == null || !identical(line.figures.last, wave)) return false;
+    final placed = pending ? line.figures.length - 1 : line.figures.length;
+    if (out.length < placed) return false;
+    for (var k = 0; k < placed; k++) {
+      if (!identical(out[out.length - placed + k], line.figures[k])) {
+        return false;
+      }
+    }
+    out
+      ..removeRange(out.length - placed, out.length)
+      ..add(line.asText);
+    return true;
   }
 
   /// Whether a custom figure's text carries a `()` or `[]` annotation.
@@ -2357,3 +2449,13 @@ class _NamedCompound {
 /// shared with Caller's Companion's comma split so both sources fold the same
 /// moves (#1975).
 const Set<String> balanceFoldMoves = CallersBoxAdapter._balanceMergeMoves;
+
+/// A TCB line whose figures end in a bare long wave: those [figures], in
+/// order, and the line as one custom figure, [asText] — what the line reads as
+/// when it is kept as text ([CallersBoxAdapter._keepForAllWaveLineAsText]).
+class _WaveLine {
+  const _WaveLine({required this.figures, required this.asText});
+
+  final List<Figure> figures;
+  final Figure asText;
+}
