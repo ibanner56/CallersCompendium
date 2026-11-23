@@ -8155,6 +8155,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'This dance counts in bars but states no meter, so each bar was counted as 2 beats. Check its counts.';
 
   @override
+  String get importIssueBarsMeterMixed =>
+      'This dance counts in bars but names meters of different bar lengths, so each bar was counted as 2 beats. Check its counts.';
+
+  @override
   String get importIssueUnmappedType =>
       'A dance type wasn\'t recognized; imported as a contra and preserved in the notes.';
 

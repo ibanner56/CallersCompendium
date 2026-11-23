@@ -8263,6 +8263,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieser Tanz zählt in Takten, nennt aber keine Taktart, daher wurde jeder Takt als 2 Schläge gezählt. Prüfen Sie die Zählungen.';
 
   @override
+  String get importIssueBarsMeterMixed =>
+      'Dieser Tanz zählt in Takten, nennt aber Taktarten mit unterschiedlicher Taktlänge, daher wurde jeder Takt als 2 Schläge gezählt. Prüfen Sie die Zählungen.';
+
+  @override
   String get importIssueUnmappedType =>
       'Ein Tanztyp wurde nicht erkannt; als Contra importiert und in den Notizen erhalten.';
 

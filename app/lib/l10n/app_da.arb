@@ -8042,6 +8042,10 @@
   "@importIssueBarsMeterUnstated": {
     "x-sourceSha256": "c5a034e9d32006995c2a5565b567e500f8eaac762943f9fde54b3e9554d145d9"
   },
+  "importIssueBarsMeterMixed": "Dansen tæller i takter, men nævner taktarter med forskellig taktlængde, så hver takt blev talt som 2 slag. Tjek dens tællinger.",
+  "@importIssueBarsMeterMixed": {
+    "x-sourceSha256": "044e9303e3fac0fe97aa2b5ab81f6987a2dd83bf7e777dae12c439d55751df6a"
+  },
   "importIssueUnmappedType": "En dansetype blev ikke genkendt; importeret som en contra og bevaret i noterne.",
   "@importIssueUnmappedType": {
     "x-sourceSha256": "845eca2d00487b37f677dfd37b12132d108d17c2ad7805c7945b02388a64d06e"

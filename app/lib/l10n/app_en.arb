@@ -10703,6 +10703,10 @@
   "@importIssueBarsMeterUnstated": {
     "description": "Import note: an English dance's figure lines count in bars (\"1-4 partners set\"), but its music states no meter, so bars were counted as 2 beats each."
   },
+  "importIssueBarsMeterMixed": "This dance counts in bars but names meters of different bar lengths, so each bar was counted as 2 beats. Check its counts.",
+  "@importIssueBarsMeterMixed": {
+    "description": "Import note: an English dance's figure lines count in bars (\"1-4 partners set\"), but its music names meters of different bar lengths (\"3/4 and 6/8\"), so bars were counted as 2 beats each."
+  },
   "importIssueUnmappedType": "A dance type wasn't recognized; imported as a contra and preserved in the notes.",
   "@importIssueUnmappedType": {
     "description": "Import note: a dance-type string wasn't recognized; the dance was imported as a contra with the original value kept in the notes."
