@@ -9,6 +9,7 @@ import 'package:printing/printing.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/matrix_column_dialect.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/dialect_library_scope.dart';
@@ -680,34 +681,47 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// of one form. A column of a figure of the user's own reads in the dialect
   /// of the form it was made for, however the dances using it read (#2294); a
   /// free-text custom column, or one that isn't a figure, reads in [_dialect].
-  Dialect _dialectForMatrixColumn(ProgramMatrix matrix, MatrixColumn column) {
-    switch (column.kind) {
-      case MatrixColumnKind.userFigure when isUserFigureKey(column.moveId):
-        final view = UserFiguresScope.shownCatalogOf(
-          context,
-        )[column.moveId.substring(userFigureRefPrefix.length)];
-        return view == null ? _dialect : _dialects.forForm(view.form);
-      case MatrixColumnKind.known ||
-          MatrixColumnKind.split ||
-          MatrixColumnKind.unknown:
-        final form = shippedTaxonomies.formOfMoveId(column.moveId);
-        if (form != DanceForm.contra) return _dialects.forForm(form);
-        var users = {
+  Dialect _dialectForMatrixColumn(ProgramMatrix matrix, MatrixColumn column) =>
+      _dialectForColumn(
+        column,
+        usedBy: () => {
           for (final row in matrix.rows)
             if (row.contains(column)) _danceById(row.danceId)?.form,
-        };
-        if (users.isEmpty) {
-          users = {
-            for (final row in matrix.rows) _danceById(row.danceId)?.form,
-          };
-        }
-        return users.length == 1 && users.single != null
-            ? _dialects.forForm(users.single!)
-            : _dialect;
-      default:
-        return _dialect;
-    }
-  }
+        },
+        program: () => {
+          for (final row in matrix.rows) _danceById(row.danceId)?.form,
+        },
+      );
+
+  /// The dialect a column a **Suggested** reason names is read in, so a reason
+  /// names a figure as its column in the matrix does (#2294). The picker has
+  /// no matrix to say which dances use the column, so an unprefixed figure
+  /// reads in the form of the program's dances when they are all of one form,
+  /// and in [_dialect] when they mix forms or there are none (the same fallback
+  /// [_dialectForMatrixColumn] gives a column no dance uses).
+  Dialect _dialectForSuggestedColumn(MatrixColumn column) => _dialectForColumn(
+    column,
+    usedBy: () => const {},
+    program: () => {
+      for (final slot in _slots)
+        if (slot.danceId case final id?) _danceById(id)?.form,
+    },
+  );
+
+  /// [matrixColumnDialect] for [column], with the dances that use it
+  /// ([usedBy]) and all the program's dances ([program]).
+  Dialect _dialectForColumn(
+    MatrixColumn column, {
+    required Set<DanceForm?> Function() usedBy,
+    required Set<DanceForm?> Function() program,
+  }) => matrixColumnDialect(
+    column,
+    dialects: _dialects,
+    fallback: _dialect,
+    userFigure: (id) => UserFiguresScope.shownCatalogOf(context)[id],
+    usedBy: usedBy,
+    program: program,
+  );
 
   /// [_dialectForMatrixColumn] for every column of [matrix], by move ID, and
   /// each row's dance's dialect ([_dialectForSlotDance]) by dance ID: worked
@@ -3978,6 +3992,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                                   key: const ValueKey('inline-picker'),
                                   data: data,
                                   dialect: _dialect,
+                                  suggestionDialectForColumn:
+                                      _dialectForSuggestedColumn,
                                   enrichment: _enrichment,
                                   addedDanceCounts: _pickerCounts.value,
                                   programContext: _pickerProgramContext(
@@ -4560,6 +4576,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                             key: const ValueKey('sheet-picker'),
                             data: data,
                             dialect: _dialect,
+                            suggestionDialectForColumn:
+                                _dialectForSuggestedColumn,
                             enrichment: _enrichment,
                             scrollController: scrollController,
                             addedDanceCounts: counts,
@@ -4713,6 +4731,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                             key: const ValueKey('replace-picker'),
                             data: data,
                             dialect: _dialect,
+                            suggestionDialectForColumn:
+                                _dialectForSuggestedColumn,
                             enrichment: _enrichment,
                             scrollController: scrollController,
                             addedDanceCounts: counts,

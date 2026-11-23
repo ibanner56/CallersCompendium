@@ -93,6 +93,7 @@ class CollectionPicker extends StatefulWidget {
     this.onPreviewOnlineEnded,
     this.onViewOnlineDetails,
     this.programContext,
+    this.suggestionDialectForColumn,
     this.rankSuggestions,
     this.clock = const SearchClock(),
   });
@@ -185,6 +186,12 @@ class CollectionPicker extends StatefulWidget {
   /// slots out of every calling-history filter here (N1-6), and its position,
   /// when set, makes Suggested available and is what Suggested ranks for.
   final PickerProgramContext? programContext;
+
+  /// The dialect a column a **Suggested** reason names is read in, where it is
+  /// not [dialect]: the program matrix's own per-column choice, so a reason
+  /// names a figure as its column does (#2294). Null reads every column in
+  /// [dialect].
+  final Dialect Function(MatrixColumn column)? suggestionDialectForColumn;
 
   /// Ranks for Suggested. A test seam: when null, as in the app, the picker
   /// ranks on a [SuggestionWorker] of its own, which keeps the candidates it
@@ -778,6 +785,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         context,
         taxonomy: widget.data.taxonomy,
         dialect: widget.dialect,
+        dialectForColumn: widget.suggestionDialectForColumn,
         matrixConfig: _matrixConfig,
         userFigures: _userFigures,
         venueLabel: widget.programContext?.venueLabel,
