@@ -299,9 +299,8 @@ void main() {
     // A1 and A2 are 4 bars of 3 beats (0-24), B is 8 bars of 2 (24-40).
     final structure = PhraseStructure.parse('A:2*4*3 + B:1*8*2');
 
-    testWidgets('a figure moved to another phrase reads its count there', (
-      tester,
-    ) async {
+    testWidgets('a figure whose start moves reads its count from the new '
+        'start', (tester) async {
       final drafts = [
         _step('ecd_lead', 12),
         _step('ecd_lead', 12),
@@ -311,13 +310,12 @@ void main() {
       await _open(tester, 2);
       expect(_fieldText(tester, 'figure-2-beats'), '4');
 
-      // The same 8 beats, now first in the dance: bars of 3, so not a whole
-      // number of them. The open row's field reads that, not the last bars.
-      final moved = drafts.removeAt(2);
-      drafts.insert(0, moved);
+      // The first figure shortens by 2 beats: the third now starts at 22, in
+      // a bar of 3 that runs on into B, and its 8 beats are 3½ bars. The open
+      // field reads that, not the 4 it showed from 24.
+      drafts.first.params['beats'] = 10;
       await _pump(tester, drafts, structure: structure);
-      expect(_fieldText(tester, 'figure-0-beats'), '');
-      expect(find.text('8 beats'), findsWidgets);
+      expect(_fieldText(tester, 'figure-2-beats'), '3½');
     });
 
     testWidgets('a step starts where the steps before it end', (tester) async {
