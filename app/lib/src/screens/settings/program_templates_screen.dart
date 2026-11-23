@@ -24,17 +24,12 @@ import '../../widgets/app_dropdown_field.dart';
 import '../../widgets/collection_picker.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/load_error_view.dart';
+import '../../widgets/program_template_name.dart';
 import '../../widgets/reorder_move_buttons.dart';
 import '../../widgets/settings_dropdown_row.dart';
 
-/// Loads the templates with the localized name the migrated Starting program
-/// gets.
-Future<ProgramTemplates> _load(BuildContext context) => loadProgramTemplates(
-  RepositoriesScope.of(context).settings,
-  migratedName: AppLocalizations.of(
-    context,
-  ).settingsProgramTemplatesMigratedName,
-);
+Future<ProgramTemplates> _load(BuildContext context) =>
+    loadProgramTemplates(RepositoriesScope.of(context).settings);
 
 /// The Program defaults rows: **Program templates**, which opens the manager,
 /// and the **Default template** choice (a template or Blank program).
@@ -143,7 +138,7 @@ class _ProgramTemplatesSettingsRowsState
 }
 
 String _displayName(AppLocalizations l10n, ProgramTemplate template) =>
-    template.name.trim().isEmpty ? l10n.programTemplateUntitled : template.name;
+    programTemplateDisplayName(l10n, template);
 
 /// Asks for a template name, starting from [initial]. Returns the trimmed
 /// name, or `null` when cancelled or left blank.
@@ -275,8 +270,10 @@ class _ProgramTemplatesScreenState extends State<ProgramTemplatesScreen> {
   Future<bool> _write(String action, Future<void> Function() write) async {
     final messenger = ScaffoldMessenger.of(context);
     final message = AppLocalizations.of(context).programTemplateSaveError;
+    final repos = RepositoriesScope.of(context);
     try {
-      await write();
+      // One transaction, so a failure leaves nothing half-saved.
+      await repos.transaction(write);
       return true;
     } catch (error, stackTrace) {
       logCaughtError(
@@ -320,7 +317,7 @@ class _ProgramTemplatesScreenState extends State<ProgramTemplatesScreen> {
     final name = await _askName(
       context,
       title: l10n.programTemplateRenameTitle,
-      initial: template.name,
+      initial: programTemplateInitialName(l10n, template),
     );
     if (name == null || !mounted) return;
     await _write(
@@ -555,8 +552,12 @@ class ProgramTemplateEditorScreen extends StatefulWidget {
 class _ProgramTemplateEditorScreenState
     extends State<ProgramTemplateEditorScreen> {
   late ProgramTemplate _template = widget.template;
+  // First read in build, where the localized name is available.
   late final TextEditingController _nameController = TextEditingController(
-    text: widget.template.name,
+    text: programTemplateInitialName(
+      AppLocalizations.of(context),
+      widget.template,
+    ),
   );
   late final List<ProgramTemplateEntry> _entries = [...widget.template.entries];
 

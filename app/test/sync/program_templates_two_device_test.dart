@@ -60,10 +60,7 @@ void main() {
   });
 
   Future<ProgramTemplates> templatesOf(InMemorySyncDevice device) =>
-      loadProgramTemplates(
-        device.repositories.settings,
-        migratedName: 'Starting program',
-      );
+      loadProgramTemplates(device.repositories.settings);
 
   /// Runs passes alternately until neither device's templates change.
   Future<void> settle({int maxRounds = 6}) async {
@@ -143,8 +140,10 @@ void main() {
       isNotNull,
     );
 
-    await templatesOf(a);
-    await templatesOf(b);
+    // Each device makes its first change offline, which copies the Starting
+    // program on both.
+    await materializeProgramTemplates(a.repositories.settings);
+    await materializeProgramTemplates(b.repositories.settings);
     await settle();
 
     for (final device in [a, b]) {
@@ -157,7 +156,7 @@ void main() {
     }
   });
 
-  test('a device that migrates late does not overwrite edits a peer made '
+  test('a device opened late does not overwrite edits a peer made '
       'after migrating', () async {
     await a.repositories.settings.set(
       kDefaultStartingProgramKey,
@@ -167,12 +166,11 @@ void main() {
     );
     await settle();
 
-    // A migrates, then edits the migrated template, adds a second one and
-    // makes Blank the default, and syncs. B has not opened templates yet.
-    // A's edits are stamped an hour ago, so B's migration below is later
-    // than all of them, as when B is opened after A was edited.
+    // A edits the migrated template, adds a second one and makes Blank the
+    // default, and syncs. A's edits are stamped an hour ago, so anything B
+    // wrote below would be later than all of them.
     clock = clock.subtract(const Duration(hours: 1));
-    await templatesOf(a);
+    await materializeProgramTemplates(a.repositories.settings);
     await write(
       a,
       const ProgramTemplate(
@@ -193,7 +191,7 @@ void main() {
     );
     await a.sync();
 
-    // B migrates its own copy before it pulls A's edits.
+    // B shows its templates before it pulls A's edits.
     await templatesOf(b);
     await settle();
 
@@ -210,6 +208,29 @@ void main() {
         ProgramTemplateEntry(text: 'Edited on A'),
       ], reason: device.deviceId);
       expect(templates.defaultId, isNull, reason: device.deviceId);
+    }
+  });
+  test('a migrated template deleted on one device stays deleted when '
+      'another device opens templates before pulling', () async {
+    await a.repositories.settings.set(
+      kDefaultStartingProgramKey,
+      encodeStartingProgramTemplate(const [
+        ProgramTemplateEntry(text: 'Opener'),
+      ]),
+    );
+    await settle();
+
+    await deleteProgramTemplate(
+      a.repositories.settings,
+      kMigratedStartingProgramTemplateId,
+    );
+    await a.sync();
+    await templatesOf(b);
+    await settle();
+
+    for (final device in [a, b]) {
+      final templates = await templatesOf(device);
+      expect(templates.templates, isEmpty, reason: device.deviceId);
     }
   });
 }

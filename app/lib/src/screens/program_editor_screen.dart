@@ -1124,12 +1124,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (!mounted) return const [];
     final ProgramTemplates templates;
     try {
-      templates = await loadProgramTemplates(
-        _repos.settings,
-        migratedName: AppLocalizations.of(
-          context,
-        ).settingsProgramTemplatesMigratedName,
-      );
+      templates = await loadProgramTemplates(_repos.settings);
     } catch (error, stackTrace) {
       logCaughtError(
         error,

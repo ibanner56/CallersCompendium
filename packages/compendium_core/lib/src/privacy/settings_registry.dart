@@ -353,9 +353,10 @@ final Map<String, DataClassification> settingsClassifications = {
     egress: EgressClass.shareable,
     note:
         'Legacy user-authored semantic slot template for manually created '
-        'programs (the Starting program). No longer written: it is read once '
-        'and copied into the first program template (#2337), and left in place '
-        'so a device on an older build keeps it. It contains selected dance '
+        'programs (the Starting program). No longer written: it is shown as '
+        'the first program template and copied into one at the user\'s first '
+        'change to their templates (#2337), and left in place so a device on '
+        'an older build keeps it. It contains selected dance '
         'references and caller notes, so it travels with the user preference '
         'in local backups.',
   ),

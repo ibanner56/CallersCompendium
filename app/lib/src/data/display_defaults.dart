@@ -201,10 +201,11 @@ Iterable<String> _cleanTagNames(Iterable<String> names) sync* {
 /// Key that persisted the single semantic slot template for manually created
 /// programs, the "Starting program", before program templates (#2337).
 ///
-/// No longer written: [migrateStartingProgramToTemplates] in
-/// `program_templates.dart` reads it once and copies a non-empty value into
-/// the first program template. The key is left in place, so a device still on
-/// an older build keeps its starting program after a sync.
+/// No longer written: `program_templates.dart` shows a non-empty value as the
+/// first program template and copies it into one at the user's first change
+/// to their templates (`materializeProgramTemplates`). The key is left in
+/// place, so a device still on an older build keeps its starting program
+/// after a sync.
 const String kDefaultStartingProgramKey = 'default_starting_program';
 
 /// One semantic program-slot entry of a program template (and of the legacy

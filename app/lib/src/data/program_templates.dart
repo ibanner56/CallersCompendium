@@ -21,8 +21,8 @@ const String kProgramTemplateKeyPrefix = 'program_template:';
 
 /// The templates' order, as a JSON list of template ids.
 ///
-/// Its presence also marks the one-time Starting program migration as done
-/// ([migrateStartingProgramToTemplates]).
+/// Its presence also marks the legacy Starting program as copied
+/// ([materializeProgramTemplates]).
 const String kProgramTemplateOrderKey = 'program_template_order';
 
 /// The id of the template a program created outside the New program chooser
@@ -207,74 +207,83 @@ List<ProgramTemplate> orderProgramTemplates(
   return [...result, ...rest];
 }
 
-/// The time every Starting program migration write is stamped at. It is older
-/// than any edit a user can make, so a device that migrates late never
-/// overwrites a template, order or default a peer already edited: under
-/// last-writer-wins any real edit is newer and wins.
-final DateTime kProgramTemplateMigrationStamp = DateTime.utc(2000);
-
-/// Copies a non-empty legacy Starting program ([kDefaultStartingProgramKey])
-/// into the first program template, named [migratedName], and makes it the
-/// default. Writing [kProgramTemplateOrderKey] last marks it done, so an
-/// interrupted run is retried and a completed one never repeats. An empty or
-/// unreadable Starting program writes nothing, and is checked again on the
-/// next load, in case a peer on an older build syncs one in.
+/// The legacy Starting program as the template it becomes, while it has not
+/// been written as one: `null` once [kProgramTemplateOrderKey] exists, or when
+/// the Starting program is empty or unreadable.
 ///
-/// Every write is stamped at [kProgramTemplateMigrationStamp], not now.
-///
-/// The legacy key is left in place, so a device still on an older build keeps
-/// its starting program after a sync.
-Future<void> migrateStartingProgramToTemplates(
-  SettingsRepository settings, {
-  required String migratedName,
-}) async {
-  if (await settings.contains(kProgramTemplateOrderKey)) return;
+/// Its name is empty and shown localized ("Starting program"), so two devices
+/// that copy the same Starting program write the same value whatever their
+/// language.
+Future<ProgramTemplate?> _pendingStartingProgram(
+  SettingsRepository settings,
+) async {
+  if (await settings.contains(kProgramTemplateOrderKey)) return null;
   final legacy = startingProgramTemplateFromStored(
     await settings.get(kDefaultStartingProgramKey),
   );
-  if (legacy.isEmpty) return;
-  const id = kMigratedStartingProgramTemplateId;
-  final at = kProgramTemplateMigrationStamp;
-  // A peer that migrated first may already have written this template; its
-  // value is the same Starting program, so only an absent one is written.
-  if (!await settings.contains(programTemplateKey(id))) {
-    await settings.set(
-      programTemplateKey(id),
-      encodeProgramTemplate(
-        ProgramTemplate(id: id, name: migratedName, entries: legacy),
-      ),
-      at: at,
-    );
-  }
-  if (!await settings.contains(kProgramTemplateDefaultKey)) {
-    await settings.set(kProgramTemplateDefaultKey, id, at: at);
-  }
-  await settings.set(kProgramTemplateOrderKey, const [id], at: at);
+  if (legacy.isEmpty) return null;
+  return ProgramTemplate(
+    id: kMigratedStartingProgramTemplateId,
+    name: '',
+    entries: legacy,
+  );
 }
 
-/// Loads every program template, after running the one-time migration.
+/// Writes the legacy Starting program ([kDefaultStartingProgramKey]) as the
+/// first program template, as the default if none is set, and writes
+/// [kProgramTemplateOrderKey], which marks the copy done.
 ///
-/// [migratedName] is the localized name the migrated Starting program gets
-/// ("Starting program"). Unreadable template values are skipped.
+/// Until then [loadProgramTemplates] shows the Starting program as that
+/// template without writing anything, so merely opening a screen on a
+/// device that has not synced yet cannot write over, or bring back, what a
+/// peer already did with it. The copy is written only by the first change the
+/// user makes to their templates (every write function here calls this
+/// first), stamped at that moment like the change itself, so it resolves
+/// against a peer's edits as an ordinary edit does. Running it again, or with
+/// an empty Starting program, writes nothing.
+///
+/// The legacy key is left in place, so a device still on an older build keeps
+/// its starting program after a sync.
+Future<void> materializeProgramTemplates(SettingsRepository settings) async {
+  final pending = await _pendingStartingProgram(settings);
+  if (pending == null) return;
+  final key = programTemplateKey(pending.id);
+  if (!await settings.contains(key)) {
+    await settings.set(key, encodeProgramTemplate(pending));
+  }
+  if (!await settings.contains(kProgramTemplateDefaultKey)) {
+    await settings.set(kProgramTemplateDefaultKey, pending.id);
+  }
+  await settings.set(kProgramTemplateOrderKey, [pending.id]);
+}
+
+/// Loads every program template. Writes nothing: a Starting program not yet
+/// copied ([materializeProgramTemplates]) is shown as the first template and,
+/// unless another default is stored, the default. Unreadable template values
+/// are skipped.
 Future<ProgramTemplates> loadProgramTemplates(
-  SettingsRepository settings, {
-  required String migratedName,
-}) async {
-  await migrateStartingProgramToTemplates(settings, migratedName: migratedName);
+  SettingsRepository settings,
+) async {
   final byId = <String, ProgramTemplate>{};
   for (final key in await settings.keysWithPrefix(kProgramTemplateKeyPrefix)) {
     final id = key.substring(kProgramTemplateKeyPrefix.length);
     final template = tryDecodeProgramTemplate(id, await settings.get(key));
     if (template != null) byId[id] = template;
   }
-  final order =
+  var order =
       tryDecodeProgramTemplateOrder(
         await settings.get(kProgramTemplateOrderKey),
       ) ??
       const <String>[];
-  final storedDefault = tryDecodeProgramTemplateDefault(
+  var storedDefault = tryDecodeProgramTemplateDefault(
     await settings.get(kProgramTemplateDefaultKey),
   );
+  final pending = await _pendingStartingProgram(settings);
+  if (pending != null) {
+    byId.putIfAbsent(pending.id, () => pending);
+    order = [pending.id];
+    storedDefault ??= pending.id;
+  }
   return ProgramTemplates(
     templates: orderProgramTemplates(byId, order),
     defaultId: storedDefault != null && byId.containsKey(storedDefault)
@@ -287,60 +296,92 @@ Future<ProgramTemplates> loadProgramTemplates(
 /// the one function a program created outside the New program flow (the
 /// calendar import, #2352) calls for its starting shape.
 Future<List<ProgramTemplateEntry>> defaultProgramTemplateEntries(
-  SettingsRepository settings, {
-  required String migratedName,
-}) async {
-  final templates = await loadProgramTemplates(
-    settings,
-    migratedName: migratedName,
-  );
+  SettingsRepository settings,
+) async {
+  final templates = await loadProgramTemplates(settings);
   return templates.defaultTemplate?.entries ?? const [];
 }
 
-/// Writes [template] under its own key, and only that key.
+/// Writes [template] under its own key, and only that key (after
+/// [materializeProgramTemplates], which writes nothing once the Starting
+/// program has been copied).
 Future<void> saveProgramTemplate(
   SettingsRepository settings,
   ProgramTemplate template,
-) => settings.set(
-  programTemplateKey(template.id),
-  encodeProgramTemplate(template),
-);
+) async {
+  await materializeProgramTemplates(settings);
+  await settings.set(
+    programTemplateKey(template.id),
+    encodeProgramTemplate(template),
+  );
+}
 
-/// Writes the templates' order.
+/// Writes the templates' order, keeping at most
+/// [kMaxProgramTemplateOrderLength] ids (more can exist after two devices
+/// add templates at once; the rest then sort after these by name).
 Future<void> saveProgramTemplateOrder(
   SettingsRepository settings,
   List<String> ids,
-) => settings.set(kProgramTemplateOrderKey, ids);
+) async {
+  await materializeProgramTemplates(settings);
+  await settings.set(
+    kProgramTemplateOrderKey,
+    ids.length > kMaxProgramTemplateOrderLength
+        ? ids.sublist(0, kMaxProgramTemplateOrderLength)
+        : ids,
+  );
+}
 
 /// Writes the default template: [id], or Blank program when `null`.
 Future<void> saveProgramTemplateDefault(
   SettingsRepository settings,
   String? id,
-) => settings.set(
-  kProgramTemplateDefaultKey,
-  id ?? kProgramTemplateBlankDefault,
-);
+) async {
+  await materializeProgramTemplates(settings);
+  await settings.set(
+    kProgramTemplateDefaultKey,
+    id ?? kProgramTemplateBlankDefault,
+  );
+}
 
-/// Makes template [id] the default when no default has ever been chosen, so
-/// the first template a user creates is the one New program starts from
-/// (with one template there is no chooser). An explicit Blank program, or a
-/// default naming a deleted template, is left alone.
+/// Makes template [id] the default when there is none: no default stored, or
+/// one naming a template that no longer exists. So the first template a user
+/// creates, or the first after deleting the default, is the one New program
+/// starts from (with one template there is no chooser). An explicit Blank
+/// program is left alone.
+///
+/// The check is local: a device that has not yet synced a peer's newer
+/// explicit choice writes this one now, and last-writer-wins keeps whichever
+/// was written later.
 Future<void> saveProgramTemplateDefaultIfUnset(
   SettingsRepository settings,
   String id,
 ) async {
-  if (await settings.contains(kProgramTemplateDefaultKey)) return;
+  await materializeProgramTemplates(settings);
+  final stored = tryDecodeProgramTemplateDefault(
+    await settings.get(kProgramTemplateDefaultKey),
+  );
+  if (stored == kProgramTemplateBlankDefault) return;
+  if (stored != null && await settings.contains(programTemplateKey(stored))) {
+    return;
+  }
   await saveProgramTemplateDefault(settings, id);
 }
 
 /// Removes template [id]'s key (a tombstone a peer learns from). The order and
 /// default keys are left alone, so Undo ([saveProgramTemplate] with the same
-/// template) brings it back as the default if it was one, and in its old
-/// place unless the order was rewritten in between (a later reorder, create
-/// or duplicate drops it, and it then sorts after the listed ones by name).
-/// Until then a missing id in either reads as absent.
-Future<void> deleteProgramTemplate(SettingsRepository settings, String id) =>
-    settings.remove(programTemplateKey(id));
+/// template) brings it back as the default if it was one and no other
+/// template has taken that place since ([saveProgramTemplateDefaultIfUnset]),
+/// and in its old place unless the order was rewritten in between (a later
+/// reorder, create or duplicate drops it, and it then sorts after the listed
+/// ones by name). Until then a missing id in either reads as absent.
+Future<void> deleteProgramTemplate(
+  SettingsRepository settings,
+  String id,
+) async {
+  await materializeProgramTemplates(settings);
+  await settings.remove(programTemplateKey(id));
+}
 
 /// Which template a new program from the builder starts from.
 class ProgramTemplateChoice {

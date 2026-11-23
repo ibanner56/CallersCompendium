@@ -17,7 +17,7 @@
       "Classify program_template:<id>, program_template_order and program_template_default in the settings privacy registry."
     ],
     "changed": [
-      "The default_starting_program registry note says the key is legacy: read once and copied into the first program template."
+      "The default_starting_program registry note says the key is legacy: shown as the first program template and copied into one at the first change to templates."
     ]
   }
 }

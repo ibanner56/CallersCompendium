@@ -14,12 +14,10 @@ class _RecordingSettings extends SettingsRepository {
   _RecordingSettings(super.db);
 
   final List<String> writes = [];
-  final Map<String, DateTime?> stamps = {};
 
   @override
   Future<void> set(String key, Object? value, {DateTime? at}) {
     writes.add(key);
-    stamps[key] = at;
     return super.set(key, value, at: at);
   }
 
@@ -29,8 +27,6 @@ class _RecordingSettings extends SettingsRepository {
     return super.remove(key, at: at, permanent: permanent);
   }
 }
-
-const _migratedName = 'Starting program';
 
 void main() {
   group('template codec', () {
@@ -136,51 +132,77 @@ void main() {
   });
 
   group('migration from the Starting program', () {
-    test('a non-empty Starting program becomes the first template, in order, '
-        'and the default', () async {
-      final repos = openTestRepositories();
-      const legacy = [
-        ProgramTemplateEntry(danceId: 'd1'),
-        ProgramTemplateEntry(text: Program.breakSlotText),
-        ProgramTemplateEntry(danceId: 'd2', text: 'Mixer'),
-      ];
-      await repos.settings.set(
-        kDefaultStartingProgramKey,
-        encodeStartingProgramTemplate(legacy),
-      );
+    const legacy = [
+      ProgramTemplateEntry(danceId: 'd1'),
+      ProgramTemplateEntry(text: Program.breakSlotText),
+      ProgramTemplateEntry(danceId: 'd2', text: 'Mixer'),
+    ];
 
-      final templates = await loadProgramTemplates(
-        repos.settings,
-        migratedName: _migratedName,
-      );
-
-      expect(templates.templates, hasLength(1));
-      final only = templates.templates.single;
-      expect(only.id, kMigratedStartingProgramTemplateId);
-      expect(only.name, _migratedName);
-      expect(only.entries, legacy);
-      expect(templates.defaultId, only.id);
-      // The legacy key stays, so an older build keeps its starting program.
-      expect(await repos.settings.contains(kDefaultStartingProgramKey), isTrue);
-    });
-
-    test('an empty Starting program yields no template and writes nothing, '
-        'so a later one is still migrated', () async {
+    Future<_RecordingSettings> withLegacy(
+      List<ProgramTemplateEntry> entries,
+    ) async {
       final db = openWidgetTestDatabase();
       addTearDown(db.close);
       final settings = _RecordingSettings(db);
       await settings.set(
         kDefaultStartingProgramKey,
-        encodeStartingProgramTemplate(const []),
+        encodeStartingProgramTemplate(entries),
       );
       settings.writes.clear();
+      return settings;
+    }
 
-      final templates = await loadProgramTemplates(
+    test('a non-empty Starting program shows as the first template, in '
+        'order, and the default, without writing anything', () async {
+      final settings = await withLegacy(legacy);
+
+      final templates = await loadProgramTemplates(settings);
+
+      expect(templates.templates, hasLength(1));
+      final only = templates.templates.single;
+      expect(only.id, kMigratedStartingProgramTemplateId);
+      // Stored unnamed, shown localized, so every device writes one value.
+      expect(only.name, isEmpty);
+      expect(only.entries, legacy);
+      expect(templates.defaultId, only.id);
+      expect(settings.writes, isEmpty);
+      expect(await defaultProgramTemplateEntries(settings), legacy);
+    });
+
+    test('the first change writes the copy, the default and the order, and '
+        'the result reads the same', () async {
+      final settings = await withLegacy(legacy);
+
+      await saveProgramTemplate(
         settings,
-        migratedName: _migratedName,
+        const ProgramTemplate(id: 'family', name: 'Family'),
       );
+
+      expect(settings.writes, [
+        programTemplateKey(kMigratedStartingProgramTemplateId),
+        kProgramTemplateDefaultKey,
+        kProgramTemplateOrderKey,
+        programTemplateKey('family'),
+      ]);
+      final templates = await loadProgramTemplates(settings);
+      expect(
+        templates.byId(kMigratedStartingProgramTemplateId)!.entries,
+        legacy,
+      );
+      expect(templates.defaultId, kMigratedStartingProgramTemplateId);
+      expect(templates.templates.first.id, kMigratedStartingProgramTemplateId);
+      // The legacy key stays, so an older build keeps its starting program.
+      expect(await settings.contains(kDefaultStartingProgramKey), isTrue);
+    });
+
+    test('an empty Starting program yields no template and writes nothing, '
+        'so a later one still shows', () async {
+      final settings = await withLegacy(const []);
+
+      final templates = await loadProgramTemplates(settings);
       expect(templates.templates, isEmpty);
       expect(templates.defaultId, isNull);
+      await materializeProgramTemplates(settings);
       expect(settings.writes, isEmpty);
 
       // A peer on an older build syncs in a Starting program afterwards.
@@ -190,92 +212,107 @@ void main() {
           ProgramTemplateEntry(danceId: 'd1'),
         ]),
       );
-      final later = await loadProgramTemplates(
-        settings,
-        migratedName: _migratedName,
-      );
+      final later = await loadProgramTemplates(settings);
       expect(
         [for (final t in later.templates) t.id],
         [kMigratedStartingProgramTemplateId],
       );
     });
 
-    test('every migration write is stamped at the migration stamp, so any '
-        'real edit beats it', () async {
-      final db = openWidgetTestDatabase();
-      addTearDown(db.close);
-      final settings = _RecordingSettings(db);
-      await settings.set(
-        kDefaultStartingProgramKey,
-        encodeStartingProgramTemplate(const [
-          ProgramTemplateEntry(danceId: 'd1'),
-        ]),
-      );
-      settings.stamps.clear();
-
-      await migrateStartingProgramToTemplates(
-        settings,
-        migratedName: _migratedName,
-      );
-
-      expect(settings.stamps, {
-        programTemplateKey(kMigratedStartingProgramTemplateId):
-            kProgramTemplateMigrationStamp,
-        kProgramTemplateDefaultKey: kProgramTemplateMigrationStamp,
-        kProgramTemplateOrderKey: kProgramTemplateMigrationStamp,
-      });
-    });
-
-    test('running it twice changes nothing', () async {
-      final db = openWidgetTestDatabase();
-      addTearDown(db.close);
-      final settings = _RecordingSettings(db);
-      await settings.set(
-        kDefaultStartingProgramKey,
-        encodeStartingProgramTemplate(const [
-          ProgramTemplateEntry(danceId: 'd1'),
-        ]),
-      );
-      await migrateStartingProgramToTemplates(
-        settings,
-        migratedName: _migratedName,
-      );
+    test('copying it twice changes nothing', () async {
+      final settings = await withLegacy(legacy);
+      await materializeProgramTemplates(settings);
       final after = await settings.all();
       settings.writes.clear();
 
-      await migrateStartingProgramToTemplates(
-        settings,
-        migratedName: _migratedName,
-      );
+      await materializeProgramTemplates(settings);
 
       expect(settings.writes, isEmpty);
       expect(await settings.all(), after);
     });
 
-    test(
-      'a template the user deleted after migrating is not brought back',
-      () async {
-        final repos = openTestRepositories();
-        await repos.settings.set(
-          kDefaultStartingProgramKey,
-          encodeStartingProgramTemplate(const [
-            ProgramTemplateEntry(danceId: 'd1'),
-          ]),
-        );
-        await loadProgramTemplates(repos.settings, migratedName: _migratedName);
-        await deleteProgramTemplate(
-          repos.settings,
-          kMigratedStartingProgramTemplateId,
-        );
+    test('a template the user deleted is not brought back', () async {
+      final settings = await withLegacy(legacy);
+      await deleteProgramTemplate(settings, kMigratedStartingProgramTemplateId);
 
-        final templates = await loadProgramTemplates(
-          repos.settings,
-          migratedName: _migratedName,
-        );
-        expect(templates.templates, isEmpty);
-        expect(templates.defaultId, isNull);
-      },
+      final templates = await loadProgramTemplates(settings);
+      expect(templates.templates, isEmpty);
+      expect(templates.defaultId, isNull);
+    });
+  });
+
+  group('the implicit default', () {
+    test('the first template becomes the default when none is set', () async {
+      final repos = openTestRepositories();
+      await saveProgramTemplate(
+        repos.settings,
+        const ProgramTemplate(id: 'a', name: 'A'),
+      );
+      await saveProgramTemplateDefaultIfUnset(repos.settings, 'a');
+      expect((await loadProgramTemplates(repos.settings)).defaultId, 'a');
+    });
+
+    test('an explicit Blank program is kept', () async {
+      final repos = openTestRepositories();
+      await saveProgramTemplateDefault(repos.settings, null);
+      await saveProgramTemplate(
+        repos.settings,
+        const ProgramTemplate(id: 'a', name: 'A'),
+      );
+      await saveProgramTemplateDefaultIfUnset(repos.settings, 'a');
+      expect((await loadProgramTemplates(repos.settings)).defaultId, isNull);
+    });
+
+    test('a default naming a deleted template is replaced, as after deleting '
+        'the migrated Starting program', () async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultStartingProgramKey,
+        encodeStartingProgramTemplate(const [
+          ProgramTemplateEntry(danceId: 'd1'),
+        ]),
+      );
+      await deleteProgramTemplate(
+        repos.settings,
+        kMigratedStartingProgramTemplateId,
+      );
+      await saveProgramTemplate(
+        repos.settings,
+        const ProgramTemplate(id: 'fam', name: 'Family'),
+      );
+      await saveProgramTemplateDefaultIfUnset(repos.settings, 'fam');
+
+      final templates = await loadProgramTemplates(repos.settings);
+      expect([for (final t in templates.templates) t.id], ['fam']);
+      expect(templates.defaultId, 'fam');
+    });
+
+    test('a live default is kept', () async {
+      final repos = openTestRepositories();
+      await saveProgramTemplate(
+        repos.settings,
+        const ProgramTemplate(id: 'a', name: 'A'),
+      );
+      await saveProgramTemplate(
+        repos.settings,
+        const ProgramTemplate(id: 'b', name: 'B'),
+      );
+      await saveProgramTemplateDefault(repos.settings, 'a');
+      await saveProgramTemplateDefaultIfUnset(repos.settings, 'b');
+      expect((await loadProgramTemplates(repos.settings)).defaultId, 'a');
+    });
+  });
+
+  test('the order key keeps at most the cap of ids', () async {
+    final repos = openTestRepositories();
+    await saveProgramTemplateOrder(repos.settings, [
+      for (var i = 0; i <= kMaxProgramTemplateOrderLength; i++) 't$i',
+    ]);
+    final stored = tryDecodeProgramTemplateOrder(
+      await repos.settings.get(kProgramTemplateOrderKey),
     );
+    expect(stored, hasLength(kMaxProgramTemplateOrderLength));
+    expect(stored!.first, 't0');
   });
 
   group('loading', () {
@@ -295,10 +332,7 @@ void main() {
           );
         }
         await saveProgramTemplateOrder(repos.settings, ['d', 'gone', 'a']);
-        final templates = await loadProgramTemplates(
-          repos.settings,
-          migratedName: _migratedName,
-        );
+        final templates = await loadProgramTemplates(repos.settings);
         expect(
           [for (final t in templates.templates) t.id],
           ['d', 'a', 'c', 'b'],
@@ -312,10 +346,7 @@ void main() {
         final repos = openTestRepositories();
         await saveProgramTemplateOrder(repos.settings, const []);
         await saveProgramTemplateDefault(repos.settings, 'gone');
-        final templates = await loadProgramTemplates(
-          repos.settings,
-          migratedName: _migratedName,
-        );
+        final templates = await loadProgramTemplates(repos.settings);
         expect(templates.defaultId, isNull);
         expect(templates.defaultTemplate, isNull);
       },
@@ -359,16 +390,10 @@ void main() {
       await saveProgramTemplateOrder(repos.settings, ['family', 'contra']);
       await saveProgramTemplateDefault(repos.settings, 'contra');
 
-      expect(
-        await defaultProgramTemplateEntries(
-          repos.settings,
-          migratedName: _migratedName,
-        ),
-        const [
-          ProgramTemplateEntry(danceId: 'd2'),
-          ProgramTemplateEntry(text: Program.breakSlotText),
-        ],
-      );
+      expect(await defaultProgramTemplateEntries(repos.settings), const [
+        ProgramTemplateEntry(danceId: 'd2'),
+        ProgramTemplateEntry(text: Program.breakSlotText),
+      ]);
     });
 
     test('returns none for Blank program', () async {
@@ -384,13 +409,7 @@ void main() {
       await saveProgramTemplateOrder(repos.settings, ['family']);
       await saveProgramTemplateDefault(repos.settings, null);
 
-      expect(
-        await defaultProgramTemplateEntries(
-          repos.settings,
-          migratedName: _migratedName,
-        ),
-        isEmpty,
-      );
+      expect(await defaultProgramTemplateEntries(repos.settings), isEmpty);
     });
   });
 
@@ -426,19 +445,13 @@ void main() {
         await saveProgramTemplateDefault(repos.settings, 'a');
 
         await deleteProgramTemplate(repos.settings, 'a');
-        var templates = await loadProgramTemplates(
-          repos.settings,
-          migratedName: _migratedName,
-        );
+        var templates = await loadProgramTemplates(repos.settings);
         expect([for (final t in templates.templates) t.id], ['b']);
         expect(templates.defaultId, isNull);
         expect(await repos.settings.contains(programTemplateKey('a')), isFalse);
 
         await saveProgramTemplate(repos.settings, a);
-        templates = await loadProgramTemplates(
-          repos.settings,
-          migratedName: _migratedName,
-        );
+        templates = await loadProgramTemplates(repos.settings);
         expect([for (final t in templates.templates) t.id], ['a', 'b']);
         expect(templates.defaultId, 'a');
       },

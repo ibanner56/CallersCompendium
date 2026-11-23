@@ -5183,6 +5183,12 @@ tombstones included. A build without it knows only the single
 written. The reference client advertises it from the change that adds
 templates, so it is subject to *Rollout*: a device on a build that lists only
 the glossary capabilities holds it closed and is named for it.
+Until a device's first change to its templates, it shows the legacy Starting
+program as the first template without writing anything, and copies it into
+`program_template:starting_program` (with the default and order keys) at that
+change, stamped like the change. A device that has not yet synced therefore
+writes nothing merely by opening a screen that could overwrite, or bring back,
+what a peer already did with the copy.
 
 **Server.** The server needs no code for the gate. It validates settings keys
 and record kinds through the registry it is built from, so it MUST be deployed

@@ -557,7 +557,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `default_program_caller` | `pd:Name` | app user | shareable | A performer name the user pre-fills onto new programs — most often themselves. Personal data, shareable for the same reason as programs.caller. |
 | `default_program_sort` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_program_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
-| `default_starting_program` | `dpv:NonPersonalData` | app user | shareable | Legacy user-authored semantic slot template for manually created programs (the Starting program). No longer written: it is read once and copied into the first program template (#2337), and left in place so a device on an older build keeps it. It contains selected dance references and caller notes, so it travels with the user preference in local backups. |
+| `default_starting_program` | `dpv:NonPersonalData` | app user | shareable | Legacy user-authored semantic slot template for manually created programs (the Starting program). No longer written: it is shown as the first program template and copied into one at the user's first change to their templates (#2337), and left in place so a device on an older build keeps it. It contains selected dance references and caller notes, so it travels with the user preference in local backups. |
 | `ecd_convert_prompt_dismissed` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `first_day_of_week` | `dpv:NonPersonalData` | app user | shareable |  |
 | `formation_color_overrides` | `dpv:NonPersonalData` | app user | shareable |  |

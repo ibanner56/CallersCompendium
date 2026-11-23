@@ -5,6 +5,7 @@ import '../data/program_templates.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../theme/app_motion.dart';
+import 'program_template_name.dart';
 
 /// Asks which program template a new program starts from, when there is a
 /// choice to make (#2337).
@@ -23,15 +24,9 @@ Future<ProgramTemplateChoice?> chooseProgramTemplate(
   BuildContext context,
 ) async {
   final repos = RepositoriesScope.of(context);
-  final migratedName = AppLocalizations.of(
-    context,
-  ).settingsProgramTemplatesMigratedName;
   final ProgramTemplates templates;
   try {
-    templates = await loadProgramTemplates(
-      repos.settings,
-      migratedName: migratedName,
-    );
+    templates = await loadProgramTemplates(repos.settings);
   } catch (error, stackTrace) {
     logCaughtError(error, stackTrace, source: 'program_template_chooser.load');
     return const ProgramTemplateChoice.useDefault();
@@ -92,7 +87,7 @@ class ProgramTemplateChooserSheet extends StatelessWidget {
               ListTile(
                 key: ValueKey('program-template-choice-${template.id}'),
                 leading: const Icon(Icons.article_outlined),
-                title: Text(template.name),
+                title: Text(programTemplateDisplayName(l10n, template)),
                 subtitle: template.id == defaultId
                     ? Text(l10n.programTemplateDefaultBadge)
                     : null,

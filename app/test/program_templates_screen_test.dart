@@ -85,7 +85,7 @@ Future<void> _pump(
 }
 
 Future<ProgramTemplates> _stored(CompendiumRepositories repos) =>
-    loadProgramTemplates(repos.settings, migratedName: 'Starting program');
+    loadProgramTemplates(repos.settings);
 
 Future<void> _seed(
   CompendiumRepositories repos,
@@ -130,6 +130,34 @@ void main() {
       // With one template there is no chooser, so the first one becomes the
       // default: otherwise New program could never reach it.
       expect(stored.defaultId, stored.templates.single.id);
+    });
+
+    testWidgets('the Starting program shows by its localized name before and '
+        'after it is copied, and opens with that name', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultStartingProgramKey,
+        encodeStartingProgramTemplate(const [
+          ProgramTemplateEntry(text: 'Opener'),
+        ]),
+      );
+      await _pump(tester, repos, const ProgramTemplatesScreen());
+      final tile = find.byKey(
+        ValueKey('program-template-tile-$kMigratedStartingProgramTemplateId'),
+      );
+      expect(
+        find.descendant(of: tile, matching: find.text('Starting program')),
+        findsOneWidget,
+      );
+      // Showing it wrote nothing.
+      expect(await repos.settings.contains(kProgramTemplateOrderKey), isFalse);
+
+      await tester.tap(tile);
+      await tester.pumpAndSettle();
+      final field = tester.widget<TextField>(
+        find.byKey(const ValueKey('program-template-editor-name')),
+      );
+      expect(field.controller!.text, 'Starting program');
     });
 
     testWidgets('a new template leaves an explicit Blank program default '
