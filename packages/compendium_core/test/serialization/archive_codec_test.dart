@@ -1232,6 +1232,104 @@ void main() {
     });
   });
 
+  group('program times (#2350)', () {
+    final bare = Program(
+      id: 'p',
+      title: 'T',
+      createdAt: DateTime.utc(2026),
+      updatedAt: DateTime.utc(2026),
+    );
+    final timed = bare.copyWith(
+      startMinute: 1170,
+      endMinute: 60,
+      lessonMinute: 1140,
+      arrivalMinute: 0,
+    );
+    const keys = ['startMinute', 'endMinute', 'lessonMinute', 'arrivalMinute'];
+
+    ArchiveReadResult decodeOne(Map<String, Object?> json) => decodeArchive(
+      jsonEncode({
+        'schemaVersion': archiveSchemaVersion,
+        'exportedAt': '2026-04-05T00:00:00.000Z',
+        'programs': [json],
+      }),
+    );
+
+    test('the keys are omitted when unset, in every mode, so a program '
+        'without times keeps its wire hash', () {
+      for (final mode in [false, true]) {
+        final json = archiveProgramToJson(bare, includeOptionalFields: mode);
+        for (final key in keys) {
+          expect(json, isNot(contains(key)));
+        }
+      }
+    });
+
+    test('round-trip as integers, Arrive by included, in share mode too', () {
+      for (final mode in [false, true]) {
+        final json = archiveProgramToJson(timed, includeOptionalFields: mode);
+        expect(json['startMinute'], 1170);
+        expect(json['endMinute'], 60);
+        expect(json['lessonMinute'], 1140);
+        expect(json['arrivalMinute'], 0);
+        final decoded = decodeOne(json);
+        expect(decoded.hasErrors, isFalse, reason: decoded.errors.join('\n'));
+        final p = decoded.archive.programs.single;
+        expect(p.startMinute, 1170);
+        expect(p.endMinute, 60);
+        expect(p.lessonMinute, 1140);
+        expect(p.arrivalMinute, 0);
+      }
+    });
+
+    test('an archive from before the times decodes with none', () {
+      final decoded = decodeOne(archiveProgramToJson(bare));
+      expect(decoded.archive.programs.single.hasTimes, isFalse);
+    });
+
+    test('a time outside 0-1439 or not an integer is rejected per-entity', () {
+      for (final key in keys) {
+        for (final bad in <Object>[-1, 1440, '19:30', 1170.5]) {
+          final json = archiveProgramToJson(timed)..[key] = bad;
+          final result = decodeOne(json);
+          expect(result.hasErrors, isTrue, reason: '$key = $bad');
+          expect(result.errors.single.entityType, 'program');
+        }
+      }
+    });
+
+    test(
+      'a program with a time stamps the archive v8; none leaves it lower',
+      () {
+        CompendiumArchive withProgram(Program p) => CompendiumArchive(
+          schemaVersion: archiveSchemaVersionBase,
+          exportedAt: DateTime.utc(2026),
+          programs: [p],
+        );
+        expect(archiveSchemaVersionProgramTimes, 8);
+        expect(
+          requiredSchemaVersion(withProgram(bare)),
+          lessThan(archiveSchemaVersionProgramTimes),
+        );
+        for (final one in [
+          bare.copyWith(startMinute: 0),
+          bare.copyWith(endMinute: 0),
+          bare.copyWith(lessonMinute: 0),
+          bare.copyWith(arrivalMinute: 0),
+        ]) {
+          expect(
+            requiredSchemaVersion(withProgram(one)),
+            archiveSchemaVersionProgramTimes,
+          );
+        }
+        final encoded =
+            jsonDecode(encodeArchive(withProgram(timed)))
+                as Map<String, Object?>;
+        expect(encoded['schemaVersion'], archiveSchemaVersionProgramTimes);
+      },
+    );
+  });
+
   group('venue serialization', () {
     // A program that references an embedded venue, plus a standalone venue.
     CompendiumArchive archiveWithVenues() {

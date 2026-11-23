@@ -401,6 +401,111 @@ void main() {
       });
     });
 
+    group('times (#2350)', () {
+      Program make({int? start, int? end, int? lesson, int? arrival}) =>
+          Program(
+            id: 'p1',
+            title: 'T',
+            startMinute: start,
+            endMinute: end,
+            lessonMinute: lesson,
+            arrivalMinute: arrival,
+            createdAt: now,
+            updatedAt: now,
+          );
+
+      test('default to none', () {
+        final p = make();
+        expect(p.startMinute, isNull);
+        expect(p.endMinute, isNull);
+        expect(p.lessonMinute, isNull);
+        expect(p.arrivalMinute, isNull);
+        expect(p.hasTimes, isFalse);
+      });
+
+      test('accept 0 and 1439 and reject values outside 0-1439, each on its '
+          'own', () {
+        final makers = <String, Program Function(int)>{
+          'start': (v) => make(start: v),
+          'end': (v) => make(end: v),
+          'lesson': (v) => make(lesson: v),
+          'arrival': (v) => make(arrival: v),
+        };
+        for (final MapEntry(key: name, value: build) in makers.entries) {
+          expect(build(0).hasTimes, isTrue, reason: name);
+          expect(build(1439).hasTimes, isTrue, reason: name);
+          expect(() => build(-1), throwsArgumentError, reason: name);
+          expect(() => build(1440), throwsArgumentError, reason: name);
+        }
+        expect(Program.isValidMinuteOfDay(1439), isTrue);
+        expect(Program.isValidMinuteOfDay(1440), isFalse);
+      });
+
+      test('an end before the start is the next day; an equal end is not', () {
+        expect(make(start: 1170, end: 60).endsNextDay, isTrue);
+        expect(make(start: 1170, end: 1350).endsNextDay, isFalse);
+        expect(make(start: 1170, end: 1170).endsNextDay, isFalse);
+        expect(make(end: 60).endsNextDay, isFalse);
+        expect(make(start: 1170).endsNextDay, isFalse);
+      });
+
+      test('copyWith sets, keeps and clears each time on its own', () {
+        final p = make(start: 1170, end: 1350, lesson: 1140, arrival: 1110);
+        expect(p.copyWith(title: 'U').startMinute, 1170);
+        expect(p.copyWith(endMinute: 1380).endMinute, 1380);
+        final cleared = p.copyWith(
+          clearStartMinute: true,
+          clearLessonMinute: true,
+        );
+        expect(cleared.startMinute, isNull);
+        expect(cleared.lessonMinute, isNull);
+        expect(cleared.endMinute, 1350);
+        expect(cleared.arrivalMinute, 1110);
+        expect(
+          p.copyWith(arrivalMinute: 1, clearArrivalMinute: true).arrivalMinute,
+          isNull,
+        );
+        expect(p.copyWith(clearEndMinute: true).endMinute, isNull);
+        expect(() => p.copyWith(startMinute: 1440), throwsArgumentError);
+      });
+
+      test('== tells apart programs that differ in one time only', () {
+        final p = make(start: 1170, end: 1350, lesson: 1140, arrival: 1110);
+        expect(p == p.copyWith(), isTrue);
+        expect(p == p.copyWith(startMinute: 1171), isFalse);
+        expect(p == p.copyWith(endMinute: 1351), isFalse);
+        expect(p == p.copyWith(lessonMinute: 1141), isFalse);
+        expect(p == p.copyWith(arrivalMinute: 1111), isFalse);
+      });
+
+      test('duplicate keeps every time, and still clears the date and pay', () {
+        final original = Program(
+          id: 'p1',
+          title: 'Night',
+          eventDate: DateTime.utc(2026, 5, 1),
+          payMinorUnits: 25000,
+          payCurrency: 'USD',
+          startMinute: 1170,
+          endMinute: 1350,
+          lessonMinute: 1140,
+          arrivalMinute: 1110,
+          createdAt: now,
+          updatedAt: now,
+        );
+        final copy = original.duplicate(
+          newId: 'p2',
+          newSlotId: () => 'ns1',
+          now: now,
+        );
+        expect(copy.startMinute, 1170);
+        expect(copy.endMinute, 1350);
+        expect(copy.lessonMinute, 1140);
+        expect(copy.arrivalMinute, 1110);
+        expect(copy.eventDate, isNull);
+        expect(copy.payMinorUnits, isNull);
+      });
+    });
+
     test('duplicate carries dialectName through', () {
       final original = Program(
         id: 'p1',
