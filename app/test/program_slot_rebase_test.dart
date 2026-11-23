@@ -153,4 +153,45 @@ void main() {
     );
     expect(_ids(result), ['a', 'new', 'elsewhere']);
   });
+
+  // #2346: a swap keeps the old dance as an alternate added after the slot it
+  // swapped. If another device deleted that slot meanwhile, the alternate has
+  // no group of its own left and is dropped, rather than joining another.
+  test('an alternate Perform added after a slot the target no longer holds is '
+      'dropped', () {
+    final kept = ProgramSlot(
+      id: 'kept',
+      position: 0,
+      danceId: 'old',
+      isAlt: true,
+    );
+    final result = rebaseSlotEdits(
+      before: [_slot('a'), _slot('b'), _slot('c')],
+      after: [
+        _slot('a'),
+        _slot('b').copyWith(danceId: 'new'),
+        kept,
+        _slot('c'),
+      ],
+      onto: [_slot('a'), _slot('c')],
+    );
+    expect(_ids(result), ['a', 'c']);
+  });
+
+  test('an alternate Perform added after a slot the target holds stays in '
+      'its group', () {
+    final kept = ProgramSlot(
+      id: 'kept',
+      position: 0,
+      danceId: 'old',
+      isAlt: true,
+    );
+    final result = rebaseSlotEdits(
+      before: [_slot('a'), _slot('b')],
+      after: [_slot('a'), _slot('b').copyWith(danceId: 'new'), kept],
+      onto: [_slot('a'), _slot('b')],
+    );
+    expect(_ids(result), ['a', 'b', 'kept']);
+    expect(result[1].danceId, 'new');
+  });
 }

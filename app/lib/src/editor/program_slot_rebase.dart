@@ -22,7 +22,11 @@ import '../diagnostics/error_log.dart';
 ///   its group;
 /// - a slot [onto] does not hold is not added, even when Perform changed or
 ///   moved it;
-/// - a slot Perform added that [onto] already holds is not added again.
+/// - a slot Perform added that [onto] already holds is not added again;
+/// - an alternate Perform added is not added when the primary of its group
+///   in [after] is a slot [onto] no longer holds (deleted elsewhere): it
+///   would otherwise join another dance's group. Perform's **Swap** (#2346)
+///   adds the swapped-out dance this way.
 List<ProgramSlot> rebaseSlotEdits({
   required List<ProgramSlot> before,
   required List<ProgramSlot> after,
@@ -67,6 +71,7 @@ List<ProgramSlot> rebaseSlotEdits({
     if (was == null) {
       // Already placed by the loop above, as one of [onto]'s own slots.
       if (ontoById.containsKey(slot.id)) continue;
+      if (slot.isAlt && _primaryGone(after, i, result)) continue;
       merged = slot;
     } else {
       final current = ontoById[slot.id];
@@ -91,6 +96,23 @@ List<ProgramSlot> rebaseSlotEdits({
     result.insert(at, merged);
   }
   return result;
+}
+
+/// Whether the alternate at [index] in [after] belongs to a group whose
+/// primary (the nearest slot before it that is not an alternate) is missing
+/// from [result]. An alternate with no primary before it leads its own run
+/// and is never dropped.
+bool _primaryGone(
+  List<ProgramSlot> after,
+  int index,
+  List<ProgramSlot> result,
+) {
+  for (var j = index - 1; j >= 0; j--) {
+    final candidate = after[j];
+    if (candidate.isAlt) continue;
+    return !result.any((s) => s.id == candidate.id);
+  }
+  return false;
 }
 
 /// The ids in a longest common subsequence of [before] and [after]: the slots
