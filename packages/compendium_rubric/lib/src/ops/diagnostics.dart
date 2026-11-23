@@ -165,6 +165,24 @@ enum WarningKind {
         'before dancing',
   ),
 
+  /// A figure whose pairing the source did not state formed with whoever was
+  /// in position, and they are not the pairing the taxonomy defaults to.
+  ///
+  /// `form_short_waves` (and `pass_the_ocean`, which lands in it) only
+  /// *verifies* its `sides` and `center`; they never move anyone. A stated one
+  /// that disagrees with the set is still `whoMismatch`, but an unstated one is
+  /// the taxonomy's default, not the source's word, so the wave forms and this
+  /// says the default did not hold. *(User-ruled 2026-11-23, from the
+  /// maintainer's own suggestion on Real to Unreal: warn rather than refuse
+  /// when only a defaulted parameter fails.)*
+  ///
+  /// **State-dependent**, raised by the operation and stamped by the engine.
+  unstatedPairing(
+    'unstatedPairing',
+    'the source named no pairing, and the dancers in position are not the '
+        'default one',
+  ),
+
   /// `arch_and_dive` was called on a **line of four**.
   ///
   /// The figure is the unconditional row swap of every hands four

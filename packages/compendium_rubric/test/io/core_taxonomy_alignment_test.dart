@@ -37,6 +37,14 @@ Operation? buildFigure(String move, Map<String, Object?> params) {
   return parseDance(record).valueOrNull?.figures.single.operation;
 }
 
+/// Parameters that, when a record omits them, stay unstated instead of taking
+/// the taxonomy's default, because they only verify the pairing and an
+/// unstated one warns rather than refuses *(user-ruled 2026-11-23)*.
+const _unverifiedWhenUnstated = {
+  'form_short_waves': {'center', 'sides'},
+  'pass_the_ocean': {'center', 'sides'},
+};
+
 void main() {
   group('move vocabulary is owned upstream', () {
     test('every move this compiler builds exists in the core taxonomy', () {
@@ -93,10 +101,19 @@ void main() {
         final fromOurDefaults = buildFigure(move, const {});
         expect(fromOurDefaults, isNotNull);
 
-        // Every default the taxonomy applies, stated explicitly.
-        final effective = core.contraTaxonomy.effectiveParams(
-          core_test.testFigure(move: move),
-        );
+        // Every default the taxonomy applies, stated explicitly — less the
+        // verify-only pairings an unstated record leaves unchecked, which
+        // warn rather than refuse (user-ruled 2026-11-23; see
+        // `WarningKind.unstatedPairing`). Every other default is still held
+        // to the taxonomy's.
+        final effective =
+            {
+              ...core.contraTaxonomy.effectiveParams(
+                core_test.testFigure(move: move),
+              ),
+            }..removeWhere(
+              (key, _) => _unverifiedWhenUnstated[move]?.contains(key) ?? false,
+            );
         final fromTaxonomyDefaults = buildFigure(move, effective);
 
         expect(

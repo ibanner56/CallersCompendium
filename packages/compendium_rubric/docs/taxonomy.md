@@ -188,6 +188,7 @@ Precondition/error kinds accumulated as figures are defined:
 | `oneSidedHall` | a dance contains a `down_the_hall` without a corresponding `up_the_hall`, or vice versa. Non-fatal because the two need not be adjacent. Not raised when `facing: forwardThenBackward` completes the round trip within one figure. This is a **dance-level lint**, not a per-figure precondition — the first diagnostic in the taxonomy evaluated over the whole figure list rather than a single state transition. |
 | `hallFacingConflict` | a hall figure is danced from a line of four that is already facing *against* the figure's travel facing, so the line turns around on the spot before travelling. The figure still runs and `facing` still wins; the warning reports the uncalled turn. **State-dependent**, so unlike `oneSidedHall` it is raised by the operation against the formation it is handed, and stamped with its index by the engine. |
 | `facingPrecondition` | a figure is danced by dancers facing the wrong way for it (e.g. `pass_through dir:along` from dancers left facing across the set). The figure runs as though they had turned to it first; the warning reports the turn nobody called. Dancers whose facing is `Flexible` are skipped entirely — this figure is what resolves them, so there is nothing to report. **State-dependent**, raised by the operation and stamped by the engine. |
+| `unstatedPairing` | a `form_short_waves` or `pass_the_ocean` whose record states no `sides` or `center` forms its wave with whoever is in position, and they are not the default pairing (`neighbors` sides, `role2s` centre). A stated pairing that does not hold is still `whoMismatch`. *(User-ruled 2026-11-23.)* **State-dependent**, raised by the operation and stamped by the engine. |
 | `archFromLine` | `arch_and_dive` is called on a hands four standing as a **line of four**, typically left by a hall figure. Its unconditional row swap then moves the whole line to the band's other row, usually back along the set, instead of trading two facing couples. The figure still runs as ruled; the warning says the order of figures probably needs a look. **State-dependent**, raised by the operation and stamped by the engine. *(User-ruled, 2026-11-23.)* |
 | `anchorMismatch` | a **descriptive anchor** contradicts the arrangement the figure produced — `form_long_waves` naming a `whom`/`hand` hold the wave it forms cannot offer. An anchor states a fact the figure does not need in order to run, so the figure runs unchanged and only the description is at fault. Anchors are still worth carrying: they **disambiguate** (a record naming the hold but not the pair has said everything needed) and they **corroborate** (a claim about the arrangement can be checked rather than trusted). **State-dependent**, raised by the operation and stamped by the engine. *(User-ruled.)* |
 | `unrecognizedFormation` | a record declares a starting formation shape this compiler does not model (`"other"` is already in the corpus). Read as **Duple Improper** rather than refused: the shape vocabulary is owned upstream and grows, and the declared type does less work than its name suggests — it fixes the starting matrix and never tracks where the dancers stand (`architecture.md` §3.2), so a dance whose own opening figures establish its arrangement is fully determined regardless. **Raised at parse time**, not by any figure, and carried on the `Dance` so the compile it belongs to reports it — the first diagnostic that is not an observation about a formation at all. *(User-ruled.)* |
@@ -2660,8 +2661,15 @@ To be defined later with worked examples.
 - **preconditions:**
   - `axis` other than `across` → `unsupportedParam`.
   - No complete hands four → `unresolvableDancerSet`.
-  - `sides` not matching the pairs actually standing face to face → `whoMismatch`.
-  - `center` not matching the pair the chosen hand puts in the middle → `whoMismatch`.
+  - A **stated** `sides` not matching the pairs actually standing face to face → `whoMismatch`.
+  - A **stated** `center` not matching the pair the chosen hand puts in the middle → `whoMismatch`.
+  - An **unstated** `sides` or `center` is not the source's word, so it is not refused: the wave
+    forms with whoever is in position, and if the default (`neighbors` / `role2s`) does not hold
+    the **`unstatedPairing` warning** says so *(user-ruled 2026-11-23, from the maintainer's own
+    suggestion on Real to Unreal: warn rather than refuse when only a defaulted parameter fails)*.
+    These two are the only defaults left unstated on parse, because they never move anyone;
+    `centerHand` still takes its default, which fixes the geometry. `pass_the_ocean` reads its
+    pairing on the wave it lands in.
   - Facing does **not** refuse (it never does): a band not already looking at itself across the
     set raises the **`facingPrecondition` warning** and the figure runs as though they turned.
   - The **declared formation does not gate the figure**. Everything above is read off where the
@@ -2882,7 +2890,9 @@ To be defined later with worked examples.
   `[[. R2-B . . L2-B], [L1-A . . R1-A .]]`.
 - **preconditions:** inherited wholesale from the delegate — including its `sides` / `center`
   cross-checks and its axis restriction — because the delegation goes through the public `apply`
-  rather than round the outside of it.
+  rather than round the outside of it. An **unstated** `sides` or `center` that does not hold on
+  the landed wave raises the **`unstatedPairing` warning** in this figure's own name, as the
+  delegate does *(user-ruled 2026-11-23)*.
 - **interaction scope:** the whole set.
 - **h4 contribution** (D7): 0.
 - **progression-eligible:** no.

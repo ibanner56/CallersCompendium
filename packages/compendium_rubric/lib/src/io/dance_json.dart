@@ -746,13 +746,16 @@ Operation _buildTurnAlone(_Params p) => TurnAlone(
 Operation _buildFormShortWaves(_Params p) => FormShortWaves(
   dir: p.enumOr(['axis', 'dir'], Direction.fromKey, Direction.across),
   balance: p.boolOr(['balance'], false),
-  center: p.enumOr(['center'], WhoSet.fromKey, WhoSet.role2s),
+  // Left unstated when omitted, unlike every other default: it only verifies
+  // the pairing, and an unstated one warns rather than refuses (user-ruled
+  // 2026-11-23, `WarningKind.unstatedPairing`).
+  center: p.optionalEnum(['center'], WhoSet.fromKey),
   // Core's stated default, which is now the canonical duple-improper wave.
   // Honoured rather than derived because upstream owns what an omitted
   // parameter means; the figure keeps its `center`-derives-hand path for
   // direct construction. See [FormShortWaves.centerHand].
   centerHand: p.enumOr(['centerHand'], Hand.fromKey, Hand.left),
-  sides: p.enumOr(['sides'], WhoSet.fromKey, WhoSet.neighbors),
+  sides: p.optionalEnum(['sides'], WhoSet.fromKey),
 );
 
 /// Shares `form_short_waves`' whole wave signature, because the wave it lands
@@ -760,9 +763,12 @@ Operation _buildFormShortWaves(_Params p) => FormShortWaves(
 Operation _buildPassTheOcean(_Params p) => PassTheOcean(
   dir: p.enumOr(['where', 'dir'], Direction.fromKey, Direction.across),
   balance: p.boolOr(['balance'], false),
-  center: p.enumOr(['center'], WhoSet.fromKey, WhoSet.role2s),
+  // Left unstated when omitted, unlike every other default: it only verifies
+  // the pairing, and an unstated one warns rather than refuses (user-ruled
+  // 2026-11-23, `WarningKind.unstatedPairing`).
+  center: p.optionalEnum(['center'], WhoSet.fromKey),
   centerHand: p.enumOr(['centerHand'], Hand.fromKey, Hand.left),
-  sides: p.enumOr(['sides'], WhoSet.fromKey, WhoSet.neighbors),
+  sides: p.optionalEnum(['sides'], WhoSet.fromKey),
 );
 
 Operation _buildFormLongWaves(_Params p) => FormLongWaves(

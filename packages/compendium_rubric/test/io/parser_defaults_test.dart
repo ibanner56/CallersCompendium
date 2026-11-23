@@ -60,7 +60,12 @@ const Map<String, Operation> defaults = {
   'figure_8': FigureEight(dir: FigureEightDir.above, lead: 'onesRole2'),
   'form_a_long_wave': FormALongWave(),
   'form_long_waves': FormLongWaves(who: WhoSet.role1s),
-  'form_short_waves': FormShortWaves(centerHand: Hand.left),
+  // An unstated pairing stays unstated (user-ruled 2026-11-23).
+  'form_short_waves': FormShortWaves(
+    centerHand: Hand.left,
+    center: null,
+    sides: null,
+  ),
   'forward_and_back': LongLines(),
   'gate': Gate(),
   'give_and_take': GiveAndTake(),
@@ -68,7 +73,11 @@ const Map<String, Operation> defaults = {
   'mad_robin': MadRobin(who: WhoSet.role2s),
   'orbit': Orbit(who: WhoSet.role1s),
   'pass_by': PassBy(),
-  'pass_the_ocean': PassTheOcean(centerHand: Hand.left),
+  'pass_the_ocean': PassTheOcean(
+    centerHand: Hand.left,
+    center: null,
+    sides: null,
+  ),
   'pass_through': PassThrough(),
   'petronella': Petronella(),
   'poussette': Poussette(who: WhoSet.role1s),

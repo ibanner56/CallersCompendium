@@ -402,6 +402,7 @@ index.
 | `oneSidedHall` | engine pre-scan | a hall figure with no matching return |
 | `hallFacingConflict` | figure lint | the line was already facing the other way along the hall; it turns around before travelling |
 | `facingPrecondition` | figure lint | dancers are not facing the way the figure assumes |
+| `unstatedPairing` | figure lint | a `form_short_waves` / `pass_the_ocean` with no stated `sides` or `center` formed with dancers who are not the default pairing *(user-ruled 2026-11-23)* |
 | `archFromLine` | figure lint | `arch_and_dive` was called on a line of four; the row swap moves the whole line *(user-ruled 2026-11-23)* |
 | `anchorMismatch` | figure lint | a descriptive param contradicts the derived arrangement |
 | `unrecognizedFormation` | **the parser** | unknown shape; falls back to `dupleImproper` |
@@ -527,6 +528,11 @@ typed.
   Where `compendium_core`'s taxonomy states a `defaultValue`, this parser
   supplies it — even where a better value is available and even where the
   taxonomy is wrong. See §15 for the one case where it is wrong.
+  *(One ruled exception, 2026-11-23: `form_short_waves` and `pass_the_ocean`
+  leave an omitted `sides` or `center` unstated. Those two only verify the
+  pairing and never move anyone, so an unstated one warns
+  (`unstatedPairing`) instead of refusing on a default the source never
+  stated. The alignment test names them.)*
 
 > **`turn` is polymorphic — resolve it per move.** `taxonomy.md` rules **three
 > meanings**: a rotation *amount* (`allemande`, `do_si_do`, `gate`, `mad_robin`,
@@ -828,7 +834,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,411 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,419 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,
@@ -854,8 +860,9 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
   the workaround for it. With the default correct, rule 7 says upstream owns
   what an omitted parameter means, and deriving would have broken the alignment
   invariant (an omitted param must build the same figure as the stated default)
-  for no gain. The figure keeps its `center`-derives-hand path for direct
-  construction.
+  for no gain. *(Since then, 2026-11-23: `sides` and `center` are left
+  unstated when omitted, by ruling; `centerHand` still takes the default.)*
+  The figure keeps its `center`-derives-hand path for direct construction.
 - **`hey` has a full `docs/taxonomy.md` entry** and is out of the Held table.
 - **`hey` is covered by a golden.** `last_hey.json` (Caller's Box #14417) is the
   first sourced dance containing one. Two things had to be settled to land it:

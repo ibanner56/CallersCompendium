@@ -47,6 +47,16 @@
 > previously compiling dance lost. 8 dances that refused now mismatch and 3
 > that mismatched now refuse.
 >
+> **An unstated short-wave pairing warns (2026-11-23)**: `form_short_waves`
+> and `pass_the_ocean` with no stated `sides` or `center` form with whoever is
+> in position and raise `unstatedPairing` instead of refusing (user-ruled).
+> Against `rubric` at `dfc97ef5` it took the count from 3,729/5,122 to
+> 3,761/5,119 compiled in scope (72.8% to 73.5%), and the core set from 507
+> to 511, with no previously compiling dance lost; 10 dances that refused now
+> get further and mismatch. The in-scope denominator fell by 3 because 159,
+> 11216 and 13801 now get as far as a partial `hey`, which is an agreed
+> exclusion.
+>
 > **N2 notes place the progression (2026-11-23)**: when the positional
 > placement does not compile, the retry now also reads a figure's note, so
 > "[with N2]" and "face N2" place an unflagged progression (user-ruled).

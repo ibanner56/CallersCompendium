@@ -126,6 +126,129 @@ void main() {
       expect(error.message, contains('face to face'));
     });
 
+    group('an unstated pairing warns (user-ruled 2026-11-23)', () {
+      // Partners face to face: what a partner do-si-do leaves before the wave.
+      final partnersFacing = di(const ['R1-A . . . L2-B', 'L1-A . . . R2-B']);
+      const unstated = FormShortWaves(
+        centerHand: Hand.left,
+        center: null,
+        sides: null,
+      );
+
+      test('the wave forms with whoever stands face to face', () {
+        final after = applyOk(unstated, partnersFacing);
+        expect(
+          after.toRolesNotation(),
+          applyOk(
+            const FormShortWaves(
+              centerHand: Hand.left,
+              center: null,
+              sides: WhoSet.partners,
+            ),
+            partnersFacing,
+          ).toRolesNotation(),
+        );
+      });
+
+      test('and says the default pairing did not hold', () {
+        final warnings = unstated.lint(partnersFacing).toList();
+        expect(
+          warnings.map((w) => w.kind),
+          contains(WarningKind.unstatedPairing),
+        );
+      });
+
+      test('a stated pairing that does not hold still refuses', () {
+        final error = applyErr(
+          const FormShortWaves(
+            centerHand: Hand.left,
+            center: null,
+            sides: WhoSet.neighbors,
+          ),
+          partnersFacing,
+        );
+        expect(error.kind, ErrorKind.whoMismatch);
+      });
+
+      test('no warning when the default holds', () {
+        expect(
+          unstated.lint(start).map((w) => w.kind),
+          isNot(contains(WarningKind.unstatedPairing)),
+        );
+      });
+
+      test('an unstated center that does not hold warns too', () {
+        // A right-hand centre join sends the larks in, not the default robins.
+        const op = FormShortWaves(
+          centerHand: Hand.right,
+          center: null,
+          sides: null,
+        );
+        expect(op.apply(start), isA<Ok<Formation, OpError>>());
+        expect(
+          op.lint(start).map((w) => w.detail),
+          contains(contains('states no center')),
+        );
+      });
+
+      test('a set already standing in waves is read from its sides', () {
+        final waved = applyOk(unstated, partnersFacing);
+        expect(
+          unstated.lint(waved).map((w) => w.kind),
+          contains(WarningKind.unstatedPairing),
+        );
+      });
+
+      test('pass_the_ocean warns in its own name, after the pass', () {
+        const ocean = PassTheOcean(
+          centerHand: Hand.left,
+          center: null,
+          sides: null,
+        );
+        final across = di(const ['R1-A . . . L2-B', 'L1-A . . . R2-B']);
+        final facingAcross = across.withUpdates({
+          for (final entry in across.dancers.entries)
+            entry.key: entry.value.copyWith(
+              facing: entry.value.col == 0
+                  ? Facing.acrossEast
+                  : Facing.acrossWest,
+            ),
+        });
+        expect(ocean.apply(facingAcross), isA<Ok<Formation, OpError>>());
+        expect(
+          ocean.lint(facingAcross).map((w) => w.detail),
+          contains(startsWith('pass_the_ocean states no sides')),
+        );
+      });
+
+      test('pass_the_ocean reads the centre on the wave it lands in', () {
+        // Before the pass the robins stand on the centre diagonal; after it,
+        // the larks do, so the default (role2s) fails only on the landed wave.
+        const ocean = PassTheOcean(
+          centerHand: Hand.left,
+          center: null,
+          sides: WhoSet.partners,
+        );
+        final across = di(const ['R1-A . . . L2-B', 'L1-A . . . R2-B']);
+        final facingAcross = across.withUpdates({
+          for (final entry in across.dancers.entries)
+            entry.key: entry.value.copyWith(
+              facing: entry.value.col == 0
+                  ? Facing.acrossEast
+                  : Facing.acrossWest,
+            ),
+        });
+        expect(ocean.apply(facingAcross), isA<Ok<Formation, OpError>>());
+        expect(
+          ocean.lint(facingAcross).map((w) => w.detail),
+          contains(
+            'pass_the_ocean states no center, and L-B and L-A end in the '
+            'middle, not role2s; the wave forms with them',
+          ),
+        );
+      });
+    });
+
     test('the offset is read from facing, not from role', () {
       // Turning a band around and asking for the same wave lands the same
       // arrangement, because the figure faces the band the way the wave needs
