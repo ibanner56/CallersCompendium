@@ -7,6 +7,7 @@ import '../data/formation_colors_scope.dart';
 import '../data/set_list_color_coding_scope.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_motion.dart';
+import '../theme/app_shapes.dart';
 import '../theme/app_spacing.dart';
 import '../theme/set_list_accents.dart';
 import 'dirty_dialog_guard.dart';
@@ -53,6 +54,8 @@ class ProgramSlotListEditor extends StatefulWidget {
     this.onPreviewDanceStarted,
     this.onPreviewDanceEnded,
     this.onViewDanceDetails,
+    this.onAddDanceAt,
+    this.insertionTargetSlotIds = const {},
   });
 
   /// Slots in position order.
@@ -148,6 +151,23 @@ class ProgramSlotListEditor extends StatefulWidget {
 
   /// Opens a persistent details preview for keyboard and AT users.
   final void Function(String danceId)? onViewDanceDetails;
+
+  /// "Add a dance before" / "Add a dance after" on a slot's "…" menu (#2339):
+  /// the host picks a dance and inserts it at the boundary of the alternate
+  /// group holding the slot at `index` ([Program.insertSlotAtGroupBoundary]).
+  /// `targetTitle` names that group's primary, which is where the dance lands
+  /// next to whichever of the group's slots the menu was opened on. Both items
+  /// are omitted when this is null.
+  final void Function(
+    int index, {
+    required bool after,
+    required String targetTitle,
+  })?
+  onAddDanceAt;
+
+  /// Ids of the slots a pending "Add a dance before/after" will land next to,
+  /// highlighted until a dance is chosen or the insertion is cancelled.
+  final Set<String> insertionTargetSlotIds;
 
   /// List width below which rows use the compact layout even on a wide window.
   /// The builder's two-pane layout halves the window, so up to about 1100dp
@@ -334,9 +354,27 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   widget.onViewDanceDetails == null || slots[i].danceId == null
                   ? null
                   : () => widget.onViewDanceDetails!(slots[i].danceId!),
+              onAddDanceBefore: widget.onAddDanceAt == null
+                  ? null
+                  : () => _addDanceAt(l10n, i, after: false),
+              onAddDanceAfter: widget.onAddDanceAt == null
+                  ? null
+                  : () => _addDanceAt(l10n, i, after: true),
+              insertionTarget: widget.insertionTargetSlotIds.contains(
+                slots[i].id,
+              ),
             ),
         ],
       ),
+    );
+  }
+
+  void _addDanceAt(AppLocalizations l10n, int i, {required bool after}) {
+    final primary = Program.alternateGroupRange(widget.slots, i).start;
+    widget.onAddDanceAt?.call(
+      i,
+      after: after,
+      targetTitle: _slotTitle(l10n, widget.slots[primary]),
     );
   }
 
@@ -488,6 +526,9 @@ class _SlotTile extends StatelessWidget {
     this.onPreviewDanceStarted,
     this.onPreviewDanceEnded,
     this.onViewDanceDetails,
+    this.onAddDanceBefore,
+    this.onAddDanceAfter,
+    this.insertionTarget = false,
   });
 
   /// Keep only the drag handle and the "…" menu on the row; View details,
@@ -541,6 +582,15 @@ class _SlotTile extends StatelessWidget {
   final VoidCallback? onPreviewDanceStarted;
   final VoidCallback? onPreviewDanceEnded;
   final VoidCallback? onViewDanceDetails;
+
+  /// "Add a dance before" / "Add a dance after" (#2339); both menu items are
+  /// omitted when null.
+  final VoidCallback? onAddDanceBefore;
+  final VoidCallback? onAddDanceAfter;
+
+  /// Whether a pending "Add a dance before/after" will land next to this slot:
+  /// the row is outlined and tinted until a dance is chosen or it is cancelled.
+  final bool insertionTarget;
 
   /// Whether to offer "create a dance from this" on the "…" menu: only for a
   /// note slot (no [ProgramSlot.danceId]) that isn't the structural break
@@ -605,7 +655,16 @@ class _SlotTile extends StatelessWidget {
         bottom: AppSpacing.xxs,
       ),
       child: Card(
+        key: insertionTarget
+            ? ValueKey('slot-${slot.id}-insertion-target')
+            : null,
         margin: EdgeInsets.zero,
+        color: insertionTarget ? theme.colorScheme.secondaryContainer : null,
+        shape: insertionTarget
+            ? AppShapes.cardShape.copyWith(
+                side: BorderSide(color: theme.colorScheme.primary, width: 2),
+              )
+            : null,
         child: Container(
           key: accent != null ? ValueKey('slot-${slot.id}-accent') : null,
           decoration: accent != null
@@ -773,6 +832,10 @@ class _SlotTile extends StatelessWidget {
                         onViewDanceDetails?.call();
                       case 'remove':
                         onRemove();
+                      case 'add_before':
+                        onAddDanceBefore?.call();
+                      case 'add_after':
+                        onAddDanceAfter?.call();
                       case 'edit':
                         onEdit();
                       case 'alt':
@@ -835,7 +898,32 @@ class _SlotTile extends StatelessWidget {
                       ),
                       const PopupMenuDivider(),
                     ],
+                    // After the compact row's inline actions (D-2's order
+                    // stays intact) and before Edit slot (#2339).
+                    if (onAddDanceBefore != null &&
+                        onAddDanceAfter != null) ...[
+                      PopupMenuItem(
+                        key: ValueKey('slot-$index-add-before'),
+                        value: 'add_before',
+                        child: ListTile(
+                          leading: const Icon(Icons.vertical_align_top),
+                          title: Text(l10n.programsAddDanceBeforeMenu),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      PopupMenuItem(
+                        key: ValueKey('slot-$index-add-after'),
+                        value: 'add_after',
+                        child: ListTile(
+                          leading: const Icon(Icons.vertical_align_bottom),
+                          title: Text(l10n.programsAddDanceAfterMenu),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      const PopupMenuDivider(),
+                    ],
                     PopupMenuItem(
+                      key: ValueKey('slot-$index-edit'),
                       value: 'edit',
                       child: ListTile(
                         leading: const Icon(Icons.edit_outlined),

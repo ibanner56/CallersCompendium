@@ -6178,6 +6178,42 @@
   "@programsMoreActionsForSlot": {
     "x-sourceSha256": "0fecec43e33a7122c7aea042070347d4fc3a225bec127933efbcaecd15ad267a"
   },
+  "programsAddDanceBeforeMenu": "Dans ervoor toevoegen",
+  "@programsAddDanceBeforeMenu": {
+    "x-sourceSha256": "cc6ba8aaee74313f0eb7b6fa07b75b99436d514edb1b8e5d1046b0f86db4bdd8"
+  },
+  "programsAddDanceAfterMenu": "Dans erna toevoegen",
+  "@programsAddDanceAfterMenu": {
+    "x-sourceSha256": "b72837ffab72297a4fcce18efef0571d36aff7ae4745281c88b540437ace8c9b"
+  },
+  "programsAddBeforeSheetTitle": "Toevoegen vóór {title}",
+  "@programsAddBeforeSheetTitle": {
+    "x-sourceSha256": "7a561a41d345a23eabea902a44fb778618b1aeb1308ac0d37150aa6cca3ffd5b"
+  },
+  "programsAddAfterSheetTitle": "Toevoegen na {title}",
+  "@programsAddAfterSheetTitle": {
+    "x-sourceSha256": "56022171b3ae774e18e5540594fad7d9b1d637ba953f598b1af16863131a98e7"
+  },
+  "programsAddingBeforeBanner": "Toevoegen vóór {title}",
+  "@programsAddingBeforeBanner": {
+    "x-sourceSha256": "02da4f428e224712b59816b2a4aae08d5c1b425f823caa4900eb8ed7525beb66"
+  },
+  "programsAddingAfterBanner": "Toevoegen na {title}",
+  "@programsAddingAfterBanner": {
+    "x-sourceSha256": "0ae70c1950f92cb7229bd5a15698219c7c52791c055ef7358312e3a6c50ed8bd"
+  },
+  "programsAddedDanceBeforeAnnounce": "{title} toegevoegd vóór {target}.",
+  "@programsAddedDanceBeforeAnnounce": {
+    "x-sourceSha256": "6035503a47a1f83dbab1be09684893d7447a658f864f9da0780f8257bf7b29df"
+  },
+  "programsAddedDanceAfterAnnounce": "{title} toegevoegd na {target}.",
+  "@programsAddedDanceAfterAnnounce": {
+    "x-sourceSha256": "72604b8c9c1a284e9dea48533a10b8e8d1536dacb139287aac6a5a7356ca40be"
+  },
+  "programsInsertionCancelledAnnounce": "Geannuleerd. Nieuwe dansen komen aan het eind.",
+  "@programsInsertionCancelledAnnounce": {
+    "x-sourceSha256": "9ccb1b0b15958deae5614ceedac379720ac2762f5af8e5ca0763375b7ee50280"
+  },
   "programsEditSlotMenu": "Slot bewerken",
   "@programsEditSlotMenu": {
     "x-sourceSha256": "dc765649e1c9d7087613808c4b45216d003c0b79d49716ddb4f3b1283481b552"

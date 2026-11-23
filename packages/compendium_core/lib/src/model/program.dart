@@ -453,6 +453,46 @@ class Program {
     return next;
   }
 
+  /// The alternate group holding the slot at [index] in a **position-ordered**
+  /// [slots] list, as the half-open range `[start, end)`: the group's primary
+  /// and every alternate after it, by the rule [grouped] and
+  /// [alternateGroupsForSlots] use. An alternate's group is its primary's; a
+  /// break, a note, or a leading/orphaned alternate with no primary above it
+  /// starts its own group.
+  static ({int start, int end}) alternateGroupRange(
+    List<ProgramSlot> slots,
+    int index,
+  ) {
+    RangeError.checkValidIndex(index, slots, 'index');
+    var start = index;
+    while (start > 0 && slots[start].isAlt) {
+      start--;
+    }
+    var end = start + 1;
+    while (end < slots.length && slots[end].isAlt) {
+      end++;
+    }
+    return (start: start, end: end);
+  }
+
+  /// [slots] with [slot] inserted as a **primary** just before ([after]
+  /// false) or just after ([after] true) the alternate group holding the slot
+  /// at [index] ([alternateGroupRange]): before the group's primary, or after
+  /// its last alternate. Inserting at the raw index instead could land the new
+  /// dance among a group's alternates, splitting the group or making its
+  /// alternates belong to the new dance (#2339). [slot] is inserted with
+  /// `isAlt` cleared. Positions are left for the caller to renumber.
+  static List<ProgramSlot> insertSlotAtGroupBoundary(
+    List<ProgramSlot> slots,
+    int index,
+    ProgramSlot slot, {
+    required bool after,
+  }) {
+    final range = alternateGroupRange(slots, index);
+    return [...slots]
+      ..insert(after ? range.end : range.start, slot.copyWith(isAlt: false));
+  }
+
   /// [slots] with the slot at [oldIndex] moved to [newIndex], where
   /// [newIndex] is the insertion index after the removal (Flutter's
   /// `onReorderItem` convention). A moved primary leaves its alternates behind
