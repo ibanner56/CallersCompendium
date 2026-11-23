@@ -401,6 +401,11 @@ The headline corpus report can be refreshed with:
 fvm dart run bin\callersbox_harness.dart --quiet $env:RUBRIC_TCB_CORPUS
 ```
 
+Add `--report <dir>` (and optionally `--core-ids <file>`) to also write a
+failure report: each failing dance traced figure by figure, mismatches
+classified, failures grouped by cause, and a page to browse them in
+(`docs/implementation.md`, the harness paragraph in §12).
+
 The per-figure table uses the same `DanceRun` results, canonicalizes aliases
 through `compendium_core`'s contra taxonomy, and counts each dance once for
 each canonical figure it contains. It additionally parses the first

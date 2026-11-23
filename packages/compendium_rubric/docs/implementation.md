@@ -710,6 +710,32 @@ get parsed out of. `-v`/`--verbose` lists every dance, with warnings. The same
 sweep runs as a test when `RUBRIC_TCB_CORPUS` names a directory, and skips
 otherwise.
 
+`--report <dir>` adds a **failure report** for working on the failures rather
+than counting them (`io/failure_report.dart`). Every dance that mismatched,
+refused or crashed is re-run figure by figure through `FigureFold` on the same
+primary bridge the verdict came from; one that did not parse is reported with
+its figures and the figure the parse error names, but no trace. All are
+written to `<dir>`:
+
+- `failures.jsonl`, one record per dance: the source's phrases as written, the
+  figures as danced, the set after every figure up to the one that refused,
+  and for a mismatch the expected and actual end states, the dancers that are
+  off, and a class (`noNetProgression`, `oneProgressionTooMany`,
+  `oneProgressionShort`, `numbersOnly`, `elsewhere`);
+- `summary.md`, the failures grouped by a **signature** (the refusal with
+  figure numbers, dancer labels and counts stripped), in-scope and deferred
+  apart;
+- `index.html` and `report.js`, a page to browse the groups and step through
+  one dance. It opens from disk.
+
+For a dance whose progression was assumed, the report also records a
+**placement hint**: the other figures that compile when the flag is moved onto
+them alone. It is diagnostic only *(agent's call, 2026-11-23)*: the scored run
+still tries exactly the two placements described in §10.1, and nothing in the
+report changes an outcome, a rate or the exit code. `--core-ids <file>` (one
+Caller's Box id per line) marks a focus set such as the Seattle core set, and
+every group then counts its members too.
+
 **Guard a full hey from the other side.** A full hey returns every dancer to
 where they started, so a golden covering one compiles just as well with the hey
 deleted — the obvious guard cannot fail. `last_hey.json`'s guard substitutes a
