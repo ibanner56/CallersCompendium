@@ -260,7 +260,11 @@ from this table because the compiler never ran against them. **Pass rate** is
 
 - `slice` supports `by: couple` with a straight or diagonal return; `by: dancer`
   and `return: none` are deferred.
-- `gate` requires a stated whole or half turn and refuses `face:along`.
+- `gate` turns a fractional amount (¼, ¾, 1¼) only between a complete hands
+  four and a line of four; a landing that would be a two-faced line (what a
+  same-sense gate from the ring makes) stays deferred. An unstated turn is
+  refused except for a bare hand cast closing a line of four, which lands as
+  `bendTheLine` does. `face:along` is refused.
 - `long_lines` requires `goBack:true`.
 - `swing` supports side-column landings but not `where:center`.
 - Couple-`who` `orbit` executes under the existing ruling, but its true

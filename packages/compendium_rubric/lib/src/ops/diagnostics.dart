@@ -50,9 +50,9 @@ enum ErrorKind {
   ),
 
   /// A parameter value that is legal in the baseline taxonomy but
-  /// **deliberately not implemented** — the Held-table cases (quarter-turn
-  /// `allemande` / `gate`, `down_the_hall` `moving: center`, the held hall
-  /// `ender`s).
+  /// **deliberately not implemented** — the Held-table cases (an
+  /// across-the-set quarter `allemande`, a same-sense fractional `gate`,
+  /// `down_the_hall` `moving: center`, the held hall `ender`s).
   ///
   /// Distinct from a malformed parameter: this says "valid, but out of scope",
   /// which is why it is worth reporting rather than silently ignoring.
