@@ -379,10 +379,12 @@ suggested there: every reason, each marked as raising or lowering it.
 - Suggested is only offered when the dance will go at the end of the program:
   not while you are adding a dance before or after a slot, nor when you replace
   a slot's dance.
-- A dance already in the program stays in the list but goes to the bottom,
-  marked *Already in this program*.
-- English dances aren't covered yet. They are listed after the others, unranked,
-  and say so.
+- English dances aren't covered yet. They are listed after the ordered
+  dances, in their usual order, and say so.
+- A dance already in the program stays in the list but goes to the very
+  bottom, after the English dances, marked *Already in this program*. Any
+  type of dance goes there, English included. Dances there keep their usual
+  order.
 - If the dances can't be ordered, the list stays in its usual order and says
   so above the first dance.
 - Nothing is saved by suggesting: it only changes the order of the list.

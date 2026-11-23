@@ -49,8 +49,8 @@ enum SuggestionReasonKind {
   /// only" off): the move starts in the same phrase as in the neighbour.
   phraseOverlap,
 
-  /// The dance is already in this program. Not a factor: a fixed, strong
-  /// effect, so a dance already called tonight sinks without being removed.
+  /// The dance is already in this program. Not a factor: such a dance is not
+  /// scored, and is listed after every other dance, whatever its form.
   alreadyInProgram,
 
   /// Same formation family as the [SuggestionReason.neighbor].
@@ -154,8 +154,8 @@ class RankedSuggestion {
   final String danceId;
   final double score;
 
-  /// False for a dance listed after the ranked ones, unranked (an English
-  /// dance).
+  /// False for a dance listed after the ranked ones, unranked: an English
+  /// dance, or one already in the program.
   final bool ranked;
 
   /// Every reason, the ones that moved it first, largest effect first; notes
@@ -187,18 +187,38 @@ class SuggestionCandidate {
 
   /// The projection of [dance]. A transcription that cannot be decoded has no
   /// figures here, as the matrix reads it.
-  factory SuggestionCandidate.fromDance(Dance dance) => SuggestionCandidate(
-    id: dance.id,
-    form: dance.form,
-    formation: dance.formation,
-    difficultyLevelId: dance.difficultyLevelId,
-    phraseStructure: dance.phraseStructure,
-    figures: switch (dance.figuresSource) {
+  ///
+  /// Its [revision] changes whenever anything the scorer reads may have
+  /// changed, even where a bulk path stamps `updatedAt` at whole seconds and
+  /// an edit keeps the same stamp: it hashes `updatedAt`, the form, formation,
+  /// level and phrase structure, and the identity of the dance's figure list.
+  /// A [Dance] is immutable, so changed figures are always a new list. The
+  /// identity costs nothing to read, where hashing every figure's content
+  /// cost about 40 ms per rank for 20,000 dances; its price is that the same
+  /// figures loaded again (a reload of the collection) count as changed, and
+  /// are sent to a [SuggestionWorker] again.
+  factory SuggestionCandidate.fromDance(Dance dance) {
+    final figures = switch (dance.figuresSource) {
       DecodedFigures(:final figures) => figures,
       UnreadableFigures() => const <Figure>[],
-    },
-    revision: dance.updatedAt.microsecondsSinceEpoch,
-  );
+    };
+    return SuggestionCandidate(
+      id: dance.id,
+      form: dance.form,
+      formation: dance.formation,
+      difficultyLevelId: dance.difficultyLevelId,
+      phraseStructure: dance.phraseStructure,
+      figures: figures,
+      revision: Object.hash(
+        dance.updatedAt.microsecondsSinceEpoch,
+        dance.form,
+        dance.formation,
+        dance.difficultyLevelId,
+        dance.phraseStructure,
+        identityHashCode(dance.figuresSource),
+      ),
+    );
+  }
 
   final String id;
   final DanceForm form;
@@ -207,9 +227,9 @@ class SuggestionCandidate {
   final PhraseStructure phraseStructure;
   final List<Figure> figures;
 
-  /// Which version of the dance this is (its `updatedAt`, from [fromDance]).
-  /// A [SuggestionWorker] already holding this id at this revision is not sent
-  /// it again.
+  /// Which version of the dance this is: from [fromDance], a fingerprint of
+  /// its `updatedAt`, its projected fields and its figure list's identity. A [SuggestionWorker] already
+  /// holding this id at this revision is not sent it again.
   final int revision;
 }
 
@@ -245,7 +265,7 @@ class SuggestionRequest {
   final Map<String, SuggestionCandidate> programDances;
 
   /// The dances to rank, in the plain order they are shown in. Ties keep it.
-  /// A candidate already in the program is ranked too, low
+  /// A candidate already in the program is kept, listed last
   /// ([SuggestionReasonKind.alreadyInProgram]): ranking never filters.
   final List<SuggestionCandidate> candidates;
 
@@ -306,9 +326,10 @@ class SuggestionRanking {
   final List<RankedSuggestion> order;
 }
 
-/// The effect of [SuggestionReasonKind.alreadyInProgram]. Every factor at
-/// A lot can give a dance at most +5.4 or −12 in all, so −20 puts such a
-/// dance below every dance not in the program however the factors are set.
+/// The effect, and the score, of [SuggestionReasonKind.alreadyInProgram]:
+/// below anything the factors can give (every factor at A lot gives at most
+/// +5.4 or −12 in all), so the reason reads as lowering the dance. The order
+/// does not depend on it: such dances are listed last whatever their score.
 const double alreadyInProgramEffect = -20;
 
 /// A formation family: Becket clockwise and counter-clockwise are one.
@@ -318,12 +339,33 @@ String _formationFamily(FormationShape shape) => switch (shape) {
 };
 
 /// Ranks [request]'s candidates. See the library comment.
+///
+/// The order: the ranked dances, best first; then English dances not in the
+/// program; then every dance already in the program, whatever its form. The
+/// last two groups keep the plain order.
 SuggestionRanking rankSuggestions(SuggestionRequest request) {
   final scorer = _Scorer(request);
   final ranked = <(int, RankedSuggestion)>[];
   final unranked = <RankedSuggestion>[];
+  final inProgram = <RankedSuggestion>[];
   for (var i = 0; i < request.candidates.length; i++) {
     final dance = request.candidates[i];
+    if (scorer.isInProgram(dance.id)) {
+      inProgram.add(
+        RankedSuggestion(
+          danceId: dance.id,
+          score: alreadyInProgramEffect,
+          ranked: false,
+          reasons: const [
+            SuggestionReason(
+              SuggestionReasonKind.alreadyInProgram,
+              effect: alreadyInProgramEffect,
+            ),
+          ],
+        ),
+      );
+      continue;
+    }
     // English dances are not ranked: the matrix's beat comparison assumes
     // contra's phrases, which English dances do not share (see
     // docs/design/suggestions.md, "English dances").
@@ -346,7 +388,11 @@ SuggestionRanking rankSuggestions(SuggestionRequest request) {
     final byScore = b.$2.score.compareTo(a.$2.score);
     return byScore != 0 ? byScore : a.$1.compareTo(b.$1);
   });
-  return SuggestionRanking([for (final (_, r) in ranked) r, ...unranked]);
+  return SuggestionRanking([
+    for (final (_, r) in ranked) r,
+    ...unranked,
+    ...inProgram,
+  ]);
 }
 
 /// What the scorer works out once per request, then applies per candidate.
@@ -467,6 +513,10 @@ class _Scorer {
 
   /// Every dance id the program's slots hold, before and after the position.
   final _programDanceIds = <String>{};
+
+  /// Whether a slot of the program, before or after the position, holds
+  /// [danceId].
+  bool isInProgram(String danceId) => _programDanceIds.contains(danceId);
   final _programMoves = <String>{};
   final _formationCounts = <String, int>{};
   final _neighborFamilies = <String, SuggestionNeighbor>{};
@@ -483,19 +533,10 @@ class _Scorer {
   RankedSuggestion score(SuggestionCandidate dance) {
     final reasons = <SuggestionReason>[];
     final notes = <SuggestionReason>[];
-    final inProgram = _programDanceIds.contains(dance.id);
-    if (inProgram) {
-      reasons.add(
-        const SuggestionReason(
-          SuggestionReasonKind.alreadyInProgram,
-          effect: alreadyInProgramEffect,
-        ),
-      );
-    }
     _variety(dance, reasons);
     _formation(dance, reasons);
     _curve(dance, reasons);
-    _venue(dance, reasons, notes, inProgram: inProgram);
+    _venue(dance, reasons, notes);
     reasons.sort((a, b) => b.effect.abs().compareTo(a.effect.abs()));
     final total = reasons.fold<double>(0, (sum, r) => sum + r.effect);
     return RankedSuggestion(
@@ -696,9 +737,8 @@ class _Scorer {
   void _venue(
     SuggestionCandidate dance,
     List<SuggestionReason> into,
-    List<SuggestionReason> notes, {
-    required bool inProgram,
-  }) {
+    List<SuggestionReason> notes,
+  ) {
     const factor = SuggestionFactor.venueRecency;
     if (_settings.venueRecency == SuggestionWeight.off) return;
     if (!request.hasVenue) {
@@ -712,10 +752,9 @@ class _Scorer {
     }
     if (!request.calledHere.containsKey(dance.id)) {
       // [calledHere] leaves this program out, so a dance already in it would
-      // read as never called here: it has its own, stronger reason instead.
-      if (!inProgram) {
-        _add(into, factor, SuggestionReasonKind.neverCalledHere, 0.3);
-      }
+      // read as never called here; such a dance is never scored
+      // ([rankSuggestions]).
+      _add(into, factor, SuggestionReasonKind.neverCalledHere, 0.3);
       return;
     }
     final last = request.calledHere[dance.id];

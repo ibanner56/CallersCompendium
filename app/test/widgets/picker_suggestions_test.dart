@@ -87,9 +87,13 @@ final _context = PickerProgramContext(
 );
 
 class _Harness {
-  _Harness(this.enabled, this.added);
+  _Harness(this.enabled, this.added, this.context);
   final ValueNotifier<bool> enabled;
   final List<String> added;
+
+  /// The program context the picker is given; set it as the builder would
+  /// after an add.
+  final ValueNotifier<PickerProgramContext?> context;
 }
 
 Future<_Harness> _pump(
@@ -109,6 +113,8 @@ Future<_Harness> _pump(
   ));
   addTearDown(settings.dispose);
   final added = <String>[];
+  final contextNotifier = ValueNotifier<PickerProgramContext?>(programContext);
+  addTearDown(contextNotifier.dispose);
   final data = await CollectionData.load(repos);
   await tester.pumpWidget(
     MaterialApp(
@@ -121,14 +127,17 @@ Future<_Harness> _pump(
             notifier: enabledNotifier,
             child: SuggestionSettingsScope(
               notifier: settings,
-              child: CollectionPicker(
-                data: data,
-                dialect: Dialect.larksRobins,
-                enrichment: SearchEnrichment.empty,
-                onAddDance: added.add,
-                programContext: programContext,
-                rankSuggestions: ranker?.call,
-                clock: const _FixedClock(),
+              child: ValueListenableBuilder(
+                valueListenable: contextNotifier,
+                builder: (context, programContext, _) => CollectionPicker(
+                  data: data,
+                  dialect: Dialect.larksRobins,
+                  enrichment: SearchEnrichment.empty,
+                  onAddDance: added.add,
+                  programContext: programContext,
+                  rankSuggestions: ranker?.call,
+                  clock: const _FixedClock(),
+                ),
               ),
             ),
           ),
@@ -137,7 +146,7 @@ Future<_Harness> _pump(
     ),
   );
   await tester.pumpAndSettle();
-  return _Harness(enabledNotifier, added);
+  return _Harness(enabledNotifier, added, contextNotifier);
 }
 
 Future<CompendiumRepositories> _seed() async {
@@ -538,5 +547,51 @@ void main() {
     expect(find.textContaining('Already in this program'), findsOneWidget);
     // Close the picker: the worker stops with it.
     await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('a re-rank that fails after an add drops the earlier Suggested '
+      'order, so the notice tells the truth', (tester) async {
+    final repos = await _seed();
+    final ranker = _SpyRanker();
+    final harness = await _pump(
+      tester,
+      repos,
+      ranker: ranker,
+      programContext: _context,
+    );
+    await _chooseSuggested(tester);
+    expect(_titles(tester), ['Zulu', 'Charlie', 'Bravo', 'Alpha']);
+
+    // "Bravo" is added: the builder passes the longer program, the results
+    // stay the same, and the re-rank fails.
+    ranker.answer = (_) => Future.error(StateError('worker lost'));
+    harness.context.value = PickerProgramContext(
+      programId: 'p1',
+      venue: 'The Grange',
+      venueLabel: 'The Grange',
+      slots: [
+        ..._context.slots!,
+        ProgramSlot(id: 's1', position: 1, danceId: 'b'),
+      ],
+    );
+    await tester.pumpAndSettle();
+    expect(ranker.requests, hasLength(2));
+    expect(_titles(tester), ['Alpha', 'Bravo', 'Charlie', 'Zulu']);
+    expect(_reasonLines, findsNothing);
+    expect(
+      find.byKey(const ValueKey('picker-suggested-failed')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a ranking replaced by a newer one is not a failure', (
+    tester,
+  ) async {
+    final repos = await _seed();
+    final ranker = _SpyRanker()
+      ..answer = (_) => Future.error(const SuggestionRankSuperseded());
+    await _pump(tester, repos, ranker: ranker, programContext: _context);
+    await _chooseSuggested(tester);
+    expect(find.byKey(const ValueKey('picker-suggested-failed')), findsNothing);
   });
 }

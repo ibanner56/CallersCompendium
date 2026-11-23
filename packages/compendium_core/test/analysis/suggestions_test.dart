@@ -567,7 +567,7 @@ void main() {
       );
       expect(order(r), ['other', 'in']);
       final ranked = of(r, 'in');
-      expect(ranked.ranked, isTrue, reason: 'reordered, never filtered');
+      expect(ranked.ranked, isFalse, reason: 'listed last, unscored');
       expect(ranked.headline.first.kind, SuggestionReasonKind.alreadyInProgram);
       expect(ranked.score, lessThan(of(r, 'other').score));
       expect(
@@ -592,6 +592,27 @@ void main() {
       );
       expect(order(r), ['other', 'in']);
     });
+
+    test('comes after the English dances too, and an English one already in '
+        'the program says so', () {
+      final english = dance('english', const [], form: DanceForm.ecd);
+      final englishIn = dance('english-in', const [], form: DanceForm.ecd);
+      final r = rank(
+        program: [inProgram, englishIn],
+        // Plain order: the in-program dances first.
+        candidates: [englishIn, inProgram, english, other],
+      );
+      // Ranked, then English not in the program, then every dance in the
+      // program in the plain order.
+      expect(order(r), ['other', 'english', 'english-in', 'in']);
+      for (final id in ['english-in', 'in']) {
+        expect(of(r, id).reasons.map((x) => x.kind), [
+          SuggestionReasonKind.alreadyInProgram,
+        ], reason: id);
+        expect(of(r, id).ranked, isFalse);
+      }
+      expect(kinds(of(r, 'english')), {SuggestionReasonKind.englishNotCovered});
+    });
   });
 
   test('a candidate carries only what the scorer reads', () {
@@ -613,6 +634,23 @@ void main() {
     expect(c.formation.shape, FormationShape.becketCw);
     expect(c.difficultyLevelId, 'intermediate');
     expect(c.figures.single.move, 'swing');
+  });
+
+  test('a candidate\'s revision changes with what the scorer reads, even '
+      'when updatedAt does not', () {
+    final before = dance('d', [fig('swing', 16), fig('circle', 16)]);
+    final same = before;
+    // Edited by a path that stamps the same second.
+    final edited = dance('d', [fig('circle', 16), fig('swing', 16)]);
+    final relevelled = dance('d', [
+      fig('swing', 16),
+      fig('circle', 16),
+    ], level: 'advanced');
+    int revision(Dance d) => SuggestionCandidate.fromDance(d).revision;
+    expect(before.updatedAt, edited.updatedAt);
+    expect(revision(same), revision(before));
+    expect(revision(edited), isNot(revision(before)));
+    expect(revision(relevelled), isNot(revision(before)));
   });
 
   test('the request can be sent to another isolate', () async {

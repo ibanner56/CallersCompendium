@@ -716,11 +716,20 @@ class _CollectionPickerState extends State<CollectionPicker> {
         _rankPending = false;
         _rankFailed = false;
       });
+    } on SuggestionRankSuperseded {
+      // A newer ranking replaced this one and reports for both. Not a
+      // failure; only if none is running does the spinner stop.
+      if (mounted && seq == _rankSeq) setState(() => _rankPending = false);
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'collection_picker._rank');
       if (!mounted || seq != _rankSeq) return;
-      // The plain order stays, and says so: ranking only ever reorders.
+      // Back to the plain order, and say so. An earlier ranking of these same
+      // results (before a dance was added) is dropped too: it would no longer
+      // be the order the notice calls "usual".
       setState(() {
+        _ranking = null;
+        _rankById = const {};
+        _rankedFor = null;
         _rankPending = false;
         _rankFailed = true;
       });

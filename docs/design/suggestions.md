@@ -35,16 +35,42 @@ off by default. The user-facing description is in
   calling isolate, and copying 20,000 dances' figures in one message held the
   UI thread for about 0.5 s (measured with `Isolate.run`, the first
   implementation). So the worker keeps every candidate it has been sent, by
-  id and revision (the dance's `updatedAt`); it is sent only candidates it
-  does not hold at that revision, 250 to a message with a turn of the event
-  loop between messages, and then the request with the candidates as ids. A
-  re-rank after a dance is added sends only the program and the ids. Until the
-  ranking comes back the list shows in the plain order, with the header's
-  spinner, and every row still adds on tap. A newer search, a context change
-  or leaving Suggested drops a ranking still in flight. A failed ranking is
-  logged and leaves the plain order, with a short notice above the list
-  ("Couldn't rank these dances, so they're in their usual order.") until the
-  next ranking succeeds or another sort is chosen.
+  id and revision; it is sent only candidates it does not hold at that
+  revision, 250 to a message with a turn of the event loop between messages,
+  and then the request with the candidates as ids. A re-rank after a dance is
+  added sends only the program and the ids.
+  - **Revision.** `SuggestionCandidate.fromDance` hashes `updatedAt`, the
+    form, formation, level and phrase structure, and the identity of the
+    dance's figure list. Some bulk paths stamp `updatedAt` at whole seconds,
+    so a stamp alone can stay the same across an edit; a `Dance` is immutable,
+    so changed figures are always a new list. Hashing every figure's content
+    instead cost about 40 ms per rank of 20,000 dances on the calling isolate;
+    the identity costs nothing, and its price is that the same figures loaded
+    again (a reload of the collection) are sent again.
+  - **Only the newest call counts.** Each `rank` call supersedes every
+    earlier one. An earlier call still sending chunks checks before each
+    chunk, with no wait between the check and the send, and stops once a newer
+    call has started, so it cannot send a candidate over the revision the newer
+    call sent. The worker does not rank as each request arrives: it ranks the
+    newest request waiting once the messages already queued are in, and
+    answers the older ones as superseded. A superseded call fails with
+    `SuggestionRankSuperseded`, which the picker ignores (the newer call
+    reports). A request already being ranked when a newer one arrives still
+    finishes, and the picker drops its result.
+  - **Failure.** If the worker isolate fails or exits, every waiting call fails
+    and the next call starts a new worker; a failed spawn closes its port. A
+    worker disposed while still starting is stopped as soon as it exists.
+  - **Known limit.** The worker keeps every candidate it has been sent for the
+    life of the picker; nothing is evicted. A picker that is open for a long
+    time over many different searches holds every dance it has ranked.
+
+  Until the ranking comes back the list shows in the plain order, with the
+  header's spinner, and every row still adds on tap. A newer search, a
+  context change or leaving Suggested drops a ranking still in flight. A
+  failed ranking is logged and puts the list back in the plain order,
+  dropping any earlier Suggested order of the same results, with a short
+  notice above the list ("Couldn't rank these dances, so they're in their
+  usual order.") until the next ranking succeeds or another sort is chosen.
 
 ## Factors
 
@@ -89,14 +115,17 @@ results. The UI shows no numbers.
   nothing typed) reads "a saved venue", the builder's own fallback.
 
 **Already in this program.** A candidate the program already holds (in any
-slot, before or after the position) is ranked, never removed, with the reason
-"Already in this program" and a fixed effect of −20, outside the factors and
-their weights. Every factor at A lot can move a dance by at most +5.4 or −12 in
-all, so such a dance sorts below every dance not in the program. It gets no
-"Never called at …" reason: the venue history leaves the program being built
-out (N1-6), so without this it would read as never called there. *Rejected:*
-leaving it unmarked, which ranked a dance already called tonight near the top
-as never called at the venue.
+slot, before or after the position) is kept, never removed, but not scored.
+The order is: the ranked dances, best first; then the English dances not in
+the program; then every dance already in the program, of any form, in the
+plain order. Each of those carries the one reason "Already in this program"
+(effect −20, `alreadyInProgramEffect`, so it reads as lowering the dance;
+the order does not depend on the number). Not scoring them also means none
+reads "Never called at …": the venue history leaves the program being built
+out (N1-6), so it would. *Rejected:* leaving them unmarked, which ranked a
+dance already called tonight near the top as never called at the venue; and
+scoring them with a large penalty, which still placed them above English
+dances not in the program.
 
 The shipped defaults are: Variety on the matrix **A lot**, Formation balance
 **A little**, Difficulty curve **A little** with *Build up, then ease off*, and
@@ -170,8 +199,11 @@ development container:
 
 | | Build the request | Longest block | Total |
 | --- | --- | --- | --- |
-| First rank (a new worker, every candidate sent) | about 5 ms | about 27 ms | about 0.7 s |
-| Re-rank after an add (candidates already held) | about 3 ms | about 7 ms | about 0.45 s |
+| First rank (a new worker, every candidate sent) | about 5 ms | about 23 ms | about 0.63 s |
+| Re-rank after an add (candidates already held) | about 5 ms | about 15 ms | about 0.41 s |
+
+"Build the request" includes each candidate's revision (see "Revision"
+above).
 
 The longest block is mostly receiving the ranking back (20,000 results with
 their reasons), not sending. Sending the same request in one `Isolate.run`
