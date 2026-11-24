@@ -284,8 +284,9 @@ enum WarningKind {
         'progression overtook it)',
   ),
 
-  /// The dance ended with every dancer in the row the oracle expects but some
-  /// up to one column to the side of it, so it compiled without matching
+  /// The dance ended with every dancer in the row the oracle expects, with the
+  /// expected number and in the row's expected order, but some up to one
+  /// column to the side of it, so it compiled without matching
   /// cell for cell (user-ruled 2026-11-24: a dance that ends in a wave rather
   /// than on the side lines still passes). Raised by the engine on the
   /// comparison, never by a figure.

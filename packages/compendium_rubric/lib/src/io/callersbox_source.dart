@@ -360,14 +360,23 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
   //
   // A crash is never retried. The compiler throwing is a defect here, and a
   // second placement that happens to land would bury it.
+  //
+  // A near miss (compiled one column off, [WarningKind.endedColumnOffset]) is
+  // retried too, and gives way to a retry that matches exactly: an exact
+  // match on the record's own alternative is the better reading
+  // (agent's call).
   final positional = bridgeCoreDance(dance);
   var attempt = _attempt(positional);
-  if (attempt.outcome != DanceOutcome.compiled &&
+  final nearMiss = _isNearMiss(attempt);
+  if ((attempt.outcome != DanceOutcome.compiled || nearMiss) &&
       attempt.outcome != DanceOutcome.crashed) {
     final fallback = bridgeCoreDance(dance, useNextNeighborsFallback: true);
     if (retryPlacesDifferently(positional, fallback)) {
       final retry = _attempt(fallback);
-      if (retry.outcome == DanceOutcome.compiled) attempt = retry;
+      if (retry.outcome == DanceOutcome.compiled &&
+          !(nearMiss && _isNearMiss(retry))) {
+        attempt = retry;
+      }
     }
   }
   return finish(
@@ -387,6 +396,11 @@ typedef _Attempt = ({
   int? assumedAt,
   bool deferred,
 });
+
+/// Whether [attempt] compiled only as a near miss, one column off.
+bool _isNearMiss(_Attempt attempt) =>
+    attempt.outcome == DanceOutcome.compiled &&
+    attempt.warnings.any((w) => w.kind == WarningKind.endedColumnOffset);
 
 _Attempt _attempt(BridgedDance bridged) {
   _Attempt done(

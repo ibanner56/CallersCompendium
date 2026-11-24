@@ -1,7 +1,9 @@
 import 'package:meta/meta.dart';
 
+import '../domain/dancer.dart';
 import '../domain/formation.dart';
 import '../domain/formation_type.dart';
+import '../domain/position.dart';
 import '../domain/starting_formations.dart';
 import '../ops/diagnostics.dart';
 import '../ops/operation.dart';
@@ -186,23 +188,51 @@ CompileResult compile(Dance dance) {
   if (endsWithinOneColumn(settled, expected)) {
     return Compiled(
       state,
-      warnings: [...warnings, const Warning(WarningKind.endedColumnOffset)],
+      warnings: [
+        ...warnings,
+        Warning(
+          WarningKind.endedColumnOffset,
+          detail:
+              'one column off: '
+              '${[for (final MapEntry(:key, :value) in settled.dancers.entries)
+                if (value.position.col != expected.stateOf(key).position.col) '$key'].join(', ')}',
+        ),
+      ],
     );
   }
   return Mismatch(actual: state, expected: expected, warnings: warnings);
 }
 
-/// Whether [actual] holds exactly [expected]'s dancers, each in the same row
-/// as expected and at most one column away from it: the near miss [compile]
-/// accepts, with [WarningKind.endedColumnOffset].
+/// Whether [actual] holds exactly [expected]'s dancers, each with the
+/// expected couple number, in the expected row and at most one column away
+/// from their expected place, and with every row in the expected order from
+/// west to east: the near miss [compile] accepts, with
+/// [WarningKind.endedColumnOffset].
+///
+/// Only the column is relaxed. A wrong number (a couple at an end whose
+/// change-over never ran) or two dancers trading places in a row is still a
+/// mismatch.
 bool endsWithinOneColumn(Formation actual, Formation expected) {
   if (actual.rowCount != expected.rowCount) return false;
   if (actual.dancers.length != expected.dancers.length) return false;
   for (final MapEntry(key: id, value: state) in actual.dancers.entries) {
     final want = expected.dancers[id];
     if (want == null) return false;
+    if (want.number != state.number) return false;
     if (want.position.row != state.position.row) return false;
     if ((want.position.col - state.position.col).abs() > 1) return false;
+  }
+  List<DancerId> order(Formation formation, int row) => [
+    for (var col = 0; col < kColumnCount; col++)
+      ?formation.dancerAt(Position(row, col)),
+  ];
+  for (var row = 0; row < actual.rowCount; row++) {
+    final got = order(actual, row);
+    final want = order(expected, row);
+    if (got.length != want.length) return false;
+    for (var i = 0; i < got.length; i++) {
+      if (got[i] != want[i]) return false;
+    }
   }
   return true;
 }

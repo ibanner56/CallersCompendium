@@ -28,7 +28,7 @@ claims they would?*
 JSON record ──parse──▶ Dance ──compile──▶ Compiled | Mismatch | CompileError
                          │                    ▲
                          │                    │
-                    figures[]            actual == expected
+                    figures[]       actual == expected (or ≤1 column off)
                          │                    │
                     fold over ──────▶ actual  │
                                               │
@@ -169,7 +169,7 @@ behind §3.5's equality rule.
 5. oracle          <- expected = dance.success.expected(input)      // from the INPUT
 6. compare         <- normalizeWaveOffsets(state) == expected
                         ? Compiled(state)      // note: the RAW state, offsets and all
-                        : endsWithinOneColumn(settled, expected)   // right rows, ≤1 column off
+                        : endsWithinOneColumn(settled, expected)   // right rows, numbers and order, ≤1 column off
                           ? Compiled(state) + endedColumnOffset warning
                           : Mismatch(actual: state, expected: expected)
 ```
@@ -918,7 +918,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,570 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,572 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,
