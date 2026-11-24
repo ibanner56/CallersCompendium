@@ -13772,7 +13772,7 @@
   },
   "savedSearchMissingUserFigure": "Eine eigene Figur, die gelöscht wurde",
   "@savedSearchMissingUserFigure": {
-    "x-sourceSha256": "39aa87b05c98c1726c9e63ba7b47b6519a642756fb489f2686a28df332206eab"
+    "x-sourceSha256": "490f36ab8f9347f3caa810e965d7f5ce268316d5386ca183f44169e19134c4be"
   },
   "savedSearchMissingInvalid": "Etwas, das diese Version nicht lesen kann",
   "@savedSearchMissingInvalid": {

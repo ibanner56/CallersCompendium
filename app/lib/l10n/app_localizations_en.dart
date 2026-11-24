@@ -14299,7 +14299,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get savedSearchMissingUserFigure =>
-      'A figure of your own that was deleted';
+      'One of your figures, which was deleted';
 
   @override
   String get savedSearchMissingInvalid => 'Something this version can\'t read';

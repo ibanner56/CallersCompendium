@@ -19342,7 +19342,7 @@
   "@savedSearchMissingFigureDetail": {
     "description": "Line in the notice for a loaded saved search: an Advanced figure row has a detail this version cannot show or clear."
   },
-  "savedSearchMissingUserFigure": "A figure of your own that was deleted",
+  "savedSearchMissingUserFigure": "One of your figures, which was deleted",
   "@savedSearchMissingUserFigure": {
     "description": "Line in the notice for a loaded saved search: an Advanced row uses one of your own figures that was deleted."
   },

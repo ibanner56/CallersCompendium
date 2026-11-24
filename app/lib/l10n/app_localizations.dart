@@ -20900,7 +20900,7 @@ abstract class AppLocalizations {
   /// Line in the notice for a loaded saved search: an Advanced row uses one of your own figures that was deleted.
   ///
   /// In en, this message translates to:
-  /// **'A figure of your own that was deleted'**
+  /// **'One of your figures, which was deleted'**
   String get savedSearchMissingUserFigure;
 
   /// Line in the notice for a loaded saved search that could not be read whole; not expected.
