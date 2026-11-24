@@ -52,15 +52,17 @@ class _HostState extends State<_Host> {
             timing: widget.structure == null
                 ? BarTiming.fixed(widget.beatsPerBar)
                 : BarTiming.byPhrase(widget.structure!),
-            child: FigureListEditor(
-              drafts: widget.drafts,
-              taxonomy: shippedTaxonomies.forForm(DanceForm.ecd),
-              phraseStructure:
-                  widget.structure ??
-                  PhraseStructure.parse('4*8*${widget.beatsPerBar}'),
-              onChanged: () => setState(() {}),
-              onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
-              onDelete: (d) => setState(() => widget.drafts.remove(d)),
+            child: SequenceSpanScope(
+              child: FigureListEditor(
+                drafts: widget.drafts,
+                taxonomy: shippedTaxonomies.forForm(DanceForm.ecd),
+                phraseStructure:
+                    widget.structure ??
+                    PhraseStructure.parse('4*8*${widget.beatsPerBar}'),
+                onChanged: () => setState(() {}),
+                onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
+                onDelete: (d) => setState(() => widget.drafts.remove(d)),
+              ),
             ),
           ),
         ),
@@ -183,7 +185,7 @@ void main() {
     final built = drafts.single.toFigure()!;
     expect(built.beats, 12);
     expect(stepStatesTiming(built.subFigures[1]), isFalse);
-    expect(ecdSequenceSpanIssue(built, DanceForm.ecd), isNull);
+    expect(sequenceSpanIssue(built, DanceForm.ecd), isNull);
   });
 
   testWidgets('steps that do not add up to the span are flagged', (

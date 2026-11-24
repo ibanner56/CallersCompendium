@@ -5024,6 +5024,22 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get danceEditorSequenceSpanBeatsLabel => '全体の拍数';
+
+  @override
+  String get danceEditorSequenceSpanBeatsEmptyHelp =>
+      '空欄にするとステップの拍数を合計します。「forward again and swing (8)」のように、シーケンス全体の拍数を入力することもできます。';
+
+  @override
+  String get danceEditorSequenceSpanBeatsHelp =>
+      'ステップはこの拍数を共有し、各ステップは自分の拍数を空欄にできます。';
+
+  @override
+  String danceEditorSequenceSpanBeatsNoRoom(String steps, String span) {
+    return '拍数を持つステップがシーケンスの$spanのうち$stepsを使い、残りのステップの分がありません。';
+  }
+
+  @override
   String danceEditorSequenceOverPhraseTimed(String length, String limit) {
     return 'このシーケンスは$lengthで、始まるフレーズ（$limit）より長くなっています。';
   }

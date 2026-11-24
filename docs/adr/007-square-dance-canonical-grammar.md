@@ -624,8 +624,8 @@ The contra model's containers apply, with one proposed change to `sequence`
   promenades, the second stands back to back while the first promenades
   single file, the first goes single file while the second passes through.
 - **`sequence`** for a short run that must stand as one side of a
-  `meanwhile`, or, if the sequence span is opened to squares, for steps that
-  share one stated count (Q10).
+  `meanwhile`, or for steps that share one stated count, now that the
+  sequence span is open to squares (Q10).
 - **`modifier`** where a source describes one action by another.
 
 Their limits (2–6 children for `meanwhile` and `modifier`, at most 4 in a
@@ -1216,6 +1216,13 @@ built (#2269). Today that span is ECD-only, so squares need it opened to
 their form. The earlier recommendation, the next call with a note, is the
 fallback if the span stays ECD-only.* *Answered by the maintainer (23
 November 2026): yes, a `sequence`, with the span opened to squares.*
+*Implemented 24 November 2026: a square's sequence takes **Beats for all**
+in beats, as an English one takes **Bars for all** in bars, and its steps
+may leave their beats empty; the span check (`sequenceSpanIssue`) and the
+figure index's share of the span (`formHasSequenceSpan`) cover squares.
+A dance changed between English and square keeps its spans, and only a
+change to contra drops them (this ADR author's call, as both forms now have
+spans).*
 
 **Q11. Gypsy timing.** Should a gypsy (shoulder round) default to 8 beats,
 like the other phrase-filling calls, or to 6? No held square states it.
@@ -1422,9 +1429,9 @@ B2  sq_promenade         who=everyone  variant=couples  destination=role1Place  
   with them, so all eight dance the circle and both lines form at once
   (the maintainer's correction, 22 November 2026, §1.1). The source gives one
   count for the whole line, so it is a `sequence` with that count and
-  untimed steps, as Q10 recommends; until that span is open to squares,
-  the fallback is `sq_circle_to_a_line who=everyone` with "heads lead to
-  the right" in its note. "Break to a line" is the alias that reads as
+  untimed steps, as Q10 recommends; the span is open to squares (Q10).
+  Before it was, the fallback was `sq_circle_to_a_line who=everyone` with
+  "heads lead to the right" in its note. "Break to a line" is the alias that reads as
   `circle_to_a_line`, and the A1 circle's "forward" is kept in its note.
 - The phrases total 16 each, so the per-phrase check (§5.3) gives no
   warning.

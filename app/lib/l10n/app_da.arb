@@ -5296,6 +5296,22 @@
   "@danceEditorSequenceSpanNoRoom": {
     "x-sourceSha256": "197cb3c426f6d770e42563bec39b40266f6eb1dbb4b22ea913e9c467d50088ce"
   },
+  "danceEditorSequenceSpanBeatsLabel": "Slag i alt",
+  "@danceEditorSequenceSpanBeatsLabel": {
+    "x-sourceSha256": "779524d88eda2aa98f7b96c1c72a09768a4841f0c5186f465441f5c205241406"
+  },
+  "danceEditorSequenceSpanBeatsEmptyHelp": "Lad feltet være tomt for at lægge trinnenes slag sammen, eller angiv slagene for hele sekvensen, som i “forward again and swing (8)”.",
+  "@danceEditorSequenceSpanBeatsEmptyHelp": {
+    "x-sourceSha256": "ac8a9f438a7c5f551494c95fe550846907047df4f942e4c6b2c761168e93022c"
+  },
+  "danceEditorSequenceSpanBeatsHelp": "Trinnene deler disse slag, og hvert trin kan lade sine egne slag være tomme.",
+  "@danceEditorSequenceSpanBeatsHelp": {
+    "x-sourceSha256": "d0558ee9cc430b76676cd6fe9ffb070bc908a0f2cdb81a609eac78561b14bcaf"
+  },
+  "danceEditorSequenceSpanBeatsNoRoom": "Trinnene med egne slag varer {steps} af sekvensens {span}, så der intet er tilbage til resten.",
+  "@danceEditorSequenceSpanBeatsNoRoom": {
+    "x-sourceSha256": "4b5d5fc7bbaec65ffc1a28a66d0b7acc7757d9e30f6bc758c51f9f8b32b929a2"
+  },
   "danceEditorSequenceOverPhraseTimed": "Denne sekvens varer {length}, længere end frasen, den starter i ({limit}).",
   "@danceEditorSequenceOverPhraseTimed": {
     "x-sourceSha256": "9934038b8b22b7528851ff87a633a2e3ae83f580553450b4e1c7d5f8f0381a5a"

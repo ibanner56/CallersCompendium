@@ -8018,7 +8018,7 @@ abstract class AppLocalizations {
   /// **'Bars'**
   String get danceEditorBarsLabel;
 
-  /// Shown for a step of a sequence that has no bars of its own: the sequence as a whole states its bars, as in 'A, B and C in bars 1–4'.
+  /// Shown for a step of a sequence that has no timing of its own: the sequence as a whole states its bars or beats, as in 'A, B and C in bars 1–4' in an English country dance or 'forward again and swing (8)' in a square dance.
   ///
   /// In en, this message translates to:
   /// **'No timing of its own'**
@@ -8054,7 +8054,7 @@ abstract class AppLocalizations {
   /// **'The steps share these bars, and each may leave its own bars empty.'**
   String get danceEditorSequenceSpanHelp;
 
-  /// Warning in a sequence of an English country dance whose every step has its own bars and they don't add up to the sequence's. {steps} and {span} are lengths such as '4 bars'.
+  /// Warning in a sequence of an English country dance or a square dance whose every step has its own count and they don't add up to the sequence's. {steps} and {span} are lengths such as '4 bars' or '8 beats'.
   ///
   /// In en, this message translates to:
   /// **'The steps take {steps}, but the sequence takes {span}.'**
@@ -8066,7 +8066,31 @@ abstract class AppLocalizations {
   /// **'The steps with bars of their own take {steps} of the sequence\'s {span}, leaving none for the rest.'**
   String danceEditorSequenceSpanNoRoom(String steps, String span);
 
-  /// Warning in a sequence of an English country dance that runs longer than the phrase it starts in. {length} and {limit} are lengths such as '10 bars'; {limit} is the length of that phrase.
+  /// Label of the field giving the beats a whole sequence takes in a square dance, as in 'forward again and swing the opposite (8)', where one count covers two calls.
+  ///
+  /// In en, this message translates to:
+  /// **'Beats for all'**
+  String get danceEditorSequenceSpanBeatsLabel;
+
+  /// Help under the empty 'Beats for all' field of a sequence in a square dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty to add up the steps\' beats, or give the beats the whole sequence takes, as in \"forward again and swing (8)\".'**
+  String get danceEditorSequenceSpanBeatsEmptyHelp;
+
+  /// Help under the filled 'Beats for all' field of a sequence in a square dance.
+  ///
+  /// In en, this message translates to:
+  /// **'The steps share these beats, and each may leave its own beats empty.'**
+  String get danceEditorSequenceSpanBeatsHelp;
+
+  /// Warning in a sequence of a square dance whose timed steps already fill its beats, leaving none for its untimed steps. {steps} and {span} are lengths such as '8 beats'.
+  ///
+  /// In en, this message translates to:
+  /// **'The steps with beats of their own take {steps} of the sequence\'s {span}, leaving none for the rest.'**
+  String danceEditorSequenceSpanBeatsNoRoom(String steps, String span);
+
+  /// Warning in a sequence of an English country dance or a square dance that runs longer than the phrase it starts in. {length} and {limit} are lengths such as '10 bars' or '12 beats'; {limit} is the length of that phrase.
   ///
   /// In en, this message translates to:
   /// **'This sequence is {length}, longer than its phrase ({limit}).'**
@@ -13990,7 +14014,7 @@ abstract class AppLocalizations {
   /// **'A sequence in figure {position} is {actual} beats, longer than its phrase ({limit} beats).'**
   String validationSequenceExceedsPhrase(int position, int actual, int limit);
 
-  /// Editor warning for an English country dance's sequence whose steps each have a count that doesn't add up to the sequence's own. {position} is the figure holding it.
+  /// Editor warning for a sequence, in an English country dance or a square dance, whose steps each have a count that doesn't add up to the sequence's own. {position} is the figure holding it.
   ///
   /// In en, this message translates to:
   /// **'The steps of the sequence in figure {position} take {actual} beats; the sequence takes {expected}.'**
@@ -14032,7 +14056,7 @@ abstract class AppLocalizations {
     String expected,
   );
 
-  /// Editor warning for an English country dance's sequence whose timed steps fill its count, leaving none for its untimed steps. {position} is the figure holding it.
+  /// Editor warning for a sequence, in an English country dance or a square dance, whose timed steps fill its count, leaving none for its untimed steps. {position} is the figure holding it.
   ///
   /// In en, this message translates to:
   /// **'The timed steps of the sequence in figure {position} take {actual} beats, leaving none of its {expected} for the rest.'**
