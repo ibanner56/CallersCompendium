@@ -249,6 +249,7 @@ class _SavedSearchMenuState extends State<SavedSearchMenu> {
       );
       _snack(l10n.savedSearchSavedSnack(saved.name));
     } on SavedSearchLimitReached {
+      // diagnostics: silent — an expected refusal, told to the user in full.
       await _tell(
         l10n.savedSearchLimitTitle,
         l10n.savedSearchLimitBody(savedSearchMaxCount),
@@ -348,6 +349,7 @@ class _SavedSearchMenuState extends State<SavedSearchMenu> {
         onUndo: () => repos.settings.set(key, before),
       );
     } on SavedSearchInUse catch (inUse) {
+      // diagnostics: silent — an expected refusal; the dialog names each use.
       if (!mounted) return;
       await showDialog<void>(
         context: context,
