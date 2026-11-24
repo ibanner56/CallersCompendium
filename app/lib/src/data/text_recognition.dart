@@ -82,8 +82,9 @@ abstract interface class TextRecognitionService {
   Future<String> recognize(Uint8List bytes, {required List<String> languages});
 }
 
-/// The platform channel to the native recognizer: `TextRecognitionPlugin.swift`
-/// on iOS and `TextRecognitionBridge.swift` on macOS.
+/// The platform channel to the native recognizer: app/ios/Runner/
+/// TextRecognitionPlugin.swift on iOS and app/macos/Runner/
+/// TextRecognitionBridge.swift on macOS.
 class ChannelTextRecognitionService implements TextRecognitionService {
   ChannelTextRecognitionService({MethodChannel? channel})
     : _channel = channel ?? const MethodChannel(channelName);
@@ -291,7 +292,7 @@ Future<PickedRecognitionImage?> pickRecognitionImage({
 }
 
 /// Deletes [path] when it lies in an `…-Inbox` folder directly inside
-/// [temporaryDirectory] (on iOS, `NSTemporaryDirectory()`, where the
+/// [temporaryDirectory] (on iOS, the app's tmp folder, where the
 /// document picker's import mode puts its copies).
 @visibleForTesting
 Future<void> deletePickerCopy(
