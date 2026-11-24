@@ -201,7 +201,6 @@ void main() {
       expect(const Promenade().hands4Contribution, 0);
       expect(const Promenade().dancerSets, [WhoSet.partners]);
     });
-
   });
 
   group('Promenade across in a longer set', () {
