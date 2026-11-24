@@ -423,7 +423,8 @@ URLs. (Every settings key is classified in
   caller's saved search an unfilled **placeholder** is to be filled from
   (`isPlaceholder`); the slot's `text` is the placeholder's label. It is set
   only by a program template's slot rule, and the constructor drops it on any
-  slot with a `danceId` or when blank, so filling a placeholder clears it. A
+  slot with a `danceId`, on a break (`isBreak`'s text), or when blank, so
+  filling a placeholder clears it and a placeholder never becomes a break. A
   placeholder whose search is gone, cannot be read, or names something deleted
   stays a placeholder: it keeps the id, shows its label and offers Fill, which
   then opens the picker unfiltered with a notice saying which of the three it

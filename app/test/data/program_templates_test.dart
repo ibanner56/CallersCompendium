@@ -535,6 +535,40 @@ void main() {
       );
     });
 
+    test('a rule labelled Break is refused on read and written as the break '
+        'it would read as', () {
+      String value(String label) => jsonEncode({
+        'version': 2,
+        'name': 'Contra night',
+        'slots': [
+          {'savedSearchId': 'search-1', 'label': label},
+        ],
+      });
+      expect(tryDecodeProgramTemplate('a', value('Waltz opener')), isNotNull);
+      for (final label in ['Break', ' break ', 'BREAK']) {
+        expect(
+          tryDecodeProgramTemplate('a', value(label)),
+          isNull,
+          reason: label,
+        );
+      }
+      expect(
+        encodeProgramTemplate(
+          const ProgramTemplate(
+            id: 'contra',
+            name: 'Contra night',
+            entries: [
+              ProgramTemplateEntry.rule(
+                savedSearchId: 'search-1',
+                label: 'Break',
+              ),
+            ],
+          ),
+        ),
+        '{"version":1,"name":"Contra night","slots":[{"text":"Break"}]}',
+      );
+    });
+
     test('a rule is written as its saved search and label, in a v2 value, '
         'and reads back', () {
       const template = ProgramTemplate(

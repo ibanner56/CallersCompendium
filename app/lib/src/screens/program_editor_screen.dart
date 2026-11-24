@@ -224,9 +224,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// is when a trashed dance can have been restored, purged or newly trashed.
   final Set<String> _deletedSlotLookups = {};
 
-  /// Placeholder slots (by id) whose **Fill** is reading its saved search or
-  /// showing its sheet (#2338), so a second tap opens no second sheet.
-  final Set<String> _fillsInFlight = {};
+  /// Whether a **Fill** or **Replace…** dance picker is opening or open
+  /// (#2338): one at a time across the whole program, so a second tap, on
+  /// this slot or another, opens no second sheet.
+  bool _dancePickerBusy = false;
   int _deletedSlotLookupGeneration = 0;
   late DanceReimportCoordinator _reimport;
   late final TabController _tabController;
@@ -4690,7 +4691,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// With [fill] (#2338) it is **Fill**'s sheet: titled with the placeholder's
   /// label, and opening with the placeholder's saved search in its panels or,
   /// when that cannot be used whole, unfiltered under a notice saying why.
-  Future<String?> _pickReplacementDance(
+  Future<String?> _pickReplacementDance(ProgramSlot slot) async {
+    if (_dancePickerBusy) return null;
+    _dancePickerBusy = true;
+    try {
+      return await _showDancePickerSheet(slot);
+    } finally {
+      _dancePickerBusy = false;
+    }
+  }
+
+  /// The sheet behind [_pickReplacementDance] and [_fillPlaceholder]; callers
+  /// hold [_dancePickerBusy] around it.
+  Future<String?> _showDancePickerSheet(
     ProgramSlot slot, {
     PlaceholderFillStart? fill,
   }) async {
@@ -4834,9 +4847,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (data == null || index < 0 || index >= _slots.length) return;
     final slot = _slots[index];
     if (!slot.isPlaceholder) return;
-    // One Fill per slot: the saved search is read before the sheet opens, so
-    // a quick second tap would otherwise open a second sheet.
-    if (!_fillsInFlight.add(slot.id)) return;
+    // One picker at a time: the saved search is read before the sheet opens,
+    // so a quick second tap would otherwise open a second sheet.
+    if (_dancePickerBusy) return;
+    _dancePickerBusy = true;
     final String? danceId;
     try {
       final fill = await preparePlaceholderFill(
@@ -4848,9 +4862,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         programId: _existing?.id ?? widget.programId,
       );
       if (fill == null || !mounted) return;
-      danceId = await _pickReplacementDance(slot, fill: fill);
+      danceId = await _showDancePickerSheet(slot, fill: fill);
     } finally {
-      _fillsInFlight.remove(slot.id);
+      _dancePickerBusy = false;
     }
     if (danceId == null || !mounted) return;
     // Find the slot again rather than trust [index], and fill it only while it
@@ -4858,21 +4872,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     // meanwhile (an edit, or a sync merge), the pick is dropped.
     final at = _slots.indexWhere((s) => s.id == slot.id);
     if (at < 0) return;
-    final current = _slots[at];
-    if (!current.isPlaceholder || current.danceId != null) return;
-    _updateSlot(
-      at,
-      ProgramSlot(
-        id: current.id,
-        position: current.position,
-        danceId: danceId,
-        isAlt: current.isAlt,
-        guestCaller: current.guestCaller,
-        walkthroughMinutes: current.walkthroughMinutes,
-        danceMinutes: current.danceMinutes,
-        performedAt: current.performedAt,
-      ),
-    );
+    final filled = filledPlaceholderSlot(_slots[at], danceId);
+    if (filled == null) return;
+    _updateSlot(at, filled);
     final l10n = AppLocalizations.of(context);
     SemanticsService.sendAnnouncement(
       View.of(context),

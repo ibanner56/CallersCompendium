@@ -619,6 +619,150 @@ void main() {
       ]);
     });
 
+    testWidgets('Edit with no saved search left keeps the edit form: the label '
+        'can change, no search is chosen, and a note says why', (tester) async {
+      final repos = openTestRepositories();
+      final template = ProgramTemplate(
+        id: 'a',
+        name: 'Family',
+        entries: [
+          ProgramTemplateEntry.rule(
+            savedSearchId: 'deleted-search',
+            label: 'Easy family opener',
+          ),
+        ],
+      );
+      await _seed(repos, [template]);
+      await _pump(
+        tester,
+        repos,
+        ProgramTemplateEditorScreen(template: template),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-rule-edit-0')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('program-template-rule-no-searches')),
+        findsNothing,
+      );
+      expect(find.text('Edit slot rule'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('program-template-rule-no-searches-note')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('program-template-rule-search')),
+        findsNothing,
+      );
+      final label = find.byKey(const ValueKey('program-template-rule-label'));
+      expect(
+        tester.widget<TextField>(label).controller!.text,
+        'Easy family opener',
+      );
+      await tester.enterText(label, 'Something else');
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.byKey(const ValueKey('program-template-rule-save')),
+            )
+            .onPressed,
+        isNull,
+      );
+    });
+
+    testWidgets('Edit of a rule whose saved search is gone starts with no '
+        'search chosen, and keeps the rule in its place among the others', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final family = await saveSearch(repos, 'Family dances');
+      final template = ProgramTemplate(
+        id: 'a',
+        name: 'Family',
+        entries: [
+          const ProgramTemplateEntry(text: 'Waltz'),
+          ProgramTemplateEntry.rule(
+            savedSearchId: 'deleted-search',
+            label: 'Easy family opener',
+          ),
+          const ProgramTemplateEntry(text: Program.breakSlotText),
+          const ProgramTemplateEntry(text: 'Last waltz'),
+        ],
+      );
+      await _seed(repos, [template]);
+      await _pump(
+        tester,
+        repos,
+        ProgramTemplateEditorScreen(template: template),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-rule-edit-1')),
+      );
+      await tester.pumpAndSettle();
+
+      final dropdown = find.byKey(
+        const ValueKey('program-template-rule-search'),
+      );
+      expect(dropdown, findsOneWidget);
+      expect(
+        find.descendant(of: dropdown, matching: find.text('Family dances')),
+        findsNothing,
+      );
+      final save = find.byKey(const ValueKey('program-template-rule-save'));
+      expect(tester.widget<FilledButton>(save).onPressed, isNull);
+
+      await tester.tap(dropdown);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(ValueKey('program-template-rule-search-${family.id}')).last,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+
+      expect((await _stored(repos)).byId('a')!.entries, [
+        const ProgramTemplateEntry(text: 'Waltz'),
+        ProgramTemplateEntry.rule(
+          savedSearchId: family.id,
+          label: 'Easy family opener',
+        ),
+        const ProgramTemplateEntry(text: Program.breakSlotText),
+        const ProgramTemplateEntry(text: 'Last waltz'),
+      ]);
+    });
+
+    testWidgets('two quick taps on Edit open one dialog', (tester) async {
+      final repos = openTestRepositories();
+      final family = await saveSearch(repos, 'Family dances');
+      final template = ProgramTemplate(
+        id: 'a',
+        name: 'Family',
+        entries: [
+          ProgramTemplateEntry.rule(
+            savedSearchId: family.id,
+            label: 'Easy family opener',
+          ),
+        ],
+      );
+      await _seed(repos, [template]);
+      await _pump(
+        tester,
+        repos,
+        ProgramTemplateEditorScreen(template: template),
+      );
+      final edit = find.byKey(const ValueKey('program-template-rule-edit-0'));
+      await tester.tap(edit);
+      await tester.tap(edit);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('program-template-rule-dialog')),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('a rule cannot be labelled Break, in any case: the field says '
         'why and Save stays off', (tester) async {
       final repos = openTestRepositories();

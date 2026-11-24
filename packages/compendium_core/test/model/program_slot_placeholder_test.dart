@@ -57,6 +57,62 @@ void main() {
       expect(slot.isPlaceholder, isFalse);
     });
 
+    test(
+      'a break is never a placeholder, however it is written or arrives',
+      () {
+        for (final text in ['Break', ' break ', 'BREAK']) {
+          final slot = ProgramSlot(
+            id: 's1',
+            position: 0,
+            text: text,
+            placeholderSearchId: 'search-1',
+          );
+          expect(slot.isBreak, isTrue, reason: text);
+          expect(slot.placeholderSearchId, isNull, reason: text);
+        }
+        // The slot Edit dialog keeps the reference while changing the text.
+        expect(
+          _placeholder().copyWith(text: 'Break').placeholderSearchId,
+          isNull,
+        );
+        // A note that only mentions a break stays a placeholder.
+        expect(
+          _placeholder().copyWith(text: 'Break-free opener').isPlaceholder,
+          isTrue,
+        );
+        // From sync and from a backup alike.
+        final body = syncBodyForEntity(
+          SyncRecordKind.program,
+          _program([_placeholder()]),
+        );
+        final slots = [
+          {
+            ...((body['slots']! as List).single as Map<String, Object?>),
+            'text': 'Break',
+          },
+        ];
+        final synced =
+            decodeSyncRecordEntity(SyncRecordKind.program, {
+                  ...body,
+                  'slots': slots,
+                })
+                as Program;
+        expect(synced.slots.single.placeholderSearchId, isNull);
+        final archived = decodeArchive(
+          encodeArchive(
+            CompendiumArchive(
+              exportedAt: _now,
+              programs: [
+                _program([_placeholder()]),
+              ],
+            ),
+            mode: ArchiveSerializationMode.backup,
+          ).replaceFirst('"text":"Easy family opener"', '"text":"Break"'),
+        ).archive.programs.single;
+        expect(archived.slots.single.placeholderSearchId, isNull);
+      },
+    );
+
     test('equality counts the reference', () {
       expect(
         _placeholder(),

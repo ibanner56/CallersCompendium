@@ -637,40 +637,57 @@ class _ProgramTemplateEditorScreenState
   /// dances it means. Without a saved search there is nothing to choose, and
   /// the dialog says where to make one.
   Future<void> _addRule() async {
-    final names = await _loadSavedSearchNames(
-      RepositoriesScope.of(context).savedSearches,
-    );
-    if (!mounted || names == null) return;
-    final rule = await showDialog<ProgramTemplateEntry>(
-      context: context,
-      animationStyle: AppMotion.styleFor(context),
-      builder: (_) => _SlotRuleDialog(savedSearches: names),
-    );
-    if (rule == null || !mounted) return;
-    _change(() => _entries.add(rule));
+    if (_ruleDialogBusy) return;
+    _ruleDialogBusy = true;
+    try {
+      final names = await _loadSavedSearchNames(
+        RepositoriesScope.of(context).savedSearches,
+      );
+      if (!mounted || names == null) return;
+      final rule = await showDialog<ProgramTemplateEntry>(
+        context: context,
+        animationStyle: AppMotion.styleFor(context),
+        builder: (_) => _SlotRuleDialog(savedSearches: names),
+      );
+      if (rule == null || !mounted) return;
+      _change(() => _entries.add(rule));
+    } finally {
+      _ruleDialogBusy = false;
+    }
   }
+
+  /// Whether a slot rule dialog is opening or open, so a second tap on Add
+  /// slot rule or Edit opens no second dialog.
+  bool _ruleDialogBusy = false;
 
   /// **Edit** on the slot rule at [index]: the same dialog, filled in with its
   /// label and, while it can still be chosen, its saved search.
   Future<void> _editRule(int index) async {
-    final entry = _entries[index];
-    if (!entry.isRule) return;
-    final names = await _loadSavedSearchNames(
-      RepositoriesScope.of(context).savedSearches,
-    );
-    if (!mounted || names == null) return;
-    final rule = await showDialog<ProgramTemplateEntry>(
-      context: context,
-      animationStyle: AppMotion.styleFor(context),
-      builder: (_) => _SlotRuleDialog(savedSearches: names, initial: entry),
-    );
-    if (rule == null || !mounted) return;
-    // The dialog is modal; still, find the rule again rather than trust index.
-    final at = identical(_entries.elementAtOrNull(index), entry)
-        ? index
-        : _entries.indexWhere((e) => identical(e, entry));
-    if (at < 0) return;
-    _change(() => _entries[at] = rule);
+    if (_ruleDialogBusy) return;
+    final entry = _entries.elementAtOrNull(index);
+    if (entry == null || !entry.isRule) return;
+    _ruleDialogBusy = true;
+    try {
+      final names = await _loadSavedSearchNames(
+        RepositoriesScope.of(context).savedSearches,
+      );
+      if (!mounted || names == null) return;
+      final rule = await showDialog<ProgramTemplateEntry>(
+        context: context,
+        animationStyle: AppMotion.styleFor(context),
+        builder: (_) => _SlotRuleDialog(savedSearches: names, initial: entry),
+      );
+      if (rule == null || !mounted) return;
+      // The dialog is modal; still, find the rule again rather than trust
+      // index.
+      final at = identical(_entries.elementAtOrNull(index), entry)
+          ? index
+          : _entries.indexWhere((e) => identical(e, entry));
+      if (at < 0) return;
+      _change(() => _entries[at] = rule);
+    } finally {
+      _ruleDialogBusy = false;
+    }
   }
 
   @override
@@ -1153,8 +1170,7 @@ class _SlotRuleDialogState extends State<_SlotRuleDialog> {
 
   /// The label is the word that marks a break slot: refused, since a slot
   /// with it would read as a break (as the slot edit dialog's break check).
-  bool get _labelIsBreak =>
-      _label.text.trim().toLowerCase() == Program.breakSlotText.toLowerCase();
+  bool get _labelIsBreak => isProgramTemplateBreakText(_label.text);
 
   @override
   void dispose() {
@@ -1183,7 +1199,9 @@ class _SlotRuleDialogState extends State<_SlotRuleDialog> {
         final byName = a.value.toLowerCase().compareTo(b.value.toLowerCase());
         return byName != 0 ? byName : a.key.compareTo(b.key);
       });
-    if (searches.isEmpty) {
+    // Adding needs a saved search to choose; editing still lets the label
+    // change, and says there is no search to choose.
+    if (searches.isEmpty && widget.initial == null) {
       return AlertDialog(
         key: const ValueKey('program-template-rule-no-searches'),
         title: Text(l10n.programTemplateSlotRuleDialogTitle),
@@ -1227,29 +1245,37 @@ class _SlotRuleDialogState extends State<_SlotRuleDialog> {
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
-            AppDropdownField<String?>(
-              key: const ValueKey('program-template-rule-search'),
-              value: _searchId,
-              filterable: searches.length >= appDropdownFilterFrom,
-              decoration: InputDecoration(
-                labelText: l10n.programTemplateSlotRuleSearch,
+            if (searches.isEmpty)
+              Text(
+                l10n.programTemplateSlotRuleNoSearches,
+                key: const ValueKey('program-template-rule-no-searches-note'),
+              )
+            else
+              AppDropdownField<String?>(
+                key: const ValueKey('program-template-rule-search'),
+                value: _searchId,
+                filterable: searches.length >= appDropdownFilterFrom,
+                decoration: InputDecoration(
+                  labelText: l10n.programTemplateSlotRuleSearch,
+                ),
+                entries: [
+                  for (final search in searches)
+                    AppDropdownEntry<String?>(
+                      value: search.key,
+                      label: search.value,
+                      key: ValueKey(
+                        'program-template-rule-search-${search.key}',
+                      ),
+                    ),
+                ],
+                onChanged: (id) => setState(() {
+                  _searchId = id;
+                  // A rule is often named after its search: start from that.
+                  if (_label.text.trim().isEmpty && id != null) {
+                    _label.text = widget.savedSearches[id] ?? '';
+                  }
+                }),
               ),
-              entries: [
-                for (final search in searches)
-                  AppDropdownEntry<String?>(
-                    value: search.key,
-                    label: search.value,
-                    key: ValueKey('program-template-rule-search-${search.key}'),
-                  ),
-              ],
-              onChanged: (id) => setState(() {
-                _searchId = id;
-                // A rule is often named after its search: start from that.
-                if (_label.text.trim().isEmpty && id != null) {
-                  _label.text = widget.savedSearches[id] ?? '';
-                }
-              }),
-            ),
           ],
         ),
       ),

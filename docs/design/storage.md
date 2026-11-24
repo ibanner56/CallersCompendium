@@ -975,7 +975,8 @@ steps that can still fire are v40 onward.
   columns, only if absent (`_ensureV42PlaceholderSearchId`); no data
   rewritten, no derived rebuild. The template side needs no schema: a slot rule
   is an entry `{"savedSearchId", "label"}` in a `program_template:` settings
-  value, which is then written at template `version` 2 (a template without a
+  value (a label that is the break token is refused on read, and written as a
+  plain break), which is then written at template `version` 2 (a template without a
   rule stays version 1, byte for byte).
 
   Because test builds stamped v42 before these later pieces joined it,

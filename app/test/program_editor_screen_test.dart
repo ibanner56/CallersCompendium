@@ -5891,8 +5891,84 @@ void main() {
       expect(inFillPicker('picker-add-d3'), findsOneWidget);
     });
 
-    testWidgets('two quick taps on Fill open one sheet, and a later pick never '
-        'overrides the first', (tester) async {
+    Future<void> expectUnreadableNotice(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('slot-1-fill')));
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'The saved search for "Easy family opener" can\'t be opened: it '
+          'was saved by a newer version of the app, or it is damaged. Every '
+          'dance is shown.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('was deleted'), findsNothing);
+      expect(inFillPicker('picker-add-d3'), findsOneWidget);
+    }
+
+    testWidgets("a saved search stored as JSON null is one that can't be "
+        'opened, not a deleted one', (tester) async {
+      final repos = openTestRepositories();
+      await seedDances(repos);
+      await repos.settings.set('saved_search:nulled', null);
+      await seedRuleTemplate(repos, 'nulled');
+      await _pump(tester, repos);
+      await expectUnreadableNotice(tester);
+    });
+
+    testWidgets("a saved search whose stored value cannot be decoded is one "
+        "that can't be opened, not a deleted one", (tester) async {
+      final repos = openTestRepositories();
+      await seedDances(repos);
+      await repos.settings.set('saved_search:broken', {'v': 1});
+      await repos.db.customStatement(
+        "UPDATE settings SET value_json = '{not json' "
+        "WHERE key = 'saved_search:broken'",
+      );
+      await expectLater(
+        repos.savedSearches.get('broken'),
+        throwsA(isA<FormatException>()),
+      );
+      await seedRuleTemplate(repos, 'broken');
+      await _pump(tester, repos);
+      await expectUnreadableNotice(tester);
+    });
+
+    testWidgets('one picker at a time across the program: Fill on two '
+        'placeholders in quick succession opens one sheet', (tester) async {
+      final repos = openTestRepositories();
+      await seedDances(repos);
+      final family = await saveSearch(repos, 'Family dances', ['family']);
+      await saveProgramTemplate(
+        repos.settings,
+        ProgramTemplate(
+          id: 'two',
+          name: 'Two rules',
+          entries: [
+            ProgramTemplateEntry.rule(
+              savedSearchId: family.id,
+              label: 'First opener',
+            ),
+            ProgramTemplateEntry.rule(
+              savedSearchId: family.id,
+              label: 'Second opener',
+            ),
+          ],
+        ),
+      );
+      await saveProgramTemplateDefault(repos.settings, 'two');
+      await _pump(tester, repos);
+
+      await tester.tap(find.byKey(const ValueKey('slot-0-fill')));
+      await tester.tap(find.byKey(const ValueKey('slot-1-fill')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('replace-picker')), findsOneWidget);
+      expect(find.text('Fill "First opener"'), findsOneWidget);
+      expect(find.text('Fill "Second opener"'), findsNothing);
+    });
+
+    testWidgets('two quick taps on Fill open one sheet, and the slot takes the '
+        'dance chosen in it', (tester) async {
       final repos = openTestRepositories();
       await seedDances(repos);
       final family = await saveSearch(repos, 'Family dances', ['family']);

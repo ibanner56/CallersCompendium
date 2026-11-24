@@ -61,21 +61,26 @@ Future<PlaceholderFillStart?> preparePlaceholderFill(
   try {
     search = await repos.savedSearches.get(searchId);
   } on Object {
-    // diagnostics: silent — an unreadable value reads as no saved search,
-    // which the notice below reports; nothing is applied.
-    return PlaceholderFillStart.unfiltered(PlaceholderFillNotice(label: label));
+    // diagnostics: silent — a value that cannot even be decoded is damaged,
+    // which the notice reports as a search that can't be opened; nothing is
+    // applied.
+    return PlaceholderFillStart.unfiltered(
+      PlaceholderFillNotice(label: label, unreadable: true),
+    );
   }
   if (!context.mounted) return null;
   if (search == null) {
-    // Gone, or still stored but unreadable (a newer version's, or damaged:
-    // Settings lists it under Needs attention). Say which.
-    var unreadable = false;
+    // Gone, or still stored but unreadable (a newer version's, or damaged,
+    // a JSON null included: Settings lists it under Needs attention). Only a
+    // key that is not there at all is a deleted search.
+    var unreadable = true;
     try {
-      unreadable =
-          await repos.settings.get('$savedSearchKeyPrefix$searchId') != null;
+      unreadable = await repos.settings.contains(
+        '$savedSearchKeyPrefix$searchId',
+      );
     } on Object {
-      // diagnostics: silent — the notice then says the search was deleted,
-      // and every dance is shown either way.
+      // diagnostics: silent — unknown, so not called deleted; every dance is
+      // shown either way.
     }
     if (!context.mounted) return null;
     return PlaceholderFillStart.unfiltered(
@@ -112,6 +117,26 @@ Future<PlaceholderFillStart?> preparePlaceholderFill(
     );
   }
   return PlaceholderFillStart.search(CollectionPanelRequest(state));
+}
+
+/// What **Fill** makes of [current], the placeholder's slot as it is when the
+/// dance [danceId] is picked (#2338): an ordinary dance slot that keeps the
+/// slot's alternate mark, guest caller, lengths and performed stamp, without
+/// the label and the saved search. Null when [current] is no longer an
+/// unfilled placeholder (it became a dance, or a plain note, while the picker
+/// was open), so the pick is dropped rather than overwrite that change.
+ProgramSlot? filledPlaceholderSlot(ProgramSlot current, String danceId) {
+  if (!current.isPlaceholder || current.danceId != null) return null;
+  return ProgramSlot(
+    id: current.id,
+    position: current.position,
+    danceId: danceId,
+    isAlt: current.isAlt,
+    guestCaller: current.guestCaller,
+    walkthroughMinutes: current.walkthroughMinutes,
+    danceMinutes: current.danceMinutes,
+    performedAt: current.performedAt,
+  );
 }
 
 /// Says why **Fill** shows every dance: the placeholder's saved search is gone

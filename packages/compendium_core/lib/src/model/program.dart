@@ -28,7 +28,9 @@ class ProgramSlot {
     this.performedAt,
     String? placeholderSearchId,
   }) : placeholderSearchId =
-           danceId == null && (placeholderSearchId?.trim().isNotEmpty ?? false)
+           danceId == null &&
+               (placeholderSearchId?.trim().isNotEmpty ?? false) &&
+               !_isBreakToken(text)
            ? placeholderSearchId
            : null {
     if (danceId == null && text == null) {
@@ -154,8 +156,15 @@ class ProgramSlot {
   bool get isBreak {
     final t = text;
     if (danceId != null || isPurgedDance == true || t == null) return false;
-    return t.trim().toLowerCase() == Program.breakSlotText.toLowerCase();
+    return _isBreakToken(t);
   }
+
+  /// Whether [text] is the break token ([isBreak]'s text test). A break is
+  /// never a placeholder (#2338): the constructor drops [placeholderSearchId]
+  /// from one, however it arrives (an edit, sync, a backup).
+  static bool _isBreakToken(String? text) =>
+      text != null &&
+      text.trim().toLowerCase() == Program.breakSlotText.toLowerCase();
 
   /// See [Program.copyWith] for the `clear*`-flag precedent used for the
   /// nullable fields (a set clear flag wins over any value passed for the

@@ -288,7 +288,9 @@ List<Map<String, Object?>> encodeProgramTemplateSlots(
         ? rawText.substring(0, kMaxProgramTemplateTextLength)
         : rawText;
     final savedSearchId = entry.savedSearchId?.trim();
-    if (savedSearchId != null) {
+    // A rule labelled with the break token is written as the break it would
+    // read as (#2338): the decoder refuses such a rule.
+    if (savedSearchId != null && !isProgramTemplateBreakText(text)) {
       if (savedSearchId.isEmpty ||
           savedSearchId.length > kMaxProgramTemplateSavedSearchIdLength ||
           text == null) {
@@ -306,11 +308,18 @@ List<Map<String, Object?>> encodeProgramTemplateSlots(
   return slots;
 }
 
+/// Whether [text] is the break token, [Program.breakSlotText], in any case and
+/// spacing: what [ProgramSlot.isBreak] reads as a break. A slot rule may not
+/// carry it as its label (#2338).
+bool isProgramTemplateBreakText(String? text) =>
+    text != null &&
+    text.trim().toLowerCase() == Program.breakSlotText.toLowerCase();
+
 /// Decodes a template's `slots` list, returning `null` for any invalid
 /// payload: not a list, too long, or any entry that is not exactly a dance id
 /// and/or a non-blank text within the limits, or, when [allowRules], a slot
 /// rule: exactly a non-blank `savedSearchId` and a non-blank `label` within
-/// the limits.
+/// the limits that is not the break token (this build never writes one).
 List<ProgramTemplateEntry>? tryDecodeProgramTemplateSlots(
   Object? rawSlots, {
   bool allowRules = false,
@@ -358,7 +367,8 @@ ProgramTemplateEntry? _tryDecodeSlotRule(Map<Object?, Object?> raw) {
   }
   if (label is! String ||
       label.trim().isEmpty ||
-      label.length > kMaxProgramTemplateTextLength) {
+      label.length > kMaxProgramTemplateTextLength ||
+      isProgramTemplateBreakText(label)) {
     return null;
   }
   return ProgramTemplateEntry.rule(savedSearchId: id, label: label);
