@@ -2358,7 +2358,7 @@ FigureMatch? _roryOMore(String text) {
     s.take();
     params['slide'] = slide;
     final twoPlaces = _roryTwoPlaces(s);
-    if (twoPlaces != null) params['twoPlaces'] = twoPlaces;
+    if (twoPlaces != null) params[roryTwoPlacesParam] = twoPlaces;
   }
   return FigureMatch('rory_o_more', params: params, note: s.note());
 }

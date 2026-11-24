@@ -2208,10 +2208,7 @@ void main() {
         // The unstated default adds nothing.
         expect(
           renderer.renderSummary(
-            Figure(
-              move: 'rory_o_more',
-              params: {'twoPlaces': ParamVocab.unspecified},
-            ),
+            Figure(move: 'rory_o_more', params: {'twoPlaces': 'unspecified'}),
             d,
           ),
           "balance & Rory O'More right",

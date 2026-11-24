@@ -1510,6 +1510,13 @@ void main() {
         ]);
         expect(centers, hasLength(2));
         expect(centers.last.isCustom, isTrue);
+        // Two brackets would read as one garbled note (`past N) (to P`).
+        final twoBrackets = await figuresFor([
+          '(4) Balance wave of four (NL,MR)',
+          '(4) Slide left, women slide two places (past N) (to P)',
+        ]);
+        expect(twoBrackets, hasLength(2));
+        expect(twoBrackets.last.isCustom, isTrue);
       });
 
       test('down the hall → turn alone folds into a hall ender', () async {

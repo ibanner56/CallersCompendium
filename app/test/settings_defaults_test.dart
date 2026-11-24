@@ -2462,6 +2462,38 @@ void main() {
       );
     });
 
+    testWidgets('clearing a Rory O\'More\'s two places saves no key', (
+      tester,
+    ) async {
+      // `twoPlaces` (taxonomy v40) is kept only while it names dancers: a
+      // saved `unspecified` would be written into every new Rory O'More,
+      // where an older peer rejects the key.
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultMoveParamOverridesKey,
+        encodeMoveParamOverrides({
+          'rory_o_more': {'slide': 'left', 'twoPlaces': 'role2s'},
+        }),
+      );
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+      final clear = find.byKey(
+        const ValueKey('move-default-rory_o_more-twoPlaces-clear'),
+      );
+      await tester.ensureVisible(clear);
+      await tester.tap(clear);
+      await tester.pumpAndSettle();
+      expect(
+        moveParamOverridesFromStored(
+          await repos.settings.get(kDefaultMoveParamOverridesKey),
+        ),
+        {
+          'rory_o_more': {'slide': 'left'},
+        },
+      );
+    });
+
     testWidgets('removing a move override persists and hides its card', (
       tester,
     ) async {
