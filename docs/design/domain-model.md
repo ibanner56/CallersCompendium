@@ -340,7 +340,13 @@ above) so switching venue-entry modes is lossless.
 `calendarEventKey` (schema v42) is set on a program a calendar import created:
 a SHA-256 digest of the event's `UID` and recurrence id, never the `UID`, so the
 next import (on any of the caller's devices, since it syncs) does not offer the
-event again. It is not shown anywhere, and share files drop it. A calendar
+event again, once that device has pulled it. The startup import therefore
+waits, with Device Sync on, for that launch's sync pass, for at most
+`kCalendarStartupSyncWait`; a device that has not pulled the key (the other
+device has not pushed it yet, this one is offline or held back by *Sync only
+on WiFi*, or the wait ran out) can
+still import the same event, and nothing merges the two
+programs. It is not shown anywhere, and share files drop it. A calendar
 import also sets `startMinute` and `endMinute` from a timed event (#2423): a
 floating or `TZID` time as written, a UTC time at the device's local time, and
 the end only when the event lasts more than no time and less than a day. It

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:clock/clock.dart';
 import 'package:compendium_app/src/data/calendar_import.dart';
 import 'package:compendium_app/src/data/calendar_import_settings.dart';
@@ -439,6 +441,84 @@ void main() {
     // The fetcher threw: that is unreachable, so it counts.
     await _run(repos, fetcher: (_) async => throw StateError('offline'));
     expect(await repos.settings.get(kCalendarStartupFailuresKey), 3);
+  });
+
+  group('awaitLaunchSyncForCalendarStartup', () {
+    // Long enough that the bound never decides these tests; the widget tests
+    // in calendar_startup_sync_test.dart cover the bound under fake time.
+    const limit = Duration(days: 1);
+
+    /// Lets the in-memory database answer the wait's reads, then says whether
+    /// the wait has returned.
+    Future<bool> settled(
+      CompendiumRepositories repos,
+      bool Function() done,
+    ) async {
+      // Reads queue in order, so 20 outlast the wait's own handful.
+      for (var i = 0; i < 20; i++) {
+        await repos.settings.get(kCalendarImportOnStartupKey);
+      }
+      return done();
+    }
+
+    test('waits for nothing when the startup run is off or has no address, '
+        'whatever the pass does', () async {
+      for (final address in [false, true]) {
+        final repos = openTestRepositories();
+        if (address) {
+          await repos.settings.set(kCalendarFeedUrlKey, _url);
+        } else {
+          await _turnOn(repos, address: false);
+        }
+        var returned = false;
+        final wait = awaitLaunchSyncForCalendarStartup(
+          repos.settings,
+          Completer<void>().future, // never completes
+          limit: limit,
+        ).then((_) => returned = true);
+        expect(
+          await settled(repos, () => returned),
+          isTrue,
+          reason: 'address: $address',
+        );
+        await wait;
+      }
+    });
+
+    test('with the run on, waits until the pass completes', () async {
+      final repos = openTestRepositories();
+      await _turnOn(repos, mode: CalendarStartupMode.addDrafts);
+      final pass = Completer<void>();
+      var returned = false;
+      final wait = awaitLaunchSyncForCalendarStartup(
+        repos.settings,
+        pass.future,
+        limit: limit,
+      ).then((_) => returned = true);
+      expect(await settled(repos, () => returned), isFalse);
+      pass.complete();
+      await wait;
+      expect(returned, isTrue);
+    });
+
+    test(
+      'a pass that fails ends the wait, and the failure goes no further',
+      () async {
+        final repos = openTestRepositories();
+        await _turnOn(repos, mode: CalendarStartupMode.addDrafts);
+        final pass = Completer<void>();
+        var returned = false;
+        final wait = awaitLaunchSyncForCalendarStartup(
+          repos.settings,
+          pass.future,
+          limit: limit,
+        ).then((_) => returned = true);
+        expect(await settled(repos, () => returned), isFalse);
+        pass.completeError(StateError('pull failed'));
+        await wait;
+        expect(returned, isTrue);
+      },
+    );
   });
 
   test('the gate runs the startup import once per launch', () async {
