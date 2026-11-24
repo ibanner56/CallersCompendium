@@ -440,11 +440,11 @@ as draft programs.
     what was found; nothing is added until you choose **Import** there.
   - **Add them as drafts** — adds a draft program for each new event, with the
     same rules as an import you start, and says so, with **Undo** and **Show**.
-    **Undo** removes the drafts you haven't touched, but the events are still
-    new to the app, so the next start adds them again. To stop that, delete
-    the drafts instead: the import skips events whose programs are in
-    Recently deleted, until they leave it for good. Or switch to **Report new
-    events**.
+    **Undo** moves the drafts you haven't touched to Recently deleted, so the
+    next start doesn't add them again: the import skips events whose
+    programs are there, until they leave it for good (after the time set in
+    [Recently deleted](#recently-deleted), 30 days unless you change it). A
+    draft you have started filling in is kept.
 
   Either way it never changes a program you already have. If an event you
   imported has changed or been canceled, the message only counts it ("1 change
