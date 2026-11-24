@@ -168,11 +168,7 @@ void main() {
     expect(_fieldText(tester), '(8) Swing');
   });
 
-  for (final platform in [
-    TargetPlatform.android,
-    TargetPlatform.linux,
-    TargetPlatform.windows,
-  ]) {
+  for (final platform in [TargetPlatform.android, TargetPlatform.linux]) {
     testWidgets('on ${platform.name}, From an image… is absent and the sheet '
         'still works', (tester) async {
       debugDefaultTargetPlatformOverride = platform;
@@ -187,16 +183,74 @@ void main() {
     });
   }
 
-  test('iOS and macOS get the native recognizer; the rest none', () {
+  test('iOS, macOS and Windows get the native recognizer; the rest none', () {
     for (final platform in TargetPlatform.values) {
       final service = textRecognitionServiceFor(platform, isWeb: false);
       expect(
         service != null,
-        const {TargetPlatform.iOS, TargetPlatform.macOS}.contains(platform),
+        const {
+          TargetPlatform.iOS,
+          TargetPlatform.macOS,
+          TargetPlatform.windows,
+        }.contains(platform),
         reason: platform.name,
       );
     }
     expect(textRecognitionServiceFor(TargetPlatform.iOS, isWeb: true), isNull);
+  });
+
+  group('on Windows, through the native channel', () {
+    const channel = MethodChannel(ChannelTextRecognitionService.channelName);
+
+    /// Answers the language query with [installed], standing in for the OCR
+    /// languages whose packs are installed.
+    void installed(List<String> installed) {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            return switch (call.method) {
+              'availableLanguages' => [
+                for (final l in call.arguments as List<Object?>)
+                  if (installed.contains(l)) l,
+              ],
+              _ => null,
+            };
+          });
+      addTearDown(
+        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null),
+      );
+    }
+
+    testWidgets('with no OCR language installed, the image path explains why, '
+        'offers nothing to install, and stays off', (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+      installed(const []);
+      await _pumpSheet(tester, withScope: false);
+      expect(tester.widget<ButtonStyleButton>(_fromImage).onPressed, isNull);
+      expect(
+        find.byKey(const ValueKey('figure-text-sheet-image-note')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Install'), findsNothing);
+      expect(find.textContaining('install'), findsNothing);
+      debugDefaultTargetPlatformOverride = null;
+    });
+
+    testWidgets('with English installed, From an image… is offered', (
+      tester,
+    ) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+      installed(const ['en']);
+      await _pumpSheet(tester, withScope: false);
+      expect(tester.widget<ButtonStyleButton>(_fromImage).onPressed, isNotNull);
+      expect(
+        find.byKey(const ValueKey('figure-text-sheet-image-note')),
+        findsNothing,
+      );
+      debugDefaultTargetPlatformOverride = null;
+    });
   });
 
   testWidgets('an over-size file is refused with a message before '
