@@ -859,13 +859,17 @@ Note what the second row shows. The progression figure can only reach the active
 swaps A and D and leaves B and C exactly where they stand; the change-over is what puts B back
 into a hands four — with D.
 
-> **When the arriving couple reaches the waiting couple's row** *(agent's reading of Hudson's
-> note on Men at Work, 2026-11-24)*. A Progressed Improper set starts with the 2s at the top, so
-> its first progression already sends B out there and brings D up beside it. On the second, D
-> travels on into B's row: B has served its round and passes D, travelling down as the 1 it now
-> is, and D waits out at the top in its place. Hudson's words: B and D meet as third neighbours,
-> and the fourth are B and F with D out at the top. The net-displacement oracle (§10.6,
-> `ProgressionCriterion`) makes the same move; before, it put D on top of B and crashed.
+> **The oracle in a Progressed Improper set** *(agent's call, 2026-11-24, from Hudson's note on
+> Men at Work)*. This is the net-displacement oracle's bookkeeping (`ProgressionCriterion`), not
+> a move the figures make. A Progressed Improper set starts one progression in, with the 2s at
+> the top, so the oracle's first round already sends B out at the top (and the bottom couple
+> out at the bottom). On its second round D's target is B's row: B has served its round and
+> passes D, travelling down as the 1 it now is, and D is collected at the top in its place; the
+> bottom end mirrors it. So Progressed Improper after `n` rounds lands exactly where Duple
+> Improper does after `n + 1`, cell for cell, and a triple ends with D at the top and B beside
+> F, as Hudson's note describes. Before, the oracle put D on top of B and crashed. Only
+> positions are compared: the oracle's waiting-out marks need not match the figures' (a
+> `Formation` compares numbers and positions, not marks).
 
 > **The marking rule is deliberately positional**, not "is this couple already in a complete
 > band?" In a settled Duple Improper set *every* row holds a whole couple, so an end row

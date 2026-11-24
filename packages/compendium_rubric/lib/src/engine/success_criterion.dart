@@ -91,12 +91,16 @@ final class ProgressionCriterion extends SuccessCriterion {
   /// couple lies — along a row — so re-entry costs it no movement at all
   /// (§10.3.2's worked table: B and C simply stay where they are, and the
   /// change-over alone puts them back in a hands four). The exception is a
-  /// couple whose row the travelling dancers arrive in, which happens on the
-  /// second round of a Progressed Improper set, where the 2s start at the top
-  /// and the first round already sends one out: that couple passes the
-  /// arriving one, travelling on its new number, and the arriving one waits
-  /// out in its place (from Hudson's note on Men at Work, 2026-11-24: "B and
-  /// D" meet as third neighbours; the rule is the agent's reading of it).
+  /// waiting couple whose row a travelling dancer arrives in. That happens
+  /// only on the second round of a Progressed Improper set, at either end:
+  /// the set starts one progression in, so its first round already sends a
+  /// couple out at each end. That couple passes the arriving one, travelling
+  /// on its new number, and the arriving one is collected at the end in its
+  /// place. The result is that Progressed Improper after `n` rounds lands
+  /// exactly where Duple Improper does after `n + 1`, cell for cell (agent's
+  /// call, from Hudson's note on Men at Work, 2026-11-24, whose triple ends
+  /// with D at the top and B beside F). The positions are what is compared;
+  /// the waiting-out marks are not ([Formation] equality ignores them).
   ///
   /// In **Becket** it does not: a couple collected across an end row is lying
   /// *across* the set, but a Becket couple lies *along a column*. §10.6 is
@@ -109,10 +113,10 @@ final class ProgressionCriterion extends SuccessCriterion {
       if (entry.value.waitingOut) continue;
       targets[entry.key] = entry.value.position.row + _delta(formation, entry);
     }
-    // A couple waiting out in Duple Improper stays where it is, unless the
-    // dancers travelling along its line arrive in its row: then it has served
-    // its round and passes them, travelling on its new number like everyone
-    // else, as a couple at the top of a set meets the next couple coming up.
+    // A couple waiting out in a set whose couples lie along a row stays where
+    // it is, unless a travelling dancer's target is its row: then it has
+    // served its round and passes them, travelling on its new number like
+    // everyone else.
     if (!formation.type.couplesShareColumn) {
       final arriving = targets.values.toSet();
       for (final entry in formation.dancers.entries) {

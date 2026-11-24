@@ -198,16 +198,21 @@
 > the core set 568 to 573, no previously compiling dance lost. Honeymoon
 > (10500) now compiles, with 16 others.
 >
-> **A couple waiting out at the top passes the next one up (2026-11-24)**: in
+> **A couple waiting out at an end passes the next one in (2026-11-24)**: in
 > a Double or Triple Progressed Improper dance the oracle's second round put
-> the arriving 2s on top of the couple already waiting out there, and the
-> compile crashed. That couple now passes the arriving one, travelling on its
-> new number, and the arriving one waits out in its place (from Hudson's note
-> on Men at Work: B and D meet as third neighbours; the rule is the agent's
-> reading of it, `fundamentals.md` §10.3.2). Against `rubric` at `0bc7a3cc`:
-> 4,452 of 5,590 to 4,454 of 5,590 compiled in scope (79.7%), the core set
-> unchanged at 573, no previously compiling dance lost. Men at Work (14689) and Morland Magic (14692) now
-> compile; A Rose by Another Name (519) now mismatches instead of crashing.
+> the arriving couple on top of the one already waiting out at each end, and
+> the compile crashed. That couple now passes the arriving one, travelling on
+> its new number, so Progressed Improper after `n` rounds lands where Duple
+> Improper does after `n + 1` (agent's call from Hudson's note on Men at
+> Work, whose triple ends with D at the top and B beside F; `fundamentals.md`
+> §10.3.2). The failure report's next-round reading, which asks the oracle
+> for one round more, no longer throws on a mismatching single Progressed
+> Improper dance either. Against `rubric` at `0bc7a3cc`: 4,452 of 5,590 to
+> 4,454 of 5,590 compiled in scope (79.7%), the core set unchanged at 573,
+> no previously compiling dance lost. Men at Work (14689) and Morland Magic
+> (14692) now compile; A Rose by Another Name (519) now mismatches instead of
+> crashing, in its end rows only, where its two assumed progressions fall on
+> the wrong figures.
 >
 > **A dance one column off still compiles (2026-11-24)**: a dance whose
 > final state has every dancer in the expected row, with the expected number
