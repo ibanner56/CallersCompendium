@@ -20,6 +20,11 @@ import 'calendar_import_settings.dart'
         calendarImportWindowFromStored,
         kCalendarImportTitleFilterKey,
         kCalendarImportWindowMonthsKey;
+import 'calendar_startup.dart'
+    show
+        CalendarStartupMode,
+        kCalendarImportOnStartupKey,
+        kCalendarStartupModeKey;
 import 'calling_card_settings_scope.dart'
     show CallingCardSettings, kCallingCardSettingsKey;
 import 'show_glossary_scope.dart' show kShowGlossaryKey;
@@ -243,6 +248,9 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   kCalendarImportWindowMonthsKey: (v) =>
       v is int && calendarImportWindowFromStored(v) == v,
   kCalendarImportTitleFilterKey: _isString,
+  kCalendarImportOnStartupKey: _isBool,
+  kCalendarStartupModeKey: (v) =>
+      v is String && CalendarStartupMode.fromStored(v).name == v,
 
   // Structured container blobs. Their controllers decode the CONTENTS
   // defensively (skipping bad entries), so here we only enforce the outer

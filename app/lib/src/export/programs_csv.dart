@@ -47,6 +47,25 @@ String buildProgramsCsv(
   required Dance? Function(String danceId) danceFor,
   Map<String, Venue> venuesById = const {},
   bool includePay = true,
+}) => encodeCsv(
+  buildProgramsCsvRows(
+    programs,
+    l10n: l10n,
+    danceFor: danceFor,
+    venuesById: venuesById,
+    includePay: includePay,
+  ),
+);
+
+/// The header and one row per program that [buildProgramsCsv] encodes: plain
+/// strings, so [encodeCsv] can run on another isolate while everything that
+/// needs [l10n] (which cannot cross an isolate) has already been resolved here.
+List<List<String>> buildProgramsCsvRows(
+  Iterable<Program> programs, {
+  required AppLocalizations l10n,
+  required Dance? Function(String danceId) danceFor,
+  Map<String, Venue> venuesById = const {},
+  bool includePay = true,
 }) {
   String titleOf(String danceId) => switch (danceFor(danceId)) {
     final dance? => slotDanceTitle(l10n, dance),
@@ -120,7 +139,7 @@ String buildProgramsCsv(
       lines.join('\n'),
     ]);
   }
-  return encodeCsv(rows);
+  return rows;
 }
 
 /// The file name for a programs CSV exported on [date]:

@@ -515,6 +515,28 @@ void main() {
       expect(_tile('nohey'), findsNothing);
     });
 
+    testWidgets('a Keep change keeps the sort the caller picked', (
+      tester,
+    ) async {
+      await _pump(tester);
+      await _openAdjust(tester);
+      await _tap(tester, find.byKey(const ValueKey('adjust-swap-current')));
+      double top(String id) => tester.getTopLeft(_tile(id)).dy;
+      expect(top('match'), lessThan(top('nohey')), reason: 'by title, A–Z');
+      await _tap(
+        tester,
+        _inSwap(find.byKey(const ValueKey('picker-sort-direction'))),
+      );
+      expect(top('nohey'), lessThan(top('match')), reason: 'Z–A');
+
+      await _tap(
+        tester,
+        _inSwap(find.byKey(const ValueKey('swap-keep-formation'))),
+      );
+      expect(_tile('improper'), findsOneWidget, reason: 'searched again');
+      expect(top('nohey'), lessThan(top('match')), reason: 'still Z–A');
+    });
+
     testWidgets('after More filters, Not already in tonight\'s program changes '
         'only the dances left out, keeping the panel edits', (tester) async {
       await _pump(tester);

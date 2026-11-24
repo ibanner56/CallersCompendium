@@ -494,7 +494,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**136 settings keys**: 90 shareable, 13 device-local, 31 device-scoped, 1 protocol-identifier, 1 store-address. 5 personal data by category.
+**140 settings keys**: 90 shareable, 15 device-local, 33 device-scoped, 1 protocol-identifier, 1 store-address. 5 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -532,8 +532,12 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `auto_size_perform_cards` | `dpv:NonPersonalData` | app user | **device-local** | Screen-bound: whether a Perform card should fit the screen depends on the screen, like perform_text_scale below. deviceLocal, not deviceScoped: it is withheld for what it means on another screen, not for what it contains, and deviceScoped would also drop it from the user's own backups, which should give it back on restore. Per-device by the maintainer's decision (settings-sync-scope, 2026-10-29). |
 | `backup_reminder_cadence` | `dpv:NonPersonalData` | app user | shareable |  |
 | `calendar_feed_url` | `dpv:PersonalData` | app user | **device-local** | The address of the online calendar the calendar import reads (#2352). Withheld for what it contains: a private calendar's secret address embeds an access token. deviceLocal, not deviceScoped: it means the same on another device. Never synced, so each device configures its own (one address per device, maintainer decision); kept out of backup files too, by the maintainer's decision (issue draft review, 2026-11-22), so a restore asks for it again (kBackupSettingsDenylist); redacted from diagnostics (collectSensitiveTerms) and never put into a message. |
+| `calendar_import_on_startup` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `calendar_import_title_filter` | `dpv:NonPersonalData` | app user | shareable |  |
 | `calendar_import_window_months` | `dpv:NonPersonalData` | app user | shareable |  |
+| `calendar_last_result` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `calendar_startup_failures` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `calendar_startup_mode` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `calling_card_print` | `dpv:NonPersonalData` | app user | shareable | Whether calling cards are offered, the card size, whether they print several to a page, and the card layout: how the user likes their cards printed. The card stock is the same whichever device prints, and printing onto sheets is a habit more than a property of one printer, so it travels like any preference. The layout can hold free text the user typed for a text block; like walkthrough_snippets, that is configuration the user authored for their own use, classified by what the setting is for rather than by whatever words they choose to print. |
 | `canonical_discouraged_terms` | `dpv:NonPersonalData` | app user | shareable |  |
 | `canonical_figure_text` | `dpv:NonPersonalData` | app user | shareable |  |

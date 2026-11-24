@@ -741,4 +741,231 @@ void main() {
       expect(rory.verdict.kind, DedupeKind.ambiguous);
     });
   });
+  group('numbers and choices a spreadsheet writes its own way', () {
+    const numberCols = [
+      CsvColumnMapping(CsvColumnTarget.title),
+      CsvColumnMapping.newCustomField('Bars', CustomFieldType.number),
+    ];
+
+    Future<List<Object?>> barsOf(String separator, List<String> cells) async {
+      final body = [
+        for (var i = 0; i < cells.length; i++) 'D$i$separator${cells[i]}',
+      ];
+      final m = mapping(separator, cols: numberCols);
+      final batch = await plan(
+        'Title${separator}Bars\r\n${body.join('\r\n')}\r\n',
+        m,
+      );
+      return [
+        for (final r in batch.records)
+          r.draft.dance.customFields.isEmpty
+              ? r.draft.dance.callingNotes
+              : r.draft.dance.customFields.single.value,
+      ];
+    }
+
+    test('in a semicolon sheet a comma is the decimal mark and a dot or '
+        'space groups thousands', () async {
+      expect(
+        await barsOf(';', [
+          '3,5',
+          '1.000',
+          '1.234,5',
+          '1 000',
+          '1\u00a0000,25',
+          '-2,5',
+          '7',
+          '1.5',
+        ]),
+        [3.5, 1000, 1234.5, 1000, 1000.25, -2.5, 7, 1.5],
+      );
+    });
+
+    test(
+      'in a semicolon sheet a leading zero is never a thousands group',
+      () async {
+        expect(await barsOf(';', ['0.500', '0.125', '00.500', '-0.500']), [
+          0.5,
+          0.125,
+          0.5,
+          -0.5,
+        ]);
+      },
+    );
+
+    test('in a semicolon sheet a value that is neither style stays in the '
+        'notes', () async {
+      final got = await barsOf(';', ['1,234.5', '1.2.3', '3,', ',5', 'many']);
+      expect(got, [
+        'Bars: 1,234.5',
+        'Bars: 1.2.3',
+        'Bars: 3,',
+        'Bars: ,5',
+        'Bars: many',
+      ]);
+    });
+
+    test('in a comma sheet numbers read as before', () async {
+      expect(await barsOf(',', ['"3,5"', '1.000', '1.5', '"1,000"']), [
+        'Bars: 3,5',
+        1.0,
+        1.5,
+        'Bars: 1,000',
+      ]);
+    });
+
+    test(
+      'an existing number field reads a semicolon sheet the same way',
+      () async {
+        final count = CustomFieldDef(
+          id: 'f-count',
+          key: 'count',
+          label: 'Count',
+          type: CustomFieldType.number,
+        );
+        final m = mapping(
+          ';',
+          cols: const [
+            CsvColumnMapping(CsvColumnTarget.title),
+            CsvColumnMapping.customField('f-count'),
+          ],
+          existing: {count.id: count},
+        );
+        final batch = await plan('Title;Count\r\nA;2,5\r\n', m);
+        expect(batch.records.single.draft.dance.customFields.single.value, 2.5);
+      },
+    );
+
+    const choiceCols = [
+      CsvColumnMapping(CsvColumnTarget.title),
+      CsvColumnMapping.newCustomField('Mood', CustomFieldType.choice),
+    ];
+
+    Future<List<Object?>> commitMoods(List<String> cells) async {
+      final m = mapping(',', cols: choiceCols);
+      final batch = await plan(
+        'Title,Mood\r\n'
+        '${[for (var i = 0; i < cells.length; i++) 'D$i,"${cells[i]}"'].join('\r\n')}\r\n',
+        m,
+      );
+      final result = await importer.commit(
+        batch,
+        mapping: m,
+        now: now,
+        newId: _ids(),
+      );
+      expect(result.session.records.where((r) => r.error != null), isEmpty);
+      final all = await dances.listAll();
+      return [
+        for (final t in [for (var i = 0; i < cells.length; i++) 'D$i'])
+          all.firstWhere((d) => d.title == t).customFields.firstOrNull?.value,
+      ];
+    }
+
+    test(
+      'a cell of only invisible characters is no option and no value',
+      () async {
+        final values = await commitMoods(['a', '\u200b', '\u200b\u2060']);
+        expect(values, ['a', null, null]);
+        expect((await fields.listAll()).single.choices, ['a']);
+      },
+    );
+
+    test('an invisible-only choice cell fills nothing and is not kept in the '
+        'notes, so a later column fills the field', () async {
+      const cols = [
+        CsvColumnMapping(CsvColumnTarget.title),
+        CsvColumnMapping.newCustomField('Mood', CustomFieldType.choice),
+        CsvColumnMapping.newCustomField('Mood', CustomFieldType.choice),
+      ];
+      final batch = await plan(
+        'Title,A,B\r\nD,\u200b,calm\r\n',
+        mapping(',', cols: cols),
+      );
+      final dance = batch.records.single.draft.dance;
+      expect(dance.callingNotes, '');
+      expect(dance.customFields.single.value, 'calm');
+    });
+
+    test('an invisible-only cell for an existing choice field is not kept in '
+        'the notes', () async {
+      final mood = CustomFieldDef(
+        id: 'f-mood',
+        key: 'mood',
+        label: 'Mood',
+        type: CustomFieldType.choice,
+        choices: const ['calm'],
+      );
+      final m = mapping(
+        ',',
+        cols: const [
+          CsvColumnMapping(CsvColumnTarget.title),
+          CsvColumnMapping.customField('f-mood'),
+        ],
+        existing: {mood.id: mood},
+      );
+      final batch = await plan('Title,Mood\r\nA,\u200b\r\n', m);
+      final draft = batch.records.single.draft;
+      expect(draft.dance.callingNotes, '');
+      expect(draft.dance.customFields, isEmpty);
+      expect(
+        draft.issues.where((i) => i.code == kCsvValueKeptInNotes),
+        isEmpty,
+      );
+    });
+
+    test('a column of only invisible characters makes no field', () async {
+      final values = await commitMoods(['\u200b']);
+      expect(values, [null]);
+      expect(await fields.listAll(), isEmpty);
+    });
+
+    test(
+      'an option is trimmed again after its invisible characters go',
+      () async {
+        final values = await commitMoods(['a \u200b', 'a']);
+        expect(values, ['a', 'a']);
+        expect((await fields.listAll()).single.choices, ['a']);
+      },
+    );
+
+    test('an option NFC made longer is clamped to the choice length', () async {
+      final cell = 'x${'\u0344' * 60}';
+      expect(normalizeShareableText(cell).length, greaterThan(100));
+      final values = await commitMoods([cell]);
+      final choice = (await fields.listAll()).single.choices!.single;
+      expect(choice.length, lessThanOrEqualTo(kMaxCustomFieldChoiceLength));
+      expect(values.single, choice);
+    });
+
+    test('a decomposed cell matches the option an existing choice field '
+        'has and is written as that option', () async {
+      const nfc = 'caf\u00e9';
+      const nfd = 'cafe\u0301';
+      final mood = CustomFieldDef(
+        id: 'f-mood',
+        key: 'mood',
+        label: 'Mood',
+        type: CustomFieldType.choice,
+        choices: const [nfc, 'Plain'],
+      );
+      final m = mapping(
+        ',',
+        cols: const [
+          CsvColumnMapping(CsvColumnTarget.title),
+          CsvColumnMapping.customField('f-mood'),
+        ],
+        existing: {mood.id: mood},
+      );
+      final batch = await plan('Title,Mood\r\nA,$nfd\r\nB, PLAIN \r\n', m);
+      expect(
+        [
+          for (final r in batch.records)
+            r.draft.dance.customFields.single.value,
+          for (final r in batch.records) r.draft.dance.callingNotes,
+        ],
+        [nfc, 'Plain', '', ''],
+      );
+    });
+  });
 }

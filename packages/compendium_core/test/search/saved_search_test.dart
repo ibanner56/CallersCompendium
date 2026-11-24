@@ -174,6 +174,13 @@ void main() {
       );
     });
 
+    test('a state read from a saved search says so; one built does not', () {
+      // A Within window outside the presets reads "12 months, saved" only
+      // for a saved search.
+      expect(CollectionPanelState().fromSavedSearch, isFalse);
+      expect(specOf(rich()).toPanelState().fromSavedSearch, isTrue);
+    });
+
     test('keeps sort direction (a stored Z-to-A order restores)', () {
       final s = CollectionPanelState(
         text: 'x',

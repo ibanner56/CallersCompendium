@@ -525,6 +525,13 @@ final Map<String, DataClassification> settingsClassifications = {
         'a message.',
   ),
   'calendar_import_window_months': _preference,
+  // The startup calendar run (#2353): per-installation consent to a network
+  // fetch, like update_auto_check, and what it does, which goes with it.
+  'calendar_import_on_startup': _backupLocalState,
+  'calendar_startup_mode': _backupLocalState,
+  // This installation's runs: meaningless on another device.
+  'calendar_last_result': _installState,
+  'calendar_startup_failures': _installState,
   'calendar_import_title_filter': _preference,
   'update_beta_channel': _backupLocalState,
   'update_dismissed_version': _backupLocalState,

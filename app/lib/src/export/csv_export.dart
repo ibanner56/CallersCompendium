@@ -1,11 +1,25 @@
-import 'package:compendium_core/compendium_core.dart' show csvMimeType;
+import 'package:compendium_core/compendium_core.dart'
+    show csvMimeType, encodeCsv;
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/backup_document.dart'
+    show BackupCodecRunner, defaultBackupCodecRunner;
 import '../theme/app_motion.dart';
 import '../widgets/export_guard.dart';
 import 'share_file.dart';
+
+/// [encodeCsv] over [rows] on a worker isolate, so a library-sized sheet is
+/// not quoted and joined on the UI isolate. [rows] must be plain strings:
+/// everything that needs `AppLocalizations`, which cannot cross an isolate, is
+/// resolved before the call. Whatever the encoder throws is rethrown here, for
+/// the caller's `guardExport`. [runner] is the same seam the backup codec uses,
+/// so widget tests can run it inline.
+Future<String> encodeCsvOffUiIsolate(
+  List<List<String>> rows, {
+  BackupCodecRunner? runner,
+}) => (runner ?? defaultBackupCodecRunner)(() => encodeCsv(rows));
 
 /// How the user chose to deliver a CSV spreadsheet export.
 enum CsvExportChoice { save, share }

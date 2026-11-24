@@ -21,7 +21,10 @@ exporting are the doors your dances walk through — the ways you bring
 material in from the wider community and carry your own library from one machine
 to the next. Nothing leaves your device unless you ask for it (an online search
 or a single dance import reaches out once, when you tell it to), and nothing
-changes your collection until you say so.
+changes your collection until you say so. Turning on an automatic option —
+the [update check](./settings.md#updates), or the
+[calendar import at startup](./settings.md#calendar) set to add drafts — is
+saying so: it runs only once you switch it on.
 
 ## Nothing gets lost when a dance comes in
 
@@ -306,6 +309,16 @@ How the values come in:
 - **Tags** are separated by commas, matched to your tags by name, and added
   when new. Your **Import defaults** tags are added too.
 - **Level** is matched to your difficulty levels by name.
+- **Numbers** are read as you would type them, with one exception: in a sheet
+  separated by semicolons (what Excel saves in Danish, German, French and Dutch)
+  a comma is the decimal mark and a dot or a space groups thousands, so `3,5` is
+  3.5 and `1.000` is one thousand. A number the app can't read either way, such
+  as `1,234.5` in such a sheet, goes into the calling notes rather than being
+  guessed. A number with a dot that doesn't fit that pattern, such as `1.5` or
+  `0.500` (a leading 0 is never a thousands group), is read as a decimal.
+- A choice field takes the option you already have whatever case, surrounding
+  space or accent form the cell uses (`café` typed as `e` plus an accent still
+  matches `café`). A cell with nothing visible in it adds no option.
 - A value that doesn't fit its field — a formation or level the app doesn't
   know, or text in a number field — goes into the dance's **calling notes**,
   with a note on the review row, so nothing is lost.

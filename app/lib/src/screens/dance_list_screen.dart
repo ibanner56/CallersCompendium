@@ -262,6 +262,15 @@ abstract interface class DanceListCommands {
   /// Moves the keyboard focus to the search box and selects its text. Returns
   /// false while the list is still loading and has no search box.
   bool focusSearch();
+
+  /// Shows [state] in place of the current search: its text, **Search in**,
+  /// every filter, the By phrase rows, the Advanced tree and the sort with its
+  /// direction, exactly. The list takes [state]'s objects as its own and
+  /// edits them from then on.
+  ///
+  /// Nothing in the app calls this yet; a saved search will
+  /// (`docs/design/search.md`).
+  void applyPanelState(CollectionPanelState state);
 }
 
 class _DanceListScreenState extends State<DanceListScreen>
@@ -322,9 +331,13 @@ class _DanceListScreenState extends State<DanceListScreen>
   final _ftsFocusNode = FocusNode(debugLabel: 'collection-search-field');
   FullTextScope _ftsScope = FullTextScope.omni;
   FullTextScope _localFtsScope = FullTextScope.omni;
-  final _facets = FacetSelections();
-  final _byPhrase = ByPhraseSelections();
-  final _advancedRoot = BuilderGroup();
+  // Replaced, not edited, by [applyPanelState].
+  var _facets = FacetSelections();
+  var _byPhrase = ByPhraseSelections();
+  var _advancedRoot = BuilderGroup();
+
+  /// Whether the panel state last applied came from a saved search.
+  bool _panelFromSavedSearch = false;
 
   CollectionSort _sort = CollectionSort.title;
 
@@ -741,6 +754,7 @@ class _DanceListScreenState extends State<DanceListScreen>
     final previous = _data;
     // Every path that changes the offered tags also changes a dance today, so
     // `tagsDropped` is a safeguard: dropping a tag must never skip the search.
+    // A tag a panel state brought is kept, not dropped (see retainTags).
     final tagsDropped = _facets.retainTags([for (final t in data.tags) t.id]);
     final searchAffected =
         previous == null ||
@@ -1465,6 +1479,49 @@ class _DanceListScreenState extends State<DanceListScreen>
     }
   }
 
+  /// Modelled on [_clearAll], but replaces **every** part of the search,
+  /// including what Clear all leaves alone: **Search in**, the sort and its
+  /// direction, and the tag rows a ContraDB search took out.
+  ///
+  /// The sort is set directly, never through [_selectSort], which would write
+  /// it over the user's last-used Collection sort; and a Best match the
+  /// state's own query no longer allows falls back to Title
+  /// ([CollectionPanelState.effectiveSort]). While online search is on, it is
+  /// turned off first, which returns ContraDB's taken tag rows to the old
+  /// tree, before those are forgotten and the tree replaced: see the
+  /// picker's `_applyPanelState`, which does the same.
+  @override
+  void applyPanelState(CollectionPanelState state) {
+    _debounceTimer?.cancel();
+    _searchSeq++;
+    _onlineSeq++;
+    setState(() {
+      if (_onlineEnabled) {
+        _onlineEnabled = false;
+        _syncAdvancedTagRows();
+        _onlineResults = const [];
+        _onlineError = null;
+        _onlineSearching = false;
+      }
+      _removedTags.clear();
+      _ftsController.text = state.text;
+      _ftsScope = state.scope;
+      _localFtsScope = state.scope;
+      // A tag the state names stays selected even if no dance carries it yet.
+      state.facets.keepSelectedTags();
+      _facets = state.facets;
+      _byPhrase = state.byPhrase;
+      _advancedRoot = state.advanced;
+      _panelFromSavedSearch = state.fromSavedSearch;
+      final (:sort, :direction) = state.effectiveSort;
+      _sort = sort;
+      _sortDir = direction;
+      // A late default-sort seed must not replace the state's sort.
+      _sortUserSet = true;
+    });
+    _runSearch();
+  }
+
   void _clearAll() {
     _debounceTimer?.cancel();
     _searchSeq++;
@@ -1476,6 +1533,7 @@ class _DanceListScreenState extends State<DanceListScreen>
       _advancedRoot.children.clear();
       _removedTags.clear();
       _advancedRoot.kind = GroupKind.all;
+      _panelFromSavedSearch = false;
       _onlineResults = const [];
       _onlineError = null;
       _onlineSearching = false;
@@ -2914,6 +2972,7 @@ class _DanceListScreenState extends State<DanceListScreen>
       _advancedRoot.children.clear();
       _removedTags.clear();
       _advancedRoot.kind = GroupKind.all;
+      _panelFromSavedSearch = false;
       drillDown.applyTo(_facets, _advancedRoot);
     });
     _runSearch();
@@ -3408,6 +3467,12 @@ class _DanceListScreenState extends State<DanceListScreen>
       booleanFields: data.booleanFields,
       textFields: data.textFields,
       numberFields: data.numberFields,
+      allLevels: data.allLevels,
+      authorNames: data.choreographerNames,
+      allTagNames: data.allTagNames,
+      sourceTitles: data.sourceTitles,
+      allCustomFields: data.customFieldDefs,
+      historyFromSavedSearch: _panelFromSavedSearch,
       onChanged: _onFacetsChanged,
     );
   }
@@ -3440,6 +3505,7 @@ class _DanceListScreenState extends State<DanceListScreen>
       dialect: _dialect,
       sectionLabels: data.sectionLabels,
       tags: data.tags,
+      allTagNames: data.allTagNames,
       tagsUnavailableFor: _onlineEnabled && _onlineSource.hidesAdvancedTags
           ? _onlineSource.label
           : null,

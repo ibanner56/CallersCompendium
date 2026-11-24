@@ -105,6 +105,7 @@ Future<_Harness> _pump(
   required _SpyRanker? ranker,
   bool enabled = true,
   required PickerProgramContext? programContext,
+  Dialect Function(MatrixColumn column)? suggestionDialectForColumn,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 3000));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -138,6 +139,7 @@ Future<_Harness> _pump(
                   enrichment: SearchEnrichment.empty,
                   onAddDance: added.add,
                   programContext: programContext,
+                  suggestionDialectForColumn: suggestionDialectForColumn,
                   rankSuggestions: ranker?.call,
                   clock: const _FixedClock(),
                 ),
@@ -511,6 +513,74 @@ void main() {
       ),
       findsNWidgets(4),
     );
+  });
+
+  group('a reason names a column in the dialect the program matrix does '
+      '(#2294)', () {
+    // The picker's own dialect (contra's) calls `swing` "swing"; the column's
+    // dialect calls it "zebra", as a form's dialect may.
+    final columnDialect = Dialect.canonical.copyWith(moves: {'swing': 'zebra'});
+
+    Future<void> showOverlapReason(
+      WidgetTester tester, {
+      Dialect Function(MatrixColumn column)? forColumn,
+    }) async {
+      final repos = await _seed();
+      final ranker = _SpyRanker()
+        ..answer = (request) async => SuggestionRanking([
+          for (final c in request.candidates)
+            RankedSuggestion(
+              danceId: c.id,
+              score: 0,
+              ranked: true,
+              reasons: const [
+                SuggestionReason(
+                  SuggestionReasonKind.beatOverlap,
+                  factor: SuggestionFactor.matrixVariety,
+                  effect: -1,
+                  count: 1,
+                  moveKey: 'swing',
+                  neighbor: SuggestionNeighbor.previous,
+                ),
+              ],
+            ),
+        ]);
+      await _pump(
+        tester,
+        repos,
+        ranker: ranker,
+        programContext: _context,
+        suggestionDialectForColumn: forColumn,
+      );
+      await _chooseSuggested(tester);
+    }
+
+    testWidgets('controls: with no column dialect it reads in the picker\'s', (
+      tester,
+    ) async {
+      expect(
+        FigureRenderer(contraTaxonomy).displayMoveName('swing', columnDialect),
+        isNot(
+          FigureRenderer(
+            contraTaxonomy,
+          ).displayMoveName('swing', Dialect.larksRobins),
+        ),
+      );
+      await showOverlapReason(tester);
+      expect(
+        find.text('Same swing beats as the previous dance'),
+        findsNWidgets(4),
+      );
+    });
+
+    testWidgets('with a column dialect it reads in that', (tester) async {
+      await showOverlapReason(tester, forColumn: (_) => columnDialect);
+      expect(
+        find.text('Same zebra beats as the previous dance'),
+        findsNWidgets(4),
+      );
+      expect(find.textContaining('swing'), findsNothing);
+    });
   });
 
   testWidgets('the add-dance picker\'s Last called sort leaves out the program '

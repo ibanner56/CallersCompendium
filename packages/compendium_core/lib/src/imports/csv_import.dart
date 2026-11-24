@@ -190,6 +190,8 @@ class CsvImporter {
       final choices = type == CustomFieldType.choice
           ? {for (final v in values) ?_choiceOption(v.toString())}
           : const <String>{};
+      // Cells with nothing visible in them make no option, and so no field.
+      if (type == CustomFieldType.choice && choices.isEmpty) continue;
       // A field of this name and type already there (made by an earlier
       // commit from this sheet, such as Import and edit on one row, an
       // earlier column of this one, or the caller's own) is reused rather
@@ -277,21 +279,31 @@ class CsvImporter {
         if (!v.fieldId.startsWith(kCsvNewFieldPlaceholderPrefix))
           v
         else if (fieldIdByPlaceholder[v.fieldId] case final id?)
-          CustomFieldValue(
-            fieldId: id,
-            value: choicePlaceholders.contains(v.fieldId) && v.value is String
-                ? (_choiceOption(v.value as String) ?? v.value)
-                : v.value,
-          ),
+          if (!choicePlaceholders.contains(v.fieldId) || v.value is! String)
+            CustomFieldValue(fieldId: id, value: v.value)
+          // A cell with nothing visible in it is no option; the row has no
+          // value for the field rather than one the field lacks.
+          else if (_choiceOption(v.value as String) case final option?)
+            CustomFieldValue(fieldId: id, value: option),
     ],
   );
 }
 
 /// A cell's value as an option of a new choice field, spelled as the
-/// repository stores one ([normalizeShareableText] over
-/// [normalizeChoiceOption]), so an option the field already has is matched
-/// whatever the cell's Unicode form, and a row's value equals its option.
-String? _choiceOption(String raw) => switch (normalizeChoiceOption(raw)) {
-  final option? => normalizeShareableText(option),
-  null => null,
-};
+/// repository stores one ([normalizeShareableText]), so an option the field
+/// already has is matched whatever the cell's Unicode form, and a row's value
+/// equals its option. It is trimmed after that spelling (removing an invisible
+/// character can leave a space at the edge) and clamped to
+/// [kMaxCustomFieldChoiceLength] after it (NFC can lengthen a cell). `null`
+/// when nothing visible is left.
+String? _choiceOption(String raw) {
+  var option = normalizeShareableText(raw).trim();
+  if (option.length > kMaxCustomFieldChoiceLength) {
+    var end = kMaxCustomFieldChoiceLength;
+    // Never end on half of a surrogate pair.
+    final last = option.codeUnitAt(end - 1);
+    if (last >= 0xD800 && last <= 0xDBFF) end--;
+    option = normalizeShareableText(option.substring(0, end)).trim();
+  }
+  return option.isEmpty ? null : option;
+}

@@ -4804,6 +4804,10 @@
   "@collectionFacetWithinMonths": {
     "x-sourceSha256": "66be719ed3455ce0c8690aabb3c822e941f268edc163a37a050194e1f6d12926"
   },
+  "collectionFacetWithinMonthsSaved": "{count, plural, =1{1 maand, opgeslagen} other{{count} maanden, opgeslagen}}",
+  "@collectionFacetWithinMonthsSaved": {
+    "x-sourceSha256": "e5c28ec8c3e855b65f5fa34934c782e7072929fddd7960b0195263ddf3a2670b"
+  },
   "collectionFacetWithinSince": "Sinds een datum…",
   "@collectionFacetWithinSince": {
     "x-sourceSha256": "af507bf47251132ba4703a698935d64e15447d0ac82af7a649c56aeaba2b65a4"
@@ -4875,6 +4879,10 @@
   "collectionFacetAllHidden": "Alle filters zijn verborgen. Je kunt ze weer tonen via Instellingen ▸ Standaarden.",
   "@collectionFacetAllHidden": {
     "x-sourceSha256": "eec14e1a8c3ccd1c9f04b0b59373b768c4f5b28191e1c5d5263cc0e71bc07202"
+  },
+  "collectionFacetMissingValue": "Niet in je bibliotheek",
+  "@collectionFacetMissingValue": {
+    "x-sourceSha256": "52e6640837ec2055afd1c0768ff09c3b4cff9dac7b6ff011c74c5f8d57ede77a"
   },
   "collectionFacetClear": "Filters wissen",
   "@collectionFacetClear": {
@@ -5119,6 +5127,10 @@
   "collectionQueryAnyParam": "Elke {param}",
   "@collectionQueryAnyParam": {
     "x-sourceSha256": "768b0de301e56f0b42b07cb65a8700632abfe087fd187bfbff9111fd0173abdc"
+  },
+  "collectionQueryParamNotOffered": "{param}: {value} (niet aangeboden)",
+  "@collectionQueryParamNotOffered": {
+    "x-sourceSha256": "bb8f76af8c64c3aa8c3bad4605d23ba12e2559ec4fa22745e4b2ea8a0ed3d68a"
   },
   "collectionBatchLevelUnspecified": "Niet opgegeven (wissen)",
   "@collectionBatchLevelUnspecified": {
@@ -13605,5 +13617,73 @@
   "calendarClearFlagError": "De agendamarkering kon niet worden gewist. Probeer het opnieuw.",
   "@calendarClearFlagError": {
     "x-sourceSha256": "7f31c36bfec0eaa49ce85b3501658f5788167cceec31b4b23237b44fd80501ee"
+  },
+  "calendarOnStartupTitle": "Agenda importeren als de app start",
+  "@calendarOnStartupTitle": {
+    "x-sourceSha256": "c7e7976b2cca7054a32ded2d9db81e98877e1fcecc0f53f2391a16d49455ea66"
+  },
+  "calendarOnStartupSubtitle": "Standaard uit. Als het aan staat, leest de app je agenda één keer bij elke start en meldt niets als dat niet lukt.",
+  "@calendarOnStartupSubtitle": {
+    "x-sourceSha256": "e056a23296e3663767355547c664dfbc982910104dbd90b61d452b6325a06b2e"
+  },
+  "calendarStartupModeTitle": "Bij het starten",
+  "@calendarStartupModeTitle": {
+    "x-sourceSha256": "1e0ff8230be734239932417d849d117fbba4d6e1474502a4d5a4df1e5df99958"
+  },
+  "calendarStartupModeReport": "Nieuwe afspraken melden",
+  "@calendarStartupModeReport": {
+    "x-sourceSha256": "70e436309bfaf16f1fe7a0ffae975d60017ac233b079437eb9a96f5ba306c7e1"
+  },
+  "calendarStartupModeAdd": "Toevoegen als concept",
+  "@calendarStartupModeAdd": {
+    "x-sourceSha256": "2b65fa882c090cf0763ff21febb1e2f043159d91368cecb44ee8b4b352e1f28e"
+  },
+  "calendarStartupModeReportSubtitle": "Meldt nieuwe afspraken; er wordt niets toegevoegd tot je ze hebt bekeken.",
+  "@calendarStartupModeReportSubtitle": {
+    "x-sourceSha256": "19b69452a18e130d89bdb29818ef74aa7b7536d55f64f4252a2b453ffe63777e"
+  },
+  "calendarStartupModeAddSubtitle": "Voegt nieuwe afspraken toe als conceptprogramma's, met Ongedaan maken. Gewijzigde of geannuleerde afspraken worden alleen gemeld.",
+  "@calendarStartupModeAddSubtitle": {
+    "x-sourceSha256": "c46a506d2bed5f309ed224b8a5c28a71ae6f0fb8caa4544ef556c2accaa3f954"
+  },
+  "calendarLastResultFailed": "Agenda niet bereikbaar bij het starten ({when})",
+  "@calendarLastResultFailed": {
+    "x-sourceSha256": "61b1f900991b944a3ffd641fbf2894a47c8b126d92c302610962fc5b4fc8eed1"
+  },
+  "calendarLastResultAdded": "Gecontroleerd bij het starten op {when}: {count, plural, =1{1 concept toegevoegd} other{{count} concepten toegevoegd}}",
+  "@calendarLastResultAdded": {
+    "x-sourceSha256": "6c43cfcc9878b805367fb68a0535ec13f55441a994e4f9d8405b394139ce6865"
+  },
+  "calendarLastResultNew": "Gecontroleerd bij het starten op {when}: {count, plural, =0{geen nieuwe afspraken} =1{1 nieuwe afspraak} other{{count} nieuwe afspraken}}",
+  "@calendarLastResultNew": {
+    "x-sourceSha256": "f2e253184432a0838b757716b96a1230a71c9704392c66f4aebdf4f7f4dd4552"
+  },
+  "calendarStartupFailureNotice": "{count, plural, other{De agenda was de laatste {count} keer dat de app startte niet bereikbaar.}}",
+  "@calendarStartupFailureNotice": {
+    "x-sourceSha256": "1c08c525abd1e631cfc904ec226be0df5cbd829e071e2044c9c6c36d0e6cc3f9"
+  },
+  "calendarStartupFailureHint": "Controleer het agenda-adres of je verbinding.",
+  "@calendarStartupFailureHint": {
+    "x-sourceSha256": "343be91960bc9ccfbdddda531b096feddbcab978c70c9541e3c0d3ccd7f7990d"
+  },
+  "calendarStartupNewEvents": "{count, plural, =1{1 nieuwe afspraak in je agenda.} other{{count} nieuwe afspraken in je agenda.}}",
+  "@calendarStartupNewEvents": {
+    "x-sourceSha256": "5e69184159efd2e49b4fd85ca64c4eb0131543f83390c3d92e46ad65e9d83803"
+  },
+  "calendarStartupChanges": "{count, plural, =1{1 wijziging wacht op je.} other{{count} wijzigingen wachten op je.}}",
+  "@calendarStartupChanges": {
+    "x-sourceSha256": "d24b0d697433b60ad385afb2f9e1bbe7bb31a1c7bd7554c1941fb6327d5271d7"
+  },
+  "calendarStartupShow": "Tonen",
+  "@calendarStartupShow": {
+    "x-sourceSha256": "0df6f1cad36c49da768a6efdcc2c4be102f5729f7381cb53e4ff8061d17eaeb6"
+  },
+  "calendarStartupReview": "Bekijken",
+  "@calendarStartupReview": {
+    "x-sourceSha256": "aff0766a5290e117b8433c351bae7b7b23bed682b2369bd822d88a647cc58512"
+  },
+  "calendarLastResultError": "Importeren uit de agenda bij het starten mislukt ({when})",
+  "@calendarLastResultError": {
+    "x-sourceSha256": "a826d9f8828d360f373473072915ffe0c2fb4944f9b9e733a3e75a6f72591f5c"
   }
 }

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/calendar_import_settings.dart';
+import '../../data/calendar_startup.dart';
+import '../../data/date_format_scope.dart';
+import '../../data/regional_formats.dart';
 import '../../data/repositories_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../theme/app_motion.dart';
@@ -30,6 +33,12 @@ class CalendarSettingsTiles extends StatefulWidget {
 
 class _CalendarSettingsTilesState extends State<CalendarSettingsTiles> {
   CalendarImportSettings? _settings;
+
+  /// The startup run's settings and state (#2353).
+  bool _onStartup = false;
+  CalendarStartupMode _startupMode = CalendarStartupMode.report;
+  CalendarStartupResult? _lastResult;
+  int _failures = 0;
   bool _started = false;
 
   @override
@@ -44,7 +53,19 @@ class _CalendarSettingsTilesState extends State<CalendarSettingsTiles> {
     final repos = RepositoriesScope.of(context);
     try {
       final settings = await CalendarImportSettings.read(repos.settings);
-      if (mounted) setState(() => _settings = settings);
+      final onStartup = await repos.settings.get(kCalendarImportOnStartupKey);
+      final mode = await repos.settings.get(kCalendarStartupModeKey);
+      final last = await repos.settings.get(kCalendarLastResultKey);
+      final failures = await repos.settings.get(kCalendarStartupFailuresKey);
+      if (mounted) {
+        setState(() {
+          _settings = settings;
+          _onStartup = onStartup == true;
+          _startupMode = CalendarStartupMode.fromStored(mode);
+          _lastResult = CalendarStartupResult.fromStored(last);
+          _failures = failures is int && failures > 0 ? failures : 0;
+        });
+      }
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'calendar_settings._reload');
       if (mounted) {
@@ -104,6 +125,9 @@ class _CalendarSettingsTilesState extends State<CalendarSettingsTiles> {
     );
     if (value == null || !mounted) return;
     final trimmed = value.trim();
+    if (trimmed == (settings.feedUrl ?? '')) return;
+    // A changed address clears the repeated-failure notice (#2353).
+    await _write(kCalendarStartupFailuresKey, 0);
     await _write(kCalendarFeedUrlKey, trimmed.isEmpty ? null : trimmed);
   }
 
@@ -135,6 +159,22 @@ class _CalendarSettingsTilesState extends State<CalendarSettingsTiles> {
     }
     // The import screen saves an address typed there.
     if (mounted) await _reload();
+  }
+
+  String _lastResultText(AppLocalizations l10n, CalendarStartupResult r) {
+    final when = formatEventDate(
+      r.at.toLocal(),
+      DateFormatScope.of(context),
+      MaterialLocalizations.of(context),
+      l10n,
+    );
+    if (!r.ok) {
+      return r.reached
+          ? l10n.calendarLastResultError(when)
+          : l10n.calendarLastResultFailed(when);
+    }
+    if (r.added > 0) return l10n.calendarLastResultAdded(when, r.added);
+    return l10n.calendarLastResultNew(when, r.newEvents);
   }
 
   @override
@@ -194,6 +234,65 @@ class _CalendarSettingsTilesState extends State<CalendarSettingsTiles> {
           trailing: const Icon(Icons.edit_outlined),
           onTap: settings == null ? null : () => _editFilter(settings),
         ),
+        SwitchListTile(
+          key: const ValueKey('calendar-settings-on-startup'),
+          value: _onStartup,
+          onChanged: settings == null
+              ? null
+              : (v) => _write(kCalendarImportOnStartupKey, v),
+          title: Text(l10n.calendarOnStartupTitle),
+          subtitle: Text(l10n.calendarOnStartupSubtitle),
+          isThreeLine: true,
+        ),
+        if (_onStartup)
+          SettingsDropdownRow(
+            tileKey: const ValueKey('calendar-settings-startup-mode'),
+            title: Text(l10n.calendarStartupModeTitle),
+            subtitle: Text(
+              _startupMode == CalendarStartupMode.report
+                  ? l10n.calendarStartupModeReportSubtitle
+                  : l10n.calendarStartupModeAddSubtitle,
+            ),
+            isThreeLine: true,
+            dropdownBuilder: (expanded) =>
+                AppDropdownField<CalendarStartupMode>(
+                  key: const ValueKey('calendar-settings-startup-mode-field'),
+                  compact: true,
+                  fillWidth: expanded,
+                  value: _startupMode,
+                  onChanged: (v) {
+                    _write(kCalendarStartupModeKey, v.name);
+                  },
+                  entries: [
+                    AppDropdownEntry(
+                      value: CalendarStartupMode.report,
+                      label: l10n.calendarStartupModeReport,
+                    ),
+                    AppDropdownEntry(
+                      value: CalendarStartupMode.addDrafts,
+                      label: l10n.calendarStartupModeAdd,
+                    ),
+                  ],
+                ),
+          ),
+        if (_lastResult case final last?)
+          ListTile(
+            key: const ValueKey('calendar-settings-last-result'),
+            dense: true,
+            leading: const Icon(Icons.history),
+            title: Text(_lastResultText(l10n, last)),
+          ),
+        // A quiet notice, here only: no banner, no dialog (#2353).
+        if (_failures >= kCalendarStartupFailureNoticeThreshold)
+          ListTile(
+            key: const ValueKey('calendar-settings-failure-notice'),
+            leading: Icon(
+              Icons.cloud_off_outlined,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            title: Text(l10n.calendarStartupFailureNotice(_failures)),
+            subtitle: Text(l10n.calendarStartupFailureHint),
+          ),
         ListTile(
           key: const ValueKey('calendar-settings-pull-now'),
           leading: const Icon(Icons.cloud_download_outlined),

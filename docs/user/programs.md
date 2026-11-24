@@ -236,8 +236,10 @@ ever written back to your calendar.
    choose **Fetch events**. The app remembers it on this device.
 3. Review the list, then choose **Import**.
 
-The app goes online only when you choose **Fetch events**: never in the
-background, on a timer, or when you come back to the app.
+The app goes online only when you choose **Fetch events**, or once each time
+the app starts if you turn on **Import calendar when the app starts** in
+[Settings ▸ Program ▸ Calendar](./settings.md#calendar) (off by default): never
+in the background, on a timer, or when you come back to the app.
 
 **Which events are offered.**
 

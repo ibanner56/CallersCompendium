@@ -20,12 +20,15 @@ const double kPerformSwapMinTarget = 44;
 ///
 /// Built on [CollectionPicker], as the program builder's pickers are: the
 /// Keep items are the picker's own Filters and Advanced state
-/// ([swapKeepPanelState]), loaded through [CollectionPicker.initialQuery], so
-/// every change searches again with no Search button, and **More filters**
-/// shows the same criteria in the panels, editable. From then on the panels
-/// hold the query, so the Keep chips that live in them are put away; **Not
-/// already in tonight's program**, which leaves dances out by id rather than
-/// by a panel criterion, stays.
+/// ([swapKeepPanelState]), each Keep change sent as a new
+/// [CollectionPicker.panelState] request, so every change searches again
+/// with no Search button, and **More filters** shows the same criteria in
+/// the panels, editable. From then on the panels hold the query: no request
+/// is sent again, the Keep chips that live in the panels are put away, and
+/// **Not already in tonight's program**, which leaves dances out by id
+/// rather than by a panel criterion, stays and changes only those ids. A
+/// request replaces the sort too, so each one carries the sort the user last
+/// picked ([CollectionPicker.onSortChanged]).
 ///
 /// Tapping a result calls [onPick] with its id. Online search is not offered:
 /// an import at the mic adds a network wait and a possible duplicate prompt.
@@ -91,7 +94,25 @@ class PerformSwapSheet extends StatefulWidget {
 
 class _PerformSwapSheetState extends State<PerformSwapSheet> {
   late SwapKeepChoices _choices = widget.initialChoices;
-  late CollectionPanelState _query = swapKeepPanelState(widget.seed, _choices);
+
+  /// The sort the user last picked in the picker, carried into each request.
+  ({CollectionSort sort, SortDirection direction})? _sort;
+
+  /// The search the picker shows. Held here, as [CollectionPicker.panelState]
+  /// asks, and replaced by a new request only when a Keep item changes.
+  late CollectionPanelRequest _request = CollectionPanelRequest(
+    _stateFor(_choices),
+  );
+
+  CollectionPanelState _stateFor(SwapKeepChoices choices) {
+    final state = swapKeepPanelState(widget.seed, choices);
+    if (_sort case final sort?) {
+      state
+        ..sort = sort.sort
+        ..sortDirection = sort.direction;
+    }
+    return state;
+  }
 
   /// Whether **More filters** was tapped: the panels now hold the query.
   bool _moreFilters = false;
@@ -101,7 +122,7 @@ class _PerformSwapSheetState extends State<PerformSwapSheet> {
       _choices = next;
       // After More filters the panels hold the query, with the user's edits:
       // a Keep change then touches only the dances left out by id.
-      if (!_moreFilters) _query = swapKeepPanelState(widget.seed, next);
+      if (!_moreFilters) _request = CollectionPanelRequest(_stateFor(next));
     });
   }
 
@@ -155,7 +176,9 @@ class _PerformSwapSheetState extends State<PerformSwapSheet> {
             programContext: widget.programContext,
             // Ordering by suggestions is #2348's, behind its own setting.
             offerSuggested: false,
-            initialQuery: _query,
+            panelState: _request,
+            onSortChanged: (sort, direction) =>
+                _sort = (sort: sort, direction: direction),
             showSearchControls: _moreFilters,
             initialPanel: PickerSearchPanel.filters,
             excludedDanceIds: _excluded,

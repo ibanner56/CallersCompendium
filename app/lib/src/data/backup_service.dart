@@ -1,4 +1,6 @@
 import 'calendar_import_settings.dart' show kCalendarFeedUrlKey;
+import 'calendar_startup.dart'
+    show kCalendarLastResultKey, kCalendarStartupFailuresKey;
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 
@@ -153,6 +155,9 @@ const String kNormalisationDerivedIndexRepairDoneKey =
 ///   a restore the caller enters it again.
 const Set<String> kBackupSettingsDenylist = {
   kCalendarFeedUrlKey,
+  // This installation's startup calendar runs (#2353): wrong on another.
+  kCalendarLastResultKey,
+  kCalendarStartupFailuresKey,
   kCustomDialectsKey,
   kActiveDialectRefKey,
   kActiveDialectKey,
