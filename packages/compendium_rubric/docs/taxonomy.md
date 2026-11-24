@@ -328,6 +328,26 @@ in both phases the figure is still refused (the 2026-11-22 ruling), although pre
 current phase would compile two more dances. Inside a `meanwhile`, each part is retried on its
 own, so parts can finish in different phases; how often that happens has not been measured.
 
+**A chain after an N2 figure chains with N2** *(user-ruled 2026-11-24, note on Heather's Hop
+Redux, Caller's Box #10172: after "N2 neighbor allemande left 1½" and "Ladies chain to
+partner", "R1-A and R2-D should be the ones who swap in the chain")*. The robins chain with the
+couple they have just turned with, not across the grouping the set was handed back in, so an
+`across` chain straight after a figure that reaches an odd distance along the set (N2, N4) is
+danced in that grouping too,
+and the set is handed back after it, as reaching always does. Each `across` chain straight
+after that one follows as well (Heather's Hop chains to partner and back to N2). The rest are
+the agent's calls. Only an unflagged `across` chain follows, only straight after the reach (or
+after a chain that followed), and only in the fold, so a chain inside a container does not.
+The reach is read from the figure's distance sets, so a chain does not follow a shadows figure,
+nor a container whose widest reach is even; and it does not follow when a held progression
+finished on the reaching figure and changed the set's phase.
+Alternatives measured on the Caller's Box corpus against `bf4b4c06` and rejected: keeping
+every figure after a reach in the reached grouping lost 163 compiled dances; letting every
+figure that names only a role set follow lost 6; picking the phase where every robin stands
+on her lark's right lost 53, because a roll away leaves couples the other way round before a
+chain. The import does not carry a chain's "to partner" or "to neighbor N2", and both phases
+satisfy "to partner" here, so it would not have decided it.
+
 **Which phase: parity of the distance.** A figure naming a distance-*d* set is danced *d*
 places from the phase it was handed, and **always hands that phase back**. The grid has exactly
 two phases, so only `d.isOdd` survives: odd distances dance in the other phase, even distances
@@ -713,6 +733,9 @@ To be defined later with worked examples.
     across, the west-line dancers on a diagonal; a dancer already involved in a swap is never
     swapped again.
   - `hand` (left/right) does not change end positions (Op1 vs Op2).
+  - **Straight after an N2 figure**, an `across` chain is danced in the grouping that figure
+    reached, and so is each `across` chain straight after that one; see "A chain after an N2
+    figure chains with N2" *(user-ruled 2026-11-24, Heather's Hop Redux, #10172)*.
   - **Verified against:** base Op1 (across/robins), Op2 (across/larks), Op3 (leftDiagonal),
     Op4 (rightDiagonal), and the waiting-out `leftDiagonal` example (couples B & E out at the
     ends); all still hold under the where-they-stand pairing, as does The Judge's golden trace,
@@ -968,7 +991,8 @@ To be defined later with worked examples.
 - **effect (by `turn`):**
   - **whole (1, 2)** ⇒ **identity** (position) and **facing unchanged**.
   - **half (0.5, 1.5, 2.5)** ⇒ the two `who` dancers **swap cells**, and each dancer's facing
-    becomes the **opposite** (in↔out, up↔down). Role/number/couple-identity travel with them.
+    becomes the **opposite** (in↔out, up↔down), except along a side line, where it is set by the
+    turn's direction (see **facing (output)**). Role/number/couple-identity travel with them.
   - **quarter (0.25, 0.75, …)** ⇒ **along the set only**; forms a **wave of four** exactly as
     `do_si_do`'s quarter does, with `hand` playing the role of `shoulder` — `hand: right`
     builds the canonical wave, `left` its mirror, and ¾ is a half turn followed by the same
@@ -993,11 +1017,23 @@ To be defined later with worked examples.
   land in (§8.5.1), overriding the rotation; a quarter from a wave (§8.5.7) rotates the facing
   with the pair instead, since the pair is already holding hands. A **Flexible** input stays Flexible on whole and
   half turns (opposite of undetermined is undetermined).
+  **Except a half turn along a side line**: a pair one above the other on the west or east line
+  finishes still travelling the way the turn carried them, across the set. A left turn wheels
+  counter-clockwise seen from above, so whoever finishes up the set faces west and whoever
+  finishes below faces east; a right turn is the mirror. In Heather's Hop Redux (Caller's Box
+  #10172) that leaves every robin facing in and every lark facing out after the N2 allemande
+  left 1½ *(user-ruled 2026-11-24: "R2-D should be facing in (along with all the other robins)
+  because of the allemande left", and L1-A facing out)*. Reading it from the turn's direction
+  rather than from role, and giving the allemande right the mirror, are the agent's calls; the
+  alternative rejected was "robins face in" by role, which a pair with the robin below the
+  lark on the west line would get backwards. A **Flexible** input stays Flexible here too
+  *(agent's call)*. No Caller's Box dance changed outcome.
 - **interaction scope:** within the current hands four (like `do_si_do`).
 - **h4 contribution** (D7): 0.
 - **progression-eligible:** yes.
 - **vs. `do_si_do`:** do_si_do preserves facing (dancers slide without turning); allemande turns
-  the connected pair, so facing follows the rotation (full unchanged / half opposite).
+  the connected pair, so facing follows the rotation (full unchanged / half opposite, or along a
+  side line the way the turn carried them).
 - **sources:** ContraDanceVerifier `DoAllemande` (halfTurns→swap); CallersCompendium taxonomy
   `allemande` MoveDef + `gate_facing` (rotation-facing principle).
 
@@ -2325,7 +2361,7 @@ To be defined later with worked examples.
   the set). Marked **Flexible**: this is the natural resolution of the two-handed hold, but a
   dancer may finish facing another direction, so it satisfies any downstream facing precondition.
   - **vs. `allemande`:** allemande **inverts** facing on a half turn (rotation-facing principle,
-    `gate_facing`). A two-hand turn does **not** — the pair never breaks eye contact, so the
+    `gate_facing`), or along a side line sets it from the turn's direction. A two-hand turn does **not** — the pair never breaks eye contact, so the
     ending facing is *relational* (toward the other dancer) rather than a rotation of the input.
 - **interaction scope:** within the current hands four (like `allemande` / `do_si_do`).
 - **h4 contribution** (D7): 0.

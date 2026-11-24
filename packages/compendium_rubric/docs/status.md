@@ -123,6 +123,16 @@
 > (77.3%), the core set from 531 to 532. 91 refused dances now compile and 6
 > now mismatch; no previously compiling dance was lost.
 >
+> **A chain after an N2 figure chains with N2 (2026-11-24)**: an across chain
+> straight after a figure danced one grouping over is danced in that grouping
+> too, and an allemande half turn along a side line leaves each dancer facing
+> the way the turn carried them, so the robins face in after Heather's Hop
+> Redux's allemande left (both user-ruled on #10172; the limits are the
+> agent's calls). Against `rubric` at `064b4256`: 4,072 to 4,073 of 5,257
+> compiled in scope (77.5%), the core set unchanged at 532. Rerouted to
+> Tulsa (4959) now compiles; nothing else changed outcome. Heather's Hop
+> Redux and its alternate still mismatch, at their final half figure eight.
+>
 > **N3 and N4 place later progressions (2026-11-23)**: on the N2 retry, a
 > Double dance flags its second progression by the first N3 mention and a
 > Triple its third by the first N4 (user-ruled). Against `rubric` at
