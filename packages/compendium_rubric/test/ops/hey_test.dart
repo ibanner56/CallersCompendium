@@ -51,6 +51,27 @@ void main() {
       expect(after.toRolesNotation(), ['L1-A . . . R1-A', 'R2-B . . . L2-B']);
     });
 
+    test('three passes run in every hands four of a longer set', () {
+      final after = applyOk(
+        const HeyForFour(
+          length: HeyLength.lessThanHalf,
+          meetTarget: WhoSet.nextNeighbors,
+        ),
+        parseRolesNotation(const [
+          'R1-A . . . L1-A',
+          'L2-B . . . R2-B',
+          'R1-C . . . L1-C',
+          'L2-D . . . R2-D',
+        ], type: FormationType.dupleImproper),
+      );
+      expect(after.toRolesNotation(), [
+        'L1-A . . . R1-A',
+        'R2-B . . . L2-B',
+        'L1-C . . . R1-C',
+        'R2-D . . . L2-D',
+      ]);
+    });
+
     test('two half heys compose to a full hey', () {
       final start = di(_start);
       const half = HeyForFour();
@@ -176,8 +197,13 @@ void main() {
           length: HeyLength.betweenHalfAndFull,
           meetTarget: WhoSet.nextNeighbors,
         ),
-        // Three passes are modelled only stopping to face a stated meetTarget.
+        // Three passes are modelled only stopping at the next neighbours, not
+        // as any other "hey until X meet".
         const HeyForFour(length: HeyLength.lessThanHalf),
+        const HeyForFour(
+          length: HeyLength.lessThanHalf,
+          meetTarget: WhoSet.partners,
+        ),
       ]) {
         final error = applyErr(hey, di(_start));
         expect(error.kind, ErrorKind.unsupportedParam, reason: '$hey');

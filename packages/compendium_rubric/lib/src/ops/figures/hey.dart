@@ -2,11 +2,13 @@ part of '../operation.dart';
 
 /// How much of the weave a `hey` dances.
 ///
-/// The two partial lengths are represented but not implemented: they stop the
-/// weave mid-pass, with two dancers standing in the middle of the set rather
-/// than in the corners the matrix is defined over (`docs/fundamentals.md` §8).
-/// Representing them is what lets the refusal say "valid but out of scope"
-/// rather than "malformed", the same stance [Direction] takes.
+/// [lessThanHalf] is danced only as three passes stopping to face the next
+/// neighbours (see [HeyForFour.meetTarget]). [betweenHalfAndFull] is
+/// represented but not implemented: it stops the weave mid-pass, with two
+/// dancers standing in the middle of the set rather than in the corners the
+/// matrix is defined over (`docs/fundamentals.md` §8). Representing it is what
+/// lets the refusal say "valid but out of scope" rather than "malformed", the
+/// same stance [Direction] takes.
 enum HeyLength {
   lessThanHalf('lessThanHalf'),
   half('half'),
@@ -23,8 +25,8 @@ enum HeyLength {
   /// A half hey is four passes: the centres meet, everyone passes at the ends,
   /// the *other* pair meets in the centre, and everyone passes at the ends
   /// again. So each pair meets once. A full hey is that twice over, hence two
-  /// meetings each. Only consulted for the supported lengths — the partial ones
-  /// are refused before this is read.
+  /// meetings each. Only consulted for `half` and `full`: three passes are
+  /// placed by their own rule, and `betweenHalfAndFull` is refused.
   int get centerMeetingsPerPair => this == HeyLength.full ? 2 : 1;
 
   static HeyLength? fromKey(String key) {
@@ -152,10 +154,12 @@ final class HeyForFour extends Operation {
   /// reported through [WarningKind.anchorMismatch] when the two disagree.
   final WhoSet? pass2;
 
-  /// Who the [pass1] pair are to meet when the weave stops part way.
+  /// Whom the dancers are to meet when the weave stops part way.
   ///
-  /// Meaningful only for the partial lengths, which are deferred, so this is
-  /// carried for record fidelity and has no end-state effect.
+  /// It decides whether a [HeyLength.lessThanHalf] hey is danced: only
+  /// `nextNeighbors` is, as three passes (user-ruled 2026-11-24 for Caller's
+  /// Box's "Hey 1/2 (…); face N2"); any other target, such as a ContraDB "hey
+  /// until partners meet", is refused. It has no further end-state effect.
   final WhoSet? meetTarget;
 
   /// Which shoulder passes. Styling; no positional effect, as for [PassBy].
@@ -199,11 +203,12 @@ final class HeyForFour extends Operation {
       );
     }
     if (length == HeyLength.lessThanHalf &&
-        (meetTarget == null || rico1 || rico2)) {
+        (meetTarget != WhoSet.nextNeighbors || rico1 || rico2)) {
       return OpError(
         ErrorKind.unsupportedParam,
         'hey length:lessThanHalf is modelled only as three passes stopping '
-        'to face a stated meetTarget, without a ricochet',
+        'to face the next neighbours (meetTarget:nextNeighbors), without a '
+        'ricochet',
       );
     }
     if (length == HeyLength.betweenHalfAndFull) {
@@ -217,13 +222,13 @@ final class HeyForFour extends Operation {
     if ((rico3 || rico4) && length != HeyLength.full) {
       return OpError(
         ErrorKind.unsupportedParam,
-        'hey length:${length.key} gives each pair one centre meeting, so '
+        'hey length:${length.key} gives each pair at most one centre '
+        'meeting, so '
         '${rico3 ? 'rico3' : 'rico4'} names a meeting that never happens; only '
         'a full hey has a second one',
       );
     }
-    final lines = _lines(formation);
-    return lines.errorOrNull;
+    return _lines(formation).errorOrNull;
   }
 
   /// Reads each hands four as a line of four, or explains why it cannot be.
