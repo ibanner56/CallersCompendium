@@ -1262,7 +1262,7 @@ use the defaults meanwhile.
 
 **Check programs against your rules** is **off by default**, and the section
 starts closed while it is off. An event rule is a sentence about a program,
-such as *At most 1 dance matching "Becket" in any two neighbouring dances*,
+such as *At most 1 dance matching "Becket" in any two neighboring dances*,
 and the program builder warns you when a program you added it to breaks it.
 See [Check your program against your rules](./programs.md#check-your-program-against-your-rules).
 
@@ -1276,7 +1276,7 @@ with **Undo** in the message at the bottom of the screen. A rule has:
 - **How many** — **At most** or **At least** a number of dances from 1 to 99,
   or **None**.
 - **Where** — **The whole program**, **Before the first break**, **After the
-  first break**, or **Any two neighbouring dances**, which checks each pair of
+  first break**, or **Any two neighboring dances**, which checks each pair of
   dances next to each other.
 - **Name (optional)** — shown in place of the sentence, with the sentence
   under it.

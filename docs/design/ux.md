@@ -311,7 +311,7 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   needs attention, a collapsible **Rules strip** sits under the warnings card:
   "1 rule not met" / "1 rule needs attention" (rule icon plus text, never
   colour alone). Expanded, each broken rule shows its sentence, the count or
-  the breaking neighbouring pairs, the dances involved, and for an alternate
+  the breaking neighboring pairs, the dances involved, and for an alternate
   "If you call *X*"; each rule needing attention names what is missing and is
   not checked. Involved slots carry a marker in the slot row, icon plus
   "Breaks a rule" (or "Breaks a rule if called" on an alternate), with a

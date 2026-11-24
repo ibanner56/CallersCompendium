@@ -11,6 +11,7 @@ import '../../search/event_rule_check.dart';
 import '../../theme/app_spacing.dart';
 import '../../utils/confirm_delete.dart';
 import '../../utils/undo_snack_bar.dart';
+import '../../widgets/app_bar_text_action.dart';
 import '../../widgets/app_dropdown_field.dart';
 import '../../widgets/event_rule_text.dart';
 
@@ -110,7 +111,7 @@ class _EventRulesScreenState extends State<EventRulesScreen> {
               ),
             )
           : ListView(
-              padding: const EdgeInsets.only(bottom: 88),
+              padding: const EdgeInsets.only(bottom: AppSpacing.fabClearance),
               children: [
                 for (final rule in rules)
                   _EventRuleTile(
@@ -310,10 +311,11 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
               : l10n.eventRuleEditorEditTitle,
         ),
         actions: [
-          TextButton(
+          AppBarTextAction(
             key: const ValueKey('event-rule-save'),
+            label: l10n.commonSave,
+            icon: Icons.check,
             onPressed: _canSave ? _save : null,
-            child: Text(l10n.commonSave),
           ),
         ],
       ),

@@ -309,7 +309,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(
-      find.text('No dance matching "Becket" in any two neighbouring dances'),
+      find.text('No dance matching "Becket" in any two neighboring dances'),
       findsOneWidget,
     );
     await tester.tap(find.byKey(const ValueKey('event-rule-save')));

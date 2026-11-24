@@ -101,7 +101,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('event-rule-save')));
     await tester.pumpAndSettle();
     final sentence =
-        'At most 1 dance matching "Becket" in any two neighbouring dances';
+        'At most 1 dance matching "Becket" in any two neighboring dances';
     await pumpUntilFound(tester, find.text(sentence));
     final rule = (await repos.eventRules.listAll()).single;
     expect(rule.quantifier, EventRuleQuantifier.atMost);
@@ -188,7 +188,7 @@ void main() {
     await pumpUntilFound(tester, dialog);
     for (final text in [
       'No two Beckets',
-      'At most 1 dance matching "Becket" in any two neighbouring dances',
+      'At most 1 dance matching "Becket" in any two neighboring dances',
       'No dance matching "Becket" after the first break',
     ]) {
       expect(

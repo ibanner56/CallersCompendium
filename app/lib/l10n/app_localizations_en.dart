@@ -14851,7 +14851,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get eventRuleScopeAfterFirstBreak => 'After the first break';
 
   @override
-  String get eventRuleScopeNeighbouring => 'Any two neighbouring dances';
+  String get eventRuleScopeNeighbouring => 'Any two neighboring dances';
 
   @override
   String get eventRuleNameLabel => 'Name (optional)';
@@ -14896,9 +14896,8 @@ class AppLocalizationsEn extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'At most $count dances matching \"$search\" in any two neighbouring dances',
-      one:
-          'At most 1 dance matching \"$search\" in any two neighbouring dances',
+          'At most $count dances matching \"$search\" in any two neighboring dances',
+      one: 'At most 1 dance matching \"$search\" in any two neighboring dances',
     );
     return '$_temp0';
   }
@@ -14944,9 +14943,9 @@ class AppLocalizationsEn extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'At least $count dances matching \"$search\" in any two neighbouring dances',
+          'At least $count dances matching \"$search\" in any two neighboring dances',
       one:
-          'At least 1 dance matching \"$search\" in any two neighbouring dances',
+          'At least 1 dance matching \"$search\" in any two neighboring dances',
     );
     return '$_temp0';
   }
@@ -14968,7 +14967,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String eventRuleSentenceNoneNeighbouring(String search) {
-    return 'No dance matching \"$search\" in any two neighbouring dances';
+    return 'No dance matching \"$search\" in any two neighboring dances';
   }
 
   @override
@@ -15049,8 +15048,8 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count pairs of neighbouring dances',
-      one: '1 pair of neighbouring dances',
+      other: '$count pairs of neighboring dances',
+      one: '1 pair of neighboring dances',
     );
     return '$_temp0';
   }

@@ -14280,7 +14280,7 @@
   },
   "eventRuleScopeNeighbouring": "To vilkårlige nabodanse",
   "@eventRuleScopeNeighbouring": {
-    "x-sourceSha256": "2098009794d1c49b873092bf9267a2c3acd7f659bcd01f18b75476a052cb5deb"
+    "x-sourceSha256": "d50cc2ccf014bb652fda876f4c9d7101674ed08bdfe9132f9705b722e91584d6"
   },
   "eventRuleNameLabel": "Navn (valgfrit)",
   "@eventRuleNameLabel": {
@@ -14300,7 +14300,7 @@
   },
   "eventRuleSentenceAtMostNeighbouring": "{count, plural, =1{Højst 1 dans, der matcher \"{search}\", i to vilkårlige nabodanse} other{Højst {count} danse, der matcher \"{search}\", i to vilkårlige nabodanse}}",
   "@eventRuleSentenceAtMostNeighbouring": {
-    "x-sourceSha256": "e455e7f83944957618c03dd228e396a0d0e5af6da76e774523ae60df124e1bd8"
+    "x-sourceSha256": "b5abf2968ef1b21d1e35dc3d1b7671d96c1654bb7b73acf732ee006f8c0b3208"
   },
   "eventRuleSentenceAtLeastWhole": "{count, plural, =1{Mindst 1 dans, der matcher \"{search}\", i hele programmet} other{Mindst {count} danse, der matcher \"{search}\", i hele programmet}}",
   "@eventRuleSentenceAtLeastWhole": {
@@ -14316,7 +14316,7 @@
   },
   "eventRuleSentenceAtLeastNeighbouring": "{count, plural, =1{Mindst 1 dans, der matcher \"{search}\", i to vilkårlige nabodanse} other{Mindst {count} danse, der matcher \"{search}\", i to vilkårlige nabodanse}}",
   "@eventRuleSentenceAtLeastNeighbouring": {
-    "x-sourceSha256": "30f61f4208ca855ee72d99aa29b493d0ae75bfba44d21d3077249d413fd16b92"
+    "x-sourceSha256": "67285c1fe20f6cd61469eb89f83a1eb824989f5b41fb394d03d5934fe6cd308f"
   },
   "eventRuleSentenceNoneWhole": "Ingen dans, der matcher \"{search}\", i hele programmet",
   "@eventRuleSentenceNoneWhole": {
@@ -14332,7 +14332,7 @@
   },
   "eventRuleSentenceNoneNeighbouring": "Ingen dans, der matcher \"{search}\", i to vilkårlige nabodanse",
   "@eventRuleSentenceNoneNeighbouring": {
-    "x-sourceSha256": "82bb5beae3430cb89ff916ca16bf17da69db917fbfcd601c6d80aff914b556f6"
+    "x-sourceSha256": "9e12f74da404869471ab72be8b00ec9448083ae06aed2d13dfdd43049f99a7e4"
   },
   "eventRuleSentenceUnreadable": "En regel fra en nyere version af appen",
   "@eventRuleSentenceUnreadable": {
@@ -14384,7 +14384,7 @@
   },
   "programsRuleBreachPairs": "{count, plural, =1{1 par nabodanse} other{{count} par nabodanse}}",
   "@programsRuleBreachPairs": {
-    "x-sourceSha256": "fd97a386a0219bfbc2c190f93c339463613299b8c9426a29f851975a9b751b17"
+    "x-sourceSha256": "728971ff11c39521ebeb66fd28310de339149de743d05611323488d4d31f3b96"
   },
   "programsRuleBreachDances": "Danse: {titles}",
   "@programsRuleBreachDances": {

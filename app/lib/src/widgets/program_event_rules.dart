@@ -8,6 +8,7 @@ import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../screens/settings/event_rules_screen.dart';
 import '../search/event_rule_check.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import 'event_rule_text.dart';
 import 'program_slot_list_editor.dart' show SlotRuleMarker;
@@ -279,6 +280,7 @@ Future<void> showProgramRulesPicker(
   context: context,
   isScrollControlled: true,
   showDragHandle: true,
+  sheetAnimationStyle: AppMotion.styleFor(context),
   builder: (_) => _RulesPicker(applied: applied, onChanged: onChanged),
 );
 

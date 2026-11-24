@@ -81,10 +81,9 @@ void main() {
   });
 
   testWidgets('shown by this build, which advertises glossary.v1, '
-      'glossary.v2, programTemplates.v1, savedSearches.v1, suggestions.v1 and '
-      'performSwap.v1 (#709, #1023, #2325, #2337, #2343, #2346)', (
-    tester,
-  ) async {
+      'glossary.v2, programTemplates.v1, savedSearches.v1, suggestions.v1, '
+      'performSwap.v1 and eventRules.v1 (#709, #1023, #2325, #2337, #2343, '
+      '#2346, #2340)', (tester) async {
     expect(SyncCapabilityPolicy.build.advertised, {
       SyncCapabilities.glossaryV1,
       SyncCapabilities.glossaryV2,
@@ -92,6 +91,7 @@ void main() {
       SyncCapabilities.savedSearchesV1,
       SyncCapabilities.suggestionsV1,
       SyncCapabilities.performSwapV1,
+      SyncCapabilities.eventRulesV1,
     });
     for (final path in const ['create', 'connect']) {
       await pump(tester, SyncCapabilityPolicy.build);

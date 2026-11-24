@@ -19421,7 +19421,7 @@ abstract class AppLocalizations {
   /// **'Choose how much each thing counts when dances are suggested.'**
   String get settingsSuggestionsEditorSubtitle;
 
-  /// Name of the suggestion factor that favours moves the program has not used yet and avoids moves on the same beats as the neighbouring dance.
+  /// Name of the suggestion factor that favours moves the program has not used yet and avoids moves on the same beats as the neighboring dance.
   ///
   /// In en, this message translates to:
   /// **'Variety on the matrix'**
@@ -21527,7 +21527,7 @@ abstract class AppLocalizations {
   /// **'\"{name}\" was deleted, here or on another device, so nothing was changed.'**
   String savedSearchGone(String name);
 
-  /// Header of the Event rules section in Settings > Experimental (#2340), and the title of the rules manager screen. An event rule is a sentence about a program, such as 'at most 1 dance matching Becket in any two neighbouring dances'.
+  /// Header of the Event rules section in Settings > Experimental (#2340), and the title of the rules manager screen. An event rule is a sentence about a program, such as 'at most 1 dance matching Becket in any two neighboring dances'.
   ///
   /// In en, this message translates to:
   /// **'Event rules'**
@@ -21662,7 +21662,7 @@ abstract class AppLocalizations {
   /// Event rule scope: each pair of dances next to each other, counted pair by pair; a break separates two dances, a note does not (#2340).
   ///
   /// In en, this message translates to:
-  /// **'Any two neighbouring dances'**
+  /// **'Any two neighboring dances'**
   String get eventRuleScopeNeighbouring;
 
   /// Label of the rule editor's optional name field (#2340).
@@ -21692,7 +21692,7 @@ abstract class AppLocalizations {
   /// An event rule as a sentence (#2340): counted pair by pair. {search} is the name of a saved search.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{At most 1 dance matching \"{search}\" in any two neighbouring dances} other{At most {count} dances matching \"{search}\" in any two neighbouring dances}}'**
+  /// **'{count, plural, =1{At most 1 dance matching \"{search}\" in any two neighboring dances} other{At most {count} dances matching \"{search}\" in any two neighboring dances}}'**
   String eventRuleSentenceAtMostNeighbouring(int count, String search);
 
   /// An event rule as a sentence (#2340). {search} is the name of a saved search.
@@ -21716,7 +21716,7 @@ abstract class AppLocalizations {
   /// An event rule as a sentence (#2340): counted pair by pair. {search} is the name of a saved search.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{At least 1 dance matching \"{search}\" in any two neighbouring dances} other{At least {count} dances matching \"{search}\" in any two neighbouring dances}}'**
+  /// **'{count, plural, =1{At least 1 dance matching \"{search}\" in any two neighboring dances} other{At least {count} dances matching \"{search}\" in any two neighboring dances}}'**
   String eventRuleSentenceAtLeastNeighbouring(int count, String search);
 
   /// An event rule as a sentence (#2340). {search} is the name of a saved search.
@@ -21740,7 +21740,7 @@ abstract class AppLocalizations {
   /// An event rule as a sentence (#2340). {search} is the name of a saved search.
   ///
   /// In en, this message translates to:
-  /// **'No dance matching \"{search}\" in any two neighbouring dances'**
+  /// **'No dance matching \"{search}\" in any two neighboring dances'**
   String eventRuleSentenceNoneNeighbouring(String search);
 
   /// Shown in place of an event rule's sentence when a newer version of the app wrote it and this one cannot read it (#2340).
@@ -21815,10 +21815,10 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{No matching dances} =1{1 matching dance} other{{count} matching dances}}'**
   String programsRuleBreachMatching(int count);
 
-  /// Under a broken neighbouring-dances event rule in the Rules strip: how many pairs break it (#2340).
+  /// Under a broken neighboring-dances event rule in the Rules strip: how many pairs break it (#2340).
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, =1{1 pair of neighbouring dances} other{{count} pairs of neighbouring dances}}'**
+  /// **'{count, plural, =1{1 pair of neighboring dances} other{{count} pairs of neighboring dances}}'**
   String programsRuleBreachPairs(int count);
 
   /// Under a broken event rule in the Rules strip: the dances that break it, as a list (#2340).

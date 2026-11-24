@@ -462,7 +462,7 @@ raising or lowering it.
 [Settings ▸ Experimental ▸ Event rules](./settings.md#event-rules), you can
 add your own rules to a program, such as *No dance matching "Level above 3"
 in the whole program* for a family dance, or *At most 1 dance matching
-"Becket" in any two neighbouring dances*. Each rule says which dances it means
+"Becket" in any two neighboring dances*. Each rule says which dances it means
 with one of your [saved searches](./collection.md#save-a-search-and-use-it-again).
 
 - **Rules**, beside **Insert break**, opens the rules for this program, with
@@ -473,7 +473,7 @@ with one of your [saved searches](./collection.md#save-a-search-and-use-it-again
 - **Whenever the program changes**, each of its rules is checked. A broken
   rule shows in a **Rules** strip above the program, such as **1 rule not
   met**. Open it to read each rule's sentence, how many dances match (or, for
-  neighbouring dances, which pairs break it), and the dances involved. Those
+  neighboring dances, which pairs break it), and the dances involved. Those
   dances are marked **Breaks a rule** with an icon, and a screen reader reads
   which rules.
 - **The dances a rule counts** are the program's dances, not its alternates.
@@ -482,7 +482,7 @@ with one of your [saved searches](./collection.md#save-a-search-and-use-it-again
   the strip says *If you call …*. Note and break slots never match. A dance in
   **Recently deleted** still counts, since it is still in the program; a dance
   deleted for good doesn't.
-- **Neighbouring dances** are next to each other as the
+- **Neighboring dances** are next to each other as the
   [matrix](#check-your-evening-with-the-matrix) sees them: a break in between
   means they are not, a note or waltz does not, and each alternate is compared
   with the dances on either side of its primary.
