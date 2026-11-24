@@ -53,13 +53,14 @@ match the screen (`DanceExportActions._plainText`).
   notes, provenance, link rows and custom fields. This is the PLAT-17 case.
 - **Program summary: yes, for the header.** Title, detail rows and notes. The
   set list stays out of the selectable region by default. Each row is an
-  `InkWell` that opens the dance (`program_summary_screen.dart:1335-1337`), and
+  `InkWell` that opens the dance (the `summary-slot-<id>` row in `program_summary_screen.dart`), and
   carries a mark-performed toggle (`:925-960`). A drag that starts on a row
   title would compete with that tap for little gain, since the caller wants the
   titles as a block, which the program export menu already copies. Decided:
   N5-2 = (a), header text only.
 - **Perform: excluded.** The edge zones turn pages on tap
-  (`perform_program_screen.dart:1225-1243`), the screen is entered on a
+  (the `perform-edge-prev` and `perform-edge-next` zones in
+  `perform_program_screen.dart`), the screen is entered on a
   deliberate gesture and exits on a deliberate one (`ux.md:167-179`), and a
   stray drag mid-set must never change what is on stage. A caller who wants the
   text copies it from the detail or the summary. Decided: N5-5 = (a).
