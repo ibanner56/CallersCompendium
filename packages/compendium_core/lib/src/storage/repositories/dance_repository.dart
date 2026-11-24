@@ -3962,6 +3962,36 @@ class DanceRepository {
     }
   }
 
+  /// Which of the dances [ids] match [filter], one query (#2340): how an
+  /// event rule finds the dances of a program its saved search means. A dance
+  /// in Recently deleted counts (it is still in the program); a purged one
+  /// has no row, so it never does. [dialect] and [enrichment] are the ones
+  /// [search] would use, so the rule and Collection read the search alike.
+  Future<Set<String>> matchingAmong(
+    DanceFilter filter,
+    Iterable<String> ids, {
+    Dialect? dialect,
+    SearchEnrichment? enrichment,
+  }) async {
+    final all = ids.toSet().toList();
+    final matched = <String>{};
+    for (final chunk in _chunkIds(all)) {
+      final compiled = FilterCompiler(
+        dialect,
+        enrichment,
+        _taxonomy,
+      ).compileAmong(filter, chunk);
+      final rows = await _db
+          .customSelect(
+            compiled.sql,
+            variables: [for (final b in compiled.binds) Variable(b)],
+          )
+          .get();
+      matched.addAll([for (final r in rows) r.read<String>('id')]);
+    }
+    return matched;
+  }
+
   /// Whether any dance among [ids] has a non-ASCII title (character count
   /// differs from byte count). Scans `dances` once in SQL rather than fetching
   /// the result's titles; the non-ASCII set is normally empty or tiny.
