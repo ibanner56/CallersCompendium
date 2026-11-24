@@ -42,6 +42,15 @@ void main() {
       },
     );
 
+    test('same-role neighbours read as in any hey', () {
+      // `SRN` is read only inside heys (Hudson, 2026-11-24); a 1/8 hey is one.
+      final f = _parse('Hey 1/8 (SRNL)');
+      expect(f.move, 'pass_by');
+      expect(f.params['who'], 'sameRoles');
+      expect(f.params['shoulder'], 'left');
+      expect(f.note, '1/8 hey');
+    });
+
     test('other hey fractions still read as a hey', () {
       final f = _parse('Hey 1/4 (WR;PL)');
       expect(f.move, 'hey');

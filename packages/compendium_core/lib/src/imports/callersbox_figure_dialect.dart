@@ -3697,9 +3697,9 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 ///   corpus dances) still decline the run, as they did before that ruling.
 /// - `Ph*` (phantoms), `TB*` (trail buddy), `SR*` (same-role), and bare `R`/`L`
 ///   (states a hand but no dancer at all). One exception sits outside this
-///   map: the hey decoder alone reads `SRN`/`SRN1` as `sameRoles` (see
-///   [_heyPassPeople]). Every other `SR*` code, and every other decoder,
-///   still declines.
+///   map: the hey decoders alone ([_hey], and [_eighthHey] for its single
+///   cell) read `SRN`/`SRN1` as `sameRoles` (see [_heyPassPeople]). Every
+///   other `SR*` code, and every other decoder, still declines.
 /// - `O` — the glossary's *"opposite"* (`docs/research/callersbox.md`), the
 ///   most common unmapped prefix in the corpus (72 cells, ahead of `Ph` 21 and
 ///   `SRN` 17). It is listed here because its absence was previously
