@@ -24,8 +24,9 @@ class PerformAdjustmentWrite {
 
   /// Whether the stored program was no longer the one Perform's copy was
   /// based on, so another write (Device Sync, the summary, another screen)
-  /// landed while Perform was open. The adjustment was applied on top of that
-  /// write instead of replacing it.
+  /// landed while Perform was open. Unless [refused], the adjustment was
+  /// applied on top of that write instead of replacing it; when [refused],
+  /// this is true and nothing was written.
   final bool changedUnderneath;
 
   /// Whether nothing was written because changes elsewhere made the
