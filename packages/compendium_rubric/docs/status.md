@@ -47,6 +47,18 @@
 > previously compiling dance lost. 8 dances that refused now mismatch and 3
 > that mismatched now refuse.
 >
+> **Your shadow is the same dancer all dance (2026-11-24)**: the first
+> figure naming shadows remembers who danced together, and a later one that
+> finds shadow pairs in both band phases is danced in the phase that keeps
+> those pairs together, instead of being refused (user-ruled 2026-11-23).
+> Against `rubric` at `bf4b4c06` it took the count from 4,064 of 5,258 to
+> 4,072 of 5,257 compiled in scope (77.3% to 77.5%), losing nothing; the core
+> set is unchanged at 532. 8 dances now compile, among them Shadow Boxing
+> (7967) and Needle and Thread (18914), and one now reaches a deferred
+> allemande and leaves the scope. Dances refused because both phases fit went
+> from 36 to 18; 12 of those first meet their shadow in a diagonal "chain to
+> shadow", which does not name the set.
+>
 > **The hands fours follow the dancers (2026-11-24)**: a figure naming
 > partners who are not together in the set's current grouping is danced one
 > band phase over, and the set stays grouped that way; nobody is moved to

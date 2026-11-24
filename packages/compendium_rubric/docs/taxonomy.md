@@ -464,6 +464,29 @@ rather than from your neighbor. Two further rules come with it:
 is refused if there is no choice or more than one. It does not reach a fixed distance. (This is
 how `swing` already treats every set.)
 
+**Your shadow is the same dancer all dance.** *(User-ruled 2026-11-23: once a dance names a
+shadow, it is the same dancer for the whole dance, every time through and across progressions;
+pair by that identity, and don't refuse when both band phases fit.)* The first figure naming
+`shadows` that each dancer dances remembers who they danced with (`DancerState.shadow`, kept
+through every later figure, container and progression, and never replaced; exceptions below). When a later figure finds
+shadow pairs in both band phases, it is danced in the phase whose hands fours keep every
+remembered pair together, as long as at least one such pair stands in them. If that does not
+pick exactly one phase (nobody has a shadow yet, or both phases or neither keep them), the figure
+is refused as before. *(Agent's calls, not ratified:*
+- *Identity only settles which phase. When one phase alone has shadow pairs, it is danced
+  without checking the remembered shadows, and within the chosen phase dancers still pair by
+  couple number. A dancer paired with someone other than their remembered shadow keeps the
+  remembered one, so the memory can be one-sided. Refusing on a disagreement instead is untried.*
+- *"Remembered" is the pairs danced by a figure routed through the shadows rule. A figure that
+  also names a distance set takes its phase from the distance and remembers nothing, and a
+  figure whose source text says "to shadow" without naming the set, like a diagonal ladies
+  chain, remembers nothing. Reading "chain to shadow" as naming them was measured on the
+  Caller's Box corpus and gained no dance.*
+- *At an end with nobody out, the neighbours who count as shadows there are remembered as each
+  other's shadows for the rest of the dance. A wrong memory can only make a later figure refuse,
+  never pick a wrong phase, because a phase must keep every remembered pair together.*
+- *Pairs only count where both dancers are in a hands four, not waiting out.)*
+
 **A distance set in the same figure.** A figure can name both, like a square through with the
 shadows and then the next neighbors. *(User-ruled.)* Where you meet your shadows depends on the
 progression, so there is no rule tying the two sets together to refuse on. *(Agent's call,
@@ -489,7 +512,8 @@ L2-F . . . R2-F
 - **What "a choice" is.** The choices are the two band phases: the one the figure was handed and
   the other one. The figure is danced in the phase where **every** hands four holds a shadow pair,
   and the phase it was handed is given back afterwards, as a distance set's reach is. Neither
-  phase is `whoMismatch`; both is `unresolvableDancerSet`.
+  phase is `whoMismatch`; both is `unresolvableDancerSet`, unless the remembered shadows pick
+  one (above).
 - **Waiting-out couples.** When the set is handed in the shifted phase and the shadows stand
   together in the other one, the couples waiting out at the ends are brought in and dance, and
   the hand-back marks whoever then stands at the ends as out. This is the same mechanics as a

@@ -202,6 +202,11 @@ final class Meanwhile extends _Container {
     final movedBy = <DancerId, String>{};
     final updates = <DancerId, DancerState>{};
     final refaced = <DancerId, DancerState>{};
+    // Shadows a part remembers (`DancerState.shadow`). Kept apart from the
+    // moves, because state equality leaves the memory out: a part that
+    // remembers a shadow but leaves the dancer where and as they were looks
+    // unchanged, and a later part's refacing would overwrite it.
+    final remembered = <DancerId, DancerId>{};
     for (final figure in figures) {
       final result = figure.apply(start, progressions: progressions);
       final Formation danced;
@@ -213,6 +218,10 @@ final class Meanwhile extends _Container {
       }
       for (final entry in start.dancers.entries) {
         final now = danced[entry.key];
+        final shadow = now?.shadow;
+        if (shadow != null && entry.value.shadow == null) {
+          remembered.putIfAbsent(entry.key, () => shadow);
+        }
         if (now == null || now == entry.value) continue;
         if (now.position == entry.value.position) {
           refaced[entry.key] = now;
@@ -249,7 +258,13 @@ final class Meanwhile extends _Container {
       }
       occupied[state.position] = entry.key;
     }
-    return Ok(start.withUpdates(merged));
+    return Ok(
+      start.withUpdates({
+        ...merged,
+        for (final MapEntry(key: id, value: shadow) in remembered.entries)
+          id: (merged[id] ?? start.stateOf(id)).copyWith(shadow: shadow),
+      }),
+    );
   }
 
   @override

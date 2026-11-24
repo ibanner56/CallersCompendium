@@ -238,6 +238,131 @@ void main() {
     });
   });
 
+  group('a dance keeps the shadows it first named (user-ruled 2026-11-23)', () {
+    // "Once a dance names a shadow, it is the same dancer for the whole
+    // dance": the first shadows figure remembers who danced with whom, and a
+    // later one that finds shadow pairs in both band phases picks the phase
+    // that keeps those pairs together.
+
+    Formation remembering(
+      Formation formation,
+      List<(DancerId, DancerId)> pairs,
+    ) => formation.withUpdates({
+      for (final (a, b) in pairs) ...{
+        a: formation.stateOf(a).copyWith(shadow: b),
+        b: formation.stateOf(b).copyWith(shadow: a),
+      },
+    });
+
+    // Every row a 1s couple: shadow pairs stand together in both phases.
+    final allOnes = duple([
+      'L1-A . . . R1-A',
+      'R1-C . . . L1-C',
+      'L1-E . . . R1-E',
+      'R1-G . . . L1-G',
+    ]);
+
+    test('the first shadows figure remembers each pair', () {
+      final after = applyOk(
+        const Allemande(who: WhoSet.shadows, turn: 0.5),
+        duple([
+          'L1-A . . . R1-A',
+          'R1-C . . . L1-C',
+          'L2-B . . . R2-B',
+          'R2-D . . . L2-D',
+        ]),
+      );
+
+      expect(after.stateOf(lark('A')).shadow, robin('C'));
+      expect(after.stateOf(robin('C')).shadow, lark('A'));
+      expect(after.stateOf(robin('B')).shadow, lark('D'));
+      expect(after.stateOf(lark('D')).shadow, robin('B'));
+    });
+
+    test('a remembered shadow is not replaced', () {
+      final input = remembering(
+        duple([
+          'L1-A . . . R1-A',
+          'R1-C . . . L1-C',
+          'L2-B . . . R2-B',
+          'R2-D . . . L2-D',
+        ]),
+        [(lark('A'), robin('D'))],
+      );
+      final after = applyOk(
+        const Allemande(who: WhoSet.shadows, turn: 0.5),
+        input,
+      );
+
+      expect(after.stateOf(lark('A')).shadow, robin('D'));
+    });
+
+    test('with both phases possible, the remembered pairs pick the current '
+        'one', () {
+      final input = remembering(allOnes, [
+        (lark('A'), robin('C')),
+        (robin('A'), lark('C')),
+      ]);
+      final after = applyOk(const Swing(who: WhoSet.shadows), input);
+
+      expect(bandRows(after), bandRows(input));
+      // The column pairs of the current phase swung: A with C in rows 0-1.
+      expect(at(after, lark('A')).row, lessThanOrEqualTo(1));
+      expect(at(after, robin('C')).row, lessThanOrEqualTo(1));
+    });
+
+    test('with both phases possible, the remembered pairs pick the other '
+        'one, which is handed back', () {
+      final input = remembering(allOnes, [
+        (lark('C'), robin('E')),
+        (robin('C'), lark('E')),
+      ]);
+      final after = applyOk(const Swing(who: WhoSet.shadows), input);
+
+      expect(bandRows(after), bandRows(input));
+      // One phase over, A and G stand out at the ends and do not swing.
+      for (final id in [lark('A'), robin('A'), lark('G'), robin('G')]) {
+        expect(at(after, id), at(input, id), reason: '$id');
+      }
+    });
+
+    test('without remembered pairs, both phases is still refused', () {
+      final error = applyErr(const Swing(who: WhoSet.shadows), allOnes);
+
+      expect(error.kind, ErrorKind.unresolvableDancerSet);
+    });
+
+    test('a meanwhile keeps the shadows a part remembers', () {
+      // A whole allemande leaves everyone where they stood, and the other
+      // part only turns the larks: the memory must survive both.
+      final after = applyOk(
+        const Meanwhile([
+          Allemande(who: WhoSet.shadows, turn: 1),
+          TurnAlone(who: WhoSet.role1s),
+        ]),
+        duple([
+          'L1-A . . . R1-A',
+          'R1-C . . . L1-C',
+          'L2-B . . . R2-B',
+          'R2-D . . . L2-D',
+        ]),
+      );
+
+      expect(after.stateOf(lark('A')).shadow, robin('C'));
+      expect(after.stateOf(robin('C')).shadow, lark('A'));
+      expect(after.stateOf(lark('D')).shadow, robin('B'));
+    });
+
+    test('a dancer keeps the shadow through any change of state', () {
+      final state = allOnes.stateOf(lark('A')).copyWith(shadow: robin('C'));
+
+      expect(
+        state.copyWith(facing: Facing.up, waitingOut: true).shadow,
+        robin('C'),
+      );
+    });
+  });
+
   group('a figure naming shadows and a distance set', () {
     // A figure can name both, like a square through with the shadows and then
     // the next neighbours. Where you meet your shadows depends on the

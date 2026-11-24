@@ -369,7 +369,13 @@ grand right and left the third neighbours stand *one* grouping apart, not two.
 `shadows` has no distance: `Operation.apply` routes a figure naming it through
 `_applyWithShadows`, which dances it in whichever band phase has a shadow pair
 standing together in every hands four, and hands the original phase back.
-Neither phase is `whoMismatch`; both is `unresolvableDancerSet`. A figure
+Neither phase is `whoMismatch`; both is `unresolvableDancerSet`, unless the
+dancers' remembered shadows (`DancerState.shadow`, set by the first figure
+routed through `_applyWithShadows` that each dancer dances; a `meanwhile`
+carries a part's memory across its merge) are kept together by exactly one
+phase, which is then used (user-ruled 2026-11-23; `_identityPicksCurrent`).
+The memory only breaks that tie; the agent's calls around it are listed in
+`docs/taxonomy.md`, "Shadows". A figure
 that also names a distance set is danced in the phase the distance picks, and
 the shadows pairing rule is not applied (the agent's call, following the
 user's ruling that nothing ties the two sets together). Only `dancerSets` choose the phase, so the
