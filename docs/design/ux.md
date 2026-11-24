@@ -373,6 +373,12 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   dance takes the group's primary (an alternate being called is promoted)
   and the swapped-out dance an unmarked alternate, so calling history counts
   only the dance called; Undo restores the program exactly.
+- Swap ordered by suggestions (#2348, Experimental): with Suggestions and its
+  **Use in Perform's Swap this dance** both on, the swap sheet opens in
+  **Suggested** for the swapped slot's place, with no extra step: Your
+  alternates first and unranked, the results below with the builder's reason
+  line and **Why?**. Same dances either way; the plain order shows, tappable,
+  until the ranking arrives. With either off, as #2346.
 
 ### 6. Settings
 - **Dialect manager**: named dialects, preset picker, role/move term editor
