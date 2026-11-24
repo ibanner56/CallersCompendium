@@ -964,6 +964,19 @@ steps that can still fire are v40 onward.
   for the key), and are stripped from share files; clearing the key clears
   them. Added by the same step, after the times, each only if absent; no data
   rewritten.
+  Also in v42, before it shipped: placeholder slots (#2338). Adds one nullable
+  `program_slots` column, `placeholder_search_id`
+  (`ProgramSlot.placeholderSearchId`): the id of the saved search (a
+  `saved_search:` settings value) an unfilled placeholder slot made from a
+  program template's slot rule is to be filled from; NULL on every other slot,
+  and cleared when the slot gets a dance. It syncs (`slots.placeholderSearchId`),
+  is kept in backups (envelope v3) and is stripped from share files and the
+  programs CSV. Added by the same `from < 42` step, after the calendar
+  columns, only if absent (`_ensureV42PlaceholderSearchId`); no data
+  rewritten, no derived rebuild. The template side needs no schema: a slot rule
+  is an entry `{"savedSearchId", "label"}` in a `program_template:` settings
+  value, which is then written at template `version` 2 (a template without a
+  rule stays version 1, byte for byte).
 
   Because test builds stamped v42 before these later pieces joined it,
   `beforeOpen` also ensures v42's pieces on every open of a file at v42 or
