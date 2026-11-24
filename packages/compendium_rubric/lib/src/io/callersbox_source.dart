@@ -675,8 +675,18 @@ core.Figure _mainFigure(core.Figure figure) =>
 ///   it happens.
 /// - Otherwise its **first diagonal chain or pass through along the set**
 ///   progresses (user-ruled 2026-11-23), or its first diagonal right and left
-///   through (agent's call 2026-11-24). Only a Becket dance with none of these
-///   falls back to the last figure.
+///   through (agent's call 2026-11-24).
+/// - In a **single-progression dance whose only slide or slice** (counting
+///   those inside containers, but not a Rory O'More's slide) is one couple
+///   sliding once along the set, a `slide_along_set` or a straight slice by
+///   couple, that slide counts as a move along the set too, in either
+///   direction and wherever it falls, so the first of it and the moves above
+///   progresses. Hudson ruled this for Apogee (report note, 2026-11-24: "the
+///   slide_along_set right is the progression"); applying it to every such
+///   dance, and its limits, are the agent's calls. A dance whose source
+///   states no progression tier imports as single and is included.
+///
+/// Only a Becket dance with none of these falls back to the last figure.
 ///
 /// Outside Becket, an **arch and dive straight after a hall figure**
 /// progresses (user-ruled 2026-11-24): "in a line of four, go up the hall;
@@ -721,7 +731,29 @@ int? assumedProgressionIndex(core.Dance dance) {
     // end until a figure or two later; the compiler holds the progression
     // until they do (`OperationInvocation.applyHolding`); a diagonal right and
     // left through is its own progression and is never held.
+    //
+    // In a single-progression dance whose only slide or slice is one couple
+    // sliding once, that slide is a move along the set too, in either
+    // direction (Hudson's Apogee note, 2026-11-24; generalising it is the
+    // agent's call). Slides inside containers count towards "only"; a Rory
+    // O'More's slide does not count at all, since a Rory O'More is not its
+    // own progression (agent's call).
+    var slideCount = 0;
+    int? slideIndex;
     for (var index = 0; index < figures.length; index++) {
+      if (_slidesTheWave(figures, index)) continue;
+      final here = _slidesIn(figures[index]);
+      if (here > 0) slideIndex = index;
+      slideCount += here;
+    }
+    final soleSlide =
+        dance.progression == core.Progression.single &&
+            slideCount == 1 &&
+            _slidesAlongTheSet(_mainFigure(figures[slideIndex!]))
+        ? slideIndex
+        : null;
+    for (var index = 0; index < figures.length; index++) {
+      if (index == soleSlide) return index;
       if (_movesAlongTheSet(_mainFigure(figures[index]))) return index;
     }
   }
@@ -759,6 +791,23 @@ bool _movesAlongTheSet(core.Figure figure) => switch (figure.move) {
   },
   _ => false,
 };
+
+/// Whether [figure] is one couple sliding once along the set: a
+/// `slide_along_set`, or a `slice` by couple with a straight return (a
+/// diagonal return is a double slice, and a slice by dancer is deferred).
+bool _slidesAlongTheSet(core.Figure figure) => switch (figure.move) {
+  'slide_along_set' => true,
+  'slice' =>
+    (figure.params['return'] ?? 'straight') == 'straight' &&
+        (figure.params['by'] ?? 'couple') == 'couple',
+  _ => false,
+};
+
+/// How many `slide_along_set` and `slice` figures [figure] is or contains,
+/// counting every child of a container.
+int _slidesIn(core.Figure figure) =>
+    (const {'slide_along_set', 'slice'}.contains(figure.move) ? 1 : 0) +
+    figure.subFigures.fold(0, (sum, child) => sum + _slidesIn(child));
 
 /// The one alternative placement the *record itself* suggests, for when the
 /// positional rule of [assumedProgressionIndex] does not compile.
