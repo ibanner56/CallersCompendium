@@ -84,7 +84,8 @@ B2: (8) Ladies chain to neighbor / (8) Star left 1
 - Operators: `;` then · `,`/`||` while (a literal `while` also appears in
   prose, e.g. `long lines … while N2 neighbor roll away (…)`; the importer reads
   the core+modifier pairings only, #1415) · `[]` who does it · `()` detail ·
-  `~` partial hey pass · `//` either-or · `&` in fractions (`1 & 1/2`) ·
+  `~` partial hey pass (on a hey's last pass the importer keeps it as the note
+  `last pass partial`) · `//` either-or · `&` in fractions (`1 & 1/2`) ·
   `" "` spoken vs `' '` literal-from-source.
 - Rotation amounts: allemandes in quarters (`allemande left 1 & 1/2`), circles/
   stars in full turns (`Circle left 3/4`), heys in fractions with pass lists

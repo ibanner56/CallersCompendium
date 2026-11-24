@@ -187,7 +187,7 @@ const _passerMemberships = {
 /// Shared by [Cast] and by a [HallFigure] led by part of the set, which move
 /// the set the same way *(user-ruled 2026-11-23)*. Only the active hands fours
 /// are read: a couple standing out at an end is outside every one of them, and
-/// no figure moves it (`end_normalization.dart`). A mover with nobody beside it
+/// no figure takes it out of its end row (`end_normalization.dart`). A mover with nobody beside it
 /// in that direction, or whose neighbour there is moving too, is refused
 /// ([ErrorKind.unresolvableDancerSet]); so is a plan that moves nobody.
 ///

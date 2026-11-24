@@ -6,7 +6,9 @@ part of '../operation.dart';
 /// A swing is a *normalizing* figure: the finishing placement is
 /// lark-left / robin-right relative to [face], and the pair's own starting
 /// arrangement is discarded. Placement is set by `where` × `face`; [who] only
-/// **validates** the pairing.
+/// **validates** the pairing, except that an N0 (`prevNeighbors`) swing also
+/// turns a couple waiting out at an end in place, facing into the set (see
+/// [_waitingCouplesSwing]).
 ///
 /// Only `where: sides` is implemented. It is the case both golden fixtures use,
 /// and the one the taxonomy marks *verified*; `where: center` is partly
@@ -193,7 +195,7 @@ final class Swing extends Operation {
   Result<Formation, OpError> perform(Formation formation) {
     final ownRow = _ownRowSwing(formation);
     if (ownRow != null) return Ok(formation.withUpdates(ownRow));
-    final changes = <DancerId, DancerState>{};
+    final changes = <DancerId, DancerState>{..._waitingCouplesSwing(formation)};
     for (final band in handsFourBands(formation)) {
       for (final pair in _columnPairs(formation, band)) {
         final members = [pair.top, pair.bottom];
@@ -219,6 +221,47 @@ final class Swing extends Operation {
       }
     }
     return Ok(formation.withUpdates(changes));
+  }
+
+  /// The couples waiting out at an end of the set when the swing names the
+  /// previous neighbours (N0): each has no N0 there, so the partners swing each
+  /// other and normalize facing into the set, which swaps their sides
+  /// *(user-ruled 2026-11-24, Haven't We Met Before?: "couple waiting out at
+  /// the top after N0 balance+swing should still swing and normalize (swap
+  /// places)")*.
+  ///
+  /// Only a whole couple standing alone across its end row, both waiting out
+  /// in the grouping the swing is danced in (`FigureFold` may dance it one
+  /// band phase over), is moved. Limiting it to `prevNeighbors` is the maintainer's choice
+  /// ("go with option A for now"): read for every distance set it compiled
+  /// eight more Caller's Box dances and lost four. A stated `face` is not
+  /// applied to them, and at the top of a Duple Proper set they stand crossed,
+  /// as end normalization leaves them (the agent's calls).
+  Map<DancerId, DancerState> _waitingCouplesSwing(Formation formation) {
+    if (who != WhoSet.prevNeighbors) return const {};
+    final changes = <DancerId, DancerState>{};
+    for (final row in {0, formation.rowCount - 1}) {
+      final ids = formation.dancersInRow(row).toList();
+      if (ids.length != 2 || ids[0].coupleIndex != ids[1].coupleIndex) {
+        continue;
+      }
+      if (ids.any((id) => !formation.stateOf(id).waitingOut)) continue;
+      final facing = row == 0 ? Facing.down : Facing.up;
+      final normal = normalizeAlongHall(row: row, facing: facing);
+      // At the top of a proper set a couple facing down stands crossed, as end
+      // normalization places it (`FormationType.topEndCrossed`).
+      final crossed = row == 0 && formation.type.topEndCrossed;
+      for (final id in ids) {
+        final isLark = (id.role == Role.lark) != crossed;
+        changes[id] = formation
+            .stateOf(id)
+            .copyWith(
+              position: isLark ? normal.lark : normal.robin,
+              facing: facing,
+            );
+      }
+    }
+    return changes;
   }
 
   /// `face: in` / `face: out` — the pair stays stacked in its own column.
