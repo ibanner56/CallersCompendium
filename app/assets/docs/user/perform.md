@@ -279,8 +279,10 @@ on screen any change you made after it that is still being saved, and says
 *This program changed on another device, so one of your changes wasn't saved.
 Check the program and make it again if you still want it.* If you have already
 left Perform, the message appears on the screen you returned to instead. A
-change you are making in the adjust sheet when this happens is put on the
-program as it now is when you close the sheet.
+change you are making in the adjust sheet when this happens, or when a newer
+program arrives, is put on the program as it now is when you close the sheet,
+unless it would land on the wrong dance in the same way: then it isn't saved,
+and the same message appears.
 
 If you have set calling history to count
 only slots marked performed, this is where you mark them — see

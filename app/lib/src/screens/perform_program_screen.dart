@@ -1243,8 +1243,30 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     // sheet edited the program it opened with, so apply only its own edits,
     // onto the program now shown: applying [edited] whole would bring back
     // what was taken back and undo what came from elsewhere.
+    // The same check the owner makes against the stored program
+    // ([performAdjustmentStillApplies]) is made here against the program
+    // shown: once rebased, the owner sees only the rebased edit, and could not
+    // tell that, say, a performed mark made on one dance would land on
+    // another.
     var adjusted = edited;
     if (!identical(_program, opened)) {
+      if (!performAdjustmentStillApplies(
+        before: opened.slots,
+        after: edited.slots,
+        onto: _program.slots,
+      )) {
+        _undoable = null;
+        _undoPrompt = null;
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              key: const ValueKey('perform-swap-refused'),
+              content: Text(AppLocalizations.of(context).performSwapRefused),
+            ),
+          );
+        return;
+      }
       final slots = renumberSlots(
         rebaseSlotEdits(
           before: opened.slots,
@@ -1252,7 +1274,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           onto: _program.slots,
         ),
       );
-      if (listEquals(slots, _program.slots)) return;
+      if (listEquals(slots, renumberSlots(_program.slots))) return;
       adjusted = _program.copyWith(
         slots: slots,
         updatedAt: DateTime.now().toUtc(),

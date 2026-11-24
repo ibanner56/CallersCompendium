@@ -849,6 +849,44 @@ void main() {
     expect(find.text('Current Reel'), findsWidgets);
   });
 
+  testWidgets('a performed mark made in a sheet opened before a refusal '
+      'landed is not put on the dance the refusal brought back', (
+    tester,
+  ) async {
+    final firstWrite = Completer<PerformAdjustmentResult?>();
+    var writes = 0;
+    final h = await _pump(
+      tester,
+      onProgramChanged: (_, _) =>
+          writes++ == 0 ? firstWrite.future : Future.value(),
+    );
+    // A: swap the dance being called; its write is held.
+    await _openAdjust(tester);
+    await _tap(tester, find.byKey(const ValueKey('adjust-swap-current')));
+    await _tap(tester, _pick('match'));
+    await _tap(tester, find.byKey(const ValueKey('adjust-done')));
+    // The sheet opens again on the swapped program.
+    await _openAdjust(tester);
+    // A is refused while it is open: another device changed s4.
+    final stored = _program([
+      for (final slot in _slots())
+        slot.id == 's4'
+            ? slot.copyWith(performedAt: DateTime.utc(2026, 1, 1, 21))
+            : slot,
+    ]);
+    firstWrite.complete(PerformAdjustmentResult.refused(stored));
+    await tester.pumpAndSettle();
+    // B, in the sheet opened before the refusal: mark the dance being
+    // called, which that sheet still shows as the swapped-in one, performed.
+    await _tap(tester, find.byKey(const ValueKey('adjust-mark-performed')));
+    await _tap(tester, find.byKey(const ValueKey('adjust-done')));
+
+    // Nothing is sent for B: s1 holds d1 again, not the dance B was marking.
+    expect(h.persisted, hasLength(1));
+    expect(find.byKey(const ValueKey('perform-swap-refused')), findsOneWidget);
+    expect(find.byKey(const ValueKey('perform-adjusted-undo')), findsNothing);
+  });
+
   testWidgets('a swap refused after Perform has closed takes down the Undo '
       'prompt and says so on the screen Perform was opened from, leaving that '
       'screen\'s own messages alone', (tester) async {
