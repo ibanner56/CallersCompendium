@@ -799,6 +799,60 @@ void main() {
       }
     });
 
+    test('a hall figure noted "backwards" backs along the hall', () {
+      // Caller's Box "go up the hall (backwards)" arrives as a note.
+      // Agent's call 2026-11-24.
+      core.Figure hall(
+        String? note, [
+        Map<String, Object?> params = const {},
+      ]) =>
+          core_test.testFigure(move: 'up_the_hall', params: params, note: note);
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleImproper,
+        figures: [
+          hall('backwards'),
+          hall('backwards; with nextNeighbors'),
+          hall('backwards', {'facing': 'forward'}),
+          hall(null),
+          hall('ones follow twos'),
+          hall('backwards', {'who': 'ones'}),
+        ],
+      );
+      final facings = [
+        for (final record
+            in bridgeCoreDance(dance).record['figures']! as List<Object?>)
+          ((record! as Map<String, Object?>)['params']!
+              as Map<String, Object?>)['facing'],
+      ];
+      expect(facings, ['backward', 'backward', 'forward', null, null, null]);
+    });
+
+    test('inside a container too', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleImproper,
+        figures: [
+          core.Figure.modifier(
+            figures: [
+              core_test.testFigure(move: 'up_the_hall', note: 'backwards'),
+              figure('turn_alone'),
+            ],
+            beats: 8,
+          ),
+        ],
+      );
+      final container =
+          (bridgeCoreDance(dance).record['figures']! as List<Object?>).first!
+              as Map<String, Object?>;
+      final children =
+          (container['params']! as Map<String, Object?>)['figures']!
+              as List<Object?>;
+      expect(
+        ((children.first! as Map<String, Object?>)['params']!
+            as Map<String, Object?>)['facing'],
+        'backward',
+      );
+    });
+
     test('a modifier carries a container child to the record as a figure', () {
       final dance = _shapedLike(
         shape: core.FormationShape.dupleImproper,
@@ -903,6 +957,62 @@ void main() {
           figure('pass_through', {'where': 'along'}),
           figure('swing'),
         ],
+      );
+      expect(assumedProgressionIndex(dance), 2);
+    });
+
+    test('an arch and dive straight after a hall figure progresses', () {
+      // User-ruled 2026-11-24: the line bends into a ring and the arch and
+      // dive carries the couples on.
+      for (final hall in ['up_the_hall', 'down_the_hall']) {
+        final dance = _shapedLike(
+          shape: core.FormationShape.dupleImproper,
+          figures: [
+            figure('down_the_hall'),
+            figure(hall),
+            figure('arch_and_dive', {'who': 'ones'}),
+            figure('swing'),
+            figure('long_lines'),
+          ],
+        );
+        expect(assumedProgressionIndex(dance), 2, reason: hall);
+      }
+    });
+
+    test('the first arch and dive after a hall figure is the one taken', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleImproper,
+        figures: [
+          figure('down_the_hall'),
+          figure('arch_and_dive'),
+          figure('up_the_hall'),
+          figure('arch_and_dive'),
+          figure('swing'),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 1);
+    });
+
+    test('a Becket dance does not progress on an arch after a hall figure', () {
+      // The rule is ruled for the line of four in an improper set; a Becket
+      // dance with no move along the set keeps its last figure.
+      final dance = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        figures: [
+          figure('circle'),
+          figure('down_the_hall'),
+          figure('arch_and_dive'),
+          figure('swing'),
+          figure('long_lines'),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 4);
+    });
+
+    test('an arch and dive after anything else does not', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleImproper,
+        figures: [figure('circle'), figure('arch_and_dive'), figure('swing')],
       );
       expect(assumedProgressionIndex(dance), 2);
     });
