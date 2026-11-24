@@ -950,7 +950,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,621 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,627 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across and single file along the set built.
 - **53 figures registered**, plus the three containers (`modifier`,
@@ -1018,7 +1018,8 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
   `unsupportedParam` — notably `along` `right_left_through` and a diagonal one
   with couples already waiting out,
   `chain dir:along`, `swing where:center`, `long_lines goBack:false`, and
-  `hey`'s partial lengths and non-`across` `dir`, and a `circular_hey` `who2`
+  `hey`'s `betweenHalfAndFull` length, a `lessThanHalf` one that does not stop
+  at the next neighbours or has a ricochet, and non-`across` `dir`, and a `circular_hey` `who2`
   reaching another hands four (`shadows` there is a parse-time deferral), and
   a `cast` left or right, of more than one place, with no direction, places or
   casters, or to a stated destination. Three

@@ -3221,9 +3221,9 @@ To be defined later with worked examples.
   - `pass2` — dancer set, **nullable**. The pair who dance the **second** pass. Normally an
     **anchor** on the side pass (see below); in a side-opening hey it is instead the **selector**
     for the centre pair, and its absence is a refusal.
-  - `meetTarget` — dancer set, **nullable**. Whom the `pass1` pair meet when the weave stops part
-    way. Meaningful only for the deferred partial lengths; carried for record fidelity, no
-    end-state effect.
+  - `meetTarget` — dancer set, **nullable**. Whom the dancers meet when the weave stops part
+    way. A `lessThanHalf` hey is danced only when it is stated (see below); it is carried for
+    record fidelity and has no further end-state effect.
   - `shoulder` — hand, default `right`. Which shoulder passes. **Styling only**, as for `pass_by`.
   - `where` — direction, default `across`. The axis the line of four lies along.
   - `rico1`–`rico4` — flags, default `false`. Ricochets, numbered by centre meeting.
@@ -3247,7 +3247,8 @@ To be defined later with worked examples.
 - **effect:** In each complete hands four, read the band as an across-the-set line of four
   (`west-outer, west-inner | east-inner, east-outer`). The **inner** two are whichever pair
   `pass1` names; the remaining two are the ends **by construction**. Exchange each pair within its
-  own slot per the parity rule below. Facing is left `flexible`.
+  own slot per the parity rule below (three passes, `lessThanHalf`, place differently; see
+  below). Facing is left `flexible`.
 - **state-dependent on purpose.** From a Duple Improper start with `pass1: role2s` the Robins are
   diagonally opposite, so this reads as the familiar same-role **diagonal** swap; had the named
   pair been standing across a rank, the identical rule yields a **within-rank** exchange.
@@ -3335,13 +3336,36 @@ To be defined later with worked examples.
   | `rico1` (the Larks, who meet first) | `[[R2-B . . . L2-B], [L1-A . . . R1-A]]` |
   | `rico2` (the Robins) | `[[R1-A . . . L1-A], [L2-B . . . R2-B]]` |
   | `rico1` + `rico3` | identity |
+- **⭐ three passes, stopping to face the next neighbours** *(user-ruled 2026-11-24: Caller's
+  Box's "Hey 1/2 (…); face N2", and only that wording, is a less-than-half hey stopping at the
+  next neighbours)*. The Caller's Box bridge reads that half hey as `length: lessThanHalf,
+  meetTarget: nextNeighbors`, unless it has a ricochet on either centre meeting or a last pass
+  marked partial ("~"), which are left as the import read them (agent's call). The weave stops
+  where the last pass of a half hey would begin. Any other `meetTarget` (a ContraDB "hey until
+  partners meet", say) is refused. From the half-hey table above:
+  - **opening in the centre**, the line after pass 3 is `c d a b`: each centre ends in the place of
+    the end on the far side, and that end in the centre's, so in the standard Duple Improper
+    hands four `[[R1-A . . . L1-A], [L2-B . . . R2-B]]` (`pass1: role2s`) every couple crosses
+    the set in its own row: `[[L1-A . . . R1-A], [R2-B . . . L2-B]]`. Each dancer ends facing the
+    one they would have passed next, along the side.
+  - **opening on the side**, the walk above gives `d b c a` after pass 3: the `pass2` pair, who
+    met in the centre, exchange and the other pair end where they started. On The Carousel's
+    post-allemande state with `pass1: partners, pass2: role1s` that is
+    `[[R2-B . . . L2-B], [L1-A . . . R1-A]]`.
+
+  Measured on the Caller's Box mirror against `rubric` at `62ff7198`, this compiles four dances
+  that failed before and loses *Roll Reversal* (10697), which compiled only with the fourth pass;
+  shipping it with that loss was Hudson's call (2026-11-24).
 - **preconditions:**
   - `where != across` → `unsupportedParam`. The diagonals lay the line of four across more than one
     hands four, and are **deferred**: they would have to agree with diagonal `right_left_through`,
     which is now built (agent's call 2026-11-24, not yet ratified).
-  - `length` of `lessThanHalf` / `betweenHalfAndFull` → `unsupportedParam`. They stop the weave
-    mid-pass, leaving dancers in the middle of the set rather than in the corners the matrix is
-    defined over (fundamentals §8). "Valid but out of scope", not "malformed".
+  - `length` of `betweenHalfAndFull` → `unsupportedParam`. It stops the weave mid-pass, leaving
+    dancers in the middle of the set rather than in the corners the matrix is defined over
+    (fundamentals §8). "Valid but out of scope", not "malformed".
+  - `length` of `lessThanHalf` with a `meetTarget` other than `nextNeighbors`, or with `rico1`
+    or `rico2` →
+    `unsupportedParam`. Only the three-pass reading below is built.
   - `rico3` / `rico4` below a **full** hey → `unsupportedParam`. Each pair has only one centre
     meeting in a half, so these name a meeting that never happens — refused rather than ignored.
   - `pass1` resolves to neither **one spanning pair** nor **two same-side pairs covering the hands
@@ -3350,7 +3374,8 @@ To be defined later with worked examples.
   - A side opening with `pass2` absent, or with a `pass2` that names no single spanning pair →
     `unresolvableDancerSet`. There the anchor is the only thing that can identify the centres.
   - A side opening is danced at `half` and `full`, like a centre opening (user-ruled
-    2026-11-23); its partial lengths are refused by the `length` bullet above. Ricochets are
+    2026-11-23), and at `lessThanHalf` as three passes (see above); `betweenHalfAndFull` is
+    refused by the `length` bullet above. Ricochets are
     **not** refused there; see the side-opening section above.
   - A band holds other than four dancers, or there is **no complete hands four** →
     `unresolvableDancerSet`.

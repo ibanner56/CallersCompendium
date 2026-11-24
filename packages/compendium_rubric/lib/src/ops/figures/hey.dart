@@ -2,11 +2,13 @@ part of '../operation.dart';
 
 /// How much of the weave a `hey` dances.
 ///
-/// The two partial lengths are represented but not implemented: they stop the
-/// weave mid-pass, with two dancers standing in the middle of the set rather
-/// than in the corners the matrix is defined over (`docs/fundamentals.md` §8).
-/// Representing them is what lets the refusal say "valid but out of scope"
-/// rather than "malformed", the same stance [Direction] takes.
+/// [lessThanHalf] is danced only as three passes stopping to face the next
+/// neighbours (see [HeyForFour.meetTarget]). [betweenHalfAndFull] is
+/// represented but not implemented: it stops the weave mid-pass, with two
+/// dancers standing in the middle of the set rather than in the corners the
+/// matrix is defined over (`docs/fundamentals.md` §8). Representing it is what
+/// lets the refusal say "valid but out of scope" rather than "malformed", the
+/// same stance [Direction] takes.
 enum HeyLength {
   lessThanHalf('lessThanHalf'),
   half('half'),
@@ -23,8 +25,8 @@ enum HeyLength {
   /// A half hey is four passes: the centres meet, everyone passes at the ends,
   /// the *other* pair meets in the centre, and everyone passes at the ends
   /// again. So each pair meets once. A full hey is that twice over, hence two
-  /// meetings each. Only consulted for the supported lengths — the partial ones
-  /// are refused before this is read.
+  /// meetings each. Only consulted for `half` and `full`: three passes are
+  /// placed by their own rule, and `betweenHalfAndFull` is refused.
   int get centerMeetingsPerPair => this == HeyLength.full ? 2 : 1;
 
   static HeyLength? fromKey(String key) {
@@ -152,10 +154,12 @@ final class HeyForFour extends Operation {
   /// reported through [WarningKind.anchorMismatch] when the two disagree.
   final WhoSet? pass2;
 
-  /// Who the [pass1] pair are to meet when the weave stops part way.
+  /// Whom the dancers are to meet when the weave stops part way.
   ///
-  /// Meaningful only for the partial lengths, which are deferred, so this is
-  /// carried for record fidelity and has no end-state effect.
+  /// It decides whether a [HeyLength.lessThanHalf] hey is danced: only
+  /// `nextNeighbors` is, as three passes (user-ruled 2026-11-24 for Caller's
+  /// Box's "Hey 1/2 (…); face N2"); any other target, such as a ContraDB "hey
+  /// until partners meet", is refused. It has no further end-state effect.
   final WhoSet? meetTarget;
 
   /// Which shoulder passes. Styling; no positional effect, as for [PassBy].
@@ -198,8 +202,16 @@ final class HeyForFour extends Operation {
         'diagonal right_left_through',
       );
     }
-    if (length == HeyLength.lessThanHalf ||
-        length == HeyLength.betweenHalfAndFull) {
+    if (length == HeyLength.lessThanHalf &&
+        (meetTarget != WhoSet.nextNeighbors || rico1 || rico2)) {
+      return OpError(
+        ErrorKind.unsupportedParam,
+        'hey length:lessThanHalf is modelled only as three passes stopping '
+        'to face the next neighbours (meetTarget:nextNeighbors), without a '
+        'ricochet',
+      );
+    }
+    if (length == HeyLength.betweenHalfAndFull) {
       return OpError(
         ErrorKind.unsupportedParam,
         'hey length:${length.key} stops the weave mid-pass, with dancers '
@@ -210,7 +222,8 @@ final class HeyForFour extends Operation {
     if ((rico3 || rico4) && length != HeyLength.full) {
       return OpError(
         ErrorKind.unsupportedParam,
-        'hey length:${length.key} gives each pair one centre meeting, so '
+        'hey length:${length.key} gives each pair at most one centre '
+        'meeting, so '
         '${rico3 ? 'rico3' : 'rico4'} names a meeting that never happens; only '
         'a full hey has a second one',
       );
@@ -449,6 +462,38 @@ final class HeyForFour extends Operation {
     return happened.isOdd;
   }
 
+  /// The first three passes of a hey and no more, stopping where the last
+  /// pass would begin (user-ruled 2026-11-24: "Hey 1/2 …; face N2" stops
+  /// before its last pass, facing the next neighbours). Numbering the line
+  /// `a b c d`:
+  ///
+  /// - **opening in the centre**, three passes give `c d a b`: each centre
+  ///   dancer ends in the place of the end dancer on the far side, and that
+  ///   end dancer in the centre's;
+  /// - **opening on the side**, they give `d b c a`: the pair who meet in the
+  ///   centre exchange, and the other pair end where they started.
+  ///
+  /// Either way it is the half hey's `d c b a` without its last pass.
+  void _threePasses(
+    Formation formation,
+    Map<DancerId, DancerState> changes,
+    _HeyLine line,
+  ) {
+    if (line.sideStart) {
+      _place(formation, changes, line.centers, exchange: true);
+      _place(formation, changes, line.ends, exchange: false);
+      return;
+    }
+    bool isWest(DancerId id) =>
+        formation.stateOf(id).position.col < kColumnCount ~/ 2;
+    for (final center in [line.centers.a, line.centers.b]) {
+      final farEnd = isWest(line.ends.a) != isWest(center)
+          ? line.ends.a
+          : line.ends.b;
+      _place(formation, changes, (a: center, b: farEnd), exchange: true);
+    }
+  }
+
   /// Places [pair], exchanged or not, and hands their facing to the next
   /// figure: a hey ends mid-flow, and what a dancer is looking at depends on
   /// what is called next (`docs/fundamentals.md` §6).
@@ -474,6 +519,12 @@ final class HeyForFour extends Operation {
   Result<Formation, OpError> perform(Formation formation) =>
       _lines(formation).map((lines) {
         final changes = <DancerId, DancerState>{};
+        if (length == HeyLength.lessThanHalf) {
+          for (final line in lines) {
+            _threePasses(formation, changes, line);
+          }
+          return formation.withUpdates(changes);
+        }
         for (final line in lines) {
           _place(
             formation,

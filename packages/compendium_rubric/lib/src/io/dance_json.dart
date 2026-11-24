@@ -439,7 +439,7 @@ Operation _buildHey(_Params p) => HeyForFour(
   length: p.enumOr(['length'], HeyLength.fromKey, HeyLength.half),
   // Both of these arrive as the `unspecified` sentinel far more often than not,
   // which `_Params` already reads as absent. `pass2` is an anchor and
-  // `meetTarget` only speaks to the deferred partial lengths, so neither
+  // `meetTarget` only decides whether a lessThanHalf hey is danced, so neither
   // selects anybody.
   pass2: p.optionalWhoBesidesShadows(['pass2']),
   meetTarget: p.optionalWhoBesidesShadows(['meetTarget']),
