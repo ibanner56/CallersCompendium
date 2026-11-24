@@ -150,7 +150,11 @@ void main() {
     expect(_fieldText(tester), '(8) Swing');
   });
 
-  for (final platform in [TargetPlatform.android, TargetPlatform.linux]) {
+  for (final platform in [
+    TargetPlatform.android,
+    TargetPlatform.linux,
+    TargetPlatform.windows,
+  ]) {
     testWidgets('on ${platform.name}, From an image… is absent and the sheet '
         'still works', (tester) async {
       debugDefaultTargetPlatformOverride = platform;
@@ -165,16 +169,12 @@ void main() {
     });
   }
 
-  test('iOS, macOS and Windows get the native recognizer; the rest none', () {
+  test('iOS and macOS get the native recognizer; the rest none', () {
     for (final platform in TargetPlatform.values) {
       final service = textRecognitionServiceFor(platform, isWeb: false);
       expect(
         service != null,
-        const {
-          TargetPlatform.iOS,
-          TargetPlatform.macOS,
-          TargetPlatform.windows,
-        }.contains(platform),
+        const {TargetPlatform.iOS, TargetPlatform.macOS}.contains(platform),
         reason: platform.name,
       );
     }
