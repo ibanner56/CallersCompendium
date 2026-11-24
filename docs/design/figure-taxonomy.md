@@ -2455,7 +2455,8 @@ instead, which the gate cannot see.
     or two); a circle or star a `size` from two to eight dancers, three
     included. A forward and back has contra's `goBack` (off: a forward
     only, 4 beats), and a promenade a `direction`, contra's spin tokens,
-    defaulting to `counterclockwise`, which the display leaves unsaid
+    defaulting to `counterclockwise`, which the display leaves unsaid; a
+    wrong-way promenade is `clockwise`, not a `variant`
     (both added to v1 before it shipped, on Hudson's answers of 24
     November 2026). `squareCallPrograms`
     labels the calls

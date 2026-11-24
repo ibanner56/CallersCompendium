@@ -1408,7 +1408,10 @@ The maintainer answered two questions from the held-squares archive work on
    which say less once dancers face out). The default is concrete, not
    `unspecified`, and the display names only a clockwise promenade.
    "Turn right in single file" (Appendix A.2) is stored as the way the
-   dancers actually travel round the set.
+   dancers actually travel round the set. A wrong-way promenade is stored as
+   `direction: clockwise`, so `variant` drops §7.1's `wrongWay`, which the
+   counter-clockwise default would contradict (this ADR author's call; no
+   held square uses it).
 
 ---
 

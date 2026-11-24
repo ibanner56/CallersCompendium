@@ -720,7 +720,8 @@ back to adding up their calls, and **Undo** puts them back.
 The "forward again" in such a line is a **forward and back** with **Go back**
 turned off: it reads "forward", and on its own it counts 4 beats rather than
 8. A **promenade** goes counter-clockwise unless you set its **Direction**
-to clockwise, which is the only way it then says.
+to clockwise, which is the only way it then says. A wrong-way promenade is
+a clockwise one.
 
 If a dance holds figures of another type than its own, for example English
 figures in a dance you have just changed to contra, **Warnings** says how

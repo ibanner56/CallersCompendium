@@ -9,7 +9,7 @@
   },
   "core": {
     "changed": [
-      "Square taxonomy v1, amended before release: sq_forward_and_back takes goBack (default true; off, 4 beats) and sq_promenade takes direction (spinDirection, default counterclockwise, silenced in the display)."
+      "Square taxonomy v1, amended before release: sq_forward_and_back takes goBack (default true; off, 4 beats) and sq_promenade takes direction (spinDirection, default counterclockwise, silenced in the display); a wrong-way promenade is direction clockwise, so variant no longer offers wrongWay."
     ]
   }
 }

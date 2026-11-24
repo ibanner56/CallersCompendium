@@ -234,6 +234,18 @@ void main() {
       // With "and back" off, a forward only is half that (Hudson, 24
       // November 2026).
       expect(_beats('sq_forward_and_back', {'goBack': false}), 4);
+      // A forward only's 4 is typical; a forward and back in 4 is not.
+      List<String> codes(Map<String, Object?> params) => _square
+          .validateFigure(
+            testFigure(move: 'sq_forward_and_back', params: params),
+          )
+          .map((i) => i.code)
+          .toList();
+      expect(
+        codes({'goBack': false, 'beats': 4}),
+        isNot(contains('atypical_beats')),
+      );
+      expect(codes({'goBack': true, 'beats': 4}), contains('atypical_beats'));
       expect(_beats('sq_star', {'fraction': 'threeQuarter'}), 6);
       expect(_beats('sq_hey'), 16);
       expect(_beats('sq_face'), 0);
@@ -366,6 +378,12 @@ void main() {
       expect(
         _canonical(promenade({'direction': 'clockwise'})),
         'role1s single file promenade clockwise',
+      );
+      // A wrong-way promenade is a clockwise one, not a variant that a
+      // counter-clockwise default would contradict.
+      expect(
+        squareTaxonomy.moves['sq_promenade']!.params['variant']!.choices,
+        isNot(contains('wrongWay')),
       );
       expect(
         _square

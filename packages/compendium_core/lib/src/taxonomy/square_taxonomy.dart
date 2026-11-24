@@ -225,7 +225,7 @@ final Taxonomy squareTaxonomy = Taxonomy(
         'variant': const ParamSpec(
           ParamKind.choice,
           defaultValue: _u,
-          choices: ['singleFile', 'outside', 'wrongWay', 'star', _u],
+          choices: ['singleFile', 'outside', 'star', _u],
         ),
         'fraction': _fraction,
         'destination': const ParamSpec(
@@ -237,6 +237,8 @@ final Taxonomy squareTaxonomy = Taxonomy(
         // promenade goes counter-clockwise unless the source says otherwise
         // (Hudson, 24 November 2026: "yes, defaulting to counter-clockwise"),
         // so the default is concrete, and the display names only clockwise.
+        // A wrong-way promenade is a clockwise one, so `variant` has no
+        // `wrongWay`, which a counter-clockwise default would contradict.
         'direction': const ParamSpec(
           ParamKind.spinDirection,
           defaultValue: 'counterclockwise',
@@ -316,9 +318,10 @@ final Taxonomy squareTaxonomy = Taxonomy(
         'beats': _beats(8),
       },
       renderTemplate: '{who} {move}',
-      // "Always a full eight beats in New England" (Parkes); four for a
-      // forward only.
-      goodBeats: const [4, 8],
+      // "Always a full eight beats in New England" (Parkes). A forward
+      // only's 4 is typical through `paramBeats`, so a 4-beat forward and
+      // back still warns.
+      goodBeats: const [8],
       paramBeats: const ParamBeats(
         param: 'goBack',
         byValue: {true: 8, false: 4},
