@@ -3274,7 +3274,10 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 ///   This map was not extended to match: pass codes like `S-1R` (about ten
 ///   corpus dances) still decline the run, as they did before that ruling.
 /// - `Ph*` (phantoms), `TB*` (trail buddy), `SR*` (same-role), and bare `R`/`L`
-///   (states a hand but no dancer at all).
+///   (states a hand but no dancer at all). One exception sits outside this
+///   map: the hey decoder alone reads `SRN`/`SRN1` as `sameRoles` (see
+///   [_heyPassPeople]). Every other `SR*` code, and every other decoder,
+///   still declines.
 /// - `O` — the glossary's *"opposite"* (`docs/research/callersbox.md`), the
 ///   most common unmapped prefix in the corpus (72 cells, ahead of `Ph` 21 and
 ///   `SRN` 17). It is listed here because its absence was previously
@@ -3730,8 +3733,8 @@ final RegExp _squareThroughWord = RegExp(r'\bsquare\s+thr(?:ough|u)\b');
 final RegExp _bracketBody = RegExp(r'[(\[]([^()\[\]]{0,120})[)\]]');
 
 /// A body made only of pass cells (`NR;PL;NR`, `NR, PL, NR`, `N1R;P1L~`),
-/// whether or not each code is one this file can decode (such as P6R, P-1L,
-/// PhL or SRNL). A cell is shaped like a TCB people code, one letter or one of
+/// whether or not each code is one this file can decode (such as P6R, P-1L
+/// or PhL). A cell is shaped like a TCB people code, one letter or one of
 /// the multi-letter prefixes `Ph`, `TB`, `SR`, `SRN` (see [tcbPassPeople]),
 /// with an optional number, or a bare number, then the side. So a word such
 /// as `(all)` or `(over)` is not a pass list (#1971 review).

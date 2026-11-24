@@ -1059,7 +1059,9 @@ lowers the line onto one `pull_by_dancers` per stated pass, carrying that pass's
   read); `P6`+/`P-n` (mixer partners beyond the
   modelled depth); `N5`+/`N-1`/`N-2`, `S3`+/`S-n`; `Ph*` (phantoms),
   `TB*` (trail buddy), `SR*`; and a bare `R`/`L` cell, which states a hand but
-  no dancer.
+  no dancer. One exception: the hey decoder alone reads `SRN`/`SRN1` as
+  `sameRoles`, through its own `_heyPassPeople` lookup rather than this map.
+  Every other `SR*` code, and every other decoder, still declines.
 - **Whole-line strictness.** The text outside the pass list must be exactly
   `grand right and left` (modulo filler), so `Progressive grand right and left`
   (its own glossary figure), `Same-role grand right and left`, `… to place`, a
