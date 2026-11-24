@@ -5,6 +5,7 @@ import '../model/choreographer.dart';
 import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/difficulty_level.dart';
+import '../model/enums.dart';
 import '../model/formation.dart';
 import '../model/program.dart';
 import '../model/published_source.dart';
@@ -54,8 +55,10 @@ const DeepCollectionEquality _deepEq = DeepCollectionEquality();
 ///   [archiveSchemaVersionDeletedTags].
 /// * **v8** — adds a dance's `meter` and `musicalKey`, `formation.improper`,
 ///   and the ECD formation shapes (ADR-006 §12, F2 and F3), its interpreters,
-///   its `alternateTitles` and its `barnesReference`. Stamped only when a
-///   dance carries one of them. See [archiveSchemaVersionEcdDanceFields].
+///   its `alternateTitles` and its `barnesReference`, and the square fields
+///   (ADR-007 §8.1: `squareKind`, `repeatOrder`, `repeatOrderText`,
+///   `newPartner`, `newPartnerText`, `singing`). Stamped only when a dance
+///   carries one of them. See [archiveSchemaVersionEcdDanceFields].
 ///   Also a program's times, `startMinute`, `endMinute`, `lessonMinute` and
 ///   `arrivalMinute` (#2350), which joined v8 while it was unreleased. See
 ///   [archiveSchemaVersionProgramTimes].
@@ -141,12 +144,14 @@ const int archiveSchemaVersionDeletedTags = 7;
 /// to a dance (ADR-006 §12, F2 and F3, and §9.2's interpreter credits):
 /// `meter`, `musicalKey`, `formation.improper`, `interpreterIds`,
 /// `interpretedOn`, and the formation shapes from [FormationShape.dupleMinor]
-/// on; and two fields any dance can have, `alternateTitles` and
-/// `barnesReference`, which joined v8 while it was unreleased.
+/// on; two fields any dance can have, `alternateTitles` and
+/// `barnesReference`; and the square fields (ADR-007 §8.1), `squareKind`,
+/// `repeatOrder`, `repeatOrderText`, `newPartner`, `newPartnerText` and
+/// `singing`. The last eight joined v8 while it was unreleased.
 ///
-/// A pre-v8 reader ignores the seven keys, so without the bump it would
-/// restore the dance without its meter, key, interpreters, other titles or
-/// Barnes reference, and as proper, and report success. A new shape it cannot read at all, and it skips that dance with a
+/// A pre-v8 reader ignores these keys, so without the bump it would restore
+/// the dance without its meter, key, interpreters, other titles, Barnes
+/// reference or square fields, and as proper, and report success. A new shape it cannot read at all, and it skips that dance with a
 /// warning; the stamp also makes a backup holding one refuse to restore there
 /// rather than restore without it. Stamped only when a dance carries one of
 /// them, so a library with none still writes its earlier version
@@ -178,6 +183,10 @@ bool _hasEcdDanceFields(Dance dance) =>
     dance.interpretedOn != null ||
     dance.alternateTitles.isNotEmpty ||
     dance.barnesReference.isNotEmpty ||
+    dance.squareKind != SquareKind.main ||
+    dance.repeatOrder != SquareRepeatOrder.unstated ||
+    dance.newPartner != SquareNewPartner.unstated ||
+    dance.singing ||
     // Every shape before ECD's is one contra offers; any other is newer.
     !contraFormationShapes.contains(dance.formation.shape);
 

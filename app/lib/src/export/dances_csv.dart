@@ -71,7 +71,9 @@ class DancesCsvLookups {
 ///
 /// Columns: title, authors, when composed, interpreters, when interpreted,
 /// form, formation, progression, level, mixed level, mixer, status, rating,
-/// tags, tunes, meter, key, Barnes reference, sources, hook, calling notes,
+/// tags, tunes, meter, key, Barnes reference, a square's kind, repeat order,
+/// new partner and singing call (blank for another form), sources, hook,
+/// calling notes,
 /// walkthrough, figures, then one per shared custom field. The two dates are
 /// written as [PartialDate.serialize] writes them (`YYYY`, `YYYY-MM` or
 /// `YYYY-MM-DD`), so any spreadsheet reads them the same way. The headers
@@ -160,6 +162,10 @@ List<List<String>> buildDancesCsvRows(
     l10n.csvColumnMeter,
     l10n.csvColumnKey,
     l10n.csvColumnBarnes,
+    l10n.danceEditorSquareKindLabel,
+    l10n.danceEditorRepeatOrderLabel,
+    l10n.danceEditorNewPartnerLabel,
+    l10n.danceEditorSingingLabel,
     l10n.csvColumnSources,
     l10n.csvColumnHook,
     l10n.csvColumnCallingNotes,
@@ -193,6 +199,12 @@ List<List<String>> buildDancesCsvRows(
         ? null
         : lookups.difficultyLevelsById[levelId] ??
               DifficultyLevel.knownForId(levelId);
+    String renderSquareText(String text) => canonicalizeDiscouragedTerms
+        ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+            text,
+            cardDialect,
+          )
+        : renderer.renderFreeText(text, cardDialect);
     rows.add([
       dance.title.trim(),
       authorNames.join(', '),
@@ -221,6 +233,24 @@ List<List<String>> buildDancesCsvRows(
       dance.meter.trim(),
       dance.musicalKey.trim(),
       formHasBarnesReference(dance.form) ? dance.barnesReference.trim() : '',
+      // A square's own fields (ADR-007 §8.1): kept for every form, but they
+      // mean something only for a square, so another form's cells are blank.
+      ...(dance.form == DanceForm.square
+          ? [
+              squareKindLabel(l10n, dance.squareKind),
+              // An `other` text is prose, worded as the dance page words it.
+              dance.repeatOrder == SquareRepeatOrder.other &&
+                      dance.repeatOrderText.isNotEmpty
+                  ? renderSquareText(dance.repeatOrderText)
+                  : squareRepeatOrderLabel(l10n, dance.repeatOrder),
+              dance.newPartner == SquareNewPartner.other &&
+                      dance.newPartnerText.isNotEmpty
+                  ? renderSquareText(dance.newPartnerText)
+                  : squareNewPartnerLabel(l10n, dance.newPartner, cardDialect),
+              // Only a main part is sung; the page and editor agree.
+              yesNo(dance.singing && dance.squareKind == SquareKind.main),
+            ]
+          : const ['', '', '', '']),
       danceSourceLines(l10n, dance, (id) => lookups.sourcesById[id]).join('\n'),
       content.hook ?? '',
       content.callingNotes ?? '',

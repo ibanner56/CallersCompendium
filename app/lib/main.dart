@@ -355,6 +355,7 @@ class CompendiumApp extends StatefulWidget {
     this.incomingFileReader,
     this.incomingFileDeleter,
     this.incomingUrlFetcher,
+    this.calendarStartupFetcher,
     this.nowOverride,
     this.appDataFactory = _defaultAppDataFactory,
     this.windowServiceFactory,
@@ -519,6 +520,12 @@ class CompendiumApp extends StatefulWidget {
   /// without real network in widget tests. Defaults to `null` in production,
   /// where the screen uses its own network-backed `fetchImportUrl`.
   final UrlFetcher? incomingUrlFetcher;
+
+  /// Fetches the feed for the startup calendar import (#2353). Defaults to
+  /// `null`, i.e. [fetchCalendarFeed]; injected in widget tests so the run
+  /// makes no network request.
+  @visibleForTesting
+  final CalendarFeedFetcher? calendarStartupFetcher;
 
   /// Test-only override for the wall clock used by the startup soft-delete
   /// sweep (see [_bootstrap]). Defaults to `null`, i.e. `DateTime.now()` in
@@ -2076,6 +2083,8 @@ class _CompendiumAppState extends State<CompendiumApp>
     }
     await _loadPreferences();
     await _configureSyncCoordinator();
+    // Read now: the pass the configure above started, if sync is on.
+    final launchSync = _syncStartPass;
     // Kick off the automatic background update check once per launch. It is a
     // no-op unless the user opted in (default off) and never blocks startup or
     // surfaces an error — fire-and-forget per the ADR-002 §5 privacy contract.
@@ -2083,8 +2092,9 @@ class _CompendiumAppState extends State<CompendiumApp>
     // The opt-in startup calendar import (#2353): off by default, at most
     // once per launch (this tail runs once per successful bootstrap), silent
     // on failure. A no-op, fetching nothing, unless the user turned it on and
-    // set an address.
-    unawaited(_runCalendarStartup());
+    // set an address. With Device Sync on, it waits (bounded) for that
+    // launch's pass, so drafts another device imported are known first.
+    unawaited(_runCalendarStartup(launchSync: launchSync));
     // Housekeeping, not part of the opt-in check: delete update-download temp
     // directories left from earlier runs (a successful download keeps its
     // installer on purpose, so they would otherwise pile up). Local, silent,
@@ -2105,21 +2115,37 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// Runs the startup calendar import (#2353), after the first frame so the
   /// navigator and its localizations exist, and says what it found, if
   /// anything: never a dialog, and nothing at all on failure (Settings ▸
-  /// Program ▸ Calendar records it).
-  Future<void> _runCalendarStartup() async {
+  /// Program ▸ Calendar records it). [launchSync] is this launch's Device
+  /// Sync pass, if any; see [awaitLaunchSyncForCalendarStartup].
+  Future<void> _runCalendarStartup({Future<void>? launchSync}) async {
     await WidgetsBinding.instance.endOfFrame;
     if (!mounted) return;
     await _calendarStartupGate.runOnce(() async {
+      final repositories = _appData.repositories;
+      // Before the clock, the language and the run's own settings reads, so
+      // all of them are as they are once the wait ends.
+      await awaitLaunchSyncForCalendarStartup(
+        repositories.settings,
+        launchSync,
+      );
+      // A reset, a writer boundary (restore, import) or a close can be what
+      // ended the wait, by disposing the coordinator: skip this launch's run
+      // rather than write beside it.
+      if (!mounted ||
+          _shutdownRequested ||
+          _syncWriterExclusive ||
+          !identical(repositories, _appData.repositories)) {
+        return;
+      }
       final navContext = _navigatorKey.currentContext;
       if (navContext == null || !navContext.mounted) return;
       final l10n = AppLocalizations.of(navContext);
-      final repositories = _appData.repositories;
       final CalendarStartupOutcome outcome;
       try {
         final now = clock.now();
         outcome = await runCalendarStartup(
           repositories,
-          fetcher: fetchCalendarFeed,
+          fetcher: widget.calendarStartupFetcher ?? fetchCalendarFeed,
           now: now.toUtc(),
           today: DateTime(now.year, now.month, now.day),
           untitledTitle: l10n.calendarImportUntitled,
@@ -2227,7 +2253,12 @@ class _CompendiumAppState extends State<CompendiumApp>
     return run;
   }
 
+  /// The pass the latest configure started, or null when it started none.
+  /// The bootstrap tail reads it for the startup calendar import (#2353).
+  Future<void>? _syncStartPass;
+
   Future<void> _configureSyncCoordinatorNow({required bool startPass}) async {
+    _syncStartPass = null;
     await _disposeSyncCoordinator();
 
     final factory = widget.syncCoordinatorFactory;
@@ -2252,7 +2283,9 @@ class _CompendiumAppState extends State<CompendiumApp>
     _syncCoordinator = coordinator;
     _syncController.attachCoordinator(coordinator);
     if (coordinator == null || !startPass) return;
-    unawaited(_runSyncStart());
+    final pass = _runSyncStart();
+    _syncStartPass = pass;
+    unawaited(pass);
   }
 
   void _onAppResumed() {

@@ -864,6 +864,66 @@ void main() {
       expect(linked.barnesReference, '');
     });
 
+    // Likewise a source that states no square fields (ADR-007 §8.1).
+    test('resolution link keeps the existing square fields when the incoming '
+        'record states none', () async {
+      final existingId = await seedExisting();
+      await dances.update(
+        (await dances.getById(existingId))!.copyWith(
+          form: DanceForm.square,
+          squareKind: SquareKind.breakPart,
+          repeatOrder: SquareRepeatOrder.other,
+          repeatOrderText: 'Heads once, sides once',
+          newPartner: SquareNewPartner.corner,
+          singing: true,
+        ),
+      );
+      final session = await pipeline.commit(
+        await pipeline.plan(
+          FakeSourceAdapter([record('fake-2', 'Nice Combination')]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.link(existingId)},
+      );
+      expect(session.records.single.action, CommitAction.link);
+      final linked = (await dances.getById(existingId))!;
+      expect(linked.squareKind, SquareKind.breakPart);
+      expect(linked.repeatOrder, SquareRepeatOrder.other);
+      expect(linked.repeatOrderText, 'Heads once, sides once');
+      expect(linked.newPartner, SquareNewPartner.corner);
+      expect(linked.singing, isTrue);
+    });
+
+    test('resolution link takes the square fields the incoming record '
+        'states, and drops a text that went with the old value', () async {
+      final existingId = await seedExisting();
+      await dances.update(
+        (await dances.getById(existingId))!.copyWith(
+          form: DanceForm.square,
+          squareKind: SquareKind.breakPart,
+          repeatOrder: SquareRepeatOrder.other,
+          repeatOrderText: 'Heads once, sides once',
+        ),
+      );
+      final incoming = FakeSourceAdapter([
+        record('fake-2', 'Nice Combination', form: 'square')
+          ..['squareKind'] = 'patter'
+          ..['repeatOrder'] = 'HSHS',
+      ]);
+      await pipeline.commit(
+        await pipeline.plan(incoming, const ImportRequest()),
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.link(existingId)},
+      );
+      final linked = (await dances.getById(existingId))!;
+      expect(linked.squareKind, SquareKind.patter);
+      expect(linked.repeatOrder, SquareRepeatOrder.headsSidesHeadsSides);
+      expect(linked.repeatOrderText, '');
+    });
+
     test('resolution duplicate imports a separate new dance', () async {
       await seedExisting();
       final incoming = FakeSourceAdapter([

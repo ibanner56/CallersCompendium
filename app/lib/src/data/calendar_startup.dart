@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 
 import '../diagnostics/error_log.dart';
@@ -24,6 +26,12 @@ const String kCalendarStartupFailuresKey = 'calendar_startup_failures';
 /// After this many failed startup runs in a row, Settings shows a quiet notice
 /// (Claude's number, approved with #2353). Nothing else ever says so.
 const int kCalendarStartupFailureNoticeThreshold = 3;
+
+/// How long the startup run waits, when Device Sync is on, for the pass that
+/// sync starts at launch, before it goes ahead anyway (Claude's number). The
+/// wait delays only the run and its message, never the app. Its length is
+/// quoted in docs/user/settings.md (Calendar).
+const Duration kCalendarStartupSyncWait = Duration(seconds: 30);
 
 /// What the startup run does with new events (#2353).
 enum CalendarStartupMode {
@@ -135,6 +143,7 @@ final class CalendarStartupFound extends CalendarStartupOutcome {
 /// and, if the calendar could not be reached, counted in
 /// [kCalendarStartupFailuresKey]; a success resets the count, and a run
 /// that reached the calendar but failed later leaves it as it is.
+///
 /// [now] and [today] are parameters so tests can inject them.
 Future<CalendarStartupOutcome> runCalendarStartup(
   CompendiumRepositories repos, {
@@ -240,6 +249,56 @@ Future<CalendarStartupOutcome> runCalendarStartup(
     changes: changes,
     addedIds: added,
   );
+}
+
+/// Waits, before [runCalendarStartup], for Device Sync's pass for this
+/// launch, [launchSync] (null when sync is off or not set up).
+///
+/// Drafts another device imported carry their `calendar_event_key`, and only
+/// once this device has pulled them does [buildCalendarImportPreview] know
+/// those events are not new. Without the wait, two devices with add-drafts
+/// mode on each create drafts for the same events, and sync keeps both.
+///
+/// Returns at once, waiting for nothing, when the startup run is off or has
+/// no address. Otherwise returns when [launchSync] does, successfully or
+/// not, or after [limit], whichever is first. A failed pass is logged and
+/// otherwise ignored. It reads nothing for the run itself: [runCalendarStartup]
+/// reads every setting afresh afterwards, so a switch turned off, or a filter
+/// the pass pulled, during the wait is what the run sees.
+Future<void> awaitLaunchSyncForCalendarStartup(
+  SettingsRepository settings,
+  Future<void>? launchSync, {
+  Duration limit = kCalendarStartupSyncWait,
+}) async {
+  if (launchSync == null) return;
+  try {
+    if (await settings.get(kCalendarImportOnStartupKey) != true) return;
+    if (!(await CalendarImportSettings.read(settings)).hasFeed) return;
+  } catch (error, stackTrace) {
+    // The run reads them again and handles the failure there.
+    logCaughtError(error, stackTrace, source: 'calendar_startup.sync_wait');
+    return;
+  }
+  final done = Completer<void>();
+  void finish() {
+    if (!done.isCompleted) done.complete();
+  }
+
+  final timer = Timer(limit, finish);
+  unawaited(
+    launchSync
+        .then<void>(
+          (_) {},
+          onError: (Object error, StackTrace stackTrace) => logCaughtError(
+            error,
+            stackTrace,
+            source: 'calendar_startup.launch_sync',
+          ),
+        )
+        .whenComplete(finish),
+  );
+  await done.future;
+  timer.cancel();
 }
 
 /// What a run does to the "couldn't be reached" count.

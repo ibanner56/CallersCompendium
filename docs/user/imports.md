@@ -609,7 +609,8 @@ Becket keeps its direction (clockwise or counterclockwise), four facing four,
 triplets, triple minors and longways keep their shape, squares come across as
 squares, circle and scatter mixers are marked as mixers, and your own
 description of the starting position ("Long Waves, R-hand to Neighbor") is kept
-as the formation's detail.
+as the formation's detail. A square's repeat order comes across too, when
+Caller's Companion gives it as "H H S S" or "H S H S".
 Alternates in your sets come across as alternates.
 
 A **title** that Caller's Companion filed with its article at the end, such as
@@ -895,7 +896,8 @@ watches for matches:
   incoming file carries none, as share files and The Caller's Box never do; a
   rating the file does carry replaces yours. The same goes for who
   interpreted the dance and when, its other titles and its Barnes reference
-  (which stays only when the imported dance is an English dance). The review warns
+  (which stays only when the imported dance is an English dance), and a
+  square's kind, repeat order, new partner and singing call. The review warns
   how many existing dances will be overwritten before you commit.
 - **Same dance, written another way.** Archives spell and annotate titles
   differently: The Caller's Box has `A-1 Reel {variant}` where your collection

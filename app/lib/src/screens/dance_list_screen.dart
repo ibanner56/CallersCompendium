@@ -3719,6 +3719,9 @@ class _DanceListScreenState extends State<DanceListScreen>
       root: _advancedRoot,
       taxonomy: data.taxonomy,
       dialect: _dialect,
+      // Each figure of your own in its own form's dialect (#2294); the moves
+      // stay in the list's, contra's.
+      dialects: ActiveDialectScope.maybeOf(context),
       sectionLabels: data.sectionLabels,
       tags: data.tags,
       allTagNames: data.allTagNames,

@@ -153,8 +153,18 @@ wording, saved unchanged, reads as the default line. Imported
   and the program templates' dance picker) and the parts of import review that
   name a plain shorthand or a term. Import review's check that a shared
   figure's name is taken follows the figure's own form, as the Glossary's does.
-  The dance list's advanced search names a figure of your own in the list's
-  dialect, whatever its form. The reasons the dance picker gives for a
+  The advanced search, in the dance list and in the program builder's picker,
+  names each figure of your own in the dialect of its form, and finds it by
+  that, through `userFigureSearchLabels`: two
+  figures of different forms whose labels read alike are each followed by their
+  form's name, as a move is when another form's move is named like one of the
+  search's own. The moves in the same field still read in the search's
+  dialect, contra's, whatever their form: the search has no form of its own
+  yet, so an English or square move reads in contra's words there, and a figure
+  of your own made for English does not. Typing the exact name of a figure that
+  is followed by its form's name ("hey" against a contra and an English figure
+  both called Hey) is no longer an exact match, so Enter takes the built-in move
+  of that name. The reasons the dance picker gives for a
   suggestion ("Same ... beats as the previous dance") name a column through the
   same rule as the program matrix, `matrixColumnDialect`: a figure of your own,
   and an `ecd_` or `sq_` figure, read in the dialect of their own form, as the

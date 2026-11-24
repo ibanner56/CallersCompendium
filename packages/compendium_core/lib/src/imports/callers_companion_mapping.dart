@@ -459,6 +459,11 @@ CcDanceMapping mapCallersCompanionDance(
   // A CC mixer is a Type ("Circle Mixer", "Scatter Mixer") or a square's
   // SubType ("Mixer, H H S S").
   final mixer = usr && _isCcMixer(record);
+  // A square's SubType also names its repeat order ("Keeper, H S H S"), the
+  // way American Country Dances On-Line files its squares (ADR-007 §8.1).
+  final repeatOrder = form == DanceForm.square
+      ? ccSquareRepeatOrder(record.subType)
+      : SquareRepeatOrder.unstated;
 
   // Progression → Progression enum, best-effort.
   final progression = _mapProgression(record.progression, issues);
@@ -664,6 +669,7 @@ CcDanceMapping mapCallersCompanionDance(
     formation: formation,
     progression: progression,
     mixer: mixer,
+    repeatOrder: repeatOrder,
     figures: figures,
     callingNotes: notes,
     difficultyLevelId: difficultyLevelId,
@@ -1243,6 +1249,25 @@ const Set<String> _ccFormationTypes = {
   'scatter mixer',
   'longways',
 };
+
+/// The repeat order a Caller's Companion square `SubType` names, such as
+/// "Keeper, H S H S" or "Mixer, H H S S": the part after the first comma, its
+/// spaces dropped, read as `HHSS` or `HSHS`. Anything else, or no SubType, is
+/// [SquareRepeatOrder.unstated]: the SubType's wording past those two is not
+/// known well enough to guess at.
+SquareRepeatOrder ccSquareRepeatOrder(String? subType) {
+  final comma = subType?.indexOf(',') ?? -1;
+  if (subType == null || comma < 0) return SquareRepeatOrder.unstated;
+  final order = subType
+      .substring(comma + 1)
+      .replaceAll(RegExp(r'\s+'), '')
+      .toUpperCase();
+  return switch (order) {
+    'HHSS' => SquareRepeatOrder.headsHeadsSidesSides,
+    'HSHS' => SquareRepeatOrder.headsSidesHeadsSides,
+    _ => SquareRepeatOrder.unstated,
+  };
+}
 
 bool _isCcMixer(CcDanceRecord r) {
   final type = r.type?.trim().toLowerCase() ?? '';

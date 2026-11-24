@@ -427,7 +427,13 @@ as draft programs.
 - **Import calendar when the app starts** (off) — reads your calendar once each
   time the app starts, and never at any other time: not in the background, not
   on a timer, not when you come back to the app. Like the automatic
-  [update check](#updates), it is off until you turn it on.
+  [update check](#updates), it is off until you turn it on. With
+  [Device Sync](#device-sync) on, it first waits up to 30 seconds for the sync
+  the app runs when it starts, so events another of your devices has already
+  imported and synced aren't added again here. Both can still add a draft for
+  the same event if that device hasn't synced them yet, or if this one can't
+  sync when it starts (offline, or on mobile data with **Sync only on WiFi**)
+  or takes longer than that.
 - **At startup** — what that run does with events not imported before:
   - **Report new events** (the default) — adds nothing. If there are new events,
     a message says how many, with **Review**, which opens the import review with
@@ -987,8 +993,7 @@ Names, definitions and examples of the built-in figures follow your active
 them. Your own figures, combinations and terms read in the dialect of the type
 they were made for, and a shorthand reads in the dialect of the type of the
 figure it stands for; a shorthand whose figure is gone reads in your contra
-dialect. One place still names them in the dialect of the screen you are on,
-not of their type: the dance list's advanced search. The built-in
+dialect. The built-in
 figures come with the app, and turning the Glossary off only removes it from
 the navigation; your notes are kept, and come back when you turn it on again.
 The built-in definitions and descriptions are in English whatever language the
