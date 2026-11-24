@@ -26,6 +26,7 @@ import 'package:compendium_app/src/widgets/section_header.dart';
 import 'support/dropdown.dart';
 import 'support/test_repositories.dart';
 import 'support/new_dance_draft.dart';
+import 'support/dance_editor_setup.dart';
 import 'support/l10n_harness.dart';
 import 'figures_support.dart';
 
@@ -114,6 +115,9 @@ Future<void> _pumpEditor(
   );
   await tester.tap(find.byKey(const ValueKey('open-editor')));
   await tester.pumpAndSettle();
+  // Most tests reach the setup panel's fields, so it is opened for them; its
+  // own folding is tested in dance_editor_setup_panel_test.dart.
+  await openDanceEditorSetup(tester);
 }
 
 /// Types [typed] into figure [index]'s move field and taps the [optionId]
@@ -558,7 +562,7 @@ void main() {
     await repos.dances.create(_dance(id: 'd1', title: 'Original'));
     await _pumpEditor(tester, repos, danceId: 'd1');
 
-    // The mixer checkbox sits under the formation dropdown, not behind the
+    // The mixer chip sits under the formation dropdown, not behind the
     // More details expander.
     await tester.tap(find.byKey(const ValueKey('mixer-field')));
     await tester.pumpAndSettle();
@@ -2406,7 +2410,8 @@ void main() {
   });
 
   group('two-tier layout —', () {
-    testWidgets('Progression and Rating share a row in Tier 1', (tester) async {
+    testWidgets('Progression shares a row with Type and Formation, and Rating '
+        'one with the formation flags, in Tier 1', (tester) async {
       final repos = openTestRepositories();
       await repos.dances.create(_dance(id: 'd1', title: 'Original'));
       await _pumpEditor(tester, repos, danceId: 'd1');
@@ -2415,13 +2420,13 @@ void main() {
       expect(find.text('Progression'), findsOneWidget);
       expect(find.byKey(const ValueKey('rating-field')), findsOneWidget);
 
-      // They sit on the same horizontal line (share a Row).
-      final progressionField = find.byKey(const ValueKey('progression-field'));
-      final progressionY = tester.getTopLeft(progressionField).dy;
-      final ratingY = tester
-          .getTopLeft(find.byKey(const ValueKey('rating-field')))
-          .dy;
-      expect((progressionY - ratingY).abs(), lessThan(24));
+      // On a wide form they share rows with their neighbours.
+      double top(String key) => tester.getTopLeft(find.byKey(ValueKey(key))).dy;
+      expect(top('progression-field'), top('formation-field'));
+      expect(top('progression-field'), top('form-field'));
+      final mixer = tester.getCenter(find.byKey(const ValueKey('mixer-field')));
+      final rating = tester.getRect(find.byKey(const ValueKey('rating-field')));
+      expect(mixer.dy, inInclusiveRange(rating.top, rating.bottom));
     });
 
     testWidgets('dropdown values read at the same weight as typed values', (
@@ -3365,7 +3370,7 @@ void main() {
     });
 
     testWidgets('an English dance shows its credits, meter, key and the '
-        'improper checkbox up front, and saves edits to them', (tester) async {
+        'improper chip up front, and saves edits to them', (tester) async {
       final repos = await withEcdDance();
       await _pumpEditor(tester, repos, danceId: 'd1');
 
@@ -3379,7 +3384,7 @@ void main() {
       expect(tester.widget<TextFormField>(meter).controller?.text, '3/2');
       expect(tester.widget<TextFormField>(key).controller?.text, 'D minor');
       final improper = find.byKey(const ValueKey('improper-field'));
-      expect(tester.widget<CheckboxListTile>(improper).value, isTrue);
+      expect(tester.widget<FilterChip>(improper).selected, isTrue);
 
       await tester.enterText(meter, '9/8');
       await tester.enterText(key, 'G major');
@@ -3825,7 +3830,7 @@ void main() {
     });
 
     testWidgets('a contra dance keeps them in More details, with no '
-        'improper checkbox', (tester) async {
+        'improper chip', (tester) async {
       final repos = openTestRepositories();
       await repos.dances.create(
         _dance(id: 'd1', title: 'Original').copyWith(meter: '2/4'),
@@ -3866,7 +3871,7 @@ void main() {
     });
 
     testWidgets('switching an English dance to contra saves it proper, and '
-        'switching back restores the checkbox', (tester) async {
+        'switching back restores the chip', (tester) async {
       final repos = await withEcdDance();
       await _pumpEditor(tester, repos, danceId: 'd1');
 
@@ -3882,7 +3887,7 @@ void main() {
       await pickForm('Contra');
       expect(improper, findsNothing);
       await pickForm('English (ECD)');
-      expect(tester.widget<CheckboxListTile>(improper).value, isTrue);
+      expect(tester.widget<FilterChip>(improper).selected, isTrue);
       await pickForm('Contra');
 
       await tester.tap(find.byKey(const ValueKey('save-dance')));

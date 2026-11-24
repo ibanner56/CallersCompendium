@@ -9209,6 +9209,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsWalkthroughSnippetEditTitle => 'Modifier l\'extrait';
 
   @override
+  String get danceEditorSetupTitle => 'Crédits, formation et musique';
+
+  @override
   String get danceEditorMoreDetailsTitle => 'Plus de détails';
 
   @override
@@ -9308,7 +9311,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get danceEditorImproperSubtitle =>
-      'Laissez décoché pour une danse qui commence proper.';
+      'Laissez désactivé pour une danse qui commence proper.';
 
   @override
   String get danceEditorComposedLabel => 'Composée';

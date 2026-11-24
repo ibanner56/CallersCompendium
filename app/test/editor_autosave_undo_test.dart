@@ -18,6 +18,7 @@ import 'package:compendium_app/src/editor/editor_undo_stack.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 
 import 'support/dropdown.dart';
+import 'support/dance_editor_setup.dart';
 import 'support/l10n_harness.dart';
 import 'support/test_repositories.dart';
 import 'support/new_dance_draft.dart';
@@ -83,6 +84,9 @@ Future<void> _pumpEditor(
   // and settle the dialog entrance animation if one was scheduled.
   await tester.pump();
   await tester.pumpAndSettle();
+  // Most tests reach the setup panel's fields, so it is opened for them; its
+  // own folding is tested in dance_editor_setup_panel_test.dart.
+  await openDanceEditorSetup(tester);
 }
 
 /// Expands the collapsible "More details" (Tier 2) section so its fields

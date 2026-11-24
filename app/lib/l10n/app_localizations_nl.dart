@@ -9156,6 +9156,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsWalkthroughSnippetEditTitle => 'Fragment bewerken';
 
   @override
+  String get danceEditorSetupTitle => 'Makers, formatie en muziek';
+
+  @override
   String get danceEditorMoreDetailsTitle => 'Meer details';
 
   @override
@@ -9254,7 +9257,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorImproperSubtitle =>
-      'Laat leeg voor een dans die proper begint.';
+      'Laat uit voor een dans die proper begint.';
 
   @override
   String get danceEditorComposedLabel => 'Gecomponeerd';

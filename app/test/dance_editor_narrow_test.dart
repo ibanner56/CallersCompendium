@@ -6,6 +6,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/dance_editor_setup.dart';
 import 'support/l10n_harness.dart';
 import 'support/real_fonts.dart';
 import 'support/test_repositories.dart';
@@ -48,7 +49,12 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      // A new dance on a phone starts with the setup panel folded, so the
+      // figures are near the top; opened, its fields must still fit.
+      expect(find.byKey(const ValueKey('setup-summary')), findsOneWidget);
+      await openDanceEditorSetup(tester);
       expect(find.byKey(const ValueKey('formation-field')), findsOneWidget);
+      expect(find.byKey(const ValueKey('improper-field')), findsNothing);
       // A RenderFlex overflow is reported as a framework exception.
       expect(tester.takeException(), isNull);
     });

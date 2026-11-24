@@ -5458,7 +5458,7 @@
   },
   "commonMixer": "Mixer",
   "@commonMixer": {
-    "description": "Label for a mixer — a dance in which dancers change partners each time through the sequence (a progressive partner-changing dance), NOT an audio or kitchen mixer. Used as a dance editor checkbox label and a dance-detail indicator."
+    "description": "Label for a mixer — a dance in which dancers change partners each time through the sequence (a progressive partner-changing dance), NOT an audio or kitchen mixer. Used as the label of a dance editor toggle chip and a dance-detail indicator."
   },
   "commonShowDancesTaggedTooltip": "Add \"{tagName}\" to the Collection filters",
   "@commonShowDancesTaggedTooltip": {
@@ -11926,6 +11926,10 @@
   "@settingsWalkthroughSnippetEditTitle": {
     "description": "Title of the dialog for editing a saved walkthrough snippet's text (#411)."
   },
+  "danceEditorSetupTitle": "Credits, formation and music",
+  "@danceEditorSetupTitle": {
+    "description": "Title of the dance editor's foldable panel holding the dance's authors (and, for an English dance, interpreters and years), type, formation, progression, rating, phrase structure and the tune's meter and key. Folded, a short summary of some of those values (the authors, type, formation, improper and mixer, phrase structure, meter and key) shows under it."
+  },
   "danceEditorMoreDetailsTitle": "More details",
   "@danceEditorMoreDetailsTitle": {
     "description": "Expansion tile title for less frequently used editor metadata fields."
@@ -11940,7 +11944,7 @@
   },
   "danceEditorMixerSubtitle": "Dancers change partners each time through",
   "@danceEditorMixerSubtitle": {
-    "description": "Subtitle explaining the mixer checkbox in the dance editor: the dance progresses dancers to a new partner each time through the sequence."
+    "description": "Tooltip of the Mixer toggle chip in the dance editor, also read by screen readers: the dance progresses dancers to a new partner each time through the sequence."
   },
   "danceDetailSquareField": "{field}: {value}",
   "@danceDetailSquareField": {
@@ -12056,11 +12060,11 @@
   },
   "danceEditorImproperLabel": "Starts improper",
   "@danceEditorImproperLabel": {
-    "description": "Checkbox in the dance editor, offered for English country dances only: the dance starts improper (the first couple crossed over). Unchecked means it starts proper, the default."
+    "description": "Toggle chip in the dance editor, offered for English country dances only: the dance starts improper (the first couple crossed over). Off means it starts proper, the default."
   },
-  "danceEditorImproperSubtitle": "Leave unchecked for a dance that starts proper.",
+  "danceEditorImproperSubtitle": "Leave off for a dance that starts proper.",
   "@danceEditorImproperSubtitle": {
-    "description": "Subtitle of the 'Starts improper' checkbox in the dance editor."
+    "description": "Tooltip of the 'Starts improper' toggle chip in the dance editor, also read by screen readers: leave the chip off (not selected) for a dance that starts proper."
   },
   "danceEditorComposedLabel": "Composed",
   "@danceEditorComposedLabel": {

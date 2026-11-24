@@ -8882,6 +8882,10 @@
   "@settingsWalkthroughSnippetEditTitle": {
     "x-sourceSha256": "3bb69add7f8cedd554dafcf5dffa6b9e7f2ef850c2ffbb1625a894a89d086131"
   },
+  "danceEditorSetupTitle": "クレジット・フォーメーション・音楽",
+  "@danceEditorSetupTitle": {
+    "x-sourceSha256": "9e34fd3970475cdff2b1e9549d74fb2c70ad906078b88a15efd521781e57471a"
+  },
   "danceEditorMoreDetailsTitle": "詳細情報",
   "@danceEditorMoreDetailsTitle": {
     "x-sourceSha256": "b5eff1dbd0154de8292af10fe3c9424573c847dcca5320f9828b637639addd2a"
@@ -8998,9 +9002,9 @@
   "@danceEditorImproperLabel": {
     "x-sourceSha256": "e4dd5166a2d36d72d17f292c5f3b00bbb89544e0a94b5c9658d538d2c89e159e"
   },
-  "danceEditorImproperSubtitle": "プロパーで始まるダンスではチェックを外したままにします。",
+  "danceEditorImproperSubtitle": "プロパーで始まるダンスではオフのままにします。",
   "@danceEditorImproperSubtitle": {
-    "x-sourceSha256": "55e6931dac76da40b06ac10ab8416ab58539aa4e3cdfb25881f38341ec846e37"
+    "x-sourceSha256": "491b162a317fef1c7a15931783093dcf4dbfccd1e732bce375220f9368ddfee8"
   },
   "danceEditorComposedLabel": "振付年",
   "@danceEditorComposedLabel": {

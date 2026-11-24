@@ -9099,6 +9099,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsWalkthroughSnippetEditTitle => 'Rediger uddrag';
 
   @override
+  String get danceEditorSetupTitle => 'Forfattere, formation og musik';
+
+  @override
   String get danceEditorMoreDetailsTitle => 'Flere detaljer';
 
   @override
@@ -9195,7 +9198,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorImproperSubtitle =>
-      'Lad den være tom for en dans, der starter proper.';
+      'Lad den være slået fra for en dans, der starter proper.';
 
   @override
   String get danceEditorComposedLabel => 'Komponeret';
