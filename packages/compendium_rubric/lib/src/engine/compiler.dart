@@ -177,9 +177,34 @@ CompileResult compile(Dance dance) {
   //
   // The reported state is the **real** one, offsets and all. Settling is how
   // the two are compared, not a claim about where the dancers are standing.
-  return normalizeWaveOffsets(state) == expected
-      ? Compiled(state, warnings: warnings)
-      : Mismatch(actual: state, expected: expected, warnings: warnings);
+  final settled = normalizeWaveOffsets(state);
+  if (settled == expected) return Compiled(state, warnings: warnings);
+  // A dance may also end with every dancer in the right row but up to one
+  // column to the side, in a wave the settling above does not recognise
+  // rather than on the side line (user-ruled 2026-11-24). It compiles, and
+  // says so.
+  if (endsWithinOneColumn(settled, expected)) {
+    return Compiled(
+      state,
+      warnings: [...warnings, const Warning(WarningKind.endedColumnOffset)],
+    );
+  }
+  return Mismatch(actual: state, expected: expected, warnings: warnings);
+}
+
+/// Whether [actual] holds exactly [expected]'s dancers, each in the same row
+/// as expected and at most one column away from it: the near miss [compile]
+/// accepts, with [WarningKind.endedColumnOffset].
+bool endsWithinOneColumn(Formation actual, Formation expected) {
+  if (actual.rowCount != expected.rowCount) return false;
+  if (actual.dancers.length != expected.dancers.length) return false;
+  for (final MapEntry(key: id, value: state) in actual.dancers.entries) {
+    final want = expected.dancers[id];
+    if (want == null) return false;
+    if (want.position.row != state.position.row) return false;
+    if ((want.position.col - state.position.col).abs() > 1) return false;
+  }
+  return true;
 }
 
 /// Refuses a dance that claims a progression its figure list never performs.

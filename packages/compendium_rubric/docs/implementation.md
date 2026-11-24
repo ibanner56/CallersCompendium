@@ -169,7 +169,9 @@ behind §3.5's equality rule.
 5. oracle          <- expected = dance.success.expected(input)      // from the INPUT
 6. compare         <- normalizeWaveOffsets(state) == expected
                         ? Compiled(state)      // note: the RAW state, offsets and all
-                        : Mismatch(actual: state, expected: expected)
+                        : endsWithinOneColumn(settled, expected)   // right rows, ≤1 column off
+                          ? Compiled(state) + endedColumnOffset warning
+                          : Mismatch(actual: state, expected: expected)
 ```
 
 Two subtleties worth internalizing:
@@ -434,6 +436,7 @@ index.
 | `unrecognizedFormation` | **the parser** | unknown shape; falls back to `dupleImproper` |
 | `assumedProgression` | **an import bridge** | the source flagged no progression, so one was assumed (§10.1) |
 | `heldProgressionUnfinished` | engine (`FigureFold`) | a held progression's change-over never ran |
+| `endedColumnOffset` | engine (comparison) | the dance compiled with every dancer in the expected row but some one column off *(user-ruled 2026-11-24)* |
 
 Three rules about warnings:
 
@@ -602,8 +605,8 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
   chain (a sequence whose title contains "chain" and whose exactly two
   children are a `role1s`/`role2s` allemande `0.5` and then an allemande
   `0.75`) has that closing allemande danced as `1.0` (Hudson's report note on
-  Every Second Counts, 2026-11-24; generalising it, and those limits, are the
-  agent's calls). The same chain inside a container is danced as written, and
+  Every Second Counts, 2026-11-24; generalising it, with those limits, was the
+  agent's proposal, ratified by the user 2026-11-24). The same chain inside a container is danced as written, and
   the bridge adds no warning when it rewrites the turn. A `meanwhile` or
   `modifier` stays one figure here, children and all (a sequence inside one
   stays inside it), and the parser builds it as a container
@@ -668,7 +671,8 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > but not a Rory O'More's slide, is a slide or a straight slice by couple,
 > that slide joins those moves in either direction, wherever it falls
 > (Hudson's Apogee note 2026-11-24 named its slide right; generalising it,
-> and those limits, are the agent's calls). Only a Becket dance with none of
+> with those limits, was the agent's proposal, ratified by the user
+> 2026-11-24). Only a Becket dance with none of
 > these falls back to the last figure. Outside Becket,
 > an `arch_and_dive` straight after a hall figure progresses before the last
 > figure does (user-ruled 2026-11-24: the line bends into a ring and the arch
@@ -914,7 +918,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,566 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,570 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

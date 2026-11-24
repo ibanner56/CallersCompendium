@@ -23,7 +23,9 @@ sealed class CompileResult {
   bool get isSuccess => this is Compiled;
 }
 
-/// Every operation ran and the final formation matched the success criterion.
+/// Every operation ran and the final formation matched the success criterion:
+/// exactly, or within one column in every dancer's expected row, which the
+/// [WarningKind.endedColumnOffset] warning then reports.
 final class Compiled extends CompileResult {
   const Compiled(this.finalFormation, {super.warnings});
 

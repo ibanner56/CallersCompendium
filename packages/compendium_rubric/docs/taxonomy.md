@@ -194,6 +194,7 @@ Precondition/error kinds accumulated as figures are defined:
 | `unrecognizedFormation` | a record declares a starting formation shape this compiler does not model (`"other"` is already in the corpus). Read as **Duple Improper** rather than refused: the shape vocabulary is owned upstream and grows, and the declared type does less work than its name suggests — it fixes the starting matrix and never tracks where the dancers stand (`architecture.md` §3.2), so a dance whose own opening figures establish its arrangement is fully determined regardless. **Raised at parse time**, not by any figure, and carried on the `Dance` so the compile it belongs to reports it — the first diagnostic that is not an observation about a formation at all. *(User-ruled.)* |
 | `assumedProgression` | an **import bridge** (the Caller's Box) assumed which figure progresses, because the source has nowhere to say. Raised whenever the assumption is made, including when the dance compiles. *(User-ruled.)* |
 | `heldProgressionUnfinished` | a progression was held because no couple stood whole at an end when its figure finished, and its change-over never ran: no later unflagged figure brought a couple to an end, or a later flagged figure overtook it (`fundamentals.md` §10.2.1). Raised by the engine after the last figure. *(User-ruled hold, 2026-11-23, in every formation; the warning is the agent's call.)* |
+| `endedColumnOffset` | the dance ended with every dancer in the row the oracle expects, but some up to one column to the side, for instance in a wave rather than on the side lines; it compiles, and this says it was a near miss rather than an exact match. Raised by the engine on the final comparison (`architecture.md` §3.5). *(User-ruled 2026-11-24, from Hudson's note on Chuck the Budgie; the warning is the agent's call.)* |
 
 ---
 
@@ -641,7 +642,8 @@ exactly as it would be on a line of its own. Implemented in `lib/src/ops/figures
   "chain" and whose exactly two children are a `role1s` or `role2s` allemande `0.5` and then an
   allemande `0.75` has its closing allemande danced as a full `1.0` (Hudson's report note on
   Every Second Counts, 2026-11-24: the courtesy allemande Caller's Box writes "3/4" should be a
-  full allemande; generalising it, and those limits, are the agent's calls). The same chain as
+  full allemande; generalising it, with those limits, was the agent's proposal, ratified by the
+  user 2026-11-24). The same chain as
   one side of a container is not spliced and is danced as written.
 - **A flagged modifier is progressed as one figure** (known limit): the change-over runs after
   its last modifier, and whether to hold is judged on the state the modifiers leave. Splitting the
@@ -1373,7 +1375,7 @@ To be defined later with worked examples.
   chain, right and left through or pass through along the set progresses (Hudson's report note
   on Apogee, 2026-11-24: "the slide_along_set right is the progression"; applying it to every
   such dance, and not to a dance with two slides, a double progression or a Rory O'More's slide,
-  is the agent's call).
+  was the agent's proposal, ratified by the user 2026-11-24).
 - **sources:** user rulings 2026-11-22 (slice = slide; straight one couple, diagonal two) and
   2026-11-23 (a flagged diagonal slice is two progressions;
   measured on the Caller's Box mirror before the ruling was asked); CallersCompendium taxonomy

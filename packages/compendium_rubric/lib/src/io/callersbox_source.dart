@@ -683,7 +683,8 @@ core.Figure _mainFigure(core.Figure figure) =>
 ///   direction and wherever it falls, so the first of it and the moves above
 ///   progresses. Hudson ruled this for Apogee (report note, 2026-11-24: "the
 ///   slide_along_set right is the progression"); applying it to every such
-///   dance, and its limits, are the agent's calls. A dance whose source
+///   dance, with its limits, was the agent's proposal, ratified by the user
+///   2026-11-24. A dance whose source
 ///   states no progression tier imports as single and is included.
 ///
 /// Only a Becket dance with none of these falls back to the last figure.
@@ -734,10 +735,10 @@ int? assumedProgressionIndex(core.Dance dance) {
     //
     // In a single-progression dance whose only slide or slice is one couple
     // sliding once, that slide is a move along the set too, in either
-    // direction (Hudson's Apogee note, 2026-11-24; generalising it is the
-    // agent's call). Slides inside containers count towards "only"; a Rory
-    // O'More's slide does not count at all, since a Rory O'More is not its
-    // own progression (agent's call).
+    // direction (Hudson's Apogee note, 2026-11-24; generalising it, with
+    // these limits, was ratified by the user 2026-11-24). Slides inside
+    // containers count towards "only"; a Rory O'More's slide does not count
+    // at all, since a Rory O'More is not its own progression.
     var slideCount = 0;
     int? slideIndex;
     for (var index = 0; index < figures.length; index++) {
@@ -1116,8 +1117,8 @@ List<core.Figure>? dancedFigures(core.Dance dance) {
 /// neighbor:") over two allemandes, the chainers' half and then the courtesy
 /// allemande "3/4". Hudson's report note on Every Second Counts (10417,
 /// 2026-11-24) says that last allemande should be a full allemande, and that
-/// the source uses quarter allemandes inconsistently. Generalising it is the
-/// agent's call, and so are its limits: it applies only to a top-level
+/// the source uses quarter allemandes inconsistently. Generalising it, with
+/// these limits, was the agent's proposal, ratified by the user 2026-11-24: it applies only to a top-level
 /// sequence whose title contains "chain" and whose exactly two children are a
 /// `role1s` or `role2s` allemande of `0.5` and then an allemande of `0.75`.
 /// Anything else, including the same chain as one side of a `meanwhile` or

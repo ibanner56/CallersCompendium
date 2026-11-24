@@ -171,6 +171,12 @@ the formation it ends in. The success oracle walks a **settled** set, so `actual
 through the same §8.5.4 normalization the next figure would have applied to it, and the two are
 compared on that footing. *(User-ruled.)*
 
+**A dance one column off still passes** *(user-ruled 2026-11-24)*. If the settled state is not
+equal to `expected`, but every dancer is in the row `expected` puts them in and at most one column
+to the side of it (a dance ending in a wave the settling does not recognise, rather than on the
+side lines), the dance compiles, with an `endedColumnOffset` warning so the near miss is never
+read as an exact one. A dancer in the wrong row, or two columns off, is still a mismatch.
+
 The projection is **how the two are compared, not a claim about where the dancers stand**: both
 `Compiled` and `Mismatch` still carry the **raw** final formation, so the reported end state is
 the wave the dance actually left people in.
@@ -223,7 +229,9 @@ M-out is the pre-progression state, and N applies the §10.2 end-normalization.)
 - **Pre-scan contribution values** — the base + each operation's/criterion's configured h4
   contribution (mechanism decided in §3.1; per-item values set with the taxonomy).
 - **Equality** — rigid over `position + role + number + couple identity`; facing is the only
-  excluded factor, so the check is cell-by-cell matrix equality (§3.5). *(resolved)*
+  excluded factor, so the check is cell-by-cell matrix equality (§3.5), after settling wave
+  offsets and allowing each dancer one column either side in the right row *(user-ruled
+  2026-11-24)*. *(resolved)*
 - **Result taxonomy** — final shape/metadata of Compiled / Mismatch / Error. *(§4)*
 - **Operation & success-criterion schema** — the concrete parameter schema, incl. the
   progression flag, per-item h4 contribution, and how a success condition maps to its
