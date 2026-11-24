@@ -332,6 +332,27 @@ void main() {
       expect(error.kind, ErrorKind.unresolvableDancerSet);
     });
 
+    test('a meanwhile keeps the shadows a part remembers', () {
+      // A whole allemande leaves everyone where they stood, and the other
+      // part only turns the larks: the memory must survive both.
+      final after = applyOk(
+        const Meanwhile([
+          Allemande(who: WhoSet.shadows, turn: 1),
+          TurnAlone(who: WhoSet.role1s),
+        ]),
+        duple([
+          'L1-A . . . R1-A',
+          'R1-C . . . L1-C',
+          'L2-B . . . R2-B',
+          'R2-D . . . L2-D',
+        ]),
+      );
+
+      expect(after.stateOf(lark('A')).shadow, robin('C'));
+      expect(after.stateOf(robin('C')).shadow, lark('A'));
+      expect(after.stateOf(lark('D')).shadow, robin('B'));
+    });
+
     test('a dancer keeps the shadow through any change of state', () {
       final state = allOnes.stateOf(lark('A')).copyWith(shadow: robin('C'));
 
