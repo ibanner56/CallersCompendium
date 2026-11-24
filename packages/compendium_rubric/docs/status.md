@@ -147,6 +147,19 @@
 > Tulsa (4959) now compiles; nothing else changed outcome. Heather's Hop
 > Redux and its alternate still mismatch, at their final half figure eight.
 >
+> **An open chain closes with a full allemande (2026-11-24)**: where Caller's
+> Box writes an open chain as a titled line over the chainers' allemande half
+> and a courtesy allemande "3/4", the bridge now dances that courtesy
+> allemande once around in full (Hudson's report note on Every Second Counts:
+> it should be a full allemande, and the source uses quarter allemandes
+> inconsistently; reading every open chain that way, and its limits, are the
+> agent's calls). Against `rubric` at `cc543ed3`:
+> 4,277 of 5,423 to 4,298 of 5,423 compiled in scope (79.3%), the core set
+> 551 to 554, no previously compiling dance lost. Every Second Counts (10417)
+> now compiles, with 20 others. The Prodigal Daughter (84) still fails, now
+> refused at an allemande with the next neighbours rather than mismatching
+> at the end.
+>
 > **A Becket dance's only slide is a progression move (2026-11-24)**: in a
 > single-progression Becket dance (including one whose source states no
 > tier) whose only slide or slice, counting those inside containers but not a

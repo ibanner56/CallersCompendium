@@ -634,9 +634,15 @@ exactly as it would be on a line of its own. Implemented in `lib/src/ops/figures
   is not caught; catching it would need each figure to report who dances it. A `meanwhile` is
   its own progression if any part is *(agent's call)*.
 - **`sequence`** — a top-level sequence is spliced into its children by the bridge
-  (`implementation.md` §10.1). One **inside** a container is one side of it, so it stays
+  (`implementation.md` §10.1). A sequence **inside** a container is one side of it, so it stays
   together and is danced in order, like a modifier. Having no main figure, it is its own
   progression if any child is *(agent's call)*.
+- **An open chain closes with a full allemande**: a top-level sequence whose title contains
+  "chain" and whose exactly two children are a `role1s` or `role2s` allemande `0.5` and then an
+  allemande `0.75` has its closing allemande danced as a full `1.0` (Hudson's report note on
+  Every Second Counts, 2026-11-24: the courtesy allemande Caller's Box writes "3/4" should be a
+  full allemande; generalising it, and those limits, are the agent's calls). The same chain as
+  one side of a container is not spliced and is danced as written.
 - **A flagged modifier is progressed as one figure** (known limit): the change-over runs after
   its last modifier, and whether to hold is judged on the state the modifiers leave. Splitting the
   flag's effects at the main figure would need the engine to see inside the container. The two
