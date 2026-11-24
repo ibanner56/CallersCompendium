@@ -371,7 +371,8 @@ grand right and left the third neighbours stand *one* grouping apart, not two.
 standing together in every hands four, and hands the original phase back.
 Neither phase is `whoMismatch`; both is `unresolvableDancerSet`, unless the
 dancers' remembered shadows (`DancerState.shadow`, set by the first figure
-routed through `_applyWithShadows` that each dancer dances; a `meanwhile`
+routed through `_applyWithShadows` that each dancer dances, or by a diagonal
+`chain` from beside a neighbour, user-ruled 2026-11-24; a `meanwhile`
 carries a part's memory across its merge) are kept together by exactly one
 phase, which is then used (user-ruled 2026-11-23; `_identityPicksCurrent`).
 The memory only breaks that tie; the agent's calls around it are listed in
@@ -893,7 +894,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,536 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,544 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

@@ -487,7 +487,8 @@ how `swing` already treats every set.)
 **Your shadow is the same dancer all dance.** *(User-ruled 2026-11-23: once a dance names a
 shadow, it is the same dancer for the whole dance, every time through and across progressions;
 pair by that identity, and don't refuse when both band phases fit.)* The first figure naming
-`shadows` that each dancer dances remembers who they danced with (`DancerState.shadow`, kept
+`shadows` that each dancer dances, or a diagonal `chain` from beside a neighbour (user-ruled
+2026-11-24; see `chain`), remembers who they danced with (`DancerState.shadow`, kept
 through every later figure, container and progression, and never replaced; exceptions below). When a later figure finds
 shadow pairs in both band phases, it is danced in the phase whose hands fours keep every
 remembered pair together, as long as at least one such pair stands in them. If that does not
@@ -498,10 +499,11 @@ is refused as before. *(Agent's calls, not ratified:*
   couple number. A dancer paired with someone other than their remembered shadow keeps the
   remembered one, so the memory can be one-sided. Refusing on a disagreement instead is untried.*
 - *"Remembered" is the pairs danced by a figure routed through the shadows rule. A figure that
-  also names a distance set takes its phase from the distance and remembers nothing, and a
-  figure whose source text says "to shadow" without naming the set, like a diagonal ladies
-  chain, remembers nothing. Reading "chain to shadow" as naming them was measured on the
-  Caller's Box corpus and gained no dance.*
+  also names a distance set takes its phase from the distance and remembers nothing. At an end
+  where the shadow wraps to the neighbour, a dancer can match both the dancer beside them and
+  one across the set; each figure remembers the pair it danced: `swing` and `promenade`, which
+  pair by side column, the pair side by side; the others, which pair first match first, that
+  pair (2026-11-24).*
 - *At an end with nobody out, the neighbours who count as shadows there are remembered as each
   other's shadows for the rest of the dance. A wrong memory can only make a later figure refuse,
   never pick a wrong phase, because a phase must keep every remembered pair together.*
@@ -749,6 +751,18 @@ To be defined later with worked examples.
     across, the west-line dancers on a diagonal; a dancer already involved in a swap is never
     swapped again.
   - `hand` (left/right) does not change end positions (Op1 vs Op2).
+  - **A diagonal chain from beside a neighbour is to a shadow** *(user-ruled 2026-11-24, for
+    robins)*: a robin who stood beside a neighbour (her side-line column-mate, not her partner)
+    before a diagonal chain remembers the lark she ends beside as her shadow, and he her
+    (`DancerState.shadow`, see "Shadows"). Caller's Box writes this "chain to shadow", but the
+    pairing comes from where the dancers stand, not from the text. One who stood beside her
+    partner chains to a neighbour and remembers nothing; a dancer who already has a shadow
+    keeps the first one; a dancer with nobody on her diagonal stays put and remembers nothing
+    (user-ruled 2026-11-24: with no couple out at that end, she goes nowhere). *(Agent's
+    calls: the same rule for larks chaining; "beside" is read in the hands fours the chain was
+    danced in, so a dancer landing in a waiting couple's row, or beside her own partner or
+    someone of her own role, remembers nobody. Inside a `meanwhile`, "beside" is read in the
+    chain part's own result.)*
   - **Straight after an N2 figure**, an `across` chain is danced in the grouping that figure
     reached, and so is each `across` chain straight after that one; see "A chain after an N2
     figure chains with N2" *(user-ruled 2026-11-24, Heather's Hop Redux, #10172)*. A hey can
@@ -1123,9 +1137,13 @@ To be defined later with worked examples.
   any compiler blocker.
 - **preconditions:** in **every** hands four, the two `who` pairs stand **side by side in the two
   side columns**, one pair per side (column-mates spanning the band's two rows). Otherwise
-  `whoMismatch`. Facing is **not** checked, as `right_left_through` does not check it *(agent's
-  call)*: the landing is positional, and the dancers' facing before the figure is often
-  undetermined after a ring or a hey.
+  `whoMismatch`. Each side column is read for its own pair: a dancer who also matches someone
+  across the set (as a shadow does at an end with nobody out, where it wraps to the neighbour)
+  does not hide the pair beside them *(agent's call, 2026-11-24)*. A `who` that matches anyone
+  (`everyone`) therefore passes whenever both side columns are full. Facing is **not**
+  checked, as `right_left_through` does not check it *(agent's call)*: the landing is
+  positional, and the dancers' facing before the figure is often undetermined after a ring or a
+  hey.
 - **effect:** the `right_left_through` **diagonal swap** — `(r0,c0) ↔ (r1,c4)` and
   `(r0,c4) ↔ (r1,c0)` in each band. Derivation: the pair crosses keeping its sides, then the wheel
   is a half turn about the couple's own centre, which turns the pair end for end, so the dancer

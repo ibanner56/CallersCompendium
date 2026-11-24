@@ -82,7 +82,8 @@ class DancerState {
   final bool waitingOut;
 
   /// The dancer this one first danced with as a shadow, once the dance has
-  /// named shadows; `null` before that.
+  /// named shadows or a diagonal chain from beside a neighbour has made them
+  /// (`Chain`, user-ruled 2026-11-24); `null` before that.
   ///
   /// Once a dance names a shadow, it is the same dancer for the whole dance,
   /// every time through and across progressions *(user-ruled 2026-11-23)*, so

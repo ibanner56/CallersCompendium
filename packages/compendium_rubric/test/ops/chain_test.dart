@@ -339,4 +339,126 @@ void main() {
       }
     });
   });
+
+  group('a diagonal chain from beside a neighbour is to a shadow '
+      '(user-ruled 2026-11-24)', () {
+    DancerId id(String cell) => DancerId(
+      cell.codeUnitAt(cell.length - 1) - 0x41,
+      cell.startsWith('L') ? Role.lark : Role.robin,
+    );
+
+    test('each robin who chains remembers the lark she ends beside', () {
+      // Sawdust Liquor (Caller's Box #10027) after the neighbour swing: every
+      // robin stands beside a neighbour on her side line.
+      final after = applyOk(
+        const Chain(who: WhoSet.role2s, dir: ChainDirection.leftDiagonal),
+        becket(const [
+          'L1-A . . . R1-A',
+          'R2-B . . . L2-B',
+          'L1-C . . . R1-C',
+          'R2-D . . . L2-D',
+          'L1-E . . . R1-E',
+          'R2-F . . . L2-F',
+        ]),
+      );
+      expect(after.toRolesNotation(), [
+        'L1-A . . . R2-D',
+        'R2-B . . . L2-B',
+        'L1-C . . . R2-F',
+        'R1-A . . . L2-D',
+        'L1-E . . . R1-E',
+        'R1-C . . . L2-F',
+      ]);
+      final shadows = {
+        for (final entry in after.dancers.entries)
+          if (entry.value.shadow case final shadow?) '${entry.key}': '$shadow',
+      };
+      expect(shadows, {
+        '${id('R2-D')}': '${id('L2-B')}',
+        '${id('L2-B')}': '${id('R2-D')}',
+        '${id('R1-A')}': '${id('L1-C')}',
+        '${id('L1-C')}': '${id('R1-A')}',
+        '${id('R2-F')}': '${id('L2-D')}',
+        '${id('L2-D')}': '${id('R2-F')}',
+        '${id('R1-C')}': '${id('L1-E')}',
+        '${id('L1-E')}': '${id('R1-C')}',
+      }, reason: 'the top robin, with nobody on her diagonal, stays put');
+    });
+
+    test('a robin who stood beside her partner remembers no shadow', () {
+      final after = applyOk(
+        const Chain(who: WhoSet.role2s, dir: ChainDirection.leftDiagonal),
+        becket(const [
+          'L1-A . . . R2-B',
+          'R1-A . . . L2-B',
+          'L1-C . . . R2-D',
+          'R1-C . . . L2-D',
+        ]),
+      );
+      expect(
+        after.dancers.values.map((state) => state.shadow),
+        everyElement(isNull),
+      );
+    });
+
+    test('a dancer who already has a shadow keeps the first one', () {
+      final start = becket(const [
+        'L1-A . . . R1-A',
+        'R2-B . . . L2-B',
+        'L1-C . . . R1-C',
+        'R2-D . . . L2-D',
+      ]);
+      final remembered = start.withUpdates({
+        id('L2-B'): start.stateOf(id('L2-B')).copyWith(shadow: id('R1-C')),
+      });
+      final after = applyOk(
+        const Chain(who: WhoSet.role2s, dir: ChainDirection.leftDiagonal),
+        remembered,
+      );
+      expect(after.stateOf(id('L2-B')).shadow, id('R1-C'));
+      expect(after.stateOf(id('R2-D')).shadow, id('L2-B'));
+    });
+
+    test('with couples waiting out, nobody remembers a partner or a waiting '
+        'dancer', () {
+      final start = markWaitingOut(
+        startingFormation(FormationType.dupleImproper, handsFour: 3),
+        rows: const [0, 5],
+      );
+      for (final chain in const [
+        Chain(who: WhoSet.role2s, dir: ChainDirection.leftDiagonal),
+        Chain(who: WhoSet.role2s, dir: ChainDirection.rightDiagonal),
+        Chain(who: WhoSet.role1s, dir: ChainDirection.leftDiagonal),
+        Chain(who: WhoSet.role1s, dir: ChainDirection.rightDiagonal),
+      ]) {
+        final after = applyOk(chain, start);
+        for (final MapEntry(key: dancer, value: state)
+            in after.dancers.entries) {
+          final shadow = state.shadow;
+          if (shadow == null) continue;
+          expect(
+            shadow.coupleIndex,
+            isNot(dancer.coupleIndex),
+            reason: '$chain: $dancer remembers a partner',
+          );
+          expect(
+            start.stateOf(shadow).waitingOut,
+            isFalse,
+            reason: '$chain: $dancer remembers a waiting dancer',
+          );
+        }
+      }
+    });
+
+    test('a chain across remembers nothing', () {
+      final after = applyOk(
+        const Chain(who: WhoSet.role2s),
+        becket(const ['L1-A . . . R1-A', 'R2-B . . . L2-B']),
+      );
+      expect(
+        after.dancers.values.map((state) => state.shadow),
+        everyElement(isNull),
+      );
+    });
+  });
 }
