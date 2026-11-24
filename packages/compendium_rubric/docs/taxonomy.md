@@ -921,6 +921,12 @@ To be defined later with worked examples.
     in a wave — a short-wave side pair, or a pair in a side long wave — turns **rigidly from
     where it stands**: a short wave and ¾ lands in a long wave, a long wave and ¾ in a short
     wave. Any other pair leaves the wave and turns from facing, as above.
+  - **quarter from a centre long wave** (fundamentals §8.5.7; agent's call 2026-11-24, not yet
+    ratified) ⇒ one hands four's pair in c2 holding `hand` turns rigidly the same way and lands as
+    the centre pair of a short wave; the band's two side dancers join it as the ends. This is the
+    "Trip to Lambertville" family: "men walk forward, form long wave in center || women fall back;
+    men allemande left ¾". A band whose other two dancers are not one on each side is refused
+    (`unresolvableDancerSet`). `do_si_do` and `shoulder_round` hold no hands and still refuse.
 - **normalization:** none — not a normalizing figure. A whole or half turn settles wave offsets
   first (§8.5.4); a quarter or three-quarter keeps them, because it may start from the wave.
 - **facing (output):** per the rotation-facing principle (CallersCompendium `gate_facing`): a

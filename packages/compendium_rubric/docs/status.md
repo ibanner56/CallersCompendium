@@ -273,7 +273,8 @@ from this table because the compiler never ran against them. **Pass rate** is
 ### Rotation and wave landings
 
 - `allemande`, `do_si_do`, and `shoulder_round` defer across-the-set
-  quarter-turn landings.
+  quarter-turn landings, except that an `allemande` turning the centre pair
+  of a centre long wave out into a short wave is built (fundamentals §8.5.7).
 - `two_hand_turn`, `mad_robin`, `orbit`, and `star_promenade` defer quarter and
   three-quarter amounts entirely.
 

@@ -110,6 +110,21 @@ final class Allemande extends Operation {
   @override
   OpError? checkPreconditions(Formation formation) {
     if (!rotationAmountOf(turn).landsInWave) return null;
+    for (final pair in whoPairsInSet(formation, who)) {
+      final hold = waveHoldOf(formation, pair);
+      if (hold == null ||
+          hold.shape != WaveHoldShape.centre ||
+          hold.hand != hand) {
+        continue;
+      }
+      if (centreWaveSides(formation, pair) != null) continue;
+      return OpError(
+        ErrorKind.unresolvableDancerSet,
+        '$name turn: $turn turns ${pair.a} and ${pair.b} out of the centre '
+        'long wave into a short wave, which needs the other two dancers of '
+        'their hands four standing one on each side of the set',
+      );
+    }
     // A pair already holding this hand in a wave turns from there (§8.5.7).
     // Every other pair leaves the wave first, exactly as before, and is held
     // to the along-the-set rule from the settled cells.
@@ -158,6 +173,12 @@ final class Allemande extends Operation {
           for (final pair in held) ...{
             pair.a: turned.stateOf(pair.a),
             pair.b: turned.stateOf(pair.b),
+            if (waveHoldOf(formation, pair)?.shape == WaveHoldShape.centre)
+              ...shortWaveEndsAround(
+                turned,
+                pair,
+                centreWaveSides(formation, pair)!,
+              ),
           },
         }),
       );
