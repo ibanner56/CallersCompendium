@@ -51,6 +51,9 @@ const Map<String, int> _allowed = {
   // text, a By phrase chip); never a dance's figures.
   'lib/src/widgets/advanced_query_builder.dart': 1,
   'lib/src/widgets/by_phrase_panel.dart': 1,
+  // A built-in move's name on a swap sheet Keep chip (#2346), as a search
+  // criterion like the Advanced row's; never a dance's figure lines.
+  'lib/src/screens/perform_swap_sheet.dart': 1,
   'lib/src/widgets/compound_argument_editor.dart': 1,
   'lib/src/widgets/user_figure_argument_editor.dart': 1,
   'lib/src/screens/settings/defaults_section.dart': 1,

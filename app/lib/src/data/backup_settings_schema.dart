@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart'
     show
         MatrixColumnConfig,
         SavedSearch,
+        isValidStoredPerformSwapDefaults,
         isValidStoredSuggestionSettings,
         savedSearchKeyPrefix,
         shareableTextNormalisationScopeKey;
@@ -294,6 +295,10 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // version-1 value must use only known choices; a newer one is kept as it
   // stands, since this build keeps it without reading it.
   kSuggestionSettingsKey: isValidStoredSuggestionSettings,
+  // Which Keep items start on in Perform's swap sheet (#2346): a JSON object
+  // with a version. A version-1 value must hold a bool for each item; a newer
+  // one is kept as it stands, since this build keeps it without reading it.
+  kPerformSwapDefaultsKey: isValidStoredPerformSwapDefaults,
 };
 
 bool _isBool(Object? v) => v is bool;

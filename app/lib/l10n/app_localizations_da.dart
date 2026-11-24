@@ -13797,6 +13797,122 @@ class AppLocalizationsDa extends AppLocalizations {
       'Honoraret er skjult i Indstillinger, så det er udeladt. Slå »Vis honorar« til under Indstillinger ▸ Program for at tage det med.';
 
   @override
+  String get performSwapThisDance => 'Byt denne dans';
+
+  @override
+  String performSwapDanceNamed(String title) {
+    return 'Byt $title';
+  }
+
+  @override
+  String performSwappedAnnounce(String title) {
+    return 'Byttede til $title';
+  }
+
+  @override
+  String get performSwapKeepHeader => 'Behold';
+
+  @override
+  String performSwapKeepFormation(String formation) {
+    return 'Samme formation: $formation';
+  }
+
+  @override
+  String performSwapKeepLevel(String level) {
+    return 'Dette niveau eller lettere: $level';
+  }
+
+  @override
+  String performSwapKeepType(String type) {
+    return 'Samme type: $type';
+  }
+
+  @override
+  String get performSwapKeepNotInProgram => 'Ikke allerede i aftenens program';
+
+  @override
+  String get performSwapFiguresHeader => 'Figurer at beholde';
+
+  @override
+  String performSwapFigureInPhrase(String figure, String phrase) {
+    return '$figure i $phrase';
+  }
+
+  @override
+  String performSwapKeepFigureSemantic(String figure) {
+    return 'Behold $figure';
+  }
+
+  @override
+  String performSwapSamePhrase(String phrase) {
+    return 'I samme frase ($phrase)';
+  }
+
+  @override
+  String performSwapSamePhraseSemantic(String figure, String phrase) {
+    return 'Behold $figure i samme frase, $phrase';
+  }
+
+  @override
+  String performSwapWithBefore(String figure) {
+    return 'Med det, der kommer før ($figure)';
+  }
+
+  @override
+  String performSwapWithBeforeSemantic(String figure, String before) {
+    return 'Behold $figure lige efter $before';
+  }
+
+  @override
+  String get performSwapMoreFilters => 'Flere filtre';
+
+  @override
+  String get performSwapKeepInPanels =>
+      'De øvrige valg at beholde ligger nu under Filtre og Avanceret.';
+
+  @override
+  String get performSwapEnglishNote =>
+      'For engelske danse tilbydes samme formation og figurernes præciseringer endnu ikke.';
+
+  @override
+  String get performSwapAlternatesHeading => 'Dine alternativer';
+
+  @override
+  String get performSwapResultsHeading => 'Danse der passer';
+
+  @override
+  String get performSwapRefused =>
+      'Programmet blev ændret på en anden enhed, så en af dine ændringer blev ikke gemt. Tjek programmet, og lav ændringen igen, hvis du stadig vil have den.';
+
+  @override
+  String get settingsPerformSwapTitle => 'Byt en dans';
+
+  @override
+  String get settingsPerformSwapSubtitle =>
+      'Vælg, hvilke valg at beholde der er slået til, når du bytter en dans under fremførelse.';
+
+  @override
+  String get settingsPerformSwapFormation => 'Samme formation';
+
+  @override
+  String get settingsPerformSwapLevel => 'Dette niveau eller lettere';
+
+  @override
+  String get settingsPerformSwapType => 'Samme type';
+
+  @override
+  String get settingsPerformSwapTypeSubtitle =>
+      'Tilbydes kun i et program, der blander typer, f.eks. contraer og engelske danse.';
+
+  @override
+  String get settingsPerformSwapNewerVersion =>
+      'Disse valg blev gemt af en nyere version af appen. Denne version bruger sine startvalg, hvor alle er slået til, og overskriver ikke dine. Opdater appen for at ændre dem.';
+
+  @override
+  String get settingsPerformSwapReadError =>
+      'Dine valg for “Byt en dans” kunne ikke læses og kan ikke ændres lige nu. Luk denne skærm, og prøv igen.';
+
+  @override
   String get collectionRepertoireMenuItem => 'Repertoire';
 
   @override

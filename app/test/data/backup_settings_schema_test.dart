@@ -32,6 +32,7 @@ import 'package:compendium_app/src/screens/settings/settings_keys.dart'
         kCustomFieldSharingDisclosureKey,
         kEcdConvertPromptDismissedKey,
         kConfirmPerformExitKey,
+        kPerformSwapDefaultsKey,
         kProgramDanceShareFieldsKey,
         kProgramMatrixColumnsKey,
         kShowIndividualPerformTimerKey,
@@ -41,6 +42,7 @@ import 'package:compendium_core/compendium_core.dart'
         CollectionPanelState,
         EgressClass,
         MatrixColumnConfig,
+        PerformSwapDefaults,
         SavedSearch,
         SavedSearchSpec,
         SuggestionSettings,
@@ -499,6 +501,44 @@ void main() {
       );
       expect(
         valid({'version': 1, 'preferences': <String, Object?>{}}),
+        isFalse,
+      );
+    });
+
+    test('Swap a dance defaults (#2346): a value this build can keep', () {
+      bool valid(Object? value) =>
+          validateBackupSettingValue(kPerformSwapDefaultsKey, value)!;
+      expect(valid(PerformSwapDefaults.defaults.toJson()), isTrue);
+      expect(valid({'version': 1}), isTrue, reason: 'missing items are on');
+      expect(
+        valid({
+          'version': 1,
+          'keep': {'formation': false, 'someLaterItem': 'x'},
+        }),
+        isTrue,
+        reason: 'unknown items are kept',
+      );
+      expect(
+        valid({'version': 2, 'keep': 'anything'}),
+        isFalse,
+        reason: 'keep must still be an object',
+      );
+      expect(
+        valid({'version': 2, 'keep': <String, Object?>{}}),
+        isTrue,
+        reason: 'a newer version is kept as it stands',
+      );
+      expect(valid('nope'), isFalse);
+      expect(
+        valid({'keep': <String, Object?>{}}),
+        isFalse,
+        reason: 'no version',
+      );
+      expect(
+        valid({
+          'version': 1,
+          'keep': {'notInProgram': 'yes'},
+        }),
         isFalse,
       );
     });

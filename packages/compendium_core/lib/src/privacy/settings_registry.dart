@@ -407,6 +407,8 @@ final Map<String, DataClassification> settingsClassifications = {
         'unlike auto_size_perform_cards it does not depend on screen size.',
   ),
   'show_program_slot_caller_notes': _preference,
+  // Which Keep items start on in Perform's swap sheet (#2346).
+  'perform_swap_defaults': _preference,
   'auto_commit_program_changes': _preference,
   'perform_canonical_view': DataClassification(
     term: DpvTerm.nonPersonal,
