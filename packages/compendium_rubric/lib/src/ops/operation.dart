@@ -403,7 +403,7 @@ sealed class Operation {
   }) {
     final failure = checkPreconditions(phase);
     if (failure != null) return Err<Formation, OpError>(failure);
-    final pairs = _shadowPairs(phase);
+    final pairs = _shadowPairsDanced(phase);
     final danced = perform(phase).map((next) => _remember(next, pairs));
     return handBack ? danced.map(toggleBandPhase) : danced;
   }
@@ -444,16 +444,64 @@ sealed class Operation {
     return together > 0;
   }
 
-  /// The shadow pairs standing together in [formation]'s hands fours.
-  static List<({DancerId a, DancerId b})> _shadowPairs(Formation formation) => [
-    for (final band in handsFourBands(formation))
-      ...resolveWhoPairs(
-        formation,
-        WhoSet.shadows,
-        topRow: band.topRow,
-        bottomRow: band.bottomRow,
-      ),
-  ];
+  /// The shadow pairs this figure dances in [formation]'s hands fours, which
+  /// are the pairs it remembers.
+  ///
+  /// The figures that pair by side column (`swing`, `promenade`) take a pair
+  /// side by side in a column first, then pair the rest first match first;
+  /// every other figure pairs as [resolveWhoPairs] does, which is how it
+  /// chooses who dances. At an end with nobody out the shadow wraps to the
+  /// neighbour, so a dancer can match someone across the set as well as the
+  /// dancer beside them, and the two readings differ there; each figure
+  /// remembers the pairs it actually danced *(agent's call, 2026-11-24)*.
+  List<({DancerId a, DancerId b})> _shadowPairsDanced(Formation formation) =>
+      switch (this) {
+        Swing() || Promenade() => _shadowPairs(formation),
+        _ => [
+          for (final band in handsFourBands(formation))
+            ...resolveWhoPairs(
+              formation,
+              WhoSet.shadows,
+              topRow: band.topRow,
+              bottomRow: band.bottomRow,
+            ),
+        ],
+      };
+
+  /// The shadow pairs standing together in [formation]'s hands fours, side
+  /// columns first.
+  static List<({DancerId a, DancerId b})> _shadowPairs(Formation formation) {
+    final pairs = <({DancerId a, DancerId b})>[];
+    for (final band in handsFourBands(formation)) {
+      final taken = <DancerId>{};
+      for (final col in const [0, kColumnCount - 1]) {
+        final a = formation.dancerAt(Position(band.topRow, col));
+        final b = formation.dancerAt(Position(band.bottomRow, col));
+        if (a == null || b == null) continue;
+        if (!whoMatches(formation, a, b, WhoSet.shadows)) continue;
+        pairs.add((a: a, b: b));
+        taken.addAll([a, b]);
+      }
+      final rest = [
+        for (final row in [band.topRow, band.bottomRow])
+          for (final id in formation.dancersInRow(row))
+            if (!taken.contains(id)) id,
+      ];
+      for (var i = 0; i < rest.length; i++) {
+        if (taken.contains(rest[i])) continue;
+        for (var j = i + 1; j < rest.length; j++) {
+          if (taken.contains(rest[j])) continue;
+          if (!whoMatches(formation, rest[i], rest[j], WhoSet.shadows)) {
+            continue;
+          }
+          pairs.add((a: rest[i], b: rest[j]));
+          taken.addAll([rest[i], rest[j]]);
+          break;
+        }
+      }
+    }
+    return pairs;
+  }
 
   /// [formation] with each dancer in [pairs] remembering the other as their
   /// shadow, unless they already have one: the first shadow a dance names is
