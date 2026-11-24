@@ -5235,6 +5235,17 @@ build that reads a newer one keeps it unchanged (see
 [suggestions.md](suggestions.md#stored-settings)), so the capability is not
 bumped for a change the version field covers.
 
+**`performSwap.v1`.** Gates Perform's **Swap a dance** defaults (#2346): the
+exact key `perform_swap_defaults`, tombstones included. A build without it has
+no swap sheet and nothing that reads the key. The reference client advertises
+it from the change that adds the swap sheet, so it is subject to *Rollout*: a
+device on a build that lists the glossary capabilities, `programTemplates.v1`
+and `suggestions.v1` but not this one holds it closed and is named for it,
+while what those gate publishes past it. The value carries its own `version`;
+a build that reads a newer one keeps it unchanged and its settings editor does
+not overwrite it, so the capability is not bumped for a change the version
+field covers.
+
 **Server.** The server needs no code for the gate. It validates settings keys
 and record kinds through the registry it is built from, so it MUST be deployed
 before any client emits the capability prefix or a gated kind (§7.5).

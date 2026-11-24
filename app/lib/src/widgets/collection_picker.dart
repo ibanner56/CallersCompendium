@@ -99,7 +99,13 @@ class CollectionPicker extends StatefulWidget {
     this.excludedDanceIds = const {},
     this.rankSuggestions,
     this.clock = const SearchClock(),
+    this.showSearchControls = true,
+    this.initialPanel,
+    this.header,
+    this.pinned,
+    this.offerSuggested = true,
     this.panelState,
+    this.onSortChanged,
   });
 
   /// Preloaded collection vocabulary/dances (loaded once by the builder and
@@ -210,6 +216,30 @@ class CollectionPicker extends StatefulWidget {
   /// Where "today" comes from, for the venue window. A test seam.
   final SearchClock clock;
 
+  /// Whether the search field and the row of search tools show. A host whose
+  /// own controls set the query ([panelState]) can hide them until the
+  /// user asks for them; the results, their count and the sort show either
+  /// way.
+  final bool showSearchControls;
+
+  /// The search tool that is open when the tools first show, unless the user
+  /// already chose one on this route.
+  final PickerSearchPanel? initialPanel;
+
+  /// Scrolls with the results, above the search tools: the host's own
+  /// controls for the query, such as the swap sheet's **Keep** items.
+  final Widget? header;
+
+  /// Dances listed first under a heading of their own, whatever the query,
+  /// and left out of the results below (the swap sheet's **Your
+  /// alternates**). Rows act as result rows do.
+  final PickerPinnedDances? pinned;
+
+  /// Whether the Sort menu may offer **Suggested** at all. False keeps a host
+  /// that passes a [programContext] position for other reasons on the plain
+  /// orders.
+  final bool offerSuggested;
+
   /// A search for the picker to show: its text, **Search in**, every filter,
   /// the By phrase rows, the Advanced tree and the sort with its direction,
   /// exactly ([CollectionPanelState]), in place of whatever it shows.
@@ -230,8 +260,36 @@ class CollectionPicker extends StatefulWidget {
   /// to the program).
   final CollectionPanelRequest? panelState;
 
+  /// Called when the user picks a sort or flips its direction here, so a
+  /// host that sends a later [panelState] can carry the sort being looked at
+  /// in it (a request replaces the sort too). Not called for a sort a
+  /// request or the opening-sort read sets.
+  final void Function(CollectionSort sort, SortDirection direction)?
+  onSortChanged;
+
   @override
   State<CollectionPicker> createState() => _CollectionPickerState();
+}
+
+/// The search tools a [CollectionPicker] can open with
+/// ([CollectionPicker.initialPanel]).
+enum PickerSearchPanel { filters, byPhrase, advanced }
+
+/// Dances a [CollectionPicker] lists first, under [heading], above the
+/// results, which then go under [resultsHeading].
+@immutable
+class PickerPinnedDances {
+  const PickerPinnedDances({
+    required this.heading,
+    required this.resultsHeading,
+    required this.danceIds,
+  });
+
+  final String heading;
+  final String resultsHeading;
+
+  /// In the order listed. An id the collection does not hold is skipped.
+  final List<String> danceIds;
 }
 
 /// A one-shot request to show [state] in a [CollectionPicker]; see
@@ -480,7 +538,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   /// Whether the Sort menu offers Suggested.
   bool get _suggestedAvailable =>
-      _suggestionsEnabled && widget.programContext?.position != null;
+      widget.offerSuggested &&
+      _suggestionsEnabled &&
+      widget.programContext?.position != null;
 
   /// Back to the plain order, dropping any ranking in flight.
   void _leaveSuggested() {
@@ -564,10 +624,10 @@ class _CollectionPickerState extends State<CollectionPicker> {
         oldWidget.dialect != widget.dialect ||
         oldWidget.enrichment != widget.enrichment ||
         !setEquals(oldWidget.excludedDanceIds, widget.excludedDanceIds);
+    // One search for this update, however many of its inputs changed.
     if (searchInputsChanged && !_onlineEnabled) {
       _runSearch();
-    }
-    if (panelApplied ||
+    } else if (panelApplied ||
         onlineDisabled ||
         ((dataChanged || hostOverrideAdvanced) &&
             !_onlineEnabled &&
@@ -694,15 +754,17 @@ class _CollectionPickerState extends State<CollectionPicker> {
         for (final entry in _importedChoreographers.entries)
           entry.key: entry.value.name,
       };
+      final pinnedIds = {...?widget.pinned?.danceIds};
       setState(() {
         _results = [
           for (final id in ids)
             if (!widget.excludedDanceIds.contains(id))
-              if (_latestDanceFor(id, data) case final dance?)
-                data.entryFor(
-                  dance,
-                  choreographerNamesOverride: choreographerNamesOverride,
-                ),
+              if (!pinnedIds.contains(id))
+                if (_latestDanceFor(id, data) case final dance?)
+                  data.entryFor(
+                    dance,
+                    choreographerNamesOverride: choreographerNamesOverride,
+                  ),
         ];
         _searching = false;
       });
@@ -765,6 +827,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _sort = value;
       _sortDir = value.searchSort.defaultDirection;
     });
+    widget.onSortChanged?.call(_sort, _sortDir);
     _runSearch();
   }
 
@@ -922,6 +985,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
           ? SortDirection.descending
           : SortDirection.ascending;
     });
+    widget.onSortChanged?.call(_sort, _sortDir);
     _runSearch();
   }
 
@@ -1343,38 +1407,40 @@ class _CollectionPickerState extends State<CollectionPicker> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                AppSpacing.sm,
-                AppSpacing.md,
-                0,
-              ),
-              child: SearchFieldWithScope(
-                searchField: searchField,
-                scopeField: SearchScopeField(
-                  fieldKey: const ValueKey('picker-search-scope'),
-                  scope: _ftsScope,
-                  online: _onlineEnabled,
-                  onChanged: _onFtsScopeChanged,
-                  border: const OutlineInputBorder(),
+            if (widget.showSearchControls)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  AppSpacing.sm,
+                  AppSpacing.md,
+                  0,
+                ),
+                child: SearchFieldWithScope(
+                  searchField: searchField,
+                  scopeField: SearchScopeField(
+                    fieldKey: const ValueKey('picker-search-scope'),
+                    scope: _ftsScope,
+                    online: _onlineEnabled,
+                    onChanged: _onFtsScopeChanged,
+                    border: const OutlineInputBorder(),
+                  ),
                 ),
               ),
-            ),
             Expanded(
               child: CustomScrollView(
                 controller: widget.scrollController,
                 slivers: [
                   SliverList(
                     delegate: SliverChildListDelegate([
-                      _buildSearchPanels(data),
+                      ?widget.header,
+                      if (widget.showSearchControls) _buildSearchPanels(data),
                       _buildResultCount(),
                       const Divider(height: 1),
                     ]),
                   ),
                   _onlineEnabled
                       ? _buildOnlineResultsSliver()
-                      : _buildResultsSliver(),
+                      : _buildLocalResultsSliver(),
                 ],
               ),
             ),
@@ -1396,6 +1462,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final byPhraseActive = _byPhraseActiveCount();
     final panelBar = SearchPanelBar(
       storageId: 'picker',
+      initialOpen: switch (widget.initialPanel) {
+        null => null,
+        PickerSearchPanel.filters => const ValueKey('picker-filters-panel'),
+        PickerSearchPanel.byPhrase => const ValueKey('picker-by-phrase-panel'),
+        PickerSearchPanel.advanced => const ValueKey('picker-advanced-panel'),
+      },
       trailing: widget.enableOnlineSearch
           ? OnlineSearchToggle(
               key: const ValueKey('picker-online-search-enable'),
@@ -1635,6 +1707,52 @@ class _CollectionPickerState extends State<CollectionPicker> {
           ],
         ],
       ),
+    );
+  }
+
+  /// The local results, after the [CollectionPicker.pinned] dances under
+  /// their own heading when there are any.
+  Widget _buildLocalResultsSliver() {
+    final pinned = widget.pinned;
+    final data = widget.data;
+    final pinnedEntries = pinned == null
+        ? const <DanceListEntry>[]
+        : [
+            for (final id in pinned.danceIds)
+              if (_latestDanceFor(id, data) case final dance?)
+                if (dance.deletedAt == null)
+                  data.entryFor(
+                    dance,
+                    choreographerNamesOverride:
+                        widget.choreographerNamesOverride,
+                  ),
+          ];
+    if (pinned == null || pinnedEntries.isEmpty) return _buildResultsSliver();
+    Widget heading(String text, Key key) => SliverToBoxAdapter(
+      child: Semantics(
+        header: true,
+        child: Padding(
+          key: key,
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.sm,
+            AppSpacing.md,
+            AppSpacing.xxs,
+          ),
+          child: Text(text, style: Theme.of(context).textTheme.titleSmall),
+        ),
+      ),
+    );
+    return SliverMainAxisGroup(
+      slivers: [
+        heading(pinned.heading, const ValueKey('picker-pinned-heading')),
+        _buildResultRows(pinnedEntries, null),
+        heading(
+          pinned.resultsHeading,
+          const ValueKey('picker-results-heading'),
+        ),
+        _buildResultsSliver(),
+      ],
     );
   }
 

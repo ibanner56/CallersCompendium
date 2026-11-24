@@ -500,7 +500,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**139 settings keys**: 89 shareable, 15 device-local, 33 device-scoped, 1 protocol-identifier, 1 store-address. 5 personal data by category.
+**140 settings keys**: 90 shareable, 15 device-local, 33 device-scoped, 1 protocol-identifier, 1 store-address. 5 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -595,6 +595,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `matrix_exact_beat_collision` | `dpv:NonPersonalData` | app user | shareable |  |
 | `perform_canonical_view` | `dpv:NonPersonalData` | app user | shareable | No longer read or written by this version (Perform lost its canonical toggle). Kept classified and travelling so older-version peers and backups, which still use it, round-trip it unchanged. |
 | `perform_stage_mode` | `dpv:NonPersonalData` | app user | **device-local** | Screen-bound: the stage theme is chosen for the lighting a screen is read under, like perform_text_scale below. deviceLocal, not deviceScoped: it is withheld for what it means on another screen, not for what it contains, and deviceScoped would also drop it from the user's own backups, which should give it back on restore. Per-device by the maintainer's decision (settings-sync-scope, 2026-10-29). |
+| `perform_swap_defaults` | `dpv:NonPersonalData` | app user | shareable |  |
 | `perform_text_scale` | `dpv:NonPersonalData` | app user | **device-local** | Tuned to the screen it was set on. A scale chosen for a phone held at arm's length is wrong on a laptop driving a projector, but it may travel in a user-controlled local backup. |
 | `program_dance_share_fields` | `dpv:NonPersonalData` | app user | shareable |  |
 | `program_matrix_columns` | `dpv:NonPersonalData` | app user | shareable |  |

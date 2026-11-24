@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -287,4 +289,197 @@ void main() {
       expect(stored.slots.first.performedAt, isNull);
     });
   });
+
+  // #2346: a swap whose slots another device changed meanwhile is not merged
+  // field by field (see perform_swap_conflict_test.dart): nothing is written,
+  // Perform shows the stored program and asks for the changes again.
+  testWidgets('a swap whose group changed elsewhere is not made, and Perform '
+      'asks for the changes again', (tester) async {
+    final repos = openTestRepositories();
+    for (final (id, title) in [
+      ('d1', 'First Dance'),
+      ('d2', 'Backup Dance'),
+      ('d3', 'Third Dance'),
+      ('d4', 'Fresh Dance'),
+    ]) {
+      await repos.dances.create(dance(id, title));
+    }
+    await repos.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Barn Dance',
+        status: ProgramStatus.draft,
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's1x', position: 1, danceId: 'd2', isAlt: true),
+          ProgramSlot(id: 's2', position: 2, danceId: 'd3'),
+        ],
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+    );
+    await pumpHome(tester, repos, const ProgramSummaryScreen(programId: 'p1'));
+    await tester.tap(find.byKey(const ValueKey('summary-perform')));
+    await tester.pumpAndSettle();
+
+    // Another device deletes the alternate.
+    final stored = (await repos.programs.getById('p1'))!;
+    await repos.programs.update(
+      stored.copyWith(
+        slots: [stored.slots[0], stored.slots[2].copyWith(position: 1)],
+        updatedAt: stored.updatedAt.add(const Duration(minutes: 5)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('adjust-swap-current')));
+    await tester.pumpAndSettle();
+    final pick = find.descendant(
+      of: find.byKey(const ValueKey('adjust-swap-sheet')),
+      matching: find.byKey(const ValueKey('picker-add-d4')),
+    );
+    // Any dance will do: drop Same formation.
+    await tester.tap(find.byKey(const ValueKey('swap-keep-formation')));
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const ValueKey('swap-picker')),
+      const Offset(0, -400),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(pick);
+    await tester.pumpAndSettle();
+    await tester.tap(pick);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('adjust-done')));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    final after = (await repos.programs.getById('p1'))!;
+    expect(after.slots.map((s) => (s.id, s.danceId)), [
+      ('s1', 'd1'),
+      ('s2', 'd3'),
+    ]);
+    expect(find.text(l10nOf(tester).performSwapRefused), findsOneWidget);
+    expect(position(tester), 'Slot 1 of 2');
+  });
+
+  testWidgets('a swap refused in the owner\'s write queue leaves the note '
+      'added after it, which is written behind it, on screen and stored', (
+    tester,
+  ) async {
+    final db = openWidgetTestDatabase();
+    final programs = _GatedPrograms(db);
+    final repos = CompendiumRepositories(
+      db,
+      contraTaxonomy,
+      programs: programs,
+    );
+    for (final (id, title) in [
+      ('d1', 'First Dance'),
+      ('d3', 'Third Dance'),
+      ('d4', 'Fresh Dance'),
+    ]) {
+      await repos.dances.create(dance(id, title));
+    }
+    await repos.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Barn Dance',
+        status: ProgramStatus.draft,
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd3'),
+        ],
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+    );
+    await pumpHome(tester, repos, const ProgramSummaryScreen(programId: 'p1'));
+    await tester.tap(find.byKey(const ValueKey('summary-perform')));
+    await tester.pumpAndSettle();
+    final opened = (await repos.programs.getById('p1'))!;
+
+    // A: swap the dance being called. Its write waits at its read.
+    final gate = programs.gate = Completer<void>();
+    await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('adjust-swap-current')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('swap-keep-formation')));
+    await tester.pumpAndSettle();
+    final pick = find.descendant(
+      of: find.byKey(const ValueKey('adjust-swap-sheet')),
+      matching: find.byKey(const ValueKey('picker-add-d4')),
+    );
+    await tester.drag(
+      find.byKey(const ValueKey('swap-picker')),
+      const Offset(0, -400),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(pick);
+    await tester.pumpAndSettle();
+    await tester.tap(pick);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('adjust-done')));
+    await tester.pumpAndSettle();
+
+    // Meanwhile another device marks the swapped slot performed.
+    final played = DateTime.utc(2026, 1, 1, 21);
+    await repos.programs.update(
+      opened.copyWith(
+        slots: [
+          opened.slots[0].copyWith(performedAt: played),
+          opened.slots[1],
+        ],
+        updatedAt: opened.updatedAt.add(const Duration(minutes: 5)),
+      ),
+    );
+
+    // B: add a note; the owner queues its write behind A's.
+    await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('adjust-note-field')),
+      'Announce the raffle',
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('adjust-add-note')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('adjust-add-note')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('adjust-done')));
+    await tester.pumpAndSettle();
+
+    programs.gate = null;
+    gate.complete();
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    final stored = (await repos.programs.getById('p1'))!;
+    expect(stored.slots.map((s) => (s.danceId, s.text)), [
+      ('d1', null),
+      (null, 'Announce the raffle'),
+      ('d3', null),
+    ]);
+    expect(stored.slots.first.performedAt, played);
+    expect(find.text(l10nOf(tester).performSwapRefused), findsOneWidget);
+    expect(position(tester), 'Slot 1 of 3', reason: 'the note stays');
+    expect(find.text('Fresh Dance'), findsNothing);
+  });
+}
+
+/// Programs whose reads wait for [gate] while it is set, so a test can hold
+/// the owner's Perform write at its read.
+class _GatedPrograms extends ProgramRepository {
+  _GatedPrograms(super.db);
+
+  Completer<void>? gate;
+
+  @override
+  Future<Program?> getById(String id, {bool includeDeleted = false}) async {
+    final held = gate;
+    if (held != null) await held.future;
+    return super.getById(id, includeDeleted: includeDeleted);
+  }
 }

@@ -20189,6 +20189,180 @@ abstract class AppLocalizations {
   /// **'Pay is hidden in Settings, so it is left out. Turn on Show pay in Settings ▸ Program to include it.'**
   String get exportCsvPayHiddenNotice;
 
+  /// Button in Perform's Adjust program sheet, under the dance being called now: opens the swap sheet to replace it with another dance. The replaced dance is kept as an alternate.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap this dance'**
+  String get performSwapThisDance;
+
+  /// Tooltip and screen-reader label of the Swap button on an upcoming dance in Perform's Adjust program sheet, and the title of the swap sheet. {title} is the dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap {title}'**
+  String performSwapDanceNamed(String title);
+
+  /// Screen-reader announcement after the caller picks a replacement in Perform's swap sheet. {title} is the new dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'Swapped in {title}'**
+  String performSwappedAnnounce(String title);
+
+  /// Heading over the choices in Perform's swap sheet that say what the replacement dance must share with the dance being swapped (verb: keep these the same).
+  ///
+  /// In en, this message translates to:
+  /// **'Keep'**
+  String get performSwapKeepHeader;
+
+  /// Chip in Perform's swap sheet: only list dances in the same formation as the dance being swapped. {formation} is the formation's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Same formation: {formation}'**
+  String performSwapKeepFormation(String formation);
+
+  /// Chip in Perform's swap sheet: only list dances at the level of the dance being swapped or an easier one. {level} is that level's name.
+  ///
+  /// In en, this message translates to:
+  /// **'This level or easier: {level}'**
+  String performSwapKeepLevel(String level);
+
+  /// Chip in Perform's swap sheet, shown only in a program that mixes types: only list dances of the same type (contra, English, square) as the dance being swapped. {type} is the type's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Same type: {type}'**
+  String performSwapKeepType(String type);
+
+  /// Chip in Perform's swap sheet, and a switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance: leave out dances already in this program.
+  ///
+  /// In en, this message translates to:
+  /// **'Not already in tonight\'s program'**
+  String get performSwapKeepNotInProgram;
+
+  /// Heading over the figures of the dance being swapped, in Perform's swap sheet. Tapping one only lists dances that also have that figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures to keep'**
+  String get performSwapFiguresHeader;
+
+  /// Label of a figure chip in Perform's swap sheet: the figure's name and the phrase of the music it starts in. {phrase} is a phrase label such as A1 or B2, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'{figure} in {phrase}'**
+  String performSwapFigureInPhrase(String figure, String phrase);
+
+  /// Screen-reader label of a figure chip in Perform's swap sheet. {figure} is the chip's text, for example "hey in A2".
+  ///
+  /// In en, this message translates to:
+  /// **'Keep {figure}'**
+  String performSwapKeepFigureSemantic(String figure);
+
+  /// Chip under a kept figure in Perform's swap sheet: the replacement must have the figure in the same phrase of the music. {phrase} is a phrase label such as A1, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'In the same phrase ({phrase})'**
+  String performSwapSamePhrase(String phrase);
+
+  /// Screen-reader label of the In the same phrase chip in Perform's swap sheet. {figure} is the figure's name, {phrase} a phrase label such as A1.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep {figure} in the same phrase, {phrase}'**
+  String performSwapSamePhraseSemantic(String figure, String phrase);
+
+  /// Chip under a kept figure in Perform's swap sheet: the replacement must have the figure right after the same figure that comes before it in this dance. {figure} is the name of that earlier figure.
+  ///
+  /// In en, this message translates to:
+  /// **'With what comes before it ({figure})'**
+  String performSwapWithBefore(String figure);
+
+  /// Screen-reader label of the With what comes before it chip in Perform's swap sheet. {figure} is the kept figure's name, {before} the figure that comes right before it.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep {figure} right after {before}'**
+  String performSwapWithBeforeSemantic(String figure, String before);
+
+  /// Button in Perform's swap sheet that opens the full Filters and Advanced search panels, with the Keep choices filled in.
+  ///
+  /// In en, this message translates to:
+  /// **'More filters'**
+  String get performSwapMoreFilters;
+
+  /// Note in Perform's swap sheet after More filters is tapped: the formation, level, type and figure choices can now be changed in the Filters and Advanced panels. 'Filters' and 'Advanced' are the names of those panels.
+  ///
+  /// In en, this message translates to:
+  /// **'The other Keep choices are now in Filters and Advanced.'**
+  String get performSwapKeepInPanels;
+
+  /// Note in Perform's swap sheet when the dance being swapped is an English country dance: the Same formation chip and the In the same phrase / With what comes before it chips are not offered for English dances.
+  ///
+  /// In en, this message translates to:
+  /// **'For English dances, same formation and the figure refinements are not offered yet.'**
+  String get performSwapEnglishNote;
+
+  /// Heading in Perform's swap sheet over the dances the caller already listed as alternates for this slot, shown first.
+  ///
+  /// In en, this message translates to:
+  /// **'Your alternates'**
+  String get performSwapAlternatesHeading;
+
+  /// Heading in Perform's swap sheet over the dances that match the Keep choices, below Your alternates.
+  ///
+  /// In en, this message translates to:
+  /// **'Matching dances'**
+  String get performSwapResultsHeading;
+
+  /// Message in Perform when one of the caller's changes could not be saved because another device changed the program meanwhile. The change may be an Adjust sheet edit (for example a swap, a note, or marking a dance performed) touching slots that changed elsewhere, or an Undo; it is not always the latest change, since changes are saved one after another. Nothing from that change is saved, the program is shown as stored (with any later change that is still being saved kept on screen), and the caller is asked to check the program and make the change again if they still want it.
+  ///
+  /// In en, this message translates to:
+  /// **'This program changed on another device, so one of your changes wasn\'t saved. Check the program and make it again if you still want it.'**
+  String get performSwapRefused;
+
+  /// Settings ▸ Program ▸ Perform mode row, and the title of its screen: which Keep choices are on when the caller swaps a dance in Perform. Also names this setting in Device Sync lists.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap a dance'**
+  String get settingsPerformSwapTitle;
+
+  /// Subtitle of Settings ▸ Program ▸ Perform mode ▸ Swap a dance, and the first line of its screen. 'Keep' is the heading of those choices in the swap sheet (performSwapKeepHeader).
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which Keep choices are on when you swap a dance in Perform.'**
+  String get settingsPerformSwapSubtitle;
+
+  /// Switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance: whether the Same formation choice is on when the swap sheet opens.
+  ///
+  /// In en, this message translates to:
+  /// **'Same formation'**
+  String get settingsPerformSwapFormation;
+
+  /// Switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance: whether the This level or easier choice is on when the swap sheet opens.
+  ///
+  /// In en, this message translates to:
+  /// **'This level or easier'**
+  String get settingsPerformSwapLevel;
+
+  /// Switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance: whether the Same type choice is on when the swap sheet opens.
+  ///
+  /// In en, this message translates to:
+  /// **'Same type'**
+  String get settingsPerformSwapType;
+
+  /// Subtitle of the Same type switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Offered only in a program that mixes types, such as contras and English dances.'**
+  String get settingsPerformSwapTypeSubtitle;
+
+  /// Notice in Settings ▸ Program ▸ Perform mode ▸ Swap a dance when the stored choices came from a newer version of the app: this version cannot read them, so the switches show its starting choices (all on), read-only, and the stored choices are kept.
+  ///
+  /// In en, this message translates to:
+  /// **'These choices were saved by a newer version of the app. This version uses its starting choices, with every one on, and won\'t overwrite yours. Update the app to change them.'**
+  String get settingsPerformSwapNewerVersion;
+
+  /// Error in Settings ▸ Program ▸ Perform mode ▸ Swap a dance when the stored choices could not be read; the switches are shown read-only and nothing is saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Swap a dance choices couldn\'t be read, so they can\'t be changed now. Close this screen and try again.'**
+  String get settingsPerformSwapReadError;
+
   /// Collection More actions menu item that opens the Repertoire page (#2357, Experimental).
   ///
   /// In en, this message translates to:

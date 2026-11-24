@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import 'calendar_settings_tiles.dart';
 import 'matrix_column_editor_screen.dart';
+import 'perform_swap_defaults_screen.dart';
 import 'settings_keys.dart';
 import '../../data/mark_all_sets_status_scope.dart';
 import '../../data/matrix_collision_mode_scope.dart';
@@ -623,6 +624,18 @@ class _ProgramView extends StatelessWidget {
           subtitle: Text(l10n.settingsConfirmPerformExitSubtitle),
           value: confirmPerformExit,
           onChanged: onConfirmPerformExitChanged,
+        ),
+        ListTile(
+          key: const ValueKey('settings-perform-swap-defaults'),
+          leading: const Icon(Icons.swap_horiz),
+          title: Text(l10n.settingsPerformSwapTitle),
+          subtitle: Text(l10n.settingsPerformSwapSubtitle),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const PerformSwapDefaultsScreen(),
+            ),
+          ),
         ),
         SectionHeader(title: l10n.settingsGeneralCallingHistoryHeader),
         SwitchListTile(
