@@ -14695,10 +14695,10 @@ abstract class AppLocalizations {
   /// **'Reading the picture…'**
   String get figureTextSheetReadingImage;
 
-  /// Note under the disabled From an image… button when the device reads no language the app asked for (on Windows, no suitable OCR language is installed). It must not offer to install anything.
+  /// Note under the disabled From an image… button when the device reads neither the app's language nor English.
   ///
   /// In en, this message translates to:
-  /// **'This device can\'t read text from pictures in the app\'s language or in English. On Windows, pictures are read in the languages whose Windows language pack includes text recognition; the app doesn\'t install one.'**
+  /// **'This device can\'t read text from pictures in the app\'s language or in English.'**
   String get figureTextSheetImageUnavailable;
 
   /// Note under the From an image… button when the device cannot read the app's language (for example Japanese on an older iOS or macOS) but can read English.

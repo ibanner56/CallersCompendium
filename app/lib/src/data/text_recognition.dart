@@ -7,7 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
+
+import '../diagnostics/error_log.dart';
 
 /// Reading the text of a chosen picture on the device (#2327): Apple Vision
 /// on iOS and macOS, nothing elsewhere yet. The picture
@@ -27,8 +28,8 @@ const int kMaxRecognitionImagePixels = 50 * 1000 * 1000;
 class TextRecognitionAvailability {
   const TextRecognitionAvailability({required this.languages});
 
-  /// None: the platform has no text recognition, or (Windows) no OCR
-  /// language the app asked for is installed.
+  /// None: the platform has no text recognition, or none of the languages
+  /// asked for.
   static const TextRecognitionAvailability none = TextRecognitionAvailability(
     languages: [],
   );
@@ -128,13 +129,20 @@ class ChannelTextRecognitionService implements TextRecognitionService {
         'bytes': bytes,
         'languages': languages,
       });
-    } on PlatformException catch (e) {
-      throw TextRecognitionException(switch (e.code) {
+    } on PlatformException catch (e, stack) {
+      final reason = switch (e.code) {
         'unreadable' => TextRecognitionFailure.unreadable,
         'tooManyPixels' => TextRecognitionFailure.tooManyPixels,
         _ => TextRecognitionFailure.failed,
-      });
-    } on MissingPluginException {
+      };
+      // A refused picture is expected and shown; only a failed engine is
+      // worth the diagnostic log.
+      if (reason == TextRecognitionFailure.failed) {
+        logCaughtErrorTypeOnly(e, stack, source: 'text_recognition.recognize');
+      }
+      throw TextRecognitionException(reason);
+    } on MissingPluginException catch (e, stack) {
+      logCaughtErrorTypeOnly(e, stack, source: 'text_recognition.recognize');
       throw const TextRecognitionException(TextRecognitionFailure.failed);
     }
     if (text == null || text.trim().isEmpty) {
@@ -254,12 +262,14 @@ typedef PickedRecognitionImage = ({String name, Uint8List bytes});
 /// Opens the system picker for one picture and reads it, refusing one over
 /// [kMaxRecognitionImageBytes] before reading it. Null when cancelled.
 ///
-/// A copy the picker made in this app's temporary folder (the iOS document
-/// picker copies the file there) is deleted once read; a file elsewhere is
-/// the caller's own and is left alone.
+/// On iOS the document picker copies the chosen file into a
+/// `<bundle id>-Inbox` folder in this app's temporary folder; that copy is
+/// deleted once read. Elsewhere the picker hands back the caller's own file,
+/// which is left alone.
 Future<PickedRecognitionImage?> pickRecognitionImage({
   Future<XFile?> Function()? open,
-  Future<Directory> Function() temporaryDirectory = getTemporaryDirectory,
+  TargetPlatform? platform,
+  Directory? temporaryDirectory,
 }) async {
   final file =
       await (open ??
@@ -271,26 +281,36 @@ Future<PickedRecognitionImage?> pickRecognitionImage({
     }
     return (name: file.name, bytes: await file.readAsBytes());
   } finally {
-    await deletePickerCopy(file.path, temporaryDirectory: temporaryDirectory);
+    if ((platform ?? defaultTargetPlatform) == TargetPlatform.iOS) {
+      await deletePickerCopy(
+        file.path,
+        temporaryDirectory: temporaryDirectory ?? Directory.systemTemp,
+      );
+    }
   }
 }
 
-/// Deletes [path] when it lies inside this app's temporary folder.
+/// Deletes [path] when it lies in an `…-Inbox` folder directly inside
+/// [temporaryDirectory] (on iOS, `NSTemporaryDirectory()`, where the
+/// document picker's import mode puts its copies).
 @visibleForTesting
 Future<void> deletePickerCopy(
   String path, {
-  required Future<Directory> Function() temporaryDirectory,
+  required Directory temporaryDirectory,
 }) async {
   if (path.isEmpty) return;
   final String temp;
+  final String canonical;
   try {
-    temp = p.canonicalize((await temporaryDirectory()).path);
-  } on Exception {
-    // diagnostics: silent — no temporary folder on this platform, so the picker made no copy there
+    temp = await temporaryDirectory.resolveSymbolicLinks();
+    canonical = await File(path).resolveSymbolicLinks();
+  } on FileSystemException {
+    // diagnostics: silent — the file or the temporary folder is gone, so there is no copy to delete
     return;
   }
-  final canonical = p.canonicalize(path);
   if (!p.isWithin(temp, canonical)) return;
+  final parts = p.split(p.relative(canonical, from: temp));
+  if (parts.length < 2 || !parts.first.endsWith('-Inbox')) return;
   try {
     await File(canonical).delete();
   } on FileSystemException {

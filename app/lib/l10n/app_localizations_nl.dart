@@ -9998,7 +9998,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get figureTextSheetImageUnavailable =>
-      'Dit apparaat kan geen tekst in afbeeldingen lezen in de taal van de app of in het Engels. Op Windows worden afbeeldingen gelezen in de talen waarvan het Windows-taalpakket tekstherkenning bevat; de app installeert er geen.';
+      'Dit apparaat kan geen tekst in afbeeldingen lezen in de taal van de app of in het Engels.';
 
   @override
   String get figureTextSheetImageEnglishOnly =>

@@ -27,6 +27,10 @@ enum TextRecognizer {
   static let maxSide = 10_000
   static let maxPixels = 50_000_000
 
+  /// Longest side a picture is decoded at for reading; larger ones are scaled
+  /// down to it, which keeps typed text on a card or page legible.
+  static let decodeSide = 4096
+
   /// The recognition languages Vision offers here, as BCP 47 tags (`en-US`).
   static func supportedLanguageTags() -> [String] {
     if #available(iOS 15.0, macOS 12.0, *) {
@@ -34,8 +38,17 @@ enum TextRecognizer {
       request.recognitionLevel = .accurate
       return (try? request.supportedRecognitionLanguages()) ?? []
     }
+    // macOS 10.15 and 11 only (iOS starts at 15). Revision 2 (macOS 11) adds
+    // French, German, Spanish, Portuguese, Italian and Chinese to revision 1's
+    // English, and is the revision `recognize` runs there by default.
+    let revision: Int
+    if #available(macOS 11.0, *) {
+      revision = VNRecognizeTextRequestRevision2
+    } else {
+      revision = VNRecognizeTextRequestRevision1
+    }
     return (try? VNRecognizeTextRequest.supportedRecognitionLanguages(
-      for: .accurate, revision: VNRecognizeTextRequestRevision1)) ?? []
+      for: .accurate, revision: revision)) ?? []
   }
 
   /// Which of `languages` (language codes such as `en` or `ja`, most wanted
@@ -71,19 +84,22 @@ enum TextRecognizer {
     if width > maxSide || height > maxSide || width * height > maxPixels {
       throw TextRecognitionError.tooManyPixels
     }
-    guard let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
-      throw TextRecognitionError.unreadable
-    }
-    let orientation =
-      (properties[kCGImagePropertyOrientation] as? NSNumber).flatMap {
-        CGImagePropertyOrientation(rawValue: $0.uint32Value)
-      } ?? .up
+    // Decoded no larger than `decodeSide` on its longer side, already turned
+    // upright, so a picture at the pixel cap does not take ~200 MB of memory.
+    let options: [CFString: Any] = [
+      kCGImageSourceCreateThumbnailFromImageAlways: true,
+      kCGImageSourceCreateThumbnailWithTransform: true,
+      kCGImageSourceThumbnailMaxPixelSize: decodeSide,
+      kCGImageSourceShouldCacheImmediately: true,
+    ]
+    guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
+    else { throw TextRecognitionError.unreadable }
 
     let request = VNRecognizeTextRequest()
     request.recognitionLevel = .accurate
     request.usesLanguageCorrection = true
     request.recognitionLanguages = languages.flatMap { tags(for: $0, in: supported) }
-    let handler = VNImageRequestHandler(cgImage: image, orientation: orientation)
+    let handler = VNImageRequestHandler(cgImage: image, orientation: .up)
     do {
       try handler.perform([request])
     } catch {

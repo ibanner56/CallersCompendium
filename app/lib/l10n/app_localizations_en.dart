@@ -9896,7 +9896,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get figureTextSheetImageUnavailable =>
-      'This device can\'t read text from pictures in the app\'s language or in English. On Windows, pictures are read in the languages whose Windows language pack includes text recognition; the app doesn\'t install one.';
+      'This device can\'t read text from pictures in the app\'s language or in English.';
 
   @override
   String get figureTextSheetImageEnglishOnly =>

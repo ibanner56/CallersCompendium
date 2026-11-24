@@ -9540,7 +9540,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get figureTextSheetImageUnavailable =>
-      'このデバイスは、アプリの言語でも英語でも画像の文字を読み取れません。Windowsでは、文字認識を含むWindows言語パックの言語で画像を読み取ります。アプリが言語パックをインストールすることはありません。';
+      'このデバイスは、アプリの言語でも英語でも画像の文字を読み取れません。';
 
   @override
   String get figureTextSheetImageEnglishOnly =>

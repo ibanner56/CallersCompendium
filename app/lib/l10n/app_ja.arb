@@ -9678,9 +9678,9 @@
   "@figureTextSheetReadingImage": {
     "x-sourceSha256": "be307d1b34cfc5f81c61c434df7f63403aa59cb2851ebd760f9d031319d2361b"
   },
-  "figureTextSheetImageUnavailable": "このデバイスは、アプリの言語でも英語でも画像の文字を読み取れません。Windowsでは、文字認識を含むWindows言語パックの言語で画像を読み取ります。アプリが言語パックをインストールすることはありません。",
+  "figureTextSheetImageUnavailable": "このデバイスは、アプリの言語でも英語でも画像の文字を読み取れません。",
   "@figureTextSheetImageUnavailable": {
-    "x-sourceSha256": "6ac8ef49c746376af410c7a1d0c2b99cebb6a1d8869d912cef0e6c38380d1423"
+    "x-sourceSha256": "d990a1bae0df59cb352eb2e47fd76f3fba5565e08229612222edb489f31836cf"
   },
   "figureTextSheetImageEnglishOnly": "このデバイスは画像を英語で読み取ります。アプリの言語では読み取れません。",
   "@figureTextSheetImageEnglishOnly": {

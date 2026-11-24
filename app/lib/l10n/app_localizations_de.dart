@@ -10029,7 +10029,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get figureTextSheetImageUnavailable =>
-      'Dieses Gerät kann Text in Bildern weder in der Sprache der App noch auf Englisch lesen. Unter Windows werden Bilder in den Sprachen gelesen, deren Windows-Sprachpaket Texterkennung enthält; die App installiert keines.';
+      'Dieses Gerät kann Text in Bildern weder in der Sprache der App noch auf Englisch lesen.';
 
   @override
   String get figureTextSheetImageEnglishOnly =>

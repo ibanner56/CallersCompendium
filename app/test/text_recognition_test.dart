@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 
 import 'support/l10n_harness.dart';
 
@@ -37,6 +38,14 @@ class _FakeRecognizer implements TextRecognitionService {
     askedLanguages.add(languages);
     return _cardText;
   }
+}
+
+/// A recognizer whose language query fails with an error the channel does
+/// not map.
+class _ThrowingAvailability extends _FakeRecognizer {
+  @override
+  Future<TextRecognitionAvailability> availability(List<String> asked) =>
+      Future.error(StateError('engine gone'));
 }
 
 const _cardText = 'A1 (8) Neighbor balance & swing\n(8) Long lines';
@@ -134,14 +143,23 @@ void main() {
     expect(recognizer.askedLanguages.single, ['en']);
   });
 
-  testWidgets('with no OCR language installed (Windows), the image path '
-      'explains why, offers no install, and stays off', (tester) async {
+  testWidgets('when the device reads neither the UI language nor English, '
+      'the image path explains why, offers no install, and stays off', (
+    tester,
+  ) async {
     final recognizer = _FakeRecognizer(languages: const []);
     await _pumpSheet(tester, service: recognizer);
     final button = tester.widget<ButtonStyleButton>(_fromImage);
     expect(button.onPressed, isNull);
-    expect(find.textContaining("the app doesn't install one"), findsOneWidget);
+    expect(
+      find.text(
+        "This device can't read text from pictures in the app's language or "
+        'in English.',
+      ),
+      findsOneWidget,
+    );
     expect(find.textContaining('Install'), findsNothing);
+    expect(find.textContaining('Windows'), findsNothing);
     // The sheet still takes typed text.
     await tester.enterText(
       find.byKey(const ValueKey('figure-text-sheet-field')),
@@ -201,6 +219,35 @@ void main() {
     expect(_fieldText(tester), isEmpty);
   });
 
+  testWidgets('a picker or file error shows that reading failed', (
+    tester,
+  ) async {
+    final recognizer = _FakeRecognizer();
+    await _pumpSheet(
+      tester,
+      service: recognizer,
+      pick: () async =>
+          throw const FileSystemException('iCloud file not downloaded'),
+    );
+    await tester.tap(_fromImage);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(recognizer.recognized, isEmpty);
+    expect(find.text("The picture's text couldn't be read."), findsOneWidget);
+    expect(tester.widget<ButtonStyleButton>(_fromImage).onPressed, isNotNull);
+  });
+
+  testWidgets('a failed language query leaves the image path off, with its '
+      'note', (tester) async {
+    await _pumpSheet(tester, service: _ThrowingAvailability());
+    expect(tester.takeException(), isNull);
+    expect(tester.widget<ButtonStyleButton>(_fromImage).onPressed, isNull);
+    expect(
+      find.byKey(const ValueKey('figure-text-sheet-image-note')),
+      findsOneWidget,
+    );
+  });
+
   group('caps', () {
     Future<TextRecognitionFailure?> failure(int bytes, {ui.Size? size}) async {
       try {
@@ -248,12 +295,10 @@ void main() {
       addTearDown(() => dir.delete(recursive: true));
       final file = File('${dir.path}/big.png');
       await file.writeAsBytes(Uint8List(kMaxRecognitionImageBytes + 1));
-      final other = await Directory.systemTemp.createTemp('ocr-other');
-      addTearDown(() => other.delete(recursive: true));
       await expectLater(
         pickRecognitionImage(
           open: () async => XFile(file.path),
-          temporaryDirectory: () async => other,
+          platform: TargetPlatform.macOS,
         ),
         throwsA(
           isA<TextRecognitionException>().having(
@@ -267,47 +312,108 @@ void main() {
   });
 
   group('the picker copy', () {
-    test("a copy in the app's temporary folder is deleted once read", () async {
+    /// A file at [relative] inside a fresh folder standing in for the app's
+    /// temporary folder.
+    Future<(Directory, File)> copyIn(
+      String relative, {
+      List<int>? bytes,
+    }) async {
       final temp = await Directory.systemTemp.createTemp('ocr-temp');
       addTearDown(() => temp.delete(recursive: true));
-      final copy = File('${temp.path}/Inbox/card.png');
-      await copy.create(recursive: true);
-      await copy.writeAsBytes(_pngBytes);
+      final file = File(p.join(temp.path, relative));
+      await file.create(recursive: true);
+      await file.writeAsBytes(bytes ?? _pngBytes);
+      return (temp, file);
+    }
+
+    test('on iOS the Inbox copy is read, then deleted', () async {
+      final (temp, copy) = await copyIn('app.bundle-Inbox/card.png');
       final picked = await pickRecognitionImage(
         open: () async => XFile(copy.path),
-        temporaryDirectory: () async => temp,
+        platform: TargetPlatform.iOS,
+        temporaryDirectory: temp,
       );
       expect(picked!.bytes, _pngBytes);
       expect(copy.existsSync(), isFalse);
     });
 
-    test("the caller's own file elsewhere is left alone", () async {
-      final temp = await Directory.systemTemp.createTemp('ocr-temp');
-      addTearDown(() => temp.delete(recursive: true));
-      final home = await Directory.systemTemp.createTemp('ocr-home');
-      addTearDown(() => home.delete(recursive: true));
-      final own = File('${home.path}/card.png');
-      await own.writeAsBytes(_pngBytes);
+    test('by default the Inbox is looked for in the system temporary folder '
+        '(NSTemporaryDirectory on iOS)', () async {
+      final inbox = await Directory.systemTemp.createTemp('ocr-test-');
+      final named = await inbox.rename('${inbox.path}-Inbox');
+      addTearDown(() => named.delete(recursive: true));
+      final copy = File(p.join(named.path, 'card.png'));
+      await copy.writeAsBytes(_pngBytes);
       await pickRecognitionImage(
-        open: () async => XFile(own.path),
-        temporaryDirectory: () async => temp,
+        open: () async => XFile(copy.path),
+        platform: TargetPlatform.iOS,
       );
-      expect(own.existsSync(), isTrue);
+      expect(copy.existsSync(), isFalse);
+    });
+
+    test('a temporary folder reached through a link still matches', () async {
+      final (temp, copy) = await copyIn('app.bundle-Inbox/card.png');
+      final links = await Directory.systemTemp.createTemp('ocr-link');
+      addTearDown(() => links.delete(recursive: true));
+      final link = await Link(p.join(links.path, 'tmp')).create(temp.path);
+      await pickRecognitionImage(
+        open: () async => XFile(copy.path),
+        platform: TargetPlatform.iOS,
+        temporaryDirectory: Directory(link.path),
+      );
+      expect(copy.existsSync(), isFalse);
     });
 
     test('the copy is deleted even when reading it is refused', () async {
-      final temp = await Directory.systemTemp.createTemp('ocr-temp');
-      addTearDown(() => temp.delete(recursive: true));
-      final copy = File('${temp.path}/big.png');
-      await copy.writeAsBytes(Uint8List(kMaxRecognitionImageBytes + 1));
+      final (temp, copy) = await copyIn(
+        'app.bundle-Inbox/big.png',
+        bytes: Uint8List(kMaxRecognitionImageBytes + 1),
+      );
       await expectLater(
         pickRecognitionImage(
           open: () async => XFile(copy.path),
-          temporaryDirectory: () async => temp,
+          platform: TargetPlatform.iOS,
+          temporaryDirectory: temp,
         ),
         throwsA(isA<TextRecognitionException>()),
       );
       expect(copy.existsSync(), isFalse);
+    });
+
+    test('a temporary file outside an Inbox is left alone', () async {
+      final (temp, file) = await copyIn('other/card.png');
+      final (_, loose) = await copyIn('card-Inbox');
+      await pickRecognitionImage(
+        open: () async => XFile(file.path),
+        platform: TargetPlatform.iOS,
+        temporaryDirectory: temp,
+      );
+      expect(file.existsSync(), isTrue);
+      await deletePickerCopy(loose.path, temporaryDirectory: loose.parent);
+      expect(loose.existsSync(), isTrue);
+    });
+
+    test("the caller's own file elsewhere is left alone", () async {
+      final (temp, _) = await copyIn('app.bundle-Inbox/card.png');
+      final (_, own) = await copyIn('app.bundle-Inbox/own.png');
+      await pickRecognitionImage(
+        open: () async => XFile(own.path),
+        platform: TargetPlatform.iOS,
+        temporaryDirectory: temp,
+      );
+      expect(own.existsSync(), isTrue);
+    });
+
+    test('off iOS nothing is deleted, even in an Inbox', () async {
+      final (temp, file) = await copyIn('app.bundle-Inbox/card.png');
+      for (final platform in [TargetPlatform.macOS, TargetPlatform.windows]) {
+        await pickRecognitionImage(
+          open: () async => XFile(file.path),
+          platform: platform,
+          temporaryDirectory: temp,
+        );
+      }
+      expect(file.existsSync(), isTrue);
     });
   });
 

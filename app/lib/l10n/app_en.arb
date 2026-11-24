@@ -13103,9 +13103,9 @@
   "@figureTextSheetReadingImage": {
     "description": "Label of the From an image… button while the chosen picture's text is being read on the device."
   },
-  "figureTextSheetImageUnavailable": "This device can't read text from pictures in the app's language or in English. On Windows, pictures are read in the languages whose Windows language pack includes text recognition; the app doesn't install one.",
+  "figureTextSheetImageUnavailable": "This device can't read text from pictures in the app's language or in English.",
   "@figureTextSheetImageUnavailable": {
-    "description": "Note under the disabled From an image… button when the device reads no language the app asked for (on Windows, no suitable OCR language is installed). It must not offer to install anything."
+    "description": "Note under the disabled From an image… button when the device reads neither the app's language nor English."
   },
   "figureTextSheetImageEnglishOnly": "This device reads pictures in English, not in the app's language.",
   "@figureTextSheetImageEnglishOnly": {

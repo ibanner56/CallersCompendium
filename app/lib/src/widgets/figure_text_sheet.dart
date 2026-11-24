@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../diagnostics/error_log.dart';
 import '../data/text_recognition.dart';
 import '../editor/figure_draft.dart';
 import '../theme/app_motion.dart';
@@ -292,11 +293,21 @@ class _FromImageState extends State<_FromImage> {
     if (wanted.join(',') == _wanted.join(',')) return;
     _wanted = wanted;
     _availability = null;
-    widget.service.availability(wanted).then((availability) {
-      if (mounted && wanted == _wanted) {
-        setState(() => _availability = availability);
-      }
-    });
+    widget.service
+        .availability(wanted)
+        .onError<Object>((error, stack) {
+          logCaughtErrorTypeOnly(
+            error,
+            stack,
+            source: 'figure_text_sheet.availability',
+          );
+          return TextRecognitionAvailability.none;
+        })
+        .then((availability) {
+          if (mounted && wanted == _wanted) {
+            setState(() => _availability = availability);
+          }
+        });
   }
 
   Future<void> _read() async {
@@ -306,7 +317,7 @@ class _FromImageState extends State<_FromImage> {
       _busy = true;
       _error = null;
     });
-    String? error;
+    TextRecognitionFailure? failure;
     try {
       final picked = await widget.pickImage();
       if (picked == null) return;
@@ -318,12 +329,18 @@ class _FromImageState extends State<_FromImage> {
       if (!mounted) return;
       widget.onText(text);
     } on TextRecognitionException catch (e) {
-      error = _message(e.reason);
+      // diagnostics: silent — an expected refusal (size, no text, unreadable), shown inline below
+      failure = e.reason;
+    } on Object catch (e, stack) {
+      // The picker, the file read or the engine failed in a way none of the
+      // refusals above names: say reading failed rather than nothing.
+      logCaughtErrorTypeOnly(e, stack, source: 'figure_text_sheet._read');
+      failure = TextRecognitionFailure.failed;
     } finally {
       if (mounted) {
         setState(() {
           _busy = false;
-          _error = error;
+          _error = failure == null ? null : _message(failure);
         });
       }
     }
