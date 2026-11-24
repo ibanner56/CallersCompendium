@@ -163,7 +163,11 @@ void main() {
   group('a hey straight after an N2 figure dances with N2', () {
     /// The opening of Hey-ja Vu (Caller's Box #10136) as the bridge reads
     /// it: a balanced long wave and Rory O'More, the N2 swing, the half hey.
-    Map<String, Object?> heyJaVu({bool flagHey = false}) => {
+    Map<String, Object?> heyJaVu({
+      bool flagHey = false,
+      String pass1 = 'role1s',
+      String pass2 = 'partners',
+    }) => {
       'title': 'Hey-ja Vu',
       'form': 'contra',
       'formation': {'shape': 'dupleImproper'},
@@ -190,9 +194,9 @@ void main() {
           'move': 'hey',
           'params': {
             'length': 'half',
-            'pass1': 'role1s',
+            'pass1': pass1,
             'shoulder': 'left',
-            'pass2': 'partners',
+            'pass2': pass2,
           },
           if (flagHey) 'progression': true,
         },
@@ -225,6 +229,50 @@ void main() {
 
     test('a flagged hey does not follow', () {
       expect(heyStep(heyJaVu(flagHey: true)), isA<Err<Formation, OpError>>());
+    });
+
+    test('a hey naming neighbours does not follow', () {
+      // One grouping over, `neighbors` would accept the N2 couple in their
+      // place. *(Agent's call.)*
+      final step = heyStep(heyJaVu(pass1: 'neighbors', pass2: 'role1s'));
+      expect(step, isA<Err<Formation, OpError>>());
+      expect(
+        (step as Err<Formation, OpError>).error.kind,
+        ErrorKind.unresolvableDancerSet,
+      );
+    });
+
+    test('a followed hey is linted where it is danced', () {
+      // The robins cannot be the second pass of this hey in the N2 grouping;
+      // linted in the grouping handed back, the hey could not be read at all
+      // and the warning was lost.
+      // A flagged figure after the hey, so the record compiles at all.
+      final record = heyJaVu(pass2: 'role2s');
+      final dance =
+          (parseDance({
+                    ...record,
+                    'figures': [
+                      ...record['figures']! as List<Object?>,
+                      {
+                        'move': 'stand_still',
+                        'params': <String, Object?>{},
+                        'progression': true,
+                      },
+                    ],
+                  })
+                  as Ok<Dance, DanceParseError>)
+              .value;
+      final warnings = switch (compile(dance)) {
+        Compiled(:final warnings) => warnings,
+        Mismatch(:final warnings) => warnings,
+        CompileError(:final warnings) => warnings,
+      };
+      expect(
+        warnings.where(
+          (w) => w.kind == WarningKind.anchorMismatch && w.opIndex == hey,
+        ),
+        isNotEmpty,
+      );
     });
   });
 }

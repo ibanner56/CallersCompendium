@@ -133,9 +133,11 @@ CompileResult compile(Dance dance) {
     final figure = dance.figures[index];
     // Linted against the state the figure is handed, before it runs -- a
     // state-dependent observation is only meaningful about its own input.
+    // A figure following a reach is danced one phase over, so that is its
+    // input.
     warnings.addAll(
       figure.operation
-          .lint(state)
+          .lint(fold.dancedFrom(figure, state))
           .map(
             (warning) =>
                 Warning(warning.kind, opIndex: index, detail: warning.detail),

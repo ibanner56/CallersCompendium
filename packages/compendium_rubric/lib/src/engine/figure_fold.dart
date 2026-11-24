@@ -2,6 +2,7 @@ import '../domain/formation.dart';
 import '../geometry/geometry.dart';
 import '../ops/diagnostics.dart';
 import '../ops/operation.dart';
+import '../ops/params.dart';
 import 'end_normalization.dart';
 import 'invocation.dart';
 import 'result.dart';
@@ -64,6 +65,38 @@ class FigureFold {
   /// a dance is a [WarningKind.heldProgressionUnfinished].
   List<int> get unfinished => List.unmodifiable([..._abandoned, ..._held]);
 
+  /// The set as [figure] will be danced from it when handed [state]: [state]
+  /// itself, or one band phase over when [figure] follows a reach (see
+  /// [step]). A lint about the figure's own input reads this.
+  Formation dancedFrom(OperationInvocation figure, Formation state) =>
+      _follows(figure, state) ? toggleBandPhase(state) : state;
+
+  /// Whether [figure], handed [state], follows the reach just danced.
+  ///
+  /// A hey follows only when it reaches nobody itself and names only role
+  /// sets and partners: partners are the same two dancers in either
+  /// grouping, but `neighbors` would accept the N2 couple in their place and
+  /// a distance set or `shadows` picks its own phase. *(Agent's call.)*
+  bool _follows(OperationInvocation figure, Formation state) {
+    final operation = figure.operation;
+    return _followReach &&
+        operation.reachAfter(progressions) == 0 &&
+        !figure.progression &&
+        ((operation is Chain && operation.dir == ChainDirection.across) ||
+            (operation is HeyForFour &&
+                operation.dancerSets.every(
+                  (set) =>
+                      set == null ||
+                      set == WhoSet.role1s ||
+                      set == WhoSet.role2s ||
+                      set == WhoSet.partners,
+                ))) &&
+        // A held progression that finished on the reaching figure moved the
+        // set to the other phase; one phase over from there is not where the
+        // reach was danced, so the figure stays put. *(Agent's call.)*
+        isShiftedBandPhase(state) == _reachHandedShifted;
+  }
+
   /// Runs [figure] (figure number [index]) on [state].
   Result<Formation, OpError> step(
     OperationInvocation figure,
@@ -81,17 +114,7 @@ class FigureFold {
     // only unflagged, and only straight after; see `docs/fundamentals.md`
     // §10.3.0.)*
     final steppedOut = figure.operation.reachAfter(progressions).isOdd;
-    final operation = figure.operation;
-    final follows =
-        _followReach &&
-        !steppedOut &&
-        !figure.progression &&
-        ((operation is Chain && operation.dir == ChainDirection.across) ||
-            operation is HeyForFour) &&
-        // A held progression that finished on the reaching figure moved the
-        // set to the other phase; one phase over from there is not where the
-        // reach was danced, so the figure stays put. *(Agent's call.)*
-        isShiftedBandPhase(state) == _reachHandedShifted;
+    final follows = _follows(figure, state);
     if (steppedOut) _reachHandedShifted = isShiftedBandPhase(state);
     _followReach = steppedOut || follows;
     final outcome = follows
