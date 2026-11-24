@@ -49,6 +49,39 @@ void main() {
     });
   });
 
+  group('ProgressionCriterion — Progressed Improper', () {
+    // A Progressed Improper set starts with the 2s at the top, so the first
+    // progression already sends B out there. On the next, D arrives in B's
+    // row: B has served its round and passes D, travelling down on its new
+    // number, and D waits out in its place. Hudson's note on Men at Work
+    // (2026-11-24): B and D meet as third neighbours, and the fourth are B
+    // and F with D out at the top. Before this the oracle put D on top of B.
+    test('a double sends the waiting couple back in past the arriving one', () {
+      expect(after(FormationType.progressedImproper, 2, handsFour: 3), [
+        'R1-D . . . L1-D',
+        'R1-B . . . L1-B',
+        'L2-F . . . R2-F',
+        'R1-A . . . L1-A',
+        'L2-E . . . R2-E',
+        'L2-C . . . R2-C',
+      ]);
+    });
+
+    test('a triple pairs B with F, D waiting out at the top', () {
+      final result = const ProgressionCriterion(
+        count: 3,
+      ).expected(start(FormationType.progressedImproper, handsFour: 3));
+      expect(result.toRolesNotation(), [
+        'R1-D . . . L1-D',
+        'L2-F . . . R2-F',
+        'R1-B . . . L1-B',
+        'L2-E . . . R2-E',
+        'R1-A . . . L1-A',
+        'L2-C . . . R2-C',
+      ]);
+    });
+  });
+
   group('ProgressionCriterion — Becket (fundamentals §10.6 references)', () {
     test('CW + single', () {
       expect(after(FormationType.becketCw, 1), [
