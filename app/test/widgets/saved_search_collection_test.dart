@@ -480,6 +480,14 @@ void main() {
         ),
         findsOneWidget,
       );
+      // A screen-reader user is told what is missing, too.
+      expect(
+        tester.takeAnnouncements().map((a) => a.message),
+        contains(
+          '"Not bouncey" uses things that are gone: '
+          'The tag Bouncey, which was deleted',
+        ),
+      );
       // Nothing is dropped: the None of row is still there, and so is the
       // Filters tag.
       expect(find.text('Advanced (on)'), findsOneWidget);
