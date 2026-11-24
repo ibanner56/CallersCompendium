@@ -102,7 +102,8 @@ void main() {
       final batch = await plan(
         'Title,Tags,Tunes\r\n'
         '"Old","Jig, Favourite","Reel, Hornpipe; Strathspey"\r\n'
-        r'"New","Hey\, Ho, Back\\slash","Say\, What, C:\temp"' '\r\n',
+        r'"New","Hey\, Ho, Back\\slash","Say\, What, C:\temp"'
+        '\r\n',
         mapping(',', cols: cols),
       );
       expect(batch.errors, isEmpty);
@@ -111,13 +112,20 @@ void main() {
         '${kCsvTagPlaceholderPrefix}Jig',
         '${kCsvTagPlaceholderPrefix}Favourite',
       ]);
-      expect((old.tunesSource as DecodedTunes).tunes, ['Reel', 'Hornpipe', 'Strathspey']);
+      expect((old.tunesSource as DecodedTunes).tunes, [
+        'Reel',
+        'Hornpipe',
+        'Strathspey',
+      ]);
       final escaped = batch.records[1].draft.dance;
       expect(escaped.tagIds, [
         '${kCsvTagPlaceholderPrefix}Hey, Ho',
         '${kCsvTagPlaceholderPrefix}Back\\slash',
       ]);
-      expect((escaped.tunesSource as DecodedTunes).tunes, ['Say, What', r'C:\temp']);
+      expect((escaped.tunesSource as DecodedTunes).tunes, [
+        'Say, What',
+        r'C:\temp',
+      ]);
     });
 
     test('a figures cell, a ;-separated cell and per-phrase columns give '

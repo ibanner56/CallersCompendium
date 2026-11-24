@@ -169,7 +169,11 @@ void main() {
         for (final n in ['Hey, Ho', r'Back\slash', 'Plain'])
           '$kCsvTagPlaceholderPrefix$n',
       ]);
-      expect((back.tunesSource as DecodedTunes).tunes, ['Say, What', r'C:\temp, and\', 'Reel']);
+      expect((back.tunesSource as DecodedTunes).tunes, [
+        'Say, What',
+        r'C:\temp, and\',
+        'Reel',
+      ]);
     });
 
     test('a name with neither is written exactly as before', () {
