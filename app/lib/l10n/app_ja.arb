@@ -14257,5 +14257,21 @@
   "savedSearchUsedBySlotRule": "テンプレート {template} の枠のルール「{rule}」",
   "@savedSearchUsedBySlotRule": {
     "x-sourceSha256": "f6abcf8a824f0c6964fb5e3090afcdddefa07ab6e162a7585f87f491c21b8d47"
+  },
+  "programTemplateSlotRuleSearchUnreadable": "保存した検索を開けません",
+  "@programTemplateSlotRuleSearchUnreadable": {
+    "x-sourceSha256": "87719e1e721958247eb5fe51c7cf2ad911163c3c04262db39ee0daee11e71814"
+  },
+  "programTemplateSlotRuleEditTitle": "枠のルールを編集",
+  "@programTemplateSlotRuleEditTitle": {
+    "x-sourceSha256": "35c30e10ebe5cac90c10fca41bd916f0fcc6a4fa7cfdd58ddc485bb65f902421"
+  },
+  "programTemplateSlotRuleLabelBreak": "「Break」はプログラムの休憩を表すため、枠のルールのラベルには使えません。",
+  "@programTemplateSlotRuleLabelBreak": {
+    "x-sourceSha256": "16e76380d1c64fee5f8228fc7f778ef0d4a2f3c4b3e214a56f7c1a83ae1467bd"
+  },
+  "programsFillSearchUnreadable": "「{label}」の保存した検索を開けません。新しいバージョンのアプリで保存されたか、破損しています。すべてのダンスを表示しています。",
+  "@programsFillSearchUnreadable": {
+    "x-sourceSha256": "90942ead9afb4bb56bdb7a3465a963834a6e9441310d4284498d28e8b6162ec3"
   }
 }

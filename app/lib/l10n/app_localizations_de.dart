@@ -15024,4 +15024,20 @@ class AppLocalizationsDe extends AppLocalizations {
   String savedSearchUsedBySlotRule(String rule, String template) {
     return 'Die Eintragsregel „$rule“ in der Vorlage $template';
   }
+
+  @override
+  String get programTemplateSlotRuleSearchUnreadable =>
+      'Ihre gespeicherte Suche lässt sich nicht öffnen';
+
+  @override
+  String get programTemplateSlotRuleEditTitle => 'Eintragsregel bearbeiten';
+
+  @override
+  String get programTemplateSlotRuleLabelBreak =>
+      '„Break“ markiert eine Pause im Programm, daher kann eine Eintragsregel es nicht als Bezeichnung verwenden.';
+
+  @override
+  String programsFillSearchUnreadable(String label) {
+    return 'Die gespeicherte Suche für „$label“ lässt sich nicht öffnen: Sie wurde von einer neueren Version der App gespeichert oder ist beschädigt. Alle Tänze werden angezeigt.';
+  }
 }

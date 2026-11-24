@@ -14899,4 +14899,20 @@ class AppLocalizationsDa extends AppLocalizations {
   String savedSearchUsedBySlotRule(String rule, String template) {
     return 'Pladsreglen \"$rule\" i skabelonen $template';
   }
+
+  @override
+  String get programTemplateSlotRuleSearchUnreadable =>
+      'Dens gemte søgning kan ikke åbnes';
+
+  @override
+  String get programTemplateSlotRuleEditTitle => 'Rediger pladsregel';
+
+  @override
+  String get programTemplateSlotRuleLabelBreak =>
+      '\"Break\" markerer en pause i programmet, så en pladsregel kan ikke bruge det som etiket.';
+
+  @override
+  String programsFillSearchUnreadable(String label) {
+    return 'Den gemte søgning for \"$label\" kan ikke åbnes: den er gemt af en nyere version af appen, eller den er beskadiget. Alle danse vises.';
+  }
 }

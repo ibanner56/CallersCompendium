@@ -424,9 +424,10 @@ URLs. (Every settings key is classified in
   (`isPlaceholder`); the slot's `text` is the placeholder's label. It is set
   only by a program template's slot rule, and the constructor drops it on any
   slot with a `danceId` or when blank, so filling a placeholder clears it. A
-  placeholder whose search is gone, or names something deleted, is still a
-  plain note with its label and keeps the id; Fill then opens the picker
-  unfiltered with a notice. It syncs and is kept in backups (envelope v3), and
+  placeholder whose search is gone, cannot be read, or names something deleted
+  stays a placeholder: it keeps the id, shows its label and offers Fill, which
+  then opens the picker unfiltered with a notice saying which of the three it
+  is. It syncs and is kept in backups (envelope v3), and
   is stripped from share files and the programs CSV; the set-list text and PDF
   show only the label.
 - **ALT association** (intended invariant, *warning* not error): an `isAlt`

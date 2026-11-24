@@ -15057,4 +15057,21 @@ class AppLocalizationsFr extends AppLocalizations {
   String savedSearchUsedBySlotRule(String rule, String template) {
     return 'La règle d\'emplacement « $rule » du modèle $template';
   }
+
+  @override
+  String get programTemplateSlotRuleSearchUnreadable =>
+      'Sa recherche enregistrée ne peut pas être ouverte';
+
+  @override
+  String get programTemplateSlotRuleEditTitle =>
+      'Modifier la règle d\'emplacement';
+
+  @override
+  String get programTemplateSlotRuleLabelBreak =>
+      '« Break » marque une pause dans le programme ; une règle d\'emplacement ne peut donc pas l\'utiliser comme libellé.';
+
+  @override
+  String programsFillSearchUnreadable(String label) {
+    return 'La recherche enregistrée de « $label » ne peut pas être ouverte : elle a été enregistrée par une version plus récente de l\'application, ou elle est endommagée. Toutes les danses sont affichées.';
+  }
 }

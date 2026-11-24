@@ -14319,4 +14319,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String savedSearchUsedBySlotRule(String rule, String template) {
     return 'テンプレート $template の枠のルール「$rule」';
   }
+
+  @override
+  String get programTemplateSlotRuleSearchUnreadable => '保存した検索を開けません';
+
+  @override
+  String get programTemplateSlotRuleEditTitle => '枠のルールを編集';
+
+  @override
+  String get programTemplateSlotRuleLabelBreak =>
+      '「Break」はプログラムの休憩を表すため、枠のルールのラベルには使えません。';
+
+  @override
+  String programsFillSearchUnreadable(String label) {
+    return '「$label」の保存した検索を開けません。新しいバージョンのアプリで保存されたか、破損しています。すべてのダンスを表示しています。';
+  }
 }

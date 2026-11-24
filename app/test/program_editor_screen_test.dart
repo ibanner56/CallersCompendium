@@ -5807,9 +5807,9 @@ void main() {
       expect(inFillPicker('picker-add-d3'), findsNothing);
     });
 
-    testWidgets('a rule whose saved search names a deleted tag is a plain '
-        'note with its label; Fill shows every dance and names the tag, '
-        'never the rest of the search alone', (tester) async {
+    testWidgets('a rule whose saved search names a deleted tag stays a '
+        'placeholder with its label and Fill; Fill shows every dance and '
+        'names the tag, never the rest of the search alone', (tester) async {
       final repos = openTestRepositories();
       await seedDances(repos);
       final both = await saveSearch(repos, 'Bouncey family', [
@@ -5843,10 +5843,9 @@ void main() {
       expect(inFillPicker('picker-add-d3'), findsOneWidget);
     });
 
-    testWidgets('a rule whose saved search is gone is a plain note with its '
-        'label; Fill shows every dance and says the search was deleted', (
-      tester,
-    ) async {
+    testWidgets('a rule whose saved search is gone stays a placeholder with '
+        'its label and Fill; Fill shows every dance and says the search was '
+        'deleted', (tester) async {
       final repos = openTestRepositories();
       await seedDances(repos);
       await seedRuleTemplate(repos, 'deleted-search');
@@ -5865,6 +5864,66 @@ void main() {
       expect(inFillPicker('picker-add-d1'), findsOneWidget);
       expect(inFillPicker('picker-add-d2'), findsOneWidget);
       expect(inFillPicker('picker-add-d3'), findsOneWidget);
+    });
+
+    testWidgets('a saved search that is stored but unreadable is named as one '
+        "that can't be opened, not as deleted", (tester) async {
+      final repos = openTestRepositories();
+      await seedDances(repos);
+      // What a newer version might write: kept, listed under Needs attention.
+      await repos.settings.set('saved_search:newer', {'v': 2, 'name': 'Newer'});
+      await seedRuleTemplate(repos, 'newer');
+      await _pump(tester, repos);
+
+      expect(find.byKey(const ValueKey('slot-1-fill')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('slot-1-fill')));
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'The saved search for "Easy family opener" can\'t be opened: it '
+          'was saved by a newer version of the app, or it is damaged. Every '
+          'dance is shown.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('was deleted'), findsNothing);
+      expect(inFillPicker('picker-add-d1'), findsOneWidget);
+      expect(inFillPicker('picker-add-d3'), findsOneWidget);
+    });
+
+    testWidgets('two quick taps on Fill open one sheet, and a later pick never '
+        'overrides the first', (tester) async {
+      final repos = openTestRepositories();
+      await seedDances(repos);
+      final family = await saveSearch(repos, 'Family dances', ['family']);
+      await seedRuleTemplate(repos, family.id);
+      await _pump(tester, repos);
+
+      final fillButton = find.byKey(const ValueKey('slot-1-fill'));
+      // Both taps land before the saved search is read and the sheet opens.
+      await tester.tap(fillButton);
+      await tester.tap(fillButton);
+      await tester.pumpAndSettle();
+      final sheets = find
+          .byKey(const ValueKey('replace-picker'))
+          .evaluate()
+          .length;
+
+      // Choose Rory O More in the top sheet, then Chase the Squirrel in any
+      // sheet still open: the slot keeps the first dance chosen.
+      await tester.tap(inFillPicker('picker-add-d2').last);
+      await tester.pumpAndSettle();
+      while (find
+          .byKey(const ValueKey('replace-picker'))
+          .evaluate()
+          .isNotEmpty) {
+        await tester.tap(inFillPicker('picker-add-d1').last);
+        await tester.pumpAndSettle();
+      }
+      expect(find.text('Rory O More'), findsOneWidget);
+      expect(find.text('Chase the Squirrel'), findsNothing);
+      expect(find.byKey(const ValueKey('slot-1-fill')), findsNothing);
+      expect(sheets, 1, reason: 'the second tap must not open a second sheet');
     });
   });
 

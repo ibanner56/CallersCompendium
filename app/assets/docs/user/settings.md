@@ -732,10 +732,12 @@ Select **Program defaults** to open this group.
   made from the template gets a **placeholder** in that slot, showing the label,
   and you choose the dance later with **Fill** (see [Build a
   program](./programs.md#fill-a-placeholder)). A template without a slot rule
-  makes exactly the slots it always did. While a template has a rule that uses a
-  saved search, that search can't be deleted; the message names the template
-  and the rule. If the saved search is gone anyway (deleted on another device,
-  say), the rule's row says so, and the placeholder still offers Fill.
+  makes exactly the slots it always did. A rule's **Edit** button (the pencil)
+  changes its label or saved search; its label can't be "Break", which marks a
+  break. While a template has a rule that uses a saved search, that search
+  can't be deleted; the message names the template and the rule. If the saved
+  search is gone anyway (deleted on another device, say), or can't be opened,
+  the rule's row says so, and the placeholder still offers Fill.
 - **Default template** — the template a new program starts from when you are
   not asked to choose, or **Blank program**. The first template you add
   becomes the default unless you have chosen Blank program. With two or more

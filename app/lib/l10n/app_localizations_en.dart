@@ -14842,4 +14842,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String savedSearchUsedBySlotRule(String rule, String template) {
     return 'The slot rule \"$rule\" in the template $template';
   }
+
+  @override
+  String get programTemplateSlotRuleSearchUnreadable =>
+      'Its saved search can\'t be opened';
+
+  @override
+  String get programTemplateSlotRuleEditTitle => 'Edit slot rule';
+
+  @override
+  String get programTemplateSlotRuleLabelBreak =>
+      '\"Break\" marks a break in the program, so a slot rule can\'t use it as its label.';
+
+  @override
+  String programsFillSearchUnreadable(String label) {
+    return 'The saved search for \"$label\" can\'t be opened: it was saved by a newer version of the app, or it is damaged. Every dance is shown.';
+  }
 }

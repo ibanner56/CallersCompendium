@@ -14982,4 +14982,20 @@ class AppLocalizationsNl extends AppLocalizations {
   String savedSearchUsedBySlotRule(String rule, String template) {
     return 'De plekregel \"$rule\" in het sjabloon $template';
   }
+
+  @override
+  String get programTemplateSlotRuleSearchUnreadable =>
+      'De opgeslagen zoekopdracht kan niet worden geopend';
+
+  @override
+  String get programTemplateSlotRuleEditTitle => 'Plekregel bewerken';
+
+  @override
+  String get programTemplateSlotRuleLabelBreak =>
+      '\"Break\" markeert een pauze in het programma, dus een plekregel kan het niet als label gebruiken.';
+
+  @override
+  String programsFillSearchUnreadable(String label) {
+    return 'De opgeslagen zoekopdracht voor \"$label\" kan niet worden geopend: die is opgeslagen door een nieuwere versie van de app, of is beschadigd. Alle dansen worden getoond.';
+  }
 }

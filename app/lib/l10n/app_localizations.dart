@@ -21628,6 +21628,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The slot rule \"{rule}\" in the template {template}'**
   String savedSearchUsedBySlotRule(String rule, String template);
+
+  /// Subtitle of a slot rule in the program template editor whose saved search still exists but can't be read: it was saved by a newer version of the app, or it is damaged (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'Its saved search can\'t be opened'**
+  String get programTemplateSlotRuleSearchUnreadable;
+
+  /// Title of the dialog that changes a program template's slot rule: its label and its saved search (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'Edit slot rule'**
+  String get programTemplateSlotRuleEditTitle;
+
+  /// Error under the label field of the slot rule dialog when the label is the word that marks a break slot (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'\"Break\" marks a break in the program, so a slot rule can\'t use it as its label.'**
+  String get programTemplateSlotRuleLabelBreak;
+
+  /// Notice above the dance picker opened by Fill when the placeholder's saved search still exists but can't be read (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'The saved search for \"{label}\" can\'t be opened: it was saved by a newer version of the app, or it is damaged. Every dance is shown.'**
+  String programsFillSearchUnreadable(String label);
 }
 
 class _AppLocalizationsDelegate

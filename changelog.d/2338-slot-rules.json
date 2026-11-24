@@ -4,8 +4,9 @@
   "app": {
     "added": [
       "A program template can hold a slot rule: Add slot rule gives a slot a label, such as \"Easy family opener\", and one of your saved searches instead of one dance. A program made from the template starts with a placeholder there, showing the label and marked Placeholder.",
+      "Edit on a slot rule changes its label or its saved search. A rule can't be labelled Break, which marks a break.",
       "Fill on a placeholder opens the dance picker with the rule's saved search already applied, and the dance you choose fills the slot. A placeholder saved unfilled stays one, on all your synced devices, and offers Fill with the same search later.",
-      "If a placeholder's saved search was deleted, or uses a tag, level or venue that was deleted, Fill shows every dance with a notice naming what is gone; it never uses part of the search.",
+      "If a placeholder's saved search was deleted, can't be opened (saved by a newer version, or damaged), or uses a tag, level or venue that was deleted, Fill shows every dance with a notice saying which and naming what is gone; it never uses part of the search.",
       "A saved search that a template's slot rule uses can't be deleted; the message names the rule and its template."
     ],
     "changed": [

@@ -67,7 +67,20 @@ Future<PlaceholderFillStart?> preparePlaceholderFill(
   }
   if (!context.mounted) return null;
   if (search == null) {
-    return PlaceholderFillStart.unfiltered(PlaceholderFillNotice(label: label));
+    // Gone, or still stored but unreadable (a newer version's, or damaged:
+    // Settings lists it under Needs attention). Say which.
+    var unreadable = false;
+    try {
+      unreadable =
+          await repos.settings.get('$savedSearchKeyPrefix$searchId') != null;
+    } on Object {
+      // diagnostics: silent — the notice then says the search was deleted,
+      // and every dance is shown either way.
+    }
+    if (!context.mounted) return null;
+    return PlaceholderFillStart.unfiltered(
+      PlaceholderFillNotice(label: label, unreadable: unreadable),
+    );
   }
   CollectionPanelState? loaded;
   final load = await SavedSearchActions(
@@ -102,18 +115,22 @@ Future<PlaceholderFillStart?> preparePlaceholderFill(
 }
 
 /// Says why **Fill** shows every dance: the placeholder's saved search is gone
-/// ([searchName] null), or it names things that are gone ([missing], each by
-/// name). Read out when it appears.
+/// ([searchName] null), is stored but cannot be read ([unreadable]), or names
+/// things that are gone ([missing], each by name). Read out when it appears.
 class PlaceholderFillNotice extends StatelessWidget {
   const PlaceholderFillNotice({
     super.key,
     required this.label,
     this.searchName,
     this.missing = const [],
+    this.unreadable = false,
   });
 
   /// The placeholder's label.
   final String label;
+
+  /// The saved search is still stored but this version cannot read it.
+  final bool unreadable;
 
   /// The saved search's name, or null when the search itself is gone.
   final String? searchName;
@@ -152,7 +169,9 @@ class PlaceholderFillNotice extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          name == null
+                          unreadable
+                              ? l10n.programsFillSearchUnreadable(label)
+                              : name == null
                               ? l10n.programsFillSearchGone(label)
                               : l10n.programsFillSearchUnresolvable(
                                   label,

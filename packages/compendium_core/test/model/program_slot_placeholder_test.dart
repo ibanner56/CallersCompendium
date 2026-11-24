@@ -113,6 +113,26 @@ void main() {
     });
   });
 
+  group('set-list text', () {
+    test('an unfilled placeholder is its label, and its saved search never '
+        'appears', () {
+      final text = programToPlainText(
+        _program([
+          _placeholder(),
+          ProgramSlot(id: 's2', position: 1, text: 'Waltz'),
+        ]),
+        titleFor: (_) => null,
+      );
+      expect(text, contains('Easy family opener'));
+      expect(text, contains('Waltz'));
+      expect(text, isNot(contains('search-1')));
+      expect(
+        text.indexOf('Easy family opener'),
+        lessThan(text.indexOf('Waltz')),
+      );
+    });
+  });
+
   group('archive codec', () {
     test('backup and share both carry a placeholder; a slot without one '
         'emits no key, so its encoding does not change', () {

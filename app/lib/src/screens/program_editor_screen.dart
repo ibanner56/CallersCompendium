@@ -223,6 +223,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// resolved to nothing (a purged dance). Cleared with each snapshot, which
   /// is when a trashed dance can have been restored, purged or newly trashed.
   final Set<String> _deletedSlotLookups = {};
+
+  /// Placeholder slots (by id) whose **Fill** is reading its saved search or
+  /// showing its sheet (#2338), so a second tap opens no second sheet.
+  final Set<String> _fillsInFlight = {};
   int _deletedSlotLookupGeneration = 0;
   late DanceReimportCoordinator _reimport;
   late final TabController _tabController;
@@ -4830,21 +4834,32 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (data == null || index < 0 || index >= _slots.length) return;
     final slot = _slots[index];
     if (!slot.isPlaceholder) return;
-    final fill = await preparePlaceholderFill(
-      context,
-      slot: slot,
-      data: data,
-      dialect: _dialect,
-      enrichment: _enrichment,
-      programId: _existing?.id ?? widget.programId,
-    );
-    if (fill == null || !mounted) return;
-    final danceId = await _pickReplacementDance(slot, fill: fill);
+    // One Fill per slot: the saved search is read before the sheet opens, so
+    // a quick second tap would otherwise open a second sheet.
+    if (!_fillsInFlight.add(slot.id)) return;
+    final String? danceId;
+    try {
+      final fill = await preparePlaceholderFill(
+        context,
+        slot: slot,
+        data: data,
+        dialect: _dialect,
+        enrichment: _enrichment,
+        programId: _existing?.id ?? widget.programId,
+      );
+      if (fill == null || !mounted) return;
+      danceId = await _pickReplacementDance(slot, fill: fill);
+    } finally {
+      _fillsInFlight.remove(slot.id);
+    }
     if (danceId == null || !mounted) return;
-    // The sheet is modal, but find the slot again rather than trust [index].
+    // Find the slot again rather than trust [index], and fill it only while it
+    // is still an unfilled placeholder: if it was removed, or became a dance
+    // meanwhile (an edit, or a sync merge), the pick is dropped.
     final at = _slots.indexWhere((s) => s.id == slot.id);
     if (at < 0) return;
     final current = _slots[at];
+    if (!current.isPlaceholder || current.danceId != null) return;
     _updateSlot(
       at,
       ProgramSlot(

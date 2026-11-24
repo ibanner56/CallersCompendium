@@ -14257,5 +14257,21 @@
   "savedSearchUsedBySlotRule": "Die Eintragsregel „{rule}“ in der Vorlage {template}",
   "@savedSearchUsedBySlotRule": {
     "x-sourceSha256": "f6abcf8a824f0c6964fb5e3090afcdddefa07ab6e162a7585f87f491c21b8d47"
+  },
+  "programTemplateSlotRuleSearchUnreadable": "Ihre gespeicherte Suche lässt sich nicht öffnen",
+  "@programTemplateSlotRuleSearchUnreadable": {
+    "x-sourceSha256": "87719e1e721958247eb5fe51c7cf2ad911163c3c04262db39ee0daee11e71814"
+  },
+  "programTemplateSlotRuleEditTitle": "Eintragsregel bearbeiten",
+  "@programTemplateSlotRuleEditTitle": {
+    "x-sourceSha256": "35c30e10ebe5cac90c10fca41bd916f0fcc6a4fa7cfdd58ddc485bb65f902421"
+  },
+  "programTemplateSlotRuleLabelBreak": "„Break“ markiert eine Pause im Programm, daher kann eine Eintragsregel es nicht als Bezeichnung verwenden.",
+  "@programTemplateSlotRuleLabelBreak": {
+    "x-sourceSha256": "16e76380d1c64fee5f8228fc7f778ef0d4a2f3c4b3e214a56f7c1a83ae1467bd"
+  },
+  "programsFillSearchUnreadable": "Die gespeicherte Suche für „{label}“ lässt sich nicht öffnen: Sie wurde von einer neueren Version der App gespeichert oder ist beschädigt. Alle Tänze werden angezeigt.",
+  "@programsFillSearchUnreadable": {
+    "x-sourceSha256": "90942ead9afb4bb56bdb7a3465a963834a6e9441310d4284498d28e8b6162ec3"
   }
 }

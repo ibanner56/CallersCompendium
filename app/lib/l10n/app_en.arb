@@ -20102,5 +20102,27 @@
         "example": "Contra night"
       }
     }
+  },
+  "programTemplateSlotRuleSearchUnreadable": "Its saved search can't be opened",
+  "@programTemplateSlotRuleSearchUnreadable": {
+    "description": "Subtitle of a slot rule in the program template editor whose saved search still exists but can't be read: it was saved by a newer version of the app, or it is damaged (#2338)."
+  },
+  "programTemplateSlotRuleEditTitle": "Edit slot rule",
+  "@programTemplateSlotRuleEditTitle": {
+    "description": "Title of the dialog that changes a program template's slot rule: its label and its saved search (#2338)."
+  },
+  "programTemplateSlotRuleLabelBreak": "\"Break\" marks a break in the program, so a slot rule can't use it as its label.",
+  "@programTemplateSlotRuleLabelBreak": {
+    "description": "Error under the label field of the slot rule dialog when the label is the word that marks a break slot (#2338)."
+  },
+  "programsFillSearchUnreadable": "The saved search for \"{label}\" can't be opened: it was saved by a newer version of the app, or it is damaged. Every dance is shown.",
+  "@programsFillSearchUnreadable": {
+    "description": "Notice above the dance picker opened by Fill when the placeholder's saved search still exists but can't be read (#2338).",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "example": "Easy improper opener"
+      }
+    }
   }
 }

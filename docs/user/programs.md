@@ -506,9 +506,8 @@ A program is made of three kinds of slots:
 A program made from a template with a [slot
 rule](./settings.md#program-defaults) starts with a **placeholder** in that
 slot: it shows the rule's label, such as "Easy family opener", marked
-**Placeholder**, and a **Fill** button. Until you fill it, it is an ordinary
-note with that label: it counts toward nothing in your calling history, and the
-set list and PDF show the label.
+**Placeholder**, and a **Fill** button. Until you fill it, it counts toward
+nothing in your calling history, and the set list and PDF show its label.
 
 **Fill** opens the dance picker titled with the label, with the rule's saved
 search already in its search and **Filters**, so it lists the dances the rule
@@ -518,11 +517,12 @@ search go, and the slot keeps its alternate mark, guest caller and lengths. A
 placeholder you save unfilled stays one, and offers Fill with the same saved
 search when you open the program again, on any of your synced devices.
 
-If the saved search has been deleted, or uses a tag, level, venue or other
-thing that has since been deleted, Fill shows every dance instead, with a
-notice above the list saying so and naming each thing that is gone. It never
-uses the rest of the search alone, since leaving out one part can change what
-the whole search means. A placeholder in a program you share, print or export
+If the saved search has been deleted, can't be opened (it was saved by a
+newer version of the app, or is damaged), or uses a tag, level, venue or other
+thing that has since been deleted, the slot stays a placeholder and Fill shows
+every dance instead, with a notice above the list saying which, and naming each
+thing that is gone. It never uses the rest of the search alone, since leaving
+out one part can change what the whole search means. A placeholder in a program you share, print or export
 to CSV goes as a plain note with its label; the saved search stays with you.
 
 ### Edit a slot
