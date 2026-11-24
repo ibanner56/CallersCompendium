@@ -46,7 +46,7 @@ lib/
     domain/                     the state model. no behaviour beyond geometry-free accessors
       dancer.dart               DancerId (invariant) + DancerState (mutable) + bitmask codec
       formation.dart            Formation: entity map -> matrix projection, equality
-      formation_type.dart       DupleImproper / BecketCw / BecketCcw + end-number rules
+      formation_type.dart       DupleImproper / ProgressedImproper / BecketCw / BecketCcw + end-number rules
       facing.dart               Facing enum + turnedLeft/turnedRight/reversed
       position.dart             Position(row, col), kColumnCount
       role.dart                 Lark / Robin + bitmask
@@ -866,7 +866,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,469 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,470 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

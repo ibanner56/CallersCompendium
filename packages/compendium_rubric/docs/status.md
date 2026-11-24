@@ -51,8 +51,8 @@
 > Caller's Box's "Duple Minor - Progressed improper" was read as Duple
 > Improper, with a warning. It now has its own start, Duple Improper with the
 > 1s below the 2s in each hands four (user-ruled). Against `rubric` at
-> `3e525db2` it took the count from 3,908 to 3,931 of 5,118 compiled in scope
-> (76.4% to 76.8%), and the core set from 521 to 523: 24 dances now compile,
+> `58b6d4e4` it took the count from 3,938 to 3,962 of 5,149 compiled in scope
+> (76.5% to 76.9%), and the core set from 528 to 530: 25 dances now compile,
 > among them Camden's Cap and Gown (10018) and Ice House (10035), and one that
 > compiled under the Duple Improper reading, Last Train to Chester (18653), no
 > longer does.

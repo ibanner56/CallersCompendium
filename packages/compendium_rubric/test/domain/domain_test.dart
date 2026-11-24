@@ -122,11 +122,32 @@ void main() {
     });
 
     test('each couple keeps its Duple Improper facing', () {
-      expect(
-        formation.stateOf(const DancerId(0, Role.lark)).facing,
-        Facing.down,
-      );
-      expect(formation.stateOf(const DancerId(1, Role.lark)).facing, Facing.up);
+      // The ruling gives the cells; the facing is the agent's call, the one
+      // the lark-left normalization gives for them. Measured on the corpus,
+      // turning every couple to face the other way changes no outcome.
+      for (final id in formation.dancers.keys) {
+        expect(
+          formation.stateOf(id).facing,
+          formation.stateOf(id).number == CoupleNumber.one
+              ? Facing.down
+              : Facing.up,
+          reason: '$id',
+        );
+      }
+    });
+
+    test('each hands four holds a 2s couple above a 1s couple', () {
+      // The ruled matrix is one hands four, B above A.
+      for (final band in handsFourBands(formation)) {
+        expect(
+          formation.dancersInRow(band.topRow).map((id) => id.coupleIndex),
+          everyElement(band.topRow + 1),
+        );
+        expect(
+          formation.dancersInRow(band.bottomRow).map((id) => id.coupleIndex),
+          everyElement(band.bottomRow - 1),
+        );
+      }
     });
 
     test('keeps the Duple Improper hands fours and sizing', () {
