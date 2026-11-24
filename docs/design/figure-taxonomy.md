@@ -2403,10 +2403,31 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     the line into the Rory O'More only straight after a balance-wave line
     (`_longSlide`, beside `_foldBalanceWaveIntoRory`), keeping the bracket as
     the note. Alone, or naming other dancers, the line stays custom.
-    **Older devices (v39)** do not declare the param: they show the Rory
-    O'More without the clause. Their dance editor copies every stored param
-    into its draft (`FigureDraft.fromFigure`), so the value should survive an
-    edit there, but no v39 build was run to check that.
+    The clause is part of the summary, not the move's template, so a
+    dialect's move wording for `rory_o_more`, and a figure's own wording
+    override, show the line without it, as they do a hall's ender and the
+    `balance &` prefix. The snippet signature keys on template params only,
+    so a teaching snippet is shared by the long and the ordinary slide, as it
+    is by a single and a double figure 8 (the author's call: `amount` joins
+    the signature because it replaces the fraction on the line, while this
+    only adds to it).
+    **Stored only while it names dancers** (`roryTwoPlacesParam`), as
+    `figure_8.double` is: `entryParams` seeds none, `applyParamChange` removes
+    it when cleared, and `dropUnstatedParams` drops an unstated one. Settings ▸
+    Defaults now records neither a cleared `twoPlaces` nor a `double` turned
+    off as a move default, and picking a move or typing a figure drops one a
+    saved default still holds; before this, a `double` toggled on and off in
+    Settings was saved as `false` and seeded into every new figure 8.
+    **Older devices (v39)** do not declare the param. They show the Rory
+    O'More without the clause, and their dance editor copies every stored
+    param into its draft (`FigureDraft.fromFigure`), so the value should
+    survive an edit there; no v39 build was run to check that. Their
+    `validateFigure` rejects it as `unknown_param`, which, as with v39's
+    `amount` and `double`, bites a compound of the user's own whose template
+    holds such a Rory O'More: it is marked "needs repair" there, and a repair
+    that removes or changes the figure drops the value and syncs back. The
+    maintainer accepted that exposure for `amount` (2026-11-12, #2120); no
+    maintainer decision yet covers it for `twoPlaces`.
   - Migration: none, and no rebuild: a new move, alias and param, nothing
     renamed or removed, so no stored figure changes and every canonical text
     stays as it was. **Older devices (v39)** show a synced `cast` as the bare
