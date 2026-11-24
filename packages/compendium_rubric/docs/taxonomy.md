@@ -499,10 +499,11 @@ is refused as before. *(Agent's calls, not ratified:*
   couple number. A dancer paired with someone other than their remembered shadow keeps the
   remembered one, so the memory can be one-sided. Refusing on a disagreement instead is untried.*
 - *"Remembered" is the pairs danced by a figure routed through the shadows rule. A figure that
-  also names a distance set takes its phase from the distance and remembers nothing. Within a
-  hands four, a pair side by side in a side column is remembered before any other pairing,
-  so at an end where the shadow wraps to the neighbour, the dancer beside you is remembered
-  rather than one across the set (2026-11-24).*
+  also names a distance set takes its phase from the distance and remembers nothing. At an end
+  where the shadow wraps to the neighbour, a dancer can match both the dancer beside them and
+  one across the set; each figure remembers the pair it danced: `swing` and `promenade`, which
+  pair by side column, the pair side by side; the others, which pair first match first, that
+  pair (2026-11-24).*
 - *At an end with nobody out, the neighbours who count as shadows there are remembered as each
   other's shadows for the rest of the dance. A wrong memory can only make a later figure refuse,
   never pick a wrong phase, because a phase must keep every remembered pair together.*

@@ -227,4 +227,28 @@ void main() {
     expect(after.stateOf(id('R2-B')).shadow, id('L1-A'));
     expect(after.stateOf(id('R2-D')).shadow, id('L2-B'));
   });
+
+  test('a shadow do-si-do remembers the pair it danced, across the set', () {
+    // The same wrap band as above: do_si_do pairs first match first, so
+    // L1-A dances with R2-D across the set (once around, so nobody moves),
+    // and that is what he remembers.
+    DancerId id(String cell) => DancerId(
+      cell.codeUnitAt(cell.length - 1) - 0x41,
+      cell.startsWith('L') ? Role.lark : Role.robin,
+    );
+    final afterChain = applyOk(
+      const Chain(who: WhoSet.role2s, dir: ChainDirection.leftDiagonal),
+      becket(const [
+        'L1-A . . . R1-A',
+        'R2-B . . . L2-B',
+        'L1-C . . . R1-C',
+        'R2-D . . . L2-D',
+        'L1-E . . . R1-E',
+        'R2-F . . . L2-F',
+      ]),
+    );
+    final after = applyOk(const DoSiDo(who: WhoSet.shadows), afterChain);
+    expect(after.stateOf(id('L1-A')).shadow, id('R2-D'));
+    expect(after.stateOf(id('R2-B')).shadow, isNull);
+  });
 }

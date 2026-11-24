@@ -403,7 +403,7 @@ sealed class Operation {
   }) {
     final failure = checkPreconditions(phase);
     if (failure != null) return Err<Formation, OpError>(failure);
-    final pairs = _shadowPairs(phase);
+    final pairs = _shadowPairsDanced(phase);
     final danced = perform(phase).map((next) => _remember(next, pairs));
     return handBack ? danced.map(toggleBandPhase) : danced;
   }
@@ -444,14 +444,32 @@ sealed class Operation {
     return together > 0;
   }
 
-  /// The shadow pairs standing together in [formation]'s hands fours.
+  /// The shadow pairs this figure dances in [formation]'s hands fours, which
+  /// are the pairs it remembers.
   ///
-  /// A pair side by side in a side column is taken first, then the rest pair
-  /// first match first, as [resolveWhoPairs] pairs them. At an end with nobody out the shadow
-  /// wraps to the neighbour, so a dancer can match someone across the set as
-  /// well as the dancer beside them; reading the columns first remembers the
-  /// pair that danced side by side, as a promenade across checks them
-  /// *(agent's call, 2026-11-24)*.
+  /// The figures that pair by side column (`swing`, `promenade`) take a pair
+  /// side by side in a column first, then pair the rest first match first;
+  /// every other figure pairs as [resolveWhoPairs] does, which is how it
+  /// chooses who dances. At an end with nobody out the shadow wraps to the
+  /// neighbour, so a dancer can match someone across the set as well as the
+  /// dancer beside them, and the two readings differ there; each figure
+  /// remembers the pairs it actually danced *(agent's call, 2026-11-24)*.
+  List<({DancerId a, DancerId b})> _shadowPairsDanced(Formation formation) =>
+      switch (this) {
+        Swing() || Promenade() => _shadowPairs(formation),
+        _ => [
+          for (final band in handsFourBands(formation))
+            ...resolveWhoPairs(
+              formation,
+              WhoSet.shadows,
+              topRow: band.topRow,
+              bottomRow: band.bottomRow,
+            ),
+        ],
+      };
+
+  /// The shadow pairs standing together in [formation]'s hands fours, side
+  /// columns first.
   static List<({DancerId a, DancerId b})> _shadowPairs(Formation formation) {
     final pairs = <({DancerId a, DancerId b})>[];
     for (final band in handsFourBands(formation)) {
