@@ -14183,6 +14183,78 @@ class AppLocalizationsDa extends AppLocalizations {
   String get importCsvPickFile => 'Vælg en CSV-fil …';
 
   @override
+  String get importSourceLabelTextDocument =>
+      'Din egen tekst- eller Markdown-fil';
+
+  @override
+  String get importTextHint =>
+      'Vælg en .txt- eller .md-fil. Start hver dans med en overskrift (## Title) eller med dens titel efter en tom linje. Skriv detaljer på \"Label: value\"-linjer (Formation: Improper) og én figur pr. linje (A1 (8) Neighbor swing).';
+
+  @override
+  String get importTextPickFile => 'Vælg en tekst- eller Markdown-fil…';
+
+  @override
+  String get importTextMapTitle => 'Tilknyt betegnelser';
+
+  @override
+  String get importTextMapIntro =>
+      'Vælg, hvad hver betegnelse i din fil indeholder. En betegnelse, som intet felt tager, beholdes i kaldsnoterne med sit navn; vælg Ignorer for at udelade den. Intet tilføjes, før du gennemser og bekræfter.';
+
+  @override
+  String get importTextDanceStartLabel => 'Hver dans starter ved';
+
+  @override
+  String importTextDanceStartHeading(String marks) {
+    return 'En $marks-overskrift';
+  }
+
+  @override
+  String get importTextDanceStartBlankLine => 'En titel efter en tom linje';
+
+  @override
+  String get importTextTargetLabelledNotes => 'Kaldsnotes, med betegnelsen';
+
+  @override
+  String get importTextNotUtf8 =>
+      'Denne fil er ikke gemt som UTF-8-tekst, så bogstaver med accent ville komme forkert ind. Gem den igen som UTF-8-tekst, og vælg den fil.';
+
+  @override
+  String importTextTooManyDances(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Denne fil har mere end $limitString danse. Del den op i mindre filer.';
+  }
+
+  @override
+  String importTextLineTooLong(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'En linje i denne fil er længere end $limitString tegn.';
+  }
+
+  @override
+  String importTextDanceTooLong(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'En dans i denne fil har mere end $limitString tegn i figurer, noter eller én detalje.';
+  }
+
+  @override
+  String importTextTooManyLabels(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Denne fil bruger mere end $limitString forskellige betegnelser.';
+  }
+
+  @override
   String get importCsvSaveAsHint =>
       'Vælg i dit regnearksprogram Filer ▸ Gem som (eller Download) og »CSV UTF-8«, og vælg så den fil her.';
 

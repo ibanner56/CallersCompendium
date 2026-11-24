@@ -217,6 +217,7 @@ String importSourceLabel(AppLocalizations l10n, ImportSourceKind kind) =>
       ImportSourceKind.publishedCollection =>
         l10n.importSourceLabelPublishedCollection,
       ImportSourceKind.csv => l10n.importSourceLabelCsv,
+      ImportSourceKind.textDocument => l10n.importSourceLabelTextDocument,
     };
 
 /// The message for a spreadsheet that could not be read (#2329).
@@ -292,4 +293,25 @@ String titleListNotFoundReasonMessage(
   TitleListNotFoundReason.connectionFailed =>
     l10n.importTitleListReasonConnectionFailed,
   TitleListNotFoundReason.lineTooLong => l10n.importTitleListReasonLineTooLong,
+};
+
+/// The message for a text or Markdown file that could not be read (#2330).
+String textDocumentReadFailureMessage(
+  AppLocalizations l10n,
+  TextDocumentReadException e,
+) => switch (e.reason) {
+  TextDocumentReadFailure.tooLarge => l10n.importCsvTooLarge,
+  TextDocumentReadFailure.notUtf8 => l10n.importTextNotUtf8,
+  TextDocumentReadFailure.tooManyDances => l10n.importTextTooManyDances(
+    e.limit ?? kMaxTextDocumentDances,
+  ),
+  TextDocumentReadFailure.lineTooLong => l10n.importTextLineTooLong(
+    e.limit ?? kMaxTextDocumentLineChars,
+  ),
+  TextDocumentReadFailure.danceTooLong => l10n.importTextDanceTooLong(
+    e.limit ?? kMaxTextDocumentLineChars,
+  ),
+  TextDocumentReadFailure.tooManyLabels => l10n.importTextTooManyLabels(
+    e.limit ?? kMaxTextDocumentLabels,
+  ),
 };

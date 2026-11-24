@@ -13622,6 +13622,62 @@
   "@importCsvPickFile": {
     "x-sourceSha256": "3bb43e45815cd926a5fdc5fc234a382e7ca35f88ece0d4f9d4ea4abf1a867690"
   },
+  "importSourceLabelTextDocument": "Votre propre fichier texte ou Markdown",
+  "@importSourceLabelTextDocument": {
+    "x-sourceSha256": "b82e1c3bc4a3756645ff8d0db9a4fc78dc203aee7daa42b21ef3de1476a7a06a"
+  },
+  "importTextHint": "Choisissez un fichier .txt ou .md. Commencez chaque danse par un titre (## Title), ou par son titre après une ligne vide. Mettez les détails sur des lignes « Label: value » (Formation: Improper) et une figure par ligne (A1 (8) Neighbor swing).",
+  "@importTextHint": {
+    "x-sourceSha256": "d179b5ab74145d2de4bfe01f731e2c4e284b6a18d318ca80c1b34b338f68740a"
+  },
+  "importTextPickFile": "Choisir un fichier texte ou Markdown…",
+  "@importTextPickFile": {
+    "x-sourceSha256": "fa98f057a4a28239990f650477688807696b4c1c021cdb024fb87bfb209377cd"
+  },
+  "importTextMapTitle": "Associer les étiquettes",
+  "@importTextMapTitle": {
+    "x-sourceSha256": "51d6189c02562c2748d7e81b93a37a6c83fc22cd6b38375a3074171e93c79acd"
+  },
+  "importTextMapIntro": "Choisissez ce que contient chaque étiquette de votre fichier. Une étiquette qu’aucun champ ne prend est conservée dans les notes d’appel avec son nom ; choisissez Ignorer pour la laisser de côté. Rien n’est ajouté tant que vous n’avez pas vérifié et confirmé.",
+  "@importTextMapIntro": {
+    "x-sourceSha256": "c164ccec57083360c7aeee87a0ad5beaeae0dc2c31076d3609876c69f715f269"
+  },
+  "importTextDanceStartLabel": "Chaque danse commence à",
+  "@importTextDanceStartLabel": {
+    "x-sourceSha256": "639a3248969fee5709ab292bec14051fee038813f5a12eb1e0f19b98978884c5"
+  },
+  "importTextDanceStartHeading": "Un intertitre {marks}",
+  "@importTextDanceStartHeading": {
+    "x-sourceSha256": "878e3677a673deb6f113d8818d1d90f5ddaf6dc70c18d194e0a1ee9996d48333"
+  },
+  "importTextDanceStartBlankLine": "Un titre après une ligne vide",
+  "@importTextDanceStartBlankLine": {
+    "x-sourceSha256": "1e3d1952578a42f1adc62b109faae27dc63fea4d27ca663fcfb52e498917c26e"
+  },
+  "importTextTargetLabelledNotes": "Notes d’appel, avec l’étiquette",
+  "@importTextTargetLabelledNotes": {
+    "x-sourceSha256": "81e01305126cd88776779264c7195ec7477be4a8b5e43192e472e9f68ae75f73"
+  },
+  "importTextNotUtf8": "Ce fichier n’est pas enregistré en texte UTF-8, les lettres accentuées arriveraient donc mal. Enregistrez-le à nouveau en texte UTF-8 et choisissez ce fichier.",
+  "@importTextNotUtf8": {
+    "x-sourceSha256": "db5198188221007b4dd964bf20367e624a06d33b5901c420135bc60edb6b1fde"
+  },
+  "importTextTooManyDances": "Ce fichier contient plus de {limit} danses. Divisez-le en fichiers plus petits.",
+  "@importTextTooManyDances": {
+    "x-sourceSha256": "b1f27144df9b89a96fc21d765465283b574c5162a69bea582ec4878d2bd9b0cc"
+  },
+  "importTextLineTooLong": "Une ligne de ce fichier dépasse {limit} caractères.",
+  "@importTextLineTooLong": {
+    "x-sourceSha256": "5a8f42c559af2e534c3603d62c1ff89541ceb05a12ee0f2a6cf13559c0648b52"
+  },
+  "importTextDanceTooLong": "Une danse de ce fichier dépasse {limit} caractères de figures, de notes ou d’un détail.",
+  "@importTextDanceTooLong": {
+    "x-sourceSha256": "d53da53bd9602901b5a458298be0f37213340029771e23743d58a95a6097b56a"
+  },
+  "importTextTooManyLabels": "Ce fichier utilise plus de {limit} étiquettes différentes.",
+  "@importTextTooManyLabels": {
+    "x-sourceSha256": "2fbfd9e7107e7372dd8d6be7d8607d4deb6596588fcdfcd195b2f9e00be4c5af"
+  },
   "importCsvSaveAsHint": "Dans votre tableur, choisissez Fichier ▸ Enregistrer sous (ou Télécharger) et « CSV UTF-8 », puis choisissez ce fichier ici.",
   "@importCsvSaveAsHint": {
     "x-sourceSha256": "3aa1ebd55b632f5a421fc0ed140c9486b22de931f544872cddeca51e7b3ca625"

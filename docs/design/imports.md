@@ -20,6 +20,7 @@
   - [Signed published collections (#862)](#signed-published-collections-862) — 22 lines
   - [5. A list of titles (#823)](#5-a-list-of-titles-823) — 72 lines
   - [6. A spreadsheet (CSV) (#2329)](#6-a-spreadsheet-csv-2329) — 71 lines
+  - [7. A text or Markdown file (#2330)](#7-a-text-or-markdown-file-2330) — 85 lines
   - [Simultaneous-action fan-out (`meanwhile`) (#591/#572)](#simultaneous-action-fan-out-meanwhile-591572) — 59 lines
   - [Shared free-text figure parser (cross-cutting)](#shared-free-text-figure-parser-cross-cutting) — 299 lines
   - [Balance-a-wave lines (CallersBox, #295 / taxonomy v21)](#balance-a-wave-lines-callersbox-295--taxonomy-v21) — 86 lines
@@ -1592,6 +1593,91 @@ columns (`kMaxCsvImportColumns`, 200) and cell length
 failure is a typed `CsvReadException` with its own localized message. More than
 500 rows (the shared-bundle soft cap) is allowed with a warning. The separator
 (`,`, `;` or tab) is detected from the header line and can be changed.
+
+### 7. A text or Markdown file (#2330)
+
+The caller's own notes as a `.txt` or `.md` file, read into the spreadsheet
+import's columns so the #2329 map-columns step, plan, review and commit apply
+unchanged (Claude's design call on #2330; the alternative, a separate adapter
+with its own field mapping, would have duplicated the value vocabulary, the
+custom-field commit and the no-provenance rule).
+
+| piece | where |
+|---|---|
+| reader: splitting, labels, figure lines; the file as CSV | `packages/compendium_core/lib/src/imports/text_document_adapter.dart` |
+| `Label: value` and `by Name` lines, shared with the Caller's Companion text adapter | `packages/compendium_core/lib/src/imports/label_lines.dart` |
+| source, picker, map-labels wiring | `app/lib/src/data/import_io.dart`, `app/lib/src/screens/import_review_screen.dart`, `app/lib/src/screens/import_csv_mapping.dart` |
+
+`readTextDocument` splits the text into `TextDocumentDance`s at a dance level:
+a heading level (1 for `#`) or 0 for titles after blank lines. The caller
+can choose it on the map-labels step (**Each dance starts at**, offering the
+heading levels the file uses, `textDocumentHeadingLevels`, and blank lines);
+the review screen reads the file again on a change and keeps the last good
+reading when the new one passes a cap. This choice was added after four
+review rounds each found a note layout the guess misread (Claude's call; the
+alternative, guessing only, leaves those files split or merged wrongly with
+no way to correct them). The guess, `detectTextDocumentDanceLevel`: headings
+split the file when it has a `##` heading or more than one `#` heading. `#`
+headings are the dances when there are several and they read as dances (a
+detail or figure straight under one, unless one `#` holds timed figures under
+two `##` headings; no `##` at all; or `##` titles that repeat, as
+`## Figures` under each), and so is a single `#` heading with a detail or
+figure straight under it whose timed figures (a phrase label or a count,
+list marker aside) sit under at most one `##` heading and fewer than two of
+whose `##` headings start with a detail (`##` headings that each hold timed
+figures, or that each start with `Formation:` or a `by` line, are dances
+under a file title, even one with an `Author:` line). Otherwise `##` headings
+are the dances. A heading deeper than the dance level is a section of the
+dance, left out with its lines kept; a heading shallower than it with no
+figure under it is the file's title or a section of the file, and is
+dropped, its details (as `Label: value`) and notes carried into the leading
+notes of the next dance (the last dance's notes at the end), so nothing
+is lost. Headings are scanned by hand (`_parseHeading`): a regular expression
+with an optional closing `#` sequence backtracked quadratically, about 70 s
+for one line at the cell cap, on the UI thread. At level 0, a dance
+starts at the first line, at any heading, and at each line after a blank
+line that does not start like a figure (a bare leading number does not, so
+`12 Days of Christmas` is a title) and is not a detail of the dance before it
+(a label line counts as a detail only before that dance's figures); a lone
+`#` block with no figure and no detail is dropped the same way, and in a file
+with one `#` block that has a detail or figure, a following non-heading
+block with neither whose text is prose (it has notes, or its one line ends
+like a sentence) is folded into that dance's notes (a one-dance file headed
+`#`; a list of titles still reads as dances). A Markdown thematic break (`---`, `***`, `___`) reads as a
+blank line. Text before the first
+dance becomes its own dance when the lines after its first hold a label or a
+figure, else it goes into the first dance's notes. A label line is
+`splitLabelLine` with up to `kMaxTextDocumentLabelWords` (3) words and 30
+characters (a sentence in a language without spaces is not a label), at least
+one letter (`10:30` is not a label), a value not starting `//`, Markdown
+emphasis around the label removed and a full-width `：` read as `:`. A
+`by Name` line counts only before the dance's figures and notes. `by Name` and
+`Author:` are folded under `Authors`, the English name of the authors column, so the
+header pre-mapping picks it. A figure line has a list marker, a phrase label or
+a leading count, or follows a figure line directly (a wrapped line, read as a
+figure even with a colon); list markers are removed and the rest is left for
+the CSV adapter's figure reading. Everything else is a note, as
+written: Markdown is not otherwise interpreted.
+
+`textDocumentToCsv` writes one row per dance: title, one column per label
+(merged case-insensitively, first spelling kept), notes, figures, with the
+headers in the UI language. `textDocumentDefaultColumns` starts the mapping:
+title, notes and figures are fixed by position, and a label column takes its
+header pre-mapping unless that is ignore, title or figures, in which case it
+gets `CsvColumnMapping.labelledNotes`. That mapping is calling notes with
+`labelled: true`, so `csvRowToDraft` writes `Label: value` rather than the bare
+value; an unmapped detail is kept with its label rather than ignored
+(Claude's call, so nothing is lost by default). In the step the separator and
+header-row controls are hidden for this source.
+
+Caps reuse the spreadsheet's: bytes (`kMaxCsvImportBytes`), dances
+(`kMaxCsvImportRows` less the header row, counted after dropped title blocks
+and with a dance before the first heading), a line and one dance's cell
+(`kMaxCsvImportCellChars`, measured with the formula guard's apostrophe),
+and labels (`kMaxCsvImportColumns` less the three fixed columns). A file that is
+not UTF-8 is refused (`decodeTextDocumentBytes`). Each refusal is a
+`TextDocumentReadException` the review screen shows by reason. As with a
+spreadsheet, the dances record no provenance.
 
 ### Simultaneous-action fan-out (`meanwhile`) (#591/#572)
 - Two source dialects write simultaneous action on one line instead of

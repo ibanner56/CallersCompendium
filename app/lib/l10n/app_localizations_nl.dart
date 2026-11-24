@@ -14262,6 +14262,78 @@ class AppLocalizationsNl extends AppLocalizations {
   String get importCsvPickFile => 'CSV-bestand kiezen…';
 
   @override
+  String get importSourceLabelTextDocument =>
+      'Je eigen tekst- of Markdown-bestand';
+
+  @override
+  String get importTextHint =>
+      'Kies een .txt- of .md-bestand. Begin elke dans met een kop (## Title), of met de titel na een lege regel. Zet details op regels met “Label: value” (Formation: Improper) en één figuur per regel (A1 (8) Neighbor swing).';
+
+  @override
+  String get importTextPickFile => 'Kies een tekst- of Markdown-bestand…';
+
+  @override
+  String get importTextMapTitle => 'Labels koppelen';
+
+  @override
+  String get importTextMapIntro =>
+      'Kies wat elk label in je bestand bevat. Een label dat geen veld overneemt, blijft met zijn naam in de callnotities staan; kies Negeren om het weg te laten. Er wordt niets toegevoegd voordat je hebt nagekeken en bevestigd.';
+
+  @override
+  String get importTextDanceStartLabel => 'Elke dans begint bij';
+
+  @override
+  String importTextDanceStartHeading(String marks) {
+    return 'Een $marks-kop';
+  }
+
+  @override
+  String get importTextDanceStartBlankLine => 'Een titel na een lege regel';
+
+  @override
+  String get importTextTargetLabelledNotes => 'Callnotities, met het label';
+
+  @override
+  String get importTextNotUtf8 =>
+      'Dit bestand is niet als UTF-8-tekst bewaard, dus letters met accenten zouden verkeerd binnenkomen. Bewaar het opnieuw als UTF-8-tekst en kies dat bestand.';
+
+  @override
+  String importTextTooManyDances(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Dit bestand bevat meer dan $limitString dansen. Splits het in kleinere bestanden.';
+  }
+
+  @override
+  String importTextLineTooLong(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Een regel in dit bestand is langer dan $limitString tekens.';
+  }
+
+  @override
+  String importTextDanceTooLong(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Een dans in dit bestand heeft meer dan $limitString tekens aan figuren, notities of één detail.';
+  }
+
+  @override
+  String importTextTooManyLabels(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Dit bestand gebruikt meer dan $limitString verschillende labels.';
+  }
+
+  @override
   String get importCsvSaveAsHint =>
       'Kies in je spreadsheetprogramma Bestand ▸ Opslaan als (of Downloaden) en ‘CSV UTF-8’, en kies dat bestand dan hier.';
 

@@ -23,8 +23,9 @@ const int kCsvLargeBatchRows = 500;
 /// ([autoMapCsvColumns]), starts mapped to it; every mapping can be changed,
 /// and Ignore leaves a column out. Continue needs exactly one Title column.
 ///
-/// Built to be reused by the plain-text import (#2330): it knows only the
-/// text and the caller's custom fields, and hands back a [CsvImportMapping].
+/// The plain-text import (#2330) reuses it with [textDocument]: it knows only
+/// the text and the caller's custom fields, and hands back a
+/// [CsvImportMapping].
 /// The dropdown label for [mapping].
 String csvTargetLabel(
   AppLocalizations l10n,
@@ -32,6 +33,8 @@ String csvTargetLabel(
   Map<String, CustomFieldDef> fields,
 ) => switch (mapping.target) {
   CsvColumnTarget.ignore => l10n.importCsvTargetIgnore,
+  CsvColumnTarget.callingNotes when mapping.labelled =>
+    l10n.importTextTargetLabelledNotes,
   CsvColumnTarget.figurePhrase => l10n.importCsvTargetPhrase(mapping.phrase!),
   CsvColumnTarget.customField => l10n.importCsvTargetExistingField(
     fields[mapping.customFieldId]?.label ?? mapping.customFieldId!,
@@ -48,6 +51,10 @@ class CsvMappingStep extends StatefulWidget {
     required this.text,
     required this.fields,
     this.levels = const [],
+    this.textDocument = false,
+    this.danceLevels = const [],
+    this.danceLevel = 0,
+    this.onDanceLevel,
     required this.onContinue,
     required this.onBack,
   });
@@ -60,6 +67,22 @@ class CsvMappingStep extends StatefulWidget {
 
   /// The caller's configured difficulty levels, for reading a Level column.
   final List<DifficultyLevel> levels;
+
+  /// Whether [text] was read from a text or Markdown file (#2330,
+  /// [textDocumentToCsv]): its separator and header row are fixed, so those
+  /// controls are hidden; its columns are the file's labels, and a label no
+  /// field takes starts in the calling notes with the label
+  /// ([textDocumentDefaultColumns]).
+  final bool textDocument;
+
+  /// For [textDocument], where its dances may start: heading levels (1 for
+  /// `#`) and 0 for titles after blank lines. With more than one, the step
+  /// offers them, starting at [danceLevel], and [onDanceLevel] reads the file
+  /// again into a new [text]; it answers false when the file was not read
+  /// again (a cap was passed), and the choice goes back to [danceLevel].
+  final List<int> danceLevels;
+  final int danceLevel;
+  final bool Function(int level)? onDanceLevel;
 
   final void Function(CsvImportMapping mapping) onContinue;
 
@@ -78,13 +101,48 @@ class _CsvMappingStepState extends State<CsvMappingStep> {
   List<CsvColumnMapping> _columns = const [];
   bool _started = false;
 
+  /// Bumped to rebuild the dance-start field from [CsvMappingStep.danceLevel]
+  /// after a refused choice, which the field already shows.
+  int _danceStartGeneration = 0;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_started) return;
     _started = true;
-    _separator = detectCsvSeparator(widget.text);
-    _read(detectHeader: true);
+    _separator = widget.textDocument ? ',' : detectCsvSeparator(widget.text);
+    _read(detectHeader: !widget.textDocument);
+  }
+
+  @override
+  void didUpdateWidget(CsvMappingStep oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The text file was read again from another starting point: a label
+    // the new reading still has keeps the caller's choice; other columns,
+    // and the fixed title, notes and figures columns
+    // ([textDocumentToCsv]), are mapped afresh. A label may share a fixed
+    // column's name (`Title:`), so only label columns are matched by name.
+    if (widget.text != oldWidget.text) {
+      final chosen = <String, CsvColumnMapping>{
+        for (final i in _labelColumns()) _rows.first[i].trim(): _columns[i],
+      };
+      _read(detectHeader: !widget.textDocument);
+      final labels = _labelColumns().toSet();
+      _columns = [
+        for (final (i, column) in _columns.indexed)
+          labels.contains(i) ? chosen[_rows.first[i].trim()] ?? column : column,
+      ];
+    }
+  }
+
+  /// The indexes of a text file's label columns: those between its title
+  /// column and its notes and figures columns.
+  Iterable<int> _labelColumns() {
+    if (!widget.textDocument || !_hasHeader || _rows.isEmpty) return const [];
+    final count = _rows.first.length < _columns.length
+        ? _rows.first.length
+        : _columns.length;
+    return [for (var i = 1; i < count - 2; i++) i];
   }
 
   List<AppLocalizations> get _languages => [
@@ -115,12 +173,16 @@ class _CsvMappingStepState extends State<CsvMappingStep> {
   }
 
   void _remap() {
-    _columns = autoMapCsvColumns(
-      _hasHeader && _rows.isNotEmpty ? _rows.first : null,
+    final header = _hasHeader && _rows.isNotEmpty ? _rows.first : null;
+    final auto = autoMapCsvColumns(
+      header,
       _columnCount,
       _languages,
       widget.fields,
     );
+    _columns = widget.textDocument && header != null
+        ? textDocumentDefaultColumns(header, auto)
+        : auto;
   }
 
   /// The rows that hold dances: past the header, and not blank.
@@ -161,42 +223,79 @@ class _CsvMappingStepState extends State<CsvMappingStep> {
       key: const ValueKey('csv-mapping'),
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
-        Text(l10n.importCsvMapTitle, style: theme.textTheme.titleMedium),
+        Text(
+          widget.textDocument
+              ? l10n.importTextMapTitle
+              : l10n.importCsvMapTitle,
+          style: theme.textTheme.titleMedium,
+        ),
         const SizedBox(height: AppSpacing.xs),
-        Text(l10n.importCsvMapIntro),
+        Text(
+          widget.textDocument
+              ? l10n.importTextMapIntro
+              : l10n.importCsvMapIntro,
+        ),
         const SizedBox(height: AppSpacing.md),
-        AppDropdownField<String>(
-          key: const ValueKey('csv-separator'),
-          value: _separator,
-          decoration: InputDecoration(labelText: l10n.importCsvSeparatorLabel),
-          entries: [
-            AppDropdownEntry(value: ',', label: l10n.importCsvSeparatorComma),
-            AppDropdownEntry(
-              value: ';',
-              label: l10n.importCsvSeparatorSemicolon,
+        if (widget.textDocument && widget.danceLevels.length > 1)
+          KeyedSubtree(
+            key: ValueKey(_danceStartGeneration),
+            child: AppDropdownField<int>(
+              key: const ValueKey('text-dance-start'),
+              value: widget.danceLevel,
+              decoration: InputDecoration(
+                labelText: l10n.importTextDanceStartLabel,
+              ),
+              entries: [
+                for (final level in widget.danceLevels)
+                  AppDropdownEntry(
+                    value: level,
+                    label: level == 0
+                        ? l10n.importTextDanceStartBlankLine
+                        : l10n.importTextDanceStartHeading('#' * level),
+                  ),
+              ],
+              onChanged: (value) {
+                if (widget.onDanceLevel?.call(value) ?? false) return;
+                setState(() => _danceStartGeneration++);
+              },
             ),
-            AppDropdownEntry(value: '\t', label: l10n.importCsvSeparatorTab),
-          ],
-          onChanged: (value) {
-            if (value == _separator) return;
-            setState(() {
-              _separator = value;
-              _read(detectHeader: true);
-            });
-          },
-        ),
-        SwitchListTile(
-          key: const ValueKey('csv-has-header'),
-          contentPadding: EdgeInsets.zero,
-          title: Text(l10n.importCsvFirstRowHeader),
-          value: _hasHeader,
-          onChanged: error != null
-              ? null
-              : (value) => setState(() {
-                  _hasHeader = value;
-                  _remap();
-                }),
-        ),
+          ),
+        if (!widget.textDocument) ...[
+          AppDropdownField<String>(
+            key: const ValueKey('csv-separator'),
+            value: _separator,
+            decoration: InputDecoration(
+              labelText: l10n.importCsvSeparatorLabel,
+            ),
+            entries: [
+              AppDropdownEntry(value: ',', label: l10n.importCsvSeparatorComma),
+              AppDropdownEntry(
+                value: ';',
+                label: l10n.importCsvSeparatorSemicolon,
+              ),
+              AppDropdownEntry(value: '\t', label: l10n.importCsvSeparatorTab),
+            ],
+            onChanged: (value) {
+              if (value == _separator) return;
+              setState(() {
+                _separator = value;
+                _read(detectHeader: true);
+              });
+            },
+          ),
+          SwitchListTile(
+            key: const ValueKey('csv-has-header'),
+            contentPadding: EdgeInsets.zero,
+            title: Text(l10n.importCsvFirstRowHeader),
+            value: _hasHeader,
+            onChanged: error != null
+                ? null
+                : (value) => setState(() {
+                    _hasHeader = value;
+                    _remap();
+                  }),
+          ),
+        ],
         if (error != null)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
@@ -228,6 +327,7 @@ class _CsvMappingStepState extends State<CsvMappingStep> {
               value: _columns[i],
               choices: [
                 ...csvTargetChoices(widget.fields),
+                if (widget.textDocument) CsvColumnMapping.labelledNotes,
                 for (final type in CustomFieldType.values)
                   CsvColumnMapping.newCustomField(_columnName(l10n, i), type),
               ],

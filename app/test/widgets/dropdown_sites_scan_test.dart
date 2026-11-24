@@ -47,6 +47,7 @@ const _sites = <String, List<(String, String)>>{
     ("const ValueKey('import-source-select')", 'false'),
   ],
   'lib/src/screens/import_csv_mapping.dart': [
+    ("const ValueKey('text-dance-start')", 'false'),
     ("const ValueKey('csv-separator')", 'false'),
     // Some thirty column targets plus the caller's custom fields.
     (r"ValueKey('csv-column-$index')", 'true'),
