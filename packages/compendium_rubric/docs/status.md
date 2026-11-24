@@ -56,6 +56,16 @@
 > still-failing dances report different detail. Ragtime Annie itself still
 > fails, at its figure 5 swing.
 >
+> **Allemande out of a centre long wave (2026-11-24)**: the pair of one hands
+> four standing in a centre long wave turns a quarter or three quarters from
+> its hold into the centre of a short wave, and the band's side dancers join
+> as the ends (the agent's call, not yet ratified). Against `rubric` at
+> `5e7cfac3`, measured on `bb68f3b0` (later commits on the PR change only
+> comments and docs): 3,874 of 5,119 to 3,904 of 5,150 compiled in scope
+> (75.8%), the core set from 519 to 526. 30 refused dances now compile and 1
+> now mismatches; no previously compiling dance was lost. The denominator grows
+> by those 31 because a dance blocked by a deferral is counted outside it.
+>
 > **N3 and N4 place later progressions (2026-11-23)**: on the N2 retry, a
 > Double dance flags its second progression by the first N3 mention and a
 > Triple its third by the first N4 (user-ruled). Against `rubric` at

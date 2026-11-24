@@ -625,8 +625,6 @@ final class FormALongWave extends Operation {
   @override
   Iterable<WhoSet?> get dancerSets => [who];
 
-  /// The centre column of the set.
-
   /// The rows this figure has to place a dancer in, each with the dancer who
   /// steps to the centre and the side column their rank leaves free.
   ///

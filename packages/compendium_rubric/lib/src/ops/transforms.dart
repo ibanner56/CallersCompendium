@@ -635,8 +635,6 @@ Formation normalizeWaveOffsets(
 
 bool _isSideColumn(int col) => col == 0 || col == kColumnCount - 1;
 
-/// The set's centre line, where a centre long wave stands (§8.5.5).
-
 /// The side column an offset dancer at [col] belongs back in, or `null` when
 /// they are not offset at all.
 ///
