@@ -279,7 +279,8 @@ When the floor isn't ready for the dance you planned, swap it. **Swap this
 dance** in the adjust sheet swaps the dance you are calling, and the swap
 button on each upcoming dance's row swaps that one. Swap is not offered on a
 dance you have marked performed, on a note or break, or on a slot before the
-current one. Swapping an upcoming dance leaves you on the card you are reading.
+current one, nor on an alternate you are showing whose planned dance is already
+marked performed. Swapping an upcoming dance leaves you on the card you are reading.
 
 The swap sheet opens already searched. Its **Keep** choices come from the dance
 you are swapping:
@@ -327,7 +328,9 @@ does, and the one you swapped out stays in the program as an unmarked
   group, and the dance that was planned becomes its alternate. The dance you
   swapped out is then the first alternate after it, or, if you chose one of
   **Your alternates**, it takes that alternate's place. You stay on the same
-  card. Each slot keeps its own note, guest caller and times.
+  card. Each slot keeps its own note, guest caller and times. In a group that
+  starts with a note or a break rather than a dance, the alternate is swapped
+  where it is and stays an alternate.
 
 **Undo** puts the program back exactly as it was. If another device changed
 any slot the swap touches while you were swapping (deleted it, or changed its

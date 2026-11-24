@@ -623,10 +623,10 @@ class _CollectionPickerState extends State<CollectionPicker> {
         oldWidget.dialect != widget.dialect ||
         oldWidget.enrichment != widget.enrichment ||
         !setEquals(oldWidget.excludedDanceIds, widget.excludedDanceIds);
+    // One search for this update, however many of its inputs changed.
     if (searchInputsChanged && !_onlineEnabled) {
       _runSearch();
-    }
-    if (panelApplied ||
+    } else if (panelApplied ||
         onlineDisabled ||
         ((dataChanged || hostOverrideAdvanced) &&
             !_onlineEnabled &&

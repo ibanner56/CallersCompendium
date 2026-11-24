@@ -275,6 +275,17 @@ void main() {
       expect(find.byKey(const ValueKey('adjust-swap-current')), findsNothing);
     });
 
+    testWidgets('not on a shown alternate whose planned dance is marked '
+        'performed', (tester) async {
+      final slots = _slots();
+      slots[1] = slots[1].copyWith(performedAt: _played);
+      await _pump(tester, program: _program(slots));
+      await _tap(tester, find.byKey(const ValueKey('perform-alt-swap')));
+      expect(find.text('Backup Jig'), findsWidgets);
+      await _openAdjust(tester);
+      expect(find.byKey(const ValueKey('adjust-swap-current')), findsNothing);
+    });
+
     testWidgets('not on an upcoming dance moved above the current one', (
       tester,
     ) async {

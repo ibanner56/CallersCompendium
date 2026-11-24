@@ -270,10 +270,20 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
       ? null
       : widget.danceOverrides[id] ?? widget.data.dancesById[id];
 
-  /// Whether [slot] may be swapped (#2346): a dance not marked performed.
-  /// Callers also keep Swap off slots before the current one.
-  bool _swappable(ProgramSlot slot) =>
-      slot.danceId != null && slot.performedAt == null;
+  /// Whether [slot] may be swapped (#2346): a dance not marked performed
+  /// and, for an alternate, one whose group's primary is not marked
+  /// performed either: that dance has been called, so a swap that demotes it
+  /// would rewrite what happened. Callers also keep Swap off slots before
+  /// the current one.
+  bool _swappable(ProgramSlot slot) {
+    if (slot.danceId == null || slot.performedAt != null) return false;
+    if (!slot.isAlt) return true;
+    final slots = [..._flatten(_working.grouped)];
+    final index = slots.indexWhere((s) => s.id == slot.id);
+    if (index < 0) return false;
+    final front = slots[Program.alternateGroupRange(slots, index).start];
+    return front.id == slot.id || front.performedAt == null;
+  }
 
   /// Swaps the dance of slot [slotId] for [danceId], keeping the old dance as
   /// an alternate ([Program.swapSlotDanceKeepingAlternate]).

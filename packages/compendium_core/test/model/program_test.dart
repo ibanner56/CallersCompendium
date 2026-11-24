@@ -793,6 +793,25 @@ void main() {
       expect(counted(next), {'dx', 'dq'});
     });
 
+    test('on an alternate in a group led by a break, the slot is swapped in '
+        'place and the break never becomes an alternate', () {
+      final led = [
+        ProgramSlot(id: 'brk', position: 0, text: Program.breakSlotText),
+        ProgramSlot(id: 'x', position: 1, danceId: 'dx', isAlt: true),
+        ProgramSlot(id: 'y', position: 2, danceId: 'dy', isAlt: true),
+      ];
+      final next = Program.swapSlotDanceKeepingAlternate(
+        led,
+        1,
+        danceId: 'new',
+        alternateId: 'kept',
+      );
+      expect(next.map((s) => s.id), ['brk', 'x', 'kept', 'y']);
+      expect(next.map((s) => s.danceId), [null, 'new', 'dx', 'dy']);
+      expect(next.map((s) => s.isAlt), [false, true, true, true]);
+      expect(counted(next), isNot(contains('dx')));
+    });
+
     test('a slot with no dance, or the same dance, is left alone', () {
       final note = [ProgramSlot(id: 'n', position: 0, text: 'Waltz')];
       expect(

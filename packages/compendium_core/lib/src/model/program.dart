@@ -581,8 +581,10 @@ class Program {
   /// ([ProgramSlot.countsTowardCallingHistory]): when the slot is an
   /// alternate (Perform's **Show alternate**), it becomes the group's primary,
   /// moved to the front of the group, and the old primary becomes an
-  /// alternate. The swapped-out dance always ends on an unmarked alternate,
-  /// which does not count.
+  /// alternate. A group led by a note or a break is the exception: the slot
+  /// is swapped in place and stays an alternate, so the note or break never
+  /// becomes one. The swapped-out dance always ends on an unmarked
+  /// alternate, which does not count.
   ///
   /// Returns [slots] unchanged (as a copy) when the slot holds no dance or
   /// already holds [danceId].
@@ -608,10 +610,20 @@ class Program {
         break;
       }
     }
-    final swapped = slot.copyWith(danceId: danceId, isAlt: false);
+    // An alternate is promoted to lead its group, unless the group is led by
+    // a note or a break: that is not a dance to demote, and a break must not
+    // become an alternate. The slot is then swapped in place, as an
+    // alternate.
+    final ledByDance = slots[range.start].danceId != null;
+    final promote = slot.isAlt && (index == range.start || ledByDance);
+    final swapped = slot.copyWith(
+      danceId: danceId,
+      isAlt: promote ? false : slot.isAlt,
+    );
     // The slot leads its group already (a primary, or a leading orphaned
-    // alternate, which now plans its run): it stays where it is.
-    final front = slot.isAlt && index != range.start ? range.start : index;
+    // alternate, which now plans its run), or stays an alternate: it stays
+    // where it is.
+    final front = promote && index != range.start ? range.start : index;
     next.removeAt(index);
     if (front != index) {
       // The old primary, now an alternate of the dance being called.
