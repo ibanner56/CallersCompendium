@@ -86,10 +86,69 @@ void main() {
       expect(robin(chained, 'F'), robin(before, 'C'));
     });
 
-    test('the chain straight after it follows too, chaining them back', () {
-      final after = trace(heathersHop(), upTo: _secondChain);
-      expect(robin(after[_secondChain], 'A'), robin(after[_allemande], 'A'));
-      expect(robin(after[_secondChain], 'D'), robin(after[_allemande], 'D'));
+    test('a chain with a figure between it and the reach does not follow', () {
+      final record = heathersHop();
+      final figures = [...record['figures']! as List<Object?>];
+      figures.insert(_firstChain, {
+        'move': 'stand_still',
+        'params': <String, Object?>{},
+      });
+      final after = trace({
+        ...record,
+        'figures': figures,
+      }, upTo: _firstChain + 1);
+      final before = after[_firstChain];
+      final chained = after[_firstChain + 1];
+      // Danced where the set was handed back: R1-A trades with R2-F.
+      expect(robin(chained, 'A'), robin(before, 'F'));
+      expect(robin(chained, 'D'), robin(before, 'D'));
+    });
+
+    test('a flagged chain does not follow', () {
+      final record = heathersHop();
+      final figures = [
+        for (final figure in record['figures']! as List<Object?>)
+          Map<String, Object?>.of(figure! as Map<String, Object?>)
+            ..remove('progression'),
+      ];
+      figures[_firstChain]['progression'] = true;
+      final after = trace({...record, 'figures': figures}, upTo: _firstChain);
+      expect(
+        robin(after[_firstChain], 'D'),
+        isNot(robin(after[_allemande], 'A')),
+      );
+    });
+
+    test('a diagonal chain does not follow', () {
+      // Whatever the diagonal does here, the fold must do exactly what the
+      // chain does on the set as the reach handed it back.
+      final record = heathersHop(chainDir: 'leftDiagonal');
+      final dance = (parseDance(record) as Ok<Dance, DanceParseError>).value;
+      final fold = FigureFold();
+      var state = dance.instantiate();
+      for (var i = 0; i < _firstChain; i++) {
+        state =
+            (fold.step(dance.figures[i], state, index: i)
+                    as Ok<Formation, OpError>)
+                .value;
+      }
+      final folded = fold.step(
+        dance.figures[_firstChain],
+        state,
+        index: _firstChain,
+      );
+      final direct = dance.figures[_firstChain].operation.apply(
+        state,
+        progressions: fold.progressions,
+      );
+      expect('$folded', '$direct');
+      expect(
+        dance.figures[_firstChain].operation
+            .apply(toggleBandPhase(state), progressions: fold.progressions)
+            .toString(),
+        isNot('$direct'),
+        reason: 'the test can tell the two phases apart',
+      );
     });
 
     test('the set is handed back in the phase it was in', () {

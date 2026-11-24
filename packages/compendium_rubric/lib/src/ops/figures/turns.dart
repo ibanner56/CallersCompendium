@@ -61,7 +61,9 @@ OpError? _requireAlongTheSet(
 /// The positional twin of `do_si_do`, and its **facing** opposite: a do-si-do
 /// slides, so dancers keep their direction, while an allemande turns the
 /// connected pair, so facing follows the rotation. That is the rotation-facing
-/// principle — unchanged on a full turn, opposite on a half.
+/// principle — unchanged on a full turn, opposite on a half, except that a
+/// half turn along a side line leaves each dancer facing the way the turn
+/// carried them, across the set.
 ///
 /// The two coincide again on a **quarter**, where both land in a wave and
 /// §8.5.1's resting facing owns the result: an allemande right 1¼ from a duple
@@ -181,7 +183,10 @@ final class Allemande extends Operation {
         formation,
         whoPairsInSet(formation, who),
         facing: (before, after, other) =>
-            _alongTheSetFinish(after, other) ?? before.facing.reversed,
+            (before.facing.isConcrete
+                ? _alongTheSetFinish(after, other)
+                : null) ??
+            before.facing.reversed,
       ),
     );
   }
@@ -199,7 +204,8 @@ final class Allemande extends Operation {
   /// read from the turn's direction rather than from role, and applies to
   /// the right hand by the same geometry.)*
   ///
-  /// `null` for a pair not on one side line, which keeps reversing.
+  /// `null` for a pair not on one side line, which keeps reversing, as does
+  /// a Flexible facing *(agent's call)*.
   Facing? _alongTheSetFinish(Position after, Position other) {
     if (after.col != other.col || after.row == other.row) return null;
     if (after.col != 0 && after.col != kColumnCount - 1) return null;

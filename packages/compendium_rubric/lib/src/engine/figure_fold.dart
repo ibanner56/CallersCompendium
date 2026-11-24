@@ -28,6 +28,11 @@ import 'result.dart';
 /// the formation. The cost is that a flag placed early, sometimes several
 /// figures early, can be carried to a later figure that finishes it rather than
 /// failing (`docs/fundamentals.md` §10.2.1 has the measurement).
+///
+/// **A chain after an N2 figure** (`docs/fundamentals.md` §10.3.0,
+/// user-ruled 2026-11-24): an unflagged `across` chain straight after a figure
+/// reaching an odd distance is danced in the phase that figure reached, and
+/// the set is handed back after it.
 class FigureFold {
   FigureFold();
 
@@ -40,6 +45,10 @@ class FigureFold {
   /// Whether the figure just run was danced one grouping over, by reaching
   /// or by following a reach, so a chain across after it is danced there too.
   bool _followReach = false;
+
+  /// Whether the set was in its shifted phase when the figure just run was
+  /// handed it, which is the phase a following chain must find it in again.
+  bool _reachHandedShifted = false;
 
   /// The figure indexes of progressions still held, oldest first.
   final List<int> _held = [];
@@ -74,7 +83,12 @@ class FigureFold {
         !steppedOut &&
         !figure.progression &&
         operation is Chain &&
-        operation.dir == ChainDirection.across;
+        operation.dir == ChainDirection.across &&
+        // A held progression that finished on the reaching figure moved the
+        // set to the other phase; one phase over from there is not where the
+        // reach was danced, so the chain stays put. *(Agent's call.)*
+        isShiftedBandPhase(state) == _reachHandedShifted;
+    if (steppedOut) _reachHandedShifted = isShiftedBandPhase(state);
     _followReach = steppedOut || follows;
     final outcome = follows
         ? figure

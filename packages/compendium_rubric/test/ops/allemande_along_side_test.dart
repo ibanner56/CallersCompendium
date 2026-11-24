@@ -81,13 +81,33 @@ void main() {
       ]);
     });
 
-    test('a whole turn leaves everyone as they were', () {
+    test('a Flexible facing stays Flexible', () {
+      final start = facingIn(['L2-B . . . R2-B', 'R1-A . . . L1-A']);
+      final flexible = start.withUpdates({
+        for (final entry in start.dancers.entries)
+          entry.key: entry.value.copyWith(facing: Facing.flexible),
+      });
+      final turned = applyOk(
+        const Allemande(hand: Hand.left, turn: 0.5),
+        flexible,
+      );
+      expect(facings(turned), everyElement(Facing.flexible));
+    });
+
+    test('a pair across the set still reverses', () {
       final start = facingIn(['L2-B . . . R2-B', 'R1-A . . . L1-A']);
       final turned = applyOk(
-        const Allemande(hand: Hand.left, turn: 1.0),
+        const Allemande(who: WhoSet.partners, hand: Hand.left, turn: 0.5),
         start,
       );
-      expect(facings(turned), facings(start));
+      expect(turned.toRolesNotation(), ['R2-B . . . L2-B', 'L1-A . . . R1-A']);
+      // Each reverses the way it faced, so having crossed it faces in again.
+      expect(facings(turned), [
+        Facing.acrossEast,
+        Facing.acrossWest,
+        Facing.acrossEast,
+        Facing.acrossWest,
+      ]);
     });
   });
 }
