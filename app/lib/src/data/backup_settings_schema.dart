@@ -1,5 +1,11 @@
 import 'package:compendium_core/compendium_core.dart'
-    show MatrixColumnConfig, shareableTextNormalisationScopeKey;
+    show
+        MatrixColumnConfig,
+        SavedSearch,
+        isValidStoredPerformSwapDefaults,
+        isValidStoredSuggestionSettings,
+        savedSearchKeyPrefix,
+        shareableTextNormalisationScopeKey;
 
 import '../update/update_config.dart'
     show kUpdateAutoCheckKey, kUpdateBetaChannelKey, kUpdateDismissedVersionKey;
@@ -9,9 +15,24 @@ import 'confirm_before_delete_scope.dart' show kConfirmBeforeDeleteKey;
 import 'capitalize_figures_scope.dart' show kCapitalizeFiguresKey;
 import 'decimal_turns_scope.dart' show kDecimalTurnsKey;
 import 'show_custom_figures_scope.dart' show kShowCustomFiguresKey;
+import 'calendar_import_settings.dart'
+    show
+        calendarImportWindowFromStored,
+        kCalendarImportTitleFilterKey,
+        kCalendarImportWindowMonthsKey;
+import 'calendar_startup.dart'
+    show
+        CalendarStartupMode,
+        kCalendarImportOnStartupKey,
+        kCalendarStartupModeKey;
 import 'calling_card_settings_scope.dart'
     show CallingCardSettings, kCallingCardSettingsKey;
 import 'show_glossary_scope.dart' show kShowGlossaryKey;
+import 'suggestions_scope.dart'
+    show
+        kSuggestionSettingsKey,
+        kSuggestionsEnabledKey,
+        kSuggestionsInPerformSwapKey;
 import 'display_defaults.dart'
     show
         kCanonicalDiscouragedTermsKey,
@@ -47,6 +68,14 @@ import 'dialect_library_controller.dart'
         kCustomDialectsEcdKey,
         kCustomDialectsSquareKey;
 import 'formation_colors_controller.dart' show kFormationColorOverridesKey;
+import 'program_templates.dart'
+    show
+        kProgramTemplateDefaultKey,
+        kProgramTemplateKeyPrefix,
+        kProgramTemplateOrderKey,
+        tryDecodeProgramTemplate,
+        tryDecodeProgramTemplateDefault,
+        tryDecodeProgramTemplateOrder;
 import 'locale_scope.dart' show kLocaleKey;
 import 'mark_all_sets_status_scope.dart' show kMarkAllSetsStatusKey;
 import 'set_list_share_scope.dart'
@@ -126,9 +155,13 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kCapitalizeFiguresKey,
     kShowGlossaryKey,
     kShowCustomFiguresKey,
+    kShowRepertoireDashboardKey,
+    kSuggestionsEnabledKey,
+    kSuggestionsInPerformSwapKey,
     kConfirmBeforeDeleteKey,
     kSetListColorCodingKey,
     kShowPerformedTogglesKey,
+    kShowProgramPayKey,
     kMarkAllSetsStatusKey,
     kShareSetListIncludeTitleKey,
     kShareSetListIncludeCallerBandKey,
@@ -190,9 +223,14 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   ])
     key: _isString,
 
-  // The starting-program template is a JSON string with an invariant-checked
-  // semantic codec, not merely an arbitrary string.
+  // The legacy starting-program template is a JSON string with an
+  // invariant-checked semantic codec, not merely an arbitrary string.
   kDefaultStartingProgramKey: _isValidStartingProgramTemplate,
+  // Program templates (#2337): the order is a list of distinct template ids,
+  // the default an id or `blank`. Each template is checked by its prefix in
+  // [_backupSettingPrefixValidators].
+  kProgramTemplateOrderKey: _isValidProgramTemplateOrder,
+  kProgramTemplateDefaultKey: _isValidProgramTemplateDefault,
   kDefaultImportTagNamesKey: _isValidDefaultImportTagNames,
 
   // Numbers. The in-Perform manual text scale is used for layout sizing, so a
@@ -210,6 +248,13 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // Seconds the Undo prompt stays, or 0 for "until I close it": only a value
   // Settings offers, so a restore cannot set a duration the picker cannot show.
   kUndoPromptSecondsKey: _isUndoPromptSeconds,
+  // Only a window Settings offers (#2352).
+  kCalendarImportWindowMonthsKey: (v) =>
+      v is int && calendarImportWindowFromStored(v) == v,
+  kCalendarImportTitleFilterKey: _isString,
+  kCalendarImportOnStartupKey: _isBool,
+  kCalendarStartupModeKey: (v) =>
+      v is String && CalendarStartupMode.fromStored(v).name == v,
 
   // Structured container blobs. Their controllers decode the CONTENTS
   // defensively (skipping bad entries), so here we only enforce the outer
@@ -250,6 +295,14 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // restore is a trust boundary, so a value it would have to repair is
   // dropped here rather than persisted.
   kCallingCardSettingsKey: CallingCardSettings.isWellFormed,
+  // What suggestions look for (#2343): a JSON object with a version. A
+  // version-1 value must use only known choices; a newer one is kept as it
+  // stands, since this build keeps it without reading it.
+  kSuggestionSettingsKey: isValidStoredSuggestionSettings,
+  // Which Keep items start on in Perform's swap sheet (#2346): a JSON object
+  // with a version. A version-1 value must hold a bool for each item; a newer
+  // one is kept as it stands, since this build keeps it without reading it.
+  kPerformSwapDefaultsKey: isValidStoredPerformSwapDefaults,
 };
 
 bool _isBool(Object? v) => v is bool;
@@ -259,6 +312,33 @@ bool _isValidDefaultImportTagNames(Object? v) =>
 
 bool _isValidStartingProgramTemplate(Object? v) =>
     tryDecodeStartingProgramTemplate(v) != null;
+bool _isValidProgramTemplateOrder(Object? v) =>
+    tryDecodeProgramTemplateOrder(v) != null;
+bool _isValidProgramTemplateDefault(Object? v) =>
+    tryDecodeProgramTemplateDefault(v) != null;
+
+/// Validators for settings keys built at runtime from a prefix and an id, as
+/// [_backupSettingValidators] is for exact keys. A key matches the longest
+/// prefix it starts with; the validator gets the whole key, so it can check
+/// the id too.
+final Map<String, bool Function(String key, Object? value)>
+_backupSettingPrefixValidators = {
+  // One program template per key (#2337): the strict template decoder, which
+  // also rejects an id that cannot name a template.
+  kProgramTemplateKeyPrefix: (key, value) =>
+      tryDecodeProgramTemplate(
+        key.substring(kProgramTemplateKeyPrefix.length),
+        value,
+      ) !=
+      null,
+  // One saved search per key (#2325): read with the codec that wrote it, as it
+  // will be stored, which never throws and rejects an empty id, so a crafted
+  // backup cannot restore a value the app would then have to defend against.
+  savedSearchKeyPrefix: (key, value) => SavedSearch.decodeAsStored(
+    key.substring(savedSearchKeyPrefix.length),
+    value,
+  ).isOk,
+};
 bool _isNonNegativeInt(Object? v) => v is int && v >= 0;
 bool _isUndoPromptSeconds(Object? v) =>
     v is int && undoPromptSecondsFromStored(v) == v;
@@ -285,6 +365,14 @@ bool _isValidMatrixColumnConfig(Object? v) =>
 /// Never throws: the whole point is that no restored value can abort the apply.
 bool? validateBackupSettingValue(String key, Object? value) {
   final validator = _backupSettingValidators[key];
-  if (validator == null) return null;
-  return validator(value);
+  if (validator != null) return validator(value);
+  String? prefix;
+  for (final candidate in _backupSettingPrefixValidators.keys) {
+    if (key.startsWith(candidate) &&
+        (prefix == null || candidate.length > prefix.length)) {
+      prefix = candidate;
+    }
+  }
+  if (prefix == null) return null;
+  return _backupSettingPrefixValidators[prefix]!(key, value);
 }

@@ -68,7 +68,9 @@ class _Host extends StatefulWidget {
     this.showPhraseStructure = true,
     this.aggressiveBeatsUpdate = false,
     this.showWordingOverride = false,
+    this.requireStatedParams = false,
     this.dialect,
+    this.barTiming,
   }) : taxonomy = taxonomy ?? contraTaxonomy;
 
   final List<FigureDraft> drafts;
@@ -95,7 +97,9 @@ class _Host extends StatefulWidget {
   /// behavior unchanged.
   final bool aggressiveBeatsUpdate;
   final bool showWordingOverride;
+  final bool requireStatedParams;
   final Dialect? dialect;
+  final BarTiming? barTiming;
 
   @override
   State<_Host> createState() => _HostState();
@@ -141,10 +145,12 @@ class _HostState extends State<_Host> {
               freeTextEntry: widget.freeTextEntry,
               dialect: widget.dialect,
               showWordingOverride: widget.showWordingOverride,
+              requireStatedParams: widget.requireStatedParams,
               allowAdding: widget.allowAdding,
               allowDuplicating: widget.allowDuplicating,
               allowModifierSelection: widget.allowModifierSelection,
               showPhraseStructure: widget.showPhraseStructure,
+              barTimingOf: () => widget.barTiming,
               onChanged: () => setState(() {}),
               onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
               onAddMeanwhile: widget.wireAddMeanwhile
@@ -274,7 +280,9 @@ Future<void> _pump(
   bool showPhraseStructure = true,
   bool aggressiveBeatsUpdate = false,
   bool showWordingOverride = false,
+  bool requireStatedParams = false,
   Dialect? dialect,
+  BarTiming? barTiming,
   Taxonomy? taxonomy,
   Size surfaceSize = const Size(1200, 2400),
 }) async {
@@ -306,7 +314,9 @@ Future<void> _pump(
       showPhraseStructure: showPhraseStructure,
       aggressiveBeatsUpdate: aggressiveBeatsUpdate,
       showWordingOverride: showWordingOverride,
+      requireStatedParams: requireStatedParams,
       dialect: dialect,
+      barTiming: barTiming,
     ),
   );
   await tester.pumpAndSettle();
@@ -408,6 +418,151 @@ void main() {
     final figure = drafts.single.toFigure()!;
     expect(figure.move, 'long_lines');
     expect(figure.params, isNot(contains('formation')));
+  });
+
+  group('pass by and pass through (taxonomy v40)', () {
+    testWidgets('picking either asks for who and where until they are chosen', (
+      tester,
+    ) async {
+      for (final (typed, id) in [
+        ('pass by', 'pass_by'),
+        ('pass through', 'pass_through'),
+      ]) {
+        final drafts = <FigureDraft>[FigureDraft()];
+        await _pump(tester, drafts, requireStatedParams: true);
+        await _selectMove(tester, 0, typed, id);
+
+        final draft = drafts.single;
+        expect(draft.move, id);
+        expect(draft.enteredNew, isTrue);
+        expect(draft.params['who'], ParamVocab.unspecified);
+        expect(draft.params['where'], ParamVocab.unspecified);
+        expect(
+          find.byKey(const ValueKey('figure-0-needs-values')),
+          findsOneWidget,
+          reason: id,
+        );
+
+        await _selectDropdownOption(tester, 'figure-0-who', 'neighbors');
+        expect(
+          find.byKey(const ValueKey('figure-0-needs-values')),
+          findsOneWidget,
+          reason: '$id: where is still empty',
+        );
+        await _selectDropdownOption(tester, 'figure-0-where', 'across');
+        expect(
+          find.byKey(const ValueKey('figure-0-needs-values')),
+          findsNothing,
+          reason: id,
+        );
+        // Neither id stores the pass type: its id says it.
+        expect(draft.toFigure()!.params, isNot(contains('passType')));
+      }
+    });
+
+    testWidgets('a pass by loaded with the dance shows its neighbors and asks '
+        'for nothing', (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(Figure(move: 'pass_by')),
+      ];
+      await _pump(tester, drafts, requireStatedParams: true);
+      await _openFigure(tester, 0);
+
+      expect(find.byKey(const ValueKey('figure-0-needs-values')), findsNothing);
+      // The omitted `who` of a stored pass by means neighbors, not its
+      // target's unstated default.
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('figure-0-who')),
+          matching: find.text('neighbors'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the pass type under More options switches the figure and '
+        'keeps its values', (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(move: 'pass_by', params: const {'shoulder': 'left'}),
+        ),
+      ];
+      await _pump(tester, drafts, requireStatedParams: true);
+      await _openFigure(tester, 0);
+      expect(find.byKey(const ValueKey('figure-0-passType')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+      await tester.pumpAndSettle();
+      await _selectDropdownOption(tester, 'figure-0-passType', 'through');
+
+      final draft = drafts.single;
+      expect(draft.move, 'pass_through');
+      final effective = contraTaxonomy.effectiveParams(draft.toFigure()!);
+      expect(effective['who'], 'neighbors');
+      expect(effective['where'], ParamVocab.unspecified);
+      expect(effective['shoulder'], 'left');
+      // Not a figure entered in this edit, so nothing is asked for.
+      expect(find.byKey(const ValueKey('figure-0-needs-values')), findsNothing);
+    });
+
+    testWidgets('a closed row says it still needs values', (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFreeTextFigure(
+          Figure(move: 'pass_through'),
+          contraTaxonomy,
+        )..enteredNew = true,
+      ];
+      await _pump(tester, drafts, requireStatedParams: true);
+      expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('figure-0-summary-needs-values')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a group side entered without values says so on its side '
+        'and on the closed row', (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(
+          meanwhileSides: [
+            FigureDraft(
+              move: 'pass_through',
+              params: contraTaxonomy.entryParams('pass_through'),
+            )..enteredNew = true,
+            FigureDraft(move: 'swing', params: {'beats': 8, 'who': 'partners'}),
+          ],
+        )..params['beats'] = 8,
+      ];
+      await _pump(tester, drafts, requireStatedParams: true);
+      expect(
+        find.byKey(const ValueKey('figure-0-summary-needs-values')),
+        findsOneWidget,
+      );
+      await _openFigure(tester, 0);
+      expect(
+        find.byKey(const ValueKey('figure-0-side-0-needs-values')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('figure-0-side-1-needs-values')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('an editor that does not require values says nothing', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(tester, drafts);
+      await _selectMove(tester, 0, 'pass by', 'pass_by');
+      expect(find.byKey(const ValueKey('figure-0-needs-values')), findsNothing);
+      // And it starts as a pass by always did, not with blanks to fill in.
+      expect(drafts.single.params['who'], 'neighbors');
+      expect(drafts.single.toFigure()!.params, isNot(contains('where')));
+      expect(
+        find.byKey(const ValueKey('figure-0-summary-needs-values')),
+        findsNothing,
+      );
+    });
   });
 
   testWidgets('a forward and back default applies when the pick routes', (
@@ -1479,6 +1634,29 @@ void main() {
 
       expect(drafts.single.params['direction'], 'left');
       expect(drafts.single.params.containsKey('not_a_param'), isFalse);
+    });
+
+    testWidgets('a saved value kept only while stated is not seeded', (
+      tester,
+    ) async {
+      // Saved by a build whose Settings still recorded them: an unstated
+      // Rory O'More `twoPlaces` (v40) and a figure 8 that is not double. An
+      // older peer rejects either key, so neither reaches the figure.
+      final drafts = <FigureDraft>[FigureDraft(), FigureDraft()];
+      await _pump(
+        tester,
+        drafts,
+        moveParamDefaults: {
+          'rory_o_more': {'twoPlaces': 'unspecified', 'slide': 'left'},
+          'figure_8': {'double': false},
+        },
+      );
+      await _selectMove(tester, 0, 'rory', 'rory_o_more');
+      await _selectMove(tester, 1, 'figure 8', 'figure_8');
+
+      expect(drafts[0].params['slide'], 'left');
+      expect(drafts[0].params.containsKey('twoPlaces'), isFalse);
+      expect(drafts[1].params.containsKey('double'), isFalse);
     });
 
     testWidgets('null moveParamDefaults leaves behavior unchanged', (
@@ -4150,6 +4328,94 @@ void main() {
       expect(find.byKey(const ValueKey('figure-0-move-input')), findsOneWidget);
       expect(find.byKey(const ValueKey('figure-0-unknown-move')), findsNothing);
       expect(find.byType(FigureParamEditor), findsWidgets);
+    });
+  });
+
+  group('a typed bar range where phrases differ in beats per bar (#2303)', () {
+    const fieldKey = ValueKey('figure-free-text-field');
+    const submitKey = ValueKey('figure-free-text-submit');
+    // A1 and A2 are 4 bars of 3 beats (0-24), B is 8 bars of 2 (24-40).
+    final structure = PhraseStructure.parse('A:2*4*3 + B:1*8*2');
+    final timing = BarTiming.byPhrase(structure);
+
+    FigureDraft figureOf(int beats) =>
+        FigureDraft.fromFigure(customFigure('stand', beats: beats));
+
+    Future<List<Figure>> typeLine(
+      WidgetTester tester,
+      List<FigureDraft> drafts,
+      String line,
+    ) async {
+      final typed = <Figure>[];
+      await _pump(
+        tester,
+        drafts,
+        freeTextEntry: true,
+        taxonomy: shippedTaxonomies.forForm(DanceForm.ecd),
+        phrase: structure,
+        barTiming: timing,
+        freeTextAdder: (figures) {
+          typed.addAll(figures);
+          return figures.length;
+        },
+      );
+      await tester.tap(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(fieldKey), line);
+      await tester.tap(find.byKey(submitKey));
+      await tester.pumpAndSettle();
+      return typed;
+    }
+
+    testWidgets('counts from where the line is placed, after the rows '
+        'before it', (tester) async {
+      // 18 beats put the line at the end of A2: bars at 18 (3), 21 (3), 24
+      // (2), 26 (2).
+      final typed = await typeLine(tester, [figureOf(18)], '1-4 circle left');
+      expect(typed.single.params['beats'], 10);
+    });
+
+    testWidgets('a Move-box replace counts from the rows before the row it '
+        'replaces, not its own', (tester) async {
+      final typed = <Figure>[];
+      // 18 beats, then the row replaced (6 beats), then another.
+      final drafts = [figureOf(18), figureOf(6), figureOf(4)];
+      await _pump(
+        tester,
+        drafts,
+        freeTextEntry: true,
+        taxonomy: shippedTaxonomies.forForm(DanceForm.ecd),
+        phrase: structure,
+        barTiming: timing,
+        freeTextReplacer: (_, figures) {
+          typed.addAll(figures);
+          return figures.length;
+        },
+      );
+      await _openFigure(tester, 1);
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-1-move-input')),
+        '1-2 circle left',
+      );
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      // From 18: bars of 3 and 3, not from 24 (2 and 2).
+      expect(typed.single.params['beats'], 6);
+    });
+
+    testWidgets('a row Save would not write does not move the start', (
+      tester,
+    ) async {
+      // A row given beats but no move builds no figure, so the saved dance
+      // lacks it: the line still starts at 18, not 26.
+      final unfinished = FigureDraft()..params['beats'] = 8;
+      expect(unfinished.savesAsFigure, isFalse);
+      final typed = await typeLine(tester, [
+        figureOf(18),
+        unfinished,
+      ], '1-4 circle left');
+      expect(typed.single.params['beats'], 10);
     });
   });
 

@@ -22,6 +22,11 @@ import 'warnings_card.dart';
 /// labels are then derived from the wrong totals, and the detail view is where
 /// a saved dance is read (AUTH-12, October behaviour audit). Perform and print
 /// do not show it: a warning on stage is not something the caller can act on.
+/// With [checkPhraseFill] (a square dance, ADR-007 §5.3) the card also names a
+/// figure that runs past the end of its phrase, as the editor does.
+/// With [freeForm] (free-form patter, ADR-007 §8.1) there are no sections:
+/// the figures follow one another with no phrase headings and no phrase
+/// warning.
 ///
 /// The table is display-only; the dance detail view shows it.
 class FigureTable extends StatelessWidget {
@@ -31,12 +36,22 @@ class FigureTable extends StatelessWidget {
     required this.phraseStructure,
     required this.renderer,
     required this.dialect,
+    this.checkPhraseFill = false,
+    this.freeForm = false,
   });
 
   final List<Figure> figures;
   final PhraseStructure phraseStructure;
   final FigureRenderer renderer;
   final Dialect dialect;
+
+  /// Whether to warn about a figure that runs past a phrase line; the dance
+  /// page sets it for a square dance, matching the editor.
+  final bool checkPhraseFill;
+
+  /// Whether the dance is free form ([Dance.isFreeForm]): no phrase headings
+  /// and no phrase warnings.
+  final bool freeForm;
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +69,8 @@ class FigureTable extends StatelessWidget {
       figures,
       phraseStructure,
       issues: warnings,
+      checkPhraseFill: checkPhraseFill,
+      freeForm: freeForm,
     );
     // ROADMAP G.7: when "always verbose" is on, the visible row text uses the
     // spoken-style verbose rendering instead of the terse notation.
@@ -66,7 +83,7 @@ class FigureTable extends StatelessWidget {
       if (warnings.isNotEmpty) ...[
         WarningsCard(
           warnings: warnings,
-          beatsPerBar: BarTimingScope.maybeOf(context)?.beatsPerBar,
+          timing: BarTimingScope.maybeOf(context)?.timing,
         ),
         const SizedBox(height: 8),
       ],
@@ -95,7 +112,8 @@ class FigureTable extends StatelessWidget {
     var isFirstRowInSection = true;
     for (final sf in sectioned) {
       if (sf.label != lastLabel) {
-        rows.add(_SectionHeader(label: sf.label));
+        // A free-form dance's figures have no label, so no heading.
+        if (sf.label.isNotEmpty) rows.add(_SectionHeader(label: sf.label));
         lastLabel = sf.label;
         isFirstRowInSection = true;
       }
@@ -103,23 +121,26 @@ class FigureTable extends StatelessWidget {
         rows.add(const Divider(height: 1));
       }
       rows.add(
-        _FigureRow(
-          text: renderSummary(sf.figure, decimals: decimals),
-          verboseText: renderSummary(sf.figure, verbose: true),
-          showVerbose: verbose,
-          beats: sf.figure.beats,
-          progression: sf.figure.progression,
-          note: sf.figure.note == null
-              ? null
-              : canonicalDiscouragedTerms
-              ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
-                  sf.figure.note!,
-                  dialect,
-                )
-              : renderer.renderFreeText(sf.figure.note!, dialect),
-          isImportGap:
-              sf.figure.isCustom &&
-              sf.figure.customOrigin == CustomOrigin.importGap,
+        FigureStartScope(
+          startBeat: sf.startBeat,
+          child: _FigureRow(
+            text: renderSummary(sf.figure, decimals: decimals),
+            verboseText: renderSummary(sf.figure, verbose: true),
+            showVerbose: verbose,
+            beats: sf.figure.beats,
+            progression: sf.figure.progression,
+            note: sf.figure.note == null
+                ? null
+                : canonicalDiscouragedTerms
+                ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                    sf.figure.note!,
+                    dialect,
+                  )
+                : renderer.renderFreeText(sf.figure.note!, dialect),
+            isImportGap:
+                sf.figure.isCustom &&
+                sf.figure.customOrigin == CustomOrigin.importGap,
+          ),
         ),
       );
       isFirstRowInSection = false;

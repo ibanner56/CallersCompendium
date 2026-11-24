@@ -69,11 +69,13 @@ Future<pw.ThemeData> loadProgramPdfTheme() async {
 pw.Font? _cachedMatrixMarkerFont;
 
 /// Per-dance display labels for a figure-appendix card (issue #1434) — the
-/// same four strings `program_export_menu.dart` already resolves for the
-/// text-path card (`_plainTextWithFigures`): resolved author *names* (never
-/// a [Choreographer] record), and the app's human-readable facet labels.
+/// same strings `program_export_menu.dart` already resolves for the
+/// text-path card (`_plainTextWithFigures`): resolved author and interpreter
+/// *names* (never a [Choreographer] record), and the app's human-readable
+/// facet labels.
 typedef DanceCardLabels = ({
   List<String> authorNames,
+  List<String> interpreterNames,
   String formationLabel,
   String? levelLabel,
   String statusLabel,
@@ -127,6 +129,9 @@ Future<pw.Font> loadProgramMatrixMarkerFont() async {
 ///   text renderer); [ProgramExportLabels.unknownDance] (`labels.unknownDance`)
 ///   is used when it returns null.
 /// - [formatDate] formats the event date; defaults to ISO `yyyy-MM-dd`.
+/// - [formatTime] formats the start, end and lesson times (minutes after
+///   midnight); defaults to 24-hour `HH:mm`. Arrive by is never printed: the
+///   PDF is made for other people (#2350).
 /// - [venuesById] maps venue ids to the loaded [Venue] records. When the
 ///   program links a resolvable venue ([Program.venueId]), its
 ///   [Venue.displayName] wins in the header date·venue line and a richer venue
@@ -157,6 +162,8 @@ Future<pw.Font> loadProgramMatrixMarkerFont() async {
 ///   format.
 /// - [formLabelFor] names a slot's dance form in its line, as
 ///   `programToPlainText`'s parameter of the same name does.
+/// - [tuneDetailsFor] adds a slot's meter and key to its line, as
+///   `programToPlainText`'s parameter of the same name does.
 /// - [cardLabelsFor] resolves an appendix dance to the labels its card needs
 ///   (issue #1434). `null` (the default) preserves the pre-#1434 appendix
 ///   content exactly (title + figures only); when supplied, each appendix
@@ -170,6 +177,7 @@ Future<Uint8List> buildProgramPdf(
   required String? Function(String danceId) titleFor,
   Map<String, Venue> venuesById = const {},
   String Function(DateTime date)? formatDate,
+  String Function(int minuteOfDay)? formatTime,
   ProgramExportLabels labels = const ProgramExportLabels(),
   pw.ThemeData? theme,
   List<({Dance dance, bool isAlternate})>? appendDances,
@@ -179,6 +187,7 @@ Future<Uint8List> buildProgramPdf(
   bool canonicalizeDiscouragedTerms = false,
   List<String> Function(String danceId)? authorNamesFor,
   String? Function(String danceId)? formLabelFor,
+  String? Function(String danceId)? tuneDetailsFor,
   DanceCardLabels Function(Dance dance)? cardLabelsFor,
   Set<DanceShareField> fields = DanceShareField.allExceptTunes,
   PdfPageFormat pageFormat = PdfPageFormat.a4,
@@ -204,6 +213,9 @@ Future<Uint8List> buildProgramPdf(
     program,
     venueNameFor: (_) => venueText.headerLabel,
     formatDate: formatDate,
+    // Start, end and lesson only: the header never prints Arrive by, the
+    // caller's own logistics (maintainer ruling, #2350).
+    formatTime: formatTime,
     labels: labels,
     renderer: fig,
     dialect: resolvedDialect,
@@ -225,6 +237,7 @@ Future<Uint8List> buildProgramPdf(
             entry.dance,
             dialect: resolvedDialects.forDance(entry.dance),
             authorNames: card.authorNames,
+            interpreterNames: card.interpreterNames,
             formationLabel: card.formationLabel,
             levelLabel: card.levelLabel,
             statusLabel: card.statusLabel,
@@ -265,6 +278,7 @@ Future<Uint8List> buildProgramPdf(
           canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           authorNamesFor: authorNamesFor,
           formLabelFor: formLabelFor,
+          tuneDetailsFor: tuneDetailsFor,
         ),
         if (_has(program.notes)) ...[
           pw.SizedBox(height: 12),
@@ -343,7 +357,9 @@ List<pw.Widget> programAppendixWidgets(
                 content.hook != null ||
                 content.sourceLines.isNotEmpty));
     if (!hasBody) continue;
-    final titlePrefix = entry.isAlternate ? '${labels.alternate}: ' : '';
+    final titlePrefix = entry.isAlternate
+        ? labels.labelled(labels.alternate)
+        : '';
     widgets.add(pw.SizedBox(height: 10));
     widgets.add(
       pw.Text(
@@ -352,21 +368,19 @@ List<pw.Widget> programAppendixWidgets(
       ),
     );
     if (content != null) {
-      if (content.authorNames.isNotEmpty) {
-        widgets.add(
-          pw.Text(
-            content.authorNames.join(', '),
-            style: const pw.TextStyle(fontSize: 12),
-          ),
-        );
+      for (final line in content.creditLines) {
+        widgets.add(pw.Text(line, style: const pw.TextStyle(fontSize: 12)));
       }
       for (final line in content.metaLines) {
+        widgets.add(pw.Text(line, style: const pw.TextStyle(fontSize: 11)));
+      }
+      for (final line in content.musicLines) {
         widgets.add(pw.Text(line, style: const pw.TextStyle(fontSize: 11)));
       }
       if (content.hook case final hook?) {
         widgets.add(
           pw.Text(
-            '${danceLabels.hook}: $hook',
+            '${danceLabels.labelled(danceLabels.hook)}$hook',
             style: const pw.TextStyle(fontSize: 11),
           ),
         );
@@ -448,6 +462,7 @@ List<pw.Widget> _slotWidgets(
   bool canonicalizeDiscouragedTerms = false,
   List<String> Function(String danceId)? authorNamesFor,
   String? Function(String danceId)? formLabelFor,
+  String? Function(String danceId)? tuneDetailsFor,
 }) {
   final widgets = <pw.Widget>[];
   var n = 0;
@@ -461,6 +476,7 @@ List<pw.Widget> _slotWidgets(
       canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
       authorNamesFor: authorNamesFor,
       formLabelFor: formLabelFor,
+      tuneDetailsFor: tuneDetailsFor,
     );
     // Slot lines are direct `pw.Text(overflow: span)` children, spaced with
     // `SizedBox`es: `pw.Padding` is not a `SpanningWidget`, so a note longer
@@ -484,11 +500,12 @@ List<pw.Widget> _slotWidgets(
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         authorNamesFor: authorNamesFor,
         formLabelFor: formLabelFor,
+        tuneDetailsFor: tuneDetailsFor,
       );
       widgets.add(pw.SizedBox(height: 1));
       widgets.add(
         pw.Text(
-          '${labels.alt}: $alternate',
+          '${labels.labelled(labels.alt)}$alternate',
           style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
           overflow: pw.TextOverflow.span,
         ),
@@ -507,6 +524,11 @@ List<pw.Widget> _slotWidgets(
 /// is never printed (in the block or in the header label) and a contact field
 /// is printed only when it is in [includeVenueContact]. Callers pass the raw
 /// venue; they need no redaction of their own.
+///
+/// When [program] records its own start or end time (#2350), the block leaves
+/// out the venue's free-text `time`: that is the series' usual schedule, and
+/// printing it beside this evening's times would give the reader two answers.
+/// A lesson time alone does not say when the dance runs, so it keeps it.
 ///
 /// Extracted so the redaction is testable without decoding PDF bytes; it is the
 /// single path [buildProgramPdf] draws from.
@@ -531,6 +553,8 @@ List<pw.Widget> _slotWidgets(
         : _venueLines(
             sanitizeVenueForShare(linkedVenue, include: includeVenueContact),
             labels,
+            includeTime:
+                program.startMinute == null && program.endMinute == null,
           ),
   );
 }
@@ -539,14 +563,21 @@ List<pw.Widget> _slotWidgets(
 /// descriptive fields, then the contact lines that survived the consent
 /// choice. Each line/field is emitted only when present (relying on the model's
 /// trim/empty→null normalization) so an unset field never shows a placeholder.
-List<String> _venueLines(Venue venue, ProgramExportLabels labels) {
+/// [includeTime] is false when the program's own times replace the venue's.
+List<String> _venueLines(
+  Venue venue,
+  ProgramExportLabels labels, {
+  required bool includeTime,
+}) {
   final detail = <String>[
     if (_has(venue.eventName)) venue.eventName!,
-    if (_has(venue.time)) '${labels.time}: ${venue.time}',
+    if (includeTime && _has(venue.time))
+      '${labels.labelled(labels.time)}${venue.time}',
     if (_has(venue.genericSchedule))
-      '${labels.schedule}: ${venue.genericSchedule}',
-    if (_has(venue.price)) '${labels.price}: ${venue.price}',
-    if (_has(venue.sponsor)) '${labels.sponsor}: ${venue.sponsor}',
+      '${labels.labelled(labels.schedule)}${venue.genericSchedule}',
+    if (_has(venue.price)) '${labels.labelled(labels.price)}${venue.price}',
+    if (_has(venue.sponsor))
+      '${labels.labelled(labels.sponsor)}${venue.sponsor}',
     if (_has(venue.website)) venue.website!,
   ];
 

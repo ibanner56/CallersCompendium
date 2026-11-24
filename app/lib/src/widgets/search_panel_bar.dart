@@ -40,6 +40,10 @@ class SearchPanelSpec {
   final WidgetBuilder builder;
 }
 
+/// Arranges a [SearchPanelBar]'s row of toggles and its open tool's content.
+typedef SearchPanelBarLayout =
+    Widget Function(BuildContext context, Widget toggles, Widget panel);
+
 /// The search tools (Filters, By phrase, Advanced) as one compact, wrapping row
 /// of toggles, stretched to the full width, above the results, with the open tool's content below it.
 ///
@@ -63,6 +67,8 @@ class SearchPanelBar extends StatefulWidget {
     required this.storageId,
     required this.panels,
     this.trailing,
+    this.layoutBuilder,
+    this.initialOpen,
   });
 
   /// Unique among the bars under one [PageStorage] (one per route).
@@ -72,6 +78,17 @@ class SearchPanelBar extends StatefulWidget {
   /// A compact control that sits in the toggles' row after the last one — a
   /// mode switch rather than a tool, so it opens no panel of its own.
   final Widget? trailing;
+
+  /// Places the row of [toggles] and the open tool's [panel], which are
+  /// otherwise stacked in a [Column]. The Collection builds its whole scroll
+  /// view here, so the row can stay pinned while the panel scrolls below it.
+  /// Each widget must be placed exactly once.
+  final SearchPanelBarLayout? layoutBuilder;
+
+  /// The key of the tool open when the bar is first built, unless
+  /// [PageStorage] already remembers one for [storageId]. Ignored when no
+  /// enabled panel has it.
+  final Key? initialOpen;
 
   @override
   State<SearchPanelBar> createState() => _SearchPanelBarState();
@@ -92,10 +109,13 @@ class _SearchPanelBarState extends State<SearchPanelBar> {
     final stored = PageStorage.maybeOf(
       context,
     )?.readState(context, identifier: _identifier);
-    _open =
-        stored is Key &&
-            widget.panels.any((panel) => panel.key == stored && panel.enabled)
-        ? stored
+    bool offered(Object? key) =>
+        key is Key &&
+        widget.panels.any((panel) => panel.key == key && panel.enabled);
+    _open = offered(stored)
+        ? stored! as Key
+        : offered(widget.initialOpen)
+        ? widget.initialOpen
         : null;
     if (_open != null) _opened.add(_open!);
   }
@@ -165,31 +185,31 @@ class _SearchPanelBarState extends State<SearchPanelBar> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    final toggles = Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.xs,
+        AppSpacing.md,
+        AppSpacing.xs,
+      ),
+      child: StretchWrap(
+        spacing: AppSpacing.xxs,
+        runSpacing: AppSpacing.xxs,
+        stretchCount: widget.panels.length,
+        children: [
+          for (final panel in widget.panels)
+            _PanelToggle(
+              panel: panel,
+              open: panel.key == _open,
+              onToggle: () => _toggle(panel.key),
+            ),
+          if (widget.trailing != null) widget.trailing!,
+        ],
+      ),
+    );
+    final panel = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.xs,
-            AppSpacing.md,
-            AppSpacing.xs,
-          ),
-          child: StretchWrap(
-            spacing: AppSpacing.xxs,
-            runSpacing: AppSpacing.xxs,
-            stretchCount: widget.panels.length,
-            children: [
-              for (final panel in widget.panels)
-                _PanelToggle(
-                  panel: panel,
-                  open: panel.key == _open,
-                  onToggle: () => _toggle(panel.key),
-                ),
-              if (widget.trailing != null) widget.trailing!,
-            ],
-          ),
-        ),
         for (final panel in widget.panels)
           if (_opened.contains(panel.key))
             Visibility(
@@ -208,7 +228,14 @@ class _SearchPanelBarState extends State<SearchPanelBar> {
             ),
       ],
     );
+    return (widget.layoutBuilder ?? _stacked)(context, toggles, panel);
   }
+
+  static Widget _stacked(BuildContext context, Widget toggles, Widget panel) =>
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [toggles, panel],
+      );
 }
 
 class _PanelToggle extends StatelessWidget {

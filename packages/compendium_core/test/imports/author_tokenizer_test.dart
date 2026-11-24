@@ -198,6 +198,36 @@ void main() {
     });
   });
 
+  group('backslashEscapes (the CSV import, #2332)', () {
+    List<String> csv(String f) => splitAuthorNames([f], backslashEscapes: true);
+
+    test(r'\, keeps a comma in a name and \\ is a backslash', () {
+      expect(csv(r'Smith\, John, Ann'), ['Smith, John', 'Ann']);
+      expect(csv(r'A\\, B'), [r'A\', 'B']);
+      expect(csv(r'Doe\, Jr.'), ['Doe, Jr.']);
+    });
+
+    test('a suffix after an unescaped comma is still kept with the name', () {
+      expect(csv('Jane Doe, Jr., Bob'), ['Jane Doe, Jr.', 'Bob']);
+      expect(csv(r'A\\, Jr.'), [r'A\, Jr.']);
+    });
+
+    test('a field with no backslash splits exactly as without the option', () {
+      for (final f in [
+        'Ann Lee, Bob Ray and Cy Day',
+        'Jane Doe, Jr., Bob',
+        'A / B & C + D; E with F',
+        'Doe, Jr. and Bob Smith',
+      ]) {
+        expect(csv(f), splitAuthorNames([f]), reason: f);
+      }
+    });
+
+    test('the default leaves a backslash alone', () {
+      expect(splitAuthorNames([r'Smith\, John']), [r'Smith\', 'John']);
+    });
+  });
+
   group('no issues sink provided', () {
     test('truncation still applies without an issues list', () {
       final result = splitAuthorNames([

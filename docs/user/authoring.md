@@ -54,9 +54,13 @@ Typing `sw` and pressing Enter, for example, gives you a swing.
 
 The moves offered are those of the dance's **Type**: an English dance offers
 English figures, such as set, turn single, siding and the heys, and a contra
-dance offers contra figures. A square dance has no figures of its own yet, so
-it offers contra's. A figure the dance already holds from another type stays as
-it is; it just isn't offered for a new row.
+dance offers contra figures, and a square dance offers square calls, such as
+promenade, allemande left, circle, chain and separate. A figure the dance
+already holds from another type stays as it is; it just isn't offered for a
+new row. Square calls are picked here for now: a line you type with
+**Free-text entry** in a square dance is kept as you typed it, as a custom
+line, because the app can't read square calls from text yet. It never turns
+a square's line into a contra figure.
 
 With **Free-text entry** on, **Add figure** opens **Type a figure** instead: one
 box that takes a whole line and offers no move suggestions. Press Enter and the
@@ -102,7 +106,14 @@ formation, two in a duple minor and three in a triple minor. A line that
 starts with a bar range (`1-4 partners set and turn single`, `(5-8) circle
 left`, `A1 1-8 lead up`) counts those bars by the dance's **Meter**: `1-4` is
 8 beats in 2/2 and 12 in 3/2 or 3/4. With no meter, a bar counts the beats
-of the phrase structure, as the **Bars** field does.
+of the phrase structure, as the **Bars** field does. Where the phrase
+structure's phrases differ in beats per bar (`A:2*4*3 + B:1*8*2`, an A in 3/4
+and a B in 6/8), the Meter does not decide it: each bar is as long as the
+phrase it falls in, and the bars count from where the line is placed in the
+dance, so the numbers you type give how many bars, not where they sit. In that
+example `1-4` placed first is 12 beats, and `9-12` placed after the two A
+phrases is 8. A line that runs across the change counts each bar by its own
+phrase.
 The bars are the count. A line that also states a count in beats
 (`1-4 (6) circle left`) is kept as you typed it, with the bars' count, so you
 can see the two disagree and fix whichever is wrong. A line with several bar
@@ -217,8 +228,8 @@ typed it. A count that is shorter but more than the 64 beats a figure can take
 (`circle left (100)`) keeps the whole line as an unrecognized figure too.
 
 Pasting several lines into the box keeps them as one line, with a space where
-each line break was; type or paste one figure line at a time to get one figure
-per line.
+each line break was. To add several lines at once, one figure line each, use
+[Add several figures at once](#add-several-figures-at-once).
 
 A `;` between figures makes a list, and each part is read as its own figure:
 `circle left 3/4; turn alone` gives two figures, in order. A count stays with
@@ -232,6 +243,79 @@ circle and the swing.
 
 As always, anything it cannot parse is kept as an unrecognized figure rather than
 dropped.
+
+### Add several figures at once
+
+To bring in a dance you have as text, from an email, a web page or a typed
+document, open **Add figure** ▸ **Add figures from text…** under the figure
+list. Type or paste the figures into the box, one figure per line:
+
+```
+A1 (8) Neighbor balance & swing
+   (8) Long lines forward and back
+A2 (8) Ladies chain
+```
+
+Each line is read as the Move box reads a line you type with
+[Free-text entry](#free-text-entry) on, with your
+[shorthands](#figure-shorthands) and your dialect, whether Free-text entry is
+on or not. Blank lines are skipped, and so is a line that is only a phrase
+label, such as an `A1` heading. In a contra dance a phrase label such as `A1` or
+`B2` at the start of a line is left out, so `A1 (8) Ladies chain` reads as
+`(8) Ladies chain`. English and square dances keep it: an English line such as
+`A1 1-8 lead up` is read with its label, because the label comes before a bar
+range; other English lines that start with a label may not be recognized, so
+leave the label off them.
+
+As you type, the sheet shows how many figures each line gives and marks the
+lines it does not recognize. Those are still added, each as an
+[unrecognized figure](#unrecognized-figure) that keeps its text, for you to
+fix. **Add figures** adds them all at the end of the figure list as one step,
+so a single Undo takes them out again. **Cancel** adds nothing. Nothing is
+saved until you save the dance.
+
+The sheet reads up to 200 lines and 20,000 characters at a time, and up to
+2,000 characters on one line. Longer text is refused, and nothing from it is
+added: add it in parts.
+
+#### Read the figures from a picture
+
+On iPhone, iPad, Mac and Windows, **From an image…** in the same sheet reads
+the text of a picture you choose, such as a photo of an index card or a page
+of a book, and puts it in the box in place of what is there. Check it and
+correct it there: the lines are then read exactly as typed text is.
+
+- The picture is read **on your device**, by the text recognition built into
+  iOS, macOS and Windows. Nothing is sent anywhere, and nothing is downloaded
+  to read it.
+- **The picture is not kept.** It is read once and let go; only the text
+  reaches the sheet. Nothing about the picture is saved with the dance, synced
+  or backed up. A copy the picker makes for the app is deleted once read.
+- It reads the app's language and English. Where the device can't read the
+  app's language (some languages, such as Japanese, need a newer iOS or
+  macOS, and some aren't offered at all), the sheet says so and reads
+  English. Windows reads one language at a time: the app's language when its
+  language pack is installed in Windows Settings, otherwise English. The app
+  never installs one. If neither is installed, **From an image…** stays off
+  and the sheet says why.
+- On Windows, HEIC photos (the format iPhones save in) can be read only once
+  the HEIF and HEVC extensions from the Microsoft Store are installed;
+  otherwise the sheet says the device can't open it. A JPEG or PNG always
+  works.
+- A picture over 25 MB, or over 10,000 pixels on a side or 50 million pixels
+  in all, is refused before anything is read. Crop it or choose a smaller one.
+- Typed text reads best. Handwriting may come out wrong, so check each line.
+
+On iPhone and iPad, **Take a photo** beside it opens the camera instead, so
+you can photograph the card without leaving the app. The first time, the
+system asks whether the app may use the camera; it uses it only when you tap
+**Take a photo**. The photo is read the same way and is **not kept**: it is
+deleted as soon as its text has been read, or straight away if reading fails,
+and it is never added to your photo library. If you said no to the camera, you
+can turn it on again in the Settings app, under **Caller's Compendium**.
+
+**From an image…** isn't offered on Android or Linux, and **Take a photo** is
+only on iPhone and iPad: you can still type or paste the figures.
 
 ### Figure shorthands
 
@@ -325,6 +409,11 @@ Select a figure to open it. What you can change depends on the move:
 - **Parameters** — most moves have a few (which role, how far, which way round).
   Common ones show straight away; choose **More options** to see the rest, and
   **Fewer options** to fold them back.
+- **Who** — on an English figure, the dancers it names, any number of them:
+  tap the field to open the list, check each group (type to narrow the list),
+  and the field reads them in the order you checked them, as in "twos,
+  threes". **Everyone** stands alone, so checking it clears the others.
+  Unchecking them all leaves it *not stated*.
 - **Beats** — every figure has a beat count you can raise or lower.
 - **Progression** — mark the figure the dance
   [progresses](./glossary.md#progression) on. Moves that can carry the
@@ -339,6 +428,13 @@ full amount. One saved by an earlier version as "other" with no amount reads
 `an unstated amount of figure 8` and asks you to choose the amount; nothing is
 filled in for you. Your own figures and the per-figure defaults in Settings
 don't offer "other", because they have no amount to go with it.
+
+**Pass by** and **pass through** are one figure under two names, and both are
+in the move list. Each says who passes, in which direction, by which shoulder,
+and its beats; **Pass type** under **More options** switches between the two.
+When you add one to a dance, choose who passes and the direction before you save: until
+you do, the figure says so under its fields and the dance doesn't save. A pass
+saved earlier, or imported, with either one unstated saves as it is.
 
 A figure 8 also has a **Double** switch. Turned on, the first pair leads the
 figure 8 and the other pair casts the mirror way round the outside, as in
@@ -502,7 +598,9 @@ are danced at the same time. A modifier group follows its **Core**, and a
 sequence adds up its figures (see
 [Sequence figures](#sequence-figures)), unless an English sequence states its
 own **Bars for all** (see
-[English dances are timed in bars](#english-dances-are-timed-in-bars)). This holds however the group was made:
+[English dances are timed in bars](#english-dances-are-timed-in-bars)) or a
+square's states its own **Beats for all** (see
+[One count for a square's calls](#one-count-for-a-squares-calls)). This holds however the group was made:
 grouped, added from the **Add** menu, typed with `||` or `while`, or in a
 shorthand.
 
@@ -559,14 +657,20 @@ or type *sequence* in a figure's **Move** box to make it the first figure of a
 new sequence. Each figure in the group is labeled **Figure 1**, **Figure 2**,
 and so on, and keeps its own **Beats**: the group's beats are their total, shown
 at the top (an English sequence can instead state its own **Bars for all**; see
-[English dances are timed in bars](#english-dances-are-timed-in-bars)). A
-sequence must fit in one phrase of the dance (16 beats in the
-usual structure), so **Group with next as sequence** is only offered when the
-two figures fit, and **Add next figure** goes away once the figures fill a
-phrase or there are four of them (with **Bars for all**, only figures with bars
-of their own count toward the phrase). Changing a figure already in the sequence,
-its move or its beats, is not stopped, and neither is a change to the phrase
-structure: if the sequence ends up longer than a phrase, the group and the
+[English dances are timed in bars](#english-dances-are-timed-in-bars), and a
+square's its own **Beats for all**; see
+[One count for a square's calls](#one-count-for-a-squares-calls)). A
+sequence must fit in the phrase it starts in: 16 beats in the usual
+structure, and where phrases differ in length, such as an A of 4 bars and a B
+of 8, the length of the one it starts in. It may start partway through that
+phrase and run over its end, as long as it is no longer than the phrase. So
+**Group with next as sequence** is only offered when the two figures fit, and
+**Add next figure** goes away once the figures fill that phrase or there are
+four of them (with **Bars for all** or **Beats for all**, only figures with a
+count of their own count toward the phrase). Changing a figure already in the sequence, its move or its
+beats, is not stopped, and neither is a change to the phrase structure or to
+the figures before it, which can move it into a shorter phrase: if the
+sequence ends up longer than the phrase it starts in, the group and the
 dance's warnings say so, and you can still save it.
 
 **Convert to sequence**, **Convert to meanwhile** and **Convert to modifier**
@@ -589,11 +693,19 @@ for whole bars instead. The app still works in beats underneath. A bar holds
 the beats of the dance's **Meter**: 2/2, 2/4, 6/8 and 6/4 have two, 3/2, 3/4,
 9/8 and 9/4 three, 4/4, 12/8 and 12/4 four, so in 3/2 two bars are 6 beats. With no meter the
 phrase structure says, so `4*8*3` (four 8-bar phrases of three beats) makes 2
-bars 6 beats too. A tune whose parts have different numbers of beats to the bar
-keeps its figures in beats, since one count of bars would mean different
-lengths in different parts. The dance's page and Perform show bars too, and so
+bars 6 beats too. A tune whose phrases have different numbers of beats to the
+bar (`A:2*4*3 + B:1*8*2`, an A in 3/4 and a B in 6/8) counts each bar by the
+phrase it starts in, whatever the Meter says, and from where its figure
+starts: the two bars at the end of an A and the first two of a B are 3 + 3 + 2
++ 2 beats, and the field shows them as 4 bars. A count that is not a whole
+number of half bars where it falls shows in beats. The count is stored in
+beats when you enter it, so a figure that ends up in another phrase, because a
+figure before it was lengthened or removed, is read there: in the bars of that
+phrase, or in beats where it no longer comes to whole or half bars. The dance's page and Perform show bars too, and so
 do the dance's warnings, its calling card, and its figures when you share, copy
-or print it, alone or with a program.
+or print it, alone or with a program. A calling card prints bare numbers, so if
+any count on it is not a whole number of half bars, the whole card stays in
+beats.
 
 An English sequence can also take its bars as a whole, as in "A, B and C in
 bars 1–4". Fill in **Bars for all** at the top of the sequence, and leave the
@@ -603,15 +715,30 @@ contra sequence does; emptying it gives each figure with no bars its move's
 usual length. A figure that leaves the sequence, by ungrouping it or turning
 it into another kind of group, takes its usual length too. If every figure has bars of its own and they don't add
 up to **Bars for all**, or the figures with bars already fill it, the sequence
-and the dance's warnings say so. Changing the dance to another type puts its
+and the dance's warnings say so. Changing the dance to a contra puts its
 sequences back to adding up their figures, and a figure with no bars takes its
-move's usual length; **Undo** puts them back.
+move's usual length; **Undo** puts them back. Changing it to a square keeps
+each span, counted in beats there (see
+[One count for a square's calls](#one-count-for-a-squares-calls)).
+
+### One count for a square's calls
+
+A square's caller often gives one count for two calls, as in "forward again
+and swing the opposite (8)". Group the calls as a sequence, fill in **Beats
+for all** at the top of it, and leave the **Beats** of any call in it empty
+to give that call no timing of its own. It works as an English sequence's
+**Bars for all** does, in beats: left empty, the sequence adds up its calls'
+beats; if every call has beats of its own and they don't add up to **Beats
+for all**, or the calls with beats already fill it, the sequence and the
+dance's warnings say so. Changing the dance to a contra puts its sequences
+back to adding up their calls, and **Undo** puts them back.
 
 If a dance holds figures of another type than its own, for example English
 figures in a dance you have just changed to contra, **Warnings** says how
 many. They are kept and shown as they are, but the figure picker offers only
-the dance's own type's figures (contra's, for a square dance, which has no
-figure list of its own yet).
+the dance's own type's figures. Imports still read a square dance's lines as
+contra figures, so a square imported that way shows this warning; a **stand
+still** row, such as those a new dance starts with, isn't counted.
 
 ### Keep an eye on the beats
 
@@ -622,6 +749,12 @@ dance whose beats do not add up, and sometimes that is the honest transcription.
 A saved dance whose beats do not add up shows the same warning above its figures
 on the dance's page, because the section labels (A1, A2, B1, B2) are then worked
 out from the wrong total. Perform and printing do not show it.
+
+In a square dance, **Warnings**, in the editor and on the dance's page, also
+names a figure that starts in one phrase and runs past its end, such as a
+16-beat promenade starting halfway through A1: the calls of each phrase should
+fill it exactly. A figure that starts at the top of a phrase and fills whole
+phrases, such as a 32-beat promenade across A1 and A2, is fine.
 
 The Total counts only rows that will be saved. A group that is not complete yet,
 such as a meanwhile group with one side filled in, is left out, and so is a row
@@ -641,17 +774,40 @@ nothing in it to lose.
 
 ### Details
 
-- **Title** — required.
+Under the **Title**, everything else in Details is in one panel, **Credits,
+formation and music**, so the figures are not pushed down the page by fields
+you set once. Folded, it shows a short summary instead, such as *Pat Shaw ·
+English (ECD) · Duple minor · Starts improper · 3/2 · G minor*; tap it to open
+it, and tap its header again to fold it. It starts folded when you edit a
+dance, and when you start one on a phone; it starts open when you start one on
+a wider screen. If **Save** finds a mistake in one of its fields, it opens to
+show you. Inside, fields sit side by side where there is room and one under
+another where there is not.
+
+- **Title** — required. On a new dance, the keyboard's **Next** (or Enter)
+  takes you straight to the figures: it opens the first figure still to
+  fill, ready for you to type its move, or starts the first one. On a dance
+  you're editing, or a new one whose figures are all set, the key is
+  **Done**.
 - **Authors** — the [author](./glossary.md#author) or authors of the dance.
-  Type to find an existing author or create a new one.
+  Tap the field to open the list of people: check each author, type in the
+  search box to narrow the list, or choose **Create** to add someone new. The
+  pencil beside a name edits that person's details. **Interpreted by** works
+  the same way, and so does **Tags**, without the pencil.
 - For an **English (ECD)** dance, the credits for its original and its
-  interpretation come next: **Composed**, **Interpreted by** and
-  **Interpreted in**. Many English dances were published long ago and
-  reconstructed later, as in "Walsh, 1731, Pat Shaw version": put the
-  original's author or publisher in **Authors** and its year in **Composed**, and
-  the person who reconstructed it, and when, in the other two. **Interpreted
-  by** draws on the same list of people as **Authors**. For other types these
-  three fields are in **More details**.
+  interpretation come next, each as names with a year beside them: **Authors**
+  with **Composed**, then **Interpreted by** with **Interpreted in**. Many
+  English dances were published long ago and reconstructed later, as in
+  "Walsh, 1731, Pat Shaw version": put the original's author or publisher in
+  **Authors** and its year in **Composed**, and the person who reconstructed
+  it, and the year, in the other two. On a wide screen the two lines sit side
+  by side; on a narrow screen, or with large text, they stack, and each year
+  goes under its names. **Interpreted by** draws on the same list of
+  people as **Authors**. For other types the dates and **Interpreted by** are in **More
+  details**, where a date can also have a month and day. The dance's detail
+  view and its Perform card show each year beside its names, such as
+  *Pat Shaw (1951)* and *Interpreted by Cecil Sharp (1916)*; they show only
+  the year of a date that has a month and day.
 - **Type** — **Contra**, **English (ECD)**, or **Square**. It sets the icon on
   the dance's row in your collection and what the **Type** filter finds. A new
   dance starts with your default type (see
@@ -660,33 +816,101 @@ nothing in it to lose.
 - **Formation** and **Formation detail** — the shape the dance is danced in, plus
   anything worth adding in words. An English dance offers English formations,
   such as duple minor, triple minor and three-couple longways, with a
-  **Starts improper** checkbox; leave it unchecked for a dance that starts
-  proper.
-- **Mixer** — tick this when the dance is a
+  **Starts improper** chip under them: tap it on for a dance that starts
+  improper, and leave it off for one that starts proper. A square offers **Square**, **Circle** for a big-circle dance such
+  as a running set, and **Other**. Changing the type to one whose list
+  doesn't have the dance's formation starts the formation over: on **Duple
+  minor** for English, **Improper** for contra, and **Square** for a square.
+  A formation both lists have, such as triple minor between contra and
+  English or circle between English and square, is kept. Undo brings the
+  old formation back.
+- **Progression** — how the dance progresses, such as **Single**. It sits
+  beside **Type** and **Formation** where there is room.
+- **Rating** — your own star rating, with **Clear rating** to unset it. It
+  sits beside the **Starts improper** and **Mixer** chips where there is room.
+- **Mixer** — tap this chip on when the dance is a
   [mixer](./glossary.md#mixer): one where you change partners each time through.
   It's kept separate from the formation, because a mixer can be danced in many
   shapes and not every circle is a mixer.
+- **Square fields** — a square dance shows five more fields here:
+  - **Kind of square**: **Main part** (the figure danced several times
+    through), **Break**, or **Patter**.
+  - **Free form**: turn this on for patter that follows no phrasing. The
+    figures then get no phrase labels (A1, A2 and so on), nothing checks
+    that they fill each phrase, the phrase structure is hidden, and the
+    figure list shows only the total beats. Patter starts with it on and
+    the other kinds with it off; you can change either. The phrase
+    structure you had is kept for when you turn it off.
+  - **Repeat order**: **Heads twice, then sides twice**, **Heads and sides
+    alternating**, **Four times, everyone active**, or **Other**, which
+    opens a field to describe it.
+  - **New partner**: who each dancer ends with each time through, such as
+    **Corner** or **Partners stay the same**. **Other** opens a field here
+    too. **Mixer** still says whether partners change; this says to whom.
+  - **Singing call**: put the song under **Tunes**.
+
+  The dance's page shows each one you've set. Another type of dance keeps
+  them in **More details**, so changing the type and back loses nothing.
 - **Phrase structure** — leave it blank for the standard A1 A2 B1 B2, or write
   your own (the field suggests `6*8*2` as an example). The app checks that what you
   write is a valid structure, and uses it for the beat count above.
+  A contra or square dance also shows it as rows above the field, one for each
+  run of equal phrases: **Phrases** (how many), **Bars per phrase** and **Beats
+  per bar**. `8*8*2` is one row, 8 phrases of 8 bars with 2 beats in a bar;
+  `3*8*2 + 1*4*2` is two, three 8-bar phrases and then one of 4 bars; a slip
+  jig has 3 beats in a bar. **Add row** adds another run, and **×** removes a
+  row. A line under the rows lists the labels the phrases get and the beats in
+  all: 8 phrases are labeled A1 A2 B1 B2 C1 C2 D1 D2, so a tune played twice
+  carries on to C and D. Each number is 1 to 1000; while one is left empty or
+  past that, the dance keeps its last valid structure, and **Save** saves that.
+  The rows and the field show the same structure, so you can use either; a
+  row with a number missing waits for it, and the structure stays as it was.
+  While what you type in the field can't be read as a structure, or has phrase
+  names (which only an English dance keeps), the rows stay as they were and are
+  dimmed until it can. A dance that opens with a structure that can't be read
+  shows no rows until it can.
 - **Phrases** (English dances) — choose **Name the phrases** to give the
   tune's parts their own names instead: one row each for A, B and C, with
-  its **Bars** and whether it plays **Once** or **Twice**, the repeat
-  straight after it. A=4 played twice and B=8 played once labels the figures
-  A1, A2 and B; A=4, B=4 and C=8 each once labels them A, B and C. The bars
-  count in the dance's **Meter**, and changing the meter keeps each phrase's
-  bars. Each phrase has 1 to 1000 bars; while one is left empty or past
-  that, the dance keeps its last valid phrases, and **Save** saves those.
+  its **Bars**, its **Beats per bar** and whether it plays **Once** or
+  **Twice**, the repeat straight after it. A=4 played twice and B=8 played once
+  labels the figures A1, A2 and B; A=4, B=4 and C=8 each once labels them A, B
+  and C. A phrase's beats to the bar start as the dance's **Meter** gives them
+  (a meter naming several meters gives each new phrase the first phrase's), and
+  you can set each phrase's own, such as 3 for an A in 3/4 and 2 for a B in
+  6/8: the dance is then counted in bars phrase by phrase (see
+  [English dances are timed in bars](#english-dances-are-timed-in-bars)).
+  Changing the **Meter** to one that now states other beats to the bar sets
+  every phrase to them, keeping each one's bars, but only while the phrases
+  all have the same beats to the bar: phrases that differ are never rewritten
+  from the Meter. A Meter that still states the same beats (a word added after
+  `3/4`), or names two meters (`3/4 and 6/8`), leaves them as they are too.
+  **Name the phrases** on a structure that differs keeps each part's own beats
+  where its parts group into named phrases.
+  Each phrase has 1 to 1000 bars and 1
+  to 12 beats to the bar (12 is the most a meter can name); while one is left
+  empty or past that, the dance keeps its last valid phrases, and **Save**
+  saves those. That includes a phrase typed earlier with more than 12 beats to
+  the bar: it shows the error and its text is kept until you set that phrase's
+  beats (or change the **Meter** so that it states other beats, which sets
+  every phrase's, as above).
   Remove every phrase to go back to unnamed phrases: the standard A1 A2 B1
   B2, counted in the dance's meter. You can also
   type names into the **Phrase structure** field (`A:2*4*2 + B:1*8*2`);
   only an English dance can be saved with them.
   Printed cards, PDFs and copied text show named phrases the way English
   callers write them: A=4 played twice and B=8 once prints as
-  `AAB (A 4 bars, B 8 bars)`.
+  `AAB (A 4 bars, B 8 bars)`, with your language's punctuation (in
+  Japanese, `AAB（A 4小節、B 8小節）`).
 - **Meter** and **Key** — the tune's written meter, such as `3/2`, and its key,
   such as `G minor`, in your own words. They sit here for an English dance and
-  in **More details** for other types.
+  in **More details** for other types. The dance's detail view and its Perform
+  card show them on one line, such as *Meter: 6/8 · Key: G minor*.
+- **Barnes reference** — for an English dance only: where the tune is printed
+  in the Barnes books, book and page in one line, such as `BIII p. 92`, or `NiB`
+  when it is not in them. It sits beside **Meter** and **Key**, or under them
+  on a narrow screen. Changing a
+  dance to another type clears it when you save. The dance's detail view shows it under
+  **Barnes books**, and its Perform card as *Barnes: BIII p. 92*.
 
 ### Notes
 
@@ -729,12 +953,13 @@ updates the default used everywhere.
 
 | Field | Notes |
 |---|---|
+| **Other titles** | Other names the dance goes by, one per line; the dance page shows them under the title, and searching by **Title** finds them |
 | **Level** and **Status** | How hard it is, and where it is in your workflow |
 | **Mixed level** | For dances that span the difficulty scale |
-| **Rating** | Your own star rating, with **Clear rating** to unset it |
-| **Composed** / **Revised** | A year, optionally with a month and day; Composed is up front for an English dance |
-| **Interpreted by** / **Interpreted in** | Who reconstructed the dance from its original, and when; up front for an English dance |
-| **Meter** / **Key** | The tune's written meter and key; up front for an English dance |
+| **Composed** / **Revised** | A year, optionally with a month and day; for an English dance, Composed is a year, up front beside the authors |
+| **Interpreted by** / **Interpreted in** | Who reconstructed the dance from its original, and when; for an English dance, up front, with Interpreted in as a year beside the names |
+| **Meter** / **Key** | The tune's written meter and key; up front for an English dance, with its **Barnes reference** |
+| **Kind of square** / **Repeat order** / **New partner** / **Singing call** | A square's own fields; up front for a square dance (**Free form** shows for a square only) |
 | **Tags** | Your own labels |
 | **Tunes** | Tunes you like with this dance |
 | **Links** | A URL with an optional label, marked **Source**, **Video**, or **Other** |
@@ -764,7 +989,7 @@ explicit about two things, and both matter:
   disagree. **Keep editing** takes you back to what you typed. After a merge,
   every dance that credited either author credits the one that's left, this
   dance included, and **Undo** in the message at the bottom of the screen puts
-  both back. The same merge is in **Settings ▸ General ▸ Dances ▸ Authors**;
+  both back. The same merge is in **Settings ▸ Collection ▸ Dances ▸ Authors**;
   see [Settings](./settings.md#dances).
 - **Email and location are private, and so is the deceased mark.** They are
   stored only on this device and are never shared or exported. See
@@ -774,7 +999,7 @@ explicit about two things, and both matter:
 **Source details** works the same way: a source's details are shared across every
 dance that cites it, and editing them here updates the source everywhere it is
 referenced. To combine two copies of the same source, use **Merge into…** in
-**Settings ▸ General ▸ Dances ▸ Sources**; see
+**Settings ▸ Collection ▸ Dances ▸ Sources**; see
 [Settings](./settings.md#dances).
 
 ## Undo, drafts, and saving
@@ -880,7 +1105,10 @@ as:
 
 - **Type**, **Formation**, and **Progression** — what a new dance begins with.
 - **Default phrase structure** — seeded into new dances; blank means the standard
-  4×16 (A1 A2 B1 B2).
+  4×16 (A1 A2 B1 B2). It is set as the same rows as a contra or square dance's
+  **Phrase structure**, with the field under them. Phrase names
+  (`A:2*8*2 + B:1*8*2`, for English dances) go in the field; the rows don't
+  show for a default that has them, and are dimmed if you type them.
 - **Starting figures** — the figures a new dance starts with. It defaults to
   eight stand stills of eight beats each, or to no figures while **Free-text
   entry** is on; clear it for a completely blank dance.
@@ -915,6 +1143,11 @@ happen.
 Your tags, ratings, notes, and everything else on each dance are kept exactly as
 they are — only figures that now recognize a known move are replaced. If there is
 nothing to upgrade, the app tells you that and leaves your collection alone.
+
+A figure is upgraded only to one of its own dance's type: an English dance's
+lines to English figures, and a contra dance's to contra figures. The app
+can't read square calls from text yet, so a square dance's lines stay as
+they are, rather than becoming contra figures.
 
 A dance whose stored figures the app cannot read at all is left out of the scan
 rather than upgraded, and its stored text is not touched. The dance's own page

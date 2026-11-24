@@ -31,7 +31,6 @@ void main() {
     );
     final items = resolveCustomGlossary(
       [figure('zoom-id', 'zoom'), figure('whizz-id', 'whizz')],
-      taxonomy: contraTaxonomy,
       dialects: [dialect, other],
     );
     expect(

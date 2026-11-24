@@ -198,38 +198,66 @@ Iterable<String> _cleanTagNames(Iterable<String> names) sync* {
   }
 }
 
-/// Key used to persist the semantic slot template for manually created
-/// programs. Generated slot ids and positions are intentionally omitted.
+/// Key that persisted the single semantic slot template for manually created
+/// programs, the "Starting program", before program templates (#2337).
+///
+/// No longer written: `program_templates.dart` shows a non-empty value as the
+/// first program template and copies it into one at the user's first change
+/// to their templates (`materializeProgramTemplates`). The key is left in
+/// place, so a device still on an older build keeps its starting program
+/// after a sync.
 const String kDefaultStartingProgramKey = 'default_starting_program';
 
-/// A semantic program-slot entry used by [kDefaultStartingProgramKey].
+/// One semantic program-slot entry of a program template (and of the legacy
+/// [kDefaultStartingProgramKey] value).
 ///
 /// A dance entry may also carry [text] as its per-slot note. Text-only entries
-/// represent notes, waltzes, or the structural break token.
-class StartingProgramTemplateEntry {
-  const StartingProgramTemplateEntry({this.danceId, this.text});
+/// represent notes, waltzes, or the structural break token. Generated slot ids
+/// and positions are intentionally not part of a template.
+class ProgramTemplateEntry {
+  const ProgramTemplateEntry({this.danceId, this.text});
 
   final String? danceId;
   final String? text;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ProgramTemplateEntry &&
+      other.danceId == danceId &&
+      other.text == text;
+
+  @override
+  int get hashCode => Object.hash(danceId, text);
 }
 
 const int _startingProgramTemplateVersion = 1;
-const int _maxStartingProgramTemplateEntries = 100;
-const int _maxStartingProgramTemplateTextLength = 500;
 
-/// Encodes the semantic starting-program template as a versioned JSON string.
-String encodeStartingProgramTemplate(
-  List<StartingProgramTemplateEntry> entries,
+/// The most slots a template holds; extra entries are dropped on encode and a
+/// longer list is rejected on decode.
+const int kMaxProgramTemplateEntries = 100;
+
+/// The longest text (a note, or a dance slot's caller note) a template slot
+/// holds; longer text is cut on encode and rejected on decode.
+const int kMaxProgramTemplateTextLength = 500;
+
+/// Encodes template [entries] as the JSON list both the legacy starting
+/// program and each program template store under `slots`.
+///
+/// Blank entries are skipped, text is cut to [kMaxProgramTemplateTextLength]
+/// and the list to [kMaxProgramTemplateEntries], so the result always decodes
+/// with [tryDecodeProgramTemplateSlots].
+List<Map<String, Object?>> encodeProgramTemplateSlots(
+  List<ProgramTemplateEntry> entries,
 ) {
   final slots = <Map<String, Object?>>[];
   for (final entry in entries) {
-    if (slots.length == _maxStartingProgramTemplateEntries) break;
+    if (slots.length == kMaxProgramTemplateEntries) break;
     final danceId = entry.danceId?.trim();
     final rawText = entry.text;
     final text = rawText == null || rawText.trim().isEmpty
         ? null
-        : rawText.length > _maxStartingProgramTemplateTextLength
-        ? rawText.substring(0, _maxStartingProgramTemplateTextLength)
+        : rawText.length > kMaxProgramTemplateTextLength
+        ? rawText.substring(0, kMaxProgramTemplateTextLength)
         : rawText;
     if ((danceId == null || danceId.isEmpty) && text == null) continue;
     final slot = <String, Object?>{};
@@ -237,17 +265,51 @@ String encodeStartingProgramTemplate(
     if (text != null) slot['text'] = text;
     slots.add(slot);
   }
-  return jsonEncode({
-    'version': _startingProgramTemplateVersion,
-    'slots': slots,
-  });
+  return slots;
 }
 
-/// Decodes a starting-program template, returning `null` for any invalid
-/// payload. The caller can then fall back to the empty template.
-List<StartingProgramTemplateEntry>? tryDecodeStartingProgramTemplate(
-  Object? stored,
-) {
+/// Decodes a template's `slots` list, returning `null` for any invalid
+/// payload: not a list, too long, or any entry that is not exactly a dance id
+/// and/or a non-blank text within the limits.
+List<ProgramTemplateEntry>? tryDecodeProgramTemplateSlots(Object? rawSlots) {
+  if (rawSlots is! List || rawSlots.length > kMaxProgramTemplateEntries) {
+    return null;
+  }
+  final entries = <ProgramTemplateEntry>[];
+  for (final raw in rawSlots) {
+    if (raw is! Map) return null;
+    final allowed = raw.keys.every((key) => key == 'danceId' || key == 'text');
+    if (!allowed) return null;
+    final danceId = raw['danceId'];
+    final text = raw['text'];
+    if (danceId != null && danceId is! String) return null;
+    if (text != null && text is! String) return null;
+    if (danceId == null && text == null) return null;
+    if (danceId is String && danceId.trim().isEmpty) return null;
+    if (text is String &&
+        (text.trim().isEmpty || text.length > kMaxProgramTemplateTextLength)) {
+      return null;
+    }
+    entries.add(
+      ProgramTemplateEntry(danceId: danceId as String?, text: text as String?),
+    );
+  }
+  return entries;
+}
+
+/// Encodes the legacy starting-program template as a versioned JSON string.
+///
+/// Nothing in the app writes [kDefaultStartingProgramKey] any more; this stays
+/// for tests that set up an upgraded installation.
+String encodeStartingProgramTemplate(List<ProgramTemplateEntry> entries) =>
+    jsonEncode({
+      'version': _startingProgramTemplateVersion,
+      'slots': encodeProgramTemplateSlots(entries),
+    });
+
+/// Decodes a legacy starting-program template, returning `null` for any
+/// invalid payload.
+List<ProgramTemplateEntry>? tryDecodeStartingProgramTemplate(Object? stored) {
   if (stored is! String) return null;
   try {
     final decoded = jsonDecode(stored);
@@ -255,37 +317,7 @@ List<StartingProgramTemplateEntry>? tryDecodeStartingProgramTemplate(
         decoded['version'] != _startingProgramTemplateVersion) {
       return null;
     }
-    final rawSlots = decoded['slots'];
-    if (rawSlots is! List ||
-        rawSlots.length > _maxStartingProgramTemplateEntries) {
-      return null;
-    }
-    final entries = <StartingProgramTemplateEntry>[];
-    for (final raw in rawSlots) {
-      if (raw is! Map) return null;
-      final allowed = raw.keys.every(
-        (key) => key == 'danceId' || key == 'text',
-      );
-      if (!allowed) return null;
-      final danceId = raw['danceId'];
-      final text = raw['text'];
-      if (danceId != null && danceId is! String) return null;
-      if (text != null && text is! String) return null;
-      if (danceId == null && text == null) return null;
-      if (danceId is String && danceId.trim().isEmpty) return null;
-      if (text is String &&
-          (text.trim().isEmpty ||
-              text.length > _maxStartingProgramTemplateTextLength)) {
-        return null;
-      }
-      entries.add(
-        StartingProgramTemplateEntry(
-          danceId: danceId as String?,
-          text: text as String?,
-        ),
-      );
-    }
-    return entries;
+    return tryDecodeProgramTemplateSlots(decoded['slots']);
   } catch (_) {
     // diagnostics: silent — malformed settings data returns null.
     return null;
@@ -293,9 +325,8 @@ List<StartingProgramTemplateEntry>? tryDecodeStartingProgramTemplate(
 }
 
 /// Resolves an arbitrary settings value to a safe starting-program template.
-List<StartingProgramTemplateEntry> startingProgramTemplateFromStored(
-  Object? stored,
-) => tryDecodeStartingProgramTemplate(stored) ?? const [];
+List<ProgramTemplateEntry> startingProgramTemplateFromStored(Object? stored) =>
+    tryDecodeStartingProgramTemplate(stored) ?? const [];
 
 /// Key used to persist the default dance-detail rendering (ROADMAP G.6b).
 /// Stored as the [DanceDetailRendering] enum's stable `.name`. Absent/invalid ⇒

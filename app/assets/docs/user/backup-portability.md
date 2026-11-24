@@ -96,13 +96,17 @@ A backup holds **everything** you've built, including:
   and saved [venues](./glossary.md#venue). An author's private email,
   location and deceased marker, and a venue's address and contact people, are
   in your backup too. Files you share leave them out, except a venue's contact
-  people when you choose to include them. A sharing
+  people when you choose to include them, and a venue's address in a
+  [calendar file](./sharing.md#put-programs-in-your-calendar) when you tick it
+  there. A sharing
   opt-out keeps a custom field out of files you send to other people; it does
   not remove the field from your own backup.
 - Your custom [dialects](./dialects.md) and which one is active.
 - Your custom themes and which one is active.
 - Your settings and preferences, including your figure shorthands and
-  walkthrough snippets.
+  walkthrough snippets — but not your
+  [calendar address](./settings.md#calendar), which can contain a secret. Enter
+  it again after a restore.
 - Your own figures from the Glossary and your notes on built-in figures (see
   [Glossary and Custom Figures](./settings.md#glossary-and-custom-figures)).
   Restoring a backup replaces them, but a backup made while you had none
@@ -160,8 +164,11 @@ backup is refused the same way, with its size and the limit.
 > without those details. Install the current version before you restore.
 >
 > The same goes for a backup that holds an English country dance formation
-> (such as duple minor), a dance marked improper, a dance's meter or key, or
-> who interpreted a dance and when: versions without them refuse it as coming
+> (such as duple minor), a dance marked improper, a dance's meter or key,
+> who interpreted a dance and when, a dance's other titles or Barnes
+> reference, or a square's kind, repeat order, new partner, singing call or
+> free-form setting:
+> versions without them refuse it as coming
 > from a newer version. A backup that holds an archived program needs version
 > 0.11.0 or later to replace your library: versions 0.5.2 to 0.10.0 refuse
 > that, rather than bring your archived programs back unarchived.
@@ -270,7 +277,7 @@ the copies you can move between devices and store wherever you like.
 
 ## Backups vs. sharing vs. importing
 
-Three related features are easy to mix up:
+Four related features are easy to mix up:
 
 - **Backup & restore** (this guide) works with your *entire* library at
   once — one file in, one file out.
@@ -278,6 +285,12 @@ Three related features are easy to mix up:
   another caller can import — happens from that dance or program, not here,
   and leaves out private details a backup keeps. See
   [Share, print & export](./sharing.md).
+- **A spreadsheet of your dances or programs** (CSV) opens in Excel, Numbers
+  or Google Sheets, but it follows the sharing rules (plus your star ratings
+  for dances, and your pay for programs) and can't be restored, so it is no
+  substitute for a backup. See
+  [Export dances as a spreadsheet](./sharing.md#export-dances-as-a-spreadsheet-csv)
+  and [Export programs as a spreadsheet](./sharing.md#export-programs-as-a-spreadsheet-csv).
 - **Importing** brings dances in from other apps and sources — such as
   The Caller's Box, ContraDB, or another Caller's Compendium file — and
   *merges* them alongside what you already have. See

@@ -1,0 +1,9 @@
+{
+  "id": "2327-read-figures-from-a-picture-on-windows",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Add figures from text ▸ From an image… now works on Windows too: the picture's text is read on the device by Windows' own text recognition, in the languages whose Windows language packs are installed. Nothing is sent or downloaded, and the picture is not kept."
+    ]
+  }
+}

@@ -209,6 +209,15 @@ ALTERNATE_TITLE_EXEMPTIONS: dict[str, frozenset[str]] = {
     "packages/compendium_core/lib/src/model/figure.dart": frozenset(
         {"normalizeContainerTitle"}
     ),
+    # The stored form of a dance's other titles (`Dance.alternateTitles`):
+    # whitespace collapsed, trimmed, blanks and repeats dropped. It keeps
+    # articles, case and punctuation as typed, because the list is shown and
+    # searched, not matched. It is never a sync, merge, dedupe or identity key:
+    # the choreography fingerprint leaves other titles out, and a fresh-attach
+    # merge unions the stored lists as plain strings.
+    "packages/compendium_core/lib/src/model/dance.dart": frozenset(
+        {"normalizeAlternateTitles"}
+    ),
     # Online-source query text and exact-title matching (`lookupUniqueExactTitle`).
     # They fold only typographic punctuation and keep articles and ASCII
     # punctuation, so an unattended program import never treats `Archive` as

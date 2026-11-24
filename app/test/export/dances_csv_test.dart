@@ -1,0 +1,641 @@
+import 'dart:convert';
+import 'dart:ui' show Locale;
+
+import 'package:compendium_app/l10n/app_localizations.dart';
+import 'package:compendium_app/src/data/csv_import_mapping.dart';
+import 'package:compendium_app/src/export/dances_csv.dart';
+import 'package:compendium_app/src/export/export_labels_l10n.dart';
+import 'package:compendium_app/src/export/share_sanitization.dart';
+import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
+
+import 'rfc4180_test_reader.dart';
+
+/// The dances CSV export (#2332): what it carries, what it leaves out, and the
+/// file format it always writes.
+void main() {
+  final now = DateTime.utc(2026, 11, 23);
+  final en = lookupAppLocalizations(const Locale('en'));
+  final plainRenderer = FigureRenderer(shippedTaxonomies.anyForm);
+
+  final author = Choreographer(
+    id: 'c1',
+    name: 'Mary Example',
+    email: 'mary.secret@example.invalid',
+    location: 'Secretville, Nowhere',
+    deceased: true,
+  );
+  final interpreter = Choreographer(
+    id: 'c2',
+    name: 'Ivan Interpreter',
+    email: 'ivan.secret@example.invalid',
+    location: 'Hiddenham',
+  );
+  final sharedField = CustomFieldDef(
+    id: 'f-shared',
+    key: 'season',
+    label: 'Season',
+    type: CustomFieldType.text,
+  );
+  final privateField = CustomFieldDef(
+    id: 'f-private',
+    key: 'privateNote',
+    label: 'Private column',
+    type: CustomFieldType.text,
+    shareable: false,
+  );
+  final countField = CustomFieldDef(
+    id: 'f-count',
+    key: 'count',
+    label: 'Count',
+    type: CustomFieldType.number,
+  );
+  final userFigure = UserGlossaryEntry(
+    id: 'uf1',
+    kindName: UserGlossaryEntryKind.customFigure.name,
+    name: 'zoom',
+    definition: 'A figure.',
+    description: 'Of your own.',
+    notes: 'MY-PRIVATE-FIGURE-NOTE',
+    payload: {
+      'form': 'contra',
+      'template': '{who} zoom',
+      'defaultBeats': 8,
+      'params': [
+        {'key': 'who', 'kind': 'dancerSet', 'default': 'neighbors'},
+      ],
+    },
+    createdAt: now,
+  );
+  final lookups = DancesCsvLookups(
+    choreographersById: {author.id: author, interpreter.id: interpreter},
+    tagsById: {'t1': Tag(id: 't1', name: 'Favourite')},
+    sourcesById: {
+      's1': PublishedSource(id: 's1', title: 'Zesty Contras', author: 'L.'),
+    },
+    customFields: [sharedField, privateField, countField],
+  );
+
+  Dance dance({
+    String id = 'd1',
+    String title = 'Petronella',
+    int? rating,
+    List<Figure> figures = const [],
+    String callingNotes = '',
+    List<CustomFieldValue> customFields = const [],
+  }) => Dance(
+    id: id,
+    title: title,
+    authorIds: [author.id],
+    interpreterIds: [interpreter.id],
+    figures: figures,
+    callingNotes: callingNotes,
+    rating: rating,
+    tagIds: const ['t1'],
+    tunes: const ['Reel'],
+    meter: '2/4',
+    musicalKey: 'D',
+    mixer: true,
+    customFields: customFields,
+    sourceCitations: [SourceCitation(sourceId: 's1', page: '12')],
+    createdAt: now,
+    updatedAt: now,
+  );
+
+  String build(
+    List<Dance> dances, {
+    AppLocalizations? l10n,
+    DialectsByForm? dialects,
+    FigureRenderer? renderer,
+  }) => buildDancesCsv(
+    dances,
+    l10n: l10n ?? en,
+    dialects: dialects ?? DialectsByForm.all(Dialect.larksRobins),
+    renderer: renderer ?? plainRenderer,
+    lookups: lookups,
+  );
+
+  group('names with a comma or backslash', () {
+    test('survive a round trip through the export and the import', () async {
+      final tags = {
+        't1': Tag(id: 't1', name: 'Hey, Ho'),
+        't2': Tag(id: 't2', name: r'Back\slash'),
+        't3': Tag(id: 't3', name: 'Plain'),
+      };
+      final tricky = dance().copyWith(
+        tagIds: const ['t1', 't2', 't3'],
+        tunes: const ['Say, What', r'C:\temp, and\', 'Reel'],
+      );
+      final csv = buildDancesCsv(
+        [tricky],
+        l10n: en,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        renderer: plainRenderer,
+        lookups: DancesCsvLookups(
+          choreographersById: lookups.choreographersById,
+          tagsById: tags,
+          sourcesById: lookups.sourcesById,
+        ),
+      );
+      final rows = readCsv(csv);
+      final header = rows.first;
+      final cells = rows[1];
+      expect(
+        cells[header.indexOf(en.csvColumnTags)],
+        r'Hey\, Ho, Back\\slash, Plain',
+      );
+      expect(
+        cells[header.indexOf(en.csvColumnTunes)],
+        r'Say\, What, C:\\temp\, and\\, Reel',
+      );
+
+      final adapter = CsvAdapter();
+      final found = await adapter.discover(
+        ImportRequest(
+          payload: csv,
+          options: {
+            CsvAdapter.mappingOption: CsvImportMapping(
+              separator: ',',
+              hasHeader: true,
+              columns: autoMapCsvColumns(header, header.length, [en], const []),
+              existingFields: const {},
+            ),
+          },
+        ),
+      );
+      final back = adapter.parse(await adapter.fetch(found.single)).dance;
+      expect(back.tagIds, [
+        for (final n in ['Hey, Ho', r'Back\slash', 'Plain'])
+          '$kCsvTagPlaceholderPrefix$n',
+      ]);
+      expect((back.tunesSource as DecodedTunes).tunes, [
+        'Say, What',
+        r'C:\temp, and\',
+        'Reel',
+      ]);
+    });
+
+    test('an author or interpreter with a comma survives a round trip, and '
+        'one without is written as before (#2332)', () async {
+      final authors = [
+        Choreographer(id: 'a1', name: 'Smith, John'),
+        Choreographer(id: 'a2', name: r'Back\slash, Sr.'),
+        Choreographer(id: 'a3', name: 'Mary Example'),
+      ];
+      final tricky = dance().copyWith(
+        authorIds: const ['a1', 'a2', 'a3'],
+        interpreterIds: const ['a1', 'a3'],
+      );
+      String export(Dance d) => buildDancesCsv(
+        [d],
+        l10n: en,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        renderer: plainRenderer,
+        lookups: DancesCsvLookups(
+          choreographersById: {for (final c in authors) c.id: c},
+          tagsById: lookups.tagsById,
+          sourcesById: lookups.sourcesById,
+        ),
+      );
+      final csv = export(tricky);
+      final rows = readCsv(csv);
+      final header = rows.first;
+      expect(
+        rows[1][header.indexOf(en.csvColumnAuthors)],
+        r'Smith\, John, Back\\slash\, Sr., Mary Example',
+      );
+      expect(
+        rows[1][header.indexOf(en.csvColumnInterpreters)],
+        r'Smith\, John, Mary Example',
+      );
+
+      final adapter = CsvAdapter();
+      final found = await adapter.discover(
+        ImportRequest(
+          payload: csv,
+          options: {
+            CsvAdapter.mappingOption: CsvImportMapping(
+              separator: ',',
+              hasHeader: true,
+              columns: autoMapCsvColumns(header, header.length, [en], const []),
+              existingFields: const {},
+            ),
+          },
+        ),
+      );
+      final draft = adapter.parse(await adapter.fetch(found.single));
+      expect(draft.authorNames, [
+        'Smith, John',
+        r'Back\slash, Sr.',
+        'Mary Example',
+      ]);
+
+      final plainRows = readCsv(build([dance()]));
+      expect(
+        plainRows[1][plainRows.first.indexOf(en.csvColumnAuthors)],
+        'Mary Example',
+      );
+      expect(
+        plainRows[1][plainRows.first.indexOf(en.csvColumnInterpreters)],
+        'Ivan Interpreter',
+      );
+    });
+
+    test('a name with neither is written exactly as before', () {
+      final csv = buildDancesCsv(
+        [
+          dance().copyWith(
+            tagIds: const ['t1', 't3'],
+            tunes: const ['Reel', "Rory O'More"],
+          ),
+        ],
+        l10n: en,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        renderer: plainRenderer,
+        lookups: DancesCsvLookups(
+          tagsById: {
+            't1': Tag(id: 't1', name: 'Favourite'),
+            't3': Tag(id: 't3', name: 'Hey Ho'),
+          },
+        ),
+      );
+      final rows = readCsv(csv);
+      expect(
+        rows[1][rows.first.indexOf(en.csvColumnTags)],
+        'Favourite, Hey Ho',
+      );
+      expect(
+        rows[1][rows.first.indexOf(en.csvColumnTunes)],
+        "Reel, Rory O'More",
+      );
+    });
+  });
+
+  group('custom field headers', () {
+    CustomFieldDef field(String id, String label, {bool shareable = true}) =>
+        CustomFieldDef(
+          id: id,
+          key: id,
+          label: label,
+          type: CustomFieldType.text,
+          shareable: shareable,
+        );
+
+    test('labels shared by several fields, or equal to a built-in column, get '
+        'unique headers that import maps back to their own fields', () {
+      final fields = [
+        field('a', 'Story'),
+        field('hidden', 'Story', shareable: false),
+        field('b', 'Story'),
+        field('c', en.csvColumnTitle),
+        field('d', 'story (2)'),
+        field('e', en.csvColumnRating),
+        field('f', en.csvColumnBarnes),
+        field('g', en.danceEditorSingingLabel),
+      ];
+      final withValues = dance(
+        customFields: [
+          for (final f in fields)
+            CustomFieldValue(fieldId: f.id, value: 'v-${f.id}'),
+        ],
+      );
+      final csv = buildDancesCsv(
+        [withValues],
+        l10n: en,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        renderer: plainRenderer,
+        lookups: DancesCsvLookups(customFields: fields),
+      );
+      final header = csvRecords(csv).single.keys.toList();
+      final custom = header.skip(header.indexOf(en.csvColumnFigures) + 1);
+      expect(custom, [
+        'Story',
+        'Story (2)',
+        'Title (2)',
+        'story (2) (2)',
+        'Rating (2)',
+        'Barnes reference (2)',
+        'Singing call (2)',
+      ]);
+      expect(
+        {for (final h in header) h.toLowerCase()}.length,
+        header.length,
+        reason: 'no two headers fold alike',
+      );
+
+      final mapped = autoMapCsvColumns(header, header.length, [en], fields);
+      final customMappings = mapped.skip(
+        header.indexOf(en.csvColumnFigures) + 1,
+      );
+      expect(customMappings, [
+        CsvColumnMapping.customField('a'),
+        CsvColumnMapping.customField('b'),
+        CsvColumnMapping.customField('c'),
+        CsvColumnMapping.customField('d'),
+        CsvColumnMapping.customField('e'),
+        CsvColumnMapping.customField('f'),
+        CsvColumnMapping.customField('g'),
+      ]);
+      expect(
+        mapped[header.indexOf(en.danceEditorSingingLabel)],
+        isNot(CsvColumnMapping.customField('g')),
+        reason: "the built-in Singing call column does not fill the field",
+      );
+      expect(
+        mapped[header.indexOf(en.csvColumnTitle)],
+        const CsvColumnMapping(CsvColumnTarget.title),
+        reason: 'the built-in Title column keeps the title',
+      );
+    });
+  });
+
+  group('what stays private', () {
+    test("an author's email, location and deceased mark never appear", () {
+      final csv = build([dance()]);
+      for (final secret in [
+        'mary.secret@example.invalid',
+        'Secretville',
+        'ivan.secret@example.invalid',
+        'Hiddenham',
+      ]) {
+        expect(csv, isNot(contains(secret)), reason: secret);
+      }
+      final row = csvRecords(csv).single;
+      expect(row[en.csvColumnAuthors], 'Mary Example');
+      expect(
+        row[en.csvColumnInterpreters],
+        'Ivan Interpreter',
+        reason: 'the name alone: no deceased mark beside it',
+      );
+      expect(csv, isNot(contains('†')));
+      expect(csv.toLowerCase(), isNot(contains('deceased')));
+    });
+
+    test('a note on one of your own figures never appears', () {
+      final renderer = FigureRenderer(
+        shippedTaxonomies.anyForm,
+        userFigures: UserFigureCatalog.fromEntries([userFigure]),
+      );
+      final csv = build([
+        dance(
+          figures: [
+            userFigureUseFigure(
+              id: userFigure.id,
+              args: const {'who': 'neighbors'},
+              text: 'neighbors zoom',
+              beats: 8,
+            ),
+          ],
+        ),
+      ], renderer: renderer);
+      expect(
+        csvRecords(csv).single[en.csvColumnFigures],
+        contains('zoom'),
+        reason: 'the figure itself is exported, worded as it reads',
+      );
+      expect(csv, isNot(contains('MY-PRIVATE-FIGURE-NOTE')));
+    });
+
+    test('a custom field with Include in sharing off has no column and no '
+        'value', () {
+      final csv = build([
+        dance(
+          customFields: [
+            CustomFieldValue(fieldId: sharedField.id, value: 'Winter'),
+            CustomFieldValue(fieldId: privateField.id, value: 'TOP-SECRET'),
+            CustomFieldValue(fieldId: countField.id, value: -3.0),
+          ],
+        ),
+      ]);
+      expect(csv, isNot(contains('TOP-SECRET')));
+      expect(csv, isNot(contains('Private column')));
+      final row = csvRecords(csv).single;
+      expect(row['Season'], 'Winter');
+      expect(row['Count'], '-3', reason: 'a plain number is not guarded');
+    });
+  });
+
+  group('the star rating, the one exception to the share rules', () {
+    test(
+      'a rated dance exports its rating and an unrated one an empty cell',
+      () {
+        final rows = csvRecords(
+          build([
+            dance(id: 'd1', title: 'Alpha', rating: 4),
+            dance(id: 'd2', title: 'Bravo'),
+          ]),
+        );
+        expect(rows.map((r) => r[en.csvColumnTitle]), ['Alpha', 'Bravo']);
+        expect(rows[0][en.csvColumnRating], '4');
+        expect(rows[1][en.csvColumnRating], '');
+      },
+    );
+
+    test('the share sanitiser still drops the rating', () {
+      expect(sanitizeDanceForShare(dance(rating: 4)).rating, isNull);
+    });
+  });
+
+  group('the file format never follows the region', () {
+    for (final locale in ['da', 'de', 'fr', 'nl', 'ja']) {
+      test('commas and UTF-8 with a byte-order mark under $locale', () {
+        final previous = Intl.defaultLocale;
+        Intl.defaultLocale = locale;
+        addTearDown(() => Intl.defaultLocale = previous);
+        final l10n = lookupAppLocalizations(Locale(locale));
+        final csv = build([
+          dance(
+            customFields: [
+              CustomFieldValue(fieldId: countField.id, value: 2.5),
+            ],
+          ),
+        ], l10n: l10n);
+
+        expect(utf8.encode(csv).take(3), [0xEF, 0xBB, 0xBF]);
+        expect(csv, isNot(contains(';')));
+        final rows = readRfc4180(csv);
+        expect(rows.first.first, l10n.csvColumnTitle);
+        expect(rows.first, contains(l10n.csvColumnFigures));
+        expect(rows[1].length, rows.first.length);
+        expect(
+          csvRecords(csv).single['Count'],
+          '2.5',
+          reason: 'a decimal point, never a decimal comma',
+        );
+      });
+    }
+  });
+
+  test('formula-like titles and notes are written as text', () {
+    final csv = build([
+      dance(id: 'd1', title: '=HYPERLINK("http://example.invalid","x")'),
+      dance(id: 'd2', title: 'Plus', callingNotes: '+1+1'),
+      dance(id: 'd3', title: 'Minus', callingNotes: '-1+1'),
+      dance(id: 'd4', title: 'At', callingNotes: '@SUM(A1)'),
+    ]);
+    final rows = csvRecords(csv);
+    final byTitle = {for (final r in rows) r[en.csvColumnTitle]!: r};
+    expect(
+      byTitle.keys,
+      contains('\'=HYPERLINK("http://example.invalid","x")'),
+    );
+    expect(byTitle['Plus']![en.csvColumnCallingNotes], "'+1+1");
+    expect(byTitle['Minus']![en.csvColumnCallingNotes], "'-1+1");
+    expect(byTitle['At']![en.csvColumnCallingNotes], "'@SUM(A1)");
+  });
+
+  test('commas, quotes, line breaks, accents and Japanese survive an RFC 4180 '
+      'read', () {
+    const title = 'Café, "the" ダンス';
+    const notes = 'Line one, with a comma\nLine "two"';
+    final row = csvRecords(
+      build([dance(title: title, callingNotes: notes)]),
+    ).single;
+    expect(row[en.csvColumnTitle], title);
+    expect(row[en.csvColumnCallingNotes], notes);
+    expect(row[en.csvColumnTags], 'Favourite');
+    expect(row[en.csvColumnTunes], 'Reel');
+    expect(row[en.csvColumnSources], 'Zesty Contras — L. (p. 12)');
+    expect(row[en.csvColumnMixer], en.commonYes);
+    expect(row[en.csvColumnMixedLevel], en.commonNo);
+  });
+
+  test('figures are worded in the active dialect, as the text export words '
+      'them', () {
+    final figured = dance(
+      figures: [
+        Figure(move: 'allemande', params: const {'who': 'role1s', 'beats': 8}),
+        Figure(
+          move: 'swing',
+          params: const {'who': 'partners', 'beats': 16},
+          progression: true,
+          note: 'role2s end on the right',
+        ),
+      ],
+    );
+    final dialects = DialectsByForm.all(Dialect.leadsFollows);
+    final cell = csvRecords(
+      build([figured], dialects: dialects),
+    ).single[en.csvColumnFigures]!;
+
+    final text = danceToPlainText(
+      figured,
+      dialect: Dialect.leadsFollows,
+      authorNames: [author.name],
+      formationLabel: '',
+      statusLabel: '',
+      renderer: plainRenderer,
+      labels: danceExportLabels(en),
+    );
+    final heading = danceExportLabels(en).heading(en.exportLabelFigures);
+    final lines = text.split('\n');
+    final start = lines.indexOf(heading) + 1;
+    final textFigures = lines
+        .skip(start)
+        .takeWhile((l) => l.isNotEmpty)
+        .join('\n');
+
+    expect(cell, textFigures);
+    expect(cell, contains('leads'), reason: 'the injected dialect is used');
+    expect(cell, isNot(contains('larks')));
+    expect(cell, contains('follows end on the right'));
+  });
+
+  test('the Barnes reference and the composed and interpreted dates have '
+      'columns of their own', () {
+    final ecd = Dance(
+      id: 'e1',
+      title: 'Hole in the Wall',
+      form: DanceForm.ecd,
+      authorIds: [author.id],
+      interpreterIds: [interpreter.id],
+      barnesReference: 'BIII p. 92',
+      composedOn: PartialDate(1951),
+      interpretedOn: PartialDate(1916, 3, 14),
+      createdAt: now,
+      updatedAt: now,
+    );
+    final row = csvRecords(build([ecd])).single;
+    expect(row[en.csvColumnBarnes], 'BIII p. 92');
+    expect(row[en.csvColumnComposed], '1951');
+    expect(row[en.csvColumnInterpreted], '1916-03-14');
+
+    final contra = csvRecords(build([dance()])).single;
+    expect(contra[en.csvColumnBarnes], '');
+    expect(contra[en.csvColumnComposed], '');
+    expect(contra[en.csvColumnInterpreted], '');
+  });
+
+  test("a square's own fields have columns, blank for another form "
+      '(ADR-007 §8.1)', () {
+    final square = Dance(
+      id: 's1',
+      title: 'Circle Three Quarters',
+      form: DanceForm.square,
+      repeatOrder: SquareRepeatOrder.headsHeadsSidesSides,
+      newPartner: SquareNewPartner.other,
+      newPartnerText: 'The original corner',
+      createdAt: now,
+      updatedAt: now,
+    );
+    final row = csvRecords(build([square])).single;
+    expect(row[en.danceEditorSquareKindLabel], 'Main part');
+    expect(
+      row[en.danceEditorRepeatOrderLabel],
+      'Heads twice, then sides twice',
+    );
+    expect(row[en.danceEditorNewPartnerLabel], 'The original corner');
+    expect(row[en.danceEditorSingingLabel], en.commonNo);
+
+    final contra = csvRecords(
+      build([dance().copyWith(repeatOrder: SquareRepeatOrder.allFour)]),
+    ).single;
+    expect(contra[en.danceEditorRepeatOrderLabel], '');
+    expect(contra[en.danceEditorSingingLabel], '');
+  });
+
+  test("a square's `other` text is worded as the dance page words it, and "
+      'only a main part is a singing call', () {
+    final square = Dance(
+      id: 's1',
+      title: 'Gypsy Square',
+      form: DanceForm.square,
+      squareKind: SquareKind.breakPart,
+      newPartner: SquareNewPartner.other,
+      newPartnerText: 'Gypsy partner',
+      singing: true,
+      createdAt: now,
+      updatedAt: now,
+    );
+    final row = csvRecords(
+      buildDancesCsv(
+        [square],
+        l10n: en,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        renderer: plainRenderer,
+        lookups: lookups,
+        canonicalizeDiscouragedTerms: true,
+      ),
+    ).single;
+    expect(row[en.danceEditorNewPartnerLabel], 'Shoulder round partner');
+    expect(row[en.danceEditorSingingLabel], en.commonNo);
+    expect(
+      csvRecords(
+        build([square.copyWith(squareKind: SquareKind.main)]),
+      ).single[en.danceEditorSingingLabel],
+      en.commonYes,
+    );
+  });
+
+  test('the file name is the localized stem and the date', () {
+    expect(
+      dancesCsvFileName('dances', DateTime(2026, 11, 23)),
+      'dances_2026-11-23.csv',
+    );
+    expect(
+      dancesCsvFileName('tänze', DateTime(2026, 11, 23)),
+      'tänze_2026-11-23.csv',
+    );
+  });
+}

@@ -3,6 +3,7 @@ import 'package:compendium_app/src/export/calling_card_pdf.dart';
 import 'package:compendium_app/src/export/dance_pdf.dart';
 import 'package:compendium_app/src/export/program_pdf.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -48,6 +49,7 @@ CallingCardEntry _entry(Dance d) => CallingCardEntry(
   number: '',
   labels: (
     authorNames: const [],
+    interpreterNames: const <String>[],
     formationLabel: 'Duple minor',
     levelLabel: null,
     statusLabel: 'Active',
@@ -98,6 +100,50 @@ void main() {
     });
   });
 
+  Dance mixed(List<int> beats) => _english().copyWith(
+    phraseStructure: 'A:2*4*3 + B:1*8*2',
+    figures: [
+      for (final (i, b) in beats.indexed)
+        testFigure(
+          move: i.isEven ? 'ecd_siding' : 'ecd_turn_single',
+          params: {'beats': b},
+        ),
+    ],
+  );
+
+  test('a calling card counts a tune whose phrases differ in the bars of '
+      'each phrase', () async {
+    // 12 beats are 4 bars of 3, and 8 from beat 24 are 4 bars of 2.
+    final text = await _card(mixed([12, 12, 8]));
+    expect(text, contains('4'));
+    expect(text, isNot(contains('12')));
+    expect(text, isNot(contains('8')));
+  });
+
+  test('a mixed card with a count that is no whole number of half bars '
+      'stays in beats', () async {
+    final text = await _card(mixed([12, 5]));
+    expect(text, contains('12'));
+    expect(text, contains('5'));
+  });
+
+  test('the dance PDF counts a figure across the change by its own '
+      'phrases', () async {
+    final text = pdfText(
+      await buildDancePdf(
+        mixed([18, 10]),
+        dialect: Dialect.canonical,
+        authorNames: const [],
+        formationLabel: 'Duple minor',
+        statusLabel: 'Active',
+        theme: _theme,
+      ),
+    );
+    expect(text, contains('6 bars'));
+    expect(text, contains('4 bars'));
+    expect(text, isNot(contains('beats')));
+  });
+
   test('the dance PDF counts an English dance in bars', () async {
     final text = pdfText(
       await buildDancePdf(
@@ -111,6 +157,30 @@ void main() {
     );
     expect(text, contains('6 bars'));
     expect(text, contains('1½ bars'));
+    expect(text, isNot(contains('beats')));
+  });
+
+  test('the set-list PDF\'s figures appendix counts a tune whose phrases '
+      'differ by phrase', () async {
+    final english = mixed([18, 10]);
+    final text = pdfText(
+      await buildProgramPdf(
+        Program(
+          id: 'p1',
+          title: 'Friday Dance',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'e')],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+        titleFor: (id) => english.title,
+        formLabelFor: (id) => 'English (ECD)',
+        appendDances: [(dance: english, isAlternate: false)],
+        danceLabels: const DanceExportLabels(),
+        theme: _theme,
+      ),
+    ).replaceAll(r'\', '');
+    expect(text, contains('6 bars'));
+    expect(text, contains('4 bars'));
     expect(text, isNot(contains('beats')));
   });
 

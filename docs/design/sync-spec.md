@@ -730,9 +730,13 @@ Canonical JSON means:
 - envelope fields always present, `null` where empty;
 - body fields: explicit `null` for an empty `shareable` field, omission **only**
   for a field that is not `shareable`, with one exception: a dance's `meter`,
-  `musicalKey`, `formation.improper`, `interpreterIds` and `interpretedOn`
-  (schema v42) are omitted when they hold their default (`''`, `''`, `false`,
-  `[]`, `null`), and a receiver reads a missing one as that default (§6.7);
+  `musicalKey`, `formation.improper`, `interpreterIds`, `interpretedOn`,
+  `alternateTitles` and `barnesReference` (schema v42) are omitted when they
+  hold their default (`''`, `''`, `false`, `[]`, `null`, `[]`, `''`), as are
+  the square fields `squareKind` (`main`), `repeatOrder` and `newPartner`
+  (`unstated`), `repeatOrderText` and `newPartnerText` (`''`), `singing`
+  (`false`) and `freeForm` (`null`, following the kind), and a receiver reads
+  a missing one as that default (§6.7);
 - **timestamps emitted at exactly one-tick precision** (§2), UTC, with the
   sub-tick component always zero;
 - **all strings in Unicode NFC**, normalised on write as described below.
@@ -2961,8 +2965,9 @@ republishes, which is an ordinary upload and needs no special path.
    than a UUID: two attached devices that each set the same shareable preference
    before the next pass reach exactly this state, and 64 settings keys are
    `shareable` (exact keys in `settingsClassifications` whose egress is
-   `shareable`, counted 2026-10-15), as is one prefix entry,
-   `sync_capabilities:` (§6.15). Records with UUID ids reach it too, because archive
+   `shareable`, counted 2026-10-15), as are three prefix entries,
+   `program_template:`, `saved_search:` and `sync_capabilities:` (§6.15).
+   Records with UUID ids reach it too, because archive
    import preserves ids, so two devices importing one bundle and then editing it
    locally collide on the same id.
 
@@ -3724,7 +3729,10 @@ reconciliation.
 > merge (§6.10), and a user's merge of two or more tags, authors or sources
 > (`ReferenceEditRepository.merge`). A user merge adds no record kind and no
 > key, so §6.15's gate does not apply. Its peers learn of it from ordinary
-> records.
+> records, among them each saved search (§6.15, `savedSearches.v1`) the merge
+> rewrote from a loser's id to the survivor's, which is an ordinary settings
+> edit of that search's own key (#2325), so it wins or loses against a peer's
+> concurrent edit of the same search by the usual per-key stamp rule.
 >
 > 1. **The surviving id is the lexicographically smaller UUID** of all the
 >    entries merged, whichever one the user merged *into*. That entry's fields
@@ -3988,8 +3996,12 @@ independently consult the registry to decide which absences mean *preserve*.
 The exception is the dance fields added after Device Sync shipped, listed in
 `omittedDanceDefaults` and `omittedFormationDefaults`
 (`archive_entity_codec.dart`): `meter`, `musicalKey` and `formation.improper`
-(ADR-006 §12, F2 and F3), and `interpreterIds` and `interpretedOn` (ADR-006
-§9.2). The sender omits each when it holds its default, so a
+(ADR-006 §12, F2 and F3), `interpreterIds` and `interpretedOn` (ADR-006
+§9.2), `alternateTitles` and `barnesReference` (ADR-006 §9.2, point 9), and
+the square fields `squareKind`, `repeatOrder`, `repeatOrderText`,
+`newPartner`, `newPartnerText`, `singing` and `freeForm` (ADR-007 §8.1). The
+sender omits
+each when it holds its default, so a
 dance that never had one keeps the body, and the content hash, it had before
 the field existed: no device republishes every dance on updating, and a device
 on an older build has nothing to keep for it. A receiver that knows the field
@@ -4011,6 +4023,22 @@ than v42 keeps the key aside without knowing it cites anyone, so a deletion of
 a person credited only as interpreter there is not refused, and a merge of two
 people there leaves the kept key naming the loser until a newer device
 rewrites it through the alias.
+
+A fresh-attach merge also unions `alternateTitles`, every copy's other titles
+in order with repeats dropped, and takes `barnesReference` from the latest
+copy, as it takes `meter`, but only when that copy has the merged dance's
+form: only an ECD dance holds one, and a merge the person chose may join
+copies of different forms, so a newer copy of another form leaves the
+survivor's value alone. Neither is part of the choreography fingerprint,
+which a build older than v42 computes without them.
+
+The square fields are taken from the latest copy too, each one omitted when
+that copy leaves it at its default. They are kept for every form, so unlike
+`barnesReference` the latest copy's form does not matter. None is part of the
+choreography fingerprint. A value this build does not know (a newer build's)
+reads as the default, as an unknown `progression` or `status` does, so an
+edit here writes the default back. Each text depends on its value as well as its own
+column (`wire_mapping.dart`): a value moved off `other` drops the text.
 
 **A field the receiver does not sync is kept, not dropped and not applied.**
 Any part of an inbound body that the receiver does not classify `shareable` for
@@ -5021,7 +5049,9 @@ version. So data of that kind waits, per store, until every attached device
 says it can read it.
 
 **Capabilities.** A capability is a name (`glossary.v1`) for a set of record
-kinds and settings keys, and of `glossaryEntry` records by the entry's `kind`
+kinds and settings keys (exact keys, or every key under a prefix such as
+`program_template:`, an exact key winning over a prefix and a longer prefix
+over a shorter one; #2337), and of `glossaryEntry` records by the entry's `kind`
 (#1023): an entry of a kind gated on a capability of its own waits for that
 one, and any other entry for its record kind's. A build advertises the
 capabilities it fully supports, sync included. Named rather than numbered, so
@@ -5165,6 +5195,69 @@ that change it gated them without advertising the capability, so they were
 held back on every pass with no notice. That change is subject to *Rollout*:
 a device on a build that lists only `glossary.v1` holds `glossary.v2` closed and
 is named for it, while what `glossary.v1` gates publishes past it.
+
+**`programTemplates.v1`.** Gates the program templates (#2337): every
+settings key under the `program_template:` prefix (one key per template), and
+the exact keys `program_template_order` and `program_template_default`,
+tombstones included. A build without it knows only the single
+`default_starting_program` setting, which stays ungated and is no longer
+written. The reference client advertises it from the change that adds
+templates, so it is subject to *Rollout*: a device on a build that lists only
+the glossary capabilities holds it closed and is named for it.
+Until a device's first change to its templates, it shows the legacy Starting
+program as the first template without writing anything, and copies it into
+`program_template:starting_program` (with the default and order keys) at that
+change, stamped like the change. A device that has not yet synced therefore
+writes nothing merely by opening a screen that could overwrite, or bring back,
+what a peer already did with the copy.
+
+**`savedSearches.v1`.** Gates every settings key that starts with
+`saved_search:`, tombstones included: one saved search is one setting record
+(#2325, amended 2026-11-23). A build that does not know the prefix keeps such a
+record whole (ADR-004) but cannot read its search, so they wait for every device
+to advertise the capability. Like `programTemplates.v1`, it gates a settings **prefix**: a gated key that is
+not an exact entry matches the longest gated prefix it starts with, as the
+registry's classification does, and an exact key still wins. The reference client gated the prefix from the change that added
+storage for saved searches, before anything could create one, and advertises
+the capability from the change that completes the feature, saving and using
+them in the Collection
+(amended 2026-11-24), as `glossary.v2` was gated before #1023 was complete. So
+it is subject to *Rollout*: a device on a build that lists every other
+capability but this one holds it closed and is named for it, while what the
+others gate publishes past it. Because the server validates the prefix through
+the registry it is built from, the server MUST be deployed before the first
+client build that advertises `savedSearches.v1` (see **Server**, below, and
+§7.5). Saved searches reach a peer on a build that predates the prefix as unknown,
+retained records, which is why the gate exists. Deleting one is a tombstone that
+keeps its value until the record is purged, so a held-back deletion is published
+once the gate opens, as any gated tombstone is.
+
+**`suggestions.v1`.** Gates the Suggestions settings (#2343): the exact keys
+`suggestions_enabled`, `suggestion_settings` and, from #2348,
+`suggestions_in_perform_swap`, tombstones included. A build without it has
+none of these settings and nothing that reads them. A peer on a build that
+advertises `suggestions.v1` from before #2348 keeps
+`suggestions_in_perform_swap` as an unknown, retained setting that changes
+nothing there: the capability is not bumped for a key whose only reader is an
+optional ordering. The reference
+client advertises it from the change that adds them, so it is subject to
+*Rollout*: a device on a build that lists only the glossary capabilities and
+`programTemplates.v1` holds it closed and is named for it, while what those
+gate publishes past it. `suggestion_settings` carries its own `version`; a
+build that reads a newer one keeps it unchanged (see
+[suggestions.md](suggestions.md#stored-settings)), so the capability is not
+bumped for a change the version field covers.
+
+**`performSwap.v1`.** Gates Perform's **Swap a dance** defaults (#2346): the
+exact key `perform_swap_defaults`, tombstones included. A build without it has
+no swap sheet and nothing that reads the key. The reference client advertises
+it from the change that adds the swap sheet, so it is subject to *Rollout*: a
+device on a build that lists the glossary capabilities, `programTemplates.v1`
+and `suggestions.v1` but not this one holds it closed and is named for it,
+while what those gate publishes past it. The value carries its own `version`;
+a build that reads a newer one keeps it unchanged and its settings editor does
+not overwrite it, so the capability is not bumped for a change the version
+field covers.
 
 **Server.** The server needs no code for the gate. It validates settings keys
 and record kinds through the registry it is built from, so it MUST be deployed

@@ -28,7 +28,9 @@ class DanceCardContent {
     required this.title,
     required this.dialect,
     required this.authorNames,
+    this.creditLines = const [],
     required this.metaLines,
+    this.musicLines = const [],
     required this.figures,
     required this.callingNotes,
     required this.walkthrough,
@@ -44,6 +46,7 @@ class DanceCardContent {
     Dance dance, {
     required Dialect dialect,
     required List<String> authorNames,
+    List<String> interpreterNames = const [],
     required String formationLabel,
     String? levelLabel,
     required String statusLabel,
@@ -55,7 +58,8 @@ class DanceCardContent {
   }) {
     final fig = renderer ?? FigureRenderer(shippedTaxonomies.anyForm);
     // From the author names before [fields] gates them: a dance whose authors
-    // are left off the card keeps its larks and robins all the same.
+    // are left off the card keeps its larks and robins all the same. The
+    // interpreters never choose the dialect.
     final cardDialect = dialectForDance(
       dialect,
       title: dance.title,
@@ -73,6 +77,13 @@ class DanceCardContent {
       title: dance.title.trim(),
       dialect: cardDialect,
       authorNames: danceCardAuthorNames(authorNames, fields),
+      creditLines: danceCardCreditLines(
+        dance,
+        authorNames: authorNames,
+        interpreterNames: interpreterNames,
+        labels: labels,
+        fields: fields,
+      ),
       metaLines: danceCardMetaLines(
         dance,
         formationLabel: formationLabel,
@@ -80,6 +91,12 @@ class DanceCardContent {
         statusLabel: statusLabel,
         labels: labels,
         fields: fields,
+      ),
+      musicLines: danceCardMusicLines(
+        dance,
+        labels: labels,
+        fields: fields,
+        render: renderText,
       ),
       figures: switch (dance.figuresSource) {
         DecodedFigures(:final figures) => figures,
@@ -129,8 +146,20 @@ class DanceCardContent {
   /// Resolved, non-blank author names; empty when the field is deselected.
   final List<String> authorNames;
 
+  /// The credit lines a card prints under its title, in place of the bare
+  /// [authorNames]: the authors with the composed year, then the
+  /// interpreters with the interpreted year (see [danceCardCreditLines]);
+  /// empty when [DanceShareField.authors] is deselected or there is nothing
+  /// to credit.
+  final List<String> creditLines;
+
   /// Formation/level/mixer/status/phrase lines, already gated and labelled.
   final List<String> metaLines;
+
+  /// The meter and key line and the Barnes line, labelled, with their values
+  /// dialect-rendered (see [danceCardMusicLines]); empty when
+  /// [DanceShareField.music] is deselected or the dance has none of them.
+  final List<String> musicLines;
 
   /// The decoded figures; empty when there are none or they are unreadable.
   /// Not gated by `fields` (figures are controlled separately).

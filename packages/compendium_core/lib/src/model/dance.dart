@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 
+import '../imports/figure_parser.dart' show truncateOnRuneBoundary;
 import '../validation/validation.dart';
 import 'custom_field.dart';
 import 'dance_link.dart';
@@ -36,6 +37,73 @@ const int kMaxWalkthroughLength = 20000;
 /// decoder clamps a longer value rather than rejecting the dance.
 const int kMaxMusicLabelLength = 100;
 
+/// Upper bound on the length of one of [Dance.alternateTitles], in UTF-16
+/// code units. [normalizeAlternateTitles] cuts a longer title (on a character
+/// boundary), so every [Dance] holds the bound and a file or sync body is
+/// clamped rather than rejected; the editor stops typing at it.
+const int kMaxAlternateTitleLength = 512;
+
+/// Upper bound on how many [Dance.alternateTitles] a dance keeps. A dance
+/// rarely has more than two other names; the bound only stops a hostile file
+/// from carrying an unbounded list. [normalizeAlternateTitles] keeps the first
+/// this many, so every [Dance] holds the bound; the editor stops at it.
+const int kMaxAlternateTitles = 20;
+
+/// Whether a dance of [form] carries a [Dance.barnesReference]: only an
+/// English country dance does, since the Barnes books are ECD tune books
+/// (maintainer, 2026-11-23: "ECD only"). Elsewhere the [Dance] constructor
+/// clears it, as it clears the improper flag ([formHasImproperFlag]).
+bool formHasBarnesReference(DanceForm form) => form == DanceForm.ecd;
+
+/// Upper bound on the length of [Dance.repeatOrderText] and
+/// [Dance.newPartnerText], in UTF-16 code units. The [Dance] constructor cuts
+/// a longer value (on a character boundary), so every [Dance] holds the bound
+/// and a file or sync body is clamped rather than rejected; the editor stops
+/// typing at it.
+const int kMaxSquareDetailLength = 200;
+
+/// Upper bound on the length of [Dance.barnesReference], in UTF-16 code
+/// units. The [Dance] constructor cuts a longer value (on a character
+/// boundary), so every [Dance] holds the bound and a file or sync body is
+/// clamped rather than rejected; the editor stops typing at it.
+const int kMaxBarnesReferenceLength = 100;
+
+/// [titles] as [Dance.alternateTitles] holds them: each with its runs of
+/// whitespace (line breaks included) made one space, trimmed, and cut to
+/// [kMaxAlternateTitleLength]; then the empty ones and the repeats of an
+/// earlier one dropped, in the order given; then the first
+/// [kMaxAlternateTitles] kept.
+///
+/// A line break can never survive, which is what lets storage keep the list
+/// as one line per title. Because the [Dance] constructor applies it, the
+/// list a device stores, syncs and backs up is the list every reader decodes,
+/// so a receiver never rewrites it into a different value.
+List<String> normalizeAlternateTitles(Iterable<String> titles) {
+  final seen = <String>{};
+  final result = <String>[];
+  for (final title in titles) {
+    if (result.length == kMaxAlternateTitles) break;
+    final t = truncateOnRuneBoundary(
+      title.replaceAll(_alternateTitleWhitespace, ' ').trim(),
+      kMaxAlternateTitleLength,
+    ).trimRight();
+    if (t.isNotEmpty && seen.add(t)) result.add(t);
+  }
+  return result;
+}
+
+final RegExp _alternateTitleWhitespace = RegExp(r'\s+');
+
+/// [titles] as the `dances.alternate_titles` column stores them: one per
+/// line. Safe because a normalized title holds no line break.
+String alternateTitlesColumnText(List<String> titles) =>
+    normalizeAlternateTitles(titles).join('\n');
+
+/// The titles a `dances.alternate_titles` value holds, normalized; `''` holds
+/// none. Plain text, so no stored value can fail to read.
+List<String> alternateTitlesFromColumnText(String text) =>
+    text.isEmpty ? const [] : normalizeAlternateTitles(text.split('\n'));
+
 /// A dance transcription — the central entity of the collection.
 ///
 /// Hard invariants (thrown at construction): non-empty title, parseable
@@ -46,6 +114,7 @@ class Dance {
   Dance({
     required this.id,
     required this.title,
+    List<String> alternateTitles = const [],
     List<String> authorIds = const [],
     this.form = DanceForm.contra,
     Formation formation = const Formation(FormationShape.dupleImproper),
@@ -58,6 +127,14 @@ class Dance {
     this.walkthrough = '',
     this.meter = '',
     this.musicalKey = '',
+    String barnesReference = '',
+    this.squareKind = SquareKind.main,
+    this.repeatOrder = SquareRepeatOrder.unstated,
+    String repeatOrderText = '',
+    this.newPartner = SquareNewPartner.unstated,
+    String newPartnerText = '',
+    this.singing = false,
+    this.freeForm,
     this.status = DanceStatus.active,
     String? difficultyLevelId,
     DifficultyLevel? level,
@@ -85,6 +162,24 @@ class Dance {
        formation = formation.improper && !formHasImproperFlag(form)
            ? formation.copyWith(improper: false)
            : formation,
+       // Only an English dance has one ([formHasBarnesReference]); any
+       // other form clears it, so a contra dance never stores, sends, finds
+       // or shows it, whatever it was built from.
+       barnesReference = formHasBarnesReference(form)
+           ? truncateOnRuneBoundary(barnesReference, kMaxBarnesReferenceLength)
+           : '',
+       // The text says what `other` means, so it is kept only with `other`:
+       // a value the dropdown has moved off leaves nothing behind to store,
+       // send or show.
+       repeatOrderText = repeatOrder == SquareRepeatOrder.other
+           ? truncateOnRuneBoundary(repeatOrderText, kMaxSquareDetailLength)
+           : '',
+       newPartnerText = newPartner == SquareNewPartner.other
+           ? truncateOnRuneBoundary(newPartnerText, kMaxSquareDetailLength)
+           : '',
+       alternateTitles = List.unmodifiable(
+         normalizeAlternateTitles(alternateTitles),
+       ),
        authorIds = List.unmodifiable(authorIds),
        interpreterIds = List.unmodifiable(interpreterIds),
        // Parse eagerly so an invalid structure fails at construction.
@@ -129,6 +224,12 @@ class Dance {
   final String id;
   final String title;
 
+  /// Other names the dance is known by ("Monymusk" for "Money Musk"), in the
+  /// order entered; empty when it has none. Normalized at construction
+  /// ([normalizeAlternateTitles]): no blank titles, no repeats, no line
+  /// breaks. Shown under the title and found by a title search.
+  final List<String> alternateTitles;
+
   /// Ordered Choreographer ids ("Traditional"/"Unknown" are real rows).
   final List<String> authorIds;
   final DanceForm form;
@@ -169,6 +270,53 @@ class Dance {
   /// The tune's key, as free text ("G minor", "D"), or `''` when not given
   /// (ADR-006 §12, F3).
   final String musicalKey;
+
+  /// Where the tune is printed in the Barnes books, as free text with the
+  /// book and page in one value ("BIII p. 92"), or "NiB" for a tune Not in
+  /// Barnes; `''` when not given, and always `''` for a form other than ECD
+  /// ([formHasBarnesReference]). Never parsed: shown on the dance page and
+  /// searched as typed. Printed cards and shared text don't show it yet.
+  final String barnesReference;
+
+  /// What a square dance record holds: its main part, a break, or patter
+  /// (ADR-007 §8.1). Defaults to [SquareKind.main]. Like the other square
+  /// fields ([repeatOrder], [newPartner], [singing]) it is kept for every
+  /// form, so a dance whose form is changed and changed back loses nothing,
+  /// and it means something only when [form] is [DanceForm.square].
+  final SquareKind squareKind;
+
+  /// How a square's main part is repeated (ADR-007 §8.1); defaults to
+  /// [SquareRepeatOrder.unstated].
+  final SquareRepeatOrder repeatOrder;
+
+  /// What the order is when [repeatOrder] is [SquareRepeatOrder.other], as
+  /// free text; always `''` otherwise. Bounded by [kMaxSquareDetailLength].
+  final String repeatOrderText;
+
+  /// Who each dancer ends a time through the square with (ADR-007 §8.1);
+  /// defaults to [SquareNewPartner.unstated]. The [mixer] flag stays the
+  /// yes/no class; this says who the new partner is.
+  final SquareNewPartner newPartner;
+
+  /// Who the new partner is when [newPartner] is [SquareNewPartner.other], as
+  /// free text; always `''` otherwise. Bounded by [kMaxSquareDetailLength].
+  final String newPartnerText;
+
+  /// Whether a square's main part is a singing call (ADR-007 §8.1); its song
+  /// goes in the tunes. Defaults to `false`.
+  final bool singing;
+
+  /// Whether a square is free-form patter that follows no phrasing (ADR-007
+  /// §8.1), as the caller set it, or `null` to follow [squareKind]: on for
+  /// [SquareKind.patter], off for the others. Read [isFreeForm] for the value
+  /// that applies. Kept for every form, like the other square fields.
+  final bool? freeForm;
+
+  /// Whether this dance is free form: a square whose [freeForm] is on, or
+  /// left to its kind and patter. A free-form dance has no phrase sections
+  /// and no phrase checks; its [phraseStructure] is kept but not used.
+  bool get isFreeForm =>
+      form == DanceForm.square && (freeForm ?? squareKind == SquareKind.patter);
   final DanceStatus status;
 
   /// ID of the selected [DifficultyLevel], or `null` when unspecified.
@@ -259,12 +407,17 @@ class Dance {
 
   bool get isDeleted => deletedAt != null;
 
-  /// Figures annotated with derived phrase labels (A1, B2, …).
+  /// Figures annotated with derived phrase labels (A1, B2, …), or with none
+  /// when the dance [isFreeForm].
   /// An undecodable transcription has no figures to label, so this is empty
   /// rather than throwing. Surfacing that state to the user is deliberately not
   /// done here — see [FigureSource].
   List<SectionedFigure> get sectionedFigures => switch (figuresSource) {
-    DecodedFigures(:final figures) => deriveSections(figures, phraseStructure),
+    DecodedFigures(:final figures) => deriveSections(
+      figures,
+      phraseStructure,
+      freeForm: isFreeForm,
+    ),
     UnreadableFigures() => const [],
   };
 
@@ -274,7 +427,13 @@ class Dance {
     final issues = <ValidationIssue>[];
     switch (figuresSource) {
       case DecodedFigures(:final figures):
-        deriveSections(figures, phraseStructure, issues: issues);
+        deriveSections(
+          figures,
+          phraseStructure,
+          issues: issues,
+          checkPhraseFill: form == DanceForm.square,
+          freeForm: isFreeForm,
+        );
       // Nothing to derive, and deliberately no issue raised: `validate` reports
       // warnings about content the user can act on in the editor, and an
       // undecodable transcription is not that. Telling the user about it is its
@@ -317,6 +476,7 @@ class Dance {
   /// `clearProvenance`.
   Dance copyWith({
     String? title,
+    List<String>? alternateTitles,
     List<String>? authorIds,
     DanceForm? form,
     Formation? formation,
@@ -328,6 +488,15 @@ class Dance {
     String? walkthrough,
     String? meter,
     String? musicalKey,
+    String? barnesReference,
+    SquareKind? squareKind,
+    SquareRepeatOrder? repeatOrder,
+    String? repeatOrderText,
+    SquareNewPartner? newPartner,
+    String? newPartnerText,
+    bool? singing,
+    bool? freeForm,
+    bool clearFreeForm = false,
     DanceStatus? status,
     String? difficultyLevelId,
     @Deprecated('Use difficultyLevelId.') DifficultyLevel? level,
@@ -356,6 +525,7 @@ class Dance {
   }) => Dance(
     id: id,
     title: title ?? this.title,
+    alternateTitles: alternateTitles ?? this.alternateTitles,
     authorIds: authorIds ?? this.authorIds,
     form: form ?? this.form,
     formation: formation ?? this.formation,
@@ -373,6 +543,14 @@ class Dance {
     walkthrough: walkthrough ?? this.walkthrough,
     meter: meter ?? this.meter,
     musicalKey: musicalKey ?? this.musicalKey,
+    barnesReference: barnesReference ?? this.barnesReference,
+    squareKind: squareKind ?? this.squareKind,
+    repeatOrder: repeatOrder ?? this.repeatOrder,
+    repeatOrderText: repeatOrderText ?? this.repeatOrderText,
+    newPartner: newPartner ?? this.newPartner,
+    newPartnerText: newPartnerText ?? this.newPartnerText,
+    singing: singing ?? this.singing,
+    freeForm: clearFreeForm ? null : (freeForm ?? this.freeForm),
     status: status ?? this.status,
     difficultyLevelId: clearDifficultyLevel
         ? null
@@ -430,6 +608,7 @@ class Dance {
     return Dance(
       id: newId,
       title: newTitle ?? title,
+      alternateTitles: alternateTitles,
       authorIds: authorIds,
       form: form,
       formation: formation,
@@ -443,6 +622,14 @@ class Dance {
       walkthrough: walkthrough,
       meter: meter,
       musicalKey: musicalKey,
+      barnesReference: barnesReference,
+      squareKind: squareKind,
+      repeatOrder: repeatOrder,
+      repeatOrderText: repeatOrderText,
+      newPartner: newPartner,
+      newPartnerText: newPartnerText,
+      singing: singing,
+      freeForm: freeForm,
       status: status,
       difficultyLevelId: difficultyLevelId,
       mixedLevel: mixedLevel,
@@ -478,6 +665,7 @@ class Dance {
       other is Dance &&
       other.id == id &&
       other.title == title &&
+      _listEq.equals(other.alternateTitles, alternateTitles) &&
       _listEq.equals(other.authorIds, authorIds) &&
       other.form == form &&
       other.formation == formation &&
@@ -489,6 +677,14 @@ class Dance {
       other.walkthrough == walkthrough &&
       other.meter == meter &&
       other.musicalKey == musicalKey &&
+      other.barnesReference == barnesReference &&
+      other.squareKind == squareKind &&
+      other.repeatOrder == repeatOrder &&
+      other.repeatOrderText == repeatOrderText &&
+      other.newPartner == newPartner &&
+      other.newPartnerText == newPartnerText &&
+      other.singing == singing &&
+      other.freeForm == freeForm &&
       other.status == status &&
       other.difficultyLevelId == difficultyLevelId &&
       other.mixedLevel == mixedLevel &&

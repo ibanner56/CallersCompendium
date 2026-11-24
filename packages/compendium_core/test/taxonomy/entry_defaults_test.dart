@@ -16,7 +16,17 @@ void main() {
     'pass_the_ocean': {'balance': true, 'beats': 8},
     'trade_the_wave': {'balance': true, 'beats': 8},
     'form_long_waves': {'balance': true, 'beats': 4},
+    // Taxonomy v40: a new pass states who and where ([requiredOnEntry]), so
+    // both start unstated, as does its `pass_by` alias's.
+    'pass_through': {'who': ParamVocab.unspecified, 'where': 'unspecified'},
   };
+
+  // The moves whose entry seeds a balance (the rest of the list seeds an
+  // unstated required param).
+  final balanceSeeded = [
+    for (final MapEntry(:key, :value) in expectedEntryOverrides.entries)
+      if (value.containsKey('balance')) key,
+  ];
 
   test('entry seeds the default for every param except the listed ones', () {
     for (final id in tax.moves.keys) {
@@ -27,7 +37,8 @@ void main() {
         entry,
         {...effective, ...overrides}
           ..remove(fractionAmountParam) // seeded only with `other` (#2120)
-          ..remove(figure8DoubleParam), // stored only while true
+          ..remove(figure8DoubleParam) // stored only while true
+          ..remove(roryTwoPlacesParam), // stored only while stated (v40)
         reason:
             '$id: entry params should be its defaults plus '
             '${overrides.isEmpty ? 'nothing' : overrides}',
@@ -35,8 +46,23 @@ void main() {
     }
   });
 
+  test(
+    'a pass by, like a pass through, starts with who and where unstated',
+    () {
+      // Its own defaults (neighbors, unstated) are what an omitted param means
+      // on a stored pass by; entry seeds neither.
+      expect(tax.entryParams('pass_by'), {
+        'who': ParamVocab.unspecified,
+        'where': ParamVocab.unspecified,
+        'shoulder': 'right',
+        'beats': 2,
+        'passType': 'by',
+      });
+    },
+  );
+
   group('a figure that omits balance is still unbalanced', () {
-    for (final id in expectedEntryOverrides.keys) {
+    for (final id in balanceSeeded) {
       test(id, () {
         expect(tax.effectiveParams(testFigure(move: id))['balance'], isFalse);
         expect(tax.resolve(id)!.params['balance']!.defaultValue, isFalse);
@@ -52,9 +78,7 @@ void main() {
   });
 
   group('the entry state is one the editor itself would produce', () {
-    for (final entry in expectedEntryOverrides.entries) {
-      final id = entry.key;
-
+    for (final id in balanceSeeded) {
       test('$id: entry values raise no validation issue', () {
         // Catches an entry `beats` that `goodBeats` would flag as atypical.
         final issues = tax.validateFigure(

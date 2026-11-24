@@ -1,5 +1,6 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
 import '../../widgets/reorder_move_buttons.dart';
+
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -21,9 +22,7 @@ import '../../data/shorthand_mappings_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../editor/figure_draft.dart';
 import '../../editor/user_figure_draft.dart';
-import '../../search/collection_query.dart';
 import '../../search/collection_query_labels.dart';
-import '../../search/collection_data.dart';
 import '../../search/facet_labels.dart';
 import '../../search/program_sort.dart';
 import '../../search/program_sort_labels.dart';
@@ -34,12 +33,13 @@ import '../../utils/undo_snack_bar.dart';
 import '../../widgets/figure_list_editor.dart';
 import '../../widgets/figure_param_editors.dart';
 import '../../widgets/move_autocomplete.dart';
-import '../../widgets/collection_picker.dart';
 import '../../widgets/dirty_dialog_guard.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/settings_dropdown_row.dart';
 import '../glossary/compound_editor_screen.dart';
+import '../dance_editor/phrase_groups_editor.dart';
 import 'default_import_tags_editor.dart';
+import 'program_templates_screen.dart';
 import 'settings_keys.dart';
 import '../../widgets/app_dropdown_field.dart';
 
@@ -222,17 +222,6 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   /// a freshly-added move stay visible before its first override is recorded.
   final List<String> _moveDefaultsShown = [];
   bool _defaultMoveParamOverridesUserSet = false;
-
-  final List<StartingProgramTemplateEntry> _startingProgramTemplate = [];
-  bool _startingProgramTemplateUserSet = false;
-
-  /// Dance titles for the starting-program list, from the titles-only
-  /// projection (`null` until it resolves, and for good if it failed). The full
-  /// [CollectionData] is loaded only when the picker opens.
-  Map<String, String>? _danceTitles;
-  bool _danceTitlesRequested = false;
-  CollectionData? _collectionData;
-  Future<CollectionData?>? _collectionDataLoad;
 
   /// The opt-in "Free-text entry" dance-authoring toggle (issue #419). Defaults
   /// to `false` (off) until the read resolves and on any read failure, so the
@@ -434,17 +423,6 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           apply: (value) => setState(() => _freeTextEntry = value),
           fallback: false,
         ),
-        // A failed read keeps the empty starting-program template.
-        _loadSetting<List<StartingProgramTemplateEntry>>(
-          key: kDefaultStartingProgramKey,
-          decode: startingProgramTemplateFromStored,
-          userSet: () => _startingProgramTemplateUserSet,
-          apply: (entries) => setState(() {
-            _startingProgramTemplate
-              ..clear()
-              ..addAll(entries);
-          }),
-        ),
       ]),
     );
   }
@@ -530,125 +508,6 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     setState(() => drafts.replaceRange(index, index + 1, rows));
     unawaited(persist());
     return accepted.length;
-  }
-
-  Future<void> _persistStartingProgramTemplate() async {
-    _startingProgramTemplateUserSet = true;
-    final repos = RepositoriesScope.of(context);
-    await persistSetting(
-      repos.settings,
-      kDefaultStartingProgramKey,
-      encodeStartingProgramTemplate(_startingProgramTemplate),
-    );
-  }
-
-  /// Loads the dance titles the starting-program list prints, once per section
-  /// lifetime. A failure is logged once and not retried: [build] calls this on
-  /// every rebuild, so retrying here would reload and re-log each time.
-  void _ensureDanceTitlesLoaded(BuildContext context) {
-    if (_danceTitlesRequested) return;
-    _danceTitlesRequested = true;
-    final dances = RepositoriesScope.of(context).dances;
-    unawaited(_loadDanceTitles(dances));
-  }
-
-  Future<void> _loadDanceTitles(DanceRepository dances) async {
-    try {
-      final rows = await dances.listIdsAndTitles();
-      if (!mounted) return;
-      setState(
-        () => _danceTitles = {for (final row in rows) row.id: row.title},
-      );
-    } catch (error, stackTrace) {
-      logCaughtError(
-        error,
-        stackTrace,
-        source: 'defaults_section.starting_program_titles',
-      );
-    }
-  }
-
-  /// The full collection snapshot, for the dance picker only — [build] never
-  /// calls this. Each explicit tap on "add dance" retries a failed load.
-  Future<CollectionData?> _ensureCollectionDataLoaded(
-    BuildContext context,
-  ) async {
-    if (_collectionData != null) return _collectionData;
-    final inFlight = _collectionDataLoad;
-    if (inFlight != null) return inFlight;
-    final repos = RepositoriesScope.of(context);
-    final load = () async {
-      try {
-        final data = await CollectionData.load(repos);
-        if (mounted) {
-          setState(() {
-            _collectionData = data;
-            _danceTitles = {
-              for (final entry in data.dancesById.entries)
-                entry.key: entry.value.title,
-            };
-          });
-        }
-        return data;
-      } catch (error, stackTrace) {
-        logCaughtError(
-          error,
-          stackTrace,
-          source: 'defaults_section.starting_program_picker',
-        );
-        return null;
-      } finally {
-        _collectionDataLoad = null;
-      }
-    }();
-    _collectionDataLoad = load;
-    return load;
-  }
-
-  Future<void> _addStartingProgramDance() async {
-    final data = await _ensureCollectionDataLoaded(context);
-    if (!mounted || data == null) return;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (sheetContext) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.85,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) => Column(
-          children: [
-            ListTile(
-              title: Text(
-                AppLocalizations.of(
-                  context,
-                ).settingsDefaultsStartingProgramPickerTitle,
-              ),
-              trailing: IconButton(
-                tooltip: AppLocalizations.of(context).commonClose,
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.of(sheetContext).pop(),
-              ),
-            ),
-            Expanded(
-              child: CollectionPicker(
-                data: data,
-                dialect: ActiveDialectScope.contraOf(context),
-                enrichment: SearchEnrichment.empty,
-                scrollController: scrollController,
-                onAddDance: (danceId) {
-                  _startingProgramTemplate.add(
-                    StartingProgramTemplateEntry(danceId: danceId),
-                  );
-                  setState(() {});
-                  _persistStartingProgramTemplate();
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-      sheetAnimationStyle: AppMotion.styleFor(context),
-    );
   }
 
   Future<void> _onDefaultProgramCallerChanged(String value) async {
@@ -843,8 +702,18 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         moveId,
         () => <String, Object?>{},
       );
+      // A value the move keeps only while stated (a Rory O'More's
+      // `twoPlaces` cleared to unstated, a figure 8's `double` turned off)
+      // is the entry state, not an override: saved, it would be written into
+      // every new figure, where an older peer rejects the key.
+      bool unstated(String key, Object? v) {
+        final probe = {key: v};
+        contraTaxonomy.dropUnstatedParams(moveId, probe);
+        return !probe.containsKey(key) && !entry.containsKey(key);
+      }
+
       void record(String key, Object? v) {
-        if (v == entry[key]) {
+        if (v == entry[key] || unstated(key, v)) {
           inner.remove(key);
         } else {
           inner[key] = v;
@@ -991,7 +860,6 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   @override
   Widget build(BuildContext context) {
     _ensureDefaultsLoaded(context);
-    _ensureDanceTitlesLoaded(context);
     _ensureUserFiguresWatched(context);
     // While Custom Figures is on, the default figure lists offer the user's
     // figures for the default dance form, as the dance editor offers those
@@ -1027,42 +895,6 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       defaultProgramSortDirection: _defaultProgramSortDirection,
       onDefaultProgramSortDirectionChanged:
           _onDefaultProgramSortDirectionChanged,
-      startingProgramTemplate: _startingProgramTemplate,
-      startingProgramDanceTitles: _danceTitles ?? const {},
-      onAddStartingProgramDance: _addStartingProgramDance,
-      onAddStartingProgramText: (text) {
-        _startingProgramTemplate.add(StartingProgramTemplateEntry(text: text));
-        setState(() {});
-        _persistStartingProgramTemplate();
-      },
-      onUpdateStartingProgramText: (index, text) {
-        final entry = _startingProgramTemplate[index];
-        setState(() {
-          _startingProgramTemplate[index] = StartingProgramTemplateEntry(
-            danceId: entry.danceId,
-            text: text.trim().isEmpty ? null : text.trim(),
-          );
-        });
-        _persistStartingProgramTemplate();
-      },
-      onRemoveStartingProgramEntry: (index) {
-        setState(() => _startingProgramTemplate.removeAt(index));
-        _persistStartingProgramTemplate();
-      },
-      onReorderStartingProgramEntry: (oldIndex, newIndex) {
-        setState(() {
-          final entry = _startingProgramTemplate.removeAt(oldIndex);
-          _startingProgramTemplate.insert(newIndex, entry);
-        });
-        _persistStartingProgramTemplate();
-      },
-      onAddStartingProgramBreak: () {
-        _startingProgramTemplate.add(
-          const StartingProgramTemplateEntry(text: Program.breakSlotText),
-        );
-        setState(() {});
-        _persistStartingProgramTemplate();
-      },
       defaultDanceForm: _defaultDanceForm ?? DanceForm.contra.name,
       onDefaultDanceFormChanged: _onDefaultDanceFormChanged,
       defaultDanceFormationShape:
@@ -1669,14 +1501,6 @@ class _DefaultsView extends StatelessWidget {
     required this.onDefaultCollectionSortDirectionChanged,
     required this.defaultProgramSortDirection,
     required this.onDefaultProgramSortDirectionChanged,
-    required this.startingProgramTemplate,
-    required this.startingProgramDanceTitles,
-    required this.onAddStartingProgramDance,
-    required this.onAddStartingProgramText,
-    required this.onUpdateStartingProgramText,
-    required this.onRemoveStartingProgramEntry,
-    required this.onReorderStartingProgramEntry,
-    required this.onAddStartingProgramBreak,
     required this.defaultDanceForm,
     required this.onDefaultDanceFormChanged,
     required this.defaultDanceFormationShape,
@@ -1738,14 +1562,6 @@ class _DefaultsView extends StatelessWidget {
   final ValueChanged<SortDirection> onDefaultCollectionSortDirectionChanged;
   final SortDirection? defaultProgramSortDirection;
   final ValueChanged<SortDirection> onDefaultProgramSortDirectionChanged;
-  final List<StartingProgramTemplateEntry> startingProgramTemplate;
-  final Map<String, String> startingProgramDanceTitles;
-  final VoidCallback onAddStartingProgramDance;
-  final ValueChanged<String> onAddStartingProgramText;
-  final void Function(int index, String text) onUpdateStartingProgramText;
-  final ValueChanged<int> onRemoveStartingProgramEntry;
-  final void Function(int oldIndex, int newIndex) onReorderStartingProgramEntry;
-  final VoidCallback onAddStartingProgramBreak;
 
   /// A form's name, or [kDefaultDanceFormLastUsed].
   final String defaultDanceForm;
@@ -2159,6 +1975,13 @@ class _DefaultsView extends StatelessWidget {
                       toggleShareField(DanceShareField.sources, v ?? false),
                   title: Text(l10n.settingsDefaultsShareFieldsSources),
                 ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-share-field-music'),
+                  value: shareFields.contains(DanceShareField.music),
+                  onChanged: (v) =>
+                      toggleShareField(DanceShareField.music, v ?? true),
+                  title: Text(l10n.settingsDefaultsShareFieldsMusic),
+                ),
               ],
             );
           },
@@ -2280,16 +2103,7 @@ class _DefaultsView extends StatelessWidget {
                 ),
               ),
             ),
-            _StartingProgramTemplateEditor(
-              entries: startingProgramTemplate,
-              danceTitles: startingProgramDanceTitles,
-              onAddDance: onAddStartingProgramDance,
-              onAddText: onAddStartingProgramText,
-              onUpdateText: onUpdateStartingProgramText,
-              onAddBreak: onAddStartingProgramBreak,
-              onRemove: onRemoveStartingProgramEntry,
-              onReorder: onReorderStartingProgramEntry,
-            ),
+            const ProgramTemplatesSettingsRows(),
           ],
         ),
         ExpansionTile(
@@ -2382,6 +2196,40 @@ class _DefaultsView extends StatelessWidget {
                       label: progressionLabel(l10n, progression),
                     ),
                 ],
+              ),
+            ),
+            // The default as rows (#2304), over the same text as the field
+            // below. A default with phrase names (an English dance's) or one
+            // that does not parse is left to the field: the rows write
+            // unnamed text only.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.xs,
+                AppSpacing.md,
+                0,
+              ),
+              child: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: dancePhraseController,
+                builder: (context, value, _) {
+                  PhraseStructure? structure;
+                  try {
+                    structure = PhraseStructure.parse(value.text);
+                  } on FormatException {
+                    // diagnostics: silent — the field below holds text that
+                    // does not parse; the rows wait for a valid default.
+                    structure = null;
+                  }
+                  return PhraseGroupsEditor(
+                    key: const ValueKey('defaults-dance-phrase-rows'),
+                    title: l10n.settingsDefaultsPhraseLabel,
+                    structure: structure,
+                    onChanged: (raw, {required typed}) {
+                      dancePhraseController.text = raw;
+                      onDefaultDancePhraseChanged(raw);
+                    },
+                  );
+                },
               ),
             ),
             Padding(
@@ -2608,193 +2456,6 @@ class _DefaultsView extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-class _StartingProgramTemplateEditor extends StatefulWidget {
-  const _StartingProgramTemplateEditor({
-    required this.entries,
-    required this.danceTitles,
-    required this.onAddDance,
-    required this.onAddText,
-    required this.onUpdateText,
-    required this.onAddBreak,
-    required this.onRemove,
-    required this.onReorder,
-  });
-
-  final List<StartingProgramTemplateEntry> entries;
-  final Map<String, String> danceTitles;
-  final VoidCallback onAddDance;
-  final ValueChanged<String> onAddText;
-  final void Function(int index, String text) onUpdateText;
-  final VoidCallback onAddBreak;
-  final ValueChanged<int> onRemove;
-  final void Function(int oldIndex, int newIndex) onReorder;
-
-  @override
-  State<_StartingProgramTemplateEditor> createState() =>
-      _StartingProgramTemplateEditorState();
-}
-
-class _StartingProgramTemplateEditorState
-    extends State<_StartingProgramTemplateEditor> {
-  final _textController = TextEditingController();
-  late List<Object> _entryKeys;
-
-  @override
-  void initState() {
-    super.initState();
-    _entryKeys = List<Object>.generate(widget.entries.length, (_) => Object());
-  }
-
-  @override
-  void didUpdateWidget(covariant _StartingProgramTemplateEditor oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (_entryKeys.length < widget.entries.length) {
-      _entryKeys.addAll(
-        List<Object>.generate(
-          widget.entries.length - _entryKeys.length,
-          (_) => Object(),
-        ),
-      );
-    } else if (_entryKeys.length > widget.entries.length) {
-      _entryKeys = _entryKeys.sublist(0, widget.entries.length);
-    }
-  }
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        AppSpacing.xs,
-        AppSpacing.md,
-        AppSpacing.xs,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(l10n.settingsDefaultsStartingProgramTitle),
-          const SizedBox(height: AppSpacing.xxs),
-          Text(
-            l10n.settingsDefaultsStartingProgramSubtitle,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          for (var index = 0; index < widget.entries.length; index++)
-            Builder(
-              builder: (context) {
-                final entry = widget.entries[index];
-                return ListTile(
-                  key: ValueKey(
-                    'starting-program-note-${identityHashCode(_entryKeys[index])}',
-                  ),
-                  dense: true,
-                  title: Text(
-                    entry.danceId == null
-                        ? entry.text ?? ''
-                        : widget.danceTitles[entry.danceId] ??
-                              l10n.settingsDefaultsStartingProgramUnavailableDance,
-                  ),
-                  subtitle: entry.danceId == null
-                      ? null
-                      : TextFormField(
-                          key: ValueKey(_entryKeys[index]),
-                          initialValue: entry.text ?? '',
-                          decoration: InputDecoration(
-                            labelText:
-                                l10n.settingsDefaultsStartingProgramNoteLabel,
-                          ),
-                          onChanged: (value) =>
-                              widget.onUpdateText(index, value.trim()),
-                        ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        tooltip: l10n.settingsDefaultsStartingProgramMoveUp,
-                        icon: const Icon(Icons.arrow_upward),
-                        onPressed: index == 0
-                            ? null
-                            : () {
-                                setState(() {
-                                  final key = _entryKeys.removeAt(index);
-                                  _entryKeys.insert(index - 1, key);
-                                });
-                                widget.onReorder(index, index - 1);
-                              },
-                      ),
-                      IconButton(
-                        tooltip: l10n.settingsDefaultsStartingProgramMoveDown,
-                        icon: const Icon(Icons.arrow_downward),
-                        onPressed: index == widget.entries.length - 1
-                            ? null
-                            : () {
-                                setState(() {
-                                  final key = _entryKeys.removeAt(index);
-                                  _entryKeys.insert(index + 1, key);
-                                });
-                                widget.onReorder(index, index + 1);
-                              },
-                      ),
-                      IconButton(
-                        tooltip: l10n.commonDelete,
-                        icon: const Icon(Icons.delete_outline),
-                        onPressed: () {
-                          setState(() => _entryKeys.removeAt(index));
-                          widget.onRemove(index);
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              OutlinedButton.icon(
-                key: const ValueKey('starting-program-add-dance'),
-                onPressed: widget.onAddDance,
-                icon: const Icon(Icons.library_music_outlined),
-                label: Text(l10n.programsAddDanceButton),
-              ),
-              OutlinedButton.icon(
-                key: const ValueKey('starting-program-add-text'),
-                onPressed: () {
-                  final text = _textController.text.trim();
-                  if (text.isEmpty) return;
-                  widget.onAddText(text);
-                  _textController.clear();
-                },
-                icon: const Icon(Icons.notes_outlined),
-                label: Text(l10n.programsAddNoteBreakButton),
-              ),
-              OutlinedButton.icon(
-                key: const ValueKey('starting-program-insert-break'),
-                onPressed: widget.onAddBreak,
-                icon: const Icon(Icons.free_breakfast_outlined),
-                label: Text(l10n.programsInsertBreakButton),
-              ),
-            ],
-          ),
-          TextField(
-            controller: _textController,
-            decoration: InputDecoration(
-              labelText: l10n.settingsDefaultsStartingProgramTextLabel,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

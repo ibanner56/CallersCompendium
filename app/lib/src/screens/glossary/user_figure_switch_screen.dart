@@ -87,7 +87,13 @@ class _UserFigureSwitchScreenState extends State<UserFigureSwitchScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    // The app's figure is one of contra's, so it and its values read in
+    // contra's dialect; the user's own words for their figure's options read
+    // in the dialect of the form it was made for (#2294).
     final dialect = ActiveDialectScope.contraOf(context);
+    final figureDialect = ActiveDialectScope.of(
+      context,
+    ).forForm(widget.figure.danceForm ?? DanceForm.contra);
     final targetName = _renderer.displayMoveName(widget.target, dialect);
     final targetParams =
         contraTaxonomy.resolve(widget.target)?.params ?? const {};
@@ -189,7 +195,7 @@ class _UserFigureSwitchScreenState extends State<UserFigureSwitchScreen> {
               value: _choices[param.key]?[choice.id],
               decoration: InputDecoration(
                 labelText: l10n.userFigureSwitchChoice(
-                  _renderer.renderFreeText(choice.label, dialect),
+                  _renderer.renderFreeText(choice.label, figureDialect),
                 ),
               ),
               entries: [

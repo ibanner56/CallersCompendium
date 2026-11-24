@@ -217,6 +217,15 @@ Set<String>? syncUserVisibleFields(SyncRecordKind kind) => switch (kind) {
     'walkthrough',
     'meter',
     'musicalKey',
+    'alternateTitles',
+    'barnesReference',
+    'squareKind',
+    'repeatOrder',
+    'repeatOrderText',
+    'newPartner',
+    'newPartnerText',
+    'singing',
+    'freeForm',
     'difficultyLevelId',
     'mixedLevel',
     'mixer',
@@ -269,6 +278,13 @@ Set<String>? syncUserVisibleFields(SyncRecordKind kind) => switch (kind) {
     'payMinorUnits',
     'payCurrency',
     'archivedAt',
+    // The times (#2350): a differing time is shown, never settled silently.
+    'startMinute',
+    'endMinute',
+    'lessonMinute',
+    'arrivalMinute',
+    // Shown on the Programs list and the summary (#2354).
+    'calendarFlag',
   },
   SyncRecordKind.choreographer => const {'name', 'website', 'notes'},
   SyncRecordKind.tag => const {'name', 'color'},
@@ -335,6 +351,16 @@ Map<String, String> syncUserHiddenFields(SyncRecordKind kind) => switch (kind) {
         'program as already imported, with the import date in the badge\'s '
         'tooltip. A hint on another screen rather than a field of the '
         'program: hidden by choice in PR #1729.',
+    'calendarEventKey':
+        'A digest of the calendar event the program was imported from '
+        '(#2352). Nothing shows it: only the calendar import reads it, to '
+        'avoid offering the event again.',
+    'calendarEventFingerprint':
+        'What the calendar import last wrote from the event (#2354). Nothing '
+        'shows it: only the calendar import compares it.',
+    'calendarWrittenAt':
+        'The stamp the calendar import last wrote (#2354). Nothing shows it: '
+        'only the calendar import\'s untouched test reads it.',
   },
   SyncRecordKind.venue => const {
     'provenance':

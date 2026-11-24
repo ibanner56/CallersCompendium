@@ -202,6 +202,7 @@ void main() {
           taxonomyV38CanonicalRebuildDoneKey,
           taxonomyV39CanonicalRebuildDoneKey,
           ecdTaxonomyCanonicalRebuildDoneKey,
+          squareTaxonomyCanonicalRebuildDoneKey,
           chainHandBackfillDoneKey,
         ]) {
           await repos.settings.set(key, 'done');
@@ -914,6 +915,57 @@ void main() {
     );
   });
 
+  group('Square taxonomy canonical rebuild (ADR-007)', () {
+    test('an sq_ figure indexed while unknown re-derives as a call', () async {
+      final db = CompendiumDatabase(NativeDatabase.memory());
+      final repos = _CountingRepositories(db, shippedTaxonomies.anyForm);
+      addTearDown(db.close);
+
+      await repos.dances.create(
+        Dance(
+          id: 'sq-known',
+          title: 'A square',
+          form: DanceForm.square,
+          figures: [
+            Figure(
+              move: 'sq_swing',
+              params: {'who': 'heads', 'whom': 'opposites'},
+            ),
+          ],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await _markPre1192SweepsComplete(repos);
+      await repos.settings.remove(squareTaxonomyCanonicalRebuildDoneKey);
+      // What a build without the square taxonomy derived: the bare move ID.
+      await db.customUpdate(
+        'UPDATE dance_figures SET canonical_text = ? WHERE dance_id = ?',
+        variables: [Variable<String>('sq_swing'), Variable<String>('sq-known')],
+      );
+
+      await repos.ensureMigrated();
+
+      final indexed = await db
+          .customSelect(
+            'SELECT canonical_text FROM dance_figures WHERE dance_id = ?',
+            variables: [Variable<String>('sq-known')],
+          )
+          .get();
+      expect(indexed.map((row) => row.read<String>('canonical_text')), [
+        'heads swing opposites',
+      ]);
+      expect(
+        repos.oneTimeRepairMarkers,
+        contains(squareTaxonomyCanonicalRebuildDoneKey),
+      );
+
+      final rebuilds = repos.rebuildAttempts;
+      await repos.ensureMigrated();
+      expect(repos.rebuildAttempts, rebuilds, reason: 'runs once');
+    });
+  });
+
   group('taxonomy v35 figure normalization', () {
     // invalid-fixture: these figures deliberately use the pre-v35 persisted vocabulary
     test('rewrites legacy keys and nested structural figures', () async {
@@ -1608,16 +1660,19 @@ void main() {
     );
   });
 
-  group('v41 -> v42 upgrade (programs.archived_at, #2218)', () {
-    Future<Set<String>> programColumns(DatabaseConnectionUser db) async => {
+  group('v41 -> v42 upgrade (other titles and Barnes reference)', () {
+    Future<Set<String>> danceColumns(DatabaseConnectionUser db) async => {
       for (final row
           in await db
-              .customSelect("SELECT name FROM pragma_table_info('programs')")
+              .customSelect("SELECT name FROM pragma_table_info('dances')")
               .get())
         row.read<String>('name'),
     };
 
-    test('adds archived_at as NULL and keeps every program', () async {
+    const added = {'alternate_titles', 'barnes_reference'};
+
+    test('adds both columns empty, and an existing dance reads with no other '
+        'title and no Barnes reference', () async {
       final raw = sqlite3.sqlite3.openInMemory();
       final historical = GeneratedHelper().databaseForVersion(
         NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
@@ -1625,14 +1680,15 @@ void main() {
       );
       await historical.customSelect('SELECT 1').get();
       expect(
-        await programColumns(historical),
-        isNot(contains('archived_at')),
-        reason: 'a v41 database has no archived_at column',
+        (await danceColumns(historical)).intersection(added),
+        isEmpty,
+        reason: 'a v41 database has neither column',
       );
       await historical.customStatement(
-        "INSERT INTO programs (id, title, notes, status, hide_alternates, "
-        "created_at, updated_at) "
-        "VALUES ('p1', 'Keep', 'n', 'performed', 0, 1700000000, 1700000100)",
+        "INSERT INTO dances (id, title, form, formation_shape, "
+        "progression, status, created_at, updated_at) "
+        "VALUES ('d1', 'Money Musk', 'contra', 'tripleMinor', "
+        "'single', 'active', 1700000000, 1700000100)",
       );
       await historical.close();
 
@@ -1645,18 +1701,21 @@ void main() {
       });
       await db.customSelect('SELECT 1').get();
 
-      expect(await programColumns(db), contains('archived_at'));
-      final program = await ProgramRepository(db).getById('p1');
-      expect(program, isNotNull);
-      expect(program!.title, 'Keep');
-      expect(program.status, ProgramStatus.performed);
-      expect(program.archivedAt, isNull);
+      expect(await danceColumns(db), containsAll(added));
+      final dance = await CompendiumRepositories(
+        db,
+        contraTaxonomy,
+      ).dances.getById('d1');
+      expect(dance, isNotNull);
+      expect(dance!.title, 'Money Musk');
+      expect(dance.alternateTitles, isEmpty);
+      expect(dance.barnesReference, '');
       expect(
-        program.updatedAt,
+        dance.updatedAt,
         DateTime.fromMillisecondsSinceEpoch(1700000100 * 1000, isUtc: true),
         reason:
             'the migration must not touch updated_at, or sync would '
-            'republish every program',
+            'republish every dance',
       );
       final version = await db.customSelect('PRAGMA user_version').getSingle();
       expect(version.read<int>('user_version'), 42);
@@ -1670,7 +1729,10 @@ void main() {
       );
       await historical.customSelect('SELECT 1').get();
       await historical.close();
-      raw.execute('ALTER TABLE programs ADD COLUMN archived_at INTEGER NULL');
+      raw.execute(
+        "ALTER TABLE dances ADD COLUMN alternate_titles TEXT NOT NULL "
+        "DEFAULT ''",
+      );
 
       final db = CompendiumDatabase(
         NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
@@ -1681,7 +1743,361 @@ void main() {
       });
       await db.customSelect('SELECT 1').get();
 
-      expect(await programColumns(db), contains('archived_at'));
+      expect(await danceColumns(db), containsAll(added));
+    });
+  });
+
+  group('v41 -> v42 upgrade (square dance fields, ADR-007 §8.1)', () {
+    Future<Set<String>> danceColumns(DatabaseConnectionUser db) async => {
+      for (final row
+          in await db
+              .customSelect("SELECT name FROM pragma_table_info('dances')")
+              .get())
+        row.read<String>('name'),
+    };
+
+    const added = {
+      'square_kind',
+      'repeat_order',
+      'repeat_order_text',
+      'new_partner',
+      'new_partner_text',
+      'singing',
+      'free_form',
+    };
+
+    Future<(sqlite3.Database, CompendiumDatabase)> upgrade(
+      void Function(sqlite3.Database raw) before,
+    ) async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        41,
+      );
+      await historical.customSelect('SELECT 1').get();
+      expect(
+        (await danceColumns(historical)).intersection(added),
+        isEmpty,
+        reason: 'a v41 database has none of the columns',
+      );
+      await historical.close();
+      before(raw);
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+      return (raw, db);
+    }
+
+    test('adds the columns at their defaults, and an existing square reads as '
+        'a main part with nothing stated', () async {
+      final (_, db) = await upgrade(
+        (raw) => raw.execute(
+          "INSERT INTO dances (id, title, form, formation_shape, "
+          "progression, status, created_at, updated_at) "
+          "VALUES ('d1', 'Circle Three Quarters', 'square', 'square', "
+          "'none', 'active', 1700000000, 1700000100)",
+        ),
+      );
+      expect(await danceColumns(db), containsAll(added));
+      final dance = await CompendiumRepositories(
+        db,
+        contraTaxonomy,
+      ).dances.getById('d1');
+      expect(dance, isNotNull);
+      expect(dance!.squareKind, SquareKind.main);
+      expect(dance.repeatOrder, SquareRepeatOrder.unstated);
+      expect(dance.repeatOrderText, '');
+      expect(dance.newPartner, SquareNewPartner.unstated);
+      expect(dance.newPartnerText, '');
+      expect(dance.singing, isFalse);
+      // NULL: the dance follows its kind, and a main part is phrased.
+      expect(dance.freeForm, isNull);
+      expect(dance.isFreeForm, isFalse);
+      expect(
+        dance.updatedAt,
+        DateTime.fromMillisecondsSinceEpoch(1700000100 * 1000, isUtc: true),
+        reason:
+            'the migration must not touch updated_at, or sync would '
+            'republish every dance',
+      );
+    });
+
+    test('is idempotent over a column that already exists', () async {
+      final (_, db) = await upgrade(
+        (raw) => raw.execute(
+          "ALTER TABLE dances ADD COLUMN square_kind TEXT NOT NULL "
+          "DEFAULT 'main'",
+        ),
+      );
+      expect(await danceColumns(db), containsAll(added));
+    });
+  });
+
+  group(
+    'v41 -> v42 upgrade (programs.archived_at #2218, calendar_event_key #2352)',
+    () {
+      Future<Set<String>> programColumns(DatabaseConnectionUser db) async => {
+        for (final row
+            in await db
+                .customSelect("SELECT name FROM pragma_table_info('programs')")
+                .get())
+          row.read<String>('name'),
+      };
+
+      test('adds archived_at as NULL and keeps every program', () async {
+        final raw = sqlite3.sqlite3.openInMemory();
+        final historical = GeneratedHelper().databaseForVersion(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+          41,
+        );
+        await historical.customSelect('SELECT 1').get();
+        expect(
+          await programColumns(historical),
+          isNot(contains('archived_at')),
+          reason: 'a v41 database has no archived_at column',
+        );
+        await historical.customStatement(
+          "INSERT INTO programs (id, title, notes, status, hide_alternates, "
+          "created_at, updated_at) "
+          "VALUES ('p1', 'Keep', 'n', 'performed', 0, 1700000000, 1700000100)",
+        );
+        await historical.close();
+
+        final db = CompendiumDatabase(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        );
+        addTearDown(() async {
+          await db.close();
+          raw.close();
+        });
+        await db.customSelect('SELECT 1').get();
+
+        expect(await programColumns(db), contains('archived_at'));
+        final program = await ProgramRepository(db).getById('p1');
+        expect(program, isNotNull);
+        expect(program!.title, 'Keep');
+        expect(program.status, ProgramStatus.performed);
+        expect(program.archivedAt, isNull);
+        expect(
+          program.updatedAt,
+          DateTime.fromMillisecondsSinceEpoch(1700000100 * 1000, isUtc: true),
+          reason:
+              'the migration must not touch updated_at, or sync would '
+              'republish every program',
+        );
+        final version = await db
+            .customSelect('PRAGMA user_version')
+            .getSingle();
+        expect(version.read<int>('user_version'), 42);
+      });
+
+      test('is idempotent over a column that already exists', () async {
+        final raw = sqlite3.sqlite3.openInMemory();
+        final historical = GeneratedHelper().databaseForVersion(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+          41,
+        );
+        await historical.customSelect('SELECT 1').get();
+        await historical.close();
+        raw.execute('ALTER TABLE programs ADD COLUMN archived_at INTEGER NULL');
+
+        final db = CompendiumDatabase(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        );
+        addTearDown(() async {
+          await db.close();
+          raw.close();
+        });
+        await db.customSelect('SELECT 1').get();
+
+        expect(await programColumns(db), contains('archived_at'));
+      });
+
+      test('adds calendar_event_key as NULL (#2352)', () async {
+        final raw = sqlite3.sqlite3.openInMemory();
+        final historical = GeneratedHelper().databaseForVersion(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+          41,
+        );
+        await historical.customSelect('SELECT 1').get();
+        expect(
+          await programColumns(historical),
+          isNot(contains('calendar_event_key')),
+        );
+        await historical.customStatement(
+          "INSERT INTO programs (id, title, notes, status, hide_alternates, "
+          "created_at, updated_at) "
+          "VALUES ('p1', 'Keep', 'n', 'draft', 0, 1700000000, 1700000100)",
+        );
+        await historical.close();
+
+        final db = CompendiumDatabase(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        );
+        addTearDown(() async {
+          await db.close();
+          raw.close();
+        });
+        await db.customSelect('SELECT 1').get();
+
+        expect(await programColumns(db), contains('calendar_event_key'));
+        // #2354's change tracking joined the same step.
+        expect(
+          await programColumns(db),
+          containsAll([
+            'calendar_event_fingerprint',
+            'calendar_written_at',
+            'calendar_flag',
+          ]),
+        );
+        final program = await ProgramRepository(db).getById('p1');
+        expect(program!.calendarEventKey, isNull);
+        expect(program.calendarEventFingerprint, isNull);
+        expect(program.calendarWrittenAt, isNull);
+        expect(program.calendarFlag, isNull);
+        expect(
+          program.updatedAt,
+          DateTime.fromMillisecondsSinceEpoch(1700000100 * 1000, isUtc: true),
+          reason: 'the migration must not touch updated_at',
+        );
+      });
+
+      test('is idempotent over an existing calendar_event_key', () async {
+        final raw = sqlite3.sqlite3.openInMemory();
+        final historical = GeneratedHelper().databaseForVersion(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+          41,
+        );
+        await historical.customSelect('SELECT 1').get();
+        await historical.close();
+        raw.execute('ALTER TABLE programs ADD COLUMN archived_at INTEGER NULL');
+        raw.execute(
+          'ALTER TABLE programs ADD COLUMN calendar_event_key TEXT NULL',
+        );
+        raw.execute(
+          'ALTER TABLE programs ADD COLUMN calendar_event_fingerprint TEXT NULL',
+        );
+        raw.execute(
+          'ALTER TABLE programs ADD COLUMN calendar_written_at INTEGER NULL',
+        );
+        raw.execute('ALTER TABLE programs ADD COLUMN calendar_flag TEXT NULL');
+
+        final db = CompendiumDatabase(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        );
+        addTearDown(() async {
+          await db.close();
+          raw.close();
+        });
+        await db.customSelect('SELECT 1').get();
+
+        expect(await programColumns(db), contains('calendar_event_key'));
+      });
+    },
+  );
+
+  group('v41 -> v42 upgrade (program times, #2350)', () {
+    const timeColumns = [
+      'start_minute',
+      'end_minute',
+      'lesson_minute',
+      'arrival_minute',
+    ];
+    Future<Set<String>> programColumns(DatabaseConnectionUser db) async => {
+      for (final row
+          in await db
+              .customSelect("SELECT name FROM pragma_table_info('programs')")
+              .get())
+        row.read<String>('name'),
+    };
+
+    test('adds the four times as NULL and keeps every program', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        41,
+      );
+      await historical.customSelect('SELECT 1').get();
+      expect(
+        (await programColumns(historical)).intersection(timeColumns.toSet()),
+        isEmpty,
+        reason: 'a v41 database has no time columns',
+      );
+      await historical.customStatement(
+        "INSERT INTO programs (id, title, event_date, notes, status, "
+        "hide_alternates, created_at, updated_at) "
+        "VALUES ('p1', 'Keep', 1700000000, 'n', 'finalized', 0, 1700000000, "
+        "1700000100)",
+      );
+      await historical.close();
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      expect(await programColumns(db), containsAll(timeColumns));
+      // The same column order as a database created fresh at v42, which
+      // schema_verification_test does not check (it compares by name).
+      Future<List<String>> orderedColumns(DatabaseConnectionUser d) async => [
+        for (final row
+            in await d
+                .customSelect(
+                  "SELECT name FROM pragma_table_info('programs') ORDER BY cid",
+                )
+                .get())
+          row.read<String>('name'),
+      ];
+      final fresh = CompendiumDatabase(NativeDatabase.memory());
+      addTearDown(fresh.close);
+      await fresh.customSelect('SELECT 1').get();
+      expect(await orderedColumns(db), await orderedColumns(fresh));
+      final program = await ProgramRepository(db).getById('p1');
+      expect(program, isNotNull);
+      expect(program!.title, 'Keep');
+      expect(program.eventDate, isNotNull);
+      expect(program.startMinute, isNull);
+      expect(program.endMinute, isNull);
+      expect(program.lessonMinute, isNull);
+      expect(program.arrivalMinute, isNull);
+      expect(
+        program.updatedAt,
+        DateTime.fromMillisecondsSinceEpoch(1700000100 * 1000, isUtc: true),
+        reason:
+            'the migration must not touch updated_at, or sync would '
+            'republish every program',
+      );
+    });
+
+    test('is idempotent over a column that already exists', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        41,
+      );
+      await historical.customSelect('SELECT 1').get();
+      await historical.close();
+      raw.execute('ALTER TABLE programs ADD COLUMN start_minute INTEGER NULL');
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      expect(await programColumns(db), containsAll(timeColumns));
     });
   });
 
@@ -1935,6 +2351,7 @@ Future<void> _markPre1192SweepsComplete(CompendiumRepositories repos) async {
     taxonomyV38CanonicalRebuildDoneKey,
     taxonomyV39CanonicalRebuildDoneKey,
     ecdTaxonomyCanonicalRebuildDoneKey,
+    squareTaxonomyCanonicalRebuildDoneKey,
     chainHandBackfillDoneKey,
   ]) {
     await repos.settings.set(key, 'done');

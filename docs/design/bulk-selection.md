@@ -379,7 +379,7 @@ drops mixer and mixed level, so only status remains.)*
 **Fit.** `dances.status` is a plain column, classified
 (`privacy/field_registry.dart:365-368`) and edited today in the dance editor
 (`screens/dance_editor/dance_editor_form.dart:667`). The Collection already
-filters on it (`CollectionSort.lastCalled` in `search/collection_query.dart`), so the batch action closes
+filters on it (`CollectionSort.lastCalled` in `packages/compendium_core/lib/src/search/collection_sort.dart`), so the batch action closes
 the "find, then fix" loop the audit describes.
 
 **Shape.**
@@ -466,7 +466,9 @@ menu becomes a grouped menu, with dividers between:
 1. *Details*: Set rating, Status.
 2. *Other*: Add tunes, Clear tunes, Edit custom field, Add source.
 3. *Programs*: Add to program.
-4. *Delete* (error colour).
+4. *Export*: Export as CSV (#2332, which named the menu; its own group before
+   Delete is the implementer's call, since it changes no dance).
+5. *Delete* (error colour).
 
 If *Select all* does not fit it moves to the top of the ⋮ menu. The width test
 follows `_glyphsThatFit` (`:2052`), which already moves bar glyphs into the menu

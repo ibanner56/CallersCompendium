@@ -15,7 +15,7 @@
 
 ## Privacy Policy for Caller's Compendium
 
-**Effective date:** November 12, 2026 · **Last updated:** November 12, 2026
+**Effective date:** November 24, 2026 · **Last updated:** November 24, 2026
 
 Caller's Compendium ("the app") is a free, open-source, local-first application
 for dance callers, developed by Isaac Banner ("we," "us"). This policy explains
@@ -88,11 +88,13 @@ country, postal or ZIP code, or contact name, phone, or email fields. **Freeform
 venue notes** are shareable, however, and can contain names or phone numbers;
 avoid putting private contact information there.
 
-Some fields are never sent to a sync service or included in shared content. A
-choreographer's email address, location, and deceased flag, and a venue's street
-address, city, state or region, postal code and country are always excluded.
-Venue contact names, phone numbers and email addresses are also excluded from
-shared content unless you explicitly choose to include them. All of these fields
+Some fields are never sent to a sync service and are left out of shared
+content. A choreographer's email address, location, and deceased flag, and a
+venue's street address, city, state or region, postal code and country are
+excluded, except that a calendar (.ics) export includes the venue's address when
+you tick that option for that export. Venue contact names, phone numbers and
+email addresses are also excluded from shared content unless you explicitly
+choose to include them. All of these fields
 are still included in a complete backup file, which stays under your control.
 Notes fields are shared, so a contact detail typed into a note travels with the
 note.
@@ -122,6 +124,12 @@ internet, it does so only in the cases and for the purposes described below:
   **off by default** and only runs if you turn it on in Settings. It downloads
   version information only; it does not send us any information about you or your
   data.
+- **Optional calendar import at startup.** If you give the app the address of
+  your own online calendar, it reads that calendar when you ask it to. It can
+  also read it once each time the app starts, but this is **off by default** and
+  only runs if you turn it on in Settings. Either way the app requests only that
+  calendar from the service that hosts it, sends it nothing about you or your
+  data, and does not send the address to us.
 - **Optional Device Sync.** When you enable it, the app contacts the configured
   sync service to synchronize selected shareable content for app functionality.
 
@@ -131,8 +139,12 @@ a response. We do not use that information to identify or track you.
 
 ### 4. Permissions
 
-The app requests only network (internet) access, used for the purposes in
-Section 3. It does **not** request access to your camera, microphone, location,
+The app requests network (internet) access, used for the purposes in Section 3.
+On iPhone and iPad it can also ask to use your **camera**, and uses it only when
+you choose to take a photo in the app, such as of a dance card to read its
+figures. The photo is read on your device and deleted as soon as it has been
+read. It is never sent to us or anyone else, and it is not saved to your photo
+library. The app does **not** request access to your microphone, location,
 contacts, photos, or similar sensitive device data.
 
 ### 5. Sharing between your own devices

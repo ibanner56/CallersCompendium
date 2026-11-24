@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/widgets/brand_mark.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/program_templates.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/app_shell_search_scope.dart';
 import 'package:compendium_app/src/screens/contradb_program_import_screen.dart';
@@ -72,8 +73,133 @@ List<String> _titlesInOrder(WidgetTester tester) => tester
     .map((t) => t.program.title)
     .toList();
 
+/// New program with program templates (#2337): the chooser appears only with
+/// two or more templates, and its pick reaches the create flow.
+void _templateChooserTests() {
+  Future<List<ProgramTemplateChoice>> pumpCapturing(
+    WidgetTester tester,
+    CompendiumRepositories repos,
+  ) async {
+    final choices = <ProgramTemplateChoice>[];
+    await tester.binding.setSurfaceSize(const Size(600, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) =>
+            RepositoriesScope(repositories: repos, child: child!),
+        home: ProgramsListScreen(onCreateProgram: choices.add),
+      ),
+    );
+    await tester.pumpAndSettle();
+    return choices;
+  }
+
+  Future<void> seed(CompendiumRepositories repos, int count) async {
+    final ids = <String>[];
+    for (var i = 0; i < count; i++) {
+      ids.add('t$i');
+      await saveProgramTemplate(
+        repos.settings,
+        ProgramTemplate(id: 't$i', name: 'Template $i'),
+      );
+    }
+    await saveProgramTemplateOrder(repos.settings, ids);
+  }
+
+  for (final count in [0, 1]) {
+    testWidgets('with $count template(s), New program opens the builder '
+        'directly', (tester) async {
+      final repos = openTestRepositories();
+      await seed(repos, count);
+      final choices = await pumpCapturing(tester, repos);
+      await tester.tap(find.byKey(const ValueKey('empty-new-program')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('program-template-chooser')),
+        findsNothing,
+      );
+      expect(choices, [const ProgramTemplateChoice.useDefault()]);
+    });
+  }
+
+  testWidgets('with two or more, New program asks, default first and marked', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await seed(repos, 3);
+    await saveProgramTemplateDefault(repos.settings, 't2');
+    final choices = await pumpCapturing(tester, repos);
+    await tester.tap(find.byKey(const ValueKey('empty-new-program')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('program-template-chooser')),
+      findsOneWidget,
+    );
+    final order = [
+      for (final tile in tester.widgetList<ListTile>(
+        find.descendant(
+          of: find.byKey(const ValueKey('program-template-chooser')),
+          matching: find.byType(ListTile),
+        ),
+      ))
+        if (tile.key case ValueKey<String>(:final value)) value,
+    ];
+    expect(order, [
+      'program-template-choice-t2',
+      'program-template-choice-t0',
+      'program-template-choice-t1',
+      'program-template-choice-blank',
+    ]);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('program-template-choice-t2')),
+        matching: find.text('Default'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('program-template-choice-t1')));
+    await tester.pumpAndSettle();
+    expect(choices, [const ProgramTemplateChoice.template('t1')]);
+  });
+
+  testWidgets('Blank program is first and marked when it is the default, and '
+      'dismissing the chooser creates nothing', (tester) async {
+    final repos = openTestRepositories();
+    await seed(repos, 2);
+    final choices = await pumpCapturing(tester, repos);
+    await tester.tap(find.byKey(const ValueKey('empty-new-program')));
+    await tester.pumpAndSettle();
+    final firstChoice = tester
+        .widgetList<ListTile>(
+          find.descendant(
+            of: find.byKey(const ValueKey('program-template-chooser')),
+            matching: find.byType(ListTile),
+          ),
+        )
+        .elementAt(1);
+    expect(firstChoice.key, const ValueKey('program-template-choice-blank'));
+
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    expect(choices, isEmpty);
+
+    await tester.tap(find.byKey(const ValueKey('empty-new-program')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('program-template-choice-blank')),
+    );
+    await tester.pumpAndSettle();
+    expect(choices, [const ProgramTemplateChoice.blank()]);
+  });
+}
+
 void main() {
   group('type filter (ADR-006)', _formFilterTests);
+  group('New program and program templates (#2337)', _templateChooserTests);
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
   testWidgets('compact import menu uses action labels and opens both sources', (
@@ -1012,6 +1138,8 @@ void _formFilterTests() {
         ],
       ),
     );
+    // A program with no dances: the only one the English chip can hide.
+    await repos.programs.create(_program(id: 'p-none', title: 'Empty'));
     await _pump(tester, repos);
     final contraChip = find.byKey(const ValueKey('programs-form-contra'));
     expect(contraChip, findsNothing, reason: 'no program is contra only');
@@ -1026,9 +1154,11 @@ void _formFilterTests() {
     await tester.tap(contraChip);
     await tester.pumpAndSettle();
     expect(_titlesInOrder(tester), ['Mixed night']);
-    // Every program with dances has an English one, so an English chip would
-    // hide nothing: Includes offers none.
-    expect(find.byKey(const ValueKey('programs-form-ecd')), findsNothing);
+    // Every program with dances has an English one. Its chip is offered all
+    // the same, so no type present goes missing from the row.
+    await tester.tap(find.byKey(const ValueKey('programs-form-ecd')));
+    await tester.pumpAndSettle();
+    expect(_titlesInOrder(tester), ['English night', 'Mixed night']);
   });
 
   testWidgets('an Includes filter left without a chip is dropped, not '
@@ -1047,32 +1177,49 @@ void _formFilterTests() {
     await tester.pumpAndSettle();
     expect(_titlesInOrder(tester), ['Contra night', 'Mixed night']);
 
-    // The English program gains a contra dance: every program now has
-    // contra, so the Contra chip goes and every program is listed.
-    final english = (await repos.programs.getById('p-ecd'))!;
-    await repos.programs.update(
-      english.copyWith(
-        slots: [
-          ...english.slots,
-          ProgramSlot(id: 's5', position: 1, danceId: 'c'),
-        ],
-      ),
-    );
+    // The only contra dance is deleted: every program with a live dance is
+    // English only, so the chips go and every program is listed.
+    await repos.dances.softDelete('c', at: _now);
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('programs-form-contra')), findsNothing);
+    expect(find.byKey(const ValueKey('programs-form-filter')), findsNothing);
     expect(_titlesInOrder(tester), hasLength(3));
 
-    // A new English-only program brings the chip back, but not the filter.
-    await repos.programs.create(
-      _program(
-        id: 'p-ecd2',
-        title: 'Another English night',
-        slots: [ProgramSlot(id: 's6', position: 0, danceId: 'e')],
-      ),
-    );
+    // Restoring it brings the chip back, but not the filter.
+    await repos.dances.restore('c', at: _now);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('programs-form-contra')), findsOneWidget);
-    expect(_titlesInOrder(tester), hasLength(4));
+    expect(_titlesInOrder(tester), hasLength(3));
+  });
+
+  testWidgets('the list builds only the rows on screen', (tester) async {
+    // Many programs of mixed types (ADR-006): the type line and the chips
+    // must not make every row build. A measurement with timings is in
+    // programs_list_bench_test.dart.
+    final repos = openTestRepositories();
+    await repos.dances.create(dance('c', DanceForm.contra));
+    await repos.dances.create(dance('e', DanceForm.ecd));
+    const count = 200;
+    for (var i = 0; i < count; i++) {
+      await repos.programs.create(
+        _program(
+          id: 'p$i',
+          title: 'Program ${i.toString().padLeft(3, '0')}',
+          slots: [
+            if (i % 3 != 1) ProgramSlot(id: 'p$i-c', position: 0, danceId: 'c'),
+            if (i % 3 != 0) ProgramSlot(id: 'p$i-e', position: 1, danceId: 'e'),
+          ],
+        ),
+      );
+    }
+    await _pump(tester, repos);
+    int built() => tester
+        .widgetList(find.byType(ProgramListTile, skipOffstage: false))
+        .length;
+    expect(built(), inInclusiveRange(1, 40));
+    await tester.tap(find.byKey(const ValueKey('programs-form-contra')));
+    await tester.pumpAndSettle();
+    expect(built(), inInclusiveRange(1, 40));
+    expect(_titlesInOrder(tester).first, 'Program 000');
   });
 
   testWidgets('a deleted dance stops counting at once', (tester) async {

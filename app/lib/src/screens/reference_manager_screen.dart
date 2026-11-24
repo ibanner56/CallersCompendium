@@ -13,8 +13,8 @@ import '../utils/confirm_delete.dart';
 import 'settings/library_manager_list.dart';
 
 /// The Authors and Sources managers (LIFE-5, `docs/design/tags-and-people.md`
-/// T3), on the list the Tags manager shares. Reached from Settings › General
-/// › Library (D-N2-3).
+/// T3), on the list the Tags manager shares. Reached from Settings › Collection
+/// › Dances (D-N2-3).
 ///
 /// Each row offers **Rename**, **Merge into…**, **Edit details…**, and
 /// **Delete** only when no live dance uses the entry: an entry in use is

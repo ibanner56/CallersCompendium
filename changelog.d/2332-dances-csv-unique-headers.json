@@ -1,0 +1,10 @@
+{
+  "id": "2332-dances-csv-unique-headers",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "In the dances spreadsheet export, two custom fields with the same name, or one named like a built-in column such as Title, now get distinct column headings (Story, Story (2)), and importing the file maps each column back to its own field.",
+      "Exporting a large library to a spreadsheet is less likely to freeze the screen: the file's text is now put together in the background."
+    ]
+  }
+}

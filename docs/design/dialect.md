@@ -137,17 +137,56 @@ wording, saved unchanged, reads as the default line. Imported
   `app.settings` entries; older builds keep the unknown keys whole (ADR-004).
   The Glossary shows each form's built-in figures in that form's dialect, as
   the dialect editor's preview samples and each walkthrough snippet (by its
-  figure's form) are. Surfaces that do not yet have a form of their own (the
-  user's own figures and terms, wherever they are shown, shorthands, and the
-  Settings defaults) stay on contra's dialect until they gain one.
+  figure's form) are. The user's own figures, combinations and terms are shown
+  in the dialect of the form each was made for (its stored `form`, as
+  `glossaryEntryDanceForm` reads it; contra's for one that names none or a form
+  this build does not know) in the Glossary, the figure editors and detail, the
+  Custom Figures screen, the program matrix's column and the sync-conflict
+  sheet (#2294). A shorthand for one reads in its target's form's dialect,
+  derived and never stored; with no target here it reads in contra's. A
+  shorthand is matched in a dance of any form, so the warning that its token
+  reads as a figure checks each form's own figures and dialect. The figure
+  editor keeps one dialect for its fields, that of the form being edited, and
+  shows every field again in the new form's dialect when the form changes. Some
+  surfaces stay on contra's dialect: Settings (the defaults' figure lists and
+  their links to a figure's own defaults, the card and matrix-column layouts,
+  and the program templates' dance picker) and the parts of import review that
+  name a plain shorthand or a term. Import review's check that a shared
+  figure's name is taken follows the figure's own form, as the Glossary's does.
+  The advanced search, in the dance list and in the program builder's picker,
+  names each figure of your own in the dialect of its form, and finds it by
+  that, through `userFigureSearchLabels`: two
+  figures of different forms whose labels read alike are each followed by their
+  form's name, as a move is when another form's move is named like one of the
+  search's own. The moves in the same field still read in the search's
+  dialect, contra's, whatever their form: the search has no form of its own
+  yet, so an English or square move reads in contra's words there, and a figure
+  of your own made for English does not. Typing the exact name of a figure that
+  is followed by its form's name ("hey" against a contra and an English figure
+  both called Hey) is no longer an exact match, so Enter takes the built-in move
+  of that name. The reasons the dance picker gives for a
+  suggestion ("Same ... beats as the previous dance") name a column through the
+  same rule as the program matrix, `matrixColumnDialect`: a figure of your own,
+  and an `ecd_` or `sq_` figure, read in the dialect of their own form, as the
+  column does. The picker has no matrix to say which dances use a figure with
+  no prefix, so that figure reads in the form of the program's dances when they
+  are all of one form, and in contra's otherwise; in a program that mixes
+  forms, its column may still read in the form of the dances using it where the
+  reason reads in contra's. Program-wide
+  text and the switch screen's names for the app's figure, which is always one
+  of contra's, read in contra's dialect. Plain shorthands are matched against contra's figures only, and read
+  in contra's dialect.
   Program-wide text (notes, set lists) is rendered in contra's dialect, while
   each dance in a program renders in its own form's (implementer's call; the
   alternative, rendering program text in the form of most of its dances, was
   rejected as unpredictable). The matrix names a figure's column in its
-  figure's form's dialect, and a column of the user's own figure in contra's,
-  and shows each dance's formation details in that dance's dialect. A figure
+  figure's form's dialect, and a column of the user's own figure in the
+  dialect of the form that figure was made for (not that of the dances using
+  it; a free-text custom column reads in contra's), and shows each dance's
+  formation details in that dance's dialect. A figure
   with no prefix is contra's, and a dance of another form can use it too
-  (squares have no taxonomy yet; an English dance may keep a contra figure):
+  (an English or square dance may keep a contra figure from an earlier
+  import):
   its column reads in the dialect of the dances that use it when they are all
   of one form, and in contra's when forms mix; a column no dance uses (a
   baseline swing column) reads in the program's form when all its dances are

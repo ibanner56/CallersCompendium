@@ -1,0 +1,14 @@
+{
+  "id": "export-label-punctuation",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Printed cards, PDFs and copied text put your language's punctuation between a label and its value: a full-width colon in Japanese (フレーズ：AAB) and a no-break space before the colon in French (Formation : …)."
+    ]
+  },
+  "core": {
+    "added": [
+      "DanceExportLabels and ProgramExportLabels take a labelSeparator, with labelled and heading, for the punctuation between a field's label and its value."
+    ]
+  }
+}

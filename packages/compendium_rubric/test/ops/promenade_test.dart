@@ -142,6 +142,30 @@ void main() {
       );
     });
 
+    test('naming the next neighbours as its destination lands the same', () {
+      // "… around the major set to N2": the import writes the destination
+      // since the taxonomy-v40 sync, and it names the one place the
+      // promenade travels (agent's call).
+      const op = Promenade(
+        where: 'along',
+        singleFile: true,
+        destination: WhoSet.nextNeighbors,
+      );
+      expect(
+        applyOk(op, improper),
+        applyOk(const Promenade(where: 'along', singleFile: true), improper),
+      );
+    });
+
+    test('any other destination is still deferred', () {
+      const op = Promenade(
+        where: 'along',
+        singleFile: true,
+        destination: WhoSet.thirdNeighbors,
+      );
+      expect(applyErr(op, improper).kind, ErrorKind.unsupportedParam);
+    });
+
     test('is its own progression, like the slide', () {
       const op = Promenade(where: 'along', singleFile: true);
       expect(op.isItsOwnProgression, isTrue);
@@ -178,14 +202,6 @@ void main() {
       expect(const Promenade().dancerSets, [WhoSet.partners]);
     });
 
-    test('a stated destination is still deferred', () {
-      const op = Promenade(
-        where: 'along',
-        singleFile: true,
-        destination: WhoSet.nextNeighbors,
-      );
-      expect(applyErr(op, improper).kind, ErrorKind.unsupportedParam);
-    });
   });
 
   group('Promenade across in a longer set', () {

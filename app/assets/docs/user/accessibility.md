@@ -106,6 +106,10 @@ work, the app announces changes you'd otherwise have to see:
   details all read as structured, spoken-friendly text. For example, a figure
   reads as its full spoken wording along with its beat count and whether it
   progresses.
+- On the [Repertoire](./collection.md#see-your-repertoire-at-a-glance) page,
+  each row reads as one sentence with its number, such as "swing: in 212 of
+  640 dances, 33 percent; 48 calls in this period". The bars beside the rows
+  are only decoration and are not read.
 
 **Verbose figure text.** Turn on **Settings ▸ General ▸ Always show verbose figure
 text** to display the full spoken-style wording of each figure on screen in the
@@ -212,7 +216,7 @@ one, and **Esc** closes the menu and returns focus to the **⋮** button.
 
 **Add figure menu.** Open it with **Space** or **Enter** and focus lands on its
 first choice: **Enter** picks **Add figure**, and the arrow keys reach **Add
-meanwhile**, **Add modifier** and **Add sequence**.
+figures from text…**, **Add meanwhile**, **Add modifier** and **Add sequence**.
 
 **Drop-down fields.** Tab to a drop-down field (in an editor, a dialog, the
 **Collection**'s search or **Settings**) and press **Enter** to open its list, the **up** and

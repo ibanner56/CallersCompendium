@@ -18,6 +18,7 @@ class FigureDraft {
     this.schemaVersion = figureSchemaVersion,
     this.beatsTouched = false,
     this.assumedSubject = false,
+    this.enteredNew = false,
     this.customOrigin = CustomOrigin.userEntered,
     this.walkthroughOverride,
     this.wordingOverride,
@@ -114,9 +115,16 @@ class FigureDraft {
     Figure figure,
     Taxonomy taxonomy, {
     Map<String, Map<String, Object?>>? moveParamDefaults,
+    bool requireStatedParams = false,
   }) {
     final draft = FigureDraft.fromFigure(figure);
-    _fillDerivedParams(draft, figure, taxonomy, moveParamDefaults);
+    _fillDerivedParams(
+      draft,
+      figure,
+      taxonomy,
+      moveParamDefaults,
+      requireStatedParams,
+    );
     return draft;
   }
 
@@ -166,6 +174,7 @@ class FigureDraft {
     Figure figure,
     Taxonomy taxonomy,
     Map<String, Map<String, Object?>>? moveParamDefaults,
+    bool requireStatedParams,
   ) {
     if (figure.isContainer) {
       final children = draft.containerChildren;
@@ -178,6 +187,7 @@ class FigureDraft {
           sources[i],
           taxonomy,
           moveParamDefaults,
+          requireStatedParams,
         );
       }
       if (span != null) {
@@ -202,6 +212,8 @@ class FigureDraft {
     }
     if (figure.params.containsKey('beats')) {
       draft.params.addAll(defaults);
+      // A saved default may hold a value kept only while stated.
+      taxonomy.dropUnstatedParams(figure.move, draft.params);
     } else {
       draft.params
         ..clear()
@@ -213,6 +225,20 @@ class FigureDraft {
       // As picking the move does: no `amount` or `double` the line left unstated.
       taxonomy.dropUnstatedParams(figure.move, draft.params);
       draft.beatsTouched = defaults.containsKey('beats');
+    }
+    // As picking the move does in the dance editor (taxonomy v40): with
+    // [requireStatedParams], a param a new figure must state starts unstated
+    // unless the line or a saved default states it, so a typed "pass by" asks
+    // who passes rather than assuming neighbors. Elsewhere (Settings'
+    // figure lists) the line keeps what leaving the param out means.
+    final def = requireStatedParams ? taxonomy.resolve(figure.move) : null;
+    for (final MapEntry(:key, :value)
+        in def?.params.entries ?? const <MapEntry<String, ParamSpec>>[]) {
+      if (value.requiredOnEntry &&
+          !figure.params.containsKey(key) &&
+          !defaults.containsKey(key)) {
+        draft.params[key] = ParamVocab.unspecified;
+      }
     }
     // A default `who` is the user's stated choice, as picking the move makes
     // it (#460), not one the parser assumed.
@@ -313,6 +339,14 @@ class FigureDraft {
   /// an explicit, authoritative choice of subject.
   bool assumedSubject;
 
+  /// Whether this edit entered the figure's move: it was picked, or typed in
+  /// the free-text composer, rather than loaded with the dance. Such a figure
+  /// must state every [ParamSpec.requiredOnEntry] param before the dance saves
+  /// (taxonomy v40: a pass by's or pass through's `who` and `where`); one
+  /// loaded unstated saves as it is. Never stored on the figure; kept across
+  /// undo/redo, autosave and duplication.
+  bool enteredNew;
+
   /// How this figure originated when it is a [customMove] custom (see
   /// [CustomOrigin]). Carried through the editor so a custom figure produced by
   /// the opt-in free-text entry path (or an import) that the parser could not
@@ -354,7 +388,7 @@ class FigureDraft {
   /// order and shown on one line. Unlike the other two kinds, a sequence's
   /// count is normally not edited on the container: [beats] is the sum of its
   /// children's, and `params['beats']` is not read. The exception is an
-  /// English dance's sequence that states its own span
+  /// English dance's or a square's sequence that states its own span
   /// ([sequenceSpanStated]).
   ///
   /// At most one of [meanwhileSides], [modifierFigures] and [sequenceFigures]
@@ -451,7 +485,7 @@ class FigureDraft {
 
   /// Whether [first] and [second], adjacent rows, can be grouped into a new
   /// container of [kind]. A sequence must also fit in [sequenceBeatLimit]
-  /// beats, one phrase of the dance.
+  /// beats, the phrase of the dance that [first] starts in.
   static bool canGroup(
     String kind,
     FigureDraft first,
@@ -465,7 +499,7 @@ class FigureDraft {
   /// A new container of [kind] holding [first] and [second]. A meanwhile's or
   /// modifier's shared count follows its children until the user types one
   /// ([syncContainerBeats]); a new sequence's count is its children's sum,
-  /// until an English sequence states a span ([setSequenceSpan]).
+  /// until an English or square sequence states a span ([setSequenceSpan]).
   static FigureDraft group(String kind, FigureDraft first, FigureDraft second) {
     final group = FigureDraft()..setContainer(kind, [first, second]);
     if (kind != sequenceMove) {
@@ -517,9 +551,10 @@ class FigureDraft {
   /// Whether this sequence states a span of its own, "A, B and C in bars
   /// 1–4", rather than counting its steps (ADR-006 §5.5): its
   /// `params['beats']`, once set by hand ([beatsTouched]). Its steps may then
-  /// carry no timing of their own. Only an English dance's editor offers a
-  /// span, and the dance editor clears it from every other form's sequences,
-  /// so a contra sequence always counts its steps.
+  /// carry no timing of their own. Only an English dance's or a square's
+  /// editor offers a span (`formHasSequenceSpan`, ADR-007 Q10), and the dance
+  /// editor clears it from a contra dance's sequences, so a contra sequence
+  /// always counts its steps.
   bool get sequenceSpanStated =>
       isSequenceGroup && beatsTouched && params['beats'] is int;
 
@@ -624,6 +659,7 @@ class FigureDraft {
     schemaVersion: schemaVersion,
     beatsTouched: beatsTouched,
     assumedSubject: assumedSubject,
+    enteredNew: enteredNew,
     customOrigin: customOrigin,
     walkthroughOverride: walkthroughOverride,
     wordingOverride: wordingOverride,
@@ -661,6 +697,13 @@ class FigureDraft {
       compound == null &&
       !isContainerDraft &&
       note.trim().isNotEmpty;
+
+  /// Whether Save writes this row as a figure (or keeps its note as one), so
+  /// that its beats count towards where the figures after it start. A row
+  /// with no move and no note, a group short of two sides, or a modifier group
+  /// with a blank core builds no figure, and counting its beats would put a
+  /// figure the saved dance lacks into the count.
+  bool get savesAsFigure => toFigure() != null || keepsNoteWithoutMove;
 
   /// Whether Save leaves this row out although it is more than a blank row
   /// (AUTH-2): a group that is not complete (a meanwhile, modifier or sequence
@@ -984,4 +1027,33 @@ class CompoundPlaceholder {
     args: Map<String, Object?>.of(args),
     beats: beats,
   );
+}
+
+/// The beats at which each child of [container], a group draft, starts, its
+/// own start being [containerStart]: a sequence's steps one after another (a
+/// step with no timing of its own adding none), and a meanwhile's sides and a
+/// modifier's parts with the group ([childStartBeats]).
+List<int> childStartBeatsOfDraft(FigureDraft container, int containerStart) {
+  final children = container.containerChildren ?? const <FigureDraft>[];
+  var start = containerStart;
+  return [
+    for (final child in children)
+      () {
+        final childStart = start;
+        if (container.containerKind == sequenceMove) start += child.beats;
+        return childStart;
+      }(),
+  ];
+}
+
+/// The beat at which a figure placed after [drafts] starts: the beats of the
+/// rows Save writes as figures ([FigureDraft.savesAsFigure]), as
+/// `deriveSections` counts the saved figures. A bar range in an English dance
+/// whose phrases differ in beats per bar counts from here (#2303).
+int figureStartBeat(Iterable<FigureDraft> drafts) {
+  var beat = 0;
+  for (final draft in drafts) {
+    if (draft.savesAsFigure) beat += draft.beats;
+  }
+  return beat;
 }

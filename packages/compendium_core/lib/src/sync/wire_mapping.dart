@@ -33,6 +33,25 @@ const _danceFields = [
   SyncWireField('walkthrough', ['dances.walkthrough']),
   SyncWireField('meter', ['dances.meter']),
   SyncWireField('musicalKey', ['dances.musical_key']),
+  SyncWireField('alternateTitles', ['dances.alternate_titles']),
+  // Only an ECD dance keeps one (`formHasBarnesReference`), so its form
+  // decides whether the value is sent at all.
+  SyncWireField('barnesReference', ['dances.barnes_reference', 'dances.form']),
+  SyncWireField('squareKind', ['dances.square_kind']),
+  SyncWireField('repeatOrder', ['dances.repeat_order']),
+  // Each text is kept only with `other`, so its value decides whether the
+  // text is sent at all.
+  SyncWireField('repeatOrderText', [
+    'dances.repeat_order_text',
+    'dances.repeat_order',
+  ]),
+  SyncWireField('newPartner', ['dances.new_partner']),
+  SyncWireField('newPartnerText', [
+    'dances.new_partner_text',
+    'dances.new_partner',
+  ]),
+  SyncWireField('singing', ['dances.singing']),
+  SyncWireField('freeForm', ['dances.free_form']),
   SyncWireField('status', ['dances.status']),
   SyncWireField('difficultyLevelId', ['dances.level_id']),
   SyncWireField('mixedLevel', ['dances.mixed_level']),
@@ -89,6 +108,16 @@ const _programFields = [
   SyncWireField('payMinorUnits', ['programs.pay_minor_units']),
   SyncWireField('payCurrency', ['programs.pay_currency']),
   SyncWireField('archivedAt', ['programs.archived_at']),
+  SyncWireField('calendarEventKey', ['programs.calendar_event_key']),
+  SyncWireField('startMinute', ['programs.start_minute']),
+  SyncWireField('endMinute', ['programs.end_minute']),
+  SyncWireField('lessonMinute', ['programs.lesson_minute']),
+  SyncWireField('arrivalMinute', ['programs.arrival_minute']),
+  SyncWireField('calendarEventFingerprint', [
+    'programs.calendar_event_fingerprint',
+  ]),
+  SyncWireField('calendarWrittenAt', ['programs.calendar_written_at']),
+  SyncWireField('calendarFlag', ['programs.calendar_flag']),
   SyncWireField('slots', []),
   SyncWireField('slots.id', ['program_slots.id']),
   SyncWireField('slots.position', ['program_slots.position']),

@@ -146,6 +146,17 @@ String? figureSnippetSignature(Figure figure, Taxonomy taxonomy) {
   for (final name in salient) {
     final value = effective[name];
     if (value == null) continue;
+    // Taxonomy v40 merged pass by and pass through: each gained the other's
+    // `who` or `where` in its template (the param whose omission means
+    // unstated on that id). It stays out of the key whatever its value, so
+    // every pass keeps the key it had before (`pass_through(where=along)`,
+    // `pass_by(who=neighbors)`), no signature version bump is owed, and a
+    // snippet written for one before v40 still applies to a pass entered
+    // since, which must state both.
+    if ((def.params[name]?.requiredOnEntry ?? false) &&
+        taxonomy.defaultParamValue(keyId, name) == ParamVocab.unspecified) {
+      continue;
+    }
     parts.add('$name=${_normalizeValue(value)}');
   }
   return parts.isEmpty ? keyId : '$keyId(${parts.join(',')})';

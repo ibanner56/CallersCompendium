@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/l10n/app_localizations.dart';
 import 'package:compendium_app/src/data/collection_facets_scope.dart';
-import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/widgets/facet_panel.dart';
 import '../support/facet_selection_table.dart';
 import '../support/l10n_harness.dart';
@@ -351,5 +350,14 @@ void main() {
       expect(find.text(l10n.collectionFacetAllHidden), findsNothing);
       expect(find.text(l10n.collectionFacetNone), findsNothing);
     });
+  });
+
+  testWidgets('a hidden Tags section holding only Untagged still shows it '
+      '(#2325)', (tester) async {
+    final facets = FacetSelections()..untagged = true;
+    await _pump(tester, facets, hidden: {CollectionFacetIds.tags});
+    final chip = find.byKey(const ValueKey('untagged-chip'));
+    expect(chip, findsOneWidget);
+    expect(tester.widget<FilterChip>(chip).selected, isTrue);
   });
 }

@@ -1,7 +1,9 @@
+import '../model/bar_timing.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/phrase_structure.dart';
 import '../storage/figure_reparse.dart';
+import '../taxonomy/form_figures.dart';
 import '../taxonomy/taxonomy.dart';
 import 'beat_implied_balance.dart';
 import 'ecd_bars.dart';
@@ -34,8 +36,10 @@ const int maxReparseTextLength = 2000;
 ///   ever considered. [CustomOrigin.userEntered] customs and structured figures
 ///   pass through byte-identical — this is the whole point of the #398 flag.
 /// - A figure is replaced ONLY when its re-parse yields a non-null, non-custom
-///   figure. If the re-parse still degrades to custom (no confident match), the
-///   original figure is kept unchanged (still import-gap). This makes the
+///   figure of the dance's own form ([figureFitsForm] for [taxonomy]'s form):
+///   a square's line is never upgraded to a contra call. If the re-parse
+///   still degrades to custom (no confident match), the original figure is
+///   kept unchanged (still import-gap). This makes the
 ///   operation idempotent: a second run finds nothing further to upgrade.
 /// - Untrusted stored text is guarded before parsing (must be a non-empty
 ///   String no longer than [maxReparseTextLength]; beats coerced to a safe
@@ -45,18 +49,30 @@ const int maxReparseTextLength = 2000;
 ///   preserved) so repository callers can cheaply skip the write.
 ///
 /// An English line's leading bar range counts by [meter], or, with no meter
-/// stated, by [phraseStructure]'s beats per bar ([ecdMeterForBars]).
+/// stated, by [phraseStructure]'s beats per bar ([ecdMeterForBars]). Where
+/// [phraseStructure]'s phrases differ in beats per bar (#2303) the meter does
+/// not count it: each range is counted from where its figure starts, each bar
+/// as long as the phrase it falls in ([BarTiming.byPhrase]). A figure starts
+/// where the figures before it, as re-read, end; a step of a sequence where
+/// the steps before it end.
 FigureReparseOutcome reparseImportGapFigures(
   List<Figure> figures, {
   Taxonomy? taxonomy,
   String? meter,
   PhraseStructure? phraseStructure,
 }) {
+  BarTiming? timing;
   if (phraseStructure != null) {
-    meter = ecdMeterForBars(meter, phraseStructure);
+    if (phraseStructure.hasMixedMeter) {
+      timing = BarTiming.byPhrase(phraseStructure);
+    } else {
+      meter = ecdMeterForBars(meter, phraseStructure);
+    }
   }
   List<Figure>? rewritten;
   var upgraded = 0;
+  // Where the next figure starts: each earlier figure's beats as re-read.
+  var startBeat = 0;
 
   for (var i = 0; i < figures.length; i++) {
     final figure = figures[i];
@@ -66,9 +82,18 @@ FigureReparseOutcome reparseImportGapFigures(
             taxonomy,
             containerDepth: 1,
             meter: meter,
+            timing: timing,
+            startBeat: startBeat,
           )
-        : _tryUpgradeLeaf(figure, taxonomy, meter: meter);
+        : _tryUpgradeLeaf(
+            figure,
+            taxonomy,
+            meter: meter,
+            timing: timing,
+            startBeat: startBeat,
+          );
     final replacement = result?.figure;
+    startBeat += (replacement ?? figure).beats;
     if (replacement == null) continue;
     rewritten ??= List<Figure>.of(figures);
     rewritten[i] = replacement;
@@ -101,11 +126,16 @@ FigureReparseOutcome reparseImportGapFigures(
   Taxonomy? taxonomy, {
   required int containerDepth,
   String? meter,
+  BarTiming? timing,
+  int startBeat = 0,
 }) {
   if (!figure.isContainer) return null;
   final children = figure.subFigures;
   List<Figure>? newChildren;
   var upgraded = 0;
+  // A sequence's steps follow one another; a meanwhile's sides and a
+  // modifier's parts all start with the container.
+  var childStart = startBeat;
   for (var i = 0; i < children.length; i++) {
     final child = children[i];
     final result = child.isContainer
@@ -114,20 +144,29 @@ FigureReparseOutcome reparseImportGapFigures(
             taxonomy,
             containerDepth: containerDepth + 1,
             meter: meter,
+            timing: timing,
+            startBeat: childStart,
           )
         : _tryUpgradeLeaf(
             child,
             taxonomy,
             allowContainerReplacement: containerDepth < kMaxContainerDepth,
             meter: meter,
+            timing: timing,
+            startBeat: childStart,
           );
     final replacement = result?.figure;
-    if (replacement == null ||
+    final declined =
+        replacement == null ||
         (replacement.isContainer &&
             (containerDepth >= kMaxContainerDepth ||
-                !_isLegalContainerChild(figure, replacement)))) {
-      continue;
+                !_isLegalContainerChild(figure, replacement)));
+    // The next step starts where this one ends as it will be saved: a
+    // replacement that is declined leaves the step as it was.
+    if (figure.isSequence) {
+      childStart += (declined ? child : replacement).beats;
     }
+    if (declined) continue;
     newChildren ??= List<Figure>.of(children);
     newChildren[i] = replacement;
     upgraded += result!.count;
@@ -159,8 +198,16 @@ bool _isLegalContainerChild(Figure parent, Figure child) {
   Taxonomy? taxonomy, {
   bool allowContainerReplacement = true,
   String? meter,
+  BarTiming? timing,
+  int startBeat = 0,
 }) {
-  final replacement = _tryUpgrade(figure, taxonomy, meter: meter);
+  final replacement = _tryUpgrade(
+    figure,
+    taxonomy,
+    meter: meter,
+    timing: timing,
+    startBeat: startBeat,
+  );
   if (replacement == null ||
       (!allowContainerReplacement && replacement.isContainer)) {
     return null;
@@ -170,7 +217,13 @@ bool _isLegalContainerChild(Figure parent, Figure child) {
 
 /// Returns a structured replacement for [figure] if it is an import-gap custom
 /// whose stored text now parses to a structured move, else `null` (leave as-is).
-Figure? _tryUpgrade(Figure figure, Taxonomy? taxonomy, {String? meter}) {
+Figure? _tryUpgrade(
+  Figure figure,
+  Taxonomy? taxonomy, {
+  String? meter,
+  BarTiming? timing,
+  int startBeat = 0,
+}) {
   if (!figure.isCustom || figure.customOrigin != CustomOrigin.importGap) {
     return null;
   }
@@ -203,6 +256,8 @@ Figure? _tryUpgrade(Figure figure, Taxonomy? taxonomy, {String? meter}) {
       beats: line.beats,
       progression: figure.progression,
       meter: meter,
+      timing: timing,
+      startBeat: startBeat,
     );
     if (read == null || read.isCustom) return null;
     return read.copyWith(
@@ -224,6 +279,10 @@ Figure? _tryUpgrade(Figure figure, Taxonomy? taxonomy, {String? meter}) {
   // Keep the original when the re-parse is empty or still custom: an import-gap
   // figure that re-parses to custom stays exactly as it was (idempotent).
   if (parsed == null || parsed.isCustom) return null;
+  // Only the dance's own form's calls (Hudson, 24 November 2026): contra's
+  // grammar reads a square's line into contra's calls, so until squares have
+  // a grammar of their own such a line stays as it is.
+  if (taxonomy != null && !figureFitsForm(parsed, taxonomy.form)) return null;
 
   // Carry the authored per-figure walkthrough snippet across the upgrade: the
   // editor persists one for a custom figure, and an "upgrade" must not discard

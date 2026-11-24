@@ -26,7 +26,9 @@ Future<void> _pumpDefaultsWithShorthands(
   CompendiumRepositories repos,
   ShorthandMappingsController shorthands,
 ) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 3600));
+  // Tall enough for the whole expanded Defaults pane, as settings_defaults_test
+  // sizes it; the default phrase structure's rows (#2304) made it taller.
+  await tester.binding.setSurfaceSize(const Size(1200, 6400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
   final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);

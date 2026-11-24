@@ -235,6 +235,9 @@ void main() {
           // The in-front pair of a mad robin is descriptive: the figure lands
           // the same whoever steps in front, so its default cannot mislead.
           if (id == 'mad_robin.who') continue;
+          // A bare "form long wave" (v40) reads as before v40, when it stated
+          // no `who`: the role1s default (agent's call, `dance_json.dart`).
+          if (id == 'form_long_waves.who') continue;
           expect(
             buildFigure(move.key, {param.key: 'unspecified'}),
             isNull,

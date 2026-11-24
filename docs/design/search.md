@@ -21,7 +21,8 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    through `canonicalize()` at the compiler boundary, mirroring how data was
    canonicalized on the way in — so a dialect user's "robins allemande"
    query matches stored `role2s`/`allemande` (see [dialect.md](dialect.md)).
-   Collection text search may explicitly scope to raw title text, derived
+   Collection text search may explicitly scope to raw title text (with a
+   dance's other titles), derived
    author names, or canonical figure text; Omni is the OR of the canonical
    cross-field query and a raw branch matching the query as typed over title,
    authors, sources, custom values, hook and notes (never `figures_text`, which
@@ -193,7 +194,7 @@ tree. Conforms to [ux.md](ux.md) §1 and [dialect.md](dialect.md)
    reported. The parameters with no ContraDB counterpart, pinned by
    `contradb_advanced_params_test.dart`: `balance.hand`, `butterfly_whirl.who`
    and `.direction`, `circle.singleFile`, `contra_corners.custom`,
-   `figure_8.lead`, `form_long_waves.balance`/`whom`/`whomHand`, `gate.pair`/
+   `figure_8.lead`, `form_long_waves.balance`/`whom`/`whom2`/`whomHand`, `gate.pair`/
    `direction`/`travel`, `hey.meetTarget`/`pass2`, `mad_robin.direction`/`whom`,
    `promenade.destination`/`singleFile`, `roll_away.halfSashay`,
    `slice.by`/`return`, `swing.endFacing`, `turn_alone.custom`, `zig_zag.ender`.
@@ -525,8 +526,8 @@ share that step's group), so a "balance and swing" kept as one sequence
 matches `ThenFilter(balance, swing)` exactly as two adjacent figures would, and
 not `ThenFilter(swing, balance)`. Each step also takes the section it starts
 in, so a step that begins the next phrase is found in that phrase. In an
-English sequence that states one span for steps with no timing of their own
-(ADR-006 §5.5), those steps share what the timed ones leave of the span,
+English or square sequence that states one span for steps with no timing of
+their own (ADR-006 §5.5, ADR-007 Q10; `formHasSequenceSpan`), those steps share what the timed ones leave of the span,
 evenly and in order, for placing them (`DanceRepository._sequenceStepBeats`).
 A share of 0 (a span already full) puts such a step where the step before it
 ends, so on a phrase boundary it takes the earlier phrase; the editor warns
@@ -827,12 +828,15 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
   removed (`filter_compiler.dart`, `_figureMatchWithoutRoleTokens`). The
   Figure scope is unchanged.
 - **Meter, key and interpreters (ADR-006 F3, §9.2).** In All fields each word
-  also matches the dance's `meter`, its `musical_key` and the names of its
+  also matches the dance's `meter`, its `musical_key`, its
+  `barnes_reference`, its other titles (`alternate_titles`, one per line, each
+  line break read as a space; `_alternateTitleMatch`) and the names of its
   live interpreters (`dance_interpreters` joined to `choreographers` with
-  `deleted_at IS NULL`), in a dance of any form. They are read with a folded
+  `deleted_at IS NULL`), in a dance of any form (only an ECD dance holds a
+  Barnes reference, `formHasBarnesReference`). They are read with a folded
   `LIKE` (below) from those rows rather than from the text index
-  (`_musicAndInterpreterMatch`), as two `id IN` subqueries beside the index
-  branches, so they need no index column, no rebuild, and follow a rename at
+  (`_musicAndInterpreterMatch`), as three `id IN` subqueries beside the index
+  branches (the dance's own columns, its other titles, its interpreters), so they need no index column, no rebuild, and follow a rename at
   once. Measured with `benchmark/search_benchmark.dart` (20,000 dances, every
   one with a meter and a key, one in twenty with a key outside ASCII; median
   of 25 runs on one machine), All fields `swing` took 3.1 ms before the
@@ -855,8 +859,10 @@ are ([dialect.md](dialect.md) "Canonicalization on input"):
   setup fails these searches with "no such function". The Author scope reads
   the interpreters' names the same way (`_interpreterMatch`) beside the
   `authors` column, so it finds a dance by who wrote it or who interpreted it
-  (Hudson, 2026-11-20); it does not read the meter or key. The Title and
-  Figure scopes read none of them.
+  (Hudson, 2026-11-20); it does not read the meter or key. The Title scope
+  reads the other titles the same way (`_alternateTitleMatch`) beside the
+  `title` column, so it finds a dance by any name it goes by; it reads none
+  of the rest. The Figure scope reads none of them.
   Best match adds them as one more branch with a score of 0, the worst a
   `bm25` score can be: a dance found only by its meter, key or interpreter
   ranks after every dance the text index scored, and before them when the
@@ -903,7 +909,7 @@ tree. This section specifies the mapping; the widget shipped as
 | **Multiple facets selected** | `AndFilter([...leaves])` — the common case |
 | Advanced ▸ boolean group | `AndFilter` / `OrFilter` / `NotFilter` group nodes |
 | Advanced ▸ figure row | `FigureFilter(query)` with move + param + section pickers, or the **Any figure** chip (`BuilderFigure.isAnyFigure`, folding to `anyFigure`, with no move, section or params) |
-| Advanced ▸ tag row | `TagFilter(tagId)` — a tag picker offering the tags carried by a live dance; two rows in an all-of group AND their tags, as the facet's **All tags** does; rows can also mix with figure rows and sit under none-of. Against ContraDB (no tags) the **Has tag** entry is greyed out and naming the source, and choosing ContraDB takes existing tag rows out (`RemovedTagRows.take`, `OnlineSource.hidesAdvancedTags`) and returns them, with the tag picked, to the group and position they came from when the source no longer hides tags (online mode off, or another source); a group deleted meanwhile sends its rows to the top level, and clearing the search forgets them. The translator still refuses a tag as a safeguard. Wiping and greying out was the user's instruction on 2026-11-06, and so was restoring the rows afterwards ("I'd like a restore"), both in the agent session that wrote it; no issue or comment records them. Giving no notice when the rows are taken out is the implementing agent's choice and not yet ratified by the maintainer. |
+| Advanced ▸ tag row | `TagFilter(tagId)` — a tag picker offering the tags carried by a live dance (a row whose tag no live dance carries keeps it, as one more entry named from every tag or "Not in your library", #2325); two rows in an all-of group AND their tags, as the facet's **All tags** does; rows can also mix with figure rows and sit under none-of. Against ContraDB (no tags) the **Has tag** entry is greyed out and naming the source, and choosing ContraDB takes existing tag rows out (`RemovedTagRows.take`, `OnlineSource.hidesAdvancedTags`) and returns them, with the tag picked, to the group and position they came from when the source no longer hides tags (online mode off, or another source); a group deleted meanwhile sends its rows to the top level, and clearing the search forgets them. The translator still refuses a tag as a safeguard. Wiping and greying out was the user's instruction on 2026-11-06, and so was restoring the rows afterwards ("I'd like a restore"), both in the agent session that wrote it; no issue or comment records them. Giving no notice when the rows are taken out is the implementing agent's choice and not yet ratified by the maintainer. |
 | Advanced ▸ sequence row ("X then Y") | `ThenFilter(before, after)` — both operands are `FigureQuery` |
 
 - **Common case**: the facet chips compose into a flat `AndFilter` of leaves. No tree
@@ -931,6 +937,299 @@ tree. This section specifies the mapping; the widget shipped as
 - **Accessibility**: result counts are announced politely to AT via a live
   region ("42 dances"), per [ux.md](ux.md) §1 and the accessibility baseline;
   the builder is fully keyboard-operable and every control is labelled.
+
+## Saved searches (#2325)
+
+A saved search is the search panel's state, stored under a name, and resolved
+against the collection as it is when it runs. This section is the format and
+the resolver contract; both live in `compendium_core`
+(`packages/compendium_core/lib/src/search/saved_search*.dart`). How a saved
+search is stored, synced and kept consistent through merges and deletes is
+specified in `sync-spec.md` §6.15 and `tags-and-people.md`; the menu that uses
+it is [Using saved searches](#using-saved-searches), below, and the user guide's
+`docs/user/collection.md`.
+
+**What is stored: the panel state, not the compiled filter** (maintainer
+decision). A compiled `DanceFilter` would freeze the computed recency cutoff and
+the calling-history settings, cannot be built without the live `CustomFieldDef`,
+and has no way back into the panels. `CollectionPanelState` is the live form
+(text, **Search in**, `FacetSelections`, By phrase, the Advanced tree, the sort
+and its direction); `SavedSearchSpec` is its persisted form, a validated, deeply
+immutable JSON value:
+
+```json
+{ "v": 1, "text": "…", "scope": "omni", "sort": "title", "sortDirection": "ascending",
+  "facets": { "tagIds": ["…"], "tagsMatchAll": false, "historyVenue": "id:…", "historyMonths": 12, … },
+  "byPhrase": { "match": { "A1": ["swing"] }, "exclude": { "B2": ["star"] } },
+  "advanced": { "t": "group", "kind": "all", "children": [ { "t": "tag", "tagId": "…" }, … ] } }
+```
+
+- Enums are stored by `name`; id sets and the keys of every id-keyed map are
+  sorted, so the bytes depend only on the search. (`historyVenueLabel`, the chip
+  text, is display-only and not stored: it is looked up again on load.) Builder row ids are session counters and are **never stored**;
+  they are minted again on load.
+- `tagsMatchAll` and the sort **direction** are stored, though the panel does not
+  persist them on its own: leaving them out would change which dances a saved
+  search returns, or its order.
+- Settings that are not part of a search stay live: `callerFilter`,
+  `performedOnly`, `requireEventDate` and `tracking` come from Settings ▸
+  Calling history when the search runs, not when it was saved.
+
+**A history window is a distance, never a date.** The panel holds the Called
+filter's window as `historyMonths` or `historySince`; the spec stores
+`historyMonths` only. A chosen date is saved as the whole number of calendar
+months between it and the day of saving: the largest N whose window
+(`calendarMonthsBefore(today, N)`) does not start before the date, **at least
+1**, so "since three weeks ago" saves as 1 month and a
+date in the future also as 1. The cutoff is recomputed from N every time the
+search runs. A saved N that is not a preset (1, 3, 6) is a valid window, and a panel that
+loads one shows it as one more selected **Within** chip, "12 months, saved"
+(see *Opening a panel state* below).
+
+"Today" is the caller's own calendar day: `calendarDayAt(instantUtc, offset)`.
+A host reads both from a `SearchClock` and never calls `DateTime.now()` for it.
+Just after local midnight in a zone far ahead of UTC it is already tomorrow, and
+a window counted from the UTC day would start a day early.
+
+**Reading is strict and never throws.** `SavedSearchSpec.decode` returns the
+spec or why it is unreadable. An unknown version, key, type or enum name, a row
+nested deeper than 8, more than 200 rows, a string over 500 characters or a
+value over 64 KiB of UTF-8 (all far under the sync server's own limits) is *unreadable*:
+it is listed as needing attention and never partly applied. A value from a newer
+build (`v` above this build's) is unreadable for the same reason.
+
+**The sort.** A stored sort is read as stored, `relevance` (Best match) included;
+a sort that is no longer offered falls back to **Title** when it is applied
+(`CollectionPanelState.effectiveSort`, the rule `availableCollectionSorts`
+states), so a Best-match search whose text is later emptied sorts by Title.
+
+**Dialect.** Search text is stored canonicalized against the dialect it was
+typed in and shown in the active dialect (`savedSearchTextCodec`, the same
+`canonicalizeText` call and role synonyms the compiler uses), so a saved "larks
+chain" means the same dances after a switch to a dialect with other role words.
+Figure criteria are already canonical move ids. Loading shows
+`renderFreeText(stored)`, which capitalizes the first letter; a search ignores
+case. Only the scopes whose compiler reads the dialect are canonicalized:
+**All fields** and **Figures**. **Title** and **Author** match the typed word
+alone, a dialect never changes what they find, and their text is stored as
+typed (canonicalizing "ladies chain" to `role2s chain` would stop it matching a
+title that says "Ladies Chain"). Under **All fields** the typed form also
+matches the verbatim columns (titles, authors, notes), and a reload shows the
+dialect's word for a role, so that part of the match follows the word shown
+rather than the one first typed.
+
+### The resolver
+
+`resolveSavedSearch(spec, context)` is the one function other features call to
+turn a saved search into a `DanceFilter`. It builds through
+`buildCollectionFilter`, the same translator the Collection and the picker use,
+so there is no second translator to drift. `SavedSearchContext` carries what a
+search needs from the present: today, the calling-history settings, an optional
+`currentProgramId` (a program being built never counts as its own history,
+N1-6), the live ids of tags, authors, sources, levels, venue records, figures of
+your own, the custom field definitions, the taxonomy and the id aliases.
+
+It returns a `ResolvedFilter`, or an `UnresolvableSavedSearch` naming everything
+that is missing. **A missing reference is never dropped:** dropping a leaf
+broadens an AND, narrows an OR and, under **None of**, inverts. Reported are a
+deleted tag, author, source, level, venue record or custom field; a custom field
+whose type changed (it would refuse to build) or whose choice was removed; a
+figure of your own that was deleted; and a figure parameter the
+Advanced panel could not show and clear: one the move does not declare (or an
+alias pins), one without a closed domain, or one outside the **selectable**
+domain (`figureParamSelectableChoices`, so a stored `unspecified` is refused as
+the panel refuses it). A typed venue (`text:` key) names
+no record and is never missing. Ids are read through the aliases first
+(`id_aliases`, losing id to surviving id, chains followed, a cycle left as it was
+and reported), so a saved search that a peer edited with a merged-away id reads
+as the survivor.
+
+**Merges rewrite, aliases cover the rest.** Merging tags, authors or sources
+rewrites each readable saved search that names a loser to name the survivor, in
+the merge's own transaction, and an Undo puts it back only while it is still as
+the merge left it (`tags-and-people.md`, Merge step 8). That is a user's merge:
+one sync's reconciliation applies does not rewrite saved searches. The alias is
+the safety net, not the mechanism: it covers a readable saved search a peer
+edited before it saw the merge, or one a reconciliation left naming the loser,
+until the alias is retired (once no peer lists the loser), after which a value
+naming the loser reports it as missing, which is safe. It cannot help a saved
+search this build cannot read (one in a newer format, left untouched by the
+merge): the alias is applied only to a value that decodes, so only a build that
+reads that format can use it, and only until it is retired. A host builds the
+alias map once per run, from one read (`SyncLocalRepository.aliasMaps`), never
+per reference. Deleting a tag has no survivor, so nothing is rewritten and the
+resolver reports the missing tag.
+
+Moves and sections are not references to records, and are not reported here: a
+move id the taxonomy does not know, or a By phrase section the dance form has no
+label for, is built as written.
+
+### Opening a panel state
+
+The Collection (`DanceListCommands.applyPanelState`) and the picker
+(`CollectionPicker.panelState`) can be handed a whole `CollectionPanelState` to
+show, by a saved search or by another feature. Either shows **exactly** that
+state, and nothing in it is silently dropped or left filtering out of sight:
+
+- **Every part is replaced**, including what **Clear all** leaves alone:
+  **Search in**, the sort and its direction (through `effectiveSort`, so a Best
+  match no longer offered becomes Title), and the Advanced tag rows a ContraDB
+  search had taken out. The sort is set directly, never as a user's choice:
+  the Collection's last-used sort is not written, and the opening-sort read
+  that runs after a picker mounts does not replace it. Online search is turned
+  off first, which returns ContraDB's taken tag rows to the old tree; they are
+  then forgotten, and only then is the tree replaced.
+- **The picker applies a request once.** The request is a
+  `CollectionPanelRequest`, marked applied by the first picker to take it, in
+  `initState` (a sheet built with it) or `didUpdateWidget` (the program
+  editor's inline picker, which stays mounted). A picker built again with the
+  same request, by a narrow/wide switch or a sheet opened again, starts afresh
+  instead of putting the search back; so the owner must keep the request in a
+  field, since one built in `build()` would be new, and applied, on every
+  rebuild. Each host takes the state's objects as its own.
+- **Every selected value has a chip.** A Filters section offers the values the
+  collection has, and every selected value besides: a level, author, tag,
+  source, form, formation, progression, status, meter, key, tune, custom-field
+  choice, a "not mixer" / "not mixed level", a rating outside 1–5, a Called /
+  Not called choice in a collection with no history, and a selection on a
+  custom field that is no longer offered as a filter. The names come from every
+  configured level, choreographer, tag and published source
+  (`CollectionData.allLevels`, `choreographerNames`, `allTagNames`,
+  `sourceTitles`); an id none of them knows reads "Not in your library".
+- **Selected tags are kept.** `FacetSelections.retainTags` drops a selected tag
+  no live dance carries, but not one the host opened with
+  (`keepSelectedTags`): a search for a tag nobody has used yet must find the
+  dances tagged later, not quietly find everything. A tag picked by hand is
+  dropped as before.
+- **A Within window outside 1/3/6 months** shows as its own selected chip,
+  "12 months", or "12 months, saved" when the state came from a saved search
+  (`CollectionPanelState.fromSavedSearch`).
+- **A By phrase section no dance has** still gets its row, and an Advanced
+  row's phrase no dance has stays its dropdown's value. An Advanced **Has
+  tag** row whose tag no live dance carries keeps it and shows it (named from
+  every tag, or "Not in your library"); it used to clear the tag a frame
+  later, widening the search with no sign.
+- **Untagged is a Tags selection.** A Tags section hidden in Settings that
+  holds only Untagged is shown, and hiding Tags clears Untagged too
+  (`hasSelectionFor` / `clearFacets`).
+- **A figure parameter no dropdown offers** (the rule the resolver uses, above)
+  is kept, shown as a notice "hands: not stated (not offered)" the user can
+  remove. Removing it silently, as the Advanced panel did before a tree could
+  be opened, would run a broader search than the one the resolver hands every
+  other feature.
+- A custom text or number filter's field shows the state's value, not the one
+  it showed before, and a clear or another state empties text that was no
+  value yet (a lone "-", Between's first bound, spaces). The field tells
+  those apart from a rebuild its own typing caused by the facets' identity
+  and `FacetSelections.clearCount`, a count kept in memory only.
+
+### Using saved searches
+
+The maintainer replaced the issue's toolbar **Saved** button (2026-11-24, in
+the PR6 session): on a 390dp phone the row of tools has no room for it (the
+three tools take 282dp of the 358dp inside the margins, 304dp with "Filters ·
+3", and two 40dp icons need 80dp). Saved searches are used in three places
+instead, all through one set of UI-free actions, `SavedSearchActions`
+(`app/lib/src/widgets/saved_search_actions.dart`):
+
+- **The search field's dropdown** (`SavedSearchField`,
+  `app/lib/src/widgets/saved_search_field.dart`), in the Collection and the
+  picker: a popover of its own (an `OverlayPortal` under the field, over the
+  host's own controller and focus node), not Flutter's autocomplete widgets.
+  Those decide whether to show only when focus or text changes, and write the
+  chosen option into the field; this dropdown must open when the list
+  arrives after focus, and must never touch what is typed (nor the cursor, nor
+  an input method's composition). Nor is it `ResponsiveAutocomplete`, whose
+  phone layout turns the field into a read-only launcher.
+  - With the field focused it lists the saved searches by name (duplicates
+    are allowed: two devices could not prevent them offline), narrowed to the
+    names containing what is typed. The list is read again each time the
+    field gains focus, and after the host saves, renames or deletes one.
+  - While there is text, the first row is **Search for "…"** and is
+    highlighted; with nothing typed no row is highlighted. That row, Enter
+    with nothing highlighted, and a tap outside keep the ordinary search: the
+    host's debounce runs it as it is typed, and Enter runs it at once, as
+    before. A tap outside, while the field has focus, closes the popover
+    without taking focus, as a text field on a phone keeps it.
+  - Up and Down move the highlight (from none, Down lands on the first row and
+    Up on the last) and Enter chooses it. A move is announced as the command
+    palette does; "results found" is announced once each time typing opens
+    the popover, not on focus, nor when a tap reopens it.
+  - Escape is handled by a `Focus` key handler around the field, below the
+    app's shortcuts, and only to close an open popover. With the popover
+    closed it is ignored, so the app's Escape does exactly what it did before:
+    leave the page, or close a dismissible sheet the picker is in (Perform's
+    Insert a dance). No `DismissIntent` action is registered: the app's
+    Escape offers its dismiss to the nearest one, and a disabled one would
+    stop it there.
+  - While an input method is composing, the arrow keys move nothing here, and
+    Escape neither closes the popover nor reaches the app's Escape (the input
+    method has already received it); the composition is never touched.
+  - Choosing a saved search takes focus from the field, so the popover does
+    not reopen over the results the load shows. The popover's height is
+    bounded by the room above the window's own keyboard inset, and is worked
+    out again whenever the window's metrics change (a keyboard that appears
+    after the popover opened).
+  - Disabled while Online search is on. A saved search this version cannot
+    read is not listed there.
+- **The Collection's ⋮ menu**: **Save this search…** (while a query is set,
+  `CollectionPanelState.hasQuery`; the dialog says what is kept of a
+  calling-history window, a chosen date as whole months back from today; a
+  search over the format's limits, or one past `savedSearchMaxCount`, is
+  refused with a message). While a saved search is loaded: **Update "…"**,
+  enabled only once the panel's saved form differs from the form it had when
+  loaded or last saved; **Save as a new search…** in place of Save this
+  search…; **Rename "…"…**, which renames the stored search and does not save
+  the panel's edits; **Delete "…"**. The screen keeps which search is loaded
+  (`_loadedSearch`); clearing the search forgets it, and the entries go. The
+  picker has no ⋮ menu: it only loads.
+- **Settings ▸ Collection ▸ Saved searches**
+  (`app/lib/src/screens/settings/collection_section.dart`, after the
+  **Dances** group that moved there from General): every saved search, with
+  Rename and Delete, and those this version cannot read last under **Needs
+  attention**, explained and deletable. No Update there: it needs a panel.
+
+**Writes re-read first.** Update, Rename and Delete read the stored search
+again before writing (`SavedSearchActions._storedNow`): Update keeps the name
+stored now, Rename keeps the content stored now, and a search deleted
+meanwhile (in Settings, or by sync) is refused with a message and forgotten,
+never brought back. The Collection reads its loaded search again, and Settings
+▸ Collection its list, each time its destination is shown again (`isActive`,
+passed down from the app shell, which keeps every destination mounted).
+
+**Delete** follows the app's rule: `confirmDeleteIfEnabled`, then Undo
+(`showUndoSnackBar`). The Undo writes the stored value back exactly as it was
+read before the delete (`SettingsRepository.set` on the tombstoned key, which
+revives it), so a value this version cannot read comes back byte for byte. A
+delete that a registered dependent refuses (`SavedSearchInUse`) shows a message
+listing each use and deletes nothing.
+
+**Loading** reads one `SavedSearchContext` (`readSavedSearchContext`,
+`app/lib/src/search/saved_search_context.dart`): one read each of the live tags,
+authors, sources, levels, venues, figures of your own and custom field
+definitions, the merge aliases from one `SyncLocalRepository.aliasMaps()`, and
+the host's live Calling history settings (the picker adds the program being
+built). Then `resolveSavedSearch`:
+
+- a `ResolvedFilter` is applied through the host's one entry point
+  (`DanceListCommands.applyPanelState`; in the picker a
+  `CollectionPanelRequest` held in a field), which never writes the last-used
+  sort;
+- an `UnresolvableSavedSearch` is **still applied, whole**: the spec's own
+  panel state, read through the aliases, so nothing is dropped. The host shows
+  a lasting notice naming each missing thing ("The tag Bouncey, which was
+  deleted"; the name comes from the tombstoned record,
+  `CompendiumRepositories.deletedRecordNames`, or "A tag that was deleted" when
+  this device never knew it), and the user removes each criterion themselves.
+  A Filters criterion on a deleted custom field is left out by
+  `buildCollectionFilter`, so the notice also says that one is not in the
+  results. There is no "open anyway" step: the notice is what keeps the load
+  from being silent.
+
+Both hosts take "today" from a `SearchClock` (`DanceListScreen.clock`,
+`CollectionPicker.clock`) through `calendarDayAt`, for the filter, for the
+context and for saving, and never from `DateTime.now()`:
+`app/test/search/host_today_source_test.dart` scans for it.
 
 ## Performance
 
@@ -963,6 +1262,10 @@ in-memory scans.
    matrix as [ci.yml](../../.github/workflows/ci.yml). Marked so a slow CI
    runner's variance doesn't flake the build (generous absolute threshold,
    with the real regression signal being the reported median).
+
+The picker's **Suggested** order (#2343) is not a query: it ranks the results
+a query returned, off the UI thread. Its benchmark case and timing are in
+[suggestions.md](suggestions.md#performance).
 
 ## Open questions
 

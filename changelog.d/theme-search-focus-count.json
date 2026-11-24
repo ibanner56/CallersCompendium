@@ -1,0 +1,9 @@
+{
+  "id": "theme-search-focus-count",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "On the Theme screen, the search box is ready to type in as soon as the screen opens on a computer, and a search shows how many themes match, which screen readers read out as you type."
+    ]
+  }
+}

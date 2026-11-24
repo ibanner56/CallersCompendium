@@ -146,3 +146,30 @@ class IncomingPayloadRouterTest {
         assertEquals("https://example.org/p", router.pullInitialUrl())
     }
 }
+
+/** JVM tests for picking a dance link (issue #2335) out of an intent. */
+class DanceLinkOfTest {
+    private val view = "android.intent.action.VIEW"
+    private val link = "ccdance://1/q1ZKzs8tyM9LzSvJzM-zVbJSKkosLU5VUqgGAA"
+
+    @Test
+    fun `a VIEW of a ccdance URI is a dance link, verbatim`() {
+        assertEquals(link, danceLinkOf(view, "ccdance", link))
+    }
+
+    @Test
+    fun `the scheme is case-insensitive`() {
+        assertEquals("CCDANCE://1/a", danceLinkOf(view, "CCDANCE", "CCDANCE://1/a"))
+    }
+
+    @Test
+    fun `a file or content VIEW is not a dance link`() {
+        assertNull(danceLinkOf(view, "content", "content://x/y"))
+        assertNull(danceLinkOf(view, "file", "file:///sdcard/a.json"))
+    }
+
+    @Test
+    fun `a SEND is not a dance link`() {
+        assertNull(danceLinkOf("android.intent.action.SEND", "ccdance", link))
+    }
+}

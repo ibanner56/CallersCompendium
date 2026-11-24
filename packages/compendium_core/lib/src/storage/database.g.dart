@@ -577,6 +577,119 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _alternateTitlesMeta = const VerificationMeta(
+    'alternateTitles',
+  );
+  @override
+  late final GeneratedColumn<String> alternateTitles = GeneratedColumn<String>(
+    'alternate_titles',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _barnesReferenceMeta = const VerificationMeta(
+    'barnesReference',
+  );
+  @override
+  late final GeneratedColumn<String> barnesReference = GeneratedColumn<String>(
+    'barnes_reference',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _squareKindMeta = const VerificationMeta(
+    'squareKind',
+  );
+  @override
+  late final GeneratedColumn<String> squareKind = GeneratedColumn<String>(
+    'square_kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('main'),
+  );
+  static const VerificationMeta _repeatOrderMeta = const VerificationMeta(
+    'repeatOrder',
+  );
+  @override
+  late final GeneratedColumn<String> repeatOrder = GeneratedColumn<String>(
+    'repeat_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('unstated'),
+  );
+  static const VerificationMeta _repeatOrderTextMeta = const VerificationMeta(
+    'repeatOrderText',
+  );
+  @override
+  late final GeneratedColumn<String> repeatOrderText = GeneratedColumn<String>(
+    'repeat_order_text',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _newPartnerMeta = const VerificationMeta(
+    'newPartner',
+  );
+  @override
+  late final GeneratedColumn<String> newPartner = GeneratedColumn<String>(
+    'new_partner',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('unstated'),
+  );
+  static const VerificationMeta _newPartnerTextMeta = const VerificationMeta(
+    'newPartnerText',
+  );
+  @override
+  late final GeneratedColumn<String> newPartnerText = GeneratedColumn<String>(
+    'new_partner_text',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _singingMeta = const VerificationMeta(
+    'singing',
+  );
+  @override
+  late final GeneratedColumn<bool> singing = GeneratedColumn<bool>(
+    'singing',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("singing" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _freeFormMeta = const VerificationMeta(
+    'freeForm',
+  );
+  @override
+  late final GeneratedColumn<bool> freeForm = GeneratedColumn<bool>(
+    'free_form',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("free_form" IN (0, 1))',
+    ),
+  );
   @override
   late final GeneratedColumnWithTypeConverter<DanceStatus, String> status =
       GeneratedColumn<String>(
@@ -742,6 +855,15 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     walkthrough,
     meter,
     musicalKey,
+    alternateTitles,
+    barnesReference,
+    squareKind,
+    repeatOrder,
+    repeatOrderText,
+    newPartner,
+    newPartnerText,
+    singing,
+    freeForm,
     status,
     levelId,
     mixedLevel,
@@ -851,6 +973,75 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
       context.handle(
         _musicalKeyMeta,
         musicalKey.isAcceptableOrUnknown(data['musical_key']!, _musicalKeyMeta),
+      );
+    }
+    if (data.containsKey('alternate_titles')) {
+      context.handle(
+        _alternateTitlesMeta,
+        alternateTitles.isAcceptableOrUnknown(
+          data['alternate_titles']!,
+          _alternateTitlesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('barnes_reference')) {
+      context.handle(
+        _barnesReferenceMeta,
+        barnesReference.isAcceptableOrUnknown(
+          data['barnes_reference']!,
+          _barnesReferenceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('square_kind')) {
+      context.handle(
+        _squareKindMeta,
+        squareKind.isAcceptableOrUnknown(data['square_kind']!, _squareKindMeta),
+      );
+    }
+    if (data.containsKey('repeat_order')) {
+      context.handle(
+        _repeatOrderMeta,
+        repeatOrder.isAcceptableOrUnknown(
+          data['repeat_order']!,
+          _repeatOrderMeta,
+        ),
+      );
+    }
+    if (data.containsKey('repeat_order_text')) {
+      context.handle(
+        _repeatOrderTextMeta,
+        repeatOrderText.isAcceptableOrUnknown(
+          data['repeat_order_text']!,
+          _repeatOrderTextMeta,
+        ),
+      );
+    }
+    if (data.containsKey('new_partner')) {
+      context.handle(
+        _newPartnerMeta,
+        newPartner.isAcceptableOrUnknown(data['new_partner']!, _newPartnerMeta),
+      );
+    }
+    if (data.containsKey('new_partner_text')) {
+      context.handle(
+        _newPartnerTextMeta,
+        newPartnerText.isAcceptableOrUnknown(
+          data['new_partner_text']!,
+          _newPartnerTextMeta,
+        ),
+      );
+    }
+    if (data.containsKey('singing')) {
+      context.handle(
+        _singingMeta,
+        singing.isAcceptableOrUnknown(data['singing']!, _singingMeta),
+      );
+    }
+    if (data.containsKey('free_form')) {
+      context.handle(
+        _freeFormMeta,
+        freeForm.isAcceptableOrUnknown(data['free_form']!, _freeFormMeta),
       );
     }
     if (data.containsKey('level_id')) {
@@ -1006,6 +1197,42 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
         DriftSqlType.string,
         data['${effectivePrefix}musical_key'],
       )!,
+      alternateTitles: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}alternate_titles'],
+      )!,
+      barnesReference: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}barnes_reference'],
+      )!,
+      squareKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}square_kind'],
+      )!,
+      repeatOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}repeat_order'],
+      )!,
+      repeatOrderText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}repeat_order_text'],
+      )!,
+      newPartner: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}new_partner'],
+      )!,
+      newPartnerText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}new_partner_text'],
+      )!,
+      singing: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}singing'],
+      )!,
+      freeForm: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}free_form'],
+      ),
       status: $DancesTable.$converterstatus.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -1112,6 +1339,48 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
   /// Added in schema v42 (ADR-006 §12, F3). Not named `key`, which SQL
   /// reserves.
   final String musicalKey;
+
+  /// The dance's other titles, `Dance.alternateTitles`, one per line in the
+  /// order entered; `''` when it has none. One line per title is safe because
+  /// a title never holds a line break (`normalizeAlternateTitles`), and it
+  /// keeps the value plain text that cannot fail to decode. Added in schema
+  /// v42 while v42 was unreleased.
+  final String alternateTitles;
+
+  /// Where the tune is printed in the Barnes books, `Dance.barnesReference`,
+  /// as free text ("BIII p. 92", "NiB"); `''` when not given. Added in schema
+  /// v42 while v42 was unreleased.
+  final String barnesReference;
+
+  /// What a square dance record holds, `Dance.squareKind`, as its wire name
+  /// (`main`, `break`, `patter`); `main` by default. Kept for every form
+  /// (ADR-007 §8.1). Plain text rather than an enum converter, so a value
+  /// this build does not know reads as the default instead of failing. Added
+  /// in schema v42 while v42 was unreleased, as are the square columns below.
+  final String squareKind;
+
+  /// How a square's main part is repeated, `Dance.repeatOrder`, as its wire
+  /// name (`HHSS`, `HSHS`, `allFour`, `other`); `unstated` by default.
+  final String repeatOrder;
+
+  /// What `other` means for [repeatOrder], `Dance.repeatOrderText`; `''`
+  /// unless the order is `other`.
+  final String repeatOrderText;
+
+  /// Who the new partner is each time through a square, `Dance.newPartner`,
+  /// as its wire name; `unstated` by default.
+  final String newPartner;
+
+  /// What `other` means for [newPartner], `Dance.newPartnerText`; `''` unless
+  /// the new partner is `other`.
+  final String newPartnerText;
+
+  /// Whether a square's main part is a singing call, `Dance.singing`.
+  final bool singing;
+
+  /// Whether a square is free-form patter, `Dance.freeForm`; NULL follows its
+  /// kind.
+  final bool? freeForm;
   final DanceStatus status;
 
   /// Selected [DifficultyLevels] row, nullable when unspecified. Added in
@@ -1177,6 +1446,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     required this.walkthrough,
     required this.meter,
     required this.musicalKey,
+    required this.alternateTitles,
+    required this.barnesReference,
+    required this.squareKind,
+    required this.repeatOrder,
+    required this.repeatOrderText,
+    required this.newPartner,
+    required this.newPartnerText,
+    required this.singing,
+    this.freeForm,
     required this.status,
     this.levelId,
     required this.mixedLevel,
@@ -1220,6 +1498,17 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     map['walkthrough'] = Variable<String>(walkthrough);
     map['meter'] = Variable<String>(meter);
     map['musical_key'] = Variable<String>(musicalKey);
+    map['alternate_titles'] = Variable<String>(alternateTitles);
+    map['barnes_reference'] = Variable<String>(barnesReference);
+    map['square_kind'] = Variable<String>(squareKind);
+    map['repeat_order'] = Variable<String>(repeatOrder);
+    map['repeat_order_text'] = Variable<String>(repeatOrderText);
+    map['new_partner'] = Variable<String>(newPartner);
+    map['new_partner_text'] = Variable<String>(newPartnerText);
+    map['singing'] = Variable<bool>(singing);
+    if (!nullToAbsent || freeForm != null) {
+      map['free_form'] = Variable<bool>(freeForm);
+    }
     {
       map['status'] = Variable<String>(
         $DancesTable.$converterstatus.toSql(status),
@@ -1272,6 +1561,17 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       walkthrough: Value(walkthrough),
       meter: Value(meter),
       musicalKey: Value(musicalKey),
+      alternateTitles: Value(alternateTitles),
+      barnesReference: Value(barnesReference),
+      squareKind: Value(squareKind),
+      repeatOrder: Value(repeatOrder),
+      repeatOrderText: Value(repeatOrderText),
+      newPartner: Value(newPartner),
+      newPartnerText: Value(newPartnerText),
+      singing: Value(singing),
+      freeForm: freeForm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(freeForm),
       status: Value(status),
       levelId: levelId == null && nullToAbsent
           ? const Value.absent()
@@ -1328,6 +1628,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       walkthrough: serializer.fromJson<String>(json['walkthrough']),
       meter: serializer.fromJson<String>(json['meter']),
       musicalKey: serializer.fromJson<String>(json['musicalKey']),
+      alternateTitles: serializer.fromJson<String>(json['alternateTitles']),
+      barnesReference: serializer.fromJson<String>(json['barnesReference']),
+      squareKind: serializer.fromJson<String>(json['squareKind']),
+      repeatOrder: serializer.fromJson<String>(json['repeatOrder']),
+      repeatOrderText: serializer.fromJson<String>(json['repeatOrderText']),
+      newPartner: serializer.fromJson<String>(json['newPartner']),
+      newPartnerText: serializer.fromJson<String>(json['newPartnerText']),
+      singing: serializer.fromJson<bool>(json['singing']),
+      freeForm: serializer.fromJson<bool?>(json['freeForm']),
       status: $DancesTable.$converterstatus.fromJson(
         serializer.fromJson<String>(json['status']),
       ),
@@ -1369,6 +1678,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       'walkthrough': serializer.toJson<String>(walkthrough),
       'meter': serializer.toJson<String>(meter),
       'musicalKey': serializer.toJson<String>(musicalKey),
+      'alternateTitles': serializer.toJson<String>(alternateTitles),
+      'barnesReference': serializer.toJson<String>(barnesReference),
+      'squareKind': serializer.toJson<String>(squareKind),
+      'repeatOrder': serializer.toJson<String>(repeatOrder),
+      'repeatOrderText': serializer.toJson<String>(repeatOrderText),
+      'newPartner': serializer.toJson<String>(newPartner),
+      'newPartnerText': serializer.toJson<String>(newPartnerText),
+      'singing': serializer.toJson<bool>(singing),
+      'freeForm': serializer.toJson<bool?>(freeForm),
       'status': serializer.toJson<String>(
         $DancesTable.$converterstatus.toJson(status),
       ),
@@ -1402,6 +1720,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     String? walkthrough,
     String? meter,
     String? musicalKey,
+    String? alternateTitles,
+    String? barnesReference,
+    String? squareKind,
+    String? repeatOrder,
+    String? repeatOrderText,
+    String? newPartner,
+    String? newPartnerText,
+    bool? singing,
+    Value<bool?> freeForm = const Value.absent(),
     DanceStatus? status,
     Value<String?> levelId = const Value.absent(),
     bool? mixedLevel,
@@ -1432,6 +1759,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     walkthrough: walkthrough ?? this.walkthrough,
     meter: meter ?? this.meter,
     musicalKey: musicalKey ?? this.musicalKey,
+    alternateTitles: alternateTitles ?? this.alternateTitles,
+    barnesReference: barnesReference ?? this.barnesReference,
+    squareKind: squareKind ?? this.squareKind,
+    repeatOrder: repeatOrder ?? this.repeatOrder,
+    repeatOrderText: repeatOrderText ?? this.repeatOrderText,
+    newPartner: newPartner ?? this.newPartner,
+    newPartnerText: newPartnerText ?? this.newPartnerText,
+    singing: singing ?? this.singing,
+    freeForm: freeForm.present ? freeForm.value : this.freeForm,
     status: status ?? this.status,
     levelId: levelId.present ? levelId.value : this.levelId,
     mixedLevel: mixedLevel ?? this.mixedLevel,
@@ -1482,6 +1818,29 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       musicalKey: data.musicalKey.present
           ? data.musicalKey.value
           : this.musicalKey,
+      alternateTitles: data.alternateTitles.present
+          ? data.alternateTitles.value
+          : this.alternateTitles,
+      barnesReference: data.barnesReference.present
+          ? data.barnesReference.value
+          : this.barnesReference,
+      squareKind: data.squareKind.present
+          ? data.squareKind.value
+          : this.squareKind,
+      repeatOrder: data.repeatOrder.present
+          ? data.repeatOrder.value
+          : this.repeatOrder,
+      repeatOrderText: data.repeatOrderText.present
+          ? data.repeatOrderText.value
+          : this.repeatOrderText,
+      newPartner: data.newPartner.present
+          ? data.newPartner.value
+          : this.newPartner,
+      newPartnerText: data.newPartnerText.present
+          ? data.newPartnerText.value
+          : this.newPartnerText,
+      singing: data.singing.present ? data.singing.value : this.singing,
+      freeForm: data.freeForm.present ? data.freeForm.value : this.freeForm,
       status: data.status.present ? data.status.value : this.status,
       levelId: data.levelId.present ? data.levelId.value : this.levelId,
       mixedLevel: data.mixedLevel.present
@@ -1523,6 +1882,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           ..write('walkthrough: $walkthrough, ')
           ..write('meter: $meter, ')
           ..write('musicalKey: $musicalKey, ')
+          ..write('alternateTitles: $alternateTitles, ')
+          ..write('barnesReference: $barnesReference, ')
+          ..write('squareKind: $squareKind, ')
+          ..write('repeatOrder: $repeatOrder, ')
+          ..write('repeatOrderText: $repeatOrderText, ')
+          ..write('newPartner: $newPartner, ')
+          ..write('newPartnerText: $newPartnerText, ')
+          ..write('singing: $singing, ')
+          ..write('freeForm: $freeForm, ')
           ..write('status: $status, ')
           ..write('levelId: $levelId, ')
           ..write('mixedLevel: $mixedLevel, ')
@@ -1556,6 +1924,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     walkthrough,
     meter,
     musicalKey,
+    alternateTitles,
+    barnesReference,
+    squareKind,
+    repeatOrder,
+    repeatOrderText,
+    newPartner,
+    newPartnerText,
+    singing,
+    freeForm,
     status,
     levelId,
     mixedLevel,
@@ -1588,6 +1965,15 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           other.walkthrough == this.walkthrough &&
           other.meter == this.meter &&
           other.musicalKey == this.musicalKey &&
+          other.alternateTitles == this.alternateTitles &&
+          other.barnesReference == this.barnesReference &&
+          other.squareKind == this.squareKind &&
+          other.repeatOrder == this.repeatOrder &&
+          other.repeatOrderText == this.repeatOrderText &&
+          other.newPartner == this.newPartner &&
+          other.newPartnerText == this.newPartnerText &&
+          other.singing == this.singing &&
+          other.freeForm == this.freeForm &&
           other.status == this.status &&
           other.levelId == this.levelId &&
           other.mixedLevel == this.mixedLevel &&
@@ -1618,6 +2004,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
   final Value<String> walkthrough;
   final Value<String> meter;
   final Value<String> musicalKey;
+  final Value<String> alternateTitles;
+  final Value<String> barnesReference;
+  final Value<String> squareKind;
+  final Value<String> repeatOrder;
+  final Value<String> repeatOrderText;
+  final Value<String> newPartner;
+  final Value<String> newPartnerText;
+  final Value<bool> singing;
+  final Value<bool?> freeForm;
   final Value<DanceStatus> status;
   final Value<String?> levelId;
   final Value<bool> mixedLevel;
@@ -1647,6 +2042,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.walkthrough = const Value.absent(),
     this.meter = const Value.absent(),
     this.musicalKey = const Value.absent(),
+    this.alternateTitles = const Value.absent(),
+    this.barnesReference = const Value.absent(),
+    this.squareKind = const Value.absent(),
+    this.repeatOrder = const Value.absent(),
+    this.repeatOrderText = const Value.absent(),
+    this.newPartner = const Value.absent(),
+    this.newPartnerText = const Value.absent(),
+    this.singing = const Value.absent(),
+    this.freeForm = const Value.absent(),
     this.status = const Value.absent(),
     this.levelId = const Value.absent(),
     this.mixedLevel = const Value.absent(),
@@ -1677,6 +2081,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.walkthrough = const Value.absent(),
     this.meter = const Value.absent(),
     this.musicalKey = const Value.absent(),
+    this.alternateTitles = const Value.absent(),
+    this.barnesReference = const Value.absent(),
+    this.squareKind = const Value.absent(),
+    this.repeatOrder = const Value.absent(),
+    this.repeatOrderText = const Value.absent(),
+    this.newPartner = const Value.absent(),
+    this.newPartnerText = const Value.absent(),
+    this.singing = const Value.absent(),
+    this.freeForm = const Value.absent(),
     required DanceStatus status,
     this.levelId = const Value.absent(),
     this.mixedLevel = const Value.absent(),
@@ -1714,6 +2127,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Expression<String>? walkthrough,
     Expression<String>? meter,
     Expression<String>? musicalKey,
+    Expression<String>? alternateTitles,
+    Expression<String>? barnesReference,
+    Expression<String>? squareKind,
+    Expression<String>? repeatOrder,
+    Expression<String>? repeatOrderText,
+    Expression<String>? newPartner,
+    Expression<String>? newPartnerText,
+    Expression<bool>? singing,
+    Expression<bool>? freeForm,
     Expression<String>? status,
     Expression<String>? levelId,
     Expression<bool>? mixedLevel,
@@ -1744,6 +2166,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       if (walkthrough != null) 'walkthrough': walkthrough,
       if (meter != null) 'meter': meter,
       if (musicalKey != null) 'musical_key': musicalKey,
+      if (alternateTitles != null) 'alternate_titles': alternateTitles,
+      if (barnesReference != null) 'barnes_reference': barnesReference,
+      if (squareKind != null) 'square_kind': squareKind,
+      if (repeatOrder != null) 'repeat_order': repeatOrder,
+      if (repeatOrderText != null) 'repeat_order_text': repeatOrderText,
+      if (newPartner != null) 'new_partner': newPartner,
+      if (newPartnerText != null) 'new_partner_text': newPartnerText,
+      if (singing != null) 'singing': singing,
+      if (freeForm != null) 'free_form': freeForm,
       if (status != null) 'status': status,
       if (levelId != null) 'level_id': levelId,
       if (mixedLevel != null) 'mixed_level': mixedLevel,
@@ -1776,6 +2207,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Value<String>? walkthrough,
     Value<String>? meter,
     Value<String>? musicalKey,
+    Value<String>? alternateTitles,
+    Value<String>? barnesReference,
+    Value<String>? squareKind,
+    Value<String>? repeatOrder,
+    Value<String>? repeatOrderText,
+    Value<String>? newPartner,
+    Value<String>? newPartnerText,
+    Value<bool>? singing,
+    Value<bool?>? freeForm,
     Value<DanceStatus>? status,
     Value<String?>? levelId,
     Value<bool>? mixedLevel,
@@ -1806,6 +2246,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       walkthrough: walkthrough ?? this.walkthrough,
       meter: meter ?? this.meter,
       musicalKey: musicalKey ?? this.musicalKey,
+      alternateTitles: alternateTitles ?? this.alternateTitles,
+      barnesReference: barnesReference ?? this.barnesReference,
+      squareKind: squareKind ?? this.squareKind,
+      repeatOrder: repeatOrder ?? this.repeatOrder,
+      repeatOrderText: repeatOrderText ?? this.repeatOrderText,
+      newPartner: newPartner ?? this.newPartner,
+      newPartnerText: newPartnerText ?? this.newPartnerText,
+      singing: singing ?? this.singing,
+      freeForm: freeForm ?? this.freeForm,
       status: status ?? this.status,
       levelId: levelId ?? this.levelId,
       mixedLevel: mixedLevel ?? this.mixedLevel,
@@ -1874,6 +2323,33 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     if (musicalKey.present) {
       map['musical_key'] = Variable<String>(musicalKey.value);
     }
+    if (alternateTitles.present) {
+      map['alternate_titles'] = Variable<String>(alternateTitles.value);
+    }
+    if (barnesReference.present) {
+      map['barnes_reference'] = Variable<String>(barnesReference.value);
+    }
+    if (squareKind.present) {
+      map['square_kind'] = Variable<String>(squareKind.value);
+    }
+    if (repeatOrder.present) {
+      map['repeat_order'] = Variable<String>(repeatOrder.value);
+    }
+    if (repeatOrderText.present) {
+      map['repeat_order_text'] = Variable<String>(repeatOrderText.value);
+    }
+    if (newPartner.present) {
+      map['new_partner'] = Variable<String>(newPartner.value);
+    }
+    if (newPartnerText.present) {
+      map['new_partner_text'] = Variable<String>(newPartnerText.value);
+    }
+    if (singing.present) {
+      map['singing'] = Variable<bool>(singing.value);
+    }
+    if (freeForm.present) {
+      map['free_form'] = Variable<bool>(freeForm.value);
+    }
     if (status.present) {
       map['status'] = Variable<String>(
         $DancesTable.$converterstatus.toSql(status.value),
@@ -1938,6 +2414,15 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
           ..write('walkthrough: $walkthrough, ')
           ..write('meter: $meter, ')
           ..write('musicalKey: $musicalKey, ')
+          ..write('alternateTitles: $alternateTitles, ')
+          ..write('barnesReference: $barnesReference, ')
+          ..write('squareKind: $squareKind, ')
+          ..write('repeatOrder: $repeatOrder, ')
+          ..write('repeatOrderText: $repeatOrderText, ')
+          ..write('newPartner: $newPartner, ')
+          ..write('newPartnerText: $newPartnerText, ')
+          ..write('singing: $singing, ')
+          ..write('freeForm: $freeForm, ')
           ..write('status: $status, ')
           ..write('levelId: $levelId, ')
           ..write('mixedLevel: $mixedLevel, ')
@@ -3950,6 +4435,95 @@ class $ProgramsTable extends Programs
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _calendarEventKeyMeta = const VerificationMeta(
+    'calendarEventKey',
+  );
+  @override
+  late final GeneratedColumn<String> calendarEventKey = GeneratedColumn<String>(
+    'calendar_event_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _startMinuteMeta = const VerificationMeta(
+    'startMinute',
+  );
+  @override
+  late final GeneratedColumn<int> startMinute = GeneratedColumn<int>(
+    'start_minute',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _endMinuteMeta = const VerificationMeta(
+    'endMinute',
+  );
+  @override
+  late final GeneratedColumn<int> endMinute = GeneratedColumn<int>(
+    'end_minute',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lessonMinuteMeta = const VerificationMeta(
+    'lessonMinute',
+  );
+  @override
+  late final GeneratedColumn<int> lessonMinute = GeneratedColumn<int>(
+    'lesson_minute',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _arrivalMinuteMeta = const VerificationMeta(
+    'arrivalMinute',
+  );
+  @override
+  late final GeneratedColumn<int> arrivalMinute = GeneratedColumn<int>(
+    'arrival_minute',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _calendarEventFingerprintMeta =
+      const VerificationMeta('calendarEventFingerprint');
+  @override
+  late final GeneratedColumn<String> calendarEventFingerprint =
+      GeneratedColumn<String>(
+        'calendar_event_fingerprint',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _calendarWrittenAtMeta = const VerificationMeta(
+    'calendarWrittenAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> calendarWrittenAt =
+      GeneratedColumn<DateTime>(
+        'calendar_written_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _calendarFlagMeta = const VerificationMeta(
+    'calendarFlag',
+  );
+  @override
+  late final GeneratedColumn<String> calendarFlag = GeneratedColumn<String>(
+    'calendar_flag',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -3971,6 +4545,14 @@ class $ProgramsTable extends Programs
     deletedAt,
     existenceAt,
     archivedAt,
+    calendarEventKey,
+    startMinute,
+    endMinute,
+    lessonMinute,
+    arrivalMinute,
+    calendarEventFingerprint,
+    calendarWrittenAt,
+    calendarFlag,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4115,6 +4697,75 @@ class $ProgramsTable extends Programs
         archivedAt.isAcceptableOrUnknown(data['archived_at']!, _archivedAtMeta),
       );
     }
+    if (data.containsKey('calendar_event_key')) {
+      context.handle(
+        _calendarEventKeyMeta,
+        calendarEventKey.isAcceptableOrUnknown(
+          data['calendar_event_key']!,
+          _calendarEventKeyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('start_minute')) {
+      context.handle(
+        _startMinuteMeta,
+        startMinute.isAcceptableOrUnknown(
+          data['start_minute']!,
+          _startMinuteMeta,
+        ),
+      );
+    }
+    if (data.containsKey('end_minute')) {
+      context.handle(
+        _endMinuteMeta,
+        endMinute.isAcceptableOrUnknown(data['end_minute']!, _endMinuteMeta),
+      );
+    }
+    if (data.containsKey('lesson_minute')) {
+      context.handle(
+        _lessonMinuteMeta,
+        lessonMinute.isAcceptableOrUnknown(
+          data['lesson_minute']!,
+          _lessonMinuteMeta,
+        ),
+      );
+    }
+    if (data.containsKey('arrival_minute')) {
+      context.handle(
+        _arrivalMinuteMeta,
+        arrivalMinute.isAcceptableOrUnknown(
+          data['arrival_minute']!,
+          _arrivalMinuteMeta,
+        ),
+      );
+    }
+    if (data.containsKey('calendar_event_fingerprint')) {
+      context.handle(
+        _calendarEventFingerprintMeta,
+        calendarEventFingerprint.isAcceptableOrUnknown(
+          data['calendar_event_fingerprint']!,
+          _calendarEventFingerprintMeta,
+        ),
+      );
+    }
+    if (data.containsKey('calendar_written_at')) {
+      context.handle(
+        _calendarWrittenAtMeta,
+        calendarWrittenAt.isAcceptableOrUnknown(
+          data['calendar_written_at']!,
+          _calendarWrittenAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('calendar_flag')) {
+      context.handle(
+        _calendarFlagMeta,
+        calendarFlag.isAcceptableOrUnknown(
+          data['calendar_flag']!,
+          _calendarFlagMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -4202,6 +4853,38 @@ class $ProgramsTable extends Programs
         DriftSqlType.dateTime,
         data['${effectivePrefix}archived_at'],
       ),
+      calendarEventKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}calendar_event_key'],
+      ),
+      startMinute: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}start_minute'],
+      ),
+      endMinute: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}end_minute'],
+      ),
+      lessonMinute: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}lesson_minute'],
+      ),
+      arrivalMinute: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}arrival_minute'],
+      ),
+      calendarEventFingerprint: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}calendar_event_fingerprint'],
+      ),
+      calendarWrittenAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}calendar_written_at'],
+      ),
+      calendarFlag: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}calendar_flag'],
+      ),
     );
   }
 
@@ -4285,6 +4968,41 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
   /// counts it. Declared last because `ALTER TABLE ADD COLUMN` appends it there
   /// on a migrated database, so a fresh one gets the same column order.
   final DateTime? archivedAt;
+
+  /// The calendar event the program was imported from (#2352, schema v42): a
+  /// SHA-256 hex digest of the event's `UID` and recurrence id, never the
+  /// `UID`. `null` for every program not imported from a calendar. Declared
+  /// last for the same column-order reason as [archivedAt].
+  final String? calendarEventKey;
+
+  /// When the dance starts, as minutes after midnight (`0`–`1439`), a
+  /// wall-clock time at the hall with no time zone (schema v42, #2350).
+  /// `null` (every program before v42) means not recorded. Like the three
+  /// times after it, declared after [calendarEventKey] so a migrated database and a
+  /// fresh one get the same column order.
+  final int? startMinute;
+
+  /// When the dance ends, as minutes after midnight; earlier than
+  /// [startMinute] means the next day.
+  final int? endMinute;
+
+  /// When the beginner lesson starts, as minutes after midnight.
+  final int? lessonMinute;
+
+  /// When the caller needs to be at the hall, as minutes after midnight.
+  final int? arrivalMinute;
+
+  /// What the calendar import last wrote from the event (#2354, schema v42):
+  /// a per-field hash of its title, date, first location segment, and start
+  /// and end times.
+  final String? calendarEventFingerprint;
+
+  /// The `updated_at` the calendar import last wrote (#2354, schema v42).
+  final DateTime? calendarWrittenAt;
+
+  /// Why the calendar flags the program (#2354, schema v42): `cancelled`,
+  /// `missing`, or NULL. Free text, read leniently.
+  final String? calendarFlag;
   const ProgramRow({
     required this.id,
     required this.title,
@@ -4305,6 +5023,14 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     this.deletedAt,
     this.existenceAt,
     this.archivedAt,
+    this.calendarEventKey,
+    this.startMinute,
+    this.endMinute,
+    this.lessonMinute,
+    this.arrivalMinute,
+    this.calendarEventFingerprint,
+    this.calendarWrittenAt,
+    this.calendarFlag,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4356,6 +5082,32 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     if (!nullToAbsent || archivedAt != null) {
       map['archived_at'] = Variable<DateTime>(archivedAt);
     }
+    if (!nullToAbsent || calendarEventKey != null) {
+      map['calendar_event_key'] = Variable<String>(calendarEventKey);
+    }
+    if (!nullToAbsent || startMinute != null) {
+      map['start_minute'] = Variable<int>(startMinute);
+    }
+    if (!nullToAbsent || endMinute != null) {
+      map['end_minute'] = Variable<int>(endMinute);
+    }
+    if (!nullToAbsent || lessonMinute != null) {
+      map['lesson_minute'] = Variable<int>(lessonMinute);
+    }
+    if (!nullToAbsent || arrivalMinute != null) {
+      map['arrival_minute'] = Variable<int>(arrivalMinute);
+    }
+    if (!nullToAbsent || calendarEventFingerprint != null) {
+      map['calendar_event_fingerprint'] = Variable<String>(
+        calendarEventFingerprint,
+      );
+    }
+    if (!nullToAbsent || calendarWrittenAt != null) {
+      map['calendar_written_at'] = Variable<DateTime>(calendarWrittenAt);
+    }
+    if (!nullToAbsent || calendarFlag != null) {
+      map['calendar_flag'] = Variable<String>(calendarFlag);
+    }
     return map;
   }
 
@@ -4402,6 +5154,30 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       archivedAt: archivedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(archivedAt),
+      calendarEventKey: calendarEventKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(calendarEventKey),
+      startMinute: startMinute == null && nullToAbsent
+          ? const Value.absent()
+          : Value(startMinute),
+      endMinute: endMinute == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endMinute),
+      lessonMinute: lessonMinute == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lessonMinute),
+      arrivalMinute: arrivalMinute == null && nullToAbsent
+          ? const Value.absent()
+          : Value(arrivalMinute),
+      calendarEventFingerprint: calendarEventFingerprint == null && nullToAbsent
+          ? const Value.absent()
+          : Value(calendarEventFingerprint),
+      calendarWrittenAt: calendarWrittenAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(calendarWrittenAt),
+      calendarFlag: calendarFlag == null && nullToAbsent
+          ? const Value.absent()
+          : Value(calendarFlag),
     );
   }
 
@@ -4432,6 +5208,18 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
       existenceAt: serializer.fromJson<DateTime?>(json['existenceAt']),
       archivedAt: serializer.fromJson<DateTime?>(json['archivedAt']),
+      calendarEventKey: serializer.fromJson<String?>(json['calendarEventKey']),
+      startMinute: serializer.fromJson<int?>(json['startMinute']),
+      endMinute: serializer.fromJson<int?>(json['endMinute']),
+      lessonMinute: serializer.fromJson<int?>(json['lessonMinute']),
+      arrivalMinute: serializer.fromJson<int?>(json['arrivalMinute']),
+      calendarEventFingerprint: serializer.fromJson<String?>(
+        json['calendarEventFingerprint'],
+      ),
+      calendarWrittenAt: serializer.fromJson<DateTime?>(
+        json['calendarWrittenAt'],
+      ),
+      calendarFlag: serializer.fromJson<String?>(json['calendarFlag']),
     );
   }
   @override
@@ -4459,6 +5247,16 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
       'existenceAt': serializer.toJson<DateTime?>(existenceAt),
       'archivedAt': serializer.toJson<DateTime?>(archivedAt),
+      'calendarEventKey': serializer.toJson<String?>(calendarEventKey),
+      'startMinute': serializer.toJson<int?>(startMinute),
+      'endMinute': serializer.toJson<int?>(endMinute),
+      'lessonMinute': serializer.toJson<int?>(lessonMinute),
+      'arrivalMinute': serializer.toJson<int?>(arrivalMinute),
+      'calendarEventFingerprint': serializer.toJson<String?>(
+        calendarEventFingerprint,
+      ),
+      'calendarWrittenAt': serializer.toJson<DateTime?>(calendarWrittenAt),
+      'calendarFlag': serializer.toJson<String?>(calendarFlag),
     };
   }
 
@@ -4482,6 +5280,14 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     Value<DateTime?> deletedAt = const Value.absent(),
     Value<DateTime?> existenceAt = const Value.absent(),
     Value<DateTime?> archivedAt = const Value.absent(),
+    Value<String?> calendarEventKey = const Value.absent(),
+    Value<int?> startMinute = const Value.absent(),
+    Value<int?> endMinute = const Value.absent(),
+    Value<int?> lessonMinute = const Value.absent(),
+    Value<int?> arrivalMinute = const Value.absent(),
+    Value<String?> calendarEventFingerprint = const Value.absent(),
+    Value<DateTime?> calendarWrittenAt = const Value.absent(),
+    Value<String?> calendarFlag = const Value.absent(),
   }) => ProgramRow(
     id: id ?? this.id,
     title: title ?? this.title,
@@ -4504,6 +5310,22 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
     existenceAt: existenceAt.present ? existenceAt.value : this.existenceAt,
     archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    calendarEventKey: calendarEventKey.present
+        ? calendarEventKey.value
+        : this.calendarEventKey,
+    startMinute: startMinute.present ? startMinute.value : this.startMinute,
+    endMinute: endMinute.present ? endMinute.value : this.endMinute,
+    lessonMinute: lessonMinute.present ? lessonMinute.value : this.lessonMinute,
+    arrivalMinute: arrivalMinute.present
+        ? arrivalMinute.value
+        : this.arrivalMinute,
+    calendarEventFingerprint: calendarEventFingerprint.present
+        ? calendarEventFingerprint.value
+        : this.calendarEventFingerprint,
+    calendarWrittenAt: calendarWrittenAt.present
+        ? calendarWrittenAt.value
+        : this.calendarWrittenAt,
+    calendarFlag: calendarFlag.present ? calendarFlag.value : this.calendarFlag,
   );
   ProgramRow copyWithCompanion(ProgramsCompanion data) {
     return ProgramRow(
@@ -4540,6 +5362,28 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       archivedAt: data.archivedAt.present
           ? data.archivedAt.value
           : this.archivedAt,
+      calendarEventKey: data.calendarEventKey.present
+          ? data.calendarEventKey.value
+          : this.calendarEventKey,
+      startMinute: data.startMinute.present
+          ? data.startMinute.value
+          : this.startMinute,
+      endMinute: data.endMinute.present ? data.endMinute.value : this.endMinute,
+      lessonMinute: data.lessonMinute.present
+          ? data.lessonMinute.value
+          : this.lessonMinute,
+      arrivalMinute: data.arrivalMinute.present
+          ? data.arrivalMinute.value
+          : this.arrivalMinute,
+      calendarEventFingerprint: data.calendarEventFingerprint.present
+          ? data.calendarEventFingerprint.value
+          : this.calendarEventFingerprint,
+      calendarWrittenAt: data.calendarWrittenAt.present
+          ? data.calendarWrittenAt.value
+          : this.calendarWrittenAt,
+      calendarFlag: data.calendarFlag.present
+          ? data.calendarFlag.value
+          : this.calendarFlag,
     );
   }
 
@@ -4564,13 +5408,21 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('existenceAt: $existenceAt, ')
-          ..write('archivedAt: $archivedAt')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('calendarEventKey: $calendarEventKey, ')
+          ..write('startMinute: $startMinute, ')
+          ..write('endMinute: $endMinute, ')
+          ..write('lessonMinute: $lessonMinute, ')
+          ..write('arrivalMinute: $arrivalMinute, ')
+          ..write('calendarEventFingerprint: $calendarEventFingerprint, ')
+          ..write('calendarWrittenAt: $calendarWrittenAt, ')
+          ..write('calendarFlag: $calendarFlag')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     title,
     eventDate,
@@ -4590,7 +5442,15 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     deletedAt,
     existenceAt,
     archivedAt,
-  );
+    calendarEventKey,
+    startMinute,
+    endMinute,
+    lessonMinute,
+    arrivalMinute,
+    calendarEventFingerprint,
+    calendarWrittenAt,
+    calendarFlag,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -4613,7 +5473,15 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
           other.existenceAt == this.existenceAt &&
-          other.archivedAt == this.archivedAt);
+          other.archivedAt == this.archivedAt &&
+          other.calendarEventKey == this.calendarEventKey &&
+          other.startMinute == this.startMinute &&
+          other.endMinute == this.endMinute &&
+          other.lessonMinute == this.lessonMinute &&
+          other.arrivalMinute == this.arrivalMinute &&
+          other.calendarEventFingerprint == this.calendarEventFingerprint &&
+          other.calendarWrittenAt == this.calendarWrittenAt &&
+          other.calendarFlag == this.calendarFlag);
 }
 
 class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
@@ -4636,6 +5504,14 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
   final Value<DateTime?> deletedAt;
   final Value<DateTime?> existenceAt;
   final Value<DateTime?> archivedAt;
+  final Value<String?> calendarEventKey;
+  final Value<int?> startMinute;
+  final Value<int?> endMinute;
+  final Value<int?> lessonMinute;
+  final Value<int?> arrivalMinute;
+  final Value<String?> calendarEventFingerprint;
+  final Value<DateTime?> calendarWrittenAt;
+  final Value<String?> calendarFlag;
   final Value<int> rowid;
   const ProgramsCompanion({
     this.id = const Value.absent(),
@@ -4657,6 +5533,14 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.deletedAt = const Value.absent(),
     this.existenceAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
+    this.calendarEventKey = const Value.absent(),
+    this.startMinute = const Value.absent(),
+    this.endMinute = const Value.absent(),
+    this.lessonMinute = const Value.absent(),
+    this.arrivalMinute = const Value.absent(),
+    this.calendarEventFingerprint = const Value.absent(),
+    this.calendarWrittenAt = const Value.absent(),
+    this.calendarFlag = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProgramsCompanion.insert({
@@ -4679,6 +5563,14 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.deletedAt = const Value.absent(),
     this.existenceAt = const Value.absent(),
     this.archivedAt = const Value.absent(),
+    this.calendarEventKey = const Value.absent(),
+    this.startMinute = const Value.absent(),
+    this.endMinute = const Value.absent(),
+    this.lessonMinute = const Value.absent(),
+    this.arrivalMinute = const Value.absent(),
+    this.calendarEventFingerprint = const Value.absent(),
+    this.calendarWrittenAt = const Value.absent(),
+    this.calendarFlag = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        title = Value(title),
@@ -4705,6 +5597,14 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Expression<DateTime>? deletedAt,
     Expression<DateTime>? existenceAt,
     Expression<DateTime>? archivedAt,
+    Expression<String>? calendarEventKey,
+    Expression<int>? startMinute,
+    Expression<int>? endMinute,
+    Expression<int>? lessonMinute,
+    Expression<int>? arrivalMinute,
+    Expression<String>? calendarEventFingerprint,
+    Expression<DateTime>? calendarWrittenAt,
+    Expression<String>? calendarFlag,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -4727,6 +5627,15 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (existenceAt != null) 'existence_at': existenceAt,
       if (archivedAt != null) 'archived_at': archivedAt,
+      if (calendarEventKey != null) 'calendar_event_key': calendarEventKey,
+      if (startMinute != null) 'start_minute': startMinute,
+      if (endMinute != null) 'end_minute': endMinute,
+      if (lessonMinute != null) 'lesson_minute': lessonMinute,
+      if (arrivalMinute != null) 'arrival_minute': arrivalMinute,
+      if (calendarEventFingerprint != null)
+        'calendar_event_fingerprint': calendarEventFingerprint,
+      if (calendarWrittenAt != null) 'calendar_written_at': calendarWrittenAt,
+      if (calendarFlag != null) 'calendar_flag': calendarFlag,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -4751,6 +5660,14 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Value<DateTime?>? deletedAt,
     Value<DateTime?>? existenceAt,
     Value<DateTime?>? archivedAt,
+    Value<String?>? calendarEventKey,
+    Value<int?>? startMinute,
+    Value<int?>? endMinute,
+    Value<int?>? lessonMinute,
+    Value<int?>? arrivalMinute,
+    Value<String?>? calendarEventFingerprint,
+    Value<DateTime?>? calendarWrittenAt,
+    Value<String?>? calendarFlag,
     Value<int>? rowid,
   }) {
     return ProgramsCompanion(
@@ -4773,6 +5690,15 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       deletedAt: deletedAt ?? this.deletedAt,
       existenceAt: existenceAt ?? this.existenceAt,
       archivedAt: archivedAt ?? this.archivedAt,
+      calendarEventKey: calendarEventKey ?? this.calendarEventKey,
+      startMinute: startMinute ?? this.startMinute,
+      endMinute: endMinute ?? this.endMinute,
+      lessonMinute: lessonMinute ?? this.lessonMinute,
+      arrivalMinute: arrivalMinute ?? this.arrivalMinute,
+      calendarEventFingerprint:
+          calendarEventFingerprint ?? this.calendarEventFingerprint,
+      calendarWrittenAt: calendarWrittenAt ?? this.calendarWrittenAt,
+      calendarFlag: calendarFlag ?? this.calendarFlag,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -4839,6 +5765,32 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     if (archivedAt.present) {
       map['archived_at'] = Variable<DateTime>(archivedAt.value);
     }
+    if (calendarEventKey.present) {
+      map['calendar_event_key'] = Variable<String>(calendarEventKey.value);
+    }
+    if (startMinute.present) {
+      map['start_minute'] = Variable<int>(startMinute.value);
+    }
+    if (endMinute.present) {
+      map['end_minute'] = Variable<int>(endMinute.value);
+    }
+    if (lessonMinute.present) {
+      map['lesson_minute'] = Variable<int>(lessonMinute.value);
+    }
+    if (arrivalMinute.present) {
+      map['arrival_minute'] = Variable<int>(arrivalMinute.value);
+    }
+    if (calendarEventFingerprint.present) {
+      map['calendar_event_fingerprint'] = Variable<String>(
+        calendarEventFingerprint.value,
+      );
+    }
+    if (calendarWrittenAt.present) {
+      map['calendar_written_at'] = Variable<DateTime>(calendarWrittenAt.value);
+    }
+    if (calendarFlag.present) {
+      map['calendar_flag'] = Variable<String>(calendarFlag.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -4867,6 +5819,14 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
           ..write('deletedAt: $deletedAt, ')
           ..write('existenceAt: $existenceAt, ')
           ..write('archivedAt: $archivedAt, ')
+          ..write('calendarEventKey: $calendarEventKey, ')
+          ..write('startMinute: $startMinute, ')
+          ..write('endMinute: $endMinute, ')
+          ..write('lessonMinute: $lessonMinute, ')
+          ..write('arrivalMinute: $arrivalMinute, ')
+          ..write('calendarEventFingerprint: $calendarEventFingerprint, ')
+          ..write('calendarWrittenAt: $calendarWrittenAt, ')
+          ..write('calendarFlag: $calendarFlag, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -16963,6 +17923,15 @@ typedef $$DancesTableCreateCompanionBuilder =
       Value<String> walkthrough,
       Value<String> meter,
       Value<String> musicalKey,
+      Value<String> alternateTitles,
+      Value<String> barnesReference,
+      Value<String> squareKind,
+      Value<String> repeatOrder,
+      Value<String> repeatOrderText,
+      Value<String> newPartner,
+      Value<String> newPartnerText,
+      Value<bool> singing,
+      Value<bool?> freeForm,
       required DanceStatus status,
       Value<String?> levelId,
       Value<bool> mixedLevel,
@@ -16994,6 +17963,15 @@ typedef $$DancesTableUpdateCompanionBuilder =
       Value<String> walkthrough,
       Value<String> meter,
       Value<String> musicalKey,
+      Value<String> alternateTitles,
+      Value<String> barnesReference,
+      Value<String> squareKind,
+      Value<String> repeatOrder,
+      Value<String> repeatOrderText,
+      Value<String> newPartner,
+      Value<String> newPartnerText,
+      Value<bool> singing,
+      Value<bool?> freeForm,
       Value<DanceStatus> status,
       Value<String?> levelId,
       Value<bool> mixedLevel,
@@ -17305,6 +18283,51 @@ class $$DancesTableFilterComposer
 
   ColumnFilters<String> get musicalKey => $composableBuilder(
     column: $table.musicalKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get alternateTitles => $composableBuilder(
+    column: $table.alternateTitles,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get barnesReference => $composableBuilder(
+    column: $table.barnesReference,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get squareKind => $composableBuilder(
+    column: $table.squareKind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get repeatOrder => $composableBuilder(
+    column: $table.repeatOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get repeatOrderText => $composableBuilder(
+    column: $table.repeatOrderText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get newPartner => $composableBuilder(
+    column: $table.newPartner,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get newPartnerText => $composableBuilder(
+    column: $table.newPartnerText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get singing => $composableBuilder(
+    column: $table.singing,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get freeForm => $composableBuilder(
+    column: $table.freeForm,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -17722,6 +18745,51 @@ class $$DancesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get alternateTitles => $composableBuilder(
+    column: $table.alternateTitles,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get barnesReference => $composableBuilder(
+    column: $table.barnesReference,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get squareKind => $composableBuilder(
+    column: $table.squareKind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get repeatOrder => $composableBuilder(
+    column: $table.repeatOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get repeatOrderText => $composableBuilder(
+    column: $table.repeatOrderText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get newPartner => $composableBuilder(
+    column: $table.newPartner,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get newPartnerText => $composableBuilder(
+    column: $table.newPartnerText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get singing => $composableBuilder(
+    column: $table.singing,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get freeForm => $composableBuilder(
+    column: $table.freeForm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get status => $composableBuilder(
     column: $table.status,
     builder: (column) => ColumnOrderings(column),
@@ -17876,6 +18944,47 @@ class $$DancesTableAnnotationComposer
     column: $table.musicalKey,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get alternateTitles => $composableBuilder(
+    column: $table.alternateTitles,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get barnesReference => $composableBuilder(
+    column: $table.barnesReference,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get squareKind => $composableBuilder(
+    column: $table.squareKind,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get repeatOrder => $composableBuilder(
+    column: $table.repeatOrder,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get repeatOrderText => $composableBuilder(
+    column: $table.repeatOrderText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get newPartner => $composableBuilder(
+    column: $table.newPartner,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get newPartnerText => $composableBuilder(
+    column: $table.newPartnerText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get singing =>
+      $composableBuilder(column: $table.singing, builder: (column) => column);
+
+  GeneratedColumn<bool> get freeForm =>
+      $composableBuilder(column: $table.freeForm, builder: (column) => column);
 
   GeneratedColumnWithTypeConverter<DanceStatus, String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
@@ -18251,6 +19360,15 @@ class $$DancesTableTableManager
                 Value<String> walkthrough = const Value.absent(),
                 Value<String> meter = const Value.absent(),
                 Value<String> musicalKey = const Value.absent(),
+                Value<String> alternateTitles = const Value.absent(),
+                Value<String> barnesReference = const Value.absent(),
+                Value<String> squareKind = const Value.absent(),
+                Value<String> repeatOrder = const Value.absent(),
+                Value<String> repeatOrderText = const Value.absent(),
+                Value<String> newPartner = const Value.absent(),
+                Value<String> newPartnerText = const Value.absent(),
+                Value<bool> singing = const Value.absent(),
+                Value<bool?> freeForm = const Value.absent(),
                 Value<DanceStatus> status = const Value.absent(),
                 Value<String?> levelId = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
@@ -18280,6 +19398,15 @@ class $$DancesTableTableManager
                 walkthrough: walkthrough,
                 meter: meter,
                 musicalKey: musicalKey,
+                alternateTitles: alternateTitles,
+                barnesReference: barnesReference,
+                squareKind: squareKind,
+                repeatOrder: repeatOrder,
+                repeatOrderText: repeatOrderText,
+                newPartner: newPartner,
+                newPartnerText: newPartnerText,
+                singing: singing,
+                freeForm: freeForm,
                 status: status,
                 levelId: levelId,
                 mixedLevel: mixedLevel,
@@ -18311,6 +19438,15 @@ class $$DancesTableTableManager
                 Value<String> walkthrough = const Value.absent(),
                 Value<String> meter = const Value.absent(),
                 Value<String> musicalKey = const Value.absent(),
+                Value<String> alternateTitles = const Value.absent(),
+                Value<String> barnesReference = const Value.absent(),
+                Value<String> squareKind = const Value.absent(),
+                Value<String> repeatOrder = const Value.absent(),
+                Value<String> repeatOrderText = const Value.absent(),
+                Value<String> newPartner = const Value.absent(),
+                Value<String> newPartnerText = const Value.absent(),
+                Value<bool> singing = const Value.absent(),
+                Value<bool?> freeForm = const Value.absent(),
                 required DanceStatus status,
                 Value<String?> levelId = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
@@ -18340,6 +19476,15 @@ class $$DancesTableTableManager
                 walkthrough: walkthrough,
                 meter: meter,
                 musicalKey: musicalKey,
+                alternateTitles: alternateTitles,
+                barnesReference: barnesReference,
+                squareKind: squareKind,
+                repeatOrder: repeatOrder,
+                repeatOrderText: repeatOrderText,
+                newPartner: newPartner,
+                newPartnerText: newPartnerText,
+                singing: singing,
+                freeForm: freeForm,
                 status: status,
                 levelId: levelId,
                 mixedLevel: mixedLevel,
@@ -20375,6 +21520,14 @@ typedef $$ProgramsTableCreateCompanionBuilder =
       Value<DateTime?> deletedAt,
       Value<DateTime?> existenceAt,
       Value<DateTime?> archivedAt,
+      Value<String?> calendarEventKey,
+      Value<int?> startMinute,
+      Value<int?> endMinute,
+      Value<int?> lessonMinute,
+      Value<int?> arrivalMinute,
+      Value<String?> calendarEventFingerprint,
+      Value<DateTime?> calendarWrittenAt,
+      Value<String?> calendarFlag,
       Value<int> rowid,
     });
 typedef $$ProgramsTableUpdateCompanionBuilder =
@@ -20398,6 +21551,14 @@ typedef $$ProgramsTableUpdateCompanionBuilder =
       Value<DateTime?> deletedAt,
       Value<DateTime?> existenceAt,
       Value<DateTime?> archivedAt,
+      Value<String?> calendarEventKey,
+      Value<int?> startMinute,
+      Value<int?> endMinute,
+      Value<int?> lessonMinute,
+      Value<int?> arrivalMinute,
+      Value<String?> calendarEventFingerprint,
+      Value<DateTime?> calendarWrittenAt,
+      Value<String?> calendarFlag,
       Value<int> rowid,
     });
 
@@ -20551,6 +21712,46 @@ class $$ProgramsTableFilterComposer
 
   ColumnFilters<DateTime> get archivedAt => $composableBuilder(
     column: $table.archivedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get calendarEventKey => $composableBuilder(
+    column: $table.calendarEventKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get startMinute => $composableBuilder(
+    column: $table.startMinute,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get endMinute => $composableBuilder(
+    column: $table.endMinute,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lessonMinute => $composableBuilder(
+    column: $table.lessonMinute,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get arrivalMinute => $composableBuilder(
+    column: $table.arrivalMinute,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get calendarEventFingerprint => $composableBuilder(
+    column: $table.calendarEventFingerprint,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get calendarWrittenAt => $composableBuilder(
+    column: $table.calendarWrittenAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get calendarFlag => $composableBuilder(
+    column: $table.calendarFlag,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -20708,6 +21909,46 @@ class $$ProgramsTableOrderingComposer
     column: $table.archivedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get calendarEventKey => $composableBuilder(
+    column: $table.calendarEventKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get startMinute => $composableBuilder(
+    column: $table.startMinute,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get endMinute => $composableBuilder(
+    column: $table.endMinute,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lessonMinute => $composableBuilder(
+    column: $table.lessonMinute,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get arrivalMinute => $composableBuilder(
+    column: $table.arrivalMinute,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get calendarEventFingerprint => $composableBuilder(
+    column: $table.calendarEventFingerprint,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get calendarWrittenAt => $composableBuilder(
+    column: $table.calendarWrittenAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get calendarFlag => $composableBuilder(
+    column: $table.calendarFlag,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ProgramsTableAnnotationComposer
@@ -20787,6 +22028,44 @@ class $$ProgramsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get archivedAt => $composableBuilder(
     column: $table.archivedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get calendarEventKey => $composableBuilder(
+    column: $table.calendarEventKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get startMinute => $composableBuilder(
+    column: $table.startMinute,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get endMinute =>
+      $composableBuilder(column: $table.endMinute, builder: (column) => column);
+
+  GeneratedColumn<int> get lessonMinute => $composableBuilder(
+    column: $table.lessonMinute,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get arrivalMinute => $composableBuilder(
+    column: $table.arrivalMinute,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get calendarEventFingerprint => $composableBuilder(
+    column: $table.calendarEventFingerprint,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get calendarWrittenAt => $composableBuilder(
+    column: $table.calendarWrittenAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get calendarFlag => $composableBuilder(
+    column: $table.calendarFlag,
     builder: (column) => column,
   );
 
@@ -20892,6 +22171,14 @@ class $$ProgramsTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<DateTime?> existenceAt = const Value.absent(),
                 Value<DateTime?> archivedAt = const Value.absent(),
+                Value<String?> calendarEventKey = const Value.absent(),
+                Value<int?> startMinute = const Value.absent(),
+                Value<int?> endMinute = const Value.absent(),
+                Value<int?> lessonMinute = const Value.absent(),
+                Value<int?> arrivalMinute = const Value.absent(),
+                Value<String?> calendarEventFingerprint = const Value.absent(),
+                Value<DateTime?> calendarWrittenAt = const Value.absent(),
+                Value<String?> calendarFlag = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProgramsCompanion(
                 id: id,
@@ -20913,6 +22200,14 @@ class $$ProgramsTableTableManager
                 deletedAt: deletedAt,
                 existenceAt: existenceAt,
                 archivedAt: archivedAt,
+                calendarEventKey: calendarEventKey,
+                startMinute: startMinute,
+                endMinute: endMinute,
+                lessonMinute: lessonMinute,
+                arrivalMinute: arrivalMinute,
+                calendarEventFingerprint: calendarEventFingerprint,
+                calendarWrittenAt: calendarWrittenAt,
+                calendarFlag: calendarFlag,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -20936,6 +22231,14 @@ class $$ProgramsTableTableManager
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<DateTime?> existenceAt = const Value.absent(),
                 Value<DateTime?> archivedAt = const Value.absent(),
+                Value<String?> calendarEventKey = const Value.absent(),
+                Value<int?> startMinute = const Value.absent(),
+                Value<int?> endMinute = const Value.absent(),
+                Value<int?> lessonMinute = const Value.absent(),
+                Value<int?> arrivalMinute = const Value.absent(),
+                Value<String?> calendarEventFingerprint = const Value.absent(),
+                Value<DateTime?> calendarWrittenAt = const Value.absent(),
+                Value<String?> calendarFlag = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProgramsCompanion.insert(
                 id: id,
@@ -20957,6 +22260,14 @@ class $$ProgramsTableTableManager
                 deletedAt: deletedAt,
                 existenceAt: existenceAt,
                 archivedAt: archivedAt,
+                calendarEventKey: calendarEventKey,
+                startMinute: startMinute,
+                endMinute: endMinute,
+                lessonMinute: lessonMinute,
+                arrivalMinute: arrivalMinute,
+                calendarEventFingerprint: calendarEventFingerprint,
+                calendarWrittenAt: calendarWrittenAt,
+                calendarFlag: calendarFlag,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

@@ -11,6 +11,11 @@ import 'package:compendium_app/src/data/backup_service.dart'
 import 'package:compendium_app/src/data/backup_settings_schema.dart';
 import 'package:compendium_app/src/data/calling_card_settings_scope.dart';
 import 'package:compendium_app/src/export/calling_card_layout.dart';
+import 'package:compendium_app/src/data/suggestions_scope.dart'
+    show
+        kSuggestionSettingsKey,
+        kSuggestionsEnabledKey,
+        kSuggestionsInPerformSwapKey;
 import 'package:compendium_app/src/data/seed_service.dart'
     show kInitialSeedCompletedKey;
 import 'package:compendium_app/src/data/display_defaults.dart'
@@ -22,7 +27,7 @@ import 'package:compendium_app/src/data/display_defaults.dart'
         kDefaultModifierFiguresKey,
         kDefaultProgramSortDirectionKey,
         kDefaultStartingProgramKey,
-        StartingProgramTemplateEntry;
+        ProgramTemplateEntry;
 import 'package:compendium_app/src/screens/settings/settings_keys.dart'
     show
         kCollectionHiddenFacetsKey,
@@ -30,14 +35,22 @@ import 'package:compendium_app/src/screens/settings/settings_keys.dart'
         kCustomFieldSharingDisclosureKey,
         kEcdConvertPromptDismissedKey,
         kConfirmPerformExitKey,
+        kPerformSwapDefaultsKey,
         kProgramDanceShareFieldsKey,
         kProgramMatrixColumnsKey,
         kShowIndividualPerformTimerKey,
         kVenueCallCountKey;
 import 'package:compendium_core/compendium_core.dart'
     show
+        CollectionPanelState,
+        EgressClass,
         MatrixColumnConfig,
+        PerformSwapDefaults,
+        SavedSearch,
+        SavedSearchSpec,
+        SuggestionSettings,
         settingsClassifications,
+        settingsPrefixClassifications,
         shareableTextNormalisationScopeKey;
 import 'package:compendium_app/src/data/undo_prompt_duration_scope.dart'
     show
@@ -71,7 +84,7 @@ void main() {
           validateBackupSettingValue(
             kDefaultStartingProgramKey,
             encodeStartingProgramTemplate([
-              const StartingProgramTemplateEntry(
+              const ProgramTemplateEntry(
                 danceId: 'dance-1',
                 text: 'Caller note',
               ),
@@ -439,6 +452,109 @@ void main() {
       }
     });
 
+    test('suggestions (#2343): the toggle a bool, the settings a value this '
+        'build can keep', () {
+      expect(validateBackupSettingValue(kSuggestionsEnabledKey, true), isTrue);
+      expect(validateBackupSettingValue(kSuggestionsEnabledKey, 'on'), isFalse);
+      // Whether Perform's swap sheet orders by them (#2348).
+      expect(
+        validateBackupSettingValue(kSuggestionsInPerformSwapKey, true),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(kSuggestionsInPerformSwapKey, 'on'),
+        isFalse,
+      );
+      bool valid(Object? value) =>
+          validateBackupSettingValue(kSuggestionSettingsKey, value)!;
+      expect(valid(const SuggestionSettings().toJson()), isTrue);
+      expect(valid({'version': 1}), isTrue, reason: 'missing parts default');
+      expect(
+        valid({
+          'version': 1,
+          'factors': {
+            'someLaterFactor': {'weight': 'aLot'},
+          },
+          'preferences': [
+            {'savedSearchId': 's1'},
+          ],
+        }),
+        isTrue,
+        reason: 'unknown entries are kept',
+      );
+      expect(
+        valid({'version': 2, 'factors': <String, Object?>{}}),
+        isTrue,
+        reason: 'a newer version is kept as it stands',
+      );
+      expect(valid('nope'), isFalse);
+      expect(
+        valid({'factors': <String, Object?>{}}),
+        isFalse,
+        reason: 'no version',
+      );
+      expect(
+        valid({
+          'version': 1,
+          'factors': {
+            'matrixVariety': {'weight': 'loads'},
+          },
+        }),
+        isFalse,
+      );
+      expect(
+        valid({
+          'version': 1,
+          'factors': {
+            'venueRecency': {'window': '2y'},
+          },
+        }),
+        isFalse,
+      );
+      expect(
+        valid({'version': 1, 'preferences': <String, Object?>{}}),
+        isFalse,
+      );
+    });
+
+    test('Swap a dance defaults (#2346): a value this build can keep', () {
+      bool valid(Object? value) =>
+          validateBackupSettingValue(kPerformSwapDefaultsKey, value)!;
+      expect(valid(PerformSwapDefaults.defaults.toJson()), isTrue);
+      expect(valid({'version': 1}), isTrue, reason: 'missing items are on');
+      expect(
+        valid({
+          'version': 1,
+          'keep': {'formation': false, 'someLaterItem': 'x'},
+        }),
+        isTrue,
+        reason: 'unknown items are kept',
+      );
+      expect(
+        valid({'version': 2, 'keep': 'anything'}),
+        isFalse,
+        reason: 'keep must still be an object',
+      );
+      expect(
+        valid({'version': 2, 'keep': <String, Object?>{}}),
+        isTrue,
+        reason: 'a newer version is kept as it stands',
+      );
+      expect(valid('nope'), isFalse);
+      expect(
+        valid({'keep': <String, Object?>{}}),
+        isFalse,
+        reason: 'no version',
+      );
+      expect(
+        valid({
+          'version': 1,
+          'keep': {'notInProgram': 'yes'},
+        }),
+        isFalse,
+      );
+    });
+
     test('program-matrix column config (#935): only a codec-parseable Map', () {
       // A valid config Map round-trips through the codec and is accepted.
       final valid = const MatrixColumnConfig(
@@ -530,6 +646,54 @@ void main() {
       );
     });
 
+    group('saved searches (#2325)', () {
+      final spec = SavedSearchSpec.fromPanelState(
+        CollectionPanelState(text: 'petronella'),
+        today: DateTime.utc(2026, 11, 22),
+      ).value!;
+      final good = SavedSearch(id: 'a', name: 'Easy mixers', spec: spec);
+
+      test('a value the codec wrote is accepted', () {
+        expect(
+          validateBackupSettingValue('saved_search:a', good.toJson()),
+          isTrue,
+        );
+      });
+
+      test('a key with no id is rejected, however good the value', () {
+        for (final key in ['saved_search:', 'saved_search:  ']) {
+          expect(
+            validateBackupSettingValue(key, good.toJson()),
+            isFalse,
+            reason: '"$key"',
+          );
+        }
+      });
+
+      test(
+        'anything the codec cannot read is rejected, not passed through',
+        () {
+          for (final value in <Object?>[
+            null,
+            'x',
+            42,
+            <String, Object?>{},
+            {...good.toJson(), 'v': 2},
+            {...good.toJson(), 'name': ''},
+            {...good.toJson(), 'extra': true},
+            // Readable until the store normalizes it, then an empty name.
+            {...good.toJson(), 'name': '\u200B'},
+          ]) {
+            expect(
+              validateBackupSettingValue('saved_search:a', value),
+              isFalse,
+              reason: '$value',
+            );
+          }
+        },
+      );
+    });
+
     test('unknown / forward-compatible keys pass through (null verdict)', () {
       expect(
         validateBackupSettingValue('some_future_key_v99', 'anything'),
@@ -585,6 +749,27 @@ void main() {
           'restore writes whatever JSON the file carries. Add each to '
           '_backupSettingValidators, or exempt it above with a reason:\n  '
           '${unvalidated.join('\n  ')}',
+    );
+
+    // The prefix counterpart: a key under a shareable prefix that travels in
+    // backups is a settings value a restore writes, so it needs a validator
+    // too. Probed with the prefix plus a suffix, as a stored key is.
+    final unvalidatedPrefixes = [
+      for (final MapEntry(key: prefix, value: classification)
+          in settingsPrefixClassifications.entries)
+        if (classification.egress == EgressClass.shareable &&
+            isBackupEligibleSettingKey('${prefix}probe') &&
+            validateBackupSettingValue('${prefix}probe', null) == null)
+          prefix,
+    ]..sort();
+    expect(
+      unvalidatedPrefixes,
+      isEmpty,
+      reason:
+          'These shareable settings prefixes travel in backups but '
+          'validateBackupSettingValue has no verdict for a key under them, so '
+          'a restore writes whatever JSON the file carries:\n  '
+          '${unvalidatedPrefixes.join('\n  ')}',
     );
 
     final staleExemptions =

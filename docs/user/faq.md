@@ -19,8 +19,9 @@ No account, and no connection for everyday use. Caller's Compendium is
 app works fully offline. It reaches the internet only when you ask it to — to
 [import](./glossary.md#import) dances from an online source such as
 [The Caller's Box](./glossary.md#the-callers-box) or
-[ContraDB](./glossary.md#contradb), to check for updates, or to sync if you have
-turned on Device Sync.
+[ContraDB](./glossary.md#contradb) or your own calendar, to check for updates,
+or to sync if you have turned on Device Sync. The automatic update check and the
+calendar import at startup are off until you turn them on.
 
 ### Where is my data stored?
 
@@ -111,7 +112,7 @@ That's what a [dialect](./glossary.md#dialect) is for. Pick or build one under
 ### How do I fix a misspelled tag, author, or source everywhere at once?
 
 Rename it once and every dance that uses it follows. Tags, authors, and sources
-each have a manager under **Settings ▸ General ▸ Dances**. If two entries are
+each have a manager under **Settings ▸ Collection ▸ Dances**. If two entries are
 really the same — say an import spelled an author two ways — choose **Merge
 into…** on one of them, and every dance that used either ends up with the one
 you keep. A rename or merge offers **Undo**. See

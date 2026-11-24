@@ -117,6 +117,7 @@ Future<Uint8List> buildCallingCardsPdf(
       entry.dance,
       dialect: dialect,
       authorNames: entry.labels.authorNames,
+      interpreterNames: entry.labels.interpreterNames,
       formationLabel: entry.labels.formationLabel,
       levelLabel: entry.labels.levelLabel,
       statusLabel: entry.labels.statusLabel,
@@ -508,10 +509,11 @@ class _CardBuilder {
   String _textFor(CallingCardBlockKind kind, CallingCardBlock b) =>
       switch (kind) {
         CallingCardBlockKind.title => content.title,
-        CallingCardBlockKind.authors => content.authorNames.join(', '),
+        CallingCardBlockKind.authors => content.creditLines.join('  ·  '),
         CallingCardBlockKind.formation => content.formation ?? '',
         CallingCardBlockKind.level => content.level ?? '',
         CallingCardBlockKind.meta => content.metaLines.join('  ·  '),
+        CallingCardBlockKind.music => content.musicLines.join('  ·  '),
         CallingCardBlockKind.notes => content.callingNotes ?? '',
         CallingCardBlockKind.walkthrough => content.walkthrough ?? '',
         CallingCardBlockKind.hook => content.hook ?? '',
@@ -529,11 +531,11 @@ class _CardBuilder {
   /// The label a block prints before its text unless the layout says
   /// otherwise: the field's own label for the long-text fields.
   String _defaultLabel(CallingCardBlockKind kind) => switch (kind) {
-    CallingCardBlockKind.notes => '${labels.callingNotes}: ',
-    CallingCardBlockKind.walkthrough => '${labels.walkthrough}: ',
-    CallingCardBlockKind.hook => '${labels.hook}: ',
-    CallingCardBlockKind.tunes => '${labels.tunes}: ',
-    CallingCardBlockKind.sources => '${labels.sources}: ',
+    CallingCardBlockKind.notes => labels.labelled(labels.callingNotes),
+    CallingCardBlockKind.walkthrough => labels.labelled(labels.walkthrough),
+    CallingCardBlockKind.hook => labels.labelled(labels.hook),
+    CallingCardBlockKind.tunes => labels.labelled(labels.tunes),
+    CallingCardBlockKind.sources => labels.labelled(labels.sources),
     _ => '',
   };
 
@@ -590,6 +592,7 @@ class _CardBuilder {
     for (final sf in deriveSections(
       content.figures,
       entry.dance.phraseStructure,
+      freeForm: entry.dance.isFreeForm,
     )) {
       if (sections.isEmpty || sections.last.first.label != sf.label) {
         sections.add([sf]);
@@ -603,17 +606,23 @@ class _CardBuilder {
     // if any count is no whole number of half bars, the whole card stays in
     // beats.
     final dance = entry.dance;
-    final perBar = danceBeatsPerBar(
+    final barTiming = barTimingFor(
       dance.form,
       dance.phraseStructure,
       meter: dance.meter,
     );
-    final beatsPerBar =
-        perBar != null &&
-            content.figures.every(
-              (f) => f.beats <= 0 || barsText(f.beats, perBar) != null,
+    // Each count reads from where its figure starts, so where the phrases
+    // differ in beats per bar it is in the bars of its own phrase.
+    final timing =
+        barTiming != null &&
+            sections.every(
+              (section) => section.every(
+                (sf) =>
+                    sf.figure.beats <= 0 ||
+                    barTiming.barsTextAt(sf.startBeat, sf.figure.beats) != null,
+              ),
             )
-        ? perBar
+        ? barTiming
         : null;
     final rows = <pw.Widget>[];
     for (var i = 0; i < sections.length; i++) {
@@ -633,7 +642,9 @@ class _CardBuilder {
         pw.Row(
           crossAxisAlignment: pw.CrossAxisAlignment.center,
           children: [
-            if (b.phrases)
+            // A free-form dance (ADR-007 §8.1) is one section with no label,
+            // so it gives the column no width.
+            if (b.phrases && section.first.label.isNotEmpty)
               pw.SizedBox(
                 width: s * 2.4,
                 child: pw.Text(
@@ -650,7 +661,7 @@ class _CardBuilder {
                 crossAxisAlignment: pw.CrossAxisAlignment.stretch,
                 children: [
                   for (final sf in section)
-                    _figureLine(b, sf.figure, beatsPerBar),
+                    _figureLine(b, sf.figure, timing, sf.startBeat),
                 ],
               ),
             ),
@@ -664,18 +675,21 @@ class _CardBuilder {
     );
   }
 
-  /// A figure's count as the card's count column shows it: its bars where
-  /// the card is counted in bars of [beatsPerBar] beats, else its beats, and
-  /// nothing for a figure with no count.
-  static String _countText(Figure figure, int? beatsPerBar) {
+  /// A figure's count as the card's count column shows it: its bars, counted
+  /// from where it starts ([startBeat]), where the card is counted in bars by
+  /// [timing], else its beats, and nothing for a figure with no count.
+  static String _countText(Figure figure, BarTiming? timing, int startBeat) {
     if (figure.beats <= 0) return '';
-    final bars = beatsPerBar == null
-        ? null
-        : barsText(figure.beats, beatsPerBar);
-    return bars ?? '${figure.beats}';
+    final bars = timing?.barsTextAt(startBeat, figure.beats);
+    return bars?.text ?? '${figure.beats}';
   }
 
-  pw.Widget _figureLine(CallingCardBlock b, Figure figure, int? beatsPerBar) {
+  pw.Widget _figureLine(
+    CallingCardBlock b,
+    Figure figure,
+    BarTiming? timing,
+    int startBeat,
+  ) {
     final s = b.size;
     final marker = figure.progression ? ' ¶' : '';
     final note = figure.note?.trim() ?? '';
@@ -688,7 +702,7 @@ class _CardBuilder {
             pw.SizedBox(
               width: s * 1.6,
               child: pw.Text(
-                _countText(figure, beatsPerBar),
+                _countText(figure, timing, startBeat),
                 textAlign: pw.TextAlign.right,
                 style: pw.TextStyle(
                   fontSize: s * 0.8,

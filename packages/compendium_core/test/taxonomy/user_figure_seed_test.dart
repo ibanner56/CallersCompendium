@@ -145,4 +145,75 @@ void main() {
       expect(kinds, isNot(contains(ParamKind.dancerList)), reason: id);
     }
   });
+  group('an English copy takes English\'s groups of dancers (#2294)', () {
+    final ecd = shippedTaxonomies.forForm(DanceForm.ecd);
+
+    test('a copy is for the form it was copied from', () {
+      expect(userFigureSeedFromMove(ecd, 'ecd_set')!.form, 'ecd');
+      expect(userFigureSeedFromMove(contraTaxonomy, 'swing')!.form, 'contra');
+    });
+
+    test('a shipped English movement starts no copy from "not stated"', () {
+      // English words a group of dancers (`whom`) as `unspecified` until a
+      // source names one. Offered as a default, that is a value a user never
+      // picks, and one an older build cannot read.
+      final seeded = <String>[];
+      for (final id in ecd.moves.keys.where((id) => id.startsWith('ecd_'))) {
+        for (final p in userFigureSeedFromMove(ecd, id)!.params) {
+          if (p.kind != ParamKind.dancerSet) continue;
+          seeded.add(id);
+          expect(p.defaultValue, isNull, reason: '$id ${p.key}');
+        }
+      }
+      // A control: some English movement's own group of dancers defaults to
+      // "not stated", so the rule above has something to drop and the loop
+      // is not vacuous. (An English movement's list of dancers, `who`, is
+      // seeded as a set with no default, so it proves nothing here.)
+      final defaultsToNotStated = [
+        for (final id in ecd.moves.keys.where((id) => id.startsWith('ecd_')))
+          for (final spec in ecd.resolve(id)!.params.values)
+            if (spec.kind == ParamKind.dancerSet &&
+                spec.defaultValue == ParamVocab.unspecified)
+              id,
+      ];
+      expect(defaultsToNotStated, isNotEmpty);
+      expect(seeded, isNotEmpty);
+    });
+
+    test('a group only English has is a valid default of an English copy', () {
+      // Built, not shipped: no shipped English movement defaults to a named
+      // group, so only this shows that the copy is checked as English's.
+      final taxonomy = Taxonomy(
+        version: 1,
+        form: DanceForm.ecd,
+        moves: [
+          MoveDef(
+            id: 'ecd_greet',
+            displayName: 'greet',
+            params: {
+              'whom': ParamSpec(
+                ParamKind.dancerSet,
+                defaultValue: 'ends',
+                choices: ecdSelectors,
+              ),
+            },
+            renderTemplate: '{move} {whom}',
+          ),
+        ],
+      );
+      final seed = userFigureSeedFromMove(taxonomy, 'ecd_greet')!;
+      expect(
+        seed.param('whom'),
+        isNotNull,
+        reason: 'a default the copy\'s form refuses drops the whole parameter',
+      );
+      expect(seed.param('whom')!.defaultValue, 'ends');
+      expect(
+        validateUserFigure(
+          seed,
+        ).where((i) => i.severity == ValidationSeverity.error),
+        isEmpty,
+      );
+    });
+  });
 }

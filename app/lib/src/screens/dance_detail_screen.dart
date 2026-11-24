@@ -54,9 +54,9 @@ import '../theme/app_breakpoints.dart';
 import '../widgets/adaptive_fab.dart';
 
 /// Dance detail / card (`docs/design/ux.md` §2): header (title, authors,
-/// formation, hook, tags, status banner, provenance line), a figure table
-/// grouped by derived section with a canonical ⇄ dialect toggle, and the
-/// calling notes / links / custom-field sections. The Edit action opens the
+/// formation, meter and key, hook, tags, status banner, provenance line), a
+/// figure table grouped by derived section with a canonical ⇄ dialect toggle,
+/// and the calling notes / links / custom-field sections. The Edit action opens the
 /// [DanceEditorScreen] (roadmap 3.3).
 ///
 /// [onRestored] is called (if provided) when the user taps the Undo action
@@ -471,6 +471,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           dance: detail.dance,
           renderer: renderer,
           authorNames: detail.authorNames,
+          interpreterNames: detail.interpreterNames,
           difficultyLevel: detail.difficultyLevel,
         ),
       ),
@@ -687,6 +688,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       dance: detail.dance,
       dialect: dialect,
       authorNames: detail.authorNames,
+      interpreterNames: detail.interpreterNames,
       formationLabel: _formationDisplayLabel(
         l10n,
         detail.dance.formation,
@@ -767,8 +769,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// the share actions too; with [wide] they stay on the bar and are left out.
   /// Every entry is a first-class [PopupMenuItem] so it stays keyboard- and
   /// screen-reader-activatable: the dialect choices are [CheckedPopupMenuItem]s
-  /// (mirroring [DialectQuickSwitch]), the five export items (share text, share dance
-  /// file, copy, share JSON, PDF) are flattened in from [DanceExportMenu] and run through the same
+  /// (mirroring [DialectQuickSwitch]), the six export items (share text, share dance
+  /// file, show code, copy, share JSON, PDF) are flattened in from [DanceExportMenu] and run through the same
   /// [DanceExportActions], and Duplicate / Delete call the same handlers
   /// whichever layout opens them. Nothing is a nested popup, so activating any row performs
   /// its action rather than dismissing the menu.
@@ -794,6 +796,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     // route pops: the `onTap`s below run after it has, and the actions run
     // across awaits.
     final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     final canonicalizeDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
     );
@@ -802,6 +805,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       dance: detail.dance,
       dialect: dialect,
       authorNames: detail.authorNames,
+      interpreterNames: detail.interpreterNames,
       formationLabel: _formationDisplayLabel(
         l10n,
         detail.dance.formation,
@@ -876,6 +880,15 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                     ? l10n.exportSaveDanceBundle
                     : l10n.exportShareDanceBundle,
               ),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          PopupMenuItem<void>(
+            key: const ValueKey('overflow-show-code'),
+            onTap: () => exportActions.showCode(navigator, messenger, l10n),
+            child: ListTile(
+              leading: const Icon(Icons.qr_code_2),
+              title: Text(l10n.exportShowCode),
               contentPadding: EdgeInsets.zero,
             ),
           ),
@@ -1177,12 +1190,46 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                     style: theme.textTheme.headlineMedium,
                   ),
                 ),
-                if (detail.authorNames.isNotEmpty) ...[
+                if (dance.alternateTitles.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.xxs),
                   SelectableLine(
                     child: Text(
-                      detail.authorNames.join(', '),
-                      style: theme.textTheme.bodyLarge,
+                      l10n.danceAlsoKnownAs(
+                        dance.alternateTitles.join(
+                          l10n.danceAlsoKnownAsSeparator,
+                        ),
+                      ),
+                      key: const ValueKey('dance-alternate-titles'),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
+                if (authorsWithYearLabel(
+                      l10n,
+                      detail.authorNames,
+                      dance.composedOn,
+                    )
+                    case final authors?) ...[
+                  const SizedBox(height: AppSpacing.xxs),
+                  SelectableLine(
+                    key: const ValueKey('dance-detail-authors'),
+                    child: Text(authors, style: theme.textTheme.bodyLarge),
+                  ),
+                ],
+                if (interpretersWithYearLabel(
+                      l10n,
+                      detail.interpreterNames,
+                      dance.interpretedOn,
+                    )
+                    case final interpreters?) ...[
+                  const SizedBox(height: AppSpacing.xxs),
+                  SelectableLine(
+                    key: const ValueKey('dance-detail-interpreters'),
+                    child: Text(
+                      interpreters,
+                      style: theme.textTheme.bodyMedium,
                     ),
                   ),
                 ],
@@ -1239,6 +1286,53 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                       const Icon(Icons.sync_alt, size: 18),
                       const SizedBox(width: AppSpacing.xs),
                       Text(l10n.commonMixer),
+                    ],
+                  ),
+                ],
+                // A square's own fields (ADR-007 §8.1), each only when it
+                // says something: a main part with nothing stated shows none.
+                if (dance.form == DanceForm.square)
+                  for (final (key, icon, text) in _squareFieldLines(
+                    l10n,
+                    dance,
+                    dialect,
+                    render: (value) => canonicalDiscouragedTerms
+                        ? _proseRenderer
+                              .renderFreeTextWithCanonicalDiscouragedTerms(
+                                value,
+                                dialect,
+                              )
+                        : _proseRenderer.renderFreeText(value, dialect),
+                  )) ...[
+                    const SizedBox(height: AppSpacing.xxs),
+                    Row(
+                      key: ValueKey('dance-detail-$key'),
+                      children: [
+                        Icon(icon, size: 18),
+                        const SizedBox(width: AppSpacing.xs),
+                        Expanded(child: SelectableLine(child: Text(text))),
+                      ],
+                    ),
+                  ],
+                if (meterAndKeyLabel(
+                      l10n,
+                      dance,
+                      render: (value) => canonicalDiscouragedTerms
+                          ? _proseRenderer
+                                .renderFreeTextWithCanonicalDiscouragedTerms(
+                                  value,
+                                  dialect,
+                                )
+                          : _proseRenderer.renderFreeText(value, dialect),
+                    )
+                    case final tuneDetails?) ...[
+                  const SizedBox(height: AppSpacing.xxs),
+                  Row(
+                    key: const ValueKey('dance-detail-tune-details'),
+                    children: [
+                      const Icon(tuneDetailsIcon, size: 18),
+                      const SizedBox(width: AppSpacing.xs),
+                      Expanded(child: SelectableLine(child: Text(tuneDetails))),
                     ],
                   ),
                 ],
@@ -1343,6 +1437,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
               phraseStructure: dance.phraseStructure,
               renderer: UserFiguresScope.rendererOf(context),
               dialect: dialect,
+              checkPhraseFill: dance.form == DanceForm.square,
+              freeForm: dance.isFreeForm,
             ),
           ),
           // An empty table would say the dance has no figures, which is false
@@ -1457,6 +1553,30 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                     DecodedTunes(:final tunes) => tunes,
                     UnreadableTunes() => const <String>[],
                   }.join(', '),
+          ),
+        ],
+        if (dance.barnesReference.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.lg),
+          SelectableLine(
+            child: Text(
+              l10n.danceSectionBarnes,
+              style: theme.textTheme.titleMedium,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xxs),
+          SelectableLine(
+            child: Text(
+              canonicalDiscouragedTerms
+                  ? _proseRenderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                      dance.barnesReference,
+                      dialect,
+                    )
+                  : _proseRenderer.renderFreeText(
+                      dance.barnesReference,
+                      dialect,
+                    ),
+              key: const ValueKey('dance-barnes-reference'),
+            ),
           ),
         ],
         if (visibleLinks.isNotEmpty) ...[
@@ -2007,4 +2127,58 @@ class _CrossReferenceText extends StatelessWidget {
       children: span.children?.map(_transformUnlinkedSpan).toList(),
     );
   }
+}
+
+/// The lines a square dance's page shows for its own fields (ADR-007 §8.1),
+/// as (key, icon, text): each field that is off its default, and the text of
+/// an `other` in place of the word "Other", shown through [render] as the
+/// page shows other typed text.
+List<(String, IconData, String)> _squareFieldLines(
+  AppLocalizations l10n,
+  Dance dance,
+  Dialect dialect, {
+  required String Function(String) render,
+}) {
+  String line(String field, String value) =>
+      l10n.danceDetailSquareField(field, value);
+  return [
+    if (dance.squareKind != SquareKind.main)
+      (
+        'square-kind',
+        Icons.view_module_outlined,
+        line(
+          l10n.danceEditorSquareKindLabel,
+          squareKindLabel(l10n, dance.squareKind),
+        ),
+      ),
+    if (dance.singing && dance.squareKind == SquareKind.main)
+      ('singing', Icons.music_note_outlined, l10n.danceEditorSingingLabel),
+    // Free form says why the figures have no phrase headings.
+    if (dance.isFreeForm)
+      ('free-form', Icons.all_inclusive, l10n.danceEditorFreeFormLabel),
+    if (dance.repeatOrder != SquareRepeatOrder.unstated)
+      (
+        'repeat-order',
+        Icons.repeat,
+        line(
+          l10n.danceEditorRepeatOrderLabel,
+          dance.repeatOrder == SquareRepeatOrder.other &&
+                  dance.repeatOrderText.isNotEmpty
+              ? render(dance.repeatOrderText)
+              : squareRepeatOrderLabel(l10n, dance.repeatOrder),
+        ),
+      ),
+    if (dance.newPartner != SquareNewPartner.unstated)
+      (
+        'new-partner',
+        Icons.people_alt_outlined,
+        line(
+          l10n.danceEditorNewPartnerLabel,
+          dance.newPartner == SquareNewPartner.other &&
+                  dance.newPartnerText.isNotEmpty
+              ? render(dance.newPartnerText)
+              : squareNewPartnerLabel(l10n, dance.newPartner, dialect),
+        ),
+      ),
+  ];
 }

@@ -1,5 +1,3 @@
-import 'package:compendium_app/src/search/collection_query.dart';
-import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/widgets/advanced_query_builder.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
@@ -17,6 +15,7 @@ import '../support/screen_size.dart';
 class _Host extends StatefulWidget {
   const _Host({
     this.tagsUnavailableFor,
+    this.allTagNames = const {},
     required this.root,
     required this.sectionLabels,
     required this.taxonomy,
@@ -27,6 +26,7 @@ class _Host extends StatefulWidget {
   });
   final double textScale;
   final String? tagsUnavailableFor;
+  final Map<String, String> allTagNames;
   final BuilderGroup root;
   final List<Tag> tags;
   final VoidCallback? onChanged;
@@ -59,6 +59,7 @@ class _HostState extends State<_Host> {
             sectionLabels: widget.sectionLabels,
             tags: widget.tags,
             tagsUnavailableFor: widget.tagsUnavailableFor,
+            allTagNames: widget.allTagNames,
             onChanged: () {
               widget.onChanged?.call();
               setState(() {});
@@ -94,6 +95,7 @@ Future<void> _pump(
   VoidCallback? onChanged,
   double textScale = 1.0,
   String? tagsUnavailableFor,
+  Map<String, String> allTagNames = const {},
 }) async {
   await setScreenSize(tester, screenSize);
   await tester.pumpWidget(
@@ -104,6 +106,7 @@ Future<void> _pump(
       dialect: dialect ?? Dialect.larksRobins,
       tags: tags,
       tagsUnavailableFor: tagsUnavailableFor,
+      allTagNames: allTagNames,
       onChanged: onChanged,
       textScale: textScale,
     ),
@@ -135,6 +138,26 @@ void main() {
         expect(find.text(label), findsOneWidget);
       });
     }
+  });
+
+  group('pass by and pass through (taxonomy v40)', () {
+    // Mutation caught: offering the pass type on either, where `through` is
+    // never stored and `by` is a pass by, so the leaf could never match.
+    testWidgets('offers no pass type to narrow either by', (tester) async {
+      for (final move in ['pass_through', 'pass_by']) {
+        await _pump(
+          tester,
+          root: BuilderGroup(children: [BuilderFigure(move: move)]),
+        );
+        expect(find.text('Any pass type'), findsNothing, reason: move);
+      }
+      // Positive control: a pair param that is stored is still offered.
+      await _pump(
+        tester,
+        root: BuilderGroup(children: [BuilderFigure(move: 'forward_and_back')]),
+      );
+      expect(find.text('Any formation'), findsOneWidget);
+    });
   });
 
   group('long lines, listed as a move (taxonomy v39)', () {
@@ -320,37 +343,58 @@ void main() {
       expect(changes, 1);
     });
 
-    testWidgets('a picked tag that is no longer offered is cleared, not a '
-        'crash', (tester) async {
+    testWidgets('changed by #2325: a tag that is gone is kept and shown as '
+        'missing, not cleared', (tester) async {
+      // It used to be cleared from the model a frame later, which widened
+      // the search with no sign. Now the row keeps asking for it, says so,
+      // and the user removes the row or picks another tag.
       final row = BuilderTag(tagId: 'gone');
       final root = BuilderGroup(children: [row]);
       var changes = 0;
       await _pump(tester, root: root, tags: tags, onChanged: () => changes++);
 
       expect(tester.takeException(), isNull);
-      expect(row.tagId, isNull, reason: 'a filter the row cannot show is gone');
-      expect(root.toFilter(), isNull);
+      expect(row.tagId, 'gone');
+      expect((root.toFilter() as TagFilter?)?.tagId, 'gone');
+      expect(changes, 0, reason: 'nothing changed the search behind its back');
+      expect(
+        find.descendant(
+          of: find.byKey(ValueKey('tag-${row.id}')),
+          matching: find.text('Not in your library'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(ValueKey('remove-${row.id}')));
+      await tester.pumpAndSettle();
+      expect(root.children, isEmpty);
       expect(changes, 1);
-      expect(find.text('Choose a tag'), findsOneWidget);
     });
 
-    testWidgets('a pick made before the stale-clear callback runs survives', (
-      tester,
-    ) async {
-      final row = BuilderTag();
+    testWidgets('added by #2325: a loaded tag no dance carries yet keeps its '
+        'name, and another tag can be picked over it', (tester) async {
+      final row = BuilderTag(tagId: 'family');
       final root = BuilderGroup(children: [row]);
-      await _pump(tester, root: root, tags: tags);
+      await _pump(
+        tester,
+        root: root,
+        tags: tags,
+        allTagNames: const {'family': 'family'},
+      );
+      expect(row.tagId, 'family');
+      expect(
+        find.descendant(
+          of: find.byKey(ValueKey('tag-${row.id}')),
+          matching: find.text('family'),
+        ),
+        findsOneWidget,
+      );
 
-      // Make the row stale and schedule a rebuild, but register the "user
-      // picks a tag" callback FIRST so it runs before the row's own post-frame
-      // clear. The clear must then find a different id and leave it alone.
-      row.tagId = 'gone';
-      WidgetsBinding.instance.addPostFrameCallback((_) => row.tagId = 't1');
-      tester.element(find.byType(_Host)).markNeedsBuild();
-      await tester.pump();
+      await tester.tap(find.byKey(ValueKey('tag-${row.id}')));
       await tester.pumpAndSettle();
-
-      expect(row.tagId, 't1');
+      await tester.tap(find.text('Energetic').last);
+      await tester.pumpAndSettle();
+      expect(row.tagId, 't2');
     });
   });
 
@@ -731,7 +775,7 @@ void main() {
 // ---------------------------------------------------------------------------
 // The "has figure" param dropdowns: domain, and how it is presented
 //
-// `figureParamChoices` (app/lib/src/search/facet_labels.dart) is the third
+// `figureParamChoices` (compendium_core, `figure_param_domain.dart`) is the third
 // consumer of the `ParamSpec.kind` + `ParamSpec.choices` contract, after the
 // figure param editor and `ParamSpec.validate` (both taught the same rule by
 // issue #726 / PR #736). It hardcoded the vocabulary for five kinds, so a spec
@@ -920,17 +964,70 @@ void _paramChoiceTests() {
     );
 
     testWidgets(
-      'changed by #741: an out-of-domain stored value is cleared from the MODEL',
+      'changed by #2325: an out-of-domain stored value is kept, and shown '
+      'with a notice the user can remove',
       (tester) async {
-        // Raised in review on PR #764. Coercing only the DISPLAY to "Any" would
-        // leave `_cleanParams` forwarding the stale token into the compiled
-        // `FigureLeaf` — a filter narrowing the results that the user cannot
-        // see, and cannot clear, because the control that would clear it
-        // already reads "Any hand".
-        //
-        // LATENT today: the builder tree is in-memory only and this dropdown is
-        // its sole writer, so the state is seeded directly here — which is
-        // exactly how a future saved-search/persistence layer would produce it.
+        // #741 made the DISPLAY never coerce such a value to "Any hand" while
+        // `_cleanParams` still forwarded it into the compiled `FigureLeaf` (a
+        // filter the user could neither see nor clear), and solved it by
+        // removing the value from the MODEL after a frame. Once a saved
+        // search can be opened, that removal is a silent drop: the panel
+        // would run a broader search than the one the saved-search resolver
+        // hands every other feature. So the value is kept, the compiled
+        // query and the screen agree, and the user removes it explicitly.
+        final figure = BuilderFigure(move: 'wave');
+        figure.params['hand'] = ParamVocab.unspecified;
+        final root = BuilderGroup(
+          children: [BuilderThen(before: figure, after: BuilderFigure())],
+        );
+        var changes = 0;
+        await _pump(
+          tester,
+          root: root,
+          taxonomy: _taxonomyWithHandParam(
+            choices: const [...ParamVocab.sides, ParamVocab.unspecified],
+          ),
+          onChanged: () => changes++,
+        );
+
+        expect(figure.params['hand'], ParamVocab.unspecified);
+        expect(
+          (figure.toFigureQuery() as FigureLeaf?)?.params,
+          containsPair('hand', ParamVocab.unspecified),
+        );
+        expect(
+          changes,
+          0,
+          reason: 'nothing changed the search behind its back',
+        );
+        // No dropdown reads "Any hand" over it; a notice names it instead.
+        expect(find.byKey(ValueKey('param-${figure.id}-hand')), findsNothing);
+        final notice = find.byKey(ValueKey('param-notice-${figure.id}-hand'));
+        expect(notice, findsOneWidget);
+        expect(
+          find.descendant(
+            of: notice,
+            matching: find.textContaining('(not offered)'),
+          ),
+          findsOneWidget,
+        );
+
+        await tester.tap(
+          find.descendant(of: notice, matching: find.byIcon(Icons.close)),
+        );
+        await tester.pumpAndSettle();
+        expect(figure.params.containsKey('hand'), isFalse);
+        expect(changes, 1);
+      },
+    );
+
+    testWidgets(
+      'added by #2325: a stored value of a param with nothing to pick is shown, '
+      'not left applied behind an empty control',
+      (tester) async {
+        // The dropdown is left out when only the sentinel is in the domain.
+        // That early return used to come before any check of the stored
+        // value, so a stored sentinel filtered with no control at all.
         final figure = BuilderFigure(move: 'wave');
         figure.params['hand'] = ParamVocab.unspecified;
         final root = BuilderGroup(
@@ -940,22 +1037,40 @@ void _paramChoiceTests() {
           tester,
           root: root,
           taxonomy: _taxonomyWithHandParam(
-            choices: const [...ParamVocab.sides, ParamVocab.unspecified],
+            choices: const [ParamVocab.unspecified],
           ),
         );
+        expect(figure.params['hand'], ParamVocab.unspecified);
+        expect(
+          find.byKey(ValueKey('param-notice-${figure.id}-hand')),
+          findsOneWidget,
+        );
+      },
+    );
 
-        expect(
-          figure.params.containsKey('hand'),
-          isFalse,
-          reason:
-              'a value the dropdown refuses to display must not survive in the '
-              'model and keep filtering',
+    testWidgets(
+      'added by #2325: a stored param the move does not declare is kept and '
+      'shown, not left applied with no control',
+      (tester) async {
+        // With no dropdown at all for the key, nothing used to show it while
+        // the compiled leaf still carried it.
+        final figure = BuilderFigure(move: 'wave');
+        figure.params['spin'] = 'cw';
+        final root = BuilderGroup(
+          children: [BuilderThen(before: figure, after: BuilderFigure())],
         );
-        // What the UI promises and what the query does now agree.
-        expect(
-          (figure.toFigureQuery() as FigureLeaf?)?.params,
-          isNot(contains('hand')),
+        await _pump(
+          tester,
+          root: root,
+          taxonomy: _taxonomyWithHandParam(choices: null),
         );
+        expect(figure.params['spin'], 'cw');
+        expect(
+          find.byKey(ValueKey('param-notice-${figure.id}-spin')),
+          findsOneWidget,
+        );
+        // The declared param keeps its ordinary dropdown.
+        expect(find.byKey(ValueKey('param-${figure.id}-hand')), findsOneWidget);
       },
     );
   });
@@ -1217,6 +1332,27 @@ void _paramChoiceTests() {
         ),
         findsOneWidget,
       );
+    });
+
+    testWidgets('a section no dance has still shows as the row\'s phrase '
+        '(#2325)', (tester) async {
+      // A saved search can name a phrase the collection no longer has; the
+      // row still narrows the search by it, so it must not read as blank.
+      final figure = BuilderFigure(move: 'swing', section: 'C1');
+      await _pump(
+        tester,
+        root: BuilderGroup(children: [figure]),
+        sectionLabels: const ['A', 'B'],
+      );
+      expect(tester.takeException(), isNull);
+      expect(
+        find.descendant(
+          of: find.byKey(ValueKey('section-${figure.id}')),
+          matching: find.text('C1'),
+        ),
+        findsOneWidget,
+      );
+      expect(figure.section, 'C1');
     });
   });
 }

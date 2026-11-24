@@ -10,6 +10,7 @@ import '../../privacy/field_registry.dart';
 import '../../privacy/data_classification.dart';
 import '../../privacy/settings_registry.dart';
 import '../../serialization/figure_codec.dart';
+import '../../sync/sync_record_kind.dart';
 import '../../sync/sync_storage.dart' show CompendiumSyncStorage;
 import '../../taxonomy/taxonomy.dart';
 import '../../taxonomy/user_figure_switch.dart';
@@ -23,6 +24,8 @@ import 'difficulty_level_repository.dart';
 import 'program_repository.dart';
 import 'published_source_repository.dart';
 import 'reference_edit_repository.dart';
+import 'repertoire_repository.dart';
+import 'saved_search_repository.dart';
 import 'settings_repository.dart';
 import 'sync_local_repository.dart';
 import 'tag_repository.dart';
@@ -273,6 +276,11 @@ class CompendiumRepositories {
   final CollectionImportEventRepository collectionImports;
   final SettingsRepository settings;
 
+  /// The user's saved searches, one settings value each.
+  late final SavedSearchRepository savedSearches = SavedSearchRepository(
+    settings,
+  );
+
   /// The user's own glossary entries (#709). Writing a figure of your own
   /// (#1023) reindexes the dances that use it.
   late final UserGlossaryRepository userGlossary = UserGlossaryRepository(
@@ -312,6 +320,86 @@ class CompendiumRepositories {
     });
   }
 
+  /// The names of the **deleted** records of [kind] among [ids], by id: a
+  /// tag, author, source, venue, level or custom field that is tombstoned
+  /// (soft-deleted, or merged away) but still on disk. Ids that are live, that
+  /// were never seen or have been purged, are absent, as is every id of
+  /// another kind.
+  ///
+  /// For naming what a saved search refers to that is gone ("uses the tag
+  /// *Bouncey*, which was deleted", #2325). Reads only, one query, and changes
+  /// nothing; a name read here is what the record was called when it was
+  /// deleted, never shown as if it were live.
+  Future<Map<String, String>> deletedRecordNames(
+    SyncRecordKind kind,
+    Iterable<String> ids,
+  ) async {
+    final wanted = ids.toSet().toList();
+    if (wanted.isEmpty) return const {};
+    Future<Map<String, String>> read<T extends Table, R>(
+      TableInfo<T, R> table,
+      Expression<String> Function(T t) id,
+      Expression<DateTime> Function(T t) deletedAt,
+      String Function(R row) idOf,
+      String Function(R row) nameOf,
+    ) async {
+      final rows = await (db.select(
+        table,
+      )..where((t) => id(t).isIn(wanted) & deletedAt(t).isNotNull())).get();
+      return {for (final row in rows) idOf(row): nameOf(row)};
+    }
+
+    return switch (kind) {
+      SyncRecordKind.tag => read(
+        db.tags,
+        (t) => t.id,
+        (t) => t.deletedAt,
+        (r) => r.id,
+        (r) => r.name,
+      ),
+      SyncRecordKind.choreographer => read(
+        db.choreographers,
+        (t) => t.id,
+        (t) => t.deletedAt,
+        (r) => r.id,
+        (r) => r.name,
+      ),
+      SyncRecordKind.publishedSource => read(
+        db.publishedSources,
+        (t) => t.id,
+        (t) => t.deletedAt,
+        (r) => r.id,
+        (r) => r.title,
+      ),
+      SyncRecordKind.venue => read(
+        db.venues,
+        (t) => t.id,
+        (t) => t.deletedAt,
+        (r) => r.id,
+        (r) => r.name,
+      ),
+      SyncRecordKind.difficultyLevel => read(
+        db.difficultyLevels,
+        (t) => t.id,
+        (t) => t.deletedAt,
+        (r) => r.id,
+        (r) => r.label,
+      ),
+      SyncRecordKind.customFieldDef => read(
+        db.customFieldDefs,
+        (t) => t.id,
+        (t) => t.deletedAt,
+        (r) => r.id,
+        (r) => r.label,
+      ),
+      _ => Future.value(const <String, String>{}),
+    };
+  }
+
+  /// Read-only collection and calling-history aggregates for the Repertoire
+  /// page (#2357).
+  late final RepertoireRepository repertoire = RepertoireRepository(db);
+
   /// The user's notes on shipped figures (#709).
   final FigureNoteRepository figureNotes;
   final SyncLocalRepository syncLocal;
@@ -321,6 +409,7 @@ class CompendiumRepositories {
     db,
     dances,
     syncLocal,
+    savedSearches,
   );
 
   /// Runs a cross-repository write as one database transaction.
@@ -875,6 +964,7 @@ class CompendiumRepositories {
     taxonomyV38CanonicalRebuildDoneKey: null,
     taxonomyV39CanonicalRebuildDoneKey: null,
     ecdTaxonomyCanonicalRebuildDoneKey: null,
+    squareTaxonomyCanonicalRebuildDoneKey: null,
     chainHandBackfillDoneKey: null,
     callersBoxRollAwayRoleRepairDoneKey: null,
     shareableTextNormalisationScopeKey: _normalisationScope,
@@ -1006,6 +1096,10 @@ class CompendiumRepositories {
         onProgress: onDerivedRebuildProgress,
       );
       rebuiltThisCall = await _emitEcdTaxonomyCanonicalTextIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
+      rebuiltThisCall = await _emitSquareTaxonomyCanonicalTextIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
@@ -2572,6 +2666,31 @@ class CompendiumRepositories {
       await runDerivedRebuild(onProgress: onProgress);
     }
     await _writeSweepMarker(ecdTaxonomyCanonicalRebuildDoneKey, '"done"');
+    return true;
+  }
+
+  /// One-time canonical/FTS rebuild owed when the square taxonomy first ships
+  /// ([squareTaxonomyCanonicalRebuildDoneKey]), shaped like
+  /// [_emitEcdTaxonomyCanonicalTextIfNeeded]: a stored `sq_` figure indexed
+  /// while its ID was unknown renders as a call now.
+  Future<bool> _emitSquareTaxonomyCanonicalTextIfNeeded({
+    bool alreadyRebuilt = false,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [
+            Variable.withString(squareTaxonomyCanonicalRebuildDoneKey),
+          ],
+        )
+        .get();
+    if (done.isNotEmpty) return alreadyRebuilt;
+
+    if (!alreadyRebuilt) {
+      await runDerivedRebuild(onProgress: onProgress);
+    }
+    await _writeSweepMarker(squareTaxonomyCanonicalRebuildDoneKey, '"done"');
     return true;
   }
 

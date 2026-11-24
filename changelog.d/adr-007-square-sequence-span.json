@@ -1,0 +1,17 @@
+{
+  "id": "adr-007-square-sequence-span",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A square's sequence can take one count for all its calls, as in \"forward again and swing the opposite (8)\": fill in Beats for all at the top of the sequence and leave the Beats of any call in it empty. It works as an English sequence's Bars for all does, in beats, with the same warnings when the calls' own beats don't fit it."
+    ]
+  },
+  "core": {
+    "added": [
+      "formHasSequenceSpan (ADR-007 Q10): an English dance's and a square's sequences may state a span of their own over untimed steps; a contra sequence counts its steps."
+    ],
+    "changed": [
+      "ecdSequenceSpanIssue is now sequenceSpanIssue, in taxonomy/sequence_span.dart, and checks a square's sequences too; the figure index shares a square sequence's span among its untimed steps as it does an English one's."
+    ]
+  }
+}

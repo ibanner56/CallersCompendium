@@ -59,7 +59,9 @@ VirtualVideos[], VariantVideos[], VariantVirtualVideos[]`.
   a formation-based fallback for Circle/Scatter Mixer records whose `Mixer?` is
   blank — see design/imports.md for the inference rule and its Sicilian Circle
   exclusion. `Virtual?` remains unread (no model field yet).
-- `PhraseStructure` empty = default `4*8*2`; else e.g. `6*8*2` for 48-bar.
+- `PhraseStructure` empty = default `4*8*2`; else e.g. `6*8*2` for 48-bar. A formula may be
+  followed by one parenthesised note, as in Hardiman the Fiddler (id 8206), `4*4*3 (slip jig)`:
+  the adapter stores `4*4*3` and puts the note in the calling notes as `Phrase structure note: …`.
 - **`License` (e.g. CC-BY-NC on some dances) appears only in HTML, not JSON** — a
   snapshot pipeline that cares about licenses must scrape HTML too.
 - HTML pages are `windows-1252` encoded; JSON is the cleaner source (no gloss-link
@@ -302,7 +304,8 @@ variant decomposes and keeps its name in the note.
 *Since container titles:* the name is now kept as the **title of one
 sequence** holding the children (`Modified revolving door - …`) when the block
 has two to four figures that come through the cross-line merge untouched and
-fit one phrase of the dance, and the name fits a title. The first-child note above is the fallback for every other block
+fit the phrase of the dance they start in (the longest phrase before
+23 November 2026), and the name fits a title. The first-child note above is the fallback for every other block
 (`Interrupted square through 2`, whose balance child folds into its square
 through, is one). See [imports.md](../design/imports.md) §1.
 
@@ -674,7 +677,9 @@ three real families needs a taxonomy move:
 | 3 | bare / qualified / diagonal | rest | left `custom` |
 
 Group 1a's exact wordings: `Women walk forward; form long wave in center` x70,
-`Men …` x66, `Ones …` x4, `Women walk forward; form long wave` x1,
+`Men …` x66, `Ones …` x4, `Women walk forward; form long wave` x1 (since #2331
+a bare `form long wave` is the side-of-set long waves, not the centre wave the
+walk-forward fold absorbs into, so this one line stays custom),
 `… form long wave [with phantoms]` x1 (`[…]` is stripped for recognition, so
 this one line loses its bracket exactly as a standalone
 `Form long wave [with phantoms]` line already does — noted for #729's audit).
@@ -691,9 +696,12 @@ with the same dancer on the next line (`(4) Walk forward to N1` /
 `(12) N1 neighbor swing`) confirm the mapping rather than contradict it: a pass
 through is what puts you facing the dancer you then swing.
 
-**⚠️ The subject cannot ride on a pass through.** `pass_through` has no `who`
-param, so `Women walk forward to N2` / `Men walk forward; form wave of four
-with shadow` stay `custom` rather than silently dropping the role. `who` DOES
+**⚠️ The subject does not ride on a pass through.** Nothing reads a
+walk-forward subject onto a pass through, so `Women walk forward to N2` / `Men
+walk forward; form wave of four with shadow` stay `custom` rather than silently
+dropping the role. (`pass_through` had no `who` param when this was written;
+it has had one since taxonomy v40, when pass by and pass through became one
+figure, so these lines could now carry it.) `who` DOES
 transfer on group 1a, and it must: every subject-bearing line in that group
 states the role on the WALK clause and none on the wave clause, while
 `form_a_long_wave.who` defaults to `role2s` — absorbing without transferring

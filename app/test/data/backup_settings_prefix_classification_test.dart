@@ -4,6 +4,12 @@ import 'package:compendium_app/src/data/backup_service.dart'
         kBackupSettingsDenylist,
         kBackupSettingsDenylistPrefixes,
         kModifierContainerCanonicalRebuildDoneKey;
+import 'package:compendium_app/src/data/calendar_startup.dart'
+    show
+        kCalendarImportOnStartupKey,
+        kCalendarLastResultKey,
+        kCalendarStartupFailuresKey,
+        kCalendarStartupModeKey;
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -66,6 +72,10 @@ void main() {
       'update_beta_channel',
       'update_dismissed_version',
       '__shareable_text_normalisation_scope__',
+      // Per-installation consent to the startup calendar run (#2353), kept
+      // by a backup like update_auto_check.
+      kCalendarImportOnStartupKey,
+      kCalendarStartupModeKey,
     };
 
     final exactDeviceScopedKeys = {
@@ -94,6 +104,7 @@ void main() {
       taxonomyV38CanonicalRebuildDoneKey,
       taxonomyV39CanonicalRebuildDoneKey,
       ecdTaxonomyCanonicalRebuildDoneKey,
+      squareTaxonomyCanonicalRebuildDoneKey,
       callersBoxRollAwayRoleRepairDoneKey,
       normalisationDerivedIndexRepairDoneKey,
       customFieldIndexRepairDoneKey,
@@ -104,6 +115,9 @@ void main() {
       'sync_wifi_only',
       'sync_exclude_imports',
       'sync_last_success_at',
+      // This installation's own startup calendar runs (#2353).
+      kCalendarLastResultKey,
+      kCalendarStartupFailuresKey,
     });
     expect(kBackupSettingsDenylist, containsAll(exactDeviceScopedKeys));
     expect(

@@ -6,8 +6,6 @@ import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/online_search.dart';
 import 'package:compendium_app/src/data/online_search_labels.dart';
 import 'package:compendium_app/src/data/online_title_lookup.dart';
-import 'package:compendium_app/src/search/collection_query.dart'
-    show ByPhraseSelections;
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';

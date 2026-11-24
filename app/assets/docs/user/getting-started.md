@@ -29,8 +29,10 @@ It is **local-first**, and that shapes everything else:
   data. What you do in Caller's Compendium is your business alone.
 - **It works offline.** You can catalog dances, build programs, and call a
   whole evening with no internet connection. The app goes online only when *you*
-  ask it to: to bring in dances from an online source, to check for updates, or
-  to sync your own devices if you turn on the optional
+  ask it to: to bring in dances from an online source, to check for updates
+  (automatically too, if you turn that on), to read your calendar (once at each
+  start, if you turn that on), or to sync your own devices if you turn on the
+  optional
   [Device Sync](./settings.md#device-sync). It never publishes your work to a
   community site.
 - **It runs everywhere you call.** The same app, adapted to each screen size,
@@ -171,8 +173,8 @@ Perform mode is built for the realities of the stage: huge, adjustable type on a
 high-contrast dark background, next and previous controls big enough to hit
 without looking, and the screen kept awake so it never dims mid-dance. When a
 slot has an alt, **Show alternate** switches the card to it. If you need to
-change a program on the fly — reorder what is left, insert a dance, or add a
-quick note — **Adjust program** lets you do it without disturbing the card you
+change a program on the fly — reorder what is left, insert a dance, swap one,
+or add a quick note — **Adjust program** lets you do it without disturbing the card you
 are reading.
 
 *Perform mode in the dark-stage theme, with large type and controls for moving
@@ -190,6 +192,9 @@ sections:
 
 - **General** — where you run [imports](./glossary.md#import) and manage your
   data, including [backup and restore](./backup-portability.md).
+- **Collection** — how titles sort and figures are written, your tags,
+  authors and sources, and your
+  [saved searches](./collection.md#save-a-search-and-use-it-again).
 - **Program** — your saved venues and how programs and Perform mode behave.
 - **Appearance** — themes, including light, dark, and high-contrast, plus your
   own custom themes.

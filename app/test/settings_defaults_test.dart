@@ -21,17 +21,14 @@ import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/default_program_caller_scope.dart';
 import 'package:compendium_app/src/data/dance_share_fields_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/program_templates.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_scope.dart';
-import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
-import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.dart';
 import 'package:compendium_app/src/data/walkthrough_snippet_library_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
-import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/search/program_sort.dart';
-import 'package:compendium_app/src/widgets/collection_picker.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
@@ -120,42 +117,6 @@ class _ThrowingReadSettings extends SettingsRepository {
       return Future<Object?>.error(StateError('read failed: $key'));
     }
     return super.get(key);
-  }
-}
-
-/// Counts and optionally fails the two dance reads the Defaults section makes:
-/// the titles-only projection and the full load behind `CollectionData`.
-class _CountingDances extends DanceRepository {
-  _CountingDances(CompendiumDatabase db) : super(db, contraTaxonomy);
-
-  bool failTitles = false;
-  bool failFullLoad = false;
-  int titleLoads = 0;
-  int fullLoads = 0;
-
-  @override
-  Future<List<({String id, String title})>> listIdsAndTitles({
-    bool includeDeleted = false,
-  }) async {
-    titleLoads++;
-    if (failTitles) throw StateError('titles load failed');
-    return super.listIdsAndTitles(includeDeleted: includeDeleted);
-  }
-
-  @override
-  Future<List<Dance>> listAll({bool includeDeleted = false}) async {
-    fullLoads++;
-    if (failFullLoad) throw StateError('full load failed');
-    return super.listAll(includeDeleted: includeDeleted);
-  }
-}
-
-class _RecordingCrashLogSink implements CrashLogSink {
-  final List<String> sources = [];
-
-  @override
-  void record(Object error, StackTrace? stack, {required String source}) {
-    sources.add(source);
   }
 }
 
@@ -281,12 +242,9 @@ void main() {
 
   test('starting program templates round-trip semantic entries', () {
     final encoded = encodeStartingProgramTemplate([
-      const StartingProgramTemplateEntry(danceId: 'dance-1'),
-      const StartingProgramTemplateEntry(
-        danceId: 'dance-2',
-        text: 'Guest caller',
-      ),
-      const StartingProgramTemplateEntry(text: Program.breakSlotText),
+      const ProgramTemplateEntry(danceId: 'dance-1'),
+      const ProgramTemplateEntry(danceId: 'dance-2', text: 'Guest caller'),
+      const ProgramTemplateEntry(text: Program.breakSlotText),
     ]);
 
     final decoded = tryDecodeStartingProgramTemplate(encoded);
@@ -306,7 +264,7 @@ void main() {
   test('starting program encoder emits only decoder-accepted entries', () {
     final encoded = encodeStartingProgramTemplate([
       for (var i = 0; i < 101; i++)
-        StartingProgramTemplateEntry(
+        ProgramTemplateEntry(
           danceId: 'dance-$i',
           text: i == 0 ? 'x' * 501 : null,
         ),
@@ -434,34 +392,44 @@ void main() {
     );
   });
 
-  testWidgets(
-    'starting program notes keep their dance when edited and reordered',
-    (tester) async {
-      final repos = openTestRepositories();
-      await repos.dances.create(_dance(id: 'd1', title: 'First dance'));
-      await repos.dances.create(_dance(id: 'd2', title: 'Second dance'));
-      await repos.settings.set(
-        kDefaultStartingProgramKey,
-        encodeStartingProgramTemplate([
-          const StartingProgramTemplateEntry(danceId: 'd1'),
-          const StartingProgramTemplateEntry(danceId: 'd2'),
-        ]),
-      );
+  testWidgets('Program defaults lists the templates and sets the Default '
+      'template, which can be Blank program (#2337)', (tester) async {
+    final repos = openTestRepositories();
+    await saveProgramTemplate(
+      repos.settings,
+      const ProgramTemplate(id: 'family', name: 'Family dance'),
+    );
+    await saveProgramTemplate(
+      repos.settings,
+      const ProgramTemplate(id: 'saturday', name: 'Saturday contra'),
+    );
+    await saveProgramTemplateOrder(repos.settings, ['family', 'saturday']);
+    await saveProgramTemplateDefault(repos.settings, 'family');
 
-      await _pumpDefaults(tester, repos);
-      final noteField = find.byType(TextFormField).first;
-      await tester.enterText(noteField, 'Guest caller');
-      await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Move down').first);
-      await tester.pumpAndSettle();
+    await _pumpDefaults(tester, repos);
+    // The Starting program editor is gone; its row is now the manager link.
+    expect(
+      find.byKey(const ValueKey('starting-program-add-dance')),
+      findsNothing,
+    );
+    final row = find.byKey(const ValueKey('defaults-program-templates'));
+    expect(
+      find.descendant(of: row, matching: find.text('2 templates')),
+      findsOneWidget,
+    );
+    final field = find.byKey(
+      const ValueKey('defaults-program-template-default'),
+    );
+    expect(dropdownShown(tester, field), 'Family dance');
 
-      final stored = startingProgramTemplateFromStored(
-        await repos.settings.get(kDefaultStartingProgramKey),
-      );
-      expect(stored.map((entry) => entry.danceId), ['d2', 'd1']);
-      expect(stored.last.text, 'Guest caller');
-    },
-  );
+    await pickDropdownEntry(tester, field, 'Saturday contra');
+    expect(await repos.settings.get(kProgramTemplateDefaultKey), 'saturday');
+    await pickDropdownEntry(tester, field, 'Blank program');
+    expect(
+      await repos.settings.get(kProgramTemplateDefaultKey),
+      kProgramTemplateBlankDefault,
+    );
+  });
 
   testWidgets('the dance-card picker offers Hook and Sources, off by default, '
       'and persists them under the existing key (OUT-6)', (tester) async {
@@ -487,6 +455,41 @@ void main() {
     expect(
       (await repos.settings.get(kProgramDanceShareFieldsKey) as List),
       containsAll(['hook', 'sources']),
+    );
+  });
+
+  testWidgets('the dance-card picker offers Meter, key and Barnes, on by '
+      'default, and persists turning it off', (tester) async {
+    final repos = openTestRepositories();
+    final fields = ValueNotifier<Set<DanceShareField>>(
+      DanceShareField.allExceptTunes,
+    );
+    addTearDown(fields.dispose);
+    await _pumpDefaults(tester, repos, shareFields: fields);
+
+    const key = ValueKey('defaults-share-field-music');
+    await _scrollTo(tester, key);
+    expect(find.text('Meter, key and Barnes'), findsOneWidget);
+    expect(tester.widget<CheckboxListTile>(find.byKey(key)).value, isTrue);
+    await tester.tap(find.byKey(key));
+    await tester.pumpAndSettle();
+
+    expect(fields.value, isNot(contains(DanceShareField.music)));
+    final stored =
+        await repos.settings.get(kProgramDanceShareFieldsKey) as List;
+    expect(stored, isNot(contains('music')));
+    expect(stored, contains('authors'));
+  });
+
+  test('a saved field choice from before Meter, key and Barnes leaves it '
+      'off; an untouched one has it on', () {
+    expect(DanceShareFieldsScope.decodeStored(['authors', 'formation']), {
+      DanceShareField.authors,
+      DanceShareField.formation,
+    });
+    expect(
+      DanceShareFieldsScope.decodeStored(null),
+      contains(DanceShareField.music),
     );
   });
 
@@ -1644,6 +1647,108 @@ void main() {
     expect(find.byKey(const ValueKey('defaults-dance-phrase')), findsOneWidget);
   });
 
+  group('default phrase structure rows (#2304)', () {
+    String? rowText(WidgetTester tester, int row, String name) => tester
+        .widget<TextField>(find.byKey(ValueKey('phrase-row-$row-$name')))
+        .controller
+        ?.text;
+
+    Future<CompendiumRepositories> pumpWith(
+      WidgetTester tester, {
+      String? stored,
+    }) async {
+      final repos = openTestRepositories();
+      if (stored != null) {
+        await repos.settings.set(kDefaultDancePhraseStructureKey, stored);
+      }
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+      await _scrollTo(tester, const ValueKey('defaults-dance-phrase'));
+      return repos;
+    }
+
+    testWidgets('a stored default shows as rows once it is read', (
+      tester,
+    ) async {
+      await pumpWith(tester, stored: '3*8*2 + 1*4*2');
+      expect(rowText(tester, 0, 'phrases'), '3');
+      expect(rowText(tester, 1, 'bars'), '4');
+    });
+
+    testWidgets('a blank default is the standard structure, one row', (
+      tester,
+    ) async {
+      await pumpWith(tester);
+      expect(rowText(tester, 0, 'phrases'), '4');
+      expect(rowText(tester, 0, 'bars'), '8');
+      expect(rowText(tester, 0, 'beats'), '2');
+    });
+
+    testWidgets('a row edit saves the default and shows in the field', (
+      tester,
+    ) async {
+      final repos = await pumpWith(tester, stored: '3*8*2 + 1*4*2');
+      await tester.enterText(
+        find.byKey(const ValueKey('phrase-row-1-bars')),
+        '6',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        await repos.settings.get(kDefaultDancePhraseStructureKey),
+        '3*8*2 + 1*6*2',
+      );
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('defaults-dance-phrase')),
+            )
+            .controller
+            ?.text,
+        '3*8*2 + 1*6*2',
+      );
+    });
+
+    testWidgets('an empty number says so without mentioning a dance or Save, '
+        'which Settings has neither of', (tester) async {
+      final repos = await pumpWith(tester, stored: '2*8*2');
+      await tester.enterText(
+        find.byKey(const ValueKey('phrase-row-0-bars')),
+        '',
+      );
+      await tester.pumpAndSettle();
+      final message = tester
+          .widget<Text>(find.byKey(const ValueKey('phrase-rows-invalid')))
+          .data!;
+      expect(message, isNot(contains('Save')));
+      expect(message, isNot(contains('dance')));
+      expect(
+        await repos.settings.get(kDefaultDancePhraseStructureKey),
+        '2*8*2',
+      );
+    });
+
+    testWidgets('a default with phrase names is left to the field', (
+      tester,
+    ) async {
+      final repos = await pumpWith(tester, stored: 'A:2*8*2 + B:1*8*2');
+      expect(find.byKey(const ValueKey('phrase-rows')), findsNothing);
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const ValueKey('defaults-dance-phrase')),
+            )
+            .controller
+            ?.text,
+        'A:2*8*2 + B:1*8*2',
+      );
+      expect(
+        await repos.settings.get(kDefaultDancePhraseStructureKey),
+        'A:2*8*2 + B:1*8*2',
+      );
+    });
+  });
+
   testWidgets('Dance-authoring controls show historical defaults when unset', (
     tester,
   ) async {
@@ -2353,6 +2458,71 @@ void main() {
         ),
         {
           'rory_o_more': {'slide': 'left', 'balance': false, 'beats': 4},
+        },
+      );
+    });
+
+    testWidgets('clearing a Rory O\'More\'s two places saves no key', (
+      tester,
+    ) async {
+      // `twoPlaces` (taxonomy v40) is kept only while it names dancers: a
+      // saved `unspecified` would be written into every new Rory O'More,
+      // where an older peer rejects the key.
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultMoveParamOverridesKey,
+        encodeMoveParamOverrides({
+          'rory_o_more': {'slide': 'left', 'twoPlaces': 'role2s'},
+        }),
+      );
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+      final clear = find.byKey(
+        const ValueKey('move-default-rory_o_more-twoPlaces-clear'),
+      );
+      await tester.ensureVisible(clear);
+      await tester.tap(clear);
+      await tester.pumpAndSettle();
+      expect(
+        moveParamOverridesFromStored(
+          await repos.settings.get(kDefaultMoveParamOverridesKey),
+        ),
+        {
+          'rory_o_more': {'slide': 'left'},
+        },
+      );
+    });
+
+    testWidgets('a figure 8 double turned on then off saves no key', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultMoveParamOverridesKey,
+        encodeMoveParamOverrides({
+          'figure_8': {'fraction': 'full'},
+        }),
+      );
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+      final double = find.byWidgetPredicate(
+        (w) =>
+            w is Switch &&
+            w.key == const ValueKey('move-default-figure_8-double'),
+      );
+      await tester.ensureVisible(double);
+      await tester.tap(double);
+      await tester.pumpAndSettle();
+      await tester.tap(double);
+      await tester.pumpAndSettle();
+      expect(
+        moveParamOverridesFromStored(
+          await repos.settings.get(kDefaultMoveParamOverridesKey),
+        ),
+        {
+          'figure_8': {'fraction': 'full'},
         },
       );
     });
@@ -3246,23 +3416,6 @@ void main() {
               );
             },
           ),
-          (
-            name: 'starting-program template',
-            key: kDefaultStartingProgramKey,
-            stored: encodeStartingProgramTemplate([
-              const StartingProgramTemplateEntry(text: 'Stored note'),
-            ]),
-            edit: (tester) async {
-              await tester.tap(
-                find.byKey(const ValueKey('starting-program-insert-break')),
-              );
-              await tester.pumpAndSettle();
-            },
-            expectEdited: (tester) {
-              expect(find.text(Program.breakSlotText), findsOneWidget);
-              expect(find.text('Stored note'), findsNothing);
-            },
-          ),
         ];
 
     for (final c in cases) {
@@ -3386,117 +3539,4 @@ void main() {
       );
     },
   );
-
-  group('starting-program dance titles and the full collection load', () {
-    late _RecordingCrashLogSink sink;
-
-    setUp(() {
-      sink = _RecordingCrashLogSink();
-      installCaughtErrorLog(sink);
-      addTearDown(resetCaughtErrorLogForTesting);
-    });
-
-    Future<({CompendiumRepositories repos, _CountingDances dances})> open({
-      bool failTitles = false,
-      bool failFullLoad = false,
-    }) async {
-      final db = openWidgetTestDatabase();
-      final dances = _CountingDances(db)
-        ..failTitles = failTitles
-        ..failFullLoad = failFullLoad;
-      final repos = CompendiumRepositories(db, contraTaxonomy, dances: dances);
-      await repos.dances.create(_dance(id: 'd1', title: 'First dance'));
-      await repos.settings.set(
-        kDefaultStartingProgramKey,
-        encodeStartingProgramTemplate([
-          const StartingProgramTemplateEntry(danceId: 'd1'),
-        ]),
-      );
-      dances.fullLoads = 0;
-      dances.titleLoads = 0;
-      return (repos: repos, dances: dances);
-    }
-
-    Future<void> rebuildThrice(WidgetTester tester) async {
-      // Each break insertion calls the section's setState, i.e. rebuilds it.
-      for (var i = 0; i < 3; i++) {
-        await tester.tap(
-          find.byKey(const ValueKey('starting-program-insert-break')),
-        );
-        await tester.pumpAndSettle();
-      }
-    }
-
-    testWidgets('a failing titles load is logged once across rebuilds', (
-      tester,
-    ) async {
-      final opened = await open(failTitles: true);
-      await _pumpDefaults(tester, opened.repos);
-      await rebuildThrice(tester);
-
-      expect(
-        sink.sources.where(
-          (s) => s == 'defaults_section.starting_program_titles',
-        ),
-        hasLength(1),
-      );
-      expect(opened.dances.titleLoads, 1);
-    });
-
-    testWidgets('the starting-program list shows titles without loading the '
-        'collection', (tester) async {
-      final opened = await open(failFullLoad: true);
-      await _pumpDefaults(tester, opened.repos);
-
-      expect(find.text('First dance'), findsOneWidget);
-      expect(opened.dances.fullLoads, 0);
-      expect(sink.sources, isEmpty);
-    });
-
-    testWidgets('rebuilding never loads the full collection', (tester) async {
-      final opened = await open();
-      await _pumpDefaults(tester, opened.repos);
-      await rebuildThrice(tester);
-
-      expect(opened.dances.fullLoads, 0);
-      expect(opened.dances.titleLoads, 1);
-    });
-
-    testWidgets('opening the dance picker loads the full collection once', (
-      tester,
-    ) async {
-      final opened = await open();
-      await _pumpDefaults(tester, opened.repos);
-      await tester.tap(
-        find.byKey(const ValueKey('starting-program-add-dance')),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.byType(CollectionPicker), findsOneWidget);
-      expect(opened.dances.fullLoads, 1);
-    });
-
-    testWidgets('a failed picker load is logged per tap and retried on the '
-        'next tap', (tester) async {
-      final opened = await open(failFullLoad: true);
-      await _pumpDefaults(tester, opened.repos);
-      final add = find.byKey(const ValueKey('starting-program-add-dance'));
-
-      await tester.tap(add);
-      await tester.pumpAndSettle();
-      expect(find.byType(CollectionPicker), findsNothing);
-      expect(
-        sink.sources.where(
-          (s) => s == 'defaults_section.starting_program_picker',
-        ),
-        hasLength(1),
-      );
-
-      opened.dances.failFullLoad = false;
-      await tester.tap(add);
-      await tester.pumpAndSettle();
-      expect(find.byType(CollectionPicker), findsOneWidget);
-      expect(opened.dances.fullLoads, 2);
-    });
-  });
 }

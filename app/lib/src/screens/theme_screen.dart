@@ -19,6 +19,7 @@ import '../theme/color_schemes.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/adaptive_fab.dart';
+import '../widgets/hardware_keyboard_presence.dart';
 import 'settings/settings_keys.dart';
 import 'theme_editor_screen.dart';
 
@@ -279,27 +280,34 @@ class _ThemeScreenState extends State<ThemeScreen> {
               AppSpacing.md,
               AppSpacing.xs,
             ),
-            child: TextField(
-              key: const ValueKey('theme-search'),
-              controller: _searchController,
-              onChanged: (value) => setState(() => _query = value),
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: l10n.themeScreenSearchHint,
-                prefixIcon: const Icon(Icons.search),
-                border: const OutlineInputBorder(),
-                isDense: true,
-                suffixIcon: _query.isEmpty
-                    ? null
-                    : IconButton(
-                        key: const ValueKey('theme-search-clear'),
-                        tooltip: l10n.themeScreenClearSearchTooltip,
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() => _query = '');
-                        },
-                      ),
+            // Focused on arrival where a hardware keyboard is likely (desktop, or
+            // a tablet once its keyboard has been used), so a caller can type
+            // straight away; on a phone the on-screen keyboard would cover the
+            // gallery, so the field waits for a tap there.
+            child: HardwareKeyboardPresence.builder(
+              builder: (context, keyboard) => TextField(
+                key: const ValueKey('theme-search'),
+                autofocus: keyboard,
+                controller: _searchController,
+                onChanged: (value) => setState(() => _query = value),
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  hintText: l10n.themeScreenSearchHint,
+                  prefixIcon: const Icon(Icons.search),
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                  suffixIcon: _query.isEmpty
+                      ? null
+                      : IconButton(
+                          key: const ValueKey('theme-search-clear'),
+                          tooltip: l10n.themeScreenClearSearchTooltip,
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _query = '');
+                          },
+                        ),
+                ),
               ),
             ),
           ),
@@ -397,22 +405,48 @@ class _ThemeScreenState extends State<ThemeScreen> {
           key: const ValueKey('theme-no-matches'),
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
-            child: Text(l10n.themeScreenNoMatches, textAlign: TextAlign.center),
+            // A live region, like the result count, so a screen reader says
+            // there are none rather than going quiet.
+            child: Semantics(
+              liveRegion: true,
+              child: Text(
+                l10n.themeScreenNoMatches,
+                textAlign: TextAlign.center,
+              ),
+            ),
           ),
         );
       }
-      children.add(
-        Padding(
-          padding: const EdgeInsets.only(top: AppSpacing.sm),
-          child: _CardWrap(
-            key: const ValueKey('theme-search-results'),
-            builtIns: builtIns,
-            customs: matchingCustoms,
-            builtInCard: builtInCard,
-            customCard: customCard,
+      children
+        ..add(
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.sm),
+            // A live region, so a screen reader announces how many themes
+            // match as the search changes (as the Programs list's count does).
+            child: Semantics(
+              liveRegion: true,
+              child: Text(
+                l10n.themeScreenResultCount(
+                  builtIns.length + matchingCustoms.length,
+                ),
+                key: const ValueKey('theme-result-count'),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
           ),
-        ),
-      );
+        )
+        ..add(
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.sm),
+            child: _CardWrap(
+              key: const ValueKey('theme-search-results'),
+              builtIns: builtIns,
+              customs: matchingCustoms,
+              builtInCard: builtInCard,
+              customCard: customCard,
+            ),
+          ),
+        );
     }
 
     return ListView(

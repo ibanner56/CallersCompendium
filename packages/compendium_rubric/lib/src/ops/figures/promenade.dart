@@ -17,7 +17,8 @@ part of '../operation.dart';
 /// slide right, and like the slide is its own progression. It ends with every
 /// dancer facing across, toward the next neighbours, as the ruling says; the
 /// slide alone would keep their facing. Any other single
-/// file or `where`, and a stated `destination`, raise
+/// file or `where`, and a stated `destination` other than that promenade's
+/// own next neighbours, raise
 /// [ErrorKind.unsupportedParam]. A Caller's Box promenade that states no
 /// `where` (a whole-set or around-a-dancer promenade there) is stopped before
 /// it reaches this operation and reported as `unstructured`, an import
@@ -50,7 +51,9 @@ final class Promenade extends Operation {
 
   /// Whom the pairs travel to, when the source says. `null` is the upstream
   /// `unspecified` sentinel. A stated destination is deferred: it names travel
-  /// past the hands four, which this landing does not model.
+  /// past the hands four, which this landing does not model. The one
+  /// exception is a single-file promenade around the set to the next
+  /// neighbours, which is the one place that figure already travels.
   final WhoSet? destination;
 
   @override
@@ -81,7 +84,11 @@ final class Promenade extends Operation {
   @override
   OpError? checkPreconditions(Formation formation) {
     if (_aroundTheSet) {
-      if (destination != null) {
+      // "Single file promenade … around the major set to N2": the one place
+      // the slide travels is to the next neighbours, so naming them states
+      // that landing rather than another (agent's call, 2026-11-24, at the
+      // taxonomy-v40 sync, where the import began writing it).
+      if (destination != null && destination != WhoSet.nextNeighbors) {
         return OpError(
           ErrorKind.unsupportedParam,
           'a promenade to ${destination!.key} is deferred',

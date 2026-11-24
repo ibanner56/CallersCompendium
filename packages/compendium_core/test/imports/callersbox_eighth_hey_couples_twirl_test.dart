@@ -42,6 +42,15 @@ void main() {
       },
     );
 
+    test('same-role neighbours read as in any hey', () {
+      // `SRN` is read only inside heys (Hudson, 2026-11-24); a 1/8 hey is one.
+      final f = _parse('Hey 1/8 (SRNL)');
+      expect(f.move, 'pass_by');
+      expect(f.params['who'], 'sameRoles');
+      expect(f.params['shoulder'], 'left');
+      expect(f.note, '1/8 hey');
+    });
+
     test('other hey fractions still read as a hey', () {
       final f = _parse('Hey 1/4 (WR;PL)');
       expect(f.move, 'hey');
@@ -62,6 +71,15 @@ void main() {
       expect(f.move, 'do_si_do');
       expect(f.params['travel'], 1.5);
       expect(f.note, 'as couples');
+    });
+
+    test('an amount choice keeps both notes', () {
+      // `_amountAlternativeAnnotation` writes the first amount into the line
+      // and re-reads it through this entry.
+      final f = _parse('As couples, neighbor do si do (1 or 2)');
+      expect(f.move, 'do_si_do');
+      expect(f.params['travel'], 1.0);
+      expect(f.note, 'as couples; 1 or 2');
     });
 
     test('a move other than a do si do stays custom', () {

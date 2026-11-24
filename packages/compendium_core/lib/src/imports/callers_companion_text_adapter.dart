@@ -1,6 +1,8 @@
 import '../model/enums.dart';
 import 'callers_companion_mapping.dart';
+import 'figure_text_lines.dart' show splitPhraseLabel;
 import 'import_error.dart';
+import 'label_lines.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
@@ -260,7 +262,7 @@ class CallersCompanionTextAdapter implements SourceAdapter {
       // Body region.
       if (inBody) {
         if (line.isEmpty) continue;
-        final (label, inlineContent) = _splitSectionLabel(line);
+        final (label, inlineContent) = splitPhraseLabel(line);
         if (label != null) {
           flushSection();
           currentLabel = label;
@@ -291,18 +293,7 @@ class CallersCompanionTextAdapter implements SourceAdapter {
   }
 
   /// The canonical section label (`A1`..`C2`) a line opens with, or `null`.
-  static String? _sectionLabelOf(String line) => _splitSectionLabel(line).$1;
-
-  /// Splits a leading section label from any inline content on the same line.
-  /// Returns `(null, line)` when the line does not open with a section label.
-  static (String?, String) _splitSectionLabel(String line) {
-    final match = RegExp(
-      r'^([ABC][12])\b[.:)\-]?\s*(.*)$',
-      caseSensitive: false,
-    ).firstMatch(line);
-    if (match == null) return (null, line);
-    return (match.group(1)!.toUpperCase(), match.group(2)!.trim());
-  }
+  static String? _sectionLabelOf(String line) => splitPhraseLabel(line).$1;
 
   /// Whether a line looks like a transcription body line (`(N) ...`).
   static bool _looksLikeBodyLine(String line) =>
@@ -314,32 +305,21 @@ class CallersCompanionTextAdapter implements SourceAdapter {
   /// (#685), so this adapter and the `.usr` reader can never tokenize
   /// differently. Returns `null` when the line is not an author line.
   static List<String>? _parseAuthorLine(String line) {
-    final byMatch = RegExp(
-      r'^by\s+(.+)$',
-      caseSensitive: false,
-    ).firstMatch(line);
-    final String namesPart;
-    if (byMatch != null) {
-      namesPart = byMatch.group(1)!;
-    } else {
-      final field = _parseFieldLine(line);
-      if (field == null || (field.$1 != 'author' && field.$1 != 'authors')) {
-        return null;
-      }
-      namesPart = field.$2;
+    final by = splitByLine(line);
+    if (by != null) return [by];
+    final field = _parseFieldLine(line);
+    if (field == null || (field.$1 != 'author' && field.$1 != 'authors')) {
+      return null;
     }
-    final trimmed = namesPart.trim();
+    final trimmed = field.$2.trim();
     return trimmed.isEmpty ? null : [trimmed];
   }
 
-  /// Parses a `Key: Value` header line into a lowercased key + trimmed value,
-  /// or `null` when the line is not a `Key: Value` pair.
-  static (String, String)? _parseFieldLine(String line) {
-    final idx = line.indexOf(':');
-    if (idx <= 0) return null;
-    final key = line.substring(0, idx).trim().toLowerCase();
-    final value = line.substring(idx + 1).trim();
-    if (key.isEmpty || key.contains(' ')) return null;
-    return (key, value);
-  }
+  /// Parses a `Key: Value` header line into a lowercased one-word key and a
+  /// trimmed value ([splitLabelLine]), or `null` when the line is not one.
+  static (String, String)? _parseFieldLine(String line) =>
+      switch (splitLabelLine(line)) {
+        (final key, final value) => (key.toLowerCase(), value),
+        null => null,
+      };
 }

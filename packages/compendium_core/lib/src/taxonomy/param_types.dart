@@ -298,6 +298,14 @@ const String fractionAmountParam = 'amount';
 /// `validateFigure` rejects a param it does not know) would refuse.
 const String figure8DoubleParam = 'double';
 
+/// The Rory O'More param naming who slides two places, across the set, while
+/// the others slide one (taxonomy v40). Stored only while it names dancers:
+/// [Taxonomy.entryParams] seeds none and `applyParamChange` removes it when
+/// cleared, so a Rory O'More with the ordinary slide carries no key a peer on
+/// taxonomy v39 (whose `validateFigure` rejects a param it does not know)
+/// would refuse.
+const String roryTwoPlacesParam = 'twoPlaces';
+
 /// Whether a fraction field with no amount beside it offers [choice] when its
 /// value is [current] (#2120): every fraction but `other`, which would be
 /// stored with no amount. Such fields are a figure of the user's own, whose
@@ -375,6 +383,7 @@ class ParamSpec {
     this.entryDefault,
     this.choices,
     this.allowManualClear = true,
+    this.requiredOnEntry = false,
   });
 
   final ParamKind kind;
@@ -415,9 +424,20 @@ class ParamSpec {
   /// automatic reset when promenade's `where` is set to `in`/`out`/`up`/
   /// `down` (`applyParamChange`, `param_change_rules.dart`), never via a
   /// button. Set
-  /// `false` there for that reason; every other spec leaves this at its
-  /// default.
+  /// `false` there for that reason. `form_long_waves.who` (v40, #2331) is set
+  /// `false` for the same one: it admits the sentinel only for an importer's
+  /// unstated facing and defaults to the concrete `role1s`.
   final bool allowManualClear;
+
+  /// Whether a figure entered new must state this param (taxonomy v40, the
+  /// merged pass by / pass through). The figure editor seeds it
+  /// [ParamVocab.unspecified] ([Taxonomy.entryParams]) and will not save a
+  /// figure added in that edit while it is still unstated
+  /// ([Taxonomy.unstatedRequiredParams]). It says nothing about a figure that
+  /// leaves the param out, which still means [defaultValue], and a figure
+  /// already stored unstated (an import, or one converted from before v40)
+  /// opens and saves as it is. Requires [choices] to admit the sentinel.
+  final bool requiredOnEntry;
 
   /// Whether [value] belongs to this parameter's domain.
   bool validate(Object? value) {

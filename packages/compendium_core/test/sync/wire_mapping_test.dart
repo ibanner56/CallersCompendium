@@ -317,6 +317,29 @@ void main() {
       );
     }
 
+    // A column whose stored value another column decides: a dance's form
+    // clears its Barnes reference unless the form is ECD
+    // (`formHasBarnesReference`), so moving the form off ECD also moves that
+    // column. Declared, like the key aliases, so an undeclared dependency
+    // still fails; both sides are asserted to share a classification.
+    // Likewise a square's repeat order and new partner keep their text only
+    // when they are `other`.
+    const derivedColumns = <String, Set<String>>{
+      'dances.form': {'dances.barnes_reference'},
+      'dances.repeat_order': {'dances.repeat_order_text'},
+      'dances.new_partner': {'dances.new_partner_text'},
+    };
+    for (final MapEntry(key: column, value: derived)
+        in derivedColumns.entries) {
+      for (final other in derived) {
+        expect(
+          fieldClassifications[other]!.egress,
+          fieldClassifications[column]!.egress,
+          reason: '$other and $column must not be classified apart',
+        );
+      }
+    }
+
     final baseline = await _storedColumns(_Fixture(null));
     final misplaced = <String>[];
     for (final column in _inScopeColumns) {
@@ -328,6 +351,7 @@ void main() {
       final expected = <String>{
         column,
         if (keyAliases.containsKey(column)) keyAliases[column]!,
+        ...?derivedColumns[column],
       };
       if (!(changed.length == expected.length &&
           changed.containsAll(expected))) {
@@ -352,8 +376,8 @@ void main() {
   }, timeout: const Timeout(Duration(minutes: 5)));
 
   test('a multi-source wire path is admitted only when every column is', () {
-    // `customFields.value` is the only path with more than one source column,
-    // and both are shareable today, so the generator's rule is not observable
+    // `customFields.value` and `barnesReference` are the paths with more than
+    // one source column, and every one of those columns is shareable today, so the generator's rule is not observable
     // from the committed registry. Classifying either one out must remove the
     // path: admitting it because the OTHER column is shareable would emit both
     // (#1359). `fieldClassifications` is a mutable top-level map, which is how
@@ -835,6 +859,13 @@ const _valuePairs = <String, List<Object?>>{
   'dances.rating': [3, 4],
   'dances.mixed_level': [false, true],
   'dances.mixer': [false, true],
+  // `other` first, so the texts that go with it are kept and seeded.
+  'dances.square_kind': ['break', 'patter'],
+  'dances.repeat_order': ['other', 'HHSS'],
+  'dances.new_partner': ['other', 'corner'],
+  'dances.singing': [false, true],
+  // Both stated, so neither leaves the key out of the body.
+  'dances.free_form': [true, false],
   'dances.formation_improper': [false, true],
   'dances.composed_on': ['1989', '1990'],
   'dances.interpreted_on': ['1995', '1996-07'],
@@ -861,6 +892,17 @@ const _valuePairs = <String, List<Object?>>{
   'programs.updated_at': _earlier,
   'programs.deleted_at': _earlier,
   'programs.archived_at': _earlier,
+  // A SHA-256 hex digest: the codec drops anything else.
+  'programs.calendar_event_key': [
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+  ],
+  'programs.start_minute': [1170, 1171],
+  'programs.end_minute': [1350, 1351],
+  'programs.lesson_minute': [1140, 1141],
+  'programs.arrival_minute': [1110, 1111],
+  'programs.calendar_written_at': _earlier,
+  'programs.calendar_flag': ['cancelled', 'missing'],
   'program_slots.position': [0, 1],
   'program_slots.is_alt': [false, true],
   'program_slots.is_purged_dance': [false, true],
@@ -1049,6 +1091,15 @@ class _Fixture {
     walkthrough: _str('dances.walkthrough'),
     meter: _str('dances.meter'),
     musicalKey: _str('dances.musical_key'),
+    alternateTitles: [_str('dances.alternate_titles')],
+    barnesReference: _str('dances.barnes_reference'),
+    squareKind: SquareKind.fromWireName(_str('dances.square_kind'))!,
+    repeatOrder: SquareRepeatOrder.fromWireName(_str('dances.repeat_order'))!,
+    repeatOrderText: _str('dances.repeat_order_text'),
+    newPartner: SquareNewPartner.fromWireName(_str('dances.new_partner'))!,
+    newPartnerText: _str('dances.new_partner_text'),
+    singing: _flag('dances.singing'),
+    freeForm: _flag('dances.free_form'),
     status: DanceStatus.values.byName(_str('dances.status')),
     difficultyLevelId: _str('dances.level_id'),
     mixedLevel: _flag('dances.mixed_level'),
@@ -1122,6 +1173,10 @@ class _Fixture {
     dialectName: _str('programs.dialect_name'),
     payMinorUnits: _int('programs.pay_minor_units'),
     payCurrency: _str('programs.pay_currency'),
+    startMinute: _int('programs.start_minute'),
+    endMinute: _int('programs.end_minute'),
+    lessonMinute: _int('programs.lesson_minute'),
+    arrivalMinute: _int('programs.arrival_minute'),
     slots: [
       ProgramSlot(
         id: _str('program_slots.id'),
@@ -1157,6 +1212,10 @@ class _Fixture {
     updatedAt: _date('programs.updated_at'),
     deletedAt: _date('programs.deleted_at'),
     archivedAt: _date('programs.archived_at'),
+    calendarEventKey: _str('programs.calendar_event_key'),
+    calendarEventFingerprint: _str('programs.calendar_event_fingerprint'),
+    calendarWrittenAt: _date('programs.calendar_written_at'),
+    calendarFlag: _str('programs.calendar_flag'),
   );
 
   StoredUserGlossaryEntry glossaryEntry() => StoredUserGlossaryEntry(

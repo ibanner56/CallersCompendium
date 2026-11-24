@@ -4,9 +4,10 @@ import 'dart:convert';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart' show SystemChannels;
+import 'package:flutter/services.dart' show LogicalKeyboardKey, SystemChannels;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/l10n/app_localizations_en.dart';
@@ -64,6 +65,7 @@ import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
 import 'package:compendium_app/src/screens/theme_editor_screen.dart';
 import 'package:compendium_app/src/theme/app_breakpoints.dart';
+import 'package:compendium_app/src/widgets/hardware_keyboard_presence.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -370,14 +372,29 @@ void main() {
   group('SettingsScreen — General & Program settings (G.2)', () {
     // Section content only shows once its sidebar entry is picked (side-by-side
     // layout shows only the selected section). The calling-history toggles moved
-    // to the Program section (issue #935); sort-ignore stays under General.
-    Future<void> openGeneral(WidgetTester tester) async {
-      await tester.tap(find.byKey(const ValueKey('settings-nav-general')));
+    // to the Program section (issue #935), and sort-ignore, with the rest of
+    // the Dances settings, to the Collection section (#2325).
+    Future<void> openCollection(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('settings-nav-collection')));
       await tester.pumpAndSettle();
     }
 
     Future<void> openProgram(WidgetTester tester) async {
       await tester.tap(find.byKey(const ValueKey('settings-nav-program')));
+      await tester.pumpAndSettle();
+    }
+
+    // Opens the Program section and scrolls its lazy list until [target]
+    // is built and on screen.
+    Future<void> openProgramAt(WidgetTester tester, Finder target) async {
+      await openProgram(tester);
+      final scrollable = find
+          .ancestor(
+            of: find.byKey(const ValueKey('settings-perform-swap-defaults')),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await tester.scrollUntilVisible(target, 200, scrollable: scrollable);
       await tester.pumpAndSettle();
     }
 
@@ -473,7 +490,7 @@ void main() {
       tester,
     ) async {
       await _pumpSettings(tester);
-      await openProgram(tester);
+      await openProgramAt(tester, find.byKey(trackAllCallersKey));
 
       expect(find.byKey(trackAllCallersKey), findsOneWidget);
       final toggle = tester.widget<SwitchListTile>(
@@ -486,7 +503,7 @@ void main() {
       tester,
     ) async {
       await _pumpSettings(tester, initialTrackHistoryForAllCallers: true);
-      await openProgram(tester);
+      await openProgramAt(tester, find.byKey(trackAllCallersKey));
 
       final toggle = tester.widget<SwitchListTile>(
         find.byKey(trackAllCallersKey),
@@ -498,8 +515,10 @@ void main() {
       'turning track-all-callers on updates the notifier and persists',
       (tester) async {
         final harness = await _pumpSettings(tester);
-        await openProgram(tester);
+        await openProgramAt(tester, find.byKey(trackAllCallersKey));
 
+        await tester.ensureVisible(find.byKey(trackAllCallersKey));
+        await tester.pumpAndSettle();
         await tester.tap(find.byKey(trackAllCallersKey));
         await tester.pumpAndSettle();
 
@@ -522,8 +541,10 @@ void main() {
           tester,
           initialTrackHistoryForAllCallers: true,
         );
-        await openProgram(tester);
+        await openProgramAt(tester, find.byKey(trackAllCallersKey));
 
+        await tester.ensureVisible(find.byKey(trackAllCallersKey));
+        await tester.pumpAndSettle();
         await tester.tap(find.byKey(trackAllCallersKey));
         await tester.pumpAndSettle();
 
@@ -535,13 +556,13 @@ void main() {
       },
     );
 
-    const sortToggleKey = ValueKey('general-sort-ignore-articles');
+    const sortToggleKey = ValueKey('collection-sort-ignore-articles');
 
     testWidgets('sort-ignore-articles toggle is present and on by default', (
       tester,
     ) async {
       await _pumpSettings(tester);
-      await openGeneral(tester);
+      await openCollection(tester);
 
       expect(find.byKey(sortToggleKey), findsOneWidget);
       final toggle = tester.widget<SwitchListTile>(find.byKey(sortToggleKey));
@@ -552,7 +573,7 @@ void main() {
       tester,
     ) async {
       await _pumpSettings(tester, initialSortIgnoreArticles: false);
-      await openGeneral(tester);
+      await openCollection(tester);
 
       final toggle = tester.widget<SwitchListTile>(find.byKey(sortToggleKey));
       expect(toggle.value, isFalse);
@@ -562,7 +583,7 @@ void main() {
       tester,
     ) async {
       final harness = await _pumpSettings(tester);
-      await openGeneral(tester);
+      await openCollection(tester);
 
       await tester.tap(find.byKey(sortToggleKey));
       await tester.pumpAndSettle();
@@ -1883,6 +1904,100 @@ void main() {
       expect(find.byKey(const ValueKey('theme-group-custom')), findsNothing);
     });
 
+    testWidgets('the search box takes focus on arrival where a keyboard is '
+        'assumed (desktop)', (tester) async {
+      HardwareKeyboardPresence.debugReset();
+      debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+      try {
+        await _pumpSettings(tester, section: 'appearance');
+        await _openThemeScreen(tester);
+        final field = tester.widget<EditableText>(
+          find.descendant(
+            of: find.byKey(const ValueKey('theme-search')),
+            matching: find.byType(EditableText),
+          ),
+        );
+        expect(field.focusNode.hasFocus, isTrue);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    testWidgets('on a phone the search box waits for a tap, so no on-screen '
+        'keyboard covers the gallery', (tester) async {
+      HardwareKeyboardPresence.debugReset();
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await _pumpSettings(tester, section: 'appearance');
+        await _openThemeScreen(tester);
+        final field = tester.widget<EditableText>(
+          find.descendant(
+            of: find.byKey(const ValueKey('theme-search')),
+            matching: find.byType(EditableText),
+          ),
+        );
+        expect(field.focusNode.hasFocus, isFalse);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    testWidgets('a tablet whose hardware keyboard has been used focuses the '
+        'search box too', (tester) async {
+      HardwareKeyboardPresence.debugReset();
+      addTearDown(HardwareKeyboardPresence.debugReset);
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      try {
+        await _pumpSettings(tester, section: 'appearance');
+        // The app shell starts the listener at launch; this harness has no
+        // shell, so start it here, as the shell would.
+        HardwareKeyboardPresence.ensureListening();
+        // A letter key only a hardware keyboard sends.
+        await tester.sendKeyEvent(LogicalKeyboardKey.keyA);
+        await tester.pumpAndSettle();
+        await _openThemeScreen(tester);
+        final field = tester.widget<EditableText>(
+          find.descendant(
+            of: find.byKey(const ValueKey('theme-search')),
+            matching: find.byType(EditableText),
+          ),
+        );
+        expect(field.focusNode.hasFocus, isTrue);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    testWidgets('a search announces how many themes match', (tester) async {
+      final handle = tester.ensureSemantics();
+      await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
+      // No count until there is a search to count.
+      expect(find.byKey(const ValueKey('theme-result-count')), findsNothing);
+      await search(tester, 'nord');
+      final count = find.byKey(const ValueKey('theme-result-count'));
+      expect(tester.widget<Text>(count).data, '2 themes');
+      expect(
+        tester.getSemantics(count),
+        isSemantics(label: '2 themes', isLiveRegion: true),
+      );
+      await search(tester, 'frappe');
+      expect(tester.widget<Text>(count).data, '1 theme');
+      handle.dispose();
+    });
+
+    testWidgets('no match is announced too', (tester) async {
+      final handle = tester.ensureSemantics();
+      await _pumpSettings(tester, section: 'appearance');
+      await _openThemeScreen(tester);
+      await search(tester, 'zzzz');
+      expect(
+        tester.getSemantics(find.text('No themes match your search.')),
+        isSemantics(label: 'No themes match your search.', isLiveRegion: true),
+      );
+      handle.dispose();
+    });
+
     testWidgets('no match says so, and clearing brings the headings back', (
       tester,
     ) async {
@@ -1923,6 +2038,31 @@ void main() {
         find.byKey(const ValueKey('settings-nav-dialect')),
         findsOneWidget,
       );
+    });
+
+    testWidgets('the sidebar lists every section in its documented order, '
+        'Collection between General and Program (#2325)', (tester) async {
+      await _pumpSettings(tester, surfaceSize: const Size(500, 1400));
+      const order = [
+        'general',
+        'collection',
+        'program',
+        'appearance',
+        'dialect',
+        'regional',
+        'defaults',
+        'updates',
+        'diagnostics',
+        'experimental',
+        'about',
+      ];
+      final tops = [
+        for (final name in order)
+          tester.getTopLeft(find.byKey(ValueKey('settings-nav-$name'))).dy,
+      ];
+      for (var i = 1; i < tops.length; i++) {
+        expect(tops[i], greaterThan(tops[i - 1]), reason: order[i]);
+      }
     });
 
     testWidgets('navigation preserves section order, content, and icon pairs', (
@@ -2023,7 +2163,7 @@ void main() {
         isTrue,
       );
       expect(
-        find.byKey(const ValueKey('general-sort-ignore-articles')),
+        find.byKey(const ValueKey('general-reduce-motion')),
         findsOneWidget,
       );
       // No other section is selected, and Appearance's Theme row is not
@@ -2053,7 +2193,7 @@ void main() {
           '$sideBySide', (tester) async {
         await _pumpSettings(tester, surfaceSize: Size(width, 1400));
         expect(
-          find.byKey(const ValueKey('general-sort-ignore-articles')),
+          find.byKey(const ValueKey('general-reduce-motion')),
           sideBySide ? findsOneWidget : findsNothing,
         );
         expect(
@@ -2081,7 +2221,7 @@ void main() {
               (w.key! as ValueKey<String>).value.startsWith('settings-nav-'),
         );
         final sideBySide = find
-            .byKey(const ValueKey('general-sort-ignore-articles'))
+            .byKey(const ValueKey('general-reduce-motion'))
             .evaluate()
             .isNotEmpty;
         if (scale == 2.0) {
@@ -2131,6 +2271,7 @@ void main() {
           .height;
       final oneLine = labelHeight('general');
       for (final section in [
+        'collection',
         'program',
         'appearance',
         'dialect',

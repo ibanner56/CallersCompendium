@@ -147,8 +147,9 @@ any track (including testing) can go live. Answers are drafted in
   rules don't apply.
 - [x] **[Gate]** **Data safety form** — declare the optional Device Sync
   transfer (other user-generated content, optional, app functionality, not
-  shared with third parties), not "No data collected". Imports and the opt-in
-  update check are user-initiated. Full answer set in
+  shared with third parties), not "No data collected". Imports, the opt-in
+  update check and the opt-in startup calendar import are user-initiated (the
+  two opt-ins are off by default). Full answer set in
   [`listing-copy.md`](listing-copy.md#data-safety-google-play).
 - [x] **[Gate]** **Government apps / financial / health / etc.** declarations —
   all **No** for us.
@@ -158,6 +159,16 @@ any track (including testing) can go live. Answers are drafted in
   `AD_ID`; declare that the app does not use an advertising ID. (If a dependency
   pulls the `com.google.android.gms.permission.AD_ID` permission in, either
   remove it via manifest merge or declare its use — mismatches get flagged.)
+- [x] **[Confirm]** **No camera permission** — a dance's QR code is read by the
+  phone's camera app or Google Lens, which opens the app through a `BROWSABLE`
+  `VIEW` filter on the `ccdance` scheme (#2335). It is a custom scheme, not an
+  `https` app link, so there is no Digital Asset Links file to publish, and no
+  `CAMERA` permission to declare. **Take a photo** (#2328) is iOS only, so the
+  Android build offers no camera feature; `app/test/photo_capture_test.dart`
+  fails if the app's own Android manifests, or the manifest of any Android
+  plugin it links (both are merged into the build), declare `CAMERA`. The
+  `image_picker` plugin adds a file provider and a disabled photo-picker
+  service to the merged manifest, but no permission.
 
 ## 5. The testing ladder — [the critical path]
 

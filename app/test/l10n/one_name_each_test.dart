@@ -124,6 +124,8 @@ void main() {
     'settingsDefaultsFreeTextEntrySubtitle': 'example of typed text',
     'danceEditorFiguresHelpFreeText': 'example of typed text',
     'danceEditorTypeFigureHelper': 'example of typed text',
+    'figureTextSheetHelp': 'example of typed text',
+    'figureTextSheetHelpDropsLabels': 'example of typed text',
   };
 
   test('app_en.arb says "and" in running text, not "&" or "+"', () {

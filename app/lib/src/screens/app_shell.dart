@@ -388,7 +388,10 @@ class AppShellState extends State<AppShell> {
                   isActive: _current == _Destination.glossary,
                 )
               : const SizedBox.shrink(),
-        _Destination.settings => SettingsScreen(onOpenGuide: _openGuide),
+        _Destination.settings => SettingsScreen(
+          onOpenGuide: _openGuide,
+          isActive: _current == _Destination.settings,
+        ),
         // Kept alive alongside the other destinations;
         // [UserGuideScreen.isActive] lets the offscreen guide avoid
         // intercepting system back.

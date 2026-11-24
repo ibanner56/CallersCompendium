@@ -73,6 +73,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   late DanceEditorController _controller;
   final _formKey = GlobalKey<FormState>();
   final _formScroll = ScrollController();
+  final _setupController = SetupPanelController();
+
+  /// True for the frame in which a failed save opens a folded panel to show
+  /// an error inside it ([DanceEditorForm.openPanelsInstantly]).
+  bool _openPanelsInstantly = false;
   final _moreDetailsController = ExpansibleController();
 
   /// Per-move insert-time parameter overrides (ROADMAP DD.3), loaded once in
@@ -362,6 +367,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       _controller.removeListener(_onControllerChanged);
       _controller.titleController.removeListener(_syncEditorDialect);
       _controller.dispose();
+      _setupController.dispose();
       _moreDetailsController.dispose();
     }
     // Unblocks a still-suspended `_load()` continuation if the widget is
@@ -466,17 +472,62 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     final hasInvalidCustomFieldNumber = _controller.hasInvalidCustomFieldNumber;
     final formIsValid = _formKey.currentState?.validate() ?? false;
     if (!formIsValid || hasInvalidCustomFieldNumber) {
-      if (hasInvalidCustomFieldNumber) _moreDetailsController.expand();
-      // `validate()` has put each message on its own field, and scrolls to
-      // none of them, so the first is brought into view here. The
-      // custom-number message is the list's first entry, above every field,
-      // and a lazy list may have let go of it: scroll to the top instead.
-      setState(() {});
-      if (hasInvalidCustomFieldNumber) {
-        scrollToTopForError(context, _formScroll);
-      } else {
-        scrollToFirstInvalidField(context, _formKey);
+      // A field folded away in a panel cannot show its message, so the panel
+      // holding it is opened. It opens without its animation, so the field
+      // is in its final place by the time it is scrolled to: scrolled to
+      // mid-animation, it would be left below the screen.
+      final opensSetup =
+          !_setupController.isExpanded &&
+          hasInvalidFieldUnder(_formKey, const ValueKey('setup-tile'));
+      final opensMoreDetails =
+          !_moreDetailsController.isExpanded &&
+          (hasInvalidCustomFieldNumber ||
+              hasInvalidFieldUnder(
+                _formKey,
+                const ValueKey('more-details-tile'),
+              ));
+      void scrollToTheError() {
+        // `validate()` has put each message on its own field, and scrolls to
+        // none of them, so the first is brought into view here. The
+        // custom-number message is the list's first entry, above every
+        // field, and a lazy list may have let go of it: scroll to the top
+        // instead.
+        if (hasInvalidCustomFieldNumber) {
+          scrollToTopForError(context, _formScroll);
+        } else {
+          scrollToFirstInvalidField(context, _formKey);
+        }
       }
+
+      if (!opensSetup && !opensMoreDetails) {
+        setState(() {});
+        scrollToTheError();
+        return;
+      }
+      // First a frame with the animation off, then open the panels in it.
+      setState(() => _openPanelsInstantly = true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (opensSetup) _setupController.expand();
+        if (opensMoreDetails) _moreDetailsController.expand();
+        setState(() => _openPanelsInstantly = false);
+        scrollToTheError();
+      });
+      return;
+    }
+    // A figure entered in this edit that leaves a required param unstated
+    // (taxonomy v40: a pass by's or pass through's who and where) says so on
+    // its card; the dance waits until it is filled in.
+    if (_controller.figuresMissingRequiredParams.isNotEmpty) {
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          key: const ValueKey('save-needs-figure-values'),
+          content: Text(
+            AppLocalizations.of(context).danceEditorSaveNeedsFigureValues,
+          ),
+        ),
+      );
       return;
     }
     setState(() => _saving = true);
@@ -1147,7 +1198,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       controller: _controller,
       formKey: _formKey,
       scrollController: _formScroll,
+      setupController: _setupController,
       moreDetailsController: _moreDetailsController,
+      openPanelsInstantly: _openPanelsInstantly,
       taxonomy: _controller.taxonomy,
       moveParamDefaults: _moveParamDefaults,
       freeTextEntry: _freeTextEntry,

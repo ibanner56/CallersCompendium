@@ -549,6 +549,7 @@ void main() {
         'pass_the_ocean',
         'pull_by_dancers',
         'pull_by_direction',
+        'shift',
         'star_promenade',
         'star_through',
         'starburst',

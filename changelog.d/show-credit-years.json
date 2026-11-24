@@ -1,0 +1,9 @@
+{
+  "id": "show-credit-years",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A dance's detail view and its Perform card now show the year it was composed beside its authors, such as \"Pat Shaw (1951)\", and who interpreted it and when on a line of its own, such as \"Interpreted by Cecil Sharp (1916)\"."
+    ]
+  }
+}

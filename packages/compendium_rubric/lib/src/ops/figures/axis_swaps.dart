@@ -27,14 +27,31 @@ OpError? _requireTravelAxis(Direction dir, String moveName) {
 /// Progression is **not** baked in. The prior verifier folded a regrouping into
 /// `dir:along`; here it is a plain in-hands-four swap unless the invocation
 /// carries the explicit `progression` flag.
+///
+/// **Who passes** (taxonomy v40) is optional and descriptive here: a pass
+/// through trades every pair facing along [dir], and [who] names the pairing
+/// the source gave them (neighbours, partners, shadows, a distance set). It is
+/// not checked or used to reach along the set, as no pass through read it
+/// before v40 *(agent's call, 2026-11-24, at the taxonomy-v40 sync; checking
+/// it cost 39 compiling Caller's Box dances, mostly distance sets naming whom
+/// the pass meets)*. A role or couple-number set, where only some dancers
+/// pass, is refused by the parser instead.
 final class PassThrough extends Operation {
-  const PassThrough({this.dir = Direction.along, this.shoulder = Hand.right});
+  const PassThrough({
+    this.dir = Direction.along,
+    this.shoulder = Hand.right,
+    this.who,
+  });
 
   /// The travel axis: `across` the set, or `along` it (up and down the hall).
   final Direction dir;
 
   /// Which shoulder passes. Styling; no positional effect.
   final Hand shoulder;
+
+  /// The pairing the source names as passing, or `null` when it names none.
+  /// Descriptive: see the class comment.
+  final WhoSet? who;
 
   @override
   String get name => 'pass_through';
@@ -90,13 +107,17 @@ final class PassThrough extends Operation {
 
   @override
   bool operator ==(Object other) =>
-      other is PassThrough && other.dir == dir && other.shoulder == shoulder;
+      other is PassThrough &&
+      other.dir == dir &&
+      other.shoulder == shoulder &&
+      other.who == who;
 
   @override
-  int get hashCode => Object.hash(name, dir, shoulder);
+  int get hashCode => Object.hash(name, dir, shoulder, who);
 
   @override
-  String toString() => 'pass_through(${dir.key})';
+  String toString() =>
+      'pass_through(${[if (who != null) who!.key, dir.key].join(', ')})';
 }
 
 /// `pull_by_direction` — a hand pass named by axis rather than by dancer.

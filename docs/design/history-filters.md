@@ -46,11 +46,12 @@ app cannot express either today:
 
 - `CalledFilter` has only `called`, `callerFilter`, `performedOnly` and
   `requireEventDate`. It has no venue or date scope
-  (`packages/compendium_core/lib/src/search/filter.dart:224-247`, compiled at
+  (`packages/compendium_core/lib/src/search/filter.dart:282-302`, compiled at
   `filter_compiler.dart`).
 - The Filters panel offers only a Called / Not called pair
   (the `call-status-called` and `call-status-not-called` chips in `app/lib/src/widgets/facet_panel.dart`). It becomes a `CalledFilter`
-  in `app/lib/src/search/collection_query.dart`.
+  in `packages/compendium_core/lib/src/search/collection_search_state.dart`
+  (`buildCollectionFilter`).
 - The picker rows show "called ×N" and "in program ×N", but not when or where
   (`app/lib/src/widgets/collection_picker.dart`,
   `DanceListTile`'s `called-count-` chip in `app/lib/src/widgets/dance_list_tile.dart`).
@@ -67,7 +68,8 @@ written the picker searched with no `sort:` argument
 
 - Save, New and header placement (D-11 is still open).
 - Duplicate venue records and venue merging.
-- Saved searches, which the app does not have.
+- Saved searches: they came later (#2325), and keep a window as a distance in
+  months, never as a date (`search.md`, "Saved searches").
 
 Line numbers are for `origin/main` at `296b594`, except where a line says
 `90fe5e8` (the tree the 2026-10-30 decisions were recorded against; B1 moved
@@ -220,6 +222,12 @@ say 1mo, 3mo, 6mo, or since a date on top of that, 1 year is a long while."
   1 year". "1mo" is a calendar month, counted like the other two
   (*planner's reading, accepted by the maintainer 2026-10-30*;
   `design-work-plan.md` ambiguity 2).
+- A window of any other number of months can only come in with a whole panel
+  state (a saved search keeps months, `search.md`). The **Within** row then
+  shows one more selected chip for it, "12 months", or "12 months, saved" when
+  the state came from a saved search, so the window is never invisible;
+  choosing another window replaces it (#2325, plan item A2: the chip shows
+  whenever the window is not a preset, not only for a saved search).
 - **Since a date…** opens the date picker.
 - **Never called.** The maintainer's note asks for this as a choice in the same
   control. *Planner's reading, accepted by the maintainer 2026-10-30*
@@ -361,6 +369,24 @@ chip and no marker.
 carries no event date, because N1-4 = (b) counts every window back from today,
 so nothing in the picker reads the program's date. Rejected: passing it anyway
 "in case", which is an unused parameter.
+- *Update, #2343:* the picker's `PickerProgramContext` exists now, for
+  Suggested ([suggestions.md](suggestions.md)). It carries the id, `venueId`
+  and typed venue as above, plus the venue's display name and, when the picker
+  adds at the end, the program's slots. The builder's two add-dance mounts pass
+  it; Replace… and `perform_adjust_sheet.dart` do not yet. The picker now also
+  passes the id as `currentProgramId` to its Called filter and its Last called
+  sort (N1-6), in those two mounts only. The Not
+  called here chip, the marker and the other H3 pieces are still not built.
+- *Update, #2344:* the context carries a `SuggestionPosition` in place of the
+  slots, and Replace… passes it too (the slot's place), so all three
+  `CollectionPicker` mounts in `program_editor_screen.dart` now pass the
+  program's id as `currentProgramId`. `perform_adjust_sheet.dart` still does
+  not.
+- *Update, #2346:* Perform's swap sheet (`perform_swap_sheet.dart`, opened from
+  `perform_adjust_sheet.dart`) mounts its own `CollectionPicker` and passes the
+  context with `SuggestionPosition.replacing`, so that mount counts the program
+  as `currentProgramId`. The adjust sheet's **Insert dance from search** mount
+  still passes none.
 - It defaults to null, so B14's stable constructor API still holds, and all five
   mounts compile unchanged.
 - Four of the mounts are edited to pass it:
@@ -407,7 +433,7 @@ stores the names of the **visible** fields. A user who has changed it has a list
 without `lastCalled`, so the chip stays hidden for them until they turn it on
 (`app/lib/src/data/collection_tile_fields_scope.dart:136-144`). Contrast the
 hidden-facets key, a deny-list "so a filter added later is visible by default"
-(`app/lib/src/data/settings_keys.dart:140-146`).
+(`kCollectionHiddenFacetsKey` in `app/lib/src/data/settings_keys.dart`).
 - The key is a shareable `_preference`
   (`packages/compendium_core/lib/src/privacy/settings_registry.dart`). An
   older build ignores the unknown name, but if that build saves the setting, it
@@ -467,7 +493,7 @@ These hold on every surface.
 
 **When the panel's scopes apply:**
 - They apply only when **exactly one** of Called / Not called is chosen. With
-  neither or both chosen, `collection_query.dart` builds no `CalledFilter`,
+  neither or both chosen, `buildCollectionFilter` builds no `CalledFilter`,
   so a scope would do nothing.
 - A scope stays set when its polarity is cleared, but it goes inert. It shows the
   hint "Applies with Called or Not called", and the active count leaves it out.
@@ -476,8 +502,10 @@ These hold on every surface.
 
 **When the section shows:**
 - The whole section stays hidden when nothing has been called
-  (`collection_picker.dart:844-851`, `docs/design/search.md:164-166`). Every
-  dance is then uncalled, so a scope cannot change the result.
+  (`FacetPanel.hasCallingHistory`, `docs/design/search.md:164-166`). Every
+  dance is then uncalled, so a scope cannot change the result. It shows anyway
+  while it holds a selection (a Called / Not called choice or a scope), so a
+  filter that came in with a panel state can be seen and removed (#2325).
 - The section's active count includes each active scope, so the Filters badge
   never hides an active narrowing.
 
@@ -487,10 +515,13 @@ These hold on every surface.
 
 ## Privacy and sync
 
-- **Nothing new is persisted.** Every scope and the picker chip live in session
-  state, as Called / Not called do now (`FacetSelections`,
-  `collection_query.dart:50`). No settings key, column, registry entry or record
-  kind, so §6.6 and §6.15 have nothing to gate.
+- **Nothing new is persisted by the scopes.** Every scope and the picker chip
+  live in session state, as Called / Not called do now (`FacetSelections`, in
+  `packages/compendium_core/lib/src/search/collection_search_state.dart`). No settings key, column, registry entry or record
+  kind, so §6.6 and §6.15 have nothing to gate for them. A **saved search**
+  (#2325) can keep a venue scope and a window, under its own key and its own
+  capability (`search.md`, "Saved searches"; sync-spec §6.15
+  `savedSearches.v1`); the window is kept as months back, never as a date.
 - **`collection_tile_visible_fields` gains a value** (Q4). It is already
   `_preference`: non-personal, about the app user, shareable
   (`settings_registry.dart:20-24`). An older peer ignores the new name, so the

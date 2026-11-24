@@ -32,6 +32,11 @@ import 'export_labels.dart';
 ///   date. The app passes `formatEventDate` under the
 ///   user's Date format setting (System follows the device region's numeric
 ///   date).
+/// - [formatTime] formats a time of day, given as minutes after midnight
+///   ([Program.startMinute] and the others); defaults to a 24-hour `HH:mm`
+///   ([isoTimeOfDay]). The app passes the active locale's 12- or 24-hour form.
+///   The caller's [Program.arrivalMinute] is never written: the set list is
+///   made for other people (#2350).
 /// - [authorNamesFor] resolves a slot's `danceId` to its already-resolved
 ///   choreographer *names* (issue #1434) — same privacy contract as
 ///   `danceToPlainText`'s `authorNames`: never a `Choreographer` record, so
@@ -46,16 +51,21 @@ import 'export_labels.dart';
 ///   app names the form only when the program mixes forms (ADR-006 S5), as
 ///   its program screens do; `null` (the default) never names it. The name
 ///   leads the slot's parenthesised details.
+/// - [tuneDetailsFor] resolves a slot's `danceId` to its tune's meter and key
+///   as one already-labelled, already-rendered line, such as
+///   `Meter: 6/8 · Key: G minor`, or `null` for none. It follows the form in
+///   the parenthesised details; `null` (the default) prints none.
 ///
 /// Layout:
 /// ```
 /// <TITLE>
-/// <date> · <venue>
+/// <date> · <start>–<end> · <venue>
+/// Lesson: <lesson>
 /// Band: <band>
 /// Caller: <caller>
 /// Level: <dancerLevel>
 ///
-/// 1. <dance title | free text>[ — <author suffix>][ — <slot note>][ (<form>; guest: <x>; <n> min)]
+/// 1. <dance title | free text>[ — <author suffix>][ — <slot note>][ (<form>; <meter and key>; guest: <x>; <n> min)]
 ///    ALT: <alt line, same format, no number>
 /// 2. ...
 ///
@@ -73,12 +83,14 @@ String programToPlainText(
   required String? Function(String danceId) titleFor,
   String? Function(String venueId)? venueNameFor,
   String Function(DateTime date)? formatDate,
+  String Function(int minuteOfDay)? formatTime,
   ProgramExportLabels labels = const ProgramExportLabels(),
   FigureRenderer? renderer,
   Dialect? dialect,
   bool canonicalizeDiscouragedTerms = false,
   List<String> Function(String danceId)? authorNamesFor,
   String? Function(String danceId)? formLabelFor,
+  String? Function(String danceId)? tuneDetailsFor,
   bool includeTitle = true,
   bool includeCallerBand = true,
   bool includeDateVenue = true,
@@ -90,6 +102,7 @@ String programToPlainText(
       program,
       venueNameFor: venueNameFor,
       formatDate: formatDate,
+      formatTime: formatTime,
       labels: labels,
       renderer: renderer,
       dialect: dialect,
@@ -115,6 +128,7 @@ String programToPlainText(
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         authorNamesFor: authorNamesFor,
         formLabelFor: formLabelFor,
+        tuneDetailsFor: tuneDetailsFor,
       );
       lines.add(setListPrimaryLine(group.primary, primary, labels, () => ++n));
       for (final alt in group.alternates) {
@@ -127,15 +141,16 @@ String programToPlainText(
           canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           authorNamesFor: authorNamesFor,
           formLabelFor: formLabelFor,
+          tuneDetailsFor: tuneDetailsFor,
         );
-        lines.add('   ${labels.alt}: $alternate');
+        lines.add('   ${labels.labelled(labels.alt)}$alternate');
       }
     }
   }
 
   if (_has(program.notes)) {
     if (lines.isNotEmpty) lines.add('');
-    lines.add('${labels.notes}:');
+    lines.add(labels.heading(labels.notes));
     lines.add(
       !canonicalizeDiscouragedTerms || renderer == null || dialect == null
           ? program.notes.trim()
@@ -164,7 +179,7 @@ String setListPrimaryLine(
   int Function() nextNumber,
 ) {
   if (primary.isPlannedDance) return '${nextNumber()}. $line';
-  if (primary.isAlt) return '${labels.alt}: $line';
+  if (primary.isAlt) return '${labels.labelled(labels.alt)}$line';
   return line;
 }
 
@@ -181,8 +196,12 @@ void _requireCanonicalizationDeps(
   }
 }
 
-/// The program header lines under the title: `date · venue`, band, caller and
-/// level, each only when present (so an empty program yields an empty list).
+/// The program header lines under the title: `date · times · venue`, the
+/// lesson time, band, caller and level, each only when present (so an empty
+/// program yields an empty list). The times are the dance's start and end
+/// ([programDanceTimes]); the caller's [Program.arrivalMinute] is never
+/// included, because the set-list text and PDF are made for other people
+/// (#2350).
 /// Throws [ArgumentError] when [canonicalizeDiscouragedTerms] is set without
 /// both [renderer] and [dialect], like [programToPlainText].
 ///
@@ -191,11 +210,13 @@ void _requireCanonicalizationDeps(
 /// contract as on [programToPlainText]; as there, the dancer level is only
 /// converted when [canonicalizeDiscouragedTerms] is set and both [renderer]
 /// and [dialect] are supplied. [includeDateVenue] and [includeCallerBand]
-/// (default `true`) omit the `date · venue` line and the band and caller lines.
+/// (default `true`) omit the `date · times · venue` and lesson lines, and the
+/// band and caller lines. [formatTime] is as on [programToPlainText].
 List<String> programHeaderLines(
   Program program, {
   String? Function(String venueId)? venueNameFor,
   String Function(DateTime date)? formatDate,
+  String Function(int minuteOfDay)? formatTime,
   ProgramExportLabels labels = const ProgramExportLabels(),
   FigureRenderer? renderer,
   Dialect? dialect,
@@ -205,9 +226,10 @@ List<String> programHeaderLines(
 }) {
   _requireCanonicalizationDeps(canonicalizeDiscouragedTerms, renderer, dialect);
   final fmtDate = formatDate ?? isoDate;
+  final fmtTime = formatTime ?? isoTimeOfDay;
   final lines = <String>[];
 
-  // date · venue on one line (only the present parts). A resolvable linked
+  // date · times · venue on one line (only the present parts). A resolvable linked
   // venue's display label wins over the free-text label; either falls back to
   // the other, and both to nothing (the venue part is then omitted).
   final linkedVenue = program.venueId != null
@@ -218,17 +240,24 @@ List<String> programHeaderLines(
       : (_has(program.venue) ? program.venue!.trim() : null);
   final dateVenue = <String>[
     if (program.eventDate != null) fmtDate(program.eventDate!),
+    ?programDanceTimes(program, formatTime: fmtTime, labels: labels),
     ?venueLabel,
   ];
   if (includeDateVenue && dateVenue.isNotEmpty) {
     lines.add(dateVenue.join(' · '));
   }
+  // The lesson is part of when the event happens, so the same switch hides
+  // it. Arrive by is deliberately absent: it is the caller's own logistics.
+  final lesson = program.lessonMinute;
+  if (includeDateVenue && lesson != null) {
+    lines.add('${labels.labelled(labels.lesson)}${fmtTime(lesson)}');
+  }
 
   if (includeCallerBand && _has(program.band)) {
-    lines.add('${labels.band}: ${program.band!.trim()}');
+    lines.add('${labels.labelled(labels.band)}${program.band!.trim()}');
   }
   if (includeCallerBand && _has(program.caller)) {
-    lines.add('${labels.caller}: ${program.caller!.trim()}');
+    lines.add('${labels.labelled(labels.caller)}${program.caller!.trim()}');
   }
   if (_has(program.dancerLevel)) {
     final level =
@@ -238,15 +267,16 @@ List<String> programHeaderLines(
             program.dancerLevel!.trim(),
             dialect,
           );
-    lines.add('${labels.level}: $level');
+    lines.add('${labels.labelled(labels.level)}$level');
   }
   return lines;
 }
 
 /// Builds the content of a single slot line (without the number or `ALT:`
 /// prefix): the dance title or free text, an optional author suffix, an
-/// optional per-slot note, an optional `(<form>; guest: …; N min)` suffix,
-/// each part only when present ([formLabelFor] as on [programToPlainText]).
+/// optional per-slot note, an optional `(<form>; <meter and key>; guest: …;
+/// N min)` suffix, each part only when present ([formLabelFor] and
+/// [tuneDetailsFor] as on [programToPlainText]).
 /// The
 /// slot's performed status is never rendered. Throws [ArgumentError] when
 /// [canonicalizeDiscouragedTerms] is set without both [renderer] and [dialect].
@@ -259,6 +289,7 @@ String programSlotLine(
   bool canonicalizeDiscouragedTerms = false,
   List<String> Function(String danceId)? authorNamesFor,
   String? Function(String danceId)? formLabelFor,
+  String? Function(String danceId)? tuneDetailsFor,
 }) {
   _requireCanonicalizationDeps(canonicalizeDiscouragedTerms, renderer, dialect);
   final buffer = StringBuffer();
@@ -304,9 +335,14 @@ String programSlotLine(
   final formLabel = slot.danceId == null
       ? null
       : formLabelFor?.call(slot.danceId!);
+  final tuneDetails = slot.danceId == null
+      ? null
+      : tuneDetailsFor?.call(slot.danceId!);
   final meta = <String>[
     if (_has(formLabel)) formLabel!.trim(),
-    if (_has(slot.guestCaller)) '${labels.guest}: ${slot.guestCaller!.trim()}',
+    if (_has(tuneDetails)) tuneDetails!.trim(),
+    if (_has(slot.guestCaller))
+      '${labels.labelled(labels.guest)}${slot.guestCaller!.trim()}',
     if (slot.plannedTotalMinutes != null)
       labels.minutes(slot.plannedTotalMinutes!),
   ];
@@ -316,6 +352,51 @@ String programSlotLine(
 }
 
 bool _has(String? value) => value != null && value.trim().isNotEmpty;
+
+/// The dance's own times as one phrase, or `null` when neither
+/// [Program.startMinute] nor [Program.endMinute] is set: `start–end` (with
+/// [ProgramExportLabels.nextDay] when [Program.endsNextDay]), the start
+/// alone, or [ProgramExportLabels.endsAt] the end alone. [formatTime] formats
+/// minutes after midnight. Shared by the set-list text, the PDF and the
+/// app's program summary, so they say the same thing.
+String? programDanceTimes(
+  Program program, {
+  required String Function(int minuteOfDay) formatTime,
+  ProgramExportLabels labels = const ProgramExportLabels(),
+}) => danceTimesText(
+  startMinute: program.startMinute,
+  endMinute: program.endMinute,
+  formatTime: formatTime,
+  labels: labels,
+);
+
+/// [programDanceTimes] for a start and end that are not on a [Program] yet,
+/// such as the program editor's unsaved edits. An end earlier than the start
+/// is the next day, as [Program.endsNextDay] has it.
+String? danceTimesText({
+  required int? startMinute,
+  required int? endMinute,
+  required String Function(int minuteOfDay) formatTime,
+  ProgramExportLabels labels = const ProgramExportLabels(),
+}) {
+  final start = startMinute;
+  final end = endMinute;
+  if (start != null && end != null) {
+    final range = labels.timeRange(formatTime(start), formatTime(end));
+    return end < start ? labels.nextDay(range) : range;
+  }
+  if (start != null) return formatTime(start);
+  if (end != null) return labels.endsAt(formatTime(end));
+  return null;
+}
+
+/// Formats [minuteOfDay] (minutes after midnight) as a 24-hour `HH:mm` time —
+/// the default time format of the program exports.
+String isoTimeOfDay(int minuteOfDay) {
+  final h = (minuteOfDay ~/ 60).toString().padLeft(2, '0');
+  final m = (minuteOfDay % 60).toString().padLeft(2, '0');
+  return '$h:$m';
+}
 
 /// Formats [date] as ISO `yyyy-MM-dd` — the default date format of the program
 /// exports.

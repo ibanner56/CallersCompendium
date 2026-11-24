@@ -67,6 +67,31 @@ void main() {
     expect(json, isNot(contains('Gender-free')));
   });
 
+  test('program share bundle keeps every time, Arrive by included: a guest '
+      'caller receiving the program needs it (#2350)', () {
+    final json = buildProgramShareBundle(
+      _program().copyWith(
+        startMinute: 1170,
+        endMinute: 1350,
+        lessonMinute: 1140,
+        arrivalMinute: 1110,
+      ),
+      blankedDanceSlotText: 'Deleted dance',
+      danceFor: (_) => _dance(),
+      choreographerFor: (_) => null,
+      venueFor: (_) => null,
+      tagFor: (_) => null,
+      publishedSourceFor: (_) => null,
+      customFieldFor: (_) => null,
+      now: _now,
+    );
+    final program = decodeArchive(json).archive.programs.single;
+    expect(program.startMinute, 1170);
+    expect(program.endMinute, 1350);
+    expect(program.lessonMinute, 1140);
+    expect(program.arrivalMinute, 1110);
+  });
+
   test('dance share bundle drops the rating', () {
     final archive = decodeArchive(
       buildDanceShareBundle(

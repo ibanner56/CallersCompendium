@@ -2309,8 +2309,9 @@ _Match? _passThrough(List<String> w) {
 ///
 /// Deliberately narrow (prefer-custom):
 /// - The line must LEAD with "walk forward to". A stated subject ("Women walk
-///   forward to N2") is DECLINED: `pass_through` has no `who` slot, so
-///   structuring it would silently drop the role.
+///   forward to N2") is DECLINED: structuring it would silently drop the
+///   role. `pass_through` has had a `who` since taxonomy v40, but this
+///   recognizer does not yet read a subject onto it.
 /// - `where` and `shoulder` are NEVER written. `pass_through` declares
 ///   `along`/`right` as its own taxonomy defaults; writing either here would
 ///   assert a direction and a shoulder the source did not state.
@@ -2487,7 +2488,19 @@ _Match? _promenade(List<String> w) {
 /// in a `(past …)` annotation, which `_normalize` strips (all 25 surveyed
 /// "Slide" lines are this Becket slide, never a progression/other sense). A
 /// direction is required — a bare "shift"/"slide" is too ambiguous → custom.
+///
+/// A line that names who shifts ("Men shift left", "Twos shift up") is the
+/// `shift` move (taxonomy v40): that group sidesteps, and nobody else. The
+/// dancers must lead, and only "shift" reads this way, never "slide". A line
+/// with no dancers stays `slide_along_set`, which is how TCB writes everyone
+/// sliding, so this reading never takes one of those lines. A leading
+/// `everyone` does not structure: `shift.who` does not offer it (everyone
+/// shifting is the slide), so the match fails validation and the line stays
+/// custom. A count of places ("Men shift left one place", "two places") is
+/// kept as the note, in the line's words; no param holds it.
 _Match? _shift(List<String> w) {
+  final who = _takeLeadingDancer(w);
+  if (who != null) return _groupShift(who, w);
   if (!_consumePhrase(w, ['shift']) && !_consumePhrase(w, ['slide'])) {
     return null;
   }
@@ -2496,6 +2509,25 @@ _Match? _shift(List<String> w) {
   if (slide == null || w.isNotEmpty) return null;
   return _Match('slide_along_set', {'slide': slide});
 }
+
+/// The rest of a `<who> shift <direction> [<n> place(s)]` line, after [who];
+/// see [_shift].
+_Match? _groupShift(String who, List<String> w) {
+  if (w.length < 2 || w[0] != 'shift') return null;
+  final direction = w[1];
+  if (!_shiftDirectionWords.contains(direction)) return null;
+  final rest = w.sublist(2);
+  String? note;
+  final count = rest.length == 2 ? _castPlaceCount(rest[0]) : null;
+  if (count != null && rest[1] == (count == 1 ? 'place' : 'places')) {
+    note = rest.join(' ');
+  } else if (rest.isNotEmpty) {
+    return null;
+  }
+  return _Match('shift', {'who': who, 'direction': direction}, note);
+}
+
+const Set<String> _shiftDirectionWords = {'left', 'right', 'up', 'down'};
 
 /// Tier A: TCB writes "Men give-and-take partner" / "Men give-and-take
 /// neighbor" (hyphenated; TCB never spells the "give & take only" variant, so

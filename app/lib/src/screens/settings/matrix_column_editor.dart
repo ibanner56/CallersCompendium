@@ -1310,8 +1310,10 @@ class _CompoundColumnDialogState extends State<_CompoundColumnDialog> {
 }
 
 /// The move a saved column's base [move] is edited as: an alias opens as its
-/// target. Only a column saved on `long_lines` while it was a move (before
-/// taxonomy v39) can name one; the picker offers moves alone.
+/// target. A column names an alias only when it is an alias listed as a move:
+/// saved on `long_lines` or `pass_by` while each was a move (before taxonomy
+/// v39 and v40), or saved there by [savedMatrixConstraint] from its target
+/// with the pin; the picker offers moves alone.
 String? _editableMove(Taxonomy taxonomy, String? move) =>
     move == null ? null : taxonomy.aliases[move]?.targetMove ?? move;
 

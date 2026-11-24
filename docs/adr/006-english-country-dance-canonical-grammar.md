@@ -559,13 +559,18 @@ other points below are this ADR's proposal.
   the number of phrases, bars per phrase and beats per bar for each part of
   the tune: for example `4*8*3` for four 8-bar phrases in triple time. A
   tune whose meter changes is several components joined with `+`, and so
-  is a dance in several parts (§12, F4). A figure can last half a bar only
+  is a dance in several parts (§12, F4). Each bar is as long as the part of
+  the tune it starts in, so a figure's bars are counted from where it starts,
+  and one that runs across a change of meter counts each bar by its own part
+  (#2303; a count that is not a whole number of half bars where it falls stays
+  in beats). A figure can last half a bar only
   where half a bar is a whole number of beats, so not in triple time (Q16).
   The written meter and key are kept in their own fields (§12, F3).
 - **Bar ranges are derived.** "Bars 1–4" and phrase labels (A1, B2) come from
   the order and length of the lines, as section labels do for contra. They
   are not stored.
-- **One span for a sequence** (ECD only for now). A sequence can carry a single span ("A, B and C in bars 1–4") while its
+- **One span for a sequence** (ECD only at acceptance; opened to squares
+  by ADR-007 Q10, 24 November 2026). A sequence can carry a single span ("A, B and C in bars 1–4") while its
   steps carry no timing of their own. Contra sequences keep their current
   contract, where the total is always the sum of the steps.
 - **Rules for the span.** If every step carries
@@ -1266,7 +1271,13 @@ recommendation; the answer is quoted.
    version. Answer: "Go with your recommendation." They are stored as
    `Dance.interpreterIds` and `Dance.interpretedOn` (storage.md, v42). The
    dance editor shows them, with the Composed date, beside the authors for
-   an English dance, and in More details for other forms.
+   an English dance, and in More details for other forms. On 22 November
+   2026 the maintainer added: "ECD composed/interpreted is a year. No one
+   needs month/day granularity. If possible, have author + year share a
+   line, as well as interpreted + year." So for an English dance the editor
+   takes both dates as a year, each beside its names where the screen has
+   room. The stored type is unchanged (a year is a partial date), and a
+   month and day already stored stay until the year is edited.
 8. **Named phrases** (20 November 2026). ECD music is not always the
    standard A1 A2 B1 B2: the maintainer's cards give bars per phrase and
    say whether a phrase repeats ("A=4, B=4, C=8", or "A=4, B=8" with an A1,
@@ -1287,6 +1298,51 @@ recommendation; the answer is quoted.
    capability, no archive version, no published-collection capability).
    Rejected: a sync capability that holds such dances back until every
    attached device can read them.
+   **Phrases in different meters** (#2303, 22 November 2026). The structure
+   text already gives each component its own beats per bar, so a tune that
+   changes meter (`A:2*4*3 + B:1*8*2`) needs no new syntax and no format
+   change: an older build reads it as it reads any named structure. The
+   maintainer rejected a written meter per phrase (`A[3/4]:`), which would have
+   changed the stored text and needed its own ruling for older builds. Each
+   named phrase's row sets its beats to the bar, the figures count in bars
+   phrase by phrase (§5.5), and the Meter field stays free text. A Meter that
+   states one meter sets every phrase's beats only when it now states other
+   beats to the bar than before (the author's recommendation, which the
+   maintainer accepted), and a Meter that names two meters sets none. On
+   23 November 2026, shown that typing a Meter a character at a time ("3",
+   then "3/", then "3/4 and 6/8") would still flatten a structure that
+   differs, the maintainer ruled that a Meter never rewrites phrases that
+   differ in beats to the bar, and that Name phrases keeps such a
+   structure's own beats. Rejected: rewriting whenever the stated beats
+   change, with no exception for a structure that differs.
+9. **Other titles and the Barnes reference** (22 November 2026). After a
+   comparison with another ECD collection, the maintainer answered:
+   "Alternate titles would be useful generally", and asked for "a
+   free-text field tracking the book and page number for each dance (in
+   one field)" for where a dance's tune is printed in the Barnes books
+   ("BIII p. 92" is book III, page 92; "NiB" is Not in Barnes). They are
+   `dances.alternate_titles` (plain text, one title per line), for every
+   dance form, and `dances.barnes_reference` (free text), for ECD only,
+   joining the unreleased v42 schema and archive v8. Asked on 23 November
+   2026, the maintainer kept one title per line rather than a JSON list (so
+   a stored value can never fail to decode), and the limits: at most 20
+   other titles of 512 characters each and 100 characters of Barnes
+   reference, held by every dance (the editor stops at them, so a synced or
+   restored copy never differs from the one saved). Asked whether the
+   Barnes reference was for every form, the answer was "ECD only": the
+   `Dance` constructor clears it for any other form
+   (`formHasBarnesReference`), as it clears the improper flag (point 2), so
+   a dance moved off ECD loses it when saved. Asked whether it should
+   instead be kept hidden in case the dance moves back, the answer was
+   "Clear it" (23 November 2026). Also kept: an import that links over an
+   existing dance keeps its other titles and Barnes reference when the
+   record carries none (the record's form still applies). Implementer's
+   calls, not yet ratified: a fresh-attach sync merge unions other titles and takes
+   the latest copy's Barnes reference; the choreography fingerprint
+   ignores both, so a build from before them agrees on duplicates; the
+   Title search scope reads other titles and All fields reads both. Also
+   answered: a 4/4 bar keeps counting four beats, and an
+   import from that collection waits for the ECDDB import.
 
 ### 9.3 Figures from a caller's notes
 
@@ -1413,7 +1469,7 @@ error we are most likely to make without help.
 
 The maintainer made these decisions on 19 November 2026, on the same
 decision sheet as §9, about how the app stores and shows ECD dances. Some
-draw on the requirements for squares in ADR-007, which is still a proposal,
+draw on the requirements for squares in ADR-007, which was then a proposal,
 so that both forms behave the same way. The goal they serve is the
 maintainer's: the app supports ECD choreography and programming as fully as
 it supports contra, and a caller can program a night that mixes the two, or

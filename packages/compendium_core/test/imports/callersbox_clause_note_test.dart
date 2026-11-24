@@ -225,7 +225,7 @@ void main() {
       final figures = _lines('Men allemande left 1; face out; form long wave');
       expect(figures.map((f) => f.move).toList(), [
         'allemande',
-        'form_a_long_wave',
+        'form_long_waves',
       ]);
       expect(figures.first.note, 'face out');
       expect(figures.last.note, isNull);
@@ -255,8 +255,8 @@ void main() {
       // flag already renders the inbound travel). That removes the line from
       // the set where a leading clause FAILS; it does not weaken the rule.
       // `Women walk forward; form wave of four with N2` is the same shape and
-      // still exercises it exactly: #733 declines the fold because
-      // `pass_through` has no `who` slot to carry "women", so the leading
+      // still exercises it exactly: #733 declines the fold because nothing
+      // reads "women" onto the pass through's `who`, so the leading
       // clause still fails while the trailing `form wave of four with N2`
       // still structures — which is precisely the "note would have to hang on
       // a LATER figure" case.
@@ -561,8 +561,8 @@ void main() {
       );
       expect(f!.move, 'hey');
       // The `;` stays inside the pass list; the only note is the trailing
-      // `~`'s (Caller's Box "partial hey pass"), kept for Rubric's progression
-      // placement (agent's call 2026-11-24).
+      // `~`'s (Caller's Box "partial hey pass"), kept so the mark is not lost
+      // on import (agent's call 2026-11-24).
       expect(f.note, 'last pass partial');
     });
 

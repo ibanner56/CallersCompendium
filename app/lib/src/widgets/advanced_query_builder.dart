@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
-import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
 import 'app_dropdown_field.dart';
 import 'move_autocomplete.dart';
+import 'user_figure_search_labels.dart';
 
 /// The "Advanced" boolean-tree query builder (`docs/design/search.md`
 /// "Query-builder UX"). Edits the mutable [BuilderGroup] [root] in place and
@@ -21,10 +21,12 @@ class AdvancedQueryBuilder extends StatelessWidget {
     required this.root,
     required this.taxonomy,
     required this.dialect,
+    this.dialects,
     required this.sectionLabels,
     required this.tags,
     required this.onChanged,
     this.tagsUnavailableFor,
+    this.allTagNames = const {},
   });
 
   final BuilderGroup root;
@@ -35,12 +37,21 @@ class AdvancedQueryBuilder extends StatelessWidget {
   /// Threaded explicitly rather than read from `ActiveDialectScope` so this
   /// widget has no hidden inherited dependency.
   final Dialect dialect;
+
+  /// The dialect of each dance form, to name a figure of your own in its own
+  /// form's (#2294). Null names every figure in [dialect]. Threaded explicitly,
+  /// like [dialect], for the same reason.
+  final DialectsByForm? dialects;
   final List<String> sectionLabels;
 
   /// The tags a "Has tag" row can pick from — the same set the Tag facet
   /// offers (tags carried by at least one live dance). With none, the Add menu
   /// does not offer "Has tag" at all.
   final List<Tag> tags;
+
+  /// Every tag's name by id, to name a "Has tag" row's tag that no live dance
+  /// carries (so it is not among [tags]), or that is gone.
+  final Map<String, String> allTagNames;
   final VoidCallback onChanged;
 
   /// The name of the source being searched when that source cannot carry a tag
@@ -55,8 +66,10 @@ class AdvancedQueryBuilder extends StatelessWidget {
       group: root,
       taxonomy: taxonomy,
       dialect: dialect,
+      dialects: dialects,
       sectionLabels: sectionLabels,
       tags: tags,
+      allTagNames: allTagNames,
       tagsUnavailableFor: tagsUnavailableFor,
       onChanged: onChanged,
       onRemove: null,
@@ -70,8 +83,10 @@ class _GroupView extends StatelessWidget {
     required this.group,
     required this.taxonomy,
     required this.dialect,
+    this.dialects,
     required this.sectionLabels,
     required this.tags,
+    required this.allTagNames,
     required this.tagsUnavailableFor,
     required this.onChanged,
     required this.onRemove,
@@ -81,8 +96,13 @@ class _GroupView extends StatelessWidget {
   final BuilderGroup group;
   final Taxonomy taxonomy;
   final Dialect dialect;
+
+  /// The dialect of each dance form, to name a figure of your own in its own
+  /// form's (#2294); null names every figure in [dialect].
+  final DialectsByForm? dialects;
   final List<String> sectionLabels;
   final List<Tag> tags;
+  final Map<String, String> allTagNames;
   final String? tagsUnavailableFor;
   final VoidCallback onChanged;
   final VoidCallback? onRemove;
@@ -189,8 +209,10 @@ class _GroupView extends StatelessWidget {
           group: child,
           taxonomy: taxonomy,
           dialect: dialect,
+          dialects: dialects,
           sectionLabels: sectionLabels,
           tags: tags,
+          allTagNames: allTagNames,
           tagsUnavailableFor: tagsUnavailableFor,
           onChanged: onChanged,
           onRemove: remove,
@@ -201,6 +223,7 @@ class _GroupView extends StatelessWidget {
           figure: child,
           taxonomy: taxonomy,
           dialect: dialect,
+          dialects: dialects,
           sectionLabels: sectionLabels,
           onChanged: onChanged,
           onRemove: () {
@@ -212,6 +235,7 @@ class _GroupView extends StatelessWidget {
         return _TagRow(
           node: child,
           tags: tags,
+          allTagNames: allTagNames,
           onChanged: onChanged,
           onRemove: () {
             remove();
@@ -223,6 +247,7 @@ class _GroupView extends StatelessWidget {
           node: child,
           taxonomy: taxonomy,
           dialect: dialect,
+          dialects: dialects,
           sectionLabels: sectionLabels,
           onChanged: onChanged,
           onRemove: () {
@@ -312,6 +337,7 @@ class _FigureRow extends StatelessWidget {
     required this.figure,
     required this.taxonomy,
     required this.dialect,
+    this.dialects,
     required this.sectionLabels,
     required this.onChanged,
     required this.onRemove,
@@ -320,6 +346,10 @@ class _FigureRow extends StatelessWidget {
   final BuilderFigure figure;
   final Taxonomy taxonomy;
   final Dialect dialect;
+
+  /// The dialect of each dance form, to name a figure of your own in its own
+  /// form's (#2294); null names every figure in [dialect].
+  final DialectsByForm? dialects;
   final List<String> sectionLabels;
   final VoidCallback onChanged;
   final VoidCallback onRemove;
@@ -336,6 +366,7 @@ class _FigureRow extends StatelessWidget {
       figure: figure,
       taxonomy: taxonomy,
       dialect: dialect,
+      dialects: dialects,
       sectionLabels: sectionLabels,
       onChanged: onChanged,
     );
@@ -395,12 +426,14 @@ class _TagRow extends StatelessWidget {
   const _TagRow({
     required this.node,
     required this.tags,
+    required this.allTagNames,
     required this.onChanged,
     required this.onRemove,
   });
 
   final BuilderTag node;
   final List<Tag> tags;
+  final Map<String, String> allTagNames;
   final VoidCallback onChanged;
   final VoidCallback onRemove;
 
@@ -408,24 +441,20 @@ class _TagRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final stored = node.tagId;
-    // [tags] is the set of tags carried by a LIVE dance, so a picked tag can
-    // drop out of it while the row is open (its last dance is deleted or
-    // untagged). A value that is gone is shown as unpicked, as the dropdown
-    // would show it anyway (an empty field, a value not among its entries).
-    final value = tags.any((t) => t.id == stored) ? stored : null;
-    // Showing "unpicked" is not enough on its own: `BuilderTag.toFilter` would
-    // still emit the gone tag, a filter the user can neither see nor clear
-    // (the same hazard `_ParamDropdown` closes for params). So the MODEL is
-    // normalised to match and the search re-run — but only if the row still
-    // holds that id, so a pick made in the meantime is never overwritten.
-    if (stored != null && value == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (node.tagId == stored) {
-          node.tagId = null;
-          onChanged();
-        }
-      });
-    }
+    // [tags] is the set of tags carried by a LIVE dance, so the row's tag can
+    // be outside it: its last dance was deleted or untagged while the row was
+    // open, or a panel state (a saved search) came in asking for a tag nobody
+    // carries yet. The row KEEPS that tag and shows it, named from every tag
+    // or as "Not in your library" when it is gone, as one more entry: the
+    // search goes on asking for it, the user can see that, and removes the
+    // row or picks another tag to change it. Clearing it instead (as this did
+    // before saved searches could be opened) would widen the search with no
+    // sign, a broader search than the one the saved-search resolver hands
+    // every other feature (the same hazard `_ParamDropdown` closes for
+    // params).
+    final unoffered = stored != null && !tags.any((t) => t.id == stored)
+        ? stored
+        : null;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
       child: Row(
@@ -439,7 +468,7 @@ class _TagRow extends StatelessWidget {
               label: l10n.collectionQueryTagLabel,
               child: AppDropdownField<String?>(
                 key: ValueKey('tag-${node.id}'),
-                value: value,
+                value: stored,
                 // The user's own tags: a list that grows.
                 filterable: true,
                 decoration: InputDecoration(
@@ -454,6 +483,13 @@ class _TagRow extends StatelessWidget {
                 entries: [
                   for (final tag in tags)
                     AppDropdownEntry<String?>(value: tag.id, label: tag.name),
+                  if (unoffered != null)
+                    AppDropdownEntry<String?>(
+                      value: unoffered,
+                      label:
+                          allTagNames[unoffered] ??
+                          l10n.collectionFacetMissingValue,
+                    ),
                 ],
               ),
             ),
@@ -475,6 +511,7 @@ class _ThenRow extends StatelessWidget {
     required this.node,
     required this.taxonomy,
     required this.dialect,
+    this.dialects,
     required this.sectionLabels,
     required this.onChanged,
     required this.onRemove,
@@ -483,6 +520,10 @@ class _ThenRow extends StatelessWidget {
   final BuilderThen node;
   final Taxonomy taxonomy;
   final Dialect dialect;
+
+  /// The dialect of each dance form, to name a figure of your own in its own
+  /// form's (#2294); null names every figure in [dialect].
+  final DialectsByForm? dialects;
   final List<String> sectionLabels;
   final VoidCallback onChanged;
   final VoidCallback onRemove;
@@ -512,6 +553,7 @@ class _ThenRow extends StatelessWidget {
                   },
                   taxonomy: taxonomy,
                   dialect: dialect,
+                  dialects: dialects,
                   sectionLabels: sectionLabels,
                   onChanged: onChanged,
                 ),
@@ -534,6 +576,7 @@ class _ThenRow extends StatelessWidget {
                   },
                   taxonomy: taxonomy,
                   dialect: dialect,
+                  dialects: dialects,
                   sectionLabels: sectionLabels,
                   onChanged: onChanged,
                 ),
@@ -565,6 +608,7 @@ class _FigureOperandEditor extends StatelessWidget {
     required this.onReplace,
     required this.taxonomy,
     required this.dialect,
+    this.dialects,
     required this.sectionLabels,
     required this.onChanged,
   });
@@ -579,6 +623,10 @@ class _FigureOperandEditor extends StatelessWidget {
 
   final Taxonomy taxonomy;
   final Dialect dialect;
+
+  /// The dialect of each dance form, to name a figure of your own in its own
+  /// form's (#2294); null names every figure in [dialect].
+  final DialectsByForm? dialects;
   final List<String> sectionLabels;
   final VoidCallback onChanged;
 
@@ -597,6 +645,7 @@ class _FigureOperandEditor extends StatelessWidget {
           figure: figure,
           taxonomy: taxonomy,
           dialect: dialect,
+          dialects: dialects,
           sectionLabels: sectionLabels,
           onChanged: onChanged,
         ),
@@ -619,6 +668,7 @@ class _FigureOperandEditor extends StatelessWidget {
       group: group,
       taxonomy: taxonomy,
       dialect: dialect,
+      dialects: dialects,
       sectionLabels: sectionLabels,
       onChanged: onChanged,
       onFlatten: canFlatten
@@ -637,6 +687,7 @@ class _FigureGroupEditor extends StatelessWidget {
     required this.group,
     required this.taxonomy,
     required this.dialect,
+    this.dialects,
     required this.sectionLabels,
     required this.onChanged,
     this.onFlatten,
@@ -645,6 +696,10 @@ class _FigureGroupEditor extends StatelessWidget {
   final BuilderFigureGroup group;
   final Taxonomy taxonomy;
   final Dialect dialect;
+
+  /// The dialect of each dance form, to name a figure of your own in its own
+  /// form's (#2294); null names every figure in [dialect].
+  final DialectsByForm? dialects;
   final List<String> sectionLabels;
   final VoidCallback onChanged;
 
@@ -725,6 +780,7 @@ class _FigureGroupEditor extends StatelessWidget {
                   figure: child,
                   taxonomy: taxonomy,
                   dialect: dialect,
+                  dialects: dialects,
                   sectionLabels: sectionLabels,
                   onChanged: onChanged,
                 ),
@@ -758,6 +814,7 @@ class _FigureGroupEditor extends StatelessWidget {
                   group: child,
                   taxonomy: taxonomy,
                   dialect: dialect,
+                  dialects: dialects,
                   sectionLabels: sectionLabels,
                   onChanged: onChanged,
                 ),
@@ -784,6 +841,7 @@ class _FigureEditor extends StatelessWidget {
     required this.figure,
     required this.taxonomy,
     required this.dialect,
+    this.dialects,
     required this.sectionLabels,
     required this.onChanged,
   });
@@ -791,6 +849,10 @@ class _FigureEditor extends StatelessWidget {
   final BuilderFigure figure;
   final Taxonomy taxonomy;
   final Dialect dialect;
+
+  /// The dialect of each dance form, to name a figure of your own in its own
+  /// form's (#2294); null names every figure in [dialect].
+  final DialectsByForm? dialects;
   final List<String> sectionLabels;
   final VoidCallback onChanged;
 
@@ -809,9 +871,24 @@ class _FigureEditor extends StatelessWidget {
     final paramSpecs = {
       for (final MapEntry(:key, :value)
           in (move?.params ?? const <String, ParamSpec>{}).entries)
-        if (!pinned.containsKey(key)) key: value,
+        if (!pinned.containsKey(key) &&
+            !_neverStored(taxonomy, figure.move, key))
+          key: value,
     };
     final any = figure.isAnyFigure;
+    // A stored param with no dropdown at all (a param the move does not
+    // declare, one its alias pins, or one with no closed vocabulary) is kept
+    // and shown, as a value out of a dropdown's domain is ([_ParamDropdown]):
+    // the same rule the saved-search resolver reports such a param by.
+    final undeclared = [
+      for (final MapEntry(:key, :value) in figure.params.entries)
+        if (value != null &&
+            key != userFigureRefKey &&
+            !userFigureReferenceKeys.contains(key) &&
+            (paramSpecs[key] == null ||
+                figureParamChoices(paramSpecs[key]!) == null))
+          key,
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -829,6 +906,7 @@ class _FigureEditor extends StatelessWidget {
                   figure: figure,
                   taxonomy: taxonomy,
                   dialect: dialect,
+                  dialects: dialects,
                   onChanged: onChanged,
                 ),
               ),
@@ -854,7 +932,7 @@ class _FigureEditor extends StatelessWidget {
             ),
           ],
         ),
-        if (paramSpecs.isNotEmpty)
+        if (paramSpecs.isNotEmpty || undeclared.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: AppSpacing.xxs),
             child: Wrap(
@@ -880,6 +958,14 @@ class _FigureEditor extends StatelessWidget {
                       dialect: dialect,
                       onChanged: onChanged,
                     ),
+                for (final key in undeclared)
+                  _ParamNotice(
+                    figure: figure,
+                    paramKey: key,
+                    spec: paramSpecs[key],
+                    dialect: dialect,
+                    onChanged: onChanged,
+                  ),
               ],
             ),
           ),
@@ -894,12 +980,17 @@ class _MoveField extends StatelessWidget {
     required this.figure,
     required this.taxonomy,
     required this.dialect,
+    this.dialects,
     required this.onChanged,
   });
 
   final BuilderFigure figure;
   final Taxonomy taxonomy;
   final Dialect dialect;
+
+  /// The dialect of each dance form, to name a figure of your own in its own
+  /// form's (#2294); null names every figure in [dialect].
+  final DialectsByForm? dialects;
   final VoidCallback onChanged;
 
   /// The id of the figure of your own this row asks for (#1023), if any.
@@ -915,15 +1006,36 @@ class _MoveField extends StatelessWidget {
     final userFigureId = _userFigureId;
     // A row asking for one of your figures names it, from every figure you
     // have, so it still reads if Custom Figures is turned off after picking.
-    final userFigureName = userFigureId == null
+    final userFigure = userFigureId == null
         ? null
-        : UserFiguresScope.catalogOf(context)[userFigureId]?.name;
+        : UserFiguresScope.catalogOf(context)[userFigureId];
+    // As the option that set it reads: the figure is named in its own form's
+    // dialect, and told apart from another form's figure named alike (#2294).
+    // A figure the picker no longer offers reads as it would alone.
+    final userFigureLabel = userFigure == null
+        ? null
+        : userFigureSearchLabels(
+                [
+                  for (final view in UserFiguresScope.shownCatalogOf(
+                    context,
+                  ).figures)
+                    if (view.definition != null) view,
+                ],
+                l10n: AppLocalizations.of(context),
+                renderer: renderer,
+                dialect: dialect,
+                dialects: dialects,
+              )[userFigure.id] ??
+              userFigureSearchLabels(
+                [userFigure],
+                l10n: AppLocalizations.of(context),
+                renderer: renderer,
+                dialect: dialect,
+                dialects: dialects,
+              )[userFigure.id];
     final current = switch (figure.move) {
       null => '',
-      _ when userFigureName != null => renderer.renderFreeText(
-        userFigureName,
-        dialect,
-      ),
+      _ when userFigureLabel != null => userFigureLabel,
       // In the active dialect, as the suggestion that set it read, its form
       // named when another form's figure is named alike ("circle · English
       // (ECD)").
@@ -947,6 +1059,7 @@ class _MoveField extends StatelessWidget {
       fieldKey: 'has-figure-${figure.id}',
       userFigures: UserFiguresScope.shownCatalogOf(context),
       dialect: dialect,
+      dialects: dialects,
       onSelected: (id) {
         if (figure.move != id || _userFigureId != null) {
           figure.move = id;
@@ -1000,6 +1113,7 @@ class MoveTypeAheadField extends StatelessWidget {
     this.fieldKey,
     this.userFigures = UserFigureCatalog.empty,
     this.dialect,
+    this.dialects,
     this.onUserFigureSelected,
   });
 
@@ -1007,7 +1121,8 @@ class MoveTypeAheadField extends StatelessWidget {
   final ValueChanged<String> onSelected;
 
   /// The user's own figures to offer before the moves (#1023), each found by
-  /// its name in [dialect] and marked as theirs. Offered only with
+  /// its name in [dialect], or in its own form's dialect when [dialects] is
+  /// given, and marked as theirs. Offered only with
   /// [onUserFigureSelected]; a figure that no longer decodes is never offered,
   /// since no use of it is searchable.
   final UserFigureCatalog userFigures;
@@ -1015,6 +1130,12 @@ class MoveTypeAheadField extends StatelessWidget {
   /// The dialect [userFigures]' names are shown and matched in; canonical
   /// when null.
   final Dialect? dialect;
+
+  /// The dialect of each dance form. With it, each of [userFigures] is shown
+  /// and matched in the dialect of the form it was made for, and told apart
+  /// from another form's figure named alike ([userFigureSearchLabels], #2294);
+  /// without it, every one is in [dialect].
+  final DialectsByForm? dialects;
 
   /// Fires when the user picks one of [userFigures].
   final ValueChanged<UserFigureView>? onUserFigureSelected;
@@ -1045,6 +1166,15 @@ class MoveTypeAheadField extends StatelessWidget {
         for (final view in userFigures.figures)
           if (view.definition != null) view.id: view,
     };
+    final labels = renderer == null
+        ? const <String, String>{}
+        : userFigureSearchLabels(
+            mine.values,
+            l10n: l10n,
+            renderer: renderer,
+            dialect: dialect ?? Dialect.canonical,
+            dialects: dialects,
+          );
     // The dance editor's own picker does the matching and ranking, so a
     // dialect's move names, exact-name-first order and the cap are the
     // editor's, not a second copy of them. Aliases are not offered: a figure
@@ -1066,10 +1196,7 @@ class MoveTypeAheadField extends StatelessWidget {
           MoveOption(
             id: view.id,
             kind: MoveOptionKind.userFigure,
-            displayName: renderer!.renderFreeText(
-              view.name,
-              dialect ?? Dialect.canonical,
-            ),
+            displayName: labels[view.id]!,
           ),
       ],
       onCleared: onCleared,
@@ -1118,6 +1245,12 @@ class _SectionDropdown extends StatelessWidget {
           AppDropdownEntry(value: null, label: l10n.collectionQueryAnySection),
           for (final label in sectionLabels)
             AppDropdownEntry(value: label, label: label),
+          // A phrase no dance has any more, or one a saved search came in
+          // with, is still shown as the row's phrase rather than as a blank
+          // field while it narrows the search.
+          if (figure.section case final section?
+              when !sectionLabels.contains(section))
+            AppDropdownEntry(value: section, label: section),
         ],
       ),
     );
@@ -1163,36 +1296,33 @@ class _ParamDropdown extends StatelessWidget {
     // they and the editor are three consumers of one contract (#726 / #746) and
     // must not disagree about what a param can hold.
     final selectable = figureParamSelectableChoices(choices);
+    final raw = figure.params[paramKey];
+    final stored = raw is String ? raw : null;
+    // A stored value the dropdown does not offer — the `unspecified`
+    // sentinel, or a value outside this param's domain — came in with a
+    // panel state (a saved search, or another caller's), since this dropdown
+    // is the only writer and offers neither. It is KEPT, and shown with a
+    // notice the user can remove, rather than coerced to "Any <param>":
+    // `_cleanParams` forwards every non-null param into the compiled
+    // `FigureLeaf`, so a value shown as "Any" would still narrow the search,
+    // a filter the user could neither see nor clear. Removing it silently
+    // instead (as this did before saved searches could be opened) would run
+    // a broader search than the one the saved-search resolver hands every
+    // other feature, which reports such a value as unresolvable by the same
+    // rule ([figureParamSelectableChoices]).
+    if (raw != null && (stored == null || !selectable.contains(stored))) {
+      return _ParamNotice(
+        figure: figure,
+        paramKey: paramKey,
+        spec: spec,
+        dialect: dialect,
+        onChanged: onChanged,
+      );
+    }
     // With nothing left to pick, "Any" alone is not a filter — offering a
     // one-item dropdown that cannot constrain anything is just noise.
     if (selectable.isEmpty) return const SizedBox.shrink();
     final label = figureParamKeyLabel(l10n, paramKey, moveId: figure.move);
-    final stored = figure.params[paramKey] as String?;
-    // Defensive: a value outside the selectable list would show as an empty
-    // field rather than "Any <param>". Unreachable through the UI — the only
-    // writer is this dropdown — but cheap next to a blank control.
-    final value = selectable.contains(stored) ? stored : null;
-    // Coercing the DISPLAY to "Any" is not enough on its own: `_cleanParams`
-    // forwards every non-null param into the compiled `FigureLeaf`, so a stored
-    // value the dropdown refuses to show would still narrow the search — a
-    // filter the user can neither see nor clear, because the control they would
-    // use to clear it already reads "Any <param>". So normalise the MODEL to
-    // match, and re-run the search.
-    //
-    // LATENT, not live: the builder tree is in-memory only (`_advancedRoot` is
-    // constructed fresh and has no JSON codec) and the sole writer is this
-    // dropdown, which only ever stores a selectable value — and `_MoveField`
-    // clears `figure.params` when the move changes, so a param cannot outlive
-    // the move that declared it. This exists because none of that is
-    // load-bearing anywhere: the day the advanced query is persisted, or seeded
-    // from a saved search, an out-of-domain token becomes reachable and the
-    // failure is silent. Cheap to foreclose now, invisible to debug later.
-    if (stored != null && value == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        figure.params.remove(paramKey);
-        onChanged();
-      });
-    }
     return Semantics(
       label: label,
       // Sized like the section dropdown, and bounded by the line the same way.
@@ -1200,7 +1330,7 @@ class _ParamDropdown extends StatelessWidget {
         key: ValueKey('param-${figure.id}-$paramKey'),
         compact: true,
         fillWidth: false,
-        value: value,
+        value: stored,
         onChanged: (v) {
           v == null
               ? figure.params.remove(paramKey)
@@ -1222,6 +1352,66 @@ class _ParamDropdown extends StatelessWidget {
     );
   }
 }
+
+/// A stored figure param that no dropdown offers, kept and shown with a
+/// notice, removable ([_ParamDropdown] says when and why).
+class _ParamNotice extends StatelessWidget {
+  const _ParamNotice({
+    required this.figure,
+    required this.paramKey,
+    required this.spec,
+    required this.dialect,
+    required this.onChanged,
+  });
+
+  final BuilderFigure figure;
+  final String paramKey;
+
+  /// The param's spec, when the move declares it.
+  final ParamSpec? spec;
+  final Dialect dialect;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final stored = '${figure.params[paramKey]}';
+    final spec = this.spec;
+    final label = l10n.collectionQueryParamNotOffered(
+      figureParamKeyLabel(l10n, paramKey, moveId: figure.move),
+      spec == null
+          ? stored
+          : figureParamChoiceLabel(l10n, spec, dialect, stored),
+    );
+    return InputChip(
+      key: ValueKey('param-notice-${figure.id}-$paramKey'),
+      avatar: const Icon(Icons.info_outline, size: 18),
+      label: Text(label),
+      deleteIcon: const Icon(Icons.close, size: 18),
+      onDeleted: () {
+        figure.params.remove(paramKey);
+        onChanged();
+      },
+      deleteButtonTooltipMessage: l10n.commonRemove,
+    );
+  }
+}
+
+/// Whether [param] is never stored on a figure of [moveId], so a leaf on it
+/// could never match: the pair param of a listed alias whose target's own
+/// default is not the pin. A pass through's `passType` (taxonomy v40) is
+/// `through` by its id and `by` only as a pass by, and neither is stored.
+bool _neverStored(Taxonomy taxonomy, String? moveId, String param) =>
+    taxonomy.aliases.values.any(
+      (alias) =>
+          alias.listedAsMove &&
+          alias.targetMove == moveId &&
+          alias.inversePairId == moveId &&
+          alias.pinnedParams.length == 1 &&
+          alias.pinnedParams.containsKey(param) &&
+          taxonomy.moves[moveId]?.params[param]?.defaultValue !=
+              alias.pinnedParams[param],
+    );
 
 /// Whether a figure of [moveId] whose [param] is [value] is stored under an
 /// alias listed as a move ([MoveAlias.listedAsMove]) instead: a forward and

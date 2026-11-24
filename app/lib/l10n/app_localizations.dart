@@ -902,6 +902,12 @@ abstract class AppLocalizations {
   /// **'Your default figures use it too, and switch the same way.'**
   String get userFigureSwitchConfirmDefaults;
 
+  /// Added to the dialog confirming a switch to the app's figure {name} (#2294) when the user's figure is for English country dance, whose groups of dancers (the ends, the top) contra's figures lack: a dance that uses one of them keeps the wording it has instead of switching.
+  ///
+  /// In en, this message translates to:
+  /// **'Any use of a group of dancers that {name} doesn\'t have keeps its wording instead.'**
+  String userFigureSwitchConfirmKeepsWording(String name);
+
   /// Added to the dialog confirming a switch to the app's figure {name} (#1023) when the user has shorthands for their figure.
   ///
   /// In en, this message translates to:
@@ -3126,6 +3132,12 @@ abstract class AppLocalizations {
   /// **'No themes match your search.'**
   String get themeScreenNoMatches;
 
+  /// How many themes match the Theme screen search, shown above the results and read out by screen readers as the search changes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 theme} other{{count} themes}}'**
+  String themeScreenResultCount(int count);
+
   /// Label of the floating button on the Theme screen (shown with a + icon) that starts a new custom theme from the theme in use.
   ///
   /// In en, this message translates to:
@@ -3906,12 +3918,6 @@ abstract class AppLocalizations {
   /// **'Starting program'**
   String get settingsDefaultsStartingProgramTitle;
 
-  /// Explanation of the starting program template.
-  ///
-  /// In en, this message translates to:
-  /// **'Dance and note entries added to manually created programs.'**
-  String get settingsDefaultsStartingProgramSubtitle;
-
   /// Title for the dance picker used by the starting program template.
   ///
   /// In en, this message translates to:
@@ -4187,6 +4193,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sources'**
   String get settingsDefaultsShareFieldsSources;
+
+  /// Label for the share-field toggle that prints a dance's tune details: its meter and key (time signature and musical key of the tune) and its Barnes reference (where the tune is printed in the Barnes books of English dance tunes). On by default. 'Barnes' is a name and stays as is.
+  ///
+  /// In en, this message translates to:
+  /// **'Meter, key and Barnes'**
+  String get settingsDefaultsShareFieldsMusic;
 
   /// Section header for the preference that chooses which filters appear in the Collection page's Filters panel and the dance picker (#1419).
   ///
@@ -4762,19 +4774,19 @@ abstract class AppLocalizations {
   /// **'{field}: {value}'**
   String libraryManagerMergeDroppedLine(String field, String value);
 
-  /// General settings section header over the dance list and labeling preferences: title sorting, figure capitalization, tags, authors and sources.
+  /// Settings › Collection section header over the dance list and labeling preferences: title sorting, figure capitalization, tags, authors and sources. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Dances'**
   String get settingsGeneralLibraryHeader;
 
-  /// Title of the General settings toggle that sorts dance titles while ignoring leading articles such as 'the', 'a', and 'an'.
+  /// Title of the Settings › Collection › Dances toggle that sorts dance titles while ignoring leading articles such as 'the', 'a', and 'an'. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Ignore leading articles when sorting'**
   String get settingsGeneralSortIgnoreArticlesTitle;
 
-  /// Subtitle explaining the ignore-leading-articles sort toggle. Example title and articles are illustrative text.
+  /// Subtitle explaining the ignore-leading-articles sort toggle. Example title and articles are illustrative text. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'When on, the dance list alphabetizes titles ignoring a leading \"the\", \"a\", or \"an\" — so \"The Nice Combination\" files under N. Turn off to sort by the literal title.'**
@@ -4834,10 +4846,10 @@ abstract class AppLocalizations {
   /// **'Include caller and band when sharing a set list'**
   String get settingsSharingCallerBandTitle;
 
-  /// Title of the toggle that includes the date and venue when a set list is shared.
+  /// Title of the toggle that includes the date, the program's start, end and lesson times, and the venue when a set list is shared.
   ///
   /// In en, this message translates to:
-  /// **'Include date and venue when sharing a set list'**
+  /// **'Include date, times and venue when sharing a set list'**
   String get settingsSharingDateVenueTitle;
 
   /// Subtitle shared by the three set-list sharing toggles, saying they do not affect sharing the whole program.
@@ -4869,6 +4881,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When on, valid changes are saved as you work, so leaving the editor does not ask whether to discard them. Turn off to save programs explicitly.'**
   String get settingsProgramAutoCommitSubtitle;
+
+  /// Title of the Settings > Program > Programs switch that shows or hides each program's Pay field in the editor, its pay line on the summary and its pay columns in the programs CSV export. On by default.
+  ///
+  /// In en, this message translates to:
+  /// **'Show pay'**
+  String get settingsProgramShowPayTitle;
+
+  /// Subtitle of the Show pay switch: turning it off hides pay in the program editor, on the summary and in the programs CSV export; stored pay is never cleared.
+  ///
+  /// In en, this message translates to:
+  /// **'When off, the editor, summary and programs spreadsheet hide pay. Pay already entered is kept, and shows again when you turn this back on.'**
+  String get settingsProgramShowPaySubtitle;
 
   /// Header for the Program settings editor that reorders, renames, and removes program-matrix columns.
   ///
@@ -5278,49 +5302,49 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{Don\'t show} =1{1 venue} other{{count} venues}}'**
   String settingsProgramVenueCallCountOption(num count);
 
-  /// Title of the General settings Library toggle that capitalizes the first letter of each figure shown on screen.
+  /// Title of the Settings › Collection › Dances toggle that capitalizes the first letter of each figure shown on screen. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Capitalize figures'**
   String get settingsGeneralCapitalizeFiguresTitle;
 
-  /// Subtitle explaining the capitalize figures toggle. ContraDB is a product name and stays untranslated.
+  /// Subtitle explaining the capitalize figures toggle. ContraDB is a product name and stays untranslated. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'When on, each figure in the dance view, Perform mode and the figure editor starts with a capital letter (\"Neighbors allemande left\"). When off, figures are shown as written; built-in figures start in lower case, as in ContraDB. Only how figures look in those places changes; exports, search, sync comparisons and screen-reader wording are unaffected.'**
   String get settingsGeneralCapitalizeFiguresSubtitle;
 
-  /// Settings › General › Library entry that opens the Tags manager.
+  /// Settings › Collection › Dances entry that opens the Tags manager. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Tags'**
   String get settingsGeneralLibraryTagsTitle;
 
-  /// Subtitle of the Settings › General › Library entry that opens the Tags manager.
+  /// Subtitle of the Settings › Collection › Dances entry that opens the Tags manager. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Rename, merge, color and delete your tags.'**
   String get settingsGeneralLibraryTagsSubtitle;
 
-  /// Title of the Settings › General › Library entry that opens the Authors manager.
+  /// Title of the Settings › Collection › Dances entry that opens the Authors manager. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Authors'**
   String get settingsGeneralLibraryAuthorsTitle;
 
-  /// Subtitle of the Settings › General › Library entry that opens the Authors manager.
+  /// Subtitle of the Settings › Collection › Dances entry that opens the Authors manager. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Rename, merge and delete authors, and edit their details.'**
   String get settingsGeneralLibraryAuthorsSubtitle;
 
-  /// Title of the Settings › General › Library entry that opens the Sources manager.
+  /// Title of the Settings › Collection › Dances entry that opens the Sources manager. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Sources'**
   String get settingsGeneralLibrarySourcesTitle;
 
-  /// Subtitle of the Settings › General › Library entry that opens the Sources manager.
+  /// Subtitle of the Settings › Collection › Dances entry that opens the Sources manager. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Rename, merge and delete sources, and edit their details.'**
@@ -6568,13 +6592,103 @@ abstract class AppLocalizations {
   /// **'e.g. G minor'**
   String get danceEditorMusicalKeyHint;
 
+  /// Label of the dance editor field for other names the dance is known by, entered one per line.
+  ///
+  /// In en, this message translates to:
+  /// **'Other titles'**
+  String get danceEditorAlternateTitlesLabel;
+
+  /// Helper text under the dance editor's other-titles field: enter one title per line, and a title search finds the dance by any of them.
+  ///
+  /// In en, this message translates to:
+  /// **'One per line. A title search finds the dance by any of them.'**
+  String get danceEditorAlternateTitlesHelper;
+
+  /// Label of the dance editor field for where the dance's tune is printed in the Barnes books (a set of English country dance tune books), as free text with the book and page in one value.
+  ///
+  /// In en, this message translates to:
+  /// **'Barnes reference'**
+  String get danceEditorBarnesReferenceLabel;
+
+  /// Hint in the dance editor's Barnes field: examples of a Barnes book reference. 'BIII p. 92' is book III, page 92; 'NiB' means Not in Barnes. Keep both examples untranslated.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. BIII p. 92, or NiB'**
+  String get danceEditorBarnesReferenceHint;
+
+  /// Line under a dance's title on the dance detail screen, listing the other names the dance is known by.
+  ///
+  /// In en, this message translates to:
+  /// **'Also known as {titles}'**
+  String danceAlsoKnownAs(String titles);
+
+  /// Text placed between two of a dance's other titles in the 'Also known as' line.
+  ///
+  /// In en, this message translates to:
+  /// **'; '**
+  String get danceAlsoKnownAsSeparator;
+
+  /// Heading of the section on the dance detail screen that shows where the dance's tune is printed in the Barnes books (a set of English country dance tune books).
+  ///
+  /// In en, this message translates to:
+  /// **'Barnes books'**
+  String get danceSectionBarnes;
+
+  /// On the dance detail screen and the Perform card: the dance's authors followed by the year it was composed. {names} is the authors' names joined with commas; {year} is a four-digit year such as 1951, shown as written (not a formatted number).
+  ///
+  /// In en, this message translates to:
+  /// **'{names} ({year})'**
+  String danceAuthorsWithYear(String names, String year);
+
+  /// On the dance detail screen and the Perform card, when the dance has a composed year but no authors: the year it was composed. {year} is a four-digit year such as 1651.
+  ///
+  /// In en, this message translates to:
+  /// **'Composed {year}'**
+  String danceComposedYear(String year);
+
+  /// On the dance detail screen and the Perform card: who reconstructed (interpreted) the dance from its original source. {names} is the interpreters' names joined with commas.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted by {names}'**
+  String danceInterpretedBy(String names);
+
+  /// On the dance detail screen and the Perform card: who reconstructed (interpreted) the dance from its original source, and the year they did. {names} is the interpreters' names joined with commas; {year} is a four-digit year such as 1916.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted by {names} ({year})'**
+  String danceInterpretedByWithYear(String names, String year);
+
+  /// On the dance detail screen and the Perform card, when the dance has an interpretation year but no interpreters: the year it was reconstructed from its original source. {year} is a four-digit year such as 1916.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted {year}'**
+  String danceInterpretedYear(String year);
+
+  /// On the Perform card: where the dance's tune is printed in the Barnes books (a set of English country dance tune books), labelled. {reference} is free text the caller typed with the book and page, such as BIII p. 92 or NiB. Keep 'Barnes' as is: it is the books' name.
+  ///
+  /// In en, this message translates to:
+  /// **'Barnes: {reference}'**
+  String danceBarnesValue(String reference);
+
+  /// On the dance detail screen and the Perform card: the dance's written meter (time signature), labelled. {meter} is free text the caller typed, such as 3/2 or 6/8. Shown beside the key, separated by a middle dot.
+  ///
+  /// In en, this message translates to:
+  /// **'Meter: {meter}'**
+  String danceMeterValue(String meter);
+
+  /// On the dance detail screen and the Perform card: the musical key of the dance's tune, labelled. {key} is free text the caller typed, such as G minor. Shown beside the meter, separated by a middle dot.
+  ///
+  /// In en, this message translates to:
+  /// **'Key: {key}'**
+  String danceMusicalKeyValue(String key);
+
   /// Label indicating a dance suits mixed experience levels; used as a filter chip/section and a dance indicator chip.
   ///
   /// In en, this message translates to:
   /// **'Mixed level'**
   String get commonMixedLevel;
 
-  /// Label for a mixer — a dance in which dancers change partners each time through the sequence (a progressive partner-changing dance), NOT an audio or kitchen mixer. Used as a dance editor checkbox label and a dance-detail indicator.
+  /// Label for a mixer — a dance in which dancers change partners each time through the sequence (a progressive partner-changing dance), NOT an audio or kitchen mixer. Used as the label of a dance editor toggle chip and a dance-detail indicator.
   ///
   /// In en, this message translates to:
   /// **'Mixer'**
@@ -7214,6 +7328,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 month} other{{count} months}}'**
   String collectionFacetWithinMonths(int count);
 
+  /// Selected time-window chip in the Calling history filter for a window of {count} calendar months that none of the 1/3/6-month choices offers, shown when the window came from a saved search. Without a saved search the chip reads like collectionFacetWithinMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 month, saved} other{{count} months, saved}}'**
+  String collectionFacetWithinMonthsSaved(int count);
+
   /// Time-window choice in the Calling history filter that opens a date picker: calls on or after the chosen date count.
   ///
   /// In en, this message translates to:
@@ -7321,6 +7441,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All filters are hidden. You can show them again in Settings ▸ Defaults.'**
   String get collectionFacetAllHidden;
+
+  /// Label of a selected filter chip (a level, author, tag or source) whose item no longer exists, e.g. it was deleted after a search naming it was saved. The chip stays so the filter can be seen and removed.
+  ///
+  /// In en, this message translates to:
+  /// **'Not in your library'**
+  String get collectionFacetMissingValue;
 
   /// Button that clears all active facet filters.
   ///
@@ -7688,6 +7814,12 @@ abstract class AppLocalizations {
   /// **'Any {param}'**
   String collectionQueryAnyParam(String param);
 
+  /// Removable notice on an Advanced search figure row: the row asks for a figure parameter value that the parameter's dropdown does not offer (it came in with a saved search). The value still narrows the search until the user removes it.
+  ///
+  /// In en, this message translates to:
+  /// **'{param}: {value} (not offered)'**
+  String collectionQueryParamNotOffered(String param, String value);
+
   /// Batch set-level option that clears (unsets) the level on the selected dances.
   ///
   /// In en, this message translates to:
@@ -7856,6 +7988,24 @@ abstract class AppLocalizations {
   /// **'{beats, plural, =1{1 beat} other{{beats} beats}}'**
   String danceFigureBeats(int beats);
 
+  /// An English country dance's named phrases on a printed or shared dance card, after the Phrase label: {order} is the phrases in playing order, such as AAB (letters, not translated); {bars} is each phrase's length, such as "A 4 bars, B 8 bars", joined by exportNamedPhraseSeparator. Use the locale's parentheses.
+  ///
+  /// In en, this message translates to:
+  /// **'{order} ({bars})'**
+  String exportNamedPhrases(String order, String bars);
+
+  /// Between two phrases' lengths inside exportNamedPhrases, such as the comma and space in "A 4 bars, B 8 bars". Use the locale's list separator; keep any trailing space it needs.
+  ///
+  /// In en, this message translates to:
+  /// **', '**
+  String get exportNamedPhraseSeparator;
+
+  /// Between a field's label and its value on a printed or shared dance card or set list, such as the colon and space in "Phrase: AAB" or "Band: The Moving Violations". A section heading uses it without the trailing space, such as "Figures:". Use the locale's punctuation; keep any space it needs.
+  ///
+  /// In en, this message translates to:
+  /// **': '**
+  String get exportLabelSeparator;
+
   /// A figure's length in bars, for an English country dance: {bars} is the count as written, such as 4 or 1½; {halfBars} is the same count in half bars, which picks the plural (1 is half a bar, 2 is one bar).
   ///
   /// In en, this message translates to:
@@ -7868,7 +8018,7 @@ abstract class AppLocalizations {
   /// **'Bars'**
   String get danceEditorBarsLabel;
 
-  /// Shown for a step of a sequence that has no bars of its own: the sequence as a whole states its bars, as in 'A, B and C in bars 1–4'.
+  /// Shown for a step of a sequence that has no timing of its own: the sequence as a whole states its bars or beats, as in 'A, B and C in bars 1–4' in an English country dance or 'forward again and swing (8)' in a square dance.
   ///
   /// In en, this message translates to:
   /// **'No timing of its own'**
@@ -7904,7 +8054,7 @@ abstract class AppLocalizations {
   /// **'The steps share these bars, and each may leave its own bars empty.'**
   String get danceEditorSequenceSpanHelp;
 
-  /// Warning in a sequence of an English country dance whose every step has its own bars and they don't add up to the sequence's. {steps} and {span} are lengths such as '4 bars'.
+  /// Warning in a sequence of an English country dance or a square dance whose every step has its own count and they don't add up to the sequence's. {steps} and {span} are lengths such as '4 bars' or '8 beats'.
   ///
   /// In en, this message translates to:
   /// **'The steps take {steps}, but the sequence takes {span}.'**
@@ -7916,10 +8066,34 @@ abstract class AppLocalizations {
   /// **'The steps with bars of their own take {steps} of the sequence\'s {span}, leaving none for the rest.'**
   String danceEditorSequenceSpanNoRoom(String steps, String span);
 
-  /// Warning in a sequence of an English country dance that runs longer than one phrase. {length} and {limit} are lengths such as '10 bars'.
+  /// Label of the field giving the beats a whole sequence takes in a square dance, as in 'forward again and swing the opposite (8)', where one count covers two calls.
   ///
   /// In en, this message translates to:
-  /// **'This sequence is {length}, longer than one phrase ({limit}).'**
+  /// **'Beats for all'**
+  String get danceEditorSequenceSpanBeatsLabel;
+
+  /// Help under the empty 'Beats for all' field of a sequence in a square dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty to add up the steps\' beats, or give the beats the whole sequence takes, as in \"forward again and swing (8)\".'**
+  String get danceEditorSequenceSpanBeatsEmptyHelp;
+
+  /// Help under the filled 'Beats for all' field of a sequence in a square dance.
+  ///
+  /// In en, this message translates to:
+  /// **'The steps share these beats, and each may leave its own beats empty.'**
+  String get danceEditorSequenceSpanBeatsHelp;
+
+  /// Warning in a sequence of a square dance whose timed steps already fill its beats, leaving none for its untimed steps. {steps} and {span} are lengths such as '8 beats'.
+  ///
+  /// In en, this message translates to:
+  /// **'The steps with beats of their own take {steps} of the sequence\'s {span}, leaving none for the rest.'**
+  String danceEditorSequenceSpanBeatsNoRoom(String steps, String span);
+
+  /// Warning in a sequence of an English country dance or a square dance that runs longer than the phrase it starts in. {length} and {limit} are lengths such as '10 bars' or '12 beats'; {limit} is the length of that phrase.
+  ///
+  /// In en, this message translates to:
+  /// **'This sequence is {length}, longer than its phrase ({limit}).'**
   String danceEditorSequenceOverPhraseTimed(String length, String limit);
 
   /// Word inserted into a figure row's accessible label when the figure carries the progression.
@@ -8776,6 +8950,96 @@ abstract class AppLocalizations {
   /// **'Clear event date'**
   String get programsClearEventDate;
 
+  /// Field label in the program editor for when the dance starts (a time of day). Optional.
+  ///
+  /// In en, this message translates to:
+  /// **'Start time'**
+  String get programsStartTimeLabel;
+
+  /// Field label in the program editor for when the dance ends (a time of day). Optional; earlier than the start time means the next day.
+  ///
+  /// In en, this message translates to:
+  /// **'End time'**
+  String get programsEndTimeLabel;
+
+  /// Field label in the program editor for when the beginner lesson before the dance starts (a time of day). Optional.
+  ///
+  /// In en, this message translates to:
+  /// **'Beginner lesson'**
+  String get programsLessonTimeLabel;
+
+  /// Field label in the program editor for when the caller needs to be at the hall (a time of day). Optional; the caller's own logistics, not printed on the shared set list.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrive by'**
+  String get programsArrivalTimeLabel;
+
+  /// Shown in a program time field (start, end, lesson or arrive by) when no time has been chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get programsNoTimeSet;
+
+  /// Button that opens the time picker for a program time field that has no time yet. Short: it sits beside the time, with up to two time fields to a row.
+  ///
+  /// In en, this message translates to:
+  /// **'Set'**
+  String get programsSetTime;
+
+  /// Button that opens the time picker to change a program time that is already set.
+  ///
+  /// In en, this message translates to:
+  /// **'Change'**
+  String get programsChangeTime;
+
+  /// Screen-reader label for the button that sets a program time, naming the field, e.g. 'Set Start time'.
+  ///
+  /// In en, this message translates to:
+  /// **'Set {field}'**
+  String programsSetTimeFor(String field);
+
+  /// Screen-reader label for the button that changes a program time, naming the field, e.g. 'Change Start time'.
+  ///
+  /// In en, this message translates to:
+  /// **'Change {field}'**
+  String programsChangeTimeFor(String field);
+
+  /// Tooltip for the button that clears a program time, naming the field, e.g. 'Clear Start time'.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear {field}'**
+  String programsClearTime(String field);
+
+  /// Helper text under the program's end time when it is earlier than the start time, so the dance ends after midnight.
+  ///
+  /// In en, this message translates to:
+  /// **'Ends the next day'**
+  String get programsTimeNextDay;
+
+  /// Hint under the program's time fields showing the linked venue's usual schedule, as the caller typed it on the venue (free text, e.g. '7:30-10:30pm'). It is not read into the fields.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue\'s usual time: {time}'**
+  String programsVenueUsualTimeHint(String time);
+
+  /// Part of the times line on the program summary: when the beginner lesson starts, e.g. 'Lesson 7:00 PM'.
+  ///
+  /// In en, this message translates to:
+  /// **'Lesson {time}'**
+  String programsSummaryLessonTime(String time);
+
+  /// Part of the times line on the program summary: when the dance starts and ends, e.g. 'Dance 7:30 PM-10:30 PM'. {times} is already formatted and may end with '(next day)'.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance {times}'**
+  String programsSummaryDanceTime(String times);
+
+  /// Part of the times line on the program summary: when the caller needs to be at the hall, e.g. 'Arrive by 6:30 PM'.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrive by {time}'**
+  String programsSummaryArriveBy(String time);
+
   /// Field label for the program's venue in the editor.
   ///
   /// In en, this message translates to:
@@ -9273,6 +9537,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'More actions for {title}'**
   String programsMoreActionsForSlot(String title);
+
+  /// Program builder slot overflow menu item: choose a dance from the collection and insert it before this slot's group (the slot, or its primary, and that primary's alternates).
+  ///
+  /// In en, this message translates to:
+  /// **'Add a dance before'**
+  String get programsAddDanceBeforeMenu;
+
+  /// Program builder slot overflow menu item: choose a dance from the collection and insert it after this slot's group (after the last alternate of the slot's primary).
+  ///
+  /// In en, this message translates to:
+  /// **'Add a dance after'**
+  String get programsAddDanceAfterMenu;
+
+  /// Title of the dance picker sheet opened by 'Add a dance before' on a narrow screen. {title} names the slot the new dance will go before.
+  ///
+  /// In en, this message translates to:
+  /// **'Add before {title}'**
+  String programsAddBeforeSheetTitle(String title);
+
+  /// Title of the dance picker sheet opened by 'Add a dance after' on a narrow screen. {title} names the slot the new dance will go after.
+  ///
+  /// In en, this message translates to:
+  /// **'Add after {title}'**
+  String programsAddAfterSheetTitle(String title);
+
+  /// Banner above the dance picker beside the program on a wide screen while 'Add a dance before' waits for a dance. Also announced to screen readers. {title} names the target slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Adding before {title}'**
+  String programsAddingBeforeBanner(String title);
+
+  /// Banner above the dance picker beside the program on a wide screen while 'Add a dance after' waits for a dance. Also announced to screen readers. {title} names the target slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Adding after {title}'**
+  String programsAddingAfterBanner(String title);
+
+  /// Screen-reader announcement when a dance is inserted before a slot in the program being edited. {title} is the added dance; {target} is the slot it went before.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {title} before {target}.'**
+  String programsAddedDanceBeforeAnnounce(String title, String target);
+
+  /// Screen-reader announcement when a dance is inserted after a slot in the program being edited. {title} is the added dance; {target} is the slot it went after.
+  ///
+  /// In en, this message translates to:
+  /// **'Added {title} after {target}.'**
+  String programsAddedDanceAfterAnnounce(String title, String target);
+
+  /// Screen-reader announcement when the caller cancels 'Add a dance before/after' from the banner beside the dance picker; the next dance added goes at the end of the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Canceled. New dances go at the end.'**
+  String get programsInsertionCancelledAnnounce;
 
   /// Overflow menu item to edit a program slot.
   ///
@@ -10156,6 +10474,36 @@ abstract class AppLocalizations {
   /// **'Save dance file…'**
   String get exportSaveDanceBundle;
 
+  /// Export-menu item: show the dance as a full-screen QR code for another caller to scan in person. The code holds the same dance file as 'Share dance file'.
+  ///
+  /// In en, this message translates to:
+  /// **'Show code'**
+  String get exportShowCode;
+
+  /// Snackbar shown when the dance could not be turned into a QR code.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t show the code. Your dance is unchanged. Try again.'**
+  String get exportShowCodeError;
+
+  /// Title bar of the full-screen view that shows a dance as a QR code (and of the notice that replaces it when the dance is too long for one).
+  ///
+  /// In en, this message translates to:
+  /// **'Dance code'**
+  String get danceCodeScreenTitle;
+
+  /// Accessible name of the QR code image on the full-screen dance code view. The code itself cannot be read aloud.
+  ///
+  /// In en, this message translates to:
+  /// **'QR code for {title}'**
+  String danceCodeSemanticLabel(String title);
+
+  /// Message shown instead of a QR code when the dance holds more than any QR code can. A button below it shares or saves the dance file.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance is too long to share as a code. Share it as a file instead.'**
+  String get danceCodeTooLong;
+
   /// Export-menu item: copy the dance's plain-text card to the clipboard.
   ///
   /// In en, this message translates to:
@@ -10503,6 +10851,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Page {page} of {pages}'**
   String exportPageOfPages(int page, int pages);
+
+  /// Label for the beginner lesson's time on an exported set list (text and PDF), followed by the label separator and the time, e.g. 'Lesson: 7:00 PM'.
+  ///
+  /// In en, this message translates to:
+  /// **'Lesson'**
+  String get exportLabelLesson;
+
+  /// A dance's start and end time as one phrase on an exported set list and the program summary, e.g. '7:30 PM–10:30 PM'. Both are already formatted.
+  ///
+  /// In en, this message translates to:
+  /// **'{start}–{end}'**
+  String exportTimeRange(String start, String end);
+
+  /// A dance's end time on an exported set list and the program summary when no start time is recorded, e.g. 'until 10:30 PM'.
+  ///
+  /// In en, this message translates to:
+  /// **'until {end}'**
+  String exportEndsAt(String end);
+
+  /// Marks a dance's times as ending the next day (the end time is earlier than the start), e.g. '7:30 PM–1:00 AM (next day)'.
+  ///
+  /// In en, this message translates to:
+  /// **'{times} (next day)'**
+  String exportNextDay(String times);
 
   /// Heading for the venue detail block on an exported set-list PDF.
   ///
@@ -11524,6 +11896,30 @@ abstract class AppLocalizations {
   /// **'That file is empty.'**
   String get archiveIntakeRejectedEmpty;
 
+  /// Shown when a dance's QR code link (ccdance://) uses a format version this build cannot read. Nothing is imported.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance code was made by a newer version of Caller\'s Compendium. Update the app to open it.'**
+  String get danceLinkRefusedNewerVersion;
+
+  /// Shown when a dance's QR code link (ccdance://) cannot be read: too long, cut short, or corrupted. Generic; never echoes the link. Nothing is imported.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance code is damaged or incomplete, so it can\'t be opened.'**
+  String get danceLinkRefusedDamaged;
+
+  /// Shown when a dance's QR code link (ccdance://) reads correctly but what it carries is not a dance share (for example, a backup or unrelated JSON). Generic; never echoes the link. Nothing is imported.
+  ///
+  /// In en, this message translates to:
+  /// **'This code isn\'t a Caller\'s Compendium dance code.'**
+  String get danceLinkRefusedNotADance;
+
+  /// Shown when a dance's QR code link (ccdance://) reads correctly but carries neither dances nor programs. Nothing is imported.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance code doesn\'t contain any dances or programs.'**
+  String get danceLinkRefusedNoContent;
+
   /// Rejection shown when a shared file is not a well-formed Caller's Compendium archive (bad text, non-archive JSON, or an unreadable envelope). Generic; never echoes parser detail.
   ///
   /// In en, this message translates to:
@@ -11860,10 +12256,10 @@ abstract class AppLocalizations {
   /// **'The shared file reported a warning while decoding.'**
   String get importIssueArchiveReadWarning;
 
-  /// Import review warning: the shared file was written by a newer app version than this one, so fields the newer version added are dropped. Tells the user to update first. Shown once for the whole file.
+  /// Import review warning: what is being imported (a shared file, pasted JSON, or a dance code) was written by a newer app version than this one, so fields the newer version added are dropped. Tells the user to update first. Worded without "file" because a dance code reaches the same review (issue #2335). Shown once for the whole import.
   ///
   /// In en, this message translates to:
-  /// **'This file was made by a newer version of Caller\'s Compendium. Update the app before importing, or some details may be left out.'**
+  /// **'This was made by a newer version of Caller\'s Compendium. Update the app before importing, or some details may be left out.'**
   String get importIssueArchiveNewerSchema;
 
   /// Import review warning for a shared file (INTAKE-2): the file has a custom field under the same key as one of the user's, but of another type or with other choices for a choice field, so its values go into the field under the key shown (the user's key plus _2, _3, …), which is created unless an earlier import made it; the user's own field is not changed. {label} is the user's own field's name and {key} the new field's key, both rendered as plain text.
@@ -12009,6 +12405,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This dance counts in bars but states no meter, so each bar was counted as 2 beats. Check its counts.'**
   String get importIssueBarsMeterUnstated;
+
+  /// Import note: an English dance's figure lines count in bars ("1-4 partners set"), but its music names meters of different bar lengths ("3/4 and 6/8"), so bars were counted as 2 beats each.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance counts in bars but names meters of different bar lengths, so each bar was counted as 2 beats. Check its counts.'**
+  String get importIssueBarsMeterMixed;
 
   /// Import note: a dance-type string wasn't recognized; the dance was imported as a contra with the original value kept in the notes.
   ///
@@ -12751,7 +13153,7 @@ abstract class AppLocalizations {
   /// Help under the Phrases heading in an English dance's editor. A, B, C, A1 and A2 are phrase labels of English country dance music and stay as written.
   ///
   /// In en, this message translates to:
-  /// **'Name each part of the tune A, B or C, give its bars, and say whether it plays once or twice. A phrase played twice is labeled A1 and A2.'**
+  /// **'Name each part of the tune A, B or C, give its bars and the beats in each bar, and say whether it plays once or twice. A phrase played twice is labeled A1 and A2.'**
   String get danceEditorPhrasesHelp;
 
   /// Button that adds a named phrase (the next unused of A, B, C) to an English dance's phrases. Hidden when all three are used.
@@ -12760,11 +13162,11 @@ abstract class AppLocalizations {
   /// **'Add phrase'**
   String get danceEditorPhrasesAdd;
 
-  /// Error under an English dance's named phrases when a bar count is empty, zero or above {max}, or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.
+  /// Error under an English dance's named phrases when a bar count or a beats-to-the-bar count is empty, zero or above its most ({maxBars} bars, {maxBeats} beats to the bar), or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.
   ///
   /// In en, this message translates to:
-  /// **'Give each phrase from 1 to {max} bars. Until then the dance keeps its last valid phrases, and Save saves those.'**
-  String danceEditorPhrasesInvalid(int max);
+  /// **'Give each phrase from 1 to {maxBars} bars and from 1 to {maxBeats} beats to the bar. Until then the dance keeps its last valid phrases, and Save saves those.'**
+  String danceEditorPhrasesInvalid(int maxBars, int maxBeats);
 
   /// Label of the number field for how many bars of music one named phrase of an English dance has. The name is A, B or C, a phrase label of English country dance music.
   ///
@@ -12777,6 +13179,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'1 to {max}'**
   String danceEditorPhraseBarsRange(int max);
+
+  /// Label of the number field for how many beats one bar of one named phrase of an English dance has, as in 3 for a phrase in 3/4 and 2 for one in 6/8. The name is A, B or C, a phrase label of English country dance music.
+  ///
+  /// In en, this message translates to:
+  /// **'Beats per bar in {name}'**
+  String danceEditorPhraseBeatsPerBarLabel(String name);
+
+  /// Short error under one named phrase's beats-to-the-bar field in an English dance when its count is empty, zero or too large: the beats a bar may have.
+  ///
+  /// In en, this message translates to:
+  /// **'1 to {max}'**
+  String danceEditorPhraseBeatsPerBarRange(int max);
 
   /// Label of the dropdown that picks one named phrase's name (A, B or C) in an English dance's phrases.
   ///
@@ -12807,6 +13221,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove phrase {name}'**
   String danceEditorPhraseRemove(String name);
+
+  /// Help under the heading of the phrase-structure rows in a contra or square dance's editor. Each row is one part of the phrase structure text. The text field below the rows shows the same structure. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Each row is a run of equal phrases: how many there are, the bars in each, and the beats in a bar. The phrase structure below changes with the rows.'**
+  String get danceEditorPhraseRowsHelp;
+
+  /// Label of the number field for how many equal phrases one row of a contra or square dance's phrase structure has. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Phrases'**
+  String get danceEditorPhraseRowsPhrasesLabel;
+
+  /// Label of the number field for how many bars of music each phrase of one row of a contra or square dance's phrase structure has. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Bars per phrase'**
+  String get danceEditorPhraseRowsBarsLabel;
+
+  /// Label of the number field for how many beats are in a bar in one row of a contra or square dance's phrase structure, such as 2 for a reel or 3 for a slip jig. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Beats per bar'**
+  String get danceEditorPhraseRowsBeatsLabel;
+
+  /// Short error under a number field of the phrase-structure rows in a contra or square dance when it is empty, zero or too large: the numbers it may hold. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'1 to {max}'**
+  String danceEditorPhraseRowsRange(int max);
+
+  /// Button that adds a row to the phrase-structure rows of a contra or square dance. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Add row'**
+  String get danceEditorPhraseRowsAdd;
+
+  /// Tooltip of the button that removes one row from the phrase-structure rows of a contra or square dance. The number counts the rows from 1. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove row {number}'**
+  String danceEditorPhraseRowsRemove(int number);
+
+  /// Error under the phrase-structure rows of a contra or square dance when a number is empty, zero or above {max}, or the structure is too long. The phrase structure is kept as it was until it is fixed, and anything that saves it saves that kept structure. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Give each field a whole number from 1 to {max}, in a structure that is not too long. Until then the last valid phrase structure is kept.'**
+  String danceEditorPhraseRowsInvalid(int max);
+
+  /// One line under the phrase-structure rows of a contra or square dance: the labels the phrases get, such as A1 A2 B1 B2 (a long list ends with an ellipsis), then the beats in all. The labels are music-phrase labels and stay as written. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'{labels} · {beats, plural, =1{1 beat} other{{beats} beats}}'**
+  String danceEditorPhraseRowsSummary(String labels, int beats);
+
+  /// Note under the phrase-structure rows of a contra or square dance while the phrase structure text below them is not valid, or holds phrase names that only an English dance keeps. The rows are disabled until it is. Also used for the default phrase structure in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'These rows show the last valid phrase structure. Fix the phrase structure below to edit them again.'**
+  String get danceEditorPhraseRowsDisabledNote;
 
   /// Section heading for the editable figure list in the dance editor.
   ///
@@ -13030,6 +13504,12 @@ abstract class AppLocalizations {
   /// **'Edit snippet'**
   String get settingsWalkthroughSnippetEditTitle;
 
+  /// Title of the dance editor's foldable panel holding the dance's authors (and, for an English dance, interpreters and years), type, formation, progression, rating, phrase structure and the tune's meter and key. Folded, a short summary of some of those values (the authors, type, formation, improper and mixer, phrase structure, meter and key) shows under it.
+  ///
+  /// In en, this message translates to:
+  /// **'Credits, formation and music'**
+  String get danceEditorSetupTitle;
+
   /// Expansion tile title for less frequently used editor metadata fields.
   ///
   /// In en, this message translates to:
@@ -13048,22 +13528,166 @@ abstract class AppLocalizations {
   /// **'Spans the difficulty scale'**
   String get danceEditorMixedLevelSubtitle;
 
-  /// Subtitle explaining the mixer checkbox in the dance editor: the dance progresses dancers to a new partner each time through the sequence.
+  /// Tooltip of the Mixer toggle chip in the dance editor, also read by screen readers: the dance progresses dancers to a new partner each time through the sequence.
   ///
   /// In en, this message translates to:
   /// **'Dancers change partners each time through'**
   String get danceEditorMixerSubtitle;
 
-  /// Checkbox in the dance editor, offered for English country dances only: the dance starts improper (the first couple crossed over). Unchecked means it starts proper, the default.
+  /// One of a square dance's own fields on its page, such as 'Repeat order: Heads twice, then sides twice'. {field} is the field's label and {value} its value.
+  ///
+  /// In en, this message translates to:
+  /// **'{field}: {value}'**
+  String danceDetailSquareField(String field, String value);
+
+  /// Label of the dance editor dropdown for what a square dance record holds: its main part, a break, or patter (square dance, ADR-007).
+  ///
+  /// In en, this message translates to:
+  /// **'Kind of square'**
+  String get danceEditorSquareKindLabel;
+
+  /// Square dance kind: the main part, a phrased figure danced several times through (callers often say 'main figure').
+  ///
+  /// In en, this message translates to:
+  /// **'Main part'**
+  String get squareKindMain;
+
+  /// Square dance kind: an intro, middle break or ending, danced between or around the main parts.
+  ///
+  /// In en, this message translates to:
+  /// **'Break'**
+  String get squareKindBreak;
+
+  /// Square dance kind: a free-form sequence the caller strings together, not set to phrases.
+  ///
+  /// In en, this message translates to:
+  /// **'Patter'**
+  String get squareKindPatter;
+
+  /// Label of the dance editor dropdown for how a square dance's main part is repeated (which couples lead each time through).
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat order'**
+  String get danceEditorRepeatOrderLabel;
+
+  /// Square repeat order: the source does not say.
+  ///
+  /// In en, this message translates to:
+  /// **'Not stated'**
+  String get squareRepeatOrderUnstated;
+
+  /// Square repeat order: the head couples lead twice, then the side couples twice.
+  ///
+  /// In en, this message translates to:
+  /// **'Heads twice, then sides twice'**
+  String get squareRepeatOrderHeadsHeadsSidesSides;
+
+  /// Square repeat order: heads lead, then sides, then heads, then sides.
+  ///
+  /// In en, this message translates to:
+  /// **'Heads and sides alternating'**
+  String get squareRepeatOrderHeadsSidesHeadsSides;
+
+  /// Square repeat order: danced four times through with every couple active each time.
+  ///
+  /// In en, this message translates to:
+  /// **'Four times, everyone active'**
+  String get squareRepeatOrderAllFour;
+
+  /// Square repeat order: something else, described in a text field below.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get squareRepeatOrderOther;
+
+  /// Label of the dance editor text field that describes a square's repeat order when the dropdown says Other.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat order, in your words'**
+  String get danceEditorRepeatOrderOtherLabel;
+
+  /// Label of the dance editor dropdown for who each dancer ends with as their new partner each time through a square.
+  ///
+  /// In en, this message translates to:
+  /// **'New partner'**
+  String get danceEditorNewPartnerLabel;
+
+  /// Square new partner: the source does not say.
+  ///
+  /// In en, this message translates to:
+  /// **'Not stated'**
+  String get squareNewPartnerUnstated;
+
+  /// Square new partner: dancers keep their partners.
+  ///
+  /// In en, this message translates to:
+  /// **'Partners stay the same'**
+  String get squareNewPartnerNone;
+
+  /// Square new partner: the corner becomes the new partner.
+  ///
+  /// In en, this message translates to:
+  /// **'Corner'**
+  String get squareNewPartnerCorner;
+
+  /// Square new partner: the dancer of the given role standing to the right becomes the new partner. {role} is the dialect's singular term for the second role (for example 'robin').
+  ///
+  /// In en, this message translates to:
+  /// **'Right-hand {role}'**
+  String squareNewPartnerRightHand(String role);
+
+  /// Square new partner: the opposite becomes the new partner.
+  ///
+  /// In en, this message translates to:
+  /// **'Opposite'**
+  String get squareNewPartnerOpposite;
+
+  /// Square new partner: someone else, described in a text field below.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get squareNewPartnerOther;
+
+  /// Label of the dance editor text field that describes a square's new partner when the dropdown says Other.
+  ///
+  /// In en, this message translates to:
+  /// **'New partner, in your words'**
+  String get danceEditorNewPartnerOtherLabel;
+
+  /// Label of the dance editor checkbox marking a square dance's main part as a singing call (a square called to a song).
+  ///
+  /// In en, this message translates to:
+  /// **'Singing call'**
+  String get danceEditorSingingLabel;
+
+  /// Subtitle under the singing call checkbox: the song's name is entered in the dance's Tunes field.
+  ///
+  /// In en, this message translates to:
+  /// **'The song goes under Tunes'**
+  String get danceEditorSingingSubtitle;
+
+  /// Switch on a square dance (ADR-007 §8.1): the dance is free-form patter that follows no phrasing. On by default for patter, off for a main part or break.
+  ///
+  /// In en, this message translates to:
+  /// **'Free form'**
+  String get danceEditorFreeFormLabel;
+
+  /// Subtitle under the Free form switch, saying what turning it on does: the figures get no phrase labels (A1, A2…) and the editor does not check that they fill each phrase.
+  ///
+  /// In en, this message translates to:
+  /// **'Follows no phrasing: no phrase labels or phrase checks'**
+  String get danceEditorFreeFormSubtitle;
+
+  /// Toggle chip in the dance editor, offered for English country dances only: the dance starts improper (the first couple crossed over). Off means it starts proper, the default.
   ///
   /// In en, this message translates to:
   /// **'Starts improper'**
   String get danceEditorImproperLabel;
 
-  /// Subtitle of the 'Starts improper' checkbox in the dance editor.
+  /// Tooltip of the 'Starts improper' toggle chip in the dance editor, also read by screen readers: leave the chip off (not selected) for a dance that starts proper.
   ///
   /// In en, this message translates to:
-  /// **'Leave unchecked for a dance that starts proper.'**
+  /// **'Leave off for a dance that starts proper.'**
   String get danceEditorImproperSubtitle;
 
   /// Label for the partial date when the dance was composed.
@@ -13384,13 +14008,13 @@ abstract class AppLocalizations {
   /// **'The figures total {actual} beats; the phrase structure expects {expected}.'**
   String validationPhraseBeatMismatch(int actual, int expected);
 
-  /// Editor warning for a sequence group (figures danced in order on one line) whose beats run longer than one phrase of the dance. {position} is the dance's figure that is, or holds, the sequence: a sequence can be one side of a meanwhile group.
+  /// Editor warning for a sequence group (figures danced in order on one line) whose beats run longer than the phrase of the dance it starts in ({limit} is that phrase's length). {position} is the dance's figure that is, or holds, the sequence: a sequence can be one side of a meanwhile group.
   ///
   /// In en, this message translates to:
-  /// **'A sequence in figure {position} is {actual} beats, longer than one phrase ({limit} beats).'**
+  /// **'A sequence in figure {position} is {actual} beats, longer than its phrase ({limit} beats).'**
   String validationSequenceExceedsPhrase(int position, int actual, int limit);
 
-  /// Editor warning for an English country dance's sequence whose steps each have a count that doesn't add up to the sequence's own. {position} is the figure holding it.
+  /// Editor warning for a sequence, in an English country dance or a square dance, whose steps each have a count that doesn't add up to the sequence's own. {position} is the figure holding it.
   ///
   /// In en, this message translates to:
   /// **'The steps of the sequence in figure {position} take {actual} beats; the sequence takes {expected}.'**
@@ -13402,10 +14026,10 @@ abstract class AppLocalizations {
   /// **'The figures total {actual}; the phrase structure expects {expected}.'**
   String validationPhraseCountMismatch(String actual, String expected);
 
-  /// Editor warning for an English country dance, timed in bars, whose sequence group runs longer than one phrase. {position} is the figure that is, or holds, the sequence; {actual} and {limit} are counts with their unit, such as '10 bars'.
+  /// Editor warning for an English country dance, timed in bars, whose sequence group runs longer than the phrase it starts in ({limit} is that phrase's length). {position} is the figure that is, or holds, the sequence; {actual} and {limit} are counts with their unit, such as '10 bars'.
   ///
   /// In en, this message translates to:
-  /// **'A sequence in figure {position} is {actual}, longer than one phrase ({limit}).'**
+  /// **'A sequence in figure {position} is {actual}, longer than its phrase ({limit}).'**
   String validationSequenceExceedsPhraseCount(
     int position,
     String actual,
@@ -13432,13 +14056,13 @@ abstract class AppLocalizations {
     String expected,
   );
 
-  /// Editor warning for an English country dance's sequence whose timed steps fill its count, leaving none for its untimed steps. {position} is the figure holding it.
+  /// Editor warning for a sequence, in an English country dance or a square dance, whose timed steps fill its count, leaving none for its untimed steps. {position} is the figure holding it.
   ///
   /// In en, this message translates to:
   /// **'The timed steps of the sequence in figure {position} take {actual} beats, leaving none of its {expected} for the rest.'**
   String validationSequenceSpanNoRoom(int position, int actual, int expected);
 
-  /// Editor warning when a dance holds figures of another dance type than its own, for example after its type was changed. {danceForm} and {figureForm} are dance type names such as 'Contra' or 'English (ECD)'. {pickerForm} is the type whose figures the picker offers: the dance's own, or Contra's for a type that has no figure list of its own yet (Square).
+  /// Editor warning when a dance holds figures of another dance type than its own, for example after its type was changed. {danceForm} and {figureForm} are dance type names such as 'Contra' or 'English (ECD)'. {pickerForm} is the type whose figures the picker offers: the dance's own, or Contra's for a type that has no figure list of its own.
   ///
   /// In en, this message translates to:
   /// **'This dance is {danceForm}, but {count, plural, =1{1 figure is} other{{count} figures are}} from {figureForm}. They are kept as they are, but the figure picker offers only {pickerForm} figures.'**
@@ -13448,6 +14072,12 @@ abstract class AppLocalizations {
     String figureForm,
     String pickerForm,
   );
+
+  /// Editor warning on a square dance for a figure whose beats run past the end of a phrase, so that phrase's calls do not fill it exactly (traditional squares are phrased call by call). {position} is the figure's number in the dance. {label} is the phrase's name from the dance's phrase structure, such as 'A1'.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure {position} runs past the end of {label}. In a square dance, the calls of each phrase should fill it exactly.'**
+  String validationFigureCrossesPhrase(int position, String label);
 
   /// Dance-editor warning (AUTH-2): the figure row at {position} (1-based, counting the rows of the figure list) is not complete, such as a group (meanwhile, modifier or sequence) with fewer than two of its figures filled in, a modifier group with no Core, or a row with no move that holds a walkthrough step, so saving the dance leaves it out. 'Save' is the editor's Save button (commonSave).
   ///
@@ -13620,6 +14250,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Type to add or create…'**
   String get danceEditorTypeToAddOrCreateHint;
+
+  /// Hint in an empty multi-select field (Authors, Interpreted by, Tags) that opens a list to pick from or add to.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose…'**
+  String get danceEditorChooseHint;
 
   /// Type-ahead option label for creating a new item with the typed name/title.
   ///
@@ -13999,6 +14635,150 @@ abstract class AppLocalizations {
   /// **'Add sequence'**
   String get danceEditorAddSequence;
 
+  /// Add-menu item in the dance editor's figure list that opens a sheet where the user types or pastes several figure lines at once, one figure per line.
+  ///
+  /// In en, this message translates to:
+  /// **'Add figures from text…'**
+  String get danceEditorAddFiguresFromText;
+
+  /// Title of the sheet where the user types or pastes several figure lines at once (opened by danceEditorAddFiguresFromText).
+  ///
+  /// In en, this message translates to:
+  /// **'Add figures from text'**
+  String get figureTextSheetTitle;
+
+  /// Help text at the top of the Add figures from text sheet, for an English dance or a square dance. "Move box" is the figure editor's field where a move is typed. "Free-text entry" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off.
+  ///
+  /// In en, this message translates to:
+  /// **'Type or paste one figure per line, such as \"(8) neighbor balance & swing\". Each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.'**
+  String get figureTextSheetHelp;
+
+  /// Help text at the top of the Add figures from text sheet, for a contra dance, where a leading phrase label (A1, A2, B1, B2, C1, C2) is dropped from each line. Keep A1 as it is. "Move box" is the figure editor's field where a move is typed. "Free-text entry" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off.
+  ///
+  /// In en, this message translates to:
+  /// **'Type or paste one figure per line, such as \"A1 (8) neighbor balance & swing\". A phrase label such as A1 at the start of a line is left out, and each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.'**
+  String get figureTextSheetHelpDropsLabels;
+
+  /// Label of the multi-line text box in the Add figures from text sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures, one per line'**
+  String get figureTextSheetFieldLabel;
+
+  /// Live count under the text box of the Add figures from text sheet: how many figures Add figures will insert.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No figures to add yet} =1{1 figure to add} other{{count} figures to add}}'**
+  String figureTextSheetSummary(int count);
+
+  /// Shown under the live count of the Add figures from text sheet when some lines did not match any known figure. Such a line is still added, as an unrecognized figure that keeps the typed text.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 line isn\'t recognized. It will be added as an unrecognized figure with its text, for you to fix.} other{{count} lines aren\'t recognized. They will be added as unrecognized figures with their text, for you to fix.}}'**
+  String figureTextSheetUnrecognizedSummary(int count);
+
+  /// Under one line of text in the Add figures from text sheet's preview: how many figures that line gives.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No figure} =1{1 figure} other{{count} figures}}'**
+  String figureTextSheetLineFigures(int count);
+
+  /// Under one line of text in the Add figures from text sheet's preview, when the line did not match any known figure. It is still added, as an unrecognized figure that keeps the typed text.
+  ///
+  /// In en, this message translates to:
+  /// **'Not recognized: added as an unrecognized figure'**
+  String get figureTextSheetLineUnrecognized;
+
+  /// Error under the text box of the Add figures from text sheet when the text is over the length limit. Add figures is disabled while it shows.
+  ///
+  /// In en, this message translates to:
+  /// **'This is more than {max} characters, more than can be read at once. Nothing will be added. Add it in parts.'**
+  String figureTextSheetTooLong(int max);
+
+  /// Error under the text box of the Add figures from text sheet when the text has more lines than the limit. Add figures is disabled while it shows.
+  ///
+  /// In en, this message translates to:
+  /// **'This is more than {max} lines, more than can be read at once. Nothing will be added. Add it in parts.'**
+  String figureTextSheetTooManyLines(int max);
+
+  /// Error under the text box of the Add figures from text sheet when one line is over the per-line length limit. Add figures is disabled while it shows.
+  ///
+  /// In en, this message translates to:
+  /// **'A line is longer than {max} characters, more than can be read as one figure line. Nothing will be added. Break it into lines.'**
+  String figureTextSheetLineTooLong(int max);
+
+  /// Button in the Add figures from text sheet that inserts the previewed figures at the end of the dance's figure list and closes the sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Add figures'**
+  String get figureTextSheetAdd;
+
+  /// Button in the Add figures from text sheet that opens the system picker to choose a picture (a photo of an index card or a book page) whose text is read on the device and put in the text box. Shown only on iOS, macOS and Windows.
+  ///
+  /// In en, this message translates to:
+  /// **'From an image…'**
+  String get figureTextSheetFromImage;
+
+  /// Button in the Add figures from text sheet, beside From an image…, that opens the camera to photograph an index card or a book page; the photo's text is read on the device and put in the text box, and the photo is not kept. Shown only on iPhone and iPad.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo'**
+  String get figureTextSheetTakePhoto;
+
+  /// Error under the Take a photo button on iPhone and iPad when the user has turned camera access off for the app (or a device policy has), so the camera did not open. Settings app is the iOS Settings app.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera access is off for Caller\'s Compendium. To take a photo, turn it on in the Settings app.'**
+  String get figureTextSheetCameraOff;
+
+  /// Label of the From an image… or Take a photo button while the chosen picture's or the new photo's text is being read on the device.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the picture…'**
+  String get figureTextSheetReadingImage;
+
+  /// Note under the disabled From an image… button when the device reads neither the app's language nor English.
+  ///
+  /// In en, this message translates to:
+  /// **'This device can\'t read text from pictures in the app\'s language or in English.'**
+  String get figureTextSheetImageUnavailable;
+
+  /// Note under the From an image… button when the device cannot read the app's language (for example Japanese on an older iOS or macOS, or on Windows without the Japanese language pack) but can read English.
+  ///
+  /// In en, this message translates to:
+  /// **'This device reads pictures in English, not in the app\'s language.'**
+  String get figureTextSheetImageEnglishOnly;
+
+  /// Error under the From an image… button when the chosen file is over the size limit. Nothing is read.
+  ///
+  /// In en, this message translates to:
+  /// **'This picture is larger than {limit} MB, so it wasn\'t read. Choose a smaller one.'**
+  String figureTextSheetImageTooLarge(int limit);
+
+  /// Error under the From an image… button when the chosen picture's dimensions are over the limit. Nothing is read.
+  ///
+  /// In en, this message translates to:
+  /// **'This picture has too many pixels to read. Choose a smaller one, or crop it.'**
+  String get figureTextSheetImageTooManyPixels;
+
+  /// Error under the From an image… button when the chosen file cannot be decoded as an image.
+  ///
+  /// In en, this message translates to:
+  /// **'This file isn\'t a picture this device can open.'**
+  String get figureTextSheetImageUnreadable;
+
+  /// Error under the From an image… button when recognition found no text. The text box is left as it was.
+  ///
+  /// In en, this message translates to:
+  /// **'No text was found in this picture.'**
+  String get figureTextSheetImageNoText;
+
+  /// Error under the From an image… button when the device's text recognition failed.
+  ///
+  /// In en, this message translates to:
+  /// **'The picture\'s text couldn\'t be read.'**
+  String get figureTextSheetImageFailed;
+
   /// Semantics label for pasting a cut figure at the end of the list.
   ///
   /// In en, this message translates to:
@@ -14178,7 +14958,7 @@ abstract class AppLocalizations {
   /// **'Group with next as modifier'**
   String get danceEditorGroupWithNextAsModifier;
 
-  /// Menu item label that groups this figure row with the one immediately after it into a sequence: the two figures danced in order and shown on one line. Offered only while the two together fit in one phrase.
+  /// Menu item label that groups this figure row with the one immediately after it into a sequence: the two figures danced in order and shown on one line. Offered only while the two together fit in the phrase the first one starts in.
   ///
   /// In en, this message translates to:
   /// **'Group with next as sequence'**
@@ -14244,16 +15024,16 @@ abstract class AppLocalizations {
   /// **'{beats, plural, =1{1 beat in total} other{{beats} beats in total}}'**
   String danceEditorSequenceTotalBeats(int beats);
 
-  /// Warning in a sequence group's editor when its figures together run longer than one phrase of the dance.
+  /// Warning in a sequence group's editor when its figures together run longer than the phrase of the dance it starts in; {limit} is that phrase's length.
   ///
   /// In en, this message translates to:
-  /// **'This sequence is {beats} beats, longer than one phrase ({limit} beats).'**
+  /// **'This sequence is {beats} beats, longer than its phrase ({limit} beats).'**
   String danceEditorSequenceOverPhrase(int beats, int limit);
 
-  /// Shown in place of the add-figure button once a sequence's figures already fill a whole phrase, so no further figure fits.
+  /// Shown in place of the add-figure button once a sequence's figures already fill the whole phrase it starts in, so no further figure fits. {limit} is that phrase's length.
   ///
   /// In en, this message translates to:
-  /// **'These figures fill one phrase ({limit} beats).'**
+  /// **'These figures fill their phrase ({limit} beats).'**
   String danceEditorSequencePhraseFull(int limit);
 
   /// Inline message shown in place of the add-figure button once a sequence group holds the maximum number of figures.
@@ -14436,6 +15216,12 @@ abstract class AppLocalizations {
   /// **'Move names get a dotted underline, role terms an underline, and discouraged terms a strikethrough'**
   String get danceEditorLingoStylingHelper;
 
+  /// Total figure beats of a free-form square (ADR-007 §8.1), which has no phrase structure to measure against, so no expected total is shown.
+  ///
+  /// In en, this message translates to:
+  /// **'{total, plural, =1{Total: 1 beat} other{Total: {total} beats}}'**
+  String danceEditorBeatTotalFreeForm(int total);
+
   /// Summary of total figure beats versus the phrase-structure expectation.
   ///
   /// In en, this message translates to:
@@ -14459,6 +15245,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Less'**
   String get danceEditorLessTooltip;
+
+  /// Shown under the fields of a figure the user has just added (picked or typed) while one of the fields it must state is still empty: for a pass by or pass through, who passes and where. The dance cannot be saved until they are chosen. A figure that was already saved with such a field empty is not flagged.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a value for every field of this figure before saving.'**
+  String get danceEditorFigureNeedsValues;
+
+  /// Snackbar shown when the user taps Save while a figure they added in this edit still has an empty field it must state (for a pass by or pass through, who and where). The dance is not saved; each such figure shows danceEditorFigureNeedsValues under its fields, and on its row while the row is closed.
+  ///
+  /// In en, this message translates to:
+  /// **'Some figures you added still have empty fields. Fill them in to save.'**
+  String get danceEditorSaveNeedsFigureValues;
 
   /// Shown in the figure parameter editor when the source never stated a value for this parameter, so none may be assumed. Used by the rotation stepper, by the choice dropdowns whose parameter admits the unstated state, and as the placeholder of an empty places field that admits it (a circle's or star's places).
   ///
@@ -15017,6 +15815,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Shorthands for new figures'**
   String get shorthandsUserFigureSyncLabel;
+
+  /// The name of a saved search (#2325), a setting a device syncs under its own key, in sync notices and the sync conflict view.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved search'**
+  String get syncSavedSearchLabel;
 
   /// Explains the compound shorthands section.
   ///
@@ -18194,7 +18998,7 @@ abstract class AppLocalizations {
   /// Help: what the authors block prints.
   ///
   /// In en, this message translates to:
-  /// **'Who wrote the dance.'**
+  /// **'Who wrote the dance and when, then who interpreted it and when.'**
   String get callingCardHelpBlockAuthors;
 
   /// Help: what the formation block prints.
@@ -18214,6 +19018,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Formation, level, mixer, status and phrase on one line, each with its label.'**
   String get callingCardHelpBlockMeta;
+
+  /// Help: what the music block prints: the tune's meter (time signature) and key, and the Barnes reference (where the tune is printed in the Barnes books). 'Barnes' is a name and stays as is.
+  ///
+  /// In en, this message translates to:
+  /// **'The tune\'s meter and key, and its Barnes reference, on one line.'**
+  String get callingCardHelpBlockMusic;
 
   /// Help: what the figures block prints.
   ///
@@ -18436,6 +19246,2298 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'These cards are bigger than the paper, so each was printed smaller, one to a page.'**
   String get exportCallingCardsBiggerThanPaper;
+
+  /// Settings ▸ Defaults ▸ Program defaults row and manager screen title for the list of program templates.
+  ///
+  /// In en, this message translates to:
+  /// **'Program templates'**
+  String get settingsProgramTemplatesTitle;
+
+  /// Subtitle of the Program templates row: how many templates there are.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No templates yet} =1{1 template} other{{count} templates}}'**
+  String settingsProgramTemplatesCount(int count);
+
+  /// Settings row choosing the template a new program starts from when the user is not asked to choose.
+  ///
+  /// In en, this message translates to:
+  /// **'Default template'**
+  String get settingsProgramTemplateDefaultTitle;
+
+  /// Subtitle of the Default template row.
+  ///
+  /// In en, this message translates to:
+  /// **'What a new program starts from when you aren\'t asked to choose.'**
+  String get settingsProgramTemplateDefaultSubtitle;
+
+  /// Name given to the template made from the old Starting program setting when the app is upgraded.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting program'**
+  String get settingsProgramTemplatesMigratedName;
+
+  /// Choice of starting a new program with no slots, in the New program chooser and the Default template setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Blank program'**
+  String get programTemplateBlankProgram;
+
+  /// Marks the default template in the New program chooser.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get programTemplateDefaultBadge;
+
+  /// Title of the sheet New program shows when there are two or more templates.
+  ///
+  /// In en, this message translates to:
+  /// **'Start from a template'**
+  String get programTemplateChooserTitle;
+
+  /// Button and dialog title that creates a program template.
+  ///
+  /// In en, this message translates to:
+  /// **'New template'**
+  String get programTemplateNew;
+
+  /// Empty state title in the program templates manager.
+  ///
+  /// In en, this message translates to:
+  /// **'No templates yet'**
+  String get programTemplatesEmptyTitle;
+
+  /// Empty state body in the program templates manager.
+  ///
+  /// In en, this message translates to:
+  /// **'A template is a starting list of dances, notes and breaks for one kind of evening. With two or more, New program asks which to start from.'**
+  String get programTemplatesEmptyBody;
+
+  /// Label of the program template name field.
+  ///
+  /// In en, this message translates to:
+  /// **'Template name'**
+  String get programTemplateNameLabel;
+
+  /// Menu action that renames a program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get programTemplateRename;
+
+  /// Dialog title for renaming a program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename template'**
+  String get programTemplateRenameTitle;
+
+  /// Name of a duplicated program template.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} (copy)'**
+  String programTemplateCopyName(String name);
+
+  /// Shown for a program template with no name.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled template'**
+  String get programTemplateUntitled;
+
+  /// How many slots a program template has, in the manager list.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Empty} =1{1 slot} other{{count} slots}}'**
+  String programTemplateSlotCount(int count);
+
+  /// Manager list subtitle of the default template; slots is the slot count text.
+  ///
+  /// In en, this message translates to:
+  /// **'Default · {slots}'**
+  String programTemplateDefaultWithSlots(String slots);
+
+  /// Tooltip and screen-reader label of a program template row menu.
+  ///
+  /// In en, this message translates to:
+  /// **'Actions for {name}'**
+  String programTemplateActionsTooltip(String name);
+
+  /// Title of the program template editor screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit template'**
+  String get programTemplateEditorTitle;
+
+  /// Heading over a program template slot list.
+  ///
+  /// In en, this message translates to:
+  /// **'Slots'**
+  String get programTemplateSlotsHeader;
+
+  /// Explains a program template slot list.
+  ///
+  /// In en, this message translates to:
+  /// **'Dances, notes and breaks a program made from this template starts with.'**
+  String get programTemplateSlotsSubtitle;
+
+  /// Error shown when program templates cannot be read.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your program templates.'**
+  String get programTemplatesLoadError;
+
+  /// Snackbar shown when creating, renaming, duplicating, reordering or deleting a program template fails to save.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save that change to your templates. Try again.'**
+  String get programTemplateSaveError;
+
+  /// Header of the Suggestions group in the Experimental settings section (#2343).
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions'**
+  String get settingsSuggestionsHeader;
+
+  /// Title of the switch that turns on the Suggested sort in the program builder's dance list.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggest the next dance'**
+  String get settingsSuggestionsEnabledTitle;
+
+  /// Subtitle of the Suggest the next dance switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds Suggested to the Sort menu of the program builder\'s dance lists. It orders the dances for where the new one will go and says why.'**
+  String get settingsSuggestionsEnabledSubtitle;
+
+  /// Title of the switch, shown under Suggest the next dance while it is on, that makes Perform's swap sheet order its dances by suggestions (#2348). Swap this dance is the Perform button of that name.
+  ///
+  /// In en, this message translates to:
+  /// **'Use in Perform\'s Swap this dance'**
+  String get settingsSuggestionsInPerformSwapTitle;
+
+  /// Subtitle of the Use in Perform's Swap this dance switch.
+  ///
+  /// In en, this message translates to:
+  /// **'When you swap a dance in Perform, lists the dances below Your alternates in the order that best fits that place in the program, and says why. Nothing is left out.'**
+  String get settingsSuggestionsInPerformSwapSubtitle;
+
+  /// Title of the row, and of the screen it opens, where the user chooses how much each suggestion factor counts.
+  ///
+  /// In en, this message translates to:
+  /// **'What suggestions look for'**
+  String get settingsSuggestionsEditorTitle;
+
+  /// Subtitle of the What suggestions look for row.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how much each thing counts when dances are suggested.'**
+  String get settingsSuggestionsEditorSubtitle;
+
+  /// Name of the suggestion factor that favours moves the program has not used yet and avoids moves on the same beats as the neighbouring dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Variety on the matrix'**
+  String get suggestionFactorMatrixVarietyTitle;
+
+  /// Explanation under the Variety on the matrix factor in the suggestions editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Favor dances with moves the program hasn\'t used yet. Avoid moves on the same beats as the dance before.'**
+  String get suggestionFactorMatrixVarietyHelp;
+
+  /// Name of the suggestion factor that avoids repeating formations.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation balance'**
+  String get suggestionFactorFormationBalanceTitle;
+
+  /// Explanation under the Formation balance factor in the suggestions editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Avoid the formation of the dance before, and formations the program already has many of.'**
+  String get suggestionFactorFormationBalanceHelp;
+
+  /// Name of the suggestion factor that fits dance difficulty to a chosen shape over the evening.
+  ///
+  /// In en, this message translates to:
+  /// **'Difficulty curve'**
+  String get suggestionFactorDifficultyCurveTitle;
+
+  /// Explanation under the Difficulty curve factor in the suggestions editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit the difficulty of the evening to a shape.'**
+  String get suggestionFactorDifficultyCurveHelp;
+
+  /// Name of the suggestion factor that avoids dances called recently at the program's venue.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent calls at this venue'**
+  String get suggestionFactorVenueRecencyTitle;
+
+  /// Explanation under the Recent calls at this venue factor in the suggestions editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Avoid dances called recently at the program\'s venue. A program with no venue skips this.'**
+  String get suggestionFactorVenueRecencyHelp;
+
+  /// Weight choice for a suggestion factor: it does not count at all. Also the curve shape choice that turns the difficulty curve off.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get suggestionWeightOff;
+
+  /// Weight choice for a suggestion factor: it counts a little.
+  ///
+  /// In en, this message translates to:
+  /// **'A little'**
+  String get suggestionWeightALittle;
+
+  /// Weight choice for a suggestion factor: it counts a lot.
+  ///
+  /// In en, this message translates to:
+  /// **'A lot'**
+  String get suggestionWeightALot;
+
+  /// Screen-reader label of the Off / A little / A lot choice for one suggestion factor.
+  ///
+  /// In en, this message translates to:
+  /// **'How much {factor} counts'**
+  String suggestionWeightSemantic(String factor);
+
+  /// Label of the difficulty curve's shape choice in the suggestions editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Shape'**
+  String get suggestionCurveShapeLabel;
+
+  /// Difficulty curve shape: start easy, build to the hardest dances about two thirds of the way in, then ease off.
+  ///
+  /// In en, this message translates to:
+  /// **'Build up, then ease off'**
+  String get suggestionCurveBuildThenEase;
+
+  /// Difficulty curve shape: stay close to the level of the dances already in the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Even'**
+  String get suggestionCurveEven;
+
+  /// Button in the suggestions editor that restores the shipped choices.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to defaults'**
+  String get suggestionsResetDefaults;
+
+  /// Snackbar after Reset to defaults in the suggestions editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions look for the default things again.'**
+  String get suggestionsResetDone;
+
+  /// Notice in the suggestions editor when the stored choices come from a newer app version; the editor is read-only then.
+  ///
+  /// In en, this message translates to:
+  /// **'These choices were saved by a newer version of the app, so they can\'t be changed here. Update the app to change them.'**
+  String get suggestionsNewerVersion;
+
+  /// Sort choice in the program builder's dance lists (adding a dance, and Replace), offered when Suggestions is on: the dances ordered for where the new one will go (the end of the program, a place before or after a slot, or the slot being replaced).
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested'**
+  String get collectionSortSuggested;
+
+  /// Suggestion reason: the dance brings moves no other dance in the program uses.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{A new move for tonight} other{{count} new moves for tonight}}'**
+  String suggestionReasonNewMoves(int count);
+
+  /// Suggestion reason: a move lands on the same beats as in the previous dance (the matrix's collision rule). {move} is the matrix column's name, such as partner swing.
+  ///
+  /// In en, this message translates to:
+  /// **'Same {move} beats as the previous dance'**
+  String suggestionReasonBeatOverlapPrevious(String move);
+
+  /// Suggestion reason: a move lands on the same beats as in the next dance. {move} is the matrix column's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Same {move} beats as the next dance'**
+  String suggestionReasonBeatOverlapNext(String move);
+
+  /// Suggestion reason: the dance is in the same formation as the previous one.
+  ///
+  /// In en, this message translates to:
+  /// **'{formation}, like the previous dance'**
+  String suggestionReasonSameFormationPrevious(String formation);
+
+  /// Suggestion reason: the dance is in the same formation as the next one.
+  ///
+  /// In en, this message translates to:
+  /// **'{formation}, like the next dance'**
+  String suggestionReasonSameFormationNext(String formation);
+
+  /// Suggestion reason: the program already has many dances in this formation. {count} is at least 3.
+  ///
+  /// In en, this message translates to:
+  /// **'Already {count} {formation} dances tonight'**
+  String suggestionReasonFormationCommon(int count, String formation);
+
+  /// Suggestion reason: no other dance in the program is in this formation.
+  ///
+  /// In en, this message translates to:
+  /// **'{formation}: the first tonight'**
+  String suggestionReasonFirstFormation(String formation);
+
+  /// Suggestion reason: the dance's level fits the chosen difficulty curve at this point of the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Fits the difficulty curve here'**
+  String get suggestionReasonFitsCurve;
+
+  /// Suggestion reason: the dance's level is above what the difficulty curve wants at this point.
+  ///
+  /// In en, this message translates to:
+  /// **'Harder than the difficulty curve wants here'**
+  String get suggestionReasonHarderThanCurve;
+
+  /// Suggestion reason: the dance's level is below what the difficulty curve wants at this point.
+  ///
+  /// In en, this message translates to:
+  /// **'Easier than the difficulty curve wants here'**
+  String get suggestionReasonEasierThanCurve;
+
+  /// Suggestion reason: the dance was called at this program's venue within the chosen window.
+  ///
+  /// In en, this message translates to:
+  /// **'Called at {venue} on {date}'**
+  String suggestionReasonCalledHereRecently(String venue, String date);
+
+  /// Suggestion reason: the dance was last called at this venue before the chosen window, on {date}.
+  ///
+  /// In en, this message translates to:
+  /// **'Not called at {venue} since {date}'**
+  String suggestionReasonNotCalledHereSince(String venue, String date);
+
+  /// Suggestion reason: the dance has never been called at this program's venue.
+  ///
+  /// In en, this message translates to:
+  /// **'Never called at {venue}'**
+  String suggestionReasonNeverCalledHere(String venue);
+
+  /// Note in a suggestion's Why? list when the program has no venue, so the venue factor could not be used.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent calls at this venue: skipped, because the program has no venue'**
+  String get suggestionReasonVenueSkipped;
+
+  /// Suggestion reason when no factor raised or lowered the dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing it looks for moved this dance'**
+  String get suggestionReasonNoFactor;
+
+  /// Reason on an English dance in the Suggested order: English dances are listed after the ranked ones, in the plain order.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions don\'t cover English dances yet'**
+  String get suggestionReasonEnglishNotCovered;
+
+  /// Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the previous dance. {move} is the matrix column's name.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} in the same phrase as the previous dance'**
+  String suggestionReasonPhraseOverlapPrevious(String move);
+
+  /// Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the next dance. {move} is the matrix column's name.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} in the same phrase as the next dance'**
+  String suggestionReasonPhraseOverlapNext(String move);
+
+  /// Suggestion reason: a move lands on the same beats as in the named dance, which this one would follow (the matrix's collision rule). {move} is the matrix column's name, such as partner swing. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'Same {move} beats as {dance}, after it'**
+  String suggestionReasonBeatOverlapAfterDance(String move, String dance);
+
+  /// Suggestion reason: a move lands on the same beats as in the named dance, which this one would come before. {move} is the matrix column's name. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'Same {move} beats as {dance}, before it'**
+  String suggestionReasonBeatOverlapBeforeDance(String move, String dance);
+
+  /// Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the named dance, which this one would follow. {move} is the matrix column's name. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} in the same phrase as {dance}, after it'**
+  String suggestionReasonPhraseOverlapAfterDance(String move, String dance);
+
+  /// Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the named dance, which this one would come before. {move} is the matrix column's name. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} in the same phrase as {dance}, before it'**
+  String suggestionReasonPhraseOverlapBeforeDance(String move, String dance);
+
+  /// Suggestion reason: the dance is in the same formation as the named dance, which this one would follow. {formation} is the formation's name. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'{formation}, like {dance}, after it'**
+  String suggestionReasonSameFormationAfterDance(
+    String formation,
+    String dance,
+  );
+
+  /// Suggestion reason: the dance is in the same formation as the named dance, which this one would come before. {formation} is the formation's name. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'{formation}, like {dance}, before it'**
+  String suggestionReasonSameFormationBeforeDance(
+    String formation,
+    String dance,
+  );
+
+  /// Suggestion reason: the dance is already in the program being built, so the Suggested order puts it last (it is not removed).
+  ///
+  /// In en, this message translates to:
+  /// **'Already in this program'**
+  String get suggestionReasonAlreadyInProgram;
+
+  /// Notice in the program builder's dance picker when the Suggested sort is chosen but ranking failed; the list shows in its plain order.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t rank these dances, so they\'re in their usual order.'**
+  String get suggestionRankingFailed;
+
+  /// Tooltip and screen-reader label of the Why? button on a row in the Suggested order.
+  ///
+  /// In en, this message translates to:
+  /// **'Why {title} is suggested here'**
+  String suggestionWhyTooltip(String title);
+
+  /// Title of the dialog listing every factor that moved a dance in the Suggested order.
+  ///
+  /// In en, this message translates to:
+  /// **'Why {title}'**
+  String suggestionWhyTitle(String title);
+
+  /// Screen-reader label of a reason in the Why? dialog that moved the dance up.
+  ///
+  /// In en, this message translates to:
+  /// **'Raises it: {reason}'**
+  String suggestionWhyRaises(String reason);
+
+  /// Screen-reader label of a reason in the Why? dialog that moved the dance down.
+  ///
+  /// In en, this message translates to:
+  /// **'Lowers it: {reason}'**
+  String suggestionWhyLowers(String reason);
+
+  /// Hint in the search box of the open list of dancers a figure names (its Who field), which narrows the list.
+  ///
+  /// In en, this message translates to:
+  /// **'Search dancers'**
+  String get figureParamSearchDancersHint;
+
+  /// Program export-menu item: save or share the program as an iCalendar (.ics) file so a calendar app shows it. Shown only when the program has an event date.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to calendar (.ics)'**
+  String get exportAddToCalendar;
+
+  /// Programs list More actions item: pick several programs and save or share them as one iCalendar (.ics) file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export calendar (.ics)'**
+  String get programsExportCalendar;
+
+  /// Title of the checklist dialog where the user picks which programs go into a calendar (.ics) file. Also the share-sheet subject for that file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export calendar'**
+  String get exportCalendarPickTitle;
+
+  /// Body of the calendar export checklist dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the programs to put in the calendar file.'**
+  String get exportCalendarPickBody;
+
+  /// Switch in the calendar export checklist that adds programs whose date has passed to the list, unticked.
+  ///
+  /// In en, this message translates to:
+  /// **'Show past programs'**
+  String get exportCalendarShowPast;
+
+  /// Shown in the calendar export checklist when there are dated programs but none dated today or later that is not archived, and past programs are hidden. Upcoming archived programs are never listed in the checklist.
+  ///
+  /// In en, this message translates to:
+  /// **'No upcoming programs to list. Archived programs aren\'t listed here. Turn on Show past programs to choose an earlier one.'**
+  String get exportCalendarNoUpcoming;
+
+  /// Shown in the calendar export checklist when no program has an event date.
+  ///
+  /// In en, this message translates to:
+  /// **'No program has an event date yet. Give a program a date to add it to a calendar.'**
+  String get exportCalendarNoDated;
+
+  /// Confirm button of the calendar export checklist dialog; disabled until at least one program is ticked.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get exportCalendarPickConfirm;
+
+  /// Title of the consent dialog shown before a calendar (.ics) export when a chosen program's venue has a street address.
+  ///
+  /// In en, this message translates to:
+  /// **'Include the venue\'s address?'**
+  String get exportCalendarAddressTitle;
+
+  /// Body of the calendar export's venue-address consent dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'The calendar file names the venue. Its street address is left out unless you include it. Calendars are often synced or shared with others.'**
+  String get exportCalendarAddressBody;
+
+  /// The single checkbox, unticked by default, in the calendar export's venue-address consent dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Include the venue\'s address'**
+  String get exportCalendarAddressInclude;
+
+  /// Title of the dialog that asks how to deliver a calendar (.ics) file: Save, Share or Cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Export calendar file'**
+  String get exportCalendarDialogTitle;
+
+  /// Body of the dialog that asks how to deliver a calendar (.ics) file.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how to deliver this calendar file.'**
+  String get exportCalendarDialogMessage;
+
+  /// Snack bar after a calendar (.ics) file was saved, when the platform does not report its file name.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar file saved.'**
+  String get exportCalendarSavedGeneric;
+
+  /// Snack bar when saving a calendar (.ics) file failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save this calendar file. Try again.'**
+  String get exportCalendarSaveError;
+
+  /// Snack bar when building or sharing a calendar (.ics) file failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t share this calendar file. Try again.'**
+  String get exportCalendarShareError;
+
+  /// Error when a calendar import's address returns something that is not an iCalendar file, often a web page. Mentions where Google Calendar shows its iCal address.
+  ///
+  /// In en, this message translates to:
+  /// **'That address didn\'t return a calendar. For a Google Calendar, use its address in iCal format (Settings and sharing ▸ Integrate calendar), not the ordinary link.'**
+  String get importErrorNotACalendar;
+
+  /// Programs import menu item: import gigs from the user's online calendar as draft programs.
+  ///
+  /// In en, this message translates to:
+  /// **'From calendar'**
+  String get importFromCalendar;
+
+  /// More actions menu item on narrow screens: import gigs from the user's online calendar as draft programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from calendar'**
+  String get importProgramFromCalendar;
+
+  /// Title of the calendar import screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from calendar'**
+  String get calendarImportTitle;
+
+  /// App-bar button on the calendar import screen that creates the ticked draft programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get calendarImportImport;
+
+  /// Label of the field holding the online calendar's iCal (.ics) address.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar address'**
+  String get calendarAddressLabel;
+
+  /// Helper text under the calendar address field.
+  ///
+  /// In en, this message translates to:
+  /// **'The calendar\'s iCal address, starting https:// or webcal://. A private calendar\'s secret address works too; keep it to yourself.'**
+  String get calendarAddressHelper;
+
+  /// Button on the calendar import screen that reads the calendar now.
+  ///
+  /// In en, this message translates to:
+  /// **'Fetch events'**
+  String get calendarImportFetch;
+
+  /// Generic failure message of the calendar import.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t import from the calendar. Try again.'**
+  String get calendarImportFailed;
+
+  /// Title given to a calendar event with no usable title, in the preview and on the draft program it becomes.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled event'**
+  String get calendarImportUntitled;
+
+  /// Snack bar after a calendar import created draft programs; offers Undo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 draft program added from your calendar.} other{{count} draft programs added from your calendar.}}'**
+  String calendarImportCommitted(int count);
+
+  /// Shown on the calendar import preview when the calendar has no events in range.
+  ///
+  /// In en, this message translates to:
+  /// **'No events in the date range.'**
+  String get calendarImportNothingFound;
+
+  /// Summary at the top of the calendar import preview.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No new events.} =1{1 new event.} other{{count} new events.}}'**
+  String calendarImportSummary(int count);
+
+  /// Heading over the new calendar events, ticked, in the calendar import preview.
+  ///
+  /// In en, this message translates to:
+  /// **'New in your calendar'**
+  String get calendarImportNewHeader;
+
+  /// Heading over calendar events whose imported program is in Recently deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'You deleted these programs'**
+  String get calendarImportDeletedHeader;
+
+  /// Note on a calendar event whose imported program is in Recently deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'You deleted the program made from this event. Tick it to import it again.'**
+  String get calendarImportDeletedNote;
+
+  /// Heading over calendar events already imported as programs; they are not offered again.
+  ///
+  /// In en, this message translates to:
+  /// **'Already imported'**
+  String get calendarImportAlreadyHeader;
+
+  /// Heading over calendar events that this app exported from its own programs; they are not offered.
+  ///
+  /// In en, this message translates to:
+  /// **'From this app'**
+  String get calendarImportFromThisAppHeader;
+
+  /// Heading over repeating calendar events whose repeat rule the app cannot read.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeating events the app can\'t read'**
+  String get calendarImportUnreadableHeader;
+
+  /// Body under the heading for unreadable repeating events.
+  ///
+  /// In en, this message translates to:
+  /// **'These repeat in a way the app doesn\'t understand, so they are not imported.'**
+  String get calendarImportUnreadableBody;
+
+  /// Note in the calendar import preview: events with no UID cannot be recognised again, so they are skipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 event has no identifier and was skipped.} other{{count} events have no identifier and were skipped.}}'**
+  String calendarImportSkippedNoUid(int count);
+
+  /// Note in the calendar import preview when the feed is over the event cap.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, other{The calendar has more than {count} events. Only the first {count} were read.}}'**
+  String calendarImportTruncated(int count);
+
+  /// Settings ▸ Program subsection heading for the calendar import.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar'**
+  String get calendarSettingsHeader;
+
+  /// Snack bar when a calendar setting could not be saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save that setting. Try again.'**
+  String get calendarSettingsSaveError;
+
+  /// Subtitle of the calendar address setting when an address is stored. The address itself is never shown.
+  ///
+  /// In en, this message translates to:
+  /// **'Set. Tap to change it.'**
+  String get calendarAddressSet;
+
+  /// Subtitle of the calendar address setting when none is stored.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get calendarAddressNotSet;
+
+  /// Title of the calendar import's date-window setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Which events'**
+  String get calendarWindowTitle;
+
+  /// Subtitle of the calendar import's date-window setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Events from today up to this far ahead. Repeating events are read only 30 days ahead.'**
+  String get calendarWindowSubtitle;
+
+  /// An option in the calendar import's date-window setting.
+  ///
+  /// In en, this message translates to:
+  /// **'{months, plural, =1{1 month} other{{months} months}}'**
+  String calendarWindowOption(int months);
+
+  /// Title of the calendar import's title-filter setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Only events whose title contains'**
+  String get calendarTitleFilterTitle;
+
+  /// Helper text of the calendar import's title-filter field.
+  ///
+  /// In en, this message translates to:
+  /// **'For a calendar that also holds other events. Leave empty for every event.'**
+  String get calendarTitleFilterHelper;
+
+  /// Subtitle of the title-filter setting when no filter is set.
+  ///
+  /// In en, this message translates to:
+  /// **'Every event'**
+  String get calendarTitleFilterNone;
+
+  /// Subtitle of the title-filter setting showing the stored filter in quotes.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{filter}\"'**
+  String calendarTitleFilterValue(String filter);
+
+  /// Settings item that opens the calendar import.
+  ///
+  /// In en, this message translates to:
+  /// **'Pull now'**
+  String get calendarPullNowTitle;
+
+  /// Subtitle of the Pull now settings item.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the calendar and choose events to add as draft programs.'**
+  String get calendarPullNowSubtitle;
+
+  /// Collection selection-mode overflow menu item that exports the selected dances as a CSV spreadsheet file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export as CSV'**
+  String get collectionExportCsv;
+
+  /// Title of the Settings > General > Backup & restore row that exports every dance as a CSV spreadsheet file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export dances as a spreadsheet'**
+  String get settingsExportDancesCsvTitle;
+
+  /// Subtitle of the Settings row that exports every dance as a CSV spreadsheet. 'Sharing rules' are what the app leaves out of shared files (for example an author's email).
+  ///
+  /// In en, this message translates to:
+  /// **'Every dance in your collection, as a CSV file for Excel, Numbers or Google Sheets. It follows the sharing rules, plus your star ratings. It is not a backup and can\'t be restored.'**
+  String get settingsExportDancesCsvSubtitle;
+
+  /// Button label on the Settings row that exports every dance as a CSV spreadsheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get settingsExportDancesCsvAction;
+
+  /// Title of the dialog that asks how to deliver an exported CSV spreadsheet file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export a spreadsheet (CSV)'**
+  String get exportCsvDialogTitle;
+
+  /// Message of the dialog that asks how to deliver an exported CSV spreadsheet file.
+  ///
+  /// In en, this message translates to:
+  /// **'Save the file, or share it with another app. It opens in Excel, Numbers, LibreOffice or Google Sheets.'**
+  String get exportCsvDialogMessage;
+
+  /// Snackbar confirming a CSV spreadsheet was saved when the platform does not report a file name.
+  ///
+  /// In en, this message translates to:
+  /// **'Spreadsheet saved.'**
+  String get exportCsvSavedGeneric;
+
+  /// Snackbar when saving an exported CSV spreadsheet fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save this spreadsheet. Try again.'**
+  String get exportCsvSaveError;
+
+  /// Snackbar when sharing an exported CSV spreadsheet fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t share this spreadsheet. Try again.'**
+  String get exportCsvShareError;
+
+  /// Snackbar when reading the data for, or building, a CSV spreadsheet export fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t make this spreadsheet. Try again.'**
+  String get exportCsvError;
+
+  /// Start of the file name of an exported dances CSV spreadsheet, before the date (for example dances_2026-11-23.csv). Lower case; a single word if possible.
+  ///
+  /// In en, this message translates to:
+  /// **'dances'**
+  String get csvDancesFileStem;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance title.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get csvColumnTitle;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance's authors (choreographers).
+  ///
+  /// In en, this message translates to:
+  /// **'Authors'**
+  String get csvColumnAuthors;
+
+  /// Column heading in an exported dances CSV spreadsheet: the people who interpreted (reconstructed) a historical dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted by'**
+  String get csvColumnInterpreters;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance type, such as contra or English country. Matches the dance editor's Type field.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get csvColumnForm;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance formation.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation'**
+  String get csvColumnFormation;
+
+  /// Column heading in an exported dances CSV spreadsheet: how the dance progresses (single, double, and so on).
+  ///
+  /// In en, this message translates to:
+  /// **'Progression'**
+  String get csvColumnProgression;
+
+  /// Column heading in an exported dances CSV spreadsheet: the difficulty level.
+  ///
+  /// In en, this message translates to:
+  /// **'Level'**
+  String get csvColumnLevel;
+
+  /// Column heading in an exported dances CSV spreadsheet: whether the dance spans the difficulty scale (Yes or No).
+  ///
+  /// In en, this message translates to:
+  /// **'Mixed level'**
+  String get csvColumnMixedLevel;
+
+  /// Column heading in an exported dances CSV spreadsheet: whether dancers change partners each time through (Yes or No).
+  ///
+  /// In en, this message translates to:
+  /// **'Mixer'**
+  String get csvColumnMixer;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance's status, such as active or retired.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get csvColumnStatus;
+
+  /// Column heading in an exported dances CSV spreadsheet: the star rating, 1 to 5, empty when unrated.
+  ///
+  /// In en, this message translates to:
+  /// **'Rating'**
+  String get csvColumnRating;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance's tags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get csvColumnTags;
+
+  /// Column heading in an exported dances CSV spreadsheet: suggested tunes.
+  ///
+  /// In en, this message translates to:
+  /// **'Tunes'**
+  String get csvColumnTunes;
+
+  /// Column heading in an exported dances CSV spreadsheet: the musical meter, such as 6/8.
+  ///
+  /// In en, this message translates to:
+  /// **'Meter'**
+  String get csvColumnMeter;
+
+  /// Column heading in an exported dances CSV spreadsheet: the musical key.
+  ///
+  /// In en, this message translates to:
+  /// **'Key'**
+  String get csvColumnKey;
+
+  /// Column heading in an exported dances CSV spreadsheet: books or collections the dance is published in, with page and number.
+  ///
+  /// In en, this message translates to:
+  /// **'Published sources'**
+  String get csvColumnSources;
+
+  /// Column heading in an exported dances CSV spreadsheet: the one-line reason to call the dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Hook'**
+  String get csvColumnHook;
+
+  /// Column heading in an exported dances CSV spreadsheet: the caller's notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Calling notes'**
+  String get csvColumnCallingNotes;
+
+  /// Column heading in an exported dances CSV spreadsheet: the step-by-step walkthrough.
+  ///
+  /// In en, this message translates to:
+  /// **'Walkthrough'**
+  String get csvColumnWalkthrough;
+
+  /// Column heading in an exported dances CSV spreadsheet: the dance's figures, one per line.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures'**
+  String get csvColumnFigures;
+
+  /// Column heading in an exported dances CSV spreadsheet: when the dance was composed, as a year or a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Composed'**
+  String get csvColumnComposed;
+
+  /// Column heading in an exported dances CSV spreadsheet: when a historical dance was interpreted (reconstructed), as a year or a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Interpreted in'**
+  String get csvColumnInterpreted;
+
+  /// Column heading in an exported dances CSV spreadsheet: where an English country dance appears in the Barnes books.
+  ///
+  /// In en, this message translates to:
+  /// **'Barnes reference'**
+  String get csvColumnBarnes;
+
+  /// Programs list overflow menu item that exports the programs in the current view as a CSV spreadsheet file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export programs as CSV'**
+  String get programsExportCsv;
+
+  /// Start of the file name of an exported programs CSV spreadsheet, before the date (for example programs_2026-11-23.csv). Lower case; a single word if possible.
+  ///
+  /// In en, this message translates to:
+  /// **'programs'**
+  String get csvProgramsFileStem;
+
+  /// Column heading in an exported programs CSV spreadsheet: the date of the event.
+  ///
+  /// In en, this message translates to:
+  /// **'Event date'**
+  String get csvColumnEventDate;
+
+  /// Column heading in an exported programs CSV spreadsheet: the venue's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue'**
+  String get csvColumnVenue;
+
+  /// Column heading in an exported programs CSV spreadsheet: the event's caller.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller'**
+  String get csvColumnCaller;
+
+  /// Column heading in an exported programs CSV spreadsheet: the band playing the event.
+  ///
+  /// In en, this message translates to:
+  /// **'Band'**
+  String get csvColumnBand;
+
+  /// Column heading in an exported programs CSV spreadsheet: the event's overall dancer level.
+  ///
+  /// In en, this message translates to:
+  /// **'Dancer level'**
+  String get csvColumnDancerLevel;
+
+  /// Column heading in an exported programs CSV spreadsheet: what the caller was paid, as a number.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay'**
+  String get csvColumnPayAmount;
+
+  /// Column heading in an exported programs CSV spreadsheet: the currency of the pay, such as USD.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency'**
+  String get csvColumnPayCurrency;
+
+  /// Column heading in an exported programs CSV spreadsheet: the program's notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get csvColumnNotes;
+
+  /// Column heading in an exported programs CSV spreadsheet: how many dances the program has, not counting alternates.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of dances'**
+  String get csvColumnDanceCount;
+
+  /// Column heading in an exported programs CSV spreadsheet: the program's dances in order, one per line, alternates marked.
+  ///
+  /// In en, this message translates to:
+  /// **'Dances'**
+  String get csvColumnDances;
+
+  /// Shown in the export dialog of the programs CSV spreadsheet while the Show pay setting is off: the file has no pay columns. 'Show pay' is the setting's name (settingsProgramShowPayTitle).
+  ///
+  /// In en, this message translates to:
+  /// **'Pay is hidden in Settings, so it is left out. Turn on Show pay in Settings ▸ Program to include it.'**
+  String get exportCsvPayHiddenNotice;
+
+  /// Button in Perform's Adjust program sheet, under the dance being called now: opens the swap sheet to replace it with another dance. The replaced dance is kept as an alternate.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap this dance'**
+  String get performSwapThisDance;
+
+  /// Tooltip and screen-reader label of the Swap button on an upcoming dance in Perform's Adjust program sheet, and the title of the swap sheet. {title} is the dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap {title}'**
+  String performSwapDanceNamed(String title);
+
+  /// Screen-reader announcement after the caller picks a replacement in Perform's swap sheet. {title} is the new dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'Swapped in {title}'**
+  String performSwappedAnnounce(String title);
+
+  /// Heading over the choices in Perform's swap sheet that say what the replacement dance must share with the dance being swapped (verb: keep these the same).
+  ///
+  /// In en, this message translates to:
+  /// **'Keep'**
+  String get performSwapKeepHeader;
+
+  /// Chip in Perform's swap sheet: only list dances in the same formation as the dance being swapped. {formation} is the formation's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Same formation: {formation}'**
+  String performSwapKeepFormation(String formation);
+
+  /// Chip in Perform's swap sheet: only list dances at the level of the dance being swapped or an easier one. {level} is that level's name.
+  ///
+  /// In en, this message translates to:
+  /// **'This level or easier: {level}'**
+  String performSwapKeepLevel(String level);
+
+  /// Chip in Perform's swap sheet, shown only in a program that mixes types: only list dances of the same type (contra, English, square) as the dance being swapped. {type} is the type's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Same type: {type}'**
+  String performSwapKeepType(String type);
+
+  /// Chip in Perform's swap sheet, and a switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance: leave out dances already in this program.
+  ///
+  /// In en, this message translates to:
+  /// **'Not already in tonight\'s program'**
+  String get performSwapKeepNotInProgram;
+
+  /// Heading over the figures of the dance being swapped, in Perform's swap sheet. Tapping one only lists dances that also have that figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures to keep'**
+  String get performSwapFiguresHeader;
+
+  /// Label of a figure chip in Perform's swap sheet: the figure's name and the phrase of the music it starts in. {phrase} is a phrase label such as A1 or B2, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'{figure} in {phrase}'**
+  String performSwapFigureInPhrase(String figure, String phrase);
+
+  /// Screen-reader label of a figure chip in Perform's swap sheet. {figure} is the chip's text, for example "hey in A2".
+  ///
+  /// In en, this message translates to:
+  /// **'Keep {figure}'**
+  String performSwapKeepFigureSemantic(String figure);
+
+  /// Chip under a kept figure in Perform's swap sheet: the replacement must have the figure in the same phrase of the music. {phrase} is a phrase label such as A1, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'In the same phrase ({phrase})'**
+  String performSwapSamePhrase(String phrase);
+
+  /// Screen-reader label of the In the same phrase chip in Perform's swap sheet. {figure} is the figure's name, {phrase} a phrase label such as A1.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep {figure} in the same phrase, {phrase}'**
+  String performSwapSamePhraseSemantic(String figure, String phrase);
+
+  /// Chip under a kept figure in Perform's swap sheet: the replacement must have the figure right after the same figure that comes before it in this dance. {figure} is the name of that earlier figure.
+  ///
+  /// In en, this message translates to:
+  /// **'With what comes before it ({figure})'**
+  String performSwapWithBefore(String figure);
+
+  /// Screen-reader label of the With what comes before it chip in Perform's swap sheet. {figure} is the kept figure's name, {before} the figure that comes right before it.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep {figure} right after {before}'**
+  String performSwapWithBeforeSemantic(String figure, String before);
+
+  /// Button in Perform's swap sheet that opens the full Filters and Advanced search panels, with the Keep choices filled in.
+  ///
+  /// In en, this message translates to:
+  /// **'More filters'**
+  String get performSwapMoreFilters;
+
+  /// Note in Perform's swap sheet after More filters is tapped: the formation, level, type and figure choices can now be changed in the Filters and Advanced panels. 'Filters' and 'Advanced' are the names of those panels.
+  ///
+  /// In en, this message translates to:
+  /// **'The other Keep choices are now in Filters and Advanced.'**
+  String get performSwapKeepInPanels;
+
+  /// Note in Perform's swap sheet when the dance being swapped is an English country dance: the Same formation chip and the In the same phrase / With what comes before it chips are not offered for English dances.
+  ///
+  /// In en, this message translates to:
+  /// **'For English dances, same formation and the figure refinements are not offered yet.'**
+  String get performSwapEnglishNote;
+
+  /// Heading in Perform's swap sheet over the dances the caller already listed as alternates for this slot, shown first.
+  ///
+  /// In en, this message translates to:
+  /// **'Your alternates'**
+  String get performSwapAlternatesHeading;
+
+  /// Heading in Perform's swap sheet over the dances that match the Keep choices, below Your alternates.
+  ///
+  /// In en, this message translates to:
+  /// **'Matching dances'**
+  String get performSwapResultsHeading;
+
+  /// Message in Perform when one of the caller's changes could not be saved because another device changed the program meanwhile. The change may be an Adjust sheet edit (for example a swap, a note, or marking a dance performed) touching slots that changed elsewhere, or an Undo; it is not always the latest change, since changes are saved one after another. Nothing from that change is saved, the program is shown as stored (with any later change that is still being saved kept on screen), and the caller is asked to check the program and make the change again if they still want it.
+  ///
+  /// In en, this message translates to:
+  /// **'This program changed on another device, so one of your changes wasn\'t saved. Check the program and make it again if you still want it.'**
+  String get performSwapRefused;
+
+  /// Settings ▸ Program ▸ Perform mode row, and the title of its screen: which Keep choices are on when the caller swaps a dance in Perform. Also names this setting in Device Sync lists.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap a dance'**
+  String get settingsPerformSwapTitle;
+
+  /// Subtitle of Settings ▸ Program ▸ Perform mode ▸ Swap a dance, and the first line of its screen. 'Keep' is the heading of those choices in the swap sheet (performSwapKeepHeader).
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which Keep choices are on when you swap a dance in Perform.'**
+  String get settingsPerformSwapSubtitle;
+
+  /// Switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance: whether the Same formation choice is on when the swap sheet opens.
+  ///
+  /// In en, this message translates to:
+  /// **'Same formation'**
+  String get settingsPerformSwapFormation;
+
+  /// Switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance: whether the This level or easier choice is on when the swap sheet opens.
+  ///
+  /// In en, this message translates to:
+  /// **'This level or easier'**
+  String get settingsPerformSwapLevel;
+
+  /// Switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance: whether the Same type choice is on when the swap sheet opens.
+  ///
+  /// In en, this message translates to:
+  /// **'Same type'**
+  String get settingsPerformSwapType;
+
+  /// Subtitle of the Same type switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Offered only in a program that mixes types, such as contras and English dances.'**
+  String get settingsPerformSwapTypeSubtitle;
+
+  /// Notice in Settings ▸ Program ▸ Perform mode ▸ Swap a dance when the stored choices came from a newer version of the app: this version cannot read them, so the switches show its starting choices (all on), read-only, and the stored choices are kept.
+  ///
+  /// In en, this message translates to:
+  /// **'These choices were saved by a newer version of the app. This version uses its starting choices, with every one on, and won\'t overwrite yours. Update the app to change them.'**
+  String get settingsPerformSwapNewerVersion;
+
+  /// Error in Settings ▸ Program ▸ Perform mode ▸ Swap a dance when the stored choices could not be read; the switches are shown read-only and nothing is saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Swap a dance choices couldn\'t be read, so they can\'t be changed now. Close this screen and try again.'**
+  String get settingsPerformSwapReadError;
+
+  /// Collection More actions menu item that opens the Repertoire page (#2357, Experimental).
+  ///
+  /// In en, this message translates to:
+  /// **'Repertoire'**
+  String get collectionRepertoireMenuItem;
+
+  /// App bar title of the Repertoire page: a read-only summary of the collection and its calling history (#2357).
+  ///
+  /// In en, this message translates to:
+  /// **'Repertoire'**
+  String get repertoireTitle;
+
+  /// Shown when the Repertoire page fails to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t work out your repertoire'**
+  String get repertoireLoadError;
+
+  /// Label of the Repertoire page's period chips.
+  ///
+  /// In en, this message translates to:
+  /// **'Period'**
+  String get repertoirePeriodLabel;
+
+  /// Repertoire period chip: every call, whenever it was.
+  ///
+  /// In en, this message translates to:
+  /// **'All time'**
+  String get repertoirePeriodAllTime;
+
+  /// Repertoire period chip: calls in the last N calendar months (1, 3 or 6).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Last month} other{Last {count} months}}'**
+  String repertoirePeriodMonths(int count);
+
+  /// Repertoire period chip that opens a date picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Since a date…'**
+  String get repertoirePeriodSinceDate;
+
+  /// Repertoire period chip once a date is chosen. {date} is the formatted date.
+  ///
+  /// In en, this message translates to:
+  /// **'Since {date}'**
+  String repertoirePeriodSince(String date);
+
+  /// Label of the Repertoire page's dance type chips.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance type'**
+  String get repertoireTypeLabel;
+
+  /// Repertoire dance type chip: every dance type.
+  ///
+  /// In en, this message translates to:
+  /// **'All types'**
+  String get repertoireTypeAll;
+
+  /// Summary line at the top of the Repertoire page.
+  ///
+  /// In en, this message translates to:
+  /// **'Calls in this period: {calls}. Dances called: {called} of {total}.'**
+  String repertoireSummary(int calls, int called, int total);
+
+  /// Repertoire section header: the dances called most in the period.
+  ///
+  /// In en, this message translates to:
+  /// **'Most called'**
+  String get repertoireMostCalledHeader;
+
+  /// Repertoire section header: the dances called least in the period, among those called at least once.
+  ///
+  /// In en, this message translates to:
+  /// **'Least called (of those you have called)'**
+  String get repertoireLeastCalledHeader;
+
+  /// Shown under Least called when ten or fewer dances were called, so all of them are under Most called.
+  ///
+  /// In en, this message translates to:
+  /// **'Every dance you called in this period is already listed under Most called.'**
+  String get repertoireLeastCalledAllShown;
+
+  /// Shown in a Repertoire section when nothing was called in the period.
+  ///
+  /// In en, this message translates to:
+  /// **'No counted calls in this period.'**
+  String get repertoireNoCalls;
+
+  /// How many times a dance was called in the period, beside its title.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{called once} other{called {count} times}}'**
+  String repertoireDanceCalls(int count);
+
+  /// Screen reader label of a dance row on the Repertoire page.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}: {count, plural, =1{called once} other{called {count} times}}'**
+  String repertoireDanceSemantics(String title, int count);
+
+  /// Repertoire section header: dances with no counted call ever.
+  ///
+  /// In en, this message translates to:
+  /// **'Never called'**
+  String get repertoireNeverCalledHeader;
+
+  /// Row label: dances with no counted call ever. Tapping it shows them in Collection.
+  ///
+  /// In en, this message translates to:
+  /// **'Never called'**
+  String get repertoireNeverCalledLabel;
+
+  /// A number of dances out of the collection's total.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of {total} dances'**
+  String repertoireOfDances(int count, int total);
+
+  /// Screen reader label of the Never called row.
+  ///
+  /// In en, this message translates to:
+  /// **'Never called: {count} of {total} dances'**
+  String repertoireNeverCalledSemantics(int count, int total);
+
+  /// Screen reader label of one never-called dance listed under the Never called row.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}: never called'**
+  String repertoireNeverCalledDanceSemantics(String title);
+
+  /// Row label: dances with no counted call in the chosen period, including never-called ones.
+  ///
+  /// In en, this message translates to:
+  /// **'Not called in this period'**
+  String get repertoireNotCalledInPeriodLabel;
+
+  /// Screen reader label of the Not called in this period row.
+  ///
+  /// In en, this message translates to:
+  /// **'Not called in this period: {count} of {total} dances'**
+  String repertoireNotCalledInPeriodSemantics(int count, int total);
+
+  /// Repertoire section header: for each move, how many dances contain it.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure frequency'**
+  String get repertoireFigureHeader;
+
+  /// Shown under Figure frequency when no dance has figures.
+  ///
+  /// In en, this message translates to:
+  /// **'None of these dances has figures entered.'**
+  String get repertoireNoFigures;
+
+  /// A figure row's numbers: how many dances contain the move, as a share, and how many calls in the period were of such a dance.
+  ///
+  /// In en, this message translates to:
+  /// **'in {dances} of {total} dances ({percent}%) · {calls, plural, =1{1 call} other{{calls} calls}}'**
+  String repertoireFigureValue(int dances, int total, int percent, int calls);
+
+  /// Screen reader label of a figure row. {move} is the move's name.
+  ///
+  /// In en, this message translates to:
+  /// **'{move}: in {dances} of {total} dances, {percent} percent; {calls, plural, =1{1 call} other{{calls} calls}} in this period'**
+  String repertoireFigureSemantics(
+    String move,
+    int dances,
+    int total,
+    int percent,
+    int calls,
+  );
+
+  /// Button that expands a Repertoire list to every row.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all {count}'**
+  String repertoireShowAll(int count);
+
+  /// Button that collapses an expanded Repertoire list.
+  ///
+  /// In en, this message translates to:
+  /// **'Show fewer'**
+  String get repertoireShowFewer;
+
+  /// Repertoire section header: the authors of the dances called in the period.
+  ///
+  /// In en, this message translates to:
+  /// **'Authors you call'**
+  String get repertoireAuthorsHeader;
+
+  /// How many distinct authors' dances were called in the period.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No author called in this period.} =1{1 author called in this period.} other{{count} authors called in this period.}}'**
+  String repertoireAuthorsSummary(int count);
+
+  /// A row's calls in the period and their share of all calls in it.
+  ///
+  /// In en, this message translates to:
+  /// **'{calls, plural, =1{1 call} other{{calls} calls}} ({percent}%)'**
+  String repertoireShareValue(int calls, int percent);
+
+  /// Screen reader label of a choreographer or formation row. {label} is the name.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: {calls, plural, =1{1 call} other{{calls} calls}}, {percent} percent of calls in this period'**
+  String repertoireShareSemantics(String label, int calls, int percent);
+
+  /// Repertoire section header: calls in the period by formation.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation mix'**
+  String get repertoireFormationHeader;
+
+  /// Repertoire section header: for each venue, the dances called there more than once in the period.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeats per venue'**
+  String get repertoireVenuesHeader;
+
+  /// Shown under Repeats per venue when there are none.
+  ///
+  /// In en, this message translates to:
+  /// **'No dance was called more than once at one venue in this period.'**
+  String get repertoireNoRepeats;
+
+  /// Label for a venue with no name to show.
+  ///
+  /// In en, this message translates to:
+  /// **'Unnamed venue'**
+  String get repertoireVenueUnnamed;
+
+  /// How many dances were called more than once at a venue in the period.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dance repeated} other{{count} dances repeated}}'**
+  String repertoireVenueRepeats(int count);
+
+  /// Screen reader label of a venue row. {venue} is the venue's name.
+  ///
+  /// In en, this message translates to:
+  /// **'{venue}: {count, plural, =1{1 dance called more than once} other{{count} dances called more than once}}'**
+  String repertoireVenueSemantics(String venue, int count);
+
+  /// Header of the Experimental settings section for the Repertoire page (#2357).
+  ///
+  /// In en, this message translates to:
+  /// **'Repertoire'**
+  String get settingsExperimentalRepertoireHeader;
+
+  /// Title of the switch that adds Repertoire to Collection's More actions menu.
+  ///
+  /// In en, this message translates to:
+  /// **'Repertoire'**
+  String get settingsExperimentalShowRepertoireTitle;
+
+  /// Subtitle of the Repertoire switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds Repertoire to Collection\'s More actions menu: your most and least called dances, what you\'ve never called, figure frequency, authors, formations and repeats per venue.'**
+  String get settingsExperimentalShowRepertoireSubtitle;
+
+  /// Import source label: a CSV file the person saved from their own spreadsheet (Excel, Numbers, LibreOffice or Google Sheets).
+  ///
+  /// In en, this message translates to:
+  /// **'Your own spreadsheet (CSV)'**
+  String get importSourceLabelCsv;
+
+  /// Button on the import screen that opens the file picker for a CSV spreadsheet file.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a CSV file…'**
+  String get importCsvPickFile;
+
+  /// Import source label for a plain-text (.txt) or Markdown (.md) file of dances the caller wrote themselves.
+  ///
+  /// In en, this message translates to:
+  /// **'Your own text or Markdown file'**
+  String get importSourceLabelTextDocument;
+
+  /// Hint on the import screen when the text or Markdown file source is selected. Keep the examples (## Title, Formation: Improper, A1 (8) Neighbor swing) as written, in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a .txt or .md file. Start each dance with a heading (## Title), or with its title after a blank line. Put details on \"Label: value\" lines (Formation: Improper) and one figure per line (A1 (8) Neighbor swing).'**
+  String get importTextHint;
+
+  /// Button on the import screen that opens the file picker for a .txt or .md file of dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a text or Markdown file…'**
+  String get importTextPickFile;
+
+  /// Heading of the step where the caller chooses which dance field each label of their text file goes to (for example "Formation:" goes to Formation).
+  ///
+  /// In en, this message translates to:
+  /// **'Map labels'**
+  String get importTextMapTitle;
+
+  /// Introduction to the Map labels step of a text or Markdown file import.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what each label in your file holds. A label no field takes is kept in the calling notes with its name; choose Ignore to leave it out. Nothing is added until you review and confirm.'**
+  String get importTextMapIntro;
+
+  /// Label of the dropdown on the Map labels step of a text or Markdown file import that chooses where each dance in the file starts. Its choices are importTextDanceStartHeading for each heading level the file uses, and importTextDanceStartBlankLine. The app picks one first; changing it reads the file again.
+  ///
+  /// In en, this message translates to:
+  /// **'Each dance starts at'**
+  String get importTextDanceStartLabel;
+
+  /// A choice in the Each dance starts at dropdown: each Markdown heading at this level starts a dance. {marks} is the heading's hash marks, such as # or ##, shown as typed in the file; keep it as is.
+  ///
+  /// In en, this message translates to:
+  /// **'A {marks} heading'**
+  String importTextDanceStartHeading(String marks);
+
+  /// A choice in the Each dance starts at dropdown: the first line, and each line after a blank line that isn't a figure or a detail, starts a dance.
+  ///
+  /// In en, this message translates to:
+  /// **'A title after a blank line'**
+  String get importTextDanceStartBlankLine;
+
+  /// Choice in the Map labels step: keep each value of this label in the dance's calling notes, written as "Label: value".
+  ///
+  /// In en, this message translates to:
+  /// **'Calling notes, with the label'**
+  String get importTextTargetLabelledNotes;
+
+  /// Error when a picked .txt or .md file is not valid UTF-8.
+  ///
+  /// In en, this message translates to:
+  /// **'This file isn\'t saved as UTF-8 text, so accented letters would come in wrong. Save it again as UTF-8 text and choose that file.'**
+  String get importTextNotUtf8;
+
+  /// Error when a picked text or Markdown file holds more dances than can be imported at once.
+  ///
+  /// In en, this message translates to:
+  /// **'This file has more than {limit} dances. Split it into smaller files.'**
+  String importTextTooManyDances(int limit);
+
+  /// Error when a picked text or Markdown file has a line over the length limit.
+  ///
+  /// In en, this message translates to:
+  /// **'A line in this file is longer than {limit} characters.'**
+  String importTextLineTooLong(int limit);
+
+  /// Error when one dance's figures, notes or one label's values in a picked text or Markdown file come to more than the limit.
+  ///
+  /// In en, this message translates to:
+  /// **'A dance in this file has more than {limit} characters of figures, notes or one detail.'**
+  String importTextDanceTooLong(int limit);
+
+  /// Error when a picked text or Markdown file uses more different "Label:" names than the import can map.
+  ///
+  /// In en, this message translates to:
+  /// **'This file uses more than {limit} different labels.'**
+  String importTextTooManyLabels(int limit);
+
+  /// Help text under the CSV import source explaining how to get a CSV file out of a spreadsheet program.
+  ///
+  /// In en, this message translates to:
+  /// **'In your spreadsheet, choose File ▸ Save As (or Download) and pick \"CSV UTF-8\", then choose that file here.'**
+  String get importCsvSaveAsHint;
+
+  /// Heading of the import step where the person says what each spreadsheet column holds.
+  ///
+  /// In en, this message translates to:
+  /// **'Map columns'**
+  String get importCsvMapTitle;
+
+  /// Explanation at the top of the map-columns step of a CSV import.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what each column holds. Columns set to Ignore are left out. Nothing is added until you review and confirm.'**
+  String get importCsvMapIntro;
+
+  /// Label of the dropdown that chooses which character separates the columns of a CSV file.
+  ///
+  /// In en, this message translates to:
+  /// **'Separator'**
+  String get importCsvSeparatorLabel;
+
+  /// Separator choice: comma.
+  ///
+  /// In en, this message translates to:
+  /// **'Comma (,)'**
+  String get importCsvSeparatorComma;
+
+  /// Separator choice: semicolon, which Excel uses in many European languages.
+  ///
+  /// In en, this message translates to:
+  /// **'Semicolon (;)'**
+  String get importCsvSeparatorSemicolon;
+
+  /// Separator choice: tab character.
+  ///
+  /// In en, this message translates to:
+  /// **'Tab'**
+  String get importCsvSeparatorTab;
+
+  /// Switch on the map-columns step: whether the first row of the CSV holds column names rather than a dance.
+  ///
+  /// In en, this message translates to:
+  /// **'The first row names the columns'**
+  String get importCsvFirstRowHeader;
+
+  /// Name shown for a CSV column that has no header. {number} counts from 1.
+  ///
+  /// In en, this message translates to:
+  /// **'Column {number}'**
+  String importCsvColumnFallback(int number);
+
+  /// Dropdown choice: leave this CSV column out of the import.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignore'**
+  String get importCsvTargetIgnore;
+
+  /// Dropdown choice: this CSV column holds the figures of one phrase, such as A1 or B2.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures, {phrase}'**
+  String importCsvTargetPhrase(String phrase);
+
+  /// Dropdown choice: create a new custom field of this type from the column. {type} is a custom field type such as Number.
+  ///
+  /// In en, this message translates to:
+  /// **'New custom field ({type})'**
+  String importCsvTargetNewField(String type);
+
+  /// Dropdown choice: put this column into one of the person's existing custom fields. {name} is the field's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom field: {name}'**
+  String importCsvTargetExistingField(String name);
+
+  /// Shown on the map-columns step while no column, or more than one, is set to Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the column that holds each dance\'s title.'**
+  String get importCsvNeedsTitle;
+
+  /// Button that moves from the map-columns step to the review of the planned dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get importCsvContinue;
+
+  /// Heading above the preview of the first few rows of the CSV file.
+  ///
+  /// In en, this message translates to:
+  /// **'First rows'**
+  String get importCsvPreviewHeading;
+
+  /// Error when a CSV file is in an old encoding such as Windows-1252 instead of UTF-8.
+  ///
+  /// In en, this message translates to:
+  /// **'This file isn\'t saved as UTF-8 text, so accented letters would come in wrong. In your spreadsheet, save it again as \"CSV UTF-8\" and choose that file.'**
+  String get importCsvNotUtf8;
+
+  /// Error when a CSV file is larger than the import allows.
+  ///
+  /// In en, this message translates to:
+  /// **'This file is too large to import. Split it into smaller files.'**
+  String get importCsvTooLarge;
+
+  /// Error when a CSV file has too many rows.
+  ///
+  /// In en, this message translates to:
+  /// **'This file has more than {limit} rows. Split it into smaller files.'**
+  String importCsvTooManyRows(int limit);
+
+  /// Error when a row of a CSV file has too many columns.
+  ///
+  /// In en, this message translates to:
+  /// **'A row in this file has more than {limit} columns.'**
+  String importCsvTooManyColumns(int limit);
+
+  /// Error when one cell of a CSV file is too long.
+  ///
+  /// In en, this message translates to:
+  /// **'A cell in this file is longer than {limit} characters.'**
+  String importCsvCellTooLong(int limit);
+
+  /// Error when a CSV file has an opening double quote with no closing one.
+  ///
+  /// In en, this message translates to:
+  /// **'This file has a quoted cell that never ends, so it can\'t be read.'**
+  String get importCsvUnterminatedQuote;
+
+  /// Warning on the map-columns step when a CSV file has many rows.
+  ///
+  /// In en, this message translates to:
+  /// **'This file has {count} rows. Reviewing them may take a while.'**
+  String importCsvLargeBatch(int count);
+
+  /// Shown on the map-columns step of a CSV import when the file has a header row but no dance rows (or only blank ones).
+  ///
+  /// In en, this message translates to:
+  /// **'This file has no rows of dances, only the column names.'**
+  String get importCsvNoRows;
+
+  /// Snack bar part after a calendar import updated existing programs from calendar changes. Offers Undo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 program updated from your calendar.} other{{count} programs updated from your calendar.}}'**
+  String calendarImportUpdated(int count);
+
+  /// Snack bar after a calendar import in which only flags or bookkeeping were written: no program was added or updated.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar checked. Nothing was added or changed.'**
+  String get calendarImportReviewed;
+
+  /// A program's date as it is and as the calendar now has it, in the calendar import review.
+  ///
+  /// In en, this message translates to:
+  /// **'Date: {before} → {after}'**
+  String calendarChangeDate(String before, String after);
+
+  /// A program's title as it is and as the calendar now has it, in the calendar import review.
+  ///
+  /// In en, this message translates to:
+  /// **'Title: {before} → {after}'**
+  String calendarChangeTitle(String before, String after);
+
+  /// A program's start and end time as it is and as the calendar now has it, in the calendar import review. Each side is already formatted, e.g. '7:00 PM–10:00 PM', or a dash when there is none.
+  ///
+  /// In en, this message translates to:
+  /// **'Time: {before} → {after}'**
+  String calendarChangeTime(String before, String after);
+
+  /// A program's venue as it is and as the calendar now has it, in the calendar import review.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue: {before} → {after}'**
+  String calendarChangeVenue(String before, String after);
+
+  /// Heading over changed calendar events whose draft program the user has not touched; ticked by default.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated in your calendar'**
+  String get calendarImportUpdatedHeader;
+
+  /// Heading over changed calendar events whose program the user has worked on; unticked by default.
+  ///
+  /// In en, this message translates to:
+  /// **'Changed in your calendar'**
+  String get calendarImportChangedHeader;
+
+  /// Body under the Changed in your calendar heading.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve worked on these programs, so nothing changes unless you tick it.'**
+  String get calendarImportChangedBody;
+
+  /// Heading over imported programs whose event was cancelled or is no longer in the calendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Canceled or gone from your calendar'**
+  String get calendarImportFlaggedHeader;
+
+  /// Body under the cancelled-or-gone heading.
+  ///
+  /// In en, this message translates to:
+  /// **'These programs are kept as they are and labeled. Archive or delete them yourself if you no longer need them.'**
+  String get calendarImportFlaggedBody;
+
+  /// Label on a program whose calendar event was cancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Canceled in your calendar'**
+  String get calendarFlagCancelled;
+
+  /// Label on a program whose calendar event is no longer in the calendar.
+  ///
+  /// In en, this message translates to:
+  /// **'No longer in your calendar'**
+  String get calendarFlagMissing;
+
+  /// Label on a program carrying a calendar flag this version does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'Flagged by your calendar'**
+  String get calendarFlagOther;
+
+  /// Field name for a program's calendar flag when comparing two versions in a sync conflict.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar flag'**
+  String get calendarFlagFieldLabel;
+
+  /// Button on a program's summary that removes its calendar flag.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear calendar flag'**
+  String get calendarClearFlag;
+
+  /// Snack bar when Clear calendar flag on a program's summary could not save the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t clear the calendar flag. Try again.'**
+  String get calendarClearFlagError;
+
+  /// Switch in Settings ▸ Program ▸ Calendar, off by default: read the calendar once each time the app starts.
+  ///
+  /// In en, this message translates to:
+  /// **'Import calendar when the app starts'**
+  String get calendarOnStartupTitle;
+
+  /// Subtitle of the start-up calendar import switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Off by default. When on, the app reads your calendar once each time it starts, and says nothing if it can\'t.'**
+  String get calendarOnStartupSubtitle;
+
+  /// Setting that chooses what the start-up calendar import does with new events.
+  ///
+  /// In en, this message translates to:
+  /// **'At startup'**
+  String get calendarStartupModeTitle;
+
+  /// Option of the At startup setting (the default): only say how many new events there are.
+  ///
+  /// In en, this message translates to:
+  /// **'Report new events'**
+  String get calendarStartupModeReport;
+
+  /// Option of the At startup setting: create draft programs for new events.
+  ///
+  /// In en, this message translates to:
+  /// **'Add them as drafts'**
+  String get calendarStartupModeAdd;
+
+  /// Subtitle of the At startup setting when Report new events is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Tells you about new events; nothing is added until you review them.'**
+  String get calendarStartupModeReportSubtitle;
+
+  /// Subtitle of the At startup setting when Add them as drafts is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds new events as draft programs, with Undo. Changed or canceled events are only reported.'**
+  String get calendarStartupModeAddSubtitle;
+
+  /// Settings line: the last start-up calendar import failed. {when} is a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach the calendar at startup ({when})'**
+  String calendarLastResultFailed(String when);
+
+  /// Settings line: the last start-up calendar import added drafts. {when} is a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Checked at startup {when}: {count, plural, =1{1 draft added} other{{count} drafts added}}'**
+  String calendarLastResultAdded(String when, int count);
+
+  /// Settings line: the last start-up calendar import's result. {when} is a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Checked at startup {when}: {count, plural, =0{no new events} =1{1 new event} other{{count} new events}}'**
+  String calendarLastResultNew(String when, int count);
+
+  /// Quiet notice in Settings after several start-up calendar imports in a row failed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, other{The calendar couldn\'t be reached the last {count} times the app started.}}'**
+  String calendarStartupFailureNotice(int count);
+
+  /// Hint under the repeated-failure notice.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the calendar address, or your connection.'**
+  String get calendarStartupFailureHint;
+
+  /// Message after a start-up calendar import in Report mode found new events.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 new event in your calendar.} other{{count} new events in your calendar.}}'**
+  String calendarStartupNewEvents(int count);
+
+  /// Message part after a start-up calendar import found changed or canceled events, which it never applies.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 change needs you.} other{{count} changes need you.}}'**
+  String calendarStartupChanges(int count);
+
+  /// Button in the start-up calendar message: open a draft it added.
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get calendarStartupShow;
+
+  /// Button in the start-up calendar message: open the import review with what it found.
+  ///
+  /// In en, this message translates to:
+  /// **'Review'**
+  String get calendarStartupReview;
+
+  /// Settings line: the last start-up calendar import reached the calendar but could not read it or add the drafts. {when} is a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t import from the calendar at startup ({when})'**
+  String calendarLastResultError(String when);
+
+  /// Collection ⋮ menu entry: saves the search on screen under a name. Offered only while some text, filter, phrase row or Advanced row is set.
+  ///
+  /// In en, this message translates to:
+  /// **'Save this search…'**
+  String get savedSearchSaveThis;
+
+  /// Collection ⋮ menu entry while a saved search is loaded, enabled once it has been changed: writes the change back to it.
+  ///
+  /// In en, this message translates to:
+  /// **'Update \"{name}\"'**
+  String savedSearchUpdate(String name);
+
+  /// Collection ⋮ menu entry while a saved search is loaded: renames it.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename \"{name}\"…'**
+  String savedSearchRename(String name);
+
+  /// Collection ⋮ menu entry while a saved search is loaded: deletes it (with Undo).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"'**
+  String savedSearchDelete(String name);
+
+  /// Heading in Settings › Collection over saved searches this version of the app cannot open.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs attention'**
+  String get savedSearchNeedsAttention;
+
+  /// Settings › Collection entry for a saved search this version cannot read, under Needs attention. Also names it in the Deleted snackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'A saved search that can\'t be opened'**
+  String get savedSearchUnreadableItem;
+
+  /// Title of the dialog shown on choosing a saved search this version cannot read.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t open this saved search'**
+  String get savedSearchUnreadableTitle;
+
+  /// Body of the dialog shown on choosing a saved search this version cannot read.
+  ///
+  /// In en, this message translates to:
+  /// **'It was saved by a newer version of the app, or it is damaged, so it is not used. You can delete it, and undo that.'**
+  String get savedSearchUnreadableBody;
+
+  /// Title of the dialog that asks for a name for the search being saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Save this search'**
+  String get savedSearchSaveDialogTitle;
+
+  /// Title of the dialog that asks for a new name for the loaded saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename saved search'**
+  String get savedSearchRenameDialogTitle;
+
+  /// Label of the name field in the save and rename dialogs for a saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get savedSearchNameLabel;
+
+  /// Line in the save dialog: the calling-history window the search keeps, counted back from the day it runs. A chosen date is kept as whole months back.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Not called in the last month} other{Not called in the last {count} months}}'**
+  String savedSearchWindowNotCalled(int count);
+
+  /// Line in the save dialog: the calling-history window the search keeps, for a Called search.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Called in the last month} other{Called in the last {count} months}}'**
+  String savedSearchWindowCalled(int count);
+
+  /// Line in the save dialog: the calling-history window the search keeps, while neither or both of Called and Not called is chosen (so it does nothing yet).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Calling history window kept: the last month} other{Calling history window kept: the last {count} months}}'**
+  String savedSearchWindowInert(int count);
+
+  /// Title of the message shown when a search is too large to save.
+  ///
+  /// In en, this message translates to:
+  /// **'Search too large'**
+  String get savedSearchTooLargeTitle;
+
+  /// Body of the message shown when a search is too large to save.
+  ///
+  /// In en, this message translates to:
+  /// **'This search has too many filters or rows to save. Remove some, then save it again.'**
+  String get savedSearchTooLargeBody;
+
+  /// Title of the message shown when the most saved searches the app keeps has been reached.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many saved searches'**
+  String get savedSearchLimitTitle;
+
+  /// Body of the message shown when the most saved searches the app keeps has been reached.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{You can keep 1 saved search. Delete it to save another.} other{You can keep up to {count} saved searches. Delete one to save another.}}'**
+  String savedSearchLimitBody(int count);
+
+  /// Snackbar when a saved-search name is made only of invisible characters.
+  ///
+  /// In en, this message translates to:
+  /// **'That name can\'t be used. Try another.'**
+  String get savedSearchNameRefused;
+
+  /// Snackbar when reading or writing saved searches failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t do that with your saved searches. Try again.'**
+  String get savedSearchFailed;
+
+  /// Snackbar after saving a search under a name.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved \"{name}\"'**
+  String savedSearchSavedSnack(String name);
+
+  /// Snackbar after writing a change back to a saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated \"{name}\"'**
+  String savedSearchUpdatedSnack(String name);
+
+  /// Snackbar after deleting a saved search, with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted \"{name}\"'**
+  String savedSearchDeletedSnack(String name);
+
+  /// Title of the message when a saved search cannot be deleted because something uses it.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t delete \"{name}\"'**
+  String savedSearchInUseTitle(String name);
+
+  /// Body of the message when a saved search cannot be deleted; a list of what uses it follows.
+  ///
+  /// In en, this message translates to:
+  /// **'It is still used by these. Change or remove them first, then delete it.'**
+  String get savedSearchInUseBody;
+
+  /// Heading of the notice shown after loading a saved search that refers to deleted things; each one is listed below it.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" uses things that are gone:'**
+  String savedSearchNoticeTitle(String name);
+
+  /// Line at the end of the notice for a saved search that refers to deleted things.
+  ///
+  /// In en, this message translates to:
+  /// **'The rest of the search is shown. Remove these yourself to update it.'**
+  String get savedSearchNoticeRest;
+
+  /// Line in the notice when a loaded saved search filters on a custom field that was deleted: the search runs without that filter.
+  ///
+  /// In en, this message translates to:
+  /// **'A filter on a deleted custom field is left out of the results.'**
+  String get savedSearchNoticeFieldSkipped;
+
+  /// Tooltip on the button that closes the notice about a saved search that refers to deleted things.
+  ///
+  /// In en, this message translates to:
+  /// **'Close notice'**
+  String get savedSearchNoticeClose;
+
+  /// Line in the notice for a loaded saved search: it uses this tag, which was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The tag {name}, which was deleted'**
+  String savedSearchMissingTag(String name);
+
+  /// Line in the notice for a loaded saved search: it uses a tag that was deleted, whose name this device does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'A tag that was deleted'**
+  String get savedSearchMissingTagUnnamed;
+
+  /// Line in the notice for a loaded saved search: it uses this author, which was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The author {name}, which was deleted'**
+  String savedSearchMissingAuthor(String name);
+
+  /// Line in the notice for a loaded saved search: it uses a author that was deleted, whose name this device does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'An author that was deleted'**
+  String get savedSearchMissingAuthorUnnamed;
+
+  /// Line in the notice for a loaded saved search: it uses this source, which was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The source {name}, which was deleted'**
+  String savedSearchMissingSource(String name);
+
+  /// Line in the notice for a loaded saved search: it uses a source that was deleted, whose name this device does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'A source that was deleted'**
+  String get savedSearchMissingSourceUnnamed;
+
+  /// Line in the notice for a loaded saved search: it uses this level, which was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The level {name}, which was deleted'**
+  String savedSearchMissingLevel(String name);
+
+  /// Line in the notice for a loaded saved search: it uses a level that was deleted, whose name this device does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'A level that was deleted'**
+  String get savedSearchMissingLevelUnnamed;
+
+  /// Line in the notice for a loaded saved search: it uses this venue, which was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The venue {name}, which was deleted'**
+  String savedSearchMissingVenue(String name);
+
+  /// Line in the notice for a loaded saved search: it uses a venue that was deleted, whose name this device does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'A venue that was deleted'**
+  String get savedSearchMissingVenueUnnamed;
+
+  /// Line in the notice for a loaded saved search: it uses this custom field, which was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The custom field {name}, which was deleted'**
+  String savedSearchMissingField(String name);
+
+  /// Line in the notice for a loaded saved search: it uses a custom field that was deleted, whose name this device does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'A custom field that was deleted'**
+  String get savedSearchMissingFieldUnnamed;
+
+  /// Line in the notice for a loaded saved search: it filters on this custom field as it was before its type changed.
+  ///
+  /// In en, this message translates to:
+  /// **'The custom field {name}, whose type changed'**
+  String savedSearchMissingFieldType(String name);
+
+  /// Line in the notice for a loaded saved search: it filters on a choice that this custom field no longer offers.
+  ///
+  /// In en, this message translates to:
+  /// **'The choice {choice} of {name}, which was removed'**
+  String savedSearchMissingFieldChoice(String choice, String name);
+
+  /// Line in the notice for a loaded saved search: an Advanced figure row has a detail this version cannot show or clear.
+  ///
+  /// In en, this message translates to:
+  /// **'A figure detail in Advanced that can\'t be shown'**
+  String get savedSearchMissingFigureDetail;
+
+  /// Line in the notice for a loaded saved search: an Advanced row uses one of your own figures that was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'One of your figures, which was deleted'**
+  String get savedSearchMissingUserFigure;
+
+  /// Line in the notice for a loaded saved search that could not be read whole; not expected.
+  ///
+  /// In en, this message translates to:
+  /// **'Something this version can\'t read'**
+  String get savedSearchMissingInvalid;
+
+  /// First row of the saved-search dropdown under the search field, while text is typed: runs the ordinary search for that text, as Enter does.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for \"{text}\"'**
+  String savedSearchSearchFor(String text);
+
+  /// Screen-reader announcement when the arrow keys move the highlight in the saved-search dropdown under the search field: the row (a saved search, or Search for "…"), then its position.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}, {index} of {count}'**
+  String savedSearchHighlightedRow(String name, int index, int count);
+
+  /// Collection ⋮ menu entry while a saved search is loaded, in place of Save this search…: saves the search on screen as another saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as a new search…'**
+  String get savedSearchSaveAsNewSearch;
+
+  /// Settings section title (sidebar and app bar): the Dances settings and the saved searches.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection'**
+  String get settingsCollectionTitle;
+
+  /// Heading in Settings ▸ Collection over the list of saved searches.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved searches'**
+  String get settingsSavedSearchesHeader;
+
+  /// Shown in Settings ▸ Collection when there are no saved searches.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved searches yet. Save one from the Collection: set up a search, then choose Save this search… in the More actions menu.'**
+  String get settingsSavedSearchesEmpty;
+
+  /// Tooltip on the rename button of a saved search in Settings ▸ Collection.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename \"{name}\"'**
+  String settingsSavedSearchRenameTooltip(String name);
+
+  /// Tooltip on the delete button of a saved search in Settings ▸ Collection (with Undo).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"'**
+  String settingsSavedSearchDeleteTooltip(String name);
+
+  /// Message when a saved search the user is updating, renaming or deleting has already been deleted (in Settings, or by sync from another device).
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" was deleted, here or on another device, so nothing was changed.'**
+  String savedSearchGone(String name);
 }
 
 class _AppLocalizationsDelegate

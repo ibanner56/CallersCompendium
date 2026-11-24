@@ -1183,7 +1183,8 @@ To be defined later with worked examples.
   - `singleFile` — flag, default `false`. A single-file promenade **along** the set is modelled
     (below); one in any other `where` is **deferred**.
   - `destination` — dancer set, default `unspecified`. A stated destination names travel past the
-    hands four and is **deferred**.
+    hands four and is **deferred**, except `nextNeighbors` on a single-file promenade along the
+    set (below).
   - `beats` — int, default 8.
 - **parse-time deferral** (`io/dance_json.dart` `_buildPromenade`): a `direction` stated
   `unspecified` is deferred rather than read as its `counterclockwise` default. The editor writes
@@ -1232,12 +1233,16 @@ To be defined later with worked examples.
   progression**, is progression-eligible, needs both lines on the side columns, and contributes
   +1 to the hands-four count. Unlike the slide, which keeps each dancer's facing, it ends with
   every dancer **facing across**, toward the next neighbours, as the ruling says. `who` is not
-  read (nobody dances in pairs). A stated `destination` is still deferred. Treating
+  read (nobody dances in pairs). A stated `destination` of `nextNeighbors` names the one place
+  it travels and is accepted; any other is still deferred *(agent's call, 2026-11-24, at the
+  taxonomy-v40 sync, when the import began writing "to N2" as that destination)*. Treating
   counterclockwise as the mirror, and reusing the slide's ends and re-banding, are the agent's
   calls.
-  - **Caller's Box bridge** (`io/callersbox_source.dart`): that source's "Single file promenade
-    clockwise around the major set to N2" imports as a single-file `circle` noted "around the
-    major set to N2"; the bridge rewrites it to this promenade (circle `left` → `clockwise`,
+  - **Caller's Box bridge** (`io/callersbox_source.dart`): before the taxonomy-v40 sync, that
+    source's "Single file promenade clockwise around the major set to N2" imported as a
+    single-file `circle` noted "around the major set to N2"; since it, the import writes this
+    promenade itself, with `destination: nextNeighbors`. For a record still read the old way,
+    the bridge rewrites it to this promenade (circle `left` → `clockwise`,
     `right` → `counterclockwise`), and assumes it is the dance's progression in any formation
     *(the ruling's reading; the import rewrite and the placement are the agent's calls)*. The
     placement holds on the N2 and "~" retries too, so no retry moves the progression off the
@@ -1248,7 +1253,8 @@ To be defined later with worked examples.
     top-level circle is rewritten, and only in a dance with no figure flagged, so no unflagged
     promenade moves the set *(agent's calls)*.
 - **still deferred:** single-file promenades other than along the set, whole-set and
-  around-a-dancer promenades (above), stated destinations, and every other `where`. The prior verifier's conflation of
+  around-a-dancer promenades (above), stated destinations (but a single-file promenade along to
+  the next neighbours), and every other `where`. The prior verifier's conflation of
   `promenade across` with `right_left_through across` for *row* couples does not arise here: a
   pair that is not side by side in a side column is refused.
 - **sources:** user ruling, 2026-11-22; CallersCompendium taxonomy `promenade` MoveDef;

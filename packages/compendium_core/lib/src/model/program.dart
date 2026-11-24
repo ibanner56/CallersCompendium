@@ -227,6 +227,12 @@ class ProgramSlotGroup {
   int get hashCode => Object.hash(primary, _listEq.hash(alternates));
 }
 
+/// [Program.calendarFlag]: the event was cancelled in the calendar (#2354).
+const String calendarFlagCancelled = 'cancelled';
+
+/// [Program.calendarFlag]: the event is no longer in the calendar (#2354).
+const String calendarFlagMissing = 'missing';
+
 /// A program (set list) for an event.
 @immutable
 class Program {
@@ -245,11 +251,19 @@ class Program {
     this.dialectName,
     this.payMinorUnits,
     this.payCurrency,
+    this.startMinute,
+    this.endMinute,
+    this.lessonMinute,
+    this.arrivalMinute,
     List<ProgramSlot> slots = const [],
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
     this.archivedAt,
+    this.calendarEventKey,
+    this.calendarEventFingerprint,
+    this.calendarWrittenAt,
+    this.calendarFlag,
     this.provenance,
   }) : slots = List.unmodifiable(
          <ProgramSlot>[...slots]
@@ -274,6 +288,25 @@ class Program {
         'payCurrency',
         'must be three uppercase ASCII letters (ISO 4217)',
       );
+    }
+    _checkMinuteOfDay(startMinute, 'startMinute');
+    _checkMinuteOfDay(endMinute, 'endMinute');
+    _checkMinuteOfDay(lessonMinute, 'lessonMinute');
+    _checkMinuteOfDay(arrivalMinute, 'arrivalMinute');
+  }
+
+  /// The number of minutes in a day: a time of day is `0` (midnight) to
+  /// `minutesPerDay - 1` (11:59 pm).
+  static const int minutesPerDay = 24 * 60;
+
+  /// Whether [minute] is a time of day this model accepts: a whole number of
+  /// minutes after midnight, `0`–`1439`.
+  static bool isValidMinuteOfDay(int minute) =>
+      minute >= 0 && minute < minutesPerDay;
+
+  static void _checkMinuteOfDay(int? minute, String name) {
+    if (minute != null && !isValidMinuteOfDay(minute)) {
+      throw ArgumentError.value(minute, name, 'must be 0-1439');
     }
   }
 
@@ -331,12 +364,53 @@ class Program {
   /// (the default, and every program before schema v38). Never negative; set
   /// together with [payCurrency] or not at all. Private to the caller's own
   /// bookkeeping but shareable across their devices and in archives; it is not
-  /// part of the shared program text or PDF.
+  /// part of the shared program text, PDF or share files. Besides the caller's
+  /// own backup, the programs CSV export (#2333) is the one export that
+  /// carries it.
   final int? payMinorUnits;
 
   /// ISO 4217 code (three uppercase letters) that [payMinorUnits] is
   /// denominated in; `null` exactly when [payMinorUnits] is.
   final String? payCurrency;
+
+  /// When the dance starts, as minutes after midnight (`0`–`1439`), or `null`
+  /// when not recorded (the default, and every program before schema v42).
+  ///
+  /// [startMinute], [endMinute], [lessonMinute] and [arrivalMinute] are
+  /// wall-clock times at the hall on [eventDate], with **no time zone**: a
+  /// 7:30 pm start stays 7:30 pm wherever the device is. Each is optional on
+  /// its own, and each can be set without an [eventDate]. An [endMinute]
+  /// earlier than [startMinute] means the next day ([endsNextDay]).
+  final int? startMinute;
+
+  /// When the dance ends, as minutes after midnight; see [startMinute].
+  final int? endMinute;
+
+  /// When the beginner lesson before the dance starts, as minutes after
+  /// midnight; see [startMinute].
+  final int? lessonMinute;
+
+  /// When the caller needs to be at the hall, as minutes after midnight; see
+  /// [startMinute]. The caller's own logistics: it travels in Device Sync,
+  /// backups and program share files, but the set-list text and PDF leave it
+  /// out.
+  final int? arrivalMinute;
+
+  /// Whether the dance ends on the day after it starts: both [startMinute]
+  /// and [endMinute] are set and the end is earlier than the start. An end
+  /// equal to the start is the same day.
+  bool get endsNextDay {
+    final start = startMinute;
+    final end = endMinute;
+    return start != null && end != null && end < start;
+  }
+
+  /// Whether any of the four times is set.
+  bool get hasTimes =>
+      startMinute != null ||
+      endMinute != null ||
+      lessonMinute != null ||
+      arrivalMinute != null;
 
   /// Slots, always ordered by position.
   final List<ProgramSlot> slots;
@@ -355,6 +429,43 @@ class Program {
   /// program share files (`sanitizeProgramForShare`), so a recipient always
   /// gets an unarchived program.
   final DateTime? archivedAt;
+
+  /// The calendar event this program was imported from (#2352): a SHA-256
+  /// digest of the event's `UID` and recurrence id (`calendarEventKey` in
+  /// `ical_feed.dart`), never the `UID` itself. A later calendar import
+  /// matches on it and does not offer the event again. It travels in Device
+  /// Sync, so another device recognises the import too, and in the caller's
+  /// own backups, but not in share files (`sanitizeProgramForShare`). Null
+  /// for a program not imported from a calendar.
+  final String? calendarEventKey;
+
+  /// What the calendar import last wrote from the event (#2354): a
+  /// per-field hash of its title, date, first location segment, and start
+  /// and end times (`calendarEventFingerprint`). A later import compares the event's
+  /// current fingerprint with it to see what changed upstream. Null for a
+  /// program not imported from a calendar, or imported before #2354.
+  final String? calendarEventFingerprint;
+
+  /// The [updatedAt] the calendar import last wrote (#2354). While the
+  /// program is still a Draft and [updatedAt] still equals it, the caller has
+  /// not touched it ([isUntouchedCalendarDraft]), so an upstream change is
+  /// offered ticked. Any edit, here or synced from another device, moves
+  /// [updatedAt] on.
+  final DateTime? calendarWrittenAt;
+
+  /// Why the calendar flags this program (#2354): [calendarFlagCancelled],
+  /// [calendarFlagMissing], or null. Stored as a string and read leniently,
+  /// so a value a later build adds reads as a generic flag rather than
+  /// refusing the program. Never deletes or edits anything: it is a label.
+  final String? calendarFlag;
+
+  /// Whether a calendar import created this program and the caller has not
+  /// touched it since: still a Draft, and [updatedAt] is the stamp the import
+  /// wrote. Conservative on purpose: linking a venue or adding a slot counts.
+  bool get isUntouchedCalendarDraft =>
+      status == ProgramStatus.draft &&
+      calendarWrittenAt != null &&
+      calendarWrittenAt == updatedAt;
 
   /// Import provenance: where this program came from, keyed on
   /// `(source, externalId)`. For a CC `.USR` import the key makes a re-import
@@ -451,6 +562,137 @@ class Program {
     }
     next.removeAt(index);
     return next;
+  }
+
+  /// [slots] with the dance of the slot at [index] swapped for [danceId], the
+  /// dance it held kept as an alternate in the same group (Perform's **Swap**,
+  /// #2346). Positions are left for the caller to renumber.
+  ///
+  /// The slot keeps its id, note, guest caller, lengths and performed mark,
+  /// as the builder's **Replace…** does, so Perform stays on it. Unlike
+  /// Replace, the old dance is not dropped. When another member of the
+  /// slot's alternate group ([alternateGroupRange]) already holds [danceId]
+  /// and is not marked performed, the two members trade dances (the caller
+  /// chose one of their alternates); otherwise a new unmarked alternate with
+  /// id [alternateId] holding the old dance is inserted just after the slot.
+  ///
+  /// The dance swapped in is the one being called, so it lands on the
+  /// group's primary, which counts toward calling history
+  /// ([ProgramSlot.countsTowardCallingHistory]): when the slot is an
+  /// alternate (Perform's **Show alternate**), it becomes the group's primary,
+  /// moved to the front of the group, and the old primary becomes an
+  /// alternate. A group led by a note or a break is the exception: the slot
+  /// is swapped in place and stays an alternate, so the note or break never
+  /// becomes one. The swapped-out dance always ends on an unmarked
+  /// alternate, which does not count.
+  ///
+  /// Returns [slots] unchanged (as a copy) when the slot holds no dance or
+  /// already holds [danceId].
+  static List<ProgramSlot> swapSlotDanceKeepingAlternate(
+    List<ProgramSlot> slots,
+    int index, {
+    required String danceId,
+    required String alternateId,
+  }) {
+    RangeError.checkValidIndex(index, slots, 'index');
+    final next = [...slots];
+    final slot = next[index];
+    final old = slot.danceId;
+    if (old == null || old == danceId) return next;
+    final range = alternateGroupRange(slots, index);
+    var traded = false;
+    for (var i = range.start; i < range.end; i++) {
+      if (i == index) continue;
+      final member = next[i];
+      if (member.danceId == danceId && member.performedAt == null) {
+        next[i] = member.copyWith(danceId: old);
+        traded = true;
+        break;
+      }
+    }
+    // An alternate is promoted to lead its group, unless the group is led by
+    // a note or a break: that is not a dance to demote, and a break must not
+    // become an alternate. The slot is then swapped in place, as an
+    // alternate.
+    final ledByDance = slots[range.start].danceId != null;
+    final promote = slot.isAlt && (index == range.start || ledByDance);
+    final swapped = slot.copyWith(
+      danceId: danceId,
+      isAlt: promote ? false : slot.isAlt,
+    );
+    // The slot leads its group already (a primary, or a leading orphaned
+    // alternate, which now plans its run), or stays an alternate: it stays
+    // where it is.
+    final front = promote && index != range.start ? range.start : index;
+    next.removeAt(index);
+    if (front != index) {
+      // The old primary, now an alternate of the dance being called.
+      next[front] = next[front].copyWith(isAlt: true);
+    }
+    next.insert(front, swapped);
+    if (!traded) {
+      next.insert(
+        front + 1,
+        ProgramSlot(
+          id: alternateId,
+          position: slot.position,
+          danceId: old,
+          isAlt: true,
+        ),
+      );
+    }
+    return next;
+  }
+
+  /// The alternate group holding the slot at [index] in a **position-ordered**
+  /// [slots] list, as the half-open range `[start, end)`: the group's primary
+  /// and every alternate after it, by the rule [grouped] and
+  /// [alternateGroupsForSlots] use. An alternate's group is its primary's; a
+  /// break, a note, or a leading/orphaned alternate with no primary above it
+  /// starts its own group.
+  static ({int start, int end}) alternateGroupRange(
+    List<ProgramSlot> slots,
+    int index,
+  ) {
+    RangeError.checkValidIndex(index, slots, 'index');
+    var start = index;
+    while (start > 0 && slots[start].isAlt) {
+      start--;
+    }
+    var end = start + 1;
+    while (end < slots.length && slots[end].isAlt) {
+      end++;
+    }
+    return (start: start, end: end);
+  }
+
+  /// [slots] with [slot] inserted as a **primary** just before ([after]
+  /// false) or just after ([after] true) the alternate group holding the slot
+  /// at [index] ([alternateGroupRange]): before the group's primary, or after
+  /// its last alternate. Inserting at the raw index instead could land the new
+  /// dance among a group's alternates, splitting the group or making its
+  /// alternates belong to the new dance (#2339). [slot] is inserted with
+  /// `isAlt` cleared. Positions are left for the caller to renumber.
+  ///
+  /// The one group with no primary is a leading run of orphaned alternates
+  /// (`orphaned_alt`, reachable by dragging an alternate to the top). Inserting
+  /// before it would make the run the new dance's alternates, so the run's
+  /// first slot is promoted to a planned primary instead: it loses its ALT
+  /// badge, gains a dance number, and is no longer hidden by
+  /// `hideAlternates`. The rest of the run stays its alternates.
+  static List<ProgramSlot> insertSlotAtGroupBoundary(
+    List<ProgramSlot> slots,
+    int index,
+    ProgramSlot slot, {
+    required bool after,
+  }) {
+    final range = alternateGroupRange(slots, index);
+    final next = [...slots];
+    if (!after && next[range.start].isAlt) {
+      next[range.start] = next[range.start].copyWith(isAlt: false);
+    }
+    return next
+      ..insert(after ? range.end : range.start, slot.copyWith(isAlt: false));
   }
 
   /// [slots] with the slot at [oldIndex] moved to [newIndex], where
@@ -652,10 +894,18 @@ class Program {
     String? dialectName,
     int? payMinorUnits,
     String? payCurrency,
+    int? startMinute,
+    int? endMinute,
+    int? lessonMinute,
+    int? arrivalMinute,
     List<ProgramSlot>? slots,
     DateTime? updatedAt,
     DateTime? deletedAt,
     DateTime? archivedAt,
+    String? calendarEventKey,
+    String? calendarEventFingerprint,
+    DateTime? calendarWrittenAt,
+    String? calendarFlag,
     Provenance? provenance,
     bool clearEventDate = false,
     bool clearVenue = false,
@@ -666,7 +916,13 @@ class Program {
     bool clearDialectName = false,
     bool clearDeletedAt = false,
     bool clearArchivedAt = false,
+    bool clearCalendarEventKey = false,
+    bool clearCalendarFlag = false,
     bool clearPay = false,
+    bool clearStartMinute = false,
+    bool clearEndMinute = false,
+    bool clearLessonMinute = false,
+    bool clearArrivalMinute = false,
     bool clearProvenance = false,
   }) => Program(
     id: id,
@@ -683,20 +939,43 @@ class Program {
     dialectName: clearDialectName ? null : (dialectName ?? this.dialectName),
     payMinorUnits: clearPay ? null : (payMinorUnits ?? this.payMinorUnits),
     payCurrency: clearPay ? null : (payCurrency ?? this.payCurrency),
+    startMinute: clearStartMinute ? null : (startMinute ?? this.startMinute),
+    endMinute: clearEndMinute ? null : (endMinute ?? this.endMinute),
+    lessonMinute: clearLessonMinute
+        ? null
+        : (lessonMinute ?? this.lessonMinute),
+    arrivalMinute: clearArrivalMinute
+        ? null
+        : (arrivalMinute ?? this.arrivalMinute),
     slots: slots ?? this.slots,
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
     archivedAt: clearArchivedAt ? null : (archivedAt ?? this.archivedAt),
+    // Clearing the key clears everything the calendar import keeps with it.
+    calendarEventKey: clearCalendarEventKey
+        ? null
+        : (calendarEventKey ?? this.calendarEventKey),
+    calendarEventFingerprint: clearCalendarEventKey
+        ? null
+        : (calendarEventFingerprint ?? this.calendarEventFingerprint),
+    calendarWrittenAt: clearCalendarEventKey
+        ? null
+        : (calendarWrittenAt ?? this.calendarWrittenAt),
+    calendarFlag: clearCalendarEventKey || clearCalendarFlag
+        ? null
+        : (calendarFlag ?? this.calendarFlag),
     provenance: clearProvenance ? null : (provenance ?? this.provenance),
   );
 
   /// Deep copy for "duplicate program": fresh ids everywhere, draft status,
-  /// performance history and event date cleared. [newSlotId] mints an id per
+  /// performance history, event date and pay cleared; the times are kept. [newSlotId] mints an id per
   /// copied slot.
   /// Provenance is dropped (the copy is the user's own record, not an import),
   /// mirroring [Dance.duplicate]. The copy is never archived: it is for a new
   /// event, so it belongs in the Programs list even when its source does not.
+  /// Nor does it keep [calendarEventKey]: it was not imported from that event,
+  /// and a calendar import must keep recognising the original alone.
   Program duplicate({
     required String newId,
     required String Function() newSlotId,
@@ -719,6 +998,12 @@ class Program {
     dialectName: dialectName,
     // Pay is deliberately not copied: it belongs to one event, and a duplicate
     // is for a different one.
+    // The times are copied: the date changes between events, but the
+    // schedule usually does not (#2350).
+    startMinute: startMinute,
+    endMinute: endMinute,
+    lessonMinute: lessonMinute,
+    arrivalMinute: arrivalMinute,
     slots: [
       for (final s in slots)
         ProgramSlot(
@@ -800,11 +1085,19 @@ class Program {
       other.dialectName == dialectName &&
       other.payMinorUnits == payMinorUnits &&
       other.payCurrency == payCurrency &&
+      other.startMinute == startMinute &&
+      other.endMinute == endMinute &&
+      other.lessonMinute == lessonMinute &&
+      other.arrivalMinute == arrivalMinute &&
       _listEq.equals(other.slots, slots) &&
       other.createdAt == createdAt &&
       other.updatedAt == updatedAt &&
       other.deletedAt == deletedAt &&
-      other.archivedAt == archivedAt;
+      other.archivedAt == archivedAt &&
+      other.calendarEventKey == calendarEventKey &&
+      other.calendarEventFingerprint == calendarEventFingerprint &&
+      other.calendarWrittenAt == calendarWrittenAt &&
+      other.calendarFlag == calendarFlag;
 
   @override
   int get hashCode => Object.hash(id, title, updatedAt);

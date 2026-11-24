@@ -597,9 +597,10 @@ void main() {
     expect(find.byType(TagManagerScreen), findsNothing);
     expect(_listedTitles(tester), isEmpty);
     expect(find.text('Filters · 1'), findsOneWidget);
-    // Not asserted: a chip for t9. The Filters panel lists only tags a live
-    // dance carries, and the next data change drops a selected tag no dance
-    // carries (retainTags). That is the Collection's existing rule for any
+    // Not asserted: a chip for t9. The Filters panel does show a selected
+    // tag no live dance carries (#2325), but this is a pick from outside, not
+    // a panel state the Collection opened with, so the next data change drops
+    // it (retainTags). That is the Collection's existing rule for any
     // external tag filter, and this action does not special-case it.
   });
 }

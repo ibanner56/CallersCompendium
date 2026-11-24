@@ -2,6 +2,7 @@ import '../model/choreographer.dart';
 import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/dance_link.dart';
+import '../model/enums.dart';
 import '../model/figure_source.dart';
 import '../model/tunes_source.dart';
 import '../model/difficulty_level.dart';
@@ -126,6 +127,19 @@ Map<String, Object?> archiveDanceToJson(
   // [archiveSchemaVersionEcdDanceFields].
   if (d.meter.isNotEmpty) 'meter': d.meter,
   if (d.musicalKey.isNotEmpty) 'musicalKey': d.musicalKey,
+  if (d.alternateTitles.isNotEmpty) 'alternateTitles': d.alternateTitles,
+  if (d.barnesReference.isNotEmpty) 'barnesReference': d.barnesReference,
+  // The square fields (ADR-007 §8.1), written only when not the default for
+  // the same reason as the keys above.
+  if (d.squareKind != SquareKind.main) 'squareKind': d.squareKind.wireName,
+  if (d.repeatOrder != SquareRepeatOrder.unstated)
+    'repeatOrder': d.repeatOrder.wireName,
+  if (d.repeatOrderText.isNotEmpty) 'repeatOrderText': d.repeatOrderText,
+  if (d.newPartner != SquareNewPartner.unstated)
+    'newPartner': d.newPartner.wireName,
+  if (d.newPartnerText.isNotEmpty) 'newPartnerText': d.newPartnerText,
+  if (d.singing) 'singing': true,
+  if (d.freeForm != null) 'freeForm': d.freeForm,
   'status': d.status.name,
   if (includeOptionalFields || d.difficultyLevelId != null)
     'difficultyLevelId': d.difficultyLevelId,
@@ -186,6 +200,15 @@ Map<String, Object?> archiveDanceToJson(
 const Map<String, Object?> omittedDanceDefaults = {
   'meter': '',
   'musicalKey': '',
+  'alternateTitles': <String>[],
+  'barnesReference': '',
+  'squareKind': 'main',
+  'repeatOrder': 'unstated',
+  'repeatOrderText': '',
+  'newPartner': 'unstated',
+  'newPartnerText': '',
+  'singing': false,
+  'freeForm': null,
   'interpreterIds': <String>[],
   'interpretedOn': null,
 };
@@ -301,6 +324,26 @@ Map<String, Object?> archiveProgramToJson(
   // envelope (`requiredBackupVersion`), like pay; share files never carry it,
   // because the share bundles strip it (`sanitizeProgramForShare`).
   if (p.archivedAt != null) 'archivedAt': archiveIso(p.archivedAt!),
+  // Only when set, for the same wire-hash reason, and stamped by the backup
+  // envelope like archivedAt. Share files never carry it: the share bundles
+  // strip it (`sanitizeProgramForShare`).
+  if (p.calendarEventKey != null) 'calendarEventKey': p.calendarEventKey,
+  // The times (#2350): only when set, for the same wire-hash reason. Each is
+  // minutes after midnight, and stays an integer for good (sync-spec §6.9).
+  // Stamped by the core archive version (`archiveSchemaVersionProgramTimes`),
+  // which share files carry too, so an older reader warns or refuses rather
+  // than dropping them.
+  if (p.startMinute != null) 'startMinute': p.startMinute,
+  if (p.endMinute != null) 'endMinute': p.endMinute,
+  if (p.lessonMinute != null) 'lessonMinute': p.lessonMinute,
+  if (p.arrivalMinute != null) 'arrivalMinute': p.arrivalMinute,
+  // The calendar import's change tracking (#2354): only when set, stamped by
+  // the backup envelope, stripped from share files, like the key.
+  if (p.calendarEventFingerprint != null)
+    'calendarEventFingerprint': p.calendarEventFingerprint,
+  if (p.calendarWrittenAt != null)
+    'calendarWrittenAt': archiveIso(p.calendarWrittenAt!),
+  if (p.calendarFlag != null) 'calendarFlag': p.calendarFlag,
   'slots': [
     for (final s in p.slots)
       archiveProgramSlotToJson(s, includeOptionalFields: includeOptionalFields),

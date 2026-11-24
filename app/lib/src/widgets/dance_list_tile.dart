@@ -46,6 +46,7 @@ class DanceListTile extends StatelessWidget {
     this.onAddTags,
     this.onTagTap,
     this.visibleFields,
+    this.reasonLine,
   }) : assert(
          !selectionMode || selected == selectedForBatch,
          'In selection mode the row highlight (selected) must match the '
@@ -105,6 +106,11 @@ class DanceListTile extends StatelessWidget {
   /// The collection screen and the program picker pass
   /// [CollectionTileFieldsScope.of(context)] here.
   final Set<CollectionTileField>? visibleFields;
+
+  /// A short line under the row's chips saying why the row is where it is:
+  /// the program picker's Suggested order passes its top reasons (#2343).
+  /// Null shows no line.
+  final String? reasonLine;
 
   @override
   Widget build(BuildContext context) {
@@ -176,149 +182,156 @@ class DanceListTile extends StatelessWidget {
           color: selected ? theme.colorScheme.primary : null,
         ),
       ),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: AppSpacing.xxs),
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            if (effectiveFields.contains(CollectionTileField.authors) &&
-                entry.authorNames.isNotEmpty)
-              Text(
-                entry.authorNames.join(', '),
-                style: theme.textTheme.bodyMedium,
-              ),
-            if (effectiveFields.contains(CollectionTileField.calledCount) &&
-                calledCount > 0)
-              Chip(
-                key: ValueKey('called-count-${dance.id}'),
-                avatar: const Icon(Icons.campaign_outlined, size: 16),
-                label: Text(
-                  l10n.collectionCalledBadge(calledCount),
-                  semanticsLabel: l10n.collectionCalledBadgeSemantic(
-                    calledCount,
-                  ),
+      subtitle: _withReasonLine(
+        theme,
+        Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.xxs),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (effectiveFields.contains(CollectionTileField.authors) &&
+                  entry.authorNames.isNotEmpty)
+                Text(
+                  entry.authorNames.join(', '),
+                  style: theme.textTheme.bodyMedium,
                 ),
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            if (effectiveFields.contains(CollectionTileField.formation))
-              Chip(
-                avatar: Icon(formationIcon, size: 16, color: formationFg),
-                label: Text(
-                  formationDisplayLabel(
-                    l10n,
-                    dance.formation,
-                    FigureRenderer(shippedTaxonomies.anyForm),
-                    dialect,
-                    canonicalizeDiscouragedTerms:
-                        CanonicalDiscouragedTermsScope.of(context),
-                  ),
-                  style: formationFg == null
-                      ? null
-                      : TextStyle(color: formationFg),
-                ),
-                backgroundColor: formationColor,
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            if (effectiveFields.contains(CollectionTileField.status) &&
-                dance.status != DanceStatus.active)
-              DanceStatusChip(status: dance.status),
-            // Shown regardless of the visible-field configuration: a row whose
-            // stored figures or tunes could not be decoded looks exactly like a
-            // dance that simply has none, and that is the confusion this whole
-            // change exists to remove (#1347). Not a status — the dance is
-            // fine, its stored text is what cannot be read.
-            if (dance.figuresSource is UnreadableFigures ||
-                dance.tunesSource is UnreadableTunes)
-              Chip(
-                avatar: Icon(
-                  Icons.report_problem_outlined,
-                  size: 16,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-                label: Text(l10n.danceListUnreadableBadge),
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            if (effectiveFields.contains(CollectionTileField.level) &&
-                (entry.difficultyLevel ??
-                        DifficultyLevel.knownForId(dance.difficultyLevelId)) !=
-                    null)
-              Chip(
-                avatar: const Icon(
-                  Icons.signal_cellular_alt_outlined,
-                  size: 16,
-                ),
-                label: Text(
-                  danceLevelLabel(
-                    l10n,
-                    entry.difficultyLevel ??
-                        DifficultyLevel.knownForId(dance.difficultyLevelId)!,
-                  ),
-                ),
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            if (effectiveFields.contains(CollectionTileField.level) &&
-                dance.mixedLevel)
-              Chip(
-                avatar: const Icon(Icons.swap_vert_outlined, size: 16),
-                label: Text(l10n.commonMixedLevel),
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            if (effectiveFields.contains(CollectionTileField.level) &&
-                dance.mixer)
-              Chip(
-                key: const ValueKey('mixer-chip'),
-                avatar: const Icon(Icons.sync_alt_outlined, size: 16),
-                label: Text(l10n.commonMixer),
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            if (effectiveFields.contains(CollectionTileField.rating) &&
-                dance.rating != null)
-              Chip(
-                key: const ValueKey('rating-indicator'),
-                avatar: const Icon(Icons.star_outline, size: 16),
-                label: Text(
-                  '${dance.rating}',
-                  semanticsLabel: l10n.collectionRatingSemantic(dance.rating!),
-                ),
-                visualDensity: VisualDensity.compact,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            if (effectiveFields.contains(CollectionTileField.tags))
-              for (final tag in entry.tags)
-                if (onTagTap != null && !selectionMode)
-                  TagChip(
-                    key: ValueKey('tag-filter-chip-${tag.id}'),
-                    name: tag.name,
-                    color: tag.color,
-                    tooltip: l10n.commonShowDancesTaggedTooltip(tag.name),
-                    dense: true,
-                    onPressed: () => onTagTap!(tag.id),
-                  )
-                else
-                  TagChip(name: tag.name, color: tag.color, dense: true),
-            if (effectiveFields.contains(CollectionTileField.customFields))
-              for (final field in entry.listCustomFields)
+              if (effectiveFields.contains(CollectionTileField.calledCount) &&
+                  calledCount > 0)
                 Chip(
+                  key: ValueKey('called-count-${dance.id}'),
+                  avatar: const Icon(Icons.campaign_outlined, size: 16),
                   label: Text(
-                    _renderCustomField(
-                      field,
-                      renderer: renderer,
-                      dialect: dialect,
-                      canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+                    l10n.collectionCalledBadge(calledCount),
+                    semanticsLabel: l10n.collectionCalledBadgeSemantic(
+                      calledCount,
                     ),
                   ),
                   visualDensity: VisualDensity.compact,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-          ],
+              if (effectiveFields.contains(CollectionTileField.formation))
+                Chip(
+                  avatar: Icon(formationIcon, size: 16, color: formationFg),
+                  label: Text(
+                    formationDisplayLabel(
+                      l10n,
+                      dance.formation,
+                      FigureRenderer(shippedTaxonomies.anyForm),
+                      dialect,
+                      canonicalizeDiscouragedTerms:
+                          CanonicalDiscouragedTermsScope.of(context),
+                    ),
+                    style: formationFg == null
+                        ? null
+                        : TextStyle(color: formationFg),
+                  ),
+                  backgroundColor: formationColor,
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              if (effectiveFields.contains(CollectionTileField.status) &&
+                  dance.status != DanceStatus.active)
+                DanceStatusChip(status: dance.status),
+              // Shown regardless of the visible-field configuration: a row whose
+              // stored figures or tunes could not be decoded looks exactly like a
+              // dance that simply has none, and that is the confusion this whole
+              // change exists to remove (#1347). Not a status — the dance is
+              // fine, its stored text is what cannot be read.
+              if (dance.figuresSource is UnreadableFigures ||
+                  dance.tunesSource is UnreadableTunes)
+                Chip(
+                  avatar: Icon(
+                    Icons.report_problem_outlined,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  label: Text(l10n.danceListUnreadableBadge),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              if (effectiveFields.contains(CollectionTileField.level) &&
+                  (entry.difficultyLevel ??
+                          DifficultyLevel.knownForId(
+                            dance.difficultyLevelId,
+                          )) !=
+                      null)
+                Chip(
+                  avatar: const Icon(
+                    Icons.signal_cellular_alt_outlined,
+                    size: 16,
+                  ),
+                  label: Text(
+                    danceLevelLabel(
+                      l10n,
+                      entry.difficultyLevel ??
+                          DifficultyLevel.knownForId(dance.difficultyLevelId)!,
+                    ),
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              if (effectiveFields.contains(CollectionTileField.level) &&
+                  dance.mixedLevel)
+                Chip(
+                  avatar: const Icon(Icons.swap_vert_outlined, size: 16),
+                  label: Text(l10n.commonMixedLevel),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              if (effectiveFields.contains(CollectionTileField.level) &&
+                  dance.mixer)
+                Chip(
+                  key: const ValueKey('mixer-chip'),
+                  avatar: const Icon(Icons.sync_alt_outlined, size: 16),
+                  label: Text(l10n.commonMixer),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              if (effectiveFields.contains(CollectionTileField.rating) &&
+                  dance.rating != null)
+                Chip(
+                  key: const ValueKey('rating-indicator'),
+                  avatar: const Icon(Icons.star_outline, size: 16),
+                  label: Text(
+                    '${dance.rating}',
+                    semanticsLabel: l10n.collectionRatingSemantic(
+                      dance.rating!,
+                    ),
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              if (effectiveFields.contains(CollectionTileField.tags))
+                for (final tag in entry.tags)
+                  if (onTagTap != null && !selectionMode)
+                    TagChip(
+                      key: ValueKey('tag-filter-chip-${tag.id}'),
+                      name: tag.name,
+                      color: tag.color,
+                      tooltip: l10n.commonShowDancesTaggedTooltip(tag.name),
+                      dense: true,
+                      onPressed: () => onTagTap!(tag.id),
+                    )
+                  else
+                    TagChip(name: tag.name, color: tag.color, dense: true),
+              if (effectiveFields.contains(CollectionTileField.customFields))
+                for (final field in entry.listCustomFields)
+                  Chip(
+                    label: Text(
+                      _renderCustomField(
+                        field,
+                        renderer: renderer,
+                        dialect: dialect,
+                        canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+                      ),
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+            ],
+          ),
         ),
       ),
       isThreeLine: false,
@@ -331,6 +344,33 @@ class DanceListTile extends StatelessWidget {
     );
     // A right-click on the row opens the ⋮ menu ([_actionsMenu]).
     return RightClickMenu(menuKey: _actionsMenuKey, child: tile);
+  }
+
+  /// [chips] with [reasonLine] under it, when there is one.
+  Widget _withReasonLine(ThemeData theme, Widget chips) {
+    final reason = reasonLine;
+    if (reason == null) return chips;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        chips,
+        Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.xxs),
+          child: Row(
+            key: ValueKey('suggestion-reason-${entry.dance.id}'),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const ExcludeSemantics(
+                child: Icon(Icons.lightbulb_outline, size: 16),
+              ),
+              const SizedBox(width: AppSpacing.xxs),
+              Expanded(child: Text(reason, style: theme.textTheme.bodySmall)),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Key get _actionsMenuKey => ValueKey('dance-actions-${entry.dance.id}');

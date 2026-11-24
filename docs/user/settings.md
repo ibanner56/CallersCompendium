@@ -28,74 +28,23 @@ choose **Settings…** in the **Caller's Compendium** menu on a Mac (see
 Inside, on a wide screen (a desktop, or a tablet in landscape), a list of
 sections sits beside the controls for the section you've chosen, starting with
 **General**. On a narrower screen (a phone, or a tablet in portrait) you pick a
-section and it opens as its own page, then you step back to switch sections. There are ten sections, always in this order:
+section and it opens as its own page, then you step back to switch sections. There are eleven sections, always in this order:
 
 1. **General**
-2. **Program**
-3. **Appearance**
-4. **Dialect**
-5. **Language & region**
-6. **Defaults**
-7. **Updates**
-8. **Diagnostics**
-9. **Experimental**
-10. **About**
+2. **Collection**
+3. **Program**
+4. **Appearance**
+5. **Dialect**
+6. **Language & region**
+7. **Defaults**
+8. **Updates**
+9. **Diagnostics**
+10. **Experimental**
+11. **About**
 
 ## General
 
 The **General** section gathers everyday behavior into small groups.
-
-### Dances
-
-- **Ignore leading articles when sorting** (on by default) — alphabetizes titles
-  by their first meaningful word. With this on, "The Nice Combination" files under
-  **N**, not **T**. It applies to the Collection, the program dance picker, the
-  Programs list, and the order of [quick search](./collection.md#jump-straight-to-a-dance-or-program)
-  results.
-- **Capitalize figures** (off by default) — starts each
-  [figure](./glossary.md#figure) in the dance view, [Perform mode](./perform.md) and
-  the figure editor with a capital letter. Off, figures are shown as written
-  (built-in figures start in lower case, as in ContraDB). Only the look in those
-  places changes; exports, search, sync comparisons and screen-reader wording are
-  unaffected.
-- **Tags** — opens the Tags manager, where you rename, merge, color and delete
-  your tags. **Show dances** in a tag's menu closes Settings and adds that tag to
-  your collection's filter; your search text, other filters and any tags
-  already chosen stay (with two or more tags, the collection shows dances that
-  have all of them unless you pick **Any tag**). See [Group by category](./collection.md#group-by-category-a-dances-vibe)
-  for what each action does.
-- **Authors** and **Sources** — open the Authors and Sources managers. They
-  work like the Tags manager: search, a **Not used** filter, sort by name or by
-  number of dances, and a ⋮ on each row (or tap the row) for its actions.
-  Each row shows how many dances use it; a dance in
-  [Recently deleted](#recently-deleted) doesn't count. A source's row also shows
-  its author and year, so two sources with the same title can be told apart.
-  - **Rename** changes the name everywhere it is credited. Renaming an author
-    to a name another author already has offers to **merge** the two instead.
-  - **Merge into…** combines two entries into the one you pick: every dance that
-    credited either now credits that one. Any detail the kept entry leaves
-    empty is filled from the other — an email, say, typed only on a misspelled
-    copy. Where both hold different values, the kept entry's value stays and the
-    other is dropped; the app lists what it will drop and asks before it merges.
-    An author marked deceased on either copy stays marked. For a source, a dance
-    that cited both keeps one citation, with the page and number it had for the
-    source you merged into; an empty one is filled from the other citation. A
-    page or number the two citations disagree on isn't listed: the one for the
-    source you merged into is kept.
-  - **Edit details…** opens the same details you edit from the dance editor.
-  - **Delete** appears only for an entry no dance uses. One still in use can
-    only be merged, so no dance loses its author or source.
-
-  Rename, merge and delete happen at once (a delete asks first only when
-  **Confirm before delete** is on) and show an **Undo** in the message at
-  the bottom of the screen; once that message goes, the change stays. A merge's
-  dropped details come back with Undo, and are gone after it.
-
-  Merging two authors loses something on your other devices, as merging two
-  authors in [Sync decisions](#sync-decisions) does: an email address,
-  location, and deceased marker are kept only on your own device and are never
-  sent to your other devices, so the ones another device holds for the author
-  that is not kept cannot be recovered there.
 
 ### Accessibility
 
@@ -178,14 +127,90 @@ the full picture.
   bring a copy back.
 - **Backup reminder** — set to **Off**, **Weekly**, or **Monthly**, with a "last
   backup" date so you know where you stand.
+- **Export dances as a spreadsheet** — every dance in your collection as a CSV
+  file for Excel, Numbers or Google Sheets. It follows the sharing rules, plus
+  your star ratings, and it is not a backup: the app can't restore from it. See
+  [Export dances as a spreadsheet](./sharing.md#export-dances-as-a-spreadsheet-csv).
 
 For the whole workflow, see [Backup & portability](./backup-portability.md).
+
+## Collection
+
+The **Collection** section holds the settings for your dances and your saved
+searches.
+
+### Dances
+
+- **Ignore leading articles when sorting** (on by default) — alphabetizes titles
+  by their first meaningful word. With this on, "The Nice Combination" files under
+  **N**, not **T**. It applies to the Collection, the program dance picker, the
+  Programs list, and the order of [quick search](./collection.md#jump-straight-to-a-dance-or-program)
+  results.
+- **Capitalize figures** (off by default) — starts each
+  [figure](./glossary.md#figure) in the dance view, [Perform mode](./perform.md) and
+  the figure editor with a capital letter. Off, figures are shown as written
+  (built-in figures start in lower case, as in ContraDB). Only the look in those
+  places changes; exports, search, sync comparisons and screen-reader wording are
+  unaffected.
+- **Tags** — opens the Tags manager, where you rename, merge, color and delete
+  your tags. **Show dances** in a tag's menu closes Settings and adds that tag to
+  your collection's filter; your search text, other filters and any tags
+  already chosen stay (with two or more tags, the collection shows dances that
+  have all of them unless you pick **Any tag**). See [Group by category](./collection.md#group-by-category-a-dances-vibe)
+  for what each action does.
+- **Authors** and **Sources** — open the Authors and Sources managers. They
+  work like the Tags manager: search, a **Not used** filter, sort by name or by
+  number of dances, and a ⋮ on each row (or tap the row) for its actions.
+  Each row shows how many dances use it; a dance in
+  [Recently deleted](#recently-deleted) doesn't count. A source's row also shows
+  its author and year, so two sources with the same title can be told apart.
+  - **Rename** changes the name everywhere it is credited. Renaming an author
+    to a name another author already has offers to **merge** the two instead.
+  - **Merge into…** combines two entries into the one you pick: every dance that
+    credited either now credits that one. Any detail the kept entry leaves
+    empty is filled from the other — an email, say, typed only on a misspelled
+    copy. Where both hold different values, the kept entry's value stays and the
+    other is dropped; the app lists what it will drop and asks before it merges.
+    An author marked deceased on either copy stays marked. For a source, a dance
+    that cited both keeps one citation, with the page and number it had for the
+    source you merged into; an empty one is filled from the other citation. A
+    page or number the two citations disagree on isn't listed: the one for the
+    source you merged into is kept.
+  - **Edit details…** opens the same details you edit from the dance editor.
+  - **Delete** appears only for an entry no dance uses. One still in use can
+    only be merged, so no dance loses its author or source.
+
+  Rename, merge and delete happen at once (a delete asks first only when
+  **Confirm before delete** is on) and show an **Undo** in the message at
+  the bottom of the screen; once that message goes, the change stays. A merge's
+  dropped details come back with Undo, and are gone after it.
+
+  Merging two authors loses something on your other devices, as merging two
+  authors in [Sync decisions](#sync-decisions) does: an email address,
+  location, and deceased marker are kept only on your own device and are never
+  sent to your other devices, so the ones another device holds for the author
+  that is not kept cannot be recovered there.
+
+### Saved searches
+
+Every search you have saved from the Collection (see [Save a search and use it
+again](./collection.md#save-a-search-and-use-it-again)) is listed here by name.
+
+- **Rename** (the pencil) changes a saved search's name. What it searches for
+  stays as it was saved; to change that, load it in the Collection, change the
+  search and choose **Update** in the ⋮ menu.
+- **Delete** (the bin) deletes it at once (it asks first only when **Confirm
+  before delete** is on) and shows an **Undo** in the message at the bottom of
+  the screen.
+- A saved search that this version of the app can't read (saved by a newer
+  version, or damaged) is listed last, under **Needs attention**. It is never
+  used. Tap it to read what that means and to delete it; you can undo that.
 
 ## Program
 
 The **Program** section gathers the settings that shape how you build, check, and
 perform your [programs](./glossary.md#program) — venues, the programming matrix,
-sharing, Perform mode, and calling history.
+sharing, Perform mode, calling history, and your calendar.
 
 ### Venues
 
@@ -233,6 +258,19 @@ details are handled when you export.
   saved as you work, so leaving the program editor never asks whether to
   discard them. Leave it off to save programs yourself.
 
+- **Show pay** (on by default) — shows each program's
+  [Pay](./programs.md#event-details) field under **More details** in the
+  program editor, and its pay line on the program's summary. Turn it off if you
+  don't track pay, and both are hidden. Hiding never clears anything: pay
+  already entered is kept, saving a program while pay is hidden keeps its amount
+  and currency as they are, and turning **Show pay** back on shows them again.
+  If you had changed a pay amount just before hiding it, that change is still
+  saved; an amount that isn't a valid number stays visible so you can fix it.
+  A sync conflict still compares pay, so two versions that differ only in pay
+  don't look the same. While pay is hidden, the
+  [programs spreadsheet](./sharing.md#export-programs-as-a-spreadsheet-csv) leaves
+  pay out too, and its export dialog says so.
+
 - **Matrix columns** — opens a dedicated editor for the columns of the
   [programming matrix](./programs.md#check-your-evening-with-the-matrix). These
   changes are saved and apply to **every** program, both on screen and in the
@@ -267,8 +305,9 @@ one off.
   which is also the subject line of the share.
 - **Include caller and band when sharing a set list** (on) — the **Band** and
   **Caller** lines.
-- **Include date and venue when sharing a set list** (on) — the date and venue
-  line.
+- **Include date, times and venue when sharing a set list** (on) — the line
+  with the date, the dance's start and end times and the venue, and the
+  beginner lesson's time. **Arrive by** is never in a shared set list.
 
 They don't change what is shared when you share the whole program as a
 `.ccshare` or JSON file: that file always carries the full program.
@@ -292,6 +331,16 @@ They don't change what is shared when you share the whole program as a
   *Exit Perform?* before taking you out of Perform mode, so a stray tap can't drop
   you out mid-dance. Turn it off to leave in one tap; a program's place and
   clock are kept either way. See [Leaving Perform](./perform.md#leaving-perform).
+- **Swap a dance** — which **Keep** choices are on when you
+  [swap a dance](./perform.md#swap-a-dance) in Perform: **Same formation**,
+  **This level or easier**, **Same type** (offered only in a program that mixes
+  types) and **Not already in tonight's program**. All four start on. Figures to
+  keep always start off. A backup includes this setting, and it syncs to your
+  other devices once every device in the store has a version of the app that
+  knows it. If a newer version of the app saved these choices, this screen can't
+  read them: it shows the choices the app starts with, all on, and can't change
+  them until you update (your saved choices are kept). If the choices can't be
+  read at all, it says so and changes nothing.
 
 ### Calling history
 
@@ -369,6 +418,60 @@ out here too. These only change how calls are dated and ordered.
   same for a slot you have not marked performed. With both on, only a dated slot
   you marked performed gives a date.
 
+### Calendar
+
+For [importing gigs from your online calendar](./programs.md#import-programs-from-your-calendar)
+as draft programs.
+
+- **Calendar address** — your calendar's iCal address (`https://…` or
+  `webcal://…`). One address per device. The setting shows only **Set** or
+  **Not set**, and the address itself appears only when you edit it, because a
+  private calendar's address contains a secret: it is never
+  synced to your other devices, never put in a [backup](./backup-portability.md)
+  (enter it again after a restore), and removed from
+  [diagnostics](#diagnostics).
+- **Which events** — how far ahead to look: 3, 6 (the default) or 12 months.
+  Repeating events are read only 30 days ahead, whatever you choose.
+- **Only events whose title contains** — for a calendar that also holds things
+  other than gigs. Leave it empty for every event. It ignores capitals.
+- **Import calendar when the app starts** (off) — reads your calendar once each
+  time the app starts, and never at any other time: not in the background, not
+  on a timer, not when you come back to the app. Like the automatic
+  [update check](#updates), it is off until you turn it on. With
+  [Device Sync](#device-sync) on, it first waits up to 30 seconds for the sync
+  the app runs when it starts, so events another of your devices has already
+  imported and synced aren't added again here. Both can still add a draft for
+  the same event if that device hasn't synced them yet, or if this one can't
+  sync when it starts (offline, or on mobile data with **Sync only on WiFi**)
+  or takes longer than that.
+- **At startup** — what that run does with events not imported before:
+  - **Report new events** (the default) — adds nothing. If there are new events,
+    a message says how many, with **Review**, which opens the import review with
+    what was found; nothing is added until you choose **Import** there.
+  - **Add them as drafts** — adds a draft program for each new event, with the
+    same rules as an import you start, and says so, with **Undo** and **Show**.
+    **Undo** moves the drafts you haven't touched to Recently deleted, so the
+    next start doesn't add them again: the import skips events whose
+    programs are there, until they leave it for good (after the time set in
+    [Recently deleted](#recently-deleted), 30 days unless you change it). A
+    draft you have started filling in is kept.
+
+  Either way it never changes a program you already have. If an event you
+  imported has changed or been canceled, the message only counts it ("1 change
+  needs you") and **Review** shows it.
+- If the run can't reach the calendar, nothing tells you at the time. A line
+  here says what the last run did ("Checked at startup 22 Nov: 2 new events",
+  or that it couldn't reach the calendar), and after it has failed 3 times in a
+  row, a notice here says so, with a hint to check the address. A successful
+  run, or changing the address, clears it. A run that reached the calendar but
+  couldn't read it, such as a Wi-Fi sign-in page, says so on that line, and
+  neither counts toward the notice nor clears it.
+- **Pull now** — opens the calendar import.
+
+**Which events** and the title filter travel with your other preferences; the
+address does not. The startup switch and **At startup** stay on this device,
+like the update check's, but a backup keeps them.
+
 ## Appearance
 
 The **Appearance** section controls how the app looks.
@@ -387,9 +490,11 @@ There's a **High contrast** theme for maximum legibility — see the
 
 Type in **Search themes…** to find a theme by its name, or by a color or
 character word such as *purple*, *green*, *warm*, *pastel*, *muted* or *retro*.
-The headings give way to just the matching themes. Every word you type has to
-match, so *dark purple* finds the dark themes that are purple, and accents are
-optional: *frappe* finds *Catppuccin Frappé*.
+On a computer the box is ready to type in as soon as the screen opens; on a
+phone, tap it first. The headings give way to just the matching themes, with a
+count of them above, which a screen reader reads out as you type. Every word you
+type has to match, so *dark purple* finds the dark themes that are purple, and
+accents are optional: *frappe* finds *Catppuccin Frappé*.
 
 ### Custom themes
 
@@ -444,7 +549,7 @@ optional: *frappe* finds *Catppuccin Frappé*.
   every other tag looks exactly as it does now. The tag's name is always shown
   beside the color, so tags stay readable without relying on color, and the
   app picks a black or white label automatically so your color stays legible in
-  every theme. This opens the Tags manager (also under **General ▸ Dances ▸
+  every theme. This opens the Tags manager (also under **Collection ▸ Dances ▸
   Tags**): choose **Color…** in a tag's menu to pick one, or **Remove color**.
 
 ## Dialect
@@ -582,9 +687,11 @@ default.
 
 Choose which details appear when you share, copy, or export a program or dance:
 **Authors**, **Formation**, **Level**, **Mixer**, **Status**, **Phrase**,
-**Calling notes**, **Walkthrough**, **Tunes**, **Hook**, and **Sources**.
-Everything except tunes, the hook and sources is shown by default; those three
-are hidden until you turn them on. See
+**Calling notes**, **Walkthrough**, **Tunes**, **Hook**, **Sources**, and
+**Meter, key and Barnes**. Everything except tunes, the hook and sources is
+shown by default; those three are hidden until you turn them on. If you had
+changed this list before **Meter, key and Barnes** was added, it starts off.
+See
 [Choose which dance fields appear](./sharing.md#choose-which-dance-fields-appear).
 
 ### Collection filters
@@ -606,11 +713,33 @@ Select **Program defaults** to open this group.
 
 - **Default caller** and **Default band** — prefilled into each new program, and
   editable per program.
-- **Starting program** — an ordered template of dances, caller notes, breaks,
-  and free-text entries for programs you create by hand. Dances that are no
-  longer in your collection are skipped. It applies only when you create a
-  program in the editor; imports, duplicates, and “create with this dance” keep
-  their own slots.
+- **Program templates** — opens the list of your templates. A template is a
+  named, ordered list of dances, caller notes, breaks and free-text entries
+  that a new program starts with: one for a family dance, one for a regular
+  Saturday contra, and so on. Use **New template** to add one, select a
+  template to edit its name and slots, and use its ⋮ menu to **Rename**,
+  **Duplicate** or **Delete** it (Delete offers Undo). Drag a template, or use
+  its move up and move down buttons, to change the order **New program** lists
+  them in. Dances that are no longer in your collection are skipped when a
+  program is made from a template.
+- **Default template** — the template a new program starts from when you are
+  not asked to choose, or **Blank program**. The first template you add
+  becomes the default unless you have chosen Blank program. With two or more
+  templates,
+  **New program** asks which to start from, listing the default first; with
+  one template or none it uses the default without asking. The Default
+  template also fills the drafts a
+  [calendar import](./programs.md#import-programs-from-your-calendar) creates.
+  Otherwise templates apply only to programs you start with **New program**:
+  other imports, duplicates, programs someone shared with you, and **Create a
+  new program with this dance** keep their own slots.
+
+If you had set up a **Starting program** before templates arrived, it became
+your first template, named "Starting program", and your Default template, so
+**New program** works as it did. Each template syncs to your other devices as
+its own setting, so editing two different templates on two devices keeps both
+edits; templates wait to sync until every device in the store has a version
+of the app that knows them.
 
 ### Import defaults
 
@@ -656,7 +785,10 @@ open this group. You can override any of them per dance, and
   dance. **Type** can also be **Last used**, so a new dance starts as the type of
   the last new dance you saved. Until you save one, it starts as contra.
 - **Default phrase structure** — leave blank for the standard 4×16 A1 A2 B1 B2, or
-  set your own.
+  set your own, as rows of phrases, bars per phrase and beats per bar or by
+  writing it in the field under them. English phrase names
+  (`A:2*8*2 + B:1*8*2`) go in the field; the rows don't show for a default
+  that has them, and are dimmed if you type them.
 - **Starting figures** — the figures a new dance begins with; defaults to eight
   stand stills of eight beats each, or to none while **Free-text entry** is on.
   Clear it for a blank new dance.
@@ -827,7 +959,7 @@ useful thing you can send.
 ## Experimental
 
 The **Experimental** section holds features that are still in development —
-today, that's the **Glossary**, **Calling cards**, **Device Sync** and **Developer options**. Anything here can change
+today, that's the **Glossary**, **Repertoire**, **Suggestions**, **Calling cards**, **Device Sync** and **Developer options**. Anything here can change
 before it becomes a regular setting. Each feature sits in its own section: select its heading to
 open or close it.
 
@@ -849,21 +981,29 @@ figure to see:
   own, such as how you call it or what to watch for. Clear the text to remove
   them.
 
-Choose **Contra** or **English (ECD)** at the top of the Glossary to see
-that type's figures. Each time you go to the Glossary, it shows the type a
+Choose **Contra**, **English (ECD)** or **Square** at the top of the
+Glossary to see that type's figures. Each time you go to the Glossary, it shows the type a
 new dance starts as (the **Type** default for new dances, which can be
-**Last used**), until you choose one yourself. English figures don't have
-definitions yet. Your own figures and terms are listed under the type they
-were made for, and a square dance's under Contra, whose figures square dances
-use for now. One you add is made for the type shown. Copying an English
-figure as one of your own makes it an English figure, though it offers
-contra's groups of dancers for now, so English-only ones such as ends or top
-can't be chosen in it yet.
+**Last used**), until you choose one yourself. English figures and square
+calls don't have definitions yet. Your own figures and terms are listed under
+the type they were made for. One you add is made for the type shown. Copying an English
+figure as one of your own makes it an English figure, and it offers English's
+groups of dancers, such as the ends or the top.
+
+Versions of the app from before English figures offered English's groups of
+dancers can't read an English figure of yours whose default, or a condition in
+whose wording, names a group only English has, such as the ends or the top. On
+a device that hasn't been updated, that figure is marked **Needs repair**,
+though it is kept as it is, and a dance that uses it shows the wording the line
+last had. Repairing it there drops that default or condition, and the change
+then syncs to your other devices, so update the device instead.
 
 Names, definitions and examples of the built-in figures follow your active
 [dialect](dialects.md) for the type shown, so role words read the way you call
-them. Your own figures and terms read in your contra dialect for now, whatever
-their type. The built-in
+them. Your own figures, combinations and terms read in the dialect of the type
+they were made for, and a shorthand reads in the dialect of the type of the
+figure it stands for; a shorthand whose figure is gone reads in your contra
+dialect. The built-in
 figures come with the app, and turning the Glossary off only removes it from
 the navigation; your notes are kept, and come back when you turn it on again.
 The built-in definitions and descriptions are in English whatever language the
@@ -938,8 +1078,10 @@ The Glossary lists them too, when it is shown. While it is on:
 - Add **Parameters** for what can differ from one use to the next, such as
   *who* and *which hand*. In a combination, under **Filled in by parameters**,
   choose which of each figure's settings come from them. A setting can also take the **opposite** of
-  a parameter — the other hand, the other role, or partners for neighbors and
-  neighbors for partners — where that has one. A choice
+  a parameter — the other hand, the other role, partners for neighbors and
+  neighbors for partners, or, in a combination made for English, the top for the
+  bottom, the ends for the middles, the left file for the right file and the
+  first diagonals for the second — where that has one. A choice
   that can't be used, because the kinds differ or no value would fit every
   setting it fills, is shown grayed out with the reason.
 - If a parameter fills nothing, or a new figure's wording leaves it out, saving
@@ -977,15 +1119,22 @@ The Glossary lists them too, when it is shown. While it is on:
   and once the figure is gone, typing one is read as an ordinary line (see
   [Figure shorthands](./authoring.md#figure-shorthands)). A figure that can no longer be used
   is marked **Needs repair**; one whose name is also another figure's is
-  marked **Rename needed**.
+  marked **Rename needed**. A figure's name is checked against the app's
+  figures for its own dance form: an English figure of yours named *Siding*
+  needs a new name, a contra one doesn't.
 - If a later version of the app comes with a figure that has the name of one
-  of your new figures, your figure's page says so, with two choices.
+  of your new figures, your figure's page says so, with two choices. (When the
+  app has an English figure of that name, such as *Swing* or *Circle* for an
+  English figure of yours, yours is marked **Rename needed** instead, even if
+  the app has a contra figure of that name too.)
   **Rename mine** opens it to give it another name. **Switch to the app's figure**
   opens a page where you choose which of the app's figure's parameters each of
   yours becomes, and which of its values each of your options becomes; where a
   name matches, it is chosen for you. An option can become any parameter that
   takes words, such as a hand or who; any other parameter, one of the same
-  kind that takes all its values. A places parameter can also become a plain
+  kind that takes all its values. A group of dancers is measured against the
+  app's figure's groups, which are contra's, whatever type your figure is made
+  for. A places parameter can also become a plain
   number, which takes every count places can; the count then reads without
   the word "places". Two of yours can't become the same one.
   Every one must be chosen, so a parameter the app's figure has nothing for
@@ -997,7 +1146,9 @@ The Glossary lists them too, when it is shown. While it is on:
   your figure no longer has, or whose name another shorthand also has, stays
   as it is). A line whose wording was edited in an older version of the app,
   or that holds a value your figure no longer has, keeps its wording as plain
-  text, and dances in Recently deleted keep the line each last stored. As with
+  text, and so does a line of an English figure that holds a group of dancers
+  only English has, such as the ends or the top; the confirmation says so.
+  Dances in Recently deleted keep the line each last stored. As with
   deleting, each dialect's name and wording for your figure, and its column in
   **Matrix columns**, are removed: the app's figure has its own.
 
@@ -1024,13 +1175,89 @@ Figures and notes that arrive from another device with Device Sync, or from a
 backup you restore, are always kept, even if they take you past the limit; you
 can then edit them down but not add more.
 
+### Repertoire
+
+**Repertoire** adds a **Repertoire** item to the **More actions** (⋮) menu in
+the Collection toolbar. It is **off by default**. It opens a read-only page of
+your most and least called dances, what you have never called, figure
+frequency, the authors you call, your formation mix, and dances
+repeated at a venue; see
+[See your repertoire at a glance](./collection.md#see-your-repertoire-at-a-glance).
+It adds nothing to the navigation, and it stores nothing: the numbers are
+worked out each time you open the page, under the
+[Calling history](#calling-history) settings.
+
+### Suggestions
+
+**Suggest the next dance** adds **Suggested** to the **Sort** menu of the
+collection picker in the program builder. It is **off by default**, and the
+section starts closed while it is off. Suggested orders the dances for where
+the new one will go in the program you are building (the end, a place you are
+adding before or after a slot, or the slot you are replacing), and each dance
+says why it is where it is.
+See [Let the app suggest the next dance](./programs.md#let-the-app-suggest-the-next-dance).
+Turning it off takes Suggested out of the menu, and a picker that is open goes
+back to its plain order.
+
+**Use in Perform's Swap this dance** shows under it while Suggest the next
+dance is on. It is **off by default**, so turning on suggestions for the
+builder doesn't change Perform. With both on, Perform's
+[swap sheet](./perform.md#swap-a-dance) lists its dances after **Your
+alternates** in the Suggested order for the place of the dance you are
+swapping, with a reason under each. Nothing is left out: the same dances are
+listed, only in another order. With either off, the swap sheet keeps its usual
+order.
+
+**What suggestions look for** opens a screen with one row for each thing
+suggestions weigh up. Each has **Off**, **A little** or **A lot**: Off leaves it
+out entirely. There are no numbers to tune.
+
+- **Variety on the matrix** — favors dances with moves the program hasn't
+  used yet, and keeps away from a move on the same beats as the dance before
+  or after (or in the same phrase, if
+  [Flag exact beat overlap only](#programs) is off, and the reason says
+  which), the same thing the
+  [programming matrix](./programs.md#check-your-evening-with-the-matrix) flags.
+  A break between two dances means they are not next to each other.
+- **Formation balance** — keeps away from the formation of the dance before
+  or after, and from formations the program already has many of.
+- **Difficulty curve** — fits the difficulty of the evening to a **Shape**:
+  **Build up, then ease off** (easy at the start, building to your hardest
+  dances about two-thirds of the way through a dozen-dance evening, then easing
+  back to the middle), **Even** (dances near the program's usual level), or
+  **Off**. It uses each dance's **Difficulty**; a dance with none set
+  is not moved by it.
+- **Recent calls at this venue** — keeps away from dances called recently at
+  the program's venue, **Within** 1, 3 or 6 months, and favors ones not called
+  there for a while. A call counts the same way as in the Collection's
+  [calling history filter](./collection.md#filter-by-calling-history), with your
+  [Recency and history order](#recency-and-history-order) settings, and the
+  program you are building never counts as its own history. A program with no
+  venue skips this, and says so.
+
+The shipped defaults are: Variety on the matrix **A lot**, Formation balance
+**A little**, Difficulty curve **A little** with **Build up, then ease off**, and
+Recent calls at this venue **A lot** within **3 months**. **Reset to defaults**
+puts every choice back to these, and is grayed out while they are already the
+defaults.
+
+All three settings are in your [backup](#backup--restore), and sync with
+[Device Sync](#device-sync) once every device connected to your store has a
+version of the app that knows them (see
+[New kinds of data wait for every device](#new-kinds-of-data-wait-for-every-device)).
+If a newer version of the app saved these choices in a way this version can't
+read, the screen shows the defaults with a note, and can't be changed until you
+update, so nothing this version doesn't understand is overwritten. Suggestions
+use the defaults meanwhile.
+
 ### Calling cards
 
 A calling card is one dance on a small card — a 3 × 5 index card unless you
 choose otherwise — to hold while you call: the title, with the formation
 beside it and the authors under it, then the figures phrase by phrase (A1, A2, B1, B2) with
-their beats (bars for an English dance, unless one of its figures is not a whole
-number of half bars, when the whole card stays in beats), then your calling
+their beats (bars for an English dance, each counted from where its figure
+starts, unless one of its figures is not a whole number of half bars, when the
+whole card stays in beats), then your calling
 notes. The design comes from
 [Contra Card](https://github.com/Yona-Appletree/contra-card), a tool by
 caller Yona Appletree.
@@ -1069,6 +1296,7 @@ with is:
 ```text
 title size=16 bold width=3 | formation size=8 right width=2
 authors size=8 | level size=8 right
+music size=8
 rule color=#b64545 thickness=1.5
 figures size=10 highlight
 space 4
@@ -1076,7 +1304,8 @@ notes size=8 lines=4
 ```
 
 That reads: the title, large and bold, with the formation to its right; the
-authors, with the level to their right; a red line; the figures, with the
+authors, with the level to their right; the tune's meter, key and Barnes
+reference, for a dance that has them; a red line; the figures, with the
 move in bold dark red, the dancers in bold and amounts such as ½ or 3 places in
 blue-gray; a small gap; then up to four lines of calling notes.
 
@@ -1100,8 +1329,10 @@ Beside the text, the editor shows:
 Changes are saved as you type. **Reset to default** (after asking) puts the
 layout above back.
 
-The blocks are `title`, `authors`, `formation`, `level`, `meta` (formation,
-level, mixer, status and phrase on one line), `figures`, `notes` (calling
+The blocks are `title`, `authors` (with the year the dance was composed, and
+who interpreted it and when), `formation`, `level`, `meta` (formation, level,
+mixer, status and phrase on one line), `music` (the meter and key, and the
+Barnes reference, on one line), `figures`, `notes` (calling
 notes), `walkthrough`, `hook`, `tunes`, `sources`, `program` and `number` (a
 program's title, and the dance's number in its set list, or **Alternate**), `text`
 (your own words in quotes, like `text "Called by me"`), `rule` (a line across),
@@ -1506,8 +1737,9 @@ note.)
 
 Some things this version syncs can't be read by earlier versions of the app:
 your [own figures and terms, and your notes on built-in
-figures](#glossary-and-custom-figures), the Custom Figures setting, and your
-shorthands for your own figures. They start syncing only once every device
+figures](#glossary-and-custom-figures), the Custom Figures setting, your
+shorthands for your own figures, and your [saved
+searches](./collection.md#save-a-search-and-use-it-again). They start syncing only once every device
 connected to your store has an up-to-date app. Until then changes to them
 aren't sent to your other devices, and nothing already on a device is removed;
 you can keep using and editing them on each device.
@@ -1704,7 +1936,8 @@ The **About** section tells you what you're running and where it comes from.
 - **View licenses** — the full license texts, including the bundled fonts,
   `fmptools` (MIT), the project the Caller's Companion importer is ported from,
   the EFF long wordlist (CC BY 3.0 US) that generated sync IDs are drawn from,
-  ContraDB (AGPL-3.0), whose figure wording the dance-text renderer follows, and,
+  ContraDB (AGPL-3.0), whose figure wording the dance-text renderer follows,
+  CALLERLAB's notice for the square-call timing the default beats follow, and,
   on Linux and Windows, PDFium (BSD-3-Clause, with the notices of the libraries
   built into it), which the app uses there to print and preview PDFs.
 

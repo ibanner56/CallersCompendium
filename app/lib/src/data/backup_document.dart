@@ -60,6 +60,18 @@ const int backupSchemaVersionProgramPay = 2;
 /// no archived program keeps the version it had.
 const int backupSchemaVersionArchivedPrograms = 3;
 
+/// The envelope version a backup is written under when a program in it was
+/// imported from a calendar (`calendarEventKey`, schema v42, #2352), or
+/// carries the import's change tracking (`calendarEventFingerprint`,
+/// `calendarWrittenAt`, `calendarFlag`, #2354).
+///
+/// No build up to 0.10.0 reads `calendarEventKey`, so one would restore such a
+/// backup and drop the keys, and the next calendar import would offer every
+/// imported event again. The same number as
+/// [backupSchemaVersionArchivedPrograms] on purpose: v3 had not shipped when
+/// this was added, and every build that reads v3 reads this key too.
+const int backupSchemaVersionCalendarEventKeys = 3;
+
 /// The envelope version [doc] must be written under so that no build that
 /// would silently drop part of it restores it: the highest version any of its
 /// conditional data needs, otherwise [backupSchemaVersionBase].
@@ -72,6 +84,15 @@ const int backupSchemaVersionArchivedPrograms = 3;
 int requiredBackupVersion(BackupDocument doc) {
   if (doc.core.programs.any((p) => p.archivedAt != null)) {
     return backupSchemaVersionArchivedPrograms;
+  }
+  if (doc.core.programs.any(
+    (p) =>
+        p.calendarEventKey != null ||
+        p.calendarEventFingerprint != null ||
+        p.calendarWrittenAt != null ||
+        p.calendarFlag != null,
+  )) {
+    return backupSchemaVersionCalendarEventKeys;
   }
   if (doc.hasGlossary) return backupSchemaVersionGlossary;
   // `Program` keeps the two pay keys set together, so one stands for both.

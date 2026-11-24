@@ -40,6 +40,8 @@ void seedChainHand(String moveId, Map<String, Object?> params) {
 /// - **a figure 8's `double`** (v39) is stored only while true: turning it off
 ///   removes the key, so a figure 8 that is not double carries none
 ///   ([figure8DoubleParam]).
+/// - **a Rory O'More's `twoPlaces`** (v40) is stored only while it names
+///   dancers: clearing it removes the key ([roryTwoPlacesParam]).
 /// - **a `balance` flag** shifts `beats` by +4 (on) or -4 (off) from the
 ///   current count, clamped to 0..64, including a manual override, and returns
 ///   before the rules below.
@@ -76,6 +78,13 @@ String applyParamChange(
     params.remove(key);
     return move;
   }
+  if (move == 'rory_o_more' &&
+      key == roryTwoPlacesParam &&
+      (value == null || value == ParamVocab.unspecified)) {
+    // Stored only while stated (see [roryTwoPlacesParam]); no beats rule.
+    params.remove(key);
+    return move;
+  }
   final setByFractionRule = applyFractionAmountChange(
     taxonomy,
     move: move,
@@ -102,6 +111,7 @@ String applyParamChange(
   if (!setByFractionRule) params[key] = value;
   if (move == 'chain' && key == 'who') seedChainHand('chain', params);
   final resolved = taxonomy.resolvedMoveId(Figure(move: move, params: params));
+  if (resolved != move) keepOmittedMeaning(taxonomy, move, resolved, params);
   final newDefault = canonicalBeatsFor(taxonomy, resolved, params);
   if (newDefault == null) return resolved;
   if (beatsTouched) {
@@ -115,6 +125,27 @@ String applyParamChange(
     params['beats'] = newDefault;
   }
   return resolved;
+}
+
+/// Writes into [params] each param it leaves out whose omitted meaning
+/// differs between [from] and [to], at what it meant under [from]: a figure
+/// re-routed between an alias and its target keeps its values, although the
+/// two read an omitted param differently ([MoveAlias.defaultParams]). A pass
+/// by that left `who` out (neighbors), turned into a pass through (whose
+/// omitted `who` is unstated), states `who: neighbors`.
+void keepOmittedMeaning(
+  Taxonomy taxonomy,
+  String from,
+  String to,
+  Map<String, Object?> params,
+) {
+  final def = taxonomy.resolve(from);
+  if (def == null) return;
+  for (final key in def.params.keys) {
+    if (params.containsKey(key)) continue;
+    final before = taxonomy.defaultParamValue(from, key);
+    if (before != taxonomy.defaultParamValue(to, key)) params[key] = before;
+  }
 }
 
 /// Applies the fraction/amount rule (#2120) for a change of [key] to [value],

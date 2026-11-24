@@ -56,6 +56,7 @@ class ParamBeats {
     required this.param,
     required this.byValue,
     this.beatsPerAmount,
+    this.rules = const [],
   });
 
   /// Name of the parameter whose value selects the beat count.
@@ -73,9 +74,17 @@ class ParamBeats {
   /// the flat default.
   final int? beatsPerAmount;
 
+  /// Counts that depend on more than one parameter (ADR-007 §5.3), such as a
+  /// square's circle, whose beats follow both its size and how far it goes.
+  /// The first rule whose values all match wins, ahead of [byValue].
+  final List<ParamBeatsRule> rules;
+
   /// The beats these rules derive from a figure's [effective] params, or null
   /// when they derive none.
   int? derive(Map<String, Object?> effective) {
+    for (final rule in rules) {
+      if (rule.matches(effective)) return rule.beats;
+    }
     final byName = byValue[effective[param]];
     if (byName != null) return byName;
     final perAmount = beatsPerAmount;
@@ -83,6 +92,23 @@ class ParamBeats {
     final amount = statedFractionAmount(effective, fractionParam: param);
     return amount == null ? null : (amount * perAmount).round();
   }
+}
+
+/// One [ParamBeats.rules] entry: the beats of a figure whose effective params
+/// hold every value in [when].
+@immutable
+class ParamBeatsRule {
+  const ParamBeatsRule(this.when, this.beats);
+
+  /// The parameter values a figure must hold, all of them, for [beats].
+  final Map<String, Object?> when;
+
+  /// The canonical beats of a figure that matches [when].
+  final int beats;
+
+  /// Whether [effective] holds every value in [when].
+  bool matches(Map<String, Object?> effective) =>
+      when.entries.every((e) => effective[e.key] == e.value);
 }
 
 /// An alias entry: resolves to a canonical move with pinned params
@@ -106,6 +132,7 @@ class MoveAlias {
     this.searchKeywords = const [],
     this.inversePairId,
     this.listedAsMove = false,
+    this.defaultParams = const {},
   });
 
   final String id;
@@ -113,6 +140,18 @@ class MoveAlias {
   final String targetMove;
   final Map<String, Object?> pinnedParams;
   final List<String> searchKeywords;
+
+  /// What a figure stored under this alias means by leaving a param out, where
+  /// that differs from the target's [ParamSpec.defaultValue]. Unlike a pin,
+  /// the figure may state any value; this only replaces the default.
+  ///
+  /// It exists for two moves merged into one that each kept the meaning their
+  /// stored figures already had (taxonomy v40): `pass_by`, an alias of
+  /// `pass_through`, means `who: neighbors` and `where: unspecified` by an
+  /// omitted param, where a pass through means `who: unspecified` and
+  /// `where: along`. Read it through [Taxonomy.effectiveParams] or
+  /// [Taxonomy.defaultParamValue], never from the target's spec alone.
+  final Map<String, Object?> defaultParams;
 
   /// The id of the counterpart alias (or move) that this alias forms an
   /// inverse pair with. For `swat_the_flea` (pins `hand: left`), this is
@@ -125,7 +164,7 @@ class MoveAlias {
   /// pickers that offer moves and not aliases (the dialect editor, Advanced
   /// search's "Has figure", Settings' per-move defaults) offer it too, without
   /// its pinned params, and a dialect's name and wording for it apply to it
-  /// while its target's never do. False for every alias but three. One is
+  /// while its target's never do. False for every alias but four. One is
   /// `long_lines` (taxonomy v39), which was a move until then: its figures
   /// are stored under its own id, so a search must be able to name it;
   /// dialects hold entries keyed on it; and its name is a formation where its
@@ -133,7 +172,9 @@ class MoveAlias {
   /// misread the other. The others are `hand_cast` (taxonomy v40) and ECD's
   /// `ecd_hand_cast` (ADR-006 §9.4), aliases of `gate` and `ecd_gate` that pin
   /// nothing: their figures are stored under their own ids too, and a
-  /// dialect's name for a gate would otherwise rename every hand cast. Every
-  /// other alias takes its target's dialect entries.
+  /// dialect's name for a gate would otherwise rename every hand cast. The
+  /// fourth is `pass_by` (taxonomy v40), a move until then and now
+  /// `pass_through` pinned to `passType: by`, listed for `long_lines`' reasons.
+  /// Every other alias takes its target's dialect entries.
   final bool listedAsMove;
 }

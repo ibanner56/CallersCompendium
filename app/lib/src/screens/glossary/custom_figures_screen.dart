@@ -82,21 +82,24 @@ class _CustomFiguresScreenState extends State<CustomFiguresScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final dialect = ActiveDialectScope.contraOf(context);
+    final dialects = ActiveDialectScope.of(context);
+    // Each figure is shown in the dialect of the form it was made for, so the
+    // list can mix dialects (#2294).
+    Dialect dialectOf(CustomGlossaryItem item) =>
+        dialects.forForm(glossaryEntryDanceForm(item.entry.payload));
     // Each is checked for a rename against every entry, terms included.
     final all = resolveCustomGlossary(
       _entries,
-      taxonomy: contraTaxonomy,
-      dialects: [
-        dialect,
-        ...?DialectLibraryScope.maybeOf(context)?.allCustomDialects,
+      dialects: [...?DialectLibraryScope.maybeOf(context)?.allCustomDialects],
+      dialectsFor: (payload) => [
+        dialects.forForm(glossaryEntryDanceForm(payload)),
       ],
       shorthandTokens: ShorthandMappingsScope.tokensOf(context),
     );
     final shown = [
       for (final item in all)
         if (!item.isTerm)
-          (item, _renderer.renderFreeText(item.entry.name, dialect)),
+          (item, _renderer.renderFreeText(item.entry.name, dialectOf(item))),
     ]..sort((a, b) => a.$2.toLowerCase().compareTo(b.$2.toLowerCase()));
     return Scaffold(
       appBar: AppBar(title: Text(l10n.customFiguresTitle)),
@@ -138,7 +141,10 @@ class _CustomFiguresScreenState extends State<CustomFiguresScreen> {
                     key: ValueKey('custom-figure-${item.entry.id}'),
                     title: Text(name),
                     subtitle: Text(
-                      _renderer.renderFreeText(item.entry.definition, dialect),
+                      _renderer.renderFreeText(
+                        item.entry.definition,
+                        dialectOf(item),
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),

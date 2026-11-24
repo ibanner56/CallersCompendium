@@ -42,7 +42,11 @@ import 'user_figure_definition.dart';
 ///
 /// An English movement's list of dancers ([ParamKind.dancerList]) is
 /// copied as a set of dancers ([ParamKind.dancerSet]) with no default: the
-/// kind the editor offers for a figure of the user's.
+/// kind the editor offers for a figure of the user's. The copy is validated
+/// as a figure of [taxonomy]'s form ([Taxonomy.form]), so an English copy's
+/// dancer groups are English's ([userFigureDancerChoices]). A form with no
+/// taxonomy of its own (square) is copied from contra's, so is validated as
+/// contra's; the caller stores the form the copy is offered in.
 ///
 /// The result always validates ([validateUserFigure] reports no error), so
 /// the editor can open on it.
@@ -55,6 +59,7 @@ UserFigureDefinition? userFigureSeedFromMove(
 }) {
   final def = taxonomy.resolve(moveId);
   if (def == null) return null;
+  final form = taxonomy.form.name;
 
   // An alias starts from the values it pins (a "pull by neighbors" copy from
   // neighbors), where its move's parameter can hold them. One listed as a move
@@ -68,8 +73,11 @@ UserFigureDefinition? userFigureSeedFromMove(
     if (moveSpec.kind == ParamKind.beats) continue;
     if (listed && pinned.containsKey(key)) continue;
     if (params.length == maxUserFigureParams) break;
-    final pin = pinned[key];
-    final spec = pin != null && moveSpec.validate(pin)
+    // What the copied id means by an omitted param: its pin, else its own
+    // default (a pass by's `who` is neighbors, its target's unstated, v40).
+    final pin = pinned[key] ?? taxonomy.defaultParamValue(moveId, key);
+    final spec =
+        pin != null && pin != moveSpec.defaultValue && moveSpec.validate(pin)
         ? ParamSpec(
             moveSpec.kind,
             defaultValue: pin,
@@ -77,7 +85,7 @@ UserFigureDefinition? userFigureSeedFromMove(
             allowManualClear: moveSpec.allowManualClear,
           )
         : moveSpec;
-    params.add(_seedParam(key, spec, choiceLabel, paramLabel, random));
+    params.add(_seedParam(key, spec, form, choiceLabel, paramLabel, random));
   }
 
   final rawBeats = def.params['beats']?.defaultValue;
@@ -92,6 +100,7 @@ UserFigureDefinition? userFigureSeedFromMove(
     final refused = {
       for (final issue in validateUserFigure(
         UserFigureDefinition(
+          form: form,
           template: '{$userFigureMoveSlot}',
           defaultBeats: defaultBeats,
           params: kept,
@@ -109,6 +118,7 @@ UserFigureDefinition? userFigureSeedFromMove(
 
   final renderer = FigureRenderer(taxonomy);
   final probe = UserFigureDefinition(
+    form: form,
     template: '{$userFigureMoveSlot}',
     defaultBeats: defaultBeats,
     params: kept,
@@ -130,6 +140,7 @@ UserFigureDefinition? userFigureSeedFromMove(
   // would ask about each one before saving: only those it uses are kept.
   final used = userFigureTemplateSlots(template);
   final seed = UserFigureDefinition(
+    form: form,
     template: template,
     defaultBeats: defaultBeats,
     params: [
@@ -155,6 +166,7 @@ const String _noneValue = 'none';
 UserFigureParam _seedParam(
   String key,
   ParamSpec spec,
+  String form,
   String Function(String paramKey, String value)? choiceLabel,
   String Function(String paramKey)? paramLabel,
   Random? random,
@@ -198,10 +210,9 @@ UserFigureParam _seedParam(
     case ParamKind.dancerList:
       // An English movement's dancers (several groups in order) are offered
       // as one group of dancers, the kind a figure of the user's can declare,
-      // with no default (ADR-006 W5). A figure of the user's offers contra's
-      // dancer groups for it, as for any group of dancers: a declared
-      // parameter stores no list of groups of its own, so English-only groups
-      // such as `ends` or `top` can't be chosen in a copy yet.
+      // with no default (ADR-006 W5). The copy's groups are its form's
+      // ([userFigureDancerChoices]): an English copy offers English's, so
+      // `ends` or `top` can be chosen in it.
       return UserFigureParam(key: key, kind: ParamKind.dancerSet);
     default:
       final candidate = UserFigureParam(
@@ -209,9 +220,18 @@ UserFigureParam _seedParam(
         kind: spec.kind,
         defaultValue: spec.defaultValue,
       );
+      // "Not stated" as a group of dancers is the move saying nothing, never a
+      // value to start a copy from: the figure's own picker hides it
+      // (#741), and an older build that does not know English's groups
+      // cannot read a copy that holds it.
+      final notStated =
+          (spec.kind == ParamKind.dancerSet ||
+              spec.kind == ParamKind.dancerPair) &&
+          spec.defaultValue == ParamVocab.unspecified;
       final holds =
           spec.defaultValue != null &&
-          candidate.spec.validate(spec.defaultValue);
+          !notStated &&
+          candidate.specIn(form).validate(spec.defaultValue);
       return holds ? candidate : UserFigureParam(key: key, kind: spec.kind);
   }
 }

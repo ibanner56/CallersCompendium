@@ -39,11 +39,16 @@ Dance _dance({
   updatedAt: _now,
 );
 
-CallingCardEntry _entry(Dance d, {String number = ''}) => CallingCardEntry(
+CallingCardEntry _entry(
+  Dance d, {
+  String number = '',
+  List<String> interpreterNames = const [],
+}) => CallingCardEntry(
   dance: d,
   number: number,
   labels: (
     authorNames: const ['Pat Author'],
+    interpreterNames: interpreterNames,
     formationLabel: 'Improper',
     levelLabel: 'Easy',
     statusLabel: 'Active',
@@ -58,6 +63,7 @@ Future<String> _text(
   Set<DanceShareField> fields = DanceShareField.allExceptTunes,
   String programTitle = '',
   CallingCardFitReport? report,
+  DanceExportLabels labels = const DanceExportLabels(),
 }) async => pdfText(
   await buildCallingCardsPdf(
     entries,
@@ -68,6 +74,7 @@ Future<String> _text(
     programTitle: programTitle,
     theme: _theme,
     report: report,
+    labels: labels,
   ),
 );
 
@@ -99,6 +106,46 @@ void main() {
       expect(pdfMediaBox(a6), (298, 420));
     },
   );
+
+  group('credits and tune details', () {
+    final english = _dance().copyWith(
+      form: DanceForm.ecd,
+      formation: const Formation(FormationShape.dupleMinor),
+      composedOn: PartialDate(1951),
+      interpretedOn: PartialDate(1916),
+      meter: '3/2',
+      musicalKey: 'D minor',
+      barnesReference: 'BI p. 63',
+    );
+
+    test('the default layout prints them under the title', () async {
+      final text = await _text([
+        _entry(english, interpreterNames: const ['Cecil Sharp']),
+      ]);
+      for (final words in [
+        // The PDF escapes the parentheses around each year.
+        r'Pat Author \(1951\)',
+        r'Interpreted by Cecil Sharp \(1916\)',
+        'Meter: 3/2',
+        'Key: D minor',
+        'Barnes: BI p. 63',
+      ]) {
+        expect(text, contains(words));
+      }
+    });
+
+    test('the music block is empty without its field or the details', () async {
+      final off = await _text(
+        [_entry(english)],
+        fields: {...DanceShareField.allExceptTunes}
+          ..remove(DanceShareField.music),
+      );
+      expect(off, isNot(contains('Meter:')));
+      expect(off, isNot(contains('Barnes:')));
+      final contra = await _text([_entry(_dance())]);
+      expect(contra, isNot(contains('Meter:')));
+    });
+  });
 
   test('the default layout prints the header, figures and notes', () async {
     final text = await _text([_entry(_dance())]);
@@ -155,6 +202,34 @@ notes label=""
     expect(text, contains('Hello hall'.split(' ').first));
     expect(text, contains('NB:'));
     expect(text, isNot(contains('Calling')));
+  });
+
+  test('a block label takes the labels separator, in every example '
+      'layout', () async {
+    // The labels decide the punctuation after a block's label (`：` in
+    // Japanese); no example layout writes its own English label in its place.
+    const labels = DanceExportLabels(
+      callingNotes: 'CN',
+      walkthrough: 'WT',
+      labelSeparator: '|',
+    );
+    for (final MapEntry(key: name, value: layout) in {
+      'default': kDefaultCallingCardLayout,
+      ...kCallingCardLayoutExamples,
+    }.entries) {
+      final text = await _text(
+        [_entry(_dance(walkthrough: 'Walk it'))],
+        layout: layout,
+        labels: labels,
+      );
+      if (layout.contains(RegExp(r'^notes', multiLine: true))) {
+        expect(text, contains('CN|'), reason: name);
+      }
+      if (layout.contains(RegExp(r'^walkthrough', multiLine: true))) {
+        expect(text, contains('WT|'), reason: name);
+      }
+      expect(text, isNot(contains('Calling notes')), reason: name);
+    }
   });
 
   test('figure options drop beats, phrases and figure notes', () async {
@@ -272,6 +347,7 @@ notes label=""
       dance: d,
       labels: (
         authorNames: const [],
+        interpreterNames: const <String>[],
         formationLabel: '',
         levelLabel: null,
         statusLabel: 'Active',
@@ -609,4 +685,18 @@ notes label=""
     }
     expect(figures.where((f) => f.progression), hasLength(1));
   });
+
+  test(
+    'the editor sample fills the default layout\'s music and year',
+    () async {
+      final sample = callingCardSampleDance(
+        title: 'Sample',
+        notes: 'notes',
+        figureNote: 'note',
+      );
+      final text = await _text([_entry(sample)]);
+      expect(text, contains('Meter: 2/2'));
+      expect(text, contains(r'Pat Author \(2019\)'));
+    },
+  );
 }

@@ -85,45 +85,140 @@ void main() {
       recordsByDevice: records,
     );
 
-    test(
-      'advertises glossary.v1 and glossary.v2, and gates on both (#1023)',
-      () {
-        expect(build.advertised, {
-          SyncCapabilities.glossaryV1,
-          SyncCapabilities.glossaryV2,
-        });
-        expect(build.gatedCapabilities, {
-          SyncCapabilities.glossaryV1,
-          SyncCapabilities.glossaryV2,
-        });
-      },
-    );
+    test('advertises glossary.v1, glossary.v2, programTemplates.v1, '
+        'savedSearches.v1, suggestions.v1 and performSwap.v1, and gates on '
+        'each (#1023, #2325, #2337, #2343, #2346)', () {
+      expect(build.advertised, {
+        SyncCapabilities.glossaryV1,
+        SyncCapabilities.glossaryV2,
+        SyncCapabilities.programTemplatesV1,
+        SyncCapabilities.savedSearchesV1,
+        SyncCapabilities.suggestionsV1,
+        SyncCapabilities.performSwapV1,
+      });
+      // Every gated capability is advertised: the whole of each feature,
+      // saved searches included now saving and using them is in, is in this build.
+      expect(build.gatedCapabilities, build.advertised);
+    });
 
-    test('rollout: with no record from any peer, every peer holds both '
+    test('rollout: with no record from any peer, every peer holds each '
         'closed', () {
       expect(closedBeside(['a', 'b'], const {}), {
         SyncCapabilities.glossaryV1: {'a', 'b'},
         SyncCapabilities.glossaryV2: {'a', 'b'},
+        SyncCapabilities.programTemplatesV1: {'a', 'b'},
+        SyncCapabilities.savedSearchesV1: {'a', 'b'},
+        SyncCapabilities.suggestionsV1: {'a', 'b'},
+        SyncCapabilities.performSwapV1: {'a', 'b'},
       });
     });
 
     test('rollout: beside peers on the build before this one, which '
-        'advertise only glossary.v1, every peer holds glossary.v2 closed', () {
+        'advertise every capability but savedSearches.v1, every peer holds '
+        'savedSearches.v1 closed and is named', () {
+      const previous = {
+        SyncCapabilities.glossaryV1,
+        SyncCapabilities.glossaryV2,
+        SyncCapabilities.programTemplatesV1,
+        SyncCapabilities.suggestionsV1,
+        SyncCapabilities.performSwapV1,
+      };
+      expect(closedBeside(['a', 'b'], {'a': previous, 'b': previous}), {
+        SyncCapabilities.savedSearchesV1: {'a', 'b'},
+      });
+      // Once one of them is updated, only the other holds it closed.
+      expect(closedBeside(['a', 'b'], {'a': build.advertised, 'b': previous}), {
+        SyncCapabilities.savedSearchesV1: {'b'},
+      });
+    });
+
+    test('rollout: beside peers on the build before this one, which '
+        'advertise suggestions.v1 too, every peer holds performSwap.v1 and '
+        'savedSearches.v1 closed (#2346, #2325)', () {
+      const previous = {
+        SyncCapabilities.glossaryV1,
+        SyncCapabilities.glossaryV2,
+        SyncCapabilities.programTemplatesV1,
+        SyncCapabilities.suggestionsV1,
+      };
+      expect(closedBeside(['a', 'b'], {'a': previous, 'b': previous}), {
+        SyncCapabilities.performSwapV1: {'a', 'b'},
+        SyncCapabilities.savedSearchesV1: {'a', 'b'},
+      });
+    });
+
+    test('the Swap a dance defaults wait on performSwap.v1 (#2346)', () {
       expect(
-        closedBeside(
-          ['a', 'b'],
-          {
-            'a': {SyncCapabilities.glossaryV1},
-            'b': {SyncCapabilities.glossaryV1},
-          },
-        ),
-        {
-          SyncCapabilities.glossaryV2: {'a', 'b'},
-        },
+        build.capabilityFor(SyncRecordKind.setting, 'perform_swap_defaults'),
+        SyncCapabilities.performSwapV1,
       );
     });
 
-    test('with every peer advertising what the build does, both are open', () {
+    test('every suggestions key waits on suggestions.v1 (#2343, #2348)', () {
+      for (final key in [
+        'suggestions_enabled',
+        'suggestion_settings',
+        'suggestions_in_perform_swap',
+      ]) {
+        expect(
+          build.capabilityFor(SyncRecordKind.setting, key),
+          SyncCapabilities.suggestionsV1,
+          reason: key,
+        );
+      }
+    });
+
+    test('every program template key waits on programTemplates.v1, by prefix '
+        'for the per-template keys (#2337)', () {
+      for (final key in [
+        'program_template:starting_program',
+        'program_template:3f1c9a52-6a0f-4d7b-9a51-0b5e4f2d7c11',
+        'program_template_order',
+        'program_template_default',
+      ]) {
+        expect(
+          build.capabilityFor(SyncRecordKind.setting, key),
+          SyncCapabilities.programTemplatesV1,
+          reason: key,
+        );
+      }
+      // The legacy Starting program stays ungated: older builds read it.
+      expect(
+        build.capabilityFor(SyncRecordKind.setting, 'default_starting_program'),
+        isNull,
+      );
+    });
+
+    test('gates every saved_search: key on savedSearches.v1', () {
+      for (final key in ['saved_search:abc', 'saved_search:x:y']) {
+        expect(
+          build.capabilityFor(SyncRecordKind.setting, key),
+          SyncCapabilities.savedSearchesV1,
+          reason: key,
+        );
+      }
+      // Only the prefix, and only settings.
+      for (final key in ['saved_search', 'saved_searches:abc', 'theme_mode']) {
+        expect(
+          build.capabilityFor(SyncRecordKind.setting, key),
+          isNot(SyncCapabilities.savedSearchesV1),
+          reason: key,
+        );
+      }
+      expect(
+        build.capabilityFor(SyncRecordKind.dance, 'saved_search:abc'),
+        isNull,
+      );
+    });
+
+    test('a saved search is shareable user configuration', () {
+      final c = classifySettingsKey('${savedSearchKeyPrefix}abc');
+      expect(c?.egress, EgressClass.shareable);
+      expect(c?.subject, DataSubject.appUser);
+    });
+
+    test('with every peer advertising what the build does, every '
+        'capability is open, saved searches included', () {
       expect(
         closedBeside(
           ['a', 'b'],
@@ -182,6 +277,24 @@ void main() {
     expect(policy.capabilityFor(SyncRecordKind.setting, 'other'), isNull);
     expect(policy.capabilityFor(SyncRecordKind.dance, 'x'), isNull);
     expect(policy.gatedCapabilities, {'v.v1', 's.v1'});
+  });
+
+  test('a settings key prefix gates every key under it; an exact key wins, '
+      'then the longest prefix', () {
+    const policy = SyncCapabilityPolicy(
+      gatedSettingKeys: {'p:exact': 'exact.v1'},
+      gatedSettingKeyPrefixes: {'p:': 'short.v1', 'p:long:': 'long.v1'},
+    );
+    String? forKey(String key) =>
+        policy.capabilityFor(SyncRecordKind.setting, key);
+    expect(forKey('p:anything'), 'short.v1');
+    expect(forKey('p:long:x'), 'long.v1');
+    expect(forKey('p:exact'), 'exact.v1');
+    expect(forKey('p'), isNull);
+    expect(forKey('other:p:x'), isNull);
+    // Only settings keys are matched by prefix.
+    expect(policy.capabilityFor(SyncRecordKind.tag, 'p:x'), isNull);
+    expect(policy.gatedCapabilities, {'exact.v1', 'short.v1', 'long.v1'});
   });
 
   test('a glossary entry waits on its own kind\'s capability when it has one '

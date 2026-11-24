@@ -9,18 +9,22 @@ import 'package:printing/printing.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/matrix_column_dialect.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
+import '../data/program_templates.dart';
 import '../data/editor_draft_shutdown_scope.dart';
 import '../data/mark_all_sets_status_scope.dart';
 import '../data/matrix_collision_mode_scope.dart';
 import '../data/program_matrix_column_config_scope.dart';
 import '../data/program_auto_commit_scope.dart';
 import '../data/program_dialect.dart';
+import '../data/program_times_text.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
+import '../data/show_program_pay_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
 import '../data/callersbox_online.dart';
@@ -35,6 +39,7 @@ import '../editor/draft_save_health.dart';
 import '../editor/pay_currency.dart';
 import '../editor/program_editor_draft_codec.dart';
 import '../editor/program_slot_rebase.dart';
+import '../editor/program_times.dart';
 import '../export/export_labels_l10n.dart';
 import '../export/program_matrix_pdf.dart';
 import '../export/share_sanitization.dart';
@@ -54,6 +59,7 @@ import '../widgets/exclude_focus_when_collapsed.dart';
 import '../widgets/app_bar_text_action.dart';
 import '../widgets/app_shortcuts.dart';
 import '../widgets/collection_picker.dart';
+import '../widgets/picker_suggestions.dart' show PickerProgramContext;
 import '../widgets/confirm_discard_changes.dart';
 import '../widgets/dirty_dialog_guard.dart';
 import '../widgets/notice_card.dart';
@@ -94,6 +100,22 @@ import '../theme/app_breakpoints.dart';
 enum _ProgramLoadError { missing, undoRecoveryFailed }
 
 enum _PreviewPane { editor, picker }
+
+/// A pending "Add a dance before/after" (#2339): the next dance chosen lands
+/// at the boundary of the alternate group holding [slotId]
+/// ([Program.insertSlotAtGroupBoundary]), and the insertion then ends.
+@immutable
+class _SlotInsertion {
+  const _SlotInsertion({required this.slotId, required this.after});
+
+  /// The target group's primary when the insertion started. Tracked by id,
+  /// not index, so a reorder while the wide-screen banner is up keeps the
+  /// target. The banner and announcements name the group's primary as it is
+  /// now ([_ProgramEditorScreenState._insertionTargetTitle]), so they follow a
+  /// promotion or an edit.
+  final String slotId;
+  final bool after;
+}
 
 enum _AutoCommitResultKind { notCommitted, committed, failed }
 
@@ -140,9 +162,15 @@ class ProgramEditorScreen extends StatefulWidget {
     this.contraDbOnline,
     this.reimportPicker,
     this.pdfLayouter,
+    this.templateChoice = const ProgramTemplateChoice.useDefault(),
   });
 
   final String? programId;
+
+  /// For a new program ([isNew]), which program template it starts from
+  /// (#2337): the New program chooser's pick, else the Default template.
+  /// Ignored when opening an existing program.
+  final ProgramTemplateChoice templateChoice;
 
   /// Called after a successful save with the program's id (embedded mode).
   final void Function(String programId)? onSaved;
@@ -210,6 +238,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// no pay is recorded (issue #1418).
   final _payController = TextEditingController();
 
+  /// Whether the Show pay setting is on ([ShowProgramPayScope], issue #2355),
+  /// read in [didChangeDependencies] so the save and draft paths, which run
+  /// outside build, see the live value.
+  bool _showPay = true;
+
   /// The ISO 4217 code chosen for the pay; `null` until the person or a loaded
   /// program picks one, in which case the locale's default applies.
   String? _payCurrency;
@@ -224,6 +257,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   Program? _existing;
   DateTime? _eventDate;
+
+  /// The program's start, end, lesson and arrival times as edited (#2350).
+  ProgramTimes _times = const ProgramTimes();
+
+  /// The times the editor last took from the stored program (on load, and
+  /// after each save). A save writes a time only if the person changed it away
+  /// from this; any other keeps what is stored, so a time synced from another
+  /// device while the editor was open is not erased by this editor's stale
+  /// copy ([ProgramTimes.merge]; the same rule as [_venueIdBaseline]).
+  ProgramTimes _timesBaseline = const ProgramTimes();
   ProgramStatus _status = ProgramStatus.draft;
   bool _hideAlternates = false;
 
@@ -246,6 +289,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   String? _previewError;
   bool _previewLoading = false;
   bool _previewPersistent = false;
+
+  /// The pending "Add a dance before/after", or null when the next add goes to
+  /// the end (#2339).
+  _SlotInsertion? _insertion;
+
+  /// Whether the narrow-screen picker sheet for [_insertion] is open.
+  bool _insertionSheetOpen = false;
   int _previewGeneration = 0;
   bool _saving = false;
 
@@ -622,37 +672,56 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       };
 
   /// The dialect a column of [matrix] is named in: its figure's form's. A
-  /// figure of a form with its own taxonomy (an `ecd_` move) reads in that
-  /// form's. A figure with no prefix is contra's, and a dance of any form
-  /// can use it (squares have no taxonomy of their own yet; an English dance
-  /// may keep a contra figure): it reads in the form of the dances that use
+  /// figure of a form with its own taxonomy (an `ecd_` or `sq_` move) reads
+  /// in that form's. A figure with no prefix is contra's, and a dance of any
+  /// form can use it (an English or square dance may keep a contra figure
+  /// from an earlier import): it reads in the form of the dances that use
   /// it when they are all of one form, and in [_dialect] when they mix forms. A column no dance uses (a baseline swing column the
   /// matrix always shows) reads in the program's form when all its dances are
-  /// of one form. A column of a figure of the user's own, or one that isn't a
-  /// figure, reads in [_dialect].
-  Dialect _dialectForMatrixColumn(ProgramMatrix matrix, MatrixColumn column) {
-    switch (column.kind) {
-      case MatrixColumnKind.known ||
-          MatrixColumnKind.split ||
-          MatrixColumnKind.unknown:
-        final form = shippedTaxonomies.formOfMoveId(column.moveId);
-        if (form != DanceForm.contra) return _dialects.forForm(form);
-        var users = {
+  /// of one form. A column of a figure of the user's own reads in the dialect
+  /// of the form it was made for, however the dances using it read (#2294); a
+  /// free-text custom column, or one that isn't a figure, reads in [_dialect].
+  Dialect _dialectForMatrixColumn(ProgramMatrix matrix, MatrixColumn column) =>
+      _dialectForColumn(
+        column,
+        usedBy: () => {
           for (final row in matrix.rows)
             if (row.contains(column)) _danceById(row.danceId)?.form,
-        };
-        if (users.isEmpty) {
-          users = {
-            for (final row in matrix.rows) _danceById(row.danceId)?.form,
-          };
-        }
-        return users.length == 1 && users.single != null
-            ? _dialects.forForm(users.single!)
-            : _dialect;
-      default:
-        return _dialect;
-    }
-  }
+        },
+        program: () => {
+          for (final row in matrix.rows) _danceById(row.danceId)?.form,
+        },
+      );
+
+  /// The dialect a column a **Suggested** reason names is read in, so a reason
+  /// names a figure as its column in the matrix does (#2294). The picker has
+  /// no matrix to say which dances use the column, so an unprefixed figure
+  /// reads in the form of the program's dances when they are all of one form,
+  /// and in [_dialect] when they mix forms or there are none (the same fallback
+  /// [_dialectForMatrixColumn] gives a column no dance uses).
+  Dialect _dialectForSuggestedColumn(MatrixColumn column) => _dialectForColumn(
+    column,
+    usedBy: () => const {},
+    program: () => {
+      for (final slot in _slots)
+        if (slot.danceId case final id?) _danceById(id)?.form,
+    },
+  );
+
+  /// [matrixColumnDialect] for [column], with the dances that use it
+  /// ([usedBy]) and all the program's dances ([program]).
+  Dialect _dialectForColumn(
+    MatrixColumn column, {
+    required Set<DanceForm?> Function() usedBy,
+    required Set<DanceForm?> Function() program,
+  }) => matrixColumnDialect(
+    column,
+    dialects: _dialects,
+    fallback: _dialect,
+    userFigure: (id) => UserFiguresScope.shownCatalogOf(context)[id],
+    usedBy: usedBy,
+    program: program,
+  );
 
   /// [_dialectForMatrixColumn] for every column of [matrix], by move ID, and
   /// each row's dance's dialect ([_dialectForSlotDance]) by dance ID: worked
@@ -719,6 +788,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       }
     }
     _defaultPayCurrency = defaultPayCurrency(Localizations.localeOf(context));
+    _showPay = ShowProgramPayScope.of(context);
     // Read the active dialect if a scope is present; tolerate its absence
     // (e.g. narrow embedded tests) with a sensible default.
     final scope = context
@@ -1002,7 +1072,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         // Only seeds a still-blank field, never overrides; a settings read
         // failure falls back silently to a blank field.
         await _prefillNewProgramDefaults();
-        newProgramSlots = await _loadStartingProgramSlots(data);
+        newProgramSlots = await _loadTemplateSlots(data);
       }
       // Guard again: the venue lookup / defaults prefill above are async, so the
       // widget may have been disposed while they were in-flight.
@@ -1011,12 +1081,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _setCollectionData(_latestData ?? data);
         _existing = program;
         _eventDate = program?.eventDate;
+        _times = program == null
+            ? const ProgramTimes()
+            : ProgramTimes.of(program);
+        _timesBaseline = _times;
         _venueId = program?.venueId;
         _venueIdBaseline = program?.venueId;
         _status = program?.status ?? ProgramStatus.draft;
         _hideAlternates = program?.hideAlternates ?? false;
         _dialectName = program?.dialectName;
         _slots = program?.slots.toList() ?? newProgramSlots;
+        _insertion = null;
         _difficultyLevels = difficultyLevels;
         _loaded = true;
       });
@@ -1053,6 +1128,28 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _payCurrency != baselineCurrency;
   }
 
+  /// Whether pay is hidden by the Show pay setting (issue #2355) and the pay
+  /// input still says what [_existing] holds, so a save or draft must keep the
+  /// program's stored pay rather than read it from the input.
+  ///
+  /// Compared by value, not by text: after an auto-commit [_existing] is the
+  /// stored program while the input keeps what was typed (`250` against a
+  /// stored `250.00`, or no chosen currency against a stored one), and that
+  /// must not read as an edit. With no pay, a chosen currency is no pay either.
+  ///
+  /// A pay change typed before pay was hidden is not held back: it is the
+  /// person's input and is saved like any other edit.
+  bool get _payHeldBack {
+    if (_showPay) return false;
+    final pay = _parsedPay();
+    if (pay.isInvalid) return false;
+    final existing = _existing;
+    final storedUnits = existing?.payMinorUnits;
+    final storedCurrency = existing?.payCurrency;
+    if (pay.isEmpty) return storedUnits == null || storedCurrency == null;
+    return pay.units == storedUnits && pay.currency == storedCurrency;
+  }
+
   /// Loads [program] into the editor. When [payBaseline] is given (an Undo
   /// rebase of a live editor) and the person has changed the pay input since
   /// that baseline, the raw pay text and currency are kept: [program] carries a
@@ -1064,10 +1161,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// program's link: its [program] is a merge that can carry the person's own
   /// unsaved pick, and a baseline that included the pick would make the next
   /// save read the pick as untouched and write the stored link over it.
+  /// [timesBaseline] does the same for the times.
   void _applyProgramToEditor(
     Program program, {
     Program? payBaseline,
     ({String? value})? venueIdBaseline,
+    ProgramTimes? timesBaseline,
   }) {
     _titleController.text = program.title;
     _venueController.text = program.venue ?? '';
@@ -1080,6 +1179,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     }
     _existing = program;
     _eventDate = program.eventDate;
+    _times = ProgramTimes.of(program);
+    _timesBaseline = timesBaseline ?? _times;
     _venueId = program.venueId;
     _venueIdBaseline = venueIdBaseline != null
         ? venueIdBaseline.value
@@ -1088,6 +1189,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _hideAlternates = program.hideAlternates;
     _dialectName = program.dialectName;
     _slots = program.slots.toList();
+    _insertion = null;
   }
 
   /// Seeds the caller/band controllers for a NEW program from the saved G.3
@@ -1106,43 +1208,31 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
-  /// Loads the configured semantic template for a manually-created program.
+  /// Loads the slots of the program template this new program starts from
+  /// ([ProgramEditorScreen.templateChoice], #2337).
   ///
-  /// Stale dance references can remain in a restored preference after a dance
-  /// was purged. They are omitted while valid entries retain their order and
-  /// fresh database identity is generated for every slot.
-  Future<List<ProgramSlot>> _loadStartingProgramSlots(
-    CollectionData data,
-  ) async {
-    Object? stored;
+  /// Stale dance references can remain in a template after a dance was
+  /// purged. They are omitted while valid entries retain their order and
+  /// fresh database identity is generated for every slot. A settings read
+  /// failure starts the program blank.
+  Future<List<ProgramSlot>> _loadTemplateSlots(CollectionData data) async {
+    if (!mounted) return const [];
+    final ProgramTemplates templates;
     try {
-      stored = await _repos.settings.get(kDefaultStartingProgramKey);
+      templates = await loadProgramTemplates(_repos.settings);
     } catch (error, stackTrace) {
       logCaughtError(
         error,
         stackTrace,
-        source: 'program_editor_screen.starting_program_template',
+        source: 'program_editor_screen.program_template',
       );
       return const [];
     }
-    final template = startingProgramTemplateFromStored(stored);
     final availableDances = _latestData?.dancesById ?? data.dancesById;
-    final slots = <ProgramSlot>[];
-    for (final entry in template) {
-      if (entry.danceId != null &&
-          !availableDances.containsKey(entry.danceId)) {
-        continue;
-      }
-      slots.add(
-        ProgramSlot(
-          id: uuidV4(),
-          position: slots.length,
-          danceId: entry.danceId,
-          text: entry.text,
-        ),
-      );
-    }
-    return slots;
+    return programSlotsFromTemplate(
+      programTemplateEntriesFor(templates, widget.templateChoice),
+      danceExists: availableDances.containsKey,
+    );
   }
 
   Future<void> _prefillControllerFromDefault(
@@ -1253,8 +1343,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       status: _status,
       hideAlternates: _hideAlternates,
       dialectName: _dialectName,
+      // Pay hidden and untouched: write the draft without pay, so restoring
+      // it keeps the program's pay as stored then, not this copy (#2355).
+      hasPay: !_payHeldBack,
       payText: _payController.text.trim(),
       payCurrency: _effectivePayCurrency,
+      times: _times,
+      // What this editor last took from storage, so a restore can tell the
+      // person's edits from values that were merely loaded. Only for a stored
+      // program: a new one has nothing stored to fall back on.
+      timesBaseline: _existing == null ? null : _timesBaseline,
+      venueIdBaseline: _venueIdBaseline,
+      hasVenueIdBaseline: _existing != null,
       slots: List.unmodifiable(_renumber(_slots)),
     );
   }
@@ -1398,6 +1498,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         }
         if (generation != _editGeneration) {
           _adoptOvertakenCommit(draft, persisted);
+          // Rewrite the draft as the second branch below does: one written
+          // while this commit was in flight still records the baselines from
+          // before it, and a restore would read the committed values as the
+          // person's own edits over anything synced since.
+          await _saveDraft();
+          if (!mounted) return _AutoCommitOutcome.notCommitted(generation);
           if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
           return _AutoCommitOutcome.notCommitted(generation);
         }
@@ -1670,7 +1776,32 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       }
       setState(() {
         _eventDate = draft.eventDate;
-        _venueId = draft.venueId;
+        // A draft from before the times existed never captured them: keep the
+        // program's current times instead of reading the absence as a clear.
+        // A time the person did not change before the draft was written takes
+        // what is stored now, so one synced since is not put back to the
+        // draft's stale copy; their own edits come back. A draft that did
+        // not record its baseline restores as written.
+        final existing = _existing;
+        final draftBaseline = draft.timesBaseline;
+        _times = !draft.hasTimes
+            ? (existing == null
+                  ? const ProgramTimes()
+                  : ProgramTimes.of(existing))
+            : (existing == null || draftBaseline == null)
+            ? draft.times
+            : ProgramTimes.merge(
+                baseline: draftBaseline,
+                local: draft.times,
+                stored: ProgramTimes.of(existing),
+              );
+        // The venue link follows the same rule.
+        _venueId =
+            existing != null &&
+                draft.hasVenueIdBaseline &&
+                draft.venueId == draft.venueIdBaseline
+            ? existing.venueId
+            : draft.venueId;
         _linkedVenue = null;
         _status = draft.status;
         _hideAlternates = draft.hideAlternates;
@@ -1680,6 +1811,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             ? draft.dialectName
             : _existing?.dialectName;
         _slots = _renumber(draft.slots);
+        _insertion = null;
         _dirty = true;
       });
     } finally {
@@ -1690,7 +1822,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     // Resolve the linked venue's display name off the restore path. This only
     // refreshes the read-only simple-mode fallback hint; it does not re-arm
     // autosave, and the on-disk draft is left intact.
-    final restoredVenueId = draft.venueId;
+    final restoredVenueId = _venueId;
     if (restoredVenueId != null) _refreshLinkedVenue(restoredVenueId);
   }
 
@@ -1795,6 +1927,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             local.payCurrency == atReadStart.payCurrency
         ? live.payCurrency
         : local.payCurrency,
+    // Each time merges on its own, as the other fields do.
+    startMinute: local.startMinute == atReadStart.startMinute
+        ? live.startMinute
+        : local.startMinute,
+    endMinute: local.endMinute == atReadStart.endMinute
+        ? live.endMinute
+        : local.endMinute,
+    lessonMinute: local.lessonMinute == atReadStart.lessonMinute
+        ? live.lessonMinute
+        : local.lessonMinute,
+    arrivalMinute: local.arrivalMinute == atReadStart.arrivalMinute
+        ? live.arrivalMinute
+        : local.arrivalMinute,
     slots: slots,
     createdAt: live.createdAt,
     updatedAt: live.updatedAt,
@@ -1802,6 +1947,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     // The builder never edits this itself (Archive and Unarchive write it
     // directly), so the stored value always stands.
     archivedAt: live.archivedAt,
+    // The editor never edits it: the stored one stands (#2352).
+    calendarEventKey: live.calendarEventKey,
+    calendarEventFingerprint: live.calendarEventFingerprint,
+    calendarWrittenAt: live.calendarWrittenAt,
+    calendarFlag: live.calendarFlag,
     provenance: live.provenance,
   );
 
@@ -1864,6 +2014,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         merged,
         payBaseline: storedBaseline,
         venueIdBaseline: (value: live.venueId),
+        timesBaseline: ProgramTimes.of(live),
       ),
     );
     await _refreshLinkedVenueForId(merged.venueId);
@@ -1891,9 +2042,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _loadError = _ProgramLoadError.missing;
       _dirty = false;
       _eventDate = null;
+      _times = const ProgramTimes();
+      _timesBaseline = const ProgramTimes();
       _venueId = null;
       _linkedVenue = null;
       _slots = const [];
+      _insertion = null;
     });
     await _clearDraft(waitForCommits: false, resetEditorState: false);
   }
@@ -1941,6 +2095,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           merged,
           payBaseline: baseline,
           venueIdBaseline: (value: live.venueId),
+          timesBaseline: ProgramTimes.of(live),
         );
         _dirty = true;
       });
@@ -2085,7 +2240,20 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// collection; null otherwise, so the export names authors as usual. As in
   /// the program summary, the share bundle is unaffected: it embeds only the
   /// author records the collection holds.
-  List<String>? _authorNamesOverrideFor(String danceId) {
+  List<String>? _authorNamesOverrideFor(String danceId) =>
+      _deletedNamesOverrideFor(danceId, (dance) => dance.authorIds);
+
+  /// A dance's interpreter names, as [_authorNamesOverrideFor] gives its
+  /// authors' names.
+  List<String>? _interpreterNamesOverrideFor(String danceId) =>
+      _deletedNamesOverrideFor(danceId, (dance) => dance.interpreterIds);
+
+  /// The names of [idsOf] for a dance in Recently deleted when some of those
+  /// people are in Recently deleted too; null otherwise.
+  List<String>? _deletedNamesOverrideFor(
+    String danceId,
+    List<String> Function(Dance dance) idsOf,
+  ) {
     final dance = _deletedSlotDances[danceId];
     // Same precedence as [_danceById]: a dance the collection lists (restored
     // since the lookup) is credited from the collection.
@@ -2098,16 +2266,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _createdChoreographers[id]?.name ??
         _data?.choreographersById[id]?.name ??
         _deletedSlotAuthorNames[id];
+    final ids = idsOf(dance);
     final names = [
-      for (final id in dance.authorIds)
+      for (final id in ids)
         if (nameOf(id) case final String name when name.isNotEmpty) name,
     ];
-    final live = dance.authorIds.where(
+    final live = ids.where(
       (id) =>
           _createdChoreographers.containsKey(id) ||
           (_data?.choreographersById.containsKey(id) ?? false),
     );
-    return live.length == dance.authorIds.length ? null : names;
+    return live.length == ids.length ? null : names;
   }
 
   /// [dance]'s author names in credit order, as the exports credit them
@@ -2266,24 +2435,174 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// ([Program.danceSlotCountsOf]).
   Map<String, int> _danceSlotCounts() => Program.danceSlotCountsOf(_slots);
 
+  /// Index of [_insertion]'s target slot, or null when there is no pending
+  /// insertion or its slot has left the program.
+  int? get _insertionIndex {
+    final insertion = _insertion;
+    if (insertion == null) return null;
+    final index = _slots.indexWhere((slot) => slot.id == insertion.slotId);
+    return index < 0 ? null : index;
+  }
+
+  /// The slots a pending insertion lands next to: its target's whole
+  /// alternate group, highlighted in the slot list.
+  Set<String> get _insertionTargetSlotIds {
+    final index = _insertionIndex;
+    if (index == null) return const {};
+    final range = Program.alternateGroupRange(_slots, index);
+    return {for (var i = range.start; i < range.end; i++) _slots[i].id};
+  }
+
+  /// The name of the pending insertion's target: its group's primary as the
+  /// slot list names it now, or null when there is no target.
+  String? _insertionTargetTitle(AppLocalizations l10n) {
+    final index = _insertionIndex;
+    if (index == null) return null;
+    final primary = Program.alternateGroupRange(_slots, index).start;
+    return programSlotTitle(
+      l10n,
+      _slots[primary],
+      danceTitles: _slotTitleForDance,
+      dialect: _dialect,
+      canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
+    );
+  }
+
+  /// Ends a pending insertion without adding, and says so to screen readers.
+  void _endInsertionAnnounced() {
+    if (_insertion == null) return;
+    setState(() => _insertion = null);
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      AppLocalizations.of(context).programsInsertionCancelledAnnounce,
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
+    );
+  }
+
+  /// Adds [danceId] as a new primary: at the pending insertion's group
+  /// boundary when there is one, which this then ends, or at the end.
   void _addDanceSlot(String danceId) {
     if (!mounted) return;
+    final insertion = _insertion;
+    final targetIndex = _insertionIndex;
+    final l10n = AppLocalizations.of(context);
+    final targetTitle = _insertionTargetTitle(l10n);
+    final slot = ProgramSlot(
+      id: uuidV4(),
+      position: _slots.length,
+      danceId: danceId,
+    );
     setState(() {
-      _slots = _renumber([
-        ..._slots,
-        ProgramSlot(id: uuidV4(), position: _slots.length, danceId: danceId),
-      ]);
+      // One add per insertion: the next add goes to the end again.
+      _insertion = null;
+      _slots = _renumber(
+        insertion == null || targetIndex == null
+            ? [..._slots, slot]
+            : Program.insertSlotAtGroupBoundary(
+                _slots,
+                targetIndex,
+                slot,
+                after: insertion.after,
+              ),
+      );
     });
     _markDirty();
-    final l10n = AppLocalizations.of(context);
     final title = _titleForDance(danceId) ?? l10n.programsUntitledDanceFallback;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(l10n.programsAddedDanceSnack(title))),
     );
+    SemanticsService.sendAnnouncement(View.of(context), switch (insertion) {
+      _ when targetTitle == null => l10n.programsAddedDanceAnnounce(title),
+      _SlotInsertion(after: true) => l10n.programsAddedDanceAfterAnnounce(
+        title,
+        targetTitle,
+      ),
+      _SlotInsertion() => l10n.programsAddedDanceBeforeAnnounce(
+        title,
+        targetTitle,
+      ),
+      null => l10n.programsAddedDanceAnnounce(title),
+    }, Directionality.maybeOf(context) ?? TextDirection.ltr);
+  }
+
+  /// "Add a dance before/after" on the group whose primary is at [index]
+  /// (#2339). Beside the
+  /// program (two-pane) the inline picker shows a banner naming the target;
+  /// on a narrow screen a picker sheet opens, titled with it, and closes on
+  /// the first dance chosen.
+  void _startInsertion(
+    int index, {
+    required bool after,
+    required bool twoPane,
+  }) {
+    if (index < 0 || index >= _slots.length) return;
+    final primary = Program.alternateGroupRange(_slots, index).start;
+    final insertion = _SlotInsertion(slotId: _slots[primary].id, after: after);
+    setState(() => _insertion = insertion);
+    if (!twoPane) {
+      _openPickerSheet(insertion: insertion);
+      return;
+    }
+    // A preview held over the picker would hide the banner and the picker.
+    if (_previewPane == _PreviewPane.picker) _clearPreview();
+    final l10n = AppLocalizations.of(context);
+    final targetTitle = _insertionTargetTitle(l10n)!;
     SemanticsService.sendAnnouncement(
       View.of(context),
-      l10n.programsAddedDanceAnnounce(title),
+      after
+          ? l10n.programsAddingAfterBanner(targetTitle)
+          : l10n.programsAddingBeforeBanner(targetTitle),
       Directionality.maybeOf(context) ?? TextDirection.ltr,
+    );
+  }
+
+  /// The wide-screen banner's Cancel: ends the insertion without adding.
+  void _cancelInsertion() => _endInsertionAnnounced();
+
+  /// The banner above the inline picker while an insertion is pending, or an
+  /// empty box (kept in the tree so the picker below keeps its state).
+  Widget _buildInsertionBanner(AppLocalizations l10n) {
+    final insertion = _insertion;
+    final targetTitle = _insertionTargetTitle(l10n);
+    if (insertion == null || targetTitle == null) {
+      return const SizedBox.shrink();
+    }
+    final colors = Theme.of(context).colorScheme;
+    return Material(
+      key: const ValueKey('insertion-banner'),
+      color: colors.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.xs,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              insertion.after
+                  ? Icons.vertical_align_bottom
+                  : Icons.vertical_align_top,
+              color: colors.onSecondaryContainer,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                insertion.after
+                    ? l10n.programsAddingAfterBanner(targetTitle)
+                    : l10n.programsAddingBeforeBanner(targetTitle),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: colors.onSecondaryContainer,
+                ),
+              ),
+            ),
+            TextButton(
+              key: const ValueKey('insertion-banner-cancel'),
+              onPressed: _cancelInsertion,
+              child: Text(l10n.commonCancel),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -2378,6 +2697,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _slots = _renumber(Program.removeSlotPromotingAlternate(_slots, index));
     });
     _markDirty();
+    // A cut target ends its insertion, and says so, rather than leaving it to
+    // land at the end when the next dance is chosen. The target is the group's
+    // primary, the slot the banner names; cutting one of its alternates keeps
+    // it.
+    if (_insertion != null && _insertionIndex == null) {
+      _endInsertionAnnounced();
+    }
   }
 
   /// Opens the dance editor seeded from the note-slot at [index]'s text
@@ -2685,6 +3011,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             restored,
             payBaseline: _pendingBulkUndoBaseline ?? _existing!,
             venueIdBaseline: (value: live.venueId),
+            timesBaseline: ProgramTimes.of(live),
           );
           await _refreshLinkedVenueForId(restored.venueId);
           if (!mounted) return;
@@ -2808,30 +3135,32 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       // blocked separately (see _save), and an export should not flicker to
       // "no pay" while the person is mid-typing.
       final pay = _parsedPay();
-      return base.copyWith(
-        title: title,
-        eventDate: _eventDate,
-        clearEventDate: _eventDate == null,
-        venue: enriched ? null : venueText,
-        clearVenue: enriched ? false : venueText == null,
-        venueId: enriched ? _venueId : null,
-        clearVenueId: enriched ? _venueId == null : false,
-        band: nn(_bandController),
-        clearBand: nn(_bandController) == null,
-        caller: nn(_callerController),
-        clearCaller: nn(_callerController) == null,
-        dancerLevel: nn(_levelController),
-        clearDancerLevel: nn(_levelController) == null,
-        notes: _notesController.text,
-        status: _status,
-        hideAlternates: _hideAlternates,
-        dialectName: _dialectName,
-        clearDialectName: _dialectName == null,
-        payMinorUnits: pay.units,
-        payCurrency: pay.units == null ? null : pay.currency,
-        clearPay: pay.isEmpty,
-        slots: _renumber(_slots),
-      );
+      return _times
+          .applyTo(base)
+          .copyWith(
+            title: title,
+            eventDate: _eventDate,
+            clearEventDate: _eventDate == null,
+            venue: enriched ? null : venueText,
+            clearVenue: enriched ? false : venueText == null,
+            venueId: enriched ? _venueId : null,
+            clearVenueId: enriched ? _venueId == null : false,
+            band: nn(_bandController),
+            clearBand: nn(_bandController) == null,
+            caller: nn(_callerController),
+            clearCaller: nn(_callerController) == null,
+            dancerLevel: nn(_levelController),
+            clearDancerLevel: nn(_levelController) == null,
+            notes: _notesController.text,
+            status: _status,
+            hideAlternates: _hideAlternates,
+            dialectName: _dialectName,
+            clearDialectName: _dialectName == null,
+            payMinorUnits: pay.units,
+            payCurrency: pay.units == null ? null : pay.currency,
+            clearPay: pay.isEmpty,
+            slots: _renumber(_slots),
+          );
     } catch (_) {
       // diagnostics: silent — ProgramEdit construction failed (invalid field combination); returns null, blocking _save.
       return null;
@@ -2865,6 +3194,23 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (before != null && venueId == _venueIdBaseline) {
       venueId = before.venueId;
     }
+    // The same three-way rule, one time at a time (#2350).
+    final sentTimes = ProgramTimes.of(draft);
+    final times = before == null
+        ? sentTimes
+        : ProgramTimes.merge(
+            baseline: _timesBaseline,
+            local: sentTimes,
+            stored: ProgramTimes.of(before),
+          );
+    // Pay hidden and untouched (#2355): write the pay as stored now, so a
+    // change that reached it while this editor was open (sync, another
+    // window) is not overwritten by a copy the person cannot see. Once the
+    // write lands the input follows it (below), so the adopted result does
+    // not read as a pay edit.
+    final holdPay = before != null && _payHeldBack;
+    final payMinorUnits = holdPay ? before.payMinorUnits : draft.payMinorUnits;
+    final payCurrency = holdPay ? before.payCurrency : draft.payCurrency;
     final persisted = Program(
       id: existing?.id ?? uuidV4(),
       title: draft.title,
@@ -2878,13 +3224,34 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       status: draft.status,
       hideAlternates: draft.hideAlternates,
       dialectName: draft.dialectName,
-      payMinorUnits: draft.payMinorUnits,
-      payCurrency: draft.payCurrency,
+      payMinorUnits: payMinorUnits,
+      payCurrency: payCurrency,
+      startMinute: times.start,
+      endMinute: times.end,
+      lessonMinute: times.lesson,
+      arrivalMinute: times.arrival,
       slots: draft.slots,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
       deletedAt: existing?.deletedAt,
       archivedAt: before != null ? before.archivedAt : existing?.archivedAt,
+      // Not editable here, so the stored key stands; dropping it would make
+      // the next calendar import offer the event again (#2352).
+      calendarEventKey: before != null
+          ? before.calendarEventKey
+          : existing?.calendarEventKey,
+      // The calendar import's change tracking and flag (#2354), likewise not
+      // edited here. The save's own new updated_at is what marks the program
+      // worked on; calendar_written_at keeps the import's stamp.
+      calendarEventFingerprint: before != null
+          ? before.calendarEventFingerprint
+          : existing?.calendarEventFingerprint,
+      calendarWrittenAt: before != null
+          ? before.calendarWrittenAt
+          : existing?.calendarWrittenAt,
+      calendarFlag: before != null
+          ? before.calendarFlag
+          : existing?.calendarFlag,
       provenance: existing?.provenance,
     );
     if (existing != null) {
@@ -2894,7 +3261,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         persisted,
         keepStoredArchivedAt: true,
       );
+      // Still hidden and untouched across the write: show the input what was
+      // written. An edit typed in the meantime is left alone.
+      if (holdPay && mounted && _payHeldBack) _setPayFrom(stored);
       _adoptStoredVenueId(sent: draft.venueId, stored: stored.venueId);
+      _adoptStoredTimes(sent: sentTimes, stored: ProgramTimes.of(stored));
       return stored;
     }
     await _repos.programs.create(persisted);
@@ -2903,7 +3274,25 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       throw StateError('program "${persisted.id}" vanished after its create');
     }
     _adoptStoredVenueId(sent: draft.venueId, stored: stored.venueId);
+    _adoptStoredTimes(sent: sentTimes, stored: ProgramTimes.of(stored));
     return stored;
+  }
+
+  /// Takes the saved times as the new baseline, and each into [_times] unless
+  /// the person changed that time while the save was in flight.
+  void _adoptStoredTimes({
+    required ProgramTimes sent,
+    required ProgramTimes stored,
+  }) {
+    _timesBaseline = stored;
+    if (!mounted || sent == stored) return;
+    var next = _times;
+    for (final field in ProgramTimeField.values) {
+      if (_times[field] == sent[field]) {
+        next = next.withField(field, stored[field]);
+      }
+    }
+    if (next != _times) setState(() => _times = next);
   }
 
   /// Takes the saved `venueId` as the new baseline, and into [_venueId] unless
@@ -3354,11 +3743,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                     program: _draftProgram!,
                     titleFor: _titleForDance,
                     venuesById: _exportVenuesById,
+                    // Only the stored program has a real id and save stamp.
+                    offerCalendarExport: _existing != null && !_dirty,
                     danceFor: _danceById,
                     choreographerFor: (id) =>
                         _createdChoreographers[id] ??
                         _data?.choreographersById[id],
                     authorNamesOverrideFor: _authorNamesOverrideFor,
+                    interpreterNamesOverrideFor: _interpreterNamesOverrideFor,
                     tagFor: (id) => _data?.tagFor(id),
                     publishedSourceFor: (id) => _data?.publishedSourceFor(id),
                     customFieldFor: (id) => _data?.customFieldFor(id),
@@ -3574,6 +3966,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               if (mounted) _clearPreview();
             });
           }
+          // A wide-screen insertion has no banner here; end it rather than
+          // let the narrow Add dance sheet insert at a target it never names.
+          if (_insertion != null && !_insertionSheetOpen) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && !_insertionSheetOpen) _endInsertionAnnounced();
+            });
+          }
           return editor;
         }
         final left = _previewPane == _PreviewPane.editor
@@ -3600,47 +3999,61 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                       children: [
                         Offstage(
                           offstage: _previewPane == _PreviewPane.picker,
-                          child: CollectionPicker(
-                            key: const ValueKey('inline-picker'),
-                            data: data,
-                            dialect: _dialect,
-                            enrichment: _enrichment,
-                            addedDanceCounts: _pickerCounts.value,
-                            onAddDance: _addDanceSlot,
-                            onDanceImported: _rememberImportedDance,
-                            onImportingChanged: _setPickerImportActivity,
-                            callersBoxOnline: widget.callersBoxOnline,
-                            contraDbOnline: widget.contraDbOnline,
-                            danceOverrides: _createdDances,
-                            choreographerNamesOverride: {
-                              for (final entry
-                                  in _createdChoreographers.entries)
-                                entry.key: entry.value.name,
-                            },
-                            enableOnlineSearch: true,
-                            onPreviewDanceStarted: (id) => _showSavedPreview(
-                              id,
-                              _PreviewPane.editor,
-                              persistent: false,
-                            ),
-                            onPreviewDanceEnded: _endSavedPreview,
-                            onViewDanceDetails: (id) => _showSavedPreview(
-                              id,
-                              _PreviewPane.editor,
-                              persistent: true,
-                            ),
-                            onPreviewOnlineStarted: (result) =>
-                                _showOnlinePreview(
-                                  result,
-                                  _PreviewPane.editor,
-                                  persistent: false,
+                          child: Column(
+                            children: [
+                              _buildInsertionBanner(l10n),
+                              Expanded(
+                                child: CollectionPicker(
+                                  key: const ValueKey('inline-picker'),
+                                  data: data,
+                                  dialect: _dialect,
+                                  suggestionDialectForColumn:
+                                      _dialectForSuggestedColumn,
+                                  enrichment: _enrichment,
+                                  addedDanceCounts: _pickerCounts.value,
+                                  programContext: _pickerProgramContext(
+                                    _addPosition(),
+                                  ),
+                                  onAddDance: _addDanceSlot,
+                                  onDanceImported: _rememberImportedDance,
+                                  onImportingChanged: _setPickerImportActivity,
+                                  callersBoxOnline: widget.callersBoxOnline,
+                                  contraDbOnline: widget.contraDbOnline,
+                                  danceOverrides: _createdDances,
+                                  choreographerNamesOverride: {
+                                    for (final entry
+                                        in _createdChoreographers.entries)
+                                      entry.key: entry.value.name,
+                                  },
+                                  enableOnlineSearch: true,
+                                  onPreviewDanceStarted: (id) =>
+                                      _showSavedPreview(
+                                        id,
+                                        _PreviewPane.editor,
+                                        persistent: false,
+                                      ),
+                                  onPreviewDanceEnded: _endSavedPreview,
+                                  onViewDanceDetails: (id) => _showSavedPreview(
+                                    id,
+                                    _PreviewPane.editor,
+                                    persistent: true,
+                                  ),
+                                  onPreviewOnlineStarted: (result) =>
+                                      _showOnlinePreview(
+                                        result,
+                                        _PreviewPane.editor,
+                                        persistent: false,
+                                      ),
+                                  onPreviewOnlineEnded: _endOnlinePreview,
+                                  onViewOnlineDetails: (result) =>
+                                      _showOnlinePreview(
+                                        result,
+                                        _PreviewPane.editor,
+                                        persistent: true,
+                                      ),
                                 ),
-                            onPreviewOnlineEnded: _endOnlinePreview,
-                            onViewOnlineDetails: (result) => _showOnlinePreview(
-                              result,
-                              _PreviewPane.editor,
-                              persistent: true,
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                         if (_previewPane == _PreviewPane.picker)
@@ -3864,6 +4277,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
     final config = _matrixColumnConfig;
     final eventDate = _eventDate;
+    // The dance's start and end beside the date, as the set list prints them
+    // (#2350); the lesson and Arrive by stay off this one-line header.
+    final times = danceTimesText(
+      startMinute: _times.start,
+      endMinute: _times.end,
+      formatTime: (m) => formatTimeOfDay(m, l10n),
+      labels: programExportLabels(l10n),
+    );
     final title = _titleController.text.trim();
     // Prefer a linked venue's sanitized display label over free text. The
     // linked-record precedence matches the set-list export and screen.
@@ -3889,6 +4310,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           dialect: dialect,
           programTitle: title,
           eventDate: eventDate,
+          times: times,
           venue: venue,
           omittedFreeTextCount: omittedFreeTextCount,
           formatDate: (d) =>
@@ -4021,6 +4443,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             onPickReplacementDance: _data == null
                 ? null
                 : _pickReplacementDance,
+            onAddDanceAt: _data == null
+                ? null
+                : (index, {required after}) =>
+                      _startInsertion(index, after: after, twoPane: twoPane),
+            insertionTargetSlotIds: _insertionTargetSlotIds,
             onPreviewDanceStarted: twoPane
                 ? (id) => _showSavedPreview(
                     id,
@@ -4043,10 +4470,59 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
-  Future<void> _openPickerSheet() async {
+  /// Where the next dance added lands, for Suggested (#2344): the place a
+  /// pending insertion lands ([Program.insertSlotAtGroupBoundary], the rule
+  /// [_addDanceSlot] adds with), or the end of the program.
+  SuggestionPosition _addPosition() {
+    final insertion = _insertion;
+    final index = _insertionIndex;
+    if (insertion == null || index == null) {
+      return SuggestionPosition.atEnd(List.unmodifiable(_slots));
+    }
+    return SuggestionPosition.inserting(_slots, index, after: insertion.after);
+  }
+
+  /// The program, as the builder's pickers need it (history-filters Q3,
+  /// #2343, #2344): its id, its venue as calling history keys it, and
+  /// [position], where the chosen dance will go, which Suggested ranks for:
+  /// the end, the place a pending add before or after a slot lands
+  /// ([_addPosition]), or the slot **Replace…** fills.
+  PickerProgramContext _pickerProgramContext(SuggestionPosition? position) {
+    final typed = _venueController.text.trim();
+    final venueId = _venueId;
+    return PickerProgramContext(
+      programId: _existing?.id ?? widget.programId,
+      venueId: venueId,
+      venue: typed.isEmpty ? null : typed,
+      // As the venue hint names it; with no name to show, the picker falls
+      // back to the hint's own words.
+      venueLabel: venueId != null
+          ? (_linkedVenue?.displayName ?? (typed.isEmpty ? null : typed))
+          : (typed.isEmpty ? null : typed),
+      position: position,
+    );
+  }
+
+  /// The narrow-screen dance picker sheet. With [insertion] (#2339) it is
+  /// titled with the target and closes on the first dance chosen, which lands
+  /// there; closing it without a pick ends the insertion. Without one it stays
+  /// open so callers can add several dances, each at the end.
+  Future<void> _openPickerSheet({_SlotInsertion? insertion}) async {
     final data = _data;
-    if (data == null) return;
+    if (data == null) {
+      if (insertion != null) setState(() => _insertion = null);
+      return;
+    }
     final l10n = AppLocalizations.of(context);
+    // The sheet is modal, so the target cannot change while it is open.
+    final targetTitle = insertion == null ? null : _insertionTargetTitle(l10n);
+    final sheetTitle = switch (insertion) {
+      _ when targetTitle == null => l10n.programsAddADanceSheetTitle,
+      _SlotInsertion(after: true) => l10n.programsAddAfterSheetTitle(
+        targetTitle,
+      ),
+      _ => l10n.programsAddBeforeSheetTitle(targetTitle),
+    };
     // Drop focus from the Title field first. The sheet route remembers the
     // focused node and hands focus back on close, which reopens the keyboard
     // over the Slots list and the "Added" snackbar; with nothing focused there
@@ -4067,6 +4543,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       }
     }
 
+    if (insertion != null) _insertionSheetOpen = true;
     try {
       await showModalBottomSheet<void>(
         context: context,
@@ -4089,11 +4566,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                       Row(
                         children: [
                           const SizedBox(width: 16),
-                          Text(
-                            l10n.programsAddADanceSheetTitle,
-                            style: Theme.of(context).textTheme.titleMedium,
+                          Expanded(
+                            child: Text(
+                              sheetTitle,
+                              key: const ValueKey('picker-sheet-title'),
+                              style: Theme.of(context).textTheme.titleMedium,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                          const Spacer(),
                           IconButton(
                             key: const ValueKey('picker-sheet-close'),
                             tooltip: l10n.commonClose,
@@ -4111,11 +4591,26 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                             key: const ValueKey('sheet-picker'),
                             data: data,
                             dialect: _dialect,
+                            suggestionDialectForColumn:
+                                _dialectForSuggestedColumn,
                             enrichment: _enrichment,
                             scrollController: scrollController,
                             addedDanceCounts: counts,
-                            // Keep the sheet open so callers can add several dances.
-                            onAddDance: _addDanceSlot,
+                            // The sheet is modal: [insertion] is the pending
+                            // one, or null for adds at the end.
+                            programContext: _pickerProgramContext(
+                              _addPosition(),
+                            ),
+                            // Keep the sheet open so callers can add several
+                            // dances, unless this sheet is for one insertion.
+                            onAddDance: insertion == null
+                                ? _addDanceSlot
+                                : (danceId) {
+                                    _addDanceSlot(danceId);
+                                    if (sheetContext.mounted) {
+                                      Navigator.of(sheetContext).pop();
+                                    }
+                                  },
                             onDanceImported: _rememberImportedDance,
                             onImportingChanged: onImportingChanged,
                             callersBoxOnline: widget.callersBoxOnline,
@@ -4150,6 +4645,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     } finally {
       importingDisposed = true;
       importing.dispose();
+      if (insertion != null) {
+        _insertionSheetOpen = false;
+        // Closed without choosing a dance: the next add goes to the end.
+        if (mounted && identical(_insertion, insertion)) {
+          setState(() => _insertion = null);
+        }
+      }
     }
   }
 
@@ -4164,12 +4666,28 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   ///
   /// Unlike [_openPickerSheet] this pops on the **first** tap: replacing a
   /// slot's dance is a single choice, not an open-ended add session.
-  Future<String?> _pickReplacementDance() async {
+  ///
+  /// Its picker ranks Suggested for [slot]'s place, with [slot] itself left
+  /// out ([SuggestionPosition.replacing], #2344), so its saved dance is not a
+  /// neighbour. [slot]'s `danceId` is the dance the edit dialog shows (an
+  /// earlier pick in the dialog, else the saved dance); the picker leaves it
+  /// out of the list ([CollectionPicker.excludedDanceIds]). Online rows are
+  /// not filtered (their local id is unknown until import); one that
+  /// resolves to that dance hands it back, which leaves the dialog as it
+  /// was. A slot no longer in the program (it cannot leave while the modal
+  /// dialog is open) gets no position, so no Suggested.
+  Future<String?> _pickReplacementDance(ProgramSlot slot) async {
     // The sheet route would hand focus back to a focused field on close.
     FocusManager.instance.primaryFocus?.unfocus();
     final data = _data;
     if (data == null) return null;
     final l10n = AppLocalizations.of(context);
+    final slotIndex = _slots.indexWhere((s) => s.id == slot.id);
+    final programContext = _pickerProgramContext(
+      slotIndex < 0
+          ? null
+          : SuggestionPosition.replacing(List.unmodifiable(_slots), slotIndex),
+    );
     final importing = ValueNotifier(false);
     final importOwners = <Object>{};
     var importingDisposed = false;
@@ -4232,9 +4750,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                             key: const ValueKey('replace-picker'),
                             data: data,
                             dialect: _dialect,
+                            suggestionDialectForColumn:
+                                _dialectForSuggestedColumn,
                             enrichment: _enrichment,
                             scrollController: scrollController,
                             addedDanceCounts: counts,
+                            programContext: programContext,
+                            excludedDanceIds: {?slot.danceId},
                             rowAction: PickerRowAction.replace,
                             enableOnlineSearch: true,
                             onDanceImported: _rememberImportedDance,
@@ -4431,6 +4953,127 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
+  /// The four optional times (#2350): start and end, the beginner lesson and
+  /// when the caller needs to arrive. They sit in More details with the other
+  /// event details, after the dancer level, so the builder's top stays short
+  /// on a phone. Two to a row where there is room. When
+  /// the linked venue records its usual time, that free text is shown beneath
+  /// as a hint; it is never parsed into the fields, and nothing here writes to
+  /// the venue.
+  Widget _buildTimesSection(AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final venueTime = _venueId == null ? null : _linkedVenue?.time?.trim();
+    final fields = [
+      for (final field in ProgramTimeField.values) _buildTimeField(l10n, field),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            // Two to a row only where each still fits its label, value and
+            // buttons at the current text size.
+            final twoUp = MediaQuery.textScalerOf(context).scale(520);
+            if (constraints.maxWidth < twoUp) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var i = 0; i < fields.length; i++) ...[
+                    if (i > 0) const SizedBox(height: AppSpacing.sm),
+                    fields[i],
+                  ],
+                ],
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var i = 0; i < fields.length; i += 2) ...[
+                  if (i > 0) const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: fields[i]),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(child: fields[i + 1]),
+                    ],
+                  ),
+                ],
+              ],
+            );
+          },
+        ),
+        if (venueTime != null && venueTime.isNotEmpty)
+          Padding(
+            key: const ValueKey('program-venue-time-hint'),
+            padding: const EdgeInsets.only(top: AppSpacing.xs),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 16,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.programsVenueUsualTimeHint(venueTime),
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTimeField(AppLocalizations l10n, ProgramTimeField field) {
+    final label = programTimeFieldLabel(l10n, field);
+    final minute = _times[field];
+    final next = field == ProgramTimeField.end && _times.endsNextDay;
+    return InputDecorator(
+      key: ValueKey('program-time-${field.name}'),
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        helperText: next ? l10n.programsTimeNextDay : null,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              minute == null
+                  ? l10n.programsNoTimeSet
+                  : formatTimeOfDay(minute, l10n),
+              key: ValueKey('program-time-${field.name}-value'),
+            ),
+          ),
+          TextButton(
+            key: ValueKey('pick-program-time-${field.name}'),
+            onPressed: () => _pickTime(field),
+            child: Text(
+              minute == null ? l10n.programsSetTime : l10n.programsChangeTime,
+              semanticsLabel: minute == null
+                  ? l10n.programsSetTimeFor(label)
+                  : l10n.programsChangeTimeFor(label),
+            ),
+          ),
+          if (minute != null)
+            IconButton(
+              key: ValueKey('clear-program-time-${field.name}'),
+              tooltip: l10n.programsClearTime(label),
+              icon: const Icon(Icons.clear),
+              onPressed: () {
+                setState(() => _times = _times.withField(field, null));
+                _markDirty();
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMoreDetails(AppLocalizations l10n) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -4504,6 +5147,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
+              _buildTimesSection(l10n),
+              const SizedBox(height: AppSpacing.md),
               TextFormField(
                 key: const ValueKey('program-notes'),
                 controller: _notesController,
@@ -4516,8 +5161,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   border: const OutlineInputBorder(),
                 ),
               ),
-              const SizedBox(height: AppSpacing.md),
-              _buildPayField(l10n),
+              // Hidden by Show pay (#2355), except once it holds an amount
+              // that does not parse: that blocks saving, so the person must
+              // be able to see and fix it, and it stays shown while they do.
+              if (_showPay || _revealHiddenPay()) ...[
+                const SizedBox(height: AppSpacing.md),
+                _buildPayField(l10n),
+              ],
               const SizedBox(height: AppSpacing.md),
               AppDropdownField<ProgramStatus>(
                 key: const ValueKey('program-status'),
@@ -4572,6 +5222,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       ],
     );
   }
+
+  /// Whether [_buildPayField] shows while Show pay is off: from the first
+  /// build that finds an unparseable amount, for the rest of this editor's
+  /// life, so the field does not vanish as the amount is corrected.
+  bool _hiddenPayRevealed = false;
+
+  bool _revealHiddenPay() =>
+      _hiddenPayRevealed = _hiddenPayRevealed || _parsedPay().isInvalid;
 
   /// Pay amount plus currency selector (issue #1418). The amount is a plain
   /// decimal in the selected currency; invalid text shows an error and blocks
@@ -4686,6 +5344,22 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _markDirty();
       },
     );
+  }
+
+  /// Opens the platform's Material time picker for [field], starting from its
+  /// current time, or 7:30 pm ([kDefaultPickerMinute]) for an unset one.
+  Future<void> _pickTime(ProgramTimeField field) async {
+    final current = _times[field] ?? kDefaultPickerMinute;
+    final picked = await showAppTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: current ~/ 60, minute: current % 60),
+      helpText: programTimeFieldLabel(AppLocalizations.of(context), field),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _times = _times.withField(field, picked.hour * 60 + picked.minute);
+    });
+    _markDirty();
   }
 
   Future<void> _pickEventDate() async {

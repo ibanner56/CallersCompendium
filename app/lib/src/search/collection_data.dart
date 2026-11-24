@@ -22,6 +22,7 @@ class CollectionData {
     required this.choreographersById,
     required this.choreographerNames,
     required this.tagNames,
+    required this.allTagNames,
     this.tagColors = const {},
     required this.customFieldDefs,
     required this.listFieldDefs,
@@ -43,6 +44,8 @@ class CollectionData {
     required this.progressions,
     required this.statuses,
     required this.levels,
+    required this.allLevels,
+    required this.sourceTitles,
     required this.hasMixedLevel,
     required this.hasMixer,
     required this.hasRating,
@@ -71,6 +74,7 @@ class CollectionData {
         choreographersById: choreographersById,
         choreographerNames: choreographerNames,
         tagNames: tagNames,
+        allTagNames: allTagNames,
         tagColors: tagColors,
         customFieldDefs: customFieldDefs,
         listFieldDefs: listFieldDefs,
@@ -92,6 +96,8 @@ class CollectionData {
         progressions: progressions,
         statuses: statuses,
         levels: levels,
+        allLevels: allLevels,
+        sourceTitles: sourceTitles,
         hasMixedLevel: hasMixedLevel,
         hasMixer: hasMixer,
         hasRating: hasRating,
@@ -122,8 +128,17 @@ class CollectionData {
   /// All choreographers keyed by id, so a share/export path can resolve a
   /// dance's `authorIds` to full [Choreographer] records (mirrors [dancesById]).
   final Map<String, Choreographer> choreographersById;
+
+  /// Every live choreographer's name by id, credited on a dance or not.
   final Map<String, String> choreographerNames;
+
+  /// The names of the tags a live dance carries, by id.
   final Map<String, String> tagNames;
+
+  /// Every live tag's name by id, carried by a dance or not: the name a
+  /// selected tag's chip shows once no dance carries it (a saved search for a
+  /// tag nobody has used yet), when it is no longer in [tags].
+  final Map<String, String> allTagNames;
 
   /// The user's chosen chip colour per tag id (issue #786), absent for tags
   /// with no colour assigned. Resolved once for the whole collection so
@@ -151,8 +166,9 @@ class CollectionData {
   final List<Tag> tags;
 
   /// Published sources cited by at least one dance in the collection (sorted by
-  /// title). Drives the Source facet; an empty list hides the facet, matching
-  /// the present-value pattern used for authors/tags/rating.
+  /// title). Drives the Source facet; an empty list hides the facet unless a
+  /// source is selected, matching the present-value pattern used for
+  /// authors/tags/rating.
   final List<PublishedSource> citedSources;
 
   /// Distinct tune names across the collection, sorted case-insensitively, for
@@ -179,6 +195,14 @@ class CollectionData {
   /// ordered by the persisted vocabulary position.
   final List<DifficultyLevel> levels;
 
+  /// Every configured difficulty level, assigned or not, in the same order:
+  /// what a selected level's chip is named from once no dance has it.
+  final List<DifficultyLevel> allLevels;
+
+  /// Every published source's title by id, cited or not: what a selected
+  /// source's chip shows once no dance cites it.
+  final Map<String, String> sourceTitles;
+
   /// Whether any dance is flagged mixed-level (drives the Mixed level facet).
   final bool hasMixedLevel;
 
@@ -186,7 +210,8 @@ class CollectionData {
   final bool hasMixer;
 
   /// Whether any dance carries a star rating (drives the minimum-rating facet;
-  /// an all-unrated collection hides it, matching the present-value pattern).
+  /// an all-unrated collection hides it unless a rating is selected, matching
+  /// the present-value pattern).
   final bool hasRating;
 
   final Taxonomy taxonomy;
@@ -406,7 +431,9 @@ class CollectionData {
     final normalizedCallerFilter = normalizeCallingHistoryCaller(callerFilter);
     final dances = await repos.dances.listAll();
     final choreographers = await repos.choreographers.listAll();
-    final tags = await repos.tags.listReferencedByLiveDances();
+    // Every live tag: the Tags facet offers those a live dance carries
+    // (`tagList` below), and names a selected one nobody carries from the rest.
+    final allTags = await repos.tags.listAll();
     final defs = await repos.customFieldDefs.listAll();
     final publishedSources = await repos.publishedSources.listAll();
     // One read for both: they come from the same query, so asking separately
@@ -420,7 +447,18 @@ class CollectionData {
     final dancesById = {for (final d in dances) d.id: d};
     final choreographersById = {for (final c in choreographers) c.id: c};
     final choreographerNames = {for (final c in choreographers) c.id: c.name};
+    final usedTagIds = {for (final d in dances) ...d.tagIds};
+    // The tags a live dance carries: what `listReferencedByLiveDances` reads,
+    // without a second query for the rest.
+    // Ordered by name then id, as that query orders them, so tags whose names
+    // are equal keep one order from load to load.
+    final tags = allTags.where((t) => usedTagIds.contains(t.id)).toList()
+      ..sort((a, b) {
+        final byName = a.name.compareTo(b.name);
+        return byName != 0 ? byName : a.id.compareTo(b.id);
+      });
     final tagNames = {for (final t in tags) t.id: t.name};
+    final allTagNames = {for (final t in allTags) t.id: t.name};
     // A null-aware element: tags with no colour assigned are simply absent.
     final tagColors = {for (final t in tags) t.id: ?t.color};
 
@@ -447,14 +485,18 @@ class CollectionData {
     final hasRating = dances.any((d) => d.rating != null);
 
     final usedAuthorIds = {for (final d in dances) ...d.authorIds};
-    final usedTagIds = {for (final d in dances) ...d.tagIds};
     final authors =
         choreographers.where((c) => usedAuthorIds.contains(c.id)).toList()
           ..sort(
             (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
           );
+    // Id breaks a tie, so tags named alike keep one order (`List.sort` is not
+    // stable).
     final tagList = tags.where((t) => usedTagIds.contains(t.id)).toList()
-      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      ..sort((a, b) {
+        final byName = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        return byName != 0 ? byName : a.id.compareTo(b.id);
+      });
 
     final usedSourceIds = {
       for (final d in dances)
@@ -493,6 +535,7 @@ class CollectionData {
       choreographersById: choreographersById,
       choreographerNames: choreographerNames,
       tagNames: tagNames,
+      allTagNames: allTagNames,
       tagColors: tagColors,
       customFieldDefs: defs,
       listFieldDefs: defs.where((d) => d.showInList).toList(),
@@ -522,6 +565,8 @@ class CollectionData {
       progressions: progressions,
       statuses: statuses,
       levels: levels,
+      allLevels: configuredLevels,
+      sourceTitles: {for (final s in publishedSources) s.id: s.title},
       hasMixedLevel: hasMixedLevel,
       hasMixer: hasMixer,
       hasRating: hasRating,

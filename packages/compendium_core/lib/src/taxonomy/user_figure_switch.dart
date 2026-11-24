@@ -1,8 +1,10 @@
 import 'package:meta/meta.dart';
 
 import '../dialect/renderer.dart';
+import '../model/enums.dart';
 import '../model/figure.dart';
 import '../validation/validation.dart';
+import 'param_change_rules.dart';
 import 'glossary_names.dart';
 import 'param_types.dart';
 import 'taxonomy.dart';
@@ -101,7 +103,11 @@ bool _widens(ParamKind from, ParamKind to) =>
 ///   empty), value by value;
 /// - any other kind, to one of the same kind that takes every value [param]
 ///   can hold, so that no use is lost to a narrower list (a dancer set onto a
-///   "who" that only takes role1s or role2s is not offered);
+///   "who" that only takes role1s or role2s is not offered). A dancer set is
+///   measured against contra's groups whatever form the figure is for, since
+///   a shipped figure it switches to is always contra's: a use that holds a
+///   group only an English figure has (`ends`) cannot move across, and is
+///   frozen as its wording instead ([switchUserFigureUsesIn]);
 /// - places, also to a plain number, which takes every count places can hold
 ///   ([_widens]).
 ///
@@ -117,7 +123,9 @@ List<String> userFigureSwitchTargets(
   final def = taxonomy.resolve(target);
   if (def == null) return const [];
   final pinned = taxonomy.aliases[target]?.pinnedParams.keys ?? const [];
-  final mine = _wordValues(param.spec);
+  // The target is always one of contra's figures, so what the parameter can
+  // hold is what it holds in contra, not in the figure's own form (#2294).
+  final mine = _wordValues(param.specIn(DanceForm.contra.name));
   bool takes(ParamSpec spec) {
     if (param.kind == ParamKind.choice) {
       return (_wordValues(spec) ?? const []).any(
@@ -253,7 +261,7 @@ List<Figure> switchUserFigureUsesIn(
         ? use.args[param.key]
         : param.defaultValue;
     if (value == null) continue;
-    if (!param.spec.validate(value)) return freeze();
+    if (!param.specIn(definition.form).validate(value)) return freeze();
     final Object? mapped;
     if (param.kind == ParamKind.choice) {
       mapped = (mapping.choices[param.key] ?? const {})[value];
@@ -281,10 +289,26 @@ List<Figure> switchUserFigureUsesIn(
   // without the formation it pins (taxonomy v39): shorthands and default
   // lists are not routed on write the way dances are, and a build before
   // v39 reads neither `forward_and_back` nor `formation`.
+  // Likewise a switch to pass through with the pass type `by` is a pass by
+  // (v40), keeping what the params it leaves out meant
+  // ([keepOmittedMeaning]); and one that stays a pass through stores no
+  // `passType: through`, which a v39 build rejects.
   final stored = taxonomy.resolvedMoveId(switched);
-  if (!(taxonomy.aliases[stored]?.listedAsMove ?? false)) return switched;
+  if (!(taxonomy.aliases[stored]?.listedAsMove ?? false)) {
+    final kept = taxonomy.withoutListedAliasPins(
+      switched.move,
+      switched.params,
+    );
+    return identical(kept, switched.params)
+        ? switched
+        : switched.copyWith(params: kept);
+  }
+  final routed = Map<String, Object?>.of(switched.params);
+  if (stored != switched.move) {
+    keepOmittedMeaning(taxonomy, switched.move, stored, routed);
+  }
   return switched.copyWith(
     move: stored,
-    params: taxonomy.withoutListedAliasPins(stored, switched.params),
+    params: taxonomy.withoutListedAliasPins(stored, routed),
   );
 });

@@ -44,6 +44,7 @@ String importErrorMessage(AppLocalizations l10n, UrlFetchException error) {
     UrlFetchFailureReason.emptyResponse => l10n.importErrorEmptyResponse,
     UrlFetchFailureReason.unsupportedSharedLink =>
       l10n.importErrorUnsupportedSharedLink,
+    UrlFetchFailureReason.notACalendar => l10n.importErrorNotACalendar,
     UrlFetchFailureReason.callersBoxEmptyInput =>
       l10n.importErrorCallersBoxEmptyInput,
     UrlFetchFailureReason.callersBoxInvalidUrl =>
@@ -215,6 +216,25 @@ String importSourceLabel(AppLocalizations l10n, ImportSourceKind kind) =>
       ImportSourceKind.titleList => l10n.importSourceLabelTitleList,
       ImportSourceKind.publishedCollection =>
         l10n.importSourceLabelPublishedCollection,
+      ImportSourceKind.csv => l10n.importSourceLabelCsv,
+      ImportSourceKind.textDocument => l10n.importSourceLabelTextDocument,
+    };
+
+/// The message for a spreadsheet that could not be read (#2329).
+String csvReadFailureMessage(AppLocalizations l10n, CsvReadException e) =>
+    switch (e.reason) {
+      CsvReadFailure.tooLarge => l10n.importCsvTooLarge,
+      CsvReadFailure.notUtf8 => l10n.importCsvNotUtf8,
+      CsvReadFailure.tooManyRows => l10n.importCsvTooManyRows(
+        e.limit ?? kMaxCsvImportRows,
+      ),
+      CsvReadFailure.tooManyColumns => l10n.importCsvTooManyColumns(
+        e.limit ?? kMaxCsvImportColumns,
+      ),
+      CsvReadFailure.cellTooLong => l10n.importCsvCellTooLong(
+        e.limit ?? kMaxCsvImportCellChars,
+      ),
+      CsvReadFailure.unterminatedQuote => l10n.importCsvUnterminatedQuote,
     };
 
 /// Localized display name for the provenance attached to an imported draft.
@@ -273,4 +293,25 @@ String titleListNotFoundReasonMessage(
   TitleListNotFoundReason.connectionFailed =>
     l10n.importTitleListReasonConnectionFailed,
   TitleListNotFoundReason.lineTooLong => l10n.importTitleListReasonLineTooLong,
+};
+
+/// The message for a text or Markdown file that could not be read (#2330).
+String textDocumentReadFailureMessage(
+  AppLocalizations l10n,
+  TextDocumentReadException e,
+) => switch (e.reason) {
+  TextDocumentReadFailure.tooLarge => l10n.importCsvTooLarge,
+  TextDocumentReadFailure.notUtf8 => l10n.importTextNotUtf8,
+  TextDocumentReadFailure.tooManyDances => l10n.importTextTooManyDances(
+    e.limit ?? kMaxTextDocumentDances,
+  ),
+  TextDocumentReadFailure.lineTooLong => l10n.importTextLineTooLong(
+    e.limit ?? kMaxTextDocumentLineChars,
+  ),
+  TextDocumentReadFailure.danceTooLong => l10n.importTextDanceTooLong(
+    e.limit ?? kMaxTextDocumentLineChars,
+  ),
+  TextDocumentReadFailure.tooManyLabels => l10n.importTextTooManyLabels(
+    e.limit ?? kMaxTextDocumentLabels,
+  ),
 };

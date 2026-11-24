@@ -15,7 +15,7 @@ UX rules". Docs-only: this note changes no app code and settles no D-11 question
 
 A desktop caller who wants one figure line, the calling notes or a program's
 notes in an email has one option: the whole-card **Copy dance** action
-(`app/lib/src/widgets/dance_export_actions.dart:170-176`). The dance detail,
+(`DanceExportActions.copyText` in `app/lib/src/widgets/dance_export_actions.dart`). The dance detail,
 the program summary and Perform draw their text with plain `Text`, which a
 pointer cannot select.
 
@@ -53,13 +53,14 @@ match the screen (`DanceExportActions._plainText`).
   notes, provenance, link rows and custom fields. This is the PLAT-17 case.
 - **Program summary: yes, for the header.** Title, detail rows and notes. The
   set list stays out of the selectable region by default. Each row is an
-  `InkWell` that opens the dance (`program_summary_screen.dart:1335-1337`), and
-  carries a mark-performed toggle (`:925-960`). A drag that starts on a row
+  `InkWell` that opens the dance (the `summary-slot-<id>` row in `program_summary_screen.dart`), and
+  carries a mark-performed toggle (`summary-slot-<id>-performed-toggle`). A drag that starts on a row
   title would compete with that tap for little gain, since the caller wants the
   titles as a block, which the program export menu already copies. Decided:
   N5-2 = (a), header text only.
 - **Perform: excluded.** The edge zones turn pages on tap
-  (`perform_program_screen.dart:1225-1243`), the screen is entered on a
+  (the `perform-edge-prev` and `perform-edge-next` zones in
+  `perform_program_screen.dart`), the screen is entered on a
   deliberate gesture and exits on a deliberate one (`ux.md:167-179`), and a
   stray drag mid-set must never change what is on stage. A caller who wants the
   text copies it from the detail or the summary. Decided: N5-5 = (a).
@@ -79,7 +80,7 @@ each gesture the audit named:
 | Row swipe actions | `Slidable` in `dance_list_screen.dart` and `programs_list_screen.dart` | **No.** They live on list rows, outside the detail and summary panes. |
 | Long-press to enter batch selection | the row `onLongPress` in `dance_list_screen.dart` | **No.** Same reason. |
 | Cross-reference links | `_CrossReferenceText` in `dance_detail_screen.dart` | **Probably not, but untested.** The link is an `InkWell` in a `WidgetSpan`, and the `Text` inside it is its own selectable. Selection across a `WidgetSpan` is the least-exercised path in the framework. The implementation PR must test that a drag across a link copies the link text once, and a click still opens the dance. |
-| Mark-performed toggle, row open | `program_summary_screen.dart:925-960`, `:1335` | Avoided by keeping the set list outside the region. |
+| Mark-performed toggle, row open | `_slotRow` and `_setPerformed` in `program_summary_screen.dart` | Avoided by keeping the set list outside the region. |
 | Perform edge zones | `perform_program_screen.dart` | Avoided by excluding Perform. |
 
 Two smaller points. A figure row's beats column and import-gap badge

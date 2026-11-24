@@ -121,6 +121,27 @@ void main() {
       },
     );
 
+    test(
+      'Balance long wave (N2R,N1L, women face in) decodes both hands (#2331)',
+      () async {
+        // Maintainer ruling: next neighbors by the right, neighbors by the
+        // left, women facing in. The second pair is `whom2`, held by the
+        // hand opposite `whomHand`.
+        final figures = await _figuresFor([
+          '(6) Neighbor allemande left 1 & 1/4',
+          '(4) Balance long wave (N2R,N1L, women face in)',
+        ]);
+        expect(figures, hasLength(2));
+        expect(figures[1].move, 'form_long_waves');
+        expect(figures[1].params['whom'], 'nextNeighbors');
+        expect(figures[1].params['whomHand'], 'right');
+        expect(figures[1].params['whom2'], 'neighbors');
+        expect(figures[1].params['who'], 'role2s');
+        expect(figures[1].params['balance'], isTrue);
+        expect(_totalBeats(figures), 10);
+      },
+    );
+
     test('the N-suffixed and shadow codes decode too', () async {
       final figures = await _figuresFor([
         '(6) Women allemande left 1/2',
@@ -601,7 +622,6 @@ void main() {
       // Ambiguous / undecodable annotations.
       '(4) Balance wave of four (PL,?R)',
       '(4) Balance wave of four (SRNL,1R)',
-      '(4) Balance long wave (N2R,N1L, women face in)',
       '(4) Balance long wave (SR, someone face in)',
       '(4) Balance long wave (1R)',
       '(4) Balance long wave for all in center',

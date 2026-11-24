@@ -38,6 +38,125 @@ void main() {
     'd3': 'Chinese New Year',
   }[id];
 
+  group('program times (#2350)', () {
+    Program timed({
+      DateTime? eventDate,
+      int? start,
+      int? end,
+      int? lesson,
+      int? arrival,
+    }) => Program(
+      id: 'p1',
+      title: 'Friday Contra',
+      eventDate: eventDate,
+      venue: 'Town Hall',
+      startMinute: start,
+      endMinute: end,
+      lessonMinute: lesson,
+      arrivalMinute: arrival,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    test('start and end sit beside the date, the lesson on its own line', () {
+      expect(
+        programToPlainText(
+          timed(
+            eventDate: DateTime.utc(2026, 7, 10),
+            start: 1170,
+            end: 1350,
+            lesson: 1140,
+          ),
+          titleFor: titles,
+        ),
+        'Friday Contra\n'
+        '2026-07-10 · 19:30–22:30 · Town Hall\n'
+        'Lesson: 19:00',
+      );
+    });
+
+    test('times without a date are shown without one', () {
+      expect(programHeaderLines(timed(start: 1170), venueNameFor: null), [
+        '19:30 · Town Hall',
+      ]);
+    });
+
+    test('an end alone, and an end past midnight', () {
+      expect(
+        programHeaderLines(timed(end: 1350)).first,
+        'until 22:30 · Town Hall',
+      );
+      expect(
+        programHeaderLines(timed(start: 1260, end: 60)).first,
+        '21:00–01:00 (next day) · Town Hall',
+      );
+      expect(
+        programHeaderLines(timed(start: 1170, end: 1170)).first,
+        '19:30–19:30 · Town Hall',
+      );
+    });
+
+    test('danceTimesText phrases times not yet on a program the same way', () {
+      String? text(int? start, int? end) => danceTimesText(
+        startMinute: start,
+        endMinute: end,
+        formatTime: isoTimeOfDay,
+      );
+      expect(text(1170, 1350), '19:30–22:30');
+      expect(text(1260, 60), '21:00–01:00 (next day)');
+      expect(text(1170, 1170), '19:30–19:30');
+      expect(text(1170, null), '19:30');
+      expect(text(null, 1350), 'until 22:30');
+      expect(text(null, null), isNull);
+    });
+
+    test('formatTime and the labels are used', () {
+      final lines = programHeaderLines(
+        timed(start: 1170, end: 1350, lesson: 1140),
+        formatTime: (m) => 'T$m',
+        labels: ProgramExportLabels(
+          lesson: 'Kurs',
+          timeRange: (a, b) => '$a bis $b',
+        ),
+      );
+      expect(lines, ['T1170 bis T1350 · Town Hall', 'Kurs: T1140']);
+    });
+
+    test('includeDateVenue: false hides the times and the lesson', () {
+      expect(
+        programHeaderLines(
+          timed(start: 1170, end: 1350, lesson: 1140),
+          includeDateVenue: false,
+        ),
+        isEmpty,
+      );
+    });
+
+    // Guard: Arrive by is the caller's own logistics, and the set list is
+    // made for other people (#2350; the maintainer ruled it out of the PDF,
+    // which is built from these same header lines).
+    test('Arrive by is never written, alone or with every other time', () {
+      const arrival = 1093; // 18:13, a time no other field holds
+      for (final program in [
+        timed(arrival: arrival),
+        timed(
+          eventDate: DateTime.utc(2026, 7, 10),
+          start: 1170,
+          end: 1350,
+          lesson: 1140,
+          arrival: arrival,
+        ),
+      ]) {
+        final text = programToPlainText(program, titleFor: titles);
+        expect(text, isNot(contains('18:13')));
+        expect(
+          programHeaderLines(program, formatTime: (m) => 'minute $m').join(),
+          isNot(contains('minute $arrival')),
+        );
+      }
+    });
+  });
+
   group('programToPlainText', () {
     group('sharing toggles', () {
       final full = program(
@@ -772,6 +891,39 @@ void main() {
       );
       expect(
         programToPlainText(mixed, titleFor: titles, formLabelFor: (_) => ' '),
+        programToPlainText(mixed, titleFor: titles),
+      );
+    });
+  });
+
+  group('the tune details on a slot line', () {
+    final mixed = program(
+      slots: [
+        ProgramSlot(id: 's1', position: 0, danceId: 'd1', danceMinutes: 5),
+        ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+        ProgramSlot(id: 's3', position: 2, text: 'Break'),
+      ],
+    );
+
+    test('follow the form in the details', () {
+      final text = programToPlainText(
+        mixed,
+        titleFor: titles,
+        formLabelFor: (id) => id == 'd1' ? 'English' : 'Contra',
+        tuneDetailsFor: (id) =>
+            id == 'd1' ? ' Meter: 6/8 · Key: G minor ' : null,
+      );
+      expect(
+        text,
+        contains("1. Rory O'More (English; Meter: 6/8 · Key: G minor; 5 min)"),
+      );
+      expect(text, contains('2. The Nice Combination (Contra)'));
+      expect(text, isNot(contains('Break (')));
+    });
+
+    test('a null or blank line adds nothing', () {
+      expect(
+        programToPlainText(mixed, titleFor: titles, tuneDetailsFor: (_) => ''),
         programToPlainText(mixed, titleFor: titles),
       );
     });

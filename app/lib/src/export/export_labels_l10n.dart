@@ -24,7 +24,20 @@ DanceExportLabels danceExportLabels(AppLocalizations l10n) => DanceExportLabels(
   sources: l10n.exportLabelSources,
   beats: l10n.exportBeatsLabel,
   bars: l10n.danceFigureBars,
+  namedPhrases: l10n.exportNamedPhrases,
+  namedPhraseSeparator: l10n.exportNamedPhraseSeparator,
+  labelSeparator: l10n.exportLabelSeparator,
   pageOf: l10n.exportPageOfPages,
+  // The dance detail screen's own credit and tune-detail lines, so a card
+  // reads as the screen does.
+  authorsWithYear: l10n.danceAuthorsWithYear,
+  composedYear: l10n.danceComposedYear,
+  interpretedBy: l10n.danceInterpretedBy,
+  interpretedByWithYear: l10n.danceInterpretedByWithYear,
+  interpretedYear: l10n.danceInterpretedYear,
+  meter: l10n.danceMeterValue,
+  musicalKey: l10n.danceMusicalKeyValue,
+  barnes: l10n.danceBarnesValue,
 );
 
 ProgramExportLabels programExportLabels(AppLocalizations l10n) =>
@@ -45,7 +58,12 @@ ProgramExportLabels programExportLabels(AppLocalizations l10n) =>
       figures: l10n.exportLabelFigures,
       alternate: l10n.exportIncludeFiguresAlternate,
       by: l10n.exportSlotAuthorSuffix,
+      labelSeparator: l10n.exportLabelSeparator,
       pageOf: l10n.exportPageOfPages,
+      lesson: l10n.exportLabelLesson,
+      timeRange: l10n.exportTimeRange,
+      endsAt: l10n.exportEndsAt,
+      nextDay: l10n.exportNextDay,
     );
 
 ProgramMatrixExportLabels programMatrixExportLabels(AppLocalizations l10n) =>
