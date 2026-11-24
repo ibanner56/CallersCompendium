@@ -164,9 +164,15 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   focused, or starts the first figure (the free-text composer with Free-text
   entry on). What follows Title on the page takes no typing (the setup
   panel's header, or a picker), so plain focus traversal would close a
-  phone's keyboard under a Next key. On an existing dance, or a new one
-  whose figures are all set, the action is Done. Tab still walks the page
-  in order.
+  phone's keyboard under a Next key. The figures need not be built yet (the
+  form is a lazy list, and the setup panel may be open above them): Next
+  scrolls toward them until they are, and an open figure is opened anew so
+  its Move box takes the focus. On an existing dance, or a new one whose
+  figures are all set, the action is Done, which moves focus on as plain
+  traversal does. Tab still walks the page in order. Known limit: a
+  keyboard already open keeps the key it opened with if the figures change
+  meanwhile (Flutter does not send a changed action to an open keyboard);
+  what the key does is still decided when it is pressed.
 - Unrecognized figure = just typing free text where no move matches; a beats field
   sets the figure's duration; lingo-line feedback (recognized terms underlined,
   discouraged struck) as you type.

@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "On a new dance, the keyboard's Next key in the Title field now takes you straight to the figures, ready to type the first move, instead of closing the keyboard. On a dance you're editing, the key reads Done."
+      "On a new dance, the keyboard's Next key in the Title field now takes you straight to the figures, ready to type the first move, instead of closing the keyboard. On a dance you're editing, or a new one whose figures are all set, the key reads Done."
     ]
   }
 }
