@@ -769,7 +769,28 @@ String? userFigureColumnKeyOf(
   Taxonomy taxonomy,
 ) {
   final alias = taxonomy.aliases[move];
-  if (alias == null) return (move: move, params: params);
+  if (alias == null) {
+    // The target of a listed alias's pair whose own default is not the pin
+    // (`pass_through`, whose `passType` is `through` unless it is a pass by,
+    // taxonomy v40) constrains that param to its default too: a column on
+    // pass through counts pass throughs, as it did while pass by was a move
+    // of its own. A forward and back's default is its alias's pin, so a
+    // column on it still leaves the formation open.
+    for (final listed in taxonomy.aliases.values) {
+      if (!listed.listedAsMove ||
+          listed.targetMove != move ||
+          listed.inversePairId != move ||
+          listed.pinnedParams.length != 1) {
+        continue;
+      }
+      final MapEntry(:key, value: pin) = listed.pinnedParams.entries.single;
+      final own = taxonomy.moves[move]?.params[key]?.defaultValue;
+      if (own != pin && !params.containsKey(key)) {
+        return (move: move, params: {key: own, ...params});
+      }
+    }
+    return (move: move, params: params);
+  }
   return (move: alias.targetMove, params: {...alias.pinnedParams, ...params});
 }
 

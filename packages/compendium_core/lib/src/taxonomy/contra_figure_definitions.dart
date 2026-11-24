@@ -209,12 +209,20 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
     description:
         'Used when some dancers rest while others move, or to fill out a phrase. Any length is possible; the figure records the number of beats.',
   ),
-  // TCB "Shift"; Jennings "SHIFT" (one station by default).
+  // TCB's bare "Shift left/right" (a named group's shift is `shift`); Jennings
+  // "SHIFT" (one station by default).
   'slide_along_set': FigureDefinition(
     definition:
         'Couples on the side of the set sidestep left or right until they face the next couple.',
     description:
         'It usually moves dancers one place and takes 2 beats. It is common at the start of Becket formation dances, usually just before a circle with the new couple. The figure names which way to slide.',
+  ),
+  // TCB "<role> shift left", "Twos shift up"; contra_taxonomy.dart `shift`.
+  'shift': FigureDefinition(
+    definition:
+        'One group of dancers sidesteps to a new place while the others stay where they are or dance something else.',
+    description:
+        'Often the role1s or the role2s shift left or right along the side of the set while the others turn, or the twos shift up the set. Unlike a slide along the set, where every couple moves, only the named dancers shift. The figure names who shifts and which way: left, right, up or down. It usually takes 4 beats.',
   ),
   // TCB "Mad robin".
   'mad_robin': FigureDefinition(
@@ -370,7 +378,7 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
     definition:
         'Dancers in a wave balance, then let go and slide sideways past one dancer into the next place.',
     description:
-        'Usually everyone balances right and left, then slides right with a clockwise spin, or left with a counterclockwise one, ending in a new wave facing the same way. With the balance it usually takes 8 beats; the slide alone takes 4. The figure names the direction and, when not everyone, who dances it.',
+        'Usually everyone balances right and left, then slides right with a clockwise spin, or left with a counterclockwise one, ending in a new wave facing the same way. With the balance it usually takes 8 beats; the slide alone takes 4. The figure names the direction and, when not everyone, who dances it. In a longer slide one role, or the ends, slide two places, across the set, while the others slide one.',
   ),
   // TCB "Circle left/right".
   'circle': FigureDefinition(

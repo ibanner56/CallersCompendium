@@ -871,7 +871,9 @@ class _FigureEditor extends StatelessWidget {
     final paramSpecs = {
       for (final MapEntry(:key, :value)
           in (move?.params ?? const <String, ParamSpec>{}).entries)
-        if (!pinned.containsKey(key)) key: value,
+        if (!pinned.containsKey(key) &&
+            !_neverStored(taxonomy, figure.move, key))
+          key: value,
     };
     final any = figure.isAnyFigure;
     // A stored param with no dropdown at all (a param the move does not
@@ -1394,6 +1396,22 @@ class _ParamNotice extends StatelessWidget {
     );
   }
 }
+
+/// Whether [param] is never stored on a figure of [moveId], so a leaf on it
+/// could never match: the pair param of a listed alias whose target's own
+/// default is not the pin. A pass through's `passType` (taxonomy v40) is
+/// `through` by its id and `by` only as a pass by, and neither is stored.
+bool _neverStored(Taxonomy taxonomy, String? moveId, String param) =>
+    taxonomy.aliases.values.any(
+      (alias) =>
+          alias.listedAsMove &&
+          alias.targetMove == moveId &&
+          alias.inversePairId == moveId &&
+          alias.pinnedParams.length == 1 &&
+          alias.pinnedParams.containsKey(param) &&
+          taxonomy.moves[moveId]?.params[param]?.defaultValue !=
+              alias.pinnedParams[param],
+    );
 
 /// Whether a figure of [moveId] whose [param] is [value] is stored under an
 /// alias listed as a move ([MoveAlias.listedAsMove]) instead: a forward and

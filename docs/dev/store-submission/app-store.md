@@ -163,9 +163,12 @@ Internal testing (≤100 teammates, instant) is already live. "Open beta" is
   review rejects a binary that links it without the string. Confirm no other
   prompt is triggered (no mic/location/contacts/photo library); if a plugin
   adds one, add the matching `Info.plist` purpose string or the build is
-  rejected. `app/test/photo_capture_test.dart` fails if either string is
-  removed. On a Mac running the iPad app, **Take a photo** finds no camera and
-  the plugin shows its own "Camera not available" alert; keep that in mind
+  rejected. Both strings are translated for every other language in
+  `CFBundleLocalizations`, in `app/ios/Runner/<language>.lproj/InfoPlist.strings`;
+  change the wording there too when it changes in `Info.plist`.
+  `app/test/photo_capture_test.dart` fails if either string is removed, or if
+  a language's translation is missing or still English. On a Mac running the
+  iPad app, **Take a photo** finds no camera and the plugin shows its own "Camera not available" alert; keep that in mind
   before offering the iPad app on Apple silicon Macs. A dance's QR code is
   read by the system **Camera** app, not by ours: it opens the app through the
   `ccdance` URL scheme in `Info.plist` (#2335), which needs no permission and no

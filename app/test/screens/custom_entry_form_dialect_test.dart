@@ -591,10 +591,12 @@ void main() {
 
   group('the shorthand shadow warning', () {
     // A shorthand is matched in a dance of any form, so a token warns when it
-    // reads as a figure under any form's own figures and dialect. Each token
-    // here reads as one under only one form's pair: an English figure's name,
-    // and a name only a square dialect gives one of contra's figures (square
-    // has no figures of its own, so it reads with contra's).
+    // reads as a figure under any form's own figures and dialect. An English
+    // figure's name reads as one under only English's pair. A name only a
+    // square dialect gives one of contra's figures reads as nothing in a
+    // square dance, which never reads typed text into contra's calls (Hudson,
+    // 24 November 2026: "we need to match the selected dance type"), so it
+    // does not warn until squares have a parser of their own.
     final english = englishDialect;
     final square = contraDialect.copyWith(moves: {'swing': 'whirlygig'});
 
@@ -653,7 +655,10 @@ void main() {
       expect(englishName, isNotNull, reason: 'an English-only figure name');
       expect(reads(englishName!, DanceForm.ecd, english), isTrue);
       expect(reads(englishName, DanceForm.contra, contraDialect), isFalse);
+      // Contra's grammar would take the square dialect's name, but a square
+      // dance does not read with it.
       expect(reads('whirlygig', DanceForm.contra, square), isTrue);
+      expect(reads('whirlygig', DanceForm.square, square), isFalse);
       expect(reads('whirlygig', DanceForm.contra, contraDialect), isFalse);
       expect(reads('whirlygig', DanceForm.ecd, english), isFalse);
     });
@@ -664,10 +669,10 @@ void main() {
       expect(find.byKey(const ValueKey('warning')), findsOneWidget);
     });
 
-    testWidgets('warns of a name only square\'s dialect gives one of contra\'s '
-        'figures', (tester) async {
+    testWidgets('says nothing of a name only square\'s dialect gives one of '
+        'contra\'s figures', (tester) async {
       await pumpWarning(tester, 'whirlygig');
-      expect(find.byKey(const ValueKey('warning')), findsOneWidget);
+      expect(find.byKey(const ValueKey('warning')), findsNothing);
     });
 
     testWidgets('says nothing of a token no form reads as a figure', (

@@ -68,6 +68,7 @@ class _Host extends StatefulWidget {
     this.showPhraseStructure = true,
     this.aggressiveBeatsUpdate = false,
     this.showWordingOverride = false,
+    this.requireStatedParams = false,
     this.dialect,
     this.barTiming,
   }) : taxonomy = taxonomy ?? contraTaxonomy;
@@ -96,6 +97,7 @@ class _Host extends StatefulWidget {
   /// behavior unchanged.
   final bool aggressiveBeatsUpdate;
   final bool showWordingOverride;
+  final bool requireStatedParams;
   final Dialect? dialect;
   final BarTiming? barTiming;
 
@@ -143,6 +145,7 @@ class _HostState extends State<_Host> {
               freeTextEntry: widget.freeTextEntry,
               dialect: widget.dialect,
               showWordingOverride: widget.showWordingOverride,
+              requireStatedParams: widget.requireStatedParams,
               allowAdding: widget.allowAdding,
               allowDuplicating: widget.allowDuplicating,
               allowModifierSelection: widget.allowModifierSelection,
@@ -277,6 +280,7 @@ Future<void> _pump(
   bool showPhraseStructure = true,
   bool aggressiveBeatsUpdate = false,
   bool showWordingOverride = false,
+  bool requireStatedParams = false,
   Dialect? dialect,
   BarTiming? barTiming,
   Taxonomy? taxonomy,
@@ -310,6 +314,7 @@ Future<void> _pump(
       showPhraseStructure: showPhraseStructure,
       aggressiveBeatsUpdate: aggressiveBeatsUpdate,
       showWordingOverride: showWordingOverride,
+      requireStatedParams: requireStatedParams,
       dialect: dialect,
       barTiming: barTiming,
     ),
@@ -413,6 +418,151 @@ void main() {
     final figure = drafts.single.toFigure()!;
     expect(figure.move, 'long_lines');
     expect(figure.params, isNot(contains('formation')));
+  });
+
+  group('pass by and pass through (taxonomy v40)', () {
+    testWidgets('picking either asks for who and where until they are chosen', (
+      tester,
+    ) async {
+      for (final (typed, id) in [
+        ('pass by', 'pass_by'),
+        ('pass through', 'pass_through'),
+      ]) {
+        final drafts = <FigureDraft>[FigureDraft()];
+        await _pump(tester, drafts, requireStatedParams: true);
+        await _selectMove(tester, 0, typed, id);
+
+        final draft = drafts.single;
+        expect(draft.move, id);
+        expect(draft.enteredNew, isTrue);
+        expect(draft.params['who'], ParamVocab.unspecified);
+        expect(draft.params['where'], ParamVocab.unspecified);
+        expect(
+          find.byKey(const ValueKey('figure-0-needs-values')),
+          findsOneWidget,
+          reason: id,
+        );
+
+        await _selectDropdownOption(tester, 'figure-0-who', 'neighbors');
+        expect(
+          find.byKey(const ValueKey('figure-0-needs-values')),
+          findsOneWidget,
+          reason: '$id: where is still empty',
+        );
+        await _selectDropdownOption(tester, 'figure-0-where', 'across');
+        expect(
+          find.byKey(const ValueKey('figure-0-needs-values')),
+          findsNothing,
+          reason: id,
+        );
+        // Neither id stores the pass type: its id says it.
+        expect(draft.toFigure()!.params, isNot(contains('passType')));
+      }
+    });
+
+    testWidgets('a pass by loaded with the dance shows its neighbors and asks '
+        'for nothing', (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(Figure(move: 'pass_by')),
+      ];
+      await _pump(tester, drafts, requireStatedParams: true);
+      await _openFigure(tester, 0);
+
+      expect(find.byKey(const ValueKey('figure-0-needs-values')), findsNothing);
+      // The omitted `who` of a stored pass by means neighbors, not its
+      // target's unstated default.
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('figure-0-who')),
+          matching: find.text('neighbors'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the pass type under More options switches the figure and '
+        'keeps its values', (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(move: 'pass_by', params: const {'shoulder': 'left'}),
+        ),
+      ];
+      await _pump(tester, drafts, requireStatedParams: true);
+      await _openFigure(tester, 0);
+      expect(find.byKey(const ValueKey('figure-0-passType')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+      await tester.pumpAndSettle();
+      await _selectDropdownOption(tester, 'figure-0-passType', 'through');
+
+      final draft = drafts.single;
+      expect(draft.move, 'pass_through');
+      final effective = contraTaxonomy.effectiveParams(draft.toFigure()!);
+      expect(effective['who'], 'neighbors');
+      expect(effective['where'], ParamVocab.unspecified);
+      expect(effective['shoulder'], 'left');
+      // Not a figure entered in this edit, so nothing is asked for.
+      expect(find.byKey(const ValueKey('figure-0-needs-values')), findsNothing);
+    });
+
+    testWidgets('a closed row says it still needs values', (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFreeTextFigure(
+          Figure(move: 'pass_through'),
+          contraTaxonomy,
+        )..enteredNew = true,
+      ];
+      await _pump(tester, drafts, requireStatedParams: true);
+      expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('figure-0-summary-needs-values')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a group side entered without values says so on its side '
+        'and on the closed row', (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(
+          meanwhileSides: [
+            FigureDraft(
+              move: 'pass_through',
+              params: contraTaxonomy.entryParams('pass_through'),
+            )..enteredNew = true,
+            FigureDraft(move: 'swing', params: {'beats': 8, 'who': 'partners'}),
+          ],
+        )..params['beats'] = 8,
+      ];
+      await _pump(tester, drafts, requireStatedParams: true);
+      expect(
+        find.byKey(const ValueKey('figure-0-summary-needs-values')),
+        findsOneWidget,
+      );
+      await _openFigure(tester, 0);
+      expect(
+        find.byKey(const ValueKey('figure-0-side-0-needs-values')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('figure-0-side-1-needs-values')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('an editor that does not require values says nothing', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(tester, drafts);
+      await _selectMove(tester, 0, 'pass by', 'pass_by');
+      expect(find.byKey(const ValueKey('figure-0-needs-values')), findsNothing);
+      // And it starts as a pass by always did, not with blanks to fill in.
+      expect(drafts.single.params['who'], 'neighbors');
+      expect(drafts.single.toFigure()!.params, isNot(contains('where')));
+      expect(
+        find.byKey(const ValueKey('figure-0-summary-needs-values')),
+        findsNothing,
+      );
+    });
   });
 
   testWidgets('a forward and back default applies when the pick routes', (
@@ -1484,6 +1634,29 @@ void main() {
 
       expect(drafts.single.params['direction'], 'left');
       expect(drafts.single.params.containsKey('not_a_param'), isFalse);
+    });
+
+    testWidgets('a saved value kept only while stated is not seeded', (
+      tester,
+    ) async {
+      // Saved by a build whose Settings still recorded them: an unstated
+      // Rory O'More `twoPlaces` (v40) and a figure 8 that is not double. An
+      // older peer rejects either key, so neither reaches the figure.
+      final drafts = <FigureDraft>[FigureDraft(), FigureDraft()];
+      await _pump(
+        tester,
+        drafts,
+        moveParamDefaults: {
+          'rory_o_more': {'twoPlaces': 'unspecified', 'slide': 'left'},
+          'figure_8': {'double': false},
+        },
+      );
+      await _selectMove(tester, 0, 'rory', 'rory_o_more');
+      await _selectMove(tester, 1, 'figure 8', 'figure_8');
+
+      expect(drafts[0].params['slide'], 'left');
+      expect(drafts[0].params.containsKey('twoPlaces'), isFalse);
+      expect(drafts[1].params.containsKey('double'), isFalse);
     });
 
     testWidgets('null moveParamDefaults leaves behavior unchanged', (

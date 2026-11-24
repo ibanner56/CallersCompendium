@@ -669,7 +669,7 @@ void main() {
       return (move: f.move, params: f.params);
     }
 
-    test('decodes the canonical fixture line (~ dropped)', () {
+    test('decodes the canonical fixture line (~ kept as a note)', () {
       final f = _parseLine('Hey 1/2 (WR;PL;MR;N2L~)');
       expect(f!.isCustom, isFalse);
       expect(f.move, 'hey');
@@ -677,6 +677,7 @@ void main() {
       expect(f.params['pass1'], 'role2s'); // code1 WR -> W = role2s
       expect(f.params['shoulder'], 'right'); // code1 R
       expect(f.params['pass2'], 'partners'); // code2 PL -> P
+      expect(f.note, 'last pass partial'); // the trailing `~`
       // No ricochet flags are set on a plain hey.
       for (final r in ['rico1', 'rico2', 'rico3', 'rico4']) {
         expect(f.params[r], isNull, reason: r);
@@ -794,7 +795,7 @@ void main() {
     });
 
     test(
-      'real TCB fixture: Ricochet hey 1/2 (WR;PL;M ricochet;PL~) — ~ dropped',
+      'real TCB fixture: Ricochet hey 1/2 (WR;PL;M ricochet;PL~) — ~ as a note',
       () {
         final f = _parseLine('Ricochet hey 1/2 (WR;PL;M ricochet;PL~)');
         expect(f!.isCustom, isFalse);
@@ -804,6 +805,7 @@ void main() {
         expect(f.params['shoulder'], 'right'); // code1 R
         expect(f.params['pass2'], 'partners'); // PL
         expect(f.params['rico2'], true); // M ricochet at pos3
+        expect(f.note, 'last pass partial'); // the trailing `~`
         for (final r in ['rico1', 'rico3', 'rico4']) {
           expect(f.params[r], isNull, reason: r);
         }
@@ -1364,7 +1366,7 @@ void main() {
       // (`Walk forward; form long wave in center`) is now absorbed into
       // `form_a_long_wave`, so its leading clause no longer fails. This line
       // is the same shape and still fails at the leading clause — #733
-      // declines it because `pass_through` has no `who` slot for "women" —
+      // declines it because nothing reads "women" onto the pass through —
       // while its trailing clause still structures.
       final fs = _parseLines(
         'Women walk forward; form wave of four with N2',

@@ -98,8 +98,12 @@ abstract final class ParamOpposites {
   /// so every other one, such as `couples` or `actives`, has none.
   ///
   /// None of these tokens is in [ParamVocab.dancerSets], which a figure made
-  /// for contra, square or an unknown form validates against, so no contra
-  /// value can reach them.
+  /// for contra, square or an unknown form validates against. The one
+  /// exception is `ends`, which a Rory O'More's `twoPlaces` (contra taxonomy
+  /// v40) lists in its own choices; its opposite `middles` is not among them,
+  /// so a compound's opposite slot on that param accepts no `ends` argument
+  /// (`compound_definition.dart` keeps only values whose opposite the slot
+  /// takes).
   static const Map<String, String> _englishPairs = {
     'top': 'bottom',
     'bottom': 'top',

@@ -1391,6 +1391,16 @@ author's calls while implementing them):
    `HSHS` only (from "Keeper, H S H S" and the like); any other wording
    leaves the order unstated rather than guessing.
 
+### 12.3 Text read before the square parser
+
+The maintainer ruled on 24 November 2026: "we should not parse out figures
+from the wrong taxonomy - we need to match the selected dance type". Until
+the square parser lands (phase 3), free-text entry and the re-read of
+import-gap lines keep a square's line as a custom line rather than reading
+it into contra's calls (`figureFitsForm`). A stand still stays a square's
+placeholder. The importers' reading of squares is left to the square
+parser.
+
 ### 12.4 Forward only and the promenade's direction
 
 The maintainer answered two questions from the held-squares archive work on

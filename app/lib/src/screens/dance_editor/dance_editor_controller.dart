@@ -1354,27 +1354,20 @@ class DanceEditorController extends ChangeNotifier {
   /// structural one, which every form shares, or a stand still in a square
   /// dance.
   ValidationIssue? _otherFormFiguresWarning() {
-    final ownForm = shippedTaxonomies.ownTaxonomy(_form) == null
-        ? shippedTaxonomies.base.form
-        : _form;
     final counts = <DanceForm, int>{};
     void visit(Figure figure) {
       if (figure.isContainer) {
         figure.subFigures.forEach(visit);
         return;
       }
-      final move = figure.move;
-      if (move == customMove ||
-          shippedTaxonomies.anyForm.resolve(move) == null) {
-        return;
-      }
       // A new dance's template rows and a new meanwhile's sides are contra's
-      // stand still in every form. Until squares get a placeholder of their
-      // own (ADR-007 §9, phase 1), a square dance does not count them, so a
-      // new square dance opens without this warning.
-      if (_form == DanceForm.square && move == 'stand_still') return;
+      // stand still in every form, which a square takes as its placeholder:
+      // [moveFitsForm] lets it be, so a new square dance opens without this
+      // warning.
+      final move = figure.move;
+      if (moveFitsForm(move, _form)) return;
       final form = shippedTaxonomies.formOfMoveId(move);
-      if (form != ownForm) counts[form] = (counts[form] ?? 0) + 1;
+      counts[form] = (counts[form] ?? 0) + 1;
     }
 
     _figures.forEach(visit);
@@ -1391,7 +1384,7 @@ class DanceEditorController extends ChangeNotifier {
         'count': count,
         'figureForm': form.name,
         'danceForm': _form.name,
-        'pickerForm': ownForm.name,
+        'pickerForm': ownFigureForm(_form).name,
       },
     );
   }
@@ -2457,8 +2450,10 @@ class DanceEditorController extends ChangeNotifier {
           figure,
           taxonomy,
           moveParamDefaults: moveParamDefaults,
+          requireStatedParams: true,
         ),
     ];
+    _markEnteredNew(inserted);
     figureDrafts.addAll(inserted);
     _renderDraftTextRecursively(inserted);
     recomputeWarnings();
@@ -2484,8 +2479,10 @@ class DanceEditorController extends ChangeNotifier {
           figure,
           taxonomy,
           moveParamDefaults: moveParamDefaults,
+          requireStatedParams: true,
         ),
     ];
+    _markEnteredNew(inserted);
     figureDrafts.replaceRange(index, index + 1, inserted);
     _renderDraftTextRecursively(inserted);
     FigureDraft.carryRowExtras(draft, inserted);
@@ -2537,10 +2534,50 @@ class DanceEditorController extends ChangeNotifier {
           figure,
           taxonomy,
           moveParamDefaults: moveParamDefaults,
+          requireStatedParams: true,
         ),
     ];
+    _markEnteredNew(drafts);
     _renderDraftTextRecursively(drafts);
     return drafts;
+  }
+
+  /// Marks [drafts], and every figure inside a group among them, as entered
+  /// in this edit ([FigureDraft.enteredNew]): a typed line is new entry, so
+  /// its figures must state their required params before the dance saves.
+  static void _markEnteredNew(Iterable<FigureDraft> drafts) {
+    for (final draft in drafts) {
+      draft.enteredNew = true;
+      _markEnteredNew(draft.meanwhileSides ?? const []);
+      _markEnteredNew(draft.modifierFigures ?? const []);
+      _markEnteredNew(draft.sequenceFigures ?? const []);
+    }
+  }
+
+  /// The figures entered in this edit ([FigureDraft.enteredNew]) that still
+  /// leave a required param unstated ([Taxonomy.unstatedRequiredParams]),
+  /// each with those params, in list order and groups' figures in theirs.
+  /// The dance does not save while any remains (taxonomy v40).
+  List<({FigureDraft draft, List<String> params})>
+  get figuresMissingRequiredParams {
+    final found = <({FigureDraft draft, List<String> params})>[];
+    void visit(Iterable<FigureDraft> drafts) {
+      for (final draft in drafts) {
+        final move = draft.move;
+        if (draft.enteredNew && move != null && draft.compound == null) {
+          final missing = taxonomy.unstatedRequiredParams(
+            Figure(move: move, params: draft.params),
+          );
+          if (missing.isNotEmpty) found.add((draft: draft, params: missing));
+        }
+        visit(draft.meanwhileSides ?? const []);
+        visit(draft.modifierFigures ?? const []);
+        visit(draft.sequenceFigures ?? const []);
+      }
+    }
+
+    visit(figureDrafts);
+    return found;
   }
 
   /// Appends a row for the compound [shorthand] stands for, with its values

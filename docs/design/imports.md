@@ -1072,7 +1072,10 @@ lowers the line onto one `pull_by_dancers` per stated pass, carrying that pass's
   read); `P6`+/`P-n` (mixer partners beyond the
   modelled depth); `N5`+/`N-1`/`N-2`, `S3`+/`S-n`; `Ph*` (phantoms),
   `TB*` (trail buddy), `SR*`; and a bare `R`/`L` cell, which states a hand but
-  no dancer.
+  no dancer. One exception: the hey decoders alone (`_hey`, and `_eighthHey`
+  for its single cell) read `SRN`/`SRN1` as `sameRoles`, through their own
+  `_heyPassPeople` lookup rather than this map.
+  Every other `SR*` code, and every other decoder, still declines.
 - **Whole-line strictness.** The text outside the pass list must be exactly
   `grand right and left` (modulo filler), so `Progressive grand right and left`
   (its own glossary figure), `Same-role grand right and left`, `… to place`, a
@@ -1781,9 +1784,10 @@ shared reading", "becomes an unrecognized figure") over the bare verb.
 
 Which is which, derived from the code rather than from memory:
 
-- `tcbFigureFrontEnd` registers **twenty-five** pre-recognizers:
-  `_amountAlternativeAnnotation`, `_hey`,
-  `_circulate`, `_waveBalanceCirculate`, `_circulateCrossBracket`,
+- `tcbFigureFrontEnd` registers **thirty** pre-recognizers:
+  `_amountAlternativeAnnotation`, `_eighthHey`, `_hey`, `_tcbNumberedRolePair`,
+  `_passTheOceanToWave`, `_asCouplesDoSiDo`, `_jerseyTwirl`, `_circulate`,
+  `_waveBalanceCirculate`, `_circulateCrossBracket`,
   `_handBalanceSquareThrough`, `_squareThroughPassList`,
   `_balanceHandAnnotation`, `_balancePairHandAnnotation`, `_gateAnnotation`,
   `_courtesyTurnAnnotation`, `_tcbCast`, `_walkForwardAnnotation`,
@@ -1807,7 +1811,17 @@ Which is which, derived from the code rather than from memory:
   the major set it cannot read whole (an unresolved destination, a places
   amount, or a counter-rotation annotation). The front end also has a veto
   (`_tcbDeclineToCustom`): a single-file circle amount that is not a
-  fraction, and a per-role amount (`(M 1 & 1/2, W 2)`).
+  fraction, and a per-role amount (`(M 1 & 1/2, W 2)`). `_tcbNumberedRolePair`
+  (`N2 Men allemande …`, read as `Men allemande … [with N2]`) is the
+  falls-through kind too: it re-reads its rewritten line through the other
+  entries as `_tcbCast` does, and passes on a `custom` result one of them
+  returned, but it never makes one itself. `_asCouplesDoSiDo` (`As couples,
+  neighbor do si do`, read as the do si do with the note `as couples`) and
+  `_jerseyTwirl` (`Partner Jersey twirl`, read as `Partner California twirl`
+  with the note `Jersey twirl`) re-read the same way, and fall through unless
+  the re-read gives that move. `_eighthHey` reads `Hey 1/8 (WR)` as one pass by
+  (`pass_by`, note `1/8 hey`) and falls through on anything but a single cell
+  it decodes.
 - `contraDbHtmlFigureFrontEnd` registers its **entire grammar** as
   pre-recognizers, **and** supplies a veto. Both halves matter, and they pull in
   opposite directions, which is why this front end is the one most likely to be
@@ -1890,6 +1904,16 @@ has to be judged in its own context.
   Companion text adapter reads its sections with. English and square dances
   keep the label: the ECD bar reader drops one only in front of a bar range
   (`A1 1-8 lead up`), and other labelled lines stay custom.
+- **Only the dance's own form's calls.** Free-text entry and the re-read of
+  import-gap lines (`reparseImportGapFigures`) keep a figure only when it
+  and every figure inside it belong to the dance's form (`figureFitsForm`,
+  `taxonomy/form_figures.dart`): its own taxonomy's moves, a custom line,
+  or, in a square, the stand still placeholder. Hudson ruled on 24 November
+  2026: "we should not parse out figures from the wrong taxonomy - we need
+  to match the selected dance type". Squares have no grammar yet (ADR-007
+  phase 3), so a square's line that contra's grammar reads is kept whole as
+  a custom line, never turned into contra calls. The importers still read a
+  square's lines with contra's grammar (ADR-007 §8.4).
 - **Conservative, whole-line, single-move matching.** A line structures only
   when exactly one covered move plus its recognized modifiers (dancer set,
   direction, hand/shoulder, rotation/fraction, places) account for the *entire*
@@ -1936,7 +1960,9 @@ has to be judged in its own context.
   (→ `ender: turnCouple`), hall + turn alone
   (→ `ender: turnAlone` when dancer subjects agree), shoulder round + swing
   (→ meltdown swing with adjacent source beats), balance wave + slide
-  (→ balanced Rory O'More), and directed promenade around the major set
+  (→ balanced Rory O'More; a slide whose role or ends `slide two places`,
+  TCB #1797's `Slide left, women slide two places (…)`, fills `twoPlaces`
+  and keeps the bracket as its note, taxonomy v40), and directed promenade around the major set
   (→ structured turn plus a preserved note; a `to <dancer>` tail or
   `(to <dancer>)` annotation also fills `destination`, and its words stay in
   the note because the v30 render gate hides the clause at the `across`
@@ -2172,7 +2198,8 @@ has to be judged in its own context.
   `towards partner`, `(out of the set)`); non-dancer or qualified destinations
   (`to center`, `to next star`, `to second person`, `to shadow S1`); a stated
   subject on either pass-through reading (`Women walk forward to N2` —
-  `pass_through` has no `who` slot, so structuring it would drop the role); and
+  nothing reads the subject onto the pass through's `who`, which it has had
+  since taxonomy v40, so structuring it would drop the role); and
   **every diagonal** (`walk forward on left/right diagonal [(optional spin)]`),
   because `form_a_long_wave` has no `dir` at all and on the short-wave side the
   source states the direction of TRAVEL rather than the wave's orientation —
@@ -2204,11 +2231,16 @@ has to be judged in its own context.
   is byte-identical at both identity layers, so the 2,388 same-value cases raise
   no #686 "Variation?" prompt; the 116 inverse cases do, correctly.
   *Dancer identity* fills `who`/`who2` where declared — odd 1-based positions
-  name `who`, even name `who2`. `pass_through` declares no `who`, so its dancer
-  code is dropped; preserving it as a note would add one to ~2,048 figures
-  across 1,773 dances. Dropping it is the IMPLEMENTING AGENT'S call, not an
-  owner ruling: a note on that many figures is a visible change at corpus
-  scale, so it is recorded here as an open question rather than a settled one.
+  name `who`, even name `who2`. `pass_through` declared no `who` until
+  taxonomy v40, so its dancer code was dropped then (preserving it as a note
+  was left open). Since v40, when pass by and pass through became one figure,
+  the maintainer's direction is that The Caller's Box's dancer code on a pass
+  through is imported as its `who`: `Pass through along (NR)` is neighbors
+  passing right shoulders. That is ~2,048 figures across 1,773 dances, as
+  measured when the code was first dropped. A dance imported before keeps its
+  unstated `who`; re-importing it offers each such pass through as a
+  variation, because the new import states a dancer the stored figure does
+  not.
   *Declines (→ the ordinary annotation-stripped reading):* any unmapped people
   code (`O`, `Ph`, `SRN`, `C4`+, out-of-range neighbours/shadows); a run
   whose sides do not alternate by position parity; a run stating more passes
@@ -2772,7 +2804,10 @@ custom bucket. There is **no `balance_the_wave` move and none was added**: the
 taxonomy expresses "a wave exists and is balanced" as the wave-FORMATION move
 carrying its `balance` flag, so such a line maps onto that move. It is a
 **1 line → 1 figure** mapping — the line keeps its own beats and no extra 0-beat
-form figure is ever emitted.
+form figure is ever emitted. One line is the exception: a role's `balance long
+wave in center` that nothing claimed becomes a plain `balance` (see **Role
+balances in a centre wave** below), because `form_a_long_wave` would assert the
+role stepping in.
 
 **Where it happens, and why nothing is stolen.** The line still parses to
 `custom`; the mapping is a FINAL pass of the CallersBox cross-line merge
@@ -2814,6 +2849,14 @@ form figure is ever emitted.
    `Balance interlocking long waves in center`. (That one was a regression this
    same change set introduced — recognizing `form long waves` is what made the
    pair foldable.)
+
+   A forming line that already states its centre or centre hand (`Pass the
+   ocean (to wave of four (NR,WL))`, readable since 2026-11-24) refuses a
+   balance that states a different one: the two lines describe different
+   waves, and folding would keep one and drop the other. `sides` is
+   deliberately not compared: after a forming line that says `with N2`, the
+   balance writes those same dancers as `N`, and the forming line's
+   `nextNeighbors` has always won there.
 3. **Promotion** — whatever is left becomes the form figure on its own. This is
    the implicit case (an allemande or shoulder round leaves the dancers in the
    wave the very next line balances): the forming is a fact the source implies,
@@ -2867,6 +2910,27 @@ already is. The singular
 never guessed at either — a line meaning that reaches it through Fold 4 from the
 preceding `form long wave in center` line, or from a bare `form long wave`
 whose balance says `in center` (#2331).
+
+**Role balances in a centre wave.** A `<role> balance long wave in center` line
+that no fold or promotion claimed becomes `balance` with that role and the note
+`long wave in center`: the role balances where it stands, and a balance moves
+nobody, so no forming is asserted. The free-text dialect already reads the line
+this way. The pass runs over the whole dance, after the per-phrase merge, so
+the figure before a phrase's first line is the previous phrase's last. The line
+stays custom straight after a `form_a_long_wave` (Fold 4 refused it there: the
+role differs from the wave's, or the wave was already balanced) and after a
+wave-forming line the importer could not structure, or after the side-of-set
+long waves (`form_long_waves` from a bare `form long wave`), which a balance in
+a centre wave contradicts. Nothing checks that a wave is standing: a balance
+moves nobody, so the reading asserts no formation *(2026-11-24, Hudson: "try it and see"; the reading is
+the agent's call)*.
+
+**Two-line give and take.** `<role> go forward` followed by `<role> bring back
+partner` (or `neighbor`), the same role on both lines, folds into one
+`give_and_take` with that role as `who`, the brought-back dancers as `whom`,
+and both lines' beats *(2026-11-24, Hudson: "some of these are probably just
+give+take"; folding every such pair is the agent's call)*. Any other pairing
+stays as it was.
 
 **Supporting recognizer change.** `form (a) wave of four [with <dancer>]` — TCB's
 dominant forming wording (~1,000 clauses) — now structures as `form_short_waves`

@@ -18,6 +18,7 @@ class FigureDraft {
     this.schemaVersion = figureSchemaVersion,
     this.beatsTouched = false,
     this.assumedSubject = false,
+    this.enteredNew = false,
     this.customOrigin = CustomOrigin.userEntered,
     this.walkthroughOverride,
     this.wordingOverride,
@@ -114,9 +115,16 @@ class FigureDraft {
     Figure figure,
     Taxonomy taxonomy, {
     Map<String, Map<String, Object?>>? moveParamDefaults,
+    bool requireStatedParams = false,
   }) {
     final draft = FigureDraft.fromFigure(figure);
-    _fillDerivedParams(draft, figure, taxonomy, moveParamDefaults);
+    _fillDerivedParams(
+      draft,
+      figure,
+      taxonomy,
+      moveParamDefaults,
+      requireStatedParams,
+    );
     return draft;
   }
 
@@ -166,6 +174,7 @@ class FigureDraft {
     Figure figure,
     Taxonomy taxonomy,
     Map<String, Map<String, Object?>>? moveParamDefaults,
+    bool requireStatedParams,
   ) {
     if (figure.isContainer) {
       final children = draft.containerChildren;
@@ -178,6 +187,7 @@ class FigureDraft {
           sources[i],
           taxonomy,
           moveParamDefaults,
+          requireStatedParams,
         );
       }
       if (span != null) {
@@ -202,6 +212,8 @@ class FigureDraft {
     }
     if (figure.params.containsKey('beats')) {
       draft.params.addAll(defaults);
+      // A saved default may hold a value kept only while stated.
+      taxonomy.dropUnstatedParams(figure.move, draft.params);
     } else {
       draft.params
         ..clear()
@@ -213,6 +225,20 @@ class FigureDraft {
       // As picking the move does: no `amount` or `double` the line left unstated.
       taxonomy.dropUnstatedParams(figure.move, draft.params);
       draft.beatsTouched = defaults.containsKey('beats');
+    }
+    // As picking the move does in the dance editor (taxonomy v40): with
+    // [requireStatedParams], a param a new figure must state starts unstated
+    // unless the line or a saved default states it, so a typed "pass by" asks
+    // who passes rather than assuming neighbors. Elsewhere (Settings'
+    // figure lists) the line keeps what leaving the param out means.
+    final def = requireStatedParams ? taxonomy.resolve(figure.move) : null;
+    for (final MapEntry(:key, :value)
+        in def?.params.entries ?? const <MapEntry<String, ParamSpec>>[]) {
+      if (value.requiredOnEntry &&
+          !figure.params.containsKey(key) &&
+          !defaults.containsKey(key)) {
+        draft.params[key] = ParamVocab.unspecified;
+      }
     }
     // A default `who` is the user's stated choice, as picking the move makes
     // it (#460), not one the parser assumed.
@@ -312,6 +338,14 @@ class FigureDraft {
   /// as soon as the user picks a move or edits the `who` param, since either is
   /// an explicit, authoritative choice of subject.
   bool assumedSubject;
+
+  /// Whether this edit entered the figure's move: it was picked, or typed in
+  /// the free-text composer, rather than loaded with the dance. Such a figure
+  /// must state every [ParamSpec.requiredOnEntry] param before the dance saves
+  /// (taxonomy v40: a pass by's or pass through's `who` and `where`); one
+  /// loaded unstated saves as it is. Never stored on the figure; kept across
+  /// undo/redo, autosave and duplication.
+  bool enteredNew;
 
   /// How this figure originated when it is a [customMove] custom (see
   /// [CustomOrigin]). Carried through the editor so a custom figure produced by
@@ -625,6 +659,7 @@ class FigureDraft {
     schemaVersion: schemaVersion,
     beatsTouched: beatsTouched,
     assumedSubject: assumedSubject,
+    enteredNew: enteredNew,
     customOrigin: customOrigin,
     walkthroughOverride: walkthroughOverride,
     wordingOverride: wordingOverride,

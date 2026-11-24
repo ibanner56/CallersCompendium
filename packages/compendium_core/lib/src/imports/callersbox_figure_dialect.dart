@@ -41,11 +41,17 @@ import 'while_container.dart';
 ///
 /// **Pre-recognizer ordering.** `_amountAlternativeAnnotation` is first: it
 /// writes a `(1 or 2)` line's first amount into the line and reads the result
-/// through every other entry. The next nineteen entries (through
-/// `_singleFileCircleRecognizer`) all anchor on a move keyword, and all
-/// require a successful resolution to their own move, so in most cases
-/// order is not correctness-critical.  Four overlapping anchor groups each
-/// resolve safely:
+/// through every other entry. The next twenty-four entries (through
+/// `_singleFileCircleRecognizer`) all anchor on a move keyword (or, for
+/// `_tcbNumberedRolePair` and `_asCouplesDoSiDo`, a fixed prefix in front of
+/// one), and all but one require a successful resolution to their own move,
+/// so in most cases order is not correctness-critical. The exception is
+/// `_tcbNumberedRolePair`, which returns whatever its re-read of the rest of
+/// the line finds; it claims only lines that open `N0`–`N4 role1s|role2s`,
+/// which no other entry anchors on. `_eighthHey` and `_hey` share the `hey`
+/// anchor: `_eighthHey` is listed first and claims only a `1/8` hey, which
+/// `_hey` declines. Four further overlapping anchor groups each resolve
+/// safely:
 ///
 /// 1. `_balanceHandAnnotation` and `_balancePairHandAnnotation` share the
 ///    `\bbalance\b` anchor but match mutually exclusive annotation shapes:
@@ -85,7 +91,17 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     // #2331 follow-up: `(1 or 2)` writes the first amount into the line and
     // reads the result through every other entry here, so it is listed first.
     _amountAlternativeAnnotation,
+    // `Hey 1/8 (WR)` is one pass by, so it must claim the line before [_hey].
+    _eighthHey,
     _hey,
+    // `N2 Men allemande left 3/4` is `Men allemande left 3/4 [with N2]`. It
+    // reads the rest of the line through every other entry here.
+    _tcbNumberedRolePair,
+    _passTheOceanToWave,
+    // `As couples, neighbor do si do` and `Partner Jersey twirl` read the rest
+    // of the line through every other entry here, like `_tcbNumberedRolePair`.
+    _asCouplesDoSiDo,
+    _jerseyTwirl,
     _circulate,
     _waveBalanceCirculate,
     _circulateCrossBracket,
@@ -986,8 +1002,10 @@ const String _walkForwardPassThroughMove = 'form_short_waves';
 ///   (`turn alone`, `face across`, `form interlocking long waves`, `form wave
 ///   of two`, `form ring of four`, …);
 /// - the walk clause names a subject AND the reading is the pass-through one:
-///   `pass_through` has no `who` slot, so `Women walk forward; form wave of
-///   four with N2` would silently drop the role.
+///   `Women walk forward; form wave of four with N2` would silently drop the
+///   role. (`pass_through` has had a `who` since taxonomy v40, when it became
+///   one figure with pass by, but nothing yet reads a walk-forward subject
+///   onto it.)
 ///
 /// **Beats.** The pair consumes two clauses but the source states ONE combined
 /// total, which by the file's Option A convention rides on the FIRST clause —
@@ -1239,6 +1257,201 @@ FigureMatch? _tcbCast(String scrubbed) {
     assumedSubject: inner.assumedSubject,
   );
 }
+
+// --- `N2 Men allemande …`: a neighbour number before a same-role pair -------
+
+/// The Caller's Box's `N2 Men allemande left 3/4`: the two men (the larks)
+/// allemande, and `N2` says which two, the ones from neighbouring hands fours.
+/// It is the same line as `Men allemande left 3/4 [with N2]`, which this front
+/// end already reads (`who: role1s`, note `with nextNeighbors`), so it is read
+/// as that line. **`who` stays the role pair**: the allemande is still between
+/// the two larks, never between next neighbours *(user-ruled 2026-11-24)*.
+///
+/// Only a role pair (`role1s`, `role2s`) follows the number, and the number is
+/// one the notation resolves (`N0`–`N4`). `N2 same-role neighbor …` is not
+/// read here: it stays custom, as `callersbox_subject_vocabulary_test` already
+/// records (no ordinal same-role token). A line that already carries a square
+/// bracket is left alone, so two brackets never meet, and a remainder no entry
+/// or shared recognizer reads stays custom.
+///
+/// A remainder with its own `(…)` annotation also stays custom (`N3 Men
+/// balance (RH)`): the readers of those annotations do not all keep a square
+/// bracket beside them, so the number could be dropped, and some drop the
+/// annotation itself. An amount choice is the exception: `N2 Women allemande
+/// right (1 or 2)` reaches this entry with the choice already written into the
+/// line by `_amountAlternativeAnnotation`, which adds the choice to the note
+/// this entry returns. And the result must
+/// still carry the number as its note, or the line stays custom rather than
+/// losing it. *(Which numbers, and declining annotated remainders: agent's
+/// call.)*
+FigureMatch? _tcbNumberedRolePair(String scrubbed) {
+  final m = _numberedRolePairRe.firstMatch(scrubbed);
+  if (m == null || scrubbed.contains('[') || scrubbed.contains('(')) {
+    return null;
+  }
+  final number = m[1]!.toUpperCase();
+  final numbered = resolveDancerSetPhrase(number);
+  if (numbered == null) return null;
+  final text = '${m[2]} ${m[3]!.trim()} [with $number]';
+  final inner = _tcbReadWithout(text, _tcbNumberedRolePair);
+  if (inner == null || inner.forceCustom) return inner;
+  // The number must survive as the note, canonical (`with nextNeighbors`) or
+  // as written (`with N2`, which some readers keep verbatim).
+  final note = inner.note?.toLowerCase() ?? '';
+  if (!note.contains('with $numbered'.toLowerCase()) &&
+      !note.contains('with ${number.toLowerCase()}')) {
+    return null;
+  }
+  return inner;
+}
+
+/// `N2 role1s …`: the number (group 1), the pair (group 2) and the rest of
+/// the line (group 3).
+final RegExp _numberedRolePairRe = RegExp(
+  r'^\s*(n[0-4])\s+(role1s|role2s)\s+(\S.{0,200})$',
+  caseSensitive: false,
+);
+
+// --- `Hey 1/8 (WR)`, `As couples, … do si do`, `… Jersey twirl` -------------
+
+/// [match] with [note] placed before any note it already carries.
+FigureMatch _withLeadingNote(FigureMatch match, String note) => FigureMatch(
+  match.moveId,
+  params: match.params,
+  note: combineFigureNotes(note, match.note),
+  assumedSubject: match.assumedSubject,
+);
+
+/// The Caller's Box's `Hey 1/8 (WR)`: an eighth of a hey is one pass by, so
+/// `(WR)` is the robins passing by the right shoulder *(user-ruled
+/// 2026-11-24)*. It is read as `pass_by` with that pair and shoulder, and the
+/// note `1/8 hey` keeps the caller's word.
+///
+/// Only a single cell the hey decoder can read is accepted. A `~` (the
+/// progression mark), a second cell or an annotation leaves the line custom.
+/// *(Which cells are accepted: agent's call.)*
+FigureMatch? _eighthHey(String scrubbed) {
+  final m = _eighthHeyRe.firstMatch(scrubbed.trim());
+  if (m == null) return null;
+  final who = _heyPassPeople(m[1]!.toLowerCase());
+  if (who == null) return null;
+  return FigureMatch(
+    'pass_by',
+    params: {
+      'who': who,
+      'shoulder': m[2]!.toLowerCase() == 'r' ? 'right' : 'left',
+    },
+    note: '1/8 hey',
+  );
+}
+
+final RegExp _eighthHeyRe = RegExp(
+  r'^hey\s+1/8\s*\(\s*([a-z0-9]{1,4}?)([rl])\s*\)$',
+  caseSensitive: false,
+);
+
+/// The Caller's Box's `As couples, neighbor do si do`: each couple does a
+/// do si do around the other couple. Every dancer ends where the same do si do
+/// danced alone would leave them, so it is read as that do si do with the
+/// note `as couples` *(user-ruled 2026-11-24)*. The rest of the line must read
+/// as a `do_si_do`, or the line stays custom.
+FigureMatch? _asCouplesDoSiDo(String scrubbed) {
+  final m = _asCouplesRe.firstMatch(scrubbed.trim());
+  if (m == null) return null;
+  final inner = _tcbReadWithout(m[1]!, _asCouplesDoSiDo);
+  if (inner == null || inner.forceCustom || inner.moveId != 'do_si_do') {
+    return null;
+  }
+  return _withLeadingNote(inner, 'as couples');
+}
+
+final RegExp _asCouplesRe = RegExp(
+  r'^as\s+couples,\s+(\S.{0,200})$',
+  caseSensitive: false,
+);
+
+/// The Caller's Box's `Partner Jersey twirl`: a California twirl for dancers
+/// particular about who starts on which side *(user-ruled 2026-11-24)*. The
+/// pair ends where a California twirl leaves them, so the line is read as the
+/// same line with `California twirl`, plus the note `Jersey twirl`. The
+/// rewritten line must read as a `california_twirl`, or it stays custom.
+FigureMatch? _jerseyTwirl(String scrubbed) {
+  final m = _jerseyTwirlRe.firstMatch(scrubbed.trim());
+  if (m == null) return null;
+  final inner = _tcbReadWithout(
+    '${m[1]} california twirl${m[2] ?? ""}',
+    _jerseyTwirl,
+  );
+  if (inner == null ||
+      inner.forceCustom ||
+      inner.moveId != 'california_twirl') {
+    return null;
+  }
+  return _withLeadingNote(inner, 'Jersey twirl');
+}
+
+final RegExp _jerseyTwirlRe = RegExp(
+  r'^(\S.{0,120}?)\s+jersey\s+twirl(\s*\[[^\[\]]{1,120}\])?$',
+  caseSensitive: false,
+);
+
+// --- `Pass the ocean (to wave of four (NR,WL))` -------------------------------
+
+/// The Caller's Box's `Pass the ocean (to wave of four (NR,WL))`: a pass the
+/// ocean whose wave is stated in a nested bracket. Read as the wave the inner
+/// codes name, as `Balance wave of four (NR,WL)` is read: the relationship
+/// code is the `sides`, the role or couple code the `center`, and its hand the
+/// `centerHand`. The two hands must differ (the shape of a wave of four).
+/// Anything else in or around the brackets leaves the line custom.
+FigureMatch? _passTheOceanToWave(String scrubbed) {
+  final m = _passTheOceanToWaveRe.firstMatch(scrubbed.trim());
+  if (m == null) return null;
+  final parts = m[1]!.split(',').map((p) => p.trim().toLowerCase()).toList();
+  if (parts.length != 2) return null;
+  ({String who, String hand})? code(String cell, bool role) {
+    if (cell.length < 2) return null;
+    final side = cell[cell.length - 1];
+    final hand = side == 'r'
+        ? 'right'
+        : side == 'l'
+        ? 'left'
+        : null;
+    if (hand == null) return null;
+    final people = cell.substring(0, cell.length - 1);
+    final isRole = _waveCentreCodes.containsKey(people);
+    if (isRole != role) return null;
+    final who = role ? _waveCentreCodes[people] : tcbPassPeople[people];
+    return who == null ? null : (who: who, hand: hand);
+  }
+
+  final sides = code(parts[0], false);
+  final center = code(parts[1], true);
+  if (sides == null || center == null || sides.hand == center.hand) {
+    return null;
+  }
+  return FigureMatch(
+    'pass_the_ocean',
+    params: {
+      'sides': sides.who,
+      'center': center.who,
+      'centerHand': center.hand,
+    },
+  );
+}
+
+final RegExp _passTheOceanToWaveRe = RegExp(
+  r'^pass\s+the\s+ocean\s*\(\s*to\s+(?:a\s+)?wave\s+of\s+four\s*\(([^()]{1,40})\)\s*\)$',
+  caseSensitive: false,
+);
+
+/// The people codes that name a wave's centre pair, as the adapter's
+/// balance-wave decoder reads them (`_waveRoleCodes` in `callersbox_adapter`).
+const Map<String, String> _waveCentreCodes = {
+  'm': 'role1s',
+  'w': 'role2s',
+  '1': 'ones',
+  '2': 'twos',
+};
 
 /// A cast's `(cw)`/`(ccw)` annotation (also spelled out): its shoulder.
 final RegExp _castSpinRe = RegExp(
@@ -2989,11 +3202,9 @@ bool _isSquareRoleSetDescriptor(String body) =>
 /// **Dancer identity (Part C).** The same cells name dancers, so `who`/`who2`
 /// are filled too, on the moves that declare them. Two-pass moves alternate:
 /// odd 1-based positions name `who`, even positions name `who2`. `pass_through`
-/// declares NO `who`, so its dancer code has nowhere to go and is dropped —
-/// which is the status quo for that half of the annotation, minus the wrong
-/// shoulder. (Preserving it as a note instead would add one to ~2,048 figures
-/// across 1,773 dances; that is a visible change at corpus scale and is the
-/// owner's call, not this decoder's.)
+/// has declared a `who` since taxonomy v40 (one figure with pass by), so
+/// `Pass through along (NR)` is neighbors passing right shoulders; before, its
+/// dancer code had nowhere to go and was dropped.
 ///
 /// **Declines (returns `null` → the ordinary annotation-stripped path) when:**
 ///   * the line has no `(...)` annotation, or more than one unless exactly one
@@ -3136,8 +3347,8 @@ FigureMatch? _decodeSideRunAnnotation(String scrubbed) {
   final decoded = <_SideCell>[];
   String? sideBase;
   for (var i = 0; i < cells.length; i++) {
-    // The `~` partial-last-pass marker is informational only (ratified) and is
-    // dropped here exactly as the hey decoder drops it.
+    // The `~` partial-last-pass marker is dropped here: no side-run param
+    // represents it. (The hey decoder keeps a last-pass `~` as a note.)
     final cell = cells[i].endsWith('~')
         ? cells[i].substring(0, cells[i].length - 1)
         : cells[i];
@@ -3428,8 +3639,9 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 //   * rico1..4  <- ricochet flags, assigned SEQUENTIALLY to the 1st/2nd/3rd/4th
 //                  same-role center pass (the odd pass-list positions), capped
 //                  by what the hey length can physically reach.
-// The `~` partial-last-pass marker is dropped (informational only — not
-// representable, ratified). Any token the decoder cannot fully account for
+// The `~` partial-last-pass marker on the LAST pass is kept only as the note
+// clause [_partialLastPassNote] (the glossary's "partial hey pass"); the hey's
+// params cannot represent it, so a `~` elsewhere is still dropped. Any token the decoder cannot fully account for
 // forces `null` -> the custom fallback (parse-never-fails / prefer-custom).
 
 /// TCB pass-list people codes -> canonical dancer set (TCB glossary, see
@@ -3484,7 +3696,10 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 ///   This map was not extended to match: pass codes like `S-1R` (about ten
 ///   corpus dances) still decline the run, as they did before that ruling.
 /// - `Ph*` (phantoms), `TB*` (trail buddy), `SR*` (same-role), and bare `R`/`L`
-///   (states a hand but no dancer at all).
+///   (states a hand but no dancer at all). One exception sits outside this
+///   map: the hey decoders alone ([_hey], and [_eighthHey] for its single
+///   cell) read `SRN`/`SRN1` as `sameRoles` (see [_heyPassPeople]). Every
+///   other `SR*` code, and every other decoder, still declines.
 /// - `O` — the glossary's *"opposite"* (`docs/research/callersbox.md`), the
 ///   most common unmapped prefix in the corpus (72 cells, ahead of `Ph` 21 and
 ///   `SRN` 17). It is listed here because its absence was previously
@@ -3940,8 +4155,8 @@ final RegExp _squareThroughWord = RegExp(r'\bsquare\s+thr(?:ough|u)\b');
 final RegExp _bracketBody = RegExp(r'[(\[]([^()\[\]]{0,120})[)\]]');
 
 /// A body made only of pass cells (`NR;PL;NR`, `NR, PL, NR`, `N1R;P1L~`),
-/// whether or not each code is one this file can decode (such as P6R, P-1L,
-/// PhL or SRNL). A cell is shaped like a TCB people code, one letter or one of
+/// whether or not each code is one this file can decode (such as P6R, P-1L
+/// or PhL). A cell is shaped like a TCB people code, one letter or one of
 /// the multi-letter prefixes `Ph`, `TB`, `SR`, `SRN` (see [tcbPassPeople]),
 /// with an optional number, or a bare number, then the side. So a word such
 /// as `(all)` or `(over)` is not a pass list (#1971 review).
@@ -4174,9 +4389,27 @@ FigureMatch? _circularHeyFromPasses({
 }
 
 FigureMatch? _hey(String scrubbed) {
-  final lower = scrubbed.toLowerCase();
+  var lower = scrubbed.toLowerCase();
   // dolphin_hey is a DIFFERENT move; never match it here.
   if (lower.contains('dolphin')) return null;
+
+  // One clause-final `[with …]` / `[around …]` bracket naming dancers the
+  // notation resolves (`Hey 1/2 (WL;PR;ML) [with N1]`) is commentary on the
+  // hey, read as [_bracketAnnotation] reads one on any other line: it becomes
+  // the figure's note (`with neighbors`) and the pass list still decodes. Any
+  // other bracket, or one that does not resolve, leaves the line as it read
+  // before (custom). *(User-ruled 2026-11-24.)*
+  String? bracketNote;
+  final bracket = _heyTrailingBracketRe.firstMatch(lower);
+  if (bracket != null) {
+    final body = bracket[2]!.trim();
+    final relation = _squareBracketRelationRe.firstMatch(body);
+    if (relation == null || resolveDancerSetPhrase(relation[2]!) == null) {
+      return null;
+    }
+    bracketNote = _canonicalSquareBracketNote(body);
+    lower = bracket[1]!.trim();
+  }
 
   // A hey is only structured when it carries a parenthetical pass list — that
   // is the sole source of pass1/shoulder. No pass list -> custom.
@@ -4215,6 +4448,19 @@ FigureMatch? _hey(String scrubbed) {
         outWords[i + 1] == 'diagonal') {
       dir = outWords[i] == 'left' ? 'leftDiagonal' : 'rightDiagonal';
       outWords.removeRange(0, i + 2);
+    }
+  }
+
+  // "Hey … with hands": the dancers take hands as they pass. It changes
+  // nothing about who passes whom, so it is the hey the pass list describes
+  // with the wording kept as a note. *(User-ruled 2026-11-24.)*
+  var withHands = false;
+  for (var i = 0; i + 1 < outWords.length; i++) {
+    if (outWords[i] == 'with' && outWords[i + 1] == 'hands') {
+      if (withHands) return null; // said twice -> not a shape we know.
+      withHands = true;
+      outWords.removeRange(i, i + 2);
+      i--;
     }
   }
 
@@ -4260,7 +4506,7 @@ FigureMatch? _hey(String scrubbed) {
 
     if (cell.endsWith('ricochet')) {
       final people = cell.substring(0, cell.length - 'ricochet'.length).trim();
-      final who = tcbPassPeople[people];
+      final who = _heyPassPeople(people);
       // Only center same-role dancers ricochet — never neighbor/partner/etc.
       if (who != 'role1s' && who != 'role2s') return null;
       // The same-role center passes are the odd pass-list positions; enumerate
@@ -4284,7 +4530,7 @@ FigureMatch? _hey(String scrubbed) {
         ? 'left'
         : null;
     if (shoulder == null) return null;
-    final who = tcbPassPeople[cell.substring(0, cell.length - 1)];
+    final who = _heyPassPeople(cell.substring(0, cell.length - 1));
     if (who == null) return null;
 
     // Shoulders alternate by position parity: odd positions share the base
@@ -4308,8 +4554,43 @@ FigureMatch? _hey(String scrubbed) {
   params['pass1'] = pass1;
   params['shoulder'] = shoulderBase;
   if (pass2 != null) params['pass2'] = pass2;
-  return FigureMatch('hey', params: params);
+  return FigureMatch(
+    'hey',
+    params: params,
+    note: combineFigureNotes(
+      combineFigureNotes(withHands ? 'with hands' : null, bracketNote),
+      cells.last.trim().endsWith('~') ? _partialLastPassNote : null,
+    ),
+  );
 }
+
+/// The note a hey carries when its pass list marks the last pass partial
+/// (`Hey 1/2 (ML;PR;WL;N0R~)`), Caller's Box's `~` ("partial hey pass").
+/// Kept as prose because no hey param represents it, so the mark is not lost
+/// on import *(user-ruled 2026-11-24: a `~` on a hey pass marks that last pass
+/// as the progression; keeping it as this note is the agent's call)*.
+const String _partialLastPassNote = 'last pass partial';
+
+/// The hey's whole line before one clause-final square bracket (group 1) and
+/// that bracket's body (group 2). Bounded like [_circulateTrailingBracketRe].
+final RegExp _heyTrailingBracketRe = RegExp(r'^(.*?)\s*\[([^\[\]]{1,120})\]$');
+
+/// A hey pass-list people code: [tcbPassPeople], plus the same-role neighbour
+/// codes only a hey uses.
+///
+/// `SRN` (and `SRN1`, the same dancer) is "same-role neighbours", so
+/// `Hey (1R;SRNL;2R;NL)` is "ones pass right, same-role neighbours pass left,
+/// twos pass right, neighbours pass left" *(user-ruled 2026-11-24)*. It is kept
+/// out of [tcbPassPeople] on purpose: that map also feeds the grand right and
+/// left and wave decoders, and nobody has said what the code means there.
+/// *(Agent's call.)*
+String? _heyPassPeople(String code) =>
+    tcbPassPeople[code] ?? _heyOnlyPassPeople[code];
+
+const Map<String, String> _heyOnlyPassPeople = {
+  'srn': 'sameRoles',
+  'srn1': 'sameRoles',
+};
 
 // --- Grand right and left (TCB pass-list) decomposition (#295) ---------------
 

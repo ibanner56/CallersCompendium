@@ -28,6 +28,7 @@ import '../../serialization/figure_codec.dart';
 import '../figure_reparse.dart';
 import '../../sync/sync_record_kind.dart';
 import '../../taxonomy/sequence_span.dart';
+import '../../taxonomy/param_change_rules.dart';
 import '../../taxonomy/param_types.dart';
 import '../../taxonomy/taxonomy.dart';
 import '../calling_history_scope.dart';
@@ -538,9 +539,17 @@ class DanceRepository {
       );
     }
     final resolvedId = _taxonomy.resolvedMoveId(figure);
+    // Routed to another id, it keeps what each param it leaves out meant
+    // under the id it came with (a pass through's unstated `who` stays
+    // unstated as a pass by, taxonomy v40).
+    var routed = figure.params;
+    if (resolvedId != figure.move) {
+      routed = Map<String, Object?>.of(figure.params);
+      keepOmittedMeaning(_taxonomy, figure.move, resolvedId, routed);
+    }
     // Under the id it is routed to, without the value an alias listed as a
     // move pins (a long lines stores no `formation`, taxonomy v39).
-    final params = _taxonomy.withoutListedAliasPins(resolvedId, figure.params);
+    final params = _taxonomy.withoutListedAliasPins(resolvedId, routed);
     return resolvedId != figure.move || !identical(params, figure.params)
         ? figure.copyWith(move: resolvedId, params: params)
         : figure;

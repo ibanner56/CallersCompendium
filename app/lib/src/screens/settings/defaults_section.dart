@@ -702,8 +702,18 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         moveId,
         () => <String, Object?>{},
       );
+      // A value the move keeps only while stated (a Rory O'More's
+      // `twoPlaces` cleared to unstated, a figure 8's `double` turned off)
+      // is the entry state, not an override: saved, it would be written into
+      // every new figure, where an older peer rejects the key.
+      bool unstated(String key, Object? v) {
+        final probe = {key: v};
+        contraTaxonomy.dropUnstatedParams(moveId, probe);
+        return !probe.containsKey(key) && !entry.containsKey(key);
+      }
+
       void record(String key, Object? v) {
-        if (v == entry[key]) {
+        if (v == entry[key] || unstated(key, v)) {
           inner.remove(key);
         } else {
           inner[key] = v;
