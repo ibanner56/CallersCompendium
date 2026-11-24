@@ -497,7 +497,7 @@ void main() {
     expect(reads, 1);
 
     // A new tag changes what a search can name: read again.
-    await repos.tags.upsert(Tag(id: 't-new', name: 'Family'));
+    final _ = await repos.tags.upsert(Tag(id: 't-new', name: 'Family'));
     await checked(3);
     expect(reads, 2);
 
@@ -569,5 +569,88 @@ void main() {
     // The builder's copy is not put back to the archived one it held before.
     expect(find.byTooltip('Archive'), findsOneWidget);
     expect(find.byTooltip('Unarchive'), findsNothing);
+  });
+
+  testWidgets('the Rules button counts only rules still here, not a deleted '
+      'one kept for its Undo', (tester) async {
+    final seeded = await _seed();
+    await seeded.repos.eventRules.delete(seeded.noBecketFirstHalf.id);
+    await _pump(tester, seeded.repos, enabled: true);
+    await pumpUntilFound(tester, find.text('Rules (1)'));
+    expect(find.text('Rules (2)'), findsNothing);
+  });
+
+  testWidgets('a program applies at most $maxProgramEventRules rules still '
+      "here: a deleted rule's id makes room, and a rule past the most is "
+      'never shown ticked', (tester) async {
+    final seeded = await _seed(applied: const []);
+    final repos = seeded.repos;
+    // The two seeded rules, then more up to one short of the most, applied,
+    // and one deleted (kept for its Undo) to fill the list.
+    final live = [seeded.oneBecket.id, seeded.noBecketFirstHalf.id];
+    while (live.length < maxProgramEventRules - 1) {
+      live.add(
+        (await repos.eventRules.create(
+          savedSearchId: seeded.becket.id,
+          quantifier: EventRuleQuantifier.atMost,
+          count: live.length + 1,
+          scope: EventRuleScope.wholeProgram,
+        )).id,
+      );
+    }
+    final gone = await repos.eventRules.create(
+      savedSearchId: seeded.becket.id,
+      quantifier: EventRuleQuantifier.none,
+      scope: EventRuleScope.afterFirstBreak,
+    );
+    await repos.programs.setEventRuleIds('p1', [gone.id, ...live]);
+    await repos.eventRules.delete(gone.id);
+    Future<EventRule> another(int n) => repos.eventRules.create(
+      savedSearchId: seeded.becket.id,
+      quantifier: EventRuleQuantifier.atLeast,
+      count: n,
+      scope: EventRuleScope.wholeProgram,
+      name: 'Extra $n',
+    );
+    final last = await another(1);
+    final past = await another(2);
+    await _pump(tester, repos, enabled: true);
+
+    await tester.tap(find.byKey(const ValueKey('program-rules')));
+    await tester.pumpAndSettle();
+    Finder box(EventRule rule) =>
+        find.byKey(ValueKey('program-rule-${rule.id}'));
+    bool ticked(EventRule rule) =>
+        tester.widget<CheckboxListTile>(box(rule)).value ?? false;
+    await pumpUntilFound(tester, box(seeded.oneBecket));
+    final sheet = find
+        .descendant(
+          of: find.byType(BottomSheet),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+
+    // The deleted rule's id goes to make room for the last one.
+    await tester.scrollUntilVisible(box(last), 200, scrollable: sheet);
+    await tester.tap(box(last));
+    await tester.pumpAndSettle();
+    expect(ticked(last), isTrue);
+    var stored = (await repos.programs.getById('p1'))!;
+    expect(stored.eventRuleIds, [...live, last.id]);
+
+    // Now full: one more is refused, and not shown ticked.
+    await tester.scrollUntilVisible(box(past), 200, scrollable: sheet);
+    await tester.tap(box(past));
+    await tester.pumpAndSettle();
+    expect(ticked(past), isFalse);
+    expect(
+      find.text(
+        'This program uses $maxProgramEventRules rules, the most it can. '
+        'Untick one to add another.',
+      ),
+      findsOneWidget,
+    );
+    stored = (await repos.programs.getById('p1'))!;
+    expect(stored.eventRuleIds, [...live, last.id]);
   });
 }

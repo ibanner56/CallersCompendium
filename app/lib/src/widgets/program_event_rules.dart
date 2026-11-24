@@ -41,6 +41,17 @@ class ProgramEventRulesController extends ChangeNotifier {
   EventRuleCheck _check = EventRuleCheck.empty;
   EventRuleCheck get check => _check;
 
+  /// The ids of the rules still here (not deleted), once read.
+  Set<String>? _liveRuleIds;
+
+  /// How many of [ids] are rules still here: what the Rules button counts.
+  /// A deleted rule's id, kept on the program for its Undo, does not count.
+  /// Before the rules are first read, every id counts.
+  int liveCount(List<String> ids) {
+    final live = _liveRuleIds;
+    return live == null ? ids.length : ids.where(live.contains).length;
+  }
+
   StreamSubscription<List<EventRule>>? _rulesWatch;
   StreamSubscription<Set<TableUpdate>>? _tablesWatch;
   int _rulesGeneration = 0;
@@ -74,6 +85,7 @@ class ProgramEventRulesController extends ChangeNotifier {
       _seq++;
       unawaited(_rulesWatch?.cancel());
       _rulesWatch = null;
+      _liveRuleIds = null;
       unawaited(_tablesWatch?.cancel());
       _tablesWatch = null;
       _context = null;
@@ -90,10 +102,18 @@ class ProgramEventRulesController extends ChangeNotifier {
       _context = null;
     }
     _inputs = _Inputs(ruleIds, slots, readContext, dialect, enrichment);
-    // A rule edited in the manager (or by sync) changes what it says.
-    _rulesWatch ??= repos.eventRules.watchAll().skip(1).listen((_) {
+    // A rule edited in the manager (or by sync) changes what it says. The
+    // first list only says which rules are here.
+    _rulesWatch ??= repos.eventRules.watchAll().listen((rules) {
+      final first = _liveRuleIds == null;
+      _liveRuleIds = {for (final r in rules) r.id};
+      if (first) {
+        _notifyLater();
+        return;
+      }
       _rulesGeneration++;
       _run();
+      _notifyLater();
     });
     _tablesWatch ??= _watchTables();
     _run();
@@ -408,11 +428,41 @@ class _RulesPickerState extends State<_RulesPicker> {
     await widget.onChanged(ids);
   }
 
+  Set<String> get _live => {
+    for (final r in _rules ?? const <EventRule>[]) r.id,
+  };
+
+  /// Whether the program already applies as many rules still here as it may.
+  bool get _full =>
+      _applied.where(_live.contains).length >= maxProgramEventRules;
+
+  /// [_applied] with [id] added, or null when the program is [_full]. To
+  /// make room, the ids of deleted rules (kept for their Undo) go first,
+  /// oldest first, so the stored list never cuts off the rule just ticked.
+  List<String>? _withAdded(String id) {
+    if (_full) return null;
+    final live = _live;
+    final ids = [..._applied, id];
+    while (ids.length > maxProgramEventRules) {
+      final dead = ids.indexWhere((x) => !live.contains(x));
+      if (dead < 0) return null;
+      ids.removeAt(dead);
+    }
+    return ids;
+  }
+
+  Future<void> _add(String id) async {
+    final ids = _withAdded(id);
+    // Refused: the box stays unticked, and the picker says why.
+    if (ids == null) return setState(() {});
+    await _set(ids);
+  }
+
   Future<void> _newRule() async {
     final rule = await showEventRuleEditor(context);
     if (rule == null || !mounted) return;
     await _read();
-    await _set([..._applied, rule.id]);
+    await _add(rule.id);
   }
 
   @override
@@ -424,8 +474,11 @@ class _RulesPickerState extends State<_RulesPicker> {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.sizeOf(context).height * 0.8,
         ),
-        child: ListView(
-          shrinkWrap: true,
+        // The title, New rule… and, once the program is full, why a rule
+        // cannot be ticked stay in view above the list as it scrolls.
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -440,40 +493,58 @@ class _RulesPickerState extends State<_RulesPicker> {
               title: Text(l10n.eventRulesNewRule),
               onTap: _newRule,
             ),
+            if (rules != null && _full)
+              Padding(
+                key: const ValueKey('program-rules-full'),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.xs,
+                ),
+                child: Text(l10n.programsRulesPickerFull(maxProgramEventRules)),
+              ),
             const Divider(height: 1),
-            if (rules == null)
-              const Padding(
-                padding: EdgeInsets.all(AppSpacing.md),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (rules.isEmpty)
-              ListTile(title: Text(l10n.programsRulesPickerEmpty))
-            else
-              for (final rule in rules)
-                CheckboxListTile(
-                  key: ValueKey('program-rule-${rule.id}'),
-                  value: _applied.contains(rule.id),
-                  title: Text(
-                    eventRuleTitle(l10n, rule, _names[rule.savedSearchId]),
-                  ),
-                  subtitle: rule.name == null
-                      ? null
-                      : Text(
-                          eventRuleSentence(
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  if (rules == null)
+                    const Padding(
+                      padding: EdgeInsets.all(AppSpacing.md),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (rules.isEmpty)
+                    ListTile(title: Text(l10n.programsRulesPickerEmpty))
+                  else
+                    for (final rule in rules)
+                      CheckboxListTile(
+                        key: ValueKey('program-rule-${rule.id}'),
+                        value: _applied.contains(rule.id),
+                        title: Text(
+                          eventRuleTitle(
                             l10n,
                             rule,
                             _names[rule.savedSearchId],
                           ),
                         ),
-                  onChanged: (on) => _set(
-                    on == true
-                        ? [..._applied, rule.id]
-                        : [
-                            for (final id in _applied)
-                              if (id != rule.id) id,
-                          ],
-                  ),
-                ),
+                        subtitle: rule.name == null
+                            ? null
+                            : Text(
+                                eventRuleSentence(
+                                  l10n,
+                                  rule,
+                                  _names[rule.savedSearchId],
+                                ),
+                              ),
+                        onChanged: (on) => on == true
+                            ? _add(rule.id)
+                            : _set([
+                                for (final id in _applied)
+                                  if (id != rule.id) id,
+                              ]),
+                      ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

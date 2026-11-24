@@ -4596,7 +4596,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   key: const ValueKey('program-rules'),
                   onPressed: _openRulesPicker,
                   icon: const Icon(Icons.rule),
-                  label: Text(l10n.programsRulesButton(_eventRuleIds.length)),
+                  label: Text(
+                    l10n.programsRulesButton(
+                      _eventRules?.liveCount(_eventRuleIds) ??
+                          _eventRuleIds.length,
+                    ),
+                  ),
                 ),
             ],
           ),
