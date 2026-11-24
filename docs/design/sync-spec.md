@@ -5205,7 +5205,8 @@ to advertise the capability. Like `programTemplates.v1`, it gates a settings **p
 not an exact entry matches the longest gated prefix it starts with, as the
 registry's classification does, and an exact key still wins. The reference client gated the prefix from the change that added
 storage for saved searches, before anything could create one, and advertises
-the capability from the change that completes the feature, the Saved menu
+the capability from the change that completes the feature, saving and using
+them in the Collection
 (amended 2026-11-24), as `glossary.v2` was gated before #1023 was complete. So
 it is subject to *Rollout*: a device on a build that lists every other
 capability but this one holds it closed and is named for it, while what the

@@ -634,7 +634,7 @@ others reads "Choreography: others, not named". A dance you imported before
 keeps its credit; if you re-import it with **Also update title and credit**,
 it is credited to the named people only, without the note, and an author
 called "Others" from the earlier import stays in your list. Fix it in
-**Settings ▸ General ▸ Dances ▸ Authors** (see
+**Settings ▸ Collection ▸ Dances ▸ Authors** (see
 [Settings](./settings.md#dances)): delete it once no dance credits it, or merge
 it into another author.
 

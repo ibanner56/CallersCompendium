@@ -112,7 +112,7 @@ That's what a [dialect](./glossary.md#dialect) is for. Pick or build one under
 ### How do I fix a misspelled tag, author, or source everywhere at once?
 
 Rename it once and every dance that uses it follows. Tags, authors, and sources
-each have a manager under **Settings ▸ General ▸ Dances**. If two entries are
+each have a manager under **Settings ▸ Collection ▸ Dances**. If two entries are
 really the same — say an import spelled an author two ways — choose **Merge
 into…** on one of them, and every dance that used either ends up with the one
 you keep. A rename or merge offers **Undo**. See

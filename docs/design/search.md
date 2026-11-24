@@ -946,7 +946,7 @@ the resolver contract; both live in `compendium_core`
 (`packages/compendium_core/lib/src/search/saved_search*.dart`). How a saved
 search is stored, synced and kept consistent through merges and deletes is
 specified in `sync-spec.md` §6.15 and `tags-and-people.md`; the menu that uses
-it is [The Saved menu](#the-saved-menu), below, and the user guide's
+it is [Using saved searches](#using-saved-searches), below, and the user guide's
 `docs/user/collection.md`.
 
 **What is stored: the panel state, not the compiled filter** (maintainer
@@ -1123,47 +1123,54 @@ state, and nothing in it is silently dropped or left filtering out of sight:
   those apart from a rebuild its own typing caused by the facets' identity
   and `FacetSelections.clearCount`, a count kept in memory only.
 
-### The Saved menu
+### Using saved searches
 
-The Collection and the picker share one menu, `SavedSearchMenu`
-(`app/lib/src/widgets/saved_search_menu.dart`), at the end of their row of
-search tools, beside the Online search icon. It is an icon button named
-**Saved** (tooltip and screen-reader label). On a 390dp phone the row has no
-room for it: the three tools take 282dp of the 358dp inside the margins (304dp
-with "Filters · 3") and the two 40dp icons need 80dp, so there the Saved and
-Online search icons share a second line under the tools, always, so nothing
-moves as the first filter is chosen. A wider screen keeps them in the row.
+The maintainer replaced the issue's toolbar **Saved** button (2026-11-24, in
+the PR6 session): on a 390dp phone the row of tools has no room for it (the
+three tools take 282dp of the 358dp inside the margins, 304dp with "Filters ·
+3", and two 40dp icons need 80dp). Saved searches are used in three places
+instead, all through one set of UI-free actions, `SavedSearchActions`
+(`app/lib/src/widgets/saved_search_actions.dart`):
 
-The menu is flat, with no submenus:
-
-- **Save this search…** asks for a name (duplicates are allowed: two devices
-  could not prevent them offline; the list orders them by name, then id) and
-  saves the panel through `SavedSearchSpec.fromPanelState`. It is offered only
-  while text, a filter, a phrase row or an Advanced row is set
-  (`CollectionPanelState.hasQuery`). The dialog says what is kept of a
-  calling-history window: a chosen date is kept as whole months back from
-  today ("Not called in the last 12 months"). A search over the format's limits
-  is refused with a message, never truncated; at `savedSearchMaxCount` saved
-  searches the message says so and nothing is added. The search just saved
-  becomes the loaded one.
-- For a **loaded** search: **Update "…"**, only once the panel's saved form
-  differs from the form it had when loaded (or last saved), which writes it back
-  under the same id; **Save as new…** in place of **Save this search…** at that
-  point; **Rename "…"…**, which renames the stored search and does not save the
-  panel's edits; and **Delete "…"**. The host, not the menu, keeps which search
-  is loaded, so **Clear all**, or any other state applied, forgets it.
-- Then every saved search by name. One this version cannot read (a newer
-  format, a damaged value) is listed last under **Needs attention** and is
-  never applied; choosing it explains why and offers Delete.
+- **The search field's dropdown** (`SavedSearchField`,
+  `app/lib/src/widgets/saved_search_field.dart`), in the Collection and the
+  picker. It is Flutter's `RawAutocomplete` over the host's own controller and
+  focus node, always a popover (not `ResponsiveAutocomplete`, whose phone
+  layout turns the field into a read-only launcher). With the field focused
+  it lists the saved searches by name (duplicates are allowed: two devices
+  could not prevent them offline), narrowed to the names containing what is
+  typed. While there is text the first row is **Search for "…"**. That row,
+  Enter (unless the arrow keys moved onto a saved search) and a tap outside
+  keep the ordinary search: the host's debounce runs it as it is typed, and
+  Enter runs it at once, as before. A tap outside closes the popover without
+  taking focus, as a text field on a phone keeps it. Choosing a row never
+  writes its label into the field. Arrow keys, Escape and the "results"
+  announcement come from `RawAutocomplete`; a move of the highlight is
+  announced as the command palette does. Disabled while Online search is on.
+  A saved search this version cannot read is not listed there.
+- **The Collection's ⋮ menu**: **Save this search…** (while a query is set,
+  `CollectionPanelState.hasQuery`; the dialog says what is kept of a
+  calling-history window, a chosen date as whole months back from today; a
+  search over the format's limits, or one past `savedSearchMaxCount`, is
+  refused with a message). While a saved search is loaded: **Update "…"**,
+  enabled only once the panel's saved form differs from the form it had when
+  loaded or last saved; **Save as a new search…** in place of Save this
+  search…; **Rename "…"…**, which renames the stored search and does not save
+  the panel's edits; **Delete "…"**. The screen keeps which search is loaded
+  (`_loadedSearch`); clearing the search forgets it, and the entries go. The
+  picker has no ⋮ menu: it only loads.
+- **Settings ▸ Collection ▸ Saved searches**
+  (`app/lib/src/screens/settings/collection_section.dart`, after the
+  **Dances** group that moved there from General): every saved search, with
+  Rename and Delete, and those this version cannot read last under **Needs
+  attention**, explained and deletable. No Update there: it needs a panel.
 
 **Delete** follows the app's rule: `confirmDeleteIfEnabled`, then Undo
 (`showUndoSnackBar`). The Undo writes the stored value back exactly as it was
 read before the delete (`SettingsRepository.set` on the tombstoned key, which
 revives it), so a value this version cannot read comes back byte for byte. A
 delete that a registered dependent refuses (`SavedSearchInUse`) shows a message
-listing each use and deletes nothing. The picker has a `ScaffoldMessenger` of
-its own, so the Undo prompt shows inside the program builder's bottom sheet,
-where the app's messenger draws under the sheet.
+listing each use and deletes nothing.
 
 **Loading** reads one `SavedSearchContext` (`readSavedSearchContext`,
 `app/lib/src/search/saved_search_context.dart`): one read each of the live tags,
@@ -1184,11 +1191,10 @@ built). Then `resolveSavedSearch`:
   this device never knew it), and the user removes each criterion themselves.
   A Filters criterion on a deleted custom field is left out by
   `buildCollectionFilter`, so the notice also says that one is not in the
-  results. There is no "open anyway" step: the issue has none, and the notice
-  is what keeps the load from being silent.
+  results. There is no "open anyway" step: the notice is what keeps the load
+  from being silent.
 
-The menu is disabled while Online search is on; it never turns Online search
-off itself. Both hosts take "today" from a `SearchClock` (`DanceListScreen.clock`,
+Both hosts take "today" from a `SearchClock` (`DanceListScreen.clock`,
 `CollectionPicker.clock`) through `calendarDayAt`, for the filter, for the
 context and for saving, and never from `DateTime.now()`:
 `app/test/search/host_today_source_test.dart` scans for it.
