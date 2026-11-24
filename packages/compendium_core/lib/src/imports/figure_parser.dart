@@ -2594,12 +2594,20 @@ const Set<String> _destinationWords = {
 };
 
 /// A shift or slide line's tail as its note. The words are lowercased by
-/// [_normalize], so a Caller's Box dancer code (`n2`, `p1`, `s1`, `n`, `w`)
-/// is put back in capitals ("to N2"), as the source writes it.
-String _tailNote(List<String> w) => [
-  for (final word in w)
-    _dancerCodeRe.hasMatch(word) ? word.toUpperCase() : word,
-].join(' ');
+/// [_normalize], so a Caller's Box dancer code (`n2`, `p1`, `s1`, `n`, `w`),
+/// possessive or not, is put back in capitals ("to N2", "to N2's place"),
+/// as the source writes it.
+String _tailNote(List<String> w) =>
+    [for (final word in w) _restoreDancerCode(word)].join(' ');
+
+/// [word] with a dancer code, or the code a possessive is made from ("n2's"),
+/// in capitals; any other word as it is.
+String _restoreDancerCode(String word) {
+  final possessive = word.endsWith("'s");
+  final stem = possessive ? word.substring(0, word.length - 2) : word;
+  if (!_dancerCodeRe.hasMatch(stem)) return word;
+  return possessive ? "${stem.toUpperCase()}'s" : stem.toUpperCase();
+}
 
 final RegExp _dancerCodeRe = RegExp(r'^(?:[nps]\d?|n\d[mw]|[mw])$');
 

@@ -135,6 +135,8 @@ void main() {
           'a step until across from N3 role2s',
         ),
         ('Men shift left to N2', 'role1s', 'left', 'to N2'),
+        // Invented: a possessive code keeps its capitals.
+        ("Women shift right to N2's place", 'role2s', 'right', "to N2's place"),
       ]) {
         final figure = parse(line).single;
         expect(figure.move, 'shift', reason: line);
