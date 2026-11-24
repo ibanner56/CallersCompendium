@@ -725,6 +725,7 @@ class DanceRepository {
                 normalizeShareableText(normalisedDance.newPartnerText),
               ),
               singing: Value(normalisedDance.singing),
+              freeForm: Value(normalisedDance.freeForm),
               status: normalisedDance.status,
               levelId: Value(dance.difficultyLevelId),
               mixedLevel: Value(dance.mixedLevel),
@@ -1163,7 +1164,11 @@ class DanceRepository {
           final child = subFigures[s];
           groups.add((
             leaves: _leafFigures(child),
-            section: labelForFigure(beat, lengths[s], dance.phraseStructure),
+            // A free-form dance has no sections, as [Dance.sectionedFigures]
+            // gives it none.
+            section: dance.isFreeForm
+                ? ''
+                : labelForFigure(beat, lengths[s], dance.phraseStructure),
           ));
           beat += lengths[s];
         }
@@ -3027,6 +3032,7 @@ class DanceRepository {
       row.newPartner == SquareNewPartner.unstated.wireName &&
       row.newPartnerText.isEmpty &&
       !row.singing &&
+      row.freeForm == null &&
       row.status == DanceStatus.active &&
       row.levelId == null &&
       !row.mixedLevel &&
@@ -3129,6 +3135,7 @@ class DanceRepository {
         ),
         newPartnerText: Value(normalizeShareableText('')),
         singing: const Value(false),
+        freeForm: const Value(null),
         status: const Value(DanceStatus.active),
         levelId: const Value(null),
         mixedLevel: const Value(false),
@@ -4323,6 +4330,7 @@ class DanceRepository {
           SquareNewPartner.unstated,
       newPartnerText: row.newPartnerText,
       singing: row.singing,
+      freeForm: row.freeForm,
       status: row.status,
       difficultyLevelId: row.levelId,
       mixedLevel: row.mixedLevel,

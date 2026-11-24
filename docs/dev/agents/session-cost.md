@@ -1,19 +1,38 @@
 # Session cost: what makes an agent session expensive here
 
-Load this chapter when scoping work for an agent, when a session feels
-disproportionately expensive, or before adding anything to the resident
-instructions.
+Load this chapter when scoping work for an agent, when starting child sessions
+or scheduling check-ins, when a session feels disproportionately expensive, or
+before adding anything to the resident instructions.
 
 ## The cost model
 
-A session's input cost is roughly `resident_prompt × turns`, plus whatever it
-reads. So there are exactly two levers: **shrink what is resident** and **take
-fewer turns**. Everything below is one or the other.
+Every model call re-sends the whole conversation so far: the resident prompt,
+everything the session has read, and every earlier turn. (In this chapter a
+"turn" is one model call. A response that makes several independent tool calls
+at once is still one turn, so batch independent reads.) So a session's input cost is
+roughly `context_size × turns`, and `context_size` grows for as long as the
+session lives. There are three levers on the number of tokens: **shrink what
+is resident**, **take fewer turns**, and **keep long-lived sessions small**. A
+fourth lever changes the price per token instead:
+**[choose the model for each task](#choose-the-model-for-each-task)**.
+
+In the week of 2026-11-18 to 2026-11-24, the third lever dominated. That week's
+74 Opus sessions with reported usage (read from each session's own usage
+record) re-read 8.7 billion cached tokens and generated 22.2 million output
+tokens: 394 tokens re-read for each token generated. At the Opus list rates of
+that week a cached read cost 1% of an output token, yet cache reads were 60% of
+Opus spend, cache writes 25% and output 15%. 47 of that week's sessions held
+more than 300k tokens of context when their usage was recorded. Because
+[the budget](#shrink-what-is-resident) holds `AGENTS.md` at 8 KiB, the resident
+prompt is now small next to a context of that size; that is the ratchet working,
+not a reason to loosen it. See
+[Long-lived and waiting sessions](#long-lived-and-waiting-sessions).
 
 Resident context is `AGENTS.md` plus any
 [`.github/instructions/*.instructions.md`](../../../.github/instructions/) whose
-`applyTo` glob matches a file in play. It is re-sent every turn. A chapter under
-`docs/dev/agents/` is read at most once, by the session that needs it.
+`applyTo` glob matches a file in play. It is re-sent every turn of every
+session. A chapter under `docs/dev/agents/` is carried only by the sessions that
+read it, from that point on.
 
 ### What was measured
 
@@ -169,16 +188,82 @@ So the usable test is: *does this comment constrain the line it sits on, or does
 it record something already decided?* The first stays, however long. The second
 belongs in a document, with a gate keeping it fed.
 
+## Long-lived and waiting sessions
+
+A session pays for its whole history on every turn, including turns that only
+find out nothing has changed. In the week of 2026-11-18 to 2026-11-24, project
+channel threads and orchestrator trees (an orchestrator plus every session it
+started) came to 81% of all session spend, and child sessions alone were 57% of
+all session spend. Two habits drive that: carrying one conversation across many
+units of work, and waking a large context to check on something.
+
+### Hand off at a milestone
+
+When a unit of work lands (a PR merges, a plan is approved, a child is
+archived) and the session will go on to something else, start a fresh session
+with a brief instead of carrying the history forward. The brief is the same one
+[Scope before dispatch](#scope-before-dispatch) asks for. Keep state in the
+repository, the PR and the issue, which a fresh session can read, rather than
+in the conversation, which only that session has.
+
+This holds for project channel threads too. In the week measured, they ran with
+a 1M-token window and compacted only at 384k tokens, so a thread that mostly
+waited could sit at several hundred thousand tokens for days.
+
+### Make waiting cheap
+
+Every wake-up re-reads the whole context: a PR event, a child reporting back,
+a scheduled check-in. A wake-up that finds nothing new costs the same re-read as
+one that does work.
+
+- **Let events wake the session.** A Claude Code cloud session subscribed to a
+  PR already wakes for its comments, reviews and CI results. A safety-net
+  check-in is for what events do not deliver, such as a merge conflict or a
+  child that has gone quiet. Space check-ins hours apart rather than hourly,
+  and stop re-arming after a couple of empty ones: the next event will wake the
+  session anyway, and each empty check-in costs a full re-read.
+- **Run a recurring poll in a fresh session.** A cron-style check (new notes,
+  new failures, a corpus re-run) should start a new session on each firing,
+  with a self-contained prompt, rather than firing into a long-lived thread
+  whose context it has to re-read to do a small job. Each firing starts with no
+  memory of the one before (as [releasing.md](releasing.md) says of scheduled
+  runs), so keep its state in the repository, an issue or PR comment, or
+  another durable store, not in local files the next firing will not have.
+- **Wait on a condition, not a timer.** Poll a log or a PR state in a
+  background command, and wake the large session only when there is something
+  to act on. A sub-agent that polls in a loop is still paying for model calls.
+
+## Choose the model for each task
+
+The model sets the price per token, so this is the fourth lever. An
+orchestrator chooses the model when it starts each child session or sub-agent,
+so it can match the model to the task instead of defaulting either way.
+
+- **Use the strongest model for work that is stateful, cross-cutting, or judged
+  on fidelity:** plans, design, UI and user-facing copy, code review, and
+  anything ambiguous.
+- **Use a lighter model for contained, mechanical work whose result a script or
+  check can verify:** fetching raw records for a script to parse, sweeping for
+  a string, applying a rename the plan has already specified, running a gate
+  whose exit code is the answer.
+- **Set effort the same way.** High effort is for tasks that need deliberation,
+  not the default for every child.
+
+If a lighter model's result has to be redone, that costs more than using the
+stronger model in the first place. So downgrade only where a script or a check
+can tell whether the result is right.
 
 ## Measure, so this does not silently regress
 
-Track per-session input tokens against two numbers: the resident prompt size and
-the turn count. The ratio says which lever moved — a month's rise is either
-prompt growth (fix by moving rules out of residency) or round-trip growth (fix by
-scoping, batching, and local gates). Without both numbers, a rise is
-uninterpretable and the usual response is to add another rule, which makes it
-worse.
+Track per-session input tokens against three numbers: the resident prompt size,
+the turn count, and the size of the context being re-sent. Comparing them says
+which lever moved. A rise is prompt growth (fix it by moving rules out of
+residency), round-trip growth (fix it by scoping, batching and local gates), or
+context growth (fix it by handing off at milestones and making waiting cheap).
+Without these numbers a rise is uninterpretable, and the usual response is to
+add another rule, which makes it worse.
 
-The budget ratchet prints the current resident total on every run, and the
-comment-weight report prints the per-read total, so both numbers are available
-from any CI log without instrumenting anything.
+The budget ratchet prints the resident total on every run, and the
+comment-weight report prints the per-read total, so those are available from
+any CI log without instrumenting anything. The turn count and context size come
+only from the session's own usage record.

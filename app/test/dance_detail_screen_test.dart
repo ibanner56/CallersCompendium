@@ -3930,6 +3930,47 @@ void main() {
       expect(find.text('New partner: The original corner'), findsOneWidget);
     });
 
+    testWidgets('a free-form square has no phrase headings or phrase '
+        'warning, and says it is free form', (tester) async {
+      final repos = openTestRepositories();
+      final figures = [
+        customFigure('Allemande left your corner', beats: 12),
+        customFigure('Grand right and left', beats: 8),
+      ];
+      await repos.dances.create(
+        _dance(
+          id: 'free',
+          title: 'Patter',
+          figures: figures,
+        ).copyWith(form: DanceForm.square, squareKind: SquareKind.patter),
+      );
+      await repos.dances.create(
+        _dance(
+          id: 'phrased',
+          title: 'Phrased',
+          figures: figures,
+        ).copyWith(form: DanceForm.square),
+      );
+
+      await _pumpDetail(tester, repos, 'phrased');
+      expect(find.text('A1'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('dance-detail-free-form')),
+        findsNothing,
+      );
+
+      await _pumpDetail(tester, repos, 'free');
+      expect(find.text('A1'), findsNothing);
+      expect(find.text('A2'), findsNothing);
+      expect(find.textContaining('beats'), findsWidgets);
+      expect(find.byKey(const ValueKey('warnings-card')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('dance-detail-free-form')),
+        findsOneWidget,
+      );
+      expect(find.text('Free form'), findsOneWidget);
+    });
+
     testWidgets('a main part shows that it is a singing call', (tester) async {
       final repos = openTestRepositories();
       await repos.dances.create(

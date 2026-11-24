@@ -1542,11 +1542,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           UnreadableFigures() => const <Figure>[],
         },
         oldStructure: target.phraseStructure,
+        oldFreeForm: target.isFreeForm,
         newFigures: switch (draftDance.figuresSource) {
           DecodedFigures(:final figures) => figures,
           UnreadableFigures() => const <Figure>[],
         },
         newStructure: draftDance.phraseStructure,
+        newFreeForm: draftDance.isFreeForm,
         taxonomy: shippedTaxonomies.anyForm,
         renderer: renderer,
         // Lark and robin when the incoming dance's choreographer asked.

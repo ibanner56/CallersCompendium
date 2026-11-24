@@ -22,10 +22,14 @@ List<pw.Widget> buildFigureWidgets(
   bool canonicalizeDiscouragedTerms = false,
 }) {
   final widgets = <pw.Widget>[];
-  final sectioned = deriveSections(switch (dance.figuresSource) {
-    DecodedFigures(:final figures) => figures,
-    UnreadableFigures() => const <Figure>[],
-  }, dance.phraseStructure);
+  final sectioned = deriveSections(
+    switch (dance.figuresSource) {
+      DecodedFigures(:final figures) => figures,
+      UnreadableFigures() => const <Figure>[],
+    },
+    dance.phraseStructure,
+    freeForm: dance.isFreeForm,
+  );
   // An English dance is counted in bars, as on screen (ADR-006 §5.5).
   final timing = barTimingFor(
     dance.form,
@@ -34,7 +38,8 @@ List<pw.Widget> buildFigureWidgets(
   );
   String? lastLabel;
   for (final sf in sectioned) {
-    if (sf.label != lastLabel) {
+    // A free-form dance's figures have no label, so no heading.
+    if (sf.label != lastLabel && sf.label.isNotEmpty) {
       widgets.add(
         pw.Padding(
           padding: const pw.EdgeInsets.only(top: 6, bottom: 2),

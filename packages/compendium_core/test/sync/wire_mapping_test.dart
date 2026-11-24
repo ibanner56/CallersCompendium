@@ -864,6 +864,8 @@ const _valuePairs = <String, List<Object?>>{
   'dances.repeat_order': ['other', 'HHSS'],
   'dances.new_partner': ['other', 'corner'],
   'dances.singing': [false, true],
+  // Both stated, so neither leaves the key out of the body.
+  'dances.free_form': [true, false],
   'dances.formation_improper': [false, true],
   'dances.composed_on': ['1989', '1990'],
   'dances.interpreted_on': ['1995', '1996-07'],
@@ -1097,6 +1099,7 @@ class _Fixture {
     newPartner: SquareNewPartner.fromWireName(_str('dances.new_partner'))!,
     newPartnerText: _str('dances.new_partner_text'),
     singing: _flag('dances.singing'),
+    freeForm: _flag('dances.free_form'),
     status: DanceStatus.values.byName(_str('dances.status')),
     difficultyLevelId: _str('dances.level_id'),
     mixedLevel: _flag('dances.mixed_level'),

@@ -287,6 +287,14 @@ class Dances extends Table with TableInfo {
     $customConstraints: 'NOT NULL DEFAULT 0 CHECK (singing IN (0, 1))',
     defaultValue: const CustomExpression('0'),
   );
+  late final GeneratedColumn<int> freeForm = GeneratedColumn<int>(
+    'free_form',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL CHECK (free_form IN (0, 1))',
+  );
   late final GeneratedColumn<String> status = GeneratedColumn<String>(
     'status',
     aliasedName,
@@ -418,6 +426,7 @@ class Dances extends Table with TableInfo {
     newPartner,
     newPartnerText,
     singing,
+    freeForm,
     status,
     levelId,
     mixedLevel,

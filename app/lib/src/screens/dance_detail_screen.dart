@@ -1438,6 +1438,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
               renderer: UserFiguresScope.rendererOf(context),
               dialect: dialect,
               checkPhraseFill: dance.form == DanceForm.square,
+              freeForm: dance.isFreeForm,
             ),
           ),
           // An empty table would say the dance has no figures, which is false
@@ -2152,6 +2153,9 @@ List<(String, IconData, String)> _squareFieldLines(
       ),
     if (dance.singing && dance.squareKind == SquareKind.main)
       ('singing', Icons.music_note_outlined, l10n.danceEditorSingingLabel),
+    // Free form says why the figures have no phrase headings.
+    if (dance.isFreeForm)
+      ('free-form', Icons.all_inclusive, l10n.danceEditorFreeFormLabel),
     if (dance.repeatOrder != SquareRepeatOrder.unstated)
       (
         'repeat-order',

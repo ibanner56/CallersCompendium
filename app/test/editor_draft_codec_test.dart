@@ -749,6 +749,7 @@ void main() {
         'newPartner',
         'newPartnerText',
         'singing',
+        'freeForm',
       ]) {
         expect(encoded, isNot(contains('"$key"')), reason: key);
       }
@@ -757,6 +758,7 @@ void main() {
       expect(empty.repeatOrder, SquareRepeatOrder.unstated);
       expect(empty.newPartner, SquareNewPartner.unstated);
       expect(empty.singing, isFalse);
+      expect(empty.freeForm, isNull);
 
       final snapshot = EditorSnapshot(
         title: 'Circle Three Quarters',
@@ -772,6 +774,9 @@ void main() {
         newPartner: SquareNewPartner.other,
         newPartnerText: 'The original corner',
         singing: true,
+        // Off for a break, which the kind would leave phrased anyway: a
+        // stated false still round-trips.
+        freeForm: false,
         form: DanceForm.square,
         formationShape: FormationShape.square,
         progression: Progression.none,
@@ -794,6 +799,7 @@ void main() {
       expect(decoded.newPartner, SquareNewPartner.other);
       expect(decoded.newPartnerText, 'The original corner');
       expect(decoded.singing, isTrue);
+      expect(decoded.freeForm, isFalse);
     });
 
     test('an unknown square value decodes as the default', () {
