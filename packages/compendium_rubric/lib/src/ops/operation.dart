@@ -240,9 +240,41 @@ sealed class Operation {
       return _applyWithShadows(settled);
     }
 
-    final failure = checkPreconditions(settled);
+    // A figure naming partners finds its hands fours by where they stand: if
+    // they are not together in the grouping the set is in, it is danced one
+    // band phase over, and the set stays grouped that way for the figures
+    // after it *(user-ruled 2026-11-24: the hands fours follow the dancers,
+    // and the grouping is found by where they stand, never by moving
+    // anyone)*. The current grouping is tried first, and its refusal is the
+    // one reported when neither works. Only a pairing refusal is retried.
+    // Limiting this to partners is the agent's call: `neighbors` is read
+    // from couple numbers, so one phase over it would accept the next
+    // neighbours in their place, and allowing it gained no dance.
+    final here = _tryIn(settled);
+    if (here is Ok<Formation, OpError>) return here;
+    if (!_namesPartners || !_isPairingRefusal(here)) return here;
+    final otherPhase = toggleBandPhase(settled);
+    // With no hands four in the other phase, nothing would be danced there.
+    if (handsFourBands(otherPhase).isEmpty) return here;
+    final over = _tryIn(otherPhase);
+    return over is Ok<Formation, OpError> ? over : here;
+  }
+
+  /// Whether this figure names partners, the one pairing that is the same
+  /// two dancers whichever grouping they stand in.
+  bool get _namesPartners => dancerSets.contains(WhoSet.partners);
+
+  /// Whether [result] is a refusal because the named dancers are not the
+  /// ones standing together, the only refusal another grouping can answer.
+  static bool _isPairingRefusal(Result<Formation, OpError> result) =>
+      result is Err<Formation, OpError> &&
+      result.error.kind == ErrorKind.whoMismatch;
+
+  /// Checks and dances this figure with [phase]'s hands fours, as they stand.
+  Result<Formation, OpError> _tryIn(Formation phase) {
+    final failure = checkPreconditions(phase);
     if (failure != null) return Err<Formation, OpError>(failure);
-    return perform(settled);
+    return perform(phase);
   }
 
   /// Runs a figure that names dancers a stated distance along the set.

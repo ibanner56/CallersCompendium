@@ -47,6 +47,17 @@
 > previously compiling dance lost. 8 dances that refused now mismatch and 3
 > that mismatched now refuse.
 >
+> **The hands fours follow the dancers (2026-11-24)**: a figure naming
+> partners who are not together in the set's current grouping is danced one
+> band phase over, and the set stays grouped that way; nobody is moved to
+> make a pair. An end couple with no next neighbours swings each other. Both
+> are user-ruled; the limits in `taxonomy.md` ("The hands fours follow the
+> dancers") are the agent's calls. Against `rubric` at `0ea6dbc8` they took
+> the count from 3,962 of 5,149 to 3,973 of 5,146 compiled in scope (76.9% to
+> 77.2%), and the core set from 530 to 531, losing nothing: 11 dances now
+> compile, among them Prince of Hales (16691) and Bees in a Becket (7978).
+> Three refused dances now reach a deferred figure and leave the scope.
+>
 > **Progressed Improper starts with the 1s below the 2s (2026-11-24)**:
 > Caller's Box's "Duple Minor - Progressed improper" was read as Duple
 > Improper, with a warning. It now has its own start, Duple Improper with the

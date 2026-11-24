@@ -81,7 +81,8 @@ final class Swing extends Operation {
     }
     for (final band in handsFourBands(formation)) {
       for (final pair in _columnPairs(formation, band)) {
-        if (!whoMatches(formation, pair.top, pair.bottom, who)) {
+        if (!whoMatches(formation, pair.top, pair.bottom, who) &&
+            !_endCoupleAlone(formation, band, pair.top, pair.bottom)) {
           return OpError(
             ErrorKind.whoMismatch,
             '${pair.top} and ${pair.bottom} are in swing position in column '
@@ -91,6 +92,23 @@ final class Swing extends Operation {
       }
     }
     return null;
+  }
+
+  /// Whether [a] and [b] are an end couple with no one at [who]'s distance:
+  /// partners standing in swing position in the hands four at an end of the
+  /// set, when the swing names a distance set (`nextNeighbors`, …). They
+  /// swing each other *(user-ruled 2026-11-24: "they swing each other,
+  /// basically")*. Every couple further in still has to match [who].
+  bool _endCoupleAlone(
+    Formation formation,
+    ({int topRow, int bottomRow}) band,
+    DancerId a,
+    DancerId b,
+  ) {
+    if (a.coupleIndex != b.coupleIndex) return false;
+    if (!who.isCrossHandsFour) return false;
+    final bands = handsFourBands(formation);
+    return band == bands.first || band == bands.last;
   }
 
   /// The across facing a dancer in [col] takes to satisfy [face].

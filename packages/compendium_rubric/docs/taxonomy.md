@@ -308,6 +308,21 @@ grid has two phases — aligned to row 0 (`(0,1)`, `(2,3)`, …, nobody out) or 
 shifted phase. Every band-scoped resolver inside the figure then pairs the right dancers
 knowing nothing about any of this.
 
+**The hands fours follow the dancers** *(user-ruled 2026-11-24)*. A figure naming
+`partners` is tried in the phase the set is in; if it is refused because the partners are not
+the ones standing together there (`whoMismatch`), it is danced in the other phase, and the set
+**keeps** that phase for the figures after it. The grouping is found from where the dancers
+stand: nobody is moved to make a pair *(Hudson: "I don't want people 'warping' around")*. When
+neither phase works, or the other phase has no hands four, the refusal from the phase the set
+was in is reported. A figure naming no one (a right and left through, a petronella) is danced in
+whatever phase the set is in. Three limits are the agent's calls, each measured on the Caller's
+Box corpus: `neighbors` is not retried, because it is read from couple numbers and one phase
+over would accept the next neighbours in their place (allowing it gained no dance); shadows and
+the distance sets keep their own rules below and hand their phase back (keeping a shadow
+figure's phase lost five dances); and when shadows stand together in both phases the figure is
+still refused (the 2026-11-22 ruling), although preferring the current phase would compile two
+more dances.
+
 **Which phase: parity of the distance.** A figure naming a distance-*d* set is danced *d*
 places from the phase it was handed, and **always hands that phase back**. The grid has exactly
 two phases, so only `d.isOdd` survives: odd distances dance in the other phase, even distances
@@ -760,7 +775,13 @@ To be defined later with worked examples.
   `CompileError(whoMismatch)`.
   - **`where:sides`:** each dancer must already be **on the same side (column) as their `who`
     dancer** (its column-mate is the `who`-relation). Ex: with column-mates = neighbors,
-    `who:partner` **fails**, `who:neighbor` passes.
+    `who:partner` **fails**, `who:neighbor` passes — unless the partners are column-mates one
+    band phase over, in which case the swing is danced there (see "The hands fours follow the
+    dancers").
+  - **an end couple with no one at the distance:** when the swing names a distance set and the
+    column pair in the hands four at an end of the set is a couple, they swing each other
+    *(user-ruled 2026-11-24: "they swing each other, basically")*. Every pair further in still
+    has to match.
   - **distance sets** (`nextNeighbors`, `thirdNeighbors`, `fourthNeighbors`, `prevNeighbors`):
     **distinguished, and enforced.** The engine checks the named distance against the couples
     actually standing together, using **home grouping** — `coupleIndex ~/ 2`, which the starting
