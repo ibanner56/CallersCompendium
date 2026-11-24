@@ -8882,6 +8882,10 @@
   "@settingsWalkthroughSnippetEditTitle": {
     "x-sourceSha256": "3bb69add7f8cedd554dafcf5dffa6b9e7f2ef850c2ffbb1625a894a89d086131"
   },
+  "danceEditorSetupTitle": "Forfattere, formation og musik",
+  "@danceEditorSetupTitle": {
+    "x-sourceSha256": "9e34fd3970475cdff2b1e9549d74fb2c70ad906078b88a15efd521781e57471a"
+  },
   "danceEditorMoreDetailsTitle": "Flere detaljer",
   "@danceEditorMoreDetailsTitle": {
     "x-sourceSha256": "b5eff1dbd0154de8292af10fe3c9424573c847dcca5320f9828b637639addd2a"

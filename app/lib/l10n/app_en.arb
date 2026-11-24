@@ -11926,6 +11926,10 @@
   "@settingsWalkthroughSnippetEditTitle": {
     "description": "Title of the dialog for editing a saved walkthrough snippet's text (#411)."
   },
+  "danceEditorSetupTitle": "Credits, formation and music",
+  "@danceEditorSetupTitle": {
+    "description": "Title of the dance editor's foldable panel holding the dance's authors (and, for an English dance, interpreters and years), type, formation, progression, rating, phrase structure and the tune's meter and key. Folded, a one-line summary of those values shows under it."
+  },
   "danceEditorMoreDetailsTitle": "More details",
   "@danceEditorMoreDetailsTitle": {
     "description": "Expansion tile title for less frequently used editor metadata fields."

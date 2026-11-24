@@ -9209,6 +9209,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsWalkthroughSnippetEditTitle => 'Modifier l\'extrait';
 
   @override
+  String get danceEditorSetupTitle => 'Crédits, formation et musique';
+
+  @override
   String get danceEditorMoreDetailsTitle => 'Plus de détails';
 
   @override

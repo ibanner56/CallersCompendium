@@ -9156,6 +9156,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsWalkthroughSnippetEditTitle => 'Fragment bewerken';
 
   @override
+  String get danceEditorSetupTitle => 'Makers, formatie en muziek';
+
+  @override
   String get danceEditorMoreDetailsTitle => 'Meer details';
 
   @override

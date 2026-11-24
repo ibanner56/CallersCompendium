@@ -9099,6 +9099,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsWalkthroughSnippetEditTitle => 'Rediger uddrag';
 
   @override
+  String get danceEditorSetupTitle => 'Forfattere, formation og musik';
+
+  @override
   String get danceEditorMoreDetailsTitle => 'Flere detaljer';
 
   @override

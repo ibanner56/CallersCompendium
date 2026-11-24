@@ -13480,6 +13480,12 @@ abstract class AppLocalizations {
   /// **'Edit snippet'**
   String get settingsWalkthroughSnippetEditTitle;
 
+  /// Title of the dance editor's foldable panel holding the dance's authors (and, for an English dance, interpreters and years), type, formation, progression, rating, phrase structure and the tune's meter and key. Folded, a one-line summary of those values shows under it.
+  ///
+  /// In en, this message translates to:
+  /// **'Credits, formation and music'**
+  String get danceEditorSetupTitle;
+
   /// Expansion tile title for less frequently used editor metadata fields.
   ///
   /// In en, this message translates to:

@@ -709,6 +709,16 @@ nothing in it to lose.
 
 ### Details
 
+Under the **Title**, everything else in Details is in one panel, **Credits,
+formation and music**, so the figures are not pushed down the page by fields
+you set once. Folded, it shows a short summary instead, such as *Pat Shaw ·
+English (ECD) · Duple minor · Starts improper · 3/2 · G minor*; tap it to open
+it, and tap its header again to fold it. It starts folded when you edit a
+dance, and when you start one on a phone; it starts open when you start one on
+a wider screen. If **Save** finds a mistake in one of its fields, it opens to
+show you. Inside, fields sit side by side where there is room and one under
+another where there is not.
+
 - **Title** — required.
 - **Authors** — the [author](./glossary.md#author) or authors of the dance.
   Tap the field to open the list of people: check each author, type in the
@@ -721,8 +731,9 @@ nothing in it to lose.
   English dances were published long ago and reconstructed later, as in
   "Walsh, 1731, Pat Shaw version": put the original's author or publisher in
   **Authors** and its year in **Composed**, and the person who reconstructed
-  it, and the year, in the other two. On a narrow screen, or with large text,
-  each year goes under its names. **Interpreted by** draws on the same list of
+  it, and the year, in the other two. On a wide screen the two lines sit side
+  by side; on a narrow screen, or with large text, they stack, and each year
+  goes under its names. **Interpreted by** draws on the same list of
   people as **Authors**. For other types the dates and **Interpreted by** are in **More
   details**, where a date can also have a month and day. The dance's detail
   view and its Perform card show each year beside its names, such as
@@ -736,15 +747,15 @@ nothing in it to lose.
 - **Formation** and **Formation detail** — the shape the dance is danced in, plus
   anything worth adding in words. An English dance offers English formations,
   such as duple minor, triple minor and three-couple longways, with a
-  **Starts improper** checkbox; leave it unchecked for a dance that starts
-  proper. A square offers **Square**, **Circle** for a big-circle dance such
+  **Starts improper** switch under them: tap it on for a dance that starts
+  improper, and leave it off for one that starts proper. A square offers **Square**, **Circle** for a big-circle dance such
   as a running set, and **Other**. Changing the type to one whose list
   doesn't have the dance's formation starts the formation over: on **Duple
   minor** for English, **Improper** for contra, and **Square** for a square.
   A formation both lists have, such as triple minor between contra and
   English or circle between English and square, is kept. Undo brings the
   old formation back.
-- **Mixer** — tick this when the dance is a
+- **Mixer** — tap this on when the dance is a
   [mixer](./glossary.md#mixer): one where you change partners each time through.
   It's kept separate from the formation, because a mixer can be danced in many
   shapes and not every circle is a mixer.
@@ -817,7 +828,8 @@ nothing in it to lose.
   card show them on one line, such as *Meter: 6/8 · Key: G minor*.
 - **Barnes reference** — for an English dance only: where the tune is printed
   in the Barnes books, book and page in one line, such as `BIII p. 92`, or `NiB`
-  when it is not in them. It sits under **Meter** and **Key**. Changing a
+  when it is not in them. It sits beside **Meter** and **Key**, or under them
+  on a narrow screen. Changing a
   dance to another type clears it when you save. The dance's detail view shows it under
   **Barnes books**, and its Perform card as *Barnes: BIII p. 92*.
 

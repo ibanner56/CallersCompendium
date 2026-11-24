@@ -8733,6 +8733,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsWalkthroughSnippetEditTitle => 'スニペットを編集';
 
   @override
+  String get danceEditorSetupTitle => 'クレジット・フォーメーション・音楽';
+
+  @override
   String get danceEditorMoreDetailsTitle => '詳細情報';
 
   @override

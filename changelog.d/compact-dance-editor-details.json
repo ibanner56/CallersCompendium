@@ -1,0 +1,9 @@
+{
+  "id": "compact-dance-editor-details",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "The dance editor gets you to the figures sooner. A dance's credits, type, formation, progression, rating, phrases, meter and key now sit in one panel, Credits, formation and music, that folds to a one-line summary. It starts folded when you edit a dance and when you start one on a phone, and open when you start one on a wider screen. Inside it, fields sit side by side where there is room, and Starts improper and Mixer are switches you tap on and off."
+    ]
+  }
+}

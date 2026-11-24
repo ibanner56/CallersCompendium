@@ -9186,6 +9186,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsWalkthroughSnippetEditTitle => 'Ausschnitt bearbeiten';
 
   @override
+  String get danceEditorSetupTitle => 'Urheber, Formation und Musik';
+
+  @override
   String get danceEditorMoreDetailsTitle => 'Weitere Details';
 
   @override

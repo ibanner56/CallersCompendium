@@ -73,6 +73,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   late DanceEditorController _controller;
   final _formKey = GlobalKey<FormState>();
   final _formScroll = ScrollController();
+  final _setupController = ExpansibleController();
   final _moreDetailsController = ExpansibleController();
 
   /// Per-move insert-time parameter overrides (ROADMAP DD.3), loaded once in
@@ -362,6 +363,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       _controller.removeListener(_onControllerChanged);
       _controller.titleController.removeListener(_syncEditorDialect);
       _controller.dispose();
+      _setupController.dispose();
       _moreDetailsController.dispose();
     }
     // Unblocks a still-suspended `_load()` continuation if the widget is
@@ -466,7 +468,15 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     final hasInvalidCustomFieldNumber = _controller.hasInvalidCustomFieldNumber;
     final formIsValid = _formKey.currentState?.validate() ?? false;
     if (!formIsValid || hasInvalidCustomFieldNumber) {
-      if (hasInvalidCustomFieldNumber) _moreDetailsController.expand();
+      // A field folded away in a panel cannot show its message, so the
+      // panel holding it is opened.
+      if (hasInvalidFieldUnder(_formKey, const ValueKey('setup-tile'))) {
+        _setupController.expand();
+      }
+      if (hasInvalidCustomFieldNumber ||
+          hasInvalidFieldUnder(_formKey, const ValueKey('more-details-tile'))) {
+        _moreDetailsController.expand();
+      }
       // `validate()` has put each message on its own field, and scrolls to
       // none of them, so the first is brought into view here. The
       // custom-number message is the list's first entry, above every field,
@@ -1147,6 +1157,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       controller: _controller,
       formKey: _formKey,
       scrollController: _formScroll,
+      setupController: _setupController,
       moreDetailsController: _moreDetailsController,
       taxonomy: _controller.taxonomy,
       moveParamDefaults: _moveParamDefaults,
