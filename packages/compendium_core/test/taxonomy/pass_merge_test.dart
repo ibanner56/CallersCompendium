@@ -263,14 +263,23 @@ void main() {
       });
     }
 
-    test('a stated new param joins the key', () {
+    // Mutation caught: letting a stated new param into the key, which a pass
+    // entered since v40 always has, so no saved pass snippet would apply to it.
+    test('a stated new param stays out of the key, so a new pass finds the '
+        'snippet saved before', () {
       expect(
-        figureSnippetSignature(f('pass_through', {'who': 'neighbors'}), tax),
-        'pass_through(where=along,who=neighbors)',
+        figureSnippetSignature(
+          f('pass_through', {'who': 'neighbors', 'where': 'along'}),
+          tax,
+        ),
+        'pass_through(where=along)',
       );
       expect(
-        figureSnippetSignature(f('pass_by', {'where': 'across'}), tax),
-        'pass_by(where=across,who=neighbors)',
+        figureSnippetSignature(
+          f('pass_by', {'who': 'neighbors', 'where': 'across'}),
+          tax,
+        ),
+        'pass_by(who=neighbors)',
       );
     });
   });

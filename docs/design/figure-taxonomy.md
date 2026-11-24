@@ -2463,10 +2463,15 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       ("neighbor pass through across"); a pass by keeps its own line ("neighbor
       pass by right shoulders"), now followed by a stated direction. No rebuild
       is owed.
-    - Keys: the walkthrough-snippet signature leaves out a required param that
-      is unstated where omission means that, so every pass keeps its key
-      (`pass_by(who=neighbors)`, `pass_through(where=along)`) and no signature
-      version bump is owed. The re-import diff key (`figureCanonicalKey`) of
+    - Keys: the walkthrough-snippet signature leaves out the param each id
+      gained in the merge (a pass through's `who`, a pass by's `where`)
+      whatever its value, so every pass keeps its key
+      (`pass_by(who=neighbors)`, `pass_through(where=along)`), no signature
+      version bump is owed, and a snippet saved before v40 still applies to a
+      pass entered since, which states both. Snippets therefore still cannot
+      tell a neighbors pass through from a partners one, as before v40 (the
+      session's call, over keying on the new param, which would leave every
+      saved pass snippet unused by new figures). The re-import diff key (`figureCanonicalKey`) of
       both changes to `pass_through` with every effective param, but it is
       computed on both sides of each diff and never stored.
     - Imports: no producer changed. The Caller's Box side-run decoder fills
