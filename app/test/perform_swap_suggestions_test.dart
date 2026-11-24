@@ -168,8 +168,11 @@ class _Ranker {
 }
 
 class _Harness {
-  _Harness(this.ranker, this.edits, this.inPerformSwap);
+  _Harness(this.ranker, this.edits, this.inPerformSwap, this.suggestions);
   final _Ranker ranker;
+
+  /// Suggestions itself, to change while the sheet is open.
+  final ValueNotifier<bool> suggestions;
 
   /// Use in Perform's Swap this dance, to change while the sheet is open.
   final ValueNotifier<bool> inPerformSwap;
@@ -228,7 +231,7 @@ Future<_Harness> _pump(
     ),
   );
   await tester.pumpAndSettle();
-  return _Harness(spy, edits, inSwap);
+  return _Harness(spy, edits, inSwap, enabled);
 }
 
 Finder _inSwap(Finder matching) => find.descendant(
@@ -467,6 +470,181 @@ void main() {
       final edited = h.edits.last!;
       expect(edited.slots.firstWhere((s) => s.id == 's1').danceId, 'g');
       pending.complete(const SuggestionRanking([]));
+    });
+  });
+
+  // CollectionPicker.openSuggested, as the swap sheet uses it. Every ranking
+  // is held by a Completer and released by the test, so nothing depends on
+  // timing: the test waits for a condition, frame by frame.
+  group('the swap sheet stays in Suggested', () {
+    /// A ranker whose answers wait until the test releases them.
+    _Ranker held(List<Completer<SuggestionRanking>> pending) =>
+        _Ranker()
+          ..answer = (_) {
+            final completer = Completer<SuggestionRanking>();
+            pending.add(completer);
+            return completer.future;
+          };
+
+    /// Pumps frames until [condition] holds (the ranking spinner never lets
+    /// pumpAndSettle return while a ranking is held).
+    Future<void> pumpUntil(
+      WidgetTester tester,
+      bool Function() condition,
+    ) async {
+      for (var i = 0; i < 500 && !condition(); i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(condition(), isTrue, reason: 'the condition never held');
+    }
+
+    /// Answers held request [i] with the real scorer, then settles when no
+    /// other ranking is still held.
+    Future<void> release(
+      WidgetTester tester,
+      _Ranker ranker,
+      List<Completer<SuggestionRanking>> pending,
+      int i,
+    ) async {
+      pending[i].complete(rankSuggestions(ranker.requests[i]));
+      if (pending.every((c) => c.isCompleted)) {
+        await tester.pumpAndSettle();
+      } else {
+        await tester.pump();
+      }
+    }
+
+    /// Taps a Keep chip, which sends the picker a new panel request.
+    Future<void> tapKeep(WidgetTester tester, String key) async {
+      await tester.tap(_inSwap(find.byKey(ValueKey(key))));
+      await tester.pump();
+    }
+
+    /// The scorer's order for the swapped current slot, for [sent]'s
+    /// candidates.
+    List<String> scored(SuggestionRequest sent) =>
+        _scorerOrder(sent, SuggestionPosition.replacing(_slots(), 1));
+
+    /// Opens the current slot's swap sheet with a held ranker; returns once
+    /// the first ranking has been asked for, still held.
+    Future<(_Harness, List<Completer<SuggestionRanking>>)> open(
+      WidgetTester tester, {
+      bool suggestions = true,
+    }) async {
+      final pending = <Completer<SuggestionRanking>>[];
+      final h = await _pump(
+        tester,
+        suggestions: suggestions,
+        inPerformSwap: true,
+        ranker: held(pending),
+      );
+      final swap = find.byKey(const ValueKey('adjust-swap-current'));
+      await tester.ensureVisible(swap);
+      await tester.pumpAndSettle();
+      await tester.tap(swap);
+      await pumpUntil(
+        tester,
+        () =>
+            _shown(tester).length == _plainOrder.length + 1 &&
+            (!suggestions || pending.isNotEmpty),
+      );
+      return (h, pending);
+    }
+
+    testWidgets('after a Keep change the new results are ranked again, with '
+        'their reasons', (tester) async {
+      final (h, pending) = await open(tester);
+      await release(tester, h.ranker, pending, 0);
+      expect(_results(tester, pinned: ['alt']), scored(h.ranker.requests[0]));
+      expect(_anyReason, findsNWidgets(_plainOrder.length));
+
+      // Dances already in the program join the results.
+      await tapKeep(tester, 'swap-keep-not-in-program');
+      await pumpUntil(tester, () => pending.length == 2);
+      final sent = h.ranker.requests[1];
+      expect(sent.candidates.map((c) => c.id), containsAll(['d0', 'd2']));
+      await release(tester, h.ranker, pending, 1);
+      final results = _results(tester, pinned: ['alt']);
+      expect(results, scored(sent));
+      expect(results.toSet(), sent.candidates.map((c) => c.id).toSet());
+      for (final id in results) {
+        expect(_reason(id), findsOneWidget, reason: id);
+      }
+    });
+
+    testWidgets('after a plain sort is picked a Keep change stays plain; '
+        'Suggested picked again ranks across later Keep changes', (
+      tester,
+    ) async {
+      final (h, pending) = await open(tester);
+      await release(tester, h.ranker, pending, 0);
+
+      await tester.tap(_inSwap(find.byKey(const ValueKey('picker-sort'))));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Title').last);
+      await tester.pumpAndSettle();
+      expect(_results(tester, pinned: ['alt']), _plainOrder);
+
+      await tapKeep(tester, 'swap-keep-formation');
+      await tester.pumpAndSettle();
+      expect(pending, hasLength(1), reason: 'not ranked again');
+      expect(_results(tester, pinned: ['alt']), _plainOrder);
+      expect(_anyReason, findsNothing);
+
+      await tester.tap(_inSwap(find.byKey(const ValueKey('picker-sort'))));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('sort-suggested')));
+      await pumpUntil(tester, () => pending.length == 2);
+      await release(tester, h.ranker, pending, 1);
+      expect(_anyReason, findsNWidgets(_plainOrder.length));
+
+      await tapKeep(tester, 'swap-keep-not-in-program');
+      await pumpUntil(tester, () => pending.length == 3);
+      await release(tester, h.ranker, pending, 2);
+      final sent = h.ranker.requests[2];
+      expect(_results(tester, pinned: ['alt']), scored(sent));
+      expect(_anyReason, findsNWidgets(sent.candidates.length));
+    });
+
+    testWidgets('a ranking that returns after a Keep change is not shown; '
+        'only the new results\' ranking is', (tester) async {
+      final (h, pending) = await open(tester);
+      // Still held: change the Keep items first.
+      await tapKeep(tester, 'swap-keep-not-in-program');
+      await pumpUntil(tester, () => pending.length == 2);
+      await tester.pump(const Duration(milliseconds: 16));
+      final sent = h.ranker.requests[1];
+      final plain = _results(tester, pinned: ['alt']);
+      expect(plain.toSet(), sent.candidates.map((c) => c.id).toSet());
+
+      // The first ranking, for the old results, comes back late.
+      await release(tester, h.ranker, pending, 0);
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(_results(tester, pinned: ['alt']), plain, reason: 'still plain');
+      expect(_anyReason, findsNothing);
+
+      await release(tester, h.ranker, pending, 1);
+      expect(_results(tester, pinned: ['alt']), scored(sent));
+      expect(_anyReason, findsNWidgets(sent.candidates.length));
+    });
+
+    testWidgets('turning Suggestions on with the sheet open ranks; turning it '
+        'off goes back to the plain order', (tester) async {
+      final (h, pending) = await open(tester, suggestions: false);
+      await tester.pumpAndSettle();
+      expect(pending, isEmpty);
+      expect(_results(tester, pinned: ['alt']), _plainOrder);
+
+      h.suggestions.value = true;
+      await pumpUntil(tester, () => pending.isNotEmpty);
+      await release(tester, h.ranker, pending, 0);
+      expect(_results(tester, pinned: ['alt']), scored(h.ranker.requests[0]));
+      expect(_anyReason, findsNWidgets(_plainOrder.length));
+
+      h.suggestions.value = false;
+      await tester.pumpAndSettle();
+      expect(_results(tester, pinned: ['alt']), _plainOrder);
+      expect(_anyReason, findsNothing);
     });
   });
 }
