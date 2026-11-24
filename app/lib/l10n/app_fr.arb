@@ -8882,6 +8882,10 @@
   "@settingsWalkthroughSnippetEditTitle": {
     "x-sourceSha256": "3bb69add7f8cedd554dafcf5dffa6b9e7f2ef850c2ffbb1625a894a89d086131"
   },
+  "danceEditorSetupTitle": "Crédits, formation et musique",
+  "@danceEditorSetupTitle": {
+    "x-sourceSha256": "9e34fd3970475cdff2b1e9549d74fb2c70ad906078b88a15efd521781e57471a"
+  },
   "danceEditorMoreDetailsTitle": "Plus de détails",
   "@danceEditorMoreDetailsTitle": {
     "x-sourceSha256": "b5eff1dbd0154de8292af10fe3c9424573c847dcca5320f9828b637639addd2a"
@@ -8986,13 +8990,21 @@
   "@danceEditorSingingSubtitle": {
     "x-sourceSha256": "70a3f697343593d8b1292308eb274994010a998fb17f552b10e79fee53b7017d"
   },
+  "danceEditorFreeFormLabel": "Forme libre",
+  "@danceEditorFreeFormLabel": {
+    "x-sourceSha256": "1a031a22354330c7103b5c53f48c8d23778895f261c01fe4afc27c884c773188"
+  },
+  "danceEditorFreeFormSubtitle": "Ne suit aucun phrasé : ni étiquettes de phrase ni vérification des phrases",
+  "@danceEditorFreeFormSubtitle": {
+    "x-sourceSha256": "3d81249be3c062230d9e1eb42314c93a48fd4e39988785c02d567c65f4aa8f92"
+  },
   "danceEditorImproperLabel": "Commence improper",
   "@danceEditorImproperLabel": {
     "x-sourceSha256": "e4dd5166a2d36d72d17f292c5f3b00bbb89544e0a94b5c9658d538d2c89e159e"
   },
-  "danceEditorImproperSubtitle": "Laissez décoché pour une danse qui commence proper.",
+  "danceEditorImproperSubtitle": "Laissez désactivé pour une danse qui commence proper.",
   "@danceEditorImproperSubtitle": {
-    "x-sourceSha256": "55e6931dac76da40b06ac10ab8416ab58539aa4e3cdfb25881f38341ec846e37"
+    "x-sourceSha256": "491b162a317fef1c7a15931783093dcf4dbfccd1e732bce375220f9368ddfee8"
   },
   "danceEditorComposedLabel": "Composée",
   "@danceEditorComposedLabel": {
@@ -9610,6 +9622,94 @@
   "@danceEditorAddSequence": {
     "x-sourceSha256": "03eceea4c67a68c21df3c37e508ebcb7953259ba78fcf81694c9e9680b075ff1"
   },
+  "danceEditorAddFiguresFromText": "Ajouter des figures depuis un texte…",
+  "@danceEditorAddFiguresFromText": {
+    "x-sourceSha256": "f840eaad641ce0221ff1bcd48e035bde5406dc6076eacf3467fe88612c0c2380"
+  },
+  "figureTextSheetTitle": "Ajouter des figures depuis un texte",
+  "@figureTextSheetTitle": {
+    "x-sourceSha256": "16fe82c061e1e702e837551405086ab2837909dd63cca58d58f9203a4325a493"
+  },
+  "figureTextSheetHelp": "Saisissez ou collez une figure par ligne, par exemple « (8) neighbor balance & swing ». Chaque ligne est lue comme le champ du mouvement lit une ligne saisie avec la saisie en texte libre activée, même si elle est désactivée. Rien n’est enregistré tant que vous n’avez pas enregistré la danse.",
+  "@figureTextSheetHelp": {
+    "x-sourceSha256": "b70b8b6217d32cf7ede39377160bdf83e8c8bdc955157327c679396a147589ac"
+  },
+  "figureTextSheetHelpDropsLabels": "Saisissez ou collez une figure par ligne, par exemple « A1 (8) neighbor balance & swing ». Une étiquette de phrase comme A1 en début de ligne est ignorée, et chaque ligne est lue comme le champ du mouvement lit une ligne saisie avec la saisie en texte libre activée, même si elle est désactivée. Rien n’est enregistré tant que vous n’avez pas enregistré la danse.",
+  "@figureTextSheetHelpDropsLabels": {
+    "x-sourceSha256": "b7c9b5a463322917bfc2bc008a83faba9c4b6e26fe2ec7f5853b365d025d033e"
+  },
+  "figureTextSheetFieldLabel": "Figures, une par ligne",
+  "@figureTextSheetFieldLabel": {
+    "x-sourceSha256": "cd213fb222337413dbd6b8cf0c55a645a877803a9d514338d72e276d2b8fbf39"
+  },
+  "figureTextSheetSummary": "{count, plural, =0{Aucune figure à ajouter pour l’instant} =1{1 figure à ajouter} other{{count} figures à ajouter}}",
+  "@figureTextSheetSummary": {
+    "x-sourceSha256": "8d628e840de30c093887423e7f1d919896e3bb934d2e8856bdf02ba9d3673733"
+  },
+  "figureTextSheetUnrecognizedSummary": "{count, plural, =1{1 ligne n’est pas reconnue. Elle sera ajoutée comme figure non reconnue avec son texte, pour que vous la corrigiez.} other{{count} lignes ne sont pas reconnues. Elles seront ajoutées comme figures non reconnues avec leur texte, pour que vous les corrigiez.}}",
+  "@figureTextSheetUnrecognizedSummary": {
+    "x-sourceSha256": "c8437f40374bbc82b0a64d4ff94ab7ce5f2748c5d770c23cdbf0dc43431520ac"
+  },
+  "figureTextSheetLineFigures": "{count, plural, =0{Aucune figure} =1{1 figure} other{{count} figures}}",
+  "@figureTextSheetLineFigures": {
+    "x-sourceSha256": "3ec133f2233551118a818c5261143fa56975820a7f6ab52e3ee33ceac9fd3b27"
+  },
+  "figureTextSheetLineUnrecognized": "Non reconnue : ajoutée comme figure non reconnue",
+  "@figureTextSheetLineUnrecognized": {
+    "x-sourceSha256": "bc1388947433658b1995ad75b92db5183b3fcedb17225879f503b202423529e6"
+  },
+  "figureTextSheetTooLong": "Cela dépasse {max} caractères, plus que ce qui peut être lu en une fois. Rien ne sera ajouté. Ajoutez-le en plusieurs fois.",
+  "@figureTextSheetTooLong": {
+    "x-sourceSha256": "7fa1be36660f7294a0e3098d01851077618d38453897a1c033bf072b2b93c5d7"
+  },
+  "figureTextSheetTooManyLines": "Cela dépasse {max} lignes, plus que ce qui peut être lu en une fois. Rien ne sera ajouté. Ajoutez-le en plusieurs fois.",
+  "@figureTextSheetTooManyLines": {
+    "x-sourceSha256": "7905bde0cab940e87a1c4f3d237e0642b7d323190936e1280a368ecf679835cf"
+  },
+  "figureTextSheetLineTooLong": "Une ligne dépasse {max} caractères, plus que ce qui peut être lu comme une ligne de figure. Rien ne sera ajouté. Coupez-la en plusieurs lignes.",
+  "@figureTextSheetLineTooLong": {
+    "x-sourceSha256": "788a83f3a7ef068c39e41cd604a9ce2936d1f2332e956c9d27d823ba1f93a847"
+  },
+  "figureTextSheetAdd": "Ajouter les figures",
+  "@figureTextSheetAdd": {
+    "x-sourceSha256": "5b26f322f63864bc8538081ffb00549cd3359633df43ad71178bdd627f0bd9b7"
+  },
+  "figureTextSheetFromImage": "À partir d’une image…",
+  "@figureTextSheetFromImage": {
+    "x-sourceSha256": "dd6ac7c7817e072d8f4fd986c8d3378ea6f0d45dbb856b1c69a01a97b4734964"
+  },
+  "figureTextSheetReadingImage": "Lecture de l’image…",
+  "@figureTextSheetReadingImage": {
+    "x-sourceSha256": "be307d1b34cfc5f81c61c434df7f63403aa59cb2851ebd760f9d031319d2361b"
+  },
+  "figureTextSheetImageUnavailable": "Cet appareil ne peut pas lire le texte des images dans la langue de l’app ni en anglais.",
+  "@figureTextSheetImageUnavailable": {
+    "x-sourceSha256": "d990a1bae0df59cb352eb2e47fd76f3fba5565e08229612222edb489f31836cf"
+  },
+  "figureTextSheetImageEnglishOnly": "Cet appareil lit les images en anglais, pas dans la langue de l’app.",
+  "@figureTextSheetImageEnglishOnly": {
+    "x-sourceSha256": "bd0891d06fd0e811fafa2c4d42d4ead78224080a6bdb22ad36a59bdd8fe4ae8d"
+  },
+  "figureTextSheetImageTooLarge": "Cette image dépasse {limit} Mo, elle n’a donc pas été lue. Choisissez-en une plus petite.",
+  "@figureTextSheetImageTooLarge": {
+    "x-sourceSha256": "1bb69766d216ed5cb9684a05e78700f2dbb36387e7357e871b9d03fec1dcb7ab"
+  },
+  "figureTextSheetImageTooManyPixels": "Cette image a trop de pixels pour être lue. Choisissez-en une plus petite, ou recadrez-la.",
+  "@figureTextSheetImageTooManyPixels": {
+    "x-sourceSha256": "b50a0545135cdaba32030e933955ed45f156fdb1f439a92ec17de47fc8cd4fbd"
+  },
+  "figureTextSheetImageUnreadable": "Ce fichier n’est pas une image que cet appareil peut ouvrir.",
+  "@figureTextSheetImageUnreadable": {
+    "x-sourceSha256": "0dac83a132c45d04835392cb021c627112c8127ea3f7542fb5e5f01d981a2e80"
+  },
+  "figureTextSheetImageNoText": "Aucun texte n’a été trouvé dans cette image.",
+  "@figureTextSheetImageNoText": {
+    "x-sourceSha256": "70c2f81285a31cf551ec4673df6cdf571ae387d10aa497c1e53764752bb212e5"
+  },
+  "figureTextSheetImageFailed": "Le texte de l’image n’a pas pu être lu.",
+  "@figureTextSheetImageFailed": {
+    "x-sourceSha256": "14449d451f327587d0d60907d54377246b50588e6cf4ae87a5df11ed78f9d5fc"
+  },
   "danceEditorPasteAtEndOfFigureList": "Coller à la fin de la liste des figures",
   "@danceEditorPasteAtEndOfFigureList": {
     "x-sourceSha256": "5fb0b2b7335edd026fe96ab368850eb36c66826ba99ec38674181575aa24c07c"
@@ -9893,6 +9993,10 @@
   "danceEditorLingoStylingHelper": "Les noms de mouvements sont soulignés en pointillés, les termes de rôles soulignés et les termes déconseillés barrés",
   "@danceEditorLingoStylingHelper": {
     "x-sourceSha256": "dad9477c721781411e575d8ab7388d8d97b37402d9399db55fad5096e3c992ca"
+  },
+  "danceEditorBeatTotalFreeForm": "{total, plural, =1{Total : 1 temps} other{Total : {total} temps}}",
+  "@danceEditorBeatTotalFreeForm": {
+    "x-sourceSha256": "a1cfbb9bd59bce9b9b0d49d0c2b52224055e648f0c2206584d0ffb345d4b2a88"
   },
   "danceEditorBeatTotal": "Total : {total} / {expected} temps",
   "@danceEditorBeatTotal": {
@@ -12650,6 +12754,14 @@
   "@settingsSuggestionsEnabledSubtitle": {
     "x-sourceSha256": "193f4023841f384da42426d70da634dc5d4d49ee61e7badccda4d0a10b121202"
   },
+  "settingsSuggestionsInPerformSwapTitle": "Utiliser pour Échanger cette danse en mode Perform",
+  "@settingsSuggestionsInPerformSwapTitle": {
+    "x-sourceSha256": "2861517a06444df39f4337868669d82b0a2bd4e15b3a3074720c693e1e52df56"
+  },
+  "settingsSuggestionsInPerformSwapSubtitle": "Quand vous échangez une danse en mode Perform, liste les danses sous Vos alternatives dans l’ordre qui convient le mieux à cette place du programme, et dit pourquoi. Rien n’est écarté.",
+  "@settingsSuggestionsInPerformSwapSubtitle": {
+    "x-sourceSha256": "d650f25a86c80aab53d7f25b39160a67720bfc35ec3731055b4cb954c973c28e"
+  },
   "settingsSuggestionsEditorTitle": "Ce que regardent les suggestions",
   "@settingsSuggestionsEditorTitle": {
     "x-sourceSha256": "5859a799e7233f4a514956f7dc4ed8e54d2f54a2c8ad0b123a83872d2b580f0f"
@@ -13250,6 +13362,122 @@
   "@exportCsvPayHiddenNotice": {
     "x-sourceSha256": "7211fa66aebc90d9f812f84eb5311ec7ce3c9492040b40a47ae3cce07f2f9e6d"
   },
+  "performSwapThisDance": "Échanger cette danse",
+  "@performSwapThisDance": {
+    "x-sourceSha256": "c111607bdcc160350dd927de458d5fbbec46ca39c6cfd0b5f5e0b46d836d264f"
+  },
+  "performSwapDanceNamed": "Échanger {title}",
+  "@performSwapDanceNamed": {
+    "x-sourceSha256": "0591a41e96632554cfbec4cf694d77711a635de5315f20ce9ada6f473c5389ac"
+  },
+  "performSwappedAnnounce": "{title} mise à la place",
+  "@performSwappedAnnounce": {
+    "x-sourceSha256": "f3f1e4aed0f981809bb0368c4869c4eb34adc82780b45bbf79f37d90be015c34"
+  },
+  "performSwapKeepHeader": "Conserver",
+  "@performSwapKeepHeader": {
+    "x-sourceSha256": "183f00f483d3844e875d26eac74c676054383aef38ed5a8e4d1505ef21008585"
+  },
+  "performSwapKeepFormation": "Même formation : {formation}",
+  "@performSwapKeepFormation": {
+    "x-sourceSha256": "d7ec9345df3d1f0a62294ad628d82c747fe44db1c919b9f2c56ecfb918dc2100"
+  },
+  "performSwapKeepLevel": "Ce niveau ou plus facile : {level}",
+  "@performSwapKeepLevel": {
+    "x-sourceSha256": "c7f77c70ac4408a4071c047f4a94100fd38674248e8300019246dd54e9a903b4"
+  },
+  "performSwapKeepType": "Même type : {type}",
+  "@performSwapKeepType": {
+    "x-sourceSha256": "c0cb476747261e0d6f8a308badb546df523f2c702b9545c0fb09aa2d0591ff95"
+  },
+  "performSwapKeepNotInProgram": "Pas déjà dans le programme de ce soir",
+  "@performSwapKeepNotInProgram": {
+    "x-sourceSha256": "be434791939447608dec62aa7ce7c3306d69f18ed248919882ed178d752bb393"
+  },
+  "performSwapFiguresHeader": "Figures à conserver",
+  "@performSwapFiguresHeader": {
+    "x-sourceSha256": "aa66d205559c0458a3596aceb1f8d440cb2088d2f0df3ac2f98d03285d24ac22"
+  },
+  "performSwapFigureInPhrase": "{figure} en {phrase}",
+  "@performSwapFigureInPhrase": {
+    "x-sourceSha256": "6fe5e0f91214e4b626f284d5278b4627a20bcb163a30b4a6c3d87d45498b542d"
+  },
+  "performSwapKeepFigureSemantic": "Conserver {figure}",
+  "@performSwapKeepFigureSemantic": {
+    "x-sourceSha256": "03d54a6a036fa5ec9787f11fbaadcd4bffd21e2fc0a23d65b49e9fef8656f106"
+  },
+  "performSwapSamePhrase": "Dans la même phrase ({phrase})",
+  "@performSwapSamePhrase": {
+    "x-sourceSha256": "218f6e3e4c2651d3a4d8e4b7a5a8fdd4b6aea7efa25671704eb00eea30bfa8f9"
+  },
+  "performSwapSamePhraseSemantic": "Conserver {figure} dans la même phrase, {phrase}",
+  "@performSwapSamePhraseSemantic": {
+    "x-sourceSha256": "3145ba0d0256dce1f7e7212076359d7c1fc8e07b0c85861ff5bbea4ca9fd34d9"
+  },
+  "performSwapWithBefore": "Avec ce qui la précède ({figure})",
+  "@performSwapWithBefore": {
+    "x-sourceSha256": "187b5dc3be47dda387e623d23e3f4ef4aad4a89eceabbc2ff06246d23d8090e4"
+  },
+  "performSwapWithBeforeSemantic": "Conserver {figure} juste après {before}",
+  "@performSwapWithBeforeSemantic": {
+    "x-sourceSha256": "54349c28769552b0ef5a150c2c291a1c4dbfc5c92f10941a48e53b5a4b82c0ca"
+  },
+  "performSwapMoreFilters": "Plus de filtres",
+  "@performSwapMoreFilters": {
+    "x-sourceSha256": "b1ab49a6fedc4d334a37dc3da5bfe172ab72d0944e4e51f316d11a2a75b99fc7"
+  },
+  "performSwapKeepInPanels": "Les autres choix à conserver sont maintenant dans Filtres et Avancé.",
+  "@performSwapKeepInPanels": {
+    "x-sourceSha256": "ecfe9dad2d04adad8177df3a3be5ef6e6be3dd59020276ddbb201fedbd81fa75"
+  },
+  "performSwapEnglishNote": "Pour les danses anglaises, la même formation et les précisions sur les figures ne sont pas encore proposées.",
+  "@performSwapEnglishNote": {
+    "x-sourceSha256": "dde5c1fddc3cb65a8bc62fe4684beb58a8e7ba7ffeec763980aff222cb2c41ec"
+  },
+  "performSwapAlternatesHeading": "Vos alternatives",
+  "@performSwapAlternatesHeading": {
+    "x-sourceSha256": "03361ce91f4284c5e91d49b19007a51e3f044868254103fa49e8a0d90e77a9a5"
+  },
+  "performSwapResultsHeading": "Danses correspondantes",
+  "@performSwapResultsHeading": {
+    "x-sourceSha256": "57d1b7c78aa3bcdc4cefed7536863f6187b0cdd701bd866eb819aa9ea7445248"
+  },
+  "performSwapRefused": "Ce programme a été modifié sur un autre appareil : l’une de vos modifications n’a donc pas été enregistrée. Vérifiez le programme et refaites-la si vous le souhaitez toujours.",
+  "@performSwapRefused": {
+    "x-sourceSha256": "bff07f1000f8c282777aee0febdea8672296cfa8345aa1f19d728328ecab6bf5"
+  },
+  "settingsPerformSwapTitle": "Échanger une danse",
+  "@settingsPerformSwapTitle": {
+    "x-sourceSha256": "e892cbf90746d0f5694e8ea42e38375d7706b1aec52e295ca46dc7149a5f0db7"
+  },
+  "settingsPerformSwapSubtitle": "Choisissez les choix à conserver activés quand vous échangez une danse en mode Perform.",
+  "@settingsPerformSwapSubtitle": {
+    "x-sourceSha256": "093a12b31d4b618c56bd82daffc64298ee251716c3486a90a380f587b781df0e"
+  },
+  "settingsPerformSwapFormation": "Même formation",
+  "@settingsPerformSwapFormation": {
+    "x-sourceSha256": "4e9a14a575b317860b43a67699036904f8d731db4b52e5e543e650c27bf7dd1f"
+  },
+  "settingsPerformSwapLevel": "Ce niveau ou plus facile",
+  "@settingsPerformSwapLevel": {
+    "x-sourceSha256": "c8db678f12f4724468f294a4a42ac3c0be07f2bd139795ac5d7124945f33a59a"
+  },
+  "settingsPerformSwapType": "Même type",
+  "@settingsPerformSwapType": {
+    "x-sourceSha256": "74d6cfee24005aec61965c8b818191bece6146e67d7db1e941e298cf815777fa"
+  },
+  "settingsPerformSwapTypeSubtitle": "Proposé seulement dans un programme qui mélange les types, comme des contras et des danses anglaises.",
+  "@settingsPerformSwapTypeSubtitle": {
+    "x-sourceSha256": "d477c65b9b06d3c267eb941d0ad97e19db2b427277abf2a21193e81e860436d4"
+  },
+  "settingsPerformSwapNewerVersion": "Ces choix ont été enregistrés par une version plus récente de l’application. Cette version utilise ses choix de départ, tous activés, et n’écrasera pas les vôtres. Mettez l’application à jour pour les modifier.",
+  "@settingsPerformSwapNewerVersion": {
+    "x-sourceSha256": "96ac44b0564bd59fdb1a23ea224abfc09144b09558df30d58c12f74d67dc1b30"
+  },
+  "settingsPerformSwapReadError": "Vos choix pour « Échanger une danse » n’ont pas pu être lus et ne peuvent pas être modifiés pour l’instant. Fermez cet écran et réessayez.",
+  "@settingsPerformSwapReadError": {
+    "x-sourceSha256": "639bb23bf8d638bbe909bbd0c2060faf16c5b7af09edd63ddec51439436e0427"
+  },
   "collectionRepertoireMenuItem": "Répertoire",
   "@collectionRepertoireMenuItem": {
     "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
@@ -13429,6 +13657,62 @@
   "importCsvPickFile": "Choisir un fichier CSV…",
   "@importCsvPickFile": {
     "x-sourceSha256": "3bb43e45815cd926a5fdc5fc234a382e7ca35f88ece0d4f9d4ea4abf1a867690"
+  },
+  "importSourceLabelTextDocument": "Votre propre fichier texte ou Markdown",
+  "@importSourceLabelTextDocument": {
+    "x-sourceSha256": "b82e1c3bc4a3756645ff8d0db9a4fc78dc203aee7daa42b21ef3de1476a7a06a"
+  },
+  "importTextHint": "Choisissez un fichier .txt ou .md. Commencez chaque danse par un titre (## Title), ou par son titre après une ligne vide. Mettez les détails sur des lignes « Label: value » (Formation: Improper) et une figure par ligne (A1 (8) Neighbor swing).",
+  "@importTextHint": {
+    "x-sourceSha256": "d179b5ab74145d2de4bfe01f731e2c4e284b6a18d318ca80c1b34b338f68740a"
+  },
+  "importTextPickFile": "Choisir un fichier texte ou Markdown…",
+  "@importTextPickFile": {
+    "x-sourceSha256": "fa98f057a4a28239990f650477688807696b4c1c021cdb024fb87bfb209377cd"
+  },
+  "importTextMapTitle": "Associer les étiquettes",
+  "@importTextMapTitle": {
+    "x-sourceSha256": "51d6189c02562c2748d7e81b93a37a6c83fc22cd6b38375a3074171e93c79acd"
+  },
+  "importTextMapIntro": "Choisissez ce que contient chaque étiquette de votre fichier. Une étiquette qu’aucun champ ne prend est conservée dans les notes d’appel avec son nom ; choisissez Ignorer pour la laisser de côté. Rien n’est ajouté tant que vous n’avez pas vérifié et confirmé.",
+  "@importTextMapIntro": {
+    "x-sourceSha256": "c164ccec57083360c7aeee87a0ad5beaeae0dc2c31076d3609876c69f715f269"
+  },
+  "importTextDanceStartLabel": "Chaque danse commence à",
+  "@importTextDanceStartLabel": {
+    "x-sourceSha256": "639a3248969fee5709ab292bec14051fee038813f5a12eb1e0f19b98978884c5"
+  },
+  "importTextDanceStartHeading": "Un intertitre {marks}",
+  "@importTextDanceStartHeading": {
+    "x-sourceSha256": "878e3677a673deb6f113d8818d1d90f5ddaf6dc70c18d194e0a1ee9996d48333"
+  },
+  "importTextDanceStartBlankLine": "Un titre après une ligne vide",
+  "@importTextDanceStartBlankLine": {
+    "x-sourceSha256": "1e3d1952578a42f1adc62b109faae27dc63fea4d27ca663fcfb52e498917c26e"
+  },
+  "importTextTargetLabelledNotes": "Notes d’appel, avec l’étiquette",
+  "@importTextTargetLabelledNotes": {
+    "x-sourceSha256": "81e01305126cd88776779264c7195ec7477be4a8b5e43192e472e9f68ae75f73"
+  },
+  "importTextNotUtf8": "Ce fichier n’est pas enregistré en texte UTF-8, les lettres accentuées arriveraient donc mal. Enregistrez-le à nouveau en texte UTF-8 et choisissez ce fichier.",
+  "@importTextNotUtf8": {
+    "x-sourceSha256": "db5198188221007b4dd964bf20367e624a06d33b5901c420135bc60edb6b1fde"
+  },
+  "importTextTooManyDances": "Ce fichier contient plus de {limit} danses. Divisez-le en fichiers plus petits.",
+  "@importTextTooManyDances": {
+    "x-sourceSha256": "b1f27144df9b89a96fc21d765465283b574c5162a69bea582ec4878d2bd9b0cc"
+  },
+  "importTextLineTooLong": "Une ligne de ce fichier dépasse {limit} caractères.",
+  "@importTextLineTooLong": {
+    "x-sourceSha256": "5a8f42c559af2e534c3603d62c1ff89541ceb05a12ee0f2a6cf13559c0648b52"
+  },
+  "importTextDanceTooLong": "Une danse de ce fichier dépasse {limit} caractères de figures, de notes ou d’un détail.",
+  "@importTextDanceTooLong": {
+    "x-sourceSha256": "d53da53bd9602901b5a458298be0f37213340029771e23743d58a95a6097b56a"
+  },
+  "importTextTooManyLabels": "Ce fichier utilise plus de {limit} étiquettes différentes.",
+  "@importTextTooManyLabels": {
+    "x-sourceSha256": "2fbfd9e7107e7372dd8d6be7d8607d4deb6596588fcdfcd195b2f9e00be4c5af"
   },
   "importCsvSaveAsHint": "Dans votre tableur, choisissez Fichier ▸ Enregistrer sous (ou Télécharger) et « CSV UTF-8 », puis choisissez ce fichier ici.",
   "@importCsvSaveAsHint": {

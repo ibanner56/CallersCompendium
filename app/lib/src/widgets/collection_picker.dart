@@ -66,9 +66,10 @@ import 'search_panel_bar.dart';
 /// current results, ranked off the UI thread for that position (the end of
 /// the program, the place an add before or after a slot lands, or the slot
 /// **Replace…** fills, #2344), each with a reason line and a **Why?**
-/// action. The picker never
-/// opens in it, and ranking only reorders: until it finishes the results show
-/// in the plain order, and a tap adds a dance either way.
+/// action. The picker opens in it only for a host that asks
+/// ([openSuggested], Perform's swap sheet, #2348), and ranking only reorders:
+/// until it finishes the results show in the plain order, and a tap adds a
+/// dance either way.
 ///
 /// Unlike [DanceListScreen] this is a plain embeddable widget (no [Scaffold]/
 /// app bar): it renders inline as the builder's right pane on wide layouts, or
@@ -102,7 +103,14 @@ class CollectionPicker extends StatefulWidget {
     this.excludedDanceIds = const {},
     this.rankSuggestions,
     this.clock = const SearchClock(),
+    this.showSearchControls = true,
+    this.initialPanel,
+    this.header,
+    this.pinned,
+    this.offerSuggested = true,
+    this.openSuggested = false,
     this.panelState,
+    this.onSortChanged,
   });
 
   /// Preloaded collection vocabulary/dances (loaded once by the builder and
@@ -214,6 +222,38 @@ class CollectionPicker extends StatefulWidget {
   /// saving a search: the caller's own calendar day. A test seam.
   final SearchClock clock;
 
+  /// Whether the search field and the row of search tools show. A host whose
+  /// own controls set the query ([panelState]) can hide them until the
+  /// user asks for them; the results, their count and the sort show either
+  /// way.
+  final bool showSearchControls;
+
+  /// The search tool that is open when the tools first show, unless the user
+  /// already chose one on this route.
+  final PickerSearchPanel? initialPanel;
+
+  /// Scrolls with the results, above the search tools: the host's own
+  /// controls for the query, such as the swap sheet's **Keep** items.
+  final Widget? header;
+
+  /// Dances listed first under a heading of their own, whatever the query,
+  /// and left out of the results below (the swap sheet's **Your
+  /// alternates**). Rows act as result rows do.
+  final PickerPinnedDances? pinned;
+
+  /// Whether the Sort menu may offer **Suggested** at all. False keeps a host
+  /// that passes a [programContext] position for other reasons on the plain
+  /// orders.
+  final bool offerSuggested;
+
+  /// Whether the picker shows **Suggested** whenever it is offered, without
+  /// the user choosing it (#2348): from the start, after each [panelState]
+  /// request, and when Suggestions is turned on, until the user picks another
+  /// sort here, and again once they choose Suggested. Ranking still only
+  /// reorders, and the plain order shows until it finishes. False, as in the
+  /// program builder, the picker never opens in Suggested.
+  final bool openSuggested;
+
   /// A search for the picker to show: its text, **Search in**, every filter,
   /// the By phrase rows, the Advanced tree and the sort with its direction,
   /// exactly ([CollectionPanelState]), in place of whatever it shows.
@@ -234,8 +274,36 @@ class CollectionPicker extends StatefulWidget {
   /// to the program).
   final CollectionPanelRequest? panelState;
 
+  /// Called when the user picks a sort or flips its direction here, so a
+  /// host that sends a later [panelState] can carry the sort being looked at
+  /// in it (a request replaces the sort too). Not called for a sort a
+  /// request or the opening-sort read sets.
+  final void Function(CollectionSort sort, SortDirection direction)?
+  onSortChanged;
+
   @override
   State<CollectionPicker> createState() => _CollectionPickerState();
+}
+
+/// The search tools a [CollectionPicker] can open with
+/// ([CollectionPicker.initialPanel]).
+enum PickerSearchPanel { filters, byPhrase, advanced }
+
+/// Dances a [CollectionPicker] lists first, under [heading], above the
+/// results, which then go under [resultsHeading].
+@immutable
+class PickerPinnedDances {
+  const PickerPinnedDances({
+    required this.heading,
+    required this.resultsHeading,
+    required this.danceIds,
+  });
+
+  final String heading;
+  final String resultsHeading;
+
+  /// In the order listed. An id the collection does not hold is skipped.
+  final List<String> danceIds;
 }
 
 /// A one-shot request to show [state] in a [CollectionPicker]; see
@@ -356,6 +424,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
   // search, or a new position (#2344), shows plain again until re-ranked, so
   // a ranking for one place never shows for another.
   bool _suggested = false;
+  // The user picked a plain sort here since Suggested last showed, which
+  // [CollectionPicker.openSuggested] then leaves alone.
+  bool _plainSortChosen = false;
   SuggestionRanking? _ranking;
   Map<String, RankedSuggestion> _rankById = const {};
   List<DanceListEntry>? _rankedFor;
@@ -426,6 +497,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
     // Whatever was loaded is not on screen any more; the dropdown says
     // which saved search this is, once it has applied it.
     _loadedSearch = null;
+    // A host that asks for Suggested gets it back in didUpdateWidget (or,
+    // for the first request, didChangeDependencies), and the search that
+    // follows ranks.
     _leaveSuggested();
     // Best match that is no longer offered falls back to Title.
     final (:sort, :direction) = state.effectiveSort;
@@ -498,12 +572,27 @@ class _CollectionPickerState extends State<CollectionPicker> {
     _userFigures = userFigures;
     _suggestionsEnabled = enabled;
     if (!enabled && _suggested) _leaveSuggested();
+    // Turned on while the picker is open: the caller sees no search, so rank
+    // what shows (a first search, not started yet, ranks by itself).
+    if (_openSuggestedIfAsked() && _started && !_searching) unawaited(_rank());
     return changed;
+  }
+
+  /// Shows Suggested if the host asks for it ([CollectionPicker.openSuggested])
+  /// and it is offered, unless the user picked a plain sort here. Returns
+  /// whether it changed to Suggested; the caller ranks, or a search does.
+  bool _openSuggestedIfAsked() {
+    if (!widget.openSuggested || _suggested || _plainSortChosen) return false;
+    if (!_suggestedAvailable) return false;
+    _suggested = true;
+    return true;
   }
 
   /// Whether the Sort menu offers Suggested.
   bool get _suggestedAvailable =>
-      _suggestionsEnabled && widget.programContext?.position != null;
+      widget.offerSuggested &&
+      _suggestionsEnabled &&
+      widget.programContext?.position != null;
 
   /// Back to the plain order, dropping any ranking in flight.
   void _leaveSuggested() {
@@ -587,10 +676,10 @@ class _CollectionPickerState extends State<CollectionPicker> {
         oldWidget.dialect != widget.dialect ||
         oldWidget.enrichment != widget.enrichment ||
         !setEquals(oldWidget.excludedDanceIds, widget.excludedDanceIds);
+    // One search for this update, however many of its inputs changed.
     if (searchInputsChanged && !_onlineEnabled) {
       _runSearch();
-    }
-    if (panelApplied ||
+    } else if (panelApplied ||
         onlineDisabled ||
         ((dataChanged || hostOverrideAdvanced) &&
             !_onlineEnabled &&
@@ -601,7 +690,15 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _onlineSeq++;
       _runOnlineSearch();
     }
-    if (oldWidget.programContext != widget.programContext && _suggested) {
+    if (_suggested && !_suggestedAvailable) {
+      // No longer offered (the host turned it off): back to the plain order.
+      setState(_leaveSuggested);
+    } else if (_openSuggestedIfAsked() && !_searching) {
+      // Asked for again (after a new panel request, or newly asked for): a
+      // search still running ranks when it lands; with none, rank now.
+      unawaited(_rank());
+    } else if (oldWidget.programContext != widget.programContext &&
+        _suggested) {
       if (widget.programContext?.position == null) {
         setState(_leaveSuggested);
       } else if (!dataChanged && !searchInputsChanged) {
@@ -726,15 +823,17 @@ class _CollectionPickerState extends State<CollectionPicker> {
         for (final entry in _importedChoreographers.entries)
           entry.key: entry.value.name,
       };
+      final pinnedIds = {...?widget.pinned?.danceIds};
       setState(() {
         _results = [
           for (final id in ids)
             if (!widget.excludedDanceIds.contains(id))
-              if (_latestDanceFor(id, data) case final dance?)
-                data.entryFor(
-                  dance,
-                  choreographerNamesOverride: choreographerNamesOverride,
-                ),
+              if (!pinnedIds.contains(id))
+                if (_latestDanceFor(id, data) case final dance?)
+                  data.entryFor(
+                    dance,
+                    choreographerNamesOverride: choreographerNamesOverride,
+                  ),
         ];
         _searching = false;
       });
@@ -793,10 +892,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
   void _selectSort(CollectionSort value) {
     setState(() {
       _sortUserSet = true;
+      _plainSortChosen = true;
       _leaveSuggested();
       _sort = value;
       _sortDir = value.searchSort.defaultDirection;
     });
+    widget.onSortChanged?.call(_sort, _sortDir);
     _runSearch();
   }
 
@@ -806,6 +907,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     if (_suggested) return;
     setState(() {
       _sortUserSet = true;
+      _plainSortChosen = false;
       _suggested = true;
     });
     unawaited(_rank());
@@ -954,6 +1056,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
           ? SortDirection.descending
           : SortDirection.ascending;
     });
+    widget.onSortChanged?.call(_sort, _sortDir);
     _runSearch();
   }
 
@@ -1428,38 +1531,40 @@ class _CollectionPickerState extends State<CollectionPicker> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                AppSpacing.sm,
-                AppSpacing.md,
-                0,
-              ),
-              child: SearchFieldWithScope(
-                searchField: searchField,
-                scopeField: SearchScopeField(
-                  fieldKey: const ValueKey('picker-search-scope'),
-                  scope: _ftsScope,
-                  online: _onlineEnabled,
-                  onChanged: _onFtsScopeChanged,
-                  border: const OutlineInputBorder(),
+            if (widget.showSearchControls)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  AppSpacing.sm,
+                  AppSpacing.md,
+                  0,
+                ),
+                child: SearchFieldWithScope(
+                  searchField: searchField,
+                  scopeField: SearchScopeField(
+                    fieldKey: const ValueKey('picker-search-scope'),
+                    scope: _ftsScope,
+                    online: _onlineEnabled,
+                    onChanged: _onFtsScopeChanged,
+                    border: const OutlineInputBorder(),
+                  ),
                 ),
               ),
-            ),
             Expanded(
               child: CustomScrollView(
                 controller: widget.scrollController,
                 slivers: [
                   SliverList(
                     delegate: SliverChildListDelegate([
-                      _buildSearchPanels(data),
+                      ?widget.header,
+                      if (widget.showSearchControls) _buildSearchPanels(data),
                       _buildResultCount(),
                       const Divider(height: 1),
                     ]),
                   ),
                   _onlineEnabled
                       ? _buildOnlineResultsSliver()
-                      : _buildResultsSliver(),
+                      : _buildLocalResultsSliver(),
                 ],
               ),
             ),
@@ -1516,6 +1621,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final byPhraseActive = _byPhraseActiveCount();
     final panelBar = SearchPanelBar(
       storageId: 'picker',
+      initialOpen: switch (widget.initialPanel) {
+        null => null,
+        PickerSearchPanel.filters => const ValueKey('picker-filters-panel'),
+        PickerSearchPanel.byPhrase => const ValueKey('picker-by-phrase-panel'),
+        PickerSearchPanel.advanced => const ValueKey('picker-advanced-panel'),
+      },
       trailing: widget.enableOnlineSearch
           ? OnlineSearchToggle(
               key: const ValueKey('picker-online-search-enable'),
@@ -1761,6 +1872,52 @@ class _CollectionPickerState extends State<CollectionPicker> {
           ],
         ],
       ),
+    );
+  }
+
+  /// The local results, after the [CollectionPicker.pinned] dances under
+  /// their own heading when there are any.
+  Widget _buildLocalResultsSliver() {
+    final pinned = widget.pinned;
+    final data = widget.data;
+    final pinnedEntries = pinned == null
+        ? const <DanceListEntry>[]
+        : [
+            for (final id in pinned.danceIds)
+              if (_latestDanceFor(id, data) case final dance?)
+                if (dance.deletedAt == null)
+                  data.entryFor(
+                    dance,
+                    choreographerNamesOverride:
+                        widget.choreographerNamesOverride,
+                  ),
+          ];
+    if (pinned == null || pinnedEntries.isEmpty) return _buildResultsSliver();
+    Widget heading(String text, Key key) => SliverToBoxAdapter(
+      child: Semantics(
+        header: true,
+        child: Padding(
+          key: key,
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.sm,
+            AppSpacing.md,
+            AppSpacing.xxs,
+          ),
+          child: Text(text, style: Theme.of(context).textTheme.titleSmall),
+        ),
+      ),
+    );
+    return SliverMainAxisGroup(
+      slivers: [
+        heading(pinned.heading, const ValueKey('picker-pinned-heading')),
+        _buildResultRows(pinnedEntries, null),
+        heading(
+          pinned.resultsHeading,
+          const ValueKey('picker-results-heading'),
+        ),
+        _buildResultsSliver(),
+      ],
     );
   }
 

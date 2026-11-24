@@ -6688,7 +6688,7 @@ abstract class AppLocalizations {
   /// **'Mixed level'**
   String get commonMixedLevel;
 
-  /// Label for a mixer — a dance in which dancers change partners each time through the sequence (a progressive partner-changing dance), NOT an audio or kitchen mixer. Used as a dance editor checkbox label and a dance-detail indicator.
+  /// Label for a mixer — a dance in which dancers change partners each time through the sequence (a progressive partner-changing dance), NOT an audio or kitchen mixer. Used as the label of a dance editor toggle chip and a dance-detail indicator.
   ///
   /// In en, this message translates to:
   /// **'Mixer'**
@@ -13480,6 +13480,12 @@ abstract class AppLocalizations {
   /// **'Edit snippet'**
   String get settingsWalkthroughSnippetEditTitle;
 
+  /// Title of the dance editor's foldable panel holding the dance's authors (and, for an English dance, interpreters and years), type, formation, progression, rating, phrase structure and the tune's meter and key. Folded, a short summary of some of those values (the authors, type, formation, improper and mixer, phrase structure, meter and key) shows under it.
+  ///
+  /// In en, this message translates to:
+  /// **'Credits, formation and music'**
+  String get danceEditorSetupTitle;
+
   /// Expansion tile title for less frequently used editor metadata fields.
   ///
   /// In en, this message translates to:
@@ -13498,7 +13504,7 @@ abstract class AppLocalizations {
   /// **'Spans the difficulty scale'**
   String get danceEditorMixedLevelSubtitle;
 
-  /// Subtitle explaining the mixer checkbox in the dance editor: the dance progresses dancers to a new partner each time through the sequence.
+  /// Tooltip of the Mixer toggle chip in the dance editor, also read by screen readers: the dance progresses dancers to a new partner each time through the sequence.
   ///
   /// In en, this message translates to:
   /// **'Dancers change partners each time through'**
@@ -13636,16 +13642,28 @@ abstract class AppLocalizations {
   /// **'The song goes under Tunes'**
   String get danceEditorSingingSubtitle;
 
-  /// Checkbox in the dance editor, offered for English country dances only: the dance starts improper (the first couple crossed over). Unchecked means it starts proper, the default.
+  /// Switch on a square dance (ADR-007 §8.1): the dance is free-form patter that follows no phrasing. On by default for patter, off for a main part or break.
+  ///
+  /// In en, this message translates to:
+  /// **'Free form'**
+  String get danceEditorFreeFormLabel;
+
+  /// Subtitle under the Free form switch, saying what turning it on does: the figures get no phrase labels (A1, A2…) and the editor does not check that they fill each phrase.
+  ///
+  /// In en, this message translates to:
+  /// **'Follows no phrasing: no phrase labels or phrase checks'**
+  String get danceEditorFreeFormSubtitle;
+
+  /// Toggle chip in the dance editor, offered for English country dances only: the dance starts improper (the first couple crossed over). Off means it starts proper, the default.
   ///
   /// In en, this message translates to:
   /// **'Starts improper'**
   String get danceEditorImproperLabel;
 
-  /// Subtitle of the 'Starts improper' checkbox in the dance editor.
+  /// Tooltip of the 'Starts improper' toggle chip in the dance editor, also read by screen readers: leave the chip off (not selected) for a dance that starts proper.
   ///
   /// In en, this message translates to:
-  /// **'Leave unchecked for a dance that starts proper.'**
+  /// **'Leave off for a dance that starts proper.'**
   String get danceEditorImproperSubtitle;
 
   /// Label for the partial date when the dance was composed.
@@ -14593,6 +14611,138 @@ abstract class AppLocalizations {
   /// **'Add sequence'**
   String get danceEditorAddSequence;
 
+  /// Add-menu item in the dance editor's figure list that opens a sheet where the user types or pastes several figure lines at once, one figure per line.
+  ///
+  /// In en, this message translates to:
+  /// **'Add figures from text…'**
+  String get danceEditorAddFiguresFromText;
+
+  /// Title of the sheet where the user types or pastes several figure lines at once (opened by danceEditorAddFiguresFromText).
+  ///
+  /// In en, this message translates to:
+  /// **'Add figures from text'**
+  String get figureTextSheetTitle;
+
+  /// Help text at the top of the Add figures from text sheet, for an English dance or a square dance. "Move box" is the figure editor's field where a move is typed. "Free-text entry" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off.
+  ///
+  /// In en, this message translates to:
+  /// **'Type or paste one figure per line, such as \"(8) neighbor balance & swing\". Each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.'**
+  String get figureTextSheetHelp;
+
+  /// Help text at the top of the Add figures from text sheet, for a contra dance, where a leading phrase label (A1, A2, B1, B2, C1, C2) is dropped from each line. Keep A1 as it is. "Move box" is the figure editor's field where a move is typed. "Free-text entry" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off.
+  ///
+  /// In en, this message translates to:
+  /// **'Type or paste one figure per line, such as \"A1 (8) neighbor balance & swing\". A phrase label such as A1 at the start of a line is left out, and each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.'**
+  String get figureTextSheetHelpDropsLabels;
+
+  /// Label of the multi-line text box in the Add figures from text sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures, one per line'**
+  String get figureTextSheetFieldLabel;
+
+  /// Live count under the text box of the Add figures from text sheet: how many figures Add figures will insert.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No figures to add yet} =1{1 figure to add} other{{count} figures to add}}'**
+  String figureTextSheetSummary(int count);
+
+  /// Shown under the live count of the Add figures from text sheet when some lines did not match any known figure. Such a line is still added, as an unrecognized figure that keeps the typed text.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 line isn\'t recognized. It will be added as an unrecognized figure with its text, for you to fix.} other{{count} lines aren\'t recognized. They will be added as unrecognized figures with their text, for you to fix.}}'**
+  String figureTextSheetUnrecognizedSummary(int count);
+
+  /// Under one line of text in the Add figures from text sheet's preview: how many figures that line gives.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No figure} =1{1 figure} other{{count} figures}}'**
+  String figureTextSheetLineFigures(int count);
+
+  /// Under one line of text in the Add figures from text sheet's preview, when the line did not match any known figure. It is still added, as an unrecognized figure that keeps the typed text.
+  ///
+  /// In en, this message translates to:
+  /// **'Not recognized: added as an unrecognized figure'**
+  String get figureTextSheetLineUnrecognized;
+
+  /// Error under the text box of the Add figures from text sheet when the text is over the length limit. Add figures is disabled while it shows.
+  ///
+  /// In en, this message translates to:
+  /// **'This is more than {max} characters, more than can be read at once. Nothing will be added. Add it in parts.'**
+  String figureTextSheetTooLong(int max);
+
+  /// Error under the text box of the Add figures from text sheet when the text has more lines than the limit. Add figures is disabled while it shows.
+  ///
+  /// In en, this message translates to:
+  /// **'This is more than {max} lines, more than can be read at once. Nothing will be added. Add it in parts.'**
+  String figureTextSheetTooManyLines(int max);
+
+  /// Error under the text box of the Add figures from text sheet when one line is over the per-line length limit. Add figures is disabled while it shows.
+  ///
+  /// In en, this message translates to:
+  /// **'A line is longer than {max} characters, more than can be read as one figure line. Nothing will be added. Break it into lines.'**
+  String figureTextSheetLineTooLong(int max);
+
+  /// Button in the Add figures from text sheet that inserts the previewed figures at the end of the dance's figure list and closes the sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Add figures'**
+  String get figureTextSheetAdd;
+
+  /// Button in the Add figures from text sheet that opens the system picker to choose a picture (a photo of an index card or a book page) whose text is read on the device and put in the text box. Shown only on iOS and macOS.
+  ///
+  /// In en, this message translates to:
+  /// **'From an image…'**
+  String get figureTextSheetFromImage;
+
+  /// Label of the From an image… button while the chosen picture's text is being read on the device.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the picture…'**
+  String get figureTextSheetReadingImage;
+
+  /// Note under the disabled From an image… button when the device reads neither the app's language nor English.
+  ///
+  /// In en, this message translates to:
+  /// **'This device can\'t read text from pictures in the app\'s language or in English.'**
+  String get figureTextSheetImageUnavailable;
+
+  /// Note under the From an image… button when the device cannot read the app's language (for example Japanese on an older iOS or macOS) but can read English.
+  ///
+  /// In en, this message translates to:
+  /// **'This device reads pictures in English, not in the app\'s language.'**
+  String get figureTextSheetImageEnglishOnly;
+
+  /// Error under the From an image… button when the chosen file is over the size limit. Nothing is read.
+  ///
+  /// In en, this message translates to:
+  /// **'This picture is larger than {limit} MB, so it wasn\'t read. Choose a smaller one.'**
+  String figureTextSheetImageTooLarge(int limit);
+
+  /// Error under the From an image… button when the chosen picture's dimensions are over the limit. Nothing is read.
+  ///
+  /// In en, this message translates to:
+  /// **'This picture has too many pixels to read. Choose a smaller one, or crop it.'**
+  String get figureTextSheetImageTooManyPixels;
+
+  /// Error under the From an image… button when the chosen file cannot be decoded as an image.
+  ///
+  /// In en, this message translates to:
+  /// **'This file isn\'t a picture this device can open.'**
+  String get figureTextSheetImageUnreadable;
+
+  /// Error under the From an image… button when recognition found no text. The text box is left as it was.
+  ///
+  /// In en, this message translates to:
+  /// **'No text was found in this picture.'**
+  String get figureTextSheetImageNoText;
+
+  /// Error under the From an image… button when the device's text recognition failed.
+  ///
+  /// In en, this message translates to:
+  /// **'The picture\'s text couldn\'t be read.'**
+  String get figureTextSheetImageFailed;
+
   /// Semantics label for pasting a cut figure at the end of the list.
   ///
   /// In en, this message translates to:
@@ -15029,6 +15179,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Move names get a dotted underline, role terms an underline, and discouraged terms a strikethrough'**
   String get danceEditorLingoStylingHelper;
+
+  /// Total figure beats of a free-form square (ADR-007 §8.1), which has no phrase structure to measure against, so no expected total is shown.
+  ///
+  /// In en, this message translates to:
+  /// **'{total, plural, =1{Total: 1 beat} other{Total: {total} beats}}'**
+  String danceEditorBeatTotalFreeForm(int total);
 
   /// Summary of total figure beats versus the phrase-structure expectation.
   ///
@@ -19205,6 +19361,18 @@ abstract class AppLocalizations {
   /// **'Adds Suggested to the Sort menu of the program builder\'s dance lists. It orders the dances for where the new one will go and says why.'**
   String get settingsSuggestionsEnabledSubtitle;
 
+  /// Title of the switch, shown under Suggest the next dance while it is on, that makes Perform's swap sheet order its dances by suggestions (#2348). Swap this dance is the Perform button of that name.
+  ///
+  /// In en, this message translates to:
+  /// **'Use in Perform\'s Swap this dance'**
+  String get settingsSuggestionsInPerformSwapTitle;
+
+  /// Subtitle of the Use in Perform's Swap this dance switch.
+  ///
+  /// In en, this message translates to:
+  /// **'When you swap a dance in Perform, lists the dances below Your alternates in the order that best fits that place in the program, and says why. Nothing is left out.'**
+  String get settingsSuggestionsInPerformSwapSubtitle;
+
   /// Title of the row, and of the screen it opens, where the user chooses how much each suggestion factor counts.
   ///
   /// In en, this message translates to:
@@ -20111,6 +20279,180 @@ abstract class AppLocalizations {
   /// **'Pay is hidden in Settings, so it is left out. Turn on Show pay in Settings ▸ Program to include it.'**
   String get exportCsvPayHiddenNotice;
 
+  /// Button in Perform's Adjust program sheet, under the dance being called now: opens the swap sheet to replace it with another dance. The replaced dance is kept as an alternate.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap this dance'**
+  String get performSwapThisDance;
+
+  /// Tooltip and screen-reader label of the Swap button on an upcoming dance in Perform's Adjust program sheet, and the title of the swap sheet. {title} is the dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap {title}'**
+  String performSwapDanceNamed(String title);
+
+  /// Screen-reader announcement after the caller picks a replacement in Perform's swap sheet. {title} is the new dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'Swapped in {title}'**
+  String performSwappedAnnounce(String title);
+
+  /// Heading over the choices in Perform's swap sheet that say what the replacement dance must share with the dance being swapped (verb: keep these the same).
+  ///
+  /// In en, this message translates to:
+  /// **'Keep'**
+  String get performSwapKeepHeader;
+
+  /// Chip in Perform's swap sheet: only list dances in the same formation as the dance being swapped. {formation} is the formation's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Same formation: {formation}'**
+  String performSwapKeepFormation(String formation);
+
+  /// Chip in Perform's swap sheet: only list dances at the level of the dance being swapped or an easier one. {level} is that level's name.
+  ///
+  /// In en, this message translates to:
+  /// **'This level or easier: {level}'**
+  String performSwapKeepLevel(String level);
+
+  /// Chip in Perform's swap sheet, shown only in a program that mixes types: only list dances of the same type (contra, English, square) as the dance being swapped. {type} is the type's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Same type: {type}'**
+  String performSwapKeepType(String type);
+
+  /// Chip in Perform's swap sheet, and a switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance: leave out dances already in this program.
+  ///
+  /// In en, this message translates to:
+  /// **'Not already in tonight\'s program'**
+  String get performSwapKeepNotInProgram;
+
+  /// Heading over the figures of the dance being swapped, in Perform's swap sheet. Tapping one only lists dances that also have that figure.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures to keep'**
+  String get performSwapFiguresHeader;
+
+  /// Label of a figure chip in Perform's swap sheet: the figure's name and the phrase of the music it starts in. {phrase} is a phrase label such as A1 or B2, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'{figure} in {phrase}'**
+  String performSwapFigureInPhrase(String figure, String phrase);
+
+  /// Screen-reader label of a figure chip in Perform's swap sheet. {figure} is the chip's text, for example "hey in A2".
+  ///
+  /// In en, this message translates to:
+  /// **'Keep {figure}'**
+  String performSwapKeepFigureSemantic(String figure);
+
+  /// Chip under a kept figure in Perform's swap sheet: the replacement must have the figure in the same phrase of the music. {phrase} is a phrase label such as A1, never translated.
+  ///
+  /// In en, this message translates to:
+  /// **'In the same phrase ({phrase})'**
+  String performSwapSamePhrase(String phrase);
+
+  /// Screen-reader label of the In the same phrase chip in Perform's swap sheet. {figure} is the figure's name, {phrase} a phrase label such as A1.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep {figure} in the same phrase, {phrase}'**
+  String performSwapSamePhraseSemantic(String figure, String phrase);
+
+  /// Chip under a kept figure in Perform's swap sheet: the replacement must have the figure right after the same figure that comes before it in this dance. {figure} is the name of that earlier figure.
+  ///
+  /// In en, this message translates to:
+  /// **'With what comes before it ({figure})'**
+  String performSwapWithBefore(String figure);
+
+  /// Screen-reader label of the With what comes before it chip in Perform's swap sheet. {figure} is the kept figure's name, {before} the figure that comes right before it.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep {figure} right after {before}'**
+  String performSwapWithBeforeSemantic(String figure, String before);
+
+  /// Button in Perform's swap sheet that opens the full Filters and Advanced search panels, with the Keep choices filled in.
+  ///
+  /// In en, this message translates to:
+  /// **'More filters'**
+  String get performSwapMoreFilters;
+
+  /// Note in Perform's swap sheet after More filters is tapped: the formation, level, type and figure choices can now be changed in the Filters and Advanced panels. 'Filters' and 'Advanced' are the names of those panels.
+  ///
+  /// In en, this message translates to:
+  /// **'The other Keep choices are now in Filters and Advanced.'**
+  String get performSwapKeepInPanels;
+
+  /// Note in Perform's swap sheet when the dance being swapped is an English country dance: the Same formation chip and the In the same phrase / With what comes before it chips are not offered for English dances.
+  ///
+  /// In en, this message translates to:
+  /// **'For English dances, same formation and the figure refinements are not offered yet.'**
+  String get performSwapEnglishNote;
+
+  /// Heading in Perform's swap sheet over the dances the caller already listed as alternates for this slot, shown first.
+  ///
+  /// In en, this message translates to:
+  /// **'Your alternates'**
+  String get performSwapAlternatesHeading;
+
+  /// Heading in Perform's swap sheet over the dances that match the Keep choices, below Your alternates.
+  ///
+  /// In en, this message translates to:
+  /// **'Matching dances'**
+  String get performSwapResultsHeading;
+
+  /// Message in Perform when one of the caller's changes could not be saved because another device changed the program meanwhile. The change may be an Adjust sheet edit (for example a swap, a note, or marking a dance performed) touching slots that changed elsewhere, or an Undo; it is not always the latest change, since changes are saved one after another. Nothing from that change is saved, the program is shown as stored (with any later change that is still being saved kept on screen), and the caller is asked to check the program and make the change again if they still want it.
+  ///
+  /// In en, this message translates to:
+  /// **'This program changed on another device, so one of your changes wasn\'t saved. Check the program and make it again if you still want it.'**
+  String get performSwapRefused;
+
+  /// Settings ▸ Program ▸ Perform mode row, and the title of its screen: which Keep choices are on when the caller swaps a dance in Perform. Also names this setting in Device Sync lists.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap a dance'**
+  String get settingsPerformSwapTitle;
+
+  /// Subtitle of Settings ▸ Program ▸ Perform mode ▸ Swap a dance, and the first line of its screen. 'Keep' is the heading of those choices in the swap sheet (performSwapKeepHeader).
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which Keep choices are on when you swap a dance in Perform.'**
+  String get settingsPerformSwapSubtitle;
+
+  /// Switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance: whether the Same formation choice is on when the swap sheet opens.
+  ///
+  /// In en, this message translates to:
+  /// **'Same formation'**
+  String get settingsPerformSwapFormation;
+
+  /// Switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance: whether the This level or easier choice is on when the swap sheet opens.
+  ///
+  /// In en, this message translates to:
+  /// **'This level or easier'**
+  String get settingsPerformSwapLevel;
+
+  /// Switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance: whether the Same type choice is on when the swap sheet opens.
+  ///
+  /// In en, this message translates to:
+  /// **'Same type'**
+  String get settingsPerformSwapType;
+
+  /// Subtitle of the Same type switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Offered only in a program that mixes types, such as contras and English dances.'**
+  String get settingsPerformSwapTypeSubtitle;
+
+  /// Notice in Settings ▸ Program ▸ Perform mode ▸ Swap a dance when the stored choices came from a newer version of the app: this version cannot read them, so the switches show its starting choices (all on), read-only, and the stored choices are kept.
+  ///
+  /// In en, this message translates to:
+  /// **'These choices were saved by a newer version of the app. This version uses its starting choices, with every one on, and won\'t overwrite yours. Update the app to change them.'**
+  String get settingsPerformSwapNewerVersion;
+
+  /// Error in Settings ▸ Program ▸ Perform mode ▸ Swap a dance when the stored choices could not be read; the switches are shown read-only and nothing is saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Swap a dance choices couldn\'t be read, so they can\'t be changed now. Close this screen and try again.'**
+  String get settingsPerformSwapReadError;
+
   /// Collection More actions menu item that opens the Repertoire page (#2357, Experimental).
   ///
   /// In en, this message translates to:
@@ -20386,6 +20728,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Choose a CSV file…'**
   String get importCsvPickFile;
+
+  /// Import source label for a plain-text (.txt) or Markdown (.md) file of dances the caller wrote themselves.
+  ///
+  /// In en, this message translates to:
+  /// **'Your own text or Markdown file'**
+  String get importSourceLabelTextDocument;
+
+  /// Hint on the import screen when the text or Markdown file source is selected. Keep the examples (## Title, Formation: Improper, A1 (8) Neighbor swing) as written, in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a .txt or .md file. Start each dance with a heading (## Title), or with its title after a blank line. Put details on \"Label: value\" lines (Formation: Improper) and one figure per line (A1 (8) Neighbor swing).'**
+  String get importTextHint;
+
+  /// Button on the import screen that opens the file picker for a .txt or .md file of dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a text or Markdown file…'**
+  String get importTextPickFile;
+
+  /// Heading of the step where the caller chooses which dance field each label of their text file goes to (for example "Formation:" goes to Formation).
+  ///
+  /// In en, this message translates to:
+  /// **'Map labels'**
+  String get importTextMapTitle;
+
+  /// Introduction to the Map labels step of a text or Markdown file import.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what each label in your file holds. A label no field takes is kept in the calling notes with its name; choose Ignore to leave it out. Nothing is added until you review and confirm.'**
+  String get importTextMapIntro;
+
+  /// Label of the dropdown on the Map labels step of a text or Markdown file import that chooses where each dance in the file starts. Its choices are importTextDanceStartHeading for each heading level the file uses, and importTextDanceStartBlankLine. The app picks one first; changing it reads the file again.
+  ///
+  /// In en, this message translates to:
+  /// **'Each dance starts at'**
+  String get importTextDanceStartLabel;
+
+  /// A choice in the Each dance starts at dropdown: each Markdown heading at this level starts a dance. {marks} is the heading's hash marks, such as # or ##, shown as typed in the file; keep it as is.
+  ///
+  /// In en, this message translates to:
+  /// **'A {marks} heading'**
+  String importTextDanceStartHeading(String marks);
+
+  /// A choice in the Each dance starts at dropdown: the first line, and each line after a blank line that isn't a figure or a detail, starts a dance.
+  ///
+  /// In en, this message translates to:
+  /// **'A title after a blank line'**
+  String get importTextDanceStartBlankLine;
+
+  /// Choice in the Map labels step: keep each value of this label in the dance's calling notes, written as "Label: value".
+  ///
+  /// In en, this message translates to:
+  /// **'Calling notes, with the label'**
+  String get importTextTargetLabelledNotes;
+
+  /// Error when a picked .txt or .md file is not valid UTF-8.
+  ///
+  /// In en, this message translates to:
+  /// **'This file isn\'t saved as UTF-8 text, so accented letters would come in wrong. Save it again as UTF-8 text and choose that file.'**
+  String get importTextNotUtf8;
+
+  /// Error when a picked text or Markdown file holds more dances than can be imported at once.
+  ///
+  /// In en, this message translates to:
+  /// **'This file has more than {limit} dances. Split it into smaller files.'**
+  String importTextTooManyDances(int limit);
+
+  /// Error when a picked text or Markdown file has a line over the length limit.
+  ///
+  /// In en, this message translates to:
+  /// **'A line in this file is longer than {limit} characters.'**
+  String importTextLineTooLong(int limit);
+
+  /// Error when one dance's figures, notes or one label's values in a picked text or Markdown file come to more than the limit.
+  ///
+  /// In en, this message translates to:
+  /// **'A dance in this file has more than {limit} characters of figures, notes or one detail.'**
+  String importTextDanceTooLong(int limit);
+
+  /// Error when a picked text or Markdown file uses more different "Label:" names than the import can map.
+  ///
+  /// In en, this message translates to:
+  /// **'This file uses more than {limit} different labels.'**
+  String importTextTooManyLabels(int limit);
 
   /// Help text under the CSV import source explaining how to get a CSV file out of a spreadsheet program.
   ///

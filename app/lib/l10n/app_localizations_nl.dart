@@ -9156,6 +9156,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsWalkthroughSnippetEditTitle => 'Fragment bewerken';
 
   @override
+  String get danceEditorSetupTitle => 'Makers, formatie en muziek';
+
+  @override
   String get danceEditorMoreDetailsTitle => 'Meer details';
 
   @override
@@ -9243,11 +9246,18 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorSingingSubtitle => 'Het lied komt onder Deuntjes';
 
   @override
+  String get danceEditorFreeFormLabel => 'Vrije vorm';
+
+  @override
+  String get danceEditorFreeFormSubtitle =>
+      'Volgt geen frasering: geen frasenamen en geen frasecontrole';
+
+  @override
   String get danceEditorImproperLabel => 'Begint improper';
 
   @override
   String get danceEditorImproperSubtitle =>
-      'Laat leeg voor een dans die proper begint.';
+      'Laat uit voor een dans die proper begint.';
 
   @override
   String get danceEditorComposedLabel => 'Gecomponeerd';
@@ -9881,6 +9891,148 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorAddSequence => 'Reeks toevoegen';
 
   @override
+  String get danceEditorAddFiguresFromText => 'Figuren toevoegen uit tekst…';
+
+  @override
+  String get figureTextSheetTitle => 'Figuren toevoegen uit tekst';
+
+  @override
+  String get figureTextSheetHelp =>
+      'Typ of plak één figuur per regel, bijvoorbeeld “(8) neighbor balance & swing”. Elke regel wordt gelezen zoals het bewegingsveld een getypte regel leest met vrije tekstinvoer aan, ook als die uit staat. Er wordt niets bewaard voordat je de dans bewaart.';
+
+  @override
+  String get figureTextSheetHelpDropsLabels =>
+      'Typ of plak één figuur per regel, bijvoorbeeld “A1 (8) neighbor balance & swing”. Een fraselabel zoals A1 aan het begin van een regel wordt weggelaten, en elke regel wordt gelezen zoals het bewegingsveld een getypte regel leest met vrije tekstinvoer aan, ook als die uit staat. Er wordt niets bewaard voordat je de dans bewaart.';
+
+  @override
+  String get figureTextSheetFieldLabel => 'Figuren, één per regel';
+
+  @override
+  String figureTextSheetSummary(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString figuren om toe te voegen',
+      one: '1 figuur om toe te voegen',
+      zero: 'Nog geen figuren om toe te voegen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String figureTextSheetUnrecognizedSummary(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$countString regels worden niet herkend. Die worden toegevoegd als niet-herkende figuren met hun tekst, zodat je ze kunt verbeteren.',
+      one:
+          '1 regel wordt niet herkend. Die wordt toegevoegd als niet-herkende figuur met de tekst, zodat je die kunt verbeteren.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String figureTextSheetLineFigures(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString figuren',
+      one: '1 figuur',
+      zero: 'Geen figuur',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get figureTextSheetLineUnrecognized =>
+      'Niet herkend: toegevoegd als niet-herkende figuur';
+
+  @override
+  String figureTextSheetTooLong(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'Dit is meer dan $maxString tekens, meer dan in één keer gelezen kan worden. Er wordt niets toegevoegd. Voeg het in delen toe.';
+  }
+
+  @override
+  String figureTextSheetTooManyLines(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'Dit is meer dan $maxString regels, meer dan in één keer gelezen kan worden. Er wordt niets toegevoegd. Voeg het in delen toe.';
+  }
+
+  @override
+  String figureTextSheetLineTooLong(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'Een regel is langer dan $maxString tekens, meer dan als één figuurregel gelezen kan worden. Er wordt niets toegevoegd. Verdeel hem over meer regels.';
+  }
+
+  @override
+  String get figureTextSheetAdd => 'Figuren toevoegen';
+
+  @override
+  String get figureTextSheetFromImage => 'Uit een afbeelding…';
+
+  @override
+  String get figureTextSheetReadingImage => 'Afbeelding wordt gelezen…';
+
+  @override
+  String get figureTextSheetImageUnavailable =>
+      'Dit apparaat kan geen tekst in afbeeldingen lezen in de taal van de app of in het Engels.';
+
+  @override
+  String get figureTextSheetImageEnglishOnly =>
+      'Dit apparaat leest afbeeldingen in het Engels, niet in de taal van de app.';
+
+  @override
+  String figureTextSheetImageTooLarge(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Deze afbeelding is groter dan $limitString MB en is daarom niet gelezen. Kies een kleinere.';
+  }
+
+  @override
+  String get figureTextSheetImageTooManyPixels =>
+      'Deze afbeelding heeft te veel pixels om te lezen. Kies een kleinere of snijd hem bij.';
+
+  @override
+  String get figureTextSheetImageUnreadable =>
+      'Dit bestand is geen afbeelding die dit apparaat kan openen.';
+
+  @override
+  String get figureTextSheetImageNoText =>
+      'Er is geen tekst gevonden in deze afbeelding.';
+
+  @override
+  String get figureTextSheetImageFailed =>
+      'De tekst van de afbeelding kon niet worden gelezen.';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList =>
       'Plakken aan het einde van de figurenlijst';
 
@@ -10263,6 +10415,17 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get danceEditorLingoStylingHelper =>
       'Bewegingsnamen krijgen een gestippelde onderstreping, roltermen een onderstreping en ontmoedigde termen een doorhaling';
+
+  @override
+  String danceEditorBeatTotalFreeForm(int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: 'Totaal: $total beats',
+      one: 'Totaal: 1 beat',
+    );
+    return '$_temp0';
+  }
 
   @override
   String danceEditorBeatTotal(int total, int expected) {
@@ -13182,6 +13345,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Voegt Voorgesteld toe aan het menu Sorteren van de danslijsten in de programma-editor. Het ordent de dansen voor de plek waar de nieuwe dans komt en zegt waarom.';
 
   @override
+  String get settingsSuggestionsInPerformSwapTitle =>
+      'Gebruiken bij Deze dans wisselen in Uitvoeren';
+
+  @override
+  String get settingsSuggestionsInPerformSwapSubtitle =>
+      'Als je in Uitvoeren een dans wisselt, staan de dansen onder Je alternatieven in de volgorde die het best past bij die plek in het programma, met de reden erbij. Er valt niets weg.';
+
+  @override
   String get settingsSuggestionsEditorTitle => 'Waar suggesties op letten';
 
   @override
@@ -13772,6 +13943,123 @@ class AppLocalizationsNl extends AppLocalizations {
       'De gage is verborgen in Instellingen en wordt daarom weggelaten. Zet ‘Gage tonen’ aan onder Instellingen ▸ Programma om hem op te nemen.';
 
   @override
+  String get performSwapThisDance => 'Deze dans wisselen';
+
+  @override
+  String performSwapDanceNamed(String title) {
+    return '$title wisselen';
+  }
+
+  @override
+  String performSwappedAnnounce(String title) {
+    return '$title ingewisseld';
+  }
+
+  @override
+  String get performSwapKeepHeader => 'Behouden';
+
+  @override
+  String performSwapKeepFormation(String formation) {
+    return 'Zelfde formatie: $formation';
+  }
+
+  @override
+  String performSwapKeepLevel(String level) {
+    return 'Dit niveau of makkelijker: $level';
+  }
+
+  @override
+  String performSwapKeepType(String type) {
+    return 'Zelfde type: $type';
+  }
+
+  @override
+  String get performSwapKeepNotInProgram =>
+      'Nog niet in het programma van vanavond';
+
+  @override
+  String get performSwapFiguresHeader => 'Figuren behouden';
+
+  @override
+  String performSwapFigureInPhrase(String figure, String phrase) {
+    return '$figure in $phrase';
+  }
+
+  @override
+  String performSwapKeepFigureSemantic(String figure) {
+    return '$figure behouden';
+  }
+
+  @override
+  String performSwapSamePhrase(String phrase) {
+    return 'In dezelfde frase ($phrase)';
+  }
+
+  @override
+  String performSwapSamePhraseSemantic(String figure, String phrase) {
+    return '$figure in dezelfde frase behouden, $phrase';
+  }
+
+  @override
+  String performSwapWithBefore(String figure) {
+    return 'Met wat eraan voorafgaat ($figure)';
+  }
+
+  @override
+  String performSwapWithBeforeSemantic(String figure, String before) {
+    return '$figure direct na $before behouden';
+  }
+
+  @override
+  String get performSwapMoreFilters => 'Meer filters';
+
+  @override
+  String get performSwapKeepInPanels =>
+      'De andere keuzes om te behouden staan nu onder Filters en Geavanceerd.';
+
+  @override
+  String get performSwapEnglishNote =>
+      'Voor Engelse dansen zijn zelfde formatie en de verfijningen van figuren nog niet beschikbaar.';
+
+  @override
+  String get performSwapAlternatesHeading => 'Je alternatieven';
+
+  @override
+  String get performSwapResultsHeading => 'Passende dansen';
+
+  @override
+  String get performSwapRefused =>
+      'Dit programma is op een ander apparaat gewijzigd, dus een van je wijzigingen is niet opgeslagen. Controleer het programma en breng de wijziging opnieuw aan als je die nog wilt.';
+
+  @override
+  String get settingsPerformSwapTitle => 'Een dans wisselen';
+
+  @override
+  String get settingsPerformSwapSubtitle =>
+      'Kies welke keuzes om te behouden aan staan als je een dans wisselt tijdens het uitvoeren.';
+
+  @override
+  String get settingsPerformSwapFormation => 'Zelfde formatie';
+
+  @override
+  String get settingsPerformSwapLevel => 'Dit niveau of makkelijker';
+
+  @override
+  String get settingsPerformSwapType => 'Zelfde type';
+
+  @override
+  String get settingsPerformSwapTypeSubtitle =>
+      'Alleen in een programma met verschillende types, zoals contra’s en Engelse dansen.';
+
+  @override
+  String get settingsPerformSwapNewerVersion =>
+      'Deze keuzes zijn opgeslagen door een nieuwere versie van de app. Deze versie gebruikt haar beginkeuzes, allemaal aan, en overschrijft die van jou niet. Werk de app bij om ze te wijzigen.';
+
+  @override
+  String get settingsPerformSwapReadError =>
+      'Je keuzes voor ‘Een dans wisselen’ konden niet worden gelezen en kunnen nu niet worden gewijzigd. Sluit dit scherm en probeer het opnieuw.';
+
+  @override
   String get collectionRepertoireMenuItem => 'Repertoire';
 
   @override
@@ -14011,6 +14299,78 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importCsvPickFile => 'CSV-bestand kiezen…';
+
+  @override
+  String get importSourceLabelTextDocument =>
+      'Je eigen tekst- of Markdown-bestand';
+
+  @override
+  String get importTextHint =>
+      'Kies een .txt- of .md-bestand. Begin elke dans met een kop (## Title), of met de titel na een lege regel. Zet details op regels met “Label: value” (Formation: Improper) en één figuur per regel (A1 (8) Neighbor swing).';
+
+  @override
+  String get importTextPickFile => 'Kies een tekst- of Markdown-bestand…';
+
+  @override
+  String get importTextMapTitle => 'Labels koppelen';
+
+  @override
+  String get importTextMapIntro =>
+      'Kies wat elk label in je bestand bevat. Een label dat geen veld overneemt, blijft met zijn naam in de callnotities staan; kies Negeren om het weg te laten. Er wordt niets toegevoegd voordat je hebt nagekeken en bevestigd.';
+
+  @override
+  String get importTextDanceStartLabel => 'Elke dans begint bij';
+
+  @override
+  String importTextDanceStartHeading(String marks) {
+    return 'Een $marks-kop';
+  }
+
+  @override
+  String get importTextDanceStartBlankLine => 'Een titel na een lege regel';
+
+  @override
+  String get importTextTargetLabelledNotes => 'Callnotities, met het label';
+
+  @override
+  String get importTextNotUtf8 =>
+      'Dit bestand is niet als UTF-8-tekst bewaard, dus letters met accenten zouden verkeerd binnenkomen. Bewaar het opnieuw als UTF-8-tekst en kies dat bestand.';
+
+  @override
+  String importTextTooManyDances(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Dit bestand bevat meer dan $limitString dansen. Splits het in kleinere bestanden.';
+  }
+
+  @override
+  String importTextLineTooLong(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Een regel in dit bestand is langer dan $limitString tekens.';
+  }
+
+  @override
+  String importTextDanceTooLong(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Een dans in dit bestand heeft meer dan $limitString tekens aan figuren, notities of één detail.';
+  }
+
+  @override
+  String importTextTooManyLabels(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Dit bestand gebruikt meer dan $limitString verschillende labels.';
+  }
 
   @override
   String get importCsvSaveAsHint =>

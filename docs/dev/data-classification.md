@@ -218,7 +218,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**273 columns**: 192 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 31 personal data by category.
+**274 columns**: 193 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 31 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -316,6 +316,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `dances` | `formation_detail` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `formation_improper` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `formation_shape` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `dances` | `free_form` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `hook` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dances` | `interpreted_on` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
@@ -500,7 +501,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**139 settings keys**: 89 shareable, 15 device-local, 33 device-scoped, 1 protocol-identifier, 1 store-address. 5 personal data by category.
+**141 settings keys**: 91 shareable, 15 device-local, 33 device-scoped, 1 protocol-identifier, 1 store-address. 5 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -595,6 +596,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `matrix_exact_beat_collision` | `dpv:NonPersonalData` | app user | shareable |  |
 | `perform_canonical_view` | `dpv:NonPersonalData` | app user | shareable | No longer read or written by this version (Perform lost its canonical toggle). Kept classified and travelling so older-version peers and backups, which still use it, round-trip it unchanged. |
 | `perform_stage_mode` | `dpv:NonPersonalData` | app user | **device-local** | Screen-bound: the stage theme is chosen for the lighting a screen is read under, like perform_text_scale below. deviceLocal, not deviceScoped: it is withheld for what it means on another screen, not for what it contains, and deviceScoped would also drop it from the user's own backups, which should give it back on restore. Per-device by the maintainer's decision (settings-sync-scope, 2026-10-29). |
+| `perform_swap_defaults` | `dpv:NonPersonalData` | app user | shareable |  |
 | `perform_text_scale` | `dpv:NonPersonalData` | app user | **device-local** | Tuned to the screen it was set on. A scale chosen for a phone held at arm's length is wrong on a laptop driving a projector, but it may travel in a user-controlled local backup. |
 | `program_dance_share_fields` | `dpv:NonPersonalData` | app user | shareable |  |
 | `program_matrix_columns` | `dpv:NonPersonalData` | app user | shareable |  |
@@ -622,6 +624,7 @@ Declared as a `const String …Key` in `app/lib` or a `packages/*/lib` library; 
 | `sort_ignore_articles` | `dpv:NonPersonalData` | app user | shareable |  |
 | `suggestion_settings` | `dpv:NonPersonalData` | app user | shareable | The user's chosen weights for the program builder's Suggested sort (Off / A little / A lot per factor, the difficulty curve's shape and the venue window), plus a reserved list of preferences that will hold saved-search ids. How the user likes dances suggested, the same on every device, so it travels like any preference. Ranking reads calling history and venues locally and stores nothing. |
 | `suggestions_enabled` | `dpv:NonPersonalData` | app user | shareable |  |
+| `suggestions_in_perform_swap` | `dpv:NonPersonalData` | app user | shareable |  |
 | `sync_device_id` | `dpv:NonPersonalData` | — | **protocol-identifier** | Opaque per-attachment routing identifier, minted anew each time the device attaches so that the identifier itself never links one attachment to the next. Synced content and its blob hashes can still be correlated by the operator; this removes only the identifier as a link. It must travel in protocol metadata but must never be adopted from another device or restored from a backup. |
 | `sync_enabled` | `dpv:NonPersonalData` | — | device-scoped | Per-installation Device Sync consent. Never synced and never restored from a backup: consent given on one device is not consent on another. |
 | `sync_endpoint` | `dpv:NonPersonalData` | — | device-scoped | The Athenaeum server this installation pairs and syncs with. Never synced, because a synced endpoint would let one device silently redirect another, and never restored from a backup. |

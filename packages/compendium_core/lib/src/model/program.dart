@@ -564,6 +564,86 @@ class Program {
     return next;
   }
 
+  /// [slots] with the dance of the slot at [index] swapped for [danceId], the
+  /// dance it held kept as an alternate in the same group (Perform's **Swap**,
+  /// #2346). Positions are left for the caller to renumber.
+  ///
+  /// The slot keeps its id, note, guest caller, lengths and performed mark,
+  /// as the builder's **Replace…** does, so Perform stays on it. Unlike
+  /// Replace, the old dance is not dropped. When another member of the
+  /// slot's alternate group ([alternateGroupRange]) already holds [danceId]
+  /// and is not marked performed, the two members trade dances (the caller
+  /// chose one of their alternates); otherwise a new unmarked alternate with
+  /// id [alternateId] holding the old dance is inserted just after the slot.
+  ///
+  /// The dance swapped in is the one being called, so it lands on the
+  /// group's primary, which counts toward calling history
+  /// ([ProgramSlot.countsTowardCallingHistory]): when the slot is an
+  /// alternate (Perform's **Show alternate**), it becomes the group's primary,
+  /// moved to the front of the group, and the old primary becomes an
+  /// alternate. A group led by a note or a break is the exception: the slot
+  /// is swapped in place and stays an alternate, so the note or break never
+  /// becomes one. The swapped-out dance always ends on an unmarked
+  /// alternate, which does not count.
+  ///
+  /// Returns [slots] unchanged (as a copy) when the slot holds no dance or
+  /// already holds [danceId].
+  static List<ProgramSlot> swapSlotDanceKeepingAlternate(
+    List<ProgramSlot> slots,
+    int index, {
+    required String danceId,
+    required String alternateId,
+  }) {
+    RangeError.checkValidIndex(index, slots, 'index');
+    final next = [...slots];
+    final slot = next[index];
+    final old = slot.danceId;
+    if (old == null || old == danceId) return next;
+    final range = alternateGroupRange(slots, index);
+    var traded = false;
+    for (var i = range.start; i < range.end; i++) {
+      if (i == index) continue;
+      final member = next[i];
+      if (member.danceId == danceId && member.performedAt == null) {
+        next[i] = member.copyWith(danceId: old);
+        traded = true;
+        break;
+      }
+    }
+    // An alternate is promoted to lead its group, unless the group is led by
+    // a note or a break: that is not a dance to demote, and a break must not
+    // become an alternate. The slot is then swapped in place, as an
+    // alternate.
+    final ledByDance = slots[range.start].danceId != null;
+    final promote = slot.isAlt && (index == range.start || ledByDance);
+    final swapped = slot.copyWith(
+      danceId: danceId,
+      isAlt: promote ? false : slot.isAlt,
+    );
+    // The slot leads its group already (a primary, or a leading orphaned
+    // alternate, which now plans its run), or stays an alternate: it stays
+    // where it is.
+    final front = promote && index != range.start ? range.start : index;
+    next.removeAt(index);
+    if (front != index) {
+      // The old primary, now an alternate of the dance being called.
+      next[front] = next[front].copyWith(isAlt: true);
+    }
+    next.insert(front, swapped);
+    if (!traded) {
+      next.insert(
+        front + 1,
+        ProgramSlot(
+          id: alternateId,
+          position: slot.position,
+          danceId: old,
+          isAlt: true,
+        ),
+      );
+    }
+    return next;
+  }
+
   /// The alternate group holding the slot at [index] in a **position-ordered**
   /// [slots] list, as the half-open range `[start, end)`: the group's primary
   /// and every alternate after it, by the rule [grouped] and

@@ -230,8 +230,9 @@ typedef ImportFilePicker = Future<PickedImportFile?> Function();
 /// extension says nothing about the source.
 ///
 /// Only the dedicated file types are recognized: `.ccshare` (a Caller's
-/// Compendium share bundle), `.usr` (a Caller's Companion export) and `.csv`
-/// (a spreadsheet, #2329). A plain
+/// Compendium share bundle), `.usr` (a Caller's Companion export), `.csv`
+/// (a spreadsheet, #2329) and `.txt` or `.md` (the caller's own notes,
+/// #2330). A plain
 /// `.json` is deliberately **not** claimed: The Caller's Box and others serve
 /// JSON too, so the extension does not say which source it came from. Matching
 /// is case-insensitive (`.USR` is how Caller's Companion names its export).
@@ -240,20 +241,25 @@ ImportSourceKind? importSourceKindForFileName(String fileName) {
   if (lower.endsWith('.ccshare')) return ImportSourceKind.genericJson;
   if (lower.endsWith('.usr')) return ImportSourceKind.callersCompanionUsr;
   if (lower.endsWith('.csv')) return ImportSourceKind.csv;
+  if (lower.endsWith('.txt') || lower.endsWith('.md')) {
+    return ImportSourceKind.textDocument;
+  }
   return null;
 }
 
 /// Default [ImportFilePicker]: opens the native open-file dialog restricted to
 /// the file types the import screen understands (`.ccshare`, `.json`, `.usr`,
-/// `.csv`) and reads the chosen file's bytes — under [kMaxImportUsrBytes] for
-/// a `.usr`, [kMaxCsvImportBytes] for a `.csv`, [kMaxImportFileBytes]
-/// otherwise. Returns `null` when the user cancels.
+/// `.csv`, `.txt`, `.md`) and reads the chosen file's bytes — under
+/// [kMaxImportUsrBytes] for a `.usr`, [kMaxCsvImportBytes] for a `.csv`,
+/// `.txt` or `.md`, [kMaxImportFileBytes] otherwise. Returns `null` when the
+/// user cancels.
 Future<PickedImportFile?> pickImportAnyFile() async {
   final file = await openFile(
     acceptedTypeGroups: [
       importJsonTypeGroup(),
       importUsrTypeGroup(),
       importCsvTypeGroup(),
+      importTextDocumentTypeGroup(),
     ],
   );
   if (file == null) return null;
@@ -262,7 +268,8 @@ Future<PickedImportFile?> pickImportAnyFile() async {
     file,
     maxBytes: switch (kind) {
       ImportSourceKind.callersCompanionUsr => kMaxImportUsrBytes,
-      ImportSourceKind.csv => kMaxCsvImportBytes,
+      ImportSourceKind.csv ||
+      ImportSourceKind.textDocument => kMaxCsvImportBytes,
       _ => kMaxImportFileBytes,
     },
   );
@@ -313,6 +320,32 @@ XTypeGroup importCsvTypeGroup({bool? isLinux}) => XTypeGroup(
   extensions: pickerExtensions(['csv'], isLinux),
   uniformTypeIdentifiers: const ['public.comma-separated-values-text'],
   mimeTypes: const ['text/csv', 'text/comma-separated-values'],
+);
+
+/// Default [ImportBytePicker] for a text or Markdown file of dances (#2330):
+/// opens the native open-file dialog restricted to `.txt` and `.md` and reads
+/// the chosen file's bytes, under [kMaxCsvImportBytes], as a spreadsheet's
+/// are. Returns `null` when the user cancels.
+Future<Uint8List?> pickImportTextDocumentFile() async {
+  final file = await openFile(
+    acceptedTypeGroups: [importTextDocumentTypeGroup()],
+  );
+  if (file == null) return null;
+  return readImportBytesCapped(file, maxBytes: kMaxCsvImportBytes);
+}
+
+/// The file-type filter behind [pickImportTextDocumentFile]: `.txt` and
+/// `.md` only (a Word file is not offered, #2330). Its label names the
+/// formats, so it stays a literal.
+@visibleForTesting
+XTypeGroup importTextDocumentTypeGroup({bool? isLinux}) => XTypeGroup(
+  label: 'TXT, MD',
+  extensions: pickerExtensions(['txt', 'md'], isLinux),
+  uniformTypeIdentifiers: const [
+    'public.plain-text',
+    'net.daringfireball.markdown',
+  ],
+  mimeTypes: const ['text/plain', 'text/markdown', 'text/x-markdown'],
 );
 
 /// The file-type filter behind [pickImportFile].
@@ -964,6 +997,12 @@ enum ImportSourceKind {
   /// file is read as bytes, decoded as UTF-8 and mapped column by column
   /// before it is planned.
   csv,
+
+  /// The caller's own text or Markdown file of dances (#2330). A byte source:
+  /// decoded as UTF-8, read into the spreadsheet import's columns
+  /// ([textDocumentToCsv]) and mapped label by label in the same step, then
+  /// planned and committed as a spreadsheet is.
+  textDocument,
 }
 
 class ImportSource {
@@ -2230,6 +2269,11 @@ List<ImportSource> defaultImportSources() => [
     kind: ImportSourceKind.csv,
     adapterFactory: CsvAdapter.new,
     bytePicker: pickImportCsvFile,
+  ),
+  ImportSource(
+    kind: ImportSourceKind.textDocument,
+    adapterFactory: CsvAdapter.new,
+    bytePicker: pickImportTextDocumentFile,
   ),
 ];
 

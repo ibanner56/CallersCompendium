@@ -2478,6 +2478,11 @@ void main() {
             defaultValue: false,
           ),
           (
+            key: kSuggestionsInPerformSwapKey,
+            read: SuggestionsInPerformSwapScope.of,
+            defaultValue: false,
+          ),
+          (
             key: kAggressiveBeatsUpdateKey,
             read: AggressiveBeatsUpdateScope.of,
             defaultValue: false,

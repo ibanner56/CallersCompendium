@@ -244,14 +244,17 @@ From it you can:
 - **reorder the remaining slots** (with a drag handle or move up / move down
   buttons);
 - **insert a dance** with **Insert dance from search**;
-- **add an ad-hoc note or break**; and
+- **add an ad-hoc note or break**;
+- **swap a dance** for another that keeps what matters (see
+  [Swap a dance](#swap-a-dance)); and
 - **mark the current slot performed** (choose it again to clear the mark).
 
 An inserted dance and an ad-hoc note both land right after the current slot, so
 "play this next" is one action away. Your changes are kept however you close
 the sheet — **Done**, swiping it down, tapping outside it, or **Back** — so a
-hurried swipe never throws away a reorder or a performed mark. Every change offers **Undo**, and a change
-to a saved program is saved right away. The
+hurried swipe doesn't throw away a reorder or a performed mark. Everything you
+change between opening the sheet and closing it is one change: it offers
+**Undo**, and for a saved program it is saved right away. The
 Undo is still offered for a moment after you leave Perform (for as long as you
 need with a screen reader), but only while the program is as the change left
 it. So if the program has been changed since, for example edited in the
@@ -261,15 +264,114 @@ change is kept.
 Perform shows the program as it was when you opened it. If the program changes
 somewhere else while Perform is open — most often when
 [Device Sync](./settings.md#device-sync) brings in an edit from another device
-— your next change is saved on top of that edit rather than replacing it.
-Perform then switches to the newer program and says so: *This program had
+— your next change is usually saved on top of that edit rather than replacing
+it. Perform then switches to the newer program and says so: *This program had
 changed elsewhere since Perform opened. Perform now shows the latest version,
-with your change.* Undo still takes back only your own change. If you have set calling history to count
+with your change.* Undo still takes back only your own change.
+
+Sometimes your change can't be put on top, because it would land on the wrong
+dance. That happens when, on the other device, a slot you changed (its note,
+its performed mark or, with a swap, its dance, or any of these with an
+**Undo**) was given another dance, or a slot you swapped was deleted, moved to another group, made or
+unmade an alternate, or marked performed. Then none of that change is saved,
+and it no longer offers **Undo**. Perform shows the program as it now is, keeps
+on screen any change you made after it that is still being saved, and says
+*This program changed on another device, so one of your changes wasn't saved.
+Check the program and make it again if you still want it.* If you have already
+left Perform, the message appears on the screen you returned to instead. A
+change you are making in the adjust sheet when this happens, or when a newer
+program arrives, is put on the program as it now is when you close the sheet,
+unless it would land on the wrong dance in the same way: then it isn't saved,
+and the same message appears.
+
+If you have set calling history to count
 only slots marked performed, this is where you mark them — see
 [Programs & matrix](./programs.md#track-what-you-have-called).
 
 This sheet belongs to program Perform. Performing a single dance has nothing to
 reorder, so it has no adjust sheet.
+
+### Swap a dance
+
+When the floor isn't ready for the dance you planned, swap it. **Swap this
+dance** in the adjust sheet swaps the dance you are calling, and the swap
+button on each upcoming dance's row swaps that one. Swap is not offered on a
+dance you have marked performed, on a note or break, or on a slot before the
+current one, nor on an alternate you are showing whose planned dance is already
+marked performed. Swapping an upcoming dance leaves you on the card you are reading.
+
+The swap sheet opens already searched. Its **Keep** choices come from the dance
+you are swapping:
+
+- **Same formation**, such as Becket;
+- **This level or easier**, the dance's level and every easier one;
+- **Same type** (contra, English or square), offered only when the program
+  mixes types;
+- **Not already in tonight's program**; and
+- **Figures to keep**: each of the dance's figures, with the phrase it is in.
+  Keep one and **In the same phrase** appears for it, and, when a single
+  figure comes right before it, **With what comes before it**, which asks for
+  that figure right before it too. A figure written as free text is not
+  offered, since nothing can search for it.
+
+A filter you have hidden in
+[Settings ▸ Collection filters](./settings.md#collection-filters) is not offered
+as a Keep choice: hiding Formation, for example, leaves out Same formation.
+The figure names follow the dialect of the swapped dance's own type.
+
+Every Keep choice but the figures starts on; you can change which ones in
+[Settings ▸ Program ▸ Perform mode ▸ Swap a dance](./settings.md#perform-mode).
+The results change as you turn choices on and off, with no Search button. The
+slot's own [alternates](./glossary.md#alt) are listed first, under **Your
+alternates**, whatever the Keep choices, and the dance you are swapping is never
+listed. **More filters** opens the full search panels with the same choices
+already set, so you can change them there or add others. From then on the
+panels hold your search: **Not already in tonight's program** still changes
+which dances are left out, but never undoes what you changed in the panels.
+
+If you have turned on **Suggest the next dance** and **Use in Perform's Swap
+this dance** (both in
+[Settings ▸ Experimental ▸ Suggestions](./settings.md#suggestions)), the dances
+after **Your alternates** are listed in the **Suggested** order for the place of
+the dance you are swapping: compared with the dances before and after it, as if
+the dance you are swapping out were not there, with a reason under each, as in
+the [program builder](./programs.md#let-the-app-suggest-the-next-dance). Your
+alternates stay first. Nothing is left out; the same dances are listed as
+without it, only in another order. Until the order is worked out the dances
+show in their usual order, and you can tap one at any time. English dances are
+not ranked yet: they come after the others and say so, and a dance already in
+tonight's program (with that Keep choice off) comes last. **Sort** offers the
+usual orders too, and **Suggested** there brings this order back. With either
+setting off, the swap sheet lists the dances in its usual order.
+
+Tap a dance to swap it in. The slot keeps its note, guest caller and planned
+times; only the dance changes. The dance you swap in is the one being called,
+so it takes the planned slot, which counts as called the way any planned dance
+does, and the one you swapped out stays in the program as an unmarked
+[alternate](./glossary.md#alt), which does not count (see
+[calling history](./programs.md#track-what-you-have-called)):
+
+- Swapping a planned dance, the one you swapped out becomes its first
+  alternate, right after it.
+- Choosing one of **Your alternates** trades the two dances: the planned slot
+  takes the alternate's dance, and that alternate takes the dance you swapped
+  out, keeping its place.
+- If you were calling one of the slot's alternates (with **Show alternate**),
+  the slot you are on becomes the planned dance, moved to the front of its
+  group, and the dance that was planned becomes its alternate. The dance you
+  swapped out is then the first alternate after it, or, if you chose one of
+  **Your alternates**, it takes that alternate's place. You stay on the same
+  card. Each slot keeps its own note, guest caller and times. In a group that
+  starts with a note or a break rather than a dance, the alternate is swapped
+  where it is and stays an alternate.
+
+A swap can be undone like any other change. If another device changed the
+slots it touches meanwhile, it is not saved; see
+[Adjust on the fly](#adjust-on-the-fly). The swap searches only your
+collection, never online.
+
+For an English dance, Same formation is not offered, and its figures can be
+kept but without the two phrase choices. The swap sheet says so.
 
 ## Screen readers and verbose figures
 

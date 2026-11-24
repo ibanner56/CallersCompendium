@@ -86,14 +86,15 @@ void main() {
     );
 
     test('advertises glossary.v1, glossary.v2, programTemplates.v1, '
-        'savedSearches.v1 and suggestions.v1, and gates on each (#1023, '
-        '#2325, #2337, #2343)', () {
+        'savedSearches.v1, suggestions.v1 and performSwap.v1, and gates on '
+        'each (#1023, #2325, #2337, #2343, #2346)', () {
       expect(build.advertised, {
         SyncCapabilities.glossaryV1,
         SyncCapabilities.glossaryV2,
         SyncCapabilities.programTemplatesV1,
         SyncCapabilities.savedSearchesV1,
         SyncCapabilities.suggestionsV1,
+        SyncCapabilities.performSwapV1,
       });
       // Every gated capability is advertised: the whole of each feature,
       // saved searches included now saving and using them is in, is in this build.
@@ -108,6 +109,7 @@ void main() {
         SyncCapabilities.programTemplatesV1: {'a', 'b'},
         SyncCapabilities.savedSearchesV1: {'a', 'b'},
         SyncCapabilities.suggestionsV1: {'a', 'b'},
+        SyncCapabilities.performSwapV1: {'a', 'b'},
       });
     });
 
@@ -119,6 +121,7 @@ void main() {
         SyncCapabilities.glossaryV2,
         SyncCapabilities.programTemplatesV1,
         SyncCapabilities.suggestionsV1,
+        SyncCapabilities.performSwapV1,
       };
       expect(closedBeside(['a', 'b'], {'a': previous, 'b': previous}), {
         SyncCapabilities.savedSearchesV1: {'a', 'b'},
@@ -129,8 +132,34 @@ void main() {
       });
     });
 
-    test('both suggestions keys wait on suggestions.v1 (#2343)', () {
-      for (final key in ['suggestions_enabled', 'suggestion_settings']) {
+    test('rollout: beside peers on the build before this one, which '
+        'advertise suggestions.v1 too, every peer holds performSwap.v1 and '
+        'savedSearches.v1 closed (#2346, #2325)', () {
+      const previous = {
+        SyncCapabilities.glossaryV1,
+        SyncCapabilities.glossaryV2,
+        SyncCapabilities.programTemplatesV1,
+        SyncCapabilities.suggestionsV1,
+      };
+      expect(closedBeside(['a', 'b'], {'a': previous, 'b': previous}), {
+        SyncCapabilities.performSwapV1: {'a', 'b'},
+        SyncCapabilities.savedSearchesV1: {'a', 'b'},
+      });
+    });
+
+    test('the Swap a dance defaults wait on performSwap.v1 (#2346)', () {
+      expect(
+        build.capabilityFor(SyncRecordKind.setting, 'perform_swap_defaults'),
+        SyncCapabilities.performSwapV1,
+      );
+    });
+
+    test('every suggestions key waits on suggestions.v1 (#2343, #2348)', () {
+      for (final key in [
+        'suggestions_enabled',
+        'suggestion_settings',
+        'suggestions_in_perform_swap',
+      ]) {
         expect(
           build.capabilityFor(SyncRecordKind.setting, key),
           SyncCapabilities.suggestionsV1,

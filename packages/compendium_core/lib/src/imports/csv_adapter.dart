@@ -4,6 +4,7 @@ library;
 
 import 'package:meta/meta.dart';
 
+import '../csv/csv_name_list.dart';
 import '../csv/csv_reader.dart';
 import '../csv/csv_writer.dart' show guardCsvFormula;
 import '../model/custom_field.dart';
@@ -61,34 +62,56 @@ class CsvColumnMapping {
     : phrase = null,
       customFieldId = null,
       newFieldLabel = null,
-      newFieldType = null;
+      newFieldType = null,
+      labelled = false;
+
+  /// Calling notes that keep the column's header in front of each value
+  /// (`Music: Reel`), so a value from a text file's label that no field takes
+  /// still says what it was (#2330).
+  const CsvColumnMapping._labelledNotes()
+    : target = CsvColumnTarget.callingNotes,
+      phrase = null,
+      customFieldId = null,
+      newFieldLabel = null,
+      newFieldType = null,
+      labelled = true;
 
   const CsvColumnMapping.phrase(String this.phrase)
     : target = CsvColumnTarget.figurePhrase,
       customFieldId = null,
       newFieldLabel = null,
-      newFieldType = null;
+      newFieldType = null,
+      labelled = false;
 
   const CsvColumnMapping.customField(String this.customFieldId)
     : target = CsvColumnTarget.customField,
       phrase = null,
       newFieldLabel = null,
-      newFieldType = null;
+      newFieldType = null,
+      labelled = false;
 
   const CsvColumnMapping.newCustomField(
     String this.newFieldLabel,
     CustomFieldType this.newFieldType,
   ) : target = CsvColumnTarget.newCustomField,
       phrase = null,
-      customFieldId = null;
+      customFieldId = null,
+      labelled = false;
 
   static const ignore = CsvColumnMapping(CsvColumnTarget.ignore);
+
+  /// See [CsvColumnMapping._labelledNotes].
+  static const labelledNotes = CsvColumnMapping._labelledNotes();
 
   final CsvColumnTarget target;
   final String? phrase;
   final String? customFieldId;
   final String? newFieldLabel;
   final CustomFieldType? newFieldType;
+
+  /// For [CsvColumnTarget.callingNotes]: each value is kept as
+  /// `Header: value`.
+  final bool labelled;
 
   @override
   bool operator ==(Object other) =>
@@ -97,11 +120,18 @@ class CsvColumnMapping {
       other.phrase == phrase &&
       other.customFieldId == customFieldId &&
       other.newFieldLabel == newFieldLabel &&
-      other.newFieldType == newFieldType;
+      other.newFieldType == newFieldType &&
+      other.labelled == labelled;
 
   @override
-  int get hashCode =>
-      Object.hash(target, phrase, customFieldId, newFieldLabel, newFieldType);
+  int get hashCode => Object.hash(
+    target,
+    phrase,
+    customFieldId,
+    newFieldLabel,
+    newFieldType,
+    labelled,
+  );
 }
 
 /// The words a cell may use for each closed field, folded by [csvFold]: the
@@ -196,8 +226,9 @@ final RegExp _whitespace = RegExp(r'\s+');
 /// A cell RFC 4180 must quote.
 final RegExp _needsQuotes = RegExp('[",\r\n]');
 
-/// Between tunes in a tunes cell: a line break, a semicolon or a comma.
-final RegExp _tuneSeparators = RegExp(r'[\n;,]');
+/// Between tunes in a tunes cell, besides a comma: a line break or a
+/// semicolon. Only the comma can be escaped (`\,`), as the export writes it.
+const Set<String> _tuneSeparators = {'\n', ';'};
 
 /// A line break of any style.
 final RegExp _lineBreak = RegExp(r'\r\n|\r|\n');
@@ -427,7 +458,9 @@ StructuredDraft csvRowToDraft(
       case CsvColumnTarget.title:
         title ??= value;
       case CsvColumnTarget.authors:
-        authors.addAll(splitAuthorNames([value], issues: issues));
+        authors.addAll(
+          splitAuthorNames([value], issues: issues, backslashEscapes: true),
+        );
       case CsvColumnTarget.form:
         final f =
             vocab.forms[csvFold(value)] ?? _byName(DanceForm.values, value);
@@ -481,16 +514,9 @@ StructuredDraft csvRowToDraft(
           mixer = b;
         }
       case CsvColumnTarget.tags:
-        tagNames.addAll(
-          value.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty),
-        );
+        tagNames.addAll(splitNameList(value));
       case CsvColumnTarget.tunes:
-        tunes.addAll(
-          value
-              .split(_tuneSeparators)
-              .map((t) => t.trim())
-              .where((t) => t.isNotEmpty),
-        );
+        tunes.addAll(splitNameList(value, extraSeparators: _tuneSeparators));
       case CsvColumnTarget.meter:
         meter = value;
       case CsvColumnTarget.key:
@@ -498,7 +524,7 @@ StructuredDraft csvRowToDraft(
       case CsvColumnTarget.hook:
         hook = value;
       case CsvColumnTarget.callingNotes:
-        notes.add(value);
+        notes.add(column.labelled ? '${columnName(i)}: $value' : value);
       case CsvColumnTarget.walkthrough:
         walkthrough = value;
       case CsvColumnTarget.figures:

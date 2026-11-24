@@ -384,6 +384,20 @@ void main() {
       await tester.pumpAndSettle();
     }
 
+    // Opens the Program section and scrolls its lazy list until [target]
+    // is built and on screen.
+    Future<void> openProgramAt(WidgetTester tester, Finder target) async {
+      await openProgram(tester);
+      final scrollable = find
+          .ancestor(
+            of: find.byKey(const ValueKey('settings-perform-swap-defaults')),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await tester.scrollUntilVisible(target, 200, scrollable: scrollable);
+      await tester.pumpAndSettle();
+    }
+
     const toggleKey = ValueKey('general-require-performed-for-history');
 
     testWidgets('require-performed toggle is present and off by default', (
@@ -476,7 +490,7 @@ void main() {
       tester,
     ) async {
       await _pumpSettings(tester);
-      await openProgram(tester);
+      await openProgramAt(tester, find.byKey(trackAllCallersKey));
 
       expect(find.byKey(trackAllCallersKey), findsOneWidget);
       final toggle = tester.widget<SwitchListTile>(
@@ -489,7 +503,7 @@ void main() {
       tester,
     ) async {
       await _pumpSettings(tester, initialTrackHistoryForAllCallers: true);
-      await openProgram(tester);
+      await openProgramAt(tester, find.byKey(trackAllCallersKey));
 
       final toggle = tester.widget<SwitchListTile>(
         find.byKey(trackAllCallersKey),
@@ -501,7 +515,7 @@ void main() {
       'turning track-all-callers on updates the notifier and persists',
       (tester) async {
         final harness = await _pumpSettings(tester);
-        await openProgram(tester);
+        await openProgramAt(tester, find.byKey(trackAllCallersKey));
 
         await tester.ensureVisible(find.byKey(trackAllCallersKey));
         await tester.pumpAndSettle();
@@ -527,7 +541,7 @@ void main() {
           tester,
           initialTrackHistoryForAllCallers: true,
         );
-        await openProgram(tester);
+        await openProgramAt(tester, find.byKey(trackAllCallersKey));
 
         await tester.ensureVisible(find.byKey(trackAllCallersKey));
         await tester.pumpAndSettle();

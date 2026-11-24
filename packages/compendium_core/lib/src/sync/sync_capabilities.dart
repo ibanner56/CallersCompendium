@@ -43,11 +43,18 @@ abstract final class SyncCapabilities {
   static const String programTemplatesV1 = 'programTemplates.v1';
 
   /// Suggestions (#2343): the Experimental Suggestions toggle
-  /// (`suggestions_enabled`) and what suggestions look for
-  /// (`suggestion_settings`). An older build has no Suggested sort, so it
-  /// would keep both keys without using them; they wait so a peer never
-  /// holds a setting it cannot show or edit.
+  /// (`suggestions_enabled`), what suggestions look for
+  /// (`suggestion_settings`) and whether Perform's swap sheet orders by them
+  /// (`suggestions_in_perform_swap`, #2348). An older build has no Suggested
+  /// sort, so it would keep these keys without using them; they wait so a
+  /// peer never holds a setting it cannot show or edit.
   static const String suggestionsV1 = 'suggestions.v1';
+
+  /// Perform's **Swap a dance** defaults (#2346): which Keep items start on
+  /// (`perform_swap_defaults`). An older build has no swap sheet, so it would
+  /// keep the key without using it; it waits so a peer never holds a setting
+  /// it cannot show or edit.
+  static const String performSwapV1 = 'performSwap.v1';
 }
 
 /// What this build understands and what it holds back until every attached
@@ -116,6 +123,9 @@ final class SyncCapabilityPolicy {
   ///
   /// [SyncCapabilities.suggestionsV1] (#2343) gates the Suggestions toggle
   /// and its settings, and this build advertises it.
+  ///
+  /// [SyncCapabilities.performSwapV1] (#2346) gates the Swap a dance
+  /// defaults, and this build advertises it.
   static const SyncCapabilityPolicy build = SyncCapabilityPolicy(
     advertised: {
       SyncCapabilities.glossaryV1,
@@ -123,6 +133,7 @@ final class SyncCapabilityPolicy {
       SyncCapabilities.programTemplatesV1,
       SyncCapabilities.savedSearchesV1,
       SyncCapabilities.suggestionsV1,
+      SyncCapabilities.performSwapV1,
     },
     gatedRecordKinds: {
       SyncRecordKind.glossaryEntry: SyncCapabilities.glossaryV1,
@@ -136,6 +147,8 @@ final class SyncCapabilityPolicy {
       'program_template_default': SyncCapabilities.programTemplatesV1,
       'suggestions_enabled': SyncCapabilities.suggestionsV1,
       'suggestion_settings': SyncCapabilities.suggestionsV1,
+      'suggestions_in_perform_swap': SyncCapabilities.suggestionsV1,
+      'perform_swap_defaults': SyncCapabilities.performSwapV1,
     },
     gatedSettingKeyPrefixes: {
       'program_template:': SyncCapabilities.programTemplatesV1,

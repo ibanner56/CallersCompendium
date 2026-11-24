@@ -331,6 +331,16 @@ They don't change what is shared when you share the whole program as a
   *Exit Perform?* before taking you out of Perform mode, so a stray tap can't drop
   you out mid-dance. Turn it off to leave in one tap; a program's place and
   clock are kept either way. See [Leaving Perform](./perform.md#leaving-perform).
+- **Swap a dance** — which **Keep** choices are on when you
+  [swap a dance](./perform.md#swap-a-dance) in Perform: **Same formation**,
+  **This level or easier**, **Same type** (offered only in a program that mixes
+  types) and **Not already in tonight's program**. All four start on. Figures to
+  keep always start off. A backup includes this setting, and it syncs to your
+  other devices once every device in the store has a version of the app that
+  knows it. If a newer version of the app saved these choices, this screen can't
+  read them: it shows the choices the app starts with, all on, and can't change
+  them until you update (your saved choices are kept). If the choices can't be
+  read at all, it says so and changes nothing.
 
 ### Calling history
 
@@ -1189,6 +1199,15 @@ See [Let the app suggest the next dance](./programs.md#let-the-app-suggest-the-n
 Turning it off takes Suggested out of the menu, and a picker that is open goes
 back to its plain order.
 
+**Use in Perform's Swap this dance** shows under it while Suggest the next
+dance is on. It is **off by default**, so turning on suggestions for the
+builder doesn't change Perform. With both on, Perform's
+[swap sheet](./perform.md#swap-a-dance) lists its dances after **Your
+alternates** in the Suggested order for the place of the dance you are
+swapping, with a reason under each. Nothing is left out: the same dances are
+listed, only in another order. With either off, the swap sheet keeps its usual
+order.
+
 **What suggestions look for** opens a screen with one row for each thing
 suggestions weigh up. Each has **Off**, **A little** or **A lot**: Off leaves it
 out entirely. There are no numbers to tune.
@@ -1222,7 +1241,7 @@ Recent calls at this venue **A lot** within **3 months**. **Reset to defaults**
 puts every choice back to these, and is grayed out while they are already the
 defaults.
 
-Both settings are in your [backup](#backup--restore), and sync with
+All three settings are in your [backup](#backup--restore), and sync with
 [Device Sync](#device-sync) once every device connected to your store has a
 version of the app that knows them (see
 [New kinds of data wait for every device](#new-kinds-of-data-wait-for-every-device)).

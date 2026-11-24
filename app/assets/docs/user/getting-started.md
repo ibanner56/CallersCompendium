@@ -173,8 +173,8 @@ Perform mode is built for the realities of the stage: huge, adjustable type on a
 high-contrast dark background, next and previous controls big enough to hit
 without looking, and the screen kept awake so it never dims mid-dance. When a
 slot has an alt, **Show alternate** switches the card to it. If you need to
-change a program on the fly — reorder what is left, insert a dance, or add a
-quick note — **Adjust program** lets you do it without disturbing the card you
+change a program on the fly — reorder what is left, insert a dance, swap one,
+or add a quick note — **Adjust program** lets you do it without disturbing the card you
 are reading.
 
 *Perform mode in the dark-stage theme, with large type and controls for moving

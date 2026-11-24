@@ -9186,6 +9186,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsWalkthroughSnippetEditTitle => 'Ausschnitt bearbeiten';
 
   @override
+  String get danceEditorSetupTitle => 'Urheber, Formation und Musik';
+
+  @override
   String get danceEditorMoreDetailsTitle => 'Weitere Details';
 
   @override
@@ -9274,11 +9277,18 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceEditorSingingSubtitle => 'Das Lied gehört unter Melodien';
 
   @override
+  String get danceEditorFreeFormLabel => 'Freie Form';
+
+  @override
+  String get danceEditorFreeFormSubtitle =>
+      'Folgt keiner Phrasierung: keine Phrasenbezeichnungen und keine Phrasenprüfung';
+
+  @override
   String get danceEditorImproperLabel => 'Beginnt improper';
 
   @override
   String get danceEditorImproperSubtitle =>
-      'Leer lassen für einen Tanz, der proper beginnt.';
+      'Ausgeschaltet lassen für einen Tanz, der proper beginnt.';
 
   @override
   String get danceEditorComposedLabel => 'Komponiert';
@@ -9912,6 +9922,148 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceEditorAddSequence => 'Sequenz hinzufügen';
 
   @override
+  String get danceEditorAddFiguresFromText => 'Figuren aus Text hinzufügen…';
+
+  @override
+  String get figureTextSheetTitle => 'Figuren aus Text hinzufügen';
+
+  @override
+  String get figureTextSheetHelp =>
+      'Geben Sie eine Figur pro Zeile ein oder fügen Sie sie ein, z. B. „(8) neighbor balance & swing“. Jede Zeile wird so gelesen, wie das Bewegungsfeld eine eingegebene Zeile bei eingeschalteter Freitexteingabe liest, auch wenn sie ausgeschaltet ist. Nichts wird gespeichert, bevor Sie den Tanz speichern.';
+
+  @override
+  String get figureTextSheetHelpDropsLabels =>
+      'Geben Sie eine Figur pro Zeile ein oder fügen Sie sie ein, z. B. „A1 (8) neighbor balance & swing“. Eine Phrasenbezeichnung wie A1 am Zeilenanfang wird weggelassen, und jede Zeile wird so gelesen, wie das Bewegungsfeld eine eingegebene Zeile bei eingeschalteter Freitexteingabe liest, auch wenn sie ausgeschaltet ist. Nichts wird gespeichert, bevor Sie den Tanz speichern.';
+
+  @override
+  String get figureTextSheetFieldLabel => 'Figuren, eine pro Zeile';
+
+  @override
+  String figureTextSheetSummary(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString Figuren zum Hinzufügen',
+      one: '1 Figur zum Hinzufügen',
+      zero: 'Noch keine Figuren zum Hinzufügen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String figureTextSheetUnrecognizedSummary(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$countString Zeilen werden nicht erkannt. Sie werden als nicht erkannte Figuren mit ihrem Text hinzugefügt, damit Sie sie korrigieren können.',
+      one:
+          '1 Zeile wird nicht erkannt. Sie wird als nicht erkannte Figur mit ihrem Text hinzugefügt, damit Sie sie korrigieren können.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String figureTextSheetLineFigures(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString Figuren',
+      one: '1 Figur',
+      zero: 'Keine Figur',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get figureTextSheetLineUnrecognized =>
+      'Nicht erkannt: wird als nicht erkannte Figur hinzugefügt';
+
+  @override
+  String figureTextSheetTooLong(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'Das sind mehr als $maxString Zeichen, mehr als auf einmal gelesen werden kann. Es wird nichts hinzugefügt. Fügen Sie den Text in Teilen hinzu.';
+  }
+
+  @override
+  String figureTextSheetTooManyLines(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'Das sind mehr als $maxString Zeilen, mehr als auf einmal gelesen werden kann. Es wird nichts hinzugefügt. Fügen Sie den Text in Teilen hinzu.';
+  }
+
+  @override
+  String figureTextSheetLineTooLong(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'Eine Zeile ist länger als $maxString Zeichen, mehr als als eine Figurenzeile gelesen werden kann. Es wird nichts hinzugefügt. Teilen Sie sie in mehrere Zeilen auf.';
+  }
+
+  @override
+  String get figureTextSheetAdd => 'Figuren hinzufügen';
+
+  @override
+  String get figureTextSheetFromImage => 'Aus einem Bild…';
+
+  @override
+  String get figureTextSheetReadingImage => 'Bild wird gelesen…';
+
+  @override
+  String get figureTextSheetImageUnavailable =>
+      'Dieses Gerät kann Text in Bildern weder in der Sprache der App noch auf Englisch lesen.';
+
+  @override
+  String get figureTextSheetImageEnglishOnly =>
+      'Dieses Gerät liest Bilder auf Englisch, nicht in der Sprache der App.';
+
+  @override
+  String figureTextSheetImageTooLarge(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Dieses Bild ist größer als $limitString MB und wurde deshalb nicht gelesen. Wählen Sie ein kleineres.';
+  }
+
+  @override
+  String get figureTextSheetImageTooManyPixels =>
+      'Dieses Bild hat zu viele Pixel, um gelesen zu werden. Wählen Sie ein kleineres oder schneiden Sie es zu.';
+
+  @override
+  String get figureTextSheetImageUnreadable =>
+      'Diese Datei ist kein Bild, das dieses Gerät öffnen kann.';
+
+  @override
+  String get figureTextSheetImageNoText =>
+      'In diesem Bild wurde kein Text gefunden.';
+
+  @override
+  String get figureTextSheetImageFailed =>
+      'Der Text des Bildes konnte nicht gelesen werden.';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList =>
       'Am Ende der Figurenliste einfügen';
 
@@ -10296,6 +10448,17 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get danceEditorLingoStylingHelper =>
       'Bewegungsnamen werden punktiert unterstrichen, Rollenbegriffe unterstrichen und abgeratene Begriffe durchgestrichen';
+
+  @override
+  String danceEditorBeatTotalFreeForm(int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: 'Gesamt: $total Schläge',
+      one: 'Gesamt: 1 Schlag',
+    );
+    return '$_temp0';
+  }
 
   @override
   String danceEditorBeatTotal(int total, int expected) {
@@ -13216,6 +13379,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Fügt den Menüs „Sortieren“ der Tanzlisten im Programmeditor „Vorgeschlagen“ hinzu. Es ordnet die Tänze für die Stelle, an die der neue Tanz kommt, und sagt, warum.';
 
   @override
+  String get settingsSuggestionsInPerformSwapTitle =>
+      'In „Diesen Tanz tauschen“ im Perform-Modus verwenden';
+
+  @override
+  String get settingsSuggestionsInPerformSwapSubtitle =>
+      'Wenn du im Perform-Modus einen Tanz tauschst, stehen die Tänze unter „Deine Alternativen“ in der Reihenfolge, die am besten zu dieser Stelle im Programm passt, mit Begründung. Nichts wird ausgelassen.';
+
+  @override
   String get settingsSuggestionsEditorTitle => 'Worauf Vorschläge achten';
 
   @override
@@ -13808,6 +13979,122 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Gage ist in den Einstellungen ausgeblendet und fehlt daher. Schalte „Gage anzeigen“ unter Einstellungen ▸ Programm ein, um sie aufzunehmen.';
 
   @override
+  String get performSwapThisDance => 'Diesen Tanz tauschen';
+
+  @override
+  String performSwapDanceNamed(String title) {
+    return '$title tauschen';
+  }
+
+  @override
+  String performSwappedAnnounce(String title) {
+    return '$title eingetauscht';
+  }
+
+  @override
+  String get performSwapKeepHeader => 'Beibehalten';
+
+  @override
+  String performSwapKeepFormation(String formation) {
+    return 'Gleiche Formation: $formation';
+  }
+
+  @override
+  String performSwapKeepLevel(String level) {
+    return 'Dieses Niveau oder leichter: $level';
+  }
+
+  @override
+  String performSwapKeepType(String type) {
+    return 'Gleicher Typ: $type';
+  }
+
+  @override
+  String get performSwapKeepNotInProgram => 'Nicht schon im heutigen Programm';
+
+  @override
+  String get performSwapFiguresHeader => 'Figuren beibehalten';
+
+  @override
+  String performSwapFigureInPhrase(String figure, String phrase) {
+    return '$figure in $phrase';
+  }
+
+  @override
+  String performSwapKeepFigureSemantic(String figure) {
+    return '$figure beibehalten';
+  }
+
+  @override
+  String performSwapSamePhrase(String phrase) {
+    return 'In derselben Phrase ($phrase)';
+  }
+
+  @override
+  String performSwapSamePhraseSemantic(String figure, String phrase) {
+    return '$figure in derselben Phrase beibehalten, $phrase';
+  }
+
+  @override
+  String performSwapWithBefore(String figure) {
+    return 'Mit der Figur davor ($figure)';
+  }
+
+  @override
+  String performSwapWithBeforeSemantic(String figure, String before) {
+    return '$figure direkt nach $before beibehalten';
+  }
+
+  @override
+  String get performSwapMoreFilters => 'Weitere Filter';
+
+  @override
+  String get performSwapKeepInPanels =>
+      'Die übrigen Beibehalten-Optionen stehen jetzt unter Filter und Erweitert.';
+
+  @override
+  String get performSwapEnglishNote =>
+      'Für englische Tänze gibt es die gleiche Formation und die Figur-Verfeinerungen noch nicht.';
+
+  @override
+  String get performSwapAlternatesHeading => 'Deine Alternativen';
+
+  @override
+  String get performSwapResultsHeading => 'Passende Tänze';
+
+  @override
+  String get performSwapRefused =>
+      'Dieses Programm wurde auf einem anderen Gerät geändert, daher wurde eine deiner Änderungen nicht gespeichert. Prüfe das Programm und nimm sie erneut vor, wenn du sie noch möchtest.';
+
+  @override
+  String get settingsPerformSwapTitle => 'Tanz tauschen';
+
+  @override
+  String get settingsPerformSwapSubtitle =>
+      'Wähle, welche Beibehalten-Optionen eingeschaltet sind, wenn du im Perform-Modus einen Tanz tauschst.';
+
+  @override
+  String get settingsPerformSwapFormation => 'Gleiche Formation';
+
+  @override
+  String get settingsPerformSwapLevel => 'Dieses Niveau oder leichter';
+
+  @override
+  String get settingsPerformSwapType => 'Gleicher Typ';
+
+  @override
+  String get settingsPerformSwapTypeSubtitle =>
+      'Nur in einem Programm, das Typen mischt, etwa Contras und englische Tänze.';
+
+  @override
+  String get settingsPerformSwapNewerVersion =>
+      'Diese Auswahl wurde von einer neueren App-Version gespeichert. Diese Version verwendet ihre Startauswahl, bei der alles eingeschaltet ist, und überschreibt deine Auswahl nicht. Aktualisiere die App, um sie zu ändern.';
+
+  @override
+  String get settingsPerformSwapReadError =>
+      'Deine Auswahl für „Tanz tauschen“ konnte nicht gelesen werden und lässt sich gerade nicht ändern. Schließe diesen Bildschirm und versuche es erneut.';
+
+  @override
   String get collectionRepertoireMenuItem => 'Repertoire';
 
   @override
@@ -14049,6 +14336,79 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importCsvPickFile => 'CSV-Datei wählen …';
+
+  @override
+  String get importSourceLabelTextDocument =>
+      'Ihre eigene Text- oder Markdown-Datei';
+
+  @override
+  String get importTextHint =>
+      'Wählen Sie eine .txt- oder .md-Datei. Beginnen Sie jeden Tanz mit einer Überschrift (## Title) oder mit seinem Titel nach einer Leerzeile. Schreiben Sie Angaben in „Label: value“-Zeilen (Formation: Improper) und eine Figur pro Zeile (A1 (8) Neighbor swing).';
+
+  @override
+  String get importTextPickFile => 'Text- oder Markdown-Datei wählen…';
+
+  @override
+  String get importTextMapTitle => 'Bezeichnungen zuordnen';
+
+  @override
+  String get importTextMapIntro =>
+      'Wählen Sie, was jede Bezeichnung in Ihrer Datei enthält. Eine Bezeichnung, die kein Feld übernimmt, bleibt mit ihrem Namen in den Calling-Notizen; wählen Sie Ignorieren, um sie wegzulassen. Nichts wird hinzugefügt, bevor Sie prüfen und bestätigen.';
+
+  @override
+  String get importTextDanceStartLabel => 'Wo jeder Tanz beginnt';
+
+  @override
+  String importTextDanceStartHeading(String marks) {
+    return 'Eine $marks-Überschrift';
+  }
+
+  @override
+  String get importTextDanceStartBlankLine => 'Ein Titel nach einer Leerzeile';
+
+  @override
+  String get importTextTargetLabelledNotes =>
+      'Calling-Notizen, mit der Bezeichnung';
+
+  @override
+  String get importTextNotUtf8 =>
+      'Diese Datei ist nicht als UTF-8-Text gespeichert, daher würden Umlaute und Akzente falsch ankommen. Speichern Sie sie erneut als UTF-8-Text und wählen Sie diese Datei.';
+
+  @override
+  String importTextTooManyDances(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Diese Datei enthält mehr als $limitString Tänze. Teilen Sie sie in kleinere Dateien auf.';
+  }
+
+  @override
+  String importTextLineTooLong(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Eine Zeile in dieser Datei ist länger als $limitString Zeichen.';
+  }
+
+  @override
+  String importTextDanceTooLong(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Ein Tanz in dieser Datei hat mehr als $limitString Zeichen an Figuren, Notizen oder einer Angabe.';
+  }
+
+  @override
+  String importTextTooManyLabels(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Diese Datei verwendet mehr als $limitString verschiedene Bezeichnungen.';
+  }
 
   @override
   String get importCsvSaveAsHint =>

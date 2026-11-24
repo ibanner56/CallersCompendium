@@ -5458,7 +5458,7 @@
   },
   "commonMixer": "Mixer",
   "@commonMixer": {
-    "description": "Label for a mixer — a dance in which dancers change partners each time through the sequence (a progressive partner-changing dance), NOT an audio or kitchen mixer. Used as a dance editor checkbox label and a dance-detail indicator."
+    "description": "Label for a mixer — a dance in which dancers change partners each time through the sequence (a progressive partner-changing dance), NOT an audio or kitchen mixer. Used as the label of a dance editor toggle chip and a dance-detail indicator."
   },
   "commonShowDancesTaggedTooltip": "Add \"{tagName}\" to the Collection filters",
   "@commonShowDancesTaggedTooltip": {
@@ -11926,6 +11926,10 @@
   "@settingsWalkthroughSnippetEditTitle": {
     "description": "Title of the dialog for editing a saved walkthrough snippet's text (#411)."
   },
+  "danceEditorSetupTitle": "Credits, formation and music",
+  "@danceEditorSetupTitle": {
+    "description": "Title of the dance editor's foldable panel holding the dance's authors (and, for an English dance, interpreters and years), type, formation, progression, rating, phrase structure and the tune's meter and key. Folded, a short summary of some of those values (the authors, type, formation, improper and mixer, phrase structure, meter and key) shows under it."
+  },
   "danceEditorMoreDetailsTitle": "More details",
   "@danceEditorMoreDetailsTitle": {
     "description": "Expansion tile title for less frequently used editor metadata fields."
@@ -11940,7 +11944,7 @@
   },
   "danceEditorMixerSubtitle": "Dancers change partners each time through",
   "@danceEditorMixerSubtitle": {
-    "description": "Subtitle explaining the mixer checkbox in the dance editor: the dance progresses dancers to a new partner each time through the sequence."
+    "description": "Tooltip of the Mixer toggle chip in the dance editor, also read by screen readers: the dance progresses dancers to a new partner each time through the sequence."
   },
   "danceDetailSquareField": "{field}: {value}",
   "@danceDetailSquareField": {
@@ -12046,13 +12050,21 @@
   "@danceEditorSingingSubtitle": {
     "description": "Subtitle under the singing call checkbox: the song's name is entered in the dance's Tunes field."
   },
+  "danceEditorFreeFormLabel": "Free form",
+  "@danceEditorFreeFormLabel": {
+    "description": "Switch on a square dance (ADR-007 §8.1): the dance is free-form patter that follows no phrasing. On by default for patter, off for a main part or break."
+  },
+  "danceEditorFreeFormSubtitle": "Follows no phrasing: no phrase labels or phrase checks",
+  "@danceEditorFreeFormSubtitle": {
+    "description": "Subtitle under the Free form switch, saying what turning it on does: the figures get no phrase labels (A1, A2…) and the editor does not check that they fill each phrase."
+  },
   "danceEditorImproperLabel": "Starts improper",
   "@danceEditorImproperLabel": {
-    "description": "Checkbox in the dance editor, offered for English country dances only: the dance starts improper (the first couple crossed over). Unchecked means it starts proper, the default."
+    "description": "Toggle chip in the dance editor, offered for English country dances only: the dance starts improper (the first couple crossed over). Off means it starts proper, the default."
   },
-  "danceEditorImproperSubtitle": "Leave unchecked for a dance that starts proper.",
+  "danceEditorImproperSubtitle": "Leave off for a dance that starts proper.",
   "@danceEditorImproperSubtitle": {
-    "description": "Subtitle of the 'Starts improper' checkbox in the dance editor."
+    "description": "Tooltip of the 'Starts improper' toggle chip in the dance editor, also read by screen readers: leave the chip off (not selected) for a dance that starts proper."
   },
   "danceEditorComposedLabel": "Composed",
   "@danceEditorComposedLabel": {
@@ -12993,6 +13005,143 @@
   "@danceEditorAddSequence": {
     "description": "Menu item label for adding an empty sequence container: two or more figures danced one after another and shown on one line, such as \"balance and swing\"."
   },
+  "danceEditorAddFiguresFromText": "Add figures from text…",
+  "@danceEditorAddFiguresFromText": {
+    "description": "Add-menu item in the dance editor's figure list that opens a sheet where the user types or pastes several figure lines at once, one figure per line."
+  },
+  "figureTextSheetTitle": "Add figures from text",
+  "@figureTextSheetTitle": {
+    "description": "Title of the sheet where the user types or pastes several figure lines at once (opened by danceEditorAddFiguresFromText)."
+  },
+  "figureTextSheetHelp": "Type or paste one figure per line, such as \"(8) neighbor balance & swing\". Each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.",
+  "@figureTextSheetHelp": {
+    "description": "Help text at the top of the Add figures from text sheet, for an English dance or a square dance. \"Move box\" is the figure editor's field where a move is typed. \"Free-text entry\" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off."
+  },
+  "figureTextSheetHelpDropsLabels": "Type or paste one figure per line, such as \"A1 (8) neighbor balance & swing\". A phrase label such as A1 at the start of a line is left out, and each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.",
+  "@figureTextSheetHelpDropsLabels": {
+    "description": "Help text at the top of the Add figures from text sheet, for a contra dance, where a leading phrase label (A1, A2, B1, B2, C1, C2) is dropped from each line. Keep A1 as it is. \"Move box\" is the figure editor's field where a move is typed. \"Free-text entry\" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off."
+  },
+  "figureTextSheetFieldLabel": "Figures, one per line",
+  "@figureTextSheetFieldLabel": {
+    "description": "Label of the multi-line text box in the Add figures from text sheet."
+  },
+  "figureTextSheetSummary": "{count, plural, =0{No figures to add yet} =1{1 figure to add} other{{count} figures to add}}",
+  "@figureTextSheetSummary": {
+    "description": "Live count under the text box of the Add figures from text sheet: how many figures Add figures will insert.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "5"
+      }
+    }
+  },
+  "figureTextSheetUnrecognizedSummary": "{count, plural, =1{1 line isn't recognized. It will be added as an unrecognized figure with its text, for you to fix.} other{{count} lines aren't recognized. They will be added as unrecognized figures with their text, for you to fix.}}",
+  "@figureTextSheetUnrecognizedSummary": {
+    "description": "Shown under the live count of the Add figures from text sheet when some lines did not match any known figure. Such a line is still added, as an unrecognized figure that keeps the typed text.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "2"
+      }
+    }
+  },
+  "figureTextSheetLineFigures": "{count, plural, =0{No figure} =1{1 figure} other{{count} figures}}",
+  "@figureTextSheetLineFigures": {
+    "description": "Under one line of text in the Add figures from text sheet's preview: how many figures that line gives.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "2"
+      }
+    }
+  },
+  "figureTextSheetLineUnrecognized": "Not recognized: added as an unrecognized figure",
+  "@figureTextSheetLineUnrecognized": {
+    "description": "Under one line of text in the Add figures from text sheet's preview, when the line did not match any known figure. It is still added, as an unrecognized figure that keeps the typed text."
+  },
+  "figureTextSheetTooLong": "This is more than {max} characters, more than can be read at once. Nothing will be added. Add it in parts.",
+  "@figureTextSheetTooLong": {
+    "description": "Error under the text box of the Add figures from text sheet when the text is over the length limit. Add figures is disabled while it shows.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "20000"
+      }
+    }
+  },
+  "figureTextSheetTooManyLines": "This is more than {max} lines, more than can be read at once. Nothing will be added. Add it in parts.",
+  "@figureTextSheetTooManyLines": {
+    "description": "Error under the text box of the Add figures from text sheet when the text has more lines than the limit. Add figures is disabled while it shows.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "200"
+      }
+    }
+  },
+  "figureTextSheetLineTooLong": "A line is longer than {max} characters, more than can be read as one figure line. Nothing will be added. Break it into lines.",
+  "@figureTextSheetLineTooLong": {
+    "description": "Error under the text box of the Add figures from text sheet when one line is over the per-line length limit. Add figures is disabled while it shows.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "2000"
+      }
+    }
+  },
+  "figureTextSheetAdd": "Add figures",
+  "@figureTextSheetAdd": {
+    "description": "Button in the Add figures from text sheet that inserts the previewed figures at the end of the dance's figure list and closes the sheet."
+  },
+  "figureTextSheetFromImage": "From an image…",
+  "@figureTextSheetFromImage": {
+    "description": "Button in the Add figures from text sheet that opens the system picker to choose a picture (a photo of an index card or a book page) whose text is read on the device and put in the text box. Shown only on iOS and macOS."
+  },
+  "figureTextSheetReadingImage": "Reading the picture…",
+  "@figureTextSheetReadingImage": {
+    "description": "Label of the From an image… button while the chosen picture's text is being read on the device."
+  },
+  "figureTextSheetImageUnavailable": "This device can't read text from pictures in the app's language or in English.",
+  "@figureTextSheetImageUnavailable": {
+    "description": "Note under the disabled From an image… button when the device reads neither the app's language nor English."
+  },
+  "figureTextSheetImageEnglishOnly": "This device reads pictures in English, not in the app's language.",
+  "@figureTextSheetImageEnglishOnly": {
+    "description": "Note under the From an image… button when the device cannot read the app's language (for example Japanese on an older iOS or macOS) but can read English."
+  },
+  "figureTextSheetImageTooLarge": "This picture is larger than {limit} MB, so it wasn't read. Choose a smaller one.",
+  "@figureTextSheetImageTooLarge": {
+    "description": "Error under the From an image… button when the chosen file is over the size limit. Nothing is read.",
+    "placeholders": {
+      "limit": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "25"
+      }
+    }
+  },
+  "figureTextSheetImageTooManyPixels": "This picture has too many pixels to read. Choose a smaller one, or crop it.",
+  "@figureTextSheetImageTooManyPixels": {
+    "description": "Error under the From an image… button when the chosen picture's dimensions are over the limit. Nothing is read."
+  },
+  "figureTextSheetImageUnreadable": "This file isn't a picture this device can open.",
+  "@figureTextSheetImageUnreadable": {
+    "description": "Error under the From an image… button when the chosen file cannot be decoded as an image."
+  },
+  "figureTextSheetImageNoText": "No text was found in this picture.",
+  "@figureTextSheetImageNoText": {
+    "description": "Error under the From an image… button when recognition found no text. The text box is left as it was."
+  },
+  "figureTextSheetImageFailed": "The picture's text couldn't be read.",
+  "@figureTextSheetImageFailed": {
+    "description": "Error under the From an image… button when the device's text recognition failed."
+  },
   "danceEditorPasteAtEndOfFigureList": "Paste at end of figure list",
   "@danceEditorPasteAtEndOfFigureList": {
     "description": "Semantics label for pasting a cut figure at the end of the list."
@@ -13525,6 +13674,16 @@
   "danceEditorLingoStylingHelper": "Move names get a dotted underline, role terms an underline, and discouraged terms a strikethrough",
   "@danceEditorLingoStylingHelper": {
     "description": "Helper text explaining lingo-aware styling in a custom figure text field."
+  },
+  "danceEditorBeatTotalFreeForm": "{total, plural, =1{Total: 1 beat} other{Total: {total} beats}}",
+  "@danceEditorBeatTotalFreeForm": {
+    "description": "Total figure beats of a free-form square (ADR-007 §8.1), which has no phrase structure to measure against, so no expected total is shown.",
+    "placeholders": {
+      "total": {
+        "type": "int",
+        "example": "64"
+      }
+    }
   },
   "danceEditorBeatTotal": "Total: {total} / {expected} beats",
   "@danceEditorBeatTotal": {
@@ -17685,6 +17844,14 @@
   "@settingsSuggestionsEnabledSubtitle": {
     "description": "Subtitle of the Suggest the next dance switch."
   },
+  "settingsSuggestionsInPerformSwapTitle": "Use in Perform's Swap this dance",
+  "@settingsSuggestionsInPerformSwapTitle": {
+    "description": "Title of the switch, shown under Suggest the next dance while it is on, that makes Perform's swap sheet order its dances by suggestions (#2348). Swap this dance is the Perform button of that name."
+  },
+  "settingsSuggestionsInPerformSwapSubtitle": "When you swap a dance in Perform, lists the dances below Your alternates in the order that best fits that place in the program, and says why. Nothing is left out.",
+  "@settingsSuggestionsInPerformSwapSubtitle": {
+    "description": "Subtitle of the Use in Perform's Swap this dance switch."
+  },
   "settingsSuggestionsEditorTitle": "What suggestions look for",
   "@settingsSuggestionsEditorTitle": {
     "description": "Title of the row, and of the screen it opens, where the user chooses how much each suggestion factor counts."
@@ -18458,6 +18625,200 @@
   "@exportCsvPayHiddenNotice": {
     "description": "Shown in the export dialog of the programs CSV spreadsheet while the Show pay setting is off: the file has no pay columns. 'Show pay' is the setting's name (settingsProgramShowPayTitle)."
   },
+  "performSwapThisDance": "Swap this dance",
+  "@performSwapThisDance": {
+    "description": "Button in Perform's Adjust program sheet, under the dance being called now: opens the swap sheet to replace it with another dance. The replaced dance is kept as an alternate."
+  },
+  "performSwapDanceNamed": "Swap {title}",
+  "@performSwapDanceNamed": {
+    "description": "Tooltip and screen-reader label of the Swap button on an upcoming dance in Perform's Adjust program sheet, and the title of the swap sheet. {title} is the dance's title.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Becket Reel"
+      }
+    }
+  },
+  "performSwappedAnnounce": "Swapped in {title}",
+  "@performSwappedAnnounce": {
+    "description": "Screen-reader announcement after the caller picks a replacement in Perform's swap sheet. {title} is the new dance's title.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Becket Reel"
+      }
+    }
+  },
+  "performSwapKeepHeader": "Keep",
+  "@performSwapKeepHeader": {
+    "description": "Heading over the choices in Perform's swap sheet that say what the replacement dance must share with the dance being swapped (verb: keep these the same)."
+  },
+  "performSwapKeepFormation": "Same formation: {formation}",
+  "@performSwapKeepFormation": {
+    "description": "Chip in Perform's swap sheet: only list dances in the same formation as the dance being swapped. {formation} is the formation's name.",
+    "placeholders": {
+      "formation": {
+        "type": "String",
+        "example": "Becket (clockwise)"
+      }
+    }
+  },
+  "performSwapKeepLevel": "This level or easier: {level}",
+  "@performSwapKeepLevel": {
+    "description": "Chip in Perform's swap sheet: only list dances at the level of the dance being swapped or an easier one. {level} is that level's name.",
+    "placeholders": {
+      "level": {
+        "type": "String",
+        "example": "Intermediate"
+      }
+    }
+  },
+  "performSwapKeepType": "Same type: {type}",
+  "@performSwapKeepType": {
+    "description": "Chip in Perform's swap sheet, shown only in a program that mixes types: only list dances of the same type (contra, English, square) as the dance being swapped. {type} is the type's name.",
+    "placeholders": {
+      "type": {
+        "type": "String",
+        "example": "Contra"
+      }
+    }
+  },
+  "performSwapKeepNotInProgram": "Not already in tonight's program",
+  "@performSwapKeepNotInProgram": {
+    "description": "Chip in Perform's swap sheet, and a switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance: leave out dances already in this program."
+  },
+  "performSwapFiguresHeader": "Figures to keep",
+  "@performSwapFiguresHeader": {
+    "description": "Heading over the figures of the dance being swapped, in Perform's swap sheet. Tapping one only lists dances that also have that figure."
+  },
+  "performSwapFigureInPhrase": "{figure} in {phrase}",
+  "@performSwapFigureInPhrase": {
+    "description": "Label of a figure chip in Perform's swap sheet: the figure's name and the phrase of the music it starts in. {phrase} is a phrase label such as A1 or B2, never translated.",
+    "placeholders": {
+      "figure": {
+        "type": "String",
+        "example": "hey"
+      },
+      "phrase": {
+        "type": "String",
+        "example": "A2"
+      }
+    }
+  },
+  "performSwapKeepFigureSemantic": "Keep {figure}",
+  "@performSwapKeepFigureSemantic": {
+    "description": "Screen-reader label of a figure chip in Perform's swap sheet. {figure} is the chip's text, for example \"hey in A2\".",
+    "placeholders": {
+      "figure": {
+        "type": "String",
+        "example": "hey in A2"
+      }
+    }
+  },
+  "performSwapSamePhrase": "In the same phrase ({phrase})",
+  "@performSwapSamePhrase": {
+    "description": "Chip under a kept figure in Perform's swap sheet: the replacement must have the figure in the same phrase of the music. {phrase} is a phrase label such as A1, never translated.",
+    "placeholders": {
+      "phrase": {
+        "type": "String",
+        "example": "A1"
+      }
+    }
+  },
+  "performSwapSamePhraseSemantic": "Keep {figure} in the same phrase, {phrase}",
+  "@performSwapSamePhraseSemantic": {
+    "description": "Screen-reader label of the In the same phrase chip in Perform's swap sheet. {figure} is the figure's name, {phrase} a phrase label such as A1.",
+    "placeholders": {
+      "figure": {
+        "type": "String",
+        "example": "balance"
+      },
+      "phrase": {
+        "type": "String",
+        "example": "A1"
+      }
+    }
+  },
+  "performSwapWithBefore": "With what comes before it ({figure})",
+  "@performSwapWithBefore": {
+    "description": "Chip under a kept figure in Perform's swap sheet: the replacement must have the figure right after the same figure that comes before it in this dance. {figure} is the name of that earlier figure.",
+    "placeholders": {
+      "figure": {
+        "type": "String",
+        "example": "balance"
+      }
+    }
+  },
+  "performSwapWithBeforeSemantic": "Keep {figure} right after {before}",
+  "@performSwapWithBeforeSemantic": {
+    "description": "Screen-reader label of the With what comes before it chip in Perform's swap sheet. {figure} is the kept figure's name, {before} the figure that comes right before it.",
+    "placeholders": {
+      "figure": {
+        "type": "String",
+        "example": "swing"
+      },
+      "before": {
+        "type": "String",
+        "example": "balance"
+      }
+    }
+  },
+  "performSwapMoreFilters": "More filters",
+  "@performSwapMoreFilters": {
+    "description": "Button in Perform's swap sheet that opens the full Filters and Advanced search panels, with the Keep choices filled in."
+  },
+  "performSwapKeepInPanels": "The other Keep choices are now in Filters and Advanced.",
+  "@performSwapKeepInPanels": {
+    "description": "Note in Perform's swap sheet after More filters is tapped: the formation, level, type and figure choices can now be changed in the Filters and Advanced panels. 'Filters' and 'Advanced' are the names of those panels."
+  },
+  "performSwapEnglishNote": "For English dances, same formation and the figure refinements are not offered yet.",
+  "@performSwapEnglishNote": {
+    "description": "Note in Perform's swap sheet when the dance being swapped is an English country dance: the Same formation chip and the In the same phrase / With what comes before it chips are not offered for English dances."
+  },
+  "performSwapAlternatesHeading": "Your alternates",
+  "@performSwapAlternatesHeading": {
+    "description": "Heading in Perform's swap sheet over the dances the caller already listed as alternates for this slot, shown first."
+  },
+  "performSwapResultsHeading": "Matching dances",
+  "@performSwapResultsHeading": {
+    "description": "Heading in Perform's swap sheet over the dances that match the Keep choices, below Your alternates."
+  },
+  "performSwapRefused": "This program changed on another device, so one of your changes wasn't saved. Check the program and make it again if you still want it.",
+  "@performSwapRefused": {
+    "description": "Message in Perform when one of the caller's changes could not be saved because another device changed the program meanwhile. The change may be an Adjust sheet edit (for example a swap, a note, or marking a dance performed) touching slots that changed elsewhere, or an Undo; it is not always the latest change, since changes are saved one after another. Nothing from that change is saved, the program is shown as stored (with any later change that is still being saved kept on screen), and the caller is asked to check the program and make the change again if they still want it."
+  },
+  "settingsPerformSwapTitle": "Swap a dance",
+  "@settingsPerformSwapTitle": {
+    "description": "Settings ▸ Program ▸ Perform mode row, and the title of its screen: which Keep choices are on when the caller swaps a dance in Perform. Also names this setting in Device Sync lists."
+  },
+  "settingsPerformSwapSubtitle": "Choose which Keep choices are on when you swap a dance in Perform.",
+  "@settingsPerformSwapSubtitle": {
+    "description": "Subtitle of Settings ▸ Program ▸ Perform mode ▸ Swap a dance, and the first line of its screen. 'Keep' is the heading of those choices in the swap sheet (performSwapKeepHeader)."
+  },
+  "settingsPerformSwapFormation": "Same formation",
+  "@settingsPerformSwapFormation": {
+    "description": "Switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance: whether the Same formation choice is on when the swap sheet opens."
+  },
+  "settingsPerformSwapLevel": "This level or easier",
+  "@settingsPerformSwapLevel": {
+    "description": "Switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance: whether the This level or easier choice is on when the swap sheet opens."
+  },
+  "settingsPerformSwapType": "Same type",
+  "@settingsPerformSwapType": {
+    "description": "Switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance: whether the Same type choice is on when the swap sheet opens."
+  },
+  "settingsPerformSwapTypeSubtitle": "Offered only in a program that mixes types, such as contras and English dances.",
+  "@settingsPerformSwapTypeSubtitle": {
+    "description": "Subtitle of the Same type switch in Settings ▸ Program ▸ Perform mode ▸ Swap a dance."
+  },
+  "settingsPerformSwapNewerVersion": "These choices were saved by a newer version of the app. This version uses its starting choices, with every one on, and won't overwrite yours. Update the app to change them.",
+  "@settingsPerformSwapNewerVersion": {
+    "description": "Notice in Settings ▸ Program ▸ Perform mode ▸ Swap a dance when the stored choices came from a newer version of the app: this version cannot read them, so the switches show its starting choices (all on), read-only, and the stored choices are kept."
+  },
+  "settingsPerformSwapReadError": "Your Swap a dance choices couldn't be read, so they can't be changed now. Close this screen and try again.",
+  "@settingsPerformSwapReadError": {
+    "description": "Error in Settings ▸ Program ▸ Perform mode ▸ Swap a dance when the stored choices could not be read; the switches are shown read-only and nothing is saved."
+  },
   "collectionRepertoireMenuItem": "Repertoire",
   "@collectionRepertoireMenuItem": {
     "description": "Collection More actions menu item that opens the Repertoire page (#2357, Experimental)."
@@ -18773,6 +19134,96 @@
   "importCsvPickFile": "Choose a CSV file…",
   "@importCsvPickFile": {
     "description": "Button on the import screen that opens the file picker for a CSV spreadsheet file."
+  },
+  "importSourceLabelTextDocument": "Your own text or Markdown file",
+  "@importSourceLabelTextDocument": {
+    "description": "Import source label for a plain-text (.txt) or Markdown (.md) file of dances the caller wrote themselves."
+  },
+  "importTextHint": "Choose a .txt or .md file. Start each dance with a heading (## Title), or with its title after a blank line. Put details on \"Label: value\" lines (Formation: Improper) and one figure per line (A1 (8) Neighbor swing).",
+  "@importTextHint": {
+    "description": "Hint on the import screen when the text or Markdown file source is selected. Keep the examples (## Title, Formation: Improper, A1 (8) Neighbor swing) as written, in English."
+  },
+  "importTextPickFile": "Choose a text or Markdown file…",
+  "@importTextPickFile": {
+    "description": "Button on the import screen that opens the file picker for a .txt or .md file of dances."
+  },
+  "importTextMapTitle": "Map labels",
+  "@importTextMapTitle": {
+    "description": "Heading of the step where the caller chooses which dance field each label of their text file goes to (for example \"Formation:\" goes to Formation)."
+  },
+  "importTextMapIntro": "Choose what each label in your file holds. A label no field takes is kept in the calling notes with its name; choose Ignore to leave it out. Nothing is added until you review and confirm.",
+  "@importTextMapIntro": {
+    "description": "Introduction to the Map labels step of a text or Markdown file import."
+  },
+  "importTextDanceStartLabel": "Each dance starts at",
+  "@importTextDanceStartLabel": {
+    "description": "Label of the dropdown on the Map labels step of a text or Markdown file import that chooses where each dance in the file starts. Its choices are importTextDanceStartHeading for each heading level the file uses, and importTextDanceStartBlankLine. The app picks one first; changing it reads the file again."
+  },
+  "importTextDanceStartHeading": "A {marks} heading",
+  "@importTextDanceStartHeading": {
+    "description": "A choice in the Each dance starts at dropdown: each Markdown heading at this level starts a dance. {marks} is the heading's hash marks, such as # or ##, shown as typed in the file; keep it as is.",
+    "placeholders": {
+      "marks": {
+        "type": "String",
+        "example": "##"
+      }
+    }
+  },
+  "importTextDanceStartBlankLine": "A title after a blank line",
+  "@importTextDanceStartBlankLine": {
+    "description": "A choice in the Each dance starts at dropdown: the first line, and each line after a blank line that isn't a figure or a detail, starts a dance."
+  },
+  "importTextTargetLabelledNotes": "Calling notes, with the label",
+  "@importTextTargetLabelledNotes": {
+    "description": "Choice in the Map labels step: keep each value of this label in the dance's calling notes, written as \"Label: value\"."
+  },
+  "importTextNotUtf8": "This file isn't saved as UTF-8 text, so accented letters would come in wrong. Save it again as UTF-8 text and choose that file.",
+  "@importTextNotUtf8": {
+    "description": "Error when a picked .txt or .md file is not valid UTF-8."
+  },
+  "importTextTooManyDances": "This file has more than {limit} dances. Split it into smaller files.",
+  "@importTextTooManyDances": {
+    "description": "Error when a picked text or Markdown file holds more dances than can be imported at once.",
+    "placeholders": {
+      "limit": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "20000"
+      }
+    }
+  },
+  "importTextLineTooLong": "A line in this file is longer than {limit} characters.",
+  "@importTextLineTooLong": {
+    "description": "Error when a picked text or Markdown file has a line over the length limit.",
+    "placeholders": {
+      "limit": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "65536"
+      }
+    }
+  },
+  "importTextDanceTooLong": "A dance in this file has more than {limit} characters of figures, notes or one detail.",
+  "@importTextDanceTooLong": {
+    "description": "Error when one dance's figures, notes or one label's values in a picked text or Markdown file come to more than the limit.",
+    "placeholders": {
+      "limit": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "65536"
+      }
+    }
+  },
+  "importTextTooManyLabels": "This file uses more than {limit} different labels.",
+  "@importTextTooManyLabels": {
+    "description": "Error when a picked text or Markdown file uses more different \"Label:\" names than the import can map.",
+    "placeholders": {
+      "limit": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "197"
+      }
+    }
   },
   "importCsvSaveAsHint": "In your spreadsheet, choose File ▸ Save As (or Download) and pick \"CSV UTF-8\", then choose that file here.",
   "@importCsvSaveAsHint": {

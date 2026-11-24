@@ -207,9 +207,9 @@ List<List<String>> buildDancesCsvRows(
         : renderer.renderFreeText(text, cardDialect);
     rows.add([
       dance.title.trim(),
-      authorNames.join(', '),
+      joinNameList(authorNames),
       dance.composedOn?.serialize() ?? '',
-      namesOf(dance.interpreterIds).join(', '),
+      joinNameList(namesOf(dance.interpreterIds)),
       dance.interpretedOn?.serialize() ?? '',
       danceFormLabel(l10n, dance.form),
       formationDisplayLabel(
@@ -225,11 +225,11 @@ List<List<String>> buildDancesCsvRows(
       yesNo(dance.mixer),
       danceStatusLabel(l10n, dance.status),
       dance.rating?.toString() ?? '',
-      [
+      joinNameList([
         for (final id in dance.tagIds)
           if (lookups.tagsById[id] case final tag?) tag.name,
-      ].join(', '),
-      content.tuneNames.join(', '),
+      ]),
+      joinNameList(content.tuneNames),
       dance.meter.trim(),
       dance.musicalKey.trim(),
       formHasBarnesReference(dance.form) ? dance.barnesReference.trim() : '',

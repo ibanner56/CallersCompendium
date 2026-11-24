@@ -109,7 +109,8 @@ dances(id PK, title, form, formation_shape, formation_detail,
        formation_improper, progression, phrase_structure, figures_json, hook,
        calling_notes, meter, musical_key, alternate_titles,
        barnes_reference, square_kind, repeat_order, repeat_order_text,
-       new_partner, new_partner_text, singing, status, level_id NULL,
+       new_partner, new_partner_text, singing, free_form NULL, status,
+       level_id NULL,
        tunes_json,
        created_at, updated_at, deleted_at, existence_at)
 difficulty_levels(id PK, label UNIQUE, position,
@@ -829,7 +830,7 @@ steps that can still fire are v40 onward.
   added, no data rewritten, no derived rebuild.
 
 - v42 (ADR-006 §12, F2 and F3): adds three columns to `dances` for English
-  country dance. `formation_improper` is ECD's proper/improper checkbox
+  country dance. `formation_improper` is ECD's proper/improper flag
   (`Formation.improper`), stored apart from the shape because ECD's shapes
   name only the set; contra's shapes already say proper or improper, so a
   contra dance keeps it `0`. `meter` and `musical_key` are the tune's written
@@ -884,10 +885,17 @@ steps that can still fire are v40 onward.
   default); `repeat_order_text` and `new_partner_text` hold what `other`
   means, `''` unless the value is `other`; and `singing` is a flag, `false`
   by default. Every existing dance reads as a main part with nothing stated.
+  `free_form` (added after them, still before v42 shipped) holds
+  `Dance.freeForm`: the caller's free-form setting, or NULL to follow the
+  kind (on for patter, off for the others); every existing dance is NULL.
+  The figure index gives a free-form square's figures no section
+  (`dance_figures.section` is `''`), as `Dance.sectionedFigures` does.
   The values are plain text rather than an enum converter, so a value a newer
   build wrote reads as the default instead of failing the row. They are
   stored for every form, as ADR-007 §8.1 chose. Added in the `from < 42`
-  step, each only if absent. No derived index reads them.
+  step, each only if absent. No derived index reads them, except that
+  `free_form` and `square_kind` decide whether the figure index gives a
+  square's figures sections.
 
   Also in v42, before it shipped: program archiving (#2218). Adds the
   nullable `programs.archived_at` column
@@ -956,6 +964,10 @@ steps that can still fire are v40 onward.
   for the key), and are stripped from share files; clearing the key clears
   them. Added by the same step, after the times, each only if absent; no data
   rewritten.
+
+  Because test builds stamped v42 before these later pieces joined it,
+  `beforeOpen` also ensures v42's pieces on every open of a file at v42 or
+  later, as it does for v39 (`v42_partial_stamp_repair_test.dart`).
 
 ## The delete model
 

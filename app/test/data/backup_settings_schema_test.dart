@@ -12,7 +12,10 @@ import 'package:compendium_app/src/data/backup_settings_schema.dart';
 import 'package:compendium_app/src/data/calling_card_settings_scope.dart';
 import 'package:compendium_app/src/export/calling_card_layout.dart';
 import 'package:compendium_app/src/data/suggestions_scope.dart'
-    show kSuggestionSettingsKey, kSuggestionsEnabledKey;
+    show
+        kSuggestionSettingsKey,
+        kSuggestionsEnabledKey,
+        kSuggestionsInPerformSwapKey;
 import 'package:compendium_app/src/data/seed_service.dart'
     show kInitialSeedCompletedKey;
 import 'package:compendium_app/src/data/display_defaults.dart'
@@ -32,6 +35,7 @@ import 'package:compendium_app/src/screens/settings/settings_keys.dart'
         kCustomFieldSharingDisclosureKey,
         kEcdConvertPromptDismissedKey,
         kConfirmPerformExitKey,
+        kPerformSwapDefaultsKey,
         kProgramDanceShareFieldsKey,
         kProgramMatrixColumnsKey,
         kShowIndividualPerformTimerKey,
@@ -41,6 +45,7 @@ import 'package:compendium_core/compendium_core.dart'
         CollectionPanelState,
         EgressClass,
         MatrixColumnConfig,
+        PerformSwapDefaults,
         SavedSearch,
         SavedSearchSpec,
         SuggestionSettings,
@@ -451,6 +456,15 @@ void main() {
         'build can keep', () {
       expect(validateBackupSettingValue(kSuggestionsEnabledKey, true), isTrue);
       expect(validateBackupSettingValue(kSuggestionsEnabledKey, 'on'), isFalse);
+      // Whether Perform's swap sheet orders by them (#2348).
+      expect(
+        validateBackupSettingValue(kSuggestionsInPerformSwapKey, true),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(kSuggestionsInPerformSwapKey, 'on'),
+        isFalse,
+      );
       bool valid(Object? value) =>
           validateBackupSettingValue(kSuggestionSettingsKey, value)!;
       expect(valid(const SuggestionSettings().toJson()), isTrue);
@@ -499,6 +513,44 @@ void main() {
       );
       expect(
         valid({'version': 1, 'preferences': <String, Object?>{}}),
+        isFalse,
+      );
+    });
+
+    test('Swap a dance defaults (#2346): a value this build can keep', () {
+      bool valid(Object? value) =>
+          validateBackupSettingValue(kPerformSwapDefaultsKey, value)!;
+      expect(valid(PerformSwapDefaults.defaults.toJson()), isTrue);
+      expect(valid({'version': 1}), isTrue, reason: 'missing items are on');
+      expect(
+        valid({
+          'version': 1,
+          'keep': {'formation': false, 'someLaterItem': 'x'},
+        }),
+        isTrue,
+        reason: 'unknown items are kept',
+      );
+      expect(
+        valid({'version': 2, 'keep': 'anything'}),
+        isFalse,
+        reason: 'keep must still be an object',
+      );
+      expect(
+        valid({'version': 2, 'keep': <String, Object?>{}}),
+        isTrue,
+        reason: 'a newer version is kept as it stands',
+      );
+      expect(valid('nope'), isFalse);
+      expect(
+        valid({'keep': <String, Object?>{}}),
+        isFalse,
+        reason: 'no version',
+      );
+      expect(
+        valid({
+          'version': 1,
+          'keep': {'notInProgram': 'yes'},
+        }),
         isFalse,
       );
     });

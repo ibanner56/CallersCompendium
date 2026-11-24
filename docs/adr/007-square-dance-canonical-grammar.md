@@ -1368,8 +1368,18 @@ author's calls while implementing them):
 2. What `other` means has its own field for each value, `repeatOrderText`
    and `newPartnerText`, kept only while the value is `other`, so a value
    moved off `other` leaves no text behind to store, send or show.
-3. `freeForm` is not stored yet. It is to land together with the editor
-   behavior it turns on, so no build stores a toggle that does nothing.
+3. `freeForm` (`dances.free_form`) is stored as the caller's choice or as
+   null, which follows the kind (on for `patter`, off otherwise), rather
+   than as a flag set when the record is made. A dance imported or synced
+   without it, or whose kind changes, then gets the kind's default without
+   anything having to write it. The editor stores a choice only when it
+   differs from the kind's default at the moment it is set; a choice is not
+   reset when the kind changes later, so it is kept as the caller made it. It landed with the editor behavior it turns
+   on, after the other fields. A free-form dance also has no phrase limit
+   on a sequence, prints no phrase line, and its figures get no section in
+   the figure index, the import review's figure diff, the dance page,
+   perform view, prints and text export, as well as in the editor. The program matrix still reads its stored phrase structure
+   when it compares figures by phrase, which is left for later.
 4. The Caller's Companion importer reads a square's `SubType` as `HHSS` or
    `HSHS` only (from "Keeper, H S H S" and the like); any other wording
    leaves the order unstated rather than guessing.

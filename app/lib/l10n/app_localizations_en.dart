@@ -9062,6 +9062,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsWalkthroughSnippetEditTitle => 'Edit snippet';
 
   @override
+  String get danceEditorSetupTitle => 'Credits, formation and music';
+
+  @override
   String get danceEditorMoreDetailsTitle => 'More details';
 
   @override
@@ -9147,11 +9150,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorSingingSubtitle => 'The song goes under Tunes';
 
   @override
+  String get danceEditorFreeFormLabel => 'Free form';
+
+  @override
+  String get danceEditorFreeFormSubtitle =>
+      'Follows no phrasing: no phrase labels or phrase checks';
+
+  @override
   String get danceEditorImproperLabel => 'Starts improper';
 
   @override
   String get danceEditorImproperSubtitle =>
-      'Leave unchecked for a dance that starts proper.';
+      'Leave off for a dance that starts proper.';
 
   @override
   String get danceEditorComposedLabel => 'Composed';
@@ -9779,6 +9789,147 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorAddSequence => 'Add sequence';
 
   @override
+  String get danceEditorAddFiguresFromText => 'Add figures from text…';
+
+  @override
+  String get figureTextSheetTitle => 'Add figures from text';
+
+  @override
+  String get figureTextSheetHelp =>
+      'Type or paste one figure per line, such as \"(8) neighbor balance & swing\". Each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.';
+
+  @override
+  String get figureTextSheetHelpDropsLabels =>
+      'Type or paste one figure per line, such as \"A1 (8) neighbor balance & swing\". A phrase label such as A1 at the start of a line is left out, and each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.';
+
+  @override
+  String get figureTextSheetFieldLabel => 'Figures, one per line';
+
+  @override
+  String figureTextSheetSummary(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString figures to add',
+      one: '1 figure to add',
+      zero: 'No figures to add yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String figureTextSheetUnrecognizedSummary(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$countString lines aren\'t recognized. They will be added as unrecognized figures with their text, for you to fix.',
+      one:
+          '1 line isn\'t recognized. It will be added as an unrecognized figure with its text, for you to fix.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String figureTextSheetLineFigures(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString figures',
+      one: '1 figure',
+      zero: 'No figure',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get figureTextSheetLineUnrecognized =>
+      'Not recognized: added as an unrecognized figure';
+
+  @override
+  String figureTextSheetTooLong(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'This is more than $maxString characters, more than can be read at once. Nothing will be added. Add it in parts.';
+  }
+
+  @override
+  String figureTextSheetTooManyLines(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'This is more than $maxString lines, more than can be read at once. Nothing will be added. Add it in parts.';
+  }
+
+  @override
+  String figureTextSheetLineTooLong(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'A line is longer than $maxString characters, more than can be read as one figure line. Nothing will be added. Break it into lines.';
+  }
+
+  @override
+  String get figureTextSheetAdd => 'Add figures';
+
+  @override
+  String get figureTextSheetFromImage => 'From an image…';
+
+  @override
+  String get figureTextSheetReadingImage => 'Reading the picture…';
+
+  @override
+  String get figureTextSheetImageUnavailable =>
+      'This device can\'t read text from pictures in the app\'s language or in English.';
+
+  @override
+  String get figureTextSheetImageEnglishOnly =>
+      'This device reads pictures in English, not in the app\'s language.';
+
+  @override
+  String figureTextSheetImageTooLarge(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'This picture is larger than $limitString MB, so it wasn\'t read. Choose a smaller one.';
+  }
+
+  @override
+  String get figureTextSheetImageTooManyPixels =>
+      'This picture has too many pixels to read. Choose a smaller one, or crop it.';
+
+  @override
+  String get figureTextSheetImageUnreadable =>
+      'This file isn\'t a picture this device can open.';
+
+  @override
+  String get figureTextSheetImageNoText => 'No text was found in this picture.';
+
+  @override
+  String get figureTextSheetImageFailed =>
+      'The picture\'s text couldn\'t be read.';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList => 'Paste at end of figure list';
 
   @override
@@ -10159,6 +10310,17 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get danceEditorLingoStylingHelper =>
       'Move names get a dotted underline, role terms an underline, and discouraged terms a strikethrough';
+
+  @override
+  String danceEditorBeatTotalFreeForm(int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: 'Total: $total beats',
+      one: 'Total: 1 beat',
+    );
+    return '$_temp0';
+  }
 
   @override
   String danceEditorBeatTotal(int total, int expected) {
@@ -13054,6 +13216,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Adds Suggested to the Sort menu of the program builder\'s dance lists. It orders the dances for where the new one will go and says why.';
 
   @override
+  String get settingsSuggestionsInPerformSwapTitle =>
+      'Use in Perform\'s Swap this dance';
+
+  @override
+  String get settingsSuggestionsInPerformSwapSubtitle =>
+      'When you swap a dance in Perform, lists the dances below Your alternates in the order that best fits that place in the program, and says why. Nothing is left out.';
+
+  @override
   String get settingsSuggestionsEditorTitle => 'What suggestions look for';
 
   @override
@@ -13640,6 +13810,122 @@ class AppLocalizationsEn extends AppLocalizations {
       'Pay is hidden in Settings, so it is left out. Turn on Show pay in Settings ▸ Program to include it.';
 
   @override
+  String get performSwapThisDance => 'Swap this dance';
+
+  @override
+  String performSwapDanceNamed(String title) {
+    return 'Swap $title';
+  }
+
+  @override
+  String performSwappedAnnounce(String title) {
+    return 'Swapped in $title';
+  }
+
+  @override
+  String get performSwapKeepHeader => 'Keep';
+
+  @override
+  String performSwapKeepFormation(String formation) {
+    return 'Same formation: $formation';
+  }
+
+  @override
+  String performSwapKeepLevel(String level) {
+    return 'This level or easier: $level';
+  }
+
+  @override
+  String performSwapKeepType(String type) {
+    return 'Same type: $type';
+  }
+
+  @override
+  String get performSwapKeepNotInProgram => 'Not already in tonight\'s program';
+
+  @override
+  String get performSwapFiguresHeader => 'Figures to keep';
+
+  @override
+  String performSwapFigureInPhrase(String figure, String phrase) {
+    return '$figure in $phrase';
+  }
+
+  @override
+  String performSwapKeepFigureSemantic(String figure) {
+    return 'Keep $figure';
+  }
+
+  @override
+  String performSwapSamePhrase(String phrase) {
+    return 'In the same phrase ($phrase)';
+  }
+
+  @override
+  String performSwapSamePhraseSemantic(String figure, String phrase) {
+    return 'Keep $figure in the same phrase, $phrase';
+  }
+
+  @override
+  String performSwapWithBefore(String figure) {
+    return 'With what comes before it ($figure)';
+  }
+
+  @override
+  String performSwapWithBeforeSemantic(String figure, String before) {
+    return 'Keep $figure right after $before';
+  }
+
+  @override
+  String get performSwapMoreFilters => 'More filters';
+
+  @override
+  String get performSwapKeepInPanels =>
+      'The other Keep choices are now in Filters and Advanced.';
+
+  @override
+  String get performSwapEnglishNote =>
+      'For English dances, same formation and the figure refinements are not offered yet.';
+
+  @override
+  String get performSwapAlternatesHeading => 'Your alternates';
+
+  @override
+  String get performSwapResultsHeading => 'Matching dances';
+
+  @override
+  String get performSwapRefused =>
+      'This program changed on another device, so one of your changes wasn\'t saved. Check the program and make it again if you still want it.';
+
+  @override
+  String get settingsPerformSwapTitle => 'Swap a dance';
+
+  @override
+  String get settingsPerformSwapSubtitle =>
+      'Choose which Keep choices are on when you swap a dance in Perform.';
+
+  @override
+  String get settingsPerformSwapFormation => 'Same formation';
+
+  @override
+  String get settingsPerformSwapLevel => 'This level or easier';
+
+  @override
+  String get settingsPerformSwapType => 'Same type';
+
+  @override
+  String get settingsPerformSwapTypeSubtitle =>
+      'Offered only in a program that mixes types, such as contras and English dances.';
+
+  @override
+  String get settingsPerformSwapNewerVersion =>
+      'These choices were saved by a newer version of the app. This version uses its starting choices, with every one on, and won\'t overwrite yours. Update the app to change them.';
+
+  @override
+  String get settingsPerformSwapReadError =>
+      'Your Swap a dance choices couldn\'t be read, so they can\'t be changed now. Close this screen and try again.';
+
+  @override
   String get collectionRepertoireMenuItem => 'Repertoire';
 
   @override
@@ -13878,6 +14164,77 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importCsvPickFile => 'Choose a CSV file…';
+
+  @override
+  String get importSourceLabelTextDocument => 'Your own text or Markdown file';
+
+  @override
+  String get importTextHint =>
+      'Choose a .txt or .md file. Start each dance with a heading (## Title), or with its title after a blank line. Put details on \"Label: value\" lines (Formation: Improper) and one figure per line (A1 (8) Neighbor swing).';
+
+  @override
+  String get importTextPickFile => 'Choose a text or Markdown file…';
+
+  @override
+  String get importTextMapTitle => 'Map labels';
+
+  @override
+  String get importTextMapIntro =>
+      'Choose what each label in your file holds. A label no field takes is kept in the calling notes with its name; choose Ignore to leave it out. Nothing is added until you review and confirm.';
+
+  @override
+  String get importTextDanceStartLabel => 'Each dance starts at';
+
+  @override
+  String importTextDanceStartHeading(String marks) {
+    return 'A $marks heading';
+  }
+
+  @override
+  String get importTextDanceStartBlankLine => 'A title after a blank line';
+
+  @override
+  String get importTextTargetLabelledNotes => 'Calling notes, with the label';
+
+  @override
+  String get importTextNotUtf8 =>
+      'This file isn\'t saved as UTF-8 text, so accented letters would come in wrong. Save it again as UTF-8 text and choose that file.';
+
+  @override
+  String importTextTooManyDances(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'This file has more than $limitString dances. Split it into smaller files.';
+  }
+
+  @override
+  String importTextLineTooLong(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'A line in this file is longer than $limitString characters.';
+  }
+
+  @override
+  String importTextDanceTooLong(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'A dance in this file has more than $limitString characters of figures, notes or one detail.';
+  }
+
+  @override
+  String importTextTooManyLabels(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'This file uses more than $limitString different labels.';
+  }
 
   @override
   String get importCsvSaveAsHint =>

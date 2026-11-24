@@ -734,8 +734,9 @@ Canonical JSON means:
   `alternateTitles` and `barnesReference` (schema v42) are omitted when they
   hold their default (`''`, `''`, `false`, `[]`, `null`, `[]`, `''`), as are
   the square fields `squareKind` (`main`), `repeatOrder` and `newPartner`
-  (`unstated`), `repeatOrderText` and `newPartnerText` (`''`) and `singing`
-  (`false`), and a receiver reads a missing one as that default (§6.7);
+  (`unstated`), `repeatOrderText` and `newPartnerText` (`''`), `singing`
+  (`false`) and `freeForm` (`null`, following the kind), and a receiver reads
+  a missing one as that default (§6.7);
 - **timestamps emitted at exactly one-tick precision** (§2), UTC, with the
   sub-tick component always zero;
 - **all strings in Unicode NFC**, normalised on write as described below.
@@ -3998,7 +3999,8 @@ The exception is the dance fields added after Device Sync shipped, listed in
 (ADR-006 §12, F2 and F3), `interpreterIds` and `interpretedOn` (ADR-006
 §9.2), `alternateTitles` and `barnesReference` (ADR-006 §9.2, point 9), and
 the square fields `squareKind`, `repeatOrder`, `repeatOrderText`,
-`newPartner`, `newPartnerText` and `singing` (ADR-007 §8.1). The sender omits
+`newPartner`, `newPartnerText`, `singing` and `freeForm` (ADR-007 §8.1). The
+sender omits
 each when it holds its default, so a
 dance that never had one keeps the body, and the content hash, it had before
 the field existed: no device republishes every dance on updating, and a device
@@ -5231,8 +5233,13 @@ keeps its value until the record is purged, so a held-back deletion is published
 once the gate opens, as any gated tombstone is.
 
 **`suggestions.v1`.** Gates the Suggestions settings (#2343): the exact keys
-`suggestions_enabled` and `suggestion_settings`, tombstones included. A build
-without it has neither setting and nothing that reads them. The reference
+`suggestions_enabled`, `suggestion_settings` and, from #2348,
+`suggestions_in_perform_swap`, tombstones included. A build without it has
+none of these settings and nothing that reads them. A peer on a build that
+advertises `suggestions.v1` from before #2348 keeps
+`suggestions_in_perform_swap` as an unknown, retained setting that changes
+nothing there: the capability is not bumped for a key whose only reader is an
+optional ordering. The reference
 client advertises it from the change that adds them, so it is subject to
 *Rollout*: a device on a build that lists only the glossary capabilities and
 `programTemplates.v1` holds it closed and is named for it, while what those
@@ -5240,6 +5247,17 @@ gate publishes past it. `suggestion_settings` carries its own `version`; a
 build that reads a newer one keeps it unchanged (see
 [suggestions.md](suggestions.md#stored-settings)), so the capability is not
 bumped for a change the version field covers.
+
+**`performSwap.v1`.** Gates Perform's **Swap a dance** defaults (#2346): the
+exact key `perform_swap_defaults`, tombstones included. A build without it has
+no swap sheet and nothing that reads the key. The reference client advertises
+it from the change that adds the swap sheet, so it is subject to *Rollout*: a
+device on a build that lists the glossary capabilities, `programTemplates.v1`
+and `suggestions.v1` but not this one holds it closed and is named for it,
+while what those gate publishes past it. The value carries its own `version`;
+a build that reads a newer one keeps it unchanged and its settings editor does
+not overwrite it, so the capability is not bumped for a change the version
+field covers.
 
 **Server.** The server needs no code for the gate. It validates settings keys
 and record kinds through the registry it is built from, so it MUST be deployed

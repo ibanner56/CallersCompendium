@@ -1,0 +1,18 @@
+{
+  "id": "2332-csv-author-comma-escape",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "An author whose name has a comma (like \"Smith, John\") no longer splits in two when you import the dances spreadsheet the app exported. The export writes that comma as \\, in the authors and interpreters columns, and the import reads it back. A name that itself holds \"and\", \"with\", &, /, + or ; is still split there."
+    ]
+  },
+  "core": {
+    "added": [
+      "unescapeNameListItem reads \\, as a comma and \\\\ as a backslash in one name, the reverse of escapeNameListItem.",
+      "splitAuthorNames takes backslashEscapes: with it a comma written \\, does not split an author name and \\\\ is a backslash; it is off by default, so every importer but the CSV import reads a backslash as before."
+    ],
+    "changed": [
+      "The CSV import reads the authors cell with backslashEscapes, so \\, keeps a comma in a name; a cell with no backslash splits as before."
+    ]
+  }
+}

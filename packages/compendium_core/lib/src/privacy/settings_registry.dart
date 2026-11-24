@@ -139,8 +139,10 @@ final Map<String, DataClassification> settingsClassifications = {
   'show_custom_figures': _preference,
   'show_repertoire_dashboard': _preference,
   // Experimental Suggestions (#2343): the toggle, and what the builder's
-  // Suggested sort looks for.
+  // Suggested sort looks for; and whether Perform's swap sheet orders by it
+  // (#2348).
   'suggestions_enabled': _preference,
+  'suggestions_in_perform_swap': _preference,
   'suggestion_settings': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.appUser,
@@ -407,6 +409,8 @@ final Map<String, DataClassification> settingsClassifications = {
         'unlike auto_size_perform_cards it does not depend on screen size.',
   ),
   'show_program_slot_caller_notes': _preference,
+  // Which Keep items start on in Perform's swap sheet (#2346).
+  'perform_swap_defaults': _preference,
   'auto_commit_program_changes': _preference,
   'perform_canonical_view': DataClassification(
     term: DpvTerm.nonPersonal,

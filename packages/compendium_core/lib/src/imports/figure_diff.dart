@@ -326,6 +326,10 @@ FigureDiffResult diffFigures({
   required Dialect dialect,
   bool decimals = false,
   bool canonicalDiscouragedTerms = false,
+  // Whether each side is a free-form square ([Dance.isFreeForm]), whose
+  // figures have no section.
+  bool oldFreeForm = false,
+  bool newFreeForm = false,
 }) {
   String display(Figure figure) => canonicalDiscouragedTerms
       ? renderer.renderSummaryWithCanonicalDiscouragedTerms(
@@ -361,8 +365,16 @@ FigureDiffResult diffFigures({
     );
   }
 
-  final oldSections = deriveSections(oldFigures, oldStructure);
-  final newSections = deriveSections(newFigures, newStructure);
+  final oldSections = deriveSections(
+    oldFigures,
+    oldStructure,
+    freeForm: oldFreeForm,
+  );
+  final newSections = deriveSections(
+    newFigures,
+    newStructure,
+    freeForm: newFreeForm,
+  );
 
   final ops = _lcsDiffOps(oldKeys, newKeys);
   final allEntries = <FigureDiffEntry>[];

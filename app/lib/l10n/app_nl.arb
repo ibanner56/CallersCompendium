@@ -8882,6 +8882,10 @@
   "@settingsWalkthroughSnippetEditTitle": {
     "x-sourceSha256": "3bb69add7f8cedd554dafcf5dffa6b9e7f2ef850c2ffbb1625a894a89d086131"
   },
+  "danceEditorSetupTitle": "Makers, formatie en muziek",
+  "@danceEditorSetupTitle": {
+    "x-sourceSha256": "9e34fd3970475cdff2b1e9549d74fb2c70ad906078b88a15efd521781e57471a"
+  },
   "danceEditorMoreDetailsTitle": "Meer details",
   "@danceEditorMoreDetailsTitle": {
     "x-sourceSha256": "b5eff1dbd0154de8292af10fe3c9424573c847dcca5320f9828b637639addd2a"
@@ -8986,13 +8990,21 @@
   "@danceEditorSingingSubtitle": {
     "x-sourceSha256": "70a3f697343593d8b1292308eb274994010a998fb17f552b10e79fee53b7017d"
   },
+  "danceEditorFreeFormLabel": "Vrije vorm",
+  "@danceEditorFreeFormLabel": {
+    "x-sourceSha256": "1a031a22354330c7103b5c53f48c8d23778895f261c01fe4afc27c884c773188"
+  },
+  "danceEditorFreeFormSubtitle": "Volgt geen frasering: geen frasenamen en geen frasecontrole",
+  "@danceEditorFreeFormSubtitle": {
+    "x-sourceSha256": "3d81249be3c062230d9e1eb42314c93a48fd4e39988785c02d567c65f4aa8f92"
+  },
   "danceEditorImproperLabel": "Begint improper",
   "@danceEditorImproperLabel": {
     "x-sourceSha256": "e4dd5166a2d36d72d17f292c5f3b00bbb89544e0a94b5c9658d538d2c89e159e"
   },
-  "danceEditorImproperSubtitle": "Laat leeg voor een dans die proper begint.",
+  "danceEditorImproperSubtitle": "Laat uit voor een dans die proper begint.",
   "@danceEditorImproperSubtitle": {
-    "x-sourceSha256": "55e6931dac76da40b06ac10ab8416ab58539aa4e3cdfb25881f38341ec846e37"
+    "x-sourceSha256": "491b162a317fef1c7a15931783093dcf4dbfccd1e732bce375220f9368ddfee8"
   },
   "danceEditorComposedLabel": "Gecomponeerd",
   "@danceEditorComposedLabel": {
@@ -9610,6 +9622,94 @@
   "@danceEditorAddSequence": {
     "x-sourceSha256": "03eceea4c67a68c21df3c37e508ebcb7953259ba78fcf81694c9e9680b075ff1"
   },
+  "danceEditorAddFiguresFromText": "Figuren toevoegen uit tekst…",
+  "@danceEditorAddFiguresFromText": {
+    "x-sourceSha256": "f840eaad641ce0221ff1bcd48e035bde5406dc6076eacf3467fe88612c0c2380"
+  },
+  "figureTextSheetTitle": "Figuren toevoegen uit tekst",
+  "@figureTextSheetTitle": {
+    "x-sourceSha256": "16fe82c061e1e702e837551405086ab2837909dd63cca58d58f9203a4325a493"
+  },
+  "figureTextSheetHelp": "Typ of plak één figuur per regel, bijvoorbeeld “(8) neighbor balance & swing”. Elke regel wordt gelezen zoals het bewegingsveld een getypte regel leest met vrije tekstinvoer aan, ook als die uit staat. Er wordt niets bewaard voordat je de dans bewaart.",
+  "@figureTextSheetHelp": {
+    "x-sourceSha256": "b70b8b6217d32cf7ede39377160bdf83e8c8bdc955157327c679396a147589ac"
+  },
+  "figureTextSheetHelpDropsLabels": "Typ of plak één figuur per regel, bijvoorbeeld “A1 (8) neighbor balance & swing”. Een fraselabel zoals A1 aan het begin van een regel wordt weggelaten, en elke regel wordt gelezen zoals het bewegingsveld een getypte regel leest met vrije tekstinvoer aan, ook als die uit staat. Er wordt niets bewaard voordat je de dans bewaart.",
+  "@figureTextSheetHelpDropsLabels": {
+    "x-sourceSha256": "b7c9b5a463322917bfc2bc008a83faba9c4b6e26fe2ec7f5853b365d025d033e"
+  },
+  "figureTextSheetFieldLabel": "Figuren, één per regel",
+  "@figureTextSheetFieldLabel": {
+    "x-sourceSha256": "cd213fb222337413dbd6b8cf0c55a645a877803a9d514338d72e276d2b8fbf39"
+  },
+  "figureTextSheetSummary": "{count, plural, =0{Nog geen figuren om toe te voegen} =1{1 figuur om toe te voegen} other{{count} figuren om toe te voegen}}",
+  "@figureTextSheetSummary": {
+    "x-sourceSha256": "8d628e840de30c093887423e7f1d919896e3bb934d2e8856bdf02ba9d3673733"
+  },
+  "figureTextSheetUnrecognizedSummary": "{count, plural, =1{1 regel wordt niet herkend. Die wordt toegevoegd als niet-herkende figuur met de tekst, zodat je die kunt verbeteren.} other{{count} regels worden niet herkend. Die worden toegevoegd als niet-herkende figuren met hun tekst, zodat je ze kunt verbeteren.}}",
+  "@figureTextSheetUnrecognizedSummary": {
+    "x-sourceSha256": "c8437f40374bbc82b0a64d4ff94ab7ce5f2748c5d770c23cdbf0dc43431520ac"
+  },
+  "figureTextSheetLineFigures": "{count, plural, =0{Geen figuur} =1{1 figuur} other{{count} figuren}}",
+  "@figureTextSheetLineFigures": {
+    "x-sourceSha256": "3ec133f2233551118a818c5261143fa56975820a7f6ab52e3ee33ceac9fd3b27"
+  },
+  "figureTextSheetLineUnrecognized": "Niet herkend: toegevoegd als niet-herkende figuur",
+  "@figureTextSheetLineUnrecognized": {
+    "x-sourceSha256": "bc1388947433658b1995ad75b92db5183b3fcedb17225879f503b202423529e6"
+  },
+  "figureTextSheetTooLong": "Dit is meer dan {max} tekens, meer dan in één keer gelezen kan worden. Er wordt niets toegevoegd. Voeg het in delen toe.",
+  "@figureTextSheetTooLong": {
+    "x-sourceSha256": "7fa1be36660f7294a0e3098d01851077618d38453897a1c033bf072b2b93c5d7"
+  },
+  "figureTextSheetTooManyLines": "Dit is meer dan {max} regels, meer dan in één keer gelezen kan worden. Er wordt niets toegevoegd. Voeg het in delen toe.",
+  "@figureTextSheetTooManyLines": {
+    "x-sourceSha256": "7905bde0cab940e87a1c4f3d237e0642b7d323190936e1280a368ecf679835cf"
+  },
+  "figureTextSheetLineTooLong": "Een regel is langer dan {max} tekens, meer dan als één figuurregel gelezen kan worden. Er wordt niets toegevoegd. Verdeel hem over meer regels.",
+  "@figureTextSheetLineTooLong": {
+    "x-sourceSha256": "788a83f3a7ef068c39e41cd604a9ce2936d1f2332e956c9d27d823ba1f93a847"
+  },
+  "figureTextSheetAdd": "Figuren toevoegen",
+  "@figureTextSheetAdd": {
+    "x-sourceSha256": "5b26f322f63864bc8538081ffb00549cd3359633df43ad71178bdd627f0bd9b7"
+  },
+  "figureTextSheetFromImage": "Uit een afbeelding…",
+  "@figureTextSheetFromImage": {
+    "x-sourceSha256": "dd6ac7c7817e072d8f4fd986c8d3378ea6f0d45dbb856b1c69a01a97b4734964"
+  },
+  "figureTextSheetReadingImage": "Afbeelding wordt gelezen…",
+  "@figureTextSheetReadingImage": {
+    "x-sourceSha256": "be307d1b34cfc5f81c61c434df7f63403aa59cb2851ebd760f9d031319d2361b"
+  },
+  "figureTextSheetImageUnavailable": "Dit apparaat kan geen tekst in afbeeldingen lezen in de taal van de app of in het Engels.",
+  "@figureTextSheetImageUnavailable": {
+    "x-sourceSha256": "d990a1bae0df59cb352eb2e47fd76f3fba5565e08229612222edb489f31836cf"
+  },
+  "figureTextSheetImageEnglishOnly": "Dit apparaat leest afbeeldingen in het Engels, niet in de taal van de app.",
+  "@figureTextSheetImageEnglishOnly": {
+    "x-sourceSha256": "bd0891d06fd0e811fafa2c4d42d4ead78224080a6bdb22ad36a59bdd8fe4ae8d"
+  },
+  "figureTextSheetImageTooLarge": "Deze afbeelding is groter dan {limit} MB en is daarom niet gelezen. Kies een kleinere.",
+  "@figureTextSheetImageTooLarge": {
+    "x-sourceSha256": "1bb69766d216ed5cb9684a05e78700f2dbb36387e7357e871b9d03fec1dcb7ab"
+  },
+  "figureTextSheetImageTooManyPixels": "Deze afbeelding heeft te veel pixels om te lezen. Kies een kleinere of snijd hem bij.",
+  "@figureTextSheetImageTooManyPixels": {
+    "x-sourceSha256": "b50a0545135cdaba32030e933955ed45f156fdb1f439a92ec17de47fc8cd4fbd"
+  },
+  "figureTextSheetImageUnreadable": "Dit bestand is geen afbeelding die dit apparaat kan openen.",
+  "@figureTextSheetImageUnreadable": {
+    "x-sourceSha256": "0dac83a132c45d04835392cb021c627112c8127ea3f7542fb5e5f01d981a2e80"
+  },
+  "figureTextSheetImageNoText": "Er is geen tekst gevonden in deze afbeelding.",
+  "@figureTextSheetImageNoText": {
+    "x-sourceSha256": "70c2f81285a31cf551ec4673df6cdf571ae387d10aa497c1e53764752bb212e5"
+  },
+  "figureTextSheetImageFailed": "De tekst van de afbeelding kon niet worden gelezen.",
+  "@figureTextSheetImageFailed": {
+    "x-sourceSha256": "14449d451f327587d0d60907d54377246b50588e6cf4ae87a5df11ed78f9d5fc"
+  },
   "danceEditorPasteAtEndOfFigureList": "Plakken aan het einde van de figurenlijst",
   "@danceEditorPasteAtEndOfFigureList": {
     "x-sourceSha256": "5fb0b2b7335edd026fe96ab368850eb36c66826ba99ec38674181575aa24c07c"
@@ -9893,6 +9993,10 @@
   "danceEditorLingoStylingHelper": "Bewegingsnamen krijgen een gestippelde onderstreping, roltermen een onderstreping en ontmoedigde termen een doorhaling",
   "@danceEditorLingoStylingHelper": {
     "x-sourceSha256": "dad9477c721781411e575d8ab7388d8d97b37402d9399db55fad5096e3c992ca"
+  },
+  "danceEditorBeatTotalFreeForm": "{total, plural, =1{Totaal: 1 beat} other{Totaal: {total} beats}}",
+  "@danceEditorBeatTotalFreeForm": {
+    "x-sourceSha256": "a1cfbb9bd59bce9b9b0d49d0c2b52224055e648f0c2206584d0ffb345d4b2a88"
   },
   "danceEditorBeatTotal": "Totaal: {total} / {expected} beats",
   "@danceEditorBeatTotal": {
@@ -12650,6 +12754,14 @@
   "@settingsSuggestionsEnabledSubtitle": {
     "x-sourceSha256": "193f4023841f384da42426d70da634dc5d4d49ee61e7badccda4d0a10b121202"
   },
+  "settingsSuggestionsInPerformSwapTitle": "Gebruiken bij Deze dans wisselen in Uitvoeren",
+  "@settingsSuggestionsInPerformSwapTitle": {
+    "x-sourceSha256": "2861517a06444df39f4337868669d82b0a2bd4e15b3a3074720c693e1e52df56"
+  },
+  "settingsSuggestionsInPerformSwapSubtitle": "Als je in Uitvoeren een dans wisselt, staan de dansen onder Je alternatieven in de volgorde die het best past bij die plek in het programma, met de reden erbij. Er valt niets weg.",
+  "@settingsSuggestionsInPerformSwapSubtitle": {
+    "x-sourceSha256": "d650f25a86c80aab53d7f25b39160a67720bfc35ec3731055b4cb954c973c28e"
+  },
   "settingsSuggestionsEditorTitle": "Waar suggesties op letten",
   "@settingsSuggestionsEditorTitle": {
     "x-sourceSha256": "5859a799e7233f4a514956f7dc4ed8e54d2f54a2c8ad0b123a83872d2b580f0f"
@@ -13250,6 +13362,122 @@
   "@exportCsvPayHiddenNotice": {
     "x-sourceSha256": "7211fa66aebc90d9f812f84eb5311ec7ce3c9492040b40a47ae3cce07f2f9e6d"
   },
+  "performSwapThisDance": "Deze dans wisselen",
+  "@performSwapThisDance": {
+    "x-sourceSha256": "c111607bdcc160350dd927de458d5fbbec46ca39c6cfd0b5f5e0b46d836d264f"
+  },
+  "performSwapDanceNamed": "{title} wisselen",
+  "@performSwapDanceNamed": {
+    "x-sourceSha256": "0591a41e96632554cfbec4cf694d77711a635de5315f20ce9ada6f473c5389ac"
+  },
+  "performSwappedAnnounce": "{title} ingewisseld",
+  "@performSwappedAnnounce": {
+    "x-sourceSha256": "f3f1e4aed0f981809bb0368c4869c4eb34adc82780b45bbf79f37d90be015c34"
+  },
+  "performSwapKeepHeader": "Behouden",
+  "@performSwapKeepHeader": {
+    "x-sourceSha256": "183f00f483d3844e875d26eac74c676054383aef38ed5a8e4d1505ef21008585"
+  },
+  "performSwapKeepFormation": "Zelfde formatie: {formation}",
+  "@performSwapKeepFormation": {
+    "x-sourceSha256": "d7ec9345df3d1f0a62294ad628d82c747fe44db1c919b9f2c56ecfb918dc2100"
+  },
+  "performSwapKeepLevel": "Dit niveau of makkelijker: {level}",
+  "@performSwapKeepLevel": {
+    "x-sourceSha256": "c7f77c70ac4408a4071c047f4a94100fd38674248e8300019246dd54e9a903b4"
+  },
+  "performSwapKeepType": "Zelfde type: {type}",
+  "@performSwapKeepType": {
+    "x-sourceSha256": "c0cb476747261e0d6f8a308badb546df523f2c702b9545c0fb09aa2d0591ff95"
+  },
+  "performSwapKeepNotInProgram": "Nog niet in het programma van vanavond",
+  "@performSwapKeepNotInProgram": {
+    "x-sourceSha256": "be434791939447608dec62aa7ce7c3306d69f18ed248919882ed178d752bb393"
+  },
+  "performSwapFiguresHeader": "Figuren behouden",
+  "@performSwapFiguresHeader": {
+    "x-sourceSha256": "aa66d205559c0458a3596aceb1f8d440cb2088d2f0df3ac2f98d03285d24ac22"
+  },
+  "performSwapFigureInPhrase": "{figure} in {phrase}",
+  "@performSwapFigureInPhrase": {
+    "x-sourceSha256": "6fe5e0f91214e4b626f284d5278b4627a20bcb163a30b4a6c3d87d45498b542d"
+  },
+  "performSwapKeepFigureSemantic": "{figure} behouden",
+  "@performSwapKeepFigureSemantic": {
+    "x-sourceSha256": "03d54a6a036fa5ec9787f11fbaadcd4bffd21e2fc0a23d65b49e9fef8656f106"
+  },
+  "performSwapSamePhrase": "In dezelfde frase ({phrase})",
+  "@performSwapSamePhrase": {
+    "x-sourceSha256": "218f6e3e4c2651d3a4d8e4b7a5a8fdd4b6aea7efa25671704eb00eea30bfa8f9"
+  },
+  "performSwapSamePhraseSemantic": "{figure} in dezelfde frase behouden, {phrase}",
+  "@performSwapSamePhraseSemantic": {
+    "x-sourceSha256": "3145ba0d0256dce1f7e7212076359d7c1fc8e07b0c85861ff5bbea4ca9fd34d9"
+  },
+  "performSwapWithBefore": "Met wat eraan voorafgaat ({figure})",
+  "@performSwapWithBefore": {
+    "x-sourceSha256": "187b5dc3be47dda387e623d23e3f4ef4aad4a89eceabbc2ff06246d23d8090e4"
+  },
+  "performSwapWithBeforeSemantic": "{figure} direct na {before} behouden",
+  "@performSwapWithBeforeSemantic": {
+    "x-sourceSha256": "54349c28769552b0ef5a150c2c291a1c4dbfc5c92f10941a48e53b5a4b82c0ca"
+  },
+  "performSwapMoreFilters": "Meer filters",
+  "@performSwapMoreFilters": {
+    "x-sourceSha256": "b1ab49a6fedc4d334a37dc3da5bfe172ab72d0944e4e51f316d11a2a75b99fc7"
+  },
+  "performSwapKeepInPanels": "De andere keuzes om te behouden staan nu onder Filters en Geavanceerd.",
+  "@performSwapKeepInPanels": {
+    "x-sourceSha256": "ecfe9dad2d04adad8177df3a3be5ef6e6be3dd59020276ddbb201fedbd81fa75"
+  },
+  "performSwapEnglishNote": "Voor Engelse dansen zijn zelfde formatie en de verfijningen van figuren nog niet beschikbaar.",
+  "@performSwapEnglishNote": {
+    "x-sourceSha256": "dde5c1fddc3cb65a8bc62fe4684beb58a8e7ba7ffeec763980aff222cb2c41ec"
+  },
+  "performSwapAlternatesHeading": "Je alternatieven",
+  "@performSwapAlternatesHeading": {
+    "x-sourceSha256": "03361ce91f4284c5e91d49b19007a51e3f044868254103fa49e8a0d90e77a9a5"
+  },
+  "performSwapResultsHeading": "Passende dansen",
+  "@performSwapResultsHeading": {
+    "x-sourceSha256": "57d1b7c78aa3bcdc4cefed7536863f6187b0cdd701bd866eb819aa9ea7445248"
+  },
+  "performSwapRefused": "Dit programma is op een ander apparaat gewijzigd, dus een van je wijzigingen is niet opgeslagen. Controleer het programma en breng de wijziging opnieuw aan als je die nog wilt.",
+  "@performSwapRefused": {
+    "x-sourceSha256": "bff07f1000f8c282777aee0febdea8672296cfa8345aa1f19d728328ecab6bf5"
+  },
+  "settingsPerformSwapTitle": "Een dans wisselen",
+  "@settingsPerformSwapTitle": {
+    "x-sourceSha256": "e892cbf90746d0f5694e8ea42e38375d7706b1aec52e295ca46dc7149a5f0db7"
+  },
+  "settingsPerformSwapSubtitle": "Kies welke keuzes om te behouden aan staan als je een dans wisselt tijdens het uitvoeren.",
+  "@settingsPerformSwapSubtitle": {
+    "x-sourceSha256": "093a12b31d4b618c56bd82daffc64298ee251716c3486a90a380f587b781df0e"
+  },
+  "settingsPerformSwapFormation": "Zelfde formatie",
+  "@settingsPerformSwapFormation": {
+    "x-sourceSha256": "4e9a14a575b317860b43a67699036904f8d731db4b52e5e543e650c27bf7dd1f"
+  },
+  "settingsPerformSwapLevel": "Dit niveau of makkelijker",
+  "@settingsPerformSwapLevel": {
+    "x-sourceSha256": "c8db678f12f4724468f294a4a42ac3c0be07f2bd139795ac5d7124945f33a59a"
+  },
+  "settingsPerformSwapType": "Zelfde type",
+  "@settingsPerformSwapType": {
+    "x-sourceSha256": "74d6cfee24005aec61965c8b818191bece6146e67d7db1e941e298cf815777fa"
+  },
+  "settingsPerformSwapTypeSubtitle": "Alleen in een programma met verschillende types, zoals contra’s en Engelse dansen.",
+  "@settingsPerformSwapTypeSubtitle": {
+    "x-sourceSha256": "d477c65b9b06d3c267eb941d0ad97e19db2b427277abf2a21193e81e860436d4"
+  },
+  "settingsPerformSwapNewerVersion": "Deze keuzes zijn opgeslagen door een nieuwere versie van de app. Deze versie gebruikt haar beginkeuzes, allemaal aan, en overschrijft die van jou niet. Werk de app bij om ze te wijzigen.",
+  "@settingsPerformSwapNewerVersion": {
+    "x-sourceSha256": "96ac44b0564bd59fdb1a23ea224abfc09144b09558df30d58c12f74d67dc1b30"
+  },
+  "settingsPerformSwapReadError": "Je keuzes voor ‘Een dans wisselen’ konden niet worden gelezen en kunnen nu niet worden gewijzigd. Sluit dit scherm en probeer het opnieuw.",
+  "@settingsPerformSwapReadError": {
+    "x-sourceSha256": "639bb23bf8d638bbe909bbd0c2060faf16c5b7af09edd63ddec51439436e0427"
+  },
   "collectionRepertoireMenuItem": "Repertoire",
   "@collectionRepertoireMenuItem": {
     "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
@@ -13429,6 +13657,62 @@
   "importCsvPickFile": "CSV-bestand kiezen…",
   "@importCsvPickFile": {
     "x-sourceSha256": "3bb43e45815cd926a5fdc5fc234a382e7ca35f88ece0d4f9d4ea4abf1a867690"
+  },
+  "importSourceLabelTextDocument": "Je eigen tekst- of Markdown-bestand",
+  "@importSourceLabelTextDocument": {
+    "x-sourceSha256": "b82e1c3bc4a3756645ff8d0db9a4fc78dc203aee7daa42b21ef3de1476a7a06a"
+  },
+  "importTextHint": "Kies een .txt- of .md-bestand. Begin elke dans met een kop (## Title), of met de titel na een lege regel. Zet details op regels met “Label: value” (Formation: Improper) en één figuur per regel (A1 (8) Neighbor swing).",
+  "@importTextHint": {
+    "x-sourceSha256": "d179b5ab74145d2de4bfe01f731e2c4e284b6a18d318ca80c1b34b338f68740a"
+  },
+  "importTextPickFile": "Kies een tekst- of Markdown-bestand…",
+  "@importTextPickFile": {
+    "x-sourceSha256": "fa98f057a4a28239990f650477688807696b4c1c021cdb024fb87bfb209377cd"
+  },
+  "importTextMapTitle": "Labels koppelen",
+  "@importTextMapTitle": {
+    "x-sourceSha256": "51d6189c02562c2748d7e81b93a37a6c83fc22cd6b38375a3074171e93c79acd"
+  },
+  "importTextMapIntro": "Kies wat elk label in je bestand bevat. Een label dat geen veld overneemt, blijft met zijn naam in de callnotities staan; kies Negeren om het weg te laten. Er wordt niets toegevoegd voordat je hebt nagekeken en bevestigd.",
+  "@importTextMapIntro": {
+    "x-sourceSha256": "c164ccec57083360c7aeee87a0ad5beaeae0dc2c31076d3609876c69f715f269"
+  },
+  "importTextDanceStartLabel": "Elke dans begint bij",
+  "@importTextDanceStartLabel": {
+    "x-sourceSha256": "639a3248969fee5709ab292bec14051fee038813f5a12eb1e0f19b98978884c5"
+  },
+  "importTextDanceStartHeading": "Een {marks}-kop",
+  "@importTextDanceStartHeading": {
+    "x-sourceSha256": "878e3677a673deb6f113d8818d1d90f5ddaf6dc70c18d194e0a1ee9996d48333"
+  },
+  "importTextDanceStartBlankLine": "Een titel na een lege regel",
+  "@importTextDanceStartBlankLine": {
+    "x-sourceSha256": "1e3d1952578a42f1adc62b109faae27dc63fea4d27ca663fcfb52e498917c26e"
+  },
+  "importTextTargetLabelledNotes": "Callnotities, met het label",
+  "@importTextTargetLabelledNotes": {
+    "x-sourceSha256": "81e01305126cd88776779264c7195ec7477be4a8b5e43192e472e9f68ae75f73"
+  },
+  "importTextNotUtf8": "Dit bestand is niet als UTF-8-tekst bewaard, dus letters met accenten zouden verkeerd binnenkomen. Bewaar het opnieuw als UTF-8-tekst en kies dat bestand.",
+  "@importTextNotUtf8": {
+    "x-sourceSha256": "db5198188221007b4dd964bf20367e624a06d33b5901c420135bc60edb6b1fde"
+  },
+  "importTextTooManyDances": "Dit bestand bevat meer dan {limit} dansen. Splits het in kleinere bestanden.",
+  "@importTextTooManyDances": {
+    "x-sourceSha256": "b1f27144df9b89a96fc21d765465283b574c5162a69bea582ec4878d2bd9b0cc"
+  },
+  "importTextLineTooLong": "Een regel in dit bestand is langer dan {limit} tekens.",
+  "@importTextLineTooLong": {
+    "x-sourceSha256": "5a8f42c559af2e534c3603d62c1ff89541ceb05a12ee0f2a6cf13559c0648b52"
+  },
+  "importTextDanceTooLong": "Een dans in dit bestand heeft meer dan {limit} tekens aan figuren, notities of één detail.",
+  "@importTextDanceTooLong": {
+    "x-sourceSha256": "d53da53bd9602901b5a458298be0f37213340029771e23743d58a95a6097b56a"
+  },
+  "importTextTooManyLabels": "Dit bestand gebruikt meer dan {limit} verschillende labels.",
+  "@importTextTooManyLabels": {
+    "x-sourceSha256": "2fbfd9e7107e7372dd8d6be7d8607d4deb6596588fcdfcd195b2f9e00be4c5af"
   },
   "importCsvSaveAsHint": "Kies in je spreadsheetprogramma Bestand ▸ Opslaan als (of Downloaden) en ‘CSV UTF-8’, en kies dat bestand dan hier.",
   "@importCsvSaveAsHint": {

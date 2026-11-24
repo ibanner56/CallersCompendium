@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart'
     show
         MatrixColumnConfig,
         SavedSearch,
+        isValidStoredPerformSwapDefaults,
         isValidStoredSuggestionSettings,
         savedSearchKeyPrefix,
         shareableTextNormalisationScopeKey;
@@ -28,7 +29,10 @@ import 'calling_card_settings_scope.dart'
     show CallingCardSettings, kCallingCardSettingsKey;
 import 'show_glossary_scope.dart' show kShowGlossaryKey;
 import 'suggestions_scope.dart'
-    show kSuggestionSettingsKey, kSuggestionsEnabledKey;
+    show
+        kSuggestionSettingsKey,
+        kSuggestionsEnabledKey,
+        kSuggestionsInPerformSwapKey;
 import 'display_defaults.dart'
     show
         kCanonicalDiscouragedTermsKey,
@@ -153,6 +157,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kShowCustomFiguresKey,
     kShowRepertoireDashboardKey,
     kSuggestionsEnabledKey,
+    kSuggestionsInPerformSwapKey,
     kConfirmBeforeDeleteKey,
     kSetListColorCodingKey,
     kShowPerformedTogglesKey,
@@ -294,6 +299,10 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // version-1 value must use only known choices; a newer one is kept as it
   // stands, since this build keeps it without reading it.
   kSuggestionSettingsKey: isValidStoredSuggestionSettings,
+  // Which Keep items start on in Perform's swap sheet (#2346): a JSON object
+  // with a version. A version-1 value must hold a bool for each item; a newer
+  // one is kept as it stands, since this build keeps it without reading it.
+  kPerformSwapDefaultsKey: isValidStoredPerformSwapDefaults,
 };
 
 bool _isBool(Object? v) => v is bool;

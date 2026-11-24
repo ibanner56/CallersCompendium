@@ -92,6 +92,74 @@ void main() {
       expect(first[4], hasLength(2));
     });
 
+    test(r'tags and tunes honour \, and \\, and read an old export, or a '
+        'hand-typed sheet with no backslash, as they always did', () async {
+      const cols = [
+        CsvColumnMapping(CsvColumnTarget.title),
+        CsvColumnMapping(CsvColumnTarget.tags),
+        CsvColumnMapping(CsvColumnTarget.tunes),
+      ];
+      final batch = await plan(
+        'Title,Tags,Tunes\r\n'
+        '"Old","Jig, Favourite","Reel, Hornpipe; Strathspey"\r\n'
+        r'"New","Hey\, Ho, Back\\slash","Say\, What, C:\temp"'
+        '\r\n',
+        mapping(',', cols: cols),
+      );
+      expect(batch.errors, isEmpty);
+      final old = batch.records[0].draft.dance;
+      expect(old.tagIds, [
+        '${kCsvTagPlaceholderPrefix}Jig',
+        '${kCsvTagPlaceholderPrefix}Favourite',
+      ]);
+      expect((old.tunesSource as DecodedTunes).tunes, [
+        'Reel',
+        'Hornpipe',
+        'Strathspey',
+      ]);
+      final escaped = batch.records[1].draft.dance;
+      expect(escaped.tagIds, [
+        '${kCsvTagPlaceholderPrefix}Hey, Ho',
+        '${kCsvTagPlaceholderPrefix}Back\\slash',
+      ]);
+      expect((escaped.tunesSource as DecodedTunes).tunes, [
+        'Say, What',
+        r'C:\temp',
+      ]);
+    });
+
+    test(r'authors honour \, and \\ in the CSV, and an old export or a '
+        'hand-typed cell reads as it always did (#2332)', () async {
+      const cols = [
+        CsvColumnMapping(CsvColumnTarget.title),
+        CsvColumnMapping(CsvColumnTarget.authors),
+      ];
+      Future<List<String>> authors(String cell) async {
+        final batch = await plan(
+          'Title,Authors\r\n"T","${cell.replaceAll('"', '""')}"\r\n',
+          mapping(',', cols: cols),
+        );
+        expect(batch.errors, isEmpty);
+        return batch.records.single.draft.authorNames;
+      }
+
+      expect(await authors(r'Smith\, John, Mary Example'), [
+        'Smith, John',
+        'Mary Example',
+      ]);
+      expect(await authors(r'Doe\, Jr., Bob'), ['Doe, Jr.', 'Bob']);
+      expect(await authors(r'C:\temp\\x, Ann'), [r'C:\temp\x', 'Ann']);
+      // No backslash: today's splitting, suffix protection included.
+      expect(await authors('Ann Lee, Bob Ray and Cy Day'), [
+        'Ann Lee',
+        'Bob Ray',
+        'Cy Day',
+      ]);
+      expect(await authors('Jane Doe, Jr., Bob'), ['Jane Doe, Jr.', 'Bob']);
+      // The escape protects the comma only: a word delimiter still splits.
+      expect(await authors(r'Smith\, John and Jo'), ['Smith, John', 'Jo']);
+    });
+
     test('a figures cell, a ;-separated cell and per-phrase columns give '
         'the figures the fan-out gives for the same lines', () async {
       const lines = ['neighbors balance and swing', 'partners swing'];

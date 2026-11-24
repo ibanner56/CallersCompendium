@@ -8733,6 +8733,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsWalkthroughSnippetEditTitle => 'スニペットを編集';
 
   @override
+  String get danceEditorSetupTitle => 'クレジット・フォーメーション・音楽';
+
+  @override
   String get danceEditorMoreDetailsTitle => '詳細情報';
 
   @override
@@ -8815,10 +8818,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorSingingSubtitle => '曲名はチューンに入力します';
 
   @override
+  String get danceEditorFreeFormLabel => 'フリーフォーム';
+
+  @override
+  String get danceEditorFreeFormSubtitle => 'フレーズに従わない：フレーズ名もフレーズの確認もなし';
+
+  @override
   String get danceEditorImproperLabel => 'インプロパーで始まる';
 
   @override
-  String get danceEditorImproperSubtitle => 'プロパーで始まるダンスではチェックを外したままにします。';
+  String get danceEditorImproperSubtitle => 'プロパーで始まるダンスではオフのままにします。';
 
   @override
   String get danceEditorComposedLabel => '振付年';
@@ -9430,6 +9439,139 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorAddSequence => 'シーケンスを追加';
 
   @override
+  String get danceEditorAddFiguresFromText => 'テキストからフィギュアを追加…';
+
+  @override
+  String get figureTextSheetTitle => 'テキストからフィギュアを追加';
+
+  @override
+  String get figureTextSheetHelp =>
+      '「(8) neighbor balance & swing」のように、1行に1つのフィギュアを入力または貼り付けてください。フリーテキスト入力がオフでも、各行はオンのときにムーブ欄に入力した行と同じように読み取られます。ダンスを保存するまで何も保存されません。';
+
+  @override
+  String get figureTextSheetHelpDropsLabels =>
+      '「A1 (8) neighbor balance & swing」のように、1行に1つのフィギュアを入力または貼り付けてください。行頭のA1のようなフレーズラベルは省かれます。フリーテキスト入力がオフでも、各行はオンのときにムーブ欄に入力した行と同じように読み取られます。ダンスを保存するまで何も保存されません。';
+
+  @override
+  String get figureTextSheetFieldLabel => 'フィギュア(1行に1つ)';
+
+  @override
+  String figureTextSheetSummary(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '追加するフィギュア:$countString件',
+      zero: '追加するフィギュアはまだありません',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String figureTextSheetUnrecognizedSummary(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString行が認識できません。テキストを保持した認識できないフィギュアとして追加されるので、後で修正してください。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String figureTextSheetLineFigures(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'フィギュア$countString件',
+      zero: 'フィギュアなし',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get figureTextSheetLineUnrecognized => '認識できません:認識できないフィギュアとして追加されます';
+
+  @override
+  String figureTextSheetTooLong(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return '$maxString文字を超えており、一度に読み取れる量を超えています。何も追加されません。分けて追加してください。';
+  }
+
+  @override
+  String figureTextSheetTooManyLines(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return '$maxString行を超えており、一度に読み取れる量を超えています。何も追加されません。分けて追加してください。';
+  }
+
+  @override
+  String figureTextSheetLineTooLong(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return '$maxString文字を超える行があり、1行のフィギュアとして読み取れる長さを超えています。何も追加されません。複数の行に分けてください。';
+  }
+
+  @override
+  String get figureTextSheetAdd => 'フィギュアを追加';
+
+  @override
+  String get figureTextSheetFromImage => '画像から…';
+
+  @override
+  String get figureTextSheetReadingImage => '画像を読み取り中…';
+
+  @override
+  String get figureTextSheetImageUnavailable =>
+      'このデバイスは、アプリの言語でも英語でも画像の文字を読み取れません。';
+
+  @override
+  String get figureTextSheetImageEnglishOnly =>
+      'このデバイスは画像を英語で読み取ります。アプリの言語では読み取れません。';
+
+  @override
+  String figureTextSheetImageTooLarge(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'この画像は$limitString MBを超えているため、読み取りませんでした。もっと小さい画像を選んでください。';
+  }
+
+  @override
+  String get figureTextSheetImageTooManyPixels =>
+      'この画像はピクセル数が多すぎて読み取れません。もっと小さい画像を選ぶか、トリミングしてください。';
+
+  @override
+  String get figureTextSheetImageUnreadable => 'このファイルは、このデバイスで開ける画像ではありません。';
+
+  @override
+  String get figureTextSheetImageNoText => 'この画像に文字は見つかりませんでした。';
+
+  @override
+  String get figureTextSheetImageFailed => '画像の文字を読み取れませんでした。';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList => 'フィギュアリストの末尾にペースト';
 
   @override
@@ -9801,6 +9943,16 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get danceEditorLingoStylingHelper =>
       'ムーブ名は点線の下線、ロール用語は下線、非推奨用語は取り消し線で表示されます';
+
+  @override
+  String danceEditorBeatTotalFreeForm(int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: '合計: $total拍',
+    );
+    return '$_temp0';
+  }
 
   @override
   String danceEditorBeatTotal(int total, int expected) {
@@ -12592,6 +12744,14 @@ class AppLocalizationsJa extends AppLocalizations {
       'プログラム作成画面のダンス一覧の「並べ替え」メニューに「おすすめ順」を追加します。新しいダンスを入れる位置に合わせてダンスを並べ、その理由を示します。';
 
   @override
+  String get settingsSuggestionsInPerformSwapTitle =>
+      'パフォームモードの「このダンスを入れ替え」で使う';
+
+  @override
+  String get settingsSuggestionsInPerformSwapSubtitle =>
+      'パフォームモードでダンスを入れ替えるとき、「あなたの代替」の下のダンスを、プログラム内のその位置に最も合う順に並べ、理由を示します。どのダンスも除外されません。';
+
+  @override
   String get settingsSuggestionsEditorTitle => '提案で考慮すること';
 
   @override
@@ -13155,6 +13315,121 @@ class AppLocalizationsJa extends AppLocalizations {
       '報酬は設定で非表示になっているため、含まれません。含めるには、設定 ▸ プログラムで「報酬を表示」をオンにしてください。';
 
   @override
+  String get performSwapThisDance => 'このダンスを入れ替え';
+
+  @override
+  String performSwapDanceNamed(String title) {
+    return '$titleを入れ替え';
+  }
+
+  @override
+  String performSwappedAnnounce(String title) {
+    return '$titleに入れ替えました';
+  }
+
+  @override
+  String get performSwapKeepHeader => '維持する条件';
+
+  @override
+  String performSwapKeepFormation(String formation) {
+    return '同じフォーメーション：$formation';
+  }
+
+  @override
+  String performSwapKeepLevel(String level) {
+    return 'このレベル以下：$level';
+  }
+
+  @override
+  String performSwapKeepType(String type) {
+    return '同じタイプ：$type';
+  }
+
+  @override
+  String get performSwapKeepNotInProgram => '今夜のプログラムにまだないもの';
+
+  @override
+  String get performSwapFiguresHeader => '維持するフィギュア';
+
+  @override
+  String performSwapFigureInPhrase(String figure, String phrase) {
+    return '$phraseの$figure';
+  }
+
+  @override
+  String performSwapKeepFigureSemantic(String figure) {
+    return '$figureを維持';
+  }
+
+  @override
+  String performSwapSamePhrase(String phrase) {
+    return '同じフレーズ（$phrase）';
+  }
+
+  @override
+  String performSwapSamePhraseSemantic(String figure, String phrase) {
+    return '$figureを同じフレーズ$phraseで維持';
+  }
+
+  @override
+  String performSwapWithBefore(String figure) {
+    return '直前のフィギュアも（$figure）';
+  }
+
+  @override
+  String performSwapWithBeforeSemantic(String figure, String before) {
+    return '$figureを$beforeの直後で維持';
+  }
+
+  @override
+  String get performSwapMoreFilters => 'その他のフィルター';
+
+  @override
+  String get performSwapKeepInPanels => 'ほかの維持する条件は、フィルターと詳細検索に移りました。';
+
+  @override
+  String get performSwapEnglishNote =>
+      'イングリッシュダンスでは、同じフォーメーションとフィギュアの細かい条件はまだ使えません。';
+
+  @override
+  String get performSwapAlternatesHeading => 'あなたの代替';
+
+  @override
+  String get performSwapResultsHeading => '条件に合うダンス';
+
+  @override
+  String get performSwapRefused =>
+      'このプログラムは別のデバイスで変更されたため、変更の一部が保存されませんでした。プログラムを確認し、必要であればもう一度変更してください。';
+
+  @override
+  String get settingsPerformSwapTitle => 'ダンスの入れ替え';
+
+  @override
+  String get settingsPerformSwapSubtitle =>
+      'パフォームモードでダンスを入れ替えるときに、最初からオンにする維持条件を選びます。';
+
+  @override
+  String get settingsPerformSwapFormation => '同じフォーメーション';
+
+  @override
+  String get settingsPerformSwapLevel => 'このレベル以下';
+
+  @override
+  String get settingsPerformSwapType => '同じタイプ';
+
+  @override
+  String get settingsPerformSwapTypeSubtitle =>
+      'コントラとイングリッシュダンスのように、タイプが混在するプログラムでのみ表示されます。';
+
+  @override
+  String get settingsPerformSwapNewerVersion =>
+      'この設定は新しいバージョンのアプリで保存されました。このバージョンはすべてオンの初期設定を使い、保存された設定は上書きしません。変更するにはアプリを更新してください。';
+
+  @override
+  String get settingsPerformSwapReadError =>
+      '「ダンスの入れ替え」の設定を読み込めなかったため、今は変更できません。この画面を閉じて、もう一度お試しください。';
+
+  @override
   String get collectionRepertoireMenuItem => 'レパートリー';
 
   @override
@@ -13391,6 +13666,77 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importCsvPickFile => 'CSV ファイルを選択…';
+
+  @override
+  String get importSourceLabelTextDocument => '自分のテキストまたはMarkdownファイル';
+
+  @override
+  String get importTextHint =>
+      '.txtまたは.mdファイルを選んでください。各ダンスは見出し(## Title)か、空行の後のタイトルで始めます。詳細は「Label: value」の行(Formation: Improper)に、フィギュアは1行に1つ(A1 (8) Neighbor swing)書きます。';
+
+  @override
+  String get importTextPickFile => 'テキストまたはMarkdownファイルを選択…';
+
+  @override
+  String get importTextMapTitle => 'ラベルの割り当て';
+
+  @override
+  String get importTextMapIntro =>
+      'ファイル内の各ラベルが何を表すかを選んでください。どの項目にも割り当てられないラベルは、名前付きでコーリングノートに残ります。除外するには「無視」を選びます。確認して確定するまで何も追加されません。';
+
+  @override
+  String get importTextDanceStartLabel => '各ダンスの始まり';
+
+  @override
+  String importTextDanceStartHeading(String marks) {
+    return '$marks 見出し';
+  }
+
+  @override
+  String get importTextDanceStartBlankLine => '空行の後のタイトル';
+
+  @override
+  String get importTextTargetLabelledNotes => 'コーリングノート(ラベル付き)';
+
+  @override
+  String get importTextNotUtf8 =>
+      'このファイルはUTF-8テキストで保存されていないため、アクセント付きの文字が正しく取り込まれません。UTF-8テキストで保存し直し、そのファイルを選んでください。';
+
+  @override
+  String importTextTooManyDances(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'このファイルには$limitString件を超えるダンスがあります。小さなファイルに分けてください。';
+  }
+
+  @override
+  String importTextLineTooLong(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'このファイルに$limitString文字を超える行があります。';
+  }
+
+  @override
+  String importTextDanceTooLong(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'このファイルに、フィギュア、ノート、または1つの詳細が$limitString文字を超えるダンスがあります。';
+  }
+
+  @override
+  String importTextTooManyLabels(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'このファイルは$limitString種類を超えるラベルを使っています。';
+  }
 
   @override
   String get importCsvSaveAsHint =>

@@ -226,8 +226,8 @@ typed it. A count that is shorter but more than the 64 beats a figure can take
 (`circle left (100)`) keeps the whole line as an unrecognized figure too.
 
 Pasting several lines into the box keeps them as one line, with a space where
-each line break was; type or paste one figure line at a time to get one figure
-per line.
+each line break was. To add several lines at once, one figure line each, use
+[Add several figures at once](#add-several-figures-at-once).
 
 A `;` between figures makes a list, and each part is read as its own figure:
 `circle left 3/4; turn alone` gives two figures, in order. A count stays with
@@ -241,6 +241,64 @@ circle and the swing.
 
 As always, anything it cannot parse is kept as an unrecognized figure rather than
 dropped.
+
+### Add several figures at once
+
+To bring in a dance you have as text, from an email, a web page or a typed
+document, open **Add figure** ▸ **Add figures from text…** under the figure
+list. Type or paste the figures into the box, one figure per line:
+
+```
+A1 (8) Neighbor balance & swing
+   (8) Long lines forward and back
+A2 (8) Ladies chain
+```
+
+Each line is read as the Move box reads a line you type with
+[Free-text entry](#free-text-entry) on, with your
+[shorthands](#figure-shorthands) and your dialect, whether Free-text entry is
+on or not. Blank lines are skipped, and so is a line that is only a phrase
+label, such as an `A1` heading. In a contra dance a phrase label such as `A1` or
+`B2` at the start of a line is left out, so `A1 (8) Ladies chain` reads as
+`(8) Ladies chain`. English and square dances keep it: an English line such as
+`A1 1-8 lead up` is read with its label, because the label comes before a bar
+range; other English lines that start with a label may not be recognized, so
+leave the label off them.
+
+As you type, the sheet shows how many figures each line gives and marks the
+lines it does not recognize. Those are still added, each as an
+[unrecognized figure](#unrecognized-figure) that keeps its text, for you to
+fix. **Add figures** adds them all at the end of the figure list as one step,
+so a single Undo takes them out again. **Cancel** adds nothing. Nothing is
+saved until you save the dance.
+
+The sheet reads up to 200 lines and 20,000 characters at a time, and up to
+2,000 characters on one line. Longer text is refused, and nothing from it is
+added: add it in parts.
+
+#### Read the figures from a picture
+
+On iPhone, iPad and Mac, **From an image…** in the same sheet reads the text of
+a picture you choose, such as a photo of an index card or a page of a book, and
+puts it in the box in place of what is there. Check it and correct it there:
+the lines are then read exactly as typed text is.
+
+- The picture is read **on your device**, by the text recognition built into
+  iOS and macOS. Nothing is sent anywhere, and nothing is downloaded to read
+  it.
+- **The picture is not kept.** It is read once and let go; only the text
+  reaches the sheet. Nothing about the picture is saved with the dance, synced
+  or backed up. A copy the picker makes for the app is deleted once read.
+- It reads the app's language and English. Where the device can't read the
+  app's language (some languages, such as Japanese, need a newer iOS or
+  macOS, and some aren't offered at all), the sheet says so and reads
+  English.
+- A picture over 25 MB, or over 10,000 pixels on a side or 50 million pixels
+  in all, is refused before anything is read. Crop it or choose a smaller one.
+- Typed text reads best. Handwriting may come out wrong, so check each line.
+
+**From an image…** isn't offered on Android, Windows or Linux: you can still
+type or paste the figures.
 
 ### Figure shorthands
 
@@ -675,6 +733,16 @@ nothing in it to lose.
 
 ### Details
 
+Under the **Title**, everything else in Details is in one panel, **Credits,
+formation and music**, so the figures are not pushed down the page by fields
+you set once. Folded, it shows a short summary instead, such as *Pat Shaw ·
+English (ECD) · Duple minor · Starts improper · 3/2 · G minor*; tap it to open
+it, and tap its header again to fold it. It starts folded when you edit a
+dance, and when you start one on a phone; it starts open when you start one on
+a wider screen. If **Save** finds a mistake in one of its fields, it opens to
+show you. Inside, fields sit side by side where there is room and one under
+another where there is not.
+
 - **Title** — required.
 - **Authors** — the [author](./glossary.md#author) or authors of the dance.
   Tap the field to open the list of people: check each author, type in the
@@ -687,8 +755,9 @@ nothing in it to lose.
   English dances were published long ago and reconstructed later, as in
   "Walsh, 1731, Pat Shaw version": put the original's author or publisher in
   **Authors** and its year in **Composed**, and the person who reconstructed
-  it, and the year, in the other two. On a narrow screen, or with large text,
-  each year goes under its names. **Interpreted by** draws on the same list of
+  it, and the year, in the other two. On a wide screen the two lines sit side
+  by side; on a narrow screen, or with large text, they stack, and each year
+  goes under its names. **Interpreted by** draws on the same list of
   people as **Authors**. For other types the dates and **Interpreted by** are in **More
   details**, where a date can also have a month and day. The dance's detail
   view and its Perform card show each year beside its names, such as
@@ -702,21 +771,31 @@ nothing in it to lose.
 - **Formation** and **Formation detail** — the shape the dance is danced in, plus
   anything worth adding in words. An English dance offers English formations,
   such as duple minor, triple minor and three-couple longways, with a
-  **Starts improper** checkbox; leave it unchecked for a dance that starts
-  proper. A square offers **Square**, **Circle** for a big-circle dance such
+  **Starts improper** chip under them: tap it on for a dance that starts
+  improper, and leave it off for one that starts proper. A square offers **Square**, **Circle** for a big-circle dance such
   as a running set, and **Other**. Changing the type to one whose list
   doesn't have the dance's formation starts the formation over: on **Duple
   minor** for English, **Improper** for contra, and **Square** for a square.
   A formation both lists have, such as triple minor between contra and
   English or circle between English and square, is kept. Undo brings the
   old formation back.
-- **Mixer** — tick this when the dance is a
+- **Progression** — how the dance progresses, such as **Single**. It sits
+  beside **Type** and **Formation** where there is room.
+- **Rating** — your own star rating, with **Clear rating** to unset it. It
+  sits beside the **Starts improper** and **Mixer** chips where there is room.
+- **Mixer** — tap this chip on when the dance is a
   [mixer](./glossary.md#mixer): one where you change partners each time through.
   It's kept separate from the formation, because a mixer can be danced in many
   shapes and not every circle is a mixer.
-- **Square fields** — a square dance shows four more fields here:
+- **Square fields** — a square dance shows five more fields here:
   - **Kind of square**: **Main part** (the figure danced several times
     through), **Break**, or **Patter**.
+  - **Free form**: turn this on for patter that follows no phrasing. The
+    figures then get no phrase labels (A1, A2 and so on), nothing checks
+    that they fill each phrase, the phrase structure is hidden, and the
+    figure list shows only the total beats. Patter starts with it on and
+    the other kinds with it off; you can change either. The phrase
+    structure you had is kept for when you turn it off.
   - **Repeat order**: **Heads twice, then sides twice**, **Heads and sides
     alternating**, **Four times, everyone active**, or **Other**, which
     opens a field to describe it.
@@ -783,7 +862,8 @@ nothing in it to lose.
   card show them on one line, such as *Meter: 6/8 · Key: G minor*.
 - **Barnes reference** — for an English dance only: where the tune is printed
   in the Barnes books, book and page in one line, such as `BIII p. 92`, or `NiB`
-  when it is not in them. It sits under **Meter** and **Key**. Changing a
+  when it is not in them. It sits beside **Meter** and **Key**, or under them
+  on a narrow screen. Changing a
   dance to another type clears it when you save. The dance's detail view shows it under
   **Barnes books**, and its Perform card as *Barnes: BIII p. 92*.
 
@@ -831,11 +911,10 @@ updates the default used everywhere.
 | **Other titles** | Other names the dance goes by, one per line; the dance page shows them under the title, and searching by **Title** finds them |
 | **Level** and **Status** | How hard it is, and where it is in your workflow |
 | **Mixed level** | For dances that span the difficulty scale |
-| **Rating** | Your own star rating, with **Clear rating** to unset it |
 | **Composed** / **Revised** | A year, optionally with a month and day; for an English dance, Composed is a year, up front beside the authors |
 | **Interpreted by** / **Interpreted in** | Who reconstructed the dance from its original, and when; for an English dance, up front, with Interpreted in as a year beside the names |
 | **Meter** / **Key** | The tune's written meter and key; up front for an English dance, with its **Barnes reference** |
-| **Kind of square** / **Repeat order** / **New partner** / **Singing call** | A square's own fields; up front for a square dance |
+| **Kind of square** / **Repeat order** / **New partner** / **Singing call** | A square's own fields; up front for a square dance (**Free form** shows for a square only) |
 | **Tags** | Your own labels |
 | **Tunes** | Tunes you like with this dance |
 | **Links** | A URL with an optional label, marked **Source**, **Video**, or **Other** |

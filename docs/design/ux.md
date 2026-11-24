@@ -191,6 +191,29 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   line.
 - Metadata form with author pickers (choreographer table), formation
   picker, custom fields.
+- **The setup panel** keeps the figures near the top of the page. Under the
+  Title, the rest of Details (credits, Type, Formation and its detail,
+  Progression, the improper and mixer flags, Rating, the phrase structure,
+  and an English dance's Meter, Key and Barnes reference) is one panel,
+  *Credits, formation and music*, that folds to a summary of at most two
+  lines: the authors, Type, Formation, the improper and mixer flags, the
+  phrase structure as typed, and an English dance's Meter and Key. It starts folded on an existing dance, and on a new dance where the
+  form is narrower than 600 px; a new dance on a wider form starts with it
+  open. Its fields stay mounted while folded, so a save validates them, and
+  a save that finds an error inside opens it, as it opens More details, and
+  without the opening animation, so the field is in its final place when it
+  is scrolled into view.
+  The decision is made once per editor: built again after a lazy list let
+  it go, the panel keeps the state the caller left it in. Inside, fields
+  share rows where they fit (Type, Formation, Formation detail and
+  Progression at 200 px each, Meter, Key and Barnes reference at 150 px,
+  scaled with the text), an English dance's two credit lines share one row, and the
+  improper and mixer flags are filter chips with their explanations as
+  tooltips, rather than two-line checkbox rows. Measured in a widget test of
+  an English dance with nothing yet entered, the Figures header was 1,088 px
+  from the top of a 1000 px wide window and 1,176 px on a 390 px phone; with
+  the panel it is 710 px on the wide window for a new dance (panel open) and
+  266 px for an existing one, and 266-286 px on the phone.
 - **Name pickers** (Authors, Interpreted by, Tags) are multi-select
   dropdowns: the closed field reads the chosen names as text, and opens a
   list of every name with a checkbox, a search box that narrows it, a row
@@ -363,7 +386,22 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 - Zero destructive actions reachable; exit via deliberate gesture/button with
   confirm by default (Settings › Program › Performance). Optional: per-slot timer/clock display.
 - On-the-fly: reorder remaining slots, insert from quick-search, add ad-hoc
-  note — all in an "adjust" sheet, never disturbing the reading view.
+  note, swap the current or an upcoming dance — all in an "adjust" sheet,
+  never disturbing the reading view.
+- Swap a dance (#2346): the swap sheet opens already searched, with Keep chips
+  seeded from the dance (same formation, this level or easier, same type in a
+  mixed program, not already in the program, and figures with same-phrase and
+  with-what-comes-before refinements). Defaults are a setting; the slot's
+  alternates are listed first; two taps with the defaults; the swapped-in
+  dance takes the group's primary (an alternate being called is promoted)
+  and the swapped-out dance an unmarked alternate, so calling history counts
+  only the dance called; Undo restores the program exactly.
+- Swap ordered by suggestions (#2348, Experimental): with Suggestions and its
+  **Use in Perform's Swap this dance** both on, the swap sheet opens in
+  **Suggested** for the swapped slot's place, with no extra step: Your
+  alternates first and unranked, the results below with the builder's reason
+  line and **Why?**. Same dances either way; the plain order shows, tappable,
+  until the ranking arrives. With either off, as #2346.
 
 ### 6. Settings
 - **Dialect manager**: named dialects, preset picker, role/move term editor
