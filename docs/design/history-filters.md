@@ -68,7 +68,8 @@ written the picker searched with no `sort:` argument
 
 - Save, New and header placement (D-11 is still open).
 - Duplicate venue records and venue merging.
-- Saved searches, which the app does not have.
+- Saved searches: they came later (#2325), and keep a window as a distance in
+  months, never as a date (`search.md`, "Saved searches").
 
 Line numbers are for `origin/main` at `296b594`, except where a line says
 `90fe5e8` (the tree the 2026-10-30 decisions were recorded against; B1 moved
@@ -514,10 +515,13 @@ These hold on every surface.
 
 ## Privacy and sync
 
-- **Nothing new is persisted.** Every scope and the picker chip live in session
-  state, as Called / Not called do now (`FacetSelections`, in
+- **Nothing new is persisted by the scopes.** Every scope and the picker chip
+  live in session state, as Called / Not called do now (`FacetSelections`, in
   `packages/compendium_core/lib/src/search/collection_search_state.dart`). No settings key, column, registry entry or record
-  kind, so §6.6 and §6.15 have nothing to gate.
+  kind, so §6.6 and §6.15 have nothing to gate for them. A **saved search**
+  (#2325) can keep a venue scope and a window, under its own key and its own
+  capability (`search.md`, "Saved searches"; sync-spec §6.15
+  `savedSearches.v1`); the window is kept as months back, never as a date.
 - **`collection_tile_visible_fields` gains a value** (Q4). It is already
   `_preference`: non-personal, about the app user, shareable
   (`settings_registry.dart:20-24`). An older peer ignores the new name, so the

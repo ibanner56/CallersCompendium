@@ -22,11 +22,12 @@ import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 
 /// Pumps the [SettingsScreen] with the accessibility scopes wired (seeded from
-/// the persisted keys) and opens the General section.
+/// the persisted keys) and opens [section] (General unless given).
 Future<void> _pumpGeneral(
   WidgetTester tester,
-  CompendiumRepositories repos,
-) async {
+  CompendiumRepositories repos, {
+  String section = 'general',
+}) async {
   // Tall enough that every General toggle renders without scrolling — a
   // ListView only builds children within its viewport + cache extent, so a
   // short surface can leave a lower toggle (e.g. general-decimal-turns)
@@ -109,7 +110,7 @@ Future<void> _pumpGeneral(
   );
   await tester.pumpAndSettle();
 
-  await tester.tap(find.byKey(const ValueKey('settings-nav-general')));
+  await tester.tap(find.byKey(ValueKey('settings-nav-$section')));
   await tester.pumpAndSettle();
 }
 
@@ -123,14 +124,20 @@ void main() {
     'general-reduce-motion': kReduceMotionKey,
     'general-verbose-figures': kVerboseFigureRenderingKey,
     'general-decimal-turns': kDecimalTurnsKey,
-    'general-capitalize-figures': kCapitalizeFiguresKey,
+    // In Settings ▸ Collection ▸ Dances since #2325, beside the other Dances
+    // settings.
+    'collection-capitalize-figures': kCapitalizeFiguresKey,
     'general-confirm-before-delete': kConfirmBeforeDeleteKey,
   };
 
-  testWidgets('Library › Tags opens the Tags manager (D-N2-3)', (tester) async {
-    await _pumpGeneral(tester, openTestRepositories());
+  /// The section [widgetKey] lives in.
+  String sectionOf(String widgetKey) =>
+      widgetKey.startsWith('collection-') ? 'collection' : 'general';
 
-    final entry = find.byKey(const ValueKey('general-library-tags'));
+  testWidgets('Library › Tags opens the Tags manager (D-N2-3)', (tester) async {
+    await _pumpGeneral(tester, openTestRepositories(), section: 'collection');
+
+    final entry = find.byKey(const ValueKey('collection-library-tags'));
     await tester.ensureVisible(entry);
     await tester.pumpAndSettle();
     await tester.tap(entry);
@@ -140,13 +147,13 @@ void main() {
   });
 
   for (final (key, title) in [
-    ('general-library-authors', 'Authors'),
-    ('general-library-sources', 'Sources'),
+    ('collection-library-authors', 'Authors'),
+    ('collection-library-sources', 'Sources'),
   ]) {
     testWidgets('Library › $title opens the $title manager (D-N2-3)', (
       tester,
     ) async {
-      await _pumpGeneral(tester, openTestRepositories());
+      await _pumpGeneral(tester, openTestRepositories(), section: 'collection');
 
       final entry = find.byKey(ValueKey(key));
       await tester.ensureVisible(entry);
@@ -166,9 +173,9 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
-    await _pumpGeneral(tester, repos);
 
     for (final widgetKey in keys.keys) {
+      await _pumpGeneral(tester, repos, section: sectionOf(widgetKey));
       final finder = find.byKey(ValueKey(widgetKey));
       await tester.ensureVisible(finder);
       await tester.pumpAndSettle();
@@ -184,7 +191,7 @@ void main() {
   keys.forEach((widgetKey, settingsKey) {
     testWidgets('toggling $widgetKey persists $settingsKey', (tester) async {
       final repos = openTestRepositories();
-      await _pumpGeneral(tester, repos);
+      await _pumpGeneral(tester, repos, section: sectionOf(widgetKey));
 
       final finder = find.byKey(ValueKey(widgetKey));
       await tester.ensureVisible(finder);
@@ -202,7 +209,7 @@ void main() {
       final repos = openTestRepositories();
       await repos.settings.set(settingsKey, true);
 
-      await _pumpGeneral(tester, repos);
+      await _pumpGeneral(tester, repos, section: sectionOf(widgetKey));
 
       final finder = find.byKey(ValueKey(widgetKey));
       await tester.ensureVisible(finder);

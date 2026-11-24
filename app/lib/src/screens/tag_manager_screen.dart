@@ -16,7 +16,7 @@ import '../utils/confirm_delete.dart';
 import 'settings/library_manager_list.dart';
 
 /// The Tags manager (FIND-3, `docs/design/tags-and-people.md` T2): rename,
-/// merge, colour and delete tags. Reached from Settings › General › Library ›
+/// merge, colour and delete tags. Reached from Settings › Collection › Dances ›
 /// Tags, and from Settings › Appearance › Tag colours, which used to open a
 /// colours-only screen this one replaced (D-N2-3).
 ///
