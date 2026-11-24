@@ -102,10 +102,12 @@ final class SyncCapabilityPolicy {
   /// doesn't is named in a held-back notice (sync-spec §6.15).
   ///
   /// [SyncCapabilities.savedSearchesV1] (#2325) gates the user's saved searches
-  /// (every `saved_search:` key). It is gated but **not yet advertised**: the
-  /// capability is advertised only once the whole feature, sync included, is in
-  /// the build, as for glossary.v2 before #1023 completed. Until then this
-  /// build publishes none, and nothing creates one.
+  /// (every `saved_search:` key), and this build advertises it, now that the
+  /// whole feature is in it (the Saved menu that creates them came last):
+  /// they publish once every other device attached to the store advertises
+  /// it, and until then a device that doesn't is named in a held-back notice.
+  /// The sync server must already accept the prefix: deploy it before the
+  /// first build that advertises this (sync-spec §6.15).
   ///
   /// [SyncCapabilities.programTemplatesV1] (#2337) gates every program
   /// template (by its key prefix), the templates' order and the default
@@ -119,6 +121,7 @@ final class SyncCapabilityPolicy {
       SyncCapabilities.glossaryV1,
       SyncCapabilities.glossaryV2,
       SyncCapabilities.programTemplatesV1,
+      SyncCapabilities.savedSearchesV1,
       SyncCapabilities.suggestionsV1,
     },
     gatedRecordKinds: {

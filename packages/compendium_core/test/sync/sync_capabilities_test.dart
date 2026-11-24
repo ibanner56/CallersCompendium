@@ -85,28 +85,19 @@ void main() {
       recordsByDevice: records,
     );
 
-    test('advertises glossary.v1, glossary.v2, programTemplates.v1 and '
-        'suggestions.v1, and gates on each (#1023, #2337, #2343)', () {
+    test('advertises glossary.v1, glossary.v2, programTemplates.v1, '
+        'savedSearches.v1 and suggestions.v1, and gates on each (#1023, '
+        '#2325, #2337, #2343)', () {
       expect(build.advertised, {
-        SyncCapabilities.glossaryV1,
-        SyncCapabilities.glossaryV2,
-        SyncCapabilities.programTemplatesV1,
-        SyncCapabilities.suggestionsV1,
-      });
-      // Saved searches (#2325) are gated but not yet advertised: a
-      // capability is advertised only once the whole feature is in the build,
-      // so this build publishes none and nothing creates one.
-      expect(build.gatedCapabilities, {
         SyncCapabilities.glossaryV1,
         SyncCapabilities.glossaryV2,
         SyncCapabilities.programTemplatesV1,
         SyncCapabilities.savedSearchesV1,
         SyncCapabilities.suggestionsV1,
       });
-      expect(
-        build.advertised,
-        isNot(contains(SyncCapabilities.savedSearchesV1)),
-      );
+      // Every gated capability is advertised: the whole of each feature,
+      // saved searches included now the Saved menu is in, is in this build.
+      expect(build.gatedCapabilities, build.advertised);
     });
 
     test('rollout: with no record from any peer, every peer holds each '
@@ -115,23 +106,26 @@ void main() {
         SyncCapabilities.glossaryV1: {'a', 'b'},
         SyncCapabilities.glossaryV2: {'a', 'b'},
         SyncCapabilities.programTemplatesV1: {'a', 'b'},
+        SyncCapabilities.savedSearchesV1: {'a', 'b'},
         SyncCapabilities.suggestionsV1: {'a', 'b'},
-        // Not advertised by this build, so closed with no device to name.
-        SyncCapabilities.savedSearchesV1: <String>{},
       });
     });
 
     test('rollout: beside peers on the build before this one, which '
-        'advertise the glossary and program template capabilities, every '
-        'peer holds suggestions.v1 closed', () {
+        'advertise every capability but savedSearches.v1, every peer holds '
+        'savedSearches.v1 closed and is named', () {
       const previous = {
         SyncCapabilities.glossaryV1,
         SyncCapabilities.glossaryV2,
         SyncCapabilities.programTemplatesV1,
+        SyncCapabilities.suggestionsV1,
       };
       expect(closedBeside(['a', 'b'], {'a': previous, 'b': previous}), {
-        SyncCapabilities.suggestionsV1: {'a', 'b'},
-        SyncCapabilities.savedSearchesV1: <String>{},
+        SyncCapabilities.savedSearchesV1: {'a', 'b'},
+      });
+      // Once one of them is updated, only the other holds it closed.
+      expect(closedBeside(['a', 'b'], {'a': build.advertised, 'b': previous}), {
+        SyncCapabilities.savedSearchesV1: {'b'},
       });
     });
 
@@ -194,14 +188,14 @@ void main() {
       expect(c?.subject, DataSubject.appUser);
     });
 
-    test('with every peer advertising what the build does, the advertised '
-        'capabilities are open and saved searches stay closed', () {
+    test('with every peer advertising what the build does, every '
+        'capability is open, saved searches included', () {
       expect(
         closedBeside(
           ['a', 'b'],
           {'a': build.advertised, 'b': build.advertised},
         ),
-        {SyncCapabilities.savedSearchesV1: <String>{}},
+        isEmpty,
       );
     });
   });
