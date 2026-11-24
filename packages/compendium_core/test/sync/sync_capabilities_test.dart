@@ -162,8 +162,12 @@ void main() {
       );
     });
 
-    test('both suggestions keys wait on suggestions.v1 (#2343)', () {
-      for (final key in ['suggestions_enabled', 'suggestion_settings']) {
+    test('every suggestions key waits on suggestions.v1 (#2343, #2348)', () {
+      for (final key in [
+        'suggestions_enabled',
+        'suggestion_settings',
+        'suggestions_in_perform_swap',
+      ]) {
         expect(
           build.capabilityFor(SyncRecordKind.setting, key),
           SyncCapabilities.suggestionsV1,

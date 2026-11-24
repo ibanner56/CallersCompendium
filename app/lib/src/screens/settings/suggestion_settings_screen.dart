@@ -13,7 +13,8 @@ import '../../widgets/picker_suggestions.dart' show suggestionFactorTitle;
 import '../../widgets/settings_dropdown_row.dart';
 
 /// The Suggestions group of Settings ▸ Experimental: the toggle that adds
-/// **Suggested** to the program builder's Sort menu, and the row into
+/// **Suggested** to the program builder's Sort menu; while it is on, **Use in
+/// Perform's Swap this dance** (#2348); and the row into
 /// [SuggestionSettingsScreen].
 class SuggestionsSection extends StatelessWidget {
   const SuggestionsSection({super.key});
@@ -22,6 +23,12 @@ class SuggestionsSection extends StatelessWidget {
     SuggestionsEnabledScope.notifierOf(context).value = value;
     final repos = RepositoriesScope.of(context);
     await persistSetting(repos.settings, kSuggestionsEnabledKey, value);
+  }
+
+  Future<void> _onInPerformSwapChanged(BuildContext context, bool value) async {
+    SuggestionsInPerformSwapScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kSuggestionsInPerformSwapKey, value);
   }
 
   @override
@@ -44,6 +51,17 @@ class SuggestionsSection extends StatelessWidget {
             subtitle: Text(l10n.settingsSuggestionsEnabledSubtitle),
             isThreeLine: true,
           ),
+          // Shown only while Suggestions is on: off, it would change nothing.
+          if (enabled)
+            SwitchListTile(
+              key: const ValueKey('experimental-suggestions-in-perform-swap'),
+              secondary: const Icon(Icons.swap_horiz),
+              value: SuggestionsInPerformSwapScope.of(context),
+              onChanged: (value) => _onInPerformSwapChanged(context, value),
+              title: Text(l10n.settingsSuggestionsInPerformSwapTitle),
+              subtitle: Text(l10n.settingsSuggestionsInPerformSwapSubtitle),
+              isThreeLine: true,
+            ),
           ListTile(
             key: const ValueKey('experimental-suggestions-open'),
             leading: const Icon(Icons.tune),

@@ -12702,6 +12702,14 @@
   "@settingsSuggestionsEnabledSubtitle": {
     "x-sourceSha256": "193f4023841f384da42426d70da634dc5d4d49ee61e7badccda4d0a10b121202"
   },
+  "settingsSuggestionsInPerformSwapTitle": "Beim Tanztausch im Perform-Modus verwenden",
+  "@settingsSuggestionsInPerformSwapTitle": {
+    "x-sourceSha256": "2861517a06444df39f4337868669d82b0a2bd4e15b3a3074720c693e1e52df56"
+  },
+  "settingsSuggestionsInPerformSwapSubtitle": "Wenn du im Perform-Modus einen Tanz tauschst, werden die Tänze nach deinen Alternativen für seine Stelle im Programm geordnet, mit Begründung. Nichts wird ausgelassen.",
+  "@settingsSuggestionsInPerformSwapSubtitle": {
+    "x-sourceSha256": "622fe091996597efb62753f81eb0ea67eb856ca132aa6012eb959c54d3c27e6d"
+  },
   "settingsSuggestionsEditorTitle": "Worauf Vorschläge achten",
   "@settingsSuggestionsEditorTitle": {
     "x-sourceSha256": "5859a799e7233f4a514956f7dc4ed8e54d2f54a2c8ad0b123a83872d2b580f0f"

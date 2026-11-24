@@ -139,8 +139,10 @@ final Map<String, DataClassification> settingsClassifications = {
   'show_custom_figures': _preference,
   'show_repertoire_dashboard': _preference,
   // Experimental Suggestions (#2343): the toggle, and what the builder's
-  // Suggested sort looks for.
+  // Suggested sort looks for; and whether Perform's swap sheet orders by it
+  // (#2348).
   'suggestions_enabled': _preference,
+  'suggestions_in_perform_swap': _preference,
   'suggestion_settings': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.appUser,

@@ -13157,6 +13157,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Adds Suggested to the Sort menu of the program builder\'s dance lists. It orders the dances for where the new one will go and says why.';
 
   @override
+  String get settingsSuggestionsInPerformSwapTitle =>
+      'Use in Perform\'s Swap this dance';
+
+  @override
+  String get settingsSuggestionsInPerformSwapSubtitle =>
+      'When you swap a dance in Perform, orders the dances after your alternates for that place in the program, and says why. Nothing is left out.';
+
+  @override
   String get settingsSuggestionsEditorTitle => 'What suggestions look for';
 
   @override

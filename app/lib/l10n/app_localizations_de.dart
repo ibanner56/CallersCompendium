@@ -13319,6 +13319,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Fügt den Menüs „Sortieren“ der Tanzlisten im Programmeditor „Vorgeschlagen“ hinzu. Es ordnet die Tänze für die Stelle, an die der neue Tanz kommt, und sagt, warum.';
 
   @override
+  String get settingsSuggestionsInPerformSwapTitle =>
+      'Beim Tanztausch im Perform-Modus verwenden';
+
+  @override
+  String get settingsSuggestionsInPerformSwapSubtitle =>
+      'Wenn du im Perform-Modus einen Tanz tauschst, werden die Tänze nach deinen Alternativen für seine Stelle im Programm geordnet, mit Begründung. Nichts wird ausgelassen.';
+
+  @override
   String get settingsSuggestionsEditorTitle => 'Worauf Vorschläge achten';
 
   @override

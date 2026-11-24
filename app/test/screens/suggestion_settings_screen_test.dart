@@ -1,4 +1,5 @@
-// Settings ▸ Experimental ▸ Suggestions and its editor (#2343).
+// Settings ▸ Experimental ▸ Suggestions and its editor (#2343), with Use in
+// Perform's Swap this dance (#2348).
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,10 +13,11 @@ import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
 class _Harness {
-  _Harness(this.repos, this.enabled, this.settings);
+  _Harness(this.repos, this.enabled, this.settings, this.inPerformSwap);
   final CompendiumRepositories repos;
   final ValueNotifier<bool> enabled;
   final ValueNotifier<SuggestionSettingsRead> settings;
+  final ValueNotifier<bool> inPerformSwap;
 }
 
 Future<_Harness> _pump(
@@ -34,6 +36,8 @@ Future<_Harness> _pump(
   addTearDown(enabledNotifier.dispose);
   final settings = ValueNotifier<SuggestionSettingsRead>(read);
   addTearDown(settings.dispose);
+  final inPerformSwap = ValueNotifier<bool>(false);
+  addTearDown(inPerformSwap.dispose);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
@@ -42,14 +46,17 @@ Future<_Harness> _pump(
         repositories: repos,
         child: SuggestionsEnabledScope(
           notifier: enabledNotifier,
-          child: SuggestionSettingsScope(notifier: settings, child: child!),
+          child: SuggestionsInPerformSwapScope(
+            notifier: inPerformSwap,
+            child: SuggestionSettingsScope(notifier: settings, child: child!),
+          ),
         ),
       ),
       home: home,
     ),
   );
   await tester.pumpAndSettle();
-  return _Harness(repos, enabledNotifier, settings);
+  return _Harness(repos, enabledNotifier, settings, inPerformSwap);
 }
 
 Finder _segment(SuggestionFactor factor, String label) => find.descendant(
@@ -94,6 +101,48 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byType(SuggestionSettingsScreen), findsOneWidget);
+  });
+
+  testWidgets('Use in Perform\'s Swap this dance shows only while '
+      'Suggestions is on, is off by default, and saves '
+      'suggestions_in_perform_swap (#2348)', (tester) async {
+    final h = await _pump(
+      tester,
+      const Scaffold(body: SingleChildScrollView(child: SuggestionsSection())),
+    );
+    await tester.tap(find.text('Suggestions'));
+    await tester.pumpAndSettle();
+    final swap = find.byKey(
+      const ValueKey('experimental-suggestions-in-perform-swap'),
+    );
+    expect(swap, findsNothing, reason: 'Suggestions is off');
+
+    await tester.tap(
+      find.byKey(const ValueKey('experimental-suggestions-enabled')),
+    );
+    await tester.pumpAndSettle();
+    expect(swap, findsOneWidget);
+    expect(find.text("Use in Perform's Swap this dance"), findsOneWidget);
+    expect(tester.widget<SwitchListTile>(swap).value, isFalse);
+    expect(await h.repos.settings.get(kSuggestionsInPerformSwapKey), isNull);
+    expect(
+      tester.getSize(swap).height,
+      greaterThanOrEqualTo(48),
+      reason: 'a full-size row',
+    );
+
+    await tester.tap(swap);
+    await tester.pumpAndSettle();
+    expect(h.inPerformSwap.value, isTrue);
+    expect(await h.repos.settings.get(kSuggestionsInPerformSwapKey), isTrue);
+
+    // Turning Suggestions off hides it, and leaves its own value alone.
+    await tester.tap(
+      find.byKey(const ValueKey('experimental-suggestions-enabled')),
+    );
+    await tester.pumpAndSettle();
+    expect(swap, findsNothing);
+    expect(h.inPerformSwap.value, isTrue);
   });
 
   testWidgets('the editor shows the shipped defaults, in words only', (

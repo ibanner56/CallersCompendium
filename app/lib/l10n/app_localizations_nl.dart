@@ -13285,6 +13285,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Voegt Voorgesteld toe aan het menu Sorteren van de danslijsten in de programma-editor. Het ordent de dansen voor de plek waar de nieuwe dans komt en zegt waarom.';
 
   @override
+  String get settingsSuggestionsInPerformSwapTitle =>
+      'Gebruiken bij Deze dans wisselen tijdens het uitvoeren';
+
+  @override
+  String get settingsSuggestionsInPerformSwapSubtitle =>
+      'Als je tijdens het uitvoeren een dans wisselt, worden de dansen na je alternatieven geordend voor zijn plek in het programma, met de reden erbij. Er valt niets weg.';
+
+  @override
   String get settingsSuggestionsEditorTitle => 'Waar suggesties op letten';
 
   @override
