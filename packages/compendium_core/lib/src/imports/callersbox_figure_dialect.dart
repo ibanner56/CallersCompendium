@@ -41,7 +41,7 @@ import 'while_container.dart';
 ///
 /// **Pre-recognizer ordering.** `_amountAlternativeAnnotation` is first: it
 /// writes a `(1 or 2)` line's first amount into the line and reads the result
-/// through every other entry. The next TODO entries (through
+/// through every other entry. The next twenty-four entries (through
 /// `_singleFileCircleRecognizer`) all anchor on a move keyword (or, for
 /// `_tcbNumberedRolePair` and `_asCouplesDoSiDo`, a fixed prefix in front of
 /// one), and all require a successful resolution to their own move, so in

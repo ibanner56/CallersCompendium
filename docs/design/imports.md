@@ -1783,7 +1783,7 @@ shared reading", "becomes an unrecognized figure") over the bare verb.
 
 Which is which, derived from the code rather than from memory:
 
-- `tcbFigureFrontEnd` registers **TODO** pre-recognizers:
+- `tcbFigureFrontEnd` registers **thirty** pre-recognizers:
   `_amountAlternativeAnnotation`, `_eighthHey`, `_hey`, `_tcbNumberedRolePair`,
   `_passTheOceanToWave`, `_asCouplesDoSiDo`, `_jerseyTwirl`, `_circulate`,
   `_waveBalanceCirculate`, `_circulateCrossBracket`,
