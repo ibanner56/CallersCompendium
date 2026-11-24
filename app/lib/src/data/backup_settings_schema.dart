@@ -29,7 +29,10 @@ import 'calling_card_settings_scope.dart'
     show CallingCardSettings, kCallingCardSettingsKey;
 import 'show_glossary_scope.dart' show kShowGlossaryKey;
 import 'suggestions_scope.dart'
-    show kSuggestionSettingsKey, kSuggestionsEnabledKey;
+    show
+        kSuggestionSettingsKey,
+        kSuggestionsEnabledKey,
+        kSuggestionsInPerformSwapKey;
 import 'display_defaults.dart'
     show
         kCanonicalDiscouragedTermsKey,
@@ -154,6 +157,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kShowCustomFiguresKey,
     kShowRepertoireDashboardKey,
     kSuggestionsEnabledKey,
+    kSuggestionsInPerformSwapKey,
     kConfirmBeforeDeleteKey,
     kSetListColorCodingKey,
     kShowPerformedTogglesKey,

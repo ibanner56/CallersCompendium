@@ -13371,6 +13371,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ajoute Suggéré au menu Trier des listes de danses de l’éditeur de programme. Les danses sont classées pour la place de la nouvelle danse, avec la raison.';
 
   @override
+  String get settingsSuggestionsInPerformSwapTitle =>
+      'Utiliser pour Échanger cette danse en mode Perform';
+
+  @override
+  String get settingsSuggestionsInPerformSwapSubtitle =>
+      'Quand vous échangez une danse en mode Perform, liste les danses sous Vos alternatives dans l’ordre qui convient le mieux à cette place du programme, et dit pourquoi. Rien n’est écarté.';
+
+  @override
   String get settingsSuggestionsEditorTitle =>
       'Ce que regardent les suggestions';
 

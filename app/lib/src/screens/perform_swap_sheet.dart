@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/suggestions_scope.dart';
 import '../search/collection_data.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
@@ -30,6 +31,15 @@ const double kPerformSwapMinTarget = 44;
 /// request replaces the sort too, so each one carries the sort the user last
 /// picked ([CollectionPicker.onSortChanged]).
 ///
+/// With Settings ▸ Experimental ▸ Suggestions and its **Use in Perform's Swap
+/// this dance** both on ([SuggestionsInPerformSwapScope.activeOf], #2348),
+/// the results under **Your alternates** open in the picker's **Suggested**
+/// order for [programContext]'s position, the place of the slot being
+/// swapped, each with its reason line ([CollectionPicker.openSuggested]).
+/// Ranking only reorders: the same dances show either way, in the plain
+/// order until it finishes, and a tap swaps either way. With either off the
+/// sheet is as #2346 ships it, with no Suggested in the Sort menu.
+///
 /// Tapping a result calls [onPick] with its id. Online search is not offered:
 /// an import at the mic adds a network wait and a possible duplicate prompt.
 class PerformSwapSheet extends StatefulWidget {
@@ -50,6 +60,7 @@ class PerformSwapSheet extends StatefulWidget {
     this.programContext,
     this.danceOverrides = const {},
     this.authorNameOverrides = const {},
+    this.rankSuggestions,
   });
 
   /// The name of the dance being swapped, as the adjust sheet shows it.
@@ -87,6 +98,9 @@ class PerformSwapSheet extends StatefulWidget {
   final PickerProgramContext? programContext;
   final Map<String, Dance> danceOverrides;
   final Map<String, String> authorNameOverrides;
+
+  /// Ranks for Suggested: [CollectionPicker.rankSuggestions], a test seam.
+  final SuggestionRanker? rankSuggestions;
 
   @override
   State<PerformSwapSheet> createState() => _PerformSwapSheetState();
@@ -146,6 +160,7 @@ class _PerformSwapSheetState extends State<PerformSwapSheet> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final ordered = SuggestionsInPerformSwapScope.activeOf(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -174,8 +189,10 @@ class _PerformSwapSheetState extends State<PerformSwapSheet> {
             choreographerNamesOverride: widget.authorNameOverrides,
             rowAction: PickerRowAction.replace,
             programContext: widget.programContext,
-            // Ordering by suggestions is #2348's, behind its own setting.
-            offerSuggested: false,
+            // Ordering by suggestions (#2348), behind its own setting.
+            offerSuggested: ordered,
+            openSuggested: ordered,
+            rankSuggestions: widget.rankSuggestions,
             panelState: _request,
             onSortChanged: (sort, direction) =>
                 _sort = (sort: sort, direction: direction),

@@ -726,6 +726,12 @@ class _CompendiumAppState extends State<CompendiumApp>
     decode: (Object? v) => v is bool ? v : false,
     encode: (v) => v,
   );
+  final _suggestionsInPerformSwapNotifier = PreferenceNotifier<bool>(
+    key: kSuggestionsInPerformSwapKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
   final _suggestionSettingsNotifier =
       PreferenceNotifier<SuggestionSettingsRead>(
         key: kSuggestionSettingsKey,
@@ -1426,6 +1432,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _showCustomFiguresNotifier,
     _showRepertoireNotifier,
     _suggestionsEnabledNotifier,
+    _suggestionsInPerformSwapNotifier,
     _suggestionSettingsNotifier,
     _callingCardSettingsNotifier,
     _aggressiveBeatsUpdateNotifier,
@@ -2471,6 +2478,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _showCustomFiguresNotifier.dispose();
     _showRepertoireNotifier.dispose();
     _suggestionsEnabledNotifier.dispose();
+    _suggestionsInPerformSwapNotifier.dispose();
     _suggestionSettingsNotifier.dispose();
     _callingCardSettingsNotifier.dispose();
     _aggressiveBeatsUpdateNotifier.dispose();
@@ -3150,6 +3158,10 @@ class _CompendiumAppState extends State<CompendiumApp>
         ShowRepertoireScope(notifier: _showRepertoireNotifier, child: child),
     (child) => SuggestionsEnabledScope(
       notifier: _suggestionsEnabledNotifier,
+      child: child,
+    ),
+    (child) => SuggestionsInPerformSwapScope(
+      notifier: _suggestionsInPerformSwapNotifier,
       child: child,
     ),
     (child) => SuggestionSettingsScope(

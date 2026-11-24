@@ -329,6 +329,21 @@ already set, so you can change them there or add others. From then on the
 panels hold your search: **Not already in tonight's program** still changes
 which dances are left out, but never undoes what you changed in the panels.
 
+If you have turned on **Suggest the next dance** and **Use in Perform's Swap
+this dance** (both in
+[Settings ▸ Experimental ▸ Suggestions](./settings.md#suggestions)), the dances
+after **Your alternates** are listed in the **Suggested** order for the place of
+the dance you are swapping: compared with the dances before and after it, as if
+the dance you are swapping out were not there, with a reason under each, as in
+the [program builder](./programs.md#let-the-app-suggest-the-next-dance). Your
+alternates stay first. Nothing is left out; the same dances are listed as
+without it, only in another order. Until the order is worked out the dances
+show in their usual order, and you can tap one at any time. English dances are
+not ranked yet: they come after the others and say so, and a dance already in
+tonight's program (with that Keep choice off) comes last. **Sort** offers the
+usual orders too, and **Suggested** there brings this order back. With either
+setting off, the swap sheet lists the dances in its usual order.
+
 Tap a dance to swap it in. The slot keeps its note, guest caller and planned
 times; only the dance changes. The dance you swap in is the one being called,
 so it takes the planned slot, which counts as called the way any planned dance

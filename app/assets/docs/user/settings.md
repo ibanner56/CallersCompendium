@@ -1178,6 +1178,15 @@ See [Let the app suggest the next dance](./programs.md#let-the-app-suggest-the-n
 Turning it off takes Suggested out of the menu, and a picker that is open goes
 back to its plain order.
 
+**Use in Perform's Swap this dance** shows under it while Suggest the next
+dance is on. It is **off by default**, so turning on suggestions for the
+builder doesn't change Perform. With both on, Perform's
+[swap sheet](./perform.md#swap-a-dance) lists its dances after **Your
+alternates** in the Suggested order for the place of the dance you are
+swapping, with a reason under each. Nothing is left out: the same dances are
+listed, only in another order. With either off, the swap sheet keeps its usual
+order.
+
 **What suggestions look for** opens a screen with one row for each thing
 suggestions weigh up. Each has **Off**, **A little** or **A lot**: Off leaves it
 out entirely. There are no numbers to tune.
@@ -1211,7 +1220,7 @@ Recent calls at this venue **A lot** within **3 months**. **Reset to defaults**
 puts every choice back to these, and is grayed out while they are already the
 defaults.
 
-Both settings are in your [backup](#backup--restore), and sync with
+All three settings are in your [backup](#backup--restore), and sync with
 [Device Sync](#device-sync) once every device connected to your store has a
 version of the app that knows them (see
 [New kinds of data wait for every device](#new-kinds-of-data-wait-for-every-device)).

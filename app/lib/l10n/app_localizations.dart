@@ -19301,6 +19301,18 @@ abstract class AppLocalizations {
   /// **'Adds Suggested to the Sort menu of the program builder\'s dance lists. It orders the dances for where the new one will go and says why.'**
   String get settingsSuggestionsEnabledSubtitle;
 
+  /// Title of the switch, shown under Suggest the next dance while it is on, that makes Perform's swap sheet order its dances by suggestions (#2348). Swap this dance is the Perform button of that name.
+  ///
+  /// In en, this message translates to:
+  /// **'Use in Perform\'s Swap this dance'**
+  String get settingsSuggestionsInPerformSwapTitle;
+
+  /// Subtitle of the Use in Perform's Swap this dance switch.
+  ///
+  /// In en, this message translates to:
+  /// **'When you swap a dance in Perform, lists the dances below Your alternates in the order that best fits that place in the program, and says why. Nothing is left out.'**
+  String get settingsSuggestionsInPerformSwapSubtitle;
+
   /// Title of the row, and of the screen it opens, where the user chooses how much each suggestion factor counts.
   ///
   /// In en, this message translates to:
