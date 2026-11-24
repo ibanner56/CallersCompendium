@@ -624,7 +624,10 @@ Map<String, Object?> _recordParams(Map<String, Object?> params) => {
               if (child is core.Figure)
                 {
                   'move': child.move,
-                  'params': _recordParams(child.params),
+                  'params': {
+                    ..._recordParams(child.params),
+                    if (_hallBackwards(child)) 'facing': 'backward',
+                  },
                   if (child.progression) 'progression': true,
                 }
               else
@@ -677,7 +680,7 @@ core.Figure _mainFigure(core.Figure figure) =>
 /// progresses (user-ruled 2026-11-24): "in a line of four, go up the hall;
 /// ones arch, twos dive" bends the line into a ring and trades the couples on
 /// to their next neighbours. The first such arch is the one taken. Every
-/// other dance falls back to the last figure.
+/// other non-Becket dance falls back to the last figure.
 ///
 /// Returns `null` only for a dance with no figures. *(User-ruled.)*
 int? assumedProgressionIndex(core.Dance dance) {
@@ -721,10 +724,12 @@ int? assumedProgressionIndex(core.Dance dance) {
     }
   }
 
-  // An arch and dive straight after a hall figure is danced from the line
-  // the hall figure left, bent into a ring, and it progresses (user-ruled
-  // 2026-11-24). Reading every hall figure, with or without a stated bend,
-  // is the agent's call.
+  // Outside Becket, an arch and dive straight after a hall figure progresses
+  // (user-ruled 2026-11-24: the line bends into a ring and the arch and dive
+  // carries the couples on). Testing for any hall figure, whatever its ender
+  // or leaders, rather than for a line of four, is the agent's call: the
+  // bridge reads which move a figure is, never what it leaves.
+  if (isBecket) return figures.length - 1;
   for (var index = 1; index < figures.length; index++) {
     final before = _mainFigure(figures[index - 1]).move;
     if (_mainFigure(figures[index]).move == 'arch_and_dive' &&
@@ -1064,11 +1069,14 @@ List<core.Figure> _requireDecoded(core.Dance dance) =>
 /// the import keeps the "(backwards)" only as the figure's note, beside any
 /// other clause ("backwards; with nextNeighbors"). Read as `facing: backward`,
 /// the line travels with its back to the way it goes, as written, instead of
-/// turning round first. A figure that already states a facing keeps it.
-/// *(Agent's call, 2026-11-24.)*
+/// turning round first. A figure that already states a facing keeps it, and
+/// a lead by part of the set ("ones lead down") is left alone, since a lead
+/// takes only `forward`. A hall figure inside a container is read the same
+/// way. *(Agent's call, 2026-11-24.)*
 bool _hallBackwards(core.Figure figure) =>
     (figure.move == 'up_the_hall' || figure.move == 'down_the_hall') &&
     figure.params['facing'] == null &&
+    (figure.params['who'] ?? 'everyone') == 'everyone' &&
     (figure.note ?? '')
         .split(';')
         .any((clause) => clause.trim().toLowerCase() == 'backwards');

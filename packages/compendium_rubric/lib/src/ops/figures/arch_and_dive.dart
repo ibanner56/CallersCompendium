@@ -8,9 +8,9 @@ part of '../operation.dart';
 /// governs over ours. **Also user-ruled (2026-11-22):** nothing more is baked
 /// in. Which couple arches (`who`) changes nobody's landing, and the figure
 /// carries the dance's progression only when the record flags it (or the
-/// Caller's Box bridge assumes it: by its ordinary last-figure rule, or
-/// because the arch comes straight after a line of four, user-ruled
-/// 2026-11-24), like any other progression-eligible figure. Assuming the progression on the arch
+/// Caller's Box bridge assumes it: by its ordinary last-figure rule, or,
+/// outside Becket, because the arch comes straight after a hall figure,
+/// user-ruled 2026-11-24), like any other progression-eligible figure. Assuming the progression on the arch
 /// itself was measured on the corpus before the ruling and did worse.
 ///
 /// **From a line of four, the line bends into a ring first** *(user-ruled
@@ -24,7 +24,8 @@ part of '../operation.dart';
 /// bend, so it is swapped as it stands and raises
 /// [WarningKind.archFromLine].
 ///
-/// Facing is preserved: both couples walk forward through.
+/// Facing is preserved through the swap: both couples walk forward through.
+/// (A bent line's ends turn to face the centres before it.)
 final class ArchAndDive extends Operation {
   const ArchAndDive({this.who = WhoSet.twos});
 

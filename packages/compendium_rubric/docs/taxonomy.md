@@ -1695,12 +1695,13 @@ To be defined later with worked examples.
   the figure carries the dance's progression only when the record flags it, or when the
   Caller's Box bridge assumes it there. The bridge assumes it by its ordinary last-figure rule,
   and, outside Becket, on an arch and dive **straight after a hall figure** (user-ruled
-  2026-11-24: the bent line's arch and dive progresses; reading every hall figure, with or
-  without a stated bend, is the agent's call). Assuming the progression on every arch was
+  2026-11-24: the bent line's arch and dive progresses; testing for any hall figure, whatever
+  its ender or leaders, rather than for a line of four, is the agent's call). Assuming the progression on every arch was
   measured on the corpus before the 2026-11-22 ruling, and it did worse (2 dances gained,
   4 lost).
 - **normalization:** none of its own.
-- **facing (output):** preserved; both couples walk forward through.
+- **facing (output):** preserved through the swap; both couples walk forward through. A bent
+  line's ends turn to face the centres first (above).
 - **interaction scope:** within the hands four.
 - **h4 contribution** (D7): 0.
 - **progression-eligible:** yes (not its own progression: a flag adds the usual
@@ -2573,7 +2574,8 @@ To be defined later with worked examples.
     **ending facing** (below); does not affect position, since travel is inert.
     Caller's Box writes a line backing along the hall as "go up the hall (backwards)", which
     the import keeps only as the note `backwards`; the bridge reads a note with that clause,
-    on a figure stating no `facing`, as `backward` *(agent's call, 2026-11-24)*.
+    on a figure stating no `facing` and led by the whole hands four, as `backward`, inside a
+    container too *(agent's call, 2026-11-24)*.
   - `ender` — choice, default `turnCouple`. 6 of 10 values implemented (below).
   - `beats` — int, default 8 (baseline good=[8]).
 - **preconditions:** the h4 must be **complete** (four dancers). When the input is not already a

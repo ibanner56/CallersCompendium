@@ -815,6 +815,7 @@ void main() {
           hall('backwards', {'facing': 'forward'}),
           hall(null),
           hall('ones follow twos'),
+          hall('backwards', {'who': 'ones'}),
         ],
       );
       final facings = [
@@ -823,7 +824,33 @@ void main() {
           ((record! as Map<String, Object?>)['params']!
               as Map<String, Object?>)['facing'],
       ];
-      expect(facings, ['backward', 'backward', 'forward', null, null]);
+      expect(facings, ['backward', 'backward', 'forward', null, null, null]);
+    });
+
+    test('inside a container too', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleImproper,
+        figures: [
+          core.Figure.modifier(
+            figures: [
+              core_test.testFigure(move: 'up_the_hall', note: 'backwards'),
+              figure('turn_alone'),
+            ],
+            beats: 8,
+          ),
+        ],
+      );
+      final container =
+          (bridgeCoreDance(dance).record['figures']! as List<Object?>).first!
+              as Map<String, Object?>;
+      final children =
+          (container['params']! as Map<String, Object?>)['figures']!
+              as List<Object?>;
+      expect(
+        ((children.first! as Map<String, Object?>)['params']!
+            as Map<String, Object?>)['facing'],
+        'backward',
+      );
     });
 
     test('a modifier carries a container child to the record as a figure', () {
@@ -950,6 +977,36 @@ void main() {
         );
         expect(assumedProgressionIndex(dance), 2, reason: hall);
       }
+    });
+
+    test('the first arch and dive after a hall figure is the one taken', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleImproper,
+        figures: [
+          figure('down_the_hall'),
+          figure('arch_and_dive'),
+          figure('up_the_hall'),
+          figure('arch_and_dive'),
+          figure('swing'),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 1);
+    });
+
+    test('a Becket dance does not progress on an arch after a hall figure', () {
+      // The rule is ruled for the line of four in an improper set; a Becket
+      // dance with no move along the set keeps its last figure.
+      final dance = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        figures: [
+          figure('circle'),
+          figure('down_the_hall'),
+          figure('arch_and_dive'),
+          figure('swing'),
+          figure('long_lines'),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 4);
     });
 
     test('an arch and dive after anything else does not', () {

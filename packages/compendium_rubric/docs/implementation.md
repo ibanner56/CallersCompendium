@@ -604,8 +604,11 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
   their own under `params.figures`), plus `progression: true` on each figure
   that progresses: the source's own flags, or, when it flags none, the one the
   assumed-progression rule below places (and, on its N2 retry, the later ones
-  N3 and N4 place). That flag is the only field the bridge *adds* rather than
-  translates. The one figure it *rewrites* is a slide after a balanced long
+  N3 and N4 place). The bridge *adds* one other field: a hall figure whose note
+  is "backwards" (Caller's Box "go up the hall (backwards)", which the import
+  keeps only as a note) gets `facing: backward`, unless it states a facing or
+  is led by part of the set *(agent's call, 2026-11-24)*. The one figure it
+  *rewrites* is a slide after a balanced long
   wave: Caller's Box writes a Rory O'More as two lines, "Balance long wave"
   then "Slide right (past N)", and the import reads them as `form_long_waves`
   (balance) and `slide_along_set`. Danced from the wave, that slide is each
@@ -888,7 +891,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,514 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,517 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,
