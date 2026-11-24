@@ -17,6 +17,7 @@ import '../../editor/editor_draft_codec.dart';
 import '../../editor/editor_snapshot.dart';
 import '../../editor/editor_undo_stack.dart';
 import '../../editor/figure_draft.dart';
+import '../../editor/figure_entry_controller.dart';
 import '../../editor/free_text_composer_controller.dart';
 import '../../editor/pending_move_text_controller.dart';
 import '../../editor/user_figure_draft.dart';
@@ -682,6 +683,9 @@ class DanceEditorController extends ChangeNotifier {
   /// The figure list's free-text composer (#419), so a line still in its box
   /// counts as unsaved ([dirty]) and Save can add it first.
   final freeTextComposer = FreeTextComposerController();
+
+  /// The figure list's way in from the Title field ([FigureEntryController]).
+  final figureEntry = FigureEntryController();
 
   /// The figure list's Move boxes (AUTH-1), so a move name or shorthand typed
   /// into one and not yet applied counts as unsaved ([dirty]) and Save can
