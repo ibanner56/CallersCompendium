@@ -258,7 +258,7 @@ export 'src/storage/repositories/venue_repository.dart';
 export 'src/taxonomy/cast_vocabulary.dart';
 export 'src/taxonomy/compound_definition.dart';
 export 'src/taxonomy/contra_taxonomy.dart';
-export 'src/taxonomy/ecd_sequence_span.dart';
+export 'src/taxonomy/sequence_span.dart';
 export 'src/taxonomy/ecd_taxonomy.dart';
 export 'src/taxonomy/square_taxonomy.dart';
 export 'src/taxonomy/figure_glossary.dart';

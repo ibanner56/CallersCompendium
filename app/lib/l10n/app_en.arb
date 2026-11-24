@@ -6709,7 +6709,7 @@
   },
   "danceEditorStepUntimed": "No timing of its own",
   "@danceEditorStepUntimed": {
-    "description": "Shown for a step of a sequence that has no bars of its own: the sequence as a whole states its bars, as in 'A, B and C in bars 1–4'."
+    "description": "Shown for a step of a sequence that has no timing of its own: the sequence as a whole states its bars or beats, as in 'A, B and C in bars 1–4' in an English country dance or 'forward again and swing (8)' in a square dance."
   },
   "danceEditorBarsRangeError": "Enter whole or half bars, up to {max}",
   "@danceEditorBarsRangeError": {
@@ -6743,7 +6743,7 @@
   },
   "danceEditorSequenceSpanMismatch": "The steps take {steps}, but the sequence takes {span}.",
   "@danceEditorSequenceSpanMismatch": {
-    "description": "Warning in a sequence of an English country dance whose every step has its own bars and they don't add up to the sequence's. {steps} and {span} are lengths such as '4 bars'.",
+    "description": "Warning in a sequence of an English country dance or a square dance whose every step has its own count and they don't add up to the sequence's. {steps} and {span} are lengths such as '4 bars' or '8 beats'.",
     "placeholders": {
       "steps": {
         "type": "String"
@@ -6765,9 +6765,33 @@
       }
     }
   },
+  "danceEditorSequenceSpanBeatsLabel": "Beats for all",
+  "@danceEditorSequenceSpanBeatsLabel": {
+    "description": "Label of the field giving the beats a whole sequence takes in a square dance, as in 'forward again and swing the opposite (8)', where one count covers two calls."
+  },
+  "danceEditorSequenceSpanBeatsEmptyHelp": "Leave empty to add up the steps' beats, or give the beats the whole sequence takes, as in \"forward again and swing (8)\".",
+  "@danceEditorSequenceSpanBeatsEmptyHelp": {
+    "description": "Help under the empty 'Beats for all' field of a sequence in a square dance."
+  },
+  "danceEditorSequenceSpanBeatsHelp": "The steps share these beats, and each may leave its own beats empty.",
+  "@danceEditorSequenceSpanBeatsHelp": {
+    "description": "Help under the filled 'Beats for all' field of a sequence in a square dance."
+  },
+  "danceEditorSequenceSpanBeatsNoRoom": "The steps with beats of their own take {steps} of the sequence's {span}, leaving none for the rest.",
+  "@danceEditorSequenceSpanBeatsNoRoom": {
+    "description": "Warning in a sequence of a square dance whose timed steps already fill its beats, leaving none for its untimed steps. {steps} and {span} are lengths such as '8 beats'.",
+    "placeholders": {
+      "steps": {
+        "type": "String"
+      },
+      "span": {
+        "type": "String"
+      }
+    }
+  },
   "danceEditorSequenceOverPhraseTimed": "This sequence is {length}, longer than its phrase ({limit}).",
   "@danceEditorSequenceOverPhraseTimed": {
-    "description": "Warning in a sequence of an English country dance that runs longer than the phrase it starts in. {length} and {limit} are lengths such as '10 bars'; {limit} is the length of that phrase.",
+    "description": "Warning in a sequence of an English country dance or a square dance that runs longer than the phrase it starts in. {length} and {limit} are lengths such as '10 bars' or '12 beats'; {limit} is the length of that phrase.",
     "placeholders": {
       "length": {
         "type": "String"
@@ -12324,7 +12348,7 @@
   },
   "validationSequenceSpanMismatch": "The steps of the sequence in figure {position} take {actual} beats; the sequence takes {expected}.",
   "@validationSequenceSpanMismatch": {
-    "description": "Editor warning for an English country dance's sequence whose steps each have a count that doesn't add up to the sequence's own. {position} is the figure holding it.",
+    "description": "Editor warning for a sequence, in an English country dance or a square dance, whose steps each have a count that doesn't add up to the sequence's own. {position} is the figure holding it.",
     "placeholders": {
       "position": {
         "type": "int"
@@ -12396,7 +12420,7 @@
   },
   "validationSequenceSpanNoRoom": "The timed steps of the sequence in figure {position} take {actual} beats, leaving none of its {expected} for the rest.",
   "@validationSequenceSpanNoRoom": {
-    "description": "Editor warning for an English country dance's sequence whose timed steps fill its count, leaving none for its untimed steps. {position} is the figure holding it.",
+    "description": "Editor warning for a sequence, in an English country dance or a square dance, whose timed steps fill its count, leaving none for its untimed steps. {position} is the figure holding it.",
     "placeholders": {
       "position": {
         "type": "int"

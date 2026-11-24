@@ -5227,6 +5227,22 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get danceEditorSequenceSpanBeatsLabel => 'Beats for all';
+
+  @override
+  String get danceEditorSequenceSpanBeatsEmptyHelp =>
+      'Leave empty to add up the steps\' beats, or give the beats the whole sequence takes, as in \"forward again and swing (8)\".';
+
+  @override
+  String get danceEditorSequenceSpanBeatsHelp =>
+      'The steps share these beats, and each may leave its own beats empty.';
+
+  @override
+  String danceEditorSequenceSpanBeatsNoRoom(String steps, String span) {
+    return 'The steps with beats of their own take $steps of the sequence\'s $span, leaving none for the rest.';
+  }
+
+  @override
   String danceEditorSequenceOverPhraseTimed(String length, String limit) {
     return 'This sequence is $length, longer than its phrase ($limit).';
   }

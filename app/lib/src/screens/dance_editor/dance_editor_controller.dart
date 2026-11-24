@@ -737,12 +737,13 @@ class DanceEditorController extends ChangeNotifier {
   }
 
   /// Fits the sequences in [drafts] to this dance's form. Only an English
-  /// dance's sequence may state a span of its own, with steps that carry no
-  /// timing (ADR-006 §5.5); in any other form a sequence counts its steps,
-  /// so a span is dropped and an untimed step takes its move's default
-  /// count, as a step picked there would. Undo brings the span back.
+  /// dance's or a square's sequence may state a span of its own, with steps
+  /// that carry no timing ([formHasSequenceSpan]); in contra a sequence
+  /// counts its steps, so a span is dropped and an untimed step takes its
+  /// move's default count, as a step picked there would. Undo brings the
+  /// span back.
   void _fitSequenceTimingToForm(List<FigureDraft> drafts) {
-    if (_form == DanceForm.ecd) return;
+    if (formHasSequenceSpan(_form)) return;
     for (final draft in drafts) {
       final children = draft.containerChildren;
       if (children == null) continue;
@@ -1311,7 +1312,7 @@ class DanceEditorController extends ChangeNotifier {
     ];
   }
 
-  /// Adds an English sequence's span issue ([ecdSequenceSpanIssue]) for
+  /// Adds a sequence's span issue ([sequenceSpanIssue]) for
   /// [figure], the dance's figure at [position] starting at [startBeat], and
   /// any sequence inside it.
   void _flagSequenceSpans(
@@ -1320,7 +1321,7 @@ class DanceEditorController extends ChangeNotifier {
     int startBeat,
     List<ValidationIssue> issues,
   ) {
-    if (ecdSequenceSpanIssue(figure, _form) case final issue?) {
+    if (sequenceSpanIssue(figure, _form) case final issue?) {
       issues.add(
         ValidationIssue(
           severity: issue.severity,

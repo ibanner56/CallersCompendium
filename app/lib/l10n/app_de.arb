@@ -5296,6 +5296,22 @@
   "@danceEditorSequenceSpanNoRoom": {
     "x-sourceSha256": "197cb3c426f6d770e42563bec39b40266f6eb1dbb4b22ea913e9c467d50088ce"
   },
+  "danceEditorSequenceSpanBeatsLabel": "Schläge für alle",
+  "@danceEditorSequenceSpanBeatsLabel": {
+    "x-sourceSha256": "779524d88eda2aa98f7b96c1c72a09768a4841f0c5186f465441f5c205241406"
+  },
+  "danceEditorSequenceSpanBeatsEmptyHelp": "Leer lassen, um die Schläge der Schritte zu addieren, oder die Schläge der ganzen Sequenz angeben, etwa „forward again and swing (8)“.",
+  "@danceEditorSequenceSpanBeatsEmptyHelp": {
+    "x-sourceSha256": "ac8a9f438a7c5f551494c95fe550846907047df4f942e4c6b2c761168e93022c"
+  },
+  "danceEditorSequenceSpanBeatsHelp": "Die Schritte teilen sich diese Schläge, und jeder darf seine eigenen Schläge leer lassen.",
+  "@danceEditorSequenceSpanBeatsHelp": {
+    "x-sourceSha256": "d0558ee9cc430b76676cd6fe9ffb070bc908a0f2cdb81a609eac78561b14bcaf"
+  },
+  "danceEditorSequenceSpanBeatsNoRoom": "Die Schritte mit eigenen Schlägen dauern {steps} der {span} der Sequenz, sodass für die übrigen nichts bleibt.",
+  "@danceEditorSequenceSpanBeatsNoRoom": {
+    "x-sourceSha256": "4b5d5fc7bbaec65ffc1a28a66d0b7acc7757d9e30f6bc758c51f9f8b32b929a2"
+  },
   "danceEditorSequenceOverPhraseTimed": "Diese Sequenz dauert {length}, länger als ihre Phrase ({limit}).",
   "@danceEditorSequenceOverPhraseTimed": {
     "x-sourceSha256": "9934038b8b22b7528851ff87a633a2e3ae83f580553450b4e1c7d5f8f0381a5a"

@@ -3546,6 +3546,41 @@ void main() {
       expect(saved.isFreeForm, isTrue);
     });
 
+    testWidgets("a square's sequence states one count for its steps, and "
+        'saves them untimed (ADR-007 Q10)', (tester) async {
+      final repos = openTestRepositories();
+      // "Forward again and swing the opposite (8)": two calls, one count.
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Forward Again',
+          figures: [
+            Figure.sequence(
+              figures: [
+                Figure(move: 'sq_forward_and_back'),
+                Figure(move: 'sq_swing'),
+              ],
+              beats: 8,
+            ),
+          ],
+        ).copyWith(form: DanceForm.square, freeForm: true),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+      await tester.pumpAndSettle();
+
+      final span = find.byKey(const ValueKey('figure-0-sequence-span'));
+      expect(tester.widget<TextField>(span).controller!.text, '8');
+      expect(find.text('Beats for all'), findsOneWidget);
+      expect(find.byKey(const ValueKey('warnings-card')), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      final saved = figuresOf((await repos.dances.getById('d1'))!).single;
+      expect(saved.beats, 8);
+      expect(saved.subFigures.any(stepStatesTiming), isFalse);
+    });
+
     testWidgets('another form does not offer the free-form switch', (
       tester,
     ) async {

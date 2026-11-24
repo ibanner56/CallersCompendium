@@ -3044,13 +3044,14 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     );
   }
 
-  // --- Timing in bars (ADR-006 §5.5) -----------------------------------------
+  // --- Sequence spans and timing in bars (ADR-006 §5.5, ADR-007 Q10) --------
 
   /// [child], a step of this sequence when [isSequence], with its count
   /// optional where the sequence states a span of its own
-  /// ([FigureDraft.sequenceSpanStated]). Unchanged outside bar timing.
+  /// ([FigureDraft.sequenceSpanStated]). Unchanged where the dance's
+  /// sequences have no span ([SequenceSpanScope]).
   Widget _withStepTiming(BuildContext context, bool isSequence, Widget child) {
-    final scope = BarTimingScope.maybeOf(context);
+    final scope = SequenceSpanScope.maybeOf(context);
     if (!isSequence || scope == null) return child;
     return scope.withUntimed(widget.draft.sequenceSpanStated, child: child);
   }
@@ -3060,7 +3061,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   /// count is its timing, and only its own sequence steps
   /// ([_withStepTiming]) may go untimed.
   Widget _withoutUntimed(BuildContext context, Widget child) {
-    final scope = BarTimingScope.maybeOf(context);
+    final scope = SequenceSpanScope.maybeOf(context);
     if (scope == null || !scope.allowsUntimed) return child;
     return scope.withUntimed(false, child: child);
   }
@@ -3093,10 +3094,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     );
   }
 
-  /// An English dance's sequence ([BarTimingScope]): the bars it spans, which
-  /// may be left empty to count its steps, as a contra sequence does. With a
-  /// span, its steps may go untimed, and the steps that do carry timing are
-  /// checked against it (`ecdSequenceSpanIssue`).
+  /// A sequence in a dance whose sequences may state a span of their own
+  /// ([SequenceSpanScope]): the bars it spans in an English dance
+  /// ([BarTimingScope]), or the beats in a square, which may be left empty to
+  /// count its steps, as a contra sequence does. With a span, its steps may
+  /// go untimed, and the steps that do carry timing are checked against it
+  /// (`sequenceSpanIssue`).
   Widget _buildSequenceSpan(
     BuildContext context,
     String keyPrefix,
@@ -3104,7 +3107,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   ) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final scope = BarTimingScope.maybeOf(context)!;
+    final bars = BarTimingScope.maybeOf(context);
     final draft = widget.draft;
     final steps = draft.sequenceFigures ?? const <FigureDraft>[];
     final timed = steps.where((step) => !step.untimed).toList();
@@ -3121,29 +3124,40 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final over = draft.beats > beatLimit
         ? _overPhraseLabels(context, draft.beats, beatLimit)
         : null;
+    void setSpan(int? beats) {
+      draft.setSequenceSpan(beats);
+      widget.onChanged();
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        BarsField(
-          fieldKey: '$keyPrefix-sequence-span',
-          label: l10n.danceEditorSequenceSpanLabel,
-          beats: spanStated ? draft.beats : null,
-          timing: scope.timing,
-          startBeat: FigureStartScope.startOf(context),
-          allowsUntimed: true,
-          emptyHint: timingLabel(context, draft.beats),
-          onChanged: (beats) {
-            draft.setSequenceSpan(beats);
-            widget.onChanged();
-          },
-        ),
+        if (bars != null)
+          BarsField(
+            fieldKey: '$keyPrefix-sequence-span',
+            label: l10n.danceEditorSequenceSpanLabel,
+            beats: spanStated ? draft.beats : null,
+            timing: bars.timing,
+            startBeat: FigureStartScope.startOf(context),
+            allowsUntimed: true,
+            emptyHint: timingLabel(context, draft.beats),
+            onChanged: setSpan,
+          )
+        else
+          BeatsField(
+            fieldKey: '$keyPrefix-sequence-span',
+            label: l10n.danceEditorSequenceSpanBeatsLabel,
+            beats: spanStated ? draft.beats : null,
+            emptyHint: timingLabel(context, draft.beats),
+            onChanged: setSpan,
+          ),
         const SizedBox(height: 4),
-        Text(
-          spanStated
-              ? l10n.danceEditorSequenceSpanHelp
-              : l10n.danceEditorSequenceSpanEmptyHelp,
-          style: theme.textTheme.bodySmall,
-        ),
+        Text(switch ((spanStated, bars != null)) {
+          (true, true) => l10n.danceEditorSequenceSpanHelp,
+          (false, true) => l10n.danceEditorSequenceSpanEmptyHelp,
+          (true, false) => l10n.danceEditorSequenceSpanBeatsHelp,
+          (false, false) => l10n.danceEditorSequenceSpanBeatsEmptyHelp,
+        }, style: theme.textTheme.bodySmall),
         if (mismatch)
           Padding(
             padding: const EdgeInsets.only(top: AppSpacing.xxs),
@@ -3153,7 +3167,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                       timingLabel(context, stepsTotal),
                       timingLabel(context, draft.beats),
                     )
-                  : l10n.danceEditorSequenceSpanNoRoom(
+                  : (bars != null
+                        ? l10n.danceEditorSequenceSpanNoRoom
+                        : l10n.danceEditorSequenceSpanBeatsNoRoom)(
                       timingLabel(context, stepsTotal),
                       timingLabel(context, draft.beats),
                     ),
@@ -3300,7 +3316,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                   },
                 ),
                 const SizedBox(height: 8),
-                if (isSequence && BarTimingScope.maybeOf(context) != null)
+                if (isSequence && SequenceSpanScope.maybeOf(context) != null)
                   _buildSequenceSpan(context, keyPrefix, beatLimit)
                 else if (isSequence) ...[
                   // A sequence's count is its steps' counts added up: each
@@ -4542,12 +4558,11 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
   }
 
   /// The count a sequence step's field shows: none for a step with no timing
-  /// of its own, where its sequence states a span ([BarTimingScope]), else
+  /// of its own, where its sequence states a span ([SequenceSpanScope]), else
   /// its own or [spec]'s default.
   Object? _shownStepBeats(BuildContext context, ParamSpec spec) {
     final draft = widget.draft;
-    if (draft.untimed &&
-        (BarTimingScope.maybeOf(context)?.allowsUntimed ?? false)) {
+    if (draft.untimed && SequenceSpanScope.allowsUntimedOf(context)) {
       return null;
     }
     return draft.params['beats'] ?? spec.defaultValue;
