@@ -91,16 +91,31 @@ void main() {
     expect(_summary, findsOneWidget);
   });
 
-  testWidgets('a folded panel leaves the focus order', (tester) async {
+  testWidgets('a folded panel leaves the focus order, and an open one '
+      'rejoins it', (tester) async {
     await _pump(tester, await _ecdDance(), danceId: 'd1');
-    final focusable = find.descendant(
-      of: find.byKey(const ValueKey('setup-tile')),
-      matching: find.byType(EditableText, skipOffstage: false),
-      skipOffstage: false,
-    );
-    expect(focusable, findsWidgets);
-    for (final element in focusable.evaluate()) {
-      expect(Focus.of(element).canRequestFocus, isFalse);
+    // Each field's own node, which the field creates below its EditableText;
+    // `Focus.of` would find the wrapper above it instead.
+    List<FocusNode> nodes() => tester
+        .widgetList<EditableText>(
+          find.descendant(
+            of: find.byKey(const ValueKey('setup-tile'), skipOffstage: false),
+            matching: find.byType(EditableText, skipOffstage: false),
+            skipOffstage: false,
+          ),
+        )
+        // A dropdown's closed value is read-only text that never takes focus
+        // itself (the dropdown does), so only the fields typed into count.
+        .where((field) => !field.readOnly)
+        .map((field) => field.focusNode)
+        .toList();
+    expect(nodes(), isNotEmpty);
+    for (final node in nodes()) {
+      expect(node.canRequestFocus, isFalse);
+    }
+    await openDanceEditorSetup(tester);
+    for (final node in nodes()) {
+      expect(node.canRequestFocus, isTrue);
     }
   });
 
