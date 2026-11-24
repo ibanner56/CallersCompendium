@@ -558,7 +558,7 @@ above, such as the centre pair of a short wave. Whole and half turns still settl
 | **Duple Proper** | All Larks in c0, all Robins in c4. | Future |
 | **Becket CW** / **Becket CCW** (two separate formations) | DI circled **left one place** — **partners share a column**, both lines facing **across (in)**. c4 = 1s line, c0 = 2s line. Direction sets progression sense (§10.6). Tracked as two formations for now (only two directions exist); easy to unify later. | **Active** |
 | **Indecent** | Variant start. | Future |
-| **Progressed Improper** | Variant start. | Future |
+| **Progressed Improper** | Duple Improper with the **1s below the 2s** in each hands four *(user-ruled 2026-11-24)*: `[[L2-B,0,0,0,R2-B],[R1-A,0,0,0,L1-A]]`. Each couple keeps its DI side and facing (2s face up, 1s face down), which the normalization rule gives for that matrix *(agent's call)*. Same hands fours, numbering and travel as Duple Improper. | **Active** |
 
 ---
 

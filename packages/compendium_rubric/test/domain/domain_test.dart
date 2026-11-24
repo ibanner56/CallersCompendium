@@ -106,6 +106,51 @@ void main() {
     });
   });
 
+  group('progressed improper start (user-ruled 2026-11-24)', () {
+    final formation = startingFormation(
+      FormationType.progressedImproper,
+      handsFour: 2,
+    );
+
+    test('puts the 1s below the 2s in each hands four', () {
+      expect(formation.toRolesNotation(), [
+        'L2-B . . . R2-B',
+        'R1-A . . . L1-A',
+        'L2-D . . . R2-D',
+        'R1-C . . . L1-C',
+      ]);
+    });
+
+    test('each couple keeps its Duple Improper facing', () {
+      expect(
+        formation.stateOf(const DancerId(0, Role.lark)).facing,
+        Facing.down,
+      );
+      expect(formation.stateOf(const DancerId(1, Role.lark)).facing, Facing.up);
+    });
+
+    test('keeps the Duple Improper hands fours and sizing', () {
+      expect(formation.rowCount, 4);
+      expect(formation.handsFourCount, 2);
+      expect(waitingOutRows(formation), isEmpty);
+    });
+
+    test('is read from the record spellings', () {
+      expect(
+        FormationType.fromKey('progressedImproper'),
+        FormationType.progressedImproper,
+      );
+      expect(
+        FormationType.fromKey('Duple Minor - Progressed improper'),
+        FormationType.progressedImproper,
+      );
+      expect(
+        FormationType.fromKey('progressed_improper'),
+        FormationType.progressedImproper,
+      );
+    });
+  });
+
   group('becket start (fundamentals.md §9, §10.6)', () {
     test('matches the §10.6 worked reference at 2 hands four', () {
       final formation = startingFormation(FormationType.becketCw, handsFour: 2);
