@@ -282,6 +282,19 @@ enum WarningKind {
     'a progression was held until a couple reached an end, and its '
         'change-over never ran (no couple reached an end, or a later '
         'progression overtook it)',
+  ),
+
+  /// Two dancers waiting at an end traded places so a figure that refused
+  /// them could be danced (`docs/fundamentals.md` §10.7).
+  ///
+  /// The engine retries a refusal that names a dancer standing still at an
+  /// end with that end's pair traded in place, and keeps the retry only if the
+  /// whole dance then compiles. A dance compiled that way says so here, at
+  /// the figure the trade was made before: the trade is the engine's reading
+  /// of an end effect the source never wrote down.
+  endEffectSwap(
+    'endEffectSwap',
+    'two dancers waiting at an end traded places so the dance could go on',
   );
 
   const WarningKind(this.key, this.description);
