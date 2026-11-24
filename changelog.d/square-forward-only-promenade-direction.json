@@ -1,0 +1,15 @@
+{
+  "id": "square-forward-only-promenade-direction",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A square's forward and back can turn off Go back, for a forward only that reads \"forward\" and counts 4 beats, as in \"forward again and swing\".",
+      "A square's promenade has a Direction, counter-clockwise unless you set it to clockwise; only a clockwise promenade says which way it goes."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Square taxonomy v1, amended before release: sq_forward_and_back takes goBack (default true; off, 4 beats) and sq_promenade takes direction (spinDirection, default counterclockwise, silenced in the display)."
+    ]
+  }
+}

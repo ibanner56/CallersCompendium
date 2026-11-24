@@ -2760,6 +2760,9 @@ class FigureRenderer {
     'right_left_through': (param: 'where', value: null),
     'chain': (param: 'where', value: null),
     'promenade': (param: 'where', value: null),
+    // A square's promenade goes counter-clockwise unless the source says
+    // otherwise (ADR-007 §12.4), so only a clockwise one says which way.
+    'sq_promenade': (param: 'direction', value: null),
     // ContraDB march_forward → silences the "forward" facing default.
     'down_the_hall': (param: 'facing', value: null),
     'up_the_hall': (param: 'facing', value: null),
@@ -2912,6 +2915,18 @@ class FigureRenderer {
         'formation': formation,
         'move': move,
       }, '{formation} {move}');
+    },
+    // A square's forward and back (ADR-007 §12.4) reads as contra's does:
+    // "heads forward" when `goBack` is false. A dialect name for the move
+    // replaces "forward and back" only.
+    'sq_forward_and_back': (r, def, params, dialect, verbose, decimals) {
+      final move = params['goBack'] == false
+          ? 'forward'
+          : r._renderMoveName(def.id, def.displayName, params, dialect);
+      return _displayTemplate({
+        'who': r._subjectWho(params, dialect),
+        'move': move,
+      }, '{who} {move}');
     },
     // Swing (issue #543). Reproduces the terse `{who} {prefix} {move}` line
     // (byte-identical to the template expansion) and appends an ending-facing

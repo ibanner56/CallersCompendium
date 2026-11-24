@@ -231,6 +231,9 @@ void main() {
 
     test('a forward and back is always 8 in New England', () {
       expect(_beats('sq_forward_and_back'), 8);
+      // With "and back" off, a forward only is half that (Hudson, 24
+      // November 2026).
+      expect(_beats('sq_forward_and_back', {'goBack': false}), 4);
       expect(_beats('sq_star', {'fraction': 'threeQuarter'}), 6);
       expect(_beats('sq_hey'), 16);
       expect(_beats('sq_face'), 0);
@@ -321,7 +324,60 @@ void main() {
             params: {'who': 'headRole1s', 'destination': 'role2Place'},
           ),
         ),
-        "head role1s promenade role2's place",
+        "head role1s promenade counterclockwise role2's place",
+      );
+    });
+
+    test('a forward only reads "forward"; and back is the default', () {
+      final heads = {'who': 'heads'};
+      expect(
+        _shown(testFigure(move: 'sq_forward_and_back', params: heads)),
+        'heads forward and back',
+      );
+      expect(
+        _shown(
+          testFigure(
+            move: 'sq_forward_and_back',
+            params: {...heads, 'goBack': false},
+          ),
+        ),
+        'heads forward',
+      );
+    });
+
+    test('a promenade goes counter-clockwise unless it says otherwise', () {
+      Figure promenade([Map<String, Object?> more = const {}]) => testFigure(
+        move: 'sq_promenade',
+        params: {'who': 'role1s', 'variant': 'singleFile', ...more},
+      );
+      expect(
+        _square.effectiveParams(promenade())['direction'],
+        'counterclockwise',
+      );
+      expect(_shown(promenade()), 'larks single file promenade');
+      expect(
+        _shown(promenade({'direction': 'counterclockwise'})),
+        'larks single file promenade',
+      );
+      expect(
+        _shown(promenade({'direction': 'clockwise'})),
+        'larks single file promenade clockwise',
+      );
+      expect(
+        _canonical(promenade({'direction': 'clockwise'})),
+        'role1s single file promenade clockwise',
+      );
+      expect(
+        _square
+            .validateFigure(
+              invalidTestFigure(
+                move: 'sq_promenade',
+                params: {'direction': 'left'},
+                reason: 'a promenade turns clockwise or counterclockwise',
+              ),
+            )
+            .where((i) => i.severity == ValidationSeverity.error),
+        isNotEmpty,
       );
     });
 
