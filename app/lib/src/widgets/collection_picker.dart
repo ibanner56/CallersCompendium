@@ -63,9 +63,10 @@ import 'search_panel_bar.dart';
 /// current results, ranked off the UI thread for that position (the end of
 /// the program, the place an add before or after a slot lands, or the slot
 /// **Replace…** fills, #2344), each with a reason line and a **Why?**
-/// action. The picker never
-/// opens in it, and ranking only reorders: until it finishes the results show
-/// in the plain order, and a tap adds a dance either way.
+/// action. The picker opens in it only for a host that asks
+/// ([openSuggested], Perform's swap sheet, #2348), and ranking only reorders:
+/// until it finishes the results show in the plain order, and a tap adds a
+/// dance either way.
 ///
 /// Unlike [DanceListScreen] this is a plain embeddable widget (no [Scaffold]/
 /// app bar): it renders inline as the builder's right pane on wide layouts, or
@@ -104,6 +105,7 @@ class CollectionPicker extends StatefulWidget {
     this.header,
     this.pinned,
     this.offerSuggested = true,
+    this.openSuggested = false,
     this.panelState,
     this.onSortChanged,
   });
@@ -239,6 +241,14 @@ class CollectionPicker extends StatefulWidget {
   /// that passes a [programContext] position for other reasons on the plain
   /// orders.
   final bool offerSuggested;
+
+  /// Whether the picker shows **Suggested** whenever it is offered, without
+  /// the user choosing it (#2348): from the start, after each [panelState]
+  /// request, and when Suggestions is turned on, until the user picks another
+  /// sort here, and again once they choose Suggested. Ranking still only
+  /// reorders, and the plain order shows until it finishes. False, as in the
+  /// program builder, the picker never opens in Suggested.
+  final bool openSuggested;
 
   /// A search for the picker to show: its text, **Search in**, every filter,
   /// the By phrase rows, the Advanced tree and the sort with its direction,
@@ -394,6 +404,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
   // search, or a new position (#2344), shows plain again until re-ranked, so
   // a ranking for one place never shows for another.
   bool _suggested = false;
+  // The user picked a plain sort here since Suggested last showed, which
+  // [CollectionPicker.openSuggested] then leaves alone.
+  bool _plainSortChosen = false;
   SuggestionRanking? _ranking;
   Map<String, RankedSuggestion> _rankById = const {};
   List<DanceListEntry>? _rankedFor;
@@ -462,6 +475,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
     _advancedRoot = state.advanced;
     _panelFromSavedSearch = state.fromSavedSearch;
     _leaveSuggested();
+    // The search that follows ranks again when the host asks for Suggested.
+    _openSuggestedIfAsked();
     // Best match that is no longer offered falls back to Title.
     final (:sort, :direction) = state.effectiveSort;
     _sort = sort;
@@ -533,7 +548,20 @@ class _CollectionPickerState extends State<CollectionPicker> {
     _userFigures = userFigures;
     _suggestionsEnabled = enabled;
     if (!enabled && _suggested) _leaveSuggested();
+    // Turned on while the picker is open: the caller sees no search, so rank
+    // what shows (a first search, not started yet, ranks by itself).
+    if (_openSuggestedIfAsked() && _started && !_searching) unawaited(_rank());
     return changed;
+  }
+
+  /// Shows Suggested if the host asks for it ([CollectionPicker.openSuggested])
+  /// and it is offered, unless the user picked a plain sort here. Returns
+  /// whether it changed to Suggested; the caller ranks, or a search does.
+  bool _openSuggestedIfAsked() {
+    if (!widget.openSuggested || _suggested || _plainSortChosen) return false;
+    if (!_suggestedAvailable) return false;
+    _suggested = true;
+    return true;
   }
 
   /// Whether the Sort menu offers Suggested.
@@ -638,7 +666,14 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _onlineSeq++;
       _runOnlineSearch();
     }
-    if (oldWidget.programContext != widget.programContext && _suggested) {
+    if (_suggested && !_suggestedAvailable) {
+      // No longer offered (the host turned it off): back to the plain order.
+      setState(_leaveSuggested);
+    } else if (_openSuggestedIfAsked() && !_searching) {
+      // Newly asked for, with no search running to rank when it lands.
+      unawaited(_rank());
+    } else if (oldWidget.programContext != widget.programContext &&
+        _suggested) {
       if (widget.programContext?.position == null) {
         setState(_leaveSuggested);
       } else if (!dataChanged && !searchInputsChanged) {
@@ -823,6 +858,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
   void _selectSort(CollectionSort value) {
     setState(() {
       _sortUserSet = true;
+      _plainSortChosen = true;
       _leaveSuggested();
       _sort = value;
       _sortDir = value.searchSort.defaultDirection;
@@ -837,6 +873,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     if (_suggested) return;
     setState(() {
       _sortUserSet = true;
+      _plainSortChosen = false;
       _suggested = true;
     });
     unawaited(_rank());
