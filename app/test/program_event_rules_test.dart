@@ -651,9 +651,21 @@ void main() {
           matching: find.byType(Scrollable),
         )
         .first;
+    // Brings [rule]'s box on screen and checks a tap at its centre lands on
+    // it: a list builds rows past its edge, and a tap there would miss and
+    // prove nothing.
+    Future<void> reach(EventRule rule) async {
+      await tester.scrollUntilVisible(box(rule), 200, scrollable: sheet);
+      await tester.ensureVisible(box(rule));
+      await tester.pumpAndSettle();
+      expect(box(rule).hitTestable(), findsOneWidget, reason: 'on screen');
+    }
+
+    WidgetController.hitTestWarningShouldBeFatal = true;
+    addTearDown(() => WidgetController.hitTestWarningShouldBeFatal = false);
 
     // The deleted rule's id goes to make room for the last one.
-    await tester.scrollUntilVisible(box(last), 200, scrollable: sheet);
+    await reach(last);
     await tester.tap(box(last));
     await tester.pumpAndSettle();
     expect(ticked(last), isTrue);
@@ -661,7 +673,7 @@ void main() {
     expect(stored.eventRuleIds, [...live, last.id]);
 
     // Now full: one more is refused, and not shown ticked.
-    await tester.scrollUntilVisible(box(past), 200, scrollable: sheet);
+    await reach(past);
     await tester.tap(box(past));
     await tester.pumpAndSettle();
     expect(ticked(past), isFalse);
