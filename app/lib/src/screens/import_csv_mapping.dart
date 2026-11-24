@@ -118,24 +118,31 @@ class _CsvMappingStepState extends State<CsvMappingStep> {
   void didUpdateWidget(CsvMappingStep oldWidget) {
     super.didUpdateWidget(oldWidget);
     // The text file was read again from another starting point: a label
-    // the new reading still has keeps the caller's choice; others are mapped
-    // afresh.
+    // the new reading still has keeps the caller's choice; other columns,
+    // and the fixed title, notes and figures columns
+    // ([textDocumentToCsv]), are mapped afresh. A label may share a fixed
+    // column's name (`Title:`), so only label columns are matched by name.
     if (widget.text != oldWidget.text) {
       final chosen = <String, CsvColumnMapping>{
-        if (_hasHeader && _rows.isNotEmpty)
-          for (final (i, name) in _rows.first.indexed)
-            if (i < _columns.length) name.trim(): _columns[i],
+        for (final i in _labelColumns()) _rows.first[i].trim(): _columns[i],
       };
       _read(detectHeader: !widget.textDocument);
-      if (_hasHeader && _rows.isNotEmpty) {
-        _columns = [
-          for (final (i, column) in _columns.indexed)
-            i < _rows.first.length
-                ? chosen[_rows.first[i].trim()] ?? column
-                : column,
-        ];
-      }
+      final labels = _labelColumns().toSet();
+      _columns = [
+        for (final (i, column) in _columns.indexed)
+          labels.contains(i) ? chosen[_rows.first[i].trim()] ?? column : column,
+      ];
     }
+  }
+
+  /// The indexes of a text file's label columns: those between its title
+  /// column and its notes and figures columns.
+  Iterable<int> _labelColumns() {
+    if (!widget.textDocument || !_hasHeader || _rows.isEmpty) return const [];
+    final count = _rows.first.length < _columns.length
+        ? _rows.first.length
+        : _columns.length;
+    return [for (var i = 1; i < count - 2; i++) i];
   }
 
   List<AppLocalizations> get _languages => [

@@ -183,6 +183,41 @@ void main() {
     expect(columnValue(tester, 1), CsvColumnMapping.ignore);
   });
 
+  testWidgets('a label named like a fixed column leaves the fixed columns '
+      'alone when the file is read again', (tester) async {
+    const parts =
+        "# Rory's Reel\n\n## Figures\nTitle: Rory's Reel (2019)\nFigures:\n"
+        '(8) Swing\n\n## Variations\n(8) Gypsy\n';
+    await pump(tester, Uint8List.fromList(utf8.encode(parts)));
+    // Title, Title (label), Figures (label), Calling notes, Figures.
+    expect(columnValue(tester, 1), CsvColumnMapping.labelledNotes);
+    await pickDropdownEntry(
+      tester,
+      find.byKey(const ValueKey('csv-column-2')),
+      'Ignore',
+    );
+    await pickDropdownEntry(
+      tester,
+      find.byKey(const ValueKey('text-dance-start')),
+      'A # heading',
+    );
+    expect(
+      columnValue(tester, 0),
+      const CsvColumnMapping(CsvColumnTarget.title),
+    );
+    expect(columnValue(tester, 2), CsvColumnMapping.ignore);
+    expect(
+      columnValue(tester, 4),
+      const CsvColumnMapping(CsvColumnTarget.figures),
+    );
+    expect(
+      tester
+          .widget<ButtonStyleButton>(find.byKey(const ValueKey('csv-continue')))
+          .onPressed,
+      isNotNull,
+    );
+  });
+
   testWidgets('a file with no headings offers no choice of where dances '
       'start', (tester) async {
     await pump(
