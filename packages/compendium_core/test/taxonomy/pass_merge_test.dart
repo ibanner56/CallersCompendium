@@ -415,8 +415,14 @@ void main() {
     expect(tax.isParamNamedById('long_lines', 'formation'), isTrue);
     // Its default is the alias's pin, and its other values are stored.
     expect(tax.isParamNamedById('forward_and_back', 'formation'), isFalse);
-    // Not listed as a move: its pin is no name of its own.
+    // Not listed as a move: its pin is no name of its own, on either side.
     expect(tax.isParamNamedById('see_saw', 'shoulder'), isFalse);
+    expect(tax.isParamNamedById('do_si_do', 'shoulder'), isFalse);
+    // Listed, but pins nothing: every param is offered.
+    for (final param in tax.moves['gate']!.params.keys) {
+      expect(tax.isParamNamedById('hand_cast', param), isFalse, reason: param);
+      expect(tax.isParamNamedById('gate', param), isFalse, reason: param);
+    }
   });
 
   group('required on entry', () {
