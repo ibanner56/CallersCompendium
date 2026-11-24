@@ -598,11 +598,13 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
   shown on one line, so splicing is that definition read literally, and doing it
   first means the progression rules below see the figures actually danced. A
   sequence flagged as the progression hands the flag to its last child *(agent's
-  call, unratified; the alternative was refusing it)*. An open chain (a
-  sequence titled as a chain holding a `role1s`/`role2s` allemande `0.5` and
-  then an allemande `0.75`) has that closing allemande danced as `1.0`
-  (Hudson's report note on Every Second Counts, 2026-11-24; reading every such
-  sequence that way, and those limits, are the agent's calls). A `meanwhile` or
+  call, unratified; the alternative was refusing it)*. A top-level open
+  chain (a sequence whose title contains "chain" and whose exactly two
+  children are a `role1s`/`role2s` allemande `0.5` and then an allemande
+  `0.75`) has that closing allemande danced as `1.0` (Hudson's report note on
+  Every Second Counts, 2026-11-24; generalising it, and those limits, are the
+  agent's calls). The same chain inside a container is danced as written, and
+  the bridge adds no warning when it rewrites the turn. A `meanwhile` or
   `modifier` stays one figure here, children and all (a sequence inside one
   stays inside it), and the parser builds it as a container
   (`docs/taxonomy.md`, "Containers"). Every figure index reported from here on (warnings, a refusal's
@@ -912,7 +914,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,564 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,566 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

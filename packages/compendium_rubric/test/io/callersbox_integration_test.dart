@@ -540,14 +540,23 @@ void main() {
             move: 'allemande',
             params: {'who': who, 'hand': hand, 'travel': travel, 'beats': 4},
           );
-      core.Dance withChain(String? title, List<core.Figure> children) {
+      core.Dance withChain(
+        String? title,
+        List<core.Figure> children, {
+        bool progression = false,
+      }) {
         final now = DateTime.utc(2020);
         return core.Dance(
           id: 'open-chain',
           title: 'open chain',
           formation: const core.Formation(core.FormationShape.dupleImproper),
           figures: [
-            core.Figure.sequence(figures: children, beats: 8, title: title),
+            core.Figure.sequence(
+              figures: children,
+              beats: 8,
+              title: title,
+              progression: progression,
+            ),
           ],
           createdAt: now,
           updatedAt: now,
@@ -568,6 +577,33 @@ void main() {
         }
       });
 
+      test('keeps the rest of the turn and takes a flag to it', () {
+        final flagged = withChain('OPEN ROLE2S CHAIN', [
+          allemande('role2s', 0.5, hand: 'right'),
+          allemande('neighbors', 0.75),
+        ], progression: true);
+        final courtesy = dancedFigures(flagged)!.last;
+        expect(courtesy.params, {
+          'who': 'neighbors',
+          'hand': 'left',
+          'travel': 1.0,
+          'beats': 4,
+        });
+        expect(courtesy.progression, isTrue);
+      });
+
+      test('leaves a courtesy turn that is not an allemande', () {
+        // "Men allemande left 1/2 / Neighbor right shoulder round 3/4".
+        final dance = withChain('Modified open role1s chain', [
+          allemande('role1s', 0.5),
+          core_test.testFigure(
+            move: 'shoulder_round',
+            params: {'who': 'neighbors', 'travel': 0.75, 'beats': 4},
+          ),
+        ]);
+        expect(travels(dance), [0.5, 0.75]);
+      });
+
       test('is danced as written without a chain title', () {
         final dance = withChain('Allemandes', [
           allemande('role2s', 0.5, hand: 'right'),
@@ -581,6 +617,13 @@ void main() {
           [allemande('neighbors', 0.5), allemande('neighbors', 0.75)],
           [allemande('role2s', 0.75), allemande('neighbors', 0.75)],
           [allemande('role2s', 0.5), allemande('neighbors', 0.5)],
+          [
+            core_test.testFigure(
+              move: 'shoulder_round',
+              params: {'who': 'role2s', 'travel': 0.5, 'beats': 4},
+            ),
+            allemande('neighbors', 0.75),
+          ],
           [
             allemande('role2s', 0.5),
             allemande('neighbors', 0.75),
