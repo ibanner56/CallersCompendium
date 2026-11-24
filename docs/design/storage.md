@@ -150,6 +150,9 @@ programs(id PK, title, event_date, venue, venue_id NULL, notes, status,
 program_slots(id PK, program_id FK, position, dance_id NULL, text,
               is_alt, performed_at)
 
+event_rules(id PK, saved_search_id, quantifier, count, scope, name NULL,
+            position, updated_at, deleted_at, existence_at)  -- (v42, #2340)
+
 venues(id PK, name, address1, address2, city, state_prov, country,
        postal_code, plus4, website, sponsor, event_name, time,
        generic_schedule, price, notes,
@@ -964,6 +967,32 @@ steps that can still fire are v40 onward.
   for the key), and are stripped from share files; clearing the key clears
   them. Added by the same step, after the times, each only if absent; no data
   rewritten.
+
+  Also in v42, before it shipped: event rules (#2340, Experimental). Adds the
+  `event_rules` table (`EventRule`): `saved_search_id` names a saved search
+  (a `settings` row, never a foreign key), `quantifier` (`atMost`, `atLeast`,
+  `none`) and `scope` (`wholeProgram`, `beforeFirstBreak`, `afterFirstBreak`,
+  `neighbouring`) are stored as names and read leniently, so a value a newer
+  build wrote is kept and the rule reads as one this build cannot check;
+  `count` is 0 for `none`; `name` is optional; `position` orders the
+  manager's list; and the usual sync triple. No `created_at`. A delete is a
+  tombstone, and a rule in the trash does not stop its saved search being
+  deleted (`SavedSearchUsageRegistry`). Also adds
+  `programs.event_rule_ids`, a JSON array of rule ids as TEXT, default
+  `'[]'`, which every existing row gets: the rules applied to that program,
+  in order, de-duplicated on write. An id with no live rule is ignored when
+  checking. It is never filled automatically: create, duplicate, archive
+  import and share-file import all leave it empty, and share files and the
+  CSV drop it (`sanitizeProgramForShare`, `sanitizeProgramForCsv`). The
+  rules travel under their own gated record kind (`eventRule`, capability
+  `eventRules.v1`); the program's ids travel as a top-level array on the
+  `program` record, which older builds keep verbatim (sync-spec §6.7). An
+  archive holding a program with rules is stamped core archive v8. Backups
+  carry the rules under `app.eventRules` (envelope v3,
+  `backupSchemaVersionEventRules`); a backup without the section leaves the
+  live rules alone. Both pieces are added by `_ensureV42EventRules`, run from
+  the `from < 42` step and from the on-open v42 ensure below, each only if
+  absent. No data rewritten, no derived rebuild.
 
   Because test builds stamped v42 before these later pieces joined it,
   `beforeOpen` also ensures v42's pieces on every open of a file at v42 or

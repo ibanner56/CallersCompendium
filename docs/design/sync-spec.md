@@ -1563,10 +1563,11 @@ The wire hash remains the full canonical blob hash.
 
 ### 4.3 Record blob
 
-Eleven kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
+Twelve kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
 `publishedSource`, `customFieldDef`, `venue`, `difficultyLevel`, `setting`,
-and, since #709, `glossaryEntry` and `figureNote` (the user's own glossary;
-see below, and §6.15 for when they are published).
+since #709 `glossaryEntry` and `figureNote` (the user's own glossary;
+see below, and §6.15 for when they are published), and since #2340
+`eventRule` (the caller's event rules; see below).
 
 ```json
 {
@@ -1583,14 +1584,29 @@ see below, and §6.15 for when they are published).
 | Field | Requirement |
 | --- | --- |
 | `v` | Envelope version. A client MUST refuse an unknown value rather than guess. It MUST read `v` before any other envelope check — the exact key set included — so that a newer envelope which also adds a key is refused as *newer* and reported as such (§6.9), not as malformed. The same applies to a manifest's `v` (§4.5). |
-| `kind` | One of the eleven above. |
-| `id` | The record's id — a UUID for entity kinds other than `difficultyLevel`, `glossaryEntry` and `figureNote`, one of the fixed shipped IDs or a UUID for `difficultyLevel`, an opaque id of 1–200 UTF-16 code units already in normalised form for `glossaryEntry` (a UUID when the app creates the entry; one restored from a backup keeps the id it was saved with), the id of the shipped figure (move or alias) a note annotates for `figureNote`, and the settings key for `kind: "setting"` (§4.4). Unique **within its kind only**; see §4.5. |
+| `kind` | One of the twelve above. |
+| `id` | The record's id — a UUID for entity kinds other than `difficultyLevel`, `glossaryEntry` and `figureNote`, one of the fixed shipped IDs or a UUID for `difficultyLevel`, an opaque id of 1–200 UTF-16 code units already in normalised form for `glossaryEntry` (a UUID when the app creates the entry; one restored from a backup keeps the id it was saved with), the id of the shipped figure (move or alias) a note annotates for `figureNote`, text of 1–200 UTF-16 code units for `eventRule` (a UUID when the app creates the rule; one restored from a backup keeps the id it was saved with), and the settings key for `kind: "setting"` (§4.4). Unique **within its kind only**; see §4.5. |
 | `updatedAt` | Content discriminator. UTC, one-tick precision (§2). Plain local clock. |
 | `deletedAt` | Non-null means tombstone. Plain local clock; also the retention timestamp. |
 | `existenceAt` | Orders live↔deleted transitions. Causally stamped; see §6.4. |
-| `body` | Archive-codec output, `shareable` fields only; for `glossaryEntry` and `figureNote`, which the archive does not carry, the body below, through the same projection. |
+| `body` | Archive-codec output, `shareable` fields only; for `glossaryEntry`, `figureNote` and `eventRule`, which the archive does not carry, the body below, through the same projection. |
 
 Join rows are not separate records; they ride inline with their parent.
+
+**Event rules (#2340).** An `eventRule` body is `id`, `savedSearchId`,
+`quantifier`, `count`, `scope` and `position`, every key always present, and
+`name` only when the caller typed one (`syncEventRuleBody`). `quantifier` and
+`scope` are the stored names (`atMost`, `atLeast`, `none`; `wholeProgram`,
+`beforeFirstBreak`, `afterFirstBreak`, `neighbouring`) and travel verbatim: a
+build that receives a name it does not know stores the rule as it came, shows
+it as needing attention, never checks it, and publishes it back byte for
+byte. A body whose `id`, `savedSearchId`, `quantifier` or `scope` is not text
+of 1–200 units, whose `count` or `position` is not an integer in range, or
+whose `name` is not short non-empty text is malformed. A program's applied
+rules are not records of their own: they travel as `eventRuleIds`, a
+top-level array of rule ids in the `program` body, written only when not
+empty so a program without rules keeps its wire hash. A build that does not
+know the key keeps it verbatim (§6.7), so it needs no capability.
 
 **The user's glossary (#709).** A `glossaryEntry` body is `id`, `kind`,
 `name`, `definition`, `description`, `keywords` (an array of strings), `notes`
@@ -5258,6 +5274,21 @@ while what those gate publishes past it. The value carries its own `version`;
 a build that reads a newer one keeps it unchanged and its settings editor does
 not overwrite it, so the capability is not bumped for a change the version
 field covers.
+
+**`eventRules.v1`.** Gates every `eventRule` record, tombstones included, and
+the exact settings key `event_rules_enabled`, the Experimental toggle (#2340).
+A build without it has no `event_rules` table, so it could only keep such a
+record whole, without a manager to edit it or a builder to check it. A
+program's `eventRuleIds` are not gated: they are a top-level field of the
+`program` record, which a build that does not know it keeps verbatim (§6.7).
+The reference client advertises it from the change that adds event rules, so
+it is subject to *Rollout*: a device on a build that lists every other
+capability but this one holds it closed and is named for it, while what the
+others gate publishes past it. Because the server validates record kinds
+through the registry it is built from, the server MUST be deployed before the
+first client build that advertises `eventRules.v1` (§7.5). A rule's quantifier
+and scope are stored names, so a new quantifier or scope is kept by a build
+that does not know it (see §4.3) and does not bump the capability.
 
 **Server.** The server needs no code for the gate. It validates settings keys
 and record kinds through the registry it is built from, so it MUST be deployed

@@ -144,6 +144,16 @@ A word you would rather not use, such as an older gendered role name. Each
 through when you type them so you can reconsider, but never blocks or changes
 your text. See [Dialect](./dialects.md#discouraged-terms).
 
+## Event rule
+
+*Experimental.* A sentence about a program that you write once and add to the
+programs it fits, such as *At most 1 dance matching "Becket" in any two
+neighbouring dances*. It names a [saved search](./collection.md#save-a-search-and-use-it-again),
+how many matching dances (at most, at least, or none), and where (the whole
+program, either side of the first break, or any two neighbouring dances). The
+builder warns when a program breaks one; it never stops you. See [Check your
+program against your rules](./programs.md#check-your-program-against-your-rules).
+
 ## Figure
 
 A single action within a [dance](#dance), such as "neighbors balance and swing."

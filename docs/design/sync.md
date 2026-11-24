@@ -98,13 +98,17 @@ fields are `shareable`.
 
 ### Record kinds
 
-Eleven kinds produce blobs:
+Twelve kinds produce blobs:
 
 `dance` · `program` · `choreographer` · `tag` · `publishedSource` ·
 `customFieldDef` · `difficultyLevel` · `venue` · `setting` · `glossaryEntry` ·
-`figureNote`
+`figureNote` · `eventRule`
 
-The last two (#709) are the user's own glossary entries and their notes on
+`eventRule` (#2340) is one of the caller's event rules (Experimental); it has
+a codec of its own and waits behind the `eventRules.v1` capability (spec §4.3,
+§6.15).
+
+`glossaryEntry` and `figureNote` (#709) are the user's own glossary entries and their notes on
 built-in figures. The archive does not carry them, so their bodies have a codec
 of their own rather than the archive's shape; they are published only once
 every attached device can read them (spec §6.15; the user's own terms and

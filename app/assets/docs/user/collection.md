@@ -502,7 +502,9 @@ it once and choose it from then on.
   searches](./settings.md#saved-searches) lists every saved search, to rename
   or delete. One that this version of the app can't read (saved by a newer
   version, or damaged) is listed there under **Needs attention**, and nowhere
-  else; it is never used, and you can delete it.
+  else; it is never used, and you can delete it. A saved search that one of
+  your [event rules](./settings.md#event-rules) uses can't be deleted: the app
+  lists the rules that use it, so change or delete those rules first.
 - **Not with Online search.** A saved search searches your own collection, so
   the list doesn't drop down, and saving isn't offered, while Online search is
   on.
