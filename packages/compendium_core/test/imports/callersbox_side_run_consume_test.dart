@@ -180,6 +180,33 @@ void main() {
     //
     // Mutation caught: a `pass_through` without `who` (the pre-v40 move), which
     // drops the dancer the source states and keeps only the shoulder.
+    // The maintainer's example: The Caller's Box dance 1005, Gene Hubert's
+    // "Pass Thru Two", whose A2 passes through to each neighbor in turn.
+    test('Pass Thru Two keeps each neighbor its A2 passes through', () async {
+      final figures = await _importTcb(const [
+        '(2) Pass through along (N1R)',
+        '(2) Pass through along (N2R)',
+        '(4) N3 neighbor balance (RH)',
+        '(4) N3 neighbor box the gnat',
+        '(2) Pass through along (N3R)',
+        '(2) Pass through along (N2R)',
+      ]);
+      final passes = [
+        for (final f in figures)
+          if (f.move == 'pass_through') f,
+      ];
+      expect(passes.map((f) => f.params['who']), [
+        'neighbors',
+        'nextNeighbors',
+        'thirdNeighbors',
+        'nextNeighbors',
+      ]);
+      for (final f in passes) {
+        expect(f.params['where'], 'along');
+        expect(f.params['shoulder'], 'right');
+      }
+    });
+
     test('pass_through takes the dancer and the shoulder', () async {
       for (final (line, who, shoulder) in [
         ('(2) Pass through along (NR)', 'neighbors', 'right'),
