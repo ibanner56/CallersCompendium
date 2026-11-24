@@ -18,7 +18,9 @@ public class TextRecognitionPlugin: NSObject, FlutterPlugin {
   }
 }
 
-/// The channel's two methods, for the iOS plugin and the macOS bridge alike.
+/// The channel's two methods on iOS. The macOS bridge,
+/// `app/macos/Runner/TextRecognitionBridge.swift`, repeats this switch; keep the
+/// two in step.
 enum TextRecognitionCall {
   static func handle(_ method: String, _ arguments: Any?, result: @escaping FlutterResult) {
     switch method {
