@@ -104,7 +104,8 @@ void main() {
 
     test('the couples stranded at the ends are left where they stand', () {
       // B and E are outside every active hands four while the set is reaching,
-      // so no figure's transform touches them -- and because the reach is
+      // so no figure's transform takes them out of their end row (an N0 swing
+      // turns them in place; this one names N2) -- and because the reach is
       // handed back, they are not left marked out afterwards either.
       final after = applyOk(
         const Swing(who: WhoSet.nextNeighbors),
