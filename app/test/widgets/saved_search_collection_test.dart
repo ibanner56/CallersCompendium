@@ -1100,6 +1100,30 @@ void main() {
       expect((facets as Map)['historyMonths'], 12);
     });
 
+    testWidgets('Update is not offered once the text is backspaced away, '
+        'because Save refuses an empty search and Update must too', (
+      tester,
+    ) async {
+      final repos = await _library();
+      final search = await _seed(
+        repos,
+        'Pet',
+        CollectionPanelState(text: 'Petronella'),
+      );
+      await _pump(tester, repos);
+      await _load(tester, search);
+      await _type(tester, '');
+      await _tapOff(tester);
+      await _openMore(tester);
+      expect(_enabled(tester, 'saved-search-update'), isFalse);
+      expect(_enabled(tester, 'saved-search-save'), isFalse);
+      expect(
+        (await _readable(repos)).single.spec.toJson()['text'],
+        'Petronella',
+        reason: 'the stored search is untouched',
+      );
+    });
+
     testWidgets('while a saved search is loaded: Update (only once changed), '
         'Save as a new search…, Rename and Delete; clearing the search '
         'takes them away', (tester) async {

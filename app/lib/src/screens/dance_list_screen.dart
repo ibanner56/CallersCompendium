@@ -2891,7 +2891,9 @@ class _DanceListScreenState extends State<DanceListScreen>
       if (loaded != null)
         PopupMenuItem<Object>(
           key: const ValueKey('saved-search-update'),
-          enabled: changed,
+          // Not for a panel with nothing set: Save refuses that, and Update
+          // would write the same empty search over the stored one.
+          enabled: changed && _hasActiveQuery,
           value: _CollectionCompactAction.updateSavedSearch,
           child: Text(l10n.savedSearchUpdate(loaded.search.name)),
         ),

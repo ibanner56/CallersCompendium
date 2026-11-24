@@ -252,6 +252,9 @@ class SavedSearchActions {
   }) async {
     final l10n = _l10n;
     final repos = _repos;
+    // A panel with nothing set is not worth saving (Save refuses it), so
+    // Update must not write one over the stored search either.
+    if (!current!().hasQuery) return null;
     final spec = SavedSearchSpec.fromPanelState(
       current!(),
       today: _today(),
