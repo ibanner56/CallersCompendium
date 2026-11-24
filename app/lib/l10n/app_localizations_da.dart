@@ -13230,6 +13230,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Tilføjer Foreslået til menuen Sortér i programbyggerens danselister. Den ordner danserne efter, hvor den nye dans skal stå, og fortæller hvorfor.';
 
   @override
+  String get settingsSuggestionsInPerformSwapTitle =>
+      'Brug i Byt denne dans i Fremfør';
+
+  @override
+  String get settingsSuggestionsInPerformSwapSubtitle =>
+      'Når du bytter en dans i Fremfør, vises dansene under Dine alternativer i den rækkefølge, der passer bedst til pladsen i programmet, og der står hvorfor. Intet udelades.';
+
+  @override
   String get settingsSuggestionsEditorTitle => 'Hvad forslag tager hensyn til';
 
   @override

@@ -7920,6 +7920,7 @@ void main() {
         'program_template_default': SyncCapabilities.programTemplatesV1,
         'suggestions_enabled': SyncCapabilities.suggestionsV1,
         'suggestion_settings': SyncCapabilities.suggestionsV1,
+        'suggestions_in_perform_swap': SyncCapabilities.suggestionsV1,
         'perform_swap_defaults': SyncCapabilities.performSwapV1,
       });
       expect(SyncCapabilityPolicy.build.gatedGlossaryEntryKinds, {

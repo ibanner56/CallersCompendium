@@ -12,7 +12,10 @@ import 'package:compendium_app/src/data/backup_settings_schema.dart';
 import 'package:compendium_app/src/data/calling_card_settings_scope.dart';
 import 'package:compendium_app/src/export/calling_card_layout.dart';
 import 'package:compendium_app/src/data/suggestions_scope.dart'
-    show kSuggestionSettingsKey, kSuggestionsEnabledKey;
+    show
+        kSuggestionSettingsKey,
+        kSuggestionsEnabledKey,
+        kSuggestionsInPerformSwapKey;
 import 'package:compendium_app/src/data/seed_service.dart'
     show kInitialSeedCompletedKey;
 import 'package:compendium_app/src/data/display_defaults.dart'
@@ -453,6 +456,15 @@ void main() {
         'build can keep', () {
       expect(validateBackupSettingValue(kSuggestionsEnabledKey, true), isTrue);
       expect(validateBackupSettingValue(kSuggestionsEnabledKey, 'on'), isFalse);
+      // Whether Perform's swap sheet orders by them (#2348).
+      expect(
+        validateBackupSettingValue(kSuggestionsInPerformSwapKey, true),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(kSuggestionsInPerformSwapKey, 'on'),
+        isFalse,
+      );
       bool valid(Object? value) =>
           validateBackupSettingValue(kSuggestionSettingsKey, value)!;
       expect(valid(const SuggestionSettings().toJson()), isTrue);

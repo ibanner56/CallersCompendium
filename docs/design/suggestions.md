@@ -1,11 +1,13 @@
 # Design: Suggest the next dance (Experimental)
 
-*Issues #2343 and #2344 · built. The program builder's pickers can order
-their results by how well each dance would fit where it will go (the end of
-the program, a place an add before or after a slot lands, or the slot
-Replace… fills), and say why. It sits behind Settings ▸ Experimental ▸ Suggestions,
+*Issues #2343, #2344 and #2348 · built. The program builder's pickers can
+order their results by how well each dance would fit where it will go (the
+end of the program, a place an add before or after a slot lands, or the slot
+Replace… fills), and say why; so can Perform's swap sheet, for the slot being
+swapped (#2348). It sits behind Settings ▸ Experimental ▸ Suggestions,
 off by default. The user-facing description is in
-[programs.md](../user/programs.md#let-the-app-suggest-the-next-dance) and
+[programs.md](../user/programs.md#let-the-app-suggest-the-next-dance),
+[perform.md](../user/perform.md#swap-a-dance) and
 [settings.md](../user/settings.md#suggestions).*
 
 ## Shape
@@ -21,8 +23,8 @@ off by default. The user-facing description is in
   before and after the position, and whether the candidate takes an
   alternate's place (`candidateIsAlternate`); `SuggestionPosition` works those
   out for the end (`atEnd`), an add before or after a slot (`inserting`) and
-  Replace… (`replacing`), so another host (#2348) can reuse it. See
-  "Positions" below.
+  Replace… (`replacing`), which Perform's swap sheet (#2348) reuses for the
+  slot being swapped. See "Positions" below.
 - **App**: the picker takes an optional `PickerProgramContext` (the
   history-filters Q3 shape: program id, linked venue id, typed venue, plus the
   venue's display name and a `SuggestionPosition`). The builder's three
@@ -33,8 +35,22 @@ off by default. The user-facing description is in
   Suggested is the last entry of the picker's Sort menu only while the toggle
   is on and a position is present. It is
   never in the Collection's sorts (`availableCollectionSorts` is unchanged),
-  the picker never opens in it, and it lasts until another sort is chosen or
-  the picker closes.
+  the builder's pickers never open in it, and it lasts until another sort is
+  chosen or the picker closes.
+- **Perform's swap sheet (#2348)** passes the place of the slot being swapped
+  (`SuggestionPosition.replacing`, as Replace… does, so the dance being
+  swapped out is neither a neighbour nor in the program compared with). With
+  Suggestions and `suggestions_in_perform_swap` both on it offers Suggested
+  and opens in it (`CollectionPicker.openSuggested`): from the start, after
+  each Keep change (a new panel request) and when the setting is turned on
+  while the sheet is open, until the caller picks a plain sort there. The
+  pinned **Your alternates** are not ranked and stay first. With either off
+  the picker gets `offerSuggested: false`, the sheet as #2346 built it. Off
+  by default even with Suggestions on, so turning Suggestions on for the
+  builder does not change Perform unasked (a drafting call in the issue,
+  approved with it). *Rejected:* separate weights for Perform (one set is
+  easier to understand), and the switch under Settings ▸ Program ▸ Perform
+  mode (Experimental switches live in the feature's own section).
 - **Off the UI thread**: the picker ranks on a `SuggestionWorker`, a
   long-lived isolate of its own, started the first time Suggested is chosen
   and stopped when the picker closes. Sending a message copies it on the
@@ -216,11 +232,14 @@ Calls made in #2344 (not maintainer rulings):
 
 ## Stored settings
 
-Two `settings` keys, both `appUser`, non-personal and shareable in the privacy
-registry, both in the backup schema, and both gated on the `suggestions.v1`
+Three `settings` keys, all `appUser`, non-personal and shareable in the privacy
+registry, all in the backup schema, and all gated on the `suggestions.v1`
 sync capability ([sync-spec.md §6.15](sync-spec.md#615-capability-gate)):
 
 - `suggestions_enabled`: a bool, off by default.
+- `suggestions_in_perform_swap` (#2348): a bool, off by default; whether
+  Perform's swap sheet orders by suggestions. It does nothing while
+  `suggestions_enabled` is off.
 - `suggestion_settings`: a JSON object.
 
 ```json

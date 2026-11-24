@@ -5227,8 +5227,13 @@ keeps its value until the record is purged, so a held-back deletion is published
 once the gate opens, as any gated tombstone is.
 
 **`suggestions.v1`.** Gates the Suggestions settings (#2343): the exact keys
-`suggestions_enabled` and `suggestion_settings`, tombstones included. A build
-without it has neither setting and nothing that reads them. The reference
+`suggestions_enabled`, `suggestion_settings` and, from #2348,
+`suggestions_in_perform_swap`, tombstones included. A build without it has
+none of these settings and nothing that reads them. A peer on a build that
+advertises `suggestions.v1` from before #2348 keeps
+`suggestions_in_perform_swap` as an unknown, retained setting that changes
+nothing there: the capability is not bumped for a key whose only reader is an
+optional ordering. The reference
 client advertises it from the change that adds them, so it is subject to
 *Rollout*: a device on a build that lists only the glossary capabilities and
 `programTemplates.v1` holds it closed and is named for it, while what those

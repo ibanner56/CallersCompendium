@@ -43,10 +43,11 @@ abstract final class SyncCapabilities {
   static const String programTemplatesV1 = 'programTemplates.v1';
 
   /// Suggestions (#2343): the Experimental Suggestions toggle
-  /// (`suggestions_enabled`) and what suggestions look for
-  /// (`suggestion_settings`). An older build has no Suggested sort, so it
-  /// would keep both keys without using them; they wait so a peer never
-  /// holds a setting it cannot show or edit.
+  /// (`suggestions_enabled`), what suggestions look for
+  /// (`suggestion_settings`) and whether Perform's swap sheet orders by them
+  /// (`suggestions_in_perform_swap`, #2348). An older build has no Suggested
+  /// sort, so it would keep these keys without using them; they wait so a
+  /// peer never holds a setting it cannot show or edit.
   static const String suggestionsV1 = 'suggestions.v1';
 
   /// Perform's **Swap a dance** defaults (#2346): which Keep items start on
@@ -143,6 +144,7 @@ final class SyncCapabilityPolicy {
       'program_template_default': SyncCapabilities.programTemplatesV1,
       'suggestions_enabled': SyncCapabilities.suggestionsV1,
       'suggestion_settings': SyncCapabilities.suggestionsV1,
+      'suggestions_in_perform_swap': SyncCapabilities.suggestionsV1,
       'perform_swap_defaults': SyncCapabilities.performSwapV1,
     },
     gatedSettingKeyPrefixes: {
