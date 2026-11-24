@@ -162,6 +162,17 @@ void main() {
       expect(dances.last.figureLines, ['A1 (8) balance']);
     });
 
+    test('one # dance with details and ## parts is one dance', () {
+      final dance = readTextDocument(
+        "# Rory's Reel\nFormation: Becket\n\n## Figures\n- A1 (8) swing\n"
+        '\n## Notes\nWatch it.\n',
+      ).single;
+      expect(dance.title, "Rory's Reel");
+      expect(dance.labels, const [('Formation', 'Becket')]);
+      expect(dance.figureLines, ['A1 (8) swing']);
+      expect(dance.notes, ['Watch it.']);
+    });
+
     test('# sections of a file with ## dances are left out', () {
       final dances = readTextDocument(
         '# Contras\n\n## Chorus Jig\n(8) Swing\n\n# Squares\n\n'

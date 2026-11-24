@@ -231,12 +231,16 @@ List<TextDocumentDance> readTextDocument(String text) {
   final byHeadings = hasSecondLevel || topHeadings > 1;
   // The level whose headings are dances: `#` when there are several `#`
   // headings and they read as dances (details or figures straight under
-  // one, or `##` titles that repeat, such as `## Figures` under each), so a
-  // `##` under one is a section of that dance; else `##`, and a `#` is the
-  // file's title or a section of the file.
+  // one, or `##` titles that repeat, such as `## Figures` under each), or
+  // one `#` heading with details or figures straight under it, so a `##`
+  // under one is a section of that dance; else `##`, and a `#` is the file's
+  // title or a section of the file.
+  // A single `#` heading with details or figures straight under it, and
+  // `##` headings after, is one dance in parts.
   final danceLevel =
-      topHeadings > 1 &&
-          (!hasSecondLevel || repeatedSecondLevel || topHasContent)
+      (topHeadings > 1 &&
+              (!hasSecondLevel || repeatedSecondLevel || topHasContent)) ||
+          (topHeadings == 1 && hasSecondLevel && topHasContent)
       ? 1
       : 2;
   final blocks = <_Block>[];
