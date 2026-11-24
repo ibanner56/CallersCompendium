@@ -11,6 +11,7 @@ import 'couple_number.dart';
 enum FormationType {
   dupleImproper(key: 'duple_improper', label: 'Duple Improper'),
   progressedImproper(key: 'progressed_improper', label: 'Progressed Improper'),
+  dupleProper(key: 'duple_proper', label: 'Duple Proper'),
   becketCw(key: 'becket_cw', label: 'Becket CW'),
   becketCcw(key: 'becket_ccw', label: 'Becket CCW');
 
@@ -74,6 +75,7 @@ enum FormationType {
     }
     return switch (normalized) {
       'dupleimproper' || 'duple_minor_improper' => FormationType.dupleImproper,
+      'dupleproper' || 'duple_minor_proper' => FormationType.dupleProper,
       'progressedimproper' ||
       'duple_minor_progressed_improper' => FormationType.progressedImproper,
       'becket' || 'becketcw' || 'becket_clockwise' => FormationType.becketCw,
