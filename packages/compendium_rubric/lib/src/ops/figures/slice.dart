@@ -56,8 +56,10 @@ enum SliceReturn {
 /// double-progression dance can progress on it. The Caller's Box bridge still
 /// does not assume one on a Becket opener (`assumedProgressionIndex`, agent's
 /// call): single-progression dances open with one too. Inside a container
-/// (`modifier`, `meanwhile` or a nested `sequence`) it is a known limit: the
-/// container is one step, so a flag there counts one. Today only 3 of the 21
+/// (`modifier`, `meanwhile` or a nested `sequence`) it is a known limit: a
+/// flag there counts two progressions (the container reads its children's
+/// `progressionsSpent`) but the container is one step, so only one
+/// change-over runs. Today only 3 of the 21
 /// Caller's Box double slices import as a `slice` (those written "go forward
 /// to S1, fall back to S2", all mid-dance and unflagged); the rest stay free
 /// text, so none of them reaches the compiler (`taxonomy.md`, `slice`).

@@ -664,7 +664,8 @@ core.Figure _mainFigure(core.Figure figure) =>
 ///   would place the progression a full time through the dance away from where
 ///   it happens.
 /// - Otherwise its **first diagonal chain or pass through along the set**
-///   progresses (user-ruled 2026-11-23). Only a Becket dance with neither
+///   progresses (user-ruled 2026-11-23), or its first diagonal right and left
+///   through (agent's call 2026-11-24). Only a Becket dance with none of these
 ///   falls back to the last figure.
 ///
 /// Returns `null` only for a dance with no figures. *(User-ruled.)*
@@ -696,11 +697,14 @@ int? assumedProgressionIndex(core.Dance dance) {
     if (direction == 'left') return 0;
 
     // Otherwise a Becket dance progresses on its first move along the set:
-    // a diagonal chain, which sends the chainers to the next hands four, or a
-    // pass through along the set. (User-ruled 2026-11-23: Becket progressions
+    // a diagonal chain, which sends the chainers to the next hands four, a
+    // diagonal right and left through (agent's call 2026-11-24, by analogy:
+    // it trades whole couples with the next hands four), or a pass through
+    // along the set. (User-ruled 2026-11-23: Becket progressions
     // are usually the obvious move.) The couples may not stand together at an
     // end until a figure or two later; the compiler holds the progression
-    // until they do (`OperationInvocation.applyHolding`).
+    // until they do (`OperationInvocation.applyHolding`); a diagonal right and
+    // left through is its own progression and is never held.
     for (var index = 0; index < figures.length; index++) {
       if (_movesAlongTheSet(_mainFigure(figures[index]))) return index;
     }
@@ -709,16 +713,20 @@ int? assumedProgressionIndex(core.Dance dance) {
   return figures.length - 1;
 }
 
-/// Whether [figure] is a Becket progression move: a `chain` on either
-/// diagonal, or a `pass_through` along the set. The direction is carried under
-/// `where` upstream; `pass_through` defaults to `along` (as the compiler's
-/// `PassThrough` does).
+/// Whether [figure] is a Becket progression move: a `chain` or
+/// `right_left_through` on either diagonal, or a `pass_through` along the set.
+/// The direction is carried under `where` upstream; `pass_through` defaults to
+/// `along` (as the compiler's `PassThrough` does).
 bool _movesAlongTheSet(core.Figure figure) => switch (figure.move) {
   'chain' => switch (figure.params['where']) {
     'leftDiagonal' || 'rightDiagonal' => true,
     _ => false,
   },
   'pass_through' => (figure.params['where'] ?? 'along') == 'along',
+  'right_left_through' => switch (figure.params['where']) {
+    'leftDiagonal' || 'rightDiagonal' => true,
+    _ => false,
+  },
   _ => false,
 };
 

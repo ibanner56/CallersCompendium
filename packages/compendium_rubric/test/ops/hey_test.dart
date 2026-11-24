@@ -164,7 +164,7 @@ void main() {
       }
     });
 
-    test('dir beyond across is deferred behind the diagonal figures', () {
+    test('dir beyond across is deferred', () {
       for (final dir in [
         Direction.along,
         Direction.leftDiagonal,

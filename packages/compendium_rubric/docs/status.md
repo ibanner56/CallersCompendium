@@ -113,6 +113,16 @@
 > now mismatches; no previously compiling dance was lost. The denominator grows
 > by those 31 because a dance blocked by a deferral is counted outside it.
 >
+> **Diagonal right and left through (2026-11-24)**: the west-line couple of
+> each hands four trades with the east-line couple of the next hands four on
+> the diagonal, the couple left at each end coming back in as the other
+> number; a flagged trade is its own progression and spends two of the
+> distance count, and the Caller's Box bridge places an unflagged Becket
+> progression on it (all the agent's calls, not yet ratified). Against
+> `rubric` at `24d0358f`: 3,973 of 5,146 to 4,064 of 5,258 compiled in scope
+> (77.3%), the core set from 531 to 532. 91 refused dances now compile and 6
+> now mismatch; no previously compiling dance was lost.
+>
 > **N3 and N4 place later progressions (2026-11-23)**: on the N2 retry, a
 > Double dance flags its second progression by the first N3 mention and a
 > Triple its third by the first N4 (user-ruled). Against `rubric` at
@@ -339,15 +349,16 @@ from this table because the compiler never ran against them. **Pass rate** is
 
 - `pass_through` and the direction-selected form of `pull_by` support the
   along/across axes only.
-- `cross_trails`, `right_left_through`, and `form_short_waves` support across
-  only.
+- `cross_trails` and `form_short_waves` support across only;
+  `right_left_through` supports across and the diagonals, the diagonals only
+  with no couples waiting out.
 - `chain dir:along` is deferred as four-facing-four choreography.
 - `promenade` supports `where: across` for side-by-side pairs only. Single-file
   promenades, stated destinations, every other `where`, and a `direction`
   stated `unspecified` are deferred. (A Caller's Box promenade that imports
   with no `where` is not a deferral: see "Entirely deferred impact".)
-- Diagonal `hey` is deferred behind diagonal `right_left_through`, which it
-  must agree with.
+- Diagonal `hey` is deferred; it must agree with diagonal
+  `right_left_through`, which is now built.
 
 ### Dancer sets
 
