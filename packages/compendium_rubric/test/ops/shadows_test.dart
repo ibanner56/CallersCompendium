@@ -392,9 +392,10 @@ void main() {
 
     test('remembered shadows do not pair when that would leave a couple '
         'idle', () {
-      // The mirror of Lauren's Lagniappe at the top: A and C remember each
-      // other across the set, and partners B stand beside them. Keeping A
-      // with C would leave B with nobody, where first match pairs everyone.
+      // At the top with nobody out, A and C remember each other and stand
+      // beside each other in one side column, and partners B stand across the
+      // set from them. Keeping A with C would leave B with nobody, where first
+      // match pairs each B across the set and so pairs everyone.
       final input = remembering(
         parseRolesNotation([
           'L2-B . . . R1-C',

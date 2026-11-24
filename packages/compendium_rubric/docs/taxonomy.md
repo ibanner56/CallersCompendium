@@ -509,9 +509,10 @@ is refused as before. *(Agent's calls, not ratified:*
   chained to someone else. Only a mutual memory counts; trusting either dancer's memory alone was
   rejected, since a one-sided memory is not a pair that danced together. The remembered pairs
   are kept only when they leave no more dancers unpaired than first match alone would; otherwise
-  the band pairs first match first, as before. In the mirror of the Lauren's case (a remembered
-  pair across the set, with a couple beside each of them) keeping the memory would leave that
-  couple standing idle while the figure succeeds. Which is right there is unasked.*
+  the band pairs first match first, as before. Where a remembered pair stand beside each other on
+  one side and the couple across the set from them are partners, and so not shadows, keeping the
+  memory would leave that couple standing idle while the figure succeeds; first match pairs each
+  of them across the set instead. Which is right there is unasked.*
 - *"Remembered" is the pairs danced by a figure routed through the shadows rule. A figure that
   also names a distance set takes its phase from the distance and remembers nothing. At an end
   where the shadow wraps to the neighbour, a dancer can match both the dancer beside them and
