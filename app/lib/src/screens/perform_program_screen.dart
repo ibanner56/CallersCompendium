@@ -1250,23 +1250,6 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     // another.
     var adjusted = edited;
     if (!identical(_program, opened)) {
-      if (!performAdjustmentStillApplies(
-        before: opened.slots,
-        after: edited.slots,
-        onto: _program.slots,
-      )) {
-        _undoable = null;
-        _undoPrompt = null;
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(
-            SnackBar(
-              key: const ValueKey('perform-swap-refused'),
-              content: Text(AppLocalizations.of(context).performSwapRefused),
-            ),
-          );
-        return;
-      }
       final slots = renumberSlots(
         rebaseSlotEdits(
           before: opened.slots,
@@ -1274,7 +1257,36 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           onto: _program.slots,
         ),
       );
+      // Already as shown (as the owner treats a write with nothing to do).
       if (listEquals(slots, renumberSlots(_program.slots))) return;
+      if (!performAdjustmentStillApplies(
+        before: opened.slots,
+        after: edited.slots,
+        onto: _program.slots,
+      )) {
+        // Nothing was applied or sent, so an Undo still on offer is an
+        // earlier, saved adjustment's: offer it again with the message.
+        final messenger = ScaffoldMessenger.of(context);
+        final message = AppLocalizations.of(context).performSwapRefused;
+        if (_undoable case final undoable?) {
+          _showUndoPrompt(
+            messenger,
+            message: message,
+            previous: undoable.previous,
+            updated: undoable.updated,
+          );
+        } else {
+          messenger
+            ..clearSnackBars()
+            ..showSnackBar(
+              SnackBar(
+                key: const ValueKey('perform-swap-refused'),
+                content: Text(message),
+              ),
+            );
+        }
+        return;
+      }
       adjusted = _program.copyWith(
         slots: slots,
         updatedAt: DateTime.now().toUtc(),

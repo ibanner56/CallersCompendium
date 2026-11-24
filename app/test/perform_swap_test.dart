@@ -887,6 +887,47 @@ void main() {
     expect(find.byKey(const ValueKey('perform-adjusted-undo')), findsNothing);
   });
 
+  testWidgets('a stale-sheet edit refused on screen keeps the Undo of the '
+      'earlier, saved adjustment', (tester) async {
+    final firstWrite = Completer<PerformAdjustmentResult?>();
+    var writes = 0;
+    final h = await _pump(
+      tester,
+      onProgramChanged: (_, _) =>
+          writes++ == 0 ? firstWrite.future : Future.value(),
+    );
+    // A: add a note; its write is held.
+    await _openAdjust(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('adjust-note-field')),
+      'Announce the raffle',
+    );
+    await _tap(tester, find.byKey(const ValueKey('adjust-add-note')));
+    await _tap(tester, find.byKey(const ValueKey('adjust-done')));
+    // B's sheet opens before A's write comes back.
+    await _openAdjust(tester);
+    // A was saved on top of a change from another device, which gave the
+    // dance being called another dance.
+    final stored = _program([
+      for (final slot in h.persisted.single.slots)
+        slot.id == 's1' ? slot.copyWith(danceId: 'd4') : slot,
+    ]);
+    firstWrite.complete(PerformAdjustmentResult.newer(stored));
+    await tester.pumpAndSettle();
+    // B, in the sheet opened before that: mark the dance being called
+    // performed, which would land on the other device's dance.
+    await _tap(tester, find.byKey(const ValueKey('adjust-mark-performed')));
+    await _tap(tester, find.byKey(const ValueKey('adjust-done')));
+
+    expect(h.persisted, hasLength(1));
+    final l10n = AppLocalizations.of(
+      tester.element(find.byType(Scaffold).first),
+    );
+    expect(find.text(l10n.performSwapRefused), findsOneWidget);
+    // A's Undo is still offered with the message.
+    expect(find.byKey(const ValueKey('perform-adjusted-undo')), findsOneWidget);
+  });
+
   testWidgets('a swap refused after Perform has closed takes down the Undo '
       'prompt and says so on the screen Perform was opened from, leaving that '
       'screen\'s own messages alone', (tester) async {
