@@ -161,6 +161,20 @@
 > Tulsa (4959) now compiles; nothing else changed outcome. Heather's Hop
 > Redux and its alternate still mismatch, at their final half figure eight.
 >
+> **Shadows who remember each other dance together (2026-11-24)**: within a
+> hands four, a figure naming shadows pairs two dancers who remember each
+> other as shadows first, then the rest as before (the user's 2026-11-23
+> ruling that your shadow is the same dancer all dance; pairing only a mutual
+> memory, and only when it leaves nobody more unpaired than first match would,
+> are the agent's calls). At an end with nobody out the shadow wraps to
+> the neighbour, and the first match had been taking one of a remembered
+> pair. Against `rubric` at `9680f588`: 4,228 of 5,425 to 4,240 of 5,425
+> compiled in scope (78.2%), the core set 544 to 547, no previously compiling
+> dance lost. Now compiling: Lauren's Lagniappe (10025, 6086, 6087), Sawdust
+> Liquor (10027, 6126), Chaos Pie (10338), Spare Parts (12030), Train Delay
+> (14841), Head of the Bed (4528), Salute to Denice Reese (5437), Moonshadow
+> (7966) and Honeyville (7969).
+>
 > **A diagonal chain from beside a neighbour is to a shadow (2026-11-24)**:
 > each robin who stood beside a neighbour before a diagonal chain remembers
 > the lark she ends beside as her shadow (user-ruled: the pairing comes from

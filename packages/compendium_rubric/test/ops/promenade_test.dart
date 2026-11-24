@@ -229,26 +229,55 @@ void main() {
   });
 
   test('a shadow do-si-do remembers the pair it danced, across the set', () {
-    // The same wrap band as above: do_si_do pairs first match first, so
-    // L1-A dances with R2-D across the set (once around, so nobody moves),
-    // and that is what he remembers.
+    // The same wrap band as above, with nobody there remembering a shadow:
+    // do_si_do pairs first match first, so L1-A dances with R2-D across the
+    // set (once around, so nobody moves), and that is what he remembers. The
+    // pair remembered in the middle hands four only settles the band phase.
     DancerId id(String cell) => DancerId(
       cell.codeUnitAt(cell.length - 1) - 0x41,
       cell.startsWith('L') ? Role.lark : Role.robin,
     );
-    final afterChain = applyOk(
-      const Chain(who: WhoSet.role2s, dir: ChainDirection.leftDiagonal),
-      becket(const [
-        'L1-A . . . R1-A',
-        'R2-B . . . L2-B',
-        'L1-C . . . R1-C',
-        'R2-D . . . L2-D',
-        'L1-E . . . R1-E',
-        'R2-F . . . L2-F',
-      ]),
-    );
-    final after = applyOk(const DoSiDo(who: WhoSet.shadows), afterChain);
+    final unremembered = becket(const [
+      'L1-A . . . R2-D',
+      'R2-B . . . L2-B',
+      'L1-C . . . R2-F',
+      'R1-A . . . L2-D',
+      'L1-E . . . R1-E',
+      'R1-C . . . L2-F',
+    ]);
+    final standing = unremembered.withUpdates({
+      id('L1-C'): unremembered.stateOf(id('L1-C')).copyWith(shadow: id('R1-A')),
+      id('R1-A'): unremembered.stateOf(id('R1-A')).copyWith(shadow: id('L1-C')),
+    });
+    final after = applyOk(const DoSiDo(who: WhoSet.shadows), standing);
     expect(after.stateOf(id('L1-A')).shadow, id('R2-D'));
     expect(after.stateOf(id('R2-B')).shadow, isNull);
   });
+
+  test(
+    'after the chain, a shadow do-si-do pairs the shadows it made first',
+    () {
+      // R2-D and L2-B remember each other from the chain, so they dance
+      // together, and L1-A dances with R2-B beside him, as the promenade does.
+      DancerId id(String cell) => DancerId(
+        cell.codeUnitAt(cell.length - 1) - 0x41,
+        cell.startsWith('L') ? Role.lark : Role.robin,
+      );
+      final afterChain = applyOk(
+        const Chain(who: WhoSet.role2s, dir: ChainDirection.leftDiagonal),
+        becket(const [
+          'L1-A . . . R1-A',
+          'R2-B . . . L2-B',
+          'L1-C . . . R1-C',
+          'R2-D . . . L2-D',
+          'L1-E . . . R1-E',
+          'R2-F . . . L2-F',
+        ]),
+      );
+      final after = applyOk(const DoSiDo(who: WhoSet.shadows), afterChain);
+      expect(after.stateOf(id('L1-A')).shadow, id('R2-B'));
+      expect(after.stateOf(id('R2-B')).shadow, id('L1-A'));
+      expect(after.stateOf(id('R2-D')).shadow, id('L2-B'));
+    },
+  );
 }

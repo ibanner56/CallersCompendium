@@ -495,16 +495,31 @@ shadow pairs in both band phases, it is danced in the phase whose hands fours ke
 remembered pair together, as long as at least one such pair stands in them. If that does not
 pick exactly one phase (nobody has a shadow yet, or both phases or neither keep them), the figure
 is refused as before. *(Agent's calls, not ratified:*
-- *Identity only settles which phase. When one phase alone has shadow pairs, it is danced
-  without checking the remembered shadows, and within the chosen phase dancers still pair by
-  couple number. A dancer paired with someone other than their remembered shadow keeps the
-  remembered one, so the memory can be one-sided. Refusing on a disagreement instead is untried.*
+- *When one phase alone has shadow pairs, it is danced in that phase whatever the remembered
+  shadows say; they only steer who pairs with whom inside it (next bullet). A dancer paired with
+  someone other than their remembered shadow keeps the remembered one, so the memory can be
+  one-sided. Refusing on a disagreement instead is untried.*
+- *Whatever picked the phase (including a distance set named in the same figure), a figure that
+  picks its own pairs (every shadow figure but `swing` and `promenade`, which pair whoever stands
+  beside them in a side column) pairs two dancers of a hands four who remember **each other**,
+  and still match, first; then the rest first match first, by couple number or, at an end with
+  nobody out, by the wrap to the neighbour (2026-11-24). The principle is the user's ruling
+  above; how it is applied is the agent's. Before this, the first match could take one of a
+  remembered pair: in Lauren's Lagniappe, at the top after the diagonal chain, the shadow
+  allemande paired the lark beside the robin who went nowhere with the robin who had just
+  chained to someone else. Only a mutual memory counts; trusting either dancer's memory alone was
+  rejected, since a one-sided memory is not a pair that danced together. The remembered pairs
+  are kept only when they leave no more dancers unpaired than first match alone would; otherwise
+  the band pairs first match first, as before. Where a remembered pair stand beside each other on
+  one side and the couple across the set from them are partners, and so not shadows, keeping the
+  memory would leave that couple standing idle while the figure succeeds; first match pairs each
+  of them across the set instead. Which is right there is unasked.*
 - *"Remembered" is the pairs danced by a figure routed through the shadows rule. A figure that
   also names a distance set takes its phase from the distance and remembers nothing. At an end
   where the shadow wraps to the neighbour, a dancer can match both the dancer beside them and
   one across the set; each figure remembers the pair it danced: `swing` and `promenade`, which
-  pair by side column, the pair side by side; the others, which pair first match first, that
-  pair (2026-11-24).*
+  pair by side column, the pair side by side; the others, which pair mutual memories first and
+  then first match first (above), that pair (2026-11-24).*
 - *At an end with nobody out, the neighbours who count as shadows there are remembered as each
   other's shadows for the rest of the dance. A wrong memory can only make a later figure refuse,
   never pick a wrong phase, because a phase must keep every remembered pair together.*
@@ -514,7 +529,8 @@ is refused as before. *(Agent's calls, not ratified:*
 shadows and then the next neighbors. *(User-ruled.)* Where you meet your shadows depends on the
 progression, so there is no rule tying the two sets together to refuse on. *(Agent's call,
 following from that.)* The distance set picks the band phase as it always does, the shadows
-pairing rule above is not applied, and the figure's own `who` checks still are.
+pairing rule above is not applied, and the figure's own `who` checks still are. Inside the phase
+the distance picks, remembered shadows still pair first (see "Shadows", agent's calls).
 
 Worked example (`test/ops/shadows_test.dart`). B and D (both 2s) stand beside each other across
 the settled boundary, and so do C and E (both 1s). The middle settled band holds no shadow pair,
