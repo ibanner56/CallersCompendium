@@ -79,7 +79,7 @@ void main() {
       for (final (label, id, stored) in <(String, String, Object?)>[
         ('not a string', 'a', good),
         ('not JSON', 'a', '{'),
-        ('a newer version', 'a', raw({...good, 'version': 2})),
+        ('a newer version', 'a', raw({...good, 'version': 3})),
         ('an unknown field', 'a', raw({...good, 'rules': <Object>[]})),
         ('a non-string name', 'a', raw({...good, 'name': 3})),
         (
@@ -506,6 +506,176 @@ void main() {
       expect(first(const ProgramTemplateChoice.template('a')), 'from A');
       expect(first(const ProgramTemplateChoice.blank()), isNull);
       expect(first(const ProgramTemplateChoice.template('gone')), isNull);
+    });
+  });
+
+  group('slot rules (#2338)', () {
+    const rule = ProgramTemplateEntry.rule(
+      savedSearchId: 'search-1',
+      label: 'Easy improper opener',
+    );
+
+    test('a template without a rule is written exactly as before, as v1', () {
+      // Byte for byte what #2337 wrote, so a template of dances and text
+      // keeps its value (and its sync hash), and every build still reads it.
+      const template = ProgramTemplate(
+        id: 'contra',
+        name: 'Contra night',
+        entries: [
+          ProgramTemplateEntry(danceId: 'd1', text: 'Guest caller'),
+          ProgramTemplateEntry(text: Program.breakSlotText),
+          ProgramTemplateEntry(text: 'Waltz'),
+        ],
+      );
+      expect(
+        encodeProgramTemplate(template),
+        '{"version":1,"name":"Contra night","slots":['
+        '{"danceId":"d1","text":"Guest caller"},'
+        '{"text":"Break"},{"text":"Waltz"}]}',
+      );
+    });
+
+    test('a rule is written as its saved search and label, in a v2 value, '
+        'and reads back', () {
+      const template = ProgramTemplate(
+        id: 'contra',
+        name: 'Contra night',
+        entries: [
+          ProgramTemplateEntry(danceId: 'd1'),
+          rule,
+        ],
+      );
+      final stored = encodeProgramTemplate(template);
+      final value = jsonDecode(stored) as Map;
+      expect(value['version'], 2);
+      expect(value['slots'], [
+        {'danceId': 'd1'},
+        {'savedSearchId': 'search-1', 'label': 'Easy improper opener'},
+      ]);
+      final decoded = tryDecodeProgramTemplate('contra', stored)!;
+      expect(decoded.entries, template.entries);
+      expect(decoded.entries.last.isRule, isTrue);
+      expect(decoded.entries.last.savedSearchId, 'search-1');
+      expect(decoded.entries.last.text, 'Easy improper opener');
+    });
+
+    test('backup validation accepts a template with a rule and refuses a '
+        'malformed one', () {
+      final good = encodeProgramTemplate(
+        const ProgramTemplate(id: 'x', name: 'X', entries: [rule]),
+      );
+      expect(validateBackupSettingValue(programTemplateKey('x'), good), isTrue);
+      String raw(int version, Map<String, Object?> slot) => jsonEncode({
+        'version': version,
+        'name': 'X',
+        'slots': [slot],
+      });
+      for (final (label, stored) in <(String, String)>[
+        ('a rule in a v1 value', raw(1, {'savedSearchId': 's', 'label': 'L'})),
+        ('a rule with no label', raw(2, {'savedSearchId': 's'})),
+        (
+          'a rule with a blank id',
+          raw(2, {'savedSearchId': ' ', 'label': 'L'}),
+        ),
+        (
+          'a rule that also names a dance',
+          raw(2, {'savedSearchId': 's', 'label': 'L', 'danceId': 'd'}),
+        ),
+        (
+          'a label that is not text',
+          raw(2, {'savedSearchId': 's', 'label': 3}),
+        ),
+      ]) {
+        expect(
+          validateBackupSettingValue(programTemplateKey('x'), stored),
+          isFalse,
+          reason: label,
+        );
+      }
+    });
+
+    test('the legacy Starting program never holds a rule', () {
+      expect(
+        tryDecodeStartingProgramTemplate(
+          jsonEncode({
+            'version': 1,
+            'slots': [
+              {'savedSearchId': 's', 'label': 'L'},
+            ],
+          }),
+        ),
+        isNull,
+      );
+    });
+
+    test('a rule becomes a placeholder: its label as text and its saved '
+        'search remembered; other entries are as before', () {
+      final slots = programSlotsFromTemplate(const [
+        ProgramTemplateEntry(danceId: 'd1'),
+        rule,
+        ProgramTemplateEntry(text: 'Waltz'),
+      ], danceExists: (_) => true);
+      expect([for (final s in slots) s.danceId], ['d1', null, null]);
+      expect(
+        [for (final s in slots) s.text],
+        [null, 'Easy improper opener', 'Waltz'],
+      );
+      expect(
+        [for (final s in slots) s.placeholderSearchId],
+        [null, 'search-1', null],
+      );
+    });
+
+    test('deleting a saved search a slot rule uses is refused, naming the '
+        'rule and its template', () async {
+      final repos = openTestRepositories();
+      registerProgramTemplateSavedSearchUses(repos);
+      final used = await repos.savedSearches.create(
+        name: 'Easy improper',
+        spec: SavedSearchSpec.fromPanelState(
+          CollectionPanelState(text: 'swing'),
+          today: DateTime.utc(2026, 11, 22),
+        ).value!,
+      );
+      final unused = await repos.savedSearches.create(
+        name: 'Mixers',
+        spec: SavedSearchSpec.fromPanelState(
+          CollectionPanelState(text: 'swing'),
+          today: DateTime.utc(2026, 11, 22),
+        ).value!,
+      );
+      await saveProgramTemplate(
+        repos.settings,
+        ProgramTemplate(
+          id: 'contra',
+          name: 'Contra night',
+          entries: [
+            ProgramTemplateEntry.rule(
+              savedSearchId: used.id,
+              label: 'Easy improper opener',
+            ),
+          ],
+        ),
+      );
+      await expectLater(
+        repos.savedSearches.delete(used.id),
+        throwsA(
+          isA<SavedSearchInUse>().having(
+            (e) => [for (final u in e.uses) (u.kind, u.label, u.detail)],
+            'uses',
+            [
+              (
+                kProgramTemplateSlotRuleUse,
+                'Easy improper opener',
+                'Contra night',
+              ),
+            ],
+          ),
+        ),
+      );
+      expect(await repos.savedSearches.get(used.id), isNotNull);
+      await repos.savedSearches.delete(unused.id);
+      expect(await repos.savedSearches.get(unused.id), isNull);
     });
   });
 }

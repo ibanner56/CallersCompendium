@@ -5605,6 +5605,269 @@ void main() {
     );
   });
 
+  group('slot rules (#2338)', () {
+    String? lastSaved;
+    setUp(() => lastSaved = null);
+
+    // Three dances: d1 tagged Family and Bouncey, d2 tagged Family, d3 with
+    // neither, so a search on Family finds d1 and d2, a search on both finds
+    // d1, and an unfiltered picker lists all three.
+    Future<void> seedDances(CompendiumRepositories repos) async {
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 'family', name: 'Family'));
+      // ignore: unused_result
+      await repos.tags.upsert(Tag(id: 'bouncey', name: 'Bouncey'));
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Chase the Squirrel',
+          tagIds: const ['family', 'bouncey'],
+        ),
+      );
+      await repos.dances.create(
+        _dance(id: 'd2', title: 'Rory O More', tagIds: const ['family']),
+      );
+      await repos.dances.create(_dance(id: 'd3', title: 'Hull\'s Victory'));
+    }
+
+    Future<SavedSearch> saveSearch(
+      CompendiumRepositories repos,
+      String name,
+      List<String> tagIds,
+    ) {
+      final state = CollectionPanelState();
+      for (final id in tagIds) {
+        state.facets.setTag(id, selected: true);
+      }
+      return repos.savedSearches.create(
+        name: name,
+        spec: SavedSearchSpec.fromPanelState(
+          state,
+          today: DateTime.utc(2026, 11, 22),
+        ).value!,
+      );
+    }
+
+    Future<void> seedRuleTemplate(
+      CompendiumRepositories repos,
+      String savedSearchId,
+    ) async {
+      await saveProgramTemplate(
+        repos.settings,
+        ProgramTemplate(
+          id: 'family',
+          name: 'Family dance',
+          entries: [
+            const ProgramTemplateEntry(text: 'Waltz'),
+            ProgramTemplateEntry.rule(
+              savedSearchId: savedSearchId,
+              label: 'Easy family opener',
+            ),
+          ],
+        ),
+      );
+      await saveProgramTemplateDefault(repos.settings, 'family');
+    }
+
+    Finder inFillPicker(String key) => find.descendant(
+      of: find.byKey(const ValueKey('replace-picker')),
+      matching: find.byKey(ValueKey(key)),
+    );
+
+    Future<String> saveAs(WidgetTester tester, String title) async {
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        title,
+      );
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      expect(lastSaved, isNotNull);
+      return lastSaved!;
+    }
+
+    testWidgets('a template without a slot rule shows no placeholder and no '
+        'Fill, and makes exactly the slots it did before', (tester) async {
+      final repos = openTestRepositories();
+      await seedDances(repos);
+      await saveProgramTemplate(
+        repos.settings,
+        const ProgramTemplate(
+          id: 'plain',
+          name: 'Plain',
+          entries: [
+            ProgramTemplateEntry(danceId: 'd1', text: 'Guest caller'),
+            ProgramTemplateEntry(text: 'Waltz'),
+          ],
+        ),
+      );
+      await saveProgramTemplateDefault(repos.settings, 'plain');
+      await _pump(tester, repos, onSaved: (id) => lastSaved = id);
+
+      expect(find.text('Waltz'), findsOneWidget);
+      expect(find.text('Placeholder'), findsNothing);
+      expect(find.byKey(const ValueKey('slot-1-fill')), findsNothing);
+      expect(find.text('Fill'), findsNothing);
+
+      final id = await saveAs(tester, 'Plain night');
+      final saved = (await repos.programs.getById(id))!;
+      expect(
+        [
+          for (final s in saved.slots)
+            (s.danceId, s.text, s.placeholderSearchId),
+        ],
+        [('d1', 'Guest caller', null), (null, 'Waltz', null)],
+      );
+    });
+
+    testWidgets('a slot rule is a placeholder with its label and Fill; Fill '
+        'loads its saved search in the picker, and the dance chosen fills '
+        'it', (tester) async {
+      final repos = openTestRepositories();
+      await seedDances(repos);
+      final family = await saveSearch(repos, 'Family dances', ['family']);
+      await seedRuleTemplate(repos, family.id);
+      await _pump(tester, repos, onSaved: (id) => lastSaved = id);
+
+      expect(find.text('Easy family opener'), findsOneWidget);
+      expect(find.text('Placeholder'), findsOneWidget);
+      expect(find.byKey(const ValueKey('slot-1-fill')), findsOneWidget);
+      // Only the placeholder offers Fill; the plain note does not.
+      expect(find.byKey(const ValueKey('slot-0-fill')), findsNothing);
+
+      // Saved unfilled, it keeps its label as text and its saved search.
+      final id = await saveAs(tester, 'Family night');
+      var saved = (await repos.programs.getById(id))!;
+      expect(saved.slots[1].danceId, isNull);
+      expect(saved.slots[1].text, 'Easy family opener');
+      expect(saved.slots[1].placeholderSearchId, family.id);
+
+      await tester.tap(find.byKey(const ValueKey('slot-1-fill')));
+      await tester.pumpAndSettle();
+      expect(find.text('Fill "Easy family opener"'), findsOneWidget);
+      // The saved search is in the picker's Filters: Family dances only.
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('replace-picker')),
+          matching: find.text('Filters · 1'),
+        ),
+        findsOneWidget,
+      );
+      expect(inFillPicker('picker-add-d1'), findsOneWidget);
+      expect(inFillPicker('picker-add-d2'), findsOneWidget);
+      expect(inFillPicker('picker-add-d3'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('placeholder-fill-notice')),
+        findsNothing,
+      );
+
+      await tester.tap(inFillPicker('picker-add-d2'));
+      await tester.pumpAndSettle();
+
+      // Now an ordinary dance slot: the dance, no label, no Fill.
+      expect(find.text('Rory O More'), findsOneWidget);
+      expect(find.text('Easy family opener'), findsNothing);
+      expect(find.byKey(const ValueKey('slot-1-fill')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      saved = (await repos.programs.getById(id))!;
+      expect(saved.slots[1].danceId, 'd2');
+      expect(saved.slots[1].text, isNull);
+      expect(saved.slots[1].placeholderSearchId, isNull);
+    });
+
+    testWidgets('a placeholder saved unfilled still offers Fill with the same '
+        'search when the program is opened again', (tester) async {
+      final repos = openTestRepositories();
+      await seedDances(repos);
+      final both = await saveSearch(repos, 'Bouncey family', [
+        'family',
+        'bouncey',
+      ]);
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Later',
+          slots: [
+            ProgramSlot(
+              id: 's1',
+              position: 0,
+              text: 'Bouncey one',
+              placeholderSearchId: both.id,
+            ),
+          ],
+        ),
+      );
+      await _pump(tester, repos, programId: 'p1');
+
+      expect(find.text('Bouncey one'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('slot-0-fill')));
+      await tester.pumpAndSettle();
+      expect(inFillPicker('picker-add-d1'), findsOneWidget);
+      expect(inFillPicker('picker-add-d2'), findsNothing);
+      expect(inFillPicker('picker-add-d3'), findsNothing);
+    });
+
+    testWidgets('a rule whose saved search names a deleted tag is a plain '
+        'note with its label; Fill shows every dance and names the tag, '
+        'never the rest of the search alone', (tester) async {
+      final repos = openTestRepositories();
+      await seedDances(repos);
+      final both = await saveSearch(repos, 'Bouncey family', [
+        'family',
+        'bouncey',
+      ]);
+      await repos.tags.delete('bouncey');
+      await seedRuleTemplate(repos, both.id);
+      await _pump(tester, repos, onSaved: (id) => lastSaved = id);
+
+      final id = await saveAs(tester, 'Family night');
+      final slot = (await repos.programs.getById(id))!.slots[1];
+      expect(slot.danceId, isNull);
+      expect(slot.text, 'Easy family opener');
+
+      await tester.tap(find.byKey(const ValueKey('slot-1-fill')));
+      await tester.pumpAndSettle();
+      final notice = find.byKey(const ValueKey('placeholder-fill-notice'));
+      expect(notice, findsOneWidget);
+      expect(
+        find.descendant(
+          of: notice,
+          matching: find.text('The tag Bouncey, which was deleted'),
+        ),
+        findsOneWidget,
+      );
+      // Unfiltered: Family alone (the search without its missing leaf) would
+      // leave out d3.
+      expect(inFillPicker('picker-add-d1'), findsOneWidget);
+      expect(inFillPicker('picker-add-d2'), findsOneWidget);
+      expect(inFillPicker('picker-add-d3'), findsOneWidget);
+    });
+
+    testWidgets('a rule whose saved search is gone is a plain note with its '
+        'label; Fill shows every dance and says the search was deleted', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await seedDances(repos);
+      await seedRuleTemplate(repos, 'deleted-search');
+      await _pump(tester, repos);
+
+      expect(find.text('Easy family opener'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('slot-1-fill')));
+      await tester.pumpAndSettle();
+      expect(
+        find.text(
+          'The saved search for "Easy family opener" was deleted, so every '
+          'dance is shown.',
+        ),
+        findsOneWidget,
+      );
+      expect(inFillPicker('picker-add-d1'), findsOneWidget);
+      expect(inFillPicker('picker-add-d2'), findsOneWidget);
+      expect(inFillPicker('picker-add-d3'), findsOneWidget);
+    });
+  });
+
   group('program templates (#2337)', () {
     Future<void> seedTwoTemplates(CompendiumRepositories repos) async {
       await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));

@@ -2101,6 +2101,92 @@ void main() {
     });
   });
 
+  group('v41 -> v42 upgrade (program_slots.placeholder_search_id, #2338)', () {
+    Future<List<String>> slotColumns(DatabaseConnectionUser db) async => [
+      for (final row
+          in await db
+              .customSelect(
+                "SELECT name FROM pragma_table_info('program_slots')",
+              )
+              .get())
+        row.read<String>('name'),
+    ];
+
+    test('adds placeholder_search_id as NULL, last, and keeps every slot '
+        'and stamp', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        41,
+      );
+      await historical.customSelect('SELECT 1').get();
+      expect(
+        await slotColumns(historical),
+        isNot(contains('placeholder_search_id')),
+        reason: 'a v41 database has no placeholder_search_id column',
+      );
+      await historical.customStatement(
+        "INSERT INTO programs (id, title, notes, status, hide_alternates, "
+        "created_at, updated_at) "
+        "VALUES ('p1', 'Keep', '', 'draft', 0, 1700000000, 1700000100)",
+      );
+      await historical.customStatement(
+        "INSERT INTO program_slots (id, program_id, position, dance_id, text, "
+        "is_alt) VALUES ('s1', 'p1', 0, NULL, 'Waltz', 0)",
+      );
+      await historical.close();
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      // Last, as a database created fresh at v42 has it.
+      expect((await slotColumns(db)).last, 'placeholder_search_id');
+      final program = await ProgramRepository(db).getById('p1');
+      expect(program!.slots.single.text, 'Waltz');
+      expect(program.slots.single.placeholderSearchId, isNull);
+      expect(
+        program.updatedAt,
+        DateTime.fromMillisecondsSinceEpoch(1700000100 * 1000, isUtc: true),
+        reason: 'the migration must not touch updated_at',
+      );
+      final version = await db.customSelect('PRAGMA user_version').getSingle();
+      expect(version.read<int>('user_version'), 42);
+    });
+
+    test('is idempotent over an existing placeholder_search_id', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        41,
+      );
+      await historical.customSelect('SELECT 1').get();
+      await historical.close();
+      raw.execute(
+        'ALTER TABLE program_slots ADD COLUMN placeholder_search_id TEXT NULL',
+      );
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      expect(
+        (await slotColumns(db)).where((c) => c == 'placeholder_search_id'),
+        hasLength(1),
+      );
+    });
+  });
+
   group('v40 -> v41 upgrade (cited-id lookup indexes, #1935)', () {
     const indexes = {
       'dance_authors_choreographer_id',

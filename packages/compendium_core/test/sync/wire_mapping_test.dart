@@ -1198,6 +1198,9 @@ class _Fixture {
         position: 5,
         text: 'aux slot text',
         isPurgedDance: _flag('program_slots.is_purged_dance'),
+        // A placeholder (#2338) is a slot without a dance, so it rides here
+        // too: the constructor drops it from a dance slot.
+        placeholderSearchId: _str('program_slots.placeholder_search_id'),
       ),
     ],
     provenance: Provenance(
