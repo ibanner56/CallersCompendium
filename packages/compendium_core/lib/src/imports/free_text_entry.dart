@@ -6,6 +6,7 @@ import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
 import '../taxonomy/contra_taxonomy.dart';
+import '../taxonomy/form_figures.dart';
 import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
 import 'beat_implied_balance.dart';
@@ -463,7 +464,29 @@ List<Figure> parseFreeTextFigureEntry(
     }
     return [_typedCustom(trimmed, bars.beats)];
   }
-  return _parseLine(trimmed, taxonomy, dialect, ringDancers: ring);
+  return _ownFormOnly(
+    trimmed,
+    taxonomy,
+    _parseLine(trimmed, taxonomy, dialect, ringDancers: ring),
+  );
+}
+
+/// [figures], read from the typed line [trimmed], when each is a figure of
+/// [taxonomy]'s form ([figureFitsForm]); otherwise the line kept whole as
+/// typed, with its count. Contra's grammar reads a square's line into
+/// contra's calls, and a dance's text is parsed only into its own form's
+/// (Hudson, 24 November 2026), so until squares have a grammar of their own
+/// such a line stays custom.
+List<Figure> _ownFormOnly(
+  String trimmed,
+  Taxonomy? taxonomy,
+  List<Figure> figures,
+) {
+  if (taxonomy == null ||
+      figures.every((figure) => figureFitsForm(figure, taxonomy.form))) {
+    return figures;
+  }
+  return [_typedCustom(trimmed, _splitInlineBeats(trimmed).beats)];
 }
 
 /// Whether typing [token] as a free-text line already inserts a figure: the
