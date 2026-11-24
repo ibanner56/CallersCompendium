@@ -136,6 +136,7 @@ void main() {
         field('d', 'story (2)'),
         field('e', en.csvColumnRating),
         field('f', en.csvColumnBarnes),
+        field('g', en.danceEditorSingingLabel),
       ];
       final withValues = dance(
         customFields: [
@@ -159,6 +160,7 @@ void main() {
         'story (2) (2)',
         'Rating (2)',
         'Barnes reference (2)',
+        'Singing call (2)',
       ]);
       expect(
         {for (final h in header) h.toLowerCase()}.length,
@@ -177,7 +179,13 @@ void main() {
         CsvColumnMapping.customField('d'),
         CsvColumnMapping.customField('e'),
         CsvColumnMapping.customField('f'),
+        CsvColumnMapping.customField('g'),
       ]);
+      expect(
+        mapped[header.indexOf(en.danceEditorSingingLabel)],
+        isNot(CsvColumnMapping.customField('g')),
+        reason: "the built-in Singing call column does not fill the field",
+      );
       expect(
         mapped[header.indexOf(en.csvColumnTitle)],
         const CsvColumnMapping(CsvColumnTarget.title),
