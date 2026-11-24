@@ -11,6 +11,7 @@
 #include <cctype>
 #include <cmath>
 #include <limits>
+#include <utility>
 
 namespace text_recognition {
 
@@ -19,6 +20,7 @@ namespace {
 using winrt::Windows::Globalization::Language;
 using winrt::Windows::Graphics::Imaging::BitmapAlphaMode;
 using winrt::Windows::Graphics::Imaging::BitmapDecoder;
+using winrt::Windows::Graphics::Imaging::BitmapInterpolationMode;
 using winrt::Windows::Graphics::Imaging::BitmapPixelFormat;
 using winrt::Windows::Graphics::Imaging::BitmapTransform;
 using winrt::Windows::Graphics::Imaging::ColorManagementMode;
@@ -36,13 +38,19 @@ std::string Lower(std::string text) {
   return text;
 }
 
-// The top of |line|: the smallest top edge of its words.
-float TopOf(const OcrLine& line) {
-  float top = std::numeric_limits<float>::max();
+// |text| with where its line sits on the picture: its words' union.
+Piece PieceOf(std::string text, const OcrLine& line) {
+  Piece piece{std::move(text), std::numeric_limits<float>::max(),
+              std::numeric_limits<float>::max(),
+              std::numeric_limits<float>::lowest()};
   for (const auto& word : line.Words()) {
-    top = std::min(top, word.BoundingRect().Y);
+    const auto rect = word.BoundingRect();
+    piece.left = std::min(piece.left, rect.X);
+    piece.top = std::min(piece.top, rect.Y);
+    piece.bottom = std::max(piece.bottom, rect.Y + rect.Height);
   }
-  return top;
+  if (piece.bottom < piece.top) piece.left = piece.top = piece.bottom = 0;
+  return piece;
 }
 
 Recognition Failure(Error error) { return Recognition{error, {}}; }
@@ -99,6 +107,38 @@ std::vector<std::string> AvailableLanguages(
   return available;
 }
 
+std::string LinesOf(std::vector<Piece> pieces) {
+  std::stable_sort(pieces.begin(), pieces.end(),
+                   [](const Piece& a, const Piece& b) {
+                     return a.MidY() < b.MidY();
+                   });
+  std::vector<std::vector<Piece>> rows;
+  for (auto& piece : pieces) {
+    if (!rows.empty()) {
+      const Piece& first = rows.back().front();
+      if (std::fabs(first.MidY() - piece.MidY()) <
+          std::min(first.Height(), piece.Height()) / 2) {
+        rows.back().push_back(std::move(piece));
+        continue;
+      }
+    }
+    rows.push_back({std::move(piece)});
+  }
+  std::string text;
+  for (auto& row : rows) {
+    std::stable_sort(row.begin(), row.end(),
+                     [](const Piece& a, const Piece& b) {
+                       return a.left < b.left;
+                     });
+    if (!text.empty()) text += '\n';
+    for (size_t i = 0; i < row.size(); ++i) {
+      if (i > 0) text += ' ';
+      text += row[i].text;
+    }
+  }
+  return text;
+}
+
 Recognition Recognize(const std::vector<uint8_t>& bytes,
                       const std::vector<std::string>& languages,
                       const std::vector<std::string>& installed) {
@@ -147,6 +187,7 @@ Recognition Recognize(const std::vector<uint8_t>& bytes,
     const uint32_t limit = std::min(kDecodeSide, OcrEngine::MaxImageDimension());
     const uint32_t longer = std::max(width, height);
     BitmapTransform transform;
+    transform.InterpolationMode(BitmapInterpolationMode::Fant);
     if (longer > limit) {
       const double scale = static_cast<double>(limit) / longer;
       transform.ScaledWidth(std::max<uint32_t>(
@@ -167,19 +208,12 @@ Recognition Recognize(const std::vector<uint8_t>& bytes,
     }
 
     const auto result = engine.RecognizeAsync(bitmap).get();
-    std::vector<OcrLine> lines;
-    for (const auto& line : result.Lines()) lines.push_back(line);
-    std::stable_sort(lines.begin(), lines.end(),
-                     [](const OcrLine& a, const OcrLine& b) {
-                       return TopOf(a) < TopOf(b);
-                     });
-    std::string text;
-    for (const auto& line : lines) {
-      const std::string piece = winrt::to_string(line.Text());
-      if (piece.empty()) continue;
-      if (!text.empty()) text += '\n';
-      text += piece;
+    std::vector<Piece> pieces;
+    for (const auto& line : result.Lines()) {
+      std::string piece = winrt::to_string(line.Text());
+      if (!piece.empty()) pieces.push_back(PieceOf(std::move(piece), line));
     }
+    const std::string text = LinesOf(std::move(pieces));
     return Recognition{std::nullopt, text};
   } catch (...) {
     return Failure(Error::kFailed);

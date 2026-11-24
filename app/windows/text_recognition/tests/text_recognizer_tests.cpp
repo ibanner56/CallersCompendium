@@ -13,7 +13,12 @@ namespace Gdiplus {
 using std::max;
 using std::min;
 }  // namespace Gdiplus
+// GDI+'s headers hide class members with parameters (C4458), which /W4 /WX
+// would make an error.
+#pragma warning(push)
+#pragma warning(disable : 4458)
 #include <gdiplus.h>
+#pragma warning(pop)
 #include <objidl.h>
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Graphics.Imaging.h>
@@ -134,6 +139,20 @@ void TestLanguageCodesMatchInstalledTags() {
         "only installed languages are available, in the order asked");
   Check(AvailableLanguages({"de", "en"}, {}).empty(),
         "with no OCR language installed, nothing is available");
+}
+
+// The same case as testPiecesAreOrderedTopToBottomThenLeftToRight in
+// app/ios/RunnerTests, with the origin at the top left: "right" sits a little
+// higher than "left" on the same row.
+void TestPiecesAreOrderedTopToBottomThenLeftToRight() {
+  using text_recognition::Piece;
+  const std::string text = text_recognition::LinesOf({
+      Piece{"second", 10, 50, 60},
+      Piece{"right", 50, 19, 29},
+      Piece{"left", 10, 20, 30},
+  });
+  Check(text == "left right\nsecond", "pieces in reading order", text);
+  Check(text_recognition::LinesOf({}).empty(), "no pieces read as no text");
 }
 
 void TestATypedCardReadsAsItsLinesInOrder() {
@@ -303,6 +322,7 @@ int main() {
 
   Run("installed languages", TestInstalledLanguagesIncludeEnglish);
   Run("language codes", TestLanguageCodesMatchInstalledTags);
+  Run("reading order", TestPiecesAreOrderedTopToBottomThenLeftToRight);
   Run("typed card", TestATypedCardReadsAsItsLinesInOrder);
   Run("sideways photo", TestAPictureStoredSidewaysIsReadUpright);
   Run("large sideways photo", TestALargeSidewaysPhotoIsScaledDownAndReadUpright);

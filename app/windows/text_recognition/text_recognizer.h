@@ -50,6 +50,23 @@ std::vector<std::string> AvailableLanguages(
     const std::vector<std::string>& languages,
     const std::vector<std::string>& installed);
 
+// A piece of recognized text and where it sits on the picture, in pixels
+// with the origin at the top left.
+struct Piece {
+  std::string text;
+  float left;
+  float top;
+  float bottom;
+  float MidY() const { return (top + bottom) / 2; }
+  float Height() const { return bottom - top; }
+};
+
+// |pieces| in reading order, as TextRecognizer.lines(of:) in
+// app/ios/Runner/TextRecognizer.swift orders them: top to bottom, one line of
+// text per row, and left to right within a row joined by spaces (pieces whose
+// middles are within half a piece's height of the row's first).
+std::string LinesOf(std::vector<Piece> pieces);
+
 // A reading: the text, or why there is none.
 struct Recognition {
   std::optional<Error> error;
