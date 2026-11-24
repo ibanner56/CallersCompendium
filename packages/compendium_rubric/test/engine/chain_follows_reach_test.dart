@@ -231,6 +231,23 @@ void main() {
       expect(heyStep(heyJaVu(flagHey: true)), isA<Err<Formation, OpError>>());
     });
 
+    test('a hey whose second pass names neighbours does not follow', () {
+      final step = heyStep(heyJaVu(pass2: 'neighbors'));
+      final direct = heyStep(heyJaVu(pass2: 'partners'));
+      expect(direct, isA<Ok<Formation, OpError>>(), reason: 'control');
+      expect(step, isA<Err<Formation, OpError>>());
+    });
+
+    test('a hey whose second pass names the N2 couple follows', () {
+      // A distance set is checked by where the couples started, so it reads
+      // the same couple one grouping over (Waylaid in Tulsa, #4960: "Hey 1/2
+      // (MR;N0L;WR)" after an N0 allemande).
+      expect(
+        heyStep(heyJaVu(pass2: 'nextNeighbors')),
+        isA<Ok<Formation, OpError>>(),
+      );
+    });
+
     test('a hey naming neighbours does not follow', () {
       // One grouping over, `neighbors` would accept the N2 couple in their
       // place. *(Agent's call.)*

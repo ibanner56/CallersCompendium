@@ -73,29 +73,34 @@ class FigureFold {
 
   /// Whether [figure], handed [state], follows the reach just danced.
   ///
-  /// A hey follows only when it reaches nobody itself and names only role
-  /// sets and partners: partners are the same two dancers in either
-  /// grouping, but `neighbors` would accept the N2 couple in their place and
-  /// a distance set or `shadows` picks its own phase. *(Agent's call.)*
+  /// A hey follows only when its first pass names a role set or partners,
+  /// and its second pass one of those or a distance set: partners are the
+  /// same two dancers in either grouping, and a distance set is checked by
+  /// where the couples started, but `neighbors` would accept the N2 couple in
+  /// their place, and a first pass naming a distance set or `shadows` picks
+  /// its own phase. *(Agent's call.)* A chain names a role set, as it must to
+  /// be danced at all.
   bool _follows(OperationInvocation figure, Formation state) {
     final operation = figure.operation;
     return _followReach &&
-        operation.reachAfter(progressions) == 0 &&
+        !operation.reachAfter(progressions).isOdd &&
         !figure.progression &&
         ((operation is Chain && operation.dir == ChainDirection.across) ||
             (operation is HeyForFour &&
-                operation.dancerSets.every(
-                  (set) =>
-                      set == null ||
-                      set == WhoSet.role1s ||
-                      set == WhoSet.role2s ||
-                      set == WhoSet.partners,
-                ))) &&
+                _followsIn(operation.pass1) &&
+                (operation.pass2 == null ||
+                    _followsIn(operation.pass2!) ||
+                    operation.pass2!.isCrossHandsFour))) &&
         // A held progression that finished on the reaching figure moved the
         // set to the other phase; one phase over from there is not where the
         // reach was danced, so the figure stays put. *(Agent's call.)*
         isShiftedBandPhase(state) == _reachHandedShifted;
   }
+
+  /// Whether a hey pass naming [set] reads the same dancers one grouping
+  /// over: role sets and partners do.
+  static bool _followsIn(WhoSet set) =>
+      set == WhoSet.role1s || set == WhoSet.role2s || set == WhoSet.partners;
 
   /// Runs [figure] (figure number [index]) on [state].
   Result<Formation, OpError> step(
