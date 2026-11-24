@@ -37,7 +37,16 @@ void main() {
     test('a remainder with its own annotation stays custom', () {
       // `(RH)` is read by a recognizer that would drop the number.
       expect(_parse('N3 role1s balance (RH)').isCustom, isTrue);
-      expect(_parse('N2 role2s allemande right (1 or 2)').isCustom, isTrue);
+    });
+
+    test('an amount choice keeps the number and the choice as notes', () {
+      // `_amountAlternativeAnnotation` writes the first amount into the line
+      // and re-reads it through this recognizer, so neither note is lost.
+      final f = _parse('N2 role2s allemande right (1 or 2)');
+      expect(f.isCustom, isFalse);
+      expect(f.params['who'], 'role2s');
+      expect(f.params['travel'], 1.0);
+      expect(f.note, 'with nextNeighbors; 1 or 2');
     });
 
     test('mixed case and other moves keep the number as the note', () {
