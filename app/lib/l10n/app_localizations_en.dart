@@ -7955,6 +7955,32 @@ class AppLocalizationsEn extends AppLocalizations {
       'This dance code doesn\'t contain any dances or programs.';
 
   @override
+  String get importScanDanceCode => 'Scan a dance code';
+
+  @override
+  String get importScanNoCode =>
+      'No dance code was found in the picture. Make sure the whole code is in it and sharp.';
+
+  @override
+  String get importScanUnreadable => 'The picture couldn\'t be read.';
+
+  @override
+  String get importDanceCodePicture => 'Dance code from a picture…';
+
+  @override
+  String importScanTooLarge(int limit) {
+    return 'This picture is larger than $limit MB, so it wasn\'t read. Choose a smaller one.';
+  }
+
+  @override
+  String get importScanNoCamera =>
+      'This device has no camera app to take the photo. Choose \"Dance code from a picture…\" instead.';
+
+  @override
+  String get importScanCameraOff =>
+      'Camera access is off for Caller\'s Compendium. To scan a code, turn it on in the Settings app.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'That file isn\'t a Caller\'s Compendium share file.';
 

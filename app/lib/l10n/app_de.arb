@@ -7842,6 +7842,34 @@
   "@danceLinkRefusedNoContent": {
     "x-sourceSha256": "12e1e0997cdbb1ae3cc25202f1823287ba7b1c8bd1985263e73edcbf668b7b0e"
   },
+  "importScanDanceCode": "Tanzcode scannen",
+  "@importScanDanceCode": {
+    "x-sourceSha256": "6d0de32ac3ed5523e61de52943c3e9e755f341c1baf566dbbc97667ca15de7f7"
+  },
+  "importScanNoCode": "Im Bild wurde kein Tanzcode gefunden. Achten Sie darauf, dass der ganze Code darauf und scharf ist.",
+  "@importScanNoCode": {
+    "x-sourceSha256": "1ae463d735b602f8bcc4152e17ddb801d51543b7f5600324a2b58b2d1fc9651b"
+  },
+  "importScanUnreadable": "Das Bild konnte nicht gelesen werden.",
+  "@importScanUnreadable": {
+    "x-sourceSha256": "336ced48bcf977932a16abfbc6526b3d8601c3b8276e3ece458601eda3035af6"
+  },
+  "importDanceCodePicture": "Tanzcode aus einem Bild…",
+  "@importDanceCodePicture": {
+    "x-sourceSha256": "be81c72bb0d507302ebe60ba264cb2761e661821bb7d098ec7c323bbbaca4e3c"
+  },
+  "importScanTooLarge": "Dieses Bild ist größer als {limit} MB und wurde daher nicht gelesen. Wählen Sie ein kleineres.",
+  "@importScanTooLarge": {
+    "x-sourceSha256": "1bb69766d216ed5cb9684a05e78700f2dbb36387e7357e871b9d03fec1dcb7ab"
+  },
+  "importScanNoCamera": "Dieses Gerät hat keine Kamera-App für das Foto. Wählen Sie stattdessen „Tanzcode aus einem Bild…“.",
+  "@importScanNoCamera": {
+    "x-sourceSha256": "e0a95d0123c05ffc934149ea728b928edb8fd4a60e3fb77831a9b7711cfa4766"
+  },
+  "importScanCameraOff": "Der Kamerazugriff ist für Caller's Compendium ausgeschaltet. Um einen Code zu scannen, schalten Sie ihn in der App „Einstellungen“ ein.",
+  "@importScanCameraOff": {
+    "x-sourceSha256": "869f1f26a4aeb36d0d17ccd4cf21bbb313746189f5a00e0abdacd705a7decd6c"
+  },
   "archiveIntakeRejectedNotArchive": "Diese Datei ist keine Freigabedatei von Caller’s Compendium.",
   "@archiveIntakeRejectedNotArchive": {
     "x-sourceSha256": "80dd7dada7feaccdf4d83c86ca2567fad99deb5ad4b25ffc22cdd87c7d4de1d8"

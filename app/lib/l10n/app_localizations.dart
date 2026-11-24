@@ -11920,6 +11920,48 @@ abstract class AppLocalizations {
   /// **'This dance code doesn\'t contain any dances or programs.'**
   String get danceLinkRefusedNoContent;
 
+  /// Button in Import dances, on iPhone, iPad and Android, that opens the system camera to photograph a dance's QR code (shown by another device's Show code screen). The code is read on the device and opens the same import review as a pasted dance link.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan a dance code'**
+  String get importScanDanceCode;
+
+  /// Shown under the Scan a dance code and Dance code from a picture buttons when the photo or chosen picture contains no QR code the app can find. Nothing is imported.
+  ///
+  /// In en, this message translates to:
+  /// **'No dance code was found in the picture. Make sure the whole code is in it and sharp.'**
+  String get importScanNoCode;
+
+  /// Shown under the Scan a dance code and Dance code from a picture buttons when the photo or chosen picture could not be opened or searched for a code. Nothing is imported.
+  ///
+  /// In en, this message translates to:
+  /// **'The picture couldn\'t be read.'**
+  String get importScanUnreadable;
+
+  /// Button in Import dances, on every platform, that opens the system file picker to choose a picture holding a dance's QR code (a saved photo, or a screenshot of another device's Show code screen). The code is read on the device and opens the same import review as a pasted dance link. The ellipsis means a picker opens.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance code from a picture…'**
+  String get importDanceCodePicture;
+
+  /// Shown under the Scan a dance code and Dance code from a picture buttons when the photo or chosen file is over the size cap. Nothing is searched for a code or imported.
+  ///
+  /// In en, this message translates to:
+  /// **'This picture is larger than {limit} MB, so it wasn\'t read. Choose a smaller one.'**
+  String importScanTooLarge(int limit);
+
+  /// Shown under the Scan a dance code button when the device has no camera app to take the photo (some Android tablets). Dance code from a picture… is the button beside it; keep its name as translated there.
+  ///
+  /// In en, this message translates to:
+  /// **'This device has no camera app to take the photo. Choose \"Dance code from a picture…\" instead.'**
+  String get importScanNoCamera;
+
+  /// Shown under the Scan a dance code button when the user has turned off camera access for the app in iOS Settings, so the camera did not open. Settings is the iOS Settings app.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera access is off for Caller\'s Compendium. To scan a code, turn it on in the Settings app.'**
+  String get importScanCameraOff;
+
   /// Rejection shown when a shared file is not a well-formed Caller's Compendium archive (bad text, non-archive JSON, or an unreadable envelope). Generic; never echoes parser detail.
   ///
   /// In en, this message translates to:

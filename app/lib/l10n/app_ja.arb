@@ -7842,6 +7842,34 @@
   "@danceLinkRefusedNoContent": {
     "x-sourceSha256": "12e1e0997cdbb1ae3cc25202f1823287ba7b1c8bd1985263e73edcbf668b7b0e"
   },
+  "importScanDanceCode": "ダンスのコードをスキャン",
+  "@importScanDanceCode": {
+    "x-sourceSha256": "6d0de32ac3ed5523e61de52943c3e9e755f341c1baf566dbbc97667ca15de7f7"
+  },
+  "importScanNoCode": "画像にダンスのコードが見つかりませんでした。コード全体が写り、鮮明であることを確認してください。",
+  "@importScanNoCode": {
+    "x-sourceSha256": "1ae463d735b602f8bcc4152e17ddb801d51543b7f5600324a2b58b2d1fc9651b"
+  },
+  "importScanUnreadable": "画像を読み取れませんでした。",
+  "@importScanUnreadable": {
+    "x-sourceSha256": "336ced48bcf977932a16abfbc6526b3d8601c3b8276e3ece458601eda3035af6"
+  },
+  "importDanceCodePicture": "画像からダンスのコード…",
+  "@importDanceCodePicture": {
+    "x-sourceSha256": "be81c72bb0d507302ebe60ba264cb2761e661821bb7d098ec7c323bbbaca4e3c"
+  },
+  "importScanTooLarge": "この画像は {limit} MB を超えているため、読み取りませんでした。小さい画像を選んでください。",
+  "@importScanTooLarge": {
+    "x-sourceSha256": "1bb69766d216ed5cb9684a05e78700f2dbb36387e7357e871b9d03fec1dcb7ab"
+  },
+  "importScanNoCamera": "この端末には写真を撮るカメラアプリがありません。代わりに「画像からダンスのコード…」を選んでください。",
+  "@importScanNoCamera": {
+    "x-sourceSha256": "e0a95d0123c05ffc934149ea728b928edb8fd4a60e3fb77831a9b7711cfa4766"
+  },
+  "importScanCameraOff": "Caller's Compendium のカメラへのアクセスがオフになっています。コードをスキャンするには、「設定」アプリでオンにしてください。",
+  "@importScanCameraOff": {
+    "x-sourceSha256": "869f1f26a4aeb36d0d17ccd4cf21bbb313746189f5a00e0abdacd705a7decd6c"
+  },
   "archiveIntakeRejectedNotArchive": "そのファイルはCaller’s Compendiumの共有ファイルではありません。",
   "@archiveIntakeRejectedNotArchive": {
     "x-sourceSha256": "80dd7dada7feaccdf4d83c86ca2567fad99deb5ad4b25ffc22cdd87c7d4de1d8"

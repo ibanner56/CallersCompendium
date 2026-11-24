@@ -7994,6 +7994,32 @@ class AppLocalizationsDa extends AppLocalizations {
       'Denne dansekode indeholder ingen danse eller programmer.';
 
   @override
+  String get importScanDanceCode => 'Scan en dansekode';
+
+  @override
+  String get importScanNoCode =>
+      'Der blev ikke fundet nogen dansekode i billedet. Sørg for, at hele koden er med og skarp.';
+
+  @override
+  String get importScanUnreadable => 'Billedet kunne ikke læses.';
+
+  @override
+  String get importDanceCodePicture => 'Dansekode fra et billede…';
+
+  @override
+  String importScanTooLarge(int limit) {
+    return 'Dette billede er større end $limit MB, så det blev ikke læst. Vælg et mindre.';
+  }
+
+  @override
+  String get importScanNoCamera =>
+      'Denne enhed har ingen kameraapp til at tage billedet. Vælg i stedet »Dansekode fra et billede…«.';
+
+  @override
+  String get importScanCameraOff =>
+      'Kameraadgang er slået fra for Caller\'s Compendium. Slå den til i appen Indstillinger for at scanne en kode.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'Den fil er ikke en delefil fra Caller’s Compendium.';
 
