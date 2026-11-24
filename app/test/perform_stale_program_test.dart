@@ -290,9 +290,9 @@ void main() {
 
   // #2346: a swap whose slots another device changed meanwhile is not merged
   // field by field (see perform_swap_conflict_test.dart): nothing is written,
-  // Perform shows the stored program and asks for the swap again.
+  // Perform shows the stored program and asks for the changes again.
   testWidgets('a swap whose group changed elsewhere is not made, and Perform '
-      'asks to swap again', (tester) async {
+      'asks for the changes again', (tester) async {
     final repos = openTestRepositories();
     for (final (id, title) in [
       ('d1', 'First Dance'),

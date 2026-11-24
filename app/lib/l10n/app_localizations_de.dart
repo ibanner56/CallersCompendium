@@ -13819,7 +13819,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get performSwapRefused =>
-      'Dieses Programm wurde auf einem anderen Gerät geändert, daher wurde der Tanz nicht getauscht. Tausche ihn erneut.';
+      'Dieses Programm wurde auf einem anderen Gerät geändert, daher wurden diese Änderungen samt Tausch nicht gespeichert. Nimm sie erneut vor.';
 
   @override
   String get settingsPerformSwapTitle => 'Tanz tauschen';

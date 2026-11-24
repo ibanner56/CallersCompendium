@@ -13653,7 +13653,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get performSwapRefused =>
-      'This program changed on another device, so the swap wasn\'t made. Swap again.';
+      'This program changed on another device, so this round of changes, the swap included, wasn\'t saved. Make them again.';
 
   @override
   String get settingsPerformSwapTitle => 'Swap a dance';

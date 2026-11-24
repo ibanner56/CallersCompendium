@@ -334,9 +334,11 @@ does, and the one you swapped out stays in the program as an unmarked
 
 **Undo** puts the program back exactly as it was. If another device changed
 any slot the swap touches while you were swapping (deleted it, or changed its
-dance, its group or whether it is an alternate), the swap is not made: Perform
-shows the program as it now is and says *This program changed on another
-device, so the swap wasn't made. Swap again.* The swap searches only your
+dance, its group or whether it is an alternate), nothing from that round of
+changes is saved, the swap or anything else you changed before tapping
+**Done**: Perform shows the program as it now is and says *This program
+changed on another device, so this round of changes, the swap included, wasn't
+saved. Make them again.* The swap searches only your
 collection, never online.
 
 For an English dance, Same formation is not offered, and its figures can be

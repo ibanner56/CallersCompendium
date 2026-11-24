@@ -29,8 +29,9 @@ class PerformAdjustmentWrite {
 
   /// Whether nothing was written because the adjustment holds a swap that
   /// changes elsewhere made unsafe to apply ([performSwapsStillApply]): the
-  /// stored program is left as it is ([stored] is [base]), and the caller is
-  /// asked to swap again.
+  /// stored program is left as it is ([stored] is [base]), nothing else from
+  /// the same adjustment is written either, and the caller is asked to make
+  /// the changes again.
   final bool swapRefused;
 }
 

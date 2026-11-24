@@ -108,8 +108,9 @@ List<ProgramSlot> rebaseSlotEdits({
 /// dance in the wrong group or on a slot that counts toward calling history.
 /// So every slot whose dance or alternate flag Perform changed must still be
 /// in [onto] with the dance and flag it had in [before], in a group of the
-/// same slots; otherwise the caller is asked to swap again rather than
-/// having the edit merged. Perform's adjust sheet changes a slot's dance or
+/// same slots; otherwise nothing from the adjustment is written and the
+/// caller is asked to make the changes again, rather than having the edit
+/// merged. Perform's adjust sheet changes a slot's dance or
 /// flag only by a swap, so an adjustment without one always passes.
 bool performSwapsStillApply({
   required List<ProgramSlot> before,
