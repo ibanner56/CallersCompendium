@@ -49,6 +49,9 @@ endfunction()
 set(FLUTTER_MANAGED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/flutter")
 add_subdirectory(${FLUTTER_MANAGED_DIR})
 
+# Windows OCR for From an image... (#2327), linked into the runner.
+add_subdirectory("text_recognition")
+
 # Application build; see runner/CMakeLists.txt.
 add_subdirectory("runner")
 
