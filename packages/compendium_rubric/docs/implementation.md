@@ -28,7 +28,7 @@ claims they would?*
 JSON record ──parse──▶ Dance ──compile──▶ Compiled | Mismatch | CompileError
                          │                    ▲
                          │                    │
-                    figures[]            actual == expected
+                    figures[]       actual == expected (or ≤1 column off)
                          │                    │
                     fold over ──────▶ actual  │
                                               │
@@ -177,7 +177,9 @@ behind §3.5's equality rule.
 5. oracle          <- expected = dance.success.expected(input)      // from the INPUT
 6. compare         <- normalizeWaveOffsets(state) == expected
                         ? Compiled(state)      // note: the RAW state, offsets and all
-                        : Mismatch(actual: state, expected: expected)
+                        : endsWithinOneColumn(settled, expected)   // right rows, numbers and order, ≤1 column off
+                          ? Compiled(state) + endedColumnOffset warning
+                          : Mismatch(actual: state, expected: expected)
 ```
 
 Two subtleties worth internalizing:
@@ -446,6 +448,7 @@ index.
 | `assumedProgression` | **an import bridge** | the source flagged no progression, so one was assumed (§10.1) |
 | `heldProgressionUnfinished` | engine (`FigureFold`) | a held progression's change-over never ran |
 | `endEffectSwap` | engine (`compile`) | a pair waiting at an end traded places so a refused figure could be danced, and the dance then compiled |
+| `endedColumnOffset` | engine (comparison) | the dance compiled with every dancer in the expected row but some one column off *(user-ruled 2026-11-24)* |
 
 Three rules about warnings:
 
@@ -614,8 +617,8 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
   chain (a sequence whose title contains "chain" and whose exactly two
   children are a `role1s`/`role2s` allemande `0.5` and then an allemande
   `0.75`) has that closing allemande danced as `1.0` (Hudson's report note on
-  Every Second Counts, 2026-11-24; generalising it, and those limits, are the
-  agent's calls). The same chain inside a container is danced as written, and
+  Every Second Counts, 2026-11-24; generalising it, with those limits, was the
+  agent's proposal, ratified by the user 2026-11-24). The same chain inside a container is danced as written, and
   the bridge adds no warning when it rewrites the turn. A `meanwhile` or
   `modifier` stays one figure here, children and all (a sequence inside one
   stays inside it), and the parser builds it as a container
@@ -680,7 +683,8 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > but not a Rory O'More's slide, is a slide or a straight slice by couple,
 > that slide joins those moves in either direction, wherever it falls
 > (Hudson's Apogee note 2026-11-24 named its slide right; generalising it,
-> and those limits, are the agent's calls). Only a Becket dance with none of
+> with those limits, was the agent's proposal, ratified by the user
+> 2026-11-24). Only a Becket dance with none of
 > these falls back to the last figure. Outside Becket,
 > an `arch_and_dive` straight after a hall figure progresses before the last
 > figure does (user-ruled 2026-11-24: the line bends into a ring and the arch
@@ -701,7 +705,10 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > `unperformedProgression`. **The bridge assumes; the compiler never infers.**
 >
 > **One retry by the next neighbours** *(user-ruled)*. When the positional placement does
-> not compile, `runCoreDance` tries a second: the figure **immediately before the
+> not compile, or compiles only as a one-column near miss (`endedColumnOffset`,
+> in which case a retry replaces it only if it matches exactly; extending the
+> retries to near misses is the agent's call, 2026-11-24), `runCoreDance` tries a
+> second: the figure **immediately before the
 > first `nextNeighbors` reach**, in a param or (below) a note
 > (`nextNeighborsProgressionIndex`). A figure
 > reaching for the next couple is naming people this hands four has not met yet,
@@ -739,11 +746,12 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 >
 > **A last reading: the hey marked "~"** *(user-ruled 2026-11-24: a "~" on a
 > hey pass marks that last pass as the progression)*. When neither the
-> positional placement nor the N2 retry compiles, `runCoreDance` tries a third:
+> positional placement nor the N2 retry compiles exactly (a one-column near
+> miss counts as not exact), `runCoreDance` tries a third:
 > the last `hey` whose final pass Caller's Box marks partial ("~"), which the
 > core import keeps as the note clause `last pass partial`
 > (`partialPassProgressionIndex`). Trying it only after the other two, so it
-> never displaces a reading that compiles, and taking the **last** marked hey
+> never displaces a reading that compiles exactly, and taking the **last** marked hey
 > rather than the first, are the agent's calls; the second follows Hudson's
 > description of Haven't We Met Before?, whose two hey halves are both marked
 > and whose second progresses. It places one progression and no later ones.
@@ -937,7 +945,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,585 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,601 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

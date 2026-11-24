@@ -185,6 +185,20 @@
 > Tulsa (4959) now compiles; nothing else changed outcome. Heather's Hop
 > Redux and its alternate still mismatch, at their final half figure eight.
 >
+> **A dance one column off still compiles (2026-11-24)**: a dance whose
+> final state has every dancer in the expected row, with the expected number
+> and in the row's expected order, but some up to one column to the side
+> (ending in a wave rather than on the side lines), now compiles with an
+> `endedColumnOffset` warning instead of mismatching (user-ruled 2026-11-24
+> from Hudson's note on Chuck the Budgie; the number and order guards and the
+> warning are the agent's calls). The Caller's Box bridge retries its
+> alternative progression placement on such a near miss and prefers an exact
+> match. Against `rubric` at `f628f80b`: unchanged at 4,435 of 5,590 compiled
+> in scope (79.3%), the core set unchanged at 568; no corpus dance ends as
+> such a near miss today. Chuck the Budgie (10345) still
+> mismatches: its couples end a row out, which Hudson ruled an input issue
+> (the source should record it as progressed improper).
+>
 > **An open chain closes with a full allemande (2026-11-24)**: where Caller's
 > Box writes an open chain as a titled line over the chainers' allemande half
 > and a courtesy allemande "3/4", the bridge now dances that courtesy

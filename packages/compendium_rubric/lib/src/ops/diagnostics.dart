@@ -295,6 +295,18 @@ enum WarningKind {
   endEffectSwap(
     'endEffectSwap',
     'two dancers waiting at an end traded places so the dance could go on',
+  ),
+
+  /// The dance ended with every dancer in the row the oracle expects, with the
+  /// expected number and in the row's expected order, but some up to one
+  /// column to the side of it, so it compiled without matching
+  /// cell for cell (user-ruled 2026-11-24: a dance that ends in a wave rather
+  /// than on the side lines still passes). Raised by the engine on the
+  /// comparison, never by a figure.
+  endedColumnOffset(
+    'endedColumnOffset',
+    'the dance ended with every dancer in the expected row, but some up to '
+        'one column off their expected place; accepted as a match',
   );
 
   const WarningKind(this.key, this.description);

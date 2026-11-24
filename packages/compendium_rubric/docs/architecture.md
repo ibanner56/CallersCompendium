@@ -64,6 +64,7 @@ supplied: inputFormationType, successCondition, [op0, op1, … opK]
               ▼
   ┌─ 3.5 VERIFY ─────────────────────────────────────────────────┐
   │ actual == expected ?  → Compiled (success)                     │
+  │ same but ≤1 column off? → Compiled + endedColumnOffset warning │
   │                else   → Did-not-compile (mismatch)             │
   └───────────────────────────────────────────────────────────────┘
 ```
@@ -160,7 +161,8 @@ independent oracle the list is checked against.
 The final `actual` formation is compared against `expected`. A match ⇒ the sequence
 **compiles successfully**; a non-match ⇒ it **does not compile** (mismatch).
 
-**Equality is strict over `position + role + number + couple identity`.** Tracked **facing
+**Equality is strict over `position + role + number + couple identity`** (apart from the
+one-column allowance below). Tracked **facing
 is the only excluded factor** — it is NOT a rigid part of success-state equality (two states
 matching on position/role/number/identity are not disqualified by a facing difference).
 
@@ -176,6 +178,16 @@ the formation it ends in. The success oracle walks a **settled** set, so `actual
 through the same §8.5.4 normalization the next figure would have applied to it, and the two are
 compared on that footing. *(User-ruled.)*
 
+**A dance one column off still passes** *(user-ruled 2026-11-24)*. If the settled state is not
+equal to `expected`, but every dancer has the expected couple number, is in the row `expected`
+puts them in and at most one column to the side of it, and every row holds its dancers in the
+expected west-to-east order (a dance ending in a wave the settling does not recognise, rather than on the
+side lines), the dance compiles, with an `endedColumnOffset` warning so the near miss is never
+read as an exact one. A dancer in the wrong row, two columns off, or with the wrong number (a
+couple at an end whose change-over never ran), or two dancers trading places in a row, is still a
+mismatch. The Caller's Box bridge retries the record's own alternative progression placement on a
+near miss too, and takes it if it matches exactly *(agent's call)*.
+
 The projection is **how the two are compared, not a claim about where the dancers stand**: both
 `Compiled` and `Mismatch` still carry the **raw** final formation, so the reported end state is
 the wave the dance actually left people in.
@@ -186,8 +198,8 @@ the wave the dance actually left people in.
 
 | Outcome | When | Carries |
 |---|---|---|
-| **Compiled** | all ops ran; `actual == expected` | (optionally) the final formation |
-| **Mismatch** | all ops ran; `actual != expected` | `actual` vs `expected` for diffing |
+| **Compiled** | all ops ran; `actual == expected`, or within one column (§3.5) | (optionally) the final formation |
+| **Mismatch** | all ops ran; `actual != expected`, and not within one column | `actual` vs `expected` for diffing |
 | **Error** | an operation's precondition failed | offending op + reason; no final state |
 
 > **Resolved (D8, §8.3):** the three outcomes are a sealed `CompileResult`;
@@ -228,7 +240,10 @@ M-out is the pre-progression state, and N applies the §10.2 end-normalization.)
 - **Pre-scan contribution values** — the base + each operation's/criterion's configured h4
   contribution (mechanism decided in §3.1; per-item values set with the taxonomy).
 - **Equality** — rigid over `position + role + number + couple identity`; facing is the only
-  excluded factor, so the check is cell-by-cell matrix equality (§3.5). *(resolved)*
+  excluded factor, so the check is cell-by-cell matrix equality (§3.5), after settling wave
+  offsets and allowing each dancer one column either side, in the right row with the right
+  number and the row's order kept *(user-ruled 2026-11-24; the number and order guards are the
+  agent's calls)*. *(resolved)*
 - **Result taxonomy** — final shape/metadata of Compiled / Mismatch / Error. *(§4)*
 - **Operation & success-criterion schema** — the concrete parameter schema, incl. the
   progression flag, per-item h4 contribution, and how a success condition maps to its
