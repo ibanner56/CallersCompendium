@@ -102,24 +102,31 @@ void main() {
       }
     });
 
-    test('the couples stranded at the ends are left where they stand', () {
+    test('the couples stranded at the ends swing each other in place', () {
       // B and E are outside every active hands four while the set is reaching,
-      // so no figure's transform takes them out of their end row (an N0 swing
-      // turns them in place; this one names N2) -- and because the reach is
-      // handed back, they are not left marked out afterwards either.
+      // with nobody at the distance, so they swing their partners in their own
+      // end row and face into the set *(user-ruled 2026-11-24: an end couple
+      // with no N2 swings each other and faces up or down while waiting)* --
+      // and because the reach is handed back, they are not left marked out.
       final after = applyOk(
         const Swing(who: WhoSet.nextNeighbors),
         passedThrough,
       );
 
-      for (final couple in [1, 4]) {
+      for (final (couple, row, facing) in [
+        (1, 0, Facing.down),
+        (4, passedThrough.lastRow, Facing.up),
+      ]) {
+        final normal = normalizeAlongHall(row: row, facing: facing);
         for (final role in Role.values) {
           final id = DancerId(couple, role);
+          expect(passedThrough.stateOf(id).position.row, row, reason: '$id');
           expect(
             after.stateOf(id).position,
-            passedThrough.stateOf(id).position,
+            role == Role.lark ? normal.lark : normal.robin,
             reason: '$id',
           );
+          expect(after.stateOf(id).facing, facing, reason: '$id');
           expect(after.stateOf(id).waitingOut, isFalse, reason: '$id');
         }
       }

@@ -72,6 +72,16 @@
 > 14639, 15271, 7529), and three now reach a deferred figure and leave the
 > scope.
 >
+> **A waiting couple swings on any distance swing (2026-11-24)**: the
+> waiting-couple swing built for N0 below now applies to every distance set
+> (N0, N2, N3, ...), on Hudson's go-ahead. Against `rubric` at `5dced3a5` it
+> took the count from 4,316 to 4,318 of 5,426 compiled in scope (79.5% to
+> 79.6%), core set unchanged at 556, losing nothing: Pull a Fast One (6910)
+> and Swing the Next One, Too (947) now compile. Measured before the
+> end-effect retry it lost Dynamic Appeal (10404) and Composition 88 (14633),
+> whose top couple must cross back before the N1 swing; the retry now does
+> that, with an `endEffectSwap` warning.
+>
 > **A pair waiting at an end trades places when a refused figure needs it
 > (2026-11-24)**: when a figure refuses and names one of two dancers standing
 > alone in an end row who stood out of the figure before, the compile re-runs

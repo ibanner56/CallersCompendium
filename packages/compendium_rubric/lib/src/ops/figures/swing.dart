@@ -6,9 +6,9 @@ part of '../operation.dart';
 /// A swing is a *normalizing* figure: the finishing placement is
 /// lark-left / robin-right relative to [face], and the pair's own starting
 /// arrangement is discarded. Placement is set by `where` × `face`; [who] only
-/// **validates** the pairing, except that an N0 (`prevNeighbors`) swing also
-/// turns a couple waiting out at an end in place, facing into the set (see
-/// [_waitingCouplesSwing]).
+/// **validates** the pairing, except that a swing naming a distance set (N0,
+/// N2, N3, ...) also turns a couple waiting out at an end in place, facing
+/// into the set (see [_waitingCouplesSwing]).
 ///
 /// Only `where: sides` is implemented. It is the case both golden fixtures use,
 /// and the one the taxonomy marks *verified*; `where: center` is partly
@@ -223,22 +223,25 @@ final class Swing extends Operation {
     return Ok(formation.withUpdates(changes));
   }
 
-  /// The couples waiting out at an end of the set when the swing names the
-  /// previous neighbours (N0): each has no N0 there, so the partners swing each
-  /// other and normalize facing into the set, which swaps their sides
-  /// *(user-ruled 2026-11-24, Haven't We Met Before?: "couple waiting out at
-  /// the top after N0 balance+swing should still swing and normalize (swap
-  /// places)")*.
+  /// The couples waiting out at an end of the set when the swing names a
+  /// distance set (N0, N2, N3, ...): each has nobody at that distance there,
+  /// so the partners swing each other and normalize facing into the set,
+  /// which swaps their sides *(user-ruled 2026-11-24, Haven't We Met Before?:
+  /// "couple waiting out at the top after N0 balance+swing should still swing
+  /// and normalize (swap places)"; an end couple with no N2 swings each other
+  /// and faces up or down while waiting; widened from N0 to every distance set
+  /// on Hudson's go-ahead, 2026-11-24)*.
   ///
   /// Only a whole couple standing alone across its end row, both waiting out
   /// in the grouping the swing is danced in (`FigureFold` may dance it one
-  /// band phase over), is moved. Limiting it to `prevNeighbors` is the maintainer's choice
-  /// ("go with option A for now"): read for every distance set it compiled
-  /// eight more Caller's Box dances and lost four. A stated `face` is not
-  /// applied to them, and at the top of a Duple Proper set they stand crossed,
-  /// as end normalization leaves them (the agent's calls).
+  /// band phase over), is moved. A plain `neighbors` swing is left out (the
+  /// agent's call, to stay with what was ruled; reading it too changed no
+  /// Caller's Box dance). A stated `face` is not applied to them, and at the
+  /// top of a
+  /// Duple Proper set they stand crossed, as end normalization leaves them
+  /// (the agent's calls).
   Map<DancerId, DancerState> _waitingCouplesSwing(Formation formation) {
-    if (who != WhoSet.prevNeighbors) return const {};
+    if (who.distance == null) return const {};
     final changes = <DancerId, DancerState>{};
     for (final row in {0, formation.rowCount - 1}) {
       final ids = formation.dancersInRow(row).toList();
