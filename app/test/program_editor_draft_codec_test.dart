@@ -33,6 +33,31 @@ void main() {
     expect(decoded.slots[1].isPurgedDance, isNull);
   });
 
+  test('a placeholder round-trips with its saved search, and an old draft '
+      'without the key reads as an ordinary note (#2338)', () {
+    final draft = ProgramEditorDraft(
+      title: 'Family night',
+      notes: '',
+      status: ProgramStatus.draft,
+      hideAlternates: false,
+      slots: [
+        ProgramSlot(
+          id: 's1',
+          position: 0,
+          text: 'Easy family opener',
+          placeholderSearchId: 'search-1',
+        ),
+        ProgramSlot(id: 's2', position: 1, text: 'Waltz'),
+      ],
+    );
+
+    final decoded = decodeProgramDraft(encodeProgramDraft(draft));
+
+    expect(decoded.slots[0].placeholderSearchId, 'search-1');
+    expect(decoded.slots[0].text, 'Easy family opener');
+    expect(decoded.slots[1].placeholderSearchId, isNull);
+  });
+
   test('legacy plannedMinutes draft value becomes danceMinutes', () {
     final decoded = decodeProgramDraft({
       'v': 1,

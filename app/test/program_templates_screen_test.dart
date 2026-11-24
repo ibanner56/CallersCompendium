@@ -426,6 +426,112 @@ void main() {
     });
   });
 
+  group('slot rules (#2338)', () {
+    Future<SavedSearch> saveSearch(CompendiumRepositories repos, String name) =>
+        repos.savedSearches.create(
+          name: name,
+          spec: SavedSearchSpec.fromPanelState(
+            CollectionPanelState(text: 'swing'),
+            today: DateTime.utc(2026, 11, 22),
+          ).value!,
+        );
+
+    testWidgets('Add slot rule stores a label and the saved search chosen, '
+        'and the row names the search', (tester) async {
+      final repos = openTestRepositories();
+      final family = await saveSearch(repos, 'Family dances');
+      await saveSearch(repos, 'Other');
+      const template = ProgramTemplate(id: 'a', name: 'Family');
+      await _seed(repos, const [template]);
+      await _pump(
+        tester,
+        repos,
+        const ProgramTemplateEditorScreen(template: template),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('program-template-add-rule')));
+      await tester.pumpAndSettle();
+      final save = find.byKey(const ValueKey('program-template-rule-save'));
+      expect(tester.widget<FilledButton>(save).onPressed, isNull);
+
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-rule-search')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(ValueKey('program-template-rule-search-${family.id}')).last,
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('program-template-rule-label')),
+        'Easy family opener',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+
+      expect((await _stored(repos)).byId('a')!.entries, [
+        ProgramTemplateEntry.rule(
+          savedSearchId: family.id,
+          label: 'Easy family opener',
+        ),
+      ]);
+      expect(find.text('Easy family opener'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('program-template-rule-subtitle-0')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Family dances'), findsOneWidget);
+    });
+
+    testWidgets('without a saved search, Add slot rule says where to make one '
+        'and adds nothing', (tester) async {
+      final repos = openTestRepositories();
+      const template = ProgramTemplate(id: 'a', name: 'Family');
+      await _seed(repos, const [template]);
+      await _pump(
+        tester,
+        repos,
+        const ProgramTemplateEditorScreen(template: template),
+      );
+      await tester.tap(find.byKey(const ValueKey('program-template-add-rule')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('program-template-rule-no-searches')),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      expect((await _stored(repos)).byId('a')!.entries, isEmpty);
+    });
+
+    testWidgets('a rule whose saved search is gone says so on its row', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final template = ProgramTemplate(
+        id: 'a',
+        name: 'Family',
+        entries: [
+          ProgramTemplateEntry.rule(
+            savedSearchId: 'deleted-search',
+            label: 'Easy family opener',
+          ),
+        ],
+      );
+      await _seed(repos, [template]);
+      await _pump(
+        tester,
+        repos,
+        ProgramTemplateEditorScreen(template: template),
+      );
+      final subtitle = tester.widget<Text>(
+        find.byKey(const ValueKey('program-template-rule-subtitle-0')),
+      );
+      expect(subtitle.data, 'Its saved search was deleted');
+    });
+  });
+
   group('dance titles and the full collection load', () {
     late _RecordingCrashLogSink sink;
 
