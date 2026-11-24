@@ -158,8 +158,8 @@ final RegExp _lineBreak = RegExp('\r\n|[\n\r\u2028\u2029\u0085]');
 /// heading is a dance when there are several and they read as dances
 /// (details or figures straight under one, or no `##` headings, or `##`
 /// titles that repeat, as `## Figures` under each dance), and so is a single
-/// `#` heading with a detail or figure straight under it whose figures sit
-/// under at most one `##` heading; a `##` heading under a `#` dance is then a
+/// `#` heading with a detail or figure straight under it whose figures with a
+/// phrase label or count sit under at most one `##` heading; a `##` heading under a `#` dance is then a
 /// section of that dance and is left out, its lines kept. Otherwise each `##`
 /// heading is a dance. Headings are read by hand
 /// ([_parseHeading]), not with a regular expression that could backtrack on
@@ -206,8 +206,9 @@ List<TextDocumentDance> readTextDocument(String text) {
   var repeatedSecondLevel = false;
   var topHasContent = false;
   var underTop = false;
-  // `##` headings with a figure line under them, and whether the current
-  // `##` heading has one yet.
+  // `##` headings with a timed figure line under them (a phrase label or a
+  // count; a bulleted note does not count), and whether the current `##`
+  // heading has one yet.
   var secondWithFigures = 0;
   var secondHasFigure = true;
   final secondTitles = <String>{};
@@ -233,7 +234,7 @@ List<TextDocumentDance> readTextDocument(String text) {
         line.isNotEmpty &&
         (_labelOf(line) != null || _isFigureLine(line))) {
       topHasContent = true;
-    } else if (!underTop && !secondHasFigure && _isFigureLine(line)) {
+    } else if (!underTop && !secondHasFigure && _isTimedFigureLine(line)) {
       secondHasFigure = true;
       secondWithFigures++;
     }
@@ -245,7 +246,7 @@ List<TextDocumentDance> readTextDocument(String text) {
   // one `#` heading with details or figures straight under it, so a `##`
   // under one is a section of that dance; else `##`, and a `#` is the file's
   // title or a section of the file. A lone `#` heading is one dance in
-  // parts only when figures sit under at most one `##` heading (`## Figures`):
+  // parts only when timed figures sit under at most one `##` heading:
   // `##` headings that each hold figures are dances under a file title, even
   // one with an `Author:` line under it.
   final danceLevel =
@@ -427,6 +428,13 @@ bool _isFigureLine(String line) =>
     _listMarker.hasMatch(line) ||
     splitPhraseLabel(line).$1 != null ||
     _leadingCount.hasMatch(line);
+
+/// Whether [line], list marker aside, starts with a phrase label or a count:
+/// a figure for certain, where a bulleted line may be a note.
+bool _isTimedFigureLine(String line) {
+  final rest = line.replaceFirst(_listMarker, '');
+  return splitPhraseLabel(rest).$1 != null || _leadingCount.hasMatch(rest);
+}
 
 /// The label a `by Name` or `Author:` line is kept under: the English name
 /// of the spreadsheet import's authors column, so it is matched to Authors.

@@ -20,7 +20,7 @@
   - [Signed published collections (#862)](#signed-published-collections-862) — 22 lines
   - [5. A list of titles (#823)](#5-a-list-of-titles-823) — 72 lines
   - [6. A spreadsheet (CSV) (#2329)](#6-a-spreadsheet-csv-2329) — 71 lines
-  - [7. A text or Markdown file (#2330)](#7-a-text-or-markdown-file-2330) — 66 lines
+  - [7. A text or Markdown file (#2330)](#7-a-text-or-markdown-file-2330) — 67 lines
   - [Simultaneous-action fan-out (`meanwhile`) (#591/#572)](#simultaneous-action-fan-out-meanwhile-591572) — 59 lines
   - [Shared free-text figure parser (cross-cutting)](#shared-free-text-figure-parser-cross-cutting) — 299 lines
   - [Balance-a-wave lines (CallersBox, #295 / taxonomy v21)](#balance-a-wave-lines-callersbox-295--taxonomy-v21) — 86 lines
@@ -1613,9 +1613,10 @@ it when it has a `##` heading or more than one `#` heading. `#` headings are
 the dances when there are several and they read as dances (a detail or figure
 straight under one, no `##` at all, or `##` titles that repeat, as
 `## Figures` under each), and so is a single `#` heading with a detail or
-figure straight under it whose figures sit under at most one `##` heading
-(`##` headings that each hold figures are dances under a file title, even one
-with an `Author:` line); a deeper heading is then a section of the dance,
+figure straight under it whose timed figures (a phrase label or a count,
+list marker aside) sit under at most one `##` heading (`##` headings that each
+hold them are dances under a file title, even one with an `Author:` line; a
+bulleted `## Notes` part does not count); a deeper heading is then a section of the dance,
 left out with its lines kept. Otherwise `##` headings are the dances and a
 `#` block with no figure is the file's title or a section of the file, and is
 dropped. Headings are scanned by hand (`_parseHeading`): a regular expression

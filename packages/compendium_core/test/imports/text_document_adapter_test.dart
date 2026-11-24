@@ -185,6 +185,18 @@ void main() {
       expect(dances.last.figureLines, ['(8) Balance']);
     });
 
+    test('one # dance with a bulleted ## notes part is still one dance', () {
+      final dance = readTextDocument(
+        "# Rory's Reel\nFormation: Becket\n\n## Figures\n- A1 (8) swing\n"
+        '\n## Notes\n- Watch the swing.\n',
+      ).single;
+      expect(dance.title, "Rory's Reel");
+      expect(dance.labels, const [('Formation', 'Becket')]);
+      // A list-marked line is a figure line wherever it sits; review shows
+      // the note as an unrecognized figure, so nothing is lost.
+      expect(dance.figureLines, ['A1 (8) swing', 'Watch the swing.']);
+    });
+
     test('# sections of a file with ## dances are left out', () {
       final dances = readTextDocument(
         '# Contras\n\n## Chorus Jig\n(8) Swing\n\n# Squares\n\n'
