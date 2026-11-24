@@ -13239,7 +13239,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get performSwapRefused =>
-      'このプログラムは別のデバイスで変更されたため、入れ替えを含む今回の変更は保存されませんでした。もう一度変更してください。';
+      'このプログラムは別のデバイスで変更されたため、直前の変更は保存されませんでした。プログラムを確認し、必要であればもう一度変更してください。';
 
   @override
   String get settingsPerformSwapTitle => 'ダンスの入れ替え';

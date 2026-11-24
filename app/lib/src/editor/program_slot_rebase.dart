@@ -98,52 +98,84 @@ List<ProgramSlot> rebaseSlotEdits({
   return result;
 }
 
-/// Whether the swaps Perform made from [before] to [after] (#2346) can still
-/// be applied to [onto], the program as stored now.
+/// Whether the Perform adjustment that turned [before] into [after] can still
+/// be applied to [onto], the program as stored now, by [rebaseSlotEdits].
 ///
-/// A swap changes several slots at once: the swapped slot, the group's
-/// primary it may demote, and the alternate it may trade with, each changing
-/// its dance or whether it is an alternate. Merged field by field onto a
-/// program another device has changed meanwhile, such a change can land a
-/// dance in the wrong group or on a slot that counts toward calling history.
-/// So every slot whose dance or alternate flag Perform changed must still be
-/// in [onto] with the dance and flag it had in [before], in a group of the
-/// same slots; otherwise nothing from the adjustment is written and the
-/// caller is asked to make the changes again, rather than having the edit
-/// merged. Perform's adjust sheet changes a slot's dance or
-/// flag only by a swap, so an adjustment without one always passes.
-bool performSwapsStillApply({
+/// The rebase merges field by field, which is right for most edits but can
+/// credit the wrong dance when another device changed the slots an edit
+/// touched meanwhile. So the adjustment is refused, and nothing from it
+/// written, when:
+///
+/// - **any slot it changed** (in any field) is stored with another dance than
+///   in [before]: a mark performed, a note or a time would land on a dance the
+///   caller never saw there;
+/// - **a swap** (#2346), which is the only edit that changes a slot's dance or
+///   alternate flag, touched a slot that is gone from [onto], or stored with
+///   another dance, alternate flag or performed mark than in [before], or in a
+///   group of other slots, or whose group's front slot's performed mark has
+///   changed: merged, the swap could put a dance in the wrong group, on a slot
+///   that counts toward calling history, or under a performed mark it never
+///   had.
+bool performAdjustmentStillApplies({
   required List<ProgramSlot> before,
   required List<ProgramSlot> after,
   required List<ProgramSlot> onto,
 }) {
   final afterById = {for (final slot in after) slot.id: slot};
   final ontoIndex = {for (var i = 0; i < onto.length; i++) onto[i].id: i};
-  Set<String> group(List<ProgramSlot> slots, int index) {
+  ({Set<String> ids, ProgramSlot front}) group(
+    List<ProgramSlot> slots,
+    int index,
+  ) {
     final range = Program.alternateGroupRange(slots, index);
-    return {for (var i = range.start; i < range.end; i++) slots[i].id};
+    return (
+      ids: {for (var i = range.start; i < range.end; i++) slots[i].id},
+      front: slots[range.start],
+    );
   }
 
   for (var i = 0; i < before.length; i++) {
     final was = before[i];
     final now = afterById[was.id];
     if (now == null) continue;
-    if (now.danceId == was.danceId && now.isAlt == was.isAlt) continue;
     final j = ontoIndex[was.id];
+    final swapped = now.danceId != was.danceId || now.isAlt != was.isAlt;
+    if (!swapped) {
+      if (j != null &&
+          !_sameApartFromPosition(was, now) &&
+          onto[j].danceId != was.danceId) {
+        return false;
+      }
+      continue;
+    }
     if (j == null) return false;
     final current = onto[j];
-    if (current.danceId != was.danceId || current.isAlt != was.isAlt) {
+    if (current.danceId != was.danceId ||
+        current.isAlt != was.isAlt ||
+        current.performedAt != was.performedAt) {
       return false;
     }
     final wasGroup = group(before, i);
     final currentGroup = group(onto, j);
-    if (wasGroup.length != currentGroup.length ||
-        !wasGroup.containsAll(currentGroup)) {
+    if (wasGroup.ids.length != currentGroup.ids.length ||
+        !wasGroup.ids.containsAll(currentGroup.ids) ||
+        currentGroup.front.id != wasGroup.front.id ||
+        currentGroup.front.performedAt != wasGroup.front.performedAt) {
       return false;
     }
   }
   return true;
 }
+
+bool _sameApartFromPosition(ProgramSlot a, ProgramSlot b) =>
+    a.danceId == b.danceId &&
+    a.text == b.text &&
+    a.isPurgedDance == b.isPurgedDance &&
+    a.isAlt == b.isAlt &&
+    a.guestCaller == b.guestCaller &&
+    a.walkthroughMinutes == b.walkthroughMinutes &&
+    a.danceMinutes == b.danceMinutes &&
+    a.performedAt == b.performedAt;
 
 /// Whether the alternate at [index] in [after] belongs to a group whose
 /// primary (the nearest slot before it that is not an alternate) is missing

@@ -13779,7 +13779,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get performSwapRefused =>
-      'Programmet blev ændret på en anden enhed, så disse ændringer, også byttet, blev ikke gemt. Lav dem igen.';
+      'Programmet blev ændret på en anden enhed, så din seneste ændring blev ikke gemt. Tjek programmet, og lav ændringen igen, hvis du stadig vil have den.';
 
   @override
   String get settingsPerformSwapTitle => 'Byt en dans';

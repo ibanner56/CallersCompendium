@@ -474,6 +474,59 @@ void main() {
     expect(find.text('Beta Reel'), findsNothing);
   });
 
+  // #2346: a host that changes panelState and excludedDanceIds in one rebuild
+  // (Perform's swap sheet does, for a Keep change) gets one search, not two.
+  testWidgets('a new panelState and a new excludedDanceIds together search '
+      'once', (tester) async {
+    final db = openWidgetTestDatabase();
+    final dances = _CountingSearchDances(db, contraTaxonomy);
+    final repos = CompendiumRepositories(db, contraTaxonomy, dances: dances);
+    await repos.dances.create(_dance(id: 'a', title: 'Alpha Reel'));
+    await repos.dances.create(_dance(id: 'b', title: 'Beta Reel'));
+    final data = await CollectionData.load(repos);
+    final inputs =
+        ValueNotifier<({Set<String> excluded, CollectionPanelRequest? panel})>((
+          excluded: {'a'},
+          panel: null,
+        ));
+    addTearDown(inputs.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: RepositoriesScope(
+            repositories: repos,
+            child: ValueListenableBuilder(
+              valueListenable: inputs,
+              builder: (context, value, _) => CollectionPicker(
+                data: data,
+                dialect: Dialect.larksRobins,
+                enrichment: SearchEnrichment.empty,
+                excludedDanceIds: value.excluded,
+                panelState: value.panel,
+                onAddDance: (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final before = dances.searches;
+    expect(before, greaterThan(0));
+
+    inputs.value = (
+      excluded: {'b'},
+      panel: CollectionPanelRequest(CollectionPanelState()),
+    );
+    await tester.pumpAndSettle();
+
+    expect(dances.searches - before, 1);
+    expect(find.text('Alpha Reel'), findsOneWidget);
+    expect(find.text('Beta Reel'), findsNothing);
+  });
+
   // Issue #1420: the picker builds its own FacetPanel, so the Tunes facet has
   // to be wired here separately from the Collection screen.
   testWidgets('the Tunes facet narrows the picker list (#1420)', (
@@ -1941,8 +1994,8 @@ void main() {
     ) async {
       final repos = await reposWithTwoDances();
       // Perform's insert sheet pops inside onAddDance
-      // (perform_adjust_sheet.dart:245), disposing the picker while the
-      // confirmation timer is still pending.
+      // (the `adjust-picker` in perform_adjust_sheet.dart), disposing the
+      // picker while the confirmation timer is still pending.
       await _pumpPicker(tester, repos, onAddDance: (_) {});
       await tester.pumpAndSettle();
 
@@ -2791,4 +2844,41 @@ void main() {
       });
     }
   });
+}
+
+/// Counts [search] calls, so a test can tell one search from two.
+class _CountingSearchDances extends DanceRepository {
+  _CountingSearchDances(super.db, super.taxonomy);
+
+  int searches = 0;
+
+  @override
+  Future<List<String>> search(
+    DanceFilter filter, {
+    SearchSort sort = SearchSort.title,
+    SortDirection? direction,
+    Dialect? dialect,
+    SearchEnrichment? enrichment,
+    bool ignoreLeadingArticles = false,
+    String? callerFilter,
+    bool performedOnly = false,
+    bool requireEventDate = false,
+    CallingHistoryTracking tracking = CallingHistoryTracking.defaults,
+    String? currentProgramId,
+  }) {
+    searches++;
+    return super.search(
+      filter,
+      sort: sort,
+      direction: direction,
+      dialect: dialect,
+      enrichment: enrichment,
+      ignoreLeadingArticles: ignoreLeadingArticles,
+      callerFilter: callerFilter,
+      performedOnly: performedOnly,
+      requireEventDate: requireEventDate,
+      tracking: tracking,
+      currentProgramId: currentProgramId,
+    );
+  }
 }

@@ -221,10 +221,15 @@ class PerformProgramScreen extends StatefulWidget {
   /// The owner writes only the change from [before] to [updated], and as a
   /// compare-and-replace (GIG-6, `writePerformAdjustment`). When the stored
   /// program had changed since Perform's copy was taken, for example by
-  /// Device Sync, it returns the program Perform should show instead: the
-  /// newer program with the adjustment applied. Perform then shows it and
-  /// tells the caller. Otherwise it returns `null`.
-  final Future<Program?> Function(Program before, Program updated)?
+  /// Device Sync, it returns what Perform should show instead
+  /// ([PerformAdjustmentResult]): the newer program with the adjustment
+  /// applied, or, when the owner refused to merge the adjustment onto it,
+  /// the newer program as stored. Perform then shows it and tells the
+  /// caller. Otherwise it returns `null`.
+  final Future<PerformAdjustmentResult?> Function(
+    Program before,
+    Program updated,
+  )?
   onProgramChanged;
 
   /// Performs the "Program adjusted" Undo once this screen has closed:
@@ -942,11 +947,24 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     }
     final onChanged = widget.onProgramChanged;
     if (persist && onChanged != null) {
+      // Read now: a refusal can arrive after this screen has closed.
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      final refusedMessage = AppLocalizations.of(context).performSwapRefused;
       final write = onChanged(before, updated);
       _pendingPersist = write;
       unawaited(
-        write.then((newer) {
-          if (newer != null) _showNewerProgram(before, updated, newer);
+        write.then((result) {
+          if (result == null) return;
+          if (result.refused) {
+            _showRefused(
+              updated,
+              result.program,
+              messenger: messenger,
+              message: refusedMessage,
+            );
+          } else {
+            _showNewerProgram(updated, result.program);
+          }
         }),
       );
     }
@@ -956,27 +974,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// [adjusted] applied, after that adjustment's write found the program had
   /// changed since Perform's copy was taken (GIG-6), and tells the caller.
   /// Adjustments made while the write was in flight stay applied on top.
-  void _showNewerProgram(Program before, Program adjusted, Program newer) {
+  void _showNewerProgram(Program adjusted, Program newer) {
     if (!mounted) return;
-    // A swap the owner refused (another device changed the slots it touched,
-    // [performSwapsStillApply]) is not in [newer]: show the stored program,
-    // with no Undo for a change that was never made, and ask for the swap
-    // again.
-    if (!_swapsLanded(before, adjusted, newer)) {
-      if (identical(_undoable?.updated, adjusted)) _undoable = null;
-      _applyProgram(newer, persist: false);
-      final messenger = ScaffoldMessenger.of(context);
-      _undoPrompt = null;
-      messenger
-        ..clearSnackBars()
-        ..showSnackBar(
-          SnackBar(
-            key: const ValueKey('perform-swap-refused'),
-            content: Text(AppLocalizations.of(context).performSwapRefused),
-          ),
-        );
-      return;
-    }
     final shown = identical(_program, adjusted)
         ? newer
         : newer.copyWith(
@@ -1012,26 +1011,61 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     }
   }
 
-  /// Whether every slot whose dance or alternate flag the adjustment
-  /// [before] → [adjusted] changed (a swap, #2346) holds its new value in
-  /// [newer], the program the owner stored.
-  static bool _swapsLanded(Program before, Program adjusted, Program newer) {
-    final beforeById = {for (final slot in before.slots) slot.id: slot};
-    final newerById = {for (final slot in newer.slots) slot.id: slot};
-    for (final slot in adjusted.slots) {
-      final was = beforeById[slot.id];
-      if (was == null ||
-          (was.danceId == slot.danceId && was.isAlt == slot.isAlt)) {
-        continue;
-      }
-      final stored = newerById[slot.id];
-      if (stored == null ||
-          stored.danceId != slot.danceId ||
-          stored.isAlt != slot.isAlt) {
-        return false;
-      }
+  /// Tells the caller that the owner refused to write the adjustment that
+  /// produced [adjusted] ([PerformAdjustmentResult.refused]): another device
+  /// changed the slots it touched, so it was not merged. [newer] is the
+  /// program as stored, without it. Adjustments made since stay on screen,
+  /// applied to [newer], until their own writes land or are refused in turn.
+  ///
+  /// No Undo is offered any more: the one showing may be this adjustment's,
+  /// or a later one's built on it. After Perform has closed, the "Program
+  /// adjusted" prompt is taken down and the message shown on [messenger].
+  void _showRefused(
+    Program adjusted,
+    Program newer, {
+    required ScaffoldMessengerState? messenger,
+    required String message,
+  }) {
+    _undoable = null;
+    final prompt = _undoPrompt;
+    _undoPrompt = null;
+    if (!mounted) {
+      if (messenger == null || !messenger.mounted) return;
+      prompt?.close();
+      messenger
+        ..clearSnackBars()
+        ..removeCurrentSnackBar();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!messenger.mounted) return;
+        messenger.showSnackBar(
+          SnackBar(
+            key: const ValueKey('perform-swap-refused'),
+            content: Text(message),
+          ),
+        );
+      });
+      return;
     }
-    return true;
+    final shown = identical(_program, adjusted)
+        ? newer
+        : newer.copyWith(
+            slots: renumberSlots(
+              rebaseSlotEdits(
+                before: adjusted.slots,
+                after: _program.slots,
+                onto: newer.slots,
+              ),
+            ),
+          );
+    _applyProgram(shown, persist: false);
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          key: const ValueKey('perform-swap-refused'),
+          content: Text(message),
+        ),
+      );
   }
 
   /// Applies [updated] and offers a one-tap SnackBar undo restoring the
@@ -2104,4 +2138,22 @@ Future<DeletedSlotDances> resolveDeletedSlotDances(
     }
   }
   return DeletedSlotDances(dances: resolved, authorNames: authorNames);
+}
+
+/// What the owner did with a Perform adjustment when the stored program had
+/// changed since Perform's copy was taken
+/// ([PerformProgramScreen.onProgramChanged]).
+@immutable
+class PerformAdjustmentResult {
+  /// The adjustment was written onto [program], the newer stored program,
+  /// which now holds it.
+  const PerformAdjustmentResult.newer(this.program) : refused = false;
+
+  /// The adjustment was not written: merging it onto [program], the newer
+  /// stored program, could credit the wrong dance
+  /// (`performAdjustmentStillApplies`).
+  const PerformAdjustmentResult.refused(this.program) : refused = true;
+
+  final Program program;
+  final bool refused;
 }

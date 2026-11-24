@@ -29,12 +29,13 @@ void main() {
   >
   swapAfterChangeElsewhere({
     required List<ProgramSlot> opened,
-    required int swapIndex,
-    required String danceId,
+    int swapIndex = 0,
+    String danceId = 'new',
     required List<ProgramSlot> elsewhere,
+    List<ProgramSlot> Function(List<ProgramSlot> before)? edit,
   }) async {
     final repos = openTestRepositories();
-    for (final id in ['dq', 'dp', 'dx', 'da', 'dy', 'dc', 'new']) {
+    for (final id in ['dq', 'dp', 'dx', 'da', 'dy', 'dc', 'dz', 'new']) {
       await repos.dances.create(
         Dance(id: id, title: id, createdAt: now, updatedAt: now),
       );
@@ -56,12 +57,13 @@ void main() {
     );
     final before = stored.slots;
     final after = numbered(
-      Program.swapSlotDanceKeepingAlternate(
-        before,
-        swapIndex,
-        danceId: danceId,
-        alternateId: 'kept',
-      ),
+      edit?.call(before) ??
+          Program.swapSlotDanceKeepingAlternate(
+            before,
+            swapIndex,
+            danceId: danceId,
+            alternateId: 'kept',
+          ),
     );
     final write = await writePerformAdjustment(
       repos.programs,
@@ -98,7 +100,7 @@ void main() {
       ('p', 'dp', false),
       ('a', 'da', true),
     ]);
-    expect(r.write.swapRefused, isTrue);
+    expect(r.write.refused, isTrue);
   });
 
   test('the primary cut elsewhere and its alternate promoted: a trade is '
@@ -119,7 +121,7 @@ void main() {
       ('a', 'da', false),
       ('y', 'dy', true),
     ]);
-    expect(r.write.swapRefused, isTrue);
+    expect(r.write.refused, isTrue);
   });
 
   test('a change elsewhere that leaves the swap\'s slots alone does not stop '
@@ -135,7 +137,7 @@ void main() {
         ProgramSlot(id: 'brk', position: 0, text: Program.breakSlotText),
       ],
     );
-    expect(r.write.swapRefused, isFalse);
+    expect(r.write.refused, isFalse);
     final stored = (await r.repos.programs.getById('p'))!;
     expect(stored.slots.map((s) => (s.id, s.danceId, s.isAlt)), [
       ('p', 'new', false),
@@ -145,4 +147,70 @@ void main() {
       ('brk', null, false),
     ]);
   });
+
+  final played = DateTime.utc(2026, 1, 1, 21);
+
+  test('the swapped slot marked performed elsewhere: the swap is refused, so '
+      'the new dance is not credited with that performance', () async {
+    final r = await swapAfterChangeElsewhere(
+      opened: [slot('p', 'dp'), slot('c', 'dc')],
+      elsewhere: [
+        slot('p', 'dp').copyWith(performedAt: played),
+        slot('c', 'dc'),
+      ],
+    );
+    final stored = (await r.repos.programs.getById('p'))!;
+    expect(stored.slots.map((s) => (s.id, s.danceId)), [
+      ('p', 'dp'),
+      ('c', 'dc'),
+    ]);
+    expect(stored.slots.first.performedAt, played);
+    expect(r.write.refused, isTrue);
+  });
+
+  test('the group\'s primary marked performed elsewhere: the swap of a shown '
+      'alternate is refused, so a performed dance is not demoted', () async {
+    final r = await swapAfterChangeElsewhere(
+      opened: [slot('p', 'dp'), slot('a', 'da', alt: true)],
+      swapIndex: 1,
+      elsewhere: [
+        slot('p', 'dp').copyWith(performedAt: played),
+        slot('a', 'da', alt: true),
+      ],
+    );
+    final stored = (await r.repos.programs.getById('p'))!;
+    expect(stored.slots.map((s) => (s.id, s.danceId, s.isAlt)), [
+      ('p', 'dp', false),
+      ('a', 'da', true),
+    ]);
+    expect(r.write.refused, isTrue);
+  });
+
+  test('any change to a slot whose dance was replaced elsewhere is refused, '
+      'so a mark performed is not stamped on the other dance', () async {
+    final r = await swapAfterChangeElsewhere(
+      opened: [slot('p', 'dp'), slot('c', 'dc')],
+      edit: (before) => [before[0].copyWith(performedAt: played), before[1]],
+      elsewhere: [slot('p', 'dz'), slot('c', 'dc')],
+    );
+    final stored = (await r.repos.programs.getById('p'))!;
+    expect(stored.slots.first.danceId, 'dz');
+    expect(stored.slots.first.performedAt, isNull);
+    expect(r.write.refused, isTrue);
+  });
+
+  test(
+    'a mark performed on a slot left alone elsewhere is still written',
+    () async {
+      final r = await swapAfterChangeElsewhere(
+        opened: [slot('p', 'dp'), slot('c', 'dc')],
+        edit: (before) => [before[0].copyWith(performedAt: played), before[1]],
+        elsewhere: [slot('p', 'dp'), slot('c', 'dz')],
+      );
+      final stored = (await r.repos.programs.getById('p'))!;
+      expect(stored.slots.first.performedAt, played);
+      expect(stored.slots.last.danceId, 'dz');
+      expect(r.write.refused, isFalse);
+    },
+  );
 }

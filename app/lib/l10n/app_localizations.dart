@@ -20231,10 +20231,10 @@ abstract class AppLocalizations {
   /// **'Matching dances'**
   String get performSwapResultsHeading;
 
-  /// Message in Perform when an edit holding a swap could not be saved because another device changed the slots the swap touched meanwhile; nothing from that edit (the swap or anything else done in the same Adjust sheet) is saved, the program is shown as stored, and the caller is asked to make the changes again.
+  /// Message in Perform when the caller's last change could not be saved because another device changed the program meanwhile: either an Adjust sheet edit (for example a swap, or marking a dance performed) touching slots that changed elsewhere, or an Undo of the last adjustment. Nothing from that change is saved, the program is shown as stored (with any later change that is still being saved kept on screen), and the caller is asked to check the program and make the change again if they still want it.
   ///
   /// In en, this message translates to:
-  /// **'This program changed on another device, so this round of changes, the swap included, wasn\'t saved. Make them again.'**
+  /// **'This program changed on another device, so your last change wasn\'t saved. Check the program and make it again if you still want it.'**
   String get performSwapRefused;
 
   /// Settings ▸ Program ▸ Perform mode row, and the title of its screen: which Keep choices are on when the caller swaps a dance in Perform. Also names this setting in Device Sync lists.

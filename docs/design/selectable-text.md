@@ -54,7 +54,7 @@ match the screen (`DanceExportActions._plainText`).
 - **Program summary: yes, for the header.** Title, detail rows and notes. The
   set list stays out of the selectable region by default. Each row is an
   `InkWell` that opens the dance (the `summary-slot-<id>` row in `program_summary_screen.dart`), and
-  carries a mark-performed toggle (`:925-960`). A drag that starts on a row
+  carries a mark-performed toggle (`summary-slot-<id>-performed-toggle`). A drag that starts on a row
   title would compete with that tap for little gain, since the caller wants the
   titles as a block, which the program export menu already copies. Decided:
   N5-2 = (a), header text only.
