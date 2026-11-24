@@ -73,8 +73,11 @@ UserFigureDefinition? userFigureSeedFromMove(
     if (moveSpec.kind == ParamKind.beats) continue;
     if (listed && pinned.containsKey(key)) continue;
     if (params.length == maxUserFigureParams) break;
-    final pin = pinned[key];
-    final spec = pin != null && moveSpec.validate(pin)
+    // What the copied id means by an omitted param: its pin, else its own
+    // default (a pass by's `who` is neighbors, its target's unstated, v40).
+    final pin = pinned[key] ?? taxonomy.defaultParamValue(moveId, key);
+    final spec =
+        pin != null && pin != moveSpec.defaultValue && moveSpec.validate(pin)
         ? ParamSpec(
             moveSpec.kind,
             defaultValue: pin,

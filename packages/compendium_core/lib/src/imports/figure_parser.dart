@@ -2309,8 +2309,9 @@ _Match? _passThrough(List<String> w) {
 ///
 /// Deliberately narrow (prefer-custom):
 /// - The line must LEAD with "walk forward to". A stated subject ("Women walk
-///   forward to N2") is DECLINED: `pass_through` has no `who` slot, so
-///   structuring it would silently drop the role.
+///   forward to N2") is DECLINED: structuring it would silently drop the
+///   role. `pass_through` has had a `who` since taxonomy v40, but this
+///   recognizer does not yet read a subject onto it.
 /// - `where` and `shoulder` are NEVER written. `pass_through` declares
 ///   `along`/`right` as its own taxonomy defaults; writing either here would
 ///   assert a direction and a shoulder the source did not state.

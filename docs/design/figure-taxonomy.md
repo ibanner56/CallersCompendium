@@ -2466,6 +2466,131 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     `cast` as the bare word "cast", a `hand_cast` as "hand_cast" and a
     `shift` as "shift", flag them as unknown moves, and keep their params
     intact (the #358 raw-id fallback).
+  - v40 also merges **pass by and pass through into one figure**,
+    `pass_through`, keeping `pass_by` as an alias, amending v40 because v40
+    has not shipped. The maintainer's design (2026-11-24, recorded in the
+    description of the PR that adds it): one figure with `who`, `where`,
+    `shoulder` and `beats`, plus a pass type (`by` or `through`) under the
+    editor's "More options"; both names stay and no picker entry is added; a
+    converted figure or an import that does not state the new param leaves it
+    unspecified rather than falling to custom; a figure entered new must state
+    every param. The maintainer chose, among options put to them: keeping both
+    stored ids, with `pass_by` an alias (rather than a new `pass` id that
+    older builds could not read); per-alias defaults (rather than a one-time
+    backfill); and refusing the save of a newly entered figure (rather than
+    every figure, or a warning).
+    - `pass_through` has `who` (a dancer set or `unspecified`, default
+      `unspecified`), `where` (a direction or `unspecified`, default `along`),
+      `shoulder`, `beats` (2) and `passType` (`by`/`through`, default
+      `through`), last so the editor shows it under "More options". Its
+      template is `{who} {move} {where}`.
+    - `pass_by` is an alias pinning `passType: by`, with `inversePairId:
+      pass_through` and `listedAsMove`, for `long_lines`' reasons: its figures
+      are stored under its own id, and dialects hold names and wordings keyed
+      on it. Changing the pass type routes a figure between the two ids.
+    - **`MoveAlias.defaultParams`** (new): what a figure stored under the alias
+      means by leaving a param out. `pass_by` has `who: neighbors` and `where:
+      unspecified`, so a stored pass by means what it always did, and a pass
+      through means `who: unspecified` and `where: along`.
+      `Taxonomy.effectiveParams` reads it after the alias's pins, and
+      `Taxonomy.defaultParamValue` answers "what does this id mean by an
+      omitted param" for callers that read a single default (the figure
+      editor's fields). When a change re-routes a figure, `keepOmittedMeaning`
+      writes each omitted param whose meaning differs between the two ids at
+      its old value, so a pass by that left `who` out becomes a pass through
+      with `who: neighbors`, and a pass through that left it out becomes a
+      pass by with `who: unspecified` stated. The editor's field, the dance
+      repository's write-time routing and switching a figure of your own all
+      route this way. Copying pass by into a figure of your own starts from
+      `{who} {move} {where}` with `who` at neighbors, and a dialect's wording
+      for it offers the `who` and `where` slots; one for pass through now
+      offers `who` too. So an existing wording for pass by without `{where}`,
+      or for pass through without `{who}`, is listed as missing that slot
+      when the dialect is next saved.
+    - **`ParamSpec.requiredOnEntry`** (new; `who` and `where` here): the
+      editor seeds them `unspecified` on picking either move
+      (`Taxonomy.entryParams`), and a figure entered in that edit — picked, or
+      typed in the free-text composer, a Move box or the Add figures from text
+      sheet (all typed entry is new entry, none of it an import: the
+      maintainer's ruling, 2026-11-24, recorded in the PR description; a
+      typed line starts them unstated too unless it, or a saved per-move
+      default, states them) — shows a message on its fields, on a group's
+      side and on its row while closed, and holds the save while one is
+      unstated
+      (`Taxonomy.unstatedRequiredParams`; the draft's `enteredNew`, kept across
+      undo and autosave but never stored on the figure). A figure that was
+      loaded with the dance, an import, or one converted from before v40 saves
+      as it is. `shoulder`, `beats` and the pass type always hold a value.
+      Neither param can be cleared back to unstated by hand. Only the dance
+      editor asks: the compound, shorthand and Settings default editors show
+      no message, as nothing there would refuse the save, and a pass picked or
+      typed there starts as it did before v40 (a pass by's neighbors, a pass
+      through's along), not with blanks. A shorthand placed into a dance
+      brings its figures as they were saved, without asking.
+    - Stored params: `withoutListedAliasPins` now also drops a pass through's
+      `passType: through` (its id says it) and a required param stated
+      `unspecified` where omission already means that (a pass through's `who`,
+      a pass by's `where`), so a figure carries a key a v39 build does not
+      know only when it states one.
+    - Wording: canonical text is unchanged for every stored figure (`neighbors
+      pass by`, `pass through along`), since an unstated `who` or `where`
+      renders nothing; a stated one joins it (`neighbors pass through
+      across`). The display leads a pass through with a stated `who`
+      ("neighbor pass through across"); a pass by keeps its own line ("neighbor
+      pass by right shoulders"), now followed by a stated direction. No rebuild
+      is owed.
+    - Keys: the walkthrough-snippet signature leaves out the param each id
+      gained in the merge (a pass through's `who`, a pass by's `where`)
+      whatever its value, so every pass keeps its key
+      (`pass_by(who=neighbors)`, `pass_through(where=along)`), no signature
+      version bump is owed, and a snippet saved before v40 still applies to a
+      pass entered since, which states both. Snippets therefore still cannot
+      tell a neighbors pass through from a partners one, as before v40 (the
+      session's call, over keying on the new param, which would leave every
+      saved pass snippet unused by new figures). The re-import diff key (`figureCanonicalKey`) of
+      both changes to `pass_through` with every effective param, but it is
+      computed on both sides of each diff and never stored.
+    - Imports: no producer changed. The Caller's Box side-run decoder fills
+      `who` on every move that declares it, so `Pass through along (NR)` now
+      imports as neighbors passing right shoulders (the maintainer's
+      direction). A dance imported earlier keeps its unstated `who`, and
+      re-importing it offers each such pass through as a variation. ContraDB
+      has the two figures apart with their own params, so its advanced filter
+      leaves out `passType` and the other figure's `who` or `where`. Walk
+      forward lines with a subject (`Women walk forward to N2`) still decline
+      to custom: nothing reads the subject onto `who` yet.
+    - Search filters on the stored id and stored params, as before: a "pass
+      through" leaf matches pass throughs and not passes by, and neither leaf
+      offers the pass type, which is never stored. A matrix column saved on
+      pass through counts pass throughs only, as before: the target of a
+      listed alias's pair whose default is not the pin constrains that param
+      to its default. The built-in matrix catalog now lists pass by right
+      after pass through, where listed aliases follow their target.
+    - Free text reads the new display lines back: a subject before `pass
+      through` (`neighbor pass through across`) and a direction after a pass
+      by's shoulders. ContraDB's generated text writes neither, so it reads as
+      before; a line typed by hand that leads with a subject (`partners pass
+      through the center`) now reads as a pass through with that `who`, the
+      rest as its note, where it was custom text.
+      The contra-to-English twin of a pass through carries its `who`.
+    - Square and ECD calls are unchanged: `sq_pass_by`, `sq_pass_through` and
+      `ecd_pass_through` remain separate moves (the session's call, as the
+      request was about the contra figure picker).
+    - Migration: none, and no rebuild. **Older devices (v39)** read a pass by
+      or pass through that states only what v39 had exactly as before. That
+      will not be the common case for new data: every pass entered in the
+      dance editor from now on states both `who` and `where`, and every pass
+      through imported from The Caller's Box with a dancer code (about 2,048,
+      by the count in `imports.md`) states `who`. Checked
+      against the v0.10.0-beta code: one that states a new param renders
+      without it (`neighbors pass through across` shows "pass through
+      across"; a pass by's direction is not shown), and one holding an
+      `unspecified` v39 does not accept, reachable by changing the pass type,
+      shows the bare word ("unspecified pass by right shoulders", "pass
+      through unspecified"). Its `validateFigure` rejects either
+      (`unknown_param`, `invalid_param_value`), with the general limit the
+      maintainer accepted on #2120 (recorded under v39): a compound template
+      holding one is marked "needs repair" there.
 
 ### ECD taxonomy versions
 

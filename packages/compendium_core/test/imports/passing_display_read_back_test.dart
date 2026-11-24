@@ -35,6 +35,23 @@ void main() {
     expect(parseFigureLinesFanOut('neighbor pass by').single.isCustom, isTrue);
   });
 
+  test('a pass reads its displayed subject and direction (taxonomy v40)', () {
+    // Mutation caught: a pass through that reads no subject, or a pass by no
+    // direction, which leaves either as custom text or a note.
+    final through = only('neighbor pass through across');
+    expect(through.move, 'pass_through');
+    expect(through.params, {'who': 'neighbors', 'where': 'across'});
+    expect(through.note, isNull);
+    final by = only('neighbor pass by left shoulders across');
+    expect(by.move, 'pass_by');
+    expect(by.params, {
+      'who': 'neighbors',
+      'shoulder': 'left',
+      'where': 'across',
+    });
+    expect(by.note, isNull);
+  });
+
   group('cross trails', () {
     test('reads both pairs, the direction and the shoulder', () {
       final f = only(

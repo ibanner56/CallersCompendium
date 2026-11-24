@@ -1816,6 +1816,79 @@ void main() {
     expect(figure.note, 'big swing');
   });
 
+  testWidgets('a pass entered without who and where does not save until they '
+      'are chosen (taxonomy v40)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(
+      kDefaultDanceFiguresTemplateKey,
+      encodeFigures([]),
+    );
+    await _pumpEditor(tester, repos);
+
+    await tester.enterText(find.byKey(const ValueKey('title-field')), 'Pass');
+    await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
+    await tester.pumpAndSettle();
+    await _selectMoveInEditor(tester, 0, 'pass thr', 'pass_through');
+    expect(find.byKey(const ValueKey('figure-0-needs-values')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('save-needs-figure-values')),
+      findsOneWidget,
+    );
+    expect(await repos.dances.listAll(), isEmpty);
+
+    tester.binding.focusManager.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-0-who')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('neighbors').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-0-where')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('across').last);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('figure-0-needs-values')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+    final figure = figuresOf((await repos.dances.listAll()).single).single;
+    expect(figure.move, 'pass_through');
+    expect(figure.params['who'], 'neighbors');
+    expect(figure.params['where'], 'across');
+    expect(figure.params, isNot(contains('passType')));
+  });
+
+  testWidgets('a pass loaded with the dance saves as it is (taxonomy v40)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final dance = _dance(
+      id: 'd-pass',
+      title: 'Stored pass',
+      figures: [Figure(move: 'pass_through')],
+    );
+    await repos.dances.create(dance);
+    await _pumpEditor(tester, repos, danceId: 'd-pass');
+
+    await tester.enterText(
+      find.byKey(const ValueKey('title-field')),
+      'Stored pass, renamed',
+    );
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('save-needs-figure-values')),
+      findsNothing,
+    );
+    final saved = (await repos.dances.listAll()).single;
+    expect(saved.title, 'Stored pass, renamed');
+    expect(figuresOf(saved).single.params, isNot(contains('who')));
+  });
+
   testWidgets('a custom figure persists on save', (tester) async {
     final repos = openTestRepositories();
     // Start from a blank figure list so figure-add yields figure 0 (this test

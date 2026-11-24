@@ -183,6 +183,11 @@ void main() {
         // does not define.
         'long_lines': ['formation'],
         'mad_robin': ['direction', 'whom'],
+        // One figure since taxonomy v40. ContraDB keeps pass by and pass
+        // through apart, each with the params it had: the figure name says
+        // the type, and neither has the other's `who` or `where`.
+        'pass_by': ['passType', 'where'],
+        'pass_through': ['passType', 'who'],
         'poussette': ['amount'],
         'promenade': ['destination', 'singleFile'],
         'roll_away': ['halfSashay'],

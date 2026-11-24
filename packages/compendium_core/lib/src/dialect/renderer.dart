@@ -26,6 +26,9 @@ const Set<String> roleTokens = {'role1', 'role2', 'role1s', 'role2s'};
 
 final RegExp _placeholder = RegExp(r'\{(\w+)\}');
 
+/// A run of whitespace, collapsed to one space.
+final RegExp _whitespaceRun = RegExp(r'\s+');
+
 /// Placeholder syntax of a USER-authored wording template. A leading `!`
 /// (`{!hand}`) forces the slot to display even when it would otherwise be
 /// hidden; the captured key keeps the `!` so it is its own slot key.
@@ -1888,13 +1891,24 @@ class FigureRenderer {
   String? moveWordingTemplate(String moveId) {
     final def = taxonomy.resolve(moveId);
     if (def == null) return null;
-    // An alias with its own dialect name starts from the line it shows, its
-    // name alone (`long lines`), not its target's. One that pins nothing
-    // (`hand cast`) shows every slot its target does, so it starts from the
-    // target's template, where `{move}` is its own name.
-    if (_listedAsMove(moveId) &&
-        (taxonomy.aliases[moveId]?.pinnedParams.isNotEmpty ?? true)) {
-      return '{move}';
+    // An alias with its own dialect name that pins params starts from the
+    // line it shows: its target's template without the pinned slots, which
+    // its name already says. So long lines starts from its name alone
+    // (`{move}`, the formation being pinned), and pass by (taxonomy v40) from
+    // `{who} {move} {where}`, the pinned pass type being in no template. One
+    // that pins nothing (`hand cast`) shows every slot its target does, so it
+    // starts from the target's template below, where `{move}` is its name.
+    final listedPins = _listedAsMove(moveId)
+        ? taxonomy.aliases[moveId]!.pinnedParams
+        : const <String, Object?>{};
+    if (listedPins.isNotEmpty) {
+      return def.renderTemplate
+          .replaceAllMapped(
+            _placeholder,
+            (m) => listedPins.containsKey(m[1]) ? '' : m[0]!,
+          )
+          .replaceAll(_whitespaceRun, ' ')
+          .trim();
     }
     final canonicalMoveId = def.id;
     final seed = _moveWordingSeedTemplates[canonicalMoveId];
@@ -2062,7 +2076,8 @@ class FigureRenderer {
     // ([MoveAlias.listedAsMove]) takes only that, never its target's.
     if (figureMove != null && _listedAsMove(figureMove)) {
       return _applyMoveSubstitution(
-        dialect.moves[figureMove],
+        dialect.moves[figureMove] ??
+            (forCanonical ? null : _displayMoveNameOverrides[figureMove]),
         displayName,
         params,
       );
@@ -2857,14 +2872,17 @@ class FigureRenderer {
   ///
   /// `long_lines` takes none although `forward_and_back`, its target since
   /// taxonomy v39, has one: it keeps the line it had as a move, "long lines"
-  /// from its template with the direction added by [renderSummary].
+  /// from its template with the direction added by [renderSummary]. Nor does
+  /// `pass_by` (v40), whose target is `pass_through`.
   ///
   /// `hand_cast` (taxonomy v40), an alias of `gate` listed as a move, takes
   /// `gate`'s renderer under its own id and name, so it reads "hand cast" with
   /// a gate's wording around it ("neighbor hand cast ½ to face up"), and a
   /// dialect's name for it, never one for `gate`, applies.
   static _DisplayBaseRenderer? _displayBaseFor(Figure figure, MoveDef def) {
-    if (figure.move == 'long_lines') return null;
+    // `pass_by` (an alias of `pass_through` since v40) likewise keeps the
+    // line it had as a move: its template with "pass by %S shoulders".
+    if (figure.move == 'long_lines' || figure.move == 'pass_by') return null;
     final base = _displayBaseRenderers[def.id];
     if (figure.move != 'hand_cast' || base == null) return base;
     final aliasId = figure.move;
@@ -4202,9 +4220,16 @@ class FigureRenderer {
     // pass_through (ContraDB `passThroughWords`): renders the shoulder ONLY when
     // it is not the default 'right' (right shoulders are implicit), and silences
     // the default 'along' direction — exactly matching ContraDB's behaviour.
-    // `renderCanonical` keeps expanding `renderTemplate` (`{move} {dir}`) and is
-    // unaffected; this entry handles the display path only.
+    // A stated `who` (v40) leads, as a pass by's does; an unstated one and an
+    // unstated direction render nothing.
+    // `renderCanonical` keeps expanding `renderTemplate` and is unaffected;
+    // this entry handles the display path only.
     'pass_through': (r, def, params, dialect, verbose, decimals) {
+      final who = r._subjectToken(
+        params['who'],
+        dialect,
+        omitUnspecified: true,
+      );
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final shoulder = params['shoulder'];
       // Suppress the default 'right' shoulder; render 'left shoulders' / '* shoulders'
@@ -4214,14 +4239,16 @@ class FigureRenderer {
           : '';
       final dir = params['where'];
       // Silence the default 'along' direction (ContraDB set_direction_along).
-      final dirClause = (dir is String && dir != 'along')
+      final dirClause =
+          (dir is String && dir != 'along' && dir != ParamVocab.unspecified)
           ? _displayDirection(dir)
           : '';
       return _displayTemplate({
+        'who': who,
         'move': move,
         'shoulder': shoulderClause,
         'direction': dirClause,
-      }, '{move} {shoulder} {direction}');
+      }, '{who} {move} {shoulder} {direction}');
     },
   };
 

@@ -2188,7 +2188,8 @@ has to be judged in its own context.
   `towards partner`, `(out of the set)`); non-dancer or qualified destinations
   (`to center`, `to next star`, `to second person`, `to shadow S1`); a stated
   subject on either pass-through reading (`Women walk forward to N2` —
-  `pass_through` has no `who` slot, so structuring it would drop the role); and
+  nothing reads the subject onto the pass through's `who`, which it has had
+  since taxonomy v40, so structuring it would drop the role); and
   **every diagonal** (`walk forward on left/right diagonal [(optional spin)]`),
   because `form_a_long_wave` has no `dir` at all and on the short-wave side the
   source states the direction of TRAVEL rather than the wave's orientation —
@@ -2220,11 +2221,16 @@ has to be judged in its own context.
   is byte-identical at both identity layers, so the 2,388 same-value cases raise
   no #686 "Variation?" prompt; the 116 inverse cases do, correctly.
   *Dancer identity* fills `who`/`who2` where declared — odd 1-based positions
-  name `who`, even name `who2`. `pass_through` declares no `who`, so its dancer
-  code is dropped; preserving it as a note would add one to ~2,048 figures
-  across 1,773 dances. Dropping it is the IMPLEMENTING AGENT'S call, not an
-  owner ruling: a note on that many figures is a visible change at corpus
-  scale, so it is recorded here as an open question rather than a settled one.
+  name `who`, even name `who2`. `pass_through` declared no `who` until
+  taxonomy v40, so its dancer code was dropped then (preserving it as a note
+  was left open). Since v40, when pass by and pass through became one figure,
+  the maintainer's direction is that The Caller's Box's dancer code on a pass
+  through is imported as its `who`: `Pass through along (NR)` is neighbors
+  passing right shoulders. That is ~2,048 figures across 1,773 dances, as
+  measured when the code was first dropped. A dance imported before keeps its
+  unstated `who`; re-importing it offers each such pass through as a
+  variation, because the new import states a dancer the stored figure does
+  not.
   *Declines (→ the ordinary annotation-stripped reading):* any unmapped people
   code (`O`, `Ph`, `SRN`, `C4`+, out-of-range neighbours/shadows); a run
   whose sides do not alternate by position parity; a run stating more passes

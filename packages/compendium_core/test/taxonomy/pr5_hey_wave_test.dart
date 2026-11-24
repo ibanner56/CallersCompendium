@@ -23,7 +23,12 @@ void main() {
   group('registration & defaults', () {
     for (final id in newMoves) {
       test('$id resolves and validates with all defaults populated', () {
-        expect(tax.resolve(id)?.id, id, reason: '$id should be registered');
+        // `pass_by` resolves to `pass_through` since taxonomy v40.
+        expect(
+          tax.resolve(id)?.id,
+          id == 'pass_by' ? 'pass_through' : id,
+          reason: '$id should be registered',
+        );
         final defaults = tax.effectiveParams(testFigure(move: id));
         expect(
           tax.validateFigure(testFigure(move: id, params: defaults)),

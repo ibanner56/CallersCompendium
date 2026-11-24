@@ -416,20 +416,23 @@ void main() {
   // -------------------------------------------------------------------------
 
   group('alias enumeration', () {
-    test('exactly seven aliases in the contra taxonomy', () {
-      // v40 (#770) added `hand_cast`, an alias of `gate` with no inverse pair.
-      expect(tax.aliases.length, 7);
+    test('exactly eight aliases in the contra taxonomy', () {
+      // v40 (#770) added `hand_cast`, an alias of `gate` with no inverse pair,
+      // and made `pass_by` an alias of `pass_through`.
+      expect(tax.aliases.length, 8);
     });
 
-    test('exactly three inverse pairs: two handedness, one formation', () {
+    test('exactly four inverse pairs: two handedness, a formation, a pass '
+        'type', () {
       final pairs = tax.aliases.values
           .where((a) => a.inversePairId != null)
           .toList();
-      expect(pairs.length, 3);
+      expect(pairs.length, 4);
       expect(pairs.map((a) => a.id).toSet(), {
         'swat_the_flea',
         'see_saw',
         'long_lines',
+        'pass_by',
       });
     });
 

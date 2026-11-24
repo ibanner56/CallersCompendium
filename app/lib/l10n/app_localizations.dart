@@ -15246,6 +15246,18 @@ abstract class AppLocalizations {
   /// **'Less'**
   String get danceEditorLessTooltip;
 
+  /// Shown under the fields of a figure the user has just added (picked or typed) while one of the fields it must state is still empty: for a pass by or pass through, who passes and where. The dance cannot be saved until they are chosen. A figure that was already saved with such a field empty is not flagged.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a value for every field of this figure before saving.'**
+  String get danceEditorFigureNeedsValues;
+
+  /// Snackbar shown when the user taps Save while a figure they added in this edit still has an empty field it must state (for a pass by or pass through, who and where). The dance is not saved; each such figure shows danceEditorFigureNeedsValues under its fields, and on its row while the row is closed.
+  ///
+  /// In en, this message translates to:
+  /// **'Some figures you added still have empty fields. Fill them in to save.'**
+  String get danceEditorSaveNeedsFigureValues;
+
   /// Shown in the figure parameter editor when the source never stated a value for this parameter, so none may be assumed. Used by the rotation stepper, by the choice dropdowns whose parameter admits the unstated state, and as the placeholder of an empty places field that admits it (a circle's or star's places).
   ///
   /// In en, this message translates to:

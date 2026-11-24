@@ -50,10 +50,14 @@ void main() {
         'turn_alone',
         'shoulder_round',
       ]) {
-        expect(contraTaxonomy.moves, contains(stem), reason: stem);
+        // `pass_by` is a contra alias since taxonomy v40, a name of its own.
+        final contraName =
+            contraTaxonomy.moves[stem]?.displayName ??
+            contraTaxonomy.aliases[stem]?.displayName;
+        expect(contraName, isNotNull, reason: stem);
         expect(
           squareTaxonomy.moves['sq_$stem']?.displayName,
-          contraTaxonomy.moves[stem]!.displayName,
+          contraName,
           reason: stem,
         );
       }

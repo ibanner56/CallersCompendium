@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/editor/editor_draft_codec.dart';
 import 'package:compendium_app/src/editor/editor_snapshot.dart';
+import 'package:compendium_app/src/editor/figure_draft.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -382,6 +383,32 @@ void main() {
       final stated = decoded.figureDrafts.firstWhere((d) => d.id == 'f-stated');
       expect(assumed.assumedSubject, isTrue);
       expect(stated.assumedSubject, isFalse);
+    });
+
+    test('figure draft enteredNew round-trips through autosave and undo '
+        '(taxonomy v40)', () {
+      final entered = FigureDraft(
+        move: 'pass_by',
+        params: {'who': ParamVocab.unspecified},
+      )..enteredNew = true;
+      final loaded = FigureDraft(move: 'pass_through');
+      final snapshot = _minimalSnapshot(
+        figureDrafts: [
+          FigureDraftSnapshot.fromDraft(entered),
+          FigureDraftSnapshot.fromDraft(loaded),
+        ],
+      );
+
+      final encoded = encodeDraft(snapshot);
+      // Additive shape: written only for the entered draft.
+      expect('"enteredNew":true'.allMatches(encoded), hasLength(1));
+
+      final decoded = decodeDraft(encoded);
+      expect(decoded.figureDrafts[0].enteredNew, isTrue);
+      expect(decoded.figureDrafts[1].enteredNew, isFalse);
+      // Undo restores a draft from its snapshot.
+      expect(decoded.figureDrafts[0].toDraft().enteredNew, isTrue);
+      expect(entered.clone().enteredNew, isTrue);
     });
 
     test('decoding a draft normalizes legacy figure identifiers', () {
