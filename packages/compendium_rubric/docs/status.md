@@ -429,8 +429,9 @@
 > **Two more Caller's Box line shapes (2026-11-24)** now import, on Hudson's
 > "try it and see" (each reading is the agent's call): `Men go forward` then
 > `Men bring back partner` (or `neighbor`) folds into one `give_and_take`, and
-> `Men balance long wave in center` on its own line, with the wave already
-> standing, is a `balance` of that role with the note `long wave in center`.
+> `Men balance long wave in center` on its own line, if nothing else claimed
+> it, is a `balance` of that role with the note `long wave in center` (nothing
+> checks that a wave is standing; a balance moves nobody).
 > Against `rubric` at `f628f80b`, and again at `75190a5f` with the same
 > result, they took 37 dances out of the free-text
 > group and the count from 4,435 to 4,460 compiled in scope (the denominator
