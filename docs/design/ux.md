@@ -158,6 +158,15 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   beat count per section shown continuously (overflow = inline warning, not
   error). Full entry of a standard dance must be achievable in <1 min without
   the mouse.
+- **From Title to the figures**: on a new dance, the Title field's keyboard
+  action is Next, and it opens the first figure still to fill (a blank row
+  or the stand-still placeholder a new dance starts with) with its Move box
+  focused, or starts the first figure (the free-text composer with Free-text
+  entry on). What follows Title on the page takes no typing (the setup
+  panel's header, or a picker), so plain focus traversal would close a
+  phone's keyboard under a Next key. On an existing dance, or a new one
+  whose figures are all set, the action is Done. Tab still walks the page
+  in order.
 - Unrecognized figure = just typing free text where no move matches; a beats field
   sets the figure's duration; lingo-line feedback (recognized terms underlined,
   discouraged struck) as you type.
