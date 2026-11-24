@@ -378,19 +378,19 @@ void main() {
         'heads forward and swing',
       );
       // A modifier's side steps read as gerunds, as contra's do.
-      final modified = shown(
-        Figure.modifier(
-          figures: [
-            swing,
-            forward({'goBack': false}),
-            forward({}),
-          ],
-          beats: 16,
+      expect(
+        shown(
+          Figure.modifier(
+            figures: [
+              swing,
+              forward({'goBack': false}),
+              forward({}),
+            ],
+            beats: 16,
+          ),
         ),
+        'heads swing, heads going forward and heads going forward and back',
       );
-      expect(modified, contains('heads going forward'));
-      expect(modified, contains('heads going forward and back'));
-      expect(modified, isNot(contains('backing')));
     });
 
     test('a promenade goes counter-clockwise unless it says otherwise', () {
