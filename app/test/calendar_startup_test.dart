@@ -259,7 +259,8 @@ void main() {
       expect(await repos.programs.listAll(), hasLength(2));
     });
 
-    testWidgets('Add drafts: Undo on the message removes them', (tester) async {
+    testWidgets('Add drafts: Undo on the message moves them to Recently '
+        'deleted, so the next start does not add them back', (tester) async {
       final repos = openTestRepositories();
       await _turnOn(repos, mode: CalendarStartupMode.addDrafts);
       final outcome = await tester.runAsync(() => _run(repos));
@@ -313,9 +314,28 @@ void main() {
       final left = await tester.runAsync(
         () => repos.programs.listAll(includeDeleted: true),
       );
-      expect(left!.map((p) => p.id), [
-        ids.first,
-      ], reason: 'Undo keeps a draft the caller has worked on');
+      expect(
+        [
+          for (final p in left!)
+            if (!p.isDeleted) p.id,
+        ],
+        [ids.first],
+        reason: 'Undo keeps a draft the caller has worked on',
+      );
+      // The rest go to Recently deleted, so the next start, which skips
+      // events whose programs are there, does not add them back.
+      expect([
+        for (final p in left)
+          if (p.isDeleted) p.id,
+      ], unorderedEquals(ids.skip(1)));
+      final next = await tester.runAsync(
+        () => _run(repos, now: _now.add(const Duration(days: 1))),
+      );
+      expect(next, isA<CalendarStartupQuiet>());
+      final after = await tester.runAsync(
+        () => repos.programs.listAll(includeDeleted: true),
+      );
+      expect(after, hasLength(left.length));
     });
 
     testWidgets('launches 1 and 2 show nothing anywhere; after launch 3 only '

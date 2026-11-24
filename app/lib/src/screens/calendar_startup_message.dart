@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
@@ -50,8 +51,11 @@ void presentCalendarStartupOutcome({
 /// * **Add them as drafts:** "3 draft programs added from your calendar",
 ///   shown as the app's Undo prompt ([showUndoSnackBar]: its timeout, its
 ///   accessibility handling) with **Undo**, and **Show** beside the message.
-///   Undo removes only the drafts nobody has touched since: one the caller
-///   has already started filling in is kept.
+///   Undo moves only the drafts nobody has touched since to Recently
+///   deleted: one the caller has already started filling in is kept. Not a
+///   hard delete, because the import skips events whose programs are in
+///   Recently deleted, so the next start does not add them back (the
+///   maintainer's choice).
 ///
 /// Either way, upstream changes and cancellations (#2354) are only counted
 /// ("1 change needs you") with **Review**; the startup run never applies
@@ -106,7 +110,13 @@ void showCalendarStartupMessage({
               when p.isUntouchedCalendarDraft)
             id,
       ];
-      await repositories.programs.hardDelete(untouched);
+      final at = clock.now().toUtc();
+      // One transaction: Undo moves all of them or none.
+      await repositories.transaction(() async {
+        for (final id in untouched) {
+          await repositories.programs.softDelete(id, at: at);
+        }
+      });
     },
     extraActions: [
       TextButton(
