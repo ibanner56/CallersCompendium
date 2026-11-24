@@ -103,7 +103,7 @@ final class SyncCapabilityPolicy {
   ///
   /// [SyncCapabilities.savedSearchesV1] (#2325) gates the user's saved searches
   /// (every `saved_search:` key), and this build advertises it, now that the
-  /// whole feature is in it (the Saved menu that creates them came last):
+  /// whole feature is in it (saving and using them in the Collection came last):
   /// they publish once every other device attached to the store advertises
   /// it, and until then a device that doesn't is named in a held-back notice.
   /// The sync server must already accept the prefix: deploy it before the

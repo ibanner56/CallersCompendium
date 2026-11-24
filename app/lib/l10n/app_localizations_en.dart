@@ -14075,21 +14075,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get savedSearchButton => 'Saved';
-
-  @override
-  String get savedSearchTooltip =>
-      'Saved searches: save this search, or use one you saved';
-
-  @override
-  String get savedSearchOnlineTooltip =>
-      'Saved searches are not available while Online search is on';
-
-  @override
   String get savedSearchSaveThis => 'Save this search…';
-
-  @override
-  String get savedSearchSaveAsNew => 'Save as new…';
 
   @override
   String savedSearchUpdate(String name) {
@@ -14105,9 +14091,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String savedSearchDelete(String name) {
     return 'Delete \"$name\"';
   }
-
-  @override
-  String get savedSearchNoneYet => 'No saved searches yet';
 
   @override
   String get savedSearchNeedsAttention => 'Needs attention';
@@ -14303,4 +14286,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get savedSearchMissingInvalid => 'Something this version can\'t read';
+
+  @override
+  String savedSearchSearchFor(String text) {
+    return 'Search for \"$text\"';
+  }
+
+  @override
+  String savedSearchHighlightedRow(String name, int index, int count) {
+    return '$name, $index of $count';
+  }
+
+  @override
+  String get savedSearchSaveAsNewSearch => 'Save as a new search…';
+
+  @override
+  String get settingsCollectionTitle => 'Collection';
+
+  @override
+  String get settingsSavedSearchesHeader => 'Saved searches';
+
+  @override
+  String get settingsSavedSearchesEmpty =>
+      'No saved searches yet. Save one from the Collection: set up a search, then choose Save this search… in the More actions menu.';
+
+  @override
+  String settingsSavedSearchRenameTooltip(String name) {
+    return 'Rename \"$name\"';
+  }
+
+  @override
+  String settingsSavedSearchDeleteTooltip(String name) {
+    return 'Delete \"$name\"';
+  }
 }

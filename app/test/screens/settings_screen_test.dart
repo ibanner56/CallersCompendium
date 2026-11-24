@@ -373,8 +373,9 @@ void main() {
     // Section content only shows once its sidebar entry is picked (side-by-side
     // layout shows only the selected section). The calling-history toggles moved
     // to the Program section (issue #935); sort-ignore stays under General.
-    Future<void> openGeneral(WidgetTester tester) async {
-      await tester.tap(find.byKey(const ValueKey('settings-nav-general')));
+    // The Dances settings moved to their own Collection section (#2325).
+    Future<void> openCollection(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('settings-nav-collection')));
       await tester.pumpAndSettle();
     }
 
@@ -541,13 +542,13 @@ void main() {
       },
     );
 
-    const sortToggleKey = ValueKey('general-sort-ignore-articles');
+    const sortToggleKey = ValueKey('collection-sort-ignore-articles');
 
     testWidgets('sort-ignore-articles toggle is present and on by default', (
       tester,
     ) async {
       await _pumpSettings(tester);
-      await openGeneral(tester);
+      await openCollection(tester);
 
       expect(find.byKey(sortToggleKey), findsOneWidget);
       final toggle = tester.widget<SwitchListTile>(find.byKey(sortToggleKey));
@@ -558,7 +559,7 @@ void main() {
       tester,
     ) async {
       await _pumpSettings(tester, initialSortIgnoreArticles: false);
-      await openGeneral(tester);
+      await openCollection(tester);
 
       final toggle = tester.widget<SwitchListTile>(find.byKey(sortToggleKey));
       expect(toggle.value, isFalse);
@@ -568,7 +569,7 @@ void main() {
       tester,
     ) async {
       final harness = await _pumpSettings(tester);
-      await openGeneral(tester);
+      await openCollection(tester);
 
       await tester.tap(find.byKey(sortToggleKey));
       await tester.pumpAndSettle();
@@ -2123,7 +2124,7 @@ void main() {
         isTrue,
       );
       expect(
-        find.byKey(const ValueKey('general-sort-ignore-articles')),
+        find.byKey(const ValueKey('general-reduce-motion')),
         findsOneWidget,
       );
       // No other section is selected, and Appearance's Theme row is not
@@ -2153,7 +2154,7 @@ void main() {
           '$sideBySide', (tester) async {
         await _pumpSettings(tester, surfaceSize: Size(width, 1400));
         expect(
-          find.byKey(const ValueKey('general-sort-ignore-articles')),
+          find.byKey(const ValueKey('general-reduce-motion')),
           sideBySide ? findsOneWidget : findsNothing,
         );
         expect(
@@ -2181,7 +2182,7 @@ void main() {
               (w.key! as ValueKey<String>).value.startsWith('settings-nav-'),
         );
         final sideBySide = find
-            .byKey(const ValueKey('general-sort-ignore-articles'))
+            .byKey(const ValueKey('general-reduce-motion'))
             .evaluate()
             .isNotEmpty;
         if (scale == 2.0) {
@@ -2231,6 +2232,7 @@ void main() {
           .height;
       final oneLine = labelHeight('general');
       for (final section in [
+        'collection',
         'program',
         'appearance',
         'dialect',

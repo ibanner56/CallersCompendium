@@ -4774,19 +4774,19 @@ abstract class AppLocalizations {
   /// **'{field}: {value}'**
   String libraryManagerMergeDroppedLine(String field, String value);
 
-  /// General settings section header over the dance list and labeling preferences: title sorting, figure capitalization, tags, authors and sources.
+  /// Settings › Collection section header over the dance list and labeling preferences: title sorting, figure capitalization, tags, authors and sources. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Dances'**
   String get settingsGeneralLibraryHeader;
 
-  /// Title of the General settings toggle that sorts dance titles while ignoring leading articles such as 'the', 'a', and 'an'.
+  /// Title of the Settings › Collection › Dances toggle that sorts dance titles while ignoring leading articles such as 'the', 'a', and 'an'. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Ignore leading articles when sorting'**
   String get settingsGeneralSortIgnoreArticlesTitle;
 
-  /// Subtitle explaining the ignore-leading-articles sort toggle. Example title and articles are illustrative text.
+  /// Subtitle explaining the ignore-leading-articles sort toggle. Example title and articles are illustrative text. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'When on, the dance list alphabetizes titles ignoring a leading \"the\", \"a\", or \"an\" — so \"The Nice Combination\" files under N. Turn off to sort by the literal title.'**
@@ -5302,49 +5302,49 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{Don\'t show} =1{1 venue} other{{count} venues}}'**
   String settingsProgramVenueCallCountOption(num count);
 
-  /// Title of the General settings Library toggle that capitalizes the first letter of each figure shown on screen.
+  /// Title of the Settings › Collection › Dances toggle that capitalizes the first letter of each figure shown on screen. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Capitalize figures'**
   String get settingsGeneralCapitalizeFiguresTitle;
 
-  /// Subtitle explaining the capitalize figures toggle. ContraDB is a product name and stays untranslated.
+  /// Subtitle explaining the capitalize figures toggle. ContraDB is a product name and stays untranslated. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'When on, each figure in the dance view, Perform mode and the figure editor starts with a capital letter (\"Neighbors allemande left\"). When off, figures are shown as written; built-in figures start in lower case, as in ContraDB. Only how figures look in those places changes; exports, search, sync comparisons and screen-reader wording are unaffected.'**
   String get settingsGeneralCapitalizeFiguresSubtitle;
 
-  /// Settings › General › Library entry that opens the Tags manager.
+  /// Settings › Collection › Dances entry that opens the Tags manager. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Tags'**
   String get settingsGeneralLibraryTagsTitle;
 
-  /// Subtitle of the Settings › General › Library entry that opens the Tags manager.
+  /// Subtitle of the Settings › Collection › Dances entry that opens the Tags manager. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Rename, merge, color and delete your tags.'**
   String get settingsGeneralLibraryTagsSubtitle;
 
-  /// Title of the Settings › General › Library entry that opens the Authors manager.
+  /// Title of the Settings › Collection › Dances entry that opens the Authors manager. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Authors'**
   String get settingsGeneralLibraryAuthorsTitle;
 
-  /// Subtitle of the Settings › General › Library entry that opens the Authors manager.
+  /// Subtitle of the Settings › Collection › Dances entry that opens the Authors manager. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Rename, merge and delete authors, and edit their details.'**
   String get settingsGeneralLibraryAuthorsSubtitle;
 
-  /// Title of the Settings › General › Library entry that opens the Sources manager.
+  /// Title of the Settings › Collection › Dances entry that opens the Sources manager. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Sources'**
   String get settingsGeneralLibrarySourcesTitle;
 
-  /// Subtitle of the Settings › General › Library entry that opens the Sources manager.
+  /// Subtitle of the Settings › Collection › Dances entry that opens the Sources manager. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Rename, merge and delete sources, and edit their details.'**
@@ -20603,67 +20603,37 @@ abstract class AppLocalizations {
   /// **'Couldn\'t import from the calendar at startup ({when})'**
   String calendarLastResultError(String when);
 
-  /// Screen-reader name of the Saved button at the end of the Collection and picker search tools (#2325): opens the menu of saved searches.
-  ///
-  /// In en, this message translates to:
-  /// **'Saved'**
-  String get savedSearchButton;
-
-  /// Tooltip on the Saved button beside the search tools.
-  ///
-  /// In en, this message translates to:
-  /// **'Saved searches: save this search, or use one you saved'**
-  String get savedSearchTooltip;
-
-  /// Tooltip and screen-reader hint on the Saved button while Online search is on, when it is disabled.
-  ///
-  /// In en, this message translates to:
-  /// **'Saved searches are not available while Online search is on'**
-  String get savedSearchOnlineTooltip;
-
-  /// First entry of the Saved menu: saves the search on screen under a name. Offered only while some text, filter, phrase row or Advanced row is set.
+  /// Collection ⋮ menu entry: saves the search on screen under a name. Offered only while some text, filter, phrase row or Advanced row is set.
   ///
   /// In en, this message translates to:
   /// **'Save this search…'**
   String get savedSearchSaveThis;
 
-  /// Saved menu entry, in place of Save this search, once a loaded saved search has been changed: saves the changed search as a new one.
-  ///
-  /// In en, this message translates to:
-  /// **'Save as new…'**
-  String get savedSearchSaveAsNew;
-
-  /// Saved menu entry, shown once the loaded saved search has been changed: writes the change back to it.
+  /// Collection ⋮ menu entry while a saved search is loaded, enabled once it has been changed: writes the change back to it.
   ///
   /// In en, this message translates to:
   /// **'Update \"{name}\"'**
   String savedSearchUpdate(String name);
 
-  /// Saved menu entry: renames the loaded saved search.
+  /// Collection ⋮ menu entry while a saved search is loaded: renames it.
   ///
   /// In en, this message translates to:
   /// **'Rename \"{name}\"…'**
   String savedSearchRename(String name);
 
-  /// Saved menu entry: deletes the loaded saved search (with Undo).
+  /// Collection ⋮ menu entry while a saved search is loaded: deletes it (with Undo).
   ///
   /// In en, this message translates to:
   /// **'Delete \"{name}\"'**
   String savedSearchDelete(String name);
 
-  /// Disabled line in the Saved menu when there are no saved searches.
-  ///
-  /// In en, this message translates to:
-  /// **'No saved searches yet'**
-  String get savedSearchNoneYet;
-
-  /// Heading in the Saved menu over saved searches this version of the app cannot open.
+  /// Heading in Settings › Collection over saved searches this version of the app cannot open.
   ///
   /// In en, this message translates to:
   /// **'Needs attention'**
   String get savedSearchNeedsAttention;
 
-  /// Saved menu entry for a saved search this version cannot read, under Needs attention. Also names it in the Deleted snackbar.
+  /// Settings › Collection entry for a saved search this version cannot read, under Needs attention. Also names it in the Deleted snackbar.
   ///
   /// In en, this message translates to:
   /// **'A saved search that can\'t be opened'**
@@ -20908,6 +20878,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Something this version can\'t read'**
   String get savedSearchMissingInvalid;
+
+  /// First row of the saved-search dropdown under the search field, while text is typed: runs the ordinary search for that text, as Enter does.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for \"{text}\"'**
+  String savedSearchSearchFor(String text);
+
+  /// Screen-reader announcement when the arrow keys move the highlight in the saved-search dropdown under the search field: the row (a saved search, or Search for "…"), then its position.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}, {index} of {count}'**
+  String savedSearchHighlightedRow(String name, int index, int count);
+
+  /// Collection ⋮ menu entry while a saved search is loaded, in place of Save this search…: saves the search on screen as another saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as a new search…'**
+  String get savedSearchSaveAsNewSearch;
+
+  /// Settings section title (sidebar and app bar): the Dances settings and the saved searches.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection'**
+  String get settingsCollectionTitle;
+
+  /// Heading in Settings ▸ Collection over the list of saved searches.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved searches'**
+  String get settingsSavedSearchesHeader;
+
+  /// Shown in Settings ▸ Collection when there are no saved searches.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved searches yet. Save one from the Collection: set up a search, then choose Save this search… in the More actions menu.'**
+  String get settingsSavedSearchesEmpty;
+
+  /// Tooltip on the rename button of a saved search in Settings ▸ Collection.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename \"{name}\"'**
+  String settingsSavedSearchRenameTooltip(String name);
+
+  /// Tooltip on the delete button of a saved search in Settings ▸ Collection (with Undo).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"'**
+  String settingsSavedSearchDeleteTooltip(String name);
 }
 
 class _AppLocalizationsDelegate

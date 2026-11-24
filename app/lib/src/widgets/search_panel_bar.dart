@@ -75,10 +75,7 @@ class SearchPanelBar extends StatefulWidget {
   final List<SearchPanelSpec> panels;
 
   /// A compact control that sits in the toggles' row after the last one — a
-  /// mode switch or a menu rather than a tool, so it opens no panel of its
-  /// own (the hosts pass the Saved menu and the Online search icon, in a
-  /// [Row]). It keeps its natural width, and moves to a line of its own
-  /// under the tools when the row has no room for it.
+  /// mode switch rather than a tool, so it opens no panel of its own.
   final Widget? trailing;
 
   /// Places the row of [toggles] and the open tool's [panel], which are
@@ -273,9 +270,8 @@ class _PanelToggle extends StatelessWidget {
         key: panel.key,
         backgroundColor: open && enabled ? scheme.secondaryContainer : null,
         // No leading icon, and padding trimmed all round: the label and chevron
-        // say what the chip does, and the three tools must share one row on a
-        // 390dp phone even with "Filters · 3" showing (the [trailing] icons
-        // then take the line under them).
+        // say what the chip does, and the three tools plus a [trailing] control
+        // must share one row on a 390dp phone even with "Filters · 3" showing.
         // The chevron already adds space at the end of the label.
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
         labelPadding: const EdgeInsetsDirectional.only(

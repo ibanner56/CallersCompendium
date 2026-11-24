@@ -14129,21 +14129,7 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get savedSearchButton => 'Gemte';
-
-  @override
-  String get savedSearchTooltip =>
-      'Gemte søgninger: gem denne søgning, eller brug en, du har gemt';
-
-  @override
-  String get savedSearchOnlineTooltip =>
-      'Gemte søgninger er ikke tilgængelige, mens onlinesøgning er slået til';
-
-  @override
   String get savedSearchSaveThis => 'Gem denne søgning…';
-
-  @override
-  String get savedSearchSaveAsNew => 'Gem som ny…';
 
   @override
   String savedSearchUpdate(String name) {
@@ -14159,9 +14145,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String savedSearchDelete(String name) {
     return 'Slet \"$name\"';
   }
-
-  @override
-  String get savedSearchNoneYet => 'Ingen gemte søgninger endnu';
 
   @override
   String get savedSearchNeedsAttention => 'Kræver opmærksomhed';
@@ -14359,4 +14342,37 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get savedSearchMissingInvalid => 'Noget, denne version ikke kan læse';
+
+  @override
+  String savedSearchSearchFor(String text) {
+    return 'Søg efter \"$text\"';
+  }
+
+  @override
+  String savedSearchHighlightedRow(String name, int index, int count) {
+    return '$name, $index af $count';
+  }
+
+  @override
+  String get savedSearchSaveAsNewSearch => 'Gem som ny søgning…';
+
+  @override
+  String get settingsCollectionTitle => 'Samling';
+
+  @override
+  String get settingsSavedSearchesHeader => 'Gemte søgninger';
+
+  @override
+  String get settingsSavedSearchesEmpty =>
+      'Ingen gemte søgninger endnu. Gem en fra samlingen: lav en søgning, og vælg så Gem denne søgning… i menuen Flere handlinger.';
+
+  @override
+  String settingsSavedSearchRenameTooltip(String name) {
+    return 'Omdøb \"$name\"';
+  }
+
+  @override
+  String settingsSavedSearchDeleteTooltip(String name) {
+    return 'Slet \"$name\"';
+  }
 }

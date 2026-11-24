@@ -3243,9 +3243,8 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(SnackBarAction), findsOneWidget);
-    // The app's messenger, the outermost: the picker has one of its own.
     tester
-        .state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger).first)
+        .state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger))
         .clearSnackBars();
     await tester.pumpAndSettle();
   });

@@ -14276,21 +14276,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get savedSearchButton => 'Enregistrées';
-
-  @override
-  String get savedSearchTooltip =>
-      'Recherches enregistrées : enregistrer cette recherche ou en utiliser une enregistrée';
-
-  @override
-  String get savedSearchOnlineTooltip =>
-      'Les recherches enregistrées ne sont pas disponibles pendant la recherche en ligne';
-
-  @override
   String get savedSearchSaveThis => 'Enregistrer cette recherche…';
-
-  @override
-  String get savedSearchSaveAsNew => 'Enregistrer comme nouvelle…';
 
   @override
   String savedSearchUpdate(String name) {
@@ -14306,10 +14292,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String savedSearchDelete(String name) {
     return 'Supprimer « $name »';
   }
-
-  @override
-  String get savedSearchNoneYet =>
-      'Aucune recherche enregistrée pour l\'instant';
 
   @override
   String get savedSearchNeedsAttention => 'À vérifier';
@@ -14511,4 +14493,38 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get savedSearchMissingInvalid =>
       'Quelque chose que cette version ne peut pas lire';
+
+  @override
+  String savedSearchSearchFor(String text) {
+    return 'Rechercher « $text »';
+  }
+
+  @override
+  String savedSearchHighlightedRow(String name, int index, int count) {
+    return '$name, $index sur $count';
+  }
+
+  @override
+  String get savedSearchSaveAsNewSearch =>
+      'Enregistrer comme nouvelle recherche…';
+
+  @override
+  String get settingsCollectionTitle => 'Collection';
+
+  @override
+  String get settingsSavedSearchesHeader => 'Recherches enregistrées';
+
+  @override
+  String get settingsSavedSearchesEmpty =>
+      'Aucune recherche enregistrée pour l\'instant. Enregistrez-en une depuis la collection : préparez une recherche, puis choisissez Enregistrer cette recherche… dans le menu Plus d’actions.';
+
+  @override
+  String settingsSavedSearchRenameTooltip(String name) {
+    return 'Renommer « $name »';
+  }
+
+  @override
+  String settingsSavedSearchDeleteTooltip(String name) {
+    return 'Supprimer « $name »';
+  }
 }

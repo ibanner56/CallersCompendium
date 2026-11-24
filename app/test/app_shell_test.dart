@@ -522,7 +522,13 @@ void main() {
           .selected,
       isTrue,
     );
-    await tester.tap(find.text('Collection').last);
+    // The rail's destination: Settings has a Collection section too (#2325).
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.text('Collection'),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(searchText(), 'petro');
   });
@@ -1227,7 +1233,7 @@ void main() {
     // shows the General section beside the sidebar.
     bool splitsSettings(WidgetTester tester) {
       final sideBySide = find
-          .byKey(const ValueKey('general-sort-ignore-articles'))
+          .byKey(const ValueKey('general-reduce-motion'))
           .evaluate()
           .isNotEmpty;
       final chevrons = find

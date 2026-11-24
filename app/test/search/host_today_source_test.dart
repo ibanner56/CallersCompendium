@@ -19,7 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 const _hosts = [
   'lib/src/screens/dance_list_screen.dart',
   'lib/src/widgets/collection_picker.dart',
-  'lib/src/widgets/saved_search_menu.dart',
+  'lib/src/widgets/saved_search_actions.dart',
 ];
 
 /// [source] with every comment and string literal blanked to spaces (same
@@ -122,8 +122,9 @@ List<String> todayProblems(String source) {
       body = _balanced(code, def.end);
     }
     if (now.hasMatch(body)) problems.add('_today() reads DateTime.now');
-    if (!body.contains('widget.clock') || !body.contains('calendarDayAt')) {
-      problems.add('_today() does not read widget.clock through calendarDayAt');
+    if (!RegExp(r'\bclock\s*\.\s*read\s*\(').hasMatch(body) ||
+        !body.contains('calendarDayAt')) {
+      problems.add('_today() does not read its clock through calendarDayAt');
     }
   }
   return problems;
@@ -188,7 +189,7 @@ DateTime _today() {
         todayProblems(source),
         containsAll([
           '_today() reads DateTime.now',
-          '_today() does not read widget.clock through calendarDayAt',
+          '_today() does not read its clock through calendarDayAt',
         ]),
       );
     });

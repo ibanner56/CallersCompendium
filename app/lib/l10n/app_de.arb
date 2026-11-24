@@ -13574,25 +13574,9 @@
   "@calendarLastResultError": {
     "x-sourceSha256": "a826d9f8828d360f373473072915ffe0c2fb4944f9b9e733a3e75a6f72591f5c"
   },
-  "savedSearchButton": "Gespeichert",
-  "@savedSearchButton": {
-    "x-sourceSha256": "b5c120b316c237a0deab3140267aebedba61947d3ae268d708a53d5be119e9fb"
-  },
-  "savedSearchTooltip": "Gespeicherte Suchen: diese Suche speichern oder eine gespeicherte verwenden",
-  "@savedSearchTooltip": {
-    "x-sourceSha256": "7ba7db9863220cc4edbcb2e72f3c57125a03dfc63222b7ff58026d82be6ea6a2"
-  },
-  "savedSearchOnlineTooltip": "Gespeicherte Suchen sind nicht verfügbar, solange die Online-Suche an ist",
-  "@savedSearchOnlineTooltip": {
-    "x-sourceSha256": "b357e354383458bdd991d7c78765ba942c66357e4f6cff7cce0a12c1704a9b6b"
-  },
   "savedSearchSaveThis": "Diese Suche speichern…",
   "@savedSearchSaveThis": {
     "x-sourceSha256": "cf3f327a07df12455fab6baa6bd5a7c23b802ef20024bd2b6ca368557e3bdb8c"
-  },
-  "savedSearchSaveAsNew": "Als neue speichern…",
-  "@savedSearchSaveAsNew": {
-    "x-sourceSha256": "8aeaee33f0cfa0c150245c9c139b7e44fd37699ff689c16c60727620b566ca12"
   },
   "savedSearchUpdate": "„{name}“ aktualisieren",
   "@savedSearchUpdate": {
@@ -13605,10 +13589,6 @@
   "savedSearchDelete": "„{name}“ löschen",
   "@savedSearchDelete": {
     "x-sourceSha256": "914b12d4d231c275650f13980556632b84b7235e562e4c64b199ed260ac32dc8"
-  },
-  "savedSearchNoneYet": "Noch keine gespeicherten Suchen",
-  "@savedSearchNoneYet": {
-    "x-sourceSha256": "7ae7f9b86680b78db27fb65712b7e2c5c88e813ac8b335e74df2dce3d467a78a"
   },
   "savedSearchNeedsAttention": "Braucht Aufmerksamkeit",
   "@savedSearchNeedsAttention": {
@@ -13777,5 +13757,37 @@
   "savedSearchMissingInvalid": "Etwas, das diese Version nicht lesen kann",
   "@savedSearchMissingInvalid": {
     "x-sourceSha256": "e5e8bc0453e3a8cbd561f898df9f830bffc99850f535ef1ccd745da28ef35c93"
+  },
+  "savedSearchSearchFor": "Nach „{text}“ suchen",
+  "@savedSearchSearchFor": {
+    "x-sourceSha256": "7f13bf2ba00d10d9a01317b95572039dcd737b939d560f7329c1362a5883de46"
+  },
+  "savedSearchHighlightedRow": "{name}, {index} von {count}",
+  "@savedSearchHighlightedRow": {
+    "x-sourceSha256": "cb00ceb52224a6c9e0a0a28855223161c92e559d446b086f116c9737f893e001"
+  },
+  "savedSearchSaveAsNewSearch": "Als neue Suche speichern…",
+  "@savedSearchSaveAsNewSearch": {
+    "x-sourceSha256": "2fca854bab4826159a6994814c85bb3f46a03be76288353b5e7c0cdd6092d6fe"
+  },
+  "settingsCollectionTitle": "Sammlung",
+  "@settingsCollectionTitle": {
+    "x-sourceSha256": "7b790708ff1b171315a152018f3712e8c71c82f4f9000635f77a1336c34f1893"
+  },
+  "settingsSavedSearchesHeader": "Gespeicherte Suchen",
+  "@settingsSavedSearchesHeader": {
+    "x-sourceSha256": "3e3e125453ca1f3b012dfb95c2ebb8a9acbd3b242263cd2332e6f45216a91112"
+  },
+  "settingsSavedSearchesEmpty": "Noch keine gespeicherten Suchen. Speichere eine in der Sammlung: Richte eine Suche ein und wähle dann im Menü Weitere Aktionen „Diese Suche speichern…“.",
+  "@settingsSavedSearchesEmpty": {
+    "x-sourceSha256": "1cf66b83e59f62f66bc10d31727833c734fabc727f1daf1682f2faa7a4948d17"
+  },
+  "settingsSavedSearchRenameTooltip": "„{name}“ umbenennen",
+  "@settingsSavedSearchRenameTooltip": {
+    "x-sourceSha256": "68b8304fa832bf82013935aa98b2a65b9c96fd660b547cb0191fbbfb373e27d8"
+  },
+  "settingsSavedSearchDeleteTooltip": "„{name}“ löschen",
+  "@settingsSavedSearchDeleteTooltip": {
+    "x-sourceSha256": "914b12d4d231c275650f13980556632b84b7235e562e4c64b199ed260ac32dc8"
   }
 }

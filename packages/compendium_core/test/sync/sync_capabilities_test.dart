@@ -96,7 +96,7 @@ void main() {
         SyncCapabilities.suggestionsV1,
       });
       // Every gated capability is advertised: the whole of each feature,
-      // saved searches included now the Saved menu is in, is in this build.
+      // saved searches included now saving and using them is in, is in this build.
       expect(build.gatedCapabilities, build.advertised);
     });
 

@@ -1,4 +1,4 @@
-// The Saved menu in the collection picker (#2325): the same menu as the
+// Saved searches in the collection picker (#2325): the same dropdown as the
 // Collection's, loading through the picker's one entry point for a panel
 // state, so a search saved in one host loads the same in the other.
 import 'package:compendium_core/compendium_core.dart';
@@ -16,6 +16,7 @@ import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/search/collection_data.dart';
 import 'package:compendium_app/src/widgets/collection_picker.dart';
+import 'package:compendium_app/src/widgets/collection_search_controls.dart';
 
 import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
@@ -178,8 +179,19 @@ String _pickerText(WidgetTester tester) => tester
     .controller!
     .text;
 
-Future<void> _openMenu(WidgetTester tester) async {
-  await tester.tap(find.byKey(const ValueKey('saved-search-menu')));
+/// Loads [search] through the picker's search-field dropdown.
+Future<void> _loadInPicker(WidgetTester tester, SavedSearch search) async {
+  await tester.tap(find.byKey(const ValueKey('picker-search')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(ValueKey('saved-search-row-${search.id}')));
+  await tester.pumpAndSettle();
+}
+
+/// Loads [search] through the Collection's search-field dropdown.
+Future<void> _loadInCollection(WidgetTester tester, SavedSearch search) async {
+  await tester.tap(find.byKey(const ValueKey('collection-search-field')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(ValueKey('saved-search-row-${search.id}')));
   await tester.pumpAndSettle();
 }
 
@@ -188,8 +200,10 @@ Future<void> _choose(WidgetTester tester, String key) async {
   await tester.pumpAndSettle();
 }
 
+/// Saves the Collection's search as [name] through its ⋮ menu.
 Future<void> _saveAs(WidgetTester tester, String name) async {
-  await _openMenu(tester);
+  await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+  await tester.pumpAndSettle();
   await _choose(tester, 'saved-search-save');
   await tester.enterText(
     find.byKey(const ValueKey('saved-search-name-field')),
@@ -218,9 +232,16 @@ CollectionPanelState _rich() {
   return state;
 }
 
+CollectionSort _pickerSort(WidgetTester tester) => tester
+    .widget<CollectionSortMenuButton>(find.byKey(const ValueKey('picker-sort')))
+    .sort;
+
+FullTextScope _pickerScope(WidgetTester tester) =>
+    tester.widget<SearchScopeField>(find.byType(SearchScopeField)).scope;
+
 void main() {
   testWidgets('a search saved in the Collection loads in the picker as the '
-      'same search, with the same dances', (tester) async {
+      'same search, with the same dances, and back again', (tester) async {
     final repos = await _library();
     await _pumpCollection(tester, repos);
     (tester.state(find.byType(DanceListScreen)) as DanceListCommands)
@@ -231,39 +252,35 @@ void main() {
 
     await _pumpPicker(tester, repos);
     expect(_shows('Chorus Jig'), isTrue);
-    await _openMenu(tester);
-    await _choose(tester, 'saved-search-item-${saved.id}');
+    await _loadInPicker(tester, saved);
 
     expect(_pickerText(tester), 'Petronella');
+    expect(_pickerScope(tester), FullTextScope.title);
+    expect(_pickerSort(tester), CollectionSort.recentlyAdded);
+    expect(find.text('Filters · 1'), findsOneWidget);
+    expect(find.text('Advanced (on)'), findsOneWidget);
     expect(_shows('Petronella'), isTrue);
     expect(_shows('Chorus Jig'), isFalse);
     expect(_shows('Rory O More'), isFalse);
-    // Saved again from the picker, it is the same search, byte for byte.
+
+    // Back in the Collection, the same search loads, and saved again it is
+    // the same search, byte for byte.
+    await _pumpCollection(tester, repos);
+    await _loadInCollection(tester, saved);
+    await tester.tapAt(const Offset(1100, 2900));
+    await tester.pumpAndSettle();
     await _saveAs(tester, 'Copy');
     expect((await _byName(repos, 'Copy')).spec.toJson(), saved.spec.toJson());
   });
 
-  testWidgets('a search saved in the picker loads in the Collection as the '
-      'same search', (tester) async {
+  testWidgets('the picker only loads: it has no way to save or manage', (
+    tester,
+  ) async {
     final repos = await _library();
     await _pumpPicker(tester, repos);
-    await tester.enterText(
-      find.byKey(const ValueKey('picker-search')),
-      'Chorus',
-    );
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pumpAndSettle();
-    await _saveAs(tester, 'Chorus');
-    final saved = await _byName(repos, 'Chorus');
 
-    await _pumpCollection(tester, repos);
-    await _openMenu(tester);
-    await _choose(tester, 'saved-search-item-${saved.id}');
-
-    expect(_shows('Chorus Jig'), isTrue);
-    expect(_shows('Petronella'), isFalse);
-    await _saveAs(tester, 'Copy');
-    expect((await _byName(repos, 'Copy')).spec.toJson(), saved.spec.toJson());
+    expect(find.byKey(const ValueKey('saved-search-save')), findsNothing);
+    expect(find.byKey(const ValueKey('collection-more-actions')), findsNothing);
   });
 
   testWidgets('a loaded search is not put back over an edit when the '
@@ -277,8 +294,7 @@ void main() {
       ).value!,
     );
     final host = await _pumpPicker(tester, repos);
-    await _openMenu(tester);
-    await _choose(tester, 'saved-search-item-${saved.id}');
+    await _loadInPicker(tester, saved);
     expect(_pickerText(tester), 'Petronella');
 
     await tester.enterText(
@@ -297,31 +313,7 @@ void main() {
     expect(_shows('Petronella'), isFalse);
   });
 
-  testWidgets('the menu is unavailable while Online search is on', (
-    tester,
-  ) async {
-    final repos = await _library();
-    await _pumpPicker(
-      tester,
-      repos,
-      enableOnlineSearch: true,
-      contraDbOnline: ContraDbOnline(
-        searchFetcher: (_) async => '{"numberMatching":0,"dances":[]}',
-      ),
-    );
-    IconButton menu() => tester.widget<IconButton>(
-      find.byKey(const ValueKey('saved-search-menu')),
-    );
-    expect(menu().onPressed, isNotNull);
-
-    await tester.tap(find.byKey(const ValueKey('picker-online-search-enable')));
-    await tester.pumpAndSettle();
-
-    expect(menu().onPressed, isNull);
-  });
-
-  testWidgets('in a bottom sheet, Undo after a delete shows inside the '
-      'sheet and brings the saved search back', (tester) async {
+  testWidgets('there is no dropdown while Online search is on', (tester) async {
     final repos = await _library();
     final saved = await repos.savedSearches.create(
       name: 'Pet',
@@ -330,43 +322,23 @@ void main() {
         today: _day,
       ).value!,
     );
-    await tester.binding.setSurfaceSize(const Size(390, 844));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    final data = await CollectionData.load(repos);
-    await tester.pumpWidget(
-      _app(
-        repos,
-        Builder(
-          builder: (context) => Scaffold(
-            body: Center(
-              child: TextButton(
-                onPressed: () => showModalBottomSheet<void>(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (_) =>
-                      SizedBox(height: 700, child: _Host(data: data)),
-                ),
-                child: const Text('Open'),
-              ),
-            ),
-          ),
-        ),
+    await _pumpPicker(
+      tester,
+      repos,
+      enableOnlineSearch: true,
+      contraDbOnline: ContraDbOnline(
+        searchFetcher: (_) async => '{"numberMatching":0,"dances":[]}',
       ),
     );
-    await tester.tap(find.text('Open'));
+    await tester.tap(find.byKey(const ValueKey('picker-online-search-enable')));
     await tester.pumpAndSettle();
-    await _openMenu(tester);
-    await _choose(tester, 'saved-search-item-${saved.id}');
 
-    await _openMenu(tester);
-    await _choose(tester, 'saved-search-delete');
-    expect(await repos.savedSearches.get(saved.id), isNull);
+    await tester.tap(find.byKey(const ValueKey('picker-search')));
+    await tester.enterText(find.byKey(const ValueKey('picker-search')), 'pe');
+    await tester.pump();
 
-    final undo = find.byKey(const ValueKey('saved-search-undo'));
-    expect(undo.hitTestable(), findsOneWidget);
-    await tester.tap(undo);
-    await tester.pumpAndSettle();
-    expect((await repos.savedSearches.get(saved.id))?.name, 'Pet');
+    expect(find.byKey(const ValueKey('saved-search-dropdown')), findsNothing);
+    expect(find.byKey(ValueKey('saved-search-row-${saved.id}')), findsNothing);
   });
 
   testWidgets("the picker counts a window back from the caller's own day", (
@@ -401,8 +373,7 @@ void main() {
     );
     await _pumpPicker(tester, repos);
 
-    await _openMenu(tester);
-    await _choose(tester, 'saved-search-item-${saved.id}');
+    await _loadInPicker(tester, saved);
 
     expect(_shows('Edge Reel'), isTrue);
     expect(_shows('Recent Reel'), isFalse);

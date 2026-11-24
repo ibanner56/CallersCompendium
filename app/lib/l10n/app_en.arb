@@ -3984,15 +3984,15 @@
   },
   "settingsGeneralLibraryHeader": "Dances",
   "@settingsGeneralLibraryHeader": {
-    "description": "General settings section header over the dance list and labeling preferences: title sorting, figure capitalization, tags, authors and sources."
+    "description": "Settings › Collection section header over the dance list and labeling preferences: title sorting, figure capitalization, tags, authors and sources. (In Settings › Collection since #2325; the key keeps its General name.)"
   },
   "settingsGeneralSortIgnoreArticlesTitle": "Ignore leading articles when sorting",
   "@settingsGeneralSortIgnoreArticlesTitle": {
-    "description": "Title of the General settings toggle that sorts dance titles while ignoring leading articles such as 'the', 'a', and 'an'."
+    "description": "Title of the Settings › Collection › Dances toggle that sorts dance titles while ignoring leading articles such as 'the', 'a', and 'an'. (In Settings › Collection since #2325; the key keeps its General name.)"
   },
   "settingsGeneralSortIgnoreArticlesSubtitle": "When on, the dance list alphabetizes titles ignoring a leading \"the\", \"a\", or \"an\" — so \"The Nice Combination\" files under N. Turn off to sort by the literal title.",
   "@settingsGeneralSortIgnoreArticlesSubtitle": {
-    "description": "Subtitle explaining the ignore-leading-articles sort toggle. Example title and articles are illustrative text."
+    "description": "Subtitle explaining the ignore-leading-articles sort toggle. Example title and articles are illustrative text. (In Settings › Collection since #2325; the key keeps its General name.)"
   },
   "settingsGeneralVenuesHeader": "Venues",
   "@settingsGeneralVenuesHeader": {
@@ -4347,35 +4347,35 @@
   },
   "settingsGeneralCapitalizeFiguresTitle": "Capitalize figures",
   "@settingsGeneralCapitalizeFiguresTitle": {
-    "description": "Title of the General settings Library toggle that capitalizes the first letter of each figure shown on screen."
+    "description": "Title of the Settings › Collection › Dances toggle that capitalizes the first letter of each figure shown on screen. (In Settings › Collection since #2325; the key keeps its General name.)"
   },
   "settingsGeneralCapitalizeFiguresSubtitle": "When on, each figure in the dance view, Perform mode and the figure editor starts with a capital letter (\"Neighbors allemande left\"). When off, figures are shown as written; built-in figures start in lower case, as in ContraDB. Only how figures look in those places changes; exports, search, sync comparisons and screen-reader wording are unaffected.",
   "@settingsGeneralCapitalizeFiguresSubtitle": {
-    "description": "Subtitle explaining the capitalize figures toggle. ContraDB is a product name and stays untranslated."
+    "description": "Subtitle explaining the capitalize figures toggle. ContraDB is a product name and stays untranslated. (In Settings › Collection since #2325; the key keeps its General name.)"
   },
   "settingsGeneralLibraryTagsTitle": "Tags",
   "@settingsGeneralLibraryTagsTitle": {
-    "description": "Settings › General › Library entry that opens the Tags manager."
+    "description": "Settings › Collection › Dances entry that opens the Tags manager. (In Settings › Collection since #2325; the key keeps its General name.)"
   },
   "settingsGeneralLibraryTagsSubtitle": "Rename, merge, color and delete your tags.",
   "@settingsGeneralLibraryTagsSubtitle": {
-    "description": "Subtitle of the Settings › General › Library entry that opens the Tags manager."
+    "description": "Subtitle of the Settings › Collection › Dances entry that opens the Tags manager. (In Settings › Collection since #2325; the key keeps its General name.)"
   },
   "settingsGeneralLibraryAuthorsTitle": "Authors",
   "@settingsGeneralLibraryAuthorsTitle": {
-    "description": "Title of the Settings › General › Library entry that opens the Authors manager."
+    "description": "Title of the Settings › Collection › Dances entry that opens the Authors manager. (In Settings › Collection since #2325; the key keeps its General name.)"
   },
   "settingsGeneralLibraryAuthorsSubtitle": "Rename, merge and delete authors, and edit their details.",
   "@settingsGeneralLibraryAuthorsSubtitle": {
-    "description": "Subtitle of the Settings › General › Library entry that opens the Authors manager."
+    "description": "Subtitle of the Settings › Collection › Dances entry that opens the Authors manager. (In Settings › Collection since #2325; the key keeps its General name.)"
   },
   "settingsGeneralLibrarySourcesTitle": "Sources",
   "@settingsGeneralLibrarySourcesTitle": {
-    "description": "Title of the Settings › General › Library entry that opens the Sources manager."
+    "description": "Title of the Settings › Collection › Dances entry that opens the Sources manager. (In Settings › Collection since #2325; the key keeps its General name.)"
   },
   "settingsGeneralLibrarySourcesSubtitle": "Rename, merge and delete sources, and edit their details.",
   "@settingsGeneralLibrarySourcesSubtitle": {
-    "description": "Subtitle of the Settings › General › Library entry that opens the Sources manager."
+    "description": "Subtitle of the Settings › Collection › Dances entry that opens the Sources manager. (In Settings › Collection since #2325; the key keeps its General name.)"
   },
   "settingsGeneralAccessibilityHeader": "Accessibility",
   "@settingsGeneralAccessibilityHeader": {
@@ -19028,29 +19028,13 @@
       }
     }
   },
-  "savedSearchButton": "Saved",
-  "@savedSearchButton": {
-    "description": "Screen-reader name of the Saved button at the end of the Collection and picker search tools (#2325): opens the menu of saved searches."
-  },
-  "savedSearchTooltip": "Saved searches: save this search, or use one you saved",
-  "@savedSearchTooltip": {
-    "description": "Tooltip on the Saved button beside the search tools."
-  },
-  "savedSearchOnlineTooltip": "Saved searches are not available while Online search is on",
-  "@savedSearchOnlineTooltip": {
-    "description": "Tooltip and screen-reader hint on the Saved button while Online search is on, when it is disabled."
-  },
   "savedSearchSaveThis": "Save this search…",
   "@savedSearchSaveThis": {
-    "description": "First entry of the Saved menu: saves the search on screen under a name. Offered only while some text, filter, phrase row or Advanced row is set."
-  },
-  "savedSearchSaveAsNew": "Save as new…",
-  "@savedSearchSaveAsNew": {
-    "description": "Saved menu entry, in place of Save this search, once a loaded saved search has been changed: saves the changed search as a new one."
+    "description": "Collection ⋮ menu entry: saves the search on screen under a name. Offered only while some text, filter, phrase row or Advanced row is set."
   },
   "savedSearchUpdate": "Update \"{name}\"",
   "@savedSearchUpdate": {
-    "description": "Saved menu entry, shown once the loaded saved search has been changed: writes the change back to it.",
+    "description": "Collection ⋮ menu entry while a saved search is loaded, enabled once it has been changed: writes the change back to it.",
     "placeholders": {
       "name": {
         "type": "String",
@@ -19060,7 +19044,7 @@
   },
   "savedSearchRename": "Rename \"{name}\"…",
   "@savedSearchRename": {
-    "description": "Saved menu entry: renames the loaded saved search.",
+    "description": "Collection ⋮ menu entry while a saved search is loaded: renames it.",
     "placeholders": {
       "name": {
         "type": "String",
@@ -19070,7 +19054,7 @@
   },
   "savedSearchDelete": "Delete \"{name}\"",
   "@savedSearchDelete": {
-    "description": "Saved menu entry: deletes the loaded saved search (with Undo).",
+    "description": "Collection ⋮ menu entry while a saved search is loaded: deletes it (with Undo).",
     "placeholders": {
       "name": {
         "type": "String",
@@ -19078,17 +19062,13 @@
       }
     }
   },
-  "savedSearchNoneYet": "No saved searches yet",
-  "@savedSearchNoneYet": {
-    "description": "Disabled line in the Saved menu when there are no saved searches."
-  },
   "savedSearchNeedsAttention": "Needs attention",
   "@savedSearchNeedsAttention": {
-    "description": "Heading in the Saved menu over saved searches this version of the app cannot open."
+    "description": "Heading in Settings › Collection over saved searches this version of the app cannot open."
   },
   "savedSearchUnreadableItem": "A saved search that can't be opened",
   "@savedSearchUnreadableItem": {
-    "description": "Saved menu entry for a saved search this version cannot read, under Needs attention. Also names it in the Deleted snackbar."
+    "description": "Settings › Collection entry for a saved search this version cannot read, under Needs attention. Also names it in the Deleted snackbar."
   },
   "savedSearchUnreadableTitle": "Can't open this saved search",
   "@savedSearchUnreadableTitle": {
@@ -19349,5 +19329,69 @@
   "savedSearchMissingInvalid": "Something this version can't read",
   "@savedSearchMissingInvalid": {
     "description": "Line in the notice for a loaded saved search that could not be read whole; not expected."
+  },
+  "savedSearchSearchFor": "Search for \"{text}\"",
+  "@savedSearchSearchFor": {
+    "description": "First row of the saved-search dropdown under the search field, while text is typed: runs the ordinary search for that text, as Enter does.",
+    "placeholders": {
+      "text": {
+        "type": "String",
+        "example": "becket"
+      }
+    }
+  },
+  "savedSearchHighlightedRow": "{name}, {index} of {count}",
+  "@savedSearchHighlightedRow": {
+    "description": "Screen-reader announcement when the arrow keys move the highlight in the saved-search dropdown under the search field: the row (a saved search, or Search for \"…\"), then its position.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Easy mixers"
+      },
+      "index": {
+        "type": "int",
+        "example": "2"
+      },
+      "count": {
+        "type": "int",
+        "example": "5"
+      }
+    }
+  },
+  "savedSearchSaveAsNewSearch": "Save as a new search…",
+  "@savedSearchSaveAsNewSearch": {
+    "description": "Collection ⋮ menu entry while a saved search is loaded, in place of Save this search…: saves the search on screen as another saved search."
+  },
+  "settingsCollectionTitle": "Collection",
+  "@settingsCollectionTitle": {
+    "description": "Settings section title (sidebar and app bar): the Dances settings and the saved searches."
+  },
+  "settingsSavedSearchesHeader": "Saved searches",
+  "@settingsSavedSearchesHeader": {
+    "description": "Heading in Settings ▸ Collection over the list of saved searches."
+  },
+  "settingsSavedSearchesEmpty": "No saved searches yet. Save one from the Collection: set up a search, then choose Save this search… in the More actions menu.",
+  "@settingsSavedSearchesEmpty": {
+    "description": "Shown in Settings ▸ Collection when there are no saved searches."
+  },
+  "settingsSavedSearchRenameTooltip": "Rename \"{name}\"",
+  "@settingsSavedSearchRenameTooltip": {
+    "description": "Tooltip on the rename button of a saved search in Settings ▸ Collection.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Easy mixers"
+      }
+    }
+  },
+  "settingsSavedSearchDeleteTooltip": "Delete \"{name}\"",
+  "@settingsSavedSearchDeleteTooltip": {
+    "description": "Tooltip on the delete button of a saved search in Settings ▸ Collection (with Undo).",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Easy mixers"
+      }
+    }
   }
 }

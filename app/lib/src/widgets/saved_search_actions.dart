@@ -15,8 +15,8 @@ import '../utils/undo_snack_bar.dart';
 /// as it was loaded (so **Update** appears only once the panel differs from
 /// it), and what it refers to that is gone.
 ///
-/// The host, not the menu, keeps this, so **Clear all** (and loading another)
-/// forgets it.
+/// The host, not [SavedSearchActions], keeps this, so clearing the search
+/// (and loading another) forgets it.
 class SavedSearchLoad {
   const SavedSearchLoad({
     required this.search,
@@ -62,46 +62,32 @@ class SavedSearchMissing {
   final String? detail;
 }
 
-/// The **Saved** menu (#2325): save the search on screen under a name, load a
-/// saved one, and update, rename or delete the one loaded. Shared by the
-/// Collection and the collection picker, at the end of their row of search
-/// tools.
+/// What a host does with saved searches (#2325), with no widget of its own:
+/// load one into the panel (the search field's dropdown), save the panel as a
+/// new one, update, rename or delete the loaded one (the Collection's ⋮ menu),
+/// and rename or delete any one (Settings ▸ Collection ▸ Saved searches).
 ///
-/// The menu is flat: **Save this search…** (offered only while a query is
-/// set; **Save as new…** once a loaded search has been changed), then, for a
-/// loaded search, **Update "…"** (only once the panel differs from it),
-/// **Rename "…"…** and **Delete "…"**, then every saved search by name. One
-/// this version cannot read is listed last, under **Needs attention**, and is
-/// never applied; it can be deleted, with Undo.
+/// Each call reads the repositories and shows its dialogs, messages and Undo
+/// through [context], and returns what the host should now hold. The panel
+/// seams ([current], [apply], [readContext]) are needed only by the calls that
+/// read or fill a panel; the settings list passes none.
 ///
-/// Loading reads one [SavedSearchContext] from the live data
-/// ([readContext]) and resolves against it. A search that names something
-/// gone is still shown — every part that can be — and the host shows a
-/// notice naming each missing thing ([SavedSearchNotice]); it is never
-/// applied silently.
-///
-/// Disabled while online search is on: a saved search is local only.
-class SavedSearchMenu extends StatefulWidget {
-  const SavedSearchMenu({
-    super.key,
-    required this.enabled,
-    required this.hasQuery,
+/// Loading reads one [SavedSearchContext] from the live data ([readContext])
+/// and resolves against it. A search that names something gone is still
+/// shown — every part that can be — and the host shows a notice naming each
+/// missing thing ([SavedSearchNotice]); it is never applied silently.
+class SavedSearchActions {
+  SavedSearchActions(
+    this.context, {
     required this.clock,
     required this.dialect,
     required this.enrichment,
-    required this.current,
-    required this.loaded,
-    required this.onLoadedChanged,
-    required this.apply,
-    required this.readContext,
+    this.current,
+    this.apply,
+    this.readContext,
   });
 
-  /// False while online search is on.
-  final bool enabled;
-
-  /// Whether any text, filter, phrase row or Advanced row is set: the
-  /// condition for **Save this search…**.
-  final bool hasQuery;
+  final BuildContext context;
 
   /// Where "today" comes from, for saving a chosen date as months back.
   final SearchClock clock;
@@ -111,35 +97,23 @@ class SavedSearchMenu extends StatefulWidget {
   final SearchEnrichment enrichment;
 
   /// The host's panel state now. Read only, never kept.
-  final CollectionPanelState Function() current;
-
-  /// The saved search the host is showing, if any.
-  final SavedSearchLoad? loaded;
-
-  /// The host keeps [SavedSearchLoad]; null forgets it.
-  final ValueChanged<SavedSearchLoad?> onLoadedChanged;
+  final CollectionPanelState Function()? current;
 
   /// Shows a whole panel state in the host, in place of the current search,
   /// and runs it, without touching the last-used sort.
-  final void Function(CollectionPanelState state) apply;
+  final void Function(CollectionPanelState state)? apply;
 
   /// Reads the context to resolve against, once per load, with the host's
   /// live Calling history settings.
-  final Future<SavedSearchContext> Function(SavedSearchTextCodec text)
+  final Future<SavedSearchContext> Function(SavedSearchTextCodec text)?
   readContext;
 
-  @override
-  State<SavedSearchMenu> createState() => _SavedSearchMenuState();
-}
+  CompendiumRepositories get _repos => RepositoriesScope.of(context);
+  AppLocalizations get _l10n => AppLocalizations.of(context);
 
-class _SavedSearchMenuState extends State<SavedSearchMenu> {
-  final _controller = MenuController();
-  List<StoredSavedSearch> _stored = const [];
-  bool _changed = false;
-
-  /// The caller's calendar day now, from [SavedSearchMenu.clock].
+  /// The caller's calendar day now, from [clock].
   DateTime _today() {
-    final reading = widget.clock.read();
+    final reading = clock.read();
     return calendarDayAt(reading.instantUtc, reading.offset);
   }
 
@@ -151,52 +125,34 @@ class _SavedSearchMenuState extends State<SavedSearchMenu> {
             ?.catalog ??
         UserFigureCatalog.empty;
     return savedSearchTextCodec(
-      saveDialect: widget.dialect,
-      showDialect: widget.dialect,
-      enrichment: widget.enrichment,
+      saveDialect: dialect,
+      showDialect: dialect,
+      enrichment: enrichment,
       renderer: FigureRenderer(shippedTaxonomies.anyForm, userFigures: catalog),
     );
   }
 
   /// The saved form of the host's panel now, or null when it is too large.
   Map<String, Object?>? _currentForm() => SavedSearchSpec.fromPanelState(
-    widget.current(),
+    current!(),
     today: _today(),
     text: _text(),
   ).value?.toJson();
 
-  Future<void> _open() async {
-    final repos = RepositoriesScope.of(context);
-    final List<StoredSavedSearch> stored;
-    try {
-      stored = await repos.savedSearches.list();
-    } catch (error, stackTrace) {
-      logCaughtError(error, stackTrace, source: 'saved_search_menu._open');
-      _showFailed();
-      return;
-    }
-    if (!mounted) return;
-    var loaded = widget.loaded;
-    // Deleted elsewhere (another device, by sync): nothing is loaded now.
-    if (loaded != null &&
-        !stored.any((s) => s.search?.id == loaded!.search.id)) {
-      widget.onLoadedChanged(null);
-      loaded = null;
-    }
-    final now = loaded == null ? null : _currentForm();
-    setState(() {
-      _stored = stored;
-      _changed =
-          loaded != null && (now == null || !_sameJson(now, loaded.baseline));
-    });
-    _controller.open();
+  /// Whether the host's panel differs from [loaded] as it was loaded or last
+  /// saved: the condition for **Update**.
+  bool changed(SavedSearchLoad loaded) {
+    final now = _currentForm();
+    return now == null || !_sameJson(now, loaded.baseline);
   }
 
-  Future<void> _load(SavedSearch search) async {
-    final repos = RepositoriesScope.of(context);
+  /// Shows [search] in the host and runs it. Returns what the host now holds,
+  /// or null when it could not be read (a message says so).
+  Future<SavedSearchLoad?> load(SavedSearch search) async {
     final text = _text();
+    final repos = _repos;
     try {
-      final ctx = await widget.readContext(text);
+      final ctx = await readContext!(text);
       final CollectionPanelState state;
       var missing = const <SavedSearchMissing>[];
       switch (resolveSavedSearch(search.spec, ctx)) {
@@ -210,22 +166,27 @@ class _SavedSearchMenuState extends State<SavedSearchMenu> {
           );
           missing = await _describe(repos, refs, ctx);
       }
-      if (!mounted) return;
-      widget.apply(state);
+      if (!context.mounted) return null;
+      apply!(state);
       final baseline = _currentForm() ?? search.spec.toJson();
-      widget.onLoadedChanged(
-        SavedSearchLoad(search: search, baseline: baseline, missing: missing),
+      return SavedSearchLoad(
+        search: search,
+        baseline: baseline,
+        missing: missing,
       );
     } catch (error, stackTrace) {
-      logCaughtError(error, stackTrace, source: 'saved_search_menu._load');
+      logCaughtError(error, stackTrace, source: 'saved_search_actions.load');
       _showFailed();
+      return null;
     }
   }
 
-  Future<void> _saveNew() async {
-    final l10n = AppLocalizations.of(context);
-    final repos = RepositoriesScope.of(context);
-    final state = widget.current();
+  /// Saves the host's panel under a name the user gives. Returns the search
+  /// just saved, now the loaded one, or null when nothing was saved.
+  Future<SavedSearchLoad?> saveNew() async {
+    final l10n = _l10n;
+    final repos = _repos;
+    final state = current!();
     final spec = SavedSearchSpec.fromPanelState(
       state,
       today: _today(),
@@ -233,21 +194,17 @@ class _SavedSearchMenuState extends State<SavedSearchMenu> {
     ).value;
     if (spec == null) {
       await _tell(l10n.savedSearchTooLargeTitle, l10n.savedSearchTooLargeBody);
-      return;
+      return null;
     }
     final name = await _askName(
       title: l10n.savedSearchSaveDialogTitle,
       window: savedSearchWindowText(l10n, state.facets, _today()),
     );
-    if (name == null || !mounted) return;
+    if (name == null || !context.mounted) return null;
     try {
       final saved = await repos.savedSearches.create(name: name, spec: spec);
-      if (!mounted) return;
-      // The search just saved is the one on screen now.
-      widget.onLoadedChanged(
-        SavedSearchLoad(search: saved, baseline: spec.toJson()),
-      );
       _snack(l10n.savedSearchSavedSnack(saved.name));
+      return SavedSearchLoad(search: saved, baseline: spec.toJson());
     } on SavedSearchLimitReached {
       // diagnostics: silent — an expected refusal, told to the user in full.
       await _tell(
@@ -256,25 +213,28 @@ class _SavedSearchMenuState extends State<SavedSearchMenu> {
       );
     } on ArgumentError catch (error, stackTrace) {
       // A name the store cannot keep (only invisible characters).
-      logCaughtError(error, stackTrace, source: 'saved_search_menu._saveNew');
+      logCaughtError(error, stackTrace, source: 'saved_search_actions.saveNew');
       _snack(l10n.savedSearchNameRefused);
     } catch (error, stackTrace) {
-      logCaughtError(error, stackTrace, source: 'saved_search_menu._saveNew');
+      logCaughtError(error, stackTrace, source: 'saved_search_actions.saveNew');
       _showFailed();
     }
+    return null;
   }
 
-  Future<void> _update(SavedSearchLoad loaded) async {
-    final l10n = AppLocalizations.of(context);
-    final repos = RepositoriesScope.of(context);
+  /// Writes the host's panel back into [loaded]. Returns what the host now
+  /// holds, or null when nothing was written.
+  Future<SavedSearchLoad?> update(SavedSearchLoad loaded) async {
+    final l10n = _l10n;
+    final repos = _repos;
     final spec = SavedSearchSpec.fromPanelState(
-      widget.current(),
+      current!(),
       today: _today(),
       text: _text(),
     ).value;
     if (spec == null) {
       await _tell(l10n.savedSearchTooLargeTitle, l10n.savedSearchTooLargeBody);
-      return;
+      return null;
     }
     final updated = SavedSearch(
       id: loaded.search.id,
@@ -283,74 +243,73 @@ class _SavedSearchMenuState extends State<SavedSearchMenu> {
     );
     try {
       await repos.savedSearches.save(updated);
-      if (!mounted) return;
-      widget.onLoadedChanged(
-        loaded.copyWith(search: updated, baseline: spec.toJson()),
-      );
       _snack(l10n.savedSearchUpdatedSnack(updated.name));
+      return loaded.copyWith(search: updated, baseline: spec.toJson());
     } catch (error, stackTrace) {
-      logCaughtError(error, stackTrace, source: 'saved_search_menu._update');
+      logCaughtError(error, stackTrace, source: 'saved_search_actions.update');
       _showFailed();
+      return null;
     }
   }
 
-  Future<void> _rename(SavedSearchLoad loaded) async {
-    final l10n = AppLocalizations.of(context);
-    final repos = RepositoriesScope.of(context);
+  /// Renames [search] as stored (never saving a panel's edits). Returns it
+  /// under its new name, or null when it was not renamed.
+  Future<SavedSearch?> rename(SavedSearch search) async {
+    final l10n = _l10n;
+    final repos = _repos;
     final name = await _askName(
       title: l10n.savedSearchRenameDialogTitle,
-      initial: loaded.search.name,
+      initial: search.name,
     );
-    if (name == null || !mounted) return;
-    // The stored search under a new name; the panel's edits are not saved.
-    final renamed = SavedSearch(
-      id: loaded.search.id,
-      name: name,
-      spec: loaded.search.spec,
-    );
+    if (name == null || !context.mounted) return null;
+    final renamed = SavedSearch(id: search.id, name: name, spec: search.spec);
     try {
       await repos.savedSearches.save(renamed);
-      if (!mounted) return;
-      widget.onLoadedChanged(loaded.copyWith(search: renamed));
+      return renamed;
     } on ArgumentError catch (error, stackTrace) {
-      logCaughtError(error, stackTrace, source: 'saved_search_menu._rename');
+      logCaughtError(error, stackTrace, source: 'saved_search_actions.rename');
       _snack(l10n.savedSearchNameRefused);
     } catch (error, stackTrace) {
-      logCaughtError(error, stackTrace, source: 'saved_search_menu._rename');
+      logCaughtError(error, stackTrace, source: 'saved_search_actions.rename');
       _showFailed();
     }
+    return null;
   }
 
-  /// Deletes [id] (a readable search named [label], or one that needs
-  /// attention), with Undo. Undo writes back the stored value exactly as it
-  /// was read, so even a value this version cannot read comes back unchanged.
-  Future<void> _delete(String id, String label) async {
-    if (!await confirmDeleteIfEnabled(context, itemLabel: label)) return;
-    if (!mounted) return;
-    final l10n = AppLocalizations.of(context);
-    final repos = RepositoriesScope.of(context);
+  /// Deletes the saved search [id] (named [label] to the user), with Undo.
+  /// Returns whether it was deleted. Undo writes back the stored value
+  /// exactly as it was read, so even a value this version cannot read comes
+  /// back unchanged; [onUndone] runs after it has.
+  Future<bool> delete(String id, String label, {VoidCallback? onUndone}) async {
+    if (!await confirmDeleteIfEnabled(context, itemLabel: label)) return false;
+    if (!context.mounted) return false;
+    final l10n = _l10n;
+    final repos = _repos;
     final messenger = ScaffoldMessenger.of(context);
     final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
     final key = '$savedSearchKeyPrefix$id';
     try {
       final before = await repos.settings.get(key);
       await repos.savedSearches.delete(id);
-      if (!mounted) return;
-      if (widget.loaded?.search.id == id) widget.onLoadedChanged(null);
-      if (before == null) return;
-      showUndoSnackBar(
-        messenger,
-        key: const ValueKey('saved-search-undo-snackbar'),
-        actionKey: const ValueKey('saved-search-undo'),
-        message: l10n.savedSearchDeletedSnack(label),
-        undoLabel: l10n.commonUndo,
-        undoFailedMessage: l10n.commonUndoFailed,
-        accessibleNavigation: accessibleNavigation,
-        onUndo: () => repos.settings.set(key, before),
-      );
+      if (before != null) {
+        showUndoSnackBar(
+          messenger,
+          key: const ValueKey('saved-search-undo-snackbar'),
+          actionKey: const ValueKey('saved-search-undo'),
+          message: l10n.savedSearchDeletedSnack(label),
+          undoLabel: l10n.commonUndo,
+          undoFailedMessage: l10n.commonUndoFailed,
+          accessibleNavigation: accessibleNavigation,
+          onUndo: () async {
+            await repos.settings.set(key, before);
+            onUndone?.call();
+          },
+        );
+      }
+      return true;
     } on SavedSearchInUse catch (inUse) {
       // diagnostics: silent — an expected refusal; the dialog names each use.
-      if (!mounted) return;
+      if (!context.mounted) return false;
       await showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
@@ -380,13 +339,16 @@ class _SavedSearchMenuState extends State<SavedSearchMenu> {
         ),
       );
     } catch (error, stackTrace) {
-      logCaughtError(error, stackTrace, source: 'saved_search_menu._delete');
+      logCaughtError(error, stackTrace, source: 'saved_search_actions.delete');
       _showFailed();
     }
+    return false;
   }
 
-  Future<void> _showUnreadable(StoredSavedSearch entry) async {
-    final l10n = AppLocalizations.of(context);
+  /// Explains why the saved search [id] cannot be read and offers to delete
+  /// it, with Undo. Returns whether it was deleted.
+  Future<bool> showUnreadable(String id, {VoidCallback? onUndone}) async {
+    final l10n = _l10n;
     final delete = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -406,8 +368,8 @@ class _SavedSearchMenuState extends State<SavedSearchMenu> {
         ],
       ),
     );
-    if (delete != true || !mounted) return;
-    await _delete(entry.savedSearchId, l10n.savedSearchUnreadableItem);
+    if (delete != true || !context.mounted) return false;
+    return this.delete(id, l10n.savedSearchUnreadableItem, onUndone: onUndone);
   }
 
   Future<String?> _askName({
@@ -436,7 +398,7 @@ class _SavedSearchMenuState extends State<SavedSearchMenu> {
   );
 
   void _snack(String message) {
-    if (!mounted) return;
+    if (!context.mounted) return;
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(
@@ -444,113 +406,9 @@ class _SavedSearchMenuState extends State<SavedSearchMenu> {
       );
   }
 
-  void _showFailed() => _snack(AppLocalizations.of(context).savedSearchFailed);
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final loaded = widget.loaded;
-    final readable = [for (final s in _stored) ?s.search];
-    final unreadable = [
-      for (final s in _stored)
-        if (s.search == null) s,
-    ];
-    final scheme = Theme.of(context).colorScheme;
-    return MenuAnchor(
-      controller: _controller,
-      menuChildren: [
-        MenuItemButton(
-          key: const ValueKey('saved-search-save'),
-          onPressed: widget.hasQuery ? _saveNew : null,
-          child: Text(
-            loaded != null && _changed
-                ? l10n.savedSearchSaveAsNew
-                : l10n.savedSearchSaveThis,
-          ),
-        ),
-        if (loaded != null && _changed)
-          MenuItemButton(
-            key: const ValueKey('saved-search-update'),
-            onPressed: () => _update(loaded),
-            child: Text(l10n.savedSearchUpdate(loaded.search.name)),
-          ),
-        if (loaded != null) ...[
-          MenuItemButton(
-            key: const ValueKey('saved-search-rename'),
-            onPressed: () => _rename(loaded),
-            child: Text(l10n.savedSearchRename(loaded.search.name)),
-          ),
-          MenuItemButton(
-            key: const ValueKey('saved-search-delete'),
-            onPressed: () => _delete(loaded.search.id, loaded.search.name),
-            child: Text(l10n.savedSearchDelete(loaded.search.name)),
-          ),
-        ],
-        const Divider(height: 1),
-        if (_stored.isEmpty)
-          MenuItemButton(
-            key: const ValueKey('saved-search-none'),
-            onPressed: null,
-            child: Text(l10n.savedSearchNoneYet),
-          ),
-        for (final search in readable)
-          MenuItemButton(
-            key: ValueKey('saved-search-item-${search.id}'),
-            leadingIcon: Icon(
-              loaded?.search.id == search.id
-                  ? Icons.check
-                  : Icons.bookmark_border,
-            ),
-            onPressed: () => _load(search),
-            child: Text(search.name),
-          ),
-        if (unreadable.isNotEmpty) ...[
-          MenuItemButton(
-            onPressed: null,
-            child: Text(l10n.savedSearchNeedsAttention),
-          ),
-          for (final entry in unreadable)
-            MenuItemButton(
-              key: ValueKey('saved-search-unreadable-${entry.savedSearchId}'),
-              leadingIcon: Icon(Icons.warning_amber, color: scheme.error),
-              onPressed: () => _showUnreadable(entry),
-              child: Text(l10n.savedSearchUnreadableItem),
-            ),
-        ],
-      ],
-      builder: (context, controller, child) => Tooltip(
-        message: widget.enabled
-            ? l10n.savedSearchTooltip
-            : l10n.savedSearchOnlineTooltip,
-        excludeFromSemantics: true,
-        child: Semantics(
-          button: true,
-          enabled: widget.enabled,
-          label: l10n.savedSearchButton,
-          hint: widget.enabled ? null : l10n.savedSearchOnlineTooltip,
-          onTap: widget.enabled ? _toggle : null,
-          excludeSemantics: true,
-          child: IconButton(
-            key: const ValueKey('saved-search-menu'),
-            isSelected: loaded != null,
-            icon: const Icon(Icons.bookmarks_outlined),
-            selectedIcon: const Icon(Icons.bookmarks),
-            // Compact, as the Online search icon beside it, so the row still
-            // holds Filters, By phrase and Advanced on a phone.
-            visualDensity: VisualDensity.compact,
-            onPressed: widget.enabled ? _toggle : null,
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _toggle() {
-    if (_controller.isOpen) {
-      _controller.close();
-    } else {
-      unawaited(_open());
-    }
+  void _showFailed() {
+    if (!context.mounted) return;
+    _snack(_l10n.savedSearchFailed);
   }
 }
 

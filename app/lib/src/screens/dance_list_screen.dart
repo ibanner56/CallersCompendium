@@ -70,7 +70,8 @@ import '../widgets/online_result_count.dart';
 import '../widgets/online_result_tile.dart';
 import '../widgets/online_search_toggle.dart';
 import '../widgets/pinned_while_room_sliver.dart';
-import '../widgets/saved_search_menu.dart';
+import '../widgets/saved_search_actions.dart';
+import '../widgets/saved_search_field.dart';
 import '../widgets/search_panel_bar.dart';
 import '../widgets/skeleton.dart';
 import '../sync/sync_scope.dart';
@@ -244,6 +245,10 @@ enum _CollectionCompactAction {
   recentlyDeleted,
   repertoire,
   sortDirection,
+  saveSearch,
+  updateSavedSearch,
+  renameSavedSearch,
+  deleteSavedSearch,
 }
 
 /// The optional app-bar glyphs that give way to the ⋮ menu, as the bar narrows.
@@ -276,8 +281,8 @@ abstract interface class DanceListCommands {
   /// direction, exactly. The list takes [state]'s objects as its own and
   /// edits them from then on.
   ///
-  /// The Saved menu loads a saved search through this
-  /// (`docs/design/search.md`, "The Saved menu"); applying any other state
+  /// The search field's saved-search dropdown loads one through this
+  /// (`docs/design/search.md`, "Using saved searches"); applying any other state
   /// forgets which saved search was on screen.
   void applyPanelState(CollectionPanelState state);
 }
@@ -349,12 +354,16 @@ class _DanceListScreenState extends State<DanceListScreen>
   bool _panelFromSavedSearch = false;
 
   /// The saved search on screen, if one was loaded or just saved (#2325):
-  /// what the Saved menu's Update, Rename and Delete act on. Kept here, not in
+  /// what the ⋮ menu's Update, Rename and Delete act on. Kept here, not in
   /// the menu, so Clear all forgets it.
   SavedSearchLoad? _loadedSearch;
 
   /// Whether the notice about [_loadedSearch]'s missing references was closed.
   bool _savedSearchNoticeClosed = false;
+
+  /// Bumped after a saved search is saved, renamed or deleted here, so the
+  /// search field's dropdown reads the list again.
+  int _savedSearchRevision = 0;
 
   CollectionSort _sort = CollectionSort.title;
 
@@ -1538,7 +1547,7 @@ class _DanceListScreenState extends State<DanceListScreen>
       _byPhrase = state.byPhrase;
       _advancedRoot = state.advanced;
       _panelFromSavedSearch = state.fromSavedSearch;
-      // Whatever was loaded is not on screen any more; the Saved menu says
+      // Whatever was loaded is not on screen any more; the dropdown says
       // which saved search this is, once it has applied it.
       _loadedSearch = null;
       final (:sort, :direction) = state.effectiveSort;
@@ -1550,7 +1559,7 @@ class _DanceListScreenState extends State<DanceListScreen>
     _runSearch();
   }
 
-  /// The search on screen, as a panel state for the Saved menu to save. The
+  /// The search on screen, as a panel state for the ⋮ menu to save. The
   /// list's own objects, read and not kept.
   CollectionPanelState _currentPanelState() => CollectionPanelState(
     text: _ftsController.text,
@@ -1578,6 +1587,68 @@ class _DanceListScreenState extends State<DanceListScreen>
       requireEventDate: _requireEventDateForHistory,
       tracking: _tracking,
     );
+  }
+
+  /// The saved-search actions for this list: its clock, dialect and panel.
+  SavedSearchActions _savedSearchActions() => SavedSearchActions(
+    context,
+    clock: widget.clock,
+    dialect: _dialect,
+    enrichment: _enrichment,
+    current: _currentPanelState,
+    apply: applyPanelState,
+    readContext: _readSavedSearchContext,
+  );
+
+  /// The search field's dropdown chose [search]: show it and run it.
+  Future<void> _loadSavedSearch(SavedSearch search) async {
+    final load = await _savedSearchActions().load(search);
+    if (load != null) _onSavedSearchLoaded(load);
+  }
+
+  /// ⋮ ▸ Save this search… (or Save as a new search…).
+  Future<void> _saveSearch() async {
+    final load = await _savedSearchActions().saveNew();
+    if (load == null || !mounted) return;
+    _savedSearchRevision++;
+    _onSavedSearchLoaded(load);
+  }
+
+  /// ⋮ ▸ Update "…": writes the panel back into the loaded search.
+  Future<void> _updateSavedSearch() async {
+    final loaded = _loadedSearch;
+    if (loaded == null) return;
+    final load = await _savedSearchActions().update(loaded);
+    if (load == null || !mounted) return;
+    _savedSearchRevision++;
+    _onSavedSearchLoaded(load);
+  }
+
+  /// ⋮ ▸ Rename "…": renames the loaded search as stored.
+  Future<void> _renameSavedSearch() async {
+    final loaded = _loadedSearch;
+    if (loaded == null) return;
+    final renamed = await _savedSearchActions().rename(loaded.search);
+    if (renamed == null || !mounted) return;
+    _savedSearchRevision++;
+    _onSavedSearchLoaded(loaded.copyWith(search: renamed));
+  }
+
+  /// ⋮ ▸ Delete "…": deletes the loaded search, with Undo. The search on
+  /// screen stays; it is just no longer a saved one.
+  Future<void> _deleteSavedSearch() async {
+    final loaded = _loadedSearch;
+    if (loaded == null) return;
+    final deleted = await _savedSearchActions().delete(
+      loaded.search.id,
+      loaded.search.name,
+      onUndone: () {
+        if (mounted) setState(() => _savedSearchRevision++);
+      },
+    );
+    if (!deleted || !mounted) return;
+    _savedSearchRevision++;
+    _onSavedSearchLoaded(null);
   }
 
   void _onSavedSearchLoaded(SavedSearchLoad? load) {
@@ -2657,6 +2728,14 @@ class _DanceListScreenState extends State<DanceListScreen>
           _openRecentlyDeleted();
         } else if (action == _CollectionCompactAction.repertoire) {
           _openRepertoire();
+        } else if (action == _CollectionCompactAction.saveSearch) {
+          unawaited(_saveSearch());
+        } else if (action == _CollectionCompactAction.updateSavedSearch) {
+          unawaited(_updateSavedSearch());
+        } else if (action == _CollectionCompactAction.renameSavedSearch) {
+          unawaited(_renameSavedSearch());
+        } else if (action == _CollectionCompactAction.deleteSavedSearch) {
+          unawaited(_deleteSavedSearch());
         }
       },
       itemBuilder: (context) => [
@@ -2692,6 +2771,7 @@ class _DanceListScreenState extends State<DanceListScreen>
             value: _CollectionCompactAction.repertoire,
             child: Text(l10n.collectionRepertoireMenuItem),
           ),
+        ..._savedSearchMenuItems(l10n),
         if (hasDances && !onBar.contains(_CollectionBarGlyph.sort)) ...[
           const PopupMenuDivider(),
           PopupMenuItem<Object>(
@@ -2734,6 +2814,48 @@ class _DanceListScreenState extends State<DanceListScreen>
         ],
       ],
     );
+  }
+
+  /// The ⋮ menu's saved-search entries (#2325): **Save this search…** while
+  /// nothing is loaded; for a loaded search, **Update "…"** (only once the
+  /// panel differs from it), **Save as a new search…** in place of Save this
+  /// search…, **Rename "…"…** and **Delete "…"**. A saved search is local
+  /// only, so none applies while online search is on.
+  List<PopupMenuEntry<Object>> _savedSearchMenuItems(AppLocalizations l10n) {
+    final loaded = _onlineEnabled ? null : _loadedSearch;
+    final changed = loaded != null && _savedSearchActions().changed(loaded);
+    return [
+      const PopupMenuDivider(),
+      if (loaded != null)
+        PopupMenuItem<Object>(
+          key: const ValueKey('saved-search-update'),
+          enabled: changed,
+          value: _CollectionCompactAction.updateSavedSearch,
+          child: Text(l10n.savedSearchUpdate(loaded.search.name)),
+        ),
+      PopupMenuItem<Object>(
+        key: const ValueKey('saved-search-save'),
+        enabled: !_onlineEnabled && _hasActiveQuery,
+        value: _CollectionCompactAction.saveSearch,
+        child: Text(
+          loaded != null
+              ? l10n.savedSearchSaveAsNewSearch
+              : l10n.savedSearchSaveThis,
+        ),
+      ),
+      if (loaded != null) ...[
+        PopupMenuItem<Object>(
+          key: const ValueKey('saved-search-rename'),
+          value: _CollectionCompactAction.renameSavedSearch,
+          child: Text(l10n.savedSearchRename(loaded.search.name)),
+        ),
+        PopupMenuItem<Object>(
+          key: const ValueKey('saved-search-delete'),
+          value: _CollectionCompactAction.deleteSavedSearch,
+          child: Text(l10n.savedSearchDelete(loaded.search.name)),
+        ),
+      ],
+    ];
   }
 
   /// The group-by-category selector: picks a single tag ("category") to group
@@ -3173,31 +3295,15 @@ class _DanceListScreenState extends State<DanceListScreen>
     // now renders inside the results area rather than replacing the whole body.
     final collectionEmpty = data.dancesById.isEmpty;
 
-    final searchField = TextField(
-      key: const ValueKey('collection-search-field'),
+    final searchField = SavedSearchField(
       controller: _ftsController,
       focusNode: _ftsFocusNode,
-      onChanged: _onFtsChanged,
-      onSubmitted: _onFtsSubmitted,
-      textInputAction: TextInputAction.search,
-      decoration: InputDecoration(
-        labelText: _onlineEnabled
-            ? l10n.onlineSearchFieldLabel(_onlineSource.label)
-            : l10n.collectionSearchFieldLabel,
-        hintText: _onlineEnabled
-            ? l10n.collectionOnlineSearchFieldHint
-            : l10n.collectionSearchFieldHint,
-        // Dense, like Search in beside it, so the two line up in one row.
-        isDense: true,
-        prefixIcon: Icon(_onlineEnabled ? kOnlineSearchIcon : Icons.search),
-        suffixIcon: _hasActiveQuery
-            ? IconButton(
-                tooltip: l10n.collectionClearSearchTooltip,
-                icon: const Icon(Icons.clear),
-                onPressed: _clearAll,
-              )
-            : null,
-      ),
+      enabled: !_onlineEnabled,
+      onLoad: _loadSavedSearch,
+      onSubmitted: () => _onFtsSubmitted(_ftsController.text),
+      revision: _savedSearchRevision,
+      fieldBuilder: (context, onSubmitted) =>
+          _buildSearchTextField(l10n, onSubmitted),
     );
     final searchScope = SearchScopeField(
       fieldKey: const ValueKey('collection-search-scope'),
@@ -3390,6 +3496,40 @@ class _DanceListScreenState extends State<DanceListScreen>
     );
   }
 
+  /// The search box itself, under the saved-search dropdown
+  /// ([SavedSearchField]); [onSubmitted] is the dropdown's Enter.
+  Widget _buildSearchTextField(
+    AppLocalizations l10n,
+    VoidCallback onSubmitted,
+  ) {
+    return TextField(
+      key: const ValueKey('collection-search-field'),
+      controller: _ftsController,
+      focusNode: _ftsFocusNode,
+      onChanged: _onFtsChanged,
+      onSubmitted: (_) => onSubmitted(),
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        labelText: _onlineEnabled
+            ? l10n.onlineSearchFieldLabel(_onlineSource.label)
+            : l10n.collectionSearchFieldLabel,
+        hintText: _onlineEnabled
+            ? l10n.collectionOnlineSearchFieldHint
+            : l10n.collectionSearchFieldHint,
+        // Dense, like Search in beside it, so the two line up in one row.
+        isDense: true,
+        prefixIcon: Icon(_onlineEnabled ? kOnlineSearchIcon : Icons.search),
+        suffixIcon: _hasActiveQuery
+            ? IconButton(
+                tooltip: l10n.collectionClearSearchTooltip,
+                icon: const Icon(Icons.clear),
+                onPressed: _clearAll,
+              )
+            : null,
+      ),
+    );
+  }
+
   /// The search tools that apply to the current mode, as one compact row of
   /// toggles ([SearchPanelBar]). Local filters can't apply to online results,
   /// so while online Filters stays in the row greyed out (the row does not
@@ -3416,27 +3556,10 @@ class _DanceListScreenState extends State<DanceListScreen>
     final byPhraseActive = _byPhraseActiveCount();
     return SearchPanelBar(
       storageId: 'collection',
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SavedSearchMenu(
-            enabled: !_onlineEnabled,
-            hasQuery: _hasActiveQuery,
-            clock: widget.clock,
-            dialect: _dialect,
-            enrichment: _enrichment,
-            current: _currentPanelState,
-            loaded: _loadedSearch,
-            onLoadedChanged: _onSavedSearchLoaded,
-            apply: applyPanelState,
-            readContext: _readSavedSearchContext,
-          ),
-          OnlineSearchToggle(
-            key: const ValueKey('online-search-enable'),
-            enabled: _onlineEnabled,
-            onChanged: _onOnlineToggled,
-          ),
-        ],
+      trailing: OnlineSearchToggle(
+        key: const ValueKey('online-search-enable'),
+        enabled: _onlineEnabled,
+        onChanged: _onOnlineToggled,
       ),
       panels: [
         if (!collectionEmpty)

@@ -14205,21 +14205,7 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get savedSearchButton => 'Opgeslagen';
-
-  @override
-  String get savedSearchTooltip =>
-      'Opgeslagen zoekopdrachten: sla deze zoekopdracht op of gebruik er een die je hebt opgeslagen';
-
-  @override
-  String get savedSearchOnlineTooltip =>
-      'Opgeslagen zoekopdrachten zijn niet beschikbaar zolang Online zoeken aan staat';
-
-  @override
   String get savedSearchSaveThis => 'Deze zoekopdracht opslaan…';
-
-  @override
-  String get savedSearchSaveAsNew => 'Opslaan als nieuwe…';
 
   @override
   String savedSearchUpdate(String name) {
@@ -14235,9 +14221,6 @@ class AppLocalizationsNl extends AppLocalizations {
   String savedSearchDelete(String name) {
     return '\"$name\" verwijderen';
   }
-
-  @override
-  String get savedSearchNoneYet => 'Nog geen opgeslagen zoekopdrachten';
 
   @override
   String get savedSearchNeedsAttention => 'Vraagt aandacht';
@@ -14438,4 +14421,37 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get savedSearchMissingInvalid => 'Iets wat deze versie niet kan lezen';
+
+  @override
+  String savedSearchSearchFor(String text) {
+    return 'Zoeken naar \"$text\"';
+  }
+
+  @override
+  String savedSearchHighlightedRow(String name, int index, int count) {
+    return '$name, $index van $count';
+  }
+
+  @override
+  String get savedSearchSaveAsNewSearch => 'Opslaan als nieuwe zoekopdracht…';
+
+  @override
+  String get settingsCollectionTitle => 'Collectie';
+
+  @override
+  String get settingsSavedSearchesHeader => 'Opgeslagen zoekopdrachten';
+
+  @override
+  String get settingsSavedSearchesEmpty =>
+      'Nog geen opgeslagen zoekopdrachten. Sla er een op vanuit de collectie: stel een zoekopdracht in en kies dan Deze zoekopdracht opslaan… in het menu Meer acties.';
+
+  @override
+  String settingsSavedSearchRenameTooltip(String name) {
+    return '\"$name\" hernoemen';
+  }
+
+  @override
+  String settingsSavedSearchDeleteTooltip(String name) {
+    return '\"$name\" verwijderen';
+  }
 }

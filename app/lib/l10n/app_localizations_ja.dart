@@ -13577,19 +13577,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get savedSearchButton => '保存済み';
-
-  @override
-  String get savedSearchTooltip => '保存した検索：この検索を保存するか、保存した検索を使います';
-
-  @override
-  String get savedSearchOnlineTooltip => 'オンライン検索がオンの間は保存した検索を使えません';
-
-  @override
   String get savedSearchSaveThis => 'この検索を保存…';
-
-  @override
-  String get savedSearchSaveAsNew => '新しく保存…';
 
   @override
   String savedSearchUpdate(String name) {
@@ -13605,9 +13593,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String savedSearchDelete(String name) {
     return '「$name」を削除';
   }
-
-  @override
-  String get savedSearchNoneYet => '保存した検索はまだありません';
 
   @override
   String get savedSearchNeedsAttention => '確認が必要';
@@ -13792,4 +13777,37 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get savedSearchMissingInvalid => 'このバージョンでは読めないもの';
+
+  @override
+  String savedSearchSearchFor(String text) {
+    return '「$text」を検索';
+  }
+
+  @override
+  String savedSearchHighlightedRow(String name, int index, int count) {
+    return '$name、$count件中$index件目';
+  }
+
+  @override
+  String get savedSearchSaveAsNewSearch => '新しい検索として保存…';
+
+  @override
+  String get settingsCollectionTitle => 'コレクション';
+
+  @override
+  String get settingsSavedSearchesHeader => '保存した検索';
+
+  @override
+  String get settingsSavedSearchesEmpty =>
+      '保存した検索はまだありません。コレクションで検索を設定してから、その他のアクションメニューで「この検索を保存…」を選んでください。';
+
+  @override
+  String settingsSavedSearchRenameTooltip(String name) {
+    return '「$name」の名前を変更';
+  }
+
+  @override
+  String settingsSavedSearchDeleteTooltip(String name) {
+    return '「$name」を削除';
+  }
 }

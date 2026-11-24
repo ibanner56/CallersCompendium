@@ -9,6 +9,7 @@ import '../diagnostics/crash_log_store.dart';
 import '../theme/app_spacing.dart';
 import 'settings/about_section.dart';
 import 'settings/appearance_section.dart';
+import 'settings/collection_section.dart';
 import 'settings/defaults_section.dart';
 import 'settings/diagnostics_section.dart';
 import 'settings/dialect_section.dart';
@@ -108,6 +109,7 @@ class SettingsScreen extends StatefulWidget {
 /// a value (and its content in [_SettingsScreenState._content]) to add a page.
 enum _SettingsSection {
   general(Icons.tune_outlined, Icons.tune),
+  collection(Icons.style_outlined, Icons.style),
   program(Icons.event_note_outlined, Icons.event_note),
   appearance(Icons.palette_outlined, Icons.palette),
   dialect(Icons.groups_outlined, Icons.groups),
@@ -132,6 +134,7 @@ String _sectionLabel(BuildContext context, _SettingsSection section) {
   final l10n = AppLocalizations.of(context);
   return switch (section) {
     _SettingsSection.general => l10n.settingsGeneralTitle,
+    _SettingsSection.collection => l10n.settingsCollectionTitle,
     _SettingsSection.program => l10n.settingsProgramTitle,
     _SettingsSection.appearance => l10n.settingsAppearanceTitle,
     _SettingsSection.dialect => l10n.settingsDialectTitle,
@@ -168,6 +171,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           urlFetcher: widget.urlFetcher,
           csvExportDelivery: widget.csvExportDelivery,
         );
+      case _SettingsSection.collection:
+        return const CollectionSection();
       case _SettingsSection.defaults:
         return const DefaultsSection();
       case _SettingsSection.program:

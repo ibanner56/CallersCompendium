@@ -14245,21 +14245,7 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get savedSearchButton => 'Gespeichert';
-
-  @override
-  String get savedSearchTooltip =>
-      'Gespeicherte Suchen: diese Suche speichern oder eine gespeicherte verwenden';
-
-  @override
-  String get savedSearchOnlineTooltip =>
-      'Gespeicherte Suchen sind nicht verfügbar, solange die Online-Suche an ist';
-
-  @override
   String get savedSearchSaveThis => 'Diese Suche speichern…';
-
-  @override
-  String get savedSearchSaveAsNew => 'Als neue speichern…';
 
   @override
   String savedSearchUpdate(String name) {
@@ -14275,9 +14261,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String savedSearchDelete(String name) {
     return '„$name“ löschen';
   }
-
-  @override
-  String get savedSearchNoneYet => 'Noch keine gespeicherten Suchen';
 
   @override
   String get savedSearchNeedsAttention => 'Braucht Aufmerksamkeit';
@@ -14480,4 +14463,37 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get savedSearchMissingInvalid =>
       'Etwas, das diese Version nicht lesen kann';
+
+  @override
+  String savedSearchSearchFor(String text) {
+    return 'Nach „$text“ suchen';
+  }
+
+  @override
+  String savedSearchHighlightedRow(String name, int index, int count) {
+    return '$name, $index von $count';
+  }
+
+  @override
+  String get savedSearchSaveAsNewSearch => 'Als neue Suche speichern…';
+
+  @override
+  String get settingsCollectionTitle => 'Sammlung';
+
+  @override
+  String get settingsSavedSearchesHeader => 'Gespeicherte Suchen';
+
+  @override
+  String get settingsSavedSearchesEmpty =>
+      'Noch keine gespeicherten Suchen. Speichere eine in der Sammlung: Richte eine Suche ein und wähle dann im Menü Weitere Aktionen „Diese Suche speichern…“.';
+
+  @override
+  String settingsSavedSearchRenameTooltip(String name) {
+    return '„$name“ umbenennen';
+  }
+
+  @override
+  String settingsSavedSearchDeleteTooltip(String name) {
+    return '„$name“ löschen';
+  }
 }
