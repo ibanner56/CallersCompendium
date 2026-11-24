@@ -1457,7 +1457,8 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // the two roles and the `ends` of the wave, not `centers` and not
         // `everyone`. Display-only, like a hall's ender: the canonical
         // template leaves it out, so stored canonical text is unchanged.
-        'twoPlaces': ParamSpec(
+        // Stored only while it names dancers ([roryTwoPlacesParam]).
+        roryTwoPlacesParam: ParamSpec(
           ParamKind.dancerSet,
           defaultValue: ParamVocab.unspecified,
           choices: [ParamVocab.unspecified, 'role1s', 'role2s', 'ends'],

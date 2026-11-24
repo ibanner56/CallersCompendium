@@ -370,7 +370,7 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
     definition:
         'Dancers in a wave balance, then let go and slide sideways past one dancer into the next place.',
     description:
-        'Usually everyone balances right and left, then slides right with a clockwise spin, or left with a counterclockwise one, ending in a new wave facing the same way. With the balance it usually takes 8 beats; the slide alone takes 4. The figure names the direction and, when not everyone, who dances it.',
+        'Usually everyone balances right and left, then slides right with a clockwise spin, or left with a counterclockwise one, ending in a new wave facing the same way. With the balance it usually takes 8 beats; the slide alone takes 4. The figure names the direction and, when not everyone, who dances it. In a longer slide one role, or the ends, slide two places, across the set, while the others slide one.',
   ),
   // TCB "Circle left/right".
   'circle': FigureDefinition(

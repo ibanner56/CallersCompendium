@@ -421,7 +421,7 @@ class FigureRenderer {
   ) {
     switch (moveId) {
       case 'rory_o_more':
-        final twoPlaces = params['twoPlaces'];
+        final twoPlaces = params[roryTwoPlacesParam];
         if (twoPlaces is! String || twoPlaces == ParamVocab.unspecified) {
           return '';
         }

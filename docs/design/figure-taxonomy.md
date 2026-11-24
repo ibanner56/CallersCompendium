@@ -2385,11 +2385,33 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     keeps or drops a param it does not declare when it saves was not
     checked. Whether the beta acceptance recorded above for the new dancer
     tokens also covers these is the maintainer's call, not assumed here.
-  - Migration: none, and no rebuild: a new move and alias, nothing renamed or
-    removed, so no stored figure changes and every canonical text stays as it
-    was. **Older devices (v39)** show a synced `cast` as the bare word "cast"
-    and a `hand_cast` as "hand_cast", flag both as unknown moves, and keep
-    their params intact (the #358 raw-id fallback).
+  - **`rory_o_more.twoPlaces`**: who slides two places, across the set,
+    while the others slide one, as in The Caller's Box's "Leap of Faith"
+    (#1797): `Slide left, women slide two places (M past N, W past (N;W))`.
+    The maintainer chose the shape and its choices (2026-11-24): a dancer
+    set of `role1s`, `role2s` or `ends` (the wave's ends; the token ECD and
+    squares already use), not `centers` and not `everyone`, defaulting to
+    `unspecified`, the ordinary one-place slide. The maintainer also chose the
+    display wording, a trailing clause in the dialect's words: `balance & Rory
+    O'More left, robins 2 places`. Display-only, like a hall's ender (the
+    author's call, rejecting a template slot because that would have changed
+    the canonical text and needed a rebuild): `renderTemplate` leaves it
+    out, so the canonical line, and so search text and dedupe, do not
+    change. Typing "2 places" into search does not find it. The Advanced
+    search param filter does. The display line reads back through the
+    ContraDB front end (`_roryTwoPlaces`). The Caller's Box adapter folds
+    the line into the Rory O'More only straight after a balance-wave line
+    (`_longSlide`, beside `_foldBalanceWaveIntoRory`), keeping the bracket as
+    the note. Alone, or naming other dancers, the line stays custom.
+    **Older devices (v39)** do not declare the param: they show the Rory
+    O'More without the clause. Their dance editor copies every stored param
+    into its draft (`FigureDraft.fromFigure`), so the value should survive an
+    edit there, but no v39 build was run to check that.
+  - Migration: none, and no rebuild: a new move, alias and param, nothing
+    renamed or removed, so no stored figure changes and every canonical text
+    stays as it was. **Older devices (v39)** show a synced `cast` as the bare
+    word "cast" and a `hand_cast` as "hand_cast", flag both as unknown moves,
+    and keep their params intact (the #358 raw-id fallback).
 
 ### ECD taxonomy versions
 
