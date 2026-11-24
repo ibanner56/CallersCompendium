@@ -523,9 +523,17 @@ class CallersBoxAdapter implements SourceAdapter {
     return _Compound([base.copyWith(note: note)], i);
   }
 
-  /// The two supplied CallersBox Double-slice records use this exact
-  /// eight-beat, two-diagonal definition. It maps to the existing diagonal
-  /// return variant; near-matches remain the ordinary atomic custom parent.
+  /// The CallersBox Double-slice records use this exact eight-beat,
+  /// two-diagonal definition: forward on the left diagonal, then back on the
+  /// other. It maps to the existing diagonal return variant *(user-ruled
+  /// 2026-11-24: a double slice is a slice that backs up on a diagonal)*;
+  /// near-matches remain the ordinary atomic custom parent.
+  ///
+  /// The children name whom each diagonal meets: the first and second shadow
+  /// (`S1` then `S2`), or a neighbour and the next one (`N1` then `N2`, `N2`
+  /// then `N3`, the only neighbour spellings in the corpus). Any other pairing
+  /// stays custom. *(Accepting the neighbour
+  /// spellings: agent's call.)*
   static Figure? _doubleSlice(
     String parentText,
     List<String> childTexts,
@@ -538,11 +546,20 @@ class CallersBoxAdapter implements SourceAdapter {
         childBeats.length != 2 ||
         childBeats[0] != 4 ||
         childBeats[1] != 4 ||
-        childTexts.length != 2 ||
-        !_doubleSliceForward.hasMatch(childTexts[0]) ||
-        !_doubleSliceFallBack.hasMatch(childTexts[1])) {
+        childTexts.length != 2) {
       return null;
     }
+    final forward = _doubleSliceForward.firstMatch(childTexts[0]);
+    final back = _doubleSliceFallBack.firstMatch(childTexts[1]);
+    if (forward == null || back == null) return null;
+    final first = forward[1]!.toLowerCase();
+    final second = back[1]!.toLowerCase();
+    final shadows = first == 's1' && second == 's2';
+    final neighbours =
+        first[0] == 'n' &&
+        second[0] == 'n' &&
+        int.parse(second.substring(1)) == int.parse(first.substring(1)) + 1;
+    if (!shadows && !neighbours) return null;
     return Figure(
       move: 'slice',
       params: {
@@ -558,11 +575,11 @@ class CallersBoxAdapter implements SourceAdapter {
     caseSensitive: false,
   );
   static final RegExp _doubleSliceForward = RegExp(
-    r'^\(4\)\s+on left diagonal,\s+go forward to s1$',
+    r'^\(4\)\s+on left diagonal,\s+go forward to (s1|n[12])$',
     caseSensitive: false,
   );
   static final RegExp _doubleSliceFallBack = RegExp(
-    r'^\(4\)\s+on other diagonal,\s+fall back to s2$',
+    r'^\(4\)\s+on other diagonal,\s+fall back to (s2|n[23])$',
     caseSensitive: false,
   );
 

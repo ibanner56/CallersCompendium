@@ -11,6 +11,7 @@ import '../ops/params.dart';
 // For the §8.5.4 settler used to compare a dance that ends standing in a wave.
 import '../ops/transforms.dart';
 import 'compile_result.dart';
+import 'end_effects.dart';
 import 'figure_fold.dart';
 import 'invocation.dart';
 import 'result.dart';
@@ -106,7 +107,8 @@ class Dance {
 ///
 /// The pipeline is: pre-scan the figure list for size (§3.1) → instantiate the
 /// starting matrix → fold the figures over it, short-circuiting on the first
-/// refusal (§3.2, §3.3) → compare the result against the criterion's
+/// refusal (§3.2, §3.3) unless a pair waiting at an end trading places lets
+/// the whole dance compile (`docs/fundamentals.md` §10.7) → compare the result against the criterion's
 /// independently computed expectation (§3.4, §3.5).
 ///
 /// Three outcomes, and the last two stay distinct on purpose: a [Mismatch]
@@ -128,28 +130,98 @@ CompileResult compile(Dance dance) {
   }
 
   final input = dance.instantiate();
+  return _foldFrom(
+    dance,
+    input: input,
+    state: input,
+    fold: FigureFold(),
+    from: 0,
+    previous: null,
+    inherited: warnings,
+    spentRows: const {},
+  );
+}
 
-  var state = input;
-  final fold = FigureFold();
-  for (var index = 0; index < dance.figures.length; index++) {
+/// Folds [dance]'s figures from figure [from] over [state], then checks the
+/// result against the oracle computed from [input].
+///
+/// [previous] is the set the figure before [from] was danced from, if there
+/// was one: the end-effect retry reads it to tell who stood still and who was
+/// standing out.
+///
+/// **End effects** (`docs/fundamentals.md` §10.7, user-ruled 2026-11-24).
+/// When a figure refuses and the error names a dancer waiting at an end, the
+/// fold is re-run from that figure with the two dancers standing alone in that
+/// end row traded in place ([endEffectCandidates], [tradeInPlace]). The
+/// retried fold is kept only if the **whole** dance then compiles; otherwise
+/// the original refusal is reported, so a retry never turns one failure into
+/// another or touches a dance that compiles without it. Each end trades at
+/// most once along one path ([spentRows]; [maxEndEffectSwaps]).
+CompileResult _foldFrom(
+  Dance dance, {
+  required Formation input,
+  required Formation state,
+  required FigureFold fold,
+  required int from,
+  required Formation? previous,
+  required List<Warning> inherited,
+  required Set<int> spentRows,
+}) {
+  final warnings = [...inherited];
+  var previousState = previous;
+  for (var index = from; index < dance.figures.length; index++) {
     final figure = dance.figures[index];
     // Linted against the state the figure is handed, before it runs -- a
     // state-dependent observation is only meaningful about its own input.
     // A figure following a reach is danced one phase over, so that is its
     // input.
-    warnings.addAll(
-      figure.operation
-          .lint(fold.dancedFrom(figure, state))
-          .map(
-            (warning) =>
-                Warning(warning.kind, opIndex: index, detail: warning.detail),
-          ),
-    );
+    final handed = fold.dancedFrom(figure, state);
+    final lints = figure.operation
+        .lint(handed)
+        .map(
+          (warning) =>
+              Warning(warning.kind, opIndex: index, detail: warning.detail),
+        )
+        .toList();
+    final foldBefore = fold.copy();
     final outcome = fold.step(figure, state, index: index);
     switch (outcome) {
       case Ok(:final value):
+        warnings.addAll(lints);
+        // As danced, so the end rows it left out read as waiting.
+        previousState = handed;
         state = value;
       case Err(:final error):
+        if (spentRows.length < maxEndEffectSwaps) {
+          for (final (row, pair) in endEffectCandidates(
+            state,
+            previous: previousState,
+            error: error,
+            spentRows: spentRows,
+          )) {
+            final retry = _foldFrom(
+              dance,
+              input: input,
+              state: tradeInPlace(state, pair),
+              fold: foldBefore.copy(),
+              from: index,
+              previous: previousState,
+              inherited: [
+                ...warnings,
+                Warning(
+                  WarningKind.endEffectSwap,
+                  opIndex: index,
+                  detail:
+                      '${pair.$1} and ${pair.$2}, waiting at an end, trade '
+                      'places before ${figure.name} so the dance can go on',
+                ),
+              ],
+              spentRows: {...spentRows, row},
+            );
+            if (retry is Compiled) return retry;
+          }
+        }
+        warnings.addAll(lints);
         // Short-circuit (§3.3): no expected/actual comparison is performed
         // once a figure refuses, so there is no final state to report.
         return CompileError(

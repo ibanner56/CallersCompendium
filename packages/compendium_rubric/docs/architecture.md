@@ -142,6 +142,11 @@ an **error result** instead of an output formation. This short-circuits the exec
 an additional exit case distinct from the normal completion path. No `expected`/`actual`
 comparison is performed in this case.
 
+One refusal is retried before the loop exits: when the error names a dancer waiting at an end,
+the loop runs again from that figure with the waiting pair traded in place, and the retry is
+kept only if the whole dance then compiles (`fundamentals.md` §10.7). Otherwise the original
+error is the result.
+
 ### 3.4 Reference state (`expected`)
 
 The expected success formation is computed **independently** from the **original input

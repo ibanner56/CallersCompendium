@@ -13,7 +13,10 @@ import 'result.dart';
 ///
 /// Anything that steps through a dance figure by figure (a trace, a probe, a
 /// golden test's failure report) goes through this, so it cannot disagree
-/// with the compile it is explaining.
+/// with the compile it is explaining. The one thing it does not do is the
+/// end-effect retry (`docs/fundamentals.md` §10.7): a dance that compiled only
+/// after a waiting pair traded places says so with an `endEffectSwap` warning,
+/// and a plain step-through of it refuses where the compile retried.
 ///
 /// **Holding** (`docs/fundamentals.md` §10.2.1, user-ruled 2026-11-23). A
 /// progression-flagged figure that leaves no whole couple at either end has
@@ -36,6 +39,15 @@ import 'result.dart';
 /// back after it.
 class FigureFold {
   FigureFold();
+
+  /// An independent copy of this fold's bookkeeping, so a retry can resume
+  /// from the same point without disturbing the original.
+  FigureFold copy() => FigureFold()
+    .._progressions = _progressions
+    .._followReach = _followReach
+    .._reachHandedShifted = _reachHandedShifted
+    .._held.addAll(_held)
+    .._abandoned.addAll(_abandoned);
 
   /// Progressions performed so far, counted at the figures that were flagged
   /// (a flagged diagonal slice or diagonal right_left_through counts two; see

@@ -837,7 +837,7 @@ row is simply the best way to do it.
 #### 10.3.2 The change-over — how a couple stops waiting out
 
 A couple standing out is outside every active hands four, so **no figure's transform takes it
-out of its end row** (an N0 swing turns it in place, `taxonomy.md` `swing`): it is still sitting
+out of its end row** (a swing naming a distance set turns it in place, `taxonomy.md` `swing`): it is still sitting
 in the end row when the next progression fires. Something has to bring
 it back in, and that something is the progression itself. §10.6 fixes the term: **wait-out lasts
 one round.** So each progression, in order:
@@ -964,6 +964,52 @@ number-derived rule as §10.3.
 > to bring the couples the first one stranded back into the set rather than trading them for a
 > fresh pair. See `taxonomy.md` → `slide_along_set` → *re-banding*, and note the ⚠️ there — the
 > phase rule is load-bearing and held at moderate confidence.
+
+### 10.7 End effects — a waiting pair trades places
+
+Dancers waiting out at an end stand outside every hands four, so no figure moves them, apart from
+a swing naming a distance set, which turns them in place (`taxonomy.md` `swing`). In the
+hall they do not stand perfectly still: when the active couples all cross the set, or swap with
+a neighbour, the pair waiting at the end often crosses too, so as to be in the right place when
+they come back in. The source never writes this down. *(User-ruled, 2026-11-24: "This is
+different from the progression and not a normalization operation.")*
+
+The compiler reads it as a **retry**, not a rule applied to every figure (`compile`,
+`engine/end_effects.dart`):
+
+- When a figure **refuses**, and the error names a dancer who is one of exactly **two dancers
+  alone in the top or bottom row**, and those two **did not move** in the figure before while
+  someone else did, the fold is run again from the refusing figure with those two dancers
+  **traded in place**. Only their positions trade; facing, number and waiting-out stand.
+- The two must have been **out of the figure before**: their row stood outside every hands four
+  as it was danced, or every dancer outside the end rows moved in it while they stood still (a
+  pair at an end with nobody to dance with there, such as no shadow above the top). After a
+  figure for part of the set, which leaves some of the middle standing too, a pair in a live
+  hands four is never traded. *(Agent's call, 2026-11-24, from review; it costs no corpus dance.)*
+- The pair need not be partners: a figure that mixes the couples can leave a neighbour or shadow
+  pair at the end, and they trade the same way. *(User-ruled, 2026-11-24.)*
+- The retried fold is kept **only if the whole dance compiles**. Otherwise the original refusal
+  is reported, unchanged. So a retry can never cost a dance that compiles without it, and never
+  turns one failure into a different one.
+- Each end trades at most once along one fold, so at most two trades. *(Agent's call: four
+  gained nothing.)* A dance that compiles this way carries an `endEffectSwap` warning at the figure the
+  trade was made before.
+- A dance that **runs but lands elsewhere** is not retried. *(User-ruled, 2026-11-24: it would
+  have to try a trade before every figure, and is the likeliest to pass a dance that is wrong.)*
+
+Nobody warps: the two dancers are the only ones who move, and they move to where each other
+stood. Trading just before the refusing figure stands for a trade made at any point since the
+last figure that moved them, since nothing moves them in between. A swing naming a distance set
+does turn them in place: when it swaps their sides, they have moved, and no trade is read back
+across it. When they already stood on the spots it gives them, only their facing changes, and the
+retry may still trade them after it (the agent's call: `endEffectCandidates` treats a dancer as
+having stood still when their position is unchanged, whatever their facing,
+`engine/end_effects.dart`).
+
+*Rejected (agent's call, measured 2026-11-24 on rubric `253f56db`):* trading the waiting pair
+**ahead of time** whenever every active couple crosses the set gained 10 dances and lost 687.
+The change-over already decides which side a returning couple comes back on (§10.3.2), so
+mirroring every crossing counts it twice.
 
 ---
 

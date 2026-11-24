@@ -217,25 +217,80 @@ void main() {
       return fold.step(dance.figures[hey], state, index: hey);
     }
 
+    /// Whether the hey in [record] is danced one band phase over, following
+    /// the N2 swing: the phase `FigureFold.step` hands it.
+    bool follows(Map<String, Object?> record) {
+      final dance = (parseDance(record) as Ok<Dance, DanceParseError>).value;
+      final fold = FigureFold();
+      var state = dance.instantiate();
+      for (var i = 0; i < hey; i++) {
+        state =
+            (fold.step(dance.figures[i], state, index: i)
+                    as Ok<Formation, OpError>)
+                .value;
+      }
+      return isShiftedBandPhase(fold.dancedFrom(dance.figures[hey], state)) !=
+          isShiftedBandPhase(state);
+    }
+
+    /// The hey in [record] as the fold steps it, beside the hey danced one
+    /// band phase over and handed back (`followed`) and danced where the set
+    /// stands (`direct`, null when refused there), each from the same state.
+    ({Formation stepped, Formation followed, Formation? direct}) readings(
+      Map<String, Object?> record,
+    ) {
+      final dance = (parseDance(record) as Ok<Dance, DanceParseError>).value;
+      final fold = FigureFold();
+      var state = dance.instantiate();
+      for (var i = 0; i < hey; i++) {
+        state =
+            (fold.step(dance.figures[i], state, index: i)
+                    as Ok<Formation, OpError>)
+                .value;
+      }
+      final figure = dance.figures[hey];
+      Formation ok(Result<Formation, OpError> r) =>
+          (r as Ok<Formation, OpError>).value;
+      final followed = toggleBandPhase(
+        ok(
+          figure.apply(toggleBandPhase(state), progressions: fold.progressions),
+        ),
+      );
+      final direct = switch (figure.apply(
+        state,
+        progressions: fold.progressions,
+      )) {
+        Ok(:final value) => value,
+        Err() => null,
+      };
+      final stepped = ok(fold.step(figure, state, index: hey));
+      return (stepped: stepped, followed: followed, direct: direct);
+    }
+
     test('the half hey runs in the N2 grouping and hands the set back', () {
       // Agent's call, 2026-11-24, from Hudson's notes on #10129 and #10136:
-      // the half hey is with the couple just swung. In the grouping handed
-      // back after the N2 swing two larks stand on one line and it refuses.
+      // the half hey is with the couple just swung, not in the grouping
+      // handed back after the N2 swing, where it lands somewhere else.
       final step = heyStep(heyJaVu());
       expect(step, isA<Ok<Formation, OpError>>(), reason: '$step');
       final after = (step as Ok<Formation, OpError>).value;
       expect(after.dancers.values.any((d) => d.waitingOut), isFalse);
+      final read = readings(heyJaVu());
+      expect(read.followed, isNot(read.direct), reason: 'phases differ');
+      expect(read.stepped, read.followed);
     });
 
+    // The ends swing each other on the N2 swing, so a hey danced in the
+    // grouping handed back no longer refuses; these read the phase the hey is
+    // danced in directly, against a hey that does follow.
     test('a flagged hey does not follow', () {
-      expect(heyStep(heyJaVu(flagHey: true)), isA<Err<Formation, OpError>>());
+      expect(follows(heyJaVu()), isTrue, reason: 'control');
+      expect(follows(heyJaVu(flagHey: true)), isFalse);
     });
 
     test('a hey whose second pass names neighbours does not follow', () {
-      final step = heyStep(heyJaVu(pass2: 'neighbors'));
-      final direct = heyStep(heyJaVu(pass2: 'partners'));
-      expect(direct, isA<Ok<Formation, OpError>>(), reason: 'control');
-      expect(step, isA<Err<Formation, OpError>>());
+      expect(follows(heyJaVu(pass2: 'partners')), isTrue, reason: 'control');
+      expect(follows(heyJaVu(pass2: 'neighbors')), isFalse);
     });
 
     test('a hey whose second pass names the N2 couple follows', () {
@@ -246,15 +301,16 @@ void main() {
         heyStep(heyJaVu(pass2: 'nextNeighbors')),
         isA<Ok<Formation, OpError>>(),
       );
+      final read = readings(heyJaVu(pass2: 'nextNeighbors'));
+      expect(read.followed, isNot(read.direct), reason: 'phases differ');
+      expect(read.stepped, read.followed);
     });
 
     test('a hey whose second pass names N3 does not follow', () {
       // N3 lies an even distance away, so it names the grouping the set was
       // handed back in, not the N2 one.
-      expect(
-        heyStep(heyJaVu(pass2: 'thirdNeighbors')),
-        isA<Err<Formation, OpError>>(),
-      );
+      expect(follows(heyJaVu(pass2: 'nextNeighbors')), isTrue);
+      expect(follows(heyJaVu(pass2: 'thirdNeighbors')), isFalse);
     });
 
     test('a hey naming neighbours does not follow', () {

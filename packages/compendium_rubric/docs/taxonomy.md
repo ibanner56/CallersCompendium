@@ -194,6 +194,7 @@ Precondition/error kinds accumulated as figures are defined:
 | `unrecognizedFormation` | a record declares a starting formation shape this compiler does not model (`"other"` is already in the corpus). Read as **Duple Improper** rather than refused: the shape vocabulary is owned upstream and grows, and the declared type does less work than its name suggests — it fixes the starting matrix and never tracks where the dancers stand (`architecture.md` §3.2), so a dance whose own opening figures establish its arrangement is fully determined regardless. **Raised at parse time**, not by any figure, and carried on the `Dance` so the compile it belongs to reports it — the first diagnostic that is not an observation about a formation at all. *(User-ruled.)* |
 | `assumedProgression` | an **import bridge** (the Caller's Box) assumed which figure progresses, because the source has nowhere to say. Raised whenever the assumption is made, including when the dance compiles. *(User-ruled.)* |
 | `heldProgressionUnfinished` | a progression was held because no couple stood whole at an end when its figure finished, and its change-over never ran: no later unflagged figure brought a couple to an end, or a later flagged figure overtook it (`fundamentals.md` §10.2.1). Raised by the engine after the last figure. *(User-ruled hold, 2026-11-23, in every formation; the warning is the agent's call.)* |
+| `endEffectSwap` | two dancers standing alone at an end, who did not move in the figure before, traded places so that a figure which refused them could be danced, and the whole dance then compiled (`fundamentals.md` §10.7). The source never states the trade; the warning says the engine read one in. Raised by the engine at the figure the trade was made before. *(User-ruled retry, 2026-11-24; the warning is the agent's call.)* |
 | `endedColumnOffset` | the dance ended with every dancer in the row the oracle expects, with the expected number and in the row's expected order, but some up to one column to the side, for instance in a wave rather than on the side lines; it compiles, and this says it was a near miss rather than an exact match. Raised by the engine on the final comparison (`architecture.md` §3.5). *(User-ruled 2026-11-24, from Hudson's note on Chuck the Budgie; the warning is the agent's call.)* |
 
 ---
@@ -458,8 +459,8 @@ The box the gnat swaps the pair and turns them to face each other; the pull by s
 and lets them keep walking. Everyone finishes in their own row facing *the way they came*, so
 the couple behind is standing in front of them — and the couples at the two ends of the set have
 nobody behind them at all and fall outside every band in the reaching phase. Most figures leave
-them standing out; an N0 `swing` has them swing each other in place (see `swing`, "a couple waiting
-out on an N0 swing", user-ruled 2026-11-24).
+them standing out; a `swing` naming a distance set has them swing each other in place (see
+`swing`, "a couple waiting out on a distance swing", user-ruled 2026-11-24).
 
 The sign is load-bearing, not decorative. Reaching stands the same two couples together
 whichever direction is named, so only the sign distinguishes the meeting the choreographer wrote
@@ -925,15 +926,19 @@ To be defined later with worked examples.
     waiting. Every corpus dance this rule reaches is a Becket, where the couple stands on a side
     line, and facing up or down there would leave the two dancers one behind the other. So they
     finish facing across like any swing on the side (the agent's call).
-  - **a couple waiting out on an N0 swing:** when the swing names the previous neighbours
-    (`prevNeighbors`) and a whole couple stands alone across an end row, waiting out in the
-    grouping the swing is danced in, the partners swing each other and normalize facing into the
-    set, which swaps their sides *(user-ruled 2026-11-24, Haven't We Met Before?: "couple waiting
-    out at the top after N0 balance+swing should still swing and normalize (swap places)")*.
-    Limiting it to N0 is Hudson's choice ("go with option A for now"): read for every distance set
-    it compiled eight more Caller's Box dances and lost four. A stated `face` is not applied to
-    them, and at the top of a Duple Proper set they stand crossed, as end normalization leaves
-    them (the agent's calls).
+  - **a couple waiting out on a distance swing:** when the swing names a distance set
+    (`prevNeighbors`, `nextNeighbors`, `thirdNeighbors`, `fourthNeighbors`) and a whole couple
+    stands alone across an end row, waiting out in the grouping the swing is danced in, the
+    partners swing each other and normalize facing into the set, which swaps their sides
+    *(user-ruled 2026-11-24, Haven't We Met Before?: "couple waiting out at the top after N0
+    balance+swing should still swing and normalize (swap places)"; and an end couple with no N2
+    swings each other and faces up or down while waiting)*. It was first built for N0 only ("go
+    with option A for now"), then widened to every distance set on Hudson's go-ahead the same day.
+    The four dances that measurement had lost compile again: two never reproduced, and two (10404,
+    14633) cross back before their N1 swing through the end-effect retry (`fundamentals.md`
+    §10.7). A plain `neighbors` swing is not read this way (the agent's call, to stay with what was
+    ruled; reading it too changed no Caller's Box dance). A stated `face` is not applied to them, and at the top of a Duple
+    Proper set they stand crossed, as end normalization leaves them (the agent's calls).
   - **distance sets** (`nextNeighbors`, `thirdNeighbors`, `fourthNeighbors`, `prevNeighbors`):
     **distinguished, and enforced.** The engine checks the named distance against the couples
     actually standing together, using **home grouping** — `coupleIndex ~/ 2`, which the starting
@@ -1360,13 +1365,15 @@ To be defined later with worked examples.
   advances by two (`Operation.progressionSteps`). So a double-progression dance can progress
   on one double slice, and a single-progression dance flagged on one is a mismatch. On the
   Caller's Box mirror (measured 2026-11-23), 21 dances
-  hold a "Double slice". `compendium_core`'s importer structures only the 3 written "go
+  hold a "Double slice". `compendium_core`'s importer first structured only the 3 written "go
   forward to S1, fall back to S2": all three are mid-dance shifts in single-progression
-  improper dances, and none is flagged. It leaves the other 18 as free text, so none of them
-  reaches the compiler: 17 go forward to a neighbour and fall back to the next (N1 to N2, or N2
-  to N3), and one goes forward to a shadow and falls back to partner. 13 of the 18 are in
-  dances Caller's Box marks as a double or quadruple progression, and 5 of those open with the
-  double slice (Warren's Roadhouse Reel, in the Seattle core set, is one). A double slice
+  improper dances, and none is flagged. Since 2026-11-24 it also structures the 17 that go
+  forward to a neighbour and fall back to the next (N1 to N2, or N2 to N3). That a double
+  slice is a slice that backs up on a diagonal is user-ruled (2026-11-24); reading these
+  neighbour spellings as one is the agent's call. The one that goes forward to a shadow
+  and falls back to partner is still free text. 13 of those 17 are in dances Caller's Box marks
+  as a double or quadruple progression, and 5 of those open with the double slice (Warren's
+  Roadhouse Reel, in the Seattle core set, is one). A double slice
   inside a container (`modifier`, `meanwhile` or a nested `sequence`) is a known limit: a flag
   on the container counts two progressions (it reads its children's `progressionsSpent`), but
   the container is one progression step, so only one change-over runs.
@@ -1377,7 +1384,8 @@ To be defined later with worked examples.
   single-progression Becket dances open with one too (Plaid Shirts in Tennessee {Will Mentor
   variant}, A Second Slice of Cake), so assuming it would turn those into mismatches. A dance
   ending in one can still get the ordinary last-figure flag. Reading the dance's progression
-  tier before assuming would settle it, but no double slice that opens a dance imports today.
+  tier before assuming would settle it. Until 2026-11-24 no double slice that opened a dance
+  imported; the 5 that do now are not assumed to progress on it.
   In a **single-progression** dance (including one whose source states no tier) whose
   **only** slide or slice, counting those inside containers but not a Rory O'More's slide, is
   one couple sliding once (a `slide_along_set`, or a straight slice by couple), that slide is a
