@@ -2435,7 +2435,8 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       editor seeds them `unspecified` on picking either move
       (`Taxonomy.entryParams`), and a figure entered in that edit — picked, or
       typed in the free-text composer, a Move box or the Add figures from text
-      sheet (the session's call: all typed entry, none of it an import; a
+      sheet (all typed entry is new entry, none of it an import: the
+      maintainer's ruling, 2026-11-24, recorded in the PR description; a
       typed line starts them unstated too unless it, or a saved per-move
       default, states them) — shows a message on its fields, on a group's
       side and on its row while closed, and holds the save while one is
