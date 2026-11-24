@@ -621,7 +621,10 @@ When the flagged progression executes, the **couple** currently collected into t
 2. **Take the end's number:** both partners are set to the number belonging to the end they
    reached — see §10.2.2. (This *assigns*; it does not flip.)
 3. **Normalize positions:** put the **Lark on the left relative to the new facing** (Robin
-   right). Facing down ⇒ Lark→c4, Robin→c0. Facing up ⇒ Lark→c0, Robin→c4.
+   right). Facing down ⇒ Lark→c4, Robin→c0. Facing up ⇒ Lark→c0, Robin→c4. **Except** at the
+   top of a **Duple Proper** set, where the couple turning down stands **crossed** (Lark→c0,
+   Robin→c4), as the 1s start (§9, `FormationType.topEndCrossed`): nobody crosses the set at
+   the top of a proper set *(agent's call, following the 2026-11-24 ruling in §9)*.
 
 All **interior** rows are left **unchanged** by the progression step itself.
 
@@ -864,7 +867,7 @@ into a hands four — with D.
 ### 10.4 End vs. middle — the mechanical difference
 
 - **Ends (row 0 & row N):** take that end's number (§10.2.2 — assigned, not flipped), turn to
-  face into the set, re-normalize, and (per §10.3) drop out of the active h4 for a round —
+  face into the set, re-normalize (crossed at the top of a Duple Proper set, §10.2), and (per §10.3) drop out of the active h4 for a round —
   waiting at the very top / bottom.
 - **Middle:** interior couples keep their number and facing, but because the end couples
   drop out, the interior couples **re-pair with the couple from the adjacent original h4** —
