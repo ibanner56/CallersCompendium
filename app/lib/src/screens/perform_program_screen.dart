@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
@@ -1031,19 +1032,16 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     _undoPrompt = null;
     if (!mounted) {
       if (messenger == null || !messenger.mounted) return;
+      // The root messenger is shared with the screen Perform was opened
+      // from: take down only Perform's own prompt, and queue the message
+      // behind whatever else is showing.
       prompt?.close();
-      messenger
-        ..clearSnackBars()
-        ..removeCurrentSnackBar();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!messenger.mounted) return;
-        messenger.showSnackBar(
-          SnackBar(
-            key: const ValueKey('perform-swap-refused'),
-            content: Text(message),
-          ),
-        );
-      });
+      messenger.showSnackBar(
+        SnackBar(
+          key: const ValueKey('perform-swap-refused'),
+          content: Text(message),
+        ),
+      );
       return;
     }
     final shown = identical(_program, adjusted)
@@ -1215,13 +1213,14 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     // are applied with the same undo as Done, so keeping them is cheap to
     // reverse, while losing reorders made mid-gig is not.
     Program? latest;
+    final opened = _program;
     final returned = await showModalBottomSheet<Program>(
       context: _stageContext,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (_) => PerformAdjustSheet(
         onEdited: (program) => latest = program,
-        program: _program,
+        program: opened,
         currentGroupIndex: _groupIndex,
         currentSlotId: _currentSlot.id,
         data: widget.data,
@@ -1239,9 +1238,29 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     );
     final edited = returned ?? latest;
     if (edited == null || !mounted) return;
+    // The program shown may have changed while the sheet was open (a newer
+    // program from another device, or a refused adjustment taken back). The
+    // sheet edited the program it opened with, so apply only its own edits,
+    // onto the program now shown: applying [edited] whole would bring back
+    // what was taken back and undo what came from elsewhere.
+    var adjusted = edited;
+    if (!identical(_program, opened)) {
+      final slots = renumberSlots(
+        rebaseSlotEdits(
+          before: opened.slots,
+          after: edited.slots,
+          onto: _program.slots,
+        ),
+      );
+      if (listEquals(slots, _program.slots)) return;
+      adjusted = _program.copyWith(
+        slots: slots,
+        updatedAt: DateTime.now().toUtc(),
+      );
+    }
     final l10n = AppLocalizations.of(context);
     _applyWithUndo(
-      edited,
+      adjusted,
       message: l10n.performProgramAdjustedSnack,
       announce: l10n.performProgramAdjustedAnnounce,
     );

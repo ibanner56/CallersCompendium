@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart';
 
 import 'program_slot_rebase.dart';
 
@@ -66,6 +67,20 @@ Future<PerformAdjustmentWrite> writePerformAdjustment(
       throw StateError('program "$programId" is gone');
     }
     if (expected != null && current != expected) changed = true;
+    final slots = renumberSlots(
+      rebaseSlotEdits(before: before, after: after, onto: current.slots),
+    );
+    // Already in place: every slot the adjustment changed is stored as it
+    // left it (and every slot it removed is gone), so there is nothing to
+    // write and nothing to refuse. An Undo of an adjustment that was itself
+    // refused lands here.
+    if (listEquals(slots, renumberSlots(current.slots))) {
+      return PerformAdjustmentWrite(
+        base: current,
+        stored: current,
+        changedUnderneath: changed,
+      );
+    }
     if (!performAdjustmentStillApplies(
       before: before,
       after: after,
@@ -80,11 +95,7 @@ Future<PerformAdjustmentWrite> writePerformAdjustment(
     }
     final stored = await programs.replaceIfUnchangedAndReadBack(
       expected: current,
-      replacement: current.copyWith(
-        slots: renumberSlots(
-          rebaseSlotEdits(before: before, after: after, onto: current.slots),
-        ),
-      ),
+      replacement: current.copyWith(slots: slots),
       updatedAt: DateTime.now().toUtc(),
     );
     if (stored != null) {

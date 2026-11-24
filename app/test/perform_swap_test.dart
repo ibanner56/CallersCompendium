@@ -807,10 +807,51 @@ void main() {
     expect(h.persisted, hasLength(2));
   });
 
+  testWidgets('an edit made in a sheet opened before a refusal landed '
+      'does not bring the refused swap back, and keeps the other device\'s '
+      'changes', (tester) async {
+    final firstWrite = Completer<PerformAdjustmentResult?>();
+    var writes = 0;
+    final h = await _pump(
+      tester,
+      onProgramChanged: (_, _) =>
+          writes++ == 0 ? firstWrite.future : Future.value(),
+    );
+    // A: swap the dance being called; its write is held.
+    await _openAdjust(tester);
+    await _tap(tester, find.byKey(const ValueKey('adjust-swap-current')));
+    await _tap(tester, _pick('match'));
+    await _tap(tester, find.byKey(const ValueKey('adjust-done')));
+    // The sheet opens again on the swapped program.
+    await _openAdjust(tester);
+    // A is refused while it is open: another device marked s4 performed.
+    final mark = DateTime.utc(2026, 1, 1, 21);
+    final stored = _program([
+      for (final slot in _slots())
+        slot.id == 's4' ? slot.copyWith(performedAt: mark) : slot,
+    ]);
+    firstWrite.complete(PerformAdjustmentResult.refused(stored));
+    await tester.pumpAndSettle();
+    // B, in the sheet opened before the refusal: add a note.
+    await tester.enterText(
+      find.byKey(const ValueKey('adjust-note-field')),
+      'Announce the raffle',
+    );
+    await _tap(tester, find.byKey(const ValueKey('adjust-add-note')));
+    await _tap(tester, find.byKey(const ValueKey('adjust-done')));
+
+    expect(h.persisted, hasLength(2));
+    final b = h.persisted.last;
+    expect(b.slots.firstWhere((s) => s.id == 's1').danceId, 'd1');
+    expect(b.slots.where((s) => s.danceId == 'match'), isEmpty);
+    expect(b.slots.firstWhere((s) => s.id == 's4').performedAt, mark);
+    expect(b.slots.where((s) => s.text == 'Announce the raffle'), hasLength(1));
+    expect(find.text('Current Reel'), findsWidgets);
+  });
+
   testWidgets('a swap refused after Perform has closed takes down the Undo '
-      'prompt and says so on the screen Perform was opened from', (
-    tester,
-  ) async {
+      'prompt and says so on the screen Perform was opened from, leaving that '
+      'screen\'s own messages alone', (tester) async {
     final write = Completer<PerformAdjustmentResult?>();
     await _pump(tester, pushed: true, onProgramChanged: (_, _) => write.future);
     await _openAdjust(tester);
@@ -822,11 +863,21 @@ void main() {
     if (confirm.evaluate().isNotEmpty) await _tap(tester, confirm);
     expect(find.byType(PerformProgramScreen), findsNothing);
     expect(find.byKey(const ValueKey('perform-adjusted-undo')), findsOneWidget);
+    // The screen Perform was opened from has a message of its own queued.
+    final messenger = tester.state<ScaffoldMessengerState>(
+      find.byType(ScaffoldMessenger),
+    );
+    messenger.showSnackBar(
+      const SnackBar(key: ValueKey('summary-own'), content: Text('Saved')),
+    );
 
     write.complete(PerformAdjustmentResult.refused(_program()));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('perform-adjusted-undo')), findsNothing);
+    expect(find.byKey(const ValueKey('summary-own')), findsOneWidget);
+    messenger.hideCurrentSnackBar();
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('perform-swap-refused')), findsOneWidget);
     expect(
       find.text(

@@ -13330,9 +13330,9 @@
   "@performSwapResultsHeading": {
     "x-sourceSha256": "57d1b7c78aa3bcdc4cefed7536863f6187b0cdd701bd866eb819aa9ea7445248"
   },
-  "performSwapRefused": "Ce programme a été modifié sur un autre appareil : votre dernière modification n’a donc pas été enregistrée. Vérifiez le programme et refaites-la si vous le souhaitez toujours.",
+  "performSwapRefused": "Ce programme a été modifié sur un autre appareil : l’une de vos modifications n’a donc pas été enregistrée. Vérifiez le programme et refaites-la si vous le souhaitez toujours.",
   "@performSwapRefused": {
-    "x-sourceSha256": "38ff61170fcc5983712c66f465e81f9f212cb4d6a4ef4368eed17d9d6bbddc28"
+    "x-sourceSha256": "bff07f1000f8c282777aee0febdea8672296cfa8345aa1f19d728328ecab6bf5"
   },
   "settingsPerformSwapTitle": "Échanger une danse",
   "@settingsPerformSwapTitle": {

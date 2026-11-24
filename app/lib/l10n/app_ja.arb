@@ -13330,9 +13330,9 @@
   "@performSwapResultsHeading": {
     "x-sourceSha256": "57d1b7c78aa3bcdc4cefed7536863f6187b0cdd701bd866eb819aa9ea7445248"
   },
-  "performSwapRefused": "このプログラムは別のデバイスで変更されたため、直前の変更は保存されませんでした。プログラムを確認し、必要であればもう一度変更してください。",
+  "performSwapRefused": "このプログラムは別のデバイスで変更されたため、変更の一部が保存されませんでした。プログラムを確認し、必要であればもう一度変更してください。",
   "@performSwapRefused": {
-    "x-sourceSha256": "38ff61170fcc5983712c66f465e81f9f212cb4d6a4ef4368eed17d9d6bbddc28"
+    "x-sourceSha256": "bff07f1000f8c282777aee0febdea8672296cfa8345aa1f19d728328ecab6bf5"
   },
   "settingsPerformSwapTitle": "ダンスの入れ替え",
   "@settingsPerformSwapTitle": {

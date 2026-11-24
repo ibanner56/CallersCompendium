@@ -213,4 +213,37 @@ void main() {
       expect(r.write.refused, isFalse);
     },
   );
+
+  test('the Undo of a swap that was refused while it was being written has '
+      'nothing to do, so it is neither refused nor reported', () async {
+    final r = await swapAfterChangeElsewhere(
+      opened: [slot('p', 'dp'), slot('c', 'dc')],
+      elsewhere: [
+        slot('p', 'dp').copyWith(performedAt: played),
+        slot('c', 'dc'),
+      ],
+    );
+    expect(r.write.refused, isTrue);
+    final swapped = numbered(
+      Program.swapSlotDanceKeepingAlternate(
+        r.opened.slots,
+        0,
+        danceId: 'new',
+        alternateId: 'kept',
+      ),
+    );
+    final storedBefore = (await r.repos.programs.getById('p'))!;
+
+    final undo = await writePerformAdjustment(
+      r.repos.programs,
+      programId: 'p',
+      expected: r.write.stored,
+      before: swapped,
+      after: r.opened.slots,
+    );
+
+    expect(undo.refused, isFalse);
+    expect(undo.changedUnderneath, isFalse);
+    expect(await r.repos.programs.getById('p'), storedBefore);
+  });
 }

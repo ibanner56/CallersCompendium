@@ -13858,7 +13858,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get performSwapRefused =>
-      'Dit programma is op een ander apparaat gewijzigd, dus je laatste wijziging is niet opgeslagen. Controleer het programma en breng de wijziging opnieuw aan als je die nog wilt.';
+      'Dit programma is op een ander apparaat gewijzigd, dus een van je wijzigingen is niet opgeslagen. Controleer het programma en breng de wijziging opnieuw aan als je die nog wilt.';
 
   @override
   String get settingsPerformSwapTitle => 'Een dans wisselen';

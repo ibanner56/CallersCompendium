@@ -198,4 +198,137 @@ void main() {
     expect(_ids(result), ['a', 'b', 'kept']);
     expect(result[1].danceId, 'new');
   });
+
+  group('performAdjustmentStillApplies', () {
+    ProgramSlot slot(String id, String dance) =>
+        ProgramSlot(id: id, position: 0, danceId: dance);
+    List<ProgramSlot> numbered(List<ProgramSlot> slots) => [
+      for (var i = 0; i < slots.length; i++) slots[i].copyWith(position: i),
+    ];
+    // a · b · c, three planned dances.
+    final base = numbered([slot('a', 'da'), slot('b', 'db'), slot('c', 'dc')]);
+    final swapped = numbered(
+      Program.swapSlotDanceKeepingAlternate(
+        base,
+        0,
+        danceId: 'dn',
+        alternateId: 'kept',
+      ),
+    );
+    final marked = numbered([
+      base[0],
+      base[1],
+      base[2].copyWith(performedAt: mark),
+    ]);
+
+    /// Each adjustment, the slot it changes or moves, a slot it leaves alone,
+    /// and whether it still applies once another device has put another
+    /// dance on the slot it changes or moves.
+    final cases =
+        <
+          ({
+            String name,
+            List<ProgramSlot> before,
+            List<ProgramSlot> after,
+            String moved,
+            String untouched,
+            bool appliesOverMoved,
+          })
+        >[
+          (
+            name: 'reorder',
+            before: base,
+            after: numbered([base[2], base[0], base[1]]),
+            moved: 'c',
+            untouched: 'b',
+            // Only the order changes, which credits no dance.
+            appliesOverMoved: true,
+          ),
+          (
+            name: 'insert',
+            before: base,
+            after: numbered([base[0], slot('i', 'di'), base[1], base[2]]),
+            moved: 'b',
+            untouched: 'a',
+            appliesOverMoved: true,
+          ),
+          (
+            name: 'note edit',
+            before: base,
+            after: numbered([
+              base[0],
+              base[1],
+              base[2].copyWith(text: 'Raffle'),
+            ]),
+            moved: 'c',
+            untouched: 'a',
+            appliesOverMoved: false,
+          ),
+          (
+            name: 'mark performed',
+            before: base,
+            after: marked,
+            moved: 'c',
+            untouched: 'a',
+            appliesOverMoved: false,
+          ),
+          (
+            name: 'Undo of a swap',
+            before: swapped,
+            after: base,
+            moved: 'a',
+            untouched: 'c',
+            appliesOverMoved: false,
+          ),
+          (
+            name: 'Undo of a mark',
+            before: marked,
+            after: base,
+            moved: 'c',
+            untouched: 'a',
+            appliesOverMoved: false,
+          ),
+        ];
+
+    List<ProgramSlot> elsewhere(List<ProgramSlot> slots, String id) => [
+      for (final s in slots) s.id == id ? s.copyWith(danceId: 'dz') : s,
+    ];
+
+    for (final c in cases) {
+      test('${c.name}: applies when nothing changed elsewhere', () {
+        expect(
+          performAdjustmentStillApplies(
+            before: c.before,
+            after: c.after,
+            onto: c.before,
+          ),
+          isTrue,
+        );
+      });
+
+      test('${c.name}: applies when another dance was put on a slot it '
+          'leaves alone', () {
+        expect(
+          performAdjustmentStillApplies(
+            before: c.before,
+            after: c.after,
+            onto: elsewhere(c.before, c.untouched),
+          ),
+          isTrue,
+        );
+      });
+
+      test('${c.name}: ${c.appliesOverMoved ? 'applies' : 'is refused'} when '
+          'another dance was put on the slot it changes or moves', () {
+        expect(
+          performAdjustmentStillApplies(
+            before: c.before,
+            after: c.after,
+            onto: elsewhere(c.before, c.moved),
+          ),
+          c.appliesOverMoved,
+        );
+      });
+    }
+  });
 }

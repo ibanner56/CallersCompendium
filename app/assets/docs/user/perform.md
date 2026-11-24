@@ -252,8 +252,9 @@ From it you can:
 An inserted dance and an ad-hoc note both land right after the current slot, so
 "play this next" is one action away. Your changes are kept however you close
 the sheet — **Done**, swiping it down, tapping outside it, or **Back** — so a
-hurried swipe never throws away a reorder or a performed mark. Every change offers **Undo**, and a change
-to a saved program is saved right away. The
+hurried swipe doesn't throw away a reorder or a performed mark. Everything you
+change between opening the sheet and closing it is one change: it offers
+**Undo**, and for a saved program it is saved right away. The
 Undo is still offered for a moment after you leave Perform (for as long as you
 need with a screen reader), but only while the program is as the change left
 it. So if the program has been changed since, for example edited in the
@@ -263,10 +264,25 @@ change is kept.
 Perform shows the program as it was when you opened it. If the program changes
 somewhere else while Perform is open — most often when
 [Device Sync](./settings.md#device-sync) brings in an edit from another device
-— your next change is saved on top of that edit rather than replacing it.
-Perform then switches to the newer program and says so: *This program had
+— your next change is usually saved on top of that edit rather than replacing
+it. Perform then switches to the newer program and says so: *This program had
 changed elsewhere since Perform opened. Perform now shows the latest version,
-with your change.* Undo still takes back only your own change. If you have set calling history to count
+with your change.* Undo still takes back only your own change.
+
+Sometimes your change can't be put on top, because it would land on the wrong
+dance. That happens when, on the other device, a slot you changed (its note,
+its performed mark or, with a swap, its dance, or any of these with an
+**Undo**) was given another dance, or a slot you swapped was deleted, moved to another group, made or
+unmade an alternate, or marked performed. Then none of that change is saved,
+and it no longer offers **Undo**. Perform shows the program as it now is, keeps
+on screen any change you made after it that is still being saved, and says
+*This program changed on another device, so one of your changes wasn't saved.
+Check the program and make it again if you still want it.* If you have already
+left Perform, the message appears on the screen you returned to instead. A
+change you are making in the adjust sheet when this happens is put on the
+program as it now is when you close the sheet.
+
+If you have set calling history to count
 only slots marked performed, this is where you mark them — see
 [Programs & matrix](./programs.md#track-what-you-have-called).
 
@@ -332,21 +348,9 @@ does, and the one you swapped out stays in the program as an unmarked
   starts with a note or a break rather than a dance, the alternate is swapped
   where it is and stays an alternate.
 
-**Undo** puts the program back as it was before your last change, unless
-another device has changed the program since (see below).
-
-Everything you change in the Adjust sheet, from opening it until you close it
-(with **Done** or any other way), is saved together. If another device changed
-the program meanwhile in a way that would make that change land on the wrong
-dance, none of it is saved. That happens when a slot the swap touches was
-deleted there, or its dance, its group, whether it is an alternate or whether it
-was marked performed changed there; or when you changed a slot (for example
-marked it performed) whose dance was replaced there. An **Undo** can be refused
-the same way. Perform then shows the program as it now is, keeps on screen
-anything you changed after that is still being saved, and says *This program
-changed on another device, so your last change wasn't saved. Check the program
-and make it again if you still want it.* If you have already left Perform, the
-message appears on the program's summary instead. The swap searches only your
+A swap can be undone like any other change. If another device changed the
+slots it touches meanwhile, it is not saved; see
+[Adjust on the fly](#adjust-on-the-fly). The swap searches only your
 collection, never online.
 
 For an English dance, Same formation is not offered, and its figures can be
