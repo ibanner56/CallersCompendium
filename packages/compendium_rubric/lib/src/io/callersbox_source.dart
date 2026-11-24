@@ -475,8 +475,10 @@ bool retryPlacesDifferently(BridgedDance attempt, BridgedDance fallback) =>
 /// The translation is deliberately thin — four fields, because those are the
 /// four [parseDance] looks at. Its figures are [dancedFigures], so a `sequence`
 /// arrives as its children (and a flagged sequence's flag on its last child).
-/// Beyond that it does one thing the source did not: it may supply the
-/// progression flag. See [assumedProgressionIndex].
+/// Beyond that it does two things the source did not: it may supply the
+/// progression flag (see [assumedProgressionIndex]), and it reads a slide
+/// after a balanced long wave as the Rory O'More it is (see
+/// [_slidesTheWave]).
 ///
 /// Set [useNextNeighborsFallback] to place the progression by
 /// [nextNeighborsProgressionIndex] instead. That is the retry
@@ -551,8 +553,12 @@ BridgedDance bridgeCoreDance(
       'figures': [
         for (var index = 0; index < figures.length; index++)
           {
-            'move': figures[index].move,
-            'params': _recordParams(figures[index].params),
+            'move': _slidesTheWave(figures, index)
+                ? 'rory_o_more'
+                : figures[index].move,
+            'params': _slidesTheWave(figures, index)
+                ? _roryParams(figures, index)
+                : _recordParams(figures[index].params),
             if (figures[index].progression ||
                 index == assumedAt ||
                 laterAt.contains(index))
@@ -564,6 +570,44 @@ BridgedDance bridgeCoreDance(
     assumedProgressionAt: assumedAt,
     laterProgressionsAt: laterAt,
   );
+}
+
+/// Whether figure [index] is a slide along the set straight after a balance
+/// in a long wave, which is a Rory O'More *(user-ruled 2026-11-23)*.
+///
+/// Caller's Box writes the figure as two lines, "Balance long wave" and
+/// "Slide right (past N)", and the import reads them as `form_long_waves`
+/// and `slide_along_set`. Danced from the wave, the slide is each dancer
+/// sliding past to their own side: `rory_o_more`, which slides a set already
+/// in a wave as it stands. Its own balance is already danced by the
+/// `form_long_waves` before it, so the record states `balance: false`. See
+/// [_roryParams] for the rest of the record.
+bool _slidesTheWave(List<core.Figure> figures, int index) =>
+    index > 0 &&
+    figures[index].move == 'slide_along_set' &&
+    figures[index - 1].move == 'form_long_waves' &&
+    figures[index - 1].params['balance'] == true;
+
+/// The `rory_o_more` params for the slide at [index], which
+/// [_slidesTheWave] has matched.
+///
+/// The direction is the slide's own, with `slide_along_set`'s default of
+/// `left` written out, because `rory_o_more` defaults to `right`. A wave
+/// formed with a later neighbour set ("N2R") passes that set on as `who`, so
+/// the slide is checked and danced as any figure naming that set is: in place
+/// once the progressions have brought those couples together, and refused
+/// while they still stand a grouping apart. *(Agent's call: measured on the
+/// corpus, carrying it compiled four dances that dropping it did not, and lost
+/// none.)*
+Map<String, Object?> _roryParams(List<core.Figure> figures, int index) {
+  final slide = figures[index].params;
+  final whom = figures[index - 1].params['whom'];
+  return {
+    'balance': false,
+    'slide': slide['slide'] == 'right' ? 'right' : 'left',
+    'beats': ?slide['beats'],
+    if (whom is String && whom.endsWith('Neighbors')) 'who': whom,
+  };
 }
 
 /// [params] as the record carries them: a container's child figures become
