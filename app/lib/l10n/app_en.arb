@@ -19497,5 +19497,15 @@
         "example": "Easy mixers"
       }
     }
+  },
+  "savedSearchGone": "\"{name}\" was deleted, here or on another device, so nothing was changed.",
+  "@savedSearchGone": {
+    "description": "Message when a saved search the user is updating, renaming or deleting has already been deleted (in Settings, or by sync from another device).",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Easy mixers"
+      }
+    }
   }
 }

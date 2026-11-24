@@ -13877,5 +13877,9 @@
   "settingsSavedSearchDeleteTooltip": "Supprimer « {name} »",
   "@settingsSavedSearchDeleteTooltip": {
     "x-sourceSha256": "914b12d4d231c275650f13980556632b84b7235e562e4c64b199ed260ac32dc8"
+  },
+  "savedSearchGone": "« {name} » a été supprimée, ici ou sur un autre appareil ; rien n’a donc été modifié.",
+  "@savedSearchGone": {
+    "x-sourceSha256": "ab5406d87f7d19b06fc50656b460d0e08c5d025ccd9845b3cc7ba37c22f8a0ce"
   }
 }

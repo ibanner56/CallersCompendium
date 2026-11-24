@@ -21058,6 +21058,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete \"{name}\"'**
   String settingsSavedSearchDeleteTooltip(String name);
+
+  /// Message when a saved search the user is updating, renaming or deleting has already been deleted (in Settings, or by sync from another device).
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" was deleted, here or on another device, so nothing was changed.'**
+  String savedSearchGone(String name);
 }
 
 class _AppLocalizationsDelegate

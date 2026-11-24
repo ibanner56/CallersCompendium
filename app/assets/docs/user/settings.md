@@ -204,7 +204,7 @@ again](./collection.md#save-a-search-and-use-it-again)) is listed here by name.
   the screen.
 - A saved search that this version of the app can't read (saved by a newer
   version, or damaged) is listed last, under **Needs attention**. It is never
-  used. Tap it to see why; you can delete it, and undo that.
+  used. Tap it to read what that means and to delete it; you can undo that.
 
 ## Program
 

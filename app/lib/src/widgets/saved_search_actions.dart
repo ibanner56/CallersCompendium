@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
@@ -222,9 +223,33 @@ class SavedSearchActions {
     return null;
   }
 
-  /// Writes the host's panel back into [loaded]. Returns what the host now
-  /// holds, or null when nothing was written.
-  Future<SavedSearchLoad?> update(SavedSearchLoad loaded) async {
+  /// The saved search [id] as it is stored now, or null (after telling the
+  /// user, and calling [onGone]) when it has been deleted, here in another
+  /// screen or by sync. Read before every write that keeps part of what is
+  /// stored, so a rename made elsewhere is not undone by an Update here, an
+  /// Update made elsewhere is not undone by a Rename, and a deleted search is
+  /// never brought back by either.
+  Future<SavedSearch?> _storedNow(
+    String id,
+    String label,
+    VoidCallback? onGone,
+  ) async {
+    final stored = await _repos.savedSearches.get(id);
+    if (stored == null && context.mounted) {
+      _snack(_l10n.savedSearchGone(label));
+      onGone?.call();
+    }
+    return stored;
+  }
+
+  /// Writes the host's panel back into [loaded], under the name it is stored
+  /// under now. Returns what the host now holds, or null when nothing was
+  /// written; [onGone] runs when it was deleted meanwhile, so the host can
+  /// forget it.
+  Future<SavedSearchLoad?> update(
+    SavedSearchLoad loaded, {
+    VoidCallback? onGone,
+  }) async {
     final l10n = _l10n;
     final repos = _repos;
     final spec = SavedSearchSpec.fromPanelState(
@@ -236,12 +261,14 @@ class SavedSearchActions {
       await _tell(l10n.savedSearchTooLargeTitle, l10n.savedSearchTooLargeBody);
       return null;
     }
-    final updated = SavedSearch(
-      id: loaded.search.id,
-      name: loaded.search.name,
-      spec: spec,
-    );
     try {
+      final stored = await _storedNow(
+        loaded.search.id,
+        loaded.search.name,
+        onGone,
+      );
+      if (stored == null) return null;
+      final updated = SavedSearch(id: stored.id, name: stored.name, spec: spec);
       await repos.savedSearches.save(updated);
       _snack(l10n.savedSearchUpdatedSnack(updated.name));
       return loaded.copyWith(search: updated, baseline: spec.toJson());
@@ -252,18 +279,28 @@ class SavedSearchActions {
     }
   }
 
-  /// Renames [search] as stored (never saving a panel's edits). Returns it
-  /// under its new name, or null when it was not renamed.
-  Future<SavedSearch?> rename(SavedSearch search) async {
+  /// Renames [search], keeping what is stored for it now (never saving a
+  /// panel's edits, nor putting back what it held when it was loaded).
+  /// Returns it as stored under its new name, or null when it was not
+  /// renamed; [onGone] runs when it was deleted meanwhile.
+  Future<SavedSearch?> rename(
+    SavedSearch search, {
+    VoidCallback? onGone,
+  }) async {
     final l10n = _l10n;
     final repos = _repos;
-    final name = await _askName(
-      title: l10n.savedSearchRenameDialogTitle,
-      initial: search.name,
-    );
-    if (name == null || !context.mounted) return null;
-    final renamed = SavedSearch(id: search.id, name: name, spec: search.spec);
     try {
+      final before = await _storedNow(search.id, search.name, onGone);
+      if (before == null || !context.mounted) return null;
+      final name = await _askName(
+        title: l10n.savedSearchRenameDialogTitle,
+        initial: before.name,
+      );
+      if (name == null || !context.mounted) return null;
+      // Read again: the dialog may have been open while sync changed it.
+      final stored = await _storedNow(search.id, before.name, onGone);
+      if (stored == null) return null;
+      final renamed = SavedSearch(id: stored.id, name: name, spec: stored.spec);
       await repos.savedSearches.save(renamed);
       return renamed;
     } on ArgumentError catch (error, stackTrace) {
@@ -280,7 +317,12 @@ class SavedSearchActions {
   /// Returns whether it was deleted. Undo writes back the stored value
   /// exactly as it was read, so even a value this version cannot read comes
   /// back unchanged; [onUndone] runs after it has.
-  Future<bool> delete(String id, String label, {VoidCallback? onUndone}) async {
+  Future<bool> delete(
+    String id,
+    String label, {
+    VoidCallback? onUndone,
+    VoidCallback? onGone,
+  }) async {
     if (!await confirmDeleteIfEnabled(context, itemLabel: label)) return false;
     if (!context.mounted) return false;
     final l10n = _l10n;
@@ -290,22 +332,26 @@ class SavedSearchActions {
     final key = '$savedSearchKeyPrefix$id';
     try {
       final before = await repos.settings.get(key);
-      await repos.savedSearches.delete(id);
-      if (before != null) {
-        showUndoSnackBar(
-          messenger,
-          key: const ValueKey('saved-search-undo-snackbar'),
-          actionKey: const ValueKey('saved-search-undo'),
-          message: l10n.savedSearchDeletedSnack(label),
-          undoLabel: l10n.commonUndo,
-          undoFailedMessage: l10n.commonUndoFailed,
-          accessibleNavigation: accessibleNavigation,
-          onUndo: () async {
-            await repos.settings.set(key, before);
-            onUndone?.call();
-          },
-        );
+      if (before == null) {
+        // Deleted meanwhile, here in another screen or by sync.
+        _snack(l10n.savedSearchGone(label));
+        onGone?.call();
+        return false;
       }
+      await repos.savedSearches.delete(id);
+      showUndoSnackBar(
+        messenger,
+        key: const ValueKey('saved-search-undo-snackbar'),
+        actionKey: const ValueKey('saved-search-undo'),
+        message: l10n.savedSearchDeletedSnack(label),
+        undoLabel: l10n.commonUndo,
+        undoFailedMessage: l10n.commonUndoFailed,
+        accessibleNavigation: accessibleNavigation,
+        onUndo: () async {
+          await repos.settings.set(key, before);
+          onUndone?.call();
+        },
+      );
       return true;
     } on SavedSearchInUse catch (inUse) {
       // diagnostics: silent — an expected refusal; the dialog names each use.
@@ -558,7 +604,10 @@ String savedSearchMissingText(AppLocalizations l10n, SavedSearchMissing m) {
 /// The lasting notice a host shows while a loaded saved search refers to
 /// things that are gone: each one by name, and that the rest of the search is
 /// shown. The user removes each criterion themselves; nothing is dropped.
-class SavedSearchNotice extends StatelessWidget {
+///
+/// A screen-reader user hears it when it appears: what is missing is the
+/// reason the results may not be what they expect.
+class SavedSearchNotice extends StatefulWidget {
   const SavedSearchNotice({
     super.key,
     required this.load,
@@ -569,7 +618,46 @@ class SavedSearchNotice extends StatelessWidget {
   final VoidCallback onClose;
 
   @override
+  State<SavedSearchNotice> createState() => _SavedSearchNoticeState();
+}
+
+class _SavedSearchNoticeState extends State<SavedSearchNotice> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _announce());
+  }
+
+  @override
+  void didUpdateWidget(SavedSearchNotice oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.load.missing, widget.load.missing)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _announce());
+    }
+  }
+
+  void _announce() {
+    if (!mounted || !MediaQuery.supportsAnnounceOf(context)) return;
+    final l10n = AppLocalizations.of(context);
+    final load = widget.load;
+    final message = [
+      l10n.savedSearchNoticeTitle(load.search.name),
+      for (final m in load.missing) savedSearchMissingText(l10n, m),
+    ].join(' ');
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      message,
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
+    ).catchError((Object _) {
+      // diagnostics: silent — a screen-reader announcement is best-effort;
+      // the notice itself is still on screen and in the semantics tree.
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final load = widget.load;
+    final onClose = widget.onClose;
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;

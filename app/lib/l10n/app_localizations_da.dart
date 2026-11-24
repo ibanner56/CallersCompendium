@@ -14447,4 +14447,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String settingsSavedSearchDeleteTooltip(String name) {
     return 'Slet \"$name\"';
   }
+
+  @override
+  String savedSearchGone(String name) {
+    return '\"$name\" er slettet, her eller på en anden enhed, så intet blev ændret.';
+  }
 }

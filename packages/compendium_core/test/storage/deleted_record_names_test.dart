@@ -98,4 +98,43 @@ void main() {
     expect(await repos.deletedRecordNames(SyncRecordKind.dance, ['t1']), {});
     expect(await repos.deletedRecordNames(SyncRecordKind.tag, const []), {});
   });
+
+  test('a live record of every kind is not named', () async {
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 't1', name: 'Live tag'));
+    final _ = await repos.choreographers.upsert(
+      Choreographer(id: 'a1', name: 'Live author'),
+    );
+    await repos.publishedSources.upsert(
+      PublishedSource(id: 's1', title: 'Live source'),
+    );
+    await repos.venues.upsert(Venue(id: 'v1', name: 'Live hall'));
+    final level = await repos.difficultyLevels.createCustom(
+      label: 'Live level',
+      position: 99,
+    );
+    final fieldId = await repos.customFieldDefs.upsert(
+      CustomFieldDef(
+        id: 'f1',
+        key: 'tempo',
+        label: 'Live field',
+        type: CustomFieldType.text,
+      ),
+    );
+
+    for (final (kind, id) in [
+      (SyncRecordKind.tag, 't1'),
+      (SyncRecordKind.choreographer, 'a1'),
+      (SyncRecordKind.publishedSource, 's1'),
+      (SyncRecordKind.venue, 'v1'),
+      (SyncRecordKind.difficultyLevel, level.id),
+      (SyncRecordKind.customFieldDef, fieldId),
+    ]) {
+      expect(
+        await repos.deletedRecordNames(kind, [id]),
+        isEmpty,
+        reason: kind.name,
+      );
+    }
+  });
 }

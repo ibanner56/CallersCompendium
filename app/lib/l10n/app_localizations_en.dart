@@ -14391,4 +14391,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String settingsSavedSearchDeleteTooltip(String name) {
     return 'Delete \"$name\"';
   }
+
+  @override
+  String savedSearchGone(String name) {
+    return '\"$name\" was deleted, here or on another device, so nothing was changed.';
+  }
 }

@@ -305,7 +305,7 @@ class _DanceListScreenState extends State<DanceListScreen>
 
   /// Whether the title sort ignores a leading article — read from
   /// [SortIgnoreArticlesScope] in [didChangeDependencies] and updated live when
-  /// the user toggles the General setting.
+  /// the user toggles it in Settings ▸ Collection ▸ Dances.
   bool _sortIgnoreArticles = true;
 
   /// Whether calling history tracks all callers — read from
@@ -360,6 +360,9 @@ class _DanceListScreenState extends State<DanceListScreen>
 
   /// Whether the notice about [_loadedSearch]'s missing references was closed.
   bool _savedSearchNoticeClosed = false;
+
+  /// Whether the Collection was in view at the last dependency change.
+  bool _inView = true;
 
   /// Bumped after a saved search is saved, renamed or deleted here, so the
   /// search field's dropdown reads the list again.
@@ -511,6 +514,12 @@ class _DanceListScreenState extends State<DanceListScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Coming back into view (the app shell keeps every destination mounted,
+    // and turns tickers off in the hidden ones): the loaded saved search may
+    // have been renamed or deleted elsewhere meanwhile.
+    final inView = TickerMode.valuesOf(context).enabled;
+    if (inView && !_inView) unawaited(_refreshLoadedSearch());
+    _inView = inView;
     // Read the active dialect from the scope (registers rebuild dependency so
     // didChangeDependencies fires again when the dialect changes).
     // The collection mixes forms; a query is read in contra's dialect (the
@@ -1618,7 +1627,10 @@ class _DanceListScreenState extends State<DanceListScreen>
   Future<void> _updateSavedSearch() async {
     final loaded = _loadedSearch;
     if (loaded == null) return;
-    final load = await _savedSearchActions().update(loaded);
+    final load = await _savedSearchActions().update(
+      loaded,
+      onGone: _forgetDeletedSavedSearch,
+    );
     if (load == null || !mounted) return;
     _savedSearchRevision++;
     _onSavedSearchLoaded(load);
@@ -1628,27 +1640,69 @@ class _DanceListScreenState extends State<DanceListScreen>
   Future<void> _renameSavedSearch() async {
     final loaded = _loadedSearch;
     if (loaded == null) return;
-    final renamed = await _savedSearchActions().rename(loaded.search);
+    final renamed = await _savedSearchActions().rename(
+      loaded.search,
+      onGone: _forgetDeletedSavedSearch,
+    );
     if (renamed == null || !mounted) return;
     _savedSearchRevision++;
     _onSavedSearchLoaded(loaded.copyWith(search: renamed));
   }
 
   /// ⋮ ▸ Delete "…": deletes the loaded search, with Undo. The search on
-  /// screen stays; it is just no longer a saved one.
+  /// screen stays; it is just no longer a saved one. Undo makes it the loaded
+  /// one again, if nothing else has been loaded and the panel still shows
+  /// what it saved.
   Future<void> _deleteSavedSearch() async {
     final loaded = _loadedSearch;
     if (loaded == null) return;
     final deleted = await _savedSearchActions().delete(
       loaded.search.id,
       loaded.search.name,
+      onGone: _forgetDeletedSavedSearch,
       onUndone: () {
-        if (mounted) setState(() => _savedSearchRevision++);
+        if (!mounted) return;
+        setState(() => _savedSearchRevision++);
+        if (_loadedSearch == null && !_savedSearchActions().changed(loaded)) {
+          _onSavedSearchLoaded(loaded);
+        }
       },
     );
     if (!deleted || !mounted) return;
     _savedSearchRevision++;
     _onSavedSearchLoaded(null);
+  }
+
+  /// The loaded search was deleted elsewhere (Settings, or sync): the search
+  /// on screen stays, but it is no longer a saved one.
+  void _forgetDeletedSavedSearch() {
+    if (!mounted) return;
+    _savedSearchRevision++;
+    _onSavedSearchLoaded(null);
+  }
+
+  /// Reads the loaded search again when the Collection comes back into view
+  /// (the app keeps every destination mounted): a rename in Settings, or one
+  /// synced from another device, shows in the ⋮ menu, and one deleted there is
+  /// forgotten. What the panel shows, and its baseline, are unchanged.
+  Future<void> _refreshLoadedSearch() async {
+    final loaded = _loadedSearch;
+    if (loaded == null) return;
+    try {
+      final stored = await _repos.savedSearches.get(loaded.search.id);
+      if (!mounted || !identical(_loadedSearch, loaded)) return;
+      if (stored == null) {
+        _forgetDeletedSavedSearch();
+      } else if (stored.name != loaded.search.name) {
+        _onSavedSearchLoaded(loaded.copyWith(search: stored));
+      }
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._refreshLoadedSearch',
+      );
+    }
   }
 
   void _onSavedSearchLoaded(SavedSearchLoad? load) {
@@ -2697,9 +2751,12 @@ class _DanceListScreenState extends State<DanceListScreen>
   }
 
   /// The ⋮ menu: always holds Select dances, Manage custom fields and Recently
-  /// deleted, Repertoire while its Experimental switch is on (#2357), plus whichever of the [_CollectionBarGlyph]s did not fit on the
-  /// bar ([onBar] is what did). Sorting is left out while [hasDances] is false,
-  /// as on the bar.
+  /// deleted, Repertoire while its Experimental switch is on (#2357), the
+  /// saved-search entries ([_savedSearchMenuItems]: Save this search…, and for
+  /// a loaded search Update, Save as a new search…, Rename and Delete), plus
+  /// whichever of the [_CollectionBarGlyph]s did not fit on the bar ([onBar]
+  /// is what did). Sorting is left out while [hasDances] is false, as on the
+  /// bar.
   Widget _buildMoreActions(
     AppLocalizations l10n,
     Set<_CollectionBarGlyph> onBar, {

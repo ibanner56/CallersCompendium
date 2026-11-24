@@ -372,8 +372,8 @@ void main() {
   group('SettingsScreen — General & Program settings (G.2)', () {
     // Section content only shows once its sidebar entry is picked (side-by-side
     // layout shows only the selected section). The calling-history toggles moved
-    // to the Program section (issue #935); sort-ignore stays under General.
-    // The Dances settings moved to their own Collection section (#2325).
+    // to the Program section (issue #935), and sort-ignore, with the rest of
+    // the Dances settings, to the Collection section (#2325).
     Future<void> openCollection(WidgetTester tester) async {
       await tester.tap(find.byKey(const ValueKey('settings-nav-collection')));
       await tester.pumpAndSettle();
@@ -2024,6 +2024,31 @@ void main() {
         find.byKey(const ValueKey('settings-nav-dialect')),
         findsOneWidget,
       );
+    });
+
+    testWidgets('the sidebar lists every section in its documented order, '
+        'Collection between General and Program (#2325)', (tester) async {
+      await _pumpSettings(tester, surfaceSize: const Size(500, 1400));
+      const order = [
+        'general',
+        'collection',
+        'program',
+        'appearance',
+        'dialect',
+        'regional',
+        'defaults',
+        'updates',
+        'diagnostics',
+        'experimental',
+        'about',
+      ];
+      final tops = [
+        for (final name in order)
+          tester.getTopLeft(find.byKey(ValueKey('settings-nav-$name'))).dy,
+      ];
+      for (var i = 1; i < tops.length; i++) {
+        expect(tops[i], greaterThan(tops[i - 1]), reason: order[i]);
+      }
     });
 
     testWidgets('navigation preserves section order, content, and icon pairs', (

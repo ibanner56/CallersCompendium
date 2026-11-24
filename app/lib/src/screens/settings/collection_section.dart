@@ -35,18 +35,25 @@ class CollectionSection extends StatefulWidget {
 class _CollectionSectionState extends State<CollectionSection> {
   List<StoredSavedSearch>? _saved;
   int _readSeq = 0;
-  bool _started = false;
+  bool _inView = false;
 
+  /// Reads the list whenever this section comes into view: when it is opened,
+  /// and when Settings is shown again (the app shell keeps every destination
+  /// mounted and turns tickers off in the hidden ones), so a search saved,
+  /// renamed or deleted in the Collection or by sync meanwhile is shown as it
+  /// is now. Nothing streams the settings table (see `SettingsRepository`), so
+  /// this, and a read after each action here, is what keeps it current.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_started) {
-      _started = true;
-      unawaited(_read());
-    }
+    final inView = TickerMode.valuesOf(context).enabled;
+    if (inView && !_inView) unawaited(_read());
+    _inView = inView;
   }
 
   Future<void> _read() async {
+    // Undo can run after this section was left (a narrow layout pops it).
+    if (!mounted) return;
     final seq = ++_readSeq;
     try {
       final saved = await RepositoriesScope.of(context).savedSearches.list();
@@ -81,18 +88,22 @@ class _CollectionSectionState extends State<CollectionSection> {
     enrichment: SearchEnrichment.empty,
   );
 
+  // Each action re-reads the stored search first (SavedSearchActions), so a
+  // rename keeps what is stored now and a search deleted elsewhere is not
+  // brought back; then the list is read again either way.
   Future<void> _rename(SavedSearch search) async {
-    if (await _actions().rename(search) != null) await _read();
+    await _actions().rename(search, onGone: _read);
+    await _read();
   }
 
   Future<void> _delete(String id, String label) async {
-    final deleted = await _actions().delete(id, label, onUndone: _read);
-    if (deleted) await _read();
+    await _actions().delete(id, label, onUndone: _read, onGone: _read);
+    await _read();
   }
 
   Future<void> _unreadable(String id) async {
-    final deleted = await _actions().showUnreadable(id, onUndone: _read);
-    if (deleted) await _read();
+    await _actions().showUnreadable(id, onUndone: _read);
+    await _read();
   }
 
   @override

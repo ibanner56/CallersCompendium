@@ -109,7 +109,7 @@ class ResponsiveAutocomplete<T extends Object> extends StatefulWidget {
   /// its own).
   final PickerOptionsBuilder<T> optionsBuilder;
 
-  /// Same contract as [RawAutocomplete.displayStringForOption].
+  /// Same contract as Flutter's RawAutocomplete.displayStringForOption.
   final AutocompleteOptionToString<T> displayStringForOption;
 
   /// Called when the user picks an option, in either layout.
@@ -142,7 +142,7 @@ class ResponsiveAutocomplete<T extends Object> extends StatefulWidget {
   /// Whether pressing Enter in the narrow layout's sheet picks its first option
   /// (as [onSelected] would on a tap) instead of only dismissing the sheet.
   ///
-  /// The wide layout already behaves this way — [RawAutocomplete] selects the
+  /// The wide layout already behaves this way — Flutter's RawAutocomplete selects the
   /// highlighted option, which starts on the first, when the field is
   /// submitted — so this restores parity for a caller whose first row is the
   /// one Enter is meant to commit (the Tunes facet's typed-text row). It is
@@ -375,7 +375,7 @@ class _ResponsiveAutocompleteState<T extends Object>
         textEditingController: _controller,
         // Always the resolved node/controller (never the raw, possibly-null
         // `widget.focusNode`/`widget.textEditingController`):
-        // `Autocomplete`/`RawAutocomplete` asserts
+        // `Autocomplete`/RawAutocomplete asserts
         // `(focusNode == null) == (textEditingController == null)` and,
         // when both are null, mints its own internal `FocusNode` — a second,
         // orphaned node distinct from the `_focusNode` this state calls

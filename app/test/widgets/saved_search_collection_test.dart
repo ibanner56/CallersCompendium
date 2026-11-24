@@ -62,6 +62,7 @@ Future<void> _pump(
   WidgetTester tester,
   CompendiumRepositories repos, {
   ContraDbOnline? contraDbOnline,
+  ValueNotifier<bool>? inView,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 3000));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -96,7 +97,14 @@ Future<void> _pump(
           ),
         ),
       ),
-      home: DanceListScreen(clock: _clock, contraDbOnline: contraDbOnline),
+      // The app shell keeps every destination mounted and turns tickers off
+      // in the hidden ones; [inView] does the same.
+      home: ValueListenableBuilder<bool>(
+        valueListenable: inView ?? ValueNotifier(true),
+        builder: (context, visible, child) =>
+            TickerMode(enabled: visible, child: child!),
+        child: DanceListScreen(clock: _clock, contraDbOnline: contraDbOnline),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -112,6 +120,10 @@ bool _shows(String title) => find
     .isNotEmpty;
 
 final _field = find.byKey(const ValueKey('collection-search-field'));
+
+FocusNode _ftsFocus(WidgetTester tester) => tester
+    .widget<TextField>(find.byKey(const ValueKey('collection-search-field')))
+    .focusNode!;
 final _dropdown = find.byKey(const ValueKey('saved-search-dropdown'));
 final _searchFor = find.byKey(const ValueKey('saved-search-search-for'));
 Finder _row(String id) => find.byKey(ValueKey('saved-search-row-$id'));
@@ -165,6 +177,9 @@ Future<void> _load(WidgetTester tester, SavedSearch search) async {
   await _focusField(tester);
   await tester.tap(_row(search.id));
   await tester.pumpAndSettle();
+  // Loading leaves the results in view: the dropdown does not reopen over
+  // them for the text the load put in the field.
+  expect(_dropdown, findsNothing);
 }
 
 /// Saves the search on screen as [name] through the ⋮ menu.
@@ -349,6 +364,7 @@ void main() {
       await tester.tap(_row(search.id));
       await tester.pumpAndSettle();
 
+      expect(_dropdown, findsNothing);
       expect(_searchText(tester), 'Petronella');
       expect(_scope(tester), FullTextScope.title);
       expect(_sort(tester), CollectionSort.recentlyAdded);
@@ -471,6 +487,280 @@ void main() {
     });
   });
 
+  group('the dropdown keeps the field working', () {
+    testWidgets('Enter after a tap outside runs the search, with no error', (
+      tester,
+    ) async {
+      final repos = await _library();
+      await _seed(repos, 'Pet', CollectionPanelState(text: 'Petronella'));
+      await _pump(tester, repos);
+      await _focusField(tester);
+      await tester.enterText(_field, 'Chorus');
+      await tester.pump();
+      await _tapOff(tester);
+      expect(_dropdown, findsNothing);
+      // Typed after the debounce would have run, so only Enter can search.
+      await tester.enterText(_field, 'Chorus Jig');
+      await tester.pump();
+      await _tapOff(tester);
+
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+      expect(_searchText(tester), 'Chorus Jig');
+      await tester.pumpAndSettle();
+      expect(_shows('Chorus Jig'), isTrue);
+      expect(_shows('Petronella'), isFalse);
+    });
+
+    testWidgets('Enter after Online search was turned on runs the online '
+        'search, with no error', (tester) async {
+      final repos = await _library();
+      await _seed(repos, 'Pet', CollectionPanelState(text: 'Petronella'));
+      final queries = <String>[];
+      await _pump(
+        tester,
+        repos,
+        contraDbOnline: ContraDbOnline(
+          searchFetcher: (query) async {
+            queries.add('$query');
+            return '{"numberMatching":0,"dances":[]}';
+          },
+        ),
+      );
+      await _focusField(tester);
+      await tester.enterText(_field, 'pe');
+      await tester.pump();
+      expect(_dropdown, findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+      await tester.pump();
+      _ftsFocus(tester).requestFocus();
+      await tester.pump();
+
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(_dropdown, findsNothing);
+      expect(_searchText(tester), 'pe');
+    });
+
+    testWidgets('a tap elsewhere while the field is not in use does not keep '
+        'the dropdown shut when the keyboard focuses it', (tester) async {
+      final repos = await _library();
+      final pet = await _seed(
+        repos,
+        'Pet',
+        CollectionPanelState(text: 'Petronella'),
+      );
+      await _pump(tester, repos);
+      await _tapOff(tester);
+
+      expect(_list(tester).focusSearch(), isTrue);
+      await tester.pumpAndSettle();
+
+      expect(_dropdown, findsOneWidget);
+      expect(_row(pet.id), findsOneWidget);
+    });
+
+    testWidgets('typing after the arrow keys moves the highlight back to '
+        'Search for, so Enter searches what is typed', (tester) async {
+      final repos = await _library();
+      await _seed(repos, 'Pet', CollectionPanelState(text: 'Petronella'));
+      await _pump(tester, repos);
+      await _focusField(tester);
+      await tester.enterText(_field, 'pe');
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      await tester.enterText(_field, 'pet');
+      await tester.pump();
+
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pumpAndSettle();
+
+      // Not the saved search ("Petronella"): what was typed.
+      expect(_searchText(tester), 'pet');
+    });
+
+    testWidgets('the arrow keys then emptying the field: Enter searches, and '
+        'no saved row is shown highlighted', (tester) async {
+      final repos = await _library();
+      await _seed(repos, 'Pet', CollectionPanelState(text: 'Petronella'));
+      await _pump(tester, repos);
+      await _focusField(tester);
+      await tester.enterText(_field, 'p');
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+      await tester.enterText(_field, '');
+      await tester.pump();
+
+      final tiles = tester.widgetList<ListTile>(
+        find.descendant(of: _dropdown, matching: find.byType(ListTile)),
+      );
+      // Row 0 is highlighted (where Enter would act), but with nothing typed
+      // and no arrow key since, Enter searches.
+      expect([for (final t in tiles) t.selected], [true]);
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pumpAndSettle();
+      expect(_searchText(tester), '');
+      expect(_shows('Chorus Jig'), isTrue);
+    });
+  });
+
+  group('a saved search changed elsewhere', () {
+    testWidgets('renamed elsewhere, then Update here: the new name stays', (
+      tester,
+    ) async {
+      final repos = await _library();
+      final search = await _seed(
+        repos,
+        'Pet',
+        CollectionPanelState(text: 'Petronella'),
+      );
+      await _pump(tester, repos);
+      await _load(tester, search);
+      // Renamed in Settings, or by sync from another device.
+      await repos.savedSearches.save(
+        SavedSearch(id: search.id, name: 'Renamed', spec: search.spec),
+      );
+      await _type(tester, 'Chorus');
+      await _tapOff(tester);
+
+      await _openMore(tester);
+      await _choose(tester, 'saved-search-update');
+
+      final stored = await repos.savedSearches.get(search.id);
+      expect(stored!.name, 'Renamed');
+      expect(stored.spec.toJson()['text'], 'Chorus');
+    });
+
+    testWidgets('updated elsewhere, then Rename here: what is stored stays', (
+      tester,
+    ) async {
+      final repos = await _library();
+      final search = await _seed(
+        repos,
+        'Pet',
+        CollectionPanelState(text: 'Petronella'),
+      );
+      await _pump(tester, repos);
+      await _load(tester, search);
+      final newer = SavedSearchSpec.fromPanelState(
+        CollectionPanelState(text: 'Chorus'),
+        today: _day,
+      ).value!;
+      await repos.savedSearches.save(
+        SavedSearch(id: search.id, name: 'Pet', spec: newer),
+      );
+
+      await _openMore(tester);
+      await _choose(tester, 'saved-search-rename');
+      await tester.enterText(
+        find.byKey(const ValueKey('saved-search-name-field')),
+        'Chorus only',
+      );
+      await tester.pumpAndSettle();
+      await _choose(tester, 'saved-search-name-save');
+
+      final stored = await repos.savedSearches.get(search.id);
+      expect(stored!.name, 'Chorus only');
+      expect(stored.spec.toJson(), newer.toJson());
+    });
+
+    for (final entry in ['saved-search-update', 'saved-search-rename']) {
+      testWidgets('deleted elsewhere, then $entry here: refused, not brought '
+          'back, and forgotten', (tester) async {
+        final repos = await _library();
+        final search = await _seed(
+          repos,
+          'Pet',
+          CollectionPanelState(text: 'Petronella'),
+        );
+        await _pump(tester, repos);
+        await _load(tester, search);
+        await repos.savedSearches.delete(search.id);
+        await _type(tester, 'Chorus');
+        await _tapOff(tester);
+
+        await _openMore(tester);
+        await _choose(tester, entry);
+
+        expect(await repos.settings.get(search.settingsKey), isNull);
+        expect(
+          find.text(
+            '"Pet" was deleted, here or on another device, so '
+            'nothing was changed.',
+          ),
+          findsOneWidget,
+        );
+        await _openMore(tester);
+        expect(find.byKey(ValueKey(entry)), findsNothing);
+        expect(find.text('Save this search…'), findsOneWidget);
+      });
+    }
+
+    testWidgets('when the Collection comes back into view, a rename made '
+        'meanwhile shows in the ⋮ menu, and a delete is forgotten', (
+      tester,
+    ) async {
+      final repos = await _library();
+      final search = await _seed(
+        repos,
+        'Pet',
+        CollectionPanelState(text: 'Petronella'),
+      );
+      final inView = ValueNotifier(true);
+      addTearDown(inView.dispose);
+      await _pump(tester, repos, inView: inView);
+      await _load(tester, search);
+
+      inView.value = false;
+      await tester.pumpAndSettle();
+      await repos.savedSearches.save(
+        SavedSearch(id: search.id, name: 'Renamed', spec: search.spec),
+      );
+      inView.value = true;
+      await tester.pumpAndSettle();
+      await _openMore(tester);
+      expect(find.text('Rename "Renamed"…'), findsOneWidget);
+      await tester.tapAt(Offset.zero);
+      await tester.pumpAndSettle();
+
+      inView.value = false;
+      await tester.pumpAndSettle();
+      await repos.savedSearches.delete(search.id);
+      inView.value = true;
+      await tester.pumpAndSettle();
+      await _openMore(tester);
+      expect(find.byKey(const ValueKey('saved-search-rename')), findsNothing);
+      expect(find.text('Save this search…'), findsOneWidget);
+    });
+
+    testWidgets('Undo of a delete makes it the loaded search again', (
+      tester,
+    ) async {
+      final repos = await _library();
+      final search = await _seed(
+        repos,
+        'Pet',
+        CollectionPanelState(text: 'Petronella'),
+      );
+      await _pump(tester, repos);
+      await _load(tester, search);
+      await _openMore(tester);
+      await _choose(tester, 'saved-search-delete');
+
+      await tester.tap(find.byKey(const ValueKey('saved-search-undo')));
+      await tester.pumpAndSettle();
+
+      await _openMore(tester);
+      expect(find.text('Rename "Pet"…'), findsOneWidget);
+    });
+  });
+
   group('the ⋮ menu', () {
     testWidgets('Save this search… is offered only once a query is set, and '
         'saves the name and the whole search', (tester) async {
@@ -539,7 +829,6 @@ void main() {
       );
       await _pump(tester, repos);
       await _load(tester, search);
-      await _tapOff(tester);
 
       await _openMore(tester);
       expect(find.text('Update "Pet"'), findsOneWidget);
@@ -654,7 +943,6 @@ void main() {
       final before = await repos.settings.get(key);
       await _pump(tester, repos);
       await _load(tester, search);
-      await _tapOff(tester);
 
       await _openMore(tester);
       await _choose(tester, 'saved-search-delete');
@@ -696,7 +984,6 @@ void main() {
       );
       await _pump(tester, repos);
       await _load(tester, search);
-      await _tapOff(tester);
 
       await _openMore(tester);
       await _choose(tester, 'saved-search-delete');

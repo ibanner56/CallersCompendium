@@ -185,6 +185,7 @@ Future<void> _loadInPicker(WidgetTester tester, SavedSearch search) async {
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(ValueKey('saved-search-row-${search.id}')));
   await tester.pumpAndSettle();
+  expect(find.byKey(const ValueKey('saved-search-dropdown')), findsNothing);
 }
 
 /// Loads [search] through the Collection's search-field dropdown.
@@ -193,6 +194,7 @@ Future<void> _loadInCollection(WidgetTester tester, SavedSearch search) async {
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(ValueKey('saved-search-row-${search.id}')));
   await tester.pumpAndSettle();
+  expect(find.byKey(const ValueKey('saved-search-dropdown')), findsNothing);
 }
 
 Future<void> _choose(WidgetTester tester, String key) async {
@@ -267,8 +269,6 @@ void main() {
     // the same search, byte for byte.
     await _pumpCollection(tester, repos);
     await _loadInCollection(tester, saved);
-    await tester.tapAt(const Offset(1100, 2900));
-    await tester.pumpAndSettle();
     await _saveAs(tester, 'Copy');
     expect((await _byName(repos, 'Copy')).spec.toJson(), saved.spec.toJson());
   });

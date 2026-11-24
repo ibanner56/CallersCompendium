@@ -192,6 +192,9 @@ sections:
 
 - **General** — where you run [imports](./glossary.md#import) and manage your
   data, including [backup and restore](./backup-portability.md).
+- **Collection** — how titles sort and figures are written, your tags,
+  authors and sources, and your
+  [saved searches](./collection.md#save-a-search-and-use-it-again).
 - **Program** — your saved venues and how programs and Perform mode behave.
 - **Appearance** — themes, including light, dark, and high-contrast, plus your
   own custom themes.

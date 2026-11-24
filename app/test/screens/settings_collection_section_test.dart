@@ -25,7 +25,11 @@ Future<SavedSearch> _seed(
   ).value!,
 );
 
-Future<void> _pump(WidgetTester tester, CompendiumRepositories repos) async {
+Future<void> _pump(
+  WidgetTester tester,
+  CompendiumRepositories repos, {
+  ValueNotifier<bool>? inView,
+}) async {
   await tester.binding.setSurfaceSize(const Size(800, 2000));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
@@ -34,7 +38,14 @@ Future<void> _pump(WidgetTester tester, CompendiumRepositories repos) async {
       supportedLocales: testSupportedLocales,
       builder: (context, child) =>
           RepositoriesScope(repositories: repos, child: child!),
-      home: const Scaffold(body: CollectionSection()),
+      // The app shell keeps Settings mounted and turns tickers off while
+      // another destination is shown; [inView] does the same.
+      home: ValueListenableBuilder<bool>(
+        valueListenable: inView ?? ValueNotifier(true),
+        builder: (context, visible, child) =>
+            TickerMode(enabled: visible, child: child!),
+        child: const Scaffold(body: CollectionSection()),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -170,6 +181,79 @@ void main() {
     expect(
       find.byKey(const ValueKey('settings-saved-search-unreadable-future')),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('shown again, it lists what was saved, renamed or deleted '
+      'elsewhere meanwhile', (tester) async {
+    final repos = openTestRepositories();
+    final pet = await _seed(repos, 'Pet', 'petronella');
+    final inView = ValueNotifier(true);
+    addTearDown(inView.dispose);
+    await _pump(tester, repos, inView: inView);
+
+    inView.value = false;
+    await tester.pumpAndSettle();
+    final becket = await _seed(repos, 'Becket', 'becket');
+    await repos.savedSearches.save(
+      SavedSearch(id: pet.id, name: 'Petronella only', spec: pet.spec),
+    );
+    inView.value = true;
+    await tester.pumpAndSettle();
+
+    expect(find.text('Becket'), findsOneWidget);
+    expect(find.text('Petronella only'), findsOneWidget);
+
+    inView.value = false;
+    await tester.pumpAndSettle();
+    await repos.savedSearches.delete(becket.id);
+    inView.value = true;
+    await tester.pumpAndSettle();
+    expect(find.text('Becket'), findsNothing);
+  });
+
+  testWidgets('Rename keeps what is stored now, not what was listed', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final pet = await _seed(repos, 'Pet', 'petronella');
+    await _pump(tester, repos);
+    // Updated by sync from another device after the list was read.
+    final newer = SavedSearchSpec.fromPanelState(
+      CollectionPanelState(text: 'chorus'),
+      today: _day,
+    ).value!;
+    await repos.savedSearches.save(
+      SavedSearch(id: pet.id, name: 'Pet', spec: newer),
+    );
+
+    await _tap(tester, 'settings-saved-search-rename-${pet.id}');
+    await tester.enterText(
+      find.byKey(const ValueKey('saved-search-name-field')),
+      'Chorus',
+    );
+    await tester.pumpAndSettle();
+    await _tap(tester, 'saved-search-name-save');
+
+    final stored = await repos.savedSearches.get(pet.id);
+    expect(stored!.name, 'Chorus');
+    expect(stored.spec.toJson(), newer.toJson());
+  });
+
+  testWidgets('Rename of one deleted elsewhere is refused and not brought '
+      'back', (tester) async {
+    final repos = openTestRepositories();
+    final pet = await _seed(repos, 'Pet', 'petronella');
+    await _pump(tester, repos);
+    await repos.savedSearches.delete(pet.id);
+
+    await _tap(tester, 'settings-saved-search-rename-${pet.id}');
+
+    expect(find.byKey(const ValueKey('saved-search-name-field')), findsNothing);
+    expect(await repos.settings.get(pet.settingsKey), isNull);
+    expect(
+      find.byKey(ValueKey('settings-saved-search-${pet.id}')),
+      findsNothing,
     );
   });
 }
