@@ -15136,6 +15136,30 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String programsSlotRuleMarkerAlternateSemantic(int count, String rules) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Bryder $count regler, hvis den kaldes: $rules',
+      one: 'Bryder reglen, hvis den kaldes: $rules',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedSearchInUseRulesOff =>
+      'Aftenregler er slået fra. Dine regler ligger under Indstillinger ▸ Eksperimentelt ▸ Aftenregler: slå Aftenregler til der for at ændre dem, eller åbn dem nu med Administrer regler.';
+
+  @override
+  String programsRulesPickerFull(int max) {
+    return 'Dette program bruger $max regler, det højeste antal. Fjern fluebenet ved en for at tilføje en anden.';
+  }
+
+  @override
+  String get eventRuleCountNeighbouringHelp =>
+      'To nabodanse rummer højst 2 matchende danse.';
+
+  @override
   String settingsSyncNoticeCountEventRule(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

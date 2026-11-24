@@ -20369,6 +20369,38 @@
       }
     }
   },
+  "programsSlotRuleMarkerAlternateSemantic": "{count, plural, =1{Breaks the rule if called: {rules}} other{Breaks {count} rules if called: {rules}}}",
+  "@programsSlotRuleMarkerAlternateSemantic": {
+    "description": "Screen-reader label of an alternate slot's event rule marker: it breaks the rules only if it is called instead of its dance (#2340).",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1"
+      },
+      "rules": {
+        "type": "String",
+        "example": "At most 1 dance matching \"Becket\" in the whole program"
+      }
+    }
+  },
+  "savedSearchInUseRulesOff": "Event rules is off. Your rules are in Settings ▸ Experimental ▸ Event rules: turn Event rules on there to change them, or open them now with Manage rules.",
+  "@savedSearchInUseRulesOff": {
+    "description": "Shown in the message when a saved search cannot be deleted because event rules use it, while the Experimental Event rules switch is off (#2340). 'Manage rules' is the button below it."
+  },
+  "programsRulesPickerFull": "This program uses {max} rules, the most it can. Untick one to add another.",
+  "@programsRulesPickerFull": {
+    "description": "Shown in a program's Rules picker when it already applies as many rules as a program can (#2340).",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "example": "64"
+      }
+    }
+  },
+  "eventRuleCountNeighbouringHelp": "Two neighboring dances hold at most 2 matching dances.",
+  "@eventRuleCountNeighbouringHelp": {
+    "description": "Help under the rule editor's number field when the rule counts any two neighboring dances, which is why the number is limited (#2340)."
+  },
   "settingsSyncNoticeCountEventRule": "{count, plural, =1{1 event rule} other{{count} event rules}}",
   "@settingsSyncNoticeCountEventRule": {
     "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many of the user's event rules (#2340) are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",

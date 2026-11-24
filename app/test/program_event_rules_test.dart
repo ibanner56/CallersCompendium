@@ -266,10 +266,11 @@ void main() {
       ),
       findsOneWidget,
     );
+    // Its own label: it breaks the rule only if called (#2340 review).
     expect(
       tester.getSemantics(alternate).label,
-      'Breaks the rule: At most 1 dance matching "Becket" in the whole '
-      'program',
+      'Breaks the rule if called: At most 1 dance matching "Becket" in the '
+      'whole program',
     );
     expect(find.byKey(const ValueKey('slot-s2-rule-marker')), findsNothing);
     semantics.dispose();

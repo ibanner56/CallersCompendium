@@ -15227,6 +15227,30 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String programsSlotRuleMarkerAlternateSemantic(int count, String rules) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Overtreedt $count regels als hij wordt gecald: $rules',
+      one: 'Overtreedt de regel als hij wordt gecald: $rules',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedSearchInUseRulesOff =>
+      'Avondregels staat uit. Je regels staan onder Instellingen ▸ Experimenteel ▸ Avondregels: zet Avondregels daar aan om ze te wijzigen, of open ze nu met Regels beheren.';
+
+  @override
+  String programsRulesPickerFull(int max) {
+    return 'Dit programma gebruikt $max regels, het maximum. Vink er een uit om een andere toe te voegen.';
+  }
+
+  @override
+  String get eventRuleCountNeighbouringHelp =>
+      'Twee aangrenzende dansen bevatten hoogstens 2 passende dansen.';
+
+  @override
   String settingsSyncNoticeCountEventRule(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

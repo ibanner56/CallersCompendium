@@ -21851,6 +21851,30 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Breaks the rule: {rules}} other{Breaks {count} rules: {rules}}}'**
   String programsSlotRuleMarkerSemantic(int count, String rules);
 
+  /// Screen-reader label of an alternate slot's event rule marker: it breaks the rules only if it is called instead of its dance (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Breaks the rule if called: {rules}} other{Breaks {count} rules if called: {rules}}}'**
+  String programsSlotRuleMarkerAlternateSemantic(int count, String rules);
+
+  /// Shown in the message when a saved search cannot be deleted because event rules use it, while the Experimental Event rules switch is off (#2340). 'Manage rules' is the button below it.
+  ///
+  /// In en, this message translates to:
+  /// **'Event rules is off. Your rules are in Settings ▸ Experimental ▸ Event rules: turn Event rules on there to change them, or open them now with Manage rules.'**
+  String get savedSearchInUseRulesOff;
+
+  /// Shown in a program's Rules picker when it already applies as many rules as a program can (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'This program uses {max} rules, the most it can. Untick one to add another.'**
+  String programsRulesPickerFull(int max);
+
+  /// Help under the rule editor's number field when the rule counts any two neighboring dances, which is why the number is limited (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Two neighboring dances hold at most 2 matching dances.'**
+  String get eventRuleCountNeighbouringHelp;
+
   /// One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many of the user's event rules (#2340) are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.
   ///
   /// In en, this message translates to:

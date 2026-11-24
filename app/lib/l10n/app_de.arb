@@ -14406,6 +14406,22 @@
   "@programsSlotRuleMarkerSemantic": {
     "x-sourceSha256": "92662a4a9d4482c7c42d3ef81c41bb3f59ceb60a37e6096c5334df08584b56d7"
   },
+  "programsSlotRuleMarkerAlternateSemantic": "{count, plural, =1{Verletzt die Regel, wenn angesagt: {rules}} other{Verletzt {count} Regeln, wenn angesagt: {rules}}}",
+  "@programsSlotRuleMarkerAlternateSemantic": {
+    "x-sourceSha256": "255b3c7c450d5eaf9d96688258f0e69616c5a0cf9f12d3edb5ef7093f94f4909"
+  },
+  "savedSearchInUseRulesOff": "Abendregeln sind ausgeschaltet. Deine Regeln findest du unter Einstellungen ▸ Experimentell ▸ Abendregeln: Schalte Abendregeln dort ein, um sie zu ändern, oder öffne sie jetzt mit Regeln verwalten.",
+  "@savedSearchInUseRulesOff": {
+    "x-sourceSha256": "a9e430619b06de31e120d78386c4a5bf6560c2ca34ca04e26fbcd30e8054db0b"
+  },
+  "programsRulesPickerFull": "Dieses Programm nutzt {max} Regeln, mehr geht nicht. Entferne einen Haken, um eine andere hinzuzufügen.",
+  "@programsRulesPickerFull": {
+    "x-sourceSha256": "9d4ccf1254faeea96ac0569e98a59b80d292209766737f0dd0355ce05523bd6f"
+  },
+  "eventRuleCountNeighbouringHelp": "Zwei benachbarte Tänze enthalten höchstens 2 passende Tänze.",
+  "@eventRuleCountNeighbouringHelp": {
+    "x-sourceSha256": "b4cea3037e5e4a0c4df3fc07f5c73fc4308fd15d5b1b0dbc5945fdbbe576d36e"
+  },
   "settingsSyncNoticeCountEventRule": "{count, plural, =1{1 Abendregel} other{{count} Abendregeln}}",
   "@settingsSyncNoticeCountEventRule": {
     "x-sourceSha256": "a4aa004ac29ba4eba718a66bd86bc458e366375979732357410c3328f076a1fb"

@@ -15082,6 +15082,30 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String programsSlotRuleMarkerAlternateSemantic(int count, String rules) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Breaks $count rules if called: $rules',
+      one: 'Breaks the rule if called: $rules',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedSearchInUseRulesOff =>
+      'Event rules is off. Your rules are in Settings ▸ Experimental ▸ Event rules: turn Event rules on there to change them, or open them now with Manage rules.';
+
+  @override
+  String programsRulesPickerFull(int max) {
+    return 'This program uses $max rules, the most it can. Untick one to add another.';
+  }
+
+  @override
+  String get eventRuleCountNeighbouringHelp =>
+      'Two neighboring dances hold at most 2 matching dances.';
+
+  @override
   String settingsSyncNoticeCountEventRule(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

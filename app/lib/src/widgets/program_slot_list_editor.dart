@@ -1392,10 +1392,17 @@ class _RuleMarker extends StatelessWidget {
     return Semantics(
       key: ValueKey('slot-$slotId-rule-marker'),
       container: true,
-      label: l10n.programsSlotRuleMarkerSemantic(
-        marker.rules.length,
-        marker.rules.join('; '),
-      ),
+      // An alternate breaks its rules only if called: its label says so, as
+      // its text does, so a screen reader never hears a real break.
+      label: marker.ifCalled
+          ? l10n.programsSlotRuleMarkerAlternateSemantic(
+              marker.rules.length,
+              marker.rules.join('; '),
+            )
+          : l10n.programsSlotRuleMarkerSemantic(
+              marker.rules.length,
+              marker.rules.join('; '),
+            ),
       child: ExcludeSemantics(
         child: Padding(
           padding: const EdgeInsets.only(top: AppSpacing.xxs),
