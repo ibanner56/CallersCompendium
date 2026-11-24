@@ -283,6 +283,41 @@ void main() {
       );
     });
 
+    testWidgets('the Add figures from text sheet (#2326) reads compound '
+        'shorthands, alone and as a ; clause, as the Move box does', (
+      tester,
+    ) async {
+      const lines = ['grl', 'neighbors swing; GRL', 'turn alone'];
+      var repos = await pump(tester, compounds: [shorthand()]);
+      await typeLine(tester, lines.first);
+      for (final line in lines.skip(1)) {
+        await tester.enterText(
+          find.byKey(const ValueKey('figure-free-text-field')),
+          line,
+        );
+        await tester.tap(find.byKey(const ValueKey('figure-free-text-submit')));
+        await tester.pumpAndSettle();
+      }
+      final typed = await saved(tester, repos);
+      expect(typed.where((f) => f.isCustom), isEmpty);
+      expect(typed.where((f) => f.move == 'pull_by'), hasLength(8));
+      await tester.pumpWidget(const SizedBox());
+
+      repos = await pump(tester, compounds: [shorthand()]);
+      await tester.tap(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-add-from-text')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-text-sheet-field')),
+        lines.join('\n'),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-text-sheet-add')));
+      await tester.pumpAndSettle();
+      expect(await saved(tester, repos), typed);
+    });
+
     testWidgets('typed into an existing row, one whose figure is gone is read '
         'as an ordinary line in that row\'s place (#1847)', (tester) async {
       final repos = await pump(

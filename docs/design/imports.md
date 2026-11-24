@@ -1791,6 +1791,19 @@ has to be judged in its own context.
   `custom` directly. It runs **after** dialect scrubbing (`scrubFigureText` →
   `canonicalizeText(…, Dialect.canonical)` + the `gypsy`→`shoulder round`
   safety net), so recognition sees canonical `role1`/`role2` tokens.
+- **In the dance editor**, `parseFreeTextFigureEntry`
+  (`imports/free_text_entry.dart`) wraps the same parser with counts, `;`
+  clauses and the user's shorthands. It reads one line typed into the Move
+  box with Free-text entry on, and each line of the **Add figures from text**
+  sheet (#2326), whether or not that setting is on. The sheet splits its text
+  with `splitFigureTextLines` (`imports/figure_text_lines.dart`), which refuses
+  text over `maxFigureTextLines` lines, `maxFigureTextLength` characters, or a
+  line over `maxFreeTextEntryLength` (which the parser would read as nothing),
+  skips a line that is only a phrase label, and, in a contra dance, drops a
+  leading `A1`…`C2` label with `splitPhraseLabel`, the splitter the Caller's
+  Companion text adapter reads its sections with. English and square dances
+  keep the label: the ECD bar reader drops one only in front of a bar range
+  (`A1 1-8 lead up`), and other labelled lines stay custom.
 - **Conservative, whole-line, single-move matching.** A line structures only
   when exactly one covered move plus its recognized modifiers (dancer set,
   direction, hand/shoulder, rotation/fraction, places) account for the *entire*

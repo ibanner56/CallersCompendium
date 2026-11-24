@@ -9820,6 +9820,109 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorAddSequence => 'Tilføj sekvens';
 
   @override
+  String get danceEditorAddFiguresFromText => 'Tilføj figurer fra tekst…';
+
+  @override
+  String get figureTextSheetTitle => 'Tilføj figurer fra tekst';
+
+  @override
+  String get figureTextSheetHelp =>
+      'Skriv eller indsæt én figur pr. linje, f.eks. \"(8) neighbor balance & swing\". Hver linje læses, som bevægelsesfeltet læser en skrevet linje med fri tekstindtastning slået til, også når den er slået fra. Intet gemmes, før du gemmer dansen.';
+
+  @override
+  String get figureTextSheetHelpDropsLabels =>
+      'Skriv eller indsæt én figur pr. linje, f.eks. \"A1 (8) neighbor balance & swing\". En frasebetegnelse som A1 i starten af en linje udelades, og hver linje læses, som bevægelsesfeltet læser en skrevet linje med fri tekstindtastning slået til, også når den er slået fra. Intet gemmes, før du gemmer dansen.';
+
+  @override
+  String get figureTextSheetFieldLabel => 'Figurer, én pr. linje';
+
+  @override
+  String figureTextSheetSummary(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString figurer at tilføje',
+      one: '1 figur at tilføje',
+      zero: 'Ingen figurer at tilføje endnu',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String figureTextSheetUnrecognizedSummary(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$countString linjer genkendes ikke. De tilføjes som ukendte figurer med deres tekst, så du kan rette dem.',
+      one:
+          '1 linje genkendes ikke. Den tilføjes som en ukendt figur med sin tekst, så du kan rette den.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String figureTextSheetLineFigures(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString figurer',
+      one: '1 figur',
+      zero: 'Ingen figur',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get figureTextSheetLineUnrecognized =>
+      'Ikke genkendt: tilføjes som en ukendt figur';
+
+  @override
+  String figureTextSheetTooLong(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'Det er mere end $maxString tegn, mere end der kan læses på én gang. Intet tilføjes. Tilføj det i dele.';
+  }
+
+  @override
+  String figureTextSheetTooManyLines(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'Det er mere end $maxString linjer, mere end der kan læses på én gang. Intet tilføjes. Tilføj det i dele.';
+  }
+
+  @override
+  String figureTextSheetLineTooLong(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'En linje er længere end $maxString tegn, mere end der kan læses som én figurlinje. Intet tilføjes. Del den op i flere linjer.';
+  }
+
+  @override
+  String get figureTextSheetAdd => 'Tilføj figurer';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList =>
       'Indsæt i slutningen af figurlisten';
 

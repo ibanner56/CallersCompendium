@@ -216,7 +216,7 @@ one, and **Esc** closes the menu and returns focus to the **⋮** button.
 
 **Add figure menu.** Open it with **Space** or **Enter** and focus lands on its
 first choice: **Enter** picks **Add figure**, and the arrow keys reach **Add
-meanwhile**, **Add modifier** and **Add sequence**.
+figures from text…**, **Add meanwhile**, **Add modifier** and **Add sequence**.
 
 **Drop-down fields.** Tab to a drop-down field (in an editor, a dialog, the
 **Collection**'s search or **Settings**) and press **Enter** to open its list, the **up** and
