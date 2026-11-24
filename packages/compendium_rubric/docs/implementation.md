@@ -376,12 +376,17 @@ routed through `_applyWithShadows` that each dancer dances, or by a diagonal
 carries a part's memory across its merge) are kept together by exactly one
 phase, which is then used (user-ruled 2026-11-23; `_identityPicksCurrent`).
 Whichever phase is danced, `resolveWhoPairs` pairs two dancers who remember
-each other first, unless that would leave more dancers unpaired than first
-match (the user's 2026-11-23 identity ruling, applied as the agent's call of
-2026-11-24); the agent's calls around it are listed in
+each other first (the user's 2026-11-23 identity ruling, applied as the
+agent's call of 2026-11-24). A figure that asks for shadow pairs which that
+would leave stranded is refused: `resolveWhoPairs` reports the band to the
+`watchShadowStrands` zone that `_tryGuardingShadowMemory` runs the figure in,
+on the shadows path and on the distance path alike (user-ruled 2026-11-24
+for a pair beside each other with partners across; the general test,
+`shadowMemoryStrandsDancers`, is the agent's call); the agent's calls around
+it are listed in
 `docs/taxonomy.md`, "Shadows". A figure
 that also names a distance set is danced in the phase the distance picks, and
-the shadows phase rule is not applied, though remembered pairs still pair first (the agent's call, following the
+the shadows phase rule is not applied, though remembered pairs still pair first and a stranding pairing is still refused (the agent's call, following the
 user's ruling that nothing ties the two sets together). Only `dancerSets` choose the phase, so the
 parser defers `shadows` in slots that cannot choose it: `hey.pass2`/
 `meetTarget` and `form_long_waves.who`/`whom` (outside it) and
@@ -908,7 +913,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,555 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,561 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

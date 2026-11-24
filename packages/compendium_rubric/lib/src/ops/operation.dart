@@ -222,6 +222,17 @@ sealed class Operation {
   Result<Formation, OpError> apply(
     Formation formation, {
     int progressions = 0,
+  }) =>
+      // A figure applied inside another's transform answers only for itself:
+      // the shadow pairings it probes are not the enclosing figure's
+      // ([watchShadowStrands]).
+      unwatchedShadowStrands(
+        () => _apply(formation, progressions: progressions),
+      );
+
+  Result<Formation, OpError> _apply(
+    Formation formation, {
+    required int progressions,
   }) {
     final settled = preservesWaveOffsets
         ? formation
@@ -323,28 +334,21 @@ sealed class Operation {
     int progressions,
   ) {
     final distance = who.distance! - progressions;
-    if (distance == 0) {
-      final failure = checkPreconditions(formation);
-      if (failure != null) return Err<Formation, OpError>(failure);
-      return perform(formation);
-    }
-
     final stepsOut = distance.isOdd;
     final shifted = stepsOut ? toggleBandPhase(formation) : formation;
 
-    final unreachable = crossHandsFourRefusal(
-      formation,
-      shifted,
-      who,
-      name,
-      distance: distance,
-    );
-    if (unreachable != null) return Err<Formation, OpError>(unreachable);
+    if (distance != 0) {
+      final unreachable = crossHandsFourRefusal(
+        formation,
+        shifted,
+        who,
+        name,
+        distance: distance,
+      );
+      if (unreachable != null) return Err<Formation, OpError>(unreachable);
+    }
 
-    final failure = checkPreconditions(shifted);
-    if (failure != null) return Err<Formation, OpError>(failure);
-
-    return perform(
+    return _tryGuardingShadowMemory(
       shifted,
     ).map((next) => stepsOut ? toggleBandPhase(next) : next);
   }
@@ -401,10 +405,10 @@ sealed class Operation {
     Formation phase, {
     required bool handBack,
   }) {
-    final failure = checkPreconditions(phase);
-    if (failure != null) return Err<Formation, OpError>(failure);
     final pairs = _shadowPairsDanced(phase);
-    final danced = perform(phase).map((next) => _remember(next, pairs));
+    final danced = _tryGuardingShadowMemory(
+      phase,
+    ).map((next) => _remember(next, pairs));
     return handBack ? danced.map(toggleBandPhase) : danced;
   }
 
@@ -442,6 +446,43 @@ sealed class Operation {
       together++;
     }
     return together > 0;
+  }
+
+  /// Checks and dances this figure in [phase], refusing it when any shadows
+  /// pairing it asks for leaves dancers stranded by the remembered pairs
+  /// ([watchShadowStrands], [shadowMemoryStrandsDancers]).
+  ///
+  /// *(User-ruled 2026-11-24, for a remembered pair beside each other at an
+  /// end with partners across: refuse, rather than break the pair or leave the
+  /// couple idle.)* The agent's calls: it is checked only where a remembered
+  /// pair stands beside each other ([shadowMemoryStrandsDancers]), and only
+  /// for figures that ask for shadow pairs, so `swing` and `promenade`, which
+  /// pair by side column, and figures that only read positions are not
+  /// refused by it. The stranding refusal is reported ahead of the figure's
+  /// own refusal, since a figure's count check would otherwise report it as a
+  /// shortfall, but never ahead of a deferral (`unsupportedParam`).
+  Result<Formation, OpError> _tryGuardingShadowMemory(Formation phase) {
+    ({int topRow, int bottomRow})? stranded;
+    final result = watchShadowStrands(
+      () => _tryIn(phase),
+      (topRow, bottomRow) =>
+          stranded ??= (topRow: topRow, bottomRow: bottomRow),
+    );
+    final band = stranded;
+    if (band == null) return result;
+    // A deferral stays a deferral: the stranding refusal replaces a success or
+    // the figure's own refusal, never an unsupported parameter.
+    if (result case Err(error: OpError(kind: ErrorKind.unsupportedParam))) {
+      return result;
+    }
+    return Err<Formation, OpError>(
+      OpError(
+        ErrorKind.unresolvableDancerSet,
+        '$name names shadows, but in the hands four at rows '
+        '${band.topRow}-${band.bottomRow} keeping the shadows the dance '
+        'remembers together would leave dancers with no one to dance with',
+      ),
+    );
   }
 
   /// The shadow pairs this figure dances in [formation]'s hands fours, which

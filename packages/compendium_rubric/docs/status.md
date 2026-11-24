@@ -161,12 +161,23 @@
 > Tulsa (4959) now compiles; nothing else changed outcome. Heather's Hop
 > Redux and its alternate still mismatch, at their final half figure eight.
 >
+> **Refused when keeping remembered shadows would strand a couple
+> (2026-11-24)**: where a remembered shadow pair stand beside each other and
+> keeping them would leave dancers in the hands four unpaired who could all
+> have been paired, a figure that asks for shadow pairs is now refused instead
+> of falling back to first match (user-ruled 2026-11-24, for that pair with
+> partners across; testing against the largest pairing, and leaving a pair
+> across the set to pair as before, are the agent's calls). Against `rubric`
+> at `253f56db`: 4,240 of 5,425 compiled in scope (78.2%) before and after,
+> the core set unchanged at 547, and no dance changes outcome: no corpus dance
+> reaches the case ruled on.
+>
 > **Shadows who remember each other dance together (2026-11-24)**: within a
 > hands four, a figure naming shadows pairs two dancers who remember each
 > other as shadows first, then the rest as before (the user's 2026-11-23
 > ruling that your shadow is the same dancer all dance; pairing only a mutual
-> memory, and only when it leaves nobody more unpaired than first match would,
-> are the agent's calls). At an end with nobody out the shadow wraps to
+> memory is the agent's call; where the remembered pairs strand dancers it
+> falls back to first match, except in the case refused in the entry above). At an end with nobody out the shadow wraps to
 > the neighbour, and the first match had been taking one of a remembered
 > pair. Against `rubric` at `9680f588`: 4,228 of 5,425 to 4,240 of 5,425
 > compiled in scope (78.2%), the core set 544 to 547, no previously compiling
