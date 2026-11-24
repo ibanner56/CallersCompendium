@@ -531,6 +531,70 @@ void main() {
       expect(run.assumedProgressionAt, isNull, reason: 'the source said');
     });
 
+    group('an open chain', () {
+      // Hudson's report note on Every Second Counts (10417, 2026-11-24): the
+      // courtesy allemande Caller's Box writes "3/4" is a full allemande.
+      // Reading every open chain that way is the agent's call.
+      core.Figure allemande(String who, num travel, {String hand = 'left'}) =>
+          core_test.testFigure(
+            move: 'allemande',
+            params: {'who': who, 'hand': hand, 'travel': travel, 'beats': 4},
+          );
+      core.Dance withChain(String? title, List<core.Figure> children) {
+        final now = DateTime.utc(2020);
+        return core.Dance(
+          id: 'open-chain',
+          title: 'open chain',
+          formation: const core.Formation(core.FormationShape.dupleImproper),
+          figures: [
+            core.Figure.sequence(figures: children, beats: 8, title: title),
+          ],
+          createdAt: now,
+          updatedAt: now,
+        );
+      }
+
+      List<Object?> travels(core.Dance dance) => [
+        for (final f in dancedFigures(dance)!) f.params['travel'],
+      ];
+
+      test('closes with a full allemande', () {
+        for (final who in ['role1s', 'role2s']) {
+          final dance = withChain('Open $who chain to neighbor', [
+            allemande(who, 0.5, hand: 'right'),
+            allemande('neighbors', 0.75),
+          ]);
+          expect(travels(dance), [0.5, 1.0], reason: who);
+        }
+      });
+
+      test('is danced as written without a chain title', () {
+        final dance = withChain('Allemandes', [
+          allemande('role2s', 0.5, hand: 'right'),
+          allemande('neighbors', 0.75),
+        ]);
+        expect(travels(dance), [0.5, 0.75]);
+      });
+
+      test('is danced as written when the turns differ', () {
+        for (final children in [
+          [allemande('neighbors', 0.5), allemande('neighbors', 0.75)],
+          [allemande('role2s', 0.75), allemande('neighbors', 0.75)],
+          [allemande('role2s', 0.5), allemande('neighbors', 0.5)],
+          [
+            allemande('role2s', 0.5),
+            allemande('neighbors', 0.75),
+            allemande('partners', 0.75),
+          ],
+        ]) {
+          final dance = withChain('Open role2s chain to neighbor', children);
+          expect(travels(dance), [
+            for (final c in children) c.params['travel'],
+          ], reason: '$children');
+        }
+      });
+    });
+
     test('a sequence inside another container is left inside it', () {
       // Only a top-level sequence is spliced; a meanwhile stays a meanwhile,
       // whatever it holds, and the parser builds it as one.

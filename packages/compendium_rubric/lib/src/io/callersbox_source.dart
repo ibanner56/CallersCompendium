@@ -1090,18 +1090,51 @@ Iterable<String> _movesIn(core.Figure figure) => [
 /// is the same reading [assumedProgressionIndex] gives a dance whose final
 /// figure is the progression. *(Agent's call, not yet ruled; the alternative
 /// was refusing a flagged sequence, which no Caller's Box record can carry.)*
+///
+/// An open chain's closing allemande is danced as a full turn: see
+/// [_openChainChildren].
 List<core.Figure>? dancedFigures(core.Dance dance) {
   final figures = decodedFigures(dance);
   if (figures == null) return null;
   return [
     for (final figure in figures)
       if (figure.isSequence && figure.subFigures.isNotEmpty)
-        for (var i = 0; i < figure.subFigures.length; i++)
+        for (final (i, child) in _openChainChildren(figure).indexed)
           figure.progression && i == figure.subFigures.length - 1
-              ? figure.subFigures[i].copyWith(progression: true)
-              : figure.subFigures[i]
+              ? child.copyWith(progression: true)
+              : child
       else
         figure,
+  ];
+}
+
+/// [sequence]'s children, with an open chain's closing allemande turned
+/// once around in full.
+///
+/// Caller's Box writes an open chain as a titled line ("Open ladies chain to
+/// neighbor:") over two allemandes, the chainers' half and then the courtesy
+/// allemande "3/4". Hudson's report note on Every Second Counts (10417,
+/// 2026-11-24) says that last allemande should be a full allemande, and that
+/// the source uses quarter allemandes inconsistently. Reading every such
+/// sequence that way is the agent's call. It applies only to a sequence whose
+/// title names a chain and whose two children are a `role1s` or `role2s`
+/// allemande of `0.5` and then an allemande of `0.75`; anything else is
+/// danced as written.
+List<core.Figure> _openChainChildren(core.Figure sequence) {
+  final children = sequence.subFigures;
+  final title = sequence.containerTitle?.toLowerCase() ?? '';
+  if (!title.contains('chain') || children.length != 2) return children;
+  final [chainers, courtesy] = children;
+  final isOpenChain =
+      chainers.move == 'allemande' &&
+      const {'role1s', 'role2s'}.contains(chainers.params['who']) &&
+      chainers.params['travel'] == 0.5 &&
+      courtesy.move == 'allemande' &&
+      courtesy.params['travel'] == 0.75;
+  if (!isOpenChain) return children;
+  return [
+    chainers,
+    courtesy.copyWith(params: {...courtesy.params, 'travel': 1.0}),
   ];
 }
 
