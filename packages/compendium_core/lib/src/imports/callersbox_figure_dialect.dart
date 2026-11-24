@@ -44,9 +44,14 @@ import 'while_container.dart';
 /// through every other entry. The next twenty-four entries (through
 /// `_singleFileCircleRecognizer`) all anchor on a move keyword (or, for
 /// `_tcbNumberedRolePair` and `_asCouplesDoSiDo`, a fixed prefix in front of
-/// one), and all require a successful resolution to their own move, so in
-/// most cases order is not correctness-critical.  Four overlapping anchor
-/// groups each resolve safely:
+/// one), and all but one require a successful resolution to their own move,
+/// so in most cases order is not correctness-critical. The exception is
+/// `_tcbNumberedRolePair`, which returns whatever its re-read of the rest of
+/// the line finds; it claims only lines that open `N0`–`N4 role1s|role2s`,
+/// which no other entry anchors on. `_eighthHey` and `_hey` share the `hey`
+/// anchor: `_eighthHey` is listed first and claims only a `1/8` hey, which
+/// `_hey` declines. Four further overlapping anchor groups each resolve
+/// safely:
 ///
 /// 1. `_balanceHandAnnotation` and `_balancePairHandAnnotation` share the
 ///    `\bbalance\b` anchor but match mutually exclusive annotation shapes:
@@ -1268,9 +1273,12 @@ FigureMatch? _tcbCast(String scrubbed) {
 /// or shared recognizer reads stays custom.
 ///
 /// A remainder with its own `(…)` annotation also stays custom (`N3 Men
-/// balance (RH)`, `N2 Women allemande right (1 or 2)`): the readers of those
-/// annotations do not all keep a square bracket beside them, so the number
-/// could be dropped, and some drop the annotation itself. And the result must
+/// balance (RH)`): the readers of those annotations do not all keep a square
+/// bracket beside them, so the number could be dropped, and some drop the
+/// annotation itself. An amount choice is the exception: `N2 Women allemande
+/// right (1 or 2)` reaches this entry with the choice already written into the
+/// line by `_amountAlternativeAnnotation`, which adds the choice to the note
+/// this entry returns. And the result must
 /// still carry the number as its note, or the line stays custom rather than
 /// losing it. *(Which numbers, and declining annotated remainders: agent's
 /// call.)*
@@ -1283,16 +1291,7 @@ FigureMatch? _tcbNumberedRolePair(String scrubbed) {
   final numbered = resolveDancerSetPhrase(number);
   if (numbered == null) return null;
   final text = '${m[2]} ${m[3]!.trim()} [with $number]';
-  FigureMatch? inner;
-  for (final pre in tcbFigureFrontEnd.preRecognizers) {
-    if (identical(pre, _tcbNumberedRolePair)) continue;
-    inner = pre(text);
-    if (inner != null) break;
-  }
-  inner ??= recognizeSharedFigureLine(
-    text,
-    recognitionNormalize: _tcbRecognitionNormalize,
-  );
+  final inner = _tcbReadWithout(text, _tcbNumberedRolePair);
   if (inner == null || inner.forceCustom) return inner;
   // The number must survive as the note, canonical (`with nextNeighbors`) or
   // as written (`with N2`, which some readers keep verbatim).
@@ -1312,21 +1311,6 @@ final RegExp _numberedRolePairRe = RegExp(
 );
 
 // --- `Hey 1/8 (WR)`, `As couples, … do si do`, `… Jersey twirl` -------------
-
-/// Reads [text] through every other pre-recognizer here, then the shared
-/// recognizer, as [_tcbNumberedRolePair] does. [skip] is the caller, so a
-/// rewrite never re-enters itself.
-FigureMatch? _rereadTcbLine(String text, FigureMatch? Function(String) skip) {
-  for (final pre in tcbFigureFrontEnd.preRecognizers) {
-    if (identical(pre, skip)) continue;
-    final inner = pre(text);
-    if (inner != null) return inner;
-  }
-  return recognizeSharedFigureLine(
-    text,
-    recognitionNormalize: _tcbRecognitionNormalize,
-  );
-}
 
 /// [match] with [note] placed before any note it already carries.
 FigureMatch _withLeadingNote(FigureMatch match, String note) => FigureMatch(
@@ -1372,7 +1356,7 @@ final RegExp _eighthHeyRe = RegExp(
 FigureMatch? _asCouplesDoSiDo(String scrubbed) {
   final m = _asCouplesRe.firstMatch(scrubbed.trim());
   if (m == null) return null;
-  final inner = _rereadTcbLine(m[1]!, _asCouplesDoSiDo);
+  final inner = _tcbReadWithout(m[1]!, _asCouplesDoSiDo);
   if (inner == null || inner.forceCustom || inner.moveId != 'do_si_do') {
     return null;
   }
@@ -1392,7 +1376,7 @@ final RegExp _asCouplesRe = RegExp(
 FigureMatch? _jerseyTwirl(String scrubbed) {
   final m = _jerseyTwirlRe.firstMatch(scrubbed.trim());
   if (m == null) return null;
-  final inner = _rereadTcbLine(
+  final inner = _tcbReadWithout(
     '${m[1]} california twirl${m[2] ?? ""}',
     _jerseyTwirl,
   );
@@ -4582,10 +4566,9 @@ FigureMatch? _hey(String scrubbed) {
 
 /// The note a hey carries when its pass list marks the last pass partial
 /// (`Hey 1/2 (ML;PR;WL;N0R~)`), Caller's Box's `~` ("partial hey pass").
-/// Kept as prose because no hey param represents it; the Rubric compiler reads
-/// it as a hint for where the progression falls *(user-ruled 2026-11-24: a
-/// `~` on a hey pass marks that last pass as the progression; keeping it as
-/// this note is the agent's call)*.
+/// Kept as prose because no hey param represents it, so the mark is not lost
+/// on import *(user-ruled 2026-11-24: a `~` on a hey pass marks that last pass
+/// as the progression; keeping it as this note is the agent's call)*.
 const String _partialLastPassNote = 'last pass partial';
 
 /// The hey's whole line before one clause-final square bracket (group 1) and

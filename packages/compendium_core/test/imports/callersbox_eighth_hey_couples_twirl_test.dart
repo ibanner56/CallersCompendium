@@ -64,6 +64,15 @@ void main() {
       expect(f.note, 'as couples');
     });
 
+    test('an amount choice keeps both notes', () {
+      // `_amountAlternativeAnnotation` writes the first amount into the line
+      // and re-reads it through this entry.
+      final f = _parse('As couples, neighbor do si do (1 or 2)');
+      expect(f.move, 'do_si_do');
+      expect(f.params['travel'], 1.0);
+      expect(f.note, 'as couples; 1 or 2');
+    });
+
     test('a move other than a do si do stays custom', () {
       expect(_parse('As couples, partner swing').isCustom, isTrue);
       expect(_parse('As couples, go forward and back').isCustom, isTrue);

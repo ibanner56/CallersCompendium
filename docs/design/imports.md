@@ -2900,9 +2900,10 @@ this way. The pass runs over the whole dance, after the per-phrase merge, so
 the figure before a phrase's first line is the previous phrase's last. The line
 stays custom straight after a `form_a_long_wave` (Fold 4 refused it there: the
 role differs from the wave's, or the wave was already balanced) and after a
-wave-forming line the importer could not structure. Nothing checks that a wave
-is standing; a balance is a no-op in Rubric, so a line that comes before its
-wave compiles the same *(2026-11-24, Hudson: "try it and see"; the reading is
+wave-forming line the importer could not structure, or after the side-of-set
+long waves (`form_long_waves` from a bare `form long wave`), which a balance in
+a centre wave contradicts. Nothing checks that a wave is standing: a balance
+moves nobody, so the reading asserts no formation *(2026-11-24, Hudson: "try it and see"; the reading is
 the agent's call)*.
 
 **Two-line give and take.** `<role> go forward` followed by `<role> bring back

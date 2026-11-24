@@ -1968,8 +1968,10 @@ class CallersBoxAdapter implements SourceAdapter {
   /// It runs over the whole dance, after the per-phrase merge, so the figure
   /// before a phrase's first line is the previous phrase's last. The line
   /// stays custom straight after a `form_a_long_wave` (Fold 4 refused it there:
-  /// the role differs from the wave's, or the wave was already balanced) and
-  /// after a wave-forming line the importer could not structure.
+  /// the role differs from the wave's, or the wave was already balanced),
+  /// after a wave-forming line the importer could not structure, and after the
+  /// side-of-set long waves a bare `form long wave` makes ([_isTcbLongWave]),
+  /// which a balance in a centre wave contradicts.
   static List<Figure> _promoteRoleCentreWaveBalances(List<Figure> figures) {
     final out = <Figure>[];
     for (final f in figures) {
@@ -1982,7 +1984,9 @@ class CallersBoxAdapter implements SourceAdapter {
   static Figure? _roleBalanceInCentreWave(Figure f, Figure? previous) {
     if (!f.isCustom ||
         previous?.move == 'form_a_long_wave' ||
-        (previous != null && _isUnstructuredWaveFormingLine(previous))) {
+        (previous != null &&
+            (_isTcbLongWave(previous) ||
+                _isUnstructuredWaveFormingLine(previous)))) {
       return null;
     }
     final m = _roleBalanceInCentreWaveRe.firstMatch(_customText(f));

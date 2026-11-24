@@ -561,8 +561,8 @@ void main() {
       );
       expect(f!.move, 'hey');
       // The `;` stays inside the pass list; the only note is the trailing
-      // `~`'s (Caller's Box "partial hey pass"), kept for Rubric's progression
-      // placement (agent's call 2026-11-24).
+      // `~`'s (Caller's Box "partial hey pass"), kept so the mark is not lost
+      // on import (agent's call 2026-11-24).
       expect(f.note, 'last pass partial');
     });
 
