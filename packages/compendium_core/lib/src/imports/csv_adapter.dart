@@ -62,34 +62,56 @@ class CsvColumnMapping {
     : phrase = null,
       customFieldId = null,
       newFieldLabel = null,
-      newFieldType = null;
+      newFieldType = null,
+      labelled = false;
+
+  /// Calling notes that keep the column's header in front of each value
+  /// (`Music: Reel`), so a value from a text file's label that no field takes
+  /// still says what it was (#2330).
+  const CsvColumnMapping._labelledNotes()
+    : target = CsvColumnTarget.callingNotes,
+      phrase = null,
+      customFieldId = null,
+      newFieldLabel = null,
+      newFieldType = null,
+      labelled = true;
 
   const CsvColumnMapping.phrase(String this.phrase)
     : target = CsvColumnTarget.figurePhrase,
       customFieldId = null,
       newFieldLabel = null,
-      newFieldType = null;
+      newFieldType = null,
+      labelled = false;
 
   const CsvColumnMapping.customField(String this.customFieldId)
     : target = CsvColumnTarget.customField,
       phrase = null,
       newFieldLabel = null,
-      newFieldType = null;
+      newFieldType = null,
+      labelled = false;
 
   const CsvColumnMapping.newCustomField(
     String this.newFieldLabel,
     CustomFieldType this.newFieldType,
   ) : target = CsvColumnTarget.newCustomField,
       phrase = null,
-      customFieldId = null;
+      customFieldId = null,
+      labelled = false;
 
   static const ignore = CsvColumnMapping(CsvColumnTarget.ignore);
+
+  /// See [CsvColumnMapping._labelledNotes].
+  static const labelledNotes = CsvColumnMapping._labelledNotes();
 
   final CsvColumnTarget target;
   final String? phrase;
   final String? customFieldId;
   final String? newFieldLabel;
   final CustomFieldType? newFieldType;
+
+  /// For [CsvColumnTarget.callingNotes]: each value is kept as
+  /// `Header: value`.
+  final bool labelled;
 
   @override
   bool operator ==(Object other) =>
@@ -98,11 +120,18 @@ class CsvColumnMapping {
       other.phrase == phrase &&
       other.customFieldId == customFieldId &&
       other.newFieldLabel == newFieldLabel &&
-      other.newFieldType == newFieldType;
+      other.newFieldType == newFieldType &&
+      other.labelled == labelled;
 
   @override
-  int get hashCode =>
-      Object.hash(target, phrase, customFieldId, newFieldLabel, newFieldType);
+  int get hashCode => Object.hash(
+    target,
+    phrase,
+    customFieldId,
+    newFieldLabel,
+    newFieldType,
+    labelled,
+  );
 }
 
 /// The words a cell may use for each closed field, folded by [csvFold]: the
@@ -493,7 +522,7 @@ StructuredDraft csvRowToDraft(
       case CsvColumnTarget.hook:
         hook = value;
       case CsvColumnTarget.callingNotes:
-        notes.add(value);
+        notes.add(column.labelled ? '${columnName(i)}: $value' : value);
       case CsvColumnTarget.walkthrough:
         walkthrough = value;
       case CsvColumnTarget.figures:

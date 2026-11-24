@@ -13482,6 +13482,50 @@
   "@importCsvPickFile": {
     "x-sourceSha256": "3bb43e45815cd926a5fdc5fc234a382e7ca35f88ece0d4f9d4ea4abf1a867690"
   },
+  "importSourceLabelTextDocument": "Din egen tekst- eller Markdown-fil",
+  "@importSourceLabelTextDocument": {
+    "x-sourceSha256": "b82e1c3bc4a3756645ff8d0db9a4fc78dc203aee7daa42b21ef3de1476a7a06a"
+  },
+  "importTextHint": "Vælg en .txt- eller .md-fil. Start hver dans med en overskrift (## Title) eller med dens titel efter en tom linje. Skriv detaljer på \"Label: value\"-linjer (Formation: Improper) og én figur pr. linje (A1 (8) Neighbor swing).",
+  "@importTextHint": {
+    "x-sourceSha256": "d179b5ab74145d2de4bfe01f731e2c4e284b6a18d318ca80c1b34b338f68740a"
+  },
+  "importTextPickFile": "Vælg en tekst- eller Markdown-fil…",
+  "@importTextPickFile": {
+    "x-sourceSha256": "fa98f057a4a28239990f650477688807696b4c1c021cdb024fb87bfb209377cd"
+  },
+  "importTextMapTitle": "Tilknyt betegnelser",
+  "@importTextMapTitle": {
+    "x-sourceSha256": "51d6189c02562c2748d7e81b93a37a6c83fc22cd6b38375a3074171e93c79acd"
+  },
+  "importTextMapIntro": "Vælg, hvad hver betegnelse i din fil indeholder. En betegnelse, som intet felt tager, beholdes i kaldsnoterne med sit navn; vælg Ignorer for at udelade den. Intet tilføjes, før du gennemser og bekræfter.",
+  "@importTextMapIntro": {
+    "x-sourceSha256": "c164ccec57083360c7aeee87a0ad5beaeae0dc2c31076d3609876c69f715f269"
+  },
+  "importTextTargetLabelledNotes": "Kaldsnotes, med betegnelsen",
+  "@importTextTargetLabelledNotes": {
+    "x-sourceSha256": "81e01305126cd88776779264c7195ec7477be4a8b5e43192e472e9f68ae75f73"
+  },
+  "importTextNotUtf8": "Denne fil er ikke gemt som UTF-8-tekst, så bogstaver med accent ville komme forkert ind. Gem den igen som UTF-8-tekst, og vælg den fil.",
+  "@importTextNotUtf8": {
+    "x-sourceSha256": "db5198188221007b4dd964bf20367e624a06d33b5901c420135bc60edb6b1fde"
+  },
+  "importTextTooManyDances": "Denne fil har mere end {limit} danse. Del den op i mindre filer.",
+  "@importTextTooManyDances": {
+    "x-sourceSha256": "b1f27144df9b89a96fc21d765465283b574c5162a69bea582ec4878d2bd9b0cc"
+  },
+  "importTextLineTooLong": "En linje i denne fil er længere end {limit} tegn.",
+  "@importTextLineTooLong": {
+    "x-sourceSha256": "5a8f42c559af2e534c3603d62c1ff89541ceb05a12ee0f2a6cf13559c0648b52"
+  },
+  "importTextDanceTooLong": "En dans i denne fil har mere end {limit} tegn i figurer, noter eller én detalje.",
+  "@importTextDanceTooLong": {
+    "x-sourceSha256": "d53da53bd9602901b5a458298be0f37213340029771e23743d58a95a6097b56a"
+  },
+  "importTextTooManyLabels": "Denne fil bruger mere end {limit} forskellige betegnelser.",
+  "@importTextTooManyLabels": {
+    "x-sourceSha256": "2fbfd9e7107e7372dd8d6be7d8607d4deb6596588fcdfcd195b2f9e00be4c5af"
+  },
   "importCsvSaveAsHint": "Vælg i dit regnearksprogram Filer ▸ Gem som (eller Download) og »CSV UTF-8«, og vælg så den fil her.",
   "@importCsvSaveAsHint": {
     "x-sourceSha256": "3aa1ebd55b632f5a421fc0ed140c9486b22de931f544872cddeca51e7b3ca625"

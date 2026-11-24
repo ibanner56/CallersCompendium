@@ -20465,6 +20465,72 @@ abstract class AppLocalizations {
   /// **'Choose a CSV file…'**
   String get importCsvPickFile;
 
+  /// Import source label for a plain-text (.txt) or Markdown (.md) file of dances the caller wrote themselves.
+  ///
+  /// In en, this message translates to:
+  /// **'Your own text or Markdown file'**
+  String get importSourceLabelTextDocument;
+
+  /// Hint on the import screen when the text or Markdown file source is selected. Keep the examples (## Title, Formation: Improper, A1 (8) Neighbor swing) as written, in English.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a .txt or .md file. Start each dance with a heading (## Title), or with its title after a blank line. Put details on \"Label: value\" lines (Formation: Improper) and one figure per line (A1 (8) Neighbor swing).'**
+  String get importTextHint;
+
+  /// Button on the import screen that opens the file picker for a .txt or .md file of dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a text or Markdown file…'**
+  String get importTextPickFile;
+
+  /// Heading of the step where the caller chooses which dance field each label of their text file goes to (for example "Formation:" goes to Formation).
+  ///
+  /// In en, this message translates to:
+  /// **'Map labels'**
+  String get importTextMapTitle;
+
+  /// Introduction to the Map labels step of a text or Markdown file import.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what each label in your file holds. A label no field takes is kept in the calling notes with its name; choose Ignore to leave it out. Nothing is added until you review and confirm.'**
+  String get importTextMapIntro;
+
+  /// Choice in the Map labels step: keep each value of this label in the dance's calling notes, written as "Label: value".
+  ///
+  /// In en, this message translates to:
+  /// **'Calling notes, with the label'**
+  String get importTextTargetLabelledNotes;
+
+  /// Error when a picked .txt or .md file is not valid UTF-8.
+  ///
+  /// In en, this message translates to:
+  /// **'This file isn\'t saved as UTF-8 text, so accented letters would come in wrong. Save it again as UTF-8 text and choose that file.'**
+  String get importTextNotUtf8;
+
+  /// Error when a picked text or Markdown file holds more dances than can be imported at once.
+  ///
+  /// In en, this message translates to:
+  /// **'This file has more than {limit} dances. Split it into smaller files.'**
+  String importTextTooManyDances(int limit);
+
+  /// Error when a picked text or Markdown file has a line over the length limit.
+  ///
+  /// In en, this message translates to:
+  /// **'A line in this file is longer than {limit} characters.'**
+  String importTextLineTooLong(int limit);
+
+  /// Error when one dance's figures, notes or one label's values in a picked text or Markdown file come to more than the limit.
+  ///
+  /// In en, this message translates to:
+  /// **'A dance in this file has more than {limit} characters of figures, notes or one detail.'**
+  String importTextDanceTooLong(int limit);
+
+  /// Error when a picked text or Markdown file uses more different "Label:" names than the import can map.
+  ///
+  /// In en, this message translates to:
+  /// **'This file uses more than {limit} different labels.'**
+  String importTextTooManyLabels(int limit);
+
   /// Help text under the CSV import source explaining how to get a CSV file out of a spreadsheet program.
   ///
   /// In en, this message translates to:

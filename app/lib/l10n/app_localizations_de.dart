@@ -14154,6 +14154,68 @@ class AppLocalizationsDe extends AppLocalizations {
   String get importCsvPickFile => 'CSV-Datei wählen …';
 
   @override
+  String get importSourceLabelTextDocument =>
+      'Ihre eigene Text- oder Markdown-Datei';
+
+  @override
+  String get importTextHint =>
+      'Wählen Sie eine .txt- oder .md-Datei. Beginnen Sie jeden Tanz mit einer Überschrift (## Title) oder mit seinem Titel nach einer Leerzeile. Schreiben Sie Angaben in „Label: value“-Zeilen (Formation: Improper) und eine Figur pro Zeile (A1 (8) Neighbor swing).';
+
+  @override
+  String get importTextPickFile => 'Text- oder Markdown-Datei wählen…';
+
+  @override
+  String get importTextMapTitle => 'Bezeichnungen zuordnen';
+
+  @override
+  String get importTextMapIntro =>
+      'Wählen Sie, was jede Bezeichnung in Ihrer Datei enthält. Eine Bezeichnung, die kein Feld übernimmt, bleibt mit ihrem Namen in den Calling-Notizen; wählen Sie Ignorieren, um sie wegzulassen. Nichts wird hinzugefügt, bevor Sie prüfen und bestätigen.';
+
+  @override
+  String get importTextTargetLabelledNotes =>
+      'Calling-Notizen, mit der Bezeichnung';
+
+  @override
+  String get importTextNotUtf8 =>
+      'Diese Datei ist nicht als UTF-8-Text gespeichert, daher würden Umlaute und Akzente falsch ankommen. Speichern Sie sie erneut als UTF-8-Text und wählen Sie diese Datei.';
+
+  @override
+  String importTextTooManyDances(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Diese Datei enthält mehr als $limitString Tänze. Teilen Sie sie in kleinere Dateien auf.';
+  }
+
+  @override
+  String importTextLineTooLong(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Eine Zeile in dieser Datei ist länger als $limitString Zeichen.';
+  }
+
+  @override
+  String importTextDanceTooLong(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Ein Tanz in dieser Datei hat mehr als $limitString Zeichen an Figuren, Notizen oder einer Angabe.';
+  }
+
+  @override
+  String importTextTooManyLabels(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Diese Datei verwendet mehr als $limitString verschiedene Bezeichnungen.';
+  }
+
+  @override
   String get importCsvSaveAsHint =>
       'Wähle in deinem Tabellenprogramm Datei ▸ Speichern unter (oder Herunterladen) und „CSV UTF-8“, und wähle dann diese Datei hier.';
 

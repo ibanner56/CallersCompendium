@@ -20,6 +20,7 @@
   - [Signed published collections (#862)](#signed-published-collections-862) — 22 lines
   - [5. A list of titles (#823)](#5-a-list-of-titles-823) — 72 lines
   - [6. A spreadsheet (CSV) (#2329)](#6-a-spreadsheet-csv-2329) — 71 lines
+  - [7. A text or Markdown file (#2330)](#7-a-text-or-markdown-file-2330) — 53 lines
   - [Simultaneous-action fan-out (`meanwhile`) (#591/#572)](#simultaneous-action-fan-out-meanwhile-591572) — 59 lines
   - [Shared free-text figure parser (cross-cutting)](#shared-free-text-figure-parser-cross-cutting) — 299 lines
   - [Balance-a-wave lines (CallersBox, #295 / taxonomy v21)](#balance-a-wave-lines-callersbox-295--taxonomy-v21) — 86 lines
@@ -1592,6 +1593,59 @@ columns (`kMaxCsvImportColumns`, 200) and cell length
 failure is a typed `CsvReadException` with its own localized message. More than
 500 rows (the shared-bundle soft cap) is allowed with a warning. The separator
 (`,`, `;` or tab) is detected from the header line and can be changed.
+
+### 7. A text or Markdown file (#2330)
+
+The caller's own notes as a `.txt` or `.md` file, read into the spreadsheet
+import's columns so the #2329 map-columns step, plan, review and commit apply
+unchanged (Claude's design call on #2330; the alternative, a separate adapter
+with its own field mapping, would have duplicated the value vocabulary, the
+custom-field commit and the no-provenance rule).
+
+| piece | where |
+|---|---|
+| reader: splitting, labels, figure lines; the file as CSV | `packages/compendium_core/lib/src/imports/text_document_adapter.dart` |
+| `Label: value` and `by Name` lines, shared with the Caller's Companion text adapter | `packages/compendium_core/lib/src/imports/label_lines.dart` |
+| source, picker, map-labels wiring | `app/lib/src/data/import_io.dart`, `app/lib/src/screens/import_review_screen.dart`, `app/lib/src/screens/import_csv_mapping.dart` |
+
+`readTextDocument` splits the text into `TextDocumentDance`s: at each `#`/`##`
+heading when the file has a `##` heading or more than one `#` heading,
+otherwise at the first line, a lone `#` heading, and each line after a blank
+line that is neither a detail of the dance before nor starts like a figure (a
+bare leading number does not, so `12 Days of Christmas` is a title). A `#`
+block with no figure is the file's title or a section heading and is dropped,
+except in a file whose dances are all `#` headings; text before the first dance
+becomes its own dance only when it holds a label or a figure, else it goes into
+the first dance's notes. A label line is `splitLabelLine` with up to
+`kMaxTextDocumentLabelWords` (3) words and 30 characters (a sentence in a
+language without spaces is not a label), a value not starting `//`, Markdown
+emphasis around the label removed and a full-width `：` read as `:`. A `by Name`
+line counts only before the dance's figures and notes. `by Name` and `Author:`
+are folded under `Authors`, the English name of the authors column, so the
+header pre-mapping picks it. A figure line has a list marker, a phrase label or
+a leading count, or follows a figure line directly (a wrapped line, read as a
+figure even with a colon); list markers are removed and the rest is left for
+the CSV adapter's figure reading. Everything else is a note, as
+written: Markdown is not otherwise interpreted.
+
+`textDocumentToCsv` writes one row per dance: title, one column per label
+(merged case-insensitively, first spelling kept), notes, figures, with the
+headers in the UI language. `textDocumentDefaultColumns` starts the mapping:
+title, notes and figures are fixed by position, and a label column takes its
+header pre-mapping unless that is ignore, title or figures, in which case it
+gets `CsvColumnMapping.labelledNotes`. That mapping is calling notes with
+`labelled: true`, so `csvRowToDraft` writes `Label: value` rather than the bare
+value; an unmapped detail is kept with its label rather than ignored
+(Claude's call, so nothing is lost by default). In the step the separator and
+header-row controls are hidden for this source.
+
+Caps reuse the spreadsheet's: bytes (`kMaxCsvImportBytes`), dances
+(`kMaxCsvImportRows` less the header row), a line and one dance's cell
+(`kMaxCsvImportCellChars`, measured with the formula guard's apostrophe),
+and labels (`kMaxCsvImportColumns` less the three fixed columns). A file that is
+not UTF-8 is refused (`decodeTextDocumentBytes`). Each refusal is a
+`TextDocumentReadException` the review screen shows by reason. As with a
+spreadsheet, the dances record no provenance.
 
 ### Simultaneous-action fan-out (`meanwhile`) (#591/#572)
 - Two source dialects write simultaneous action on one line instead of

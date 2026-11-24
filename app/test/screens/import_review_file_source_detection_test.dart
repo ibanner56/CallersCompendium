@@ -59,7 +59,7 @@ void main() {
 
     test('does not claim plain json or unknown files', () {
       expect(importSourceKindForFileName('dance.json'), isNull);
-      expect(importSourceKindForFileName('notes.txt'), isNull);
+      expect(importSourceKindForFileName('notes.docx'), isNull);
       expect(importSourceKindForFileName('ccshare'), isNull);
     });
   });

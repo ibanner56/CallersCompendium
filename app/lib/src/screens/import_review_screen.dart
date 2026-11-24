@@ -476,6 +476,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// pasted/fetched text (governs the input UI and which plan path runs).
   bool get _isByteSource => _selected.bytePicker != null;
 
+  /// Whether the source is planned as a spreadsheet, through the map-columns
+  /// step: a CSV (#2329), or a text or Markdown file read into the same
+  /// columns (#2330).
+  bool get _isSpreadsheetSource =>
+      _selected.kind == ImportSourceKind.csv ||
+      _selected.kind == ImportSourceKind.textDocument;
+
   /// True when the selected source's payload is typed by the user rather than
   /// picked or fetched (the pasted title list, issue #823). Governs the input
   /// affordances and routes planning through [resolveTitleList] instead of an
@@ -1092,8 +1099,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _bundleMemoText = null;
       return _planTitleList(payload);
     }
-    // A spreadsheet is mapped column by column before it is planned (#2329).
-    if (_selected.kind == ImportSourceKind.csv && _csvMapping == null) {
+    // A spreadsheet is mapped column by column before it is planned (#2329),
+    // and a text file label by label (#2330).
+    if (_isSpreadsheetSource && _csvMapping == null) {
       return _openCsvMapping(bytes!);
     }
     // A Caller's Companion library often types its English dances "Contra", so
@@ -1129,7 +1137,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       // other byte source (Caller's Companion `.USR`) carries the raw file on
       // `options['bytes']`; text sources carry the pasted/fetched payload.
       final csvMapping = _csvMapping;
-      final request = _selected.kind == ImportSourceKind.csv
+      final request = _isSpreadsheetSource
           ? ImportRequest(
               payload: _csvText,
               options: {CsvAdapter.mappingOption: csvMapping!},
@@ -1229,7 +1237,25 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   Future<void> _openCsvMapping(Uint8List bytes) async {
     final String text;
     try {
-      text = decodeCsvBytes(bytes);
+      text = _selected.kind == ImportSourceKind.textDocument
+          ? _textDocumentAsCsv(bytes)
+          : decodeCsvBytes(bytes);
+    } on TextDocumentReadException catch (e, stackTrace) {
+      logCaughtErrorTypeOnly(
+        e,
+        stackTrace,
+        source: 'import_review_screen._openCsvMapping',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          key: const ValueKey('import-text-unreadable'),
+          content: Text(
+            textDocumentReadFailureMessage(AppLocalizations.of(context), e),
+          ),
+        ),
+      );
+      return;
     } on CsvReadException catch (e, stackTrace) {
       logCaughtErrorTypeOnly(
         e,
@@ -1254,6 +1280,18 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _csvLevels = levels;
       _phase = _Phase.mapping;
     });
+  }
+
+  /// A text or Markdown file (#2330) as the spreadsheet the map-columns step
+  /// reads: its fixed columns named in the UI language.
+  String _textDocumentAsCsv(Uint8List bytes) {
+    final l10n = AppLocalizations.of(context);
+    return textDocumentToCsv(
+      readTextDocument(decodeTextDocumentBytes(bytes)),
+      titleColumn: l10n.csvColumnTitle,
+      notesColumn: l10n.csvColumnCallingNotes,
+      figuresColumn: l10n.csvColumnFigures,
+    );
   }
 
   /// Plans a pasted list of dance titles (issue #823): each title is matched
@@ -3029,6 +3067,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             text: _csvText!,
             fields: _csvFields,
             levels: _csvLevels,
+            textDocument: _selected.kind == ImportSourceKind.textDocument,
             onContinue: (mapping) {
               _csvMapping = mapping;
               _plan();
@@ -3228,21 +3267,21 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 4),
-          Text(
-            _selected.kind == ImportSourceKind.csv
-                ? l10n.importCsvSaveAsHint
-                : l10n.importReviewUsrSubtitle,
-          ),
+          Text(switch (_selected.kind) {
+            ImportSourceKind.csv => l10n.importCsvSaveAsHint,
+            ImportSourceKind.textDocument => l10n.importTextHint,
+            _ => l10n.importReviewUsrSubtitle,
+          }),
           const SizedBox(height: 16),
           OutlinedButton.icon(
             key: const ValueKey('import-choose-usr-file'),
             onPressed: busy ? null : _chooseUsrFile,
             icon: const Icon(Icons.folder_open_outlined),
-            label: Text(
-              _selected.kind == ImportSourceKind.csv
-                  ? l10n.importCsvPickFile
-                  : l10n.importReviewChooseUsr,
-            ),
+            label: Text(switch (_selected.kind) {
+              ImportSourceKind.csv => l10n.importCsvPickFile,
+              ImportSourceKind.textDocument => l10n.importTextPickFile,
+              _ => l10n.importReviewChooseUsr,
+            }),
           ),
           if (_payloadBytes != null)
             Padding(

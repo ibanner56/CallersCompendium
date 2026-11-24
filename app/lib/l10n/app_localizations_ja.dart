@@ -13490,6 +13490,66 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importCsvPickFile => 'CSV ファイルを選択…';
 
   @override
+  String get importSourceLabelTextDocument => '自分のテキストまたはMarkdownファイル';
+
+  @override
+  String get importTextHint =>
+      '.txtまたは.mdファイルを選んでください。各ダンスは見出し(## Title)か、空行の後のタイトルで始めます。詳細は「Label: value」の行(Formation: Improper)に、フィギュアは1行に1つ(A1 (8) Neighbor swing)書きます。';
+
+  @override
+  String get importTextPickFile => 'テキストまたはMarkdownファイルを選択…';
+
+  @override
+  String get importTextMapTitle => 'ラベルの割り当て';
+
+  @override
+  String get importTextMapIntro =>
+      'ファイル内の各ラベルが何を表すかを選んでください。どの項目にも割り当てられないラベルは、名前付きでコーリングノートに残ります。除外するには「無視」を選びます。確認して確定するまで何も追加されません。';
+
+  @override
+  String get importTextTargetLabelledNotes => 'コーリングノート(ラベル付き)';
+
+  @override
+  String get importTextNotUtf8 =>
+      'このファイルはUTF-8テキストで保存されていないため、アクセント付きの文字が正しく取り込まれません。UTF-8テキストで保存し直し、そのファイルを選んでください。';
+
+  @override
+  String importTextTooManyDances(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'このファイルには$limitString件を超えるダンスがあります。小さなファイルに分けてください。';
+  }
+
+  @override
+  String importTextLineTooLong(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'このファイルに$limitString文字を超える行があります。';
+  }
+
+  @override
+  String importTextDanceTooLong(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'このファイルに、フィギュア、ノート、または1つの詳細が$limitString文字を超えるダンスがあります。';
+  }
+
+  @override
+  String importTextTooManyLabels(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'このファイルは$limitString種類を超えるラベルを使っています。';
+  }
+
+  @override
   String get importCsvSaveAsHint =>
       '表計算アプリで［ファイル］▸［名前を付けて保存］（または［ダウンロード］）を選び、「CSV UTF-8」を選んでから、そのファイルをここで選択してください。';
 

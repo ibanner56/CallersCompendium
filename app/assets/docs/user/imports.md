@@ -3,7 +3,8 @@
 This guide is about getting dances *into* [Caller's Compendium](./glossary.md#callers-compendium)
 and moving your whole library between devices. It covers bringing in single
 dances from [The Caller's Box](./glossary.md#the-callers-box) and
-[ContraDB](./glossary.md#contradb), importing signed published collections and
+[ContraDB](./glossary.md#contradb), bringing in your own spreadsheet or typed
+notes, importing signed published collections and
 Caller's Compendium files, moving a whole library across from Caller's Companion,
 and backing up and restoring everything you own.
 
@@ -345,6 +346,77 @@ saved as UTF-8 (save it again as **CSV UTF-8**), it is too large, it has more
 than 20,000 rows or more than 200 columns, a cell is longer than 65,536
 characters, or a quoted cell never ends. A file with more than 500 rows is
 fine, but the app mentions that reviewing it may take a while.
+
+## Bring in dances you typed up
+
+If you keep your dances as notes in a text file, or in Markdown, you can bring
+them in without retyping them. Write each dance like this:
+
+```
+## Rory's Reel
+
+by Pat Example
+Formation: Improper
+Music: Any reel
+
+- A1 (8) Neighbor balance & swing
+- (8) Long lines forward and back
+- A2 (16) Partner swing
+
+Watch the chain at the top.
+```
+
+1. Save the notes as a `.txt` or `.md` file, as UTF-8 text (most editors do
+   this already).
+2. Open **Settings**, choose **General**, choose **Import…**, and set the source
+   to **Your own text or Markdown file**. Choosing a `.txt` or `.md` file with
+   **Import…** switches to it for you.
+3. Choose the file with **Choose a text or Markdown file…**, then **Continue**.
+4. **Map labels.** Each label your file uses (`Formation`, `Music`, …) is shown
+   with a few of its values, as a spreadsheet's columns are (see
+   [Bring in your own spreadsheet](#bring-in-your-own-spreadsheet)). A label
+   that names a field, in the app's language or in English, is chosen for you.
+   Any other label is set to **Calling notes, with the label**, so `Music: Any
+   reel` comes in as that line in the dance's calling notes. Choose **Ignore** to
+   leave a label out.
+5. Review and commit, as for any import (see
+   [Review before anything changes](#review-before-anything-changes)).
+
+How the file is read:
+
+- **Where a dance starts.** In a file whose dances are `##` headings (or
+  several `#` headings), each heading starts a dance and is its title. In a file
+  without them, the first line and each line after a blank line is a dance's
+  title, unless it is a detail or starts like a figure (`-`, `1.`, `A1`,
+  `(8)`). So in a file without headings, a note after a blank line starts a
+  new dance; keep notes straight under the dance's lines.
+- **A file title.** A `#` heading with no figures under it, such as
+  `# My dances` at the top, is the file's own title and is left out with the
+  text under it, unless every dance in the file is a `#` heading.
+- **Details** are `Label: value` lines, with a label of up to three words.
+  `**Formation:** Improper` and a full-width colon (`：`) work too.
+  `by Pat Example` and `Author: Pat Example` both fill **Authors**; a `by` line
+  counts only above the dance's figures and notes. A web address is not a
+  label.
+- **Figures** are lines that start with a list marker (`-`, `*`, `1.`), a phrase
+  (`A1`) or a count (`(8)` or `8`), and any line straight after one, so a figure
+  that wraps onto a second line stays one figure, even with a colon in it. They are read the way the app reads
+  typed figures, phrase and count included. A line it can't read comes in as an
+  unrecognized figure with your words, never dropped.
+- **Anything else** goes into the dance's calling notes, as written.
+- Markdown is read as plain text apart from headings and list markers, so
+  `**bold**` and links come in as you typed them.
+- A value that doesn't fit its field, such as a formation the app doesn't know,
+  goes into the calling notes with its label, with a note on the review row. A
+  formation is matched by its name in the app (**Improper**, **Becket (CW)**).
+- As with a spreadsheet, a dance from your own file records **no source**, and
+  importing the file again shows the dances you already have as possible
+  matches, defaulting to **Skip**.
+
+If the file can't be read, the app says why and nothing is imported: it isn't
+saved as UTF-8 text, it is too large, it has more than 19,999 dances or more
+than 197 different labels, or a line, or one dance's figures, notes or details,
+is longer than 65,536 characters.
 
 ## Import a Caller's Compendium file
 
