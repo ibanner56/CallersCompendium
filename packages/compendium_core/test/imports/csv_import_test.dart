@@ -92,7 +92,7 @@ void main() {
       expect(first[4], hasLength(2));
     });
 
-    test('tags and tunes honour \, and \\, and read an old export, or a '
+    test(r'tags and tunes honour \, and \\, and read an old export, or a '
         'hand-typed sheet with no backslash, as they always did', () async {
       const cols = [
         CsvColumnMapping(CsvColumnTarget.title),
