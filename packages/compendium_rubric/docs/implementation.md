@@ -932,7 +932,8 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
   for the whole hands four, and hall figures led by a pair relation
   (`partners`) or ending `turnCouple`.
 - **Deferred param values inside implemented figures** raise
-  `unsupportedParam` — notably diagonal and `along` `right_left_through`,
+  `unsupportedParam` — notably `along` `right_left_through` and a diagonal one
+  with couples already waiting out,
   `chain dir:along`, `swing where:center`, `long_lines goBack:false`, and
   `hey`'s partial lengths and non-`across` `dir`, and a `circular_hey` `who2`
   reaching another hands four (`shadows` there is a parse-time deferral), and
@@ -943,8 +944,9 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
   `forward_and_back` outside long lines, a `figure_8` marked `double`, and a
   `circle` or `star` whose `places` is stated `unspecified`.
 - **`hey` diagonals are blocked on a decision:** the user asked for them to follow
-  diagonal `right_left_through`, which **is not implemented**. That figure must
-  land first.
+  diagonal `right_left_through`. That figure is now built (agent's call,
+  2026-11-24, not yet ratified); diagonal `hey` stays deferred until it is made
+  to agree with it.
 - `FormLongWaves.hand` **without** `whom` currently asserts nothing falsifiable.
   Deliberate and documented in its test; revisit if a record turns up that means
   something by it.

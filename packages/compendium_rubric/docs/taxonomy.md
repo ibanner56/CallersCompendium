@@ -3089,8 +3089,8 @@ To be defined later with worked examples.
   | `rico1` + `rico3` | identity |
 - **preconditions:**
   - `where != across` → `unsupportedParam`. The diagonals lay the line of four across more than one
-    hands four, and are **deferred behind diagonal `right_left_through`**, which they would have to
-    agree with and which is itself unimplemented.
+    hands four, and are **deferred**: they would have to agree with diagonal `right_left_through`,
+    which is now built (agent's call 2026-11-24, not yet ratified).
   - `length` of `lessThanHalf` / `betweenHalfAndFull` → `unsupportedParam`. They stop the weave
     mid-pass, leaving dancers in the middle of the set rather than in the corners the matrix is
     defined over (fundamentals §8). "Valid but out of scope", not "malformed".
