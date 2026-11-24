@@ -5296,6 +5296,22 @@
   "@danceEditorSequenceSpanNoRoom": {
     "x-sourceSha256": "197cb3c426f6d770e42563bec39b40266f6eb1dbb4b22ea913e9c467d50088ce"
   },
+  "danceEditorSequenceSpanBeatsLabel": "Temps pour l’ensemble",
+  "@danceEditorSequenceSpanBeatsLabel": {
+    "x-sourceSha256": "779524d88eda2aa98f7b96c1c72a09768a4841f0c5186f465441f5c205241406"
+  },
+  "danceEditorSequenceSpanBeatsEmptyHelp": "Laissez vide pour additionner les temps des étapes, ou indiquez les temps de toute la séquence, comme « forward again and swing (8) ».",
+  "@danceEditorSequenceSpanBeatsEmptyHelp": {
+    "x-sourceSha256": "ac8a9f438a7c5f551494c95fe550846907047df4f942e4c6b2c761168e93022c"
+  },
+  "danceEditorSequenceSpanBeatsHelp": "Les étapes se partagent ces temps, et chacune peut laisser ses propres temps vides.",
+  "@danceEditorSequenceSpanBeatsHelp": {
+    "x-sourceSha256": "d0558ee9cc430b76676cd6fe9ffb070bc908a0f2cdb81a609eac78561b14bcaf"
+  },
+  "danceEditorSequenceSpanBeatsNoRoom": "Les étapes ayant leurs propres temps durent {steps} sur les {span} de la séquence, sans rien laisser aux autres.",
+  "@danceEditorSequenceSpanBeatsNoRoom": {
+    "x-sourceSha256": "4b5d5fc7bbaec65ffc1a28a66d0b7acc7757d9e30f6bc758c51f9f8b32b929a2"
+  },
   "danceEditorSequenceOverPhraseTimed": "Cette séquence dure {length}, plus que sa phrase ({limit}).",
   "@danceEditorSequenceOverPhraseTimed": {
     "x-sourceSha256": "9934038b8b22b7528851ff87a633a2e3ae83f580553450b4e1c7d5f8f0381a5a"
@@ -9677,6 +9693,14 @@
   "figureTextSheetFromImage": "À partir d’une image…",
   "@figureTextSheetFromImage": {
     "x-sourceSha256": "dd6ac7c7817e072d8f4fd986c8d3378ea6f0d45dbb856b1c69a01a97b4734964"
+  },
+  "figureTextSheetTakePhoto": "Prendre une photo",
+  "@figureTextSheetTakePhoto": {
+    "x-sourceSha256": "996e6a73eaebe70299816a9a45e7e3500ea67c91cd79d32a4db00cd843c66285"
+  },
+  "figureTextSheetCameraOff": "L’accès à l’appareil photo est désactivé pour Caller's Compendium. Pour prendre une photo, activez-le dans l’app Réglages.",
+  "@figureTextSheetCameraOff": {
+    "x-sourceSha256": "b3137ffbc39ab7a39fe6ad06a490bb1ed2ae15728d8a11625dda3bd3724d79e2"
   },
   "figureTextSheetReadingImage": "Lecture de l’image…",
   "@figureTextSheetReadingImage": {

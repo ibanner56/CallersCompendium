@@ -11,20 +11,10 @@ import '../../l10n/app_localizations.dart';
 ///
 /// Absent, figures are timed in beats, as contra's are.
 class BarTimingScope extends InheritedWidget {
-  const BarTimingScope({
-    super.key,
-    required this.timing,
-    this.allowsUntimed = false,
-    required super.child,
-  });
+  const BarTimingScope({super.key, required this.timing, required super.child});
 
   /// How the tune's bars are counted.
   final BarTiming timing;
-
-  /// Whether a count may be left empty, for a step of a sequence that states
-  /// its own span ("A, B and C in bars 1–4"): the step then has no timing of
-  /// its own.
-  final bool allowsUntimed;
 
   /// [child] under the bar timing of [dance], or as it is where the dance
   /// is timed in beats ([barTimingFor]).
@@ -42,17 +32,43 @@ class BarTimingScope extends InheritedWidget {
   static BarTimingScope? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<BarTimingScope>();
 
-  /// This scope with [allowsUntimed] as given.
-  BarTimingScope withUntimed(bool allowsUntimed, {required Widget child}) =>
-      BarTimingScope(
-        timing: timing,
-        allowsUntimed: allowsUntimed,
-        child: child,
-      );
-
   @override
   bool updateShouldNotify(BarTimingScope oldWidget) =>
-      timing != oldWidget.timing || allowsUntimed != oldWidget.allowsUntimed;
+      timing != oldWidget.timing;
+}
+
+/// Sequences below it may state a span of their own, with steps that carry
+/// no timing of their own ([formHasSequenceSpan]): an English dance's ("A, B
+/// and C in bars 1–4", ADR-006 §5.5), counted in the bars of
+/// [BarTimingScope], and a square's ("forward again and swing the opposite
+/// (8)", ADR-007 Q10), counted in beats.
+///
+/// Absent, a sequence counts its steps, as contra's do.
+class SequenceSpanScope extends InheritedWidget {
+  const SequenceSpanScope({
+    super.key,
+    this.allowsUntimed = false,
+    required super.child,
+  });
+
+  /// Whether a count may be left empty, for a step of a sequence that states
+  /// its own span: the step then has no timing of its own.
+  final bool allowsUntimed;
+
+  static SequenceSpanScope? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<SequenceSpanScope>();
+
+  /// Whether a count below [context] may be left empty ([allowsUntimed]).
+  static bool allowsUntimedOf(BuildContext context) =>
+      maybeOf(context)?.allowsUntimed ?? false;
+
+  /// This scope with [allowsUntimed] as given.
+  SequenceSpanScope withUntimed(bool allowsUntimed, {required Widget child}) =>
+      SequenceSpanScope(allowsUntimed: allowsUntimed, child: child);
+
+  @override
+  bool updateShouldNotify(SequenceSpanScope oldWidget) =>
+      allowsUntimed != oldWidget.allowsUntimed;
 }
 
 /// The beat at which the figure below it starts, from which its bars are read
@@ -271,6 +287,123 @@ class _BarsFieldState extends State<BarsField> {
             }
           }
           if (error != _error) setState(() => _error = error);
+        },
+      ),
+    );
+  }
+}
+
+/// The count field of a figure timed in beats that may be left empty: a step
+/// of a square's sequence that states its own span, or that span itself
+/// ([SequenceSpanScope], ADR-007 Q10), as [BarsField] is for an English
+/// dance's. An empty field reports null: no timing of its own, or no span.
+/// A count that is not a whole number from 0 to [maxBeats] is not reported,
+/// and the field says so.
+class BeatsField extends StatefulWidget {
+  const BeatsField({
+    super.key,
+    required this.fieldKey,
+    required this.label,
+    required this.beats,
+    required this.onChanged,
+    this.emptyHint,
+    this.minBeats = 0,
+    this.maxBeats = 64,
+  });
+
+  final String fieldKey;
+  final String label;
+
+  /// The stored count, or null for none.
+  final int? beats;
+  final ValueChanged<int?> onChanged;
+
+  /// What an empty field says; "no timing of its own" when null.
+  final String? emptyHint;
+
+  /// The smallest count the field takes: 1 for a span, which a count of 0
+  /// would leave its untimed steps no time.
+  final int minBeats;
+
+  /// The largest count the field takes.
+  final int maxBeats;
+
+  @override
+  State<BeatsField> createState() => _BeatsFieldState();
+}
+
+class _BeatsFieldState extends State<BeatsField> {
+  late final TextEditingController _controller;
+
+  /// Whether the text in the field is not reported.
+  bool _invalid = false;
+
+  /// The count [text] names, or null when it names none in range.
+  int? _beatsOf(String text) {
+    final n = int.tryParse(text.trim());
+    return n != null && n >= widget.minBeats && n <= widget.maxBeats ? n : null;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.beats?.toString() ?? '');
+  }
+
+  @override
+  void didUpdateWidget(BeatsField old) {
+    super.didUpdateWidget(old);
+    // Only a count set from elsewhere replaces the text, so half-typed text
+    // is kept; refused text gives way to it too, as it was never reported.
+    final text = _controller.text.trim();
+    final shown = text.isEmpty ? null : _beatsOf(text);
+    if (widget.beats != old.beats && (_invalid || shown != widget.beats)) {
+      _controller.text = widget.beats?.toString() ?? '';
+      _invalid = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return SizedBox(
+      width: 120,
+      child: TextField(
+        key: ValueKey(widget.fieldKey),
+        controller: _controller,
+        keyboardType: TextInputType.number,
+        decoration: InputDecoration(
+          labelText: widget.label,
+          isDense: true,
+          // The label floats while the field is empty so the hint shows.
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          hintText: widget.emptyHint ?? l10n.danceEditorStepUntimed,
+          hintStyle: theme.textTheme.bodyMedium?.copyWith(
+            fontStyle: FontStyle.italic,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          hintMaxLines: 2,
+          errorText: _invalid
+              ? l10n.danceEditorIntParamRangeError(
+                  widget.minBeats,
+                  widget.maxBeats,
+                )
+              : null,
+          errorMaxLines: 4,
+        ),
+        onChanged: (text) {
+          final trimmed = text.trim();
+          final beats = _beatsOf(trimmed);
+          final valid = trimmed.isEmpty || beats != null;
+          if (valid) widget.onChanged(beats);
+          if (_invalid == valid) setState(() => _invalid = !valid);
         },
       ),
     );

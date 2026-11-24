@@ -482,8 +482,8 @@ collection:
 3. Review and commit. Nothing is added until you do, and **Undo** removes it
    afterwards.
 
-Caller's Compendium itself never uses the camera, and opening a code needs no
-network.
+Opening a code this way doesn't use Caller's Compendium's camera access, and it
+needs no network.
 
 If your camera app shows the link but won't open it, copy the link, open
 **Import…**, and paste it into the URL field (then choose **Fetch**) or into the

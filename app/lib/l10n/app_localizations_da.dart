@@ -5264,6 +5264,22 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get danceEditorSequenceSpanBeatsLabel => 'Slag i alt';
+
+  @override
+  String get danceEditorSequenceSpanBeatsEmptyHelp =>
+      'Lad feltet være tomt for at lægge trinnenes slag sammen, eller angiv slagene for hele sekvensen, som i “forward again and swing (8)”.';
+
+  @override
+  String get danceEditorSequenceSpanBeatsHelp =>
+      'Trinnene deler disse slag, og hvert trin kan lade sine egne slag være tomme.';
+
+  @override
+  String danceEditorSequenceSpanBeatsNoRoom(String steps, String span) {
+    return 'Trinnene med egne slag varer $steps af sekvensens $span, så der intet er tilbage til resten.';
+  }
+
+  @override
   String danceEditorSequenceOverPhraseTimed(String length, String limit) {
     return 'Denne sekvens varer $length, længere end frasen, den starter i ($limit).';
   }
@@ -9934,6 +9950,13 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get figureTextSheetFromImage => 'Fra et billede…';
+
+  @override
+  String get figureTextSheetTakePhoto => 'Tag et billede';
+
+  @override
+  String get figureTextSheetCameraOff =>
+      'Kameraadgang er slået fra for Caller\'s Compendium. Slå den til i appen Indstillinger for at tage et billede.';
 
   @override
   String get figureTextSheetReadingImage => 'Læser billedet…';

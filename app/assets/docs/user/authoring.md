@@ -297,8 +297,16 @@ the lines are then read exactly as typed text is.
   in all, is refused before anything is read. Crop it or choose a smaller one.
 - Typed text reads best. Handwriting may come out wrong, so check each line.
 
-**From an image…** isn't offered on Android, Windows or Linux: you can still
-type or paste the figures.
+On iPhone and iPad, **Take a photo** beside it opens the camera instead, so
+you can photograph the card without leaving the app. The first time, the
+system asks whether the app may use the camera; it uses it only when you tap
+**Take a photo**. The photo is read the same way and is **not kept**: it is
+deleted as soon as its text has been read, or straight away if reading fails,
+and it is never added to your photo library. If you said no to the camera, you
+can turn it on again in the Settings app, under **Caller's Compendium**.
+
+**From an image…** isn't offered on Android, Windows or Linux, and **Take a
+photo** is only on iPhone and iPad: you can still type or paste the figures.
 
 ### Figure shorthands
 
@@ -574,7 +582,9 @@ are danced at the same time. A modifier group follows its **Core**, and a
 sequence adds up its figures (see
 [Sequence figures](#sequence-figures)), unless an English sequence states its
 own **Bars for all** (see
-[English dances are timed in bars](#english-dances-are-timed-in-bars)). This holds however the group was made:
+[English dances are timed in bars](#english-dances-are-timed-in-bars)) or a
+square's states its own **Beats for all** (see
+[One count for a square's calls](#one-count-for-a-squares-calls)). This holds however the group was made:
 grouped, added from the **Add** menu, typed with `||` or `while`, or in a
 shorthand.
 
@@ -631,15 +641,17 @@ or type *sequence* in a figure's **Move** box to make it the first figure of a
 new sequence. Each figure in the group is labeled **Figure 1**, **Figure 2**,
 and so on, and keeps its own **Beats**: the group's beats are their total, shown
 at the top (an English sequence can instead state its own **Bars for all**; see
-[English dances are timed in bars](#english-dances-are-timed-in-bars)). A
+[English dances are timed in bars](#english-dances-are-timed-in-bars), and a
+square's its own **Beats for all**; see
+[One count for a square's calls](#one-count-for-a-squares-calls)). A
 sequence must fit in the phrase it starts in: 16 beats in the usual
 structure, and where phrases differ in length, such as an A of 4 bars and a B
 of 8, the length of the one it starts in. It may start partway through that
 phrase and run over its end, as long as it is no longer than the phrase. So
 **Group with next as sequence** is only offered when the two figures fit, and
 **Add next figure** goes away once the figures fill that phrase or there are
-four of them (with **Bars for all**, only figures with bars of their own count
-toward the phrase). Changing a figure already in the sequence, its move or its
+four of them (with **Bars for all** or **Beats for all**, only figures with a
+count of their own count toward the phrase). Changing a figure already in the sequence, its move or its
 beats, is not stopped, and neither is a change to the phrase structure or to
 the figures before it, which can move it into a shorter phrase: if the
 sequence ends up longer than the phrase it starts in, the group and the
@@ -687,9 +699,23 @@ contra sequence does; emptying it gives each figure with no bars its move's
 usual length. A figure that leaves the sequence, by ungrouping it or turning
 it into another kind of group, takes its usual length too. If every figure has bars of its own and they don't add
 up to **Bars for all**, or the figures with bars already fill it, the sequence
-and the dance's warnings say so. Changing the dance to another type puts its
+and the dance's warnings say so. Changing the dance to a contra puts its
 sequences back to adding up their figures, and a figure with no bars takes its
-move's usual length; **Undo** puts them back.
+move's usual length; **Undo** puts them back. Changing it to a square keeps
+each span, counted in beats there (see
+[One count for a square's calls](#one-count-for-a-squares-calls)).
+
+### One count for a square's calls
+
+A square's caller often gives one count for two calls, as in "forward again
+and swing the opposite (8)". Group the calls as a sequence, fill in **Beats
+for all** at the top of it, and leave the **Beats** of any call in it empty
+to give that call no timing of its own. It works as an English sequence's
+**Bars for all** does, in beats: left empty, the sequence adds up its calls'
+beats; if every call has beats of its own and they don't add up to **Beats
+for all**, or the calls with beats already fill it, the sequence and the
+dance's warnings say so. Changing the dance to a contra puts its sequences
+back to adding up their calls, and **Undo** puts them back.
 
 If a dance holds figures of another type than its own, for example English
 figures in a dance you have just changed to contra, **Warnings** says how

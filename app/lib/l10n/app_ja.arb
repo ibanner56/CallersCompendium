@@ -5296,6 +5296,22 @@
   "@danceEditorSequenceSpanNoRoom": {
     "x-sourceSha256": "197cb3c426f6d770e42563bec39b40266f6eb1dbb4b22ea913e9c467d50088ce"
   },
+  "danceEditorSequenceSpanBeatsLabel": "全体の拍数",
+  "@danceEditorSequenceSpanBeatsLabel": {
+    "x-sourceSha256": "779524d88eda2aa98f7b96c1c72a09768a4841f0c5186f465441f5c205241406"
+  },
+  "danceEditorSequenceSpanBeatsEmptyHelp": "空欄にするとステップの拍数を合計します。「forward again and swing (8)」のように、シーケンス全体の拍数を入力することもできます。",
+  "@danceEditorSequenceSpanBeatsEmptyHelp": {
+    "x-sourceSha256": "ac8a9f438a7c5f551494c95fe550846907047df4f942e4c6b2c761168e93022c"
+  },
+  "danceEditorSequenceSpanBeatsHelp": "ステップはこの拍数を共有し、各ステップは自分の拍数を空欄にできます。",
+  "@danceEditorSequenceSpanBeatsHelp": {
+    "x-sourceSha256": "d0558ee9cc430b76676cd6fe9ffb070bc908a0f2cdb81a609eac78561b14bcaf"
+  },
+  "danceEditorSequenceSpanBeatsNoRoom": "拍数を持つステップがシーケンスの{span}のうち{steps}を使い、残りのステップの分がありません。",
+  "@danceEditorSequenceSpanBeatsNoRoom": {
+    "x-sourceSha256": "4b5d5fc7bbaec65ffc1a28a66d0b7acc7757d9e30f6bc758c51f9f8b32b929a2"
+  },
   "danceEditorSequenceOverPhraseTimed": "このシーケンスは{length}で、始まるフレーズ（{limit}）より長くなっています。",
   "@danceEditorSequenceOverPhraseTimed": {
     "x-sourceSha256": "9934038b8b22b7528851ff87a633a2e3ae83f580553450b4e1c7d5f8f0381a5a"
@@ -9677,6 +9693,14 @@
   "figureTextSheetFromImage": "画像から…",
   "@figureTextSheetFromImage": {
     "x-sourceSha256": "dd6ac7c7817e072d8f4fd986c8d3378ea6f0d45dbb856b1c69a01a97b4734964"
+  },
+  "figureTextSheetTakePhoto": "写真を撮る",
+  "@figureTextSheetTakePhoto": {
+    "x-sourceSha256": "996e6a73eaebe70299816a9a45e7e3500ea67c91cd79d32a4db00cd843c66285"
+  },
+  "figureTextSheetCameraOff": "Caller's Compendium のカメラへのアクセスがオフになっています。写真を撮るには、「設定」アプリでオンにしてください。",
+  "@figureTextSheetCameraOff": {
+    "x-sourceSha256": "b3137ffbc39ab7a39fe6ad06a490bb1ed2ae15728d8a11625dda3bd3724d79e2"
   },
   "figureTextSheetReadingImage": "画像を読み取り中…",
   "@figureTextSheetReadingImage": {

@@ -171,9 +171,10 @@ decide what counts and override all four.
   with the block's name; see [imports.md](imports.md) §1. ADR-006 §5.4
   originally proposed no sequence container; it was added for contra on the
   maintainer's request in the PR that introduced it. ADR-006, accepted in
-  November 2026, adopts it for ECD, with an ECD-only variant whose steps
-  may carry no timing of their own (ADR-006 §5.5). Nothing here implements
-  that yet.
+  November 2026, adopts it for ECD, with a variant whose steps may carry no
+  timing of their own under one span the sequence states (ADR-006 §5.5,
+  #2269), which ADR-007 Q10 opens to squares (`formHasSequenceSpan`); a
+  contra sequence counts its steps.
 - Containers accept 2–6 children (2–4 for a `sequence`) and may nest a
   container of **another** kind exactly once — for example `meanwhile →
   sequence`, `sequence → modifier` or `modifier → meanwhile`. Same-kind

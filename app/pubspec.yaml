@@ -83,6 +83,12 @@ dependencies:
   # geometry-only mark — it needs an SVG runtime rather than a bespoke painter.
   flutter_svg: ^2.3.0
   connectivity_plus: ^7.3.2
+  # Take a photo (#2328): opens the system camera for one still photo, read on
+  # the device and deleted (app/lib/src/data/photo_capture.dart, shared with
+  # the QR scanner, #2336). A flutter.dev first-party plugin; the system camera
+  # needs no Android CAMERA permission, and none is declared. Approved by the
+  # maintainer for #2328.
+  image_picker: ^1.2.4
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -1,8 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../diagnostics/error_log.dart';
+import '../data/photo_capture.dart';
 import '../data/text_recognition.dart';
 import '../editor/figure_draft.dart';
 import '../theme/app_motion.dart';
@@ -181,6 +184,7 @@ class _FigureTextSheetState extends State<FigureTextSheet> {
                       _FromImage(
                         service: service,
                         pickImage: TextRecognitionScope.pickerOf(context),
+                        camera: PhotoCaptureScope.of(context),
                         onText: (text) => _textController.text = text,
                       ),
                     const SizedBox(height: AppSpacing.md),
@@ -261,18 +265,23 @@ class _FigureTextSheetState extends State<FigureTextSheet> {
   }
 }
 
-/// **From an image…** (#2327): reads a chosen picture's text on the device
-/// and puts it in the sheet's text box, replacing what is there, for the
-/// user to correct. The picture is read once and released.
+/// **From an image…** (#2327) and, where there is a camera, **Take a photo**
+/// (#2328): reads a chosen picture's or a new photo's text on the device and
+/// puts it in the sheet's text box, replacing what is there, for the user to
+/// correct. The picture is read once and released.
 class _FromImage extends StatefulWidget {
   const _FromImage({
     required this.service,
     required this.pickImage,
+    required this.camera,
     required this.onText,
   });
 
   final TextRecognitionService service;
   final Future<PickedRecognitionImage?> Function() pickImage;
+
+  /// Null hides **Take a photo**.
+  final PhotoCaptureService? camera;
   final ValueChanged<String> onText;
 
   @override
@@ -283,7 +292,9 @@ class _FromImageState extends State<_FromImage> {
   /// Null until the device answers which languages it reads.
   TextRecognitionAvailability? _availability;
   List<String> _wanted = const [];
-  bool _busy = false;
+
+  /// The source being read, or null when none is.
+  _ImageSource? _busy;
   String? _error;
 
   @override
@@ -310,20 +321,47 @@ class _FromImageState extends State<_FromImage> {
         });
   }
 
-  Future<void> _read() async {
+  /// The encoded picture from [source], or null when the user cancelled.
+  Future<Uint8List?> _bytesFrom(_ImageSource source) async {
+    switch (source) {
+      case _ImageSource.file:
+        return (await widget.pickImage())?.bytes;
+      case _ImageSource.camera:
+        try {
+          return await widget.camera?.takePhoto(
+            maxBytes: kMaxRecognitionImageBytes,
+          );
+        } on PhotoCaptureException catch (e) {
+          // diagnostics: silent — an expected refusal, shown inline below
+          switch (e.reason) {
+            case PhotoCaptureFailure.tooLarge:
+              throw const TextRecognitionException(
+                TextRecognitionFailure.tooLarge,
+              );
+            case PhotoCaptureFailure.accessDenied:
+              throw const _CameraOff();
+          }
+        }
+    }
+  }
+
+  Future<void> _read(_ImageSource source) async {
     final availability = _availability;
-    if (_busy || availability == null || !availability.isAvailable) return;
+    if (_busy != null || availability == null || !availability.isAvailable) {
+      return;
+    }
     setState(() {
-      _busy = true;
+      _busy = source;
       _error = null;
     });
     TextRecognitionFailure? failure;
+    var cameraOff = false;
     try {
-      final picked = await widget.pickImage();
-      if (picked == null) return;
-      await checkRecognitionImage(picked.bytes);
+      final bytes = await _bytesFrom(source);
+      if (bytes == null) return;
+      await checkRecognitionImage(bytes);
       final text = await widget.service.recognize(
-        picked.bytes,
+        bytes,
         languages: availability.languages,
       );
       if (!mounted) return;
@@ -331,6 +369,9 @@ class _FromImageState extends State<_FromImage> {
     } on TextRecognitionException catch (e) {
       // diagnostics: silent — an expected refusal (size, no text, unreadable), shown inline below
       failure = e.reason;
+    } on _CameraOff {
+      // diagnostics: silent — camera access is off by the user's choice, shown inline below
+      cameraOff = true;
     } on Object catch (e, stack) {
       // The picker, the file read or the engine failed in a way none of the
       // refusals above names: say reading failed rather than nothing.
@@ -339,8 +380,12 @@ class _FromImageState extends State<_FromImage> {
     } finally {
       if (mounted) {
         setState(() {
-          _busy = false;
-          _error = failure == null ? null : _message(failure);
+          _busy = null;
+          _error = cameraOff
+              ? AppLocalizations.of(context).figureTextSheetCameraOff
+              : failure == null
+              ? null
+              : _message(failure);
         });
       }
     }
@@ -360,6 +405,28 @@ class _FromImageState extends State<_FromImage> {
     };
   }
 
+  Widget _sourceButton({
+    required Key key,
+    required _ImageSource source,
+    required bool enabled,
+    required IconData icon,
+    required String label,
+    required String busyLabel,
+  }) {
+    final busy = _busy == source;
+    return OutlinedButton.icon(
+      key: key,
+      onPressed: enabled && _busy == null ? () => _read(source) : null,
+      icon: busy
+          ? const SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(icon),
+      label: Text(busy ? busyLabel : label),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final availability = _availability;
@@ -376,20 +443,28 @@ class _FromImageState extends State<_FromImage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          OutlinedButton.icon(
-            key: const ValueKey('figure-text-sheet-from-image'),
-            onPressed: availability.isAvailable && !_busy ? _read : null,
-            icon: _busy
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.image_outlined),
-            label: Text(
-              _busy
-                  ? l10n.figureTextSheetReadingImage
-                  : l10n.figureTextSheetFromImage,
-            ),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.xs,
+            children: [
+              if (widget.camera != null)
+                _sourceButton(
+                  key: const ValueKey('figure-text-sheet-take-photo'),
+                  source: _ImageSource.camera,
+                  enabled: availability.isAvailable,
+                  icon: Icons.photo_camera_outlined,
+                  label: l10n.figureTextSheetTakePhoto,
+                  busyLabel: l10n.figureTextSheetReadingImage,
+                ),
+              _sourceButton(
+                key: const ValueKey('figure-text-sheet-from-image'),
+                source: _ImageSource.file,
+                enabled: availability.isAvailable,
+                icon: Icons.image_outlined,
+                label: l10n.figureTextSheetFromImage,
+                busyLabel: l10n.figureTextSheetReadingImage,
+              ),
+            ],
           ),
           if (note != null)
             Padding(
@@ -418,6 +493,14 @@ class _FromImageState extends State<_FromImage> {
       ),
     );
   }
+}
+
+/// Where a picture comes from.
+enum _ImageSource { file, camera }
+
+/// Camera access is off for the app, so no photo was taken.
+class _CameraOff implements Exception {
+  const _CameraOff();
 }
 
 /// One line of the preview: the text as read, and what it gives.

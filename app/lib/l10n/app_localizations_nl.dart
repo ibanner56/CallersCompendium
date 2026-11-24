@@ -5292,6 +5292,22 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get danceEditorSequenceSpanBeatsLabel => 'Tellen voor alles';
+
+  @override
+  String get danceEditorSequenceSpanBeatsEmptyHelp =>
+      'Laat leeg om de tellen van de stappen op te tellen, of geef de tellen van de hele reeks, zoals ‘forward again and swing (8)’.';
+
+  @override
+  String get danceEditorSequenceSpanBeatsHelp =>
+      'De stappen delen deze tellen, en elke stap mag zijn eigen tellen leeg laten.';
+
+  @override
+  String danceEditorSequenceSpanBeatsNoRoom(String steps, String span) {
+    return 'De stappen met eigen tellen duren $steps van de $span van de reeks, zodat er niets overblijft voor de rest.';
+  }
+
+  @override
   String danceEditorSequenceOverPhraseTimed(String length, String limit) {
     return 'Deze reeks duurt $length, langer dan de frase waarin hij begint ($limit).';
   }
@@ -9995,6 +10011,13 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get figureTextSheetFromImage => 'Uit een afbeelding…';
+
+  @override
+  String get figureTextSheetTakePhoto => 'Foto maken';
+
+  @override
+  String get figureTextSheetCameraOff =>
+      'Cameratoegang staat uit voor Caller\'s Compendium. Zet hem aan in de app Instellingen om een foto te maken.';
 
   @override
   String get figureTextSheetReadingImage => 'Afbeelding wordt gelezen…';

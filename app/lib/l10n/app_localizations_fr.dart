@@ -5329,6 +5329,22 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get danceEditorSequenceSpanBeatsLabel => 'Temps pour l’ensemble';
+
+  @override
+  String get danceEditorSequenceSpanBeatsEmptyHelp =>
+      'Laissez vide pour additionner les temps des étapes, ou indiquez les temps de toute la séquence, comme « forward again and swing (8) ».';
+
+  @override
+  String get danceEditorSequenceSpanBeatsHelp =>
+      'Les étapes se partagent ces temps, et chacune peut laisser ses propres temps vides.';
+
+  @override
+  String danceEditorSequenceSpanBeatsNoRoom(String steps, String span) {
+    return 'Les étapes ayant leurs propres temps durent $steps sur les $span de la séquence, sans rien laisser aux autres.';
+  }
+
+  @override
   String danceEditorSequenceOverPhraseTimed(String length, String limit) {
     return 'Cette séquence dure $length, plus que sa phrase ($limit).';
   }
@@ -10051,6 +10067,13 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get figureTextSheetFromImage => 'À partir d’une image…';
+
+  @override
+  String get figureTextSheetTakePhoto => 'Prendre une photo';
+
+  @override
+  String get figureTextSheetCameraOff =>
+      'L’accès à l’appareil photo est désactivé pour Caller\'s Compendium. Pour prendre une photo, activez-le dans l’app Réglages.';
 
   @override
   String get figureTextSheetReadingImage => 'Lecture de l’image…';

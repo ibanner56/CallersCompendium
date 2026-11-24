@@ -3704,6 +3704,60 @@ void main() {
       },
     );
 
+    test("a square's sequence keeps its span, its mismatch is warned "
+        'about, and contra counts its steps again (ADR-007 Q10)', () async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        Dance(
+          id: 'sq',
+          title: 'Square',
+          form: DanceForm.square,
+          freeForm: true,
+          figures: [
+            Figure.sequence(
+              figures: [
+                Figure(move: 'sq_forward_and_back', params: const {'beats': 8}),
+                Figure(move: 'sq_swing'),
+              ],
+              beats: 8,
+            ),
+          ],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'sq',
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        debounce: testDebounce,
+      );
+      addTearDown(controller.dispose);
+      await controller.load(
+        dance: await repos.dances.getById('sq'),
+        fieldDefs: const [],
+      );
+
+      expect(controller.figureDrafts.single.sequenceSpanStated, isTrue);
+      final issue = controller.warnings.singleWhere(
+        (w) => w.code == 'sequence_span_mismatch',
+      );
+      expect(issue.data['allTimed'], isFalse);
+      final saved = figuresOf(controller.buildDance()).single;
+      expect(saved.beats, 8);
+      expect(stepStatesTiming(saved.subFigures[1]), isFalse);
+
+      controller.setForm(DanceForm.contra);
+      final sequence = controller.figureDrafts.single;
+      expect(sequence.sequenceSpanStated, isFalse);
+      // The untimed swing takes its move's default count.
+      expect(sequence.sequenceFigures![1].untimed, isFalse);
+      expect(
+        controller.warnings.where((w) => w.code == 'sequence_span_mismatch'),
+        isEmpty,
+      );
+    });
+
     group('a typed English sequence', () {
       List<Figure> typed(String line) => parseFreeTextFigureEntry(
         line,

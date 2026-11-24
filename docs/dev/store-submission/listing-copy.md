@@ -167,7 +167,9 @@ two in step.
   off-by-default** calendar import at startup (it reads only the calendar
   address the user gave); those are not used to
   collect data about the user. There is no analytics/tracking SDK and no
-  advertising identifier is used.
+  advertising identifier is used. A photo taken with **Take a photo** (iOS,
+  #2328) is read on the device and deleted; it never leaves the device, so it
+  is not collected data and adds no data type.
 - Note: a build with Device Sync compiled out would answer "Data Not Collected".
   No such build exists today; do not use that answer for the shipped app.
 - [ ] **Tracking:** the app does **not** track users across apps/sites → no
@@ -241,8 +243,12 @@ Caller's Compendium is an offline organizer/reference for contra dance callers.
 - No account or login is required. Every feature is available offline on first
   launch; the app seeds one sample dance ("The Baby Rose") so the collection is
   never empty.
-- No special device permissions are requested (no camera, microphone, location,
-  contacts, or photos). Permissions are INTERNET and ACCESS_NETWORK_STATE (the
+- On iPhone and iPad, the camera is requested only when the user taps Take a
+  photo in Add figures from text (open a dance, then Add figure > Add figures
+  from text...). The photo is read on the device to fill in the figures, then
+  deleted; it is never uploaded or saved to the photo library. No other special
+  device permissions are requested (no microphone, location, contacts, or
+  photos), and Android requests no camera. Permissions are INTERNET and ACCESS_NETWORK_STATE (the
   latter added by the `connectivity_plus` plugin, used to honour the Wi-Fi-only
   sync setting), used for user-initiated imports, browsing or importing published collections, an opt-in (off by
   default) update check, an opt-in (off by default) calendar import at startup,
