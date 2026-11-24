@@ -198,6 +198,16 @@
 > the core set 568 to 573, no previously compiling dance lost. Honeymoon
 > (10500) now compiles, with 16 others.
 >
+> **A Progressed Improper end is the Duple Improper end, swapped (2026-11-24)**:
+> the oracle now takes the Duple Improper end state for the same number of
+> progressions and swaps the 1s and 2s within each hands four (user-ruled
+> 2026-11-24 for a double; applying it at every count is the agent's call).
+> It replaces the entry below, whose rule matches this one at an odd count
+> and differed at an even one. Against `rubric` at `3051da0f`: 4,479 of 5,617
+> to 4,481 of 5,617 compiled in scope (79.8%), the core set unchanged at 573,
+> no previously compiling dance lost. A Rose by Another Name (519) and The
+> Last Wednesday (18654) now compile.
+>
 > **A couple waiting out at an end passes the next one in (2026-11-24)**: in
 > a Double or Triple Progressed Improper dance the oracle's second round put
 > the arriving couple on top of the one already waiting out at each end, and
@@ -714,13 +724,13 @@ reported as `unstructured`, an import-pipeline problem, not as a deferral.
 The tables and headline above were measured before the changes below, so they
 still count three crashes.
 
-Three dances escape the operation error channel, all with `Bad state: Cell
+Three dances escaped the operation error channel, all with `Bad state: Cell
 collision at (r0,c0): L-D and R-B` at a figure the bridge assumed to be the
 progression: *Men at Work* (14689) and *Morland Magic* (14692) at a
 `box_the_gnat`, and *A Rose by Another Name* (519), a progressed-improper
-dance, at a `gate`. Measured on the Caller's Box mirror on 2026-11-24: the
-first two already crashed against `rubric` at `a657a6b0`, and 519 reaches the
-compiler since its `Hey 1/8 (WR)` imports. None is investigated yet.
+dance, at a `gate`. The collision was in the oracle's Progressed Improper
+end, and all three now compile (see the two Progressed Improper entries
+above).
 
 *Gypsy for Chris & Sara* (9779) used to collide at `r0,c2`. It opens with a
 slide left, which leaves a couple standing out in each end row, and

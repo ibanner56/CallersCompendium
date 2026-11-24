@@ -50,22 +50,45 @@ void main() {
   });
 
   group('ProgressionCriterion — Progressed Improper', () {
-    // A Progressed Improper set starts one progression in, with the 2s at the
-    // top, so the first round already sends a couple out at each end. On the
-    // next, the arriving couple's target is that couple's row; before the
-    // fix the oracle put one on top of the other and threw. The waiting
-    // couple now passes the arriving one (agent's call, from Hudson's note on
-    // Men at Work, 2026-11-24).
-    test('lands where Duple Improper does one round later', () {
+    // A Progressed Improper set is Duple Improper with the 1s and 2s swapped
+    // within each hands four, and so is its end (Hudson, 2026-11-24: "Double
+    // progressed improper takes the normal end state from a double
+    // progression and swaps the 1s and 2s within their hands four").
+    test(
+      'a double is the Duple Improper double, swapped in each hands four',
+      () {
+        // Duple Improper double, 2 hands four: B, D | A, C (see above).
+        expect(after(FormationType.progressedImproper, 2), [
+          'L2-D . . . R2-D',
+          'R1-B . . . L1-B',
+          'L2-C . . . R2-C',
+          'R1-A . . . L1-A',
+        ]);
+        // Duple Improper double, 3 hands four: B, D | A, F | C, E.
+        expect(after(FormationType.progressedImproper, 2, handsFour: 3), [
+          'L2-D . . . R2-D',
+          'R1-B . . . L1-B',
+          'L2-F . . . R2-F',
+          'R1-A . . . L1-A',
+          'L2-E . . . R2-E',
+          'R1-C . . . L1-C',
+        ]);
+      },
+    );
+
+    test('an odd count lands where Duple Improper does one round later', () {
+      // At an odd count the Duple Improper end has a couple waiting out at
+      // each end, and the swap in the hands fours between them gives the same
+      // cells as one more Duple Improper round.
       for (final handsFour in [2, 3, 4, 5]) {
-        for (final count in [1, 2, 3, 4]) {
+        for (final count in [1, 3]) {
           expect(
-            after(
-              FormationType.progressedImproper,
-              count,
-              handsFour: handsFour,
+            ProgressionCriterion(count: count).expected(
+              start(FormationType.progressedImproper, handsFour: handsFour),
             ),
-            after(FormationType.dupleImproper, count + 1, handsFour: handsFour),
+            ProgressionCriterion(count: count + 1).expected(
+              start(FormationType.dupleImproper, handsFour: handsFour),
+            ),
             reason: '$handsFour hands four, $count rounds',
           );
         }

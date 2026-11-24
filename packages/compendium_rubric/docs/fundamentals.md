@@ -859,17 +859,18 @@ Note what the second row shows. The progression figure can only reach the active
 swaps A and D and leaves B and C exactly where they stand; the change-over is what puts B back
 into a hands four — with D.
 
-> **The oracle in a Progressed Improper set** *(agent's call, 2026-11-24, from Hudson's note on
-> Men at Work)*. This is the net-displacement oracle's bookkeeping (`ProgressionCriterion`), not
-> a move the figures make. A Progressed Improper set starts one progression in, with the 2s at
-> the top, so the oracle's first round already sends B out at the top (and the bottom couple
-> out at the bottom). On its second round D's target is B's row: B has served its round and
-> passes D, travelling down as the 1 it now is, and D is collected at the top in its place; the
-> bottom end mirrors it. So Progressed Improper after `n` rounds lands exactly where Duple
-> Improper does after `n + 1`, cell for cell, and a triple ends with D at the top and B beside
-> F, as Hudson's note describes. Before, the oracle put D on top of B and crashed. Only
-> positions are compared: the oracle's waiting-out marks need not match the figures' (a
-> `Formation` compares numbers and positions, not marks).
+> **The oracle in a Progressed Improper set** *(user-ruled 2026-11-24: "Double progressed
+> improper takes the normal end state from a double progression and swaps the 1s and 2s within
+> their hands four")*. This is the net-displacement oracle's bookkeeping (`ProgressionCriterion`),
+> not a move the figures make. A Progressed Improper set is a Duple Improper one with the 1s and
+> 2s swapped within each hands four, so the oracle swaps them back, takes the Duple Improper end
+> for the same number of progressions, and swaps the couples of each complete hands four again;
+> a couple waiting out at an end is in no hands four and stays put. Applying the rule at every
+> count, not only a double, is the agent's reading. At an odd count it gives the same cells as one
+> more Duple Improper round (so a triple still ends with D at the top and B beside F, as Hudson's
+> note on Men at Work describes); at an even count it differs at the ends, where nobody is left
+> waiting out. Before, the oracle walked the Progressed Improper set directly, and its second
+> round put the arriving couple on top of the one waiting out at each end.
 
 > **The marking rule is deliberately positional**, not "is this couple already in a complete
 > band?" In a settled Duple Improper set *every* row holds a whole couple, so an end row
