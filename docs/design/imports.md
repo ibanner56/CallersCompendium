@@ -2561,19 +2561,21 @@ form figure is ever emitted.
    `intersecting`, `circular`) is refused here, exactly as the promotion refuses
    it: it is not a balance of the wave the previous line formed, and folding it
    would drop the qualifier from a structured figure that then asserts something
-   the source never said. A forming line that already states its centre or
-   centre hand (`Pass the ocean (to wave of four (NR,WL))`, readable since
-   2026-11-24) refuses a balance that states a different one: the two lines
-   describe different waves, and folding would keep one and drop the other.
-   `sides` is deliberately not compared: after a forming line that says
-   `with N2`, the balance writes those same dancers as `N`, and the forming
-   line's `nextNeighbors` has always won there. **86** corpus lines carry such a qualifier, but that
+   the source never said. **86** corpus lines carry such a qualifier, but that
    is a census of the wording — **85** already fell to custom regardless, and
    exactly **1** was actually being folded and losing the word: dance 2463
    *Gypsy Star* B1, `form long waves in center` /
    `Balance interlocking long waves in center`. (That one was a regression this
    same change set introduced — recognizing `form long waves` is what made the
    pair foldable.)
+
+   A forming line that already states its centre or centre hand (`Pass the
+   ocean (to wave of four (NR,WL))`, readable since 2026-11-24) refuses a
+   balance that states a different one: the two lines describe different
+   waves, and folding would keep one and drop the other. `sides` is
+   deliberately not compared: after a forming line that says `with N2`, the
+   balance writes those same dancers as `N`, and the forming line's
+   `nextNeighbors` has always won there.
 3. **Promotion** — whatever is left becomes the form figure on its own. This is
    the implicit case (an allemande or shoulder round leaves the dancers in the
    wave the very next line balances): the forming is a fact the source implies,
