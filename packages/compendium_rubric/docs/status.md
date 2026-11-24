@@ -394,6 +394,23 @@
 > 76.9%), and the core set from 532 to 543 (`core-set-seattle.txt` with the
 > core-set decisions applied), with no previously compiling dance lost. Of the other 129, the largest group (about 25) is a same-role
 > allemande across the set landing in a wave, which is deferred.
+>
+> **Four more Caller's Box line shapes (2026-11-24)** now import, on Hudson's
+> rulings of what each means (accepting the double slice's neighbour spellings
+> is the agent's call): `Hey 1/8 (WR)` is one pass by (`pass_by`, the robins by the right
+> shoulder, note `1/8 hey`); `As couples, neighbor do si do` is the neighbour
+> do si do with the note `as couples`; `Partner Jersey twirl` is a California
+> twirl with the note `Jersey twirl`; and a double slice whose diagonals meet
+> a neighbour and then the next one (`N1` then `N2`, `N2` then `N3`) is the
+> diagonal-return slice, as the `S1`/`S2` spelling already was. Against
+> `rubric` at `a657a6b0` it took 169 dances out of the free-text group and the
+> count from 4,318 to 4,435 compiled in scope (the denominator grew from 5,426
+> to 5,590, so the rate fell from 79.6% to 79.3%), and the core set from 556 to
+> 568 (`core-set-seattle.txt` with the core-set decisions applied), with no
+> previously compiling dance lost. Of the other 52, 32 refuse, 16 mismatch, 3
+> reach unsupported figures, and one, A Rose by Another Name (519), now reaches
+> a `gate` in a progressed-improper start that crashes the compiler (see
+> Known crashes).
 
 The compiler implements 53 canonical figures. Twenty-eight have no deliberately
 deferred parameter values, 25 have an implemented core with explicit
@@ -636,7 +653,13 @@ reported as `unstructured`, an import-pipeline problem, not as a deferral.
 The tables and headline above were measured before the changes below, so they
 still count three crashes.
 
-No dance currently escapes the operation error channel.
+Three dances escape the operation error channel, all with `Bad state: Cell
+collision at (r0,c0): L-D and R-B` at a figure the bridge assumed to be the
+progression: *Men at Work* (14689) and *Morland Magic* (14692) at a
+`box_the_gnat`, and *A Rose by Another Name* (519), a progressed-improper
+dance, at a `gate`. Measured on the Caller's Box mirror on 2026-11-24: the
+first two already crashed against `rubric` at `a657a6b0`, and 519 reaches the
+compiler since its `Hey 1/8 (WR)` imports. None is investigated yet.
 
 *Gypsy for Chris & Sara* (9779) used to collide at `r0,c2`. It opens with a
 slide left, which leaves a couple standing out in each end row, and
