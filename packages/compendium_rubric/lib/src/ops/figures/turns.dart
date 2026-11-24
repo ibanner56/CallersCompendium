@@ -7,7 +7,7 @@ part of '../operation.dart';
 /// whole turn returns the dancers to place, a half exchanges them, and a
 /// quarter or three-quarter lands the pair in a short wave (§8.5.6), except
 /// that an `allemande` pair already holding its hand in a wave turns from
-/// there instead (§8.5.7).
+/// there instead (§8.5.7), a centre long-wave pair included.
 /// `allemande` and `shoulder_round` each carry a direction token that fixes
 /// that wave's handedness and so implement it; the rest of the family carries
 /// no usable direction token, or has no worked example, and refuses both
@@ -70,7 +70,9 @@ OpError? _requireAlongTheSet(
 ///
 /// A pair **already holding its hand in a wave** is the exception: it turns
 /// rigidly from where it stands, so a short wave and ¾ lands in a long wave
-/// and a long wave and ¾ in a short wave (§8.5.7). *(User-ruled.)*
+/// and a long wave and ¾ in a short wave (§8.5.7). *(User-ruled.)* A centre
+/// long-wave pair turns the same way into the centre of a short wave, and the
+/// band's side dancers join it as the ends. *(Agent's call, 2026-11-24.)*
 final class Allemande extends Operation {
   const Allemande({
     this.who = WhoSet.neighbors,
@@ -110,6 +112,21 @@ final class Allemande extends Operation {
   @override
   OpError? checkPreconditions(Formation formation) {
     if (!rotationAmountOf(turn).landsInWave) return null;
+    for (final pair in whoPairsInSet(formation, who)) {
+      final hold = waveHoldOf(formation, pair);
+      if (hold == null ||
+          hold.shape != WaveHoldShape.centre ||
+          hold.hand != hand) {
+        continue;
+      }
+      if (centreWaveSides(formation, pair) != null) continue;
+      return OpError(
+        ErrorKind.unresolvableDancerSet,
+        '$name turn: $turn turns ${pair.a} and ${pair.b} out of the centre '
+        'long wave into a short wave, which needs the other two dancers of '
+        'their hands four standing one on each side of the set',
+      );
+    }
     // A pair already holding this hand in a wave turns from there (§8.5.7).
     // Every other pair leaves the wave first, exactly as before, and is held
     // to the along-the-set rule from the settled cells.
@@ -147,19 +164,15 @@ final class Allemande extends Operation {
         hand: hand,
         afterHalfTurn: threeQuarters,
       );
-      final turned = quarterTurnFromWaveHold(
-        formation,
-        held,
-        hand: hand,
-        threeQuarters: threeQuarters,
-      );
       return Ok(
-        settled.withUpdates({
-          for (final pair in held) ...{
-            pair.a: turned.stateOf(pair.a),
-            pair.b: turned.stateOf(pair.b),
-          },
-        }),
+        settled.withUpdates(
+          quarterTurnFromWaveHold(
+            formation,
+            held,
+            hand: hand,
+            threeQuarters: threeQuarters,
+          ),
+        ),
       );
     }
     return Ok(

@@ -313,7 +313,7 @@ Formation quarterTurnIntoWave(
   return formation.withUpdates(changes);
 }
 
-/// The two shapes in which a pair already stands **holding hands in a wave**,
+/// The three shapes in which a pair already stands **holding hands in a wave**,
 /// so that a turn can start from the hold rather than from facing each other
 /// (`docs/fundamentals.md` §8.5.7).
 enum WaveHoldShape {
@@ -325,15 +325,21 @@ enum WaveHoldShape {
   /// A pair in a side long wave (§8.5.5): both in the same side column, in
   /// adjacent rows, facing across the set in opposite directions.
   long,
+
+  /// The pair of one hands four in a centre long wave (§8.5.5): both in the
+  /// centre column, in the band's two rows, facing across the set in opposite
+  /// directions.
+  centre,
 }
 
 /// How [pair] is holding hands in a wave, or `null` when it is not.
 ///
 /// The hand comes from the geometry, as it always does here (§8.5.2): a dancer
 /// holds right hands with the other when the other stands on their right.
-/// Only the two side-pair shapes of [WaveHoldShape] are recognized. A centre
-/// pair of a short wave and a centre long wave are not, so a turn they start
-/// leaves the wave and is turned from facing (`Allemande`, §8.5.7).
+/// The two side-pair shapes of [WaveHoldShape] are recognized, and so is the
+/// pair of one hands four in a centre long wave. The centre pair of a short
+/// wave is not, so a turn it starts leaves the wave and is turned from facing
+/// (`Allemande`, §8.5.7).
 ({WaveHoldShape shape, Hand hand})? waveHoldOf(
   Formation formation,
   DancerPair pair,
@@ -359,6 +365,14 @@ enum WaveHoldShape {
   } else if (a.facing.isAcross && a.col == b.col && _isSideColumn(a.col)) {
     shape = WaveHoldShape.long;
     towardB = b.row > a.row ? Facing.down : Facing.up;
+  } else if (a.facing.isAcross &&
+      a.col == b.col &&
+      a.col == kCentreColumn &&
+      // The pair of one hands four, not two neighbouring hands fours' dancers
+      // who also hold hands down the centre line.
+      handsFourBands(formation).any((band) => band.topRow == upper.row)) {
+    shape = WaveHoldShape.centre;
+    towardB = b.row > a.row ? Facing.down : Facing.up;
   } else {
     return null;
   }
@@ -369,21 +383,30 @@ enum WaveHoldShape {
   return null;
 }
 
-/// Returns [formation] with each pair in [pairs], already holding [hand] hands
-/// in a wave ([waveHoldOf]), turned a quarter — or, when [threeQuarters], three
+/// The new states of each pair in [pairs], already holding [hand] hands in a
+/// wave ([waveHoldOf]), turned a quarter — or, when [threeQuarters], three
 /// quarters — about its own midpoint, as a rigid pair (§8.5.7). *(User-ruled.)*
+/// For a centre pair the map also holds the two side dancers it brings in as
+/// the ends of its short wave, so every entry is part of a well-formed wave.
 ///
 /// Positions and facings rotate together, clockwise for the right hand and
 /// counter-clockwise for the left. A quarter of a turn takes a pair's line
-/// through a right angle, so the two shapes trade places:
+/// through a right angle: the two side shapes trade places, and a centre
+/// long-wave pair turns out into a short wave:
 ///
 /// - a **short-wave** side pair ends in the side long wave of its own side
 ///   column, the dancer the rotation carries north in the band's top row;
 /// - a **long-wave** pair ends as the side pair of a short wave, the dancer the
 ///   rotation carries toward the centre in the offset column, and each dancer
 ///   in the row a short wave gives their facing (top row Down, bottom row Up,
-///   §8.5.1).
-Formation quarterTurnFromWaveHold(
+///   §8.5.1);
+/// - a **centre long-wave** pair ends as the centre pair of a short wave, and
+///   the band's two side dancers join it as the ends (§8.5.7, agent's call).
+///
+/// Throws [ArgumentError] for a pair not holding [hand], or a centre pair whose
+/// band has no side dancer on each side ([centreWaveSides]); callers refuse
+/// both in their preconditions.
+Map<DancerId, DancerState> quarterTurnFromWaveHold(
   Formation formation,
   List<DancerPair> pairs, {
   required Hand hand,
@@ -418,15 +441,102 @@ Formation quarterTurnFromWaveHold(
       final Position at;
       if (hold.shape == WaveHoldShape.short) {
         at = Position(to.y > 0 ? topRow : bottomRow, sideCol);
+      } else if (hold.shape == WaveHoldShape.centre) {
+        // Across the set, each a step from the centre line: the centre pair
+        // of a short wave, in the row its facing gives it (§8.5.1).
+        at = Position(
+          facing == Facing.down ? topRow : bottomRow,
+          kCentreColumn + to.x,
+        );
       } else {
         final row = facing == Facing.down ? topRow : bottomRow;
         at = Position(row, to.x == inward ? sideCol + inward : sideCol);
       }
       changes[id] = self.copyWith(position: at, facing: facing);
     }
+    if (hold.shape == WaveHoldShape.centre) {
+      final sides = centreWaveSides(formation, pair);
+      if (sides == null) {
+        throw ArgumentError.value(pair, 'pairs', 'has no side dancers');
+      }
+      changes.addAll(
+        _shortWaveEndsAround(
+          formation.withUpdates({
+            pair.a: changes[pair.a]!,
+            pair.b: changes[pair.b]!,
+          }),
+          pair,
+          sides,
+        ),
+      );
+    }
   }
-  return formation.withUpdates(changes);
+  return changes;
 }
+
+/// The two dancers standing on the sides of the hands four whose centre
+/// long-wave pair is [pair] — the one in c0 first, then the one in c4 — or
+/// `null` when the band's other two dancers are not one on each side.
+///
+/// A centre long wave (§8.5.5) leaves the other role holding its lines, so
+/// these are the dancers a quarter turn of the centre pair brings into the
+/// short wave as its ends ([quarterTurnFromWaveHold]).
+({DancerId west, DancerId east})? centreWaveSides(
+  Formation formation,
+  DancerPair pair,
+) {
+  final a = formation.stateOf(pair.a);
+  final b = formation.stateOf(pair.b);
+  final top = a.row < b.row ? a.row : b.row;
+  final others = [
+    for (final row in [top, top + 1])
+      for (final id in formation.dancersInRow(row))
+        if (id != pair.a && id != pair.b) id,
+  ];
+  if (others.length != 2) return null;
+  final west = others.where((id) => formation.stateOf(id).col == 0).toList();
+  final east = others
+      .where((id) => formation.stateOf(id).col == kColumnCount - 1)
+      .toList();
+  if (west.length != 1 || east.length != 1) return null;
+  return (west: west.single, east: east.single);
+}
+
+/// Where the side dancers of [sides] stand once the centre pair [pair] has
+/// turned a quarter out of a centre long wave into the centre of a short wave
+/// in [turned]: each joins the centre dancer on their side as an end of that
+/// wave, in the other row and facing the other way (§8.5.1). *(Agent's call:
+/// the pair cannot land as a short wave's centre while the sides stay facing
+/// across, since leaving that wave would put two dancers in one cell.)*
+Map<DancerId, DancerState> _shortWaveEndsAround(
+  Formation turned,
+  DancerPair pair,
+  ({DancerId west, DancerId east}) sides,
+) {
+  final changes = <DancerId, DancerState>{};
+  for (final (side, sideCol, centreCol) in [
+    (sides.west, 0, 1),
+    (sides.east, kColumnCount - 1, kColumnCount - 2),
+  ]) {
+    final centre = [
+      pair.a,
+      pair.b,
+    ].map(turned.stateOf).firstWhere((state) => state.col == centreCol);
+    final a = turned.stateOf(pair.a);
+    final b = turned.stateOf(pair.b);
+    final top = a.row < b.row ? a.row : b.row;
+    changes[side] = turned
+        .stateOf(side)
+        .copyWith(
+          position: Position(centre.row == top ? top + 1 : top, sideCol),
+          facing: centre.facing.reversed,
+        );
+  }
+  return changes;
+}
+
+/// The centre column (c2), where a centre long wave stands (§8.5.5).
+const int kCentreColumn = kColumnCount ~/ 2;
 
 ({int x, int y}) _vectorOf(Facing facing) => switch (facing) {
   Facing.up => (x: 0, y: 1),
