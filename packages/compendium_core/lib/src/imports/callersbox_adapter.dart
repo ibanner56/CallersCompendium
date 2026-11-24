@@ -344,7 +344,7 @@ class CallersBoxAdapter implements SourceAdapter {
           },
       ]);
     }
-    return figures;
+    return _promoteRoleCentreWaveBalances(figures);
   }
 
   /// Parses one phrase's raw figure lines into figures, collapsing TCB's
@@ -844,7 +844,11 @@ class CallersBoxAdapter implements SourceAdapter {
   ///  - a balance-WAVE LINE immediately following a `pass_the_ocean` /
   ///    `form_short_waves` / `form_a_long_wave` / `form_long_waves` folds into
   ///    that move as `balance: true` with the summed beats (#577 — the reverse
-  ///    pattern of the leading-balance fold above).
+  ///    pattern of the leading-balance fold above);
+  ///  - a `<role> go forward` line immediately followed by a
+  ///    `<role> bring back partner|neighbor` line of the same role folds into
+  ///    one `give_and_take`
+  ///    ([_foldGoForwardIntoGiveAndTake]).
   ///
   /// Adjacency-consume: a single left-to-right walk that advances by two on a
   /// merge, so each line is consumed at most once, only immediately-adjacent
@@ -912,6 +916,14 @@ class CallersBoxAdapter implements SourceAdapter {
         final rory = _foldBalanceWaveIntoRory(current, next);
         if (rory != null) {
           merged.add(rory);
+          i += 2;
+          continue;
+        }
+        // TCB writes a give and take as two lines, `Men go forward` /
+        // `Men bring back partner`.
+        final giveAndTake = _foldGoForwardIntoGiveAndTake(current, next);
+        if (giveAndTake != null) {
+          merged.add(giveAndTake);
           i += 2;
           continue;
         }
@@ -1328,6 +1340,48 @@ class CallersBoxAdapter implements SourceAdapter {
     );
   }
 
+  /// The Caller's Box's two-line give and take: `(4) Men go forward` then
+  /// `(4) Men bring back partner` (or `neighbor`). One role walks across the
+  /// set and brings the other role's dancer back to its own side, which is
+  /// `give_and_take` with that role as `who` and the brought-back dancers as
+  /// `whom`, over both lines' beats. *(Hudson, 2026-11-24: "some of these are
+  /// probably just give+take"; reading every such pair as one is the agent's
+  /// call, measured on the corpus.)*
+  ///
+  /// Both lines must be custom and say exactly that, with the same role on
+  /// both, so a `Men go forward` that ends otherwise stays as it was.
+  static Figure? _foldGoForwardIntoGiveAndTake(Figure forward, Figure back) {
+    if (!forward.isCustom || !back.isCustom) return null;
+    final go = _goForwardRe.firstMatch(_customText(forward));
+    final bring = _bringBackRe.firstMatch(_customText(back));
+    if (go == null || bring == null) return null;
+    final role = go[1]!.toLowerCase();
+    if (role != bring[1]!.toLowerCase()) return null;
+    return Figure(
+      move: 'give_and_take',
+      params: {
+        'who': role,
+        'whom': bring[2]!.toLowerCase() == 'partner' ? 'partners' : 'neighbors',
+        'beats': ?_sumBeats(forward, back),
+      },
+      note: combineFigureNotes(forward.note, back.note),
+    );
+  }
+
+  static String _customText(Figure f) {
+    final text = f.params['text'];
+    return text is String ? text.trim() : '';
+  }
+
+  static final RegExp _goForwardRe = RegExp(
+    r'^(role1s|role2s)\s+go\s+forward$',
+    caseSensitive: false,
+  );
+  static final RegExp _bringBackRe = RegExp(
+    r'^(role1s|role2s)\s+bring\s+back\s+(partner|neighbor)$',
+    caseSensitive: false,
+  );
+
   /// Returns [wave] with the TRAILING [balance] wave line folded in as
   /// `balance: true` and the summed beats (#577), or `null` when [wave] already
   /// carries the balance (guarding against a double-fold of an ocean/wave figure
@@ -1460,7 +1514,10 @@ class CallersBoxAdapter implements SourceAdapter {
   // wave that is balanced IS the wave-FORMATION move carrying its `balance`
   // flag, so such a line maps onto that move. This is a 1-line → 1-figure
   // mapping (the line keeps its own beats); no extra 0-beat form figure is ever
-  // emitted.
+  // emitted. One exception, applied later over the whole dance: a role's
+  // `balance long wave in center` that nothing claimed becomes a plain
+  // `balance` ([_promoteRoleCentreWaveBalances]), because `form_a_long_wave`
+  // would assert the role stepping in.
   //
   // Runs AFTER the fold walk, over leftovers only, so:
   //  * a balance that belongs to a FOLLOWING wave action (`Balance wave of
@@ -1536,6 +1593,54 @@ class CallersBoxAdapter implements SourceAdapter {
     return out;
   }
 
+  /// `Men balance long wave in center` on its own line, which no fold and no
+  /// wave-formation promotion claimed, becomes `balance` with that role and
+  /// the note `long wave in center`: the role in the centre wave balances
+  /// where it stands, and a balance moves nobody, so no forming is asserted.
+  /// This is the one balance-wave line that does not map onto a
+  /// wave-formation move: `form_a_long_wave` defaults `in: true` and would
+  /// assert the role stepping in. The free-text dialect already reads
+  /// `Women balance long wave in center` the same way. *(Hudson, 2026-11-24, on
+  /// the walk-forward long waves: "try it and see"; this reading is the
+  /// agent's call, measured on the corpus.)*
+  ///
+  /// It runs over the whole dance, after the per-phrase merge, so the figure
+  /// before a phrase's first line is the previous phrase's last. The line
+  /// stays custom straight after a `form_a_long_wave` (Fold 4 refused it there:
+  /// the role differs from the wave's, or the wave was already balanced) and
+  /// after a wave-forming line the importer could not structure.
+  static List<Figure> _promoteRoleCentreWaveBalances(List<Figure> figures) {
+    final out = <Figure>[];
+    for (final f in figures) {
+      final previous = out.isEmpty ? null : out.last;
+      out.add(_roleBalanceInCentreWave(f, previous) ?? f);
+    }
+    return out;
+  }
+
+  static Figure? _roleBalanceInCentreWave(Figure f, Figure? previous) {
+    if (!f.isCustom ||
+        previous?.move == 'form_a_long_wave' ||
+        (previous != null && _isUnstructuredWaveFormingLine(previous))) {
+      return null;
+    }
+    final m = _roleBalanceInCentreWaveRe.firstMatch(_customText(f));
+    if (m == null) return null;
+    return Figure(
+      move: 'balance',
+      params: {
+        'who': m[1]!.toLowerCase(),
+        'beats': ?(f.beats > 0 ? f.beats : null),
+      },
+      note: combineFigureNotes('long wave in center', f.note),
+    );
+  }
+
+  static final RegExp _roleBalanceInCentreWaveRe = RegExp(
+    r'^(role1s|role2s)\s+balance\s+long\s+wave\s+in\s+center$',
+    caseSensitive: false,
+  );
+
   /// A custom figure whose text leads with "form" and names a wave — a
   /// wave-forming line the recognizer could not structure (`form new wave, all
   /// facing other direction`, `form diagonal wave of four`, …). Words are
@@ -1567,9 +1672,11 @@ class CallersBoxAdapter implements SourceAdapter {
   ///    `form_long_waves{balance, whom, hand, who}`. `who` is the facing-IN
   ///    role, matching ContraDB's `form_long_waves` subject exactly.
   ///
-  /// NOT mapped (stay custom): `form_a_long_wave`'s single-wave-in-the-centre
+  /// NOT mapped here: `form_a_long_wave`'s single-wave-in-the-centre
   /// sense — a line meaning that reaches it through Fold 4 from the preceding
-  /// `form long wave in center` line, so it never needs guessing here.
+  /// `form long wave in center` line, so it never needs guessing here. A
+  /// role's `balance long wave in center` that nothing claimed becomes a plain
+  /// `balance` later ([_promoteRoleCentreWaveBalances]).
   static Figure? _balanceWaveAsFormMove(Figure f) {
     if (!f.isCustom &&
         f.move == 'form_short_waves' &&

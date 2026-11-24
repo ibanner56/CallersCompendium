@@ -454,6 +454,24 @@
 > reach unsupported figures, and one, A Rose by Another Name (519), now reaches
 > a `gate` in a progressed-improper start that crashes the compiler (see
 > Known crashes).
+>
+> **Two more Caller's Box line shapes (2026-11-24)** now import, on Hudson's
+> "try it and see" (each reading is the agent's call): `Men go forward` then
+> `Men bring back partner` (or `neighbor`) folds into one `give_and_take`, and
+> `Men balance long wave in center` on its own line, if nothing else claimed
+> it, is a `balance` of that role with the note `long wave in center` (nothing
+> checks that a wave is standing; a balance moves nobody).
+> Against `rubric` at `f628f80b`, and again at `75190a5f` with the same
+> result, they took 37 dances out of the free-text
+> group and the count from 4,435 to 4,460 compiled in scope (the denominator
+> grew from 5,590 to 5,617, so the rate went from 79.3% to 79.4%), with the
+> core set unchanged at 568 and no previously compiling dance lost. All 25
+> new compiles are give and takes. The 12 new refusals are dances whose wave
+> balance now imports: 9 then refuse at a same-role allemande across the set
+> that lands in a wave, which is deferred, one at a diagonal hey, one at a
+> wave of four and one at a swing whose pair are not partners. A role's wave
+> balance straight after a `form_a_long_wave`, even across a phrase boundary,
+> stays custom.
 
 The compiler implements 53 canonical figures. Twenty-eight have no deliberately
 deferred parameter values, 25 have an implemented core with explicit
