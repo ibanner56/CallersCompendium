@@ -5,6 +5,12 @@ import 'package:flutter/widgets.dart';
 /// Stored as a `bool`; unset means off (the default).
 const String kSuggestionsEnabledKey = 'suggestions_enabled';
 
+/// Persisted-settings key for **Use in Perform's Swap this dance** (#2348),
+/// under Settings ▸ Experimental ▸ Suggestions: whether Perform's swap sheet
+/// orders its results by suggestions. Stored as a `bool`; unset means off
+/// (the default), and it does nothing while [kSuggestionsEnabledKey] is off.
+const String kSuggestionsInPerformSwapKey = 'suggestions_in_perform_swap';
+
 /// Persisted-settings key for what suggestions look for (#2343): one JSON
 /// object, read and written only by `suggestion_settings.dart` in
 /// compendium_core ([readSuggestionSettings], [SuggestionSettings.toJson]).
@@ -45,6 +51,45 @@ class SuggestionsEnabledScope extends InheritedNotifier<ValueNotifier<bool>> {
       throw FlutterError(
         'SuggestionsEnabledScope.notifierOf() called with a context that has '
         'no SuggestionsEnabledScope ancestor.',
+      );
+    }
+    return scope.notifier!;
+  }
+}
+
+/// Exposes **Use in Perform's Swap this dance** ([kSuggestionsInPerformSwapKey],
+/// #2348) as a live [ValueNotifier]. Perform's swap sheet orders by
+/// suggestions only while this and [SuggestionsEnabledScope] are both `true`.
+class SuggestionsInPerformSwapScope
+    extends InheritedNotifier<ValueNotifier<bool>> {
+  const SuggestionsInPerformSwapScope({
+    super.key,
+    required ValueNotifier<bool> notifier,
+    required super.child,
+  }) : super(notifier: notifier);
+
+  /// The stored setting, whatever Suggestions is. Registers a rebuild
+  /// dependency. `false` with no ancestor: the off-by-default behaviour.
+  static bool of(BuildContext context) =>
+      context
+          .dependOnInheritedWidgetOfExactType<SuggestionsInPerformSwapScope>()
+          ?.notifier
+          ?.value ??
+      false;
+
+  /// Whether Perform's swap sheet orders by suggestions: Suggestions and this
+  /// setting both on. Registers a rebuild dependency on both.
+  static bool activeOf(BuildContext context) =>
+      SuggestionsEnabledScope.of(context) && of(context);
+
+  /// The notifier, to change the setting. Does not register a dependency.
+  static ValueNotifier<bool> notifierOf(BuildContext context) {
+    final scope = context
+        .getInheritedWidgetOfExactType<SuggestionsInPerformSwapScope>();
+    if (scope == null) {
+      throw FlutterError(
+        'SuggestionsInPerformSwapScope.notifierOf() called with a context '
+        'that has no SuggestionsInPerformSwapScope ancestor.',
       );
     }
     return scope.notifier!;

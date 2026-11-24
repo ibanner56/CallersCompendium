@@ -46,6 +46,7 @@ class PerformAdjustSheet extends StatefulWidget {
     this.danceOverrides = const {},
     this.authorNameOverrides = const {},
     this.onEdited,
+    this.rankSuggestions,
   });
 
   final Program program;
@@ -87,6 +88,11 @@ class PerformAdjustSheet extends StatefulWidget {
   /// Built by the parent so it crosses the modal bottom sheet's navigator
   /// boundary reliably (mirrors [dialect]).
   final SearchEnrichment enrichment;
+
+  /// Ranks the swap sheet's results when they are ordered by suggestions
+  /// (#2348): [CollectionPicker.rankSuggestions], a test seam. Null, as in
+  /// the app, ranks on the picker's own worker.
+  final SuggestionRanker? rankSuggestions;
 
   @override
   State<PerformAdjustSheet> createState() => _PerformAdjustSheetState();
@@ -404,6 +410,10 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
                     member.danceId!,
               ],
               programDanceIds: programDanceIds,
+              rankSuggestions: widget.rankSuggestions,
+              // Suggestions, when they order the results (#2348), rank for
+              // the place of the slot being swapped: the dances on both sides
+              // of it, and not the dance being swapped out.
               programContext: PickerProgramContext(
                 programId: program.id,
                 venueId: program.venueId,

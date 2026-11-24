@@ -101,6 +101,7 @@ const _expectedAppScopeTypes = <Type>[
   ShowCustomFiguresScope,
   ShowRepertoireScope,
   SuggestionsEnabledScope,
+  SuggestionsInPerformSwapScope,
   SuggestionSettingsScope,
   CallingCardSettingsScope,
   AggressiveBeatsUpdateScope,
