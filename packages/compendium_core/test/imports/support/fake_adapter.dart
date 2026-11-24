@@ -172,6 +172,13 @@ class FakeSourceAdapter implements SourceAdapter {
       },
       difficultyLevelId: decoded['difficultyLevelId'] as String?,
       mixedLevel: decoded['mixedLevel'] as bool? ?? false,
+      // A record may state a square's kind and repeat order by wire name.
+      squareKind:
+          SquareKind.fromWireName(decoded['squareKind'] as String?) ??
+          SquareKind.main,
+      repeatOrder:
+          SquareRepeatOrder.fromWireName(decoded['repeatOrder'] as String?) ??
+          SquareRepeatOrder.unstated,
       rating: decoded['rating'] as int?,
       authorIds: authorIds,
       figures: figures,

@@ -369,7 +369,8 @@ Each row holds the dance's title, authors and when it was composed, who
 interpreted it and when, type, formation, progression, level, whether it is a
 mixed-level dance and a mixer, status, your star **rating** (empty when
 unrated), tags, tunes, meter, key, its Barnes reference (English dances),
-published sources, hook, calling notes, walkthrough and figures, then one
+a square's kind, repeat order, new partner and whether it is a singing call
+(empty for other types), published sources, hook, calling notes, walkthrough and figures, then one
 column for each custom field with **Include in sharing** on, headed by the
 field's name (a second field with the same name, or one named like a column
 above, is headed `Name (2)`, so importing the file maps every column back to its

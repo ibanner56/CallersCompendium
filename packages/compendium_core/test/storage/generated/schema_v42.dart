@@ -233,6 +233,60 @@ class Dances extends Table with TableInfo {
     $customConstraints: 'NOT NULL DEFAULT \'\'',
     defaultValue: const CustomExpression('\'\''),
   );
+  late final GeneratedColumn<String> squareKind = GeneratedColumn<String>(
+    'square_kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'main\'',
+    defaultValue: const CustomExpression('\'main\''),
+  );
+  late final GeneratedColumn<String> repeatOrder = GeneratedColumn<String>(
+    'repeat_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'unstated\'',
+    defaultValue: const CustomExpression('\'unstated\''),
+  );
+  late final GeneratedColumn<String> repeatOrderText = GeneratedColumn<String>(
+    'repeat_order_text',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'\'',
+    defaultValue: const CustomExpression('\'\''),
+  );
+  late final GeneratedColumn<String> newPartner = GeneratedColumn<String>(
+    'new_partner',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'unstated\'',
+    defaultValue: const CustomExpression('\'unstated\''),
+  );
+  late final GeneratedColumn<String> newPartnerText = GeneratedColumn<String>(
+    'new_partner_text',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'\'',
+    defaultValue: const CustomExpression('\'\''),
+  );
+  late final GeneratedColumn<int> singing = GeneratedColumn<int>(
+    'singing',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT 0 CHECK (singing IN (0, 1))',
+    defaultValue: const CustomExpression('0'),
+  );
   late final GeneratedColumn<String> status = GeneratedColumn<String>(
     'status',
     aliasedName,
@@ -358,6 +412,12 @@ class Dances extends Table with TableInfo {
     musicalKey,
     alternateTitles,
     barnesReference,
+    squareKind,
+    repeatOrder,
+    repeatOrderText,
+    newPartner,
+    newPartnerText,
+    singing,
     status,
     levelId,
     mixedLevel,

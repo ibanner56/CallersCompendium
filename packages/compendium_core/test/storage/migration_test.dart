@@ -1747,6 +1747,93 @@ void main() {
     });
   });
 
+  group('v41 -> v42 upgrade (square dance fields, ADR-007 §8.1)', () {
+    Future<Set<String>> danceColumns(DatabaseConnectionUser db) async => {
+      for (final row
+          in await db
+              .customSelect("SELECT name FROM pragma_table_info('dances')")
+              .get())
+        row.read<String>('name'),
+    };
+
+    const added = {
+      'square_kind',
+      'repeat_order',
+      'repeat_order_text',
+      'new_partner',
+      'new_partner_text',
+      'singing',
+    };
+
+    Future<(sqlite3.Database, CompendiumDatabase)> upgrade(
+      void Function(sqlite3.Database raw) before,
+    ) async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        41,
+      );
+      await historical.customSelect('SELECT 1').get();
+      expect(
+        (await danceColumns(historical)).intersection(added),
+        isEmpty,
+        reason: 'a v41 database has none of the columns',
+      );
+      await historical.close();
+      before(raw);
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+      return (raw, db);
+    }
+
+    test('adds the columns at their defaults, and an existing square reads as '
+        'a main part with nothing stated', () async {
+      final (_, db) = await upgrade(
+        (raw) => raw.execute(
+          "INSERT INTO dances (id, title, form, formation_shape, "
+          "progression, status, created_at, updated_at) "
+          "VALUES ('d1', 'Circle Three Quarters', 'square', 'square', "
+          "'none', 'active', 1700000000, 1700000100)",
+        ),
+      );
+      expect(await danceColumns(db), containsAll(added));
+      final dance = await CompendiumRepositories(
+        db,
+        contraTaxonomy,
+      ).dances.getById('d1');
+      expect(dance, isNotNull);
+      expect(dance!.squareKind, SquareKind.main);
+      expect(dance.repeatOrder, SquareRepeatOrder.unstated);
+      expect(dance.repeatOrderText, '');
+      expect(dance.newPartner, SquareNewPartner.unstated);
+      expect(dance.newPartnerText, '');
+      expect(dance.singing, isFalse);
+      expect(
+        dance.updatedAt,
+        DateTime.fromMillisecondsSinceEpoch(1700000100 * 1000, isUtc: true),
+        reason:
+            'the migration must not touch updated_at, or sync would '
+            'republish every dance',
+      );
+    });
+
+    test('is idempotent over a column that already exists', () async {
+      final (_, db) = await upgrade(
+        (raw) => raw.execute(
+          "ALTER TABLE dances ADD COLUMN square_kind TEXT NOT NULL "
+          "DEFAULT 'main'",
+        ),
+      );
+      expect(await danceColumns(db), containsAll(added));
+    });
+  });
+
   group(
     'v41 -> v42 upgrade (programs.archived_at #2218, calendar_event_key #2352)',
     () {

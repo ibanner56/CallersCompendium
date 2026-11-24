@@ -422,6 +422,14 @@ class DanceEditorForm extends StatelessWidget {
                   controlAffinity: ListTileControlAffinity.leading,
                   contentPadding: EdgeInsets.zero,
                 ),
+                // A square's own fields sit up front for a square, beside the
+                // mixer flag they refine; other forms keep them in More
+                // details, so a form changed and back still shows them
+                // (ADR-007 §8.1).
+                if (controller.showsSquareFieldsUpFront) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  ..._squareFields(context),
+                ],
                 const SizedBox(height: AppSpacing.md),
                 // Progression and Rating share one line when there is room for
                 // all five stars plus Clear beside the dropdown; on a phone the
@@ -1000,6 +1008,93 @@ class DanceEditorForm extends StatelessWidget {
     );
   }
 
+  /// A square dance's own fields (ADR-007 §8.1): what the record holds, how
+  /// its main part is repeated, who the new partner is, and whether it is a
+  /// singing call. A text field describes `other` for the repeat order and
+  /// the new partner, shown only while the dropdown says so.
+  List<Widget> _squareFields(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    Widget otherText({
+      required String key,
+      required LingoTextEditingController textController,
+      required String label,
+    }) => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: AppSpacing.xs),
+        TextFormField(
+          key: ValueKey('$key-field'),
+          controller: textController,
+          // Counted in code units, as the [Dance] constructor bounds it, so
+          // nothing typed is cut on save.
+          inputFormatters: const [
+            CodeUnitLimitInputFormatter(kMaxSquareDetailLength),
+          ],
+          decoration: InputDecoration(labelText: label),
+          onChanged: (_) => controller.onTextEdited(),
+        ),
+        LingoDiscouragedHint(
+          controller: textController,
+          dialect: dialect,
+          fieldKey: key,
+        ),
+      ],
+    );
+    return [
+      EnumDropdown<SquareKind>(
+        fieldKey: 'square-kind',
+        label: l10n.danceEditorSquareKindLabel,
+        value: controller.squareKind,
+        values: SquareKind.values,
+        labelOf: (value) => squareKindLabel(l10n, value),
+        onChanged: controller.setSquareKind,
+      ),
+      const SizedBox(height: AppSpacing.md),
+      EnumDropdown<SquareRepeatOrder>(
+        fieldKey: 'repeat-order',
+        label: l10n.danceEditorRepeatOrderLabel,
+        value: controller.repeatOrder,
+        values: SquareRepeatOrder.values,
+        labelOf: (value) => squareRepeatOrderLabel(l10n, value),
+        onChanged: controller.setRepeatOrder,
+      ),
+      if (controller.repeatOrder == SquareRepeatOrder.other)
+        otherText(
+          key: 'repeat-order-text',
+          textController: controller.repeatOrderTextController,
+          label: l10n.danceEditorRepeatOrderOtherLabel,
+        ),
+      const SizedBox(height: AppSpacing.md),
+      EnumDropdown<SquareNewPartner>(
+        fieldKey: 'new-partner',
+        label: l10n.danceEditorNewPartnerLabel,
+        value: controller.newPartner,
+        values: SquareNewPartner.values,
+        labelOf: (value) => squareNewPartnerLabel(l10n, value, dialect),
+        onChanged: controller.setNewPartner,
+      ),
+      if (controller.newPartner == SquareNewPartner.other)
+        otherText(
+          key: 'new-partner-text',
+          textController: controller.newPartnerTextController,
+          label: l10n.danceEditorNewPartnerOtherLabel,
+        ),
+      // A singing call is a main part (ADR-007 §8.1), so a break or patter
+      // does not offer it; the flag is kept, as every square field is.
+      if (controller.squareKind == SquareKind.main)
+        CheckboxListTile(
+          key: const ValueKey('singing-field'),
+          value: controller.singing,
+          onChanged: (v) => controller.setSinging(v ?? false),
+          title: Text(l10n.danceEditorSingingLabel),
+          subtitle: Text(l10n.danceEditorSingingSubtitle),
+          secondary: const Icon(Icons.music_note_outlined),
+          controlAffinity: ListTileControlAffinity.leading,
+          contentPadding: EdgeInsets.zero,
+        ),
+    ];
+  }
+
   /// The collapsible "More details" drawer (Tier 2). Holds the less-frequently
   /// used metadata; collapsed by default so the always-visible Tier 1 fields
   /// stay above the fold. Its form children stay mounted while collapsed so
@@ -1116,6 +1211,10 @@ class DanceEditorForm extends StatelessWidget {
               const SizedBox(height: AppSpacing.md),
               if (!controller.showsCreditsUpFront) ...[
                 _musicFields(context),
+                const SizedBox(height: AppSpacing.md),
+              ],
+              if (!controller.showsSquareFieldsUpFront) ...[
+                ..._squareFields(context),
                 const SizedBox(height: AppSpacing.md),
               ],
               FieldLabel(l10n.danceEditorTunesLabel),

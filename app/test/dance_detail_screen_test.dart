@@ -3903,6 +3903,103 @@ void main() {
       expect(find.byType(FigureTable), findsOneWidget);
     });
   });
+  group("a square's own fields (ADR-007 §8.1)", () {
+    testWidgets('show for a square, each only when stated', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Circle Three Quarters').copyWith(
+          form: DanceForm.square,
+          squareKind: SquareKind.breakPart,
+          repeatOrder: SquareRepeatOrder.headsHeadsSidesSides,
+          newPartner: SquareNewPartner.other,
+          newPartnerText: 'The original corner',
+          singing: true,
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(find.text('Kind of square: Break'), findsOneWidget);
+      // Only a main part is sung, so a break's stray flag does not show.
+      expect(find.text('Singing call'), findsNothing);
+      expect(
+        find.text('Repeat order: Heads twice, then sides twice'),
+        findsOneWidget,
+      );
+      // The text an `other` stands for, not the word "Other".
+      expect(find.text('New partner: The original corner'), findsOneWidget);
+    });
+
+    testWidgets('a main part shows that it is a singing call', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Sung',
+        ).copyWith(form: DanceForm.square, singing: true),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(find.text('Singing call'), findsOneWidget);
+      expect(find.textContaining('Kind of square'), findsNothing);
+    });
+
+    testWidgets('a main part with nothing stated shows none', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Plain').copyWith(form: DanceForm.square),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      for (final key in [
+        'square-kind',
+        'singing',
+        'repeat-order',
+        'new-partner',
+      ]) {
+        expect(find.byKey(ValueKey('dance-detail-$key')), findsNothing);
+      }
+    });
+
+    testWidgets('another form keeps them but does not show them', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Contra',
+        ).copyWith(repeatOrder: SquareRepeatOrder.allFour, singing: true),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(
+        find.byKey(const ValueKey('dance-detail-repeat-order')),
+        findsNothing,
+      );
+      expect(find.text('Singing call'), findsNothing);
+    });
+
+    testWidgets('the right-hand partner reads in the role terms', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Shadrack').copyWith(
+          form: DanceForm.square,
+          newPartner: SquareNewPartner.rightHandRole2,
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(find.text('New partner: Right-hand robin'), findsOneWidget);
+    });
+  });
+
   group('other titles and the Barnes reference', () {
     testWidgets('show under the title and in their own section', (
       tester,

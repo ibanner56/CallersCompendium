@@ -9075,6 +9075,78 @@ class AppLocalizationsEn extends AppLocalizations {
       'Dancers change partners each time through';
 
   @override
+  String danceDetailSquareField(String field, String value) {
+    return '$field: $value';
+  }
+
+  @override
+  String get danceEditorSquareKindLabel => 'Kind of square';
+
+  @override
+  String get squareKindMain => 'Main part';
+
+  @override
+  String get squareKindBreak => 'Break';
+
+  @override
+  String get squareKindPatter => 'Patter';
+
+  @override
+  String get danceEditorRepeatOrderLabel => 'Repeat order';
+
+  @override
+  String get squareRepeatOrderUnstated => 'Not stated';
+
+  @override
+  String get squareRepeatOrderHeadsHeadsSidesSides =>
+      'Heads twice, then sides twice';
+
+  @override
+  String get squareRepeatOrderHeadsSidesHeadsSides =>
+      'Heads and sides alternating';
+
+  @override
+  String get squareRepeatOrderAllFour => 'Four times, everyone active';
+
+  @override
+  String get squareRepeatOrderOther => 'Other';
+
+  @override
+  String get danceEditorRepeatOrderOtherLabel => 'Repeat order, in your words';
+
+  @override
+  String get danceEditorNewPartnerLabel => 'New partner';
+
+  @override
+  String get squareNewPartnerUnstated => 'Not stated';
+
+  @override
+  String get squareNewPartnerNone => 'Partners stay the same';
+
+  @override
+  String get squareNewPartnerCorner => 'Corner';
+
+  @override
+  String squareNewPartnerRightHand(String role) {
+    return 'Right-hand $role';
+  }
+
+  @override
+  String get squareNewPartnerOpposite => 'Opposite';
+
+  @override
+  String get squareNewPartnerOther => 'Other';
+
+  @override
+  String get danceEditorNewPartnerOtherLabel => 'New partner, in your words';
+
+  @override
+  String get danceEditorSingingLabel => 'Singing call';
+
+  @override
+  String get danceEditorSingingSubtitle => 'The song goes under Tunes';
+
+  @override
   String get danceEditorImproperLabel => 'Starts improper';
 
   @override

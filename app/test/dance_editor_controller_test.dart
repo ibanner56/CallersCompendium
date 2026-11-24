@@ -66,6 +66,96 @@ void main() {
     return false;
   }
 
+  group("a square's own fields (ADR-007 §8.1)", () {
+    test(
+      'load, set, undo and save them; a text is saved only with `other`',
+      () async {
+        final repos = openTestRepositories();
+        final controller = DanceEditorController(
+          repositories: repos,
+          danceId: 'd1',
+          dialects: DialectsByForm.all(Dialect.larksRobins),
+          debounce: testDebounce,
+        );
+        addTearDown(controller.dispose);
+        await controller.load(
+          dance: sampleDance(id: 'd1', title: 'Square').copyWith(
+            form: DanceForm.square,
+            squareKind: SquareKind.patter,
+            repeatOrder: SquareRepeatOrder.other,
+            repeatOrderText: 'Heads once, sides once',
+            singing: true,
+          ),
+          fieldDefs: const [],
+        );
+        expect(controller.showsSquareFieldsUpFront, isTrue);
+        expect(controller.squareKind, SquareKind.patter);
+        expect(controller.repeatOrder, SquareRepeatOrder.other);
+        expect(
+          controller.repeatOrderTextController.text,
+          'Heads once, sides once',
+        );
+        expect(controller.singing, isTrue);
+
+        controller.setNewPartner(SquareNewPartner.other);
+        controller.newPartnerTextController.text = '  The original corner ';
+        controller.setRepeatOrder(SquareRepeatOrder.headsSidesHeadsSides);
+        controller.setSquareKind(SquareKind.main);
+        controller.setSinging(false);
+        var built = controller.buildDance();
+        expect(built.squareKind, SquareKind.main);
+        expect(built.repeatOrder, SquareRepeatOrder.headsSidesHeadsSides);
+        // Off `other`, the text is not saved, but the field still holds it.
+        expect(built.repeatOrderText, '');
+        expect(
+          controller.repeatOrderTextController.text,
+          'Heads once, sides once',
+        );
+        expect(built.newPartner, SquareNewPartner.other);
+        expect(built.newPartnerText, 'The original corner');
+        expect(built.singing, isFalse);
+
+        // Back on `other`, the text is saved again.
+        controller.setRepeatOrder(SquareRepeatOrder.other);
+        expect(
+          controller.buildDance().repeatOrderText,
+          'Heads once, sides once',
+        );
+
+        controller.undo();
+        expect(controller.repeatOrder, SquareRepeatOrder.headsSidesHeadsSides);
+
+        // Kept for another form, so a form changed and back loses nothing.
+        controller.setForm(DanceForm.contra);
+        expect(controller.showsSquareFieldsUpFront, isFalse);
+        built = controller.buildDance();
+        expect(built.repeatOrder, SquareRepeatOrder.headsSidesHeadsSides);
+        expect(built.newPartnerText, 'The original corner');
+      },
+    );
+
+    test('a snapshot round-trips them, as undo and drafts need', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+      controller
+        ..setForm(DanceForm.square)
+        ..setSquareKind(SquareKind.breakPart)
+        ..setNewPartner(SquareNewPartner.corner)
+        ..setSinging(true);
+      controller.repeatOrderTextController.text = 'typed';
+      final snapshot = controller.captureSnapshot();
+
+      final other = await newDanceController(repos);
+      addTearDown(other.dispose);
+      other.applySnapshot(snapshot);
+      expect(other.squareKind, SquareKind.breakPart);
+      expect(other.newPartner, SquareNewPartner.corner);
+      expect(other.singing, isTrue);
+      expect(other.repeatOrderTextController.text, 'typed');
+    });
+  });
+
   group('an undecodable transcription survives editing (#1347)', () {
     /// Loads a dance whose [column] holds text the decoder cannot read.
     /// Parameterised because the figures and tunes preservation rules are two

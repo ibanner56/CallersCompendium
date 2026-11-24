@@ -130,6 +130,46 @@ String progressionLabel(AppLocalizations l10n, Progression p) => switch (p) {
   Progression.other => l10n.commonProgressionOther,
 };
 
+/// What a square dance record holds (ADR-007 §8.1).
+String squareKindLabel(AppLocalizations l10n, SquareKind k) => switch (k) {
+  SquareKind.main => l10n.squareKindMain,
+  SquareKind.breakPart => l10n.squareKindBreak,
+  SquareKind.patter => l10n.squareKindPatter,
+};
+
+/// How a square's main part is repeated (ADR-007 §8.1).
+String squareRepeatOrderLabel(AppLocalizations l10n, SquareRepeatOrder o) =>
+    switch (o) {
+      SquareRepeatOrder.unstated => l10n.squareRepeatOrderUnstated,
+      SquareRepeatOrder.headsHeadsSidesSides =>
+        l10n.squareRepeatOrderHeadsHeadsSidesSides,
+      SquareRepeatOrder.headsSidesHeadsSides =>
+        l10n.squareRepeatOrderHeadsSidesHeadsSides,
+      SquareRepeatOrder.allFour => l10n.squareRepeatOrderAllFour,
+      SquareRepeatOrder.other => l10n.squareRepeatOrderOther,
+    };
+
+/// Who the new partner is each time through a square (ADR-007 §8.1).
+/// [dialect] gives the role term for [SquareNewPartner.rightHandRole2]: the
+/// stored value is role-neutral, as every square selector is. A dialect with
+/// no role terms (the canonical one) reads it in larks and robins, since a
+/// label naming a role token ("role2") means nothing to a reader.
+String squareNewPartnerLabel(
+  AppLocalizations l10n,
+  SquareNewPartner p,
+  Dialect dialect,
+) => switch (p) {
+  SquareNewPartner.unstated => l10n.squareNewPartnerUnstated,
+  SquareNewPartner.none => l10n.squareNewPartnerNone,
+  SquareNewPartner.corner => l10n.squareNewPartnerCorner,
+  SquareNewPartner.rightHandRole2 => l10n.squareNewPartnerRightHand(
+    dialect.roles['role2']?.singular ??
+        Dialect.larksRobins.roles['role2']!.singular,
+  ),
+  SquareNewPartner.opposite => l10n.squareNewPartnerOpposite,
+  SquareNewPartner.other => l10n.squareNewPartnerOther,
+};
+
 String danceStatusLabel(AppLocalizations l10n, DanceStatus s) => switch (s) {
   DanceStatus.active => l10n.commonDanceStatusActive,
   DanceStatus.deprecated => l10n.commonDanceStatusDeprecated,

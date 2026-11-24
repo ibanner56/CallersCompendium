@@ -131,6 +131,12 @@ List<String> csvReservedHeaders(List<AppLocalizations> languages) => [
     l10n.csvColumnMixedLevel,
     l10n.csvColumnRating,
     l10n.csvColumnBarnes,
+    // A square's own columns (ADR-007 §8.1), which the import has no
+    // target for yet.
+    l10n.danceEditorSquareKindLabel,
+    l10n.danceEditorRepeatOrderLabel,
+    l10n.danceEditorNewPartnerLabel,
+    l10n.danceEditorSingingLabel,
     l10n.csvColumnSources,
   ],
   ...csvPhraseLabels,

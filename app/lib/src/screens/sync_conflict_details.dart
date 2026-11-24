@@ -221,6 +221,12 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'musicalKey': l10n.danceEditorMusicalKeyLabel,
         'alternateTitles': l10n.danceEditorAlternateTitlesLabel,
         'barnesReference': l10n.danceEditorBarnesReferenceLabel,
+        'squareKind': l10n.danceEditorSquareKindLabel,
+        'repeatOrder': l10n.danceEditorRepeatOrderLabel,
+        'repeatOrderText': l10n.danceEditorRepeatOrderOtherLabel,
+        'newPartner': l10n.danceEditorNewPartnerLabel,
+        'newPartnerText': l10n.danceEditorNewPartnerOtherLabel,
+        'singing': l10n.danceEditorSingingLabel,
         'difficultyLevelId': l10n.danceEditorLevelLabel,
         'mixedLevel': l10n.commonMixedLevel,
         'mixer': l10n.commonMixer,
@@ -1147,6 +1153,27 @@ class SyncConflictComparison extends StatelessWidget {
           return lookups.venues[value] ?? l10n.syncConflictUnknownItem;
         case 'form':
           return danceFormLabel(l10n, DanceForm.values.byName(value as String));
+        // The square fields (ADR-007 §8.1), as their editor labels say
+        // them; an unknown value (a newer build's) falls through to the
+        // value as sent.
+        case 'squareKind':
+          if (SquareKind.fromWireName(value as String) case final kind?) {
+            return squareKindLabel(l10n, kind);
+          }
+        case 'repeatOrder':
+          if (SquareRepeatOrder.fromWireName(value as String)
+              case final order?) {
+            return squareRepeatOrderLabel(l10n, order);
+          }
+        case 'newPartner':
+          if (SquareNewPartner.fromWireName(value as String)
+              case final partner?) {
+            return squareNewPartnerLabel(
+              l10n,
+              partner,
+              _formDialect(context, DanceForm.square),
+            );
+          }
         case 'progression':
           return progressionLabel(
             l10n,

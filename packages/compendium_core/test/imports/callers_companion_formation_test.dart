@@ -140,6 +140,31 @@ void main() {
     );
   });
 
+  test("a square's SubType names its repeat order (ADR-007 §8.1)", () {
+    expect(
+      map({'Type': 'Square', 'SubType': 'Keeper, H S H S'}).repeatOrder,
+      SquareRepeatOrder.headsSidesHeadsSides,
+    );
+    expect(
+      map({'Type': 'Square', 'SubType': 'Mixer, H H S S'}).repeatOrder,
+      SquareRepeatOrder.headsHeadsSidesSides,
+    );
+    // No order after the comma, or one this reading does not know, states
+    // nothing rather than guessing.
+    for (final subType in ['Keeper', 'Keeper, ', 'Mixer, H S S H']) {
+      expect(
+        map({'Type': 'Square', 'SubType': subType}).repeatOrder,
+        SquareRepeatOrder.unstated,
+        reason: subType,
+      );
+    }
+    // Only a square has a repeat order.
+    expect(
+      map({'Type': 'Contra', 'SubType': 'Keeper, H S H S'}).repeatOrder,
+      SquareRepeatOrder.unstated,
+    );
+  });
+
   test('FormationOther is the detail', () {
     // Levi Jackson Rag; United We Dance.
     expectFormation(

@@ -326,7 +326,9 @@ exceptions: it keeps the dance's **rating** whenever the incoming record
 carries none (*B19 follow-up*, maintainer decision of 2026-10-30, "Keep my
 rating"), and likewise its interpreters, interpretation date, other titles and
 Barnes reference (implementer's call, extending the rating rule to fields most
-sources never carry; the maintainer kept it on 23 November 2026). A value the
+sources never carry; the maintainer kept it on 23 November 2026). Its square
+fields (ADR-007 §8.1) are kept the same way, each while the record leaves it
+at its default (this implementer's call, extending the same rule). A value the
 record does carry replaces the existing one. The record's form still applies,
 so a link to a record of a form other than ECD clears the Barnes reference,
 which only an ECD dance holds. The rule lives in
@@ -640,7 +642,10 @@ declines the collapse.
   would be, so "Sicilian Circle" keeps its shape and unrecognised text is the
   `other` detail with a `cc_unmapped_formation` warning. `FormationOther`, the
   caller's own description of the start, is the detail. A square whose `SubType`
-  starts "Mixer" is a mixer (in a real file only squares have one). A formation
+  starts "Mixer" is a mixer (in a real file only squares have one), and a
+  square's `SubType` names its repeat order after the comma: "H H S S" is
+  `HHSS` and "H S H S" is `HSHS` (ADR-007 §8.1, §12.2); any other wording
+  leaves it unstated. A formation
   type read this way adds no "Type:" line to the calling notes. The CC text
   export, which gives one formation string, keeps the single-string mapping (a set
   shape such as "Proper Triplet" is read as that shape, with the start word as
