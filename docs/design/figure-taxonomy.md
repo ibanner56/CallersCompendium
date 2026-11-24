@@ -2426,8 +2426,9 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     `amount` and `double`, bites a compound of the user's own whose template
     holds such a Rory O'More: it is marked "needs repair" there, and a repair
     that removes or changes the figure drops the value and syncs back. The
-    maintainer accepted that exposure for `amount` (2026-11-12, #2120); no
-    maintainer decision yet covers it for `twoPlaces`.
+    maintainer accepted that exposure for `amount` (2026-11-12, #2120) and
+    for `twoPlaces` (2026-11-24), with no refusal of such templates and no
+    sync capability gate.
   - Migration: none, and no rebuild: a new move, alias and param, nothing
     renamed or removed, so no stored figure changes and every canonical text
     stays as it was. **Older devices (v39)** show a synced `cast` as the bare
