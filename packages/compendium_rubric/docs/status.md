@@ -128,8 +128,8 @@
 > too, and an allemande half turn along a side line leaves each dancer facing
 > the way the turn carried them, so the robins face in after Heather's Hop
 > Redux's allemande left (both user-ruled on #10172; the limits are the
-> agent's calls). Against `rubric` at `bf4b4c06`: 4,064 to 4,065 of 5,258
-> compiled in scope (77.3%), the core set unchanged at 532. Rerouted to
+> agent's calls). Against `rubric` at `064b4256`: 4,072 to 4,073 of 5,257
+> compiled in scope (77.5%), the core set unchanged at 532. Rerouted to
 > Tulsa (4959) now compiles; nothing else changed outcome. Heather's Hop
 > Redux and its alternate still mismatch, at their final half figure eight.
 >
