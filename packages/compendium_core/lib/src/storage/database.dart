@@ -1002,6 +1002,12 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       // upgrade step adds them; this is the only place they are ensured. The
       // step is idempotent; run it on every open.
       if (details.versionNow >= 39) await _ensureV39Schema(createMigrator());
+      // v42 is filling the same way while unreleased: a test build stamped it
+      // before later pieces joined it (alternate titles, the square dance
+      // fields, the program calendar and time columns), and no `onUpgrade`
+      // step runs for a file already at 42, so reading a dance then failed on
+      // a NULL from a missing column. Idempotent; run it on every open.
+      if (details.versionNow >= 42) await _ensureV42Schema(createMigrator());
       // Defensive: guards a hand-rolled DB (e.g. restored from an external
       // backup) that lacks either raw FTS5 table. Creating a missing index
       // alone would silently return incomplete results, so schedule a durable
