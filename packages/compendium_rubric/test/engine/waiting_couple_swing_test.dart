@@ -106,6 +106,37 @@ void main() {
       expect(compile(_dance(havenNotMet())), isA<Compiled>());
     });
 
+    test('a couple alone at an end but not waiting out is left be', () {
+      // Marking the top row out leaves band (1, 2) and the bottom row in none,
+      // but its couple is not waiting out. It is turned to face down, crossed, so
+      // a swing that normalized it would move it.
+      final start = startingFormation(
+        FormationType.dupleImproper,
+        handsFour: 2,
+      );
+      final bottom = start.dancersInRow(3).toList();
+      final normal = normalizeAlongHall(row: 3, facing: Facing.up);
+      final input = start.withUpdates({
+        for (final id in start.dancersInRow(0))
+          id: start.stateOf(id).copyWith(waitingOut: true),
+        for (final id in bottom)
+          id: start
+              .stateOf(id)
+              .copyWith(
+                position: id.role == Role.lark ? normal.robin : normal.lark,
+                facing: Facing.down,
+              ),
+      });
+      expect(handsFourBands(input).map((b) => b.bottomRow), isNot(contains(3)));
+      final after =
+          (const Swing(who: WhoSet.prevNeighbors).perform(input)
+                  as Ok<Formation, OpError>)
+              .value;
+      for (final id in bottom) {
+        expect(after.stateOf(id), input.stateOf(id), reason: '$id');
+      }
+    });
+
     test('at the top of a Duple Proper set they stand crossed', () {
       // As end normalization leaves a proper couple there (topEndCrossed).
       final start = startingFormation(FormationType.dupleProper, handsFour: 3);
