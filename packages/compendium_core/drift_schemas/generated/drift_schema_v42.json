@@ -319,6 +319,16 @@
             "dsl_features": []
           },
           {
+            "name": "free_form",
+            "getter_name": "freeForm",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "NULL CHECK (free_form IN (0, 1))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
             "name": "status",
             "getter_name": "status",
             "moor_type": "string",

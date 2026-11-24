@@ -373,6 +373,7 @@ final Map<String, DataClassification> fieldClassifications = {
   'dances.new_partner': _choreography,
   'dances.new_partner_text': _choreography,
   'dances.singing': _choreography,
+  'dances.free_form': _choreography,
   'dances.status': _choreography,
   'dances.level_id': _key,
   'dances.mixed_level': _choreography,

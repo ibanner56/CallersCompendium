@@ -51,6 +51,7 @@ const _danceFields = [
     'dances.new_partner',
   ]),
   SyncWireField('singing', ['dances.singing']),
+  SyncWireField('freeForm', ['dances.free_form']),
   SyncWireField('status', ['dances.status']),
   SyncWireField('difficultyLevelId', ['dances.level_id']),
   SyncWireField('mixedLevel', ['dances.mixed_level']),

@@ -39,7 +39,10 @@ List<String> danceCardMetaLines(
       dance.status != DanceStatus.active &&
       _has(statusLabel))
     '${labels.labelled(labels.status)}${statusLabel.trim()}',
+  // A free-form square (ADR-007 §8.1) keeps a phrase structure it does not
+  // use, so it prints none.
   if (fields.contains(DanceShareField.phraseStructure) &&
+      !dance.isFreeForm &&
       _has(dance.phraseStructure.raw))
     '${labels.labelled(labels.phrase)}${phraseStructureText(dance.phraseStructure, labels)}',
 ];

@@ -9243,6 +9243,13 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorSingingSubtitle => 'Het lied komt onder Deuntjes';
 
   @override
+  String get danceEditorFreeFormLabel => 'Vrije vorm';
+
+  @override
+  String get danceEditorFreeFormSubtitle =>
+      'Volgt geen frasering: geen frasenamen en geen frasecontrole';
+
+  @override
   String get danceEditorImproperLabel => 'Begint improper';
 
   @override
@@ -10366,6 +10373,17 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get danceEditorLingoStylingHelper =>
       'Bewegingsnamen krijgen een gestippelde onderstreping, roltermen een onderstreping en ontmoedigde termen een doorhaling';
+
+  @override
+  String danceEditorBeatTotalFreeForm(int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: 'Totaal: $total beats',
+      one: 'Totaal: 1 beat',
+    );
+    return '$_temp0';
+  }
 
   @override
   String danceEditorBeatTotal(int total, int expected) {
