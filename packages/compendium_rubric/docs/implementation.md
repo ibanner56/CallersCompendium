@@ -162,7 +162,7 @@ behind §3.5's equality rule.
                                any held progression is overtaken (given up, reported)
                              else, if a progression is held:
                                finishHeldProgression(...) once a whole couple is at an end
-                             if flagged, progressions += progressionCount (counted where flagged, held or not; a flagged diagonal slice counts two)
+                             if flagged, progressions += progressionCount (counted where flagged, held or not; a flagged diagonal slice or diagonal right_left_through counts two)
                         c. Err  -> return CompileError(opIndex, opName, error, warnings)
                         d. Ok   -> state = value
    then            <- a held progression never finished -> heldProgressionUnfinished warning
@@ -214,8 +214,9 @@ diagonal slice is two progressions.)* Tools that trace a dance step by step
   sent out.
 - **A reaching figure that is also flagged advances twice.** Stepping out to the
   next neighbours is itself movement along the set; the flag names more.
-  `slide_along_set` and `slice` are exempt via `isItsOwnProgression`, because
-  for them the displacement *is* the progression.
+  `slide_along_set`, `slice` and a diagonal `right_left_through` are exempt
+  via `isItsOwnProgression`, because for them the displacement *is* the
+  progression.
 
 ### 4.3 `Operation.apply` — `ops/operation.dart`
 
@@ -634,8 +635,9 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > `slide_along_set` sliding left, or a `slice` left (which lands exactly like
 > one, user-ruled 2026-11-22), progresses; otherwise the **first diagonal
 > `chain` or `pass_through` along the set** does (user-ruled 2026-11-23: a
-> Becket progression is the obvious move), and only a Becket dance with
-> neither falls back to the last figure. A `modifier` is read by its main
+> Becket progression is the obvious move), or a diagonal `right_left_through`
+> (agent's call 2026-11-24, by analogy with the diagonal chain), and only a
+> Becket dance with none of these falls back to the last figure. A `modifier` is read by its main
 > figure for both Becket rules, so "slice left while partner roll away"
 > opening the dance progresses there (user-ruled 2026-11-23: a modifier's
 > progression is its main figure's). (Core's `slide_along_set.slide` and
@@ -877,7 +879,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,480 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,491 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,
@@ -941,7 +943,8 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
   for the whole hands four, and hall figures led by a pair relation
   (`partners`) or ending `turnCouple`.
 - **Deferred param values inside implemented figures** raise
-  `unsupportedParam` — notably diagonal and `along` `right_left_through`,
+  `unsupportedParam` — notably `along` `right_left_through` and a diagonal one
+  with couples already waiting out,
   `chain dir:along`, `swing where:center`, `long_lines goBack:false`, and
   `hey`'s partial lengths and non-`across` `dir`, and a `circular_hey` `who2`
   reaching another hands four (`shadows` there is a parse-time deferral), and
@@ -952,8 +955,9 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
   `forward_and_back` outside long lines, a `figure_8` marked `double`, and a
   `circle` or `star` whose `places` is stated `unspecified`.
 - **`hey` diagonals are blocked on a decision:** the user asked for them to follow
-  diagonal `right_left_through`, which **is not implemented**. That figure must
-  land first.
+  diagonal `right_left_through`. That figure is now built (agent's call,
+  2026-11-24, not yet ratified); diagonal `hey` stays deferred until it is made
+  to agree with it.
 - `FormLongWaves.hand` **without** `whom` currently asserts nothing falsifiable.
   Deliberate and documented in its test; revisit if a record turns up that means
   something by it.

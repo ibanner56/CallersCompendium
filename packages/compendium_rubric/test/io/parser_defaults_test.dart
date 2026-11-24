@@ -134,6 +134,21 @@ void main() {
     });
   });
 
+  test('right_left_through takes the diagonal spellings chain takes', () {
+    for (final (raw, key) in [
+      ('left_diagonal', 'leftDiagonal'),
+      ('leftDiagonal', 'leftDiagonal'),
+      ('right_diagonal', 'rightDiagonal'),
+      ('across', 'across'),
+    ]) {
+      expect(
+        parseFigure('right_left_through', {'where': raw}),
+        RightLeftThrough(dir: key),
+        reason: raw,
+      );
+    }
+  });
+
   group('same-typed parameters are not crossed', () {
     // These figures carry two or more parameters of the same type. A builder
     // that read `who2` from the `who` key would still pass the defaults table
