@@ -332,10 +332,15 @@ class _FromImageState extends State<_FromImage> {
             maxBytes: kMaxRecognitionImageBytes,
           );
         } on PhotoCaptureException catch (e) {
-          // diagnostics: silent — an expected refusal, shown inline as the size message
-          throw TextRecognitionException(switch (e.reason) {
-            PhotoCaptureFailure.tooLarge => TextRecognitionFailure.tooLarge,
-          });
+          // diagnostics: silent — an expected refusal, shown inline below
+          switch (e.reason) {
+            case PhotoCaptureFailure.tooLarge:
+              throw const TextRecognitionException(
+                TextRecognitionFailure.tooLarge,
+              );
+            case PhotoCaptureFailure.accessDenied:
+              throw const _CameraOff();
+          }
         }
     }
   }
@@ -350,6 +355,7 @@ class _FromImageState extends State<_FromImage> {
       _error = null;
     });
     TextRecognitionFailure? failure;
+    var cameraOff = false;
     try {
       final bytes = await _bytesFrom(source);
       if (bytes == null) return;
@@ -363,6 +369,9 @@ class _FromImageState extends State<_FromImage> {
     } on TextRecognitionException catch (e) {
       // diagnostics: silent — an expected refusal (size, no text, unreadable), shown inline below
       failure = e.reason;
+    } on _CameraOff {
+      // diagnostics: silent — camera access is off by the user's choice, shown inline below
+      cameraOff = true;
     } on Object catch (e, stack) {
       // The picker, the file read or the engine failed in a way none of the
       // refusals above names: say reading failed rather than nothing.
@@ -372,7 +381,11 @@ class _FromImageState extends State<_FromImage> {
       if (mounted) {
         setState(() {
           _busy = null;
-          _error = failure == null ? null : _message(failure);
+          _error = cameraOff
+              ? AppLocalizations.of(context).figureTextSheetCameraOff
+              : failure == null
+              ? null
+              : _message(failure);
         });
       }
     }
@@ -484,6 +497,11 @@ class _FromImageState extends State<_FromImage> {
 
 /// Where a picture comes from.
 enum _ImageSource { file, camera }
+
+/// Camera access is off for the app, so no photo was taken.
+class _CameraOff implements Exception {
+  const _CameraOff();
+}
 
 /// One line of the preview: the text as read, and what it gives.
 class _LinePreview extends StatelessWidget {

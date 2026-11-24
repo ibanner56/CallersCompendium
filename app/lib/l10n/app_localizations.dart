@@ -14701,7 +14701,13 @@ abstract class AppLocalizations {
   /// **'Take a photo'**
   String get figureTextSheetTakePhoto;
 
-  /// Label of the From an image… button while the chosen picture's text is being read on the device.
+  /// Error under the Take a photo button on iPhone and iPad when the user has turned camera access off for the app (or a device policy has), so the camera did not open. Settings app is the iOS Settings app.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera access is off for Caller\'s Compendium. To take a photo, turn it on in the Settings app.'**
+  String get figureTextSheetCameraOff;
+
+  /// Label of the From an image… or Take a photo button while the chosen picture's or the new photo's text is being read on the device.
   ///
   /// In en, this message translates to:
   /// **'Reading the picture…'**

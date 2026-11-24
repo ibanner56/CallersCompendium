@@ -9682,6 +9682,10 @@
   "@figureTextSheetTakePhoto": {
     "x-sourceSha256": "996e6a73eaebe70299816a9a45e7e3500ea67c91cd79d32a4db00cd843c66285"
   },
+  "figureTextSheetCameraOff": "Caller's Compendium のカメラへのアクセスがオフになっています。写真を撮るには、「設定」アプリでオンにしてください。",
+  "@figureTextSheetCameraOff": {
+    "x-sourceSha256": "b3137ffbc39ab7a39fe6ad06a490bb1ed2ae15728d8a11625dda3bd3724d79e2"
+  },
   "figureTextSheetReadingImage": "画像を読み取り中…",
   "@figureTextSheetReadingImage": {
     "x-sourceSha256": "be307d1b34cfc5f81c61c434df7f63403aa59cb2851ebd760f9d031319d2361b"

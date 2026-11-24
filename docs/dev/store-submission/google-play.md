@@ -165,7 +165,8 @@ any track (including testing) can go live. Answers are drafted in
   `https` app link, so there is no Digital Asset Links file to publish, and no
   `CAMERA` permission to declare. **Take a photo** (#2328) is iOS only, so the
   Android build offers no camera feature; `app/test/photo_capture_test.dart`
-  fails if any Android manifest in the app declares `CAMERA`. The
+  fails if the app's own Android manifests, or the manifest of any Android
+  plugin it links (both are merged into the build), declare `CAMERA`. The
   `image_picker` plugin adds a file provider and a disabled photo-picker
   service to the merged manifest, but no permission.
 

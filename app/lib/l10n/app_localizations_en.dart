@@ -9898,6 +9898,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get figureTextSheetTakePhoto => 'Take a photo';
 
   @override
+  String get figureTextSheetCameraOff =>
+      'Camera access is off for Caller\'s Compendium. To take a photo, turn it on in the Settings app.';
+
+  @override
   String get figureTextSheetReadingImage => 'Reading the picture…';
 
   @override

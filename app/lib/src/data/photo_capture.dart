@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -11,15 +12,19 @@ import 'package:path/path.dart' as p;
 /// scanner (#2336). The photo is read once and its file deleted at once, so
 /// no photo outlives the call.
 
-/// Longest side of a captured photo, in pixels. The system camera scales the
-/// photo down to this before handing it over; the recognizer reads no more
-/// than this anyway.
+/// Longest side of a captured photo, in pixels. The camera plugin redraws
+/// and re-encodes the photo (JPEG) to at most this before handing it over;
+/// the recognizer reads no more than this anyway.
 const double kCapturedPhotoMaxSide = 4096;
 
 /// Why a captured photo could not be handed over.
 enum PhotoCaptureFailure {
   /// The photo file is larger than the caller's byte cap.
   tooLarge,
+
+  /// The user turned camera access off for the app (or a device policy
+  /// does): the camera never opened.
+  accessDenied,
 }
 
 /// A photo that was taken but could not be handed over, and why.
@@ -42,7 +47,9 @@ abstract interface class PhotoCaptureService {
 }
 
 /// The system camera through `image_picker`: no in-app preview, so no camera
-/// code of our own and, on Android, no `CAMERA` permission.
+/// code of our own. Its photo files are found and deleted as the iOS plugin
+/// names them (see [deleteCapturedPhoto]); a platform whose plugin names or
+/// places them otherwise needs its own matcher before it is offered.
 class SystemCameraPhotoCapture implements PhotoCaptureService {
   SystemCameraPhotoCapture({
     Future<XFile?> Function()? capture,
@@ -59,14 +66,27 @@ class SystemCameraPhotoCapture implements PhotoCaptureService {
     source: ImageSource.camera,
     maxWidth: kCapturedPhotoMaxSide,
     maxHeight: kCapturedPhotoMaxSide,
-    // Full metadata would ask for photo-library access on iOS; the photo is
+    // Full metadata means a photo-library lookup the photo is not in; it is
     // read for its pixels only.
     requestFullMetadata: false,
   );
 
+  /// The iOS plugin's error codes for camera access that is off.
+  static const _accessDeniedCodes = {
+    'camera_access_denied',
+    'camera_access_restricted',
+  };
+
   @override
   Future<Uint8List?> takePhoto({required int maxBytes}) async {
-    final file = await _capture();
+    final XFile? file;
+    try {
+      file = await _capture();
+    } on PlatformException catch (e) {
+      if (!_accessDeniedCodes.contains(e.code)) rethrow;
+      // diagnostics: silent — the user's own choice, shown inline with how to undo it
+      throw const PhotoCaptureException(PhotoCaptureFailure.accessDenied);
+    }
     if (file == null) return null;
     try {
       if (await file.length() > maxBytes) {
@@ -82,10 +102,11 @@ class SystemCameraPhotoCapture implements PhotoCaptureService {
   }
 }
 
-/// Deletes [path] when it is one of the camera plugin's own photo files: an
-/// `image_picker_…` file directly in [temporaryDirectory] (on iOS, the
-/// app's tmp folder), links resolved on both sides. Any other path is left
-/// alone.
+/// Deletes [path] when it is one of the iOS camera plugin's own photo files:
+/// an `image_picker_…` file directly in [temporaryDirectory] (the app's tmp
+/// folder), links resolved on both sides. Any other path is left alone; the
+/// Android plugin names and places its files otherwise, so this matcher is
+/// for iOS only.
 @visibleForTesting
 Future<void> deleteCapturedPhoto(
   String path, {

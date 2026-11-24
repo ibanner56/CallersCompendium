@@ -10031,6 +10031,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get figureTextSheetTakePhoto => 'Foto aufnehmen';
 
   @override
+  String get figureTextSheetCameraOff =>
+      'Der Kamerazugriff ist für Caller\'s Compendium ausgeschaltet. Um ein Foto aufzunehmen, schalten Sie ihn in der App „Einstellungen“ ein.';
+
+  @override
   String get figureTextSheetReadingImage => 'Bild wird gelesen…';
 
   @override

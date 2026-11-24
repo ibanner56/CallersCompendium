@@ -157,11 +157,16 @@ Internal testing (≤100 teammates, instant) is already live. "Open beta" is
   `app/ios/Runner/Info.plist` says why. The prompt appears the first time a
   user taps **Take a photo**, never at launch. The photo is read on the device
   and deleted, so the App Privacy answers do not change
-  ([`listing-copy.md`](listing-copy.md#app-privacy-apple)). Confirm no other
+  ([`listing-copy.md`](listing-copy.md#app-privacy-apple)).
+  `NSPhotoLibraryUsageDescription` is there too, although the app never asks
+  for the photo library: `image_picker` links the Photos API, and App Store
+  review rejects a binary that links it without the string. Confirm no other
   prompt is triggered (no mic/location/contacts/photo library); if a plugin
   adds one, add the matching `Info.plist` purpose string or the build is
-  rejected. `app/test/photo_capture_test.dart` fails if the camera string is
-  removed. A dance's QR code is
+  rejected. `app/test/photo_capture_test.dart` fails if either string is
+  removed. On a Mac running the iPad app, **Take a photo** finds no camera and
+  the plugin shows its own "Camera not available" alert; keep that in mind
+  before offering the iPad app on Apple silicon Macs. A dance's QR code is
   read by the system **Camera** app, not by ours: it opens the app through the
   `ccdance` URL scheme in `Info.plist` (#2335), which needs no permission and no
   review note.

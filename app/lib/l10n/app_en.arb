@@ -13107,9 +13107,13 @@
   "@figureTextSheetTakePhoto": {
     "description": "Button in the Add figures from text sheet, beside From an image…, that opens the camera to photograph an index card or a book page; the photo's text is read on the device and put in the text box, and the photo is not kept. Shown only on iPhone and iPad."
   },
+  "figureTextSheetCameraOff": "Camera access is off for Caller's Compendium. To take a photo, turn it on in the Settings app.",
+  "@figureTextSheetCameraOff": {
+    "description": "Error under the Take a photo button on iPhone and iPad when the user has turned camera access off for the app (or a device policy has), so the camera did not open. Settings app is the iOS Settings app."
+  },
   "figureTextSheetReadingImage": "Reading the picture…",
   "@figureTextSheetReadingImage": {
-    "description": "Label of the From an image… button while the chosen picture's text is being read on the device."
+    "description": "Label of the From an image… or Take a photo button while the chosen picture's or the new photo's text is being read on the device."
   },
   "figureTextSheetImageUnavailable": "This device can't read text from pictures in the app's language or in English.",
   "@figureTextSheetImageUnavailable": {

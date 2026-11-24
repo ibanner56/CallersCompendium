@@ -9939,6 +9939,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get figureTextSheetTakePhoto => 'Tag et billede';
 
   @override
+  String get figureTextSheetCameraOff =>
+      'Kameraadgang er slået fra for Caller\'s Compendium. Slå den til i appen Indstillinger for at tage et billede.';
+
+  @override
   String get figureTextSheetReadingImage => 'Læser billedet…';
 
   @override

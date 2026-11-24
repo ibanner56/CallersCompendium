@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_app/src/data/photo_capture.dart';
@@ -5,6 +6,7 @@ import 'package:compendium_app/src/data/text_recognition.dart';
 import 'package:compendium_app/src/widgets/figure_text_sheet.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -170,6 +172,63 @@ void main() {
       expect(tester.widget<ButtonStyleButton>(_takePhoto).onPressed, isNotNull);
     });
 
+    testWidgets('with camera access off, it says how to turn it on', (
+      tester,
+    ) async {
+      final recognizer = _FakeRecognizer();
+      await _pumpSheet(
+        tester,
+        recognizer: recognizer,
+        camera: _FakeCamera(
+          () async => throw const PhotoCaptureException(
+            PhotoCaptureFailure.accessDenied,
+          ),
+        ),
+      );
+      await tester.tap(_takePhoto);
+      await tester.pumpAndSettle();
+      expect(recognizer.recognized, isEmpty);
+      expect(
+        find.text(
+          "Camera access is off for Caller's Compendium. To take a photo, "
+          'turn it on in the Settings app.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    for (final (platform, offered) in [
+      (TargetPlatform.iOS, true),
+      (TargetPlatform.macOS, false),
+    ]) {
+      testWidgets('with no camera supplied, ${platform.name} '
+          '${offered ? 'offers' : 'does not offer'} Take a photo', (
+        tester,
+      ) async {
+        debugDefaultTargetPlatformOverride = platform;
+        addTearDown(() => debugDefaultTargetPlatformOverride = null);
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              body: TextRecognitionScope(
+                service: _FakeRecognizer(),
+                pickImage: () async => null,
+                child: FigureTextSheet(
+                  read: (_) => const FigureTextReading(lines: []),
+                  dropsPhraseLabels: true,
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(_takePhoto, offered ? findsOneWidget : findsNothing);
+        debugDefaultTargetPlatformOverride = null;
+      });
+    }
+
     testWidgets('without a camera, only From an image… is offered', (
       tester,
     ) async {
@@ -252,6 +311,35 @@ void main() {
         throwsA(isA<FileSystemException>()),
       );
       expect(photo.existsSync(), isFalse);
+    });
+
+    for (final code in ['camera_access_denied', 'camera_access_restricted']) {
+      test('$code reads as camera access off', () async {
+        final camera = SystemCameraPhotoCapture(
+          capture: () async => throw PlatformException(code: code),
+        );
+        await expectLater(
+          camera.takePhoto(maxBytes: 1024),
+          throwsA(
+            isA<PhotoCaptureException>().having(
+              (e) => e.reason,
+              'reason',
+              PhotoCaptureFailure.accessDenied,
+            ),
+          ),
+        );
+      });
+    }
+
+    test('another camera error is passed on as it is', () async {
+      final camera = SystemCameraPhotoCapture(
+        capture: () async =>
+            throw PlatformException(code: 'no_available_camera'),
+      );
+      await expectLater(
+        camera.takePhoto(maxBytes: 1024),
+        throwsA(isA<PlatformException>()),
+      );
     });
 
     test('a cancelled camera returns null and deletes nothing', () async {
@@ -369,13 +457,54 @@ void main() {
       }
     });
 
-    test('iOS says why it asks for the camera', () {
-      final plist = File('ios/Runner/Info.plist').readAsStringSync();
-      final match = RegExp(
-        r'<key>NSCameraUsageDescription</key>\s*<string>([^<]+)</string>',
-      ).firstMatch(plist);
-      expect(match, isNotNull);
-      expect(match!.group(1)!.trim(), isNotEmpty);
+    test('no Android plugin the app links declares the CAMERA permission '
+        'either, since its manifest is merged into the app', () {
+      // Written by `flutter pub get`; fail rather than pass when it is absent.
+      final dependencies = File('.flutter-plugins-dependencies');
+      expect(dependencies.existsSync(), isTrue);
+      final plugins =
+          (jsonDecode(dependencies.readAsStringSync())
+                  as Map<String, dynamic>)['plugins']['android']
+              as List<dynamic>;
+      final manifests = [
+        for (final plugin in plugins.cast<Map<String, dynamic>>())
+          File(
+            p.join(
+              plugin['path'] as String,
+              'android',
+              'src',
+              'main',
+              'AndroidManifest.xml',
+            ),
+          ),
+      ].where((f) => f.existsSync()).toList();
+      expect(
+        manifests.map((f) => f.path),
+        contains(contains('image_picker_android')),
+      );
+      for (final manifest in manifests) {
+        expect(
+          manifest.readAsStringSync(),
+          isNot(contains('android.permission.CAMERA')),
+          reason: manifest.path,
+        );
+      }
     });
+
+    for (final key in [
+      'NSCameraUsageDescription',
+      // Never asked for (the camera path needs no library access), but the
+      // camera plugin links the Photos API, so App Store review requires it.
+      'NSPhotoLibraryUsageDescription',
+    ]) {
+      test('iOS has a $key purpose string', () {
+        final plist = File('ios/Runner/Info.plist').readAsStringSync();
+        final match = RegExp(
+          '<key>$key</key>\\s*<string>([^<]+)</string>',
+        ).firstMatch(plist);
+        expect(match, isNotNull);
+        expect(match!.group(1)!.trim(), isNotEmpty);
+      });
+    }
   });
 }
