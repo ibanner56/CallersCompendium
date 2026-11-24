@@ -9912,6 +9912,109 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceEditorAddSequence => 'Sequenz hinzufügen';
 
   @override
+  String get danceEditorAddFiguresFromText => 'Figuren aus Text hinzufügen…';
+
+  @override
+  String get figureTextSheetTitle => 'Figuren aus Text hinzufügen';
+
+  @override
+  String get figureTextSheetHelp =>
+      'Geben Sie eine Figur pro Zeile ein oder fügen Sie sie ein, z. B. „(8) neighbor balance & swing“. Jede Zeile wird so gelesen, wie das Bewegungsfeld eine eingegebene Zeile bei eingeschalteter Freitexteingabe liest, auch wenn sie ausgeschaltet ist. Nichts wird gespeichert, bevor Sie den Tanz speichern.';
+
+  @override
+  String get figureTextSheetHelpDropsLabels =>
+      'Geben Sie eine Figur pro Zeile ein oder fügen Sie sie ein, z. B. „A1 (8) neighbor balance & swing“. Eine Phrasenbezeichnung wie A1 am Zeilenanfang wird weggelassen, und jede Zeile wird so gelesen, wie das Bewegungsfeld eine eingegebene Zeile bei eingeschalteter Freitexteingabe liest, auch wenn sie ausgeschaltet ist. Nichts wird gespeichert, bevor Sie den Tanz speichern.';
+
+  @override
+  String get figureTextSheetFieldLabel => 'Figuren, eine pro Zeile';
+
+  @override
+  String figureTextSheetSummary(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString Figuren zum Hinzufügen',
+      one: '1 Figur zum Hinzufügen',
+      zero: 'Noch keine Figuren zum Hinzufügen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String figureTextSheetUnrecognizedSummary(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$countString Zeilen werden nicht erkannt. Sie werden als nicht erkannte Figuren mit ihrem Text hinzugefügt, damit Sie sie korrigieren können.',
+      one:
+          '1 Zeile wird nicht erkannt. Sie wird als nicht erkannte Figur mit ihrem Text hinzugefügt, damit Sie sie korrigieren können.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String figureTextSheetLineFigures(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString Figuren',
+      one: '1 Figur',
+      zero: 'Keine Figur',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get figureTextSheetLineUnrecognized =>
+      'Nicht erkannt: wird als nicht erkannte Figur hinzugefügt';
+
+  @override
+  String figureTextSheetTooLong(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'Das sind mehr als $maxString Zeichen, mehr als auf einmal gelesen werden kann. Es wird nichts hinzugefügt. Fügen Sie den Text in Teilen hinzu.';
+  }
+
+  @override
+  String figureTextSheetTooManyLines(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'Das sind mehr als $maxString Zeilen, mehr als auf einmal gelesen werden kann. Es wird nichts hinzugefügt. Fügen Sie den Text in Teilen hinzu.';
+  }
+
+  @override
+  String figureTextSheetLineTooLong(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'Eine Zeile ist länger als $maxString Zeichen, mehr als als eine Figurenzeile gelesen werden kann. Es wird nichts hinzugefügt. Teilen Sie sie in mehrere Zeilen auf.';
+  }
+
+  @override
+  String get figureTextSheetAdd => 'Figuren hinzufügen';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList =>
       'Am Ende der Figurenliste einfügen';
 

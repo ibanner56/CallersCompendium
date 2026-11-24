@@ -1557,7 +1557,7 @@ and `barWords`, in the export's languages and English), so `(3 places)` stays
 in the figure; a count in bars is left to the figure's default. A Level cell
 resolves through `CsvValueVocabulary.levels`, the caller's configured levels by
 their own and localized label, into `difficultyLevelId`. Authors go through
-`splitAuthorNames`; tags and tunes split on commas (tunes also on semicolons and line breaks) through `splitNameList` (`csv/csv_name_list.dart`), which reads `\,` as a comma and `\\` as a backslash in a name, as the dances export writes them (`joinNameList`); any other backslash stays literal. A sheet written before the escape reads the same unless a name held a backslash beside a comma or another backslash. Only the comma is escapable, so a tune name with `;` or a line break still splits. A value that does not fit
+`splitAuthorNames(backslashEscapes: true)`, which skips a `\,` in its comma pass (suffix protection and the word and symbol delimiters are unchanged) and unescapes `\,` and `\\` in each name afterwards; the option is the CSV import's alone, every other importer reads a backslash literally, and a cell with no backslash splits as it did. The escape protects the comma only, so an author named with `and`, `with`, `&`, `/`, `+` or `;` still splits. The export writes the authors and interpreters columns through `joinNameList` too, though the import has no interpreters target, so that column is not read back; the escape keeps the list columns in one format. Suffix protection still applies after an unescaped comma, so separate authors `Doe` and `Sr` export as `Doe, Sr` and read back as one. A field cut at the 500-character cap can end in a lone backslash, kept literally. Tags and tunes split on commas (tunes also on semicolons and line breaks) through `splitNameList` (`csv/csv_name_list.dart`), which reads `\,` as a comma and `\\` as a backslash in a name, as the dances export writes them (`joinNameList`); any other backslash stays literal. A sheet written before the escape reads the same unless a name held a backslash beside a comma or another backslash. Only the comma is escapable, so a tune name with `;` or a line break still splits. A value that does not fit
 its field, and a second column for a single-valued field (everything but
 figures, authors, tags, tunes and notes) once an earlier column's value has
 filled it, is appended to the calling notes as
@@ -1791,6 +1791,19 @@ has to be judged in its own context.
   `custom` directly. It runs **after** dialect scrubbing (`scrubFigureText` →
   `canonicalizeText(…, Dialect.canonical)` + the `gypsy`→`shoulder round`
   safety net), so recognition sees canonical `role1`/`role2` tokens.
+- **In the dance editor**, `parseFreeTextFigureEntry`
+  (`imports/free_text_entry.dart`) wraps the same parser with counts, `;`
+  clauses and the user's shorthands. It reads one line typed into the Move
+  box with Free-text entry on, and each line of the **Add figures from text**
+  sheet (#2326), whether or not that setting is on. The sheet splits its text
+  with `splitFigureTextLines` (`imports/figure_text_lines.dart`), which refuses
+  text over `maxFigureTextLines` lines, `maxFigureTextLength` characters, or a
+  line over `maxFreeTextEntryLength` (which the parser would read as nothing),
+  skips a line that is only a phrase label, and, in a contra dance, drops a
+  leading `A1`…`C2` label with `splitPhraseLabel`, the splitter the Caller's
+  Companion text adapter reads its sections with. English and square dances
+  keep the label: the ECD bar reader drops one only in front of a bar range
+  (`A1 1-8 lead up`), and other labelled lines stay custom.
 - **Conservative, whole-line, single-move matching.** A line structures only
   when exactly one covered move plus its recognized modifiers (dancer set,
   direction, hand/shoulder, rotation/fraction, places) account for the *entire*

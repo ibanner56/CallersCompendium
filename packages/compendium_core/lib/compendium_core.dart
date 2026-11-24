@@ -65,6 +65,7 @@ export 'src/imports/ecd_formation.dart';
 export 'src/imports/ecd_migration.dart';
 export 'src/imports/figure_parser.dart';
 export 'src/imports/figure_front_end_fan_out.dart';
+export 'src/imports/figure_text_lines.dart';
 export 'src/imports/figure_text_scrub.dart';
 export 'src/imports/free_text_entry.dart'
     show

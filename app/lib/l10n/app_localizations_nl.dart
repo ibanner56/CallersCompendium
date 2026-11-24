@@ -9881,6 +9881,109 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorAddSequence => 'Reeks toevoegen';
 
   @override
+  String get danceEditorAddFiguresFromText => 'Figuren toevoegen uit tekst…';
+
+  @override
+  String get figureTextSheetTitle => 'Figuren toevoegen uit tekst';
+
+  @override
+  String get figureTextSheetHelp =>
+      'Typ of plak één figuur per regel, bijvoorbeeld “(8) neighbor balance & swing”. Elke regel wordt gelezen zoals het bewegingsveld een getypte regel leest met vrije tekstinvoer aan, ook als die uit staat. Er wordt niets bewaard voordat je de dans bewaart.';
+
+  @override
+  String get figureTextSheetHelpDropsLabels =>
+      'Typ of plak één figuur per regel, bijvoorbeeld “A1 (8) neighbor balance & swing”. Een fraselabel zoals A1 aan het begin van een regel wordt weggelaten, en elke regel wordt gelezen zoals het bewegingsveld een getypte regel leest met vrije tekstinvoer aan, ook als die uit staat. Er wordt niets bewaard voordat je de dans bewaart.';
+
+  @override
+  String get figureTextSheetFieldLabel => 'Figuren, één per regel';
+
+  @override
+  String figureTextSheetSummary(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString figuren om toe te voegen',
+      one: '1 figuur om toe te voegen',
+      zero: 'Nog geen figuren om toe te voegen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String figureTextSheetUnrecognizedSummary(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$countString regels worden niet herkend. Die worden toegevoegd als niet-herkende figuren met hun tekst, zodat je ze kunt verbeteren.',
+      one:
+          '1 regel wordt niet herkend. Die wordt toegevoegd als niet-herkende figuur met de tekst, zodat je die kunt verbeteren.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String figureTextSheetLineFigures(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString figuren',
+      one: '1 figuur',
+      zero: 'Geen figuur',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get figureTextSheetLineUnrecognized =>
+      'Niet herkend: toegevoegd als niet-herkende figuur';
+
+  @override
+  String figureTextSheetTooLong(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'Dit is meer dan $maxString tekens, meer dan in één keer gelezen kan worden. Er wordt niets toegevoegd. Voeg het in delen toe.';
+  }
+
+  @override
+  String figureTextSheetTooManyLines(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'Dit is meer dan $maxString regels, meer dan in één keer gelezen kan worden. Er wordt niets toegevoegd. Voeg het in delen toe.';
+  }
+
+  @override
+  String figureTextSheetLineTooLong(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'Een regel is langer dan $maxString tekens, meer dan als één figuurregel gelezen kan worden. Er wordt niets toegevoegd. Verdeel hem over meer regels.';
+  }
+
+  @override
+  String get figureTextSheetAdd => 'Figuren toevoegen';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList =>
       'Plakken aan het einde van de figurenlijst';
 

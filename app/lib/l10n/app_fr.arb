@@ -9610,6 +9610,58 @@
   "@danceEditorAddSequence": {
     "x-sourceSha256": "03eceea4c67a68c21df3c37e508ebcb7953259ba78fcf81694c9e9680b075ff1"
   },
+  "danceEditorAddFiguresFromText": "Ajouter des figures depuis un texte…",
+  "@danceEditorAddFiguresFromText": {
+    "x-sourceSha256": "f840eaad641ce0221ff1bcd48e035bde5406dc6076eacf3467fe88612c0c2380"
+  },
+  "figureTextSheetTitle": "Ajouter des figures depuis un texte",
+  "@figureTextSheetTitle": {
+    "x-sourceSha256": "16fe82c061e1e702e837551405086ab2837909dd63cca58d58f9203a4325a493"
+  },
+  "figureTextSheetHelp": "Saisissez ou collez une figure par ligne, par exemple « (8) neighbor balance & swing ». Chaque ligne est lue comme le champ du mouvement lit une ligne saisie avec la saisie en texte libre activée, même si elle est désactivée. Rien n’est enregistré tant que vous n’avez pas enregistré la danse.",
+  "@figureTextSheetHelp": {
+    "x-sourceSha256": "b70b8b6217d32cf7ede39377160bdf83e8c8bdc955157327c679396a147589ac"
+  },
+  "figureTextSheetHelpDropsLabels": "Saisissez ou collez une figure par ligne, par exemple « A1 (8) neighbor balance & swing ». Une étiquette de phrase comme A1 en début de ligne est ignorée, et chaque ligne est lue comme le champ du mouvement lit une ligne saisie avec la saisie en texte libre activée, même si elle est désactivée. Rien n’est enregistré tant que vous n’avez pas enregistré la danse.",
+  "@figureTextSheetHelpDropsLabels": {
+    "x-sourceSha256": "b7c9b5a463322917bfc2bc008a83faba9c4b6e26fe2ec7f5853b365d025d033e"
+  },
+  "figureTextSheetFieldLabel": "Figures, une par ligne",
+  "@figureTextSheetFieldLabel": {
+    "x-sourceSha256": "cd213fb222337413dbd6b8cf0c55a645a877803a9d514338d72e276d2b8fbf39"
+  },
+  "figureTextSheetSummary": "{count, plural, =0{Aucune figure à ajouter pour l’instant} =1{1 figure à ajouter} other{{count} figures à ajouter}}",
+  "@figureTextSheetSummary": {
+    "x-sourceSha256": "8d628e840de30c093887423e7f1d919896e3bb934d2e8856bdf02ba9d3673733"
+  },
+  "figureTextSheetUnrecognizedSummary": "{count, plural, =1{1 ligne n’est pas reconnue. Elle sera ajoutée comme figure non reconnue avec son texte, pour que vous la corrigiez.} other{{count} lignes ne sont pas reconnues. Elles seront ajoutées comme figures non reconnues avec leur texte, pour que vous les corrigiez.}}",
+  "@figureTextSheetUnrecognizedSummary": {
+    "x-sourceSha256": "c8437f40374bbc82b0a64d4ff94ab7ce5f2748c5d770c23cdbf0dc43431520ac"
+  },
+  "figureTextSheetLineFigures": "{count, plural, =0{Aucune figure} =1{1 figure} other{{count} figures}}",
+  "@figureTextSheetLineFigures": {
+    "x-sourceSha256": "3ec133f2233551118a818c5261143fa56975820a7f6ab52e3ee33ceac9fd3b27"
+  },
+  "figureTextSheetLineUnrecognized": "Non reconnue : ajoutée comme figure non reconnue",
+  "@figureTextSheetLineUnrecognized": {
+    "x-sourceSha256": "bc1388947433658b1995ad75b92db5183b3fcedb17225879f503b202423529e6"
+  },
+  "figureTextSheetTooLong": "Cela dépasse {max} caractères, plus que ce qui peut être lu en une fois. Rien ne sera ajouté. Ajoutez-le en plusieurs fois.",
+  "@figureTextSheetTooLong": {
+    "x-sourceSha256": "7fa1be36660f7294a0e3098d01851077618d38453897a1c033bf072b2b93c5d7"
+  },
+  "figureTextSheetTooManyLines": "Cela dépasse {max} lignes, plus que ce qui peut être lu en une fois. Rien ne sera ajouté. Ajoutez-le en plusieurs fois.",
+  "@figureTextSheetTooManyLines": {
+    "x-sourceSha256": "7905bde0cab940e87a1c4f3d237e0642b7d323190936e1280a368ecf679835cf"
+  },
+  "figureTextSheetLineTooLong": "Une ligne dépasse {max} caractères, plus que ce qui peut être lu comme une ligne de figure. Rien ne sera ajouté. Coupez-la en plusieurs lignes.",
+  "@figureTextSheetLineTooLong": {
+    "x-sourceSha256": "788a83f3a7ef068c39e41cd604a9ce2936d1f2332e956c9d27d823ba1f93a847"
+  },
+  "figureTextSheetAdd": "Ajouter les figures",
+  "@figureTextSheetAdd": {
+    "x-sourceSha256": "5b26f322f63864bc8538081ffb00549cd3359633df43ad71178bdd627f0bd9b7"
+  },
   "danceEditorPasteAtEndOfFigureList": "Coller à la fin de la liste des figures",
   "@danceEditorPasteAtEndOfFigureList": {
     "x-sourceSha256": "5fb0b2b7335edd026fe96ab368850eb36c66826ba99ec38674181575aa24c07c"

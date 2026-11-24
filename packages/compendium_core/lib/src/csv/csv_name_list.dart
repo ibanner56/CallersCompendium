@@ -1,4 +1,5 @@
-/// The `, `-separated name lists in the spreadsheet exports (tags, tunes) and
+/// The `, `-separated name lists in the spreadsheet exports (authors,
+/// interpreters, tags, tunes) and
 /// the way the CSV import reads them back.
 ///
 /// A name that holds a comma would split in two on re-import, so a list writes
@@ -23,6 +24,25 @@ const String csvNameListSeparator = ', ';
 /// [name] with `\` written `\\` and `,` written `\,`.
 String escapeNameListItem(String name) =>
     name.replaceAll(r'\', r'\\').replaceAll(',', r'\,');
+
+/// [name] with `\,` read as a comma and `\\` as a backslash. Any other
+/// backslash stays literal. The reverse of [escapeNameListItem].
+String unescapeNameListItem(String name) {
+  final out = StringBuffer();
+  for (var i = 0; i < name.length; i++) {
+    final c = name[i];
+    if (c == r'\' && i + 1 < name.length) {
+      final next = name[i + 1];
+      if (next == ',' || next == r'\') {
+        out.write(next);
+        i++;
+        continue;
+      }
+    }
+    out.write(c);
+  }
+  return out.toString();
+}
 
 /// [names] escaped by [escapeNameListItem] and joined with
 /// [csvNameListSeparator].

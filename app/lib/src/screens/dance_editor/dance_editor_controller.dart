@@ -2476,6 +2476,12 @@ class DanceEditorController extends ChangeNotifier {
     return true;
   }
 
+  /// Appends [drafts], already built (the **Add figures from text** sheet,
+  /// #2326), at the end of the figure list as one undo step. Returns false,
+  /// changing nothing, when [drafts] is empty.
+  bool appendFigureDrafts(List<FigureDraft> drafts) =>
+      placeShorthandDrafts(drafts);
+
   /// The rows for [figures] parsed from one `;` clause of a shorthand line
   /// (#1866), built as [insertFreeTextFigures] builds them but not inserted:
   /// the caller places them with the line's other clauses through

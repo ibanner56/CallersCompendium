@@ -77,6 +77,7 @@ class FigureListEditor extends StatefulWidget {
     this.moveParamDefaults,
     this.freeTextEntry = false,
     this.onAddFreeText,
+    this.onAddFromText,
     this.freeTextComposerController,
     this.pendingMoveTextController,
     this.onReplaceWithFreeText,
@@ -198,6 +199,12 @@ class FigureListEditor extends StatefulWidget {
   /// list. Only used when [freeTextEntry] is true. A single typed line may yield
   /// more than one figure when it is a `;`-compound.
   final int Function(List<Figure> figures)? onAddFreeText;
+
+  /// Opens the **Add figures from text** sheet (#2326) and resolves to the
+  /// number of rows it added at the end of the list (0 when it was closed
+  /// without adding). Offered in the Add menu whether or not [freeTextEntry]
+  /// is on. Null (the default) offers no such entry.
+  final Future<int> Function()? onAddFromText;
 
   /// Told whether the free-text composer holds a line not yet added, and able
   /// to add it, so the screen can count that line as unsaved and add it on
@@ -654,6 +661,25 @@ class _FigureListEditorState extends State<FigureListEditor>
     widget.onAdd();
   }
 
+  /// Opens the **Add figures from text** sheet (#2326) and, when it added
+  /// rows, announces how many and brings the last of them into view.
+  Future<void> _addFromText(Future<int> Function() onAddFromText) async {
+    if (!widget.allowAdding) return;
+    // A Move box with text in it is settled first, as any other Add does.
+    _pendingMoveText.settle();
+    final added = await onAddFromText();
+    if (!mounted || added <= 0) return;
+    _announce(_l10n.danceEditorFreeTextFinishedAnnouncement(added));
+    if (widget.drafts.isEmpty) return;
+    // The menu item that opened the sheet has gone, so focus goes to the last
+    // row added, as it goes to a new row from the other Add entries.
+    final lastId = widget.drafts.last.id;
+    _ensureVisibleSoon(lastId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _rowFocusNodes[lastId]?.requestFocus();
+    });
+  }
+
   Future<void> _addContainer(Future<String?> Function()? onAdd) async {
     if (!widget.allowAdding || onAdd == null) return;
     final draftId = await onAdd();
@@ -708,9 +734,11 @@ class _FigureListEditorState extends State<FigureListEditor>
             icon: const Icon(Icons.add),
             label: Text(l10n.danceEditorAddFigure),
           );
+    final onAddFromText = widget.onAddFromText;
     if (onAddMeanwhile == null &&
         onAddModifier == null &&
-        onAddSequence == null) {
+        onAddSequence == null &&
+        onAddFromText == null) {
       return KeyedSubtree(key: _key('add'), child: addButton);
     }
 
@@ -741,6 +769,12 @@ class _FigureListEditorState extends State<FigureListEditor>
           onPressed: _addFigure,
           child: Text(l10n.danceEditorAddFigure),
         ),
+        if (onAddFromText != null)
+          MenuItemButton(
+            key: _key('add-from-text'),
+            onPressed: () => _addFromText(onAddFromText),
+            child: Text(l10n.danceEditorAddFiguresFromText),
+          ),
         if (onAddMeanwhile != null)
           MenuItemButton(
             key: _key('add-meanwhile'),

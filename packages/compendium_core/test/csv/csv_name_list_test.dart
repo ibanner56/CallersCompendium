@@ -62,6 +62,20 @@ void main() {
     });
   });
 
+  group('unescapeNameListItem', () {
+    test('reads \\, and \\\\ and leaves any other backslash alone', () {
+      expect(unescapeNameListItem(r'Smith\, John'), 'Smith, John');
+      expect(unescapeNameListItem(r'A\\B'), r'A\B');
+      expect(unescapeNameListItem(r'C:\temp\'), r'C:\temp\');
+    });
+
+    test('undoes escapeNameListItem for any name', () {
+      for (final n in ['Hey, Ho', r'\,', r'\\', r'end\', ',', 'plain']) {
+        expect(unescapeNameListItem(escapeNameListItem(n)), n);
+      }
+    });
+  });
+
   group('a cell written before the escape existed', () {
     test('reads as it did unless a name held a backslash beside a comma or '
         'another backslash (a recorded consequence of the escape)', () {

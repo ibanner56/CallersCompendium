@@ -12993,6 +12993,100 @@
   "@danceEditorAddSequence": {
     "description": "Menu item label for adding an empty sequence container: two or more figures danced one after another and shown on one line, such as \"balance and swing\"."
   },
+  "danceEditorAddFiguresFromText": "Add figures from text…",
+  "@danceEditorAddFiguresFromText": {
+    "description": "Add-menu item in the dance editor's figure list that opens a sheet where the user types or pastes several figure lines at once, one figure per line."
+  },
+  "figureTextSheetTitle": "Add figures from text",
+  "@figureTextSheetTitle": {
+    "description": "Title of the sheet where the user types or pastes several figure lines at once (opened by danceEditorAddFiguresFromText)."
+  },
+  "figureTextSheetHelp": "Type or paste one figure per line, such as \"(8) neighbor balance & swing\". Each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.",
+  "@figureTextSheetHelp": {
+    "description": "Help text at the top of the Add figures from text sheet, for an English dance or a square dance. \"Move box\" is the figure editor's field where a move is typed. \"Free-text entry\" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off."
+  },
+  "figureTextSheetHelpDropsLabels": "Type or paste one figure per line, such as \"A1 (8) neighbor balance & swing\". A phrase label such as A1 at the start of a line is left out, and each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.",
+  "@figureTextSheetHelpDropsLabels": {
+    "description": "Help text at the top of the Add figures from text sheet, for a contra dance, where a leading phrase label (A1, A2, B1, B2, C1, C2) is dropped from each line. Keep A1 as it is. \"Move box\" is the figure editor's field where a move is typed. \"Free-text entry\" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off."
+  },
+  "figureTextSheetFieldLabel": "Figures, one per line",
+  "@figureTextSheetFieldLabel": {
+    "description": "Label of the multi-line text box in the Add figures from text sheet."
+  },
+  "figureTextSheetSummary": "{count, plural, =0{No figures to add yet} =1{1 figure to add} other{{count} figures to add}}",
+  "@figureTextSheetSummary": {
+    "description": "Live count under the text box of the Add figures from text sheet: how many figures Add figures will insert.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "5"
+      }
+    }
+  },
+  "figureTextSheetUnrecognizedSummary": "{count, plural, =1{1 line isn't recognized. It will be added as an unrecognized figure with its text, for you to fix.} other{{count} lines aren't recognized. They will be added as unrecognized figures with their text, for you to fix.}}",
+  "@figureTextSheetUnrecognizedSummary": {
+    "description": "Shown under the live count of the Add figures from text sheet when some lines did not match any known figure. Such a line is still added, as an unrecognized figure that keeps the typed text.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "2"
+      }
+    }
+  },
+  "figureTextSheetLineFigures": "{count, plural, =0{No figure} =1{1 figure} other{{count} figures}}",
+  "@figureTextSheetLineFigures": {
+    "description": "Under one line of text in the Add figures from text sheet's preview: how many figures that line gives.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "2"
+      }
+    }
+  },
+  "figureTextSheetLineUnrecognized": "Not recognized: added as an unrecognized figure",
+  "@figureTextSheetLineUnrecognized": {
+    "description": "Under one line of text in the Add figures from text sheet's preview, when the line did not match any known figure. It is still added, as an unrecognized figure that keeps the typed text."
+  },
+  "figureTextSheetTooLong": "This is more than {max} characters, more than can be read at once. Nothing will be added. Add it in parts.",
+  "@figureTextSheetTooLong": {
+    "description": "Error under the text box of the Add figures from text sheet when the text is over the length limit. Add figures is disabled while it shows.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "20000"
+      }
+    }
+  },
+  "figureTextSheetTooManyLines": "This is more than {max} lines, more than can be read at once. Nothing will be added. Add it in parts.",
+  "@figureTextSheetTooManyLines": {
+    "description": "Error under the text box of the Add figures from text sheet when the text has more lines than the limit. Add figures is disabled while it shows.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "200"
+      }
+    }
+  },
+  "figureTextSheetLineTooLong": "A line is longer than {max} characters, more than can be read as one figure line. Nothing will be added. Break it into lines.",
+  "@figureTextSheetLineTooLong": {
+    "description": "Error under the text box of the Add figures from text sheet when one line is over the per-line length limit. Add figures is disabled while it shows.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "2000"
+      }
+    }
+  },
+  "figureTextSheetAdd": "Add figures",
+  "@figureTextSheetAdd": {
+    "description": "Button in the Add figures from text sheet that inserts the previewed figures at the end of the dance's figure list and closes the sheet."
+  },
   "danceEditorPasteAtEndOfFigureList": "Paste at end of figure list",
   "@danceEditorPasteAtEndOfFigureList": {
     "description": "Semantics label for pasting a cut figure at the end of the list."

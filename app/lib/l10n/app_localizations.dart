@@ -14593,6 +14593,84 @@ abstract class AppLocalizations {
   /// **'Add sequence'**
   String get danceEditorAddSequence;
 
+  /// Add-menu item in the dance editor's figure list that opens a sheet where the user types or pastes several figure lines at once, one figure per line.
+  ///
+  /// In en, this message translates to:
+  /// **'Add figures from text…'**
+  String get danceEditorAddFiguresFromText;
+
+  /// Title of the sheet where the user types or pastes several figure lines at once (opened by danceEditorAddFiguresFromText).
+  ///
+  /// In en, this message translates to:
+  /// **'Add figures from text'**
+  String get figureTextSheetTitle;
+
+  /// Help text at the top of the Add figures from text sheet, for an English dance or a square dance. "Move box" is the figure editor's field where a move is typed. "Free-text entry" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off.
+  ///
+  /// In en, this message translates to:
+  /// **'Type or paste one figure per line, such as \"(8) neighbor balance & swing\". Each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.'**
+  String get figureTextSheetHelp;
+
+  /// Help text at the top of the Add figures from text sheet, for a contra dance, where a leading phrase label (A1, A2, B1, B2, C1, C2) is dropped from each line. Keep A1 as it is. "Move box" is the figure editor's field where a move is typed. "Free-text entry" is the setting of that name (settingsDefaultsFreeTextEntryTitle); the sheet reads lines this way whether that setting is on or off.
+  ///
+  /// In en, this message translates to:
+  /// **'Type or paste one figure per line, such as \"A1 (8) neighbor balance & swing\". A phrase label such as A1 at the start of a line is left out, and each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.'**
+  String get figureTextSheetHelpDropsLabels;
+
+  /// Label of the multi-line text box in the Add figures from text sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures, one per line'**
+  String get figureTextSheetFieldLabel;
+
+  /// Live count under the text box of the Add figures from text sheet: how many figures Add figures will insert.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No figures to add yet} =1{1 figure to add} other{{count} figures to add}}'**
+  String figureTextSheetSummary(int count);
+
+  /// Shown under the live count of the Add figures from text sheet when some lines did not match any known figure. Such a line is still added, as an unrecognized figure that keeps the typed text.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 line isn\'t recognized. It will be added as an unrecognized figure with its text, for you to fix.} other{{count} lines aren\'t recognized. They will be added as unrecognized figures with their text, for you to fix.}}'**
+  String figureTextSheetUnrecognizedSummary(int count);
+
+  /// Under one line of text in the Add figures from text sheet's preview: how many figures that line gives.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No figure} =1{1 figure} other{{count} figures}}'**
+  String figureTextSheetLineFigures(int count);
+
+  /// Under one line of text in the Add figures from text sheet's preview, when the line did not match any known figure. It is still added, as an unrecognized figure that keeps the typed text.
+  ///
+  /// In en, this message translates to:
+  /// **'Not recognized: added as an unrecognized figure'**
+  String get figureTextSheetLineUnrecognized;
+
+  /// Error under the text box of the Add figures from text sheet when the text is over the length limit. Add figures is disabled while it shows.
+  ///
+  /// In en, this message translates to:
+  /// **'This is more than {max} characters, more than can be read at once. Nothing will be added. Add it in parts.'**
+  String figureTextSheetTooLong(int max);
+
+  /// Error under the text box of the Add figures from text sheet when the text has more lines than the limit. Add figures is disabled while it shows.
+  ///
+  /// In en, this message translates to:
+  /// **'This is more than {max} lines, more than can be read at once. Nothing will be added. Add it in parts.'**
+  String figureTextSheetTooManyLines(int max);
+
+  /// Error under the text box of the Add figures from text sheet when one line is over the per-line length limit. Add figures is disabled while it shows.
+  ///
+  /// In en, this message translates to:
+  /// **'A line is longer than {max} characters, more than can be read as one figure line. Nothing will be added. Break it into lines.'**
+  String figureTextSheetLineTooLong(int max);
+
+  /// Button in the Add figures from text sheet that inserts the previewed figures at the end of the dance's figure list and closes the sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'Add figures'**
+  String get figureTextSheetAdd;
+
   /// Semantics label for pasting a cut figure at the end of the list.
   ///
   /// In en, this message translates to:
