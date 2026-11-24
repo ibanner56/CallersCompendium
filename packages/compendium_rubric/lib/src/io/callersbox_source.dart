@@ -363,10 +363,11 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
   // A crash is never retried. The compiler throwing is a defect here, and a
   // second placement that happens to land would bury it.
   //
-  // A near miss (compiled one column off, [WarningKind.endedColumnOffset]) is
-  // retried too, and gives way to a retry that matches exactly: an exact
-  // match on the record's own alternative is the better reading
-  // (agent's call).
+  // A near miss (compiled one column off, [WarningKind.endedColumnOffset], or
+  // only from an allemande's guessed short waves,
+  // [WarningKind.allemandeWaveRetry]) is retried too, and gives way to a
+  // retry that matches exactly: an exact match on the record's own
+  // alternative is the better reading (agent's call).
   final positional = bridgeCoreDance(dance);
   var attempt = _attempt(positional);
   if (triesAnotherReading(attempt.outcome, attempt.warnings)) {
@@ -423,10 +424,16 @@ typedef _Attempt = ({
 });
 
 /// Whether a reading that ended in [outcome], with [warnings], compiled only
-/// as a near miss, one column off ([WarningKind.endedColumnOffset]).
+/// as a near miss: one column off ([WarningKind.endedColumnOffset]), or only
+/// once the compiler read an allemande as leaving short waves
+/// ([WarningKind.allemandeWaveRetry], agent's call 2026-11-24).
 bool _isNearMiss(DanceOutcome outcome, List<Warning> warnings) =>
     outcome == DanceOutcome.compiled &&
-    warnings.any((w) => w.kind == WarningKind.endedColumnOffset);
+    warnings.any(
+      (w) =>
+          w.kind == WarningKind.endedColumnOffset ||
+          w.kind == WarningKind.allemandeWaveRetry,
+    );
 
 /// Whether [runCoreDance] tries the record's next placement after a reading
 /// that ended in [outcome], with [warnings]: when it did not compile, or

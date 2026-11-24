@@ -186,7 +186,9 @@ side lines), the dance compiles, with an `endedColumnOffset` warning so the near
 read as an exact one. A dancer in the wrong row, two columns off, or with the wrong number (a
 couple at an end whose change-over never ran), or two dancers trading places in a row, is still a
 mismatch. The Caller's Box bridge retries the record's own alternative progression placement on a
-near miss too, and takes it if it matches exactly *(agent's call)*.
+near miss too, and takes it if it matches exactly *(agent's call)*. It treats a dance that
+compiled only from an allemande's short waves (`allemandeWaveRetry`, `fundamentals.md` §8.5.8)
+the same way *(agent's call)*.
 
 The projection is **how the two are compared, not a claim about where the dancers stand**: both
 `Compiled` and `Mismatch` still carry the **raw** final formation, so the reported end state is

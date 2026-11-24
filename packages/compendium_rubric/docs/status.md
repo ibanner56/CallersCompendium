@@ -198,6 +198,21 @@
 > the core set 568 to 573, no previously compiling dance lost. Honeymoon
 > (10500) now compiles, with 16 others.
 >
+> **A dance can go on from the short waves an allemande leaves (2026-11-24)**:
+> when the figure straight after an allemande refuses, or the whole dance
+> lands somewhere other than its expected end, the compiler dances on again
+> from the allemande's short-wave reading: an allemande in the centre steps
+> its pairs one column in, and one on the side forms the short wave whose
+> centre joins the other hand (user-ruled 2026-11-24, both triggers;
+> `fundamentals.md` §8.5.8). The centre pair of a short wave now also turns
+> rigidly into a centre long wave (§8.5.7; the agent's call, which Hudson
+> said was worth keeping). Against `rubric` at `4cc6c406`: 4,484 of 5,617 to
+> 4,532 of 5,623 compiled in scope (79.8% to 80.6%), the core set 573 to 577,
+> no previously compiling dance lost. 48 dances now compile, among them
+> Jerry Goes to Camp (10518) and Top Spin (11211); 44 of them through the
+> retry after a mismatch. The First Fling of Fall (2983) went from refusing
+> to mismatching.
+>
 > **A Progressed Improper end is the Duple Improper end, swapped (2026-11-24)**:
 > the oracle now takes the Duple Improper end state for the same number of
 > progressions and swaps the 1s and 2s within each hands four (user-ruled

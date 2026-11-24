@@ -183,6 +183,44 @@ void main() {
     });
   });
 
+  group('the centre pair of a short wave turns into a centre long wave', () {
+    /// The canonical short wave, Larks joined left in the centre.
+    Formation canonicalWave() => applyOk(
+      const Allemande(who: WhoSet.role1s, hand: Hand.left, turn: 0.75),
+      larksInTheCentre(),
+    );
+
+    test('the Larks in the middle of the line hold left hands', () {
+      final wave = canonicalWave();
+      expect(wave.toRolesNotation(), ['. L2-B . . R2-B', 'R1-A . . L1-A .']);
+      final pair = (a: at(wave, 0, 1), b: at(wave, 1, 3));
+      expect(waveHoldOf(wave, pair), (
+        shape: WaveHoldShape.shortCentre,
+        hand: Hand.left,
+      ));
+    });
+
+    test('Larks allemande left 3/4: rigidly into c2, facing across', () {
+      final after = applyOk(
+        const Allemande(who: WhoSet.role1s, hand: Hand.left, turn: 0.75),
+        canonicalWave(),
+      );
+      // Counter-clockwise three quarters carries the western Lark (L2-B)
+      // north, into the band's top row; the Robins stay where they stand.
+      expect(after.toRolesNotation(), ['. . L2-B . R2-B', 'R1-A . L1-A . .']);
+      expect(facingAt(after, 0, 2), Facing.acrossWest);
+      expect(facingAt(after, 1, 2), Facing.acrossEast);
+    });
+
+    test('a quarter carries the other Lark north', () {
+      final after = applyOk(
+        const Allemande(who: WhoSet.role1s, hand: Hand.left, turn: 0.25),
+        canonicalWave(),
+      );
+      expect(after.toRolesNotation(), ['. . L1-A . R2-B', 'R1-A . L2-B . .']);
+    });
+  });
+
   group('what the centre turn does not cover', () {
     test('the wrong hand is still an across-the-set quarter', () {
       final error = applyErr(
