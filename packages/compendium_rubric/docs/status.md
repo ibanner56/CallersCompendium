@@ -78,9 +78,9 @@
 > neither the positional nor the N2 reading compiles a dance, the last hey
 > whose final pass Caller's Box marks "~" is tried as its progression (both
 > user-ruled; the core import now keeps that "~" as the note "last pass
-> partial"). Against `rubric` at `9680f588` they took the count from 4,228 to
-> 4,233 of 5,425 compiled in scope (77.9% to 78.0%), with the core set
-> unchanged at 544 and nothing lost: Haven't We Met Before? (10129), Be
+> partial"). Against `rubric` at `253f56db` they took the count from 4,240 to
+> 4,245 of 5,425 compiled in scope (78.2%), with the core set unchanged at 547
+> and nothing lost: Haven't We Met Before? (10129), Be
 > Careful What You Wish For (12608) and Reverberations (2630) compile through
 > the swing, Rowdy Rendezvous (18981) and Joel and Louise 30th Anniversary
 > (4343) through the "~". Two that were refused now run to the end and
