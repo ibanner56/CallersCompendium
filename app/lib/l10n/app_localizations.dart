@@ -14713,7 +14713,7 @@ abstract class AppLocalizations {
   /// **'Add figures'**
   String get figureTextSheetAdd;
 
-  /// Button in the Add figures from text sheet that opens the system picker to choose a picture (a photo of an index card or a book page) whose text is read on the device and put in the text box. Shown only on iOS and macOS.
+  /// Button in the Add figures from text sheet that opens the system picker to choose a picture (a photo of an index card or a book page) whose text is read on the device and put in the text box. Shown only on iOS, macOS and Windows.
   ///
   /// In en, this message translates to:
   /// **'From an image…'**
@@ -14743,7 +14743,7 @@ abstract class AppLocalizations {
   /// **'This device can\'t read text from pictures in the app\'s language or in English.'**
   String get figureTextSheetImageUnavailable;
 
-  /// Note under the From an image… button when the device cannot read the app's language (for example Japanese on an older iOS or macOS) but can read English.
+  /// Note under the From an image… button when the device cannot read the app's language (for example Japanese on an older iOS or macOS, or on Windows without the Japanese language pack) but can read English.
   ///
   /// In en, this message translates to:
   /// **'This device reads pictures in English, not in the app\'s language.'**

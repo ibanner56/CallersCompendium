@@ -13125,7 +13125,7 @@
   },
   "figureTextSheetFromImage": "From an image…",
   "@figureTextSheetFromImage": {
-    "description": "Button in the Add figures from text sheet that opens the system picker to choose a picture (a photo of an index card or a book page) whose text is read on the device and put in the text box. Shown only on iOS and macOS."
+    "description": "Button in the Add figures from text sheet that opens the system picker to choose a picture (a photo of an index card or a book page) whose text is read on the device and put in the text box. Shown only on iOS, macOS and Windows."
   },
   "figureTextSheetTakePhoto": "Take a photo",
   "@figureTextSheetTakePhoto": {
@@ -13145,7 +13145,7 @@
   },
   "figureTextSheetImageEnglishOnly": "This device reads pictures in English, not in the app's language.",
   "@figureTextSheetImageEnglishOnly": {
-    "description": "Note under the From an image… button when the device cannot read the app's language (for example Japanese on an older iOS or macOS) but can read English."
+    "description": "Note under the From an image… button when the device cannot read the app's language (for example Japanese on an older iOS or macOS, or on Windows without the Japanese language pack) but can read English."
   },
   "figureTextSheetImageTooLarge": "This picture is larger than {limit} MB, so it wasn't read. Choose a smaller one.",
   "@figureTextSheetImageTooLarge": {
