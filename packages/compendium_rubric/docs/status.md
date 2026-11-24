@@ -193,8 +193,8 @@
 > from Hudson's note on Chuck the Budgie; the number and order guards and the
 > warning are the agent's calls). The Caller's Box bridge retries its
 > alternative progression placement on such a near miss and prefers an exact
-> match. Against `rubric` at `c610d077`: unchanged at 4,303 of 5,423 compiled
-> in scope (79.3%), the core set unchanged at 554; no corpus dance ends as
+> match. Against `rubric` at `f628f80b`: unchanged at 4,435 of 5,590 compiled
+> in scope (79.3%), the core set unchanged at 568; no corpus dance ends as
 > such a near miss today. Chuck the Budgie (10345) still
 > mismatches: its couples end a row out, which Hudson ruled an input issue
 > (the source should record it as progressed improper).
