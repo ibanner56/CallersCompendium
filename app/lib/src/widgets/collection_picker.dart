@@ -474,9 +474,10 @@ class _CollectionPickerState extends State<CollectionPicker> {
     _byPhrase = state.byPhrase;
     _advancedRoot = state.advanced;
     _panelFromSavedSearch = state.fromSavedSearch;
+    // A host that asks for Suggested gets it back in didUpdateWidget (or,
+    // for the first request, didChangeDependencies), and the search that
+    // follows ranks.
     _leaveSuggested();
-    // The search that follows ranks again when the host asks for Suggested.
-    _openSuggestedIfAsked();
     // Best match that is no longer offered falls back to Title.
     final (:sort, :direction) = state.effectiveSort;
     _sort = sort;
@@ -670,7 +671,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
       // No longer offered (the host turned it off): back to the plain order.
       setState(_leaveSuggested);
     } else if (_openSuggestedIfAsked() && !_searching) {
-      // Newly asked for, with no search running to rank when it lands.
+      // Asked for again (after a new panel request, or newly asked for): a
+      // search still running ranks when it lands; with none, rank now.
       unawaited(_rank());
     } else if (oldWidget.programContext != widget.programContext &&
         _suggested) {
