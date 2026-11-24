@@ -1,0 +1,14 @@
+{
+  "id": "contra-shift",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Contra dances have a shift figure: one group of dancers, such as the larks or the twos, sidesteps left, right, up or down while the others stay or dance something else. Dances you import from The Caller's Box now read lines such as \"Men shift left\" as this figure instead of leaving them as text, with a count of places kept as the figure's note, and \"Re-check unrecognized figures\" can recognize them in dances you imported earlier. A \"Shift left\" that names no dancers is still read as a slide along the set, where every couple moves."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add the contra `shift` move (contra taxonomy v40), with a reader for The Caller's Box's `<dancers> shift <direction>` lines; a bare `Shift left/right` still reads as `slide_along_set`."
+    ]
+  }
+}

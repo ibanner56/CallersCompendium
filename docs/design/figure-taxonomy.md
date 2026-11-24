@@ -162,7 +162,8 @@ give & take ·
 **shoulder round** (was gyre/gypsy; keyword-searchable under old names) ·
 hey · hey for three (v39, not in ContraDB) · mad robin · orbit · pass by · pass through · petronella ·
 poussette · promenade · pull by (dancers/direction) · revolving door ·
-right left through · roll away · Rory O'More · slice · slide along set ·
+right left through · roll away · Rory O'More · shift (v40, not in ContraDB) ·
+slice · slide along set ·
 square through · stand still · star · starburst (v39, not in ContraDB) ·
 star promenade · swing (alias: meltdown swing) · trade the wave (v39, not in
 ContraDB) · turn alone · zig zag
@@ -2385,11 +2386,39 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     keeps or drops a param it does not declare when it saves was not
     checked. Whether the beta acceptance recorded above for the new dancer
     tokens also covers these is the maintainer's call, not assumed here.
-  - Migration: none, and no rebuild: a new move and alias, nothing renamed or
-    removed, so no stored figure changes and every canonical text stays as it
-    was. **Older devices (v39)** show a synced `cast` as the bare word "cast"
-    and a `hand_cast` as "hand_cast", flag both as unknown moves, and keep
-    their params intact (the #358 raw-id fallback).
+  - **`shift`** (`who`, `direction`, `beats` 4): one named group sidesteps
+    while the others stay or dance something else, as in The Caller's Box's
+    "Women allemande right 3/4 || Men shift left" (Mary Cay's Reel, dance
+    10579). The maintainer asked for it (2026-11-24), and asked that The
+    Caller's Box's bare "Shift left", which names no dancers, keep reading as
+    `slide_along_set`, where every couple moves. The author's calls, from a
+    census of the 1,427 public dances whose figures mention a shift (fetched
+    2026-11-24):
+    - Only a line whose dancers lead and whose verb is "shift" reads as one
+      (`_shift` in `figure_parser.dart`). Bare "Shift/Slide left/right" stays
+      `slide_along_set`: 780 of those figures before the change and 780
+      after, over the same dances.
+    - `direction` is `left`, `right`, `up` or `down` (default `left`), since
+      the source writes "Twos shift up" (20 lines, 19 of them in Four Facing
+      Four dances).
+      Like `cast.direction` it takes no opposite.
+    - `who` (default `role1s`) offers every dancer set but `everyone`: a shift
+      by everyone is the slide along the set under a second name, and a
+      leading "Everyone" stays custom.
+    - A count of places ("Men shift left one place") is kept as the note in the
+      line's words, as the maintainer allowed; no param holds it. A `(past …)`
+      or other parenthetical is a note, as on other moves.
+    - 117 figures read as a shift in those dances. Still custom: "Others shift
+      …" (no dancer set holds "others"), a destination ("to next man's
+      position", "to N2"), "one step", and the bare shifts with a target
+      ("Shift left to N2", "Shift left with neighbor"), which were custom
+      before.
+  - Migration: none, and no rebuild: new moves and an alias, nothing renamed
+    or removed, so no stored figure changes and every canonical text stays as
+    it was. **Older devices (v39)** show a synced `cast` as the bare word
+    "cast", a `hand_cast` as "hand_cast" and a `shift` as "shift", flag them
+    as unknown moves, and keep their params intact (the #358 raw-id
+    fallback).
 
 ### ECD taxonomy versions
 

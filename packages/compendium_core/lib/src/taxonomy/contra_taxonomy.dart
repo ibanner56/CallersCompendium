@@ -924,9 +924,9 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'beats': _beats4,
       },
       renderTemplate: '{who} {move} {direction}',
-      // The beats of the 136 shifts by a named group in the 1,427 public
-      // Caller's Box dances that mention a shift (2026-11-24): 4 on 63, 8 on
-      // 41, 6 on 21, 2 on 10, 3 on 2.
+      // The beats of the 117 shifts read from the 1,427 public Caller's Box
+      // dances that mention a shift (fetched 2026-11-24): 4 on 59, 8 on 27, 6
+      // on 21, 2 on 7, 3 on 2, and 1 on a line that gives none.
       goodBeats: [2, 4, 6, 8],
     ),
     const MoveDef(

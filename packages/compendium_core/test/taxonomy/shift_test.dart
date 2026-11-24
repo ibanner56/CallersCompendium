@@ -125,6 +125,35 @@ void main() {
       });
     }
 
+    test('a re-check reads a shift imported before the move existed', () {
+      // The text an import stored for these lines before v40 read them: the
+      // reader writes the roles as tokens.
+      Figure gap(String text) => testFigure(
+        move: customMove,
+        params: {'text': text},
+        customOrigin: CustomOrigin.importGap,
+      );
+      final reparsed = reparseImportGapFigures([
+        gap('role2s shift right'),
+        Figure.meanwhile(
+          figures: [
+            testFigure(
+              move: 'allemande',
+              params: {'who': 'role2s', 'hand': 'right', 'travel': 0.75},
+            ),
+            gap('role1s shift left'),
+          ],
+          beats: 4,
+        ),
+      ]);
+      expect(reparsed.upgradedCount, 2);
+      final [alone, together] = reparsed.figures;
+      expect(alone.move, 'shift');
+      expect(alone.params['who'], 'role2s');
+      expect(together.subFigures.last.move, 'shift');
+      expect(together.subFigures.last.params['direction'], 'left');
+    });
+
     test(
       'Mary Cay\'s Reel (dance 10579): the men shift as the women turn',
       () async {
