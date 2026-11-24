@@ -341,10 +341,10 @@ two plus the three the fourth neighbors reach — not the eleven a summing rule 
 
 **Precondition: they must be the couples they are named as.** A figure is only danced when the
 couples the reaching phase stands together are genuinely that distance apart. This is checked
-against each couple's **home grouping**, which is fixed by its letter: both starting formations
-lay couple `2k` and couple `2k+1` out as hands four `k`, so home grouping is `coupleIndex ~/ 2`
+against each couple's **home grouping**, which is fixed by its letter: every starting formation
+lays couple `2k` and couple `2k+1` out as hands four `k`, so home grouping is `coupleIndex ~/ 2`
 and needs no stored state. If the arithmetic does not hold — asking for the next neighbors
-straight off the start, say, where reaching stands B beside C — the figure is **refused**
+straight off a Duple Improper start, say, where reaching stands B beside C — the figure is **refused**
 (`whoMismatch`) rather than danced with whoever is to hand.
 
 *Home, not here.* The check deliberately measures from where a couple **started**, not from

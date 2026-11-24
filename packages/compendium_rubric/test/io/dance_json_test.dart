@@ -537,6 +537,19 @@ void main() {
       );
     });
 
+    test('reads a progressed improper record as its own start, unwarned', () {
+      // Caller's Box's "Duple Minor - Progressed improper" arrives through the
+      // core import as `progressedImproper`. *(User-ruled 2026-11-24: the 1s
+      // start below the 2s.)*
+      final dance = _parseOk(
+        '{"form": "contra", "formation": {"shape": "progressedImproper"}, '
+        '"progression": "single", "figures": []}',
+      );
+
+      expect(dance.formation, FormationType.progressedImproper);
+      expect(dance.warnings, isEmpty);
+    });
+
     test('warns on an unrecognized formation and reads it as the base', () {
       // Not a refusal: the shape vocabulary is owned upstream and grows, and a
       // dance whose own figures establish the arrangement it dances in is
