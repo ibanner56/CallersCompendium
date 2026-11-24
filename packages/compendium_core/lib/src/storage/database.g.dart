@@ -4435,6 +4435,40 @@ class $ProgramsTable extends Programs
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _calendarEventFingerprintMeta =
+      const VerificationMeta('calendarEventFingerprint');
+  @override
+  late final GeneratedColumn<String> calendarEventFingerprint =
+      GeneratedColumn<String>(
+        'calendar_event_fingerprint',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _calendarWrittenAtMeta = const VerificationMeta(
+    'calendarWrittenAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> calendarWrittenAt =
+      GeneratedColumn<DateTime>(
+        'calendar_written_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _calendarFlagMeta = const VerificationMeta(
+    'calendarFlag',
+  );
+  @override
+  late final GeneratedColumn<String> calendarFlag = GeneratedColumn<String>(
+    'calendar_flag',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4461,6 +4495,9 @@ class $ProgramsTable extends Programs
     endMinute,
     lessonMinute,
     arrivalMinute,
+    calendarEventFingerprint,
+    calendarWrittenAt,
+    calendarFlag,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4647,6 +4684,33 @@ class $ProgramsTable extends Programs
         ),
       );
     }
+    if (data.containsKey('calendar_event_fingerprint')) {
+      context.handle(
+        _calendarEventFingerprintMeta,
+        calendarEventFingerprint.isAcceptableOrUnknown(
+          data['calendar_event_fingerprint']!,
+          _calendarEventFingerprintMeta,
+        ),
+      );
+    }
+    if (data.containsKey('calendar_written_at')) {
+      context.handle(
+        _calendarWrittenAtMeta,
+        calendarWrittenAt.isAcceptableOrUnknown(
+          data['calendar_written_at']!,
+          _calendarWrittenAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('calendar_flag')) {
+      context.handle(
+        _calendarFlagMeta,
+        calendarFlag.isAcceptableOrUnknown(
+          data['calendar_flag']!,
+          _calendarFlagMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -4754,6 +4818,18 @@ class $ProgramsTable extends Programs
         DriftSqlType.int,
         data['${effectivePrefix}arrival_minute'],
       ),
+      calendarEventFingerprint: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}calendar_event_fingerprint'],
+      ),
+      calendarWrittenAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}calendar_written_at'],
+      ),
+      calendarFlag: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}calendar_flag'],
+      ),
     );
   }
 
@@ -4860,6 +4936,18 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
 
   /// When the caller needs to be at the hall, as minutes after midnight.
   final int? arrivalMinute;
+
+  /// What the calendar import last wrote from the event (#2354, schema v42):
+  /// a per-field hash of its title, date, first location segment, and start
+  /// and end times.
+  final String? calendarEventFingerprint;
+
+  /// The `updated_at` the calendar import last wrote (#2354, schema v42).
+  final DateTime? calendarWrittenAt;
+
+  /// Why the calendar flags the program (#2354, schema v42): `cancelled`,
+  /// `missing`, or NULL. Free text, read leniently.
+  final String? calendarFlag;
   const ProgramRow({
     required this.id,
     required this.title,
@@ -4885,6 +4973,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     this.endMinute,
     this.lessonMinute,
     this.arrivalMinute,
+    this.calendarEventFingerprint,
+    this.calendarWrittenAt,
+    this.calendarFlag,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4951,6 +5042,17 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     if (!nullToAbsent || arrivalMinute != null) {
       map['arrival_minute'] = Variable<int>(arrivalMinute);
     }
+    if (!nullToAbsent || calendarEventFingerprint != null) {
+      map['calendar_event_fingerprint'] = Variable<String>(
+        calendarEventFingerprint,
+      );
+    }
+    if (!nullToAbsent || calendarWrittenAt != null) {
+      map['calendar_written_at'] = Variable<DateTime>(calendarWrittenAt);
+    }
+    if (!nullToAbsent || calendarFlag != null) {
+      map['calendar_flag'] = Variable<String>(calendarFlag);
+    }
     return map;
   }
 
@@ -5012,6 +5114,15 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       arrivalMinute: arrivalMinute == null && nullToAbsent
           ? const Value.absent()
           : Value(arrivalMinute),
+      calendarEventFingerprint: calendarEventFingerprint == null && nullToAbsent
+          ? const Value.absent()
+          : Value(calendarEventFingerprint),
+      calendarWrittenAt: calendarWrittenAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(calendarWrittenAt),
+      calendarFlag: calendarFlag == null && nullToAbsent
+          ? const Value.absent()
+          : Value(calendarFlag),
     );
   }
 
@@ -5047,6 +5158,13 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       endMinute: serializer.fromJson<int?>(json['endMinute']),
       lessonMinute: serializer.fromJson<int?>(json['lessonMinute']),
       arrivalMinute: serializer.fromJson<int?>(json['arrivalMinute']),
+      calendarEventFingerprint: serializer.fromJson<String?>(
+        json['calendarEventFingerprint'],
+      ),
+      calendarWrittenAt: serializer.fromJson<DateTime?>(
+        json['calendarWrittenAt'],
+      ),
+      calendarFlag: serializer.fromJson<String?>(json['calendarFlag']),
     );
   }
   @override
@@ -5079,6 +5197,11 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       'endMinute': serializer.toJson<int?>(endMinute),
       'lessonMinute': serializer.toJson<int?>(lessonMinute),
       'arrivalMinute': serializer.toJson<int?>(arrivalMinute),
+      'calendarEventFingerprint': serializer.toJson<String?>(
+        calendarEventFingerprint,
+      ),
+      'calendarWrittenAt': serializer.toJson<DateTime?>(calendarWrittenAt),
+      'calendarFlag': serializer.toJson<String?>(calendarFlag),
     };
   }
 
@@ -5107,6 +5230,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     Value<int?> endMinute = const Value.absent(),
     Value<int?> lessonMinute = const Value.absent(),
     Value<int?> arrivalMinute = const Value.absent(),
+    Value<String?> calendarEventFingerprint = const Value.absent(),
+    Value<DateTime?> calendarWrittenAt = const Value.absent(),
+    Value<String?> calendarFlag = const Value.absent(),
   }) => ProgramRow(
     id: id ?? this.id,
     title: title ?? this.title,
@@ -5138,6 +5264,13 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     arrivalMinute: arrivalMinute.present
         ? arrivalMinute.value
         : this.arrivalMinute,
+    calendarEventFingerprint: calendarEventFingerprint.present
+        ? calendarEventFingerprint.value
+        : this.calendarEventFingerprint,
+    calendarWrittenAt: calendarWrittenAt.present
+        ? calendarWrittenAt.value
+        : this.calendarWrittenAt,
+    calendarFlag: calendarFlag.present ? calendarFlag.value : this.calendarFlag,
   );
   ProgramRow copyWithCompanion(ProgramsCompanion data) {
     return ProgramRow(
@@ -5187,6 +5320,15 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       arrivalMinute: data.arrivalMinute.present
           ? data.arrivalMinute.value
           : this.arrivalMinute,
+      calendarEventFingerprint: data.calendarEventFingerprint.present
+          ? data.calendarEventFingerprint.value
+          : this.calendarEventFingerprint,
+      calendarWrittenAt: data.calendarWrittenAt.present
+          ? data.calendarWrittenAt.value
+          : this.calendarWrittenAt,
+      calendarFlag: data.calendarFlag.present
+          ? data.calendarFlag.value
+          : this.calendarFlag,
     );
   }
 
@@ -5216,7 +5358,10 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           ..write('startMinute: $startMinute, ')
           ..write('endMinute: $endMinute, ')
           ..write('lessonMinute: $lessonMinute, ')
-          ..write('arrivalMinute: $arrivalMinute')
+          ..write('arrivalMinute: $arrivalMinute, ')
+          ..write('calendarEventFingerprint: $calendarEventFingerprint, ')
+          ..write('calendarWrittenAt: $calendarWrittenAt, ')
+          ..write('calendarFlag: $calendarFlag')
           ..write(')'))
         .toString();
   }
@@ -5247,6 +5392,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     endMinute,
     lessonMinute,
     arrivalMinute,
+    calendarEventFingerprint,
+    calendarWrittenAt,
+    calendarFlag,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -5275,7 +5423,10 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           other.startMinute == this.startMinute &&
           other.endMinute == this.endMinute &&
           other.lessonMinute == this.lessonMinute &&
-          other.arrivalMinute == this.arrivalMinute);
+          other.arrivalMinute == this.arrivalMinute &&
+          other.calendarEventFingerprint == this.calendarEventFingerprint &&
+          other.calendarWrittenAt == this.calendarWrittenAt &&
+          other.calendarFlag == this.calendarFlag);
 }
 
 class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
@@ -5303,6 +5454,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
   final Value<int?> endMinute;
   final Value<int?> lessonMinute;
   final Value<int?> arrivalMinute;
+  final Value<String?> calendarEventFingerprint;
+  final Value<DateTime?> calendarWrittenAt;
+  final Value<String?> calendarFlag;
   final Value<int> rowid;
   const ProgramsCompanion({
     this.id = const Value.absent(),
@@ -5329,6 +5483,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.endMinute = const Value.absent(),
     this.lessonMinute = const Value.absent(),
     this.arrivalMinute = const Value.absent(),
+    this.calendarEventFingerprint = const Value.absent(),
+    this.calendarWrittenAt = const Value.absent(),
+    this.calendarFlag = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProgramsCompanion.insert({
@@ -5356,6 +5513,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.endMinute = const Value.absent(),
     this.lessonMinute = const Value.absent(),
     this.arrivalMinute = const Value.absent(),
+    this.calendarEventFingerprint = const Value.absent(),
+    this.calendarWrittenAt = const Value.absent(),
+    this.calendarFlag = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        title = Value(title),
@@ -5387,6 +5547,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Expression<int>? endMinute,
     Expression<int>? lessonMinute,
     Expression<int>? arrivalMinute,
+    Expression<String>? calendarEventFingerprint,
+    Expression<DateTime>? calendarWrittenAt,
+    Expression<String>? calendarFlag,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -5414,6 +5577,10 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       if (endMinute != null) 'end_minute': endMinute,
       if (lessonMinute != null) 'lesson_minute': lessonMinute,
       if (arrivalMinute != null) 'arrival_minute': arrivalMinute,
+      if (calendarEventFingerprint != null)
+        'calendar_event_fingerprint': calendarEventFingerprint,
+      if (calendarWrittenAt != null) 'calendar_written_at': calendarWrittenAt,
+      if (calendarFlag != null) 'calendar_flag': calendarFlag,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -5443,6 +5610,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Value<int?>? endMinute,
     Value<int?>? lessonMinute,
     Value<int?>? arrivalMinute,
+    Value<String?>? calendarEventFingerprint,
+    Value<DateTime?>? calendarWrittenAt,
+    Value<String?>? calendarFlag,
     Value<int>? rowid,
   }) {
     return ProgramsCompanion(
@@ -5470,6 +5640,10 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
       endMinute: endMinute ?? this.endMinute,
       lessonMinute: lessonMinute ?? this.lessonMinute,
       arrivalMinute: arrivalMinute ?? this.arrivalMinute,
+      calendarEventFingerprint:
+          calendarEventFingerprint ?? this.calendarEventFingerprint,
+      calendarWrittenAt: calendarWrittenAt ?? this.calendarWrittenAt,
+      calendarFlag: calendarFlag ?? this.calendarFlag,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -5551,6 +5725,17 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     if (arrivalMinute.present) {
       map['arrival_minute'] = Variable<int>(arrivalMinute.value);
     }
+    if (calendarEventFingerprint.present) {
+      map['calendar_event_fingerprint'] = Variable<String>(
+        calendarEventFingerprint.value,
+      );
+    }
+    if (calendarWrittenAt.present) {
+      map['calendar_written_at'] = Variable<DateTime>(calendarWrittenAt.value);
+    }
+    if (calendarFlag.present) {
+      map['calendar_flag'] = Variable<String>(calendarFlag.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -5584,6 +5769,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
           ..write('endMinute: $endMinute, ')
           ..write('lessonMinute: $lessonMinute, ')
           ..write('arrivalMinute: $arrivalMinute, ')
+          ..write('calendarEventFingerprint: $calendarEventFingerprint, ')
+          ..write('calendarWrittenAt: $calendarWrittenAt, ')
+          ..write('calendarFlag: $calendarFlag, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -21263,6 +21451,9 @@ typedef $$ProgramsTableCreateCompanionBuilder =
       Value<int?> endMinute,
       Value<int?> lessonMinute,
       Value<int?> arrivalMinute,
+      Value<String?> calendarEventFingerprint,
+      Value<DateTime?> calendarWrittenAt,
+      Value<String?> calendarFlag,
       Value<int> rowid,
     });
 typedef $$ProgramsTableUpdateCompanionBuilder =
@@ -21291,6 +21482,9 @@ typedef $$ProgramsTableUpdateCompanionBuilder =
       Value<int?> endMinute,
       Value<int?> lessonMinute,
       Value<int?> arrivalMinute,
+      Value<String?> calendarEventFingerprint,
+      Value<DateTime?> calendarWrittenAt,
+      Value<String?> calendarFlag,
       Value<int> rowid,
     });
 
@@ -21469,6 +21663,21 @@ class $$ProgramsTableFilterComposer
 
   ColumnFilters<int> get arrivalMinute => $composableBuilder(
     column: $table.arrivalMinute,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get calendarEventFingerprint => $composableBuilder(
+    column: $table.calendarEventFingerprint,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get calendarWrittenAt => $composableBuilder(
+    column: $table.calendarWrittenAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get calendarFlag => $composableBuilder(
+    column: $table.calendarFlag,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -21651,6 +21860,21 @@ class $$ProgramsTableOrderingComposer
     column: $table.arrivalMinute,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get calendarEventFingerprint => $composableBuilder(
+    column: $table.calendarEventFingerprint,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get calendarWrittenAt => $composableBuilder(
+    column: $table.calendarWrittenAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get calendarFlag => $composableBuilder(
+    column: $table.calendarFlag,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ProgramsTableAnnotationComposer
@@ -21753,6 +21977,21 @@ class $$ProgramsTableAnnotationComposer
 
   GeneratedColumn<int> get arrivalMinute => $composableBuilder(
     column: $table.arrivalMinute,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get calendarEventFingerprint => $composableBuilder(
+    column: $table.calendarEventFingerprint,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get calendarWrittenAt => $composableBuilder(
+    column: $table.calendarWrittenAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get calendarFlag => $composableBuilder(
+    column: $table.calendarFlag,
     builder: (column) => column,
   );
 
@@ -21863,6 +22102,9 @@ class $$ProgramsTableTableManager
                 Value<int?> endMinute = const Value.absent(),
                 Value<int?> lessonMinute = const Value.absent(),
                 Value<int?> arrivalMinute = const Value.absent(),
+                Value<String?> calendarEventFingerprint = const Value.absent(),
+                Value<DateTime?> calendarWrittenAt = const Value.absent(),
+                Value<String?> calendarFlag = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProgramsCompanion(
                 id: id,
@@ -21889,6 +22131,9 @@ class $$ProgramsTableTableManager
                 endMinute: endMinute,
                 lessonMinute: lessonMinute,
                 arrivalMinute: arrivalMinute,
+                calendarEventFingerprint: calendarEventFingerprint,
+                calendarWrittenAt: calendarWrittenAt,
+                calendarFlag: calendarFlag,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -21917,6 +22162,9 @@ class $$ProgramsTableTableManager
                 Value<int?> endMinute = const Value.absent(),
                 Value<int?> lessonMinute = const Value.absent(),
                 Value<int?> arrivalMinute = const Value.absent(),
+                Value<String?> calendarEventFingerprint = const Value.absent(),
+                Value<DateTime?> calendarWrittenAt = const Value.absent(),
+                Value<String?> calendarFlag = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProgramsCompanion.insert(
                 id: id,
@@ -21943,6 +22191,9 @@ class $$ProgramsTableTableManager
                 endMinute: endMinute,
                 lessonMinute: lessonMinute,
                 arrivalMinute: arrivalMinute,
+                calendarEventFingerprint: calendarEventFingerprint,
+                calendarWrittenAt: calendarWrittenAt,
+                calendarFlag: calendarFlag,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

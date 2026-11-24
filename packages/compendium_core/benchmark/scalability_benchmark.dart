@@ -180,7 +180,8 @@ Future<void> main() async {
         ) async {
           final dances = await repos.dances.listAll();
           await repos.choreographers.listAll();
-          await repos.tags.listReferencedByLiveDances();
+          // All live tags: load derives the offered ones in memory.
+          await repos.tags.listAll();
           await repos.customFieldDefs.listAll();
           await repos.publishedSources.listAll();
           await repos.difficultyLevels.listAll();
@@ -197,7 +198,7 @@ Future<void> main() async {
       Future<int> readAll(CompendiumRepositories repos) async {
         final dances = await repos.dances.listAll();
         await repos.choreographers.listAll();
-        await repos.tags.listReferencedByLiveDances();
+        await repos.tags.listAll();
         await repos.customFieldDefs.listAll();
         await repos.publishedSources.listAll();
         await repos.programs.programDerivedCounts();

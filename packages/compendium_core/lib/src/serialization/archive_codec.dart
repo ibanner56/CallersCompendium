@@ -991,7 +991,20 @@ Program _programFromJson(Map<String, Object?> m) => Program(
   deletedAt: _dtOrNull(m, 'deletedAt'),
   archivedAt: _dtOrNull(m, 'archivedAt'),
   calendarEventKey: _calendarEventKeyOrNull(m),
+  calendarEventFingerprint: _boundedStringOrNull(m, 'calendarEventFingerprint'),
+  calendarWrittenAt: _dtOrNull(m, 'calendarWrittenAt'),
+  calendarFlag: _boundedStringOrNull(m, 'calendarFlag'),
 );
+
+/// A short machine-written string (#2354), read leniently: anything that is
+/// not a string of at most 128 code units is dropped, never refusing the
+/// program. An unknown `calendarFlag` value survives, so a newer build's flag
+/// reads as a generic one here rather than failing the record.
+String? _boundedStringOrNull(Map<String, Object?> m, String key) {
+  final v = m[key];
+  if (v is! String || v.isEmpty || v.length > 128) return null;
+  return v;
+}
 
 /// A program's calendar event key (#2352): 64 lower-case hex digits, the
 /// SHA-256 digest `calendarEventKey` writes. Anything else is dropped rather

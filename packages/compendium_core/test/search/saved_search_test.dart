@@ -174,6 +174,13 @@ void main() {
       );
     });
 
+    test('a state read from a saved search says so; one built does not', () {
+      // A Within window outside the presets reads "12 months, saved" only
+      // for a saved search.
+      expect(CollectionPanelState().fromSavedSearch, isFalse);
+      expect(specOf(rich()).toPanelState().fromSavedSearch, isTrue);
+    });
+
     test('keeps sort direction (a stored Z-to-A order restores)', () {
       final s = CollectionPanelState(
         text: 'x',
@@ -1317,6 +1324,78 @@ void main() {
         ),
       );
       expect(names(r), {'author:X'});
+    });
+  });
+  group('movingReferences (a merge of tags, authors or sources)', () {
+    List<Object?> tagRows(SavedSearchSpec spec) {
+      final rows = <Object?>[];
+      void walk(Object? n) {
+        if (n is Map) {
+          if (n['t'] == 'tag') rows.add(n['tagId']);
+          n.values.forEach(walk);
+        } else if (n is List) {
+          n.forEach(walk);
+        }
+      }
+
+      walk(spec.toJson()['advanced']);
+      return rows;
+    }
+
+    test('moves a tag row in a nested group, and leaves figure and then rows '
+        'alone', () {
+      final s = CollectionPanelState();
+      s.advanced.children.addAll([
+        BuilderTag(tagId: 'L'),
+        BuilderGroup(
+          kind: GroupKind.none,
+          children: [
+            BuilderTag(tagId: 'L'),
+            BuilderTag(tagId: 'K'),
+          ],
+        ),
+        BuilderThen(),
+      ]);
+      final spec = specOf(s);
+      final moved = spec.movingReferences(SyncRecordKind.tag, {'L': 'S'})!;
+      expect(tagRows(moved), ['S', 'S', 'K']);
+      expect(
+        (moved.toJson()['advanced'] as Map)['children'].toString(),
+        contains('then'),
+      );
+    });
+
+    test('is null for a search naming none of the moved ids, a kind that has '
+        'no such reference, and an empty move', () {
+      final s = CollectionPanelState();
+      s.facets.tagIds.add('K');
+      s.advanced.children.add(BuilderTag(tagId: 'K'));
+      final spec = specOf(s);
+      expect(spec.movingReferences(SyncRecordKind.tag, {'L': 'S'}), isNull);
+      expect(spec.movingReferences(SyncRecordKind.tag, {}), isNull);
+      expect(
+        spec.movingReferences(SyncRecordKind.difficultyLevel, {'K': 'S'}),
+        isNull,
+        reason: 'levels are not merged',
+      );
+      expect(
+        spec.movingReferences(SyncRecordKind.choreographer, {'K': 'S'}),
+        isNull,
+        reason: 'an author id is not a tag id',
+      );
+    });
+
+    test('the result is readable and its bytes do not depend on the order '
+        'the ids were chosen in', () {
+      final s1 = CollectionPanelState();
+      s1.facets.tagIds.addAll(['C', 'L', 'A']);
+      final s2 = CollectionPanelState();
+      s2.facets.tagIds.addAll(['A', 'L', 'C']);
+      final m1 = specOf(s1).movingReferences(SyncRecordKind.tag, {'L': 'B'})!;
+      final m2 = specOf(s2).movingReferences(SyncRecordKind.tag, {'L': 'B'})!;
+      expect(jsonEncode(m1.toJson()), jsonEncode(m2.toJson()));
+      expect((m1.toJson()['facets'] as Map)['tagIds'], ['A', 'B', 'C']);
+      expect(SavedSearchSpec.decode(m1.toJson()).isOk, isTrue);
     });
   });
 }

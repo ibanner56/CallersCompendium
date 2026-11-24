@@ -4043,7 +4043,8 @@ class FigureRenderer {
     // {destination}]" with `who` DROPPED (importer artefact carrying no
     // choreographic information) and `dir` ALWAYS included (even the `across`
     // default) — unchanged since v27. `turn` (v30) uses the same
-    // stated-vs-silenced rule as the non-singleFile branch below.
+    // stated-vs-silenced rule as the non-singleFile branch below, `along`
+    // exception included (since the #2331 follow-up).
     //
     // DISPLAY (singleFile=false, v30 #989): the pure-default combination
     // (`dir=='across' && turn=='counterclockwise'`) silences both tokens.
@@ -4096,11 +4097,15 @@ class FigureRenderer {
         // choreographic significance). `dir` always included (even `across`
         // default) so display matches what source stated and aligns with
         // the canonical form. `turn` (v30): shown whenever non-default or a
-        // destination is stated. Unlike the non-singleFile branch, `dir=='along'`
-        // does not add a separate default-turn exception here.
+        // destination is stated, and, like the non-singleFile branch, always
+        // with `dir=='along'`: a single-file promenade along the set travels
+        // the whole set, and which way is the figure (maintainer ruling,
+        // 2026-11-23, #2331 follow-up; before, `single file promenade along`
+        // gave no direction).
         final dir = _displayDirection(dirRaw);
         final showTurn =
-            !_isUnspecified(turnRaw) && (turnRaw != turnDefault || destStated);
+            !_isUnspecified(turnRaw) &&
+            (turnRaw != turnDefault || destStated || dirRaw == 'along');
         final turn = showTurn ? _displayScalar(turnRaw) : '';
         final dest = destStated
             ? 'to ${destRaw is String ? r._displayGroup(destRaw, dialect) : _displayScalar(destRaw)}'

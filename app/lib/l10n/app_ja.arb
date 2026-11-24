@@ -4804,6 +4804,10 @@
   "@collectionFacetWithinMonths": {
     "x-sourceSha256": "66be719ed3455ce0c8690aabb3c822e941f268edc163a37a050194e1f6d12926"
   },
+  "collectionFacetWithinMonthsSaved": "{count, plural, other{{count}か月(保存済み)}}",
+  "@collectionFacetWithinMonthsSaved": {
+    "x-sourceSha256": "e5c28ec8c3e855b65f5fa34934c782e7072929fddd7960b0195263ddf3a2670b"
+  },
   "collectionFacetWithinSince": "日付以降…",
   "@collectionFacetWithinSince": {
     "x-sourceSha256": "af507bf47251132ba4703a698935d64e15447d0ac82af7a649c56aeaba2b65a4"
@@ -4875,6 +4879,10 @@
   "collectionFacetAllHidden": "すべてのフィルターが非表示です。設定 ▸ 既定値で再表示できます。",
   "@collectionFacetAllHidden": {
     "x-sourceSha256": "eec14e1a8c3ccd1c9f04b0b59373b768c4f5b28191e1c5d5263cc0e71bc07202"
+  },
+  "collectionFacetMissingValue": "ライブラリにありません",
+  "@collectionFacetMissingValue": {
+    "x-sourceSha256": "52e6640837ec2055afd1c0768ff09c3b4cff9dac7b6ff011c74c5f8d57ede77a"
   },
   "collectionFacetClear": "フィルターをクリア",
   "@collectionFacetClear": {
@@ -5120,6 +5128,10 @@
   "@collectionQueryAnyParam": {
     "x-sourceSha256": "768b0de301e56f0b42b07cb65a8700632abfe087fd187bfbff9111fd0173abdc"
   },
+  "collectionQueryParamNotOffered": "{param}: {value}(選択肢にありません)",
+  "@collectionQueryParamNotOffered": {
+    "x-sourceSha256": "bb8f76af8c64c3aa8c3bad4605d23ba12e2559ec4fa22745e4b2ea8a0ed3d68a"
+  },
   "collectionBatchLevelUnspecified": "未指定（クリア）",
   "@collectionBatchLevelUnspecified": {
     "x-sourceSha256": "09aa562d873ded1aa8873961f76d6e5d70d77e44bd87135eefb750021317e503"
@@ -5284,9 +5296,9 @@
   "@danceEditorSequenceSpanNoRoom": {
     "x-sourceSha256": "197cb3c426f6d770e42563bec39b40266f6eb1dbb4b22ea913e9c467d50088ce"
   },
-  "danceEditorSequenceOverPhraseTimed": "このシーケンスは{length}で、1フレーズ（{limit}）より長くなっています。",
+  "danceEditorSequenceOverPhraseTimed": "このシーケンスは{length}で、始まるフレーズ（{limit}）より長くなっています。",
   "@danceEditorSequenceOverPhraseTimed": {
-    "x-sourceSha256": "e0c6028e36e38a6357c326de3d2c4b9898039706cdf8bfd6fe49d185fc52762b"
+    "x-sourceSha256": "9934038b8b22b7528851ff87a633a2e3ae83f580553450b4e1c7d5f8f0381a5a"
   },
   "danceFigureProgressionSemantic": "プログレッション",
   "@danceFigureProgressionSemantic": {
@@ -8642,9 +8654,9 @@
   "@danceEditorPhrasesAdd": {
     "x-sourceSha256": "523c6e63a15b0cd78bb315d87053f141d1ae58f5ecb7c344ff3892e50a9d9833"
   },
-  "danceEditorPhrasesInvalid": "各フレーズの小節数と1小節の拍数を、それぞれ1から{max}で入力してください。それまでは最後の有効なフレーズが保たれ、保存するとそれが保存されます。",
+  "danceEditorPhrasesInvalid": "各フレーズの小節数は1から{maxBars}、1小節の拍数は1から{maxBeats}で入力してください。それまでは最後の有効なフレーズが保たれ、保存するとそれが保存されます。",
   "@danceEditorPhrasesInvalid": {
-    "x-sourceSha256": "6a5a586f9cbb1f72717649e174712444f7076e149f73331b7ce56c8c2b3c371b"
+    "x-sourceSha256": "60dd2d6400c5d2c89e8e962b7cfc1af7f11c5f4b02ff6d74414f6dc608e7e8de"
   },
   "danceEditorPhraseBarsLabel": "{name}の小節",
   "@danceEditorPhraseBarsLabel": {
@@ -9194,9 +9206,9 @@
   "@validationPhraseBeatMismatch": {
     "x-sourceSha256": "cbcfd5cfa1932d621756cac5a7dd64ad714b041a96c3a293ac1a3833dc29002a"
   },
-  "validationSequenceExceedsPhrase": "フィギュア{position}のシーケンスは{actual}拍で、1フレーズ（{limit}拍）より長くなっています。",
+  "validationSequenceExceedsPhrase": "フィギュア{position}のシーケンスは{actual}拍で、始まるフレーズ（{limit}拍）より長くなっています。",
   "@validationSequenceExceedsPhrase": {
-    "x-sourceSha256": "5b58ba736707956d7a8b673a407e805314dbb8f6ba5091fc18c1fbf777a85366"
+    "x-sourceSha256": "a286391f4293c584271c4e05681091eec316b8b18f3abc18ecda2152600446d4"
   },
   "validationSequenceSpanMismatch": "フィギュア{position}のシーケンスのステップは{actual}拍ですが、シーケンスは{expected}拍です。",
   "@validationSequenceSpanMismatch": {
@@ -9206,9 +9218,9 @@
   "@validationPhraseCountMismatch": {
     "x-sourceSha256": "cb74c7f6cd49148a70e50356760215c17a5226fb6a816f7fe87c5e1db050a30b"
   },
-  "validationSequenceExceedsPhraseCount": "フィギュア{position}のシーケンスは{actual}で、1フレーズ（{limit}）より長くなっています。",
+  "validationSequenceExceedsPhraseCount": "フィギュア{position}のシーケンスは{actual}で、始まるフレーズ（{limit}）より長くなっています。",
   "@validationSequenceExceedsPhraseCount": {
-    "x-sourceSha256": "bfee5fd2f8ee58fe06f82a78cf851e3eac4482597a4e2f83d02e1196bdeecd28"
+    "x-sourceSha256": "6e52db86fea47ea4ac1e1b3d37877411ade93acc4d233fa4082f44690aa3c481"
   },
   "validationSequenceSpanNoRoomCount": "フィギュア{position}のシーケンスで長さのあるステップが{actual}を使い、{expected}のうち残りのステップの分がありません。",
   "@validationSequenceSpanNoRoomCount": {
@@ -9754,13 +9766,13 @@
   "@danceEditorSequenceTotalBeats": {
     "x-sourceSha256": "5939821f14dca9d0edb89c7b340aed8f7f16bc24d1b4d9b2a185dbf77b5e63c8"
   },
-  "danceEditorSequenceOverPhrase": "このシーケンスは{beats}拍で、1フレーズ（{limit}拍）より長くなっています。",
+  "danceEditorSequenceOverPhrase": "このシーケンスは{beats}拍で、始まるフレーズ（{limit}拍）より長くなっています。",
   "@danceEditorSequenceOverPhrase": {
-    "x-sourceSha256": "6ae93313359a72f07ebee85db77f4cef8a909076b8df31715a5e9dccc10ab214"
+    "x-sourceSha256": "69cda6e549a9dcffe8757f73f11f9057bfa2efacfbdc94aebdf92038bd4ec4fe"
   },
-  "danceEditorSequencePhraseFull": "これらのフィギュアで1フレーズ（{limit}拍）が埋まっています。",
+  "danceEditorSequencePhraseFull": "これらのフィギュアで、始まるフレーズ（{limit}拍）が埋まっています。",
   "@danceEditorSequencePhraseFull": {
-    "x-sourceSha256": "bca2abe6ab4af53f5bdf6dc57507aada937cc15b528249a4910e60ca260adc84"
+    "x-sourceSha256": "89db3e55065d6ae3a82bab01094b25566f20c3664c162e50bc59565cf263ad92"
   },
   "danceEditorSequenceStepsCapReached": "シーケンスのフィギュアは最大{max}件です。",
   "@danceEditorSequenceStepsCapReached": {
@@ -12634,9 +12646,9 @@
   "@settingsSuggestionsEnabledTitle": {
     "x-sourceSha256": "d872df21f53748993e2c03eb283c92a6f90b0457b9c462a68aa29e685eb4ae0e"
   },
-  "settingsSuggestionsEnabledSubtitle": "プログラム作成画面のダンス一覧の「並べ替え」メニューに「おすすめ順」を追加します。プログラムの最後に入れるダンスを並べ、その理由を示します。",
+  "settingsSuggestionsEnabledSubtitle": "プログラム作成画面のダンス一覧の「並べ替え」メニューに「おすすめ順」を追加します。新しいダンスを入れる位置に合わせてダンスを並べ、その理由を示します。",
   "@settingsSuggestionsEnabledSubtitle": {
-    "x-sourceSha256": "c8ba45ca4ba6a61e90aa0d9effcee74aac0a4a8cdf9c2bc0d3965f8a5af82e2a"
+    "x-sourceSha256": "193f4023841f384da42426d70da634dc5d4d49ee61e7badccda4d0a10b121202"
   },
   "settingsSuggestionsEditorTitle": "提案で考慮すること",
   "@settingsSuggestionsEditorTitle": {
@@ -12793,6 +12805,30 @@
   "suggestionReasonPhraseOverlapNext": "{move}が次のダンスと同じフレーズ",
   "@suggestionReasonPhraseOverlapNext": {
     "x-sourceSha256": "2f1291f7cc84eaed2809534ec7e5d2abdaa2bba20b9625624f2132b5dcbd3194"
+  },
+  "suggestionReasonBeatOverlapAfterDance": "{move}が直前の{dance}と同じ拍",
+  "@suggestionReasonBeatOverlapAfterDance": {
+    "x-sourceSha256": "984a339d4ee3a23aa222f16324a79496c81f5d5ff0b0dd7e7659d1b2af00f354"
+  },
+  "suggestionReasonBeatOverlapBeforeDance": "{move}が直後の{dance}と同じ拍",
+  "@suggestionReasonBeatOverlapBeforeDance": {
+    "x-sourceSha256": "11d1dfdb3e94d7f990f08c708484140265b874b7b44bac1b37a54552495ce4c8"
+  },
+  "suggestionReasonPhraseOverlapAfterDance": "{move}が直前の{dance}と同じフレーズ",
+  "@suggestionReasonPhraseOverlapAfterDance": {
+    "x-sourceSha256": "f017b76c451be8abc65c828be281eb48fde1d154159e5abd8e79c8723cb4a352"
+  },
+  "suggestionReasonPhraseOverlapBeforeDance": "{move}が直後の{dance}と同じフレーズ",
+  "@suggestionReasonPhraseOverlapBeforeDance": {
+    "x-sourceSha256": "ffb0128b46a9d23657784d170aa6f7bc738b317a18fc75d9008c903a58c01009"
+  },
+  "suggestionReasonSameFormationAfterDance": "{formation}（直前の{dance}と同じ）",
+  "@suggestionReasonSameFormationAfterDance": {
+    "x-sourceSha256": "f34b90be943fa3566b00e280d4156905e0580f2220c83b1368564b2d82684e81"
+  },
+  "suggestionReasonSameFormationBeforeDance": "{formation}（直後の{dance}と同じ）",
+  "@suggestionReasonSameFormationBeforeDance": {
+    "x-sourceSha256": "9a9373da2f73deb9f9eb67d2b6770e716f46191f4d0e79feeaa306dbb18f7fcb"
   },
   "suggestionReasonAlreadyInProgram": "すでにこのプログラムにあります",
   "@suggestionReasonAlreadyInProgram": {
@@ -13213,5 +13249,417 @@
   "exportCsvPayHiddenNotice": "報酬は設定で非表示になっているため、含まれません。含めるには、設定 ▸ プログラムで「報酬を表示」をオンにしてください。",
   "@exportCsvPayHiddenNotice": {
     "x-sourceSha256": "7211fa66aebc90d9f812f84eb5311ec7ce3c9492040b40a47ae3cce07f2f9e6d"
+  },
+  "collectionRepertoireMenuItem": "レパートリー",
+  "@collectionRepertoireMenuItem": {
+    "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
+  },
+  "repertoireTitle": "レパートリー",
+  "@repertoireTitle": {
+    "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
+  },
+  "repertoireLoadError": "レパートリーを集計できませんでした",
+  "@repertoireLoadError": {
+    "x-sourceSha256": "a377018354f04a0476bcfdd92e5356014441e33da976d52a148c063a68409455"
+  },
+  "repertoirePeriodLabel": "期間",
+  "@repertoirePeriodLabel": {
+    "x-sourceSha256": "6e795d4d3cc21c5ca8349ab5e917482197aa612d1a218f9e9411467db73242bb"
+  },
+  "repertoirePeriodAllTime": "全期間",
+  "@repertoirePeriodAllTime": {
+    "x-sourceSha256": "9755c8d7d44a62589c873ca19a4119a594b98fbf3744cda4eb14b87a199765cb"
+  },
+  "repertoirePeriodMonths": "{count, plural, =1{過去1か月} other{過去{count}か月}}",
+  "@repertoirePeriodMonths": {
+    "x-sourceSha256": "a09e4dfbc620510b7de3ecf77e578fd3ba0ed50a6ce0a4b086c1aa4a212d3507"
+  },
+  "repertoirePeriodSinceDate": "日付以降…",
+  "@repertoirePeriodSinceDate": {
+    "x-sourceSha256": "af507bf47251132ba4703a698935d64e15447d0ac82af7a649c56aeaba2b65a4"
+  },
+  "repertoirePeriodSince": "{date}以降",
+  "@repertoirePeriodSince": {
+    "x-sourceSha256": "1550794b36af0a945ddc65d95c16fbde42d2df500d5f3a232f5b1138e9b299f1"
+  },
+  "repertoireTypeLabel": "ダンスの種類",
+  "@repertoireTypeLabel": {
+    "x-sourceSha256": "2c004974318a3075ebadbd65e39bd0efc9bd6b1eee3f8a9c679d5c669b326ce0"
+  },
+  "repertoireTypeAll": "すべての種類",
+  "@repertoireTypeAll": {
+    "x-sourceSha256": "f10988e79e8d9a49f45a71ecf3f4ebe143a96eb9d83272156ab54101b3777046"
+  },
+  "repertoireSummary": "この期間のコール数：{calls}。コールしたダンス：{total}件中{called}件。",
+  "@repertoireSummary": {
+    "x-sourceSha256": "4a7cbbf7c87e3bc46500abc1affb3190fd2f410e54fa5e6c41b9b31665ea822f"
+  },
+  "repertoireMostCalledHeader": "コール回数が多い",
+  "@repertoireMostCalledHeader": {
+    "x-sourceSha256": "f2aff79f46e584591a4f0b1fcd3131e043212b0bbb4ea84d3dae766272a149de"
+  },
+  "repertoireLeastCalledHeader": "コール回数が少ない（コールしたダンスのうち）",
+  "@repertoireLeastCalledHeader": {
+    "x-sourceSha256": "c842c2a0183d8447f0a70e0c59646aaf2d9d3c8684b451d857353e23329781c8"
+  },
+  "repertoireLeastCalledAllShown": "この期間にコールしたダンスは、すべて「コール回数が多い」に表示されています。",
+  "@repertoireLeastCalledAllShown": {
+    "x-sourceSha256": "5cb02281254a6fab6493c5d267f1c1f8cea8776c7876b01ef0a823e494e82def"
+  },
+  "repertoireNoCalls": "この期間にカウントされたコールはありません。",
+  "@repertoireNoCalls": {
+    "x-sourceSha256": "86745f9130fff2ca0d915327740923a147bd5234bbbf4eb3192173031b0f9858"
+  },
+  "repertoireDanceCalls": "{count, plural, =1{1回コール} other{{count}回コール}}",
+  "@repertoireDanceCalls": {
+    "x-sourceSha256": "45189eb3c35920001f632a177ba87dc00a38fabca66625eaf78b54446abb5f8f"
+  },
+  "repertoireDanceSemantics": "{title}：{count, plural, =1{1回コール} other{{count}回コール}}",
+  "@repertoireDanceSemantics": {
+    "x-sourceSha256": "f5ea6abe5e2415a57e19493b7734fcaf50fe98414349c428ef84e8214cf4d705"
+  },
+  "repertoireNeverCalledHeader": "一度もコールされていない",
+  "@repertoireNeverCalledHeader": {
+    "x-sourceSha256": "a523b2ac225d3979beb78fe0272ba337772b159e4932f6e27b7df2bce6384a42"
+  },
+  "repertoireNeverCalledLabel": "一度もコールされていない",
+  "@repertoireNeverCalledLabel": {
+    "x-sourceSha256": "a523b2ac225d3979beb78fe0272ba337772b159e4932f6e27b7df2bce6384a42"
+  },
+  "repertoireOfDances": "{total}件中{count}件のダンス",
+  "@repertoireOfDances": {
+    "x-sourceSha256": "76615ee1ce72d60b9f878a4576a3b3ab25c37de1a722d0ecd18aea33eb731899"
+  },
+  "repertoireNeverCalledSemantics": "一度もコールされていない：{total}件中{count}件のダンス",
+  "@repertoireNeverCalledSemantics": {
+    "x-sourceSha256": "8194a4a6d9fb05db1e0551fe07e9158a44c3c7cc32984263a953a5d72a630267"
+  },
+  "repertoireNeverCalledDanceSemantics": "{title}：一度もコールされていない",
+  "@repertoireNeverCalledDanceSemantics": {
+    "x-sourceSha256": "5bb809f2149949c9ea5bf93daf9e454396da8da208e4cf8c10633fd5172b36c6"
+  },
+  "repertoireNotCalledInPeriodLabel": "この期間に未コール",
+  "@repertoireNotCalledInPeriodLabel": {
+    "x-sourceSha256": "42ec0ae23e760c9a9c39f25eb38afcb3acb55ad830325a40247c450600734b78"
+  },
+  "repertoireNotCalledInPeriodSemantics": "この期間に未コール：{total}件中{count}件のダンス",
+  "@repertoireNotCalledInPeriodSemantics": {
+    "x-sourceSha256": "b889fd2f0f3ceeaa6ffd2345ee4532176a77216570a8b17879b8f472e80b81d6"
+  },
+  "repertoireFigureHeader": "フィギュアの出現頻度",
+  "@repertoireFigureHeader": {
+    "x-sourceSha256": "1f1265b6c299fb7fc1f01ad509e58f9d75476b89505d29a7433fd0befe8e6443"
+  },
+  "repertoireNoFigures": "これらのダンスにはフィギュアが入力されていません。",
+  "@repertoireNoFigures": {
+    "x-sourceSha256": "5c7385dadaa29516f1c99a78658d745b5febfea33156da79906bf887323bca0e"
+  },
+  "repertoireFigureValue": "{total}件中{dances}件のダンス（{percent}%）・{calls, plural, =1{1回コール} other{{calls}回コール}}",
+  "@repertoireFigureValue": {
+    "x-sourceSha256": "427959c91687de4ae08a3efef81f129115e22eeeb1a98aecc65bb219f34a59f2"
+  },
+  "repertoireFigureSemantics": "{move}：{total}件中{dances}件のダンス、{percent}パーセント。この期間に{calls, plural, =1{1回コール} other{{calls}回コール}}",
+  "@repertoireFigureSemantics": {
+    "x-sourceSha256": "b0911685dfaa28d6fe4fd6587bfa6632fd8c7e7447a82a0db9131880913281d0"
+  },
+  "repertoireShowAll": "すべて表示（{count}件）",
+  "@repertoireShowAll": {
+    "x-sourceSha256": "a6c3860c56d7523fe43cfc166f3034d023eeac5491f722aba74922d03dca769d"
+  },
+  "repertoireShowFewer": "表示を減らす",
+  "@repertoireShowFewer": {
+    "x-sourceSha256": "255beb6510e7827d37ec1cd22d080f910888ae00f29374dd9545c8b3d1fce43a"
+  },
+  "repertoireAuthorsHeader": "コールしている作者",
+  "@repertoireAuthorsHeader": {
+    "x-sourceSha256": "03a08a6177689c82fcc0a1cfe404363104f2eb53ccb83e2165947969bb41d94b"
+  },
+  "repertoireAuthorsSummary": "{count, plural, =0{この期間にコールした作者はいません。} =1{この期間に1人の作者のダンスをコールしました。} other{この期間に{count}人の作者のダンスをコールしました。}}",
+  "@repertoireAuthorsSummary": {
+    "x-sourceSha256": "d2660bfb610f85406c90d761e3f01e3e6e8b58d9eae6849930f84759364cbfd0"
+  },
+  "repertoireShareValue": "{calls, plural, =1{1回コール} other{{calls}回コール}}（{percent}%）",
+  "@repertoireShareValue": {
+    "x-sourceSha256": "b61b0042e986ce34f28b386ed7868e08cee4a26c6bac14c0809b05c8a63dbfcb"
+  },
+  "repertoireShareSemantics": "{label}：{calls, plural, =1{1回コール} other{{calls}回コール}}、この期間のコールの{percent}パーセント",
+  "@repertoireShareSemantics": {
+    "x-sourceSha256": "044bc4d54d2dcc9d96418d86f9ab95849c79e5edf4710e7c4e8f1da8db2de573"
+  },
+  "repertoireFormationHeader": "フォーメーションの内訳",
+  "@repertoireFormationHeader": {
+    "x-sourceSha256": "098683a99bcce20ab162bb7af93ac6ad456eaaa455ec58235f5ec5e5cda68739"
+  },
+  "repertoireVenuesHeader": "会場ごとの繰り返し",
+  "@repertoireVenuesHeader": {
+    "x-sourceSha256": "9b0640ebefe0b4e62b8d63d8948a9d88593e9cea25c1fd35b25a6e6b82ea841f"
+  },
+  "repertoireNoRepeats": "この期間に同じ会場で2回以上コールされたダンスはありません。",
+  "@repertoireNoRepeats": {
+    "x-sourceSha256": "1ee83c14c00d9965edff9c7d2113aeaf23c7269f09a54b529b010feb074062cd"
+  },
+  "repertoireVenueUnnamed": "名前のない会場",
+  "@repertoireVenueUnnamed": {
+    "x-sourceSha256": "d05aef5da8914bd969562f34dd344d7251dd248c6e2cf2674efd76ee9f84704b"
+  },
+  "repertoireVenueRepeats": "{count, plural, =1{1件のダンスを繰り返し} other{{count}件のダンスを繰り返し}}",
+  "@repertoireVenueRepeats": {
+    "x-sourceSha256": "826159fbea4aac34da9274535e7f110d30128adbf08c0a99f39adf72d185c3cf"
+  },
+  "repertoireVenueSemantics": "{venue}：{count, plural, =1{1件のダンスを2回以上コール} other{{count}件のダンスを2回以上コール}}",
+  "@repertoireVenueSemantics": {
+    "x-sourceSha256": "6ac25c6d56b7afe142098842bf969c16f8b147d1d7c2172c1dd1e492c9d467f2"
+  },
+  "settingsExperimentalRepertoireHeader": "レパートリー",
+  "@settingsExperimentalRepertoireHeader": {
+    "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
+  },
+  "settingsExperimentalShowRepertoireTitle": "レパートリー",
+  "@settingsExperimentalShowRepertoireTitle": {
+    "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
+  },
+  "settingsExperimentalShowRepertoireSubtitle": "コレクションの「その他のアクション」メニューに「レパートリー」を追加します。コール回数が多いダンスと少ないダンス、一度もコールしていないダンス、フィギュアの出現頻度、作者、フォーメーション、会場ごとの繰り返しを表示します。",
+  "@settingsExperimentalShowRepertoireSubtitle": {
+    "x-sourceSha256": "f537bb665c51db4ea2f7bebe359ced80907a25a71ab9fee34cf7c48159b6e946"
+  },
+  "importSourceLabelCsv": "自分の表計算ファイル（CSV）",
+  "@importSourceLabelCsv": {
+    "x-sourceSha256": "9da38651a5a702664efb34eceb35b14d12b6934834c6b3d30162dcc1a8c20a96"
+  },
+  "importCsvPickFile": "CSV ファイルを選択…",
+  "@importCsvPickFile": {
+    "x-sourceSha256": "3bb43e45815cd926a5fdc5fc234a382e7ca35f88ece0d4f9d4ea4abf1a867690"
+  },
+  "importCsvSaveAsHint": "表計算アプリで［ファイル］▸［名前を付けて保存］（または［ダウンロード］）を選び、「CSV UTF-8」を選んでから、そのファイルをここで選択してください。",
+  "@importCsvSaveAsHint": {
+    "x-sourceSha256": "3aa1ebd55b632f5a421fc0ed140c9486b22de931f544872cddeca51e7b3ca625"
+  },
+  "importCsvMapTitle": "列の割り当て",
+  "@importCsvMapTitle": {
+    "x-sourceSha256": "2778414273d997932756c9192b6ef4fbe57879654b3ea446f34ef54f5d5da1f3"
+  },
+  "importCsvMapIntro": "各列の内容を選んでください。「無視」にした列は取り込まれません。確認して確定するまで何も追加されません。",
+  "@importCsvMapIntro": {
+    "x-sourceSha256": "4d62456f1068a41b7ca803b120ba5d409420b6a2a3d3b31d99a578c3278da1ab"
+  },
+  "importCsvSeparatorLabel": "区切り文字",
+  "@importCsvSeparatorLabel": {
+    "x-sourceSha256": "be237eda7fff4fd3596647c9665e5ec5f502602c74167b939b587a2abcbda156"
+  },
+  "importCsvSeparatorComma": "カンマ（,）",
+  "@importCsvSeparatorComma": {
+    "x-sourceSha256": "88363d66de700d9e04f806c6061a9c51b45c97568683e215327efeee8ca0cbd2"
+  },
+  "importCsvSeparatorSemicolon": "セミコロン（;）",
+  "@importCsvSeparatorSemicolon": {
+    "x-sourceSha256": "599d532f1133a280ee5a238cf1e25ab1155a94281ad4636681c45bf12c04172d"
+  },
+  "importCsvSeparatorTab": "タブ",
+  "@importCsvSeparatorTab": {
+    "x-sourceSha256": "90ddf1963abb36c9921ce7f1ac9cbd94c9176d13e57c418d3d3c20ce44291c1c"
+  },
+  "importCsvFirstRowHeader": "1 行目は列名",
+  "@importCsvFirstRowHeader": {
+    "x-sourceSha256": "ce568b5b5d818b6357d3f150a6917d074f9ea7f3867bb565f9b176122c1fd2a0"
+  },
+  "importCsvColumnFallback": "列 {number}",
+  "@importCsvColumnFallback": {
+    "x-sourceSha256": "e9a03bca31e4f537d8edfcd9d9b62cd8d8d848ead504e6f46fe121af6ecabc6c"
+  },
+  "importCsvTargetIgnore": "無視",
+  "@importCsvTargetIgnore": {
+    "x-sourceSha256": "fce77c34d3fec98733dd4c29f1592a92e60e93e43f0bfe8690c91160ae7efebe"
+  },
+  "importCsvTargetPhrase": "フィギュア、{phrase}",
+  "@importCsvTargetPhrase": {
+    "x-sourceSha256": "ccde59a8941c6dda4db79f6be209702d4b154bfd4b38b9161fd87a905861a101"
+  },
+  "importCsvTargetNewField": "新しいカスタムフィールド（{type}）",
+  "@importCsvTargetNewField": {
+    "x-sourceSha256": "569155455b946e4dc1eba8e3f5d45cb8667f7bcd2e1429545770340d08f3296d"
+  },
+  "importCsvTargetExistingField": "カスタムフィールド：{name}",
+  "@importCsvTargetExistingField": {
+    "x-sourceSha256": "ccca5cc4ed6d5700d62324937469253825ff3c52ebc51b9430afb5135790b05b"
+  },
+  "importCsvNeedsTitle": "各ダンスのタイトルが入っている列を選んでください。",
+  "@importCsvNeedsTitle": {
+    "x-sourceSha256": "44f3de11d4f78aa9301dd21d319448923afea067c421fb741fe346e13af97301"
+  },
+  "importCsvContinue": "続ける",
+  "@importCsvContinue": {
+    "x-sourceSha256": "31fbef162594de01bab0cd525c51f74de7bcb15063029fa1a54b2cf5944c80d8"
+  },
+  "importCsvPreviewHeading": "最初の行",
+  "@importCsvPreviewHeading": {
+    "x-sourceSha256": "6b6f9a093dd6fe0455e331bbe10ec04415c2970206d9ecd6ab16378c4739da2b"
+  },
+  "importCsvNotUtf8": "このファイルは UTF-8 テキストで保存されていないため、アクセント付きの文字が正しく取り込まれません。表計算アプリで「CSV UTF-8」として保存し直し、そのファイルを選択してください。",
+  "@importCsvNotUtf8": {
+    "x-sourceSha256": "d1247bdaab67d98f64224bd3a8385c7c38636d89e8147210f0ddfa6926cccf22"
+  },
+  "importCsvTooLarge": "このファイルは大きすぎて取り込めません。小さなファイルに分けてください。",
+  "@importCsvTooLarge": {
+    "x-sourceSha256": "624f8e7da215ff26de3e13d343254ba34a3c8a639b346197af3b342071d5f5a0"
+  },
+  "importCsvTooManyRows": "このファイルには {limit} 行を超える行があります。小さなファイルに分けてください。",
+  "@importCsvTooManyRows": {
+    "x-sourceSha256": "9dd028326beac2b7c69df122c4e2a71a553ef4f5ac863b7d48d3281abddb3f84"
+  },
+  "importCsvTooManyColumns": "このファイルのある行には {limit} を超える列があります。",
+  "@importCsvTooManyColumns": {
+    "x-sourceSha256": "33cf9e59d741fc496c92702b5feb2b945fe8571e2cec997b97a0c9bef2d96122"
+  },
+  "importCsvCellTooLong": "このファイルのあるセルは {limit} 文字を超えています。",
+  "@importCsvCellTooLong": {
+    "x-sourceSha256": "fb96e6d3fcf0208086dbc3e1de30edb1e86ee72c6b6d31df316215362767caa2"
+  },
+  "importCsvUnterminatedQuote": "このファイルには終わりのない引用符付きのセルがあるため、読み込めません。",
+  "@importCsvUnterminatedQuote": {
+    "x-sourceSha256": "0cd019b41f719dea2fead39abe869ba4af54e5169d331d98347876f06e45909d"
+  },
+  "importCsvLargeBatch": "このファイルには {count} 行あります。確認に時間がかかることがあります。",
+  "@importCsvLargeBatch": {
+    "x-sourceSha256": "080ae6dfc02b9c624a85963f3a307e9c9b9da220ea7d494ead52c35d7bc8e808"
+  },
+  "importCsvNoRows": "このファイルには列名だけで、ダンスの行がありません。",
+  "@importCsvNoRows": {
+    "x-sourceSha256": "38b4b25fdfbc56624e65823fcc8e0f756c7ce28b778905609c4a58344eaf71d2"
+  },
+  "calendarImportUpdated": "{count, plural, other{カレンダーからプログラムを{count}件更新しました。}}",
+  "@calendarImportUpdated": {
+    "x-sourceSha256": "6ac5eca3ccc48d48449bf0b5aaf3df3010042c0070d3992c45d66b011f754861"
+  },
+  "calendarImportReviewed": "カレンダーを確認しました。追加や変更はありません。",
+  "@calendarImportReviewed": {
+    "x-sourceSha256": "9cd1e0a6b36cba778e39a9e673d043a81e968b8311624582fc5e2d541c069388"
+  },
+  "calendarChangeDate": "日付: {before} → {after}",
+  "@calendarChangeDate": {
+    "x-sourceSha256": "6012b4741531f2b145ba0fe217de29f7bd8798cb80739ffa5ad69c045d1966c4"
+  },
+  "calendarChangeTitle": "タイトル: {before} → {after}",
+  "@calendarChangeTitle": {
+    "x-sourceSha256": "0318a23428e2c61a0bf541126aec5d6fb7e83e0231c4fb82630e88eaf4286a56"
+  },
+  "calendarChangeTime": "時刻: {before} → {after}",
+  "@calendarChangeTime": {
+    "x-sourceSha256": "67199899e02aa6128a22606137672135a164931b2e025d9ca9f2ca342455a04f"
+  },
+  "calendarChangeVenue": "会場: {before} → {after}",
+  "@calendarChangeVenue": {
+    "x-sourceSha256": "8b60cf0ee9dd2aa34c02b13d42531f743f69dc6bb09f436f65c38aec52fec0bc"
+  },
+  "calendarImportUpdatedHeader": "カレンダーで更新された予定",
+  "@calendarImportUpdatedHeader": {
+    "x-sourceSha256": "2bcda26fb7e395c4d8d151c5098778831dd263ba32b0fb30f6439bdb66bf9c58"
+  },
+  "calendarImportChangedHeader": "カレンダーで変更された予定",
+  "@calendarImportChangedHeader": {
+    "x-sourceSha256": "72457ccccb8cbb8493166f0a84a73037d42d4333bf3ccf43fbc9a5aa158d176f"
+  },
+  "calendarImportChangedBody": "これらのプログラムは編集済みのため、チェックを入れない限り何も変わりません。",
+  "@calendarImportChangedBody": {
+    "x-sourceSha256": "8f1e742f3f9ea634e3a0d98fb91ef62f9ae6452125ae12b17d30739e2ab439cf"
+  },
+  "calendarImportFlaggedHeader": "カレンダーでキャンセルされた、または削除された予定",
+  "@calendarImportFlaggedHeader": {
+    "x-sourceSha256": "18f9adf7cc15b59897eac82b0e42e2df700f91359732ae7ba17c8b34f511ed48"
+  },
+  "calendarImportFlaggedBody": "これらのプログラムはそのまま残り、ラベルが付きます。不要になったら自分でアーカイブまたは削除してください。",
+  "@calendarImportFlaggedBody": {
+    "x-sourceSha256": "047395fd755db6af23edc249f435614d0b55f72f93b2d40ff21c546dc0753a5f"
+  },
+  "calendarFlagCancelled": "カレンダーでキャンセル済み",
+  "@calendarFlagCancelled": {
+    "x-sourceSha256": "d28cdbc519a0160e36ad2fc791414a1f45a77d1ab409968879b128ae8684c7da"
+  },
+  "calendarFlagMissing": "カレンダーにもうありません",
+  "@calendarFlagMissing": {
+    "x-sourceSha256": "e77f9c4e3f6d45b55ffbf6a45be4a10eacd9b61c4d282092269ee21f688dd16b"
+  },
+  "calendarFlagOther": "カレンダーによるフラグ",
+  "@calendarFlagOther": {
+    "x-sourceSha256": "c4a917f4468288346665c33ee3344ac95884df50239c68df20e79347c319b12a"
+  },
+  "calendarFlagFieldLabel": "カレンダーのフラグ",
+  "@calendarFlagFieldLabel": {
+    "x-sourceSha256": "65966db64c3264f3fb482984dd40bc75ce1c9d49747b10a7b979d2bea720daec"
+  },
+  "calendarClearFlag": "カレンダーのフラグを消す",
+  "@calendarClearFlag": {
+    "x-sourceSha256": "70492bc4421a39eea800e78cf5094663b514956d23a55ba55a7df62e35749f87"
+  },
+  "calendarClearFlagError": "カレンダーのフラグを消せませんでした。もう一度お試しください。",
+  "@calendarClearFlagError": {
+    "x-sourceSha256": "7f31c36bfec0eaa49ce85b3501658f5788167cceec31b4b23237b44fd80501ee"
+  },
+  "calendarOnStartupTitle": "アプリ起動時にカレンダーをインポート",
+  "@calendarOnStartupTitle": {
+    "x-sourceSha256": "c7e7976b2cca7054a32ded2d9db81e98877e1fcecc0f53f2391a16d49455ea66"
+  },
+  "calendarOnStartupSubtitle": "初期設定はオフです。オンにすると、起動のたびにカレンダーを1回読み取ります。読み取れなくても何も表示しません。",
+  "@calendarOnStartupSubtitle": {
+    "x-sourceSha256": "e056a23296e3663767355547c664dfbc982910104dbd90b61d452b6325a06b2e"
+  },
+  "calendarStartupModeTitle": "起動時",
+  "@calendarStartupModeTitle": {
+    "x-sourceSha256": "1e0ff8230be734239932417d849d117fbba4d6e1474502a4d5a4df1e5df99958"
+  },
+  "calendarStartupModeReport": "新しい予定を知らせる",
+  "@calendarStartupModeReport": {
+    "x-sourceSha256": "70e436309bfaf16f1fe7a0ffae975d60017ac233b079437eb9a96f5ba306c7e1"
+  },
+  "calendarStartupModeAdd": "下書きとして追加",
+  "@calendarStartupModeAdd": {
+    "x-sourceSha256": "2b65fa882c090cf0763ff21febb1e2f043159d91368cecb44ee8b4b352e1f28e"
+  },
+  "calendarStartupModeReportSubtitle": "新しい予定を知らせます。確認するまで何も追加されません。",
+  "@calendarStartupModeReportSubtitle": {
+    "x-sourceSha256": "19b69452a18e130d89bdb29818ef74aa7b7536d55f64f4252a2b453ffe63777e"
+  },
+  "calendarStartupModeAddSubtitle": "新しい予定を下書きプログラムとして追加します（元に戻せます）。変更・キャンセルされた予定は知らせるだけです。",
+  "@calendarStartupModeAddSubtitle": {
+    "x-sourceSha256": "c46a506d2bed5f309ed224b8a5c28a71ae6f0fb8caa4544ef556c2accaa3f954"
+  },
+  "calendarLastResultFailed": "起動時にカレンダーに接続できませんでした（{when}）",
+  "@calendarLastResultFailed": {
+    "x-sourceSha256": "61b1f900991b944a3ffd641fbf2894a47c8b126d92c302610962fc5b4fc8eed1"
+  },
+  "calendarLastResultAdded": "起動時に確認（{when}）: {count, plural, other{下書きを{count}件追加}}",
+  "@calendarLastResultAdded": {
+    "x-sourceSha256": "6c43cfcc9878b805367fb68a0535ec13f55441a994e4f9d8405b394139ce6865"
+  },
+  "calendarLastResultNew": "起動時に確認（{when}）: {count, plural, =0{新しい予定はありません} other{新しい予定が{count}件}}",
+  "@calendarLastResultNew": {
+    "x-sourceSha256": "f2e253184432a0838b757716b96a1230a71c9704392c66f4aebdf4f7f4dd4552"
+  },
+  "calendarStartupFailureNotice": "{count, plural, other{直近{count}回の起動でカレンダーに接続できませんでした。}}",
+  "@calendarStartupFailureNotice": {
+    "x-sourceSha256": "1c08c525abd1e631cfc904ec226be0df5cbd829e071e2044c9c6c36d0e6cc3f9"
+  },
+  "calendarStartupFailureHint": "カレンダーのアドレスか接続を確認してください。",
+  "@calendarStartupFailureHint": {
+    "x-sourceSha256": "343be91960bc9ccfbdddda531b096feddbcab978c70c9541e3c0d3ccd7f7990d"
+  },
+  "calendarStartupNewEvents": "{count, plural, other{カレンダーに新しい予定が{count}件あります。}}",
+  "@calendarStartupNewEvents": {
+    "x-sourceSha256": "5e69184159efd2e49b4fd85ca64c4eb0131543f83390c3d92e46ad65e9d83803"
+  },
+  "calendarStartupChanges": "{count, plural, other{確認が必要な変更が{count}件あります。}}",
+  "@calendarStartupChanges": {
+    "x-sourceSha256": "d24b0d697433b60ad385afb2f9e1bbe7bb31a1c7bd7554c1941fb6327d5271d7"
+  },
+  "calendarStartupShow": "表示",
+  "@calendarStartupShow": {
+    "x-sourceSha256": "0df6f1cad36c49da768a6efdcc2c4be102f5729f7381cb53e4ff8061d17eaeb6"
+  },
+  "calendarStartupReview": "確認",
+  "@calendarStartupReview": {
+    "x-sourceSha256": "aff0766a5290e117b8433c351bae7b7b23bed682b2369bd822d88a647cc58512"
+  },
+  "calendarLastResultError": "起動時にカレンダーからインポートできませんでした（{when}）",
+  "@calendarLastResultError": {
+    "x-sourceSha256": "a826d9f8828d360f373473072915ffe0c2fb4944f9b9e733a3e75a6f72591f5c"
   }
 }

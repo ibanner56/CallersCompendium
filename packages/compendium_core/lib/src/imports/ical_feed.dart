@@ -87,6 +87,31 @@ class ICalDateValue {
     return DateTime.utc(local.year, local.month, local.day);
   }
 
+  /// The wall-clock date and time this value falls at for the reader, as a
+  /// UTC-flagged container (no instant is implied), or `null` for a `DATE`:
+  /// a `Z` value through [toLocal]; a floating or `TZID` value as written
+  /// (#2423). The same rule as [localDate], with the time of day kept.
+  DateTime? localDateTime(DateTime Function(DateTime utc) toLocal) {
+    if (isDate) return null;
+    if (!isUtc) return _instant;
+    return _wallClock(toLocal(_instant));
+  }
+
+  /// The written date and time in a UTC container: the instant itself for a
+  /// `Z` value, the wall clock for a floating or `TZID` one. Not for a `DATE`.
+  DateTime get _instant =>
+      DateTime.utc(year, month, day, hour!, minute!, second!);
+
+  /// [local]'s wall-clock fields in a UTC container.
+  static DateTime _wallClock(DateTime local) => DateTime.utc(
+    local.year,
+    local.month,
+    local.day,
+    local.hour,
+    local.minute,
+    local.second,
+  );
+
   /// Comparable key: date, then time (a `DATE` sorts as midnight).
   int get _sortKey =>
       ((year * 100 + month) * 100 + day) * 1000000 +
@@ -132,6 +157,8 @@ class ICalEvent {
   const ICalEvent({
     required this.uid,
     required this.start,
+    this.end,
+    this.duration,
     this.summary,
     this.location,
     this.status,
@@ -142,6 +169,14 @@ class ICalEvent {
 
   final String uid;
   final ICalDateValue start;
+
+  /// `DTEND`, when the event has one (#2423).
+  final ICalDateValue? end;
+
+  /// `DURATION`, when the event has one (RFC 5545 §3.3.6), as a nominal
+  /// length: weeks, days, hours, minutes and seconds added together. An
+  /// [end] takes precedence where a feed gives both.
+  final Duration? duration;
   final String? summary;
   final String? location;
 
@@ -229,6 +264,8 @@ ICalFeed parseICalFeed(String body, {int maxEvents = iCalMaxEvents}) {
               ICalEvent(
                 uid: uid.trim(),
                 start: start,
+                end: _date(props, 'DTEND'),
+                duration: _duration(props['DURATION']?.first.value),
                 summary: _text(props, 'SUMMARY'),
                 location: _text(props, 'LOCATION'),
                 status: _text(props, 'STATUS')?.trim().toUpperCase(),
@@ -317,6 +354,24 @@ ICalDateValue? _date(Map<String, List<_Prop>> props, String name) {
   final p = props[name];
   if (p == null || p.isEmpty) return null;
   return ICalDateValue.tryParse(p.first.value);
+}
+
+/// An RFC 5545 §3.3.6 `DURATION` value, such as "PT3H", "PT2H30M", "P1D" or
+/// "P1W", or `null` when it is missing, negative or unreadable.
+Duration? _duration(String? raw) {
+  if (raw == null) return null;
+  final m = RegExp(
+    r'^\+?P(?:(\d+)W|(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?)$',
+  ).firstMatch(raw.trim().toUpperCase());
+  if (m == null) return null;
+  int part(int i) => int.tryParse(m.group(i) ?? '') ?? 0;
+  if ([1, 2, 3, 4, 5].every((i) => m.group(i) == null)) return null;
+  return Duration(
+    days: part(1) * 7 + part(2),
+    hours: part(3),
+    minutes: part(4),
+    seconds: part(5),
+  );
 }
 
 /// Undoes RFC 5545 TEXT escaping: `\\`, `\;`, `\,` and `\n` / `\N`. An
@@ -535,8 +590,12 @@ class CalendarImportCandidate {
     required this.eventKey,
     required this.title,
     required this.date,
+    this.startMinute,
+    this.endMinute,
     this.venueLabel,
     this.exportedProgramId,
+    this.asWritten,
+    this.startsInUtc = false,
   });
 
   /// [calendarEventKey] of the event's `UID` and recurrence id.
@@ -549,6 +608,18 @@ class CalendarImportCandidate {
   /// The event date, `DateTime.utc(y, m, d)`, as the program editor stores it.
   final DateTime date;
 
+  /// When the event starts, as minutes after midnight on [date] at the
+  /// reader's wall clock (`Program.startMinute`, #2423), or `null` for an
+  /// all-day event. A `Z` time is converted to the reader's local time; a
+  /// floating or `TZID` time is taken as written.
+  final int? startMinute;
+
+  /// When it ends, on the same rule (`Program.endMinute`): earlier than
+  /// [startMinute] when it ends after midnight. `null` when the event has no
+  /// start time, no end, or lasts no time or a day or more, none of which a
+  /// program's start and end can say.
+  final int? endMinute;
+
   /// The first comma-separated segment of `LOCATION`, sanitized and
   /// single-line; the rest (usually a street address) is dropped.
   final String? venueLabel;
@@ -556,19 +627,69 @@ class CalendarImportCandidate {
   /// For an event whose `UID` is `<id>@callers-compendium` (this app's
   /// calendar export, #2351): that program id.
   final String? exportedProgramId;
+
+  /// The date, start and end as the calendar writes them, before a `Z`
+  /// (UTC) time is moved to the reader's local time: for a `Z` event, the
+  /// UTC date and minutes; otherwise the same as [date], [startMinute] and
+  /// [endMinute]. Null means the same as those. Only the fingerprint uses
+  /// it, so the same event read in another time zone, or on a device in
+  /// another zone that syncs the program, is not taken for a changed one.
+  final ({DateTime date, int? startMinute, int? endMinute})? asWritten;
+
+  /// Whether the event starts at a `Z` (UTC) time. Then [asWritten]'s date
+  /// is the UTC date, and a change of start time alone can move the local
+  /// [date]: a change offer must judge the date from both (#2354).
+  final bool startsInUtc;
+
+  /// [calendarEventFingerprint] of this event as it is now, from
+  /// [asWritten]: it changes only when the event does, whatever the
+  /// reader's time zone.
+  String get fingerprint => calendarEventFingerprint(
+    title: title,
+    date: asWritten?.date ?? date,
+    venueLabel: venueLabel,
+    startMinute: asWritten == null ? startMinute : asWritten!.startMinute,
+    endMinute: asWritten == null ? endMinute : asWritten!.endMinute,
+    utc: startsInUtc,
+  );
 }
 
 /// What a feed offers for import, before it is compared with the collection.
 class CalendarImportPlan {
   const CalendarImportPlan({
     required this.candidates,
+    this.knownKeys = const {},
+    this.cancelledAnywhereKeys = const {},
+    this.canJudgeMissing = false,
     this.unreadableSeries = const [],
     this.skippedNoUid = 0,
     this.truncated = false,
   });
 
-  /// In date order.
+  /// In date order, and on one date by start time (an all-day event first).
   final List<CalendarImportCandidate> candidates;
+
+  /// Every event the feed holds and does not cancel, whatever its date or
+  /// the title filter (#2354): single events and overrides at any date, and
+  /// a readable series' occurrences from 31 days back to a day past the
+  /// window, less those its `EXDATE` removes. A program whose key is here is
+  /// not gone, wherever its event or its one occurrence moved. A series'
+  /// occurrence is known by its `UID` and its written date and time, so a
+  /// series moved to another day or time, or split "this and following" (a
+  /// new `UID`), gives its occurrences new keys, and their programs are not
+  /// known; a changed rule keeps the keys of the dates it still has.
+  final Set<String> knownKeys;
+
+  /// Like [knownKeys], for cancelled events: a single event, an occurrence of
+  /// a cancelled series, or a cancelled override of one occurrence. An
+  /// occurrence its series' `EXDATE` removes is in neither set, so it reads
+  /// as gone rather than canceled.
+  final Set<String> cancelledAnywhereKeys;
+
+  /// Whether the feed was read whole: not truncated, no repeating rule the
+  /// app cannot read, no event whose start it could not read. Only then can
+  /// an event's absence mean it is gone.
+  final bool canJudgeMissing;
 
   /// Titles of repeating events whose rule the import cannot read. They are
   /// not imported, and never guessed.
@@ -576,6 +697,99 @@ class CalendarImportPlan {
 
   final int skippedNoUid;
   final bool truncated;
+}
+
+/// What a calendar import last wrote from an event (#2354): its title, date,
+/// first location segment, start time and end time (#2423), each as a
+/// 16-hex-digit SHA-256 prefix, joined as
+/// `v2:<title>:<date>:<location>:<start>:<end>`. For a UTC event ([utc]) the
+/// date and minutes are UTC, and the date is hashed marked as UTC. Kept per field so a later import
+/// can say which of them changed upstream. A hash rather than the values: all
+/// of them are already stored on the program, which the caller may edit.
+String calendarEventFingerprint({
+  required String title,
+  required DateTime date,
+  String? venueLabel,
+  int? startMinute,
+  int? endMinute,
+  bool utc = false,
+}) {
+  final h = _fingerprintHash;
+  return 'v2:${h(title)}:${h(_fingerprintDate(date, utc: utc))}'
+      ':${h(venueLabel ?? '')}'
+      ':${h('${startMinute ?? ''}')}:${h('${endMinute ?? ''}')}';
+}
+
+/// The date as the fingerprint writes it: a UTC date is marked `Z:`, so a
+/// later reading can tell it from a local one (#2354).
+String _fingerprintDate(DateTime d, {required bool utc}) =>
+    '${utc ? 'Z:' : ''}${d.year}-${d.month}-${d.day}';
+
+String _fingerprintHash(String s) =>
+    sha256.convert(utf8.encode(s)).toString().substring(0, 16);
+
+/// Whether the local date [now]'s event started on has moved since [stored]
+/// was written (#2354), or null when that cannot be told. Not the same as
+/// the date part changing: a UTC event's date part is its UTC date, which
+/// can move while the local date stays and the other way round, and a
+/// calendar can re-save an event from a local time to UTC or back.
+///
+/// A date part written from a local time is that local date, so it either
+/// is [now]'s local date or the date moved. One written from UTC (marked
+/// `Z:`) whose old local date is [now]'s has a UTC date within a day of it:
+/// those three are tried, then the start minute (one of 1,440) is found
+/// from its hash and read through [toLocal].
+bool? calendarFingerprintLocalDateMoved(
+  String? stored,
+  CalendarImportCandidate now,
+  DateTime Function(DateTime utc) toLocal,
+) {
+  final parts = _fingerprintParts(stored);
+  if (parts == null) return null;
+  if (parts[1] == _fingerprintHash(_fingerprintDate(now.date, utc: false))) {
+    return false;
+  }
+  for (final offset in const [-1, 0, 1]) {
+    final day = now.date.add(Duration(days: offset));
+    if (_fingerprintHash(_fingerprintDate(day, utc: true)) != parts[1]) {
+      continue;
+    }
+    for (var m = 0; m < 24 * 60; m++) {
+      if (_fingerprintHash('$m') != parts[3]) continue;
+      final local = toLocal(
+        DateTime.utc(day.year, day.month, day.day, m ~/ 60, m % 60),
+      );
+      return DateTime.utc(local.year, local.month, local.day) != now.date;
+    }
+    return null;
+  }
+  return true;
+}
+
+/// Which of title, date, location, start and end differ between two
+/// fingerprints
+/// ([calendarEventFingerprint]). Null when either is missing or not one this
+/// build reads (a `v1` fingerprint, written before times were imported, is
+/// not): the caller then knows nothing about what changed.
+({bool title, bool date, bool venue, bool start, bool end})?
+calendarFingerprintChanges(String? before, String after) {
+  final a = _fingerprintParts(before);
+  final b = _fingerprintParts(after);
+  if (a == null || b == null) return null;
+  return (
+    title: a[0] != b[0],
+    date: a[1] != b[1],
+    venue: a[2] != b[2],
+    start: a[3] != b[3],
+    end: a[4] != b[4],
+  );
+}
+
+List<String>? _fingerprintParts(String? f) {
+  if (f == null) return null;
+  final parts = f.split(':');
+  if (parts.length != 6 || parts.first != 'v2') return null;
+  return parts.sublist(1);
 }
 
 /// The stored key for an event: SHA-256 of its `UID`, a newline, and its
@@ -629,8 +843,19 @@ CalendarImportPlan planCalendarImport(
   final candidates = <CalendarImportCandidate>[];
   final unreadable = <String>[];
 
-  void offer(ICalEvent e, String recurrenceId, DateTime date) {
+  /// [start] is when this occurrence starts: the event's own `DTSTART`, or
+  /// for a series occurrence, the series' moved to that day.
+  void offer(
+    ICalEvent e,
+    String recurrenceId,
+    DateTime date,
+    ICalDateValue start,
+  ) {
     if (e.isCancelled) return;
+    final (startMinute, endMinute) = _eventMinutes(e, start, localOf);
+    // The same reading with no time-zone move, for the fingerprint (#2354).
+    DateTime asIs(DateTime utc) => utc;
+    final (writtenStart, writtenEnd) = _eventMinutes(e, start, asIs);
     final title = _clean(e.summary) ?? '';
     if (filter != null &&
         filter.isNotEmpty &&
@@ -642,10 +867,18 @@ CalendarImportPlan planCalendarImport(
         eventKey: calendarEventKey(e.uid, recurrenceId),
         title: title,
         date: date,
+        startMinute: startMinute,
+        endMinute: endMinute,
         venueLabel: _clean(e.location?.split(',').first),
         exportedProgramId: e.uid.endsWith(programCalendarUidSuffix)
             ? e.uid.substring(0, e.uid.length - programCalendarUidSuffix.length)
             : null,
+        asWritten: (
+          date: start.localDate(asIs),
+          startMinute: writtenStart,
+          endMinute: writtenEnd,
+        ),
+        startsInUtc: start.isUtc && !start.isDate,
       ),
     );
   }
@@ -659,18 +892,20 @@ CalendarImportPlan planCalendarImport(
       // below. One whose series is missing is offered as a single event.
       if (seriesUids.contains(e.uid)) continue;
       final date = e.start.localDate(localOf);
-      if (inRange(date, horizonEnd)) offer(e, e.recurrenceId!.text, date);
+      if (inRange(date, horizonEnd)) {
+        offer(e, e.recurrenceId!.text, date, e.start);
+      }
       continue;
     }
     final rrule = e.rrule;
     if (rrule == null) {
       final date = e.start.localDate(localOf);
-      if (inRange(date, windowEnd)) offer(e, '', date);
+      if (inRange(date, windowEnd)) offer(e, '', date, e.start);
       continue;
     }
-    if (e.isCancelled) continue;
     final rule = ICalRecurrence.tryParse(rrule);
     if (rule == null) {
+      if (e.isCancelled) continue;
       final title = _clean(e.summary) ?? '';
       if (filter == null ||
           filter.isEmpty ||
@@ -681,8 +916,7 @@ CalendarImportPlan planCalendarImport(
     }
     final start = e.start.writtenDate;
     final until = rule.until;
-    final exdates = {for (final x in e.exdates) x.writtenDate};
-    final exTexts = {for (final x in e.exdates) x.text};
+    final removed = _removedByExdate(e);
     final seriesOverrides = overrides[e.uid] ?? const {};
     final placed = <String>{};
     // The walk is on written dates; a `Z` series can land a day either side
@@ -697,34 +931,101 @@ CalendarImportPlan planCalendarImport(
     )) {
       final occurrence = e.start.onDate(d);
       final rid = occurrence.text;
-      if (exTexts.contains(rid) ||
-          (e.exdates.any((x) => x.isDate) && exdates.contains(d))) {
-        continue;
-      }
+      if (removed(d, rid)) continue;
       final override = seriesOverrides[rid];
       if (override != null) {
         placed.add(rid);
         final date = override.start.localDate(localOf);
-        if (inRange(date, horizonEnd)) offer(override, rid, date);
+        if (inRange(date, horizonEnd)) {
+          offer(override, rid, date, override.start);
+        }
         continue;
       }
       final date = occurrence.localDate(localOf);
-      if (inRange(date, horizonEnd)) offer(e, rid, date);
+      if (inRange(date, horizonEnd)) offer(e, rid, date, occurrence);
     }
     // An override moved into the horizon from an occurrence outside it.
     for (final entry in seriesOverrides.entries) {
       if (placed.contains(entry.key)) continue;
       final date = entry.value.start.localDate(localOf);
-      if (inRange(date, horizonEnd)) offer(entry.value, entry.key, date);
+      if (inRange(date, horizonEnd)) {
+        offer(entry.value, entry.key, date, entry.value.start);
+      }
     }
   }
-  candidates.sort((a, b) => a.date.compareTo(b.date));
+  // By date, then start time (an all-day event first), so two gigs on one
+  // day are listed in the order they happen.
+  candidates.sort((a, b) {
+    final byDate = a.date.compareTo(b.date);
+    if (byDate != 0) return byDate;
+    return (a.startMinute ?? -1).compareTo(b.startMinute ?? -1);
+  });
+
+  // #2354: every event the feed holds, whatever its date or the title
+  // filter, so a program whose event, or one occurrence of it, only moved is
+  // never taken for gone. (A whole series moved, re-ruled or split gets new
+  // keys; see [CalendarImportPlan.knownKeys].)
+  // Single events and overrides at any date; a readable series' occurrences
+  // from 31 days back to a day past the window (a program's own date can have
+  // been edited away from its occurrence's), less the dates its `EXDATE`
+  // removes, which the offer walk above skips too: a deleted occurrence is
+  // gone. A moved one is an override, known by its own recurrence id.
+  final knownKeys = <String>{};
+  final cancelledAnywhere = <String>{};
+  void know(ICalEvent e, String recurrenceId) {
+    final key = calendarEventKey(e.uid, recurrenceId);
+    (e.isCancelled ? cancelledAnywhere : knownKeys).add(key);
+  }
+
+  for (final e in feed.events) {
+    final rid = e.recurrenceId;
+    if (rid != null) {
+      know(e, rid.text);
+    } else if (e.rrule == null) {
+      know(e, '');
+    } else if (ICalRecurrence.tryParse(e.rrule!) case final rule?) {
+      final until = rule.until;
+      final removed = _removedByExdate(e);
+      for (final d in rule.datesThrough(
+        e.start.writtenDate,
+        windowEnd.add(const Duration(days: 1)),
+        from: day0.subtract(const Duration(days: 31)),
+        beforeOrAtUntil: (d) =>
+            until == null ||
+            e.start.onDate(d)._sortKey <= _untilKey(until, e.start, localOf),
+      )) {
+        final rid = e.start.onDate(d).text;
+        if (!removed(d, rid)) know(e, rid);
+      }
+    }
+  }
   return CalendarImportPlan(
     candidates: candidates,
+    knownKeys: knownKeys,
+    cancelledAnywhereKeys: cancelledAnywhere,
+    canJudgeMissing:
+        !feed.truncated && unreadable.isEmpty && feed.skippedNoStart == 0,
     unreadableSeries: unreadable,
     skippedNoUid: feed.skippedNoUid,
     truncated: feed.truncated,
   );
+}
+
+/// Whether a series' `EXDATE` removes the occurrence on written date `d`,
+/// whose recurrence id is `rid`. Shared by the offer walk and the known-keys
+/// walk of [planCalendarImport], which must agree (#2354): an occurrence one
+/// offers and the other forgets would be wrongly flagged gone, and one it
+/// skips and the other knows would never be. An occurrence is removed when
+/// an `EXDATE` matches its text exactly or, once any `EXDATE` is a `DATE`,
+/// when one falls on its written date. A `DATE-TIME` `EXDATE` written in
+/// another form from `DTSTART` (UTC against a `TZID` start) matches nothing,
+/// which keeps the occurrence: never a false "gone".
+bool Function(DateTime d, String rid) _removedByExdate(ICalEvent e) {
+  if (e.exdates.isEmpty) return (_, _) => false;
+  final anyDate = e.exdates.any((x) => x.isDate);
+  final days = {for (final x in e.exdates) x.writtenDate};
+  final texts = {for (final x in e.exdates) x.text};
+  return (d, rid) => texts.contains(rid) || (anyDate && days.contains(d));
 }
 
 /// `UNTIL` as a key comparable with an occurrence written like [start]. A
@@ -764,6 +1065,55 @@ int _untilKey(
     )._sortKey;
   }
   return until._sortKey;
+}
+
+/// The start and end minutes after midnight of [e]'s occurrence starting at
+/// [start], at the reader's wall clock (#2423).
+///
+/// The length comes from the event's own `DTSTART` and `DTEND`, or from its
+/// `DURATION` when it has no `DTEND`, and is added to [start], so every
+/// occurrence of a series keeps the series' length. An override is a whole
+/// event of its own: without a `DTEND` or `DURATION` it has no end, and does
+/// not take the series'.
+///
+/// For a `Z` start the length is measured and added as an instant and the end
+/// converted with [localOf], so an event across a daylight-saving change ends
+/// at the right local time; a floating or `TZID` event is wall-clock
+/// throughout. An end is kept only when the event lasts more than no time and
+/// less than a day, and does not fall in the start's own minute: a program's
+/// end time is a time of day, read as the next day when it is earlier than
+/// the start, so it cannot say anything longer.
+(int?, int?) _eventMinutes(
+  ICalEvent e,
+  ICalDateValue start,
+  DateTime Function(DateTime utc) localOf,
+) {
+  final startAt = start.localDateTime(localOf);
+  if (startAt == null) return (null, null);
+  final startMinute = startAt.hour * 60 + startAt.minute;
+  final end = e.end;
+  final Duration? length;
+  if (end != null) {
+    length = end.isDate || e.start.isDate
+        ? null
+        : (end.isUtc && e.start.isUtc)
+        ? end._instant.difference(e.start._instant)
+        : end
+              .localDateTime(localOf)!
+              .difference(e.start.localDateTime(localOf)!);
+  } else {
+    length = e.duration;
+  }
+  if (length == null ||
+      length <= Duration.zero ||
+      length >= const Duration(days: 1)) {
+    return (startMinute, null);
+  }
+  final endAt = start.isUtc
+      ? ICalDateValue._wallClock(localOf(start._instant.add(length)))
+      : startAt.add(length);
+  final endMinute = endAt.hour * 60 + endAt.minute;
+  return (startMinute, endMinute == startMinute ? null : endMinute);
 }
 
 DateTime _addMonths(DateTime d, int months) {

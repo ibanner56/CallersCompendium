@@ -1,8 +1,9 @@
 # Design: Suggest the next dance (Experimental)
 
-*Issue #2343 · built. The program builder's add-dance picker can order its
-results by how well each dance would fit as the next one at the end of the
-program, and say why. It sits behind Settings ▸ Experimental ▸ Suggestions,
+*Issues #2343 and #2344 · built. The program builder's pickers can order
+their results by how well each dance would fit where it will go (the end of
+the program, a place an add before or after a slot lands, or the slot
+Replace… fills), and say why. It sits behind Settings ▸ Experimental ▸ Suggestions,
 off by default. The user-facing description is in
 [programs.md](../user/programs.md#let-the-app-suggest-the-next-dance) and
 [settings.md](../user/settings.md#suggestions).*
@@ -16,16 +17,21 @@ off by default. The user-facing description is in
   `SuggestionCandidate`, only what the scorer reads (id, form, formation,
   level, phrase structure, figures and a revision), not the whole `Dance`
   with its notes, tunes and custom fields. `SuggestionCandidate.fromDance`
-  makes one. The request takes slots before and after the position, so a
-  later caller can rank for a point inside the program (#2344) or another
-  host (#2348) with the same shape.
+  makes one. The request takes the slots
+  before and after the position, and whether the candidate takes an
+  alternate's place (`candidateIsAlternate`); `SuggestionPosition` works those
+  out for the end (`atEnd`), an add before or after a slot (`inserting`) and
+  Replace… (`replacing`), so another host (#2348) can reuse it. See
+  "Positions" below.
 - **App**: the picker takes an optional `PickerProgramContext` (the
   history-filters Q3 shape: program id, linked venue id, typed venue, plus the
-  venue's display name and the program's slots). Only the builder's add-dance
-  mounts (the inline pane and the bottom sheet) pass it. Replace… passes
-  nothing, and an add before or after a slot (#2339) passes no slots, so the
-  picker does not offer Suggested there. Suggested is the last entry of the
-  picker's Sort menu only while the toggle is on and slots are present. It is
+  venue's display name and a `SuggestionPosition`). The builder's three
+  mounts pass it: the inline pane and the bottom sheet with the end of the
+  program, or, while an add before or after a slot (#2339) is pending, the
+  place that add lands; and Replace… with the place of the slot being
+  replaced (`ProgramSlotListEditor.onPickReplacementDance` passes the slot).
+  Suggested is the last entry of the picker's Sort menu only while the toggle
+  is on and a position is present. It is
   never in the Collection's sorts (`availableCollectionSorts` is unchanged),
   the picker never opens in it, and it lasts until another sort is chosen or
   the picker closes.
@@ -67,6 +73,10 @@ off by default. The user-facing description is in
   Until the ranking comes back the list shows in the plain order, with the
   header's spinner, and every row still adds on tap. A newer search, a
   context change or leaving Suggested drops a ranking still in flight. A
+  ranking is shown only for the results and the position it was made for, so
+  when the position moves (an insertion started, retargeted or cancelled; a
+  dance added) the plain order shows until the new position is ranked, and a
+  ranking for the old position that comes back late is never shown. A
   failed ranking is logged and puts the list back in the plain order,
   dropping any earlier Suggested order of the same results, with a short
   notice above the list ("Couldn't rank these dances, so they're in their
@@ -89,19 +99,29 @@ results. The UI shows no numbers.
 - **Variety** builds the candidate's matrix row with `buildMatrixRow` (the same
   routing as `buildProgramMatrix`, including the matrix column config and the
   user's own figures) and asks `ProgramMatrix.isCollisionOnMove` of the program
-  with the candidate appended. It therefore honors
+  with the candidate in its place. It therefore honors
   `matrix_exact_beat_collision` (exact beats or phrase) and the matrix's notion
-  of neighbours: alternates of one slot are not neighbours of each other, and a
-  break or note between two dances separates them. The reason follows the
-  setting: "Same swing beats as the previous dance" under exact beats,
-  "Swing in the same phrase as the previous dance" under the phrase rule.
-- **Formation** treats Becket clockwise and counter-clockwise as one family.
+  of neighbours (`ProgramMatrix.neighborRowIndices`): every row of the
+  alternate group on either side, never an alternative in the candidate's own
+  group, and never across a break; a note or waltz between two dances does not
+  separate them. The reason names the first neighbour the move really
+  collides with (`ProgramMatrix.collidingNeighborRowIndices`: the side
+  before, then after, nearest row first) and its side, and follows the
+  setting: "Same partner swing beats as *Chorus Jig*, after it" under exact
+  beats, "Partner swing in the same phrase as *Chorus Jig*, after it" under
+  the phrase rule; "before it" when the neighbour comes after. A neighbour the
+  picker cannot name falls back to "the previous dance" / "the next dance".
+- **Formation** treats Becket clockwise and counter-clockwise as one family,
+  compares the same neighbours as Variety, and names the first that matches.
 - **Difficulty curve** uses the shipped levels' positions. *Build up, then ease
   off* rises from the easiest level to the hardest at 70% of an evening of 12
   dances (or the program's planned length when longer), then eases to the
   middle of the range by the last dance. *Even* targets the mean level of the
   program's dances. A dance with no level, or a level set with one level only,
-  is not moved.
+  is not moved. The curve is read at the position: the planned dances before
+  it (before its primary, for an alternate's place), in an evening of the
+  planned dances before and after it plus the candidate (not counted when it
+  takes an alternate's place).
 - **Venue** reads `ProgramRepository.latestCallByDance(CalledFilter)`: the
   newest recency date per dance of exactly the slots the **Called** filter
   counts, with the same caller filter, history settings (performed-only,
@@ -116,6 +136,9 @@ results. The UI shows no numbers.
 
 **Already in this program.** A candidate the program already holds (in any
 slot, before or after the position) is kept, never removed, but not scored.
+For Replace…, the slot being replaced is in neither list, and the picker
+leaves the dance it holds out of the candidates altogether
+(`CollectionPicker.excludedDanceIds`), so that dance is never ranked.
 The order is: the ranked dances, best first; then the English dances not in
 the program; then every dance already in the program, of any form, in the
 plain order. Each of those carries the one reason "Already in this program"
@@ -143,6 +166,53 @@ order, each with the note "Suggestions don't cover English dances yet".
 Squares are ranked like contras. *Rejected:* ranking English dances with the
 matrix factor forced off, which would mix them into the list with scores that
 mean something different.
+
+## Positions (#2344)
+
+`SuggestionPosition` is the one place the builder's three ways of asking are
+turned into slots before and after:
+
+- **The end**: every slot before, none after. The order there is pinned
+  against the #2343 scorer (`suggestions_end_regression_test.dart`, printed
+  before #2344 changed anything).
+- **An add before or after a slot**: split where the add lands,
+  `Program.insertSlotAtGroupBoundary` with a placeholder, so the ranking and
+  the add can never disagree: before a group's primary or after its last
+  alternate, always as a primary, with a leading run of orphaned alternates
+  given as the add will leave it (its first promoted).
+- **Replace…**: the slot is left out and the candidate stands in its place,
+  as an alternate when the slot is one (`candidateIsAlternate`), so its
+  primary and the group's other alternates are alternatives to it, not
+  neighbours. It is ranked for the slot as it stands in the program, not as
+  the edit dialog's unsaved changes would leave it (an Alternate switch
+  flipped in the dialog does not move the position).
+
+Maintainer ruling (2026-11-23):
+
+- *The dance being replaced is not a candidate.* A replacement list should
+  not contain the dance being replaced, since picking it changes nothing and
+  the caller can close the sheet instead. Replace… passes the dance the slot
+  edit dialog shows as `excludedDanceIds`, so a second Replace… in the same
+  dialog leaves out the earlier pick and offers the saved dance again.
+  Online rows are not filtered (their local id is unknown until import); one
+  that resolves to that dance hands it back, which changes nothing.
+  *Rejected (#2344's original call):* listing it and not marking it
+  *Already in this program*.
+
+Calls made in #2344 (not maintainer rulings):
+
+- *The reason names one neighbour.* When a move collides on both sides, or
+  with several alternates, the reason names the first (the side before, then
+  after, nearest row first) and keeps the count of colliding moves; **Why?**
+  does not list every neighbour. *Rejected:* one reason per neighbour, which
+  would count the same move twice in the score.
+- *A ranking for one position is never shown for another.* After the position
+  moves the plain order shows until the new ranking arrives, as after a new
+  search. *Rejected:* keeping the old order on screen meanwhile, whose reasons
+  would name the wrong neighbours.
+- *Replace… passes the program context too*, so its Called and Not called
+  filters and its Last called sort now leave the program being built out of
+  calling history (N1-6), as the add-dance pickers already did.
 
 ## Stored settings
 

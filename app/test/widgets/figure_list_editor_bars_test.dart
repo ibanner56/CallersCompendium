@@ -230,6 +230,28 @@ void main() {
     expect(find.text('Enter whole or half bars, up to 21'), findsOneWidget);
   });
 
+  testWidgets('in one bar length, a step\'s half-typed bars survive an edit '
+      'to the step before it', (tester) async {
+    // 3 beats to the bar: half a bar is refused, and the text stays to fix.
+    final drafts = [
+      FigureDraft(sequenceFigures: [_step('ecd_lead', 6), _step('ecd_set', 6)]),
+    ];
+    await _pump(tester, drafts);
+    await _open(tester, 0);
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-side-1-beats')),
+      '2.5',
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-side-0-beats')),
+      '3',
+    );
+    await tester.pumpAndSettle();
+    expect(drafts.single.sequenceFigures!.first.beats, 9);
+    expect(_fieldText(tester, 'figure-0-side-1-beats'), '2.5');
+  });
+
   testWidgets('a span that fills the phrase still takes an untimed step', (
     tester,
   ) async {
@@ -244,6 +266,11 @@ void main() {
     await _pump(tester, drafts);
     await _open(tester, 0);
     expect(find.byKey(const ValueKey('figure-0-add-side')), findsOneWidget);
+    // And tapping it adds the step: only the timed steps count toward the
+    // phrase, for the button and for what it does alike.
+    await tester.tap(find.byKey(const ValueKey('figure-0-add-side')));
+    await tester.pumpAndSettle();
+    expect(drafts.single.sequenceFigures, hasLength(3));
   });
 
   testWidgets('a group inside a spanned sequence keeps a count of its own', (
@@ -335,9 +362,10 @@ void main() {
 
     testWidgets('a sequence longer than a phrase reads the phrase in its own '
         'bars', (tester) async {
-      // 18 beats of other figures put the sequence at the end of A2: its 20
-      // beats are 9 bars (3, 3 then 7 of 2). The longest phrase is B, 16 beats
-      // or 8 bars of 2, which a count from the sequence's start would give as 7.
+      // 18 beats of other figures put the sequence late in A2: its 20 beats
+      // are 9 bars (3, 3 then 7 of 2). Its limit is A2, the phrase it starts
+      // in: 12 beats, or 4 bars of 3 read from A2's start at 12. Read from the
+      // sequence's own start, 12 beats would be 5 bars (2 of 3, then 3 of 2).
       final drafts = [
         _step('ecd_lead', 18),
         FigureDraft(
@@ -352,28 +380,31 @@ void main() {
               find.byKey(const ValueKey('figure-1-sequence-over-phrase')),
             )
             .data,
-        'This sequence is 9 bars, longer than one phrase (8 bars).',
+        'This sequence is 9 bars, longer than its phrase (4 bars).',
       );
     });
 
-    testWidgets('a limit with no one bar length reads the whole message in '
-        'beats', (tester) async {
-      // A is 8 bars of 2 and B 4 bars of 4: both 16 beats, no one bar length.
-      final tied = PhraseStructure.parse('A:1*8*2 + B:1*4*4');
+    testWidgets('a sequence in B reads B\'s length in B\'s bars', (
+      tester,
+    ) async {
+      // A is 8 bars of 2 and B 4 bars of 4, both 16 beats. From 16, in B, the
+      // sequence's 20 beats are 4 bars of 4 and then, back in A, 2 bars of 2.
+      final ab = PhraseStructure.parse('A:1*8*2 + B:1*4*4');
       final drafts = [
+        _step('ecd_lead', 16),
         FigureDraft(
           sequenceFigures: [_step('ecd_lead', 10), _step('ecd_set', 10)],
         )..setSequenceSpan(20),
       ];
-      await _pump(tester, drafts, structure: tied);
-      await _open(tester, 0);
+      await _pump(tester, drafts, structure: ab);
+      await _open(tester, 1);
       expect(
         tester
             .widget<Text>(
-              find.byKey(const ValueKey('figure-0-sequence-over-phrase')),
+              find.byKey(const ValueKey('figure-1-sequence-over-phrase')),
             )
             .data,
-        'This sequence is 20 beats, longer than one phrase (16 beats).',
+        'This sequence is 6 bars, longer than its phrase (4 bars).',
       );
     });
 
@@ -454,7 +485,7 @@ void main() {
             find.byKey(const ValueKey('figure-0-sequence-over-phrase')),
           )
           .data,
-      'This sequence is 25 beats, longer than one phrase (24 beats).',
+      'This sequence is 25 beats, longer than its phrase (24 beats).',
     );
   });
 

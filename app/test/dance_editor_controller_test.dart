@@ -3133,6 +3133,28 @@ void main() {
       expect(long.data['position'], 2);
     });
 
+    test('grouping as a sequence follows the phrase the first row sits in '
+        '(23 November 2026)', () async {
+      FigureDraft step(int beats) => FigureDraft.fromFigure(
+        testFigure(move: 'swing', params: {'who': 'neighbors', 'beats': beats}),
+      );
+      final controller = await withRows([
+        step(4),
+        step(8),
+        step(4),
+        step(4),
+        step(8),
+      ]);
+      // A1 and A2 are 8 beats each, B is 16.
+      controller.setPhraseStructureText('2*4*2 + 1*8*2', typed: false);
+      controller.groupFigureWithNextAsSequence(controller.figureDrafts[0]);
+      expect(controller.figureDrafts, hasLength(5));
+      // The fourth row starts at 16, in B, where 4 + 8 fits.
+      controller.groupFigureWithNextAsSequence(controller.figureDrafts[3]);
+      expect(controller.figureDrafts, hasLength(4));
+      expect(controller.figureDrafts.last.isSequenceGroup, isTrue);
+    });
+
     test('not a blank row, which has nothing to lose', () async {
       final controller = await withRows([swing(), FigureDraft()]);
       expect(incompletePositions(controller), isEmpty);

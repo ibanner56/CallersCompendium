@@ -420,6 +420,18 @@ class Programs extends Table {
   /// When the caller needs to be at the hall, as minutes after midnight.
   IntColumn get arrivalMinute => integer().nullable()();
 
+  /// What the calendar import last wrote from the event (#2354, schema v42):
+  /// a per-field hash of its title, date, first location segment, and start
+  /// and end times.
+  TextColumn get calendarEventFingerprint => text().nullable()();
+
+  /// The `updated_at` the calendar import last wrote (#2354, schema v42).
+  DateTimeColumn get calendarWrittenAt => dateTime().nullable()();
+
+  /// Why the calendar flags the program (#2354, schema v42): `cancelled`,
+  /// `missing`, or NULL. Free text, read leniently.
+  TextColumn get calendarFlag => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

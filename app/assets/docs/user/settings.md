@@ -403,11 +403,37 @@ as draft programs.
   Repeating events are read only 30 days ahead, whatever you choose.
 - **Only events whose title contains** — for a calendar that also holds things
   other than gigs. Leave it empty for every event. It ignores capitals.
-- **Pull now** — opens the calendar import. The app reads your calendar only
-  when you ask it to there.
+- **Import calendar when the app starts** (off) — reads your calendar once each
+  time the app starts, and never at any other time: not in the background, not
+  on a timer, not when you come back to the app. Like the automatic
+  [update check](#updates), it is off until you turn it on.
+- **At startup** — what that run does with events not imported before:
+  - **Report new events** (the default) — adds nothing. If there are new events,
+    a message says how many, with **Review**, which opens the import review with
+    what was found; nothing is added until you choose **Import** there.
+  - **Add them as drafts** — adds a draft program for each new event, with the
+    same rules as an import you start, and says so, with **Undo** and **Show**.
+    **Undo** removes the drafts you haven't touched, but the events are still
+    new to the app, so the next start adds them again. To stop that, delete
+    the drafts instead: the import skips events whose programs are in
+    Recently deleted, until they leave it for good. Or switch to **Report new
+    events**.
+
+  Either way it never changes a program you already have. If an event you
+  imported has changed or been canceled, the message only counts it ("1 change
+  needs you") and **Review** shows it.
+- If the run can't reach the calendar, nothing tells you at the time. A line
+  here says what the last run did ("Checked at startup 22 Nov: 2 new events",
+  or that it couldn't reach the calendar), and after it has failed 3 times in a
+  row, a notice here says so, with a hint to check the address. A successful
+  run, or changing the address, clears it. A run that reached the calendar but
+  couldn't read it, such as a Wi-Fi sign-in page, says so on that line, and
+  neither counts toward the notice nor clears it.
+- **Pull now** — opens the calendar import.
 
 **Which events** and the title filter travel with your other preferences; the
-address does not.
+address does not. The startup switch and **At startup** stay on this device,
+like the update check's, but a backup keeps them.
 
 ## Appearance
 
@@ -896,7 +922,7 @@ useful thing you can send.
 ## Experimental
 
 The **Experimental** section holds features that are still in development —
-today, that's the **Glossary**, **Suggestions**, **Calling cards**, **Device Sync** and **Developer options**. Anything here can change
+today, that's the **Glossary**, **Repertoire**, **Suggestions**, **Calling cards**, **Device Sync** and **Developer options**. Anything here can change
 before it becomes a regular setting. Each feature sits in its own section: select its heading to
 open or close it.
 
@@ -940,9 +966,8 @@ Names, definitions and examples of the built-in figures follow your active
 them. Your own figures, combinations and terms read in the dialect of the type
 they were made for, and a shorthand reads in the dialect of the type of the
 figure it stands for; a shorthand whose figure is gone reads in your contra
-dialect. A few places still name them in the dialect of the screen you are on,
-not of their type: the dance list's advanced search and the reasons the dance
-picker gives for a suggestion. The built-in
+dialect. One place still names them in the dialect of the screen you are on,
+not of their type: the dance list's advanced search. The built-in
 figures come with the app, and turning the Glossary off only removes it from
 the navigation; your notes are kept, and come back when you turn it on again.
 The built-in definitions and descriptions are in English whatever language the
@@ -1017,8 +1042,10 @@ The Glossary lists them too, when it is shown. While it is on:
 - Add **Parameters** for what can differ from one use to the next, such as
   *who* and *which hand*. In a combination, under **Filled in by parameters**,
   choose which of each figure's settings come from them. A setting can also take the **opposite** of
-  a parameter — the other hand, the other role, or partners for neighbors and
-  neighbors for partners — where that has one. A choice
+  a parameter — the other hand, the other role, partners for neighbors and
+  neighbors for partners, or, in a combination made for English, the top for the
+  bottom, the ends for the middles, the left file for the right file and the
+  first diagonals for the second — where that has one. A choice
   that can't be used, because the kinds differ or no value would fit every
   setting it fills, is shown grayed out with the reason.
 - If a parameter fills nothing, or a new figure's wording leaves it out, saving
@@ -1112,12 +1139,26 @@ Figures and notes that arrive from another device with Device Sync, or from a
 backup you restore, are always kept, even if they take you past the limit; you
 can then edit them down but not add more.
 
+### Repertoire
+
+**Repertoire** adds a **Repertoire** item to the **More actions** (⋮) menu in
+the Collection toolbar. It is **off by default**. It opens a read-only page of
+your most and least called dances, what you have never called, figure
+frequency, the authors you call, your formation mix, and dances
+repeated at a venue; see
+[See your repertoire at a glance](./collection.md#see-your-repertoire-at-a-glance).
+It adds nothing to the navigation, and it stores nothing: the numbers are
+worked out each time you open the page, under the
+[Calling history](#calling-history) settings.
+
 ### Suggestions
 
 **Suggest the next dance** adds **Suggested** to the **Sort** menu of the
 collection picker in the program builder. It is **off by default**, and the
-section starts closed while it is off. Suggested orders the dances for the end
-of the program you are building, and each dance says why it is where it is.
+section starts closed while it is off. Suggested orders the dances for where
+the new one will go in the program you are building (the end, a place you are
+adding before or after a slot, or the slot you are replacing), and each dance
+says why it is where it is.
 See [Let the app suggest the next dance](./programs.md#let-the-app-suggest-the-next-dance).
 Turning it off takes Suggested out of the menu, and a picker that is open goes
 back to its plain order.
@@ -1128,13 +1169,13 @@ out entirely. There are no numbers to tune.
 
 - **Variety on the matrix** — favors dances with moves the program hasn't
   used yet, and keeps away from a move on the same beats as the dance before
-  (or in the same phrase, if
+  or after (or in the same phrase, if
   [Flag exact beat overlap only](#programs) is off, and the reason says
   which), the same thing the
   [programming matrix](./programs.md#check-your-evening-with-the-matrix) flags.
   A break between two dances means they are not next to each other.
-- **Formation balance** — keeps away from the formation of the dance before,
-  and from formations the program already has many of.
+- **Formation balance** — keeps away from the formation of the dance before
+  or after, and from formations the program already has many of.
 - **Difficulty curve** — fits the difficulty of the evening to a **Shape**:
   **Build up, then ease off** (easy at the start, building to your hardest
   dances about two-thirds of the way through a dozen-dance evening, then easing

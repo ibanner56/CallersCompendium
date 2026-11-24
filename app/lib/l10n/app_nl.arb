@@ -4804,6 +4804,10 @@
   "@collectionFacetWithinMonths": {
     "x-sourceSha256": "66be719ed3455ce0c8690aabb3c822e941f268edc163a37a050194e1f6d12926"
   },
+  "collectionFacetWithinMonthsSaved": "{count, plural, =1{1 maand, opgeslagen} other{{count} maanden, opgeslagen}}",
+  "@collectionFacetWithinMonthsSaved": {
+    "x-sourceSha256": "e5c28ec8c3e855b65f5fa34934c782e7072929fddd7960b0195263ddf3a2670b"
+  },
   "collectionFacetWithinSince": "Sinds een datum…",
   "@collectionFacetWithinSince": {
     "x-sourceSha256": "af507bf47251132ba4703a698935d64e15447d0ac82af7a649c56aeaba2b65a4"
@@ -4875,6 +4879,10 @@
   "collectionFacetAllHidden": "Alle filters zijn verborgen. Je kunt ze weer tonen via Instellingen ▸ Standaarden.",
   "@collectionFacetAllHidden": {
     "x-sourceSha256": "eec14e1a8c3ccd1c9f04b0b59373b768c4f5b28191e1c5d5263cc0e71bc07202"
+  },
+  "collectionFacetMissingValue": "Niet in je bibliotheek",
+  "@collectionFacetMissingValue": {
+    "x-sourceSha256": "52e6640837ec2055afd1c0768ff09c3b4cff9dac7b6ff011c74c5f8d57ede77a"
   },
   "collectionFacetClear": "Filters wissen",
   "@collectionFacetClear": {
@@ -5120,6 +5128,10 @@
   "@collectionQueryAnyParam": {
     "x-sourceSha256": "768b0de301e56f0b42b07cb65a8700632abfe087fd187bfbff9111fd0173abdc"
   },
+  "collectionQueryParamNotOffered": "{param}: {value} (niet aangeboden)",
+  "@collectionQueryParamNotOffered": {
+    "x-sourceSha256": "bb8f76af8c64c3aa8c3bad4605d23ba12e2559ec4fa22745e4b2ea8a0ed3d68a"
+  },
   "collectionBatchLevelUnspecified": "Niet opgegeven (wissen)",
   "@collectionBatchLevelUnspecified": {
     "x-sourceSha256": "09aa562d873ded1aa8873961f76d6e5d70d77e44bd87135eefb750021317e503"
@@ -5284,9 +5296,9 @@
   "@danceEditorSequenceSpanNoRoom": {
     "x-sourceSha256": "197cb3c426f6d770e42563bec39b40266f6eb1dbb4b22ea913e9c467d50088ce"
   },
-  "danceEditorSequenceOverPhraseTimed": "Deze reeks duurt {length}, langer dan één frase ({limit}).",
+  "danceEditorSequenceOverPhraseTimed": "Deze reeks duurt {length}, langer dan de frase waarin hij begint ({limit}).",
   "@danceEditorSequenceOverPhraseTimed": {
-    "x-sourceSha256": "e0c6028e36e38a6357c326de3d2c4b9898039706cdf8bfd6fe49d185fc52762b"
+    "x-sourceSha256": "9934038b8b22b7528851ff87a633a2e3ae83f580553450b4e1c7d5f8f0381a5a"
   },
   "danceFigureProgressionSemantic": "progressie",
   "@danceFigureProgressionSemantic": {
@@ -8642,9 +8654,9 @@
   "@danceEditorPhrasesAdd": {
     "x-sourceSha256": "523c6e63a15b0cd78bb315d87053f141d1ae58f5ecb7c344ff3892e50a9d9833"
   },
-  "danceEditorPhrasesInvalid": "Geef elke frase 1 tot {max} maten en 1 tot {max} tellen per maat. Tot dan houdt de dans zijn laatste geldige frasen, en Opslaan slaat die op.",
+  "danceEditorPhrasesInvalid": "Geef elke frase 1 tot {maxBars} maten en 1 tot {maxBeats} tellen per maat. Tot dan houdt de dans zijn laatste geldige frasen, en Opslaan slaat die op.",
   "@danceEditorPhrasesInvalid": {
-    "x-sourceSha256": "6a5a586f9cbb1f72717649e174712444f7076e149f73331b7ce56c8c2b3c371b"
+    "x-sourceSha256": "60dd2d6400c5d2c89e8e962b7cfc1af7f11c5f4b02ff6d74414f6dc608e7e8de"
   },
   "danceEditorPhraseBarsLabel": "Maten in {name}",
   "@danceEditorPhraseBarsLabel": {
@@ -9194,9 +9206,9 @@
   "@validationPhraseBeatMismatch": {
     "x-sourceSha256": "cbcfd5cfa1932d621756cac5a7dd64ad714b041a96c3a293ac1a3833dc29002a"
   },
-  "validationSequenceExceedsPhrase": "Een reeks in figuur {position} duurt {actual} tellen, langer dan één frase ({limit} tellen).",
+  "validationSequenceExceedsPhrase": "Een reeks in figuur {position} duurt {actual} tellen, langer dan de frase waarin hij begint ({limit} tellen).",
   "@validationSequenceExceedsPhrase": {
-    "x-sourceSha256": "5b58ba736707956d7a8b673a407e805314dbb8f6ba5091fc18c1fbf777a85366"
+    "x-sourceSha256": "a286391f4293c584271c4e05681091eec316b8b18f3abc18ecda2152600446d4"
   },
   "validationSequenceSpanMismatch": "De stappen van de reeks in figuur {position} duren {actual} tellen; de reeks duurt {expected}.",
   "@validationSequenceSpanMismatch": {
@@ -9206,9 +9218,9 @@
   "@validationPhraseCountMismatch": {
     "x-sourceSha256": "cb74c7f6cd49148a70e50356760215c17a5226fb6a816f7fe87c5e1db050a30b"
   },
-  "validationSequenceExceedsPhraseCount": "Een reeks in figuur {position} duurt {actual}, langer dan één frase ({limit}).",
+  "validationSequenceExceedsPhraseCount": "Een reeks in figuur {position} duurt {actual}, langer dan de frase waarin hij begint ({limit}).",
   "@validationSequenceExceedsPhraseCount": {
-    "x-sourceSha256": "bfee5fd2f8ee58fe06f82a78cf851e3eac4482597a4e2f83d02e1196bdeecd28"
+    "x-sourceSha256": "6e52db86fea47ea4ac1e1b3d37877411ade93acc4d233fa4082f44690aa3c481"
   },
   "validationSequenceSpanNoRoomCount": "De getimede stappen van de reeks in figuur {position} duren {actual}, zodat er van de {expected} niets overblijft voor de rest.",
   "@validationSequenceSpanNoRoomCount": {
@@ -9754,13 +9766,13 @@
   "@danceEditorSequenceTotalBeats": {
     "x-sourceSha256": "5939821f14dca9d0edb89c7b340aed8f7f16bc24d1b4d9b2a185dbf77b5e63c8"
   },
-  "danceEditorSequenceOverPhrase": "Deze reeks duurt {beats} tellen, langer dan één frase ({limit} tellen).",
+  "danceEditorSequenceOverPhrase": "Deze reeks duurt {beats} tellen, langer dan de frase waarin hij begint ({limit} tellen).",
   "@danceEditorSequenceOverPhrase": {
-    "x-sourceSha256": "6ae93313359a72f07ebee85db77f4cef8a909076b8df31715a5e9dccc10ab214"
+    "x-sourceSha256": "69cda6e549a9dcffe8757f73f11f9057bfa2efacfbdc94aebdf92038bd4ec4fe"
   },
-  "danceEditorSequencePhraseFull": "Deze figuren vullen één frase ({limit} tellen).",
+  "danceEditorSequencePhraseFull": "Deze figuren vullen de frase waarin ze beginnen ({limit} tellen).",
   "@danceEditorSequencePhraseFull": {
-    "x-sourceSha256": "bca2abe6ab4af53f5bdf6dc57507aada937cc15b528249a4910e60ca260adc84"
+    "x-sourceSha256": "89db3e55065d6ae3a82bab01094b25566f20c3664c162e50bc59565cf263ad92"
   },
   "danceEditorSequenceStepsCapReached": "Maximaal {max} figuren in een reeks.",
   "@danceEditorSequenceStepsCapReached": {
@@ -12634,9 +12646,9 @@
   "@settingsSuggestionsEnabledTitle": {
     "x-sourceSha256": "d872df21f53748993e2c03eb283c92a6f90b0457b9c462a68aa29e685eb4ae0e"
   },
-  "settingsSuggestionsEnabledSubtitle": "Voegt Voorgesteld toe aan het menu Sorteren van de danslijst in de programma-editor. Het ordent de dansen voor het einde van het programma en zegt waarom.",
+  "settingsSuggestionsEnabledSubtitle": "Voegt Voorgesteld toe aan het menu Sorteren van de danslijsten in de programma-editor. Het ordent de dansen voor de plek waar de nieuwe dans komt en zegt waarom.",
   "@settingsSuggestionsEnabledSubtitle": {
-    "x-sourceSha256": "c8ba45ca4ba6a61e90aa0d9effcee74aac0a4a8cdf9c2bc0d3965f8a5af82e2a"
+    "x-sourceSha256": "193f4023841f384da42426d70da634dc5d4d49ee61e7badccda4d0a10b121202"
   },
   "settingsSuggestionsEditorTitle": "Waar suggesties op letten",
   "@settingsSuggestionsEditorTitle": {
@@ -12793,6 +12805,30 @@
   "suggestionReasonPhraseOverlapNext": "{move} in dezelfde frase als de volgende dans",
   "@suggestionReasonPhraseOverlapNext": {
     "x-sourceSha256": "2f1291f7cc84eaed2809534ec7e5d2abdaa2bba20b9625624f2132b5dcbd3194"
+  },
+  "suggestionReasonBeatOverlapAfterDance": "{move} op dezelfde tellen als {dance}, de dans er vlak voor",
+  "@suggestionReasonBeatOverlapAfterDance": {
+    "x-sourceSha256": "984a339d4ee3a23aa222f16324a79496c81f5d5ff0b0dd7e7659d1b2af00f354"
+  },
+  "suggestionReasonBeatOverlapBeforeDance": "{move} op dezelfde tellen als {dance}, de dans er vlak na",
+  "@suggestionReasonBeatOverlapBeforeDance": {
+    "x-sourceSha256": "11d1dfdb3e94d7f990f08c708484140265b874b7b44bac1b37a54552495ce4c8"
+  },
+  "suggestionReasonPhraseOverlapAfterDance": "{move} in dezelfde frase als {dance}, de dans er vlak voor",
+  "@suggestionReasonPhraseOverlapAfterDance": {
+    "x-sourceSha256": "f017b76c451be8abc65c828be281eb48fde1d154159e5abd8e79c8723cb4a352"
+  },
+  "suggestionReasonPhraseOverlapBeforeDance": "{move} in dezelfde frase als {dance}, de dans er vlak na",
+  "@suggestionReasonPhraseOverlapBeforeDance": {
+    "x-sourceSha256": "ffb0128b46a9d23657784d170aa6f7bc738b317a18fc75d9008c903a58c01009"
+  },
+  "suggestionReasonSameFormationAfterDance": "{formation}, net als {dance}, de dans er vlak voor",
+  "@suggestionReasonSameFormationAfterDance": {
+    "x-sourceSha256": "f34b90be943fa3566b00e280d4156905e0580f2220c83b1368564b2d82684e81"
+  },
+  "suggestionReasonSameFormationBeforeDance": "{formation}, net als {dance}, de dans er vlak na",
+  "@suggestionReasonSameFormationBeforeDance": {
+    "x-sourceSha256": "9a9373da2f73deb9f9eb67d2b6770e716f46191f4d0e79feeaa306dbb18f7fcb"
   },
   "suggestionReasonAlreadyInProgram": "Al in dit programma",
   "@suggestionReasonAlreadyInProgram": {
@@ -13213,5 +13249,417 @@
   "exportCsvPayHiddenNotice": "De gage is verborgen in Instellingen en wordt daarom weggelaten. Zet ‘Gage tonen’ aan onder Instellingen ▸ Programma om hem op te nemen.",
   "@exportCsvPayHiddenNotice": {
     "x-sourceSha256": "7211fa66aebc90d9f812f84eb5311ec7ce3c9492040b40a47ae3cce07f2f9e6d"
+  },
+  "collectionRepertoireMenuItem": "Repertoire",
+  "@collectionRepertoireMenuItem": {
+    "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
+  },
+  "repertoireTitle": "Repertoire",
+  "@repertoireTitle": {
+    "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
+  },
+  "repertoireLoadError": "Je repertoire kon niet worden berekend",
+  "@repertoireLoadError": {
+    "x-sourceSha256": "a377018354f04a0476bcfdd92e5356014441e33da976d52a148c063a68409455"
+  },
+  "repertoirePeriodLabel": "Periode",
+  "@repertoirePeriodLabel": {
+    "x-sourceSha256": "6e795d4d3cc21c5ca8349ab5e917482197aa612d1a218f9e9411467db73242bb"
+  },
+  "repertoirePeriodAllTime": "Altijd",
+  "@repertoirePeriodAllTime": {
+    "x-sourceSha256": "9755c8d7d44a62589c873ca19a4119a594b98fbf3744cda4eb14b87a199765cb"
+  },
+  "repertoirePeriodMonths": "{count, plural, =1{Afgelopen maand} other{Afgelopen {count} maanden}}",
+  "@repertoirePeriodMonths": {
+    "x-sourceSha256": "a09e4dfbc620510b7de3ecf77e578fd3ba0ed50a6ce0a4b086c1aa4a212d3507"
+  },
+  "repertoirePeriodSinceDate": "Sinds een datum…",
+  "@repertoirePeriodSinceDate": {
+    "x-sourceSha256": "af507bf47251132ba4703a698935d64e15447d0ac82af7a649c56aeaba2b65a4"
+  },
+  "repertoirePeriodSince": "Sinds {date}",
+  "@repertoirePeriodSince": {
+    "x-sourceSha256": "1550794b36af0a945ddc65d95c16fbde42d2df500d5f3a232f5b1138e9b299f1"
+  },
+  "repertoireTypeLabel": "Danssoort",
+  "@repertoireTypeLabel": {
+    "x-sourceSha256": "2c004974318a3075ebadbd65e39bd0efc9bd6b1eee3f8a9c679d5c669b326ce0"
+  },
+  "repertoireTypeAll": "Alle soorten",
+  "@repertoireTypeAll": {
+    "x-sourceSha256": "f10988e79e8d9a49f45a71ecf3f4ebe143a96eb9d83272156ab54101b3777046"
+  },
+  "repertoireSummary": "Keer gebeld in deze periode: {calls}. Dansen gebeld: {called} van {total}.",
+  "@repertoireSummary": {
+    "x-sourceSha256": "4a7cbbf7c87e3bc46500abc1affb3190fd2f410e54fa5e6c41b9b31665ea822f"
+  },
+  "repertoireMostCalledHeader": "Vaakst gebeld",
+  "@repertoireMostCalledHeader": {
+    "x-sourceSha256": "f2aff79f46e584591a4f0b1fcd3131e043212b0bbb4ea84d3dae766272a149de"
+  },
+  "repertoireLeastCalledHeader": "Minst gebeld (van wat je hebt gebeld)",
+  "@repertoireLeastCalledHeader": {
+    "x-sourceSha256": "c842c2a0183d8447f0a70e0c59646aaf2d9d3c8684b451d857353e23329781c8"
+  },
+  "repertoireLeastCalledAllShown": "Elke dans die je in deze periode hebt gebeld, staat al onder Vaakst gebeld.",
+  "@repertoireLeastCalledAllShown": {
+    "x-sourceSha256": "5cb02281254a6fab6493c5d267f1c1f8cea8776c7876b01ef0a823e494e82def"
+  },
+  "repertoireNoCalls": "Niets gebeld in deze periode.",
+  "@repertoireNoCalls": {
+    "x-sourceSha256": "86745f9130fff2ca0d915327740923a147bd5234bbbf4eb3192173031b0f9858"
+  },
+  "repertoireDanceCalls": "{count, plural, =1{één keer gebeld} other{{count} keer gebeld}}",
+  "@repertoireDanceCalls": {
+    "x-sourceSha256": "45189eb3c35920001f632a177ba87dc00a38fabca66625eaf78b54446abb5f8f"
+  },
+  "repertoireDanceSemantics": "{title}: {count, plural, =1{één keer gebeld} other{{count} keer gebeld}}",
+  "@repertoireDanceSemantics": {
+    "x-sourceSha256": "f5ea6abe5e2415a57e19493b7734fcaf50fe98414349c428ef84e8214cf4d705"
+  },
+  "repertoireNeverCalledHeader": "Nooit gebeld",
+  "@repertoireNeverCalledHeader": {
+    "x-sourceSha256": "a523b2ac225d3979beb78fe0272ba337772b159e4932f6e27b7df2bce6384a42"
+  },
+  "repertoireNeverCalledLabel": "Nooit gebeld",
+  "@repertoireNeverCalledLabel": {
+    "x-sourceSha256": "a523b2ac225d3979beb78fe0272ba337772b159e4932f6e27b7df2bce6384a42"
+  },
+  "repertoireOfDances": "{count} van {total} dansen",
+  "@repertoireOfDances": {
+    "x-sourceSha256": "76615ee1ce72d60b9f878a4576a3b3ab25c37de1a722d0ecd18aea33eb731899"
+  },
+  "repertoireNeverCalledSemantics": "Nooit gebeld: {count} van {total} dansen",
+  "@repertoireNeverCalledSemantics": {
+    "x-sourceSha256": "8194a4a6d9fb05db1e0551fe07e9158a44c3c7cc32984263a953a5d72a630267"
+  },
+  "repertoireNeverCalledDanceSemantics": "{title}: nooit gebeld",
+  "@repertoireNeverCalledDanceSemantics": {
+    "x-sourceSha256": "5bb809f2149949c9ea5bf93daf9e454396da8da208e4cf8c10633fd5172b36c6"
+  },
+  "repertoireNotCalledInPeriodLabel": "Niet gebeld in deze periode",
+  "@repertoireNotCalledInPeriodLabel": {
+    "x-sourceSha256": "42ec0ae23e760c9a9c39f25eb38afcb3acb55ad830325a40247c450600734b78"
+  },
+  "repertoireNotCalledInPeriodSemantics": "Niet gebeld in deze periode: {count} van {total} dansen",
+  "@repertoireNotCalledInPeriodSemantics": {
+    "x-sourceSha256": "b889fd2f0f3ceeaa6ffd2345ee4532176a77216570a8b17879b8f472e80b81d6"
+  },
+  "repertoireFigureHeader": "Hoe vaak figuren voorkomen",
+  "@repertoireFigureHeader": {
+    "x-sourceSha256": "1f1265b6c299fb7fc1f01ad509e58f9d75476b89505d29a7433fd0befe8e6443"
+  },
+  "repertoireNoFigures": "Geen van deze dansen heeft ingevoerde figuren.",
+  "@repertoireNoFigures": {
+    "x-sourceSha256": "5c7385dadaa29516f1c99a78658d745b5febfea33156da79906bf887323bca0e"
+  },
+  "repertoireFigureValue": "in {dances} van {total} dansen ({percent}%) · {calls, plural, =1{1 keer gebeld} other{{calls} keer gebeld}}",
+  "@repertoireFigureValue": {
+    "x-sourceSha256": "427959c91687de4ae08a3efef81f129115e22eeeb1a98aecc65bb219f34a59f2"
+  },
+  "repertoireFigureSemantics": "{move}: in {dances} van {total} dansen, {percent} procent; {calls, plural, =1{1 keer gebeld} other{{calls} keer gebeld}} in deze periode",
+  "@repertoireFigureSemantics": {
+    "x-sourceSha256": "b0911685dfaa28d6fe4fd6587bfa6632fd8c7e7447a82a0db9131880913281d0"
+  },
+  "repertoireShowAll": "Alle {count} tonen",
+  "@repertoireShowAll": {
+    "x-sourceSha256": "a6c3860c56d7523fe43cfc166f3034d023eeac5491f722aba74922d03dca769d"
+  },
+  "repertoireShowFewer": "Minder tonen",
+  "@repertoireShowFewer": {
+    "x-sourceSha256": "255beb6510e7827d37ec1cd22d080f910888ae00f29374dd9545c8b3d1fce43a"
+  },
+  "repertoireAuthorsHeader": "Auteurs die je belt",
+  "@repertoireAuthorsHeader": {
+    "x-sourceSha256": "03a08a6177689c82fcc0a1cfe404363104f2eb53ccb83e2165947969bb41d94b"
+  },
+  "repertoireAuthorsSummary": "{count, plural, =0{Geen auteur gebeld in deze periode.} =1{1 auteur gebeld in deze periode.} other{{count} auteurs gebeld in deze periode.}}",
+  "@repertoireAuthorsSummary": {
+    "x-sourceSha256": "d2660bfb610f85406c90d761e3f01e3e6e8b58d9eae6849930f84759364cbfd0"
+  },
+  "repertoireShareValue": "{calls, plural, =1{1 keer gebeld} other{{calls} keer gebeld}} ({percent}%)",
+  "@repertoireShareValue": {
+    "x-sourceSha256": "b61b0042e986ce34f28b386ed7868e08cee4a26c6bac14c0809b05c8a63dbfcb"
+  },
+  "repertoireShareSemantics": "{label}: {calls, plural, =1{1 keer gebeld} other{{calls} keer gebeld}}, {percent} procent van wat in deze periode is gebeld",
+  "@repertoireShareSemantics": {
+    "x-sourceSha256": "044bc4d54d2dcc9d96418d86f9ab95849c79e5edf4710e7c4e8f1da8db2de573"
+  },
+  "repertoireFormationHeader": "Formaties",
+  "@repertoireFormationHeader": {
+    "x-sourceSha256": "098683a99bcce20ab162bb7af93ac6ad456eaaa455ec58235f5ec5e5cda68739"
+  },
+  "repertoireVenuesHeader": "Herhalingen per locatie",
+  "@repertoireVenuesHeader": {
+    "x-sourceSha256": "9b0640ebefe0b4e62b8d63d8948a9d88593e9cea25c1fd35b25a6e6b82ea841f"
+  },
+  "repertoireNoRepeats": "Geen dans is in deze periode meer dan één keer op dezelfde locatie gebeld.",
+  "@repertoireNoRepeats": {
+    "x-sourceSha256": "1ee83c14c00d9965edff9c7d2113aeaf23c7269f09a54b529b010feb074062cd"
+  },
+  "repertoireVenueUnnamed": "Naamloze locatie",
+  "@repertoireVenueUnnamed": {
+    "x-sourceSha256": "d05aef5da8914bd969562f34dd344d7251dd248c6e2cf2674efd76ee9f84704b"
+  },
+  "repertoireVenueRepeats": "{count, plural, =1{1 dans herhaald} other{{count} dansen herhaald}}",
+  "@repertoireVenueRepeats": {
+    "x-sourceSha256": "826159fbea4aac34da9274535e7f110d30128adbf08c0a99f39adf72d185c3cf"
+  },
+  "repertoireVenueSemantics": "{venue}: {count, plural, =1{1 dans meer dan één keer gebeld} other{{count} dansen meer dan één keer gebeld}}",
+  "@repertoireVenueSemantics": {
+    "x-sourceSha256": "6ac25c6d56b7afe142098842bf969c16f8b147d1d7c2172c1dd1e492c9d467f2"
+  },
+  "settingsExperimentalRepertoireHeader": "Repertoire",
+  "@settingsExperimentalRepertoireHeader": {
+    "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
+  },
+  "settingsExperimentalShowRepertoireTitle": "Repertoire",
+  "@settingsExperimentalShowRepertoireTitle": {
+    "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
+  },
+  "settingsExperimentalShowRepertoireSubtitle": "Voegt Repertoire toe aan het menu Meer acties van de Collectie: je vaakst en minst gebelde dansen, wat je nooit hebt gebeld, hoe vaak figuren voorkomen, auteurs, formaties en herhalingen per locatie.",
+  "@settingsExperimentalShowRepertoireSubtitle": {
+    "x-sourceSha256": "f537bb665c51db4ea2f7bebe359ced80907a25a71ab9fee34cf7c48159b6e946"
+  },
+  "importSourceLabelCsv": "Je eigen spreadsheet (CSV)",
+  "@importSourceLabelCsv": {
+    "x-sourceSha256": "9da38651a5a702664efb34eceb35b14d12b6934834c6b3d30162dcc1a8c20a96"
+  },
+  "importCsvPickFile": "CSV-bestand kiezen…",
+  "@importCsvPickFile": {
+    "x-sourceSha256": "3bb43e45815cd926a5fdc5fc234a382e7ca35f88ece0d4f9d4ea4abf1a867690"
+  },
+  "importCsvSaveAsHint": "Kies in je spreadsheetprogramma Bestand ▸ Opslaan als (of Downloaden) en ‘CSV UTF-8’, en kies dat bestand dan hier.",
+  "@importCsvSaveAsHint": {
+    "x-sourceSha256": "3aa1ebd55b632f5a421fc0ed140c9486b22de931f544872cddeca51e7b3ca625"
+  },
+  "importCsvMapTitle": "Kolommen koppelen",
+  "@importCsvMapTitle": {
+    "x-sourceSha256": "2778414273d997932756c9192b6ef4fbe57879654b3ea446f34ef54f5d5da1f3"
+  },
+  "importCsvMapIntro": "Kies wat elke kolom bevat. Kolommen op ‘Negeren’ worden weggelaten. Er wordt niets toegevoegd voordat je controleert en bevestigt.",
+  "@importCsvMapIntro": {
+    "x-sourceSha256": "4d62456f1068a41b7ca803b120ba5d409420b6a2a3d3b31d99a578c3278da1ab"
+  },
+  "importCsvSeparatorLabel": "Scheidingsteken",
+  "@importCsvSeparatorLabel": {
+    "x-sourceSha256": "be237eda7fff4fd3596647c9665e5ec5f502602c74167b939b587a2abcbda156"
+  },
+  "importCsvSeparatorComma": "Komma (,)",
+  "@importCsvSeparatorComma": {
+    "x-sourceSha256": "88363d66de700d9e04f806c6061a9c51b45c97568683e215327efeee8ca0cbd2"
+  },
+  "importCsvSeparatorSemicolon": "Puntkomma (;)",
+  "@importCsvSeparatorSemicolon": {
+    "x-sourceSha256": "599d532f1133a280ee5a238cf1e25ab1155a94281ad4636681c45bf12c04172d"
+  },
+  "importCsvSeparatorTab": "Tab",
+  "@importCsvSeparatorTab": {
+    "x-sourceSha256": "90ddf1963abb36c9921ce7f1ac9cbd94c9176d13e57c418d3d3c20ce44291c1c"
+  },
+  "importCsvFirstRowHeader": "De eerste rij noemt de kolommen",
+  "@importCsvFirstRowHeader": {
+    "x-sourceSha256": "ce568b5b5d818b6357d3f150a6917d074f9ea7f3867bb565f9b176122c1fd2a0"
+  },
+  "importCsvColumnFallback": "Kolom {number}",
+  "@importCsvColumnFallback": {
+    "x-sourceSha256": "e9a03bca31e4f537d8edfcd9d9b62cd8d8d848ead504e6f46fe121af6ecabc6c"
+  },
+  "importCsvTargetIgnore": "Negeren",
+  "@importCsvTargetIgnore": {
+    "x-sourceSha256": "fce77c34d3fec98733dd4c29f1592a92e60e93e43f0bfe8690c91160ae7efebe"
+  },
+  "importCsvTargetPhrase": "Figuren, {phrase}",
+  "@importCsvTargetPhrase": {
+    "x-sourceSha256": "ccde59a8941c6dda4db79f6be209702d4b154bfd4b38b9161fd87a905861a101"
+  },
+  "importCsvTargetNewField": "Nieuw eigen veld ({type})",
+  "@importCsvTargetNewField": {
+    "x-sourceSha256": "569155455b946e4dc1eba8e3f5d45cb8667f7bcd2e1429545770340d08f3296d"
+  },
+  "importCsvTargetExistingField": "Eigen veld: {name}",
+  "@importCsvTargetExistingField": {
+    "x-sourceSha256": "ccca5cc4ed6d5700d62324937469253825ff3c52ebc51b9430afb5135790b05b"
+  },
+  "importCsvNeedsTitle": "Kies de kolom met de titel van elke dans.",
+  "@importCsvNeedsTitle": {
+    "x-sourceSha256": "44f3de11d4f78aa9301dd21d319448923afea067c421fb741fe346e13af97301"
+  },
+  "importCsvContinue": "Doorgaan",
+  "@importCsvContinue": {
+    "x-sourceSha256": "31fbef162594de01bab0cd525c51f74de7bcb15063029fa1a54b2cf5944c80d8"
+  },
+  "importCsvPreviewHeading": "Eerste rijen",
+  "@importCsvPreviewHeading": {
+    "x-sourceSha256": "6b6f9a093dd6fe0455e331bbe10ec04415c2970206d9ecd6ab16378c4739da2b"
+  },
+  "importCsvNotUtf8": "Dit bestand is niet als UTF-8-tekst opgeslagen, dus letters met accenten zouden verkeerd binnenkomen. Sla het in je spreadsheetprogramma opnieuw op als ‘CSV UTF-8’ en kies dat bestand.",
+  "@importCsvNotUtf8": {
+    "x-sourceSha256": "d1247bdaab67d98f64224bd3a8385c7c38636d89e8147210f0ddfa6926cccf22"
+  },
+  "importCsvTooLarge": "Dit bestand is te groot om te importeren. Splits het in kleinere bestanden.",
+  "@importCsvTooLarge": {
+    "x-sourceSha256": "624f8e7da215ff26de3e13d343254ba34a3c8a639b346197af3b342071d5f5a0"
+  },
+  "importCsvTooManyRows": "Dit bestand heeft meer dan {limit} rijen. Splits het in kleinere bestanden.",
+  "@importCsvTooManyRows": {
+    "x-sourceSha256": "9dd028326beac2b7c69df122c4e2a71a553ef4f5ac863b7d48d3281abddb3f84"
+  },
+  "importCsvTooManyColumns": "Een rij in dit bestand heeft meer dan {limit} kolommen.",
+  "@importCsvTooManyColumns": {
+    "x-sourceSha256": "33cf9e59d741fc496c92702b5feb2b945fe8571e2cec997b97a0c9bef2d96122"
+  },
+  "importCsvCellTooLong": "Een cel in dit bestand is langer dan {limit} tekens.",
+  "@importCsvCellTooLong": {
+    "x-sourceSha256": "fb96e6d3fcf0208086dbc3e1de30edb1e86ee72c6b6d31df316215362767caa2"
+  },
+  "importCsvUnterminatedQuote": "Dit bestand heeft een cel tussen aanhalingstekens die nooit eindigt, dus het kan niet worden gelezen.",
+  "@importCsvUnterminatedQuote": {
+    "x-sourceSha256": "0cd019b41f719dea2fead39abe869ba4af54e5169d331d98347876f06e45909d"
+  },
+  "importCsvLargeBatch": "Dit bestand heeft {count} rijen. Controleren kan even duren.",
+  "@importCsvLargeBatch": {
+    "x-sourceSha256": "080ae6dfc02b9c624a85963f3a307e9c9b9da220ea7d494ead52c35d7bc8e808"
+  },
+  "importCsvNoRows": "Dit bestand heeft geen rijen met dansen, alleen de kolomnamen.",
+  "@importCsvNoRows": {
+    "x-sourceSha256": "38b4b25fdfbc56624e65823fcc8e0f756c7ce28b778905609c4a58344eaf71d2"
+  },
+  "calendarImportUpdated": "{count, plural, =1{1 programma bijgewerkt uit je agenda.} other{{count} programma's bijgewerkt uit je agenda.}}",
+  "@calendarImportUpdated": {
+    "x-sourceSha256": "6ac5eca3ccc48d48449bf0b5aaf3df3010042c0070d3992c45d66b011f754861"
+  },
+  "calendarImportReviewed": "Agenda gecontroleerd. Er is niets toegevoegd of gewijzigd.",
+  "@calendarImportReviewed": {
+    "x-sourceSha256": "9cd1e0a6b36cba778e39a9e673d043a81e968b8311624582fc5e2d541c069388"
+  },
+  "calendarChangeDate": "Datum: {before} → {after}",
+  "@calendarChangeDate": {
+    "x-sourceSha256": "6012b4741531f2b145ba0fe217de29f7bd8798cb80739ffa5ad69c045d1966c4"
+  },
+  "calendarChangeTitle": "Titel: {before} → {after}",
+  "@calendarChangeTitle": {
+    "x-sourceSha256": "0318a23428e2c61a0bf541126aec5d6fb7e83e0231c4fb82630e88eaf4286a56"
+  },
+  "calendarChangeTime": "Tijd: {before} → {after}",
+  "@calendarChangeTime": {
+    "x-sourceSha256": "67199899e02aa6128a22606137672135a164931b2e025d9ca9f2ca342455a04f"
+  },
+  "calendarChangeVenue": "Locatie: {before} → {after}",
+  "@calendarChangeVenue": {
+    "x-sourceSha256": "8b60cf0ee9dd2aa34c02b13d42531f743f69dc6bb09f436f65c38aec52fec0bc"
+  },
+  "calendarImportUpdatedHeader": "Bijgewerkt in je agenda",
+  "@calendarImportUpdatedHeader": {
+    "x-sourceSha256": "2bcda26fb7e395c4d8d151c5098778831dd263ba32b0fb30f6439bdb66bf9c58"
+  },
+  "calendarImportChangedHeader": "Gewijzigd in je agenda",
+  "@calendarImportChangedHeader": {
+    "x-sourceSha256": "72457ccccb8cbb8493166f0a84a73037d42d4333bf3ccf43fbc9a5aa158d176f"
+  },
+  "calendarImportChangedBody": "Je hebt aan deze programma's gewerkt, dus er verandert niets tenzij je het aanvinkt.",
+  "@calendarImportChangedBody": {
+    "x-sourceSha256": "8f1e742f3f9ea634e3a0d98fb91ef62f9ae6452125ae12b17d30739e2ab439cf"
+  },
+  "calendarImportFlaggedHeader": "Geannuleerd of verdwenen uit je agenda",
+  "@calendarImportFlaggedHeader": {
+    "x-sourceSha256": "18f9adf7cc15b59897eac82b0e42e2df700f91359732ae7ba17c8b34f511ed48"
+  },
+  "calendarImportFlaggedBody": "Deze programma's blijven zoals ze zijn en krijgen een label. Archiveer of verwijder ze zelf als je ze niet meer nodig hebt.",
+  "@calendarImportFlaggedBody": {
+    "x-sourceSha256": "047395fd755db6af23edc249f435614d0b55f72f93b2d40ff21c546dc0753a5f"
+  },
+  "calendarFlagCancelled": "Geannuleerd in je agenda",
+  "@calendarFlagCancelled": {
+    "x-sourceSha256": "d28cdbc519a0160e36ad2fc791414a1f45a77d1ab409968879b128ae8684c7da"
+  },
+  "calendarFlagMissing": "Niet meer in je agenda",
+  "@calendarFlagMissing": {
+    "x-sourceSha256": "e77f9c4e3f6d45b55ffbf6a45be4a10eacd9b61c4d282092269ee21f688dd16b"
+  },
+  "calendarFlagOther": "Gemarkeerd door je agenda",
+  "@calendarFlagOther": {
+    "x-sourceSha256": "c4a917f4468288346665c33ee3344ac95884df50239c68df20e79347c319b12a"
+  },
+  "calendarFlagFieldLabel": "Agendamarkering",
+  "@calendarFlagFieldLabel": {
+    "x-sourceSha256": "65966db64c3264f3fb482984dd40bc75ce1c9d49747b10a7b979d2bea720daec"
+  },
+  "calendarClearFlag": "Agendamarkering wissen",
+  "@calendarClearFlag": {
+    "x-sourceSha256": "70492bc4421a39eea800e78cf5094663b514956d23a55ba55a7df62e35749f87"
+  },
+  "calendarClearFlagError": "De agendamarkering kon niet worden gewist. Probeer het opnieuw.",
+  "@calendarClearFlagError": {
+    "x-sourceSha256": "7f31c36bfec0eaa49ce85b3501658f5788167cceec31b4b23237b44fd80501ee"
+  },
+  "calendarOnStartupTitle": "Agenda importeren als de app start",
+  "@calendarOnStartupTitle": {
+    "x-sourceSha256": "c7e7976b2cca7054a32ded2d9db81e98877e1fcecc0f53f2391a16d49455ea66"
+  },
+  "calendarOnStartupSubtitle": "Standaard uit. Als het aan staat, leest de app je agenda één keer bij elke start en meldt niets als dat niet lukt.",
+  "@calendarOnStartupSubtitle": {
+    "x-sourceSha256": "e056a23296e3663767355547c664dfbc982910104dbd90b61d452b6325a06b2e"
+  },
+  "calendarStartupModeTitle": "Bij het starten",
+  "@calendarStartupModeTitle": {
+    "x-sourceSha256": "1e0ff8230be734239932417d849d117fbba4d6e1474502a4d5a4df1e5df99958"
+  },
+  "calendarStartupModeReport": "Nieuwe afspraken melden",
+  "@calendarStartupModeReport": {
+    "x-sourceSha256": "70e436309bfaf16f1fe7a0ffae975d60017ac233b079437eb9a96f5ba306c7e1"
+  },
+  "calendarStartupModeAdd": "Toevoegen als concept",
+  "@calendarStartupModeAdd": {
+    "x-sourceSha256": "2b65fa882c090cf0763ff21febb1e2f043159d91368cecb44ee8b4b352e1f28e"
+  },
+  "calendarStartupModeReportSubtitle": "Meldt nieuwe afspraken; er wordt niets toegevoegd tot je ze hebt bekeken.",
+  "@calendarStartupModeReportSubtitle": {
+    "x-sourceSha256": "19b69452a18e130d89bdb29818ef74aa7b7536d55f64f4252a2b453ffe63777e"
+  },
+  "calendarStartupModeAddSubtitle": "Voegt nieuwe afspraken toe als conceptprogramma's, met Ongedaan maken. Gewijzigde of geannuleerde afspraken worden alleen gemeld.",
+  "@calendarStartupModeAddSubtitle": {
+    "x-sourceSha256": "c46a506d2bed5f309ed224b8a5c28a71ae6f0fb8caa4544ef556c2accaa3f954"
+  },
+  "calendarLastResultFailed": "Agenda niet bereikbaar bij het starten ({when})",
+  "@calendarLastResultFailed": {
+    "x-sourceSha256": "61b1f900991b944a3ffd641fbf2894a47c8b126d92c302610962fc5b4fc8eed1"
+  },
+  "calendarLastResultAdded": "Gecontroleerd bij het starten op {when}: {count, plural, =1{1 concept toegevoegd} other{{count} concepten toegevoegd}}",
+  "@calendarLastResultAdded": {
+    "x-sourceSha256": "6c43cfcc9878b805367fb68a0535ec13f55441a994e4f9d8405b394139ce6865"
+  },
+  "calendarLastResultNew": "Gecontroleerd bij het starten op {when}: {count, plural, =0{geen nieuwe afspraken} =1{1 nieuwe afspraak} other{{count} nieuwe afspraken}}",
+  "@calendarLastResultNew": {
+    "x-sourceSha256": "f2e253184432a0838b757716b96a1230a71c9704392c66f4aebdf4f7f4dd4552"
+  },
+  "calendarStartupFailureNotice": "{count, plural, other{De agenda was de laatste {count} keer dat de app startte niet bereikbaar.}}",
+  "@calendarStartupFailureNotice": {
+    "x-sourceSha256": "1c08c525abd1e631cfc904ec226be0df5cbd829e071e2044c9c6c36d0e6cc3f9"
+  },
+  "calendarStartupFailureHint": "Controleer het agenda-adres of je verbinding.",
+  "@calendarStartupFailureHint": {
+    "x-sourceSha256": "343be91960bc9ccfbdddda531b096feddbcab978c70c9541e3c0d3ccd7f7990d"
+  },
+  "calendarStartupNewEvents": "{count, plural, =1{1 nieuwe afspraak in je agenda.} other{{count} nieuwe afspraken in je agenda.}}",
+  "@calendarStartupNewEvents": {
+    "x-sourceSha256": "5e69184159efd2e49b4fd85ca64c4eb0131543f83390c3d92e46ad65e9d83803"
+  },
+  "calendarStartupChanges": "{count, plural, =1{1 wijziging wacht op je.} other{{count} wijzigingen wachten op je.}}",
+  "@calendarStartupChanges": {
+    "x-sourceSha256": "d24b0d697433b60ad385afb2f9e1bbe7bb31a1c7bd7554c1941fb6327d5271d7"
+  },
+  "calendarStartupShow": "Tonen",
+  "@calendarStartupShow": {
+    "x-sourceSha256": "0df6f1cad36c49da768a6efdcc2c4be102f5729f7381cb53e4ff8061d17eaeb6"
+  },
+  "calendarStartupReview": "Bekijken",
+  "@calendarStartupReview": {
+    "x-sourceSha256": "aff0766a5290e117b8433c351bae7b7b23bed682b2369bd822d88a647cc58512"
+  },
+  "calendarLastResultError": "Importeren uit de agenda bij het starten mislukt ({when})",
+  "@calendarLastResultError": {
+    "x-sourceSha256": "a826d9f8828d360f373473072915ffe0c2fb4944f9b9e733a3e75a6f72591f5c"
   }
 }

@@ -574,13 +574,17 @@ new sequence. Each figure in the group is labeled **Figure 1**, **Figure 2**,
 and so on, and keeps its own **Beats**: the group's beats are their total, shown
 at the top (an English sequence can instead state its own **Bars for all**; see
 [English dances are timed in bars](#english-dances-are-timed-in-bars)). A
-sequence must fit in one phrase of the dance (16 beats in the
-usual structure), so **Group with next as sequence** is only offered when the
-two figures fit, and **Add next figure** goes away once the figures fill a
-phrase or there are four of them (with **Bars for all**, only figures with bars
-of their own count toward the phrase). Changing a figure already in the sequence,
-its move or its beats, is not stopped, and neither is a change to the phrase
-structure: if the sequence ends up longer than a phrase, the group and the
+sequence must fit in the phrase it starts in: 16 beats in the usual
+structure, and where phrases differ in length, such as an A of 4 bars and a B
+of 8, the length of the one it starts in. It may start partway through that
+phrase and run over its end, as long as it is no longer than the phrase. So
+**Group with next as sequence** is only offered when the two figures fit, and
+**Add next figure** goes away once the figures fill that phrase or there are
+four of them (with **Bars for all**, only figures with bars of their own count
+toward the phrase). Changing a figure already in the sequence, its move or its
+beats, is not stopped, and neither is a change to the phrase structure or to
+the figures before it, which can move it into a shorter phrase: if the
+sequence ends up longer than the phrase it starts in, the group and the
 dance's warnings say so, and you can still save it.
 
 **Convert to sequence**, **Convert to meanwhile** and **Convert to modifier**
@@ -759,8 +763,12 @@ nothing in it to lose.
   **Name the phrases** on a structure that differs keeps each part's own beats
   where its parts group into named phrases.
   Each phrase has 1 to 1000 bars and 1
-  to 1000 beats to the bar; while one is left empty or past that, the dance
-  keeps its last valid phrases, and **Save** saves those.
+  to 12 beats to the bar (12 is the most a meter can name); while one is left
+  empty or past that, the dance keeps its last valid phrases, and **Save**
+  saves those. That includes a phrase typed earlier with more than 12 beats to
+  the bar: it shows the error and its text is kept until you set that phrase's
+  beats (or change the **Meter** so that it states other beats, which sets
+  every phrase's, as above).
   Remove every phrase to go back to unnamed phrases: the standard A1 A2 B1
   B2, counted in the dance's meter. You can also
   type names into the **Phrase structure** field (`A:2*4*2 + B:1*8*2`);

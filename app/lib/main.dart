@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io' show Directory, File, Platform, exit;
 
+import 'package:clock/clock.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show TableUpdate;
 import 'package:flutter/foundation.dart';
@@ -82,6 +83,7 @@ import 'src/data/capitalize_figures_scope.dart';
 import 'src/data/show_custom_figures_scope.dart';
 import 'src/data/calling_card_settings_scope.dart';
 import 'src/data/show_glossary_scope.dart';
+import 'src/data/show_repertoire_scope.dart';
 import 'src/data/suggestions_scope.dart';
 import 'src/data/decimal_turns_scope.dart';
 import 'src/data/canonical_discouraged_terms_scope.dart';
@@ -97,7 +99,11 @@ import 'src/diagnostics/crash_reporter.dart';
 import 'src/diagnostics/error_log.dart';
 import 'src/licenses.dart';
 import 'src/search/dance_detail_data.dart';
+import 'src/data/calendar_startup.dart';
 import 'src/screens/app_shell.dart';
+import 'src/screens/calendar_import_screen.dart';
+import 'src/screens/calendar_startup_message.dart';
+import 'src/screens/program_summary_screen.dart';
 import 'src/screens/contradb_program_import_screen.dart';
 import 'src/screens/dance_detail_screen.dart';
 import 'src/screens/dance_reimport_flow.dart';
@@ -697,6 +703,12 @@ class _CompendiumAppState extends State<CompendiumApp>
   );
   final _showCustomFiguresNotifier = PreferenceNotifier<bool>(
     key: kShowCustomFiguresKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _showRepertoireNotifier = PreferenceNotifier<bool>(
+    key: kShowRepertoireDashboardKey,
     defaultValue: false,
     decode: (Object? v) => v is bool ? v : false,
     encode: (v) => v,
@@ -1405,6 +1417,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _capitalizeFiguresNotifier,
     _showGlossaryNotifier,
     _showCustomFiguresNotifier,
+    _showRepertoireNotifier,
     _suggestionsEnabledNotifier,
     _suggestionSettingsNotifier,
     _callingCardSettingsNotifier,
@@ -2067,6 +2080,11 @@ class _CompendiumAppState extends State<CompendiumApp>
     // no-op unless the user opted in (default off) and never blocks startup or
     // surfaces an error — fire-and-forget per the ADR-002 §5 privacy contract.
     unawaited(_updateController.maybeAutoCheck());
+    // The opt-in startup calendar import (#2353): off by default, at most
+    // once per launch (this tail runs once per successful bootstrap), silent
+    // on failure. A no-op, fetching nothing, unless the user turned it on and
+    // set an address.
+    unawaited(_runCalendarStartup());
     // Housekeeping, not part of the opt-in check: delete update-download temp
     // directories left from earlier runs (a successful download keeps its
     // installer on purpose, so they would otherwise pile up). Local, silent,
@@ -2077,6 +2095,71 @@ class _CompendiumAppState extends State<CompendiumApp>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       unawaited(_runDeferredIntegrityProbe());
+    });
+  }
+
+  /// The startup calendar import's once-per-launch gate (#2353): a failed
+  /// reset re-runs the bootstrap tail, which must not fetch again.
+  final CalendarStartupGate _calendarStartupGate = CalendarStartupGate();
+
+  /// Runs the startup calendar import (#2353), after the first frame so the
+  /// navigator and its localizations exist, and says what it found, if
+  /// anything: never a dialog, and nothing at all on failure (Settings ▸
+  /// Program ▸ Calendar records it).
+  Future<void> _runCalendarStartup() async {
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
+    await _calendarStartupGate.runOnce(() async {
+      final navContext = _navigatorKey.currentContext;
+      if (navContext == null || !navContext.mounted) return;
+      final l10n = AppLocalizations.of(navContext);
+      final repositories = _appData.repositories;
+      final CalendarStartupOutcome outcome;
+      try {
+        final now = clock.now();
+        outcome = await runCalendarStartup(
+          repositories,
+          fetcher: fetchCalendarFeed,
+          now: now.toUtc(),
+          today: DateTime(now.year, now.month, now.day),
+          untitledTitle: l10n.calendarImportUntitled,
+        );
+      } catch (error, stackTrace) {
+        logCaughtError(error, stackTrace, source: 'main._runCalendarStartup');
+        return;
+      }
+      final messenger = _messengerKey.currentState;
+      final shownContext = _navigatorKey.currentContext;
+      if (!mounted ||
+          messenger == null ||
+          shownContext == null ||
+          !shownContext.mounted) {
+        return;
+      }
+      presentCalendarStartupOutcome(
+        outcome: outcome,
+        messenger: messenger,
+        l10n: AppLocalizations.of(shownContext),
+        accessibleNavigation: MediaQuery.accessibleNavigationOf(shownContext),
+        repositories: repositories,
+        openReview: () => _navigatorKey.currentState?.push(
+          MaterialPageRoute<void>(
+            builder: (_) => CalendarImportScreen(
+              prefetchedBody: outcome is CalendarStartupFound
+                  ? outcome.body
+                  : null,
+              prefetchedUrl: outcome is CalendarStartupFound
+                  ? outcome.url
+                  : null,
+            ),
+          ),
+        ),
+        openProgram: (id) => _navigatorKey.currentState?.push(
+          MaterialPageRoute<void>(
+            builder: (_) => ProgramSummaryScreen(programId: id),
+          ),
+        ),
+      );
     });
   }
 
@@ -2353,6 +2436,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _capitalizeFiguresNotifier.dispose();
     _showGlossaryNotifier.dispose();
     _showCustomFiguresNotifier.dispose();
+    _showRepertoireNotifier.dispose();
     _suggestionsEnabledNotifier.dispose();
     _suggestionSettingsNotifier.dispose();
     _callingCardSettingsNotifier.dispose();
@@ -3029,6 +3113,8 @@ class _CompendiumAppState extends State<CompendiumApp>
       notifier: _showCustomFiguresNotifier,
       child: child,
     ),
+    (child) =>
+        ShowRepertoireScope(notifier: _showRepertoireNotifier, child: child),
     (child) => SuggestionsEnabledScope(
       notifier: _suggestionsEnabledNotifier,
       child: child,

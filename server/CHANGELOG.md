@@ -20,6 +20,9 @@ the app and of `compendium_core`; version headings below refer to
   before any client on app `0.11.0` syncs a program imported from a calendar:
   an older server rejects that program's record with `422`. Other programs
   carry no such key. The server's own code is unchanged.
+- The same applies to `calendarEventFingerprint`, `calendarWrittenAt` and
+  `calendarFlag` on the `program` record kind (schema v42, calendar changes and
+  cancellations): an older server rejects a program carrying them with `422`.
 
 ## [0.5.0] - 2026-11-16
 

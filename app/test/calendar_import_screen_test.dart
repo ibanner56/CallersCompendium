@@ -143,6 +143,100 @@ void main() {
     },
   );
 
+  testWidgets('the preview shows a timed event\'s times beside its date '
+      '(#2423)', (tester) async {
+    await withClock(fixed, () async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kCalendarFeedUrlKey, _secret);
+      await pump(
+        tester,
+        repos,
+        CalendarImportScreen(
+          fetcher: (_) async => _cal([
+            [
+              'UID:t',
+              'DTSTART:20300620T193000',
+              'DTEND:20300620T223000',
+              'SUMMARY:Timed contra',
+            ],
+            ['UID:d', 'DTSTART;VALUE=DATE:20300627', 'SUMMARY:All-day contra'],
+          ]),
+          toLocal: (u) => u,
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('calendar-import-fetch')));
+      await tester.pumpAndSettle();
+
+      // intl may put a narrow no-break space before AM/PM.
+      Finder textWith(String part) => find.byWidgetPredicate(
+        (w) =>
+            w is Text &&
+            (w.data ?? '').replaceAll('\u202f', ' ').contains(part),
+      );
+      expect(textWith('7:30 PM–10:30 PM'), findsOneWidget);
+      expect(
+        textWith('PM'),
+        findsOneWidget,
+        reason: 'the all-day event has no time',
+      );
+    });
+  });
+
+  testWidgets('the review offers a changed time as "Time: old → new" '
+      '(#2354 with #2423)', (tester) async {
+    await withClock(fixed, () async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kCalendarFeedUrlKey, _secret);
+      final at = DateTime.utc(2030, 6, 1);
+      await repos.programs.create(
+        Program(
+          id: 'p',
+          title: 'Timed contra',
+          eventDate: DateTime.utc(2030, 6, 20),
+          startMinute: 19 * 60,
+          endMinute: 22 * 60,
+          calendarEventKey: calendarEventKey('t', ''),
+          calendarEventFingerprint: calendarEventFingerprint(
+            title: 'Timed contra',
+            date: DateTime.utc(2030, 6, 20),
+            startMinute: 19 * 60,
+            endMinute: 22 * 60,
+          ),
+          calendarWrittenAt: at,
+          createdAt: at,
+          updatedAt: at,
+        ),
+      );
+      await pump(
+        tester,
+        repos,
+        CalendarImportScreen(
+          fetcher: (_) async => _cal([
+            [
+              'UID:t',
+              'DTSTART:20300620T193000',
+              'DTEND:20300620T223000',
+              'SUMMARY:Timed contra',
+            ],
+          ]),
+          toLocal: (u) => u,
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('calendar-import-fetch')));
+      await tester.pumpAndSettle();
+      // intl may put a narrow no-break space before AM/PM.
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is Text &&
+              (w.data ?? '').replaceAll(' ', ' ') ==
+                  'Time: 7:00 PM–10:00 PM → 7:30 PM–10:30 PM',
+        ),
+        findsOneWidget,
+      );
+    });
+  });
+
   testWidgets('Settings shows the address as set, never its text', (
     tester,
   ) async {
@@ -229,6 +323,9 @@ void main() {
         title: 'Contra A',
         eventDate: DateTime.utc(2030, 6, 20),
         calendarEventKey: key,
+        calendarEventFingerprint: 'v1:0000000000000000:1:2',
+        calendarWrittenAt: DateTime.utc(2030),
+        calendarFlag: calendarFlagMissing,
         createdAt: DateTime.utc(2030),
         updatedAt: DateTime.utc(2030),
       ),
@@ -248,6 +345,10 @@ void main() {
     final saved = (await repos.programs.getById('p1'))!;
     expect(saved.title, 'Contra A, planned');
     expect(saved.calendarEventKey, key);
+    expect(saved.calendarEventFingerprint, 'v1:0000000000000000:1:2');
+    expect(saved.calendarWrittenAt, DateTime.utc(2030));
+    expect(saved.calendarFlag, calendarFlagMissing);
+    expect(saved.isUntouchedCalendarDraft, isFalse, reason: 'an edit');
   });
 
   testWidgets('editing the address in Settings saves it, and the dialog closes '

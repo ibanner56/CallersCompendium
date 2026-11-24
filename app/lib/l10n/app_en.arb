@@ -6110,6 +6110,16 @@
       }
     }
   },
+  "collectionFacetWithinMonthsSaved": "{count, plural, =1{1 month, saved} other{{count} months, saved}}",
+  "@collectionFacetWithinMonthsSaved": {
+    "description": "Selected time-window chip in the Calling history filter for a window of {count} calendar months that none of the 1/3/6-month choices offers, shown when the window came from a saved search. Without a saved search the chip reads like collectionFacetWithinMonths.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
   "collectionFacetWithinSince": "Since a date…",
   "@collectionFacetWithinSince": {
     "description": "Time-window choice in the Calling history filter that opens a date picker: calls on or after the chosen date count."
@@ -6193,6 +6203,10 @@
   "collectionFacetAllHidden": "All filters are hidden. You can show them again in Settings ▸ Defaults.",
   "@collectionFacetAllHidden": {
     "description": "Message shown in the filters panel when the collection has filters but the user has hidden every one of them in Settings (#1419). Distinct from collectionFacetNone, which means there is nothing to filter by."
+  },
+  "collectionFacetMissingValue": "Not in your library",
+  "@collectionFacetMissingValue": {
+    "description": "Label of a selected filter chip (a level, author, tag or source) whose item no longer exists, e.g. it was deleted after a search naming it was saved. The chip stays so the filter can be seen and removed."
   },
   "collectionFacetClear": "Clear filters",
   "@collectionFacetClear": {
@@ -6511,6 +6525,20 @@
       }
     }
   },
+  "collectionQueryParamNotOffered": "{param}: {value} (not offered)",
+  "@collectionQueryParamNotOffered": {
+    "description": "Removable notice on an Advanced search figure row: the row asks for a figure parameter value that the parameter's dropdown does not offer (it came in with a saved search). The value still narrows the search until the user removes it.",
+    "placeholders": {
+      "param": {
+        "type": "String",
+        "example": "hands"
+      },
+      "value": {
+        "type": "String",
+        "example": "not stated"
+      }
+    }
+  },
   "collectionBatchLevelUnspecified": "Unspecified (clear)",
   "@collectionBatchLevelUnspecified": {
     "description": "Batch set-level option that clears (unsets) the level on the selected dances."
@@ -6737,9 +6765,9 @@
       }
     }
   },
-  "danceEditorSequenceOverPhraseTimed": "This sequence is {length}, longer than one phrase ({limit}).",
+  "danceEditorSequenceOverPhraseTimed": "This sequence is {length}, longer than its phrase ({limit}).",
   "@danceEditorSequenceOverPhraseTimed": {
-    "description": "Warning in a sequence of an English country dance that runs longer than one phrase. {length} and {limit} are lengths such as '10 bars'.",
+    "description": "Warning in a sequence of an English country dance that runs longer than the phrase it starts in. {length} and {limit} are lengths such as '10 bars'; {limit} is the length of that phrase.",
     "placeholders": {
       "length": {
         "type": "String"
@@ -11586,13 +11614,17 @@
   "@danceEditorPhrasesAdd": {
     "description": "Button that adds a named phrase (the next unused of A, B, C) to an English dance's phrases. Hidden when all three are used."
   },
-  "danceEditorPhrasesInvalid": "Give each phrase from 1 to {max} bars and from 1 to {max} beats to the bar. Until then the dance keeps its last valid phrases, and Save saves those.",
+  "danceEditorPhrasesInvalid": "Give each phrase from 1 to {maxBars} bars and from 1 to {maxBeats} beats to the bar. Until then the dance keeps its last valid phrases, and Save saves those.",
   "@danceEditorPhrasesInvalid": {
-    "description": "Error under an English dance's named phrases when a bar count or a beats-to-the-bar count is empty, zero or above {max}, or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.",
+    "description": "Error under an English dance's named phrases when a bar count or a beats-to-the-bar count is empty, zero or above its most ({maxBars} bars, {maxBeats} beats to the bar), or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.",
     "placeholders": {
-      "max": {
+      "maxBars": {
         "type": "int",
         "example": "1000"
+      },
+      "maxBeats": {
+        "type": "int",
+        "example": "12"
       }
     }
   },
@@ -11632,7 +11664,7 @@
     "placeholders": {
       "max": {
         "type": "int",
-        "example": "1000"
+        "example": "12"
       }
     }
   },
@@ -12264,9 +12296,9 @@
       }
     }
   },
-  "validationSequenceExceedsPhrase": "A sequence in figure {position} is {actual} beats, longer than one phrase ({limit} beats).",
+  "validationSequenceExceedsPhrase": "A sequence in figure {position} is {actual} beats, longer than its phrase ({limit} beats).",
   "@validationSequenceExceedsPhrase": {
-    "description": "Editor warning for a sequence group (figures danced in order on one line) whose beats run longer than one phrase of the dance. {position} is the dance's figure that is, or holds, the sequence: a sequence can be one side of a meanwhile group.",
+    "description": "Editor warning for a sequence group (figures danced in order on one line) whose beats run longer than the phrase of the dance it starts in ({limit} is that phrase's length). {position} is the dance's figure that is, or holds, the sequence: a sequence can be one side of a meanwhile group.",
     "placeholders": {
       "position": {
         "type": "int",
@@ -12309,9 +12341,9 @@
       }
     }
   },
-  "validationSequenceExceedsPhraseCount": "A sequence in figure {position} is {actual}, longer than one phrase ({limit}).",
+  "validationSequenceExceedsPhraseCount": "A sequence in figure {position} is {actual}, longer than its phrase ({limit}).",
   "@validationSequenceExceedsPhraseCount": {
-    "description": "Editor warning for an English country dance, timed in bars, whose sequence group runs longer than one phrase. {position} is the figure that is, or holds, the sequence; {actual} and {limit} are counts with their unit, such as '10 bars'.",
+    "description": "Editor warning for an English country dance, timed in bars, whose sequence group runs longer than the phrase it starts in ({limit} is that phrase's length). {position} is the figure that is, or holds, the sequence; {actual} and {limit} are counts with their unit, such as '10 bars'.",
     "placeholders": {
       "position": {
         "type": "int"
@@ -13185,7 +13217,7 @@
   },
   "danceEditorGroupWithNextAsSequence": "Group with next as sequence",
   "@danceEditorGroupWithNextAsSequence": {
-    "description": "Menu item label that groups this figure row with the one immediately after it into a sequence: the two figures danced in order and shown on one line. Offered only while the two together fit in one phrase."
+    "description": "Menu item label that groups this figure row with the one immediately after it into a sequence: the two figures danced in order and shown on one line. Offered only while the two together fit in the phrase the first one starts in."
   },
   "danceEditorConvertToMeanwhile": "Convert to meanwhile",
   "@danceEditorConvertToMeanwhile": {
@@ -13249,9 +13281,9 @@
       }
     }
   },
-  "danceEditorSequenceOverPhrase": "This sequence is {beats} beats, longer than one phrase ({limit} beats).",
+  "danceEditorSequenceOverPhrase": "This sequence is {beats} beats, longer than its phrase ({limit} beats).",
   "@danceEditorSequenceOverPhrase": {
-    "description": "Warning in a sequence group's editor when its figures together run longer than one phrase of the dance.",
+    "description": "Warning in a sequence group's editor when its figures together run longer than the phrase of the dance it starts in; {limit} is that phrase's length.",
     "placeholders": {
       "beats": {
         "type": "int",
@@ -13263,9 +13295,9 @@
       }
     }
   },
-  "danceEditorSequencePhraseFull": "These figures fill one phrase ({limit} beats).",
+  "danceEditorSequencePhraseFull": "These figures fill their phrase ({limit} beats).",
   "@danceEditorSequencePhraseFull": {
-    "description": "Shown in place of the add-figure button once a sequence's figures already fill a whole phrase, so no further figure fits.",
+    "description": "Shown in place of the add-figure button once a sequence's figures already fill the whole phrase it starts in, so no further figure fits. {limit} is that phrase's length.",
     "placeholders": {
       "limit": {
         "type": "int",
@@ -17649,7 +17681,7 @@
   "@settingsSuggestionsEnabledTitle": {
     "description": "Title of the switch that turns on the Suggested sort in the program builder's dance list."
   },
-  "settingsSuggestionsEnabledSubtitle": "Adds Suggested to the Sort menu of the program builder's dance list. It orders the dances for the end of the program and says why.",
+  "settingsSuggestionsEnabledSubtitle": "Adds Suggested to the Sort menu of the program builder's dance lists. It orders the dances for where the new one will go and says why.",
   "@settingsSuggestionsEnabledSubtitle": {
     "description": "Subtitle of the Suggest the next dance switch."
   },
@@ -17740,7 +17772,7 @@
   },
   "collectionSortSuggested": "Suggested",
   "@collectionSortSuggested": {
-    "description": "Sort choice in the program builder's dance list, offered when Suggestions is on: the dances ordered for the end of the program."
+    "description": "Sort choice in the program builder's dance lists (adding a dance, and Replace), offered when Suggestions is on: the dances ordered for where the new one will go (the end of the program, a place before or after a slot, or the slot being replaced)."
   },
   "suggestionReasonNewMoves": "{count, plural, =1{A new move for tonight} other{{count} new moves for tonight}}",
   "@suggestionReasonNewMoves": {
@@ -17879,6 +17911,78 @@
     "description": "Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the next dance. {move} is the matrix column's name.",
     "placeholders": {
       "move": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonBeatOverlapAfterDance": "Same {move} beats as {dance}, after it",
+  "@suggestionReasonBeatOverlapAfterDance": {
+    "description": "Suggestion reason: a move lands on the same beats as in the named dance, which this one would follow (the matrix's collision rule). {move} is the matrix column's name, such as partner swing. \"after it\" means this dance would come after {dance} (the dance just before the place being filled); \"before it\" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.",
+    "placeholders": {
+      "move": {
+        "type": "String"
+      },
+      "dance": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonBeatOverlapBeforeDance": "Same {move} beats as {dance}, before it",
+  "@suggestionReasonBeatOverlapBeforeDance": {
+    "description": "Suggestion reason: a move lands on the same beats as in the named dance, which this one would come before. {move} is the matrix column's name. \"after it\" means this dance would come after {dance} (the dance just before the place being filled); \"before it\" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.",
+    "placeholders": {
+      "move": {
+        "type": "String"
+      },
+      "dance": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonPhraseOverlapAfterDance": "{move} in the same phrase as {dance}, after it",
+  "@suggestionReasonPhraseOverlapAfterDance": {
+    "description": "Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the named dance, which this one would follow. {move} is the matrix column's name. \"after it\" means this dance would come after {dance} (the dance just before the place being filled); \"before it\" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.",
+    "placeholders": {
+      "move": {
+        "type": "String"
+      },
+      "dance": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonPhraseOverlapBeforeDance": "{move} in the same phrase as {dance}, before it",
+  "@suggestionReasonPhraseOverlapBeforeDance": {
+    "description": "Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the named dance, which this one would come before. {move} is the matrix column's name. \"after it\" means this dance would come after {dance} (the dance just before the place being filled); \"before it\" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.",
+    "placeholders": {
+      "move": {
+        "type": "String"
+      },
+      "dance": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonSameFormationAfterDance": "{formation}, like {dance}, after it",
+  "@suggestionReasonSameFormationAfterDance": {
+    "description": "Suggestion reason: the dance is in the same formation as the named dance, which this one would follow. {formation} is the formation's name. \"after it\" means this dance would come after {dance} (the dance just before the place being filled); \"before it\" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.",
+    "placeholders": {
+      "formation": {
+        "type": "String"
+      },
+      "dance": {
+        "type": "String"
+      }
+    }
+  },
+  "suggestionReasonSameFormationBeforeDance": "{formation}, like {dance}, before it",
+  "@suggestionReasonSameFormationBeforeDance": {
+    "description": "Suggestion reason: the dance is in the same formation as the named dance, which this one would come before. {formation} is the formation's name. \"after it\" means this dance would come after {dance} (the dance just before the place being filled); \"before it\" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.",
+    "placeholders": {
+      "formation": {
+        "type": "String"
+      },
+      "dance": {
         "type": "String"
       }
     }
@@ -18353,5 +18457,679 @@
   "exportCsvPayHiddenNotice": "Pay is hidden in Settings, so it is left out. Turn on Show pay in Settings ▸ Program to include it.",
   "@exportCsvPayHiddenNotice": {
     "description": "Shown in the export dialog of the programs CSV spreadsheet while the Show pay setting is off: the file has no pay columns. 'Show pay' is the setting's name (settingsProgramShowPayTitle)."
+  },
+  "collectionRepertoireMenuItem": "Repertoire",
+  "@collectionRepertoireMenuItem": {
+    "description": "Collection More actions menu item that opens the Repertoire page (#2357, Experimental)."
+  },
+  "repertoireTitle": "Repertoire",
+  "@repertoireTitle": {
+    "description": "App bar title of the Repertoire page: a read-only summary of the collection and its calling history (#2357)."
+  },
+  "repertoireLoadError": "Couldn't work out your repertoire",
+  "@repertoireLoadError": {
+    "description": "Shown when the Repertoire page fails to load."
+  },
+  "repertoirePeriodLabel": "Period",
+  "@repertoirePeriodLabel": {
+    "description": "Label of the Repertoire page's period chips."
+  },
+  "repertoirePeriodAllTime": "All time",
+  "@repertoirePeriodAllTime": {
+    "description": "Repertoire period chip: every call, whenever it was."
+  },
+  "repertoirePeriodMonths": "{count, plural, =1{Last month} other{Last {count} months}}",
+  "@repertoirePeriodMonths": {
+    "description": "Repertoire period chip: calls in the last N calendar months (1, 3 or 6).",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoirePeriodSinceDate": "Since a date…",
+  "@repertoirePeriodSinceDate": {
+    "description": "Repertoire period chip that opens a date picker."
+  },
+  "repertoirePeriodSince": "Since {date}",
+  "@repertoirePeriodSince": {
+    "description": "Repertoire period chip once a date is chosen. {date} is the formatted date.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "repertoireTypeLabel": "Dance type",
+  "@repertoireTypeLabel": {
+    "description": "Label of the Repertoire page's dance type chips."
+  },
+  "repertoireTypeAll": "All types",
+  "@repertoireTypeAll": {
+    "description": "Repertoire dance type chip: every dance type."
+  },
+  "repertoireSummary": "Calls in this period: {calls}. Dances called: {called} of {total}.",
+  "@repertoireSummary": {
+    "description": "Summary line at the top of the Repertoire page.",
+    "placeholders": {
+      "calls": {
+        "type": "int"
+      },
+      "called": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireMostCalledHeader": "Most called",
+  "@repertoireMostCalledHeader": {
+    "description": "Repertoire section header: the dances called most in the period."
+  },
+  "repertoireLeastCalledHeader": "Least called (of those you have called)",
+  "@repertoireLeastCalledHeader": {
+    "description": "Repertoire section header: the dances called least in the period, among those called at least once."
+  },
+  "repertoireLeastCalledAllShown": "Every dance you called in this period is already listed under Most called.",
+  "@repertoireLeastCalledAllShown": {
+    "description": "Shown under Least called when ten or fewer dances were called, so all of them are under Most called."
+  },
+  "repertoireNoCalls": "No counted calls in this period.",
+  "@repertoireNoCalls": {
+    "description": "Shown in a Repertoire section when nothing was called in the period."
+  },
+  "repertoireDanceCalls": "{count, plural, =1{called once} other{called {count} times}}",
+  "@repertoireDanceCalls": {
+    "description": "How many times a dance was called in the period, beside its title.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireDanceSemantics": "{title}: {count, plural, =1{called once} other{called {count} times}}",
+  "@repertoireDanceSemantics": {
+    "description": "Screen reader label of a dance row on the Repertoire page.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireNeverCalledHeader": "Never called",
+  "@repertoireNeverCalledHeader": {
+    "description": "Repertoire section header: dances with no counted call ever."
+  },
+  "repertoireNeverCalledLabel": "Never called",
+  "@repertoireNeverCalledLabel": {
+    "description": "Row label: dances with no counted call ever. Tapping it shows them in Collection."
+  },
+  "repertoireOfDances": "{count} of {total} dances",
+  "@repertoireOfDances": {
+    "description": "A number of dances out of the collection's total.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireNeverCalledSemantics": "Never called: {count} of {total} dances",
+  "@repertoireNeverCalledSemantics": {
+    "description": "Screen reader label of the Never called row.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireNeverCalledDanceSemantics": "{title}: never called",
+  "@repertoireNeverCalledDanceSemantics": {
+    "description": "Screen reader label of one never-called dance listed under the Never called row.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "repertoireNotCalledInPeriodLabel": "Not called in this period",
+  "@repertoireNotCalledInPeriodLabel": {
+    "description": "Row label: dances with no counted call in the chosen period, including never-called ones."
+  },
+  "repertoireNotCalledInPeriodSemantics": "Not called in this period: {count} of {total} dances",
+  "@repertoireNotCalledInPeriodSemantics": {
+    "description": "Screen reader label of the Not called in this period row.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireFigureHeader": "Figure frequency",
+  "@repertoireFigureHeader": {
+    "description": "Repertoire section header: for each move, how many dances contain it."
+  },
+  "repertoireNoFigures": "None of these dances has figures entered.",
+  "@repertoireNoFigures": {
+    "description": "Shown under Figure frequency when no dance has figures."
+  },
+  "repertoireFigureValue": "in {dances} of {total} dances ({percent}%) · {calls, plural, =1{1 call} other{{calls} calls}}",
+  "@repertoireFigureValue": {
+    "description": "A figure row's numbers: how many dances contain the move, as a share, and how many calls in the period were of such a dance.",
+    "placeholders": {
+      "dances": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "int"
+      },
+      "calls": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireFigureSemantics": "{move}: in {dances} of {total} dances, {percent} percent; {calls, plural, =1{1 call} other{{calls} calls}} in this period",
+  "@repertoireFigureSemantics": {
+    "description": "Screen reader label of a figure row. {move} is the move's name.",
+    "placeholders": {
+      "move": {
+        "type": "String"
+      },
+      "dances": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "int"
+      },
+      "calls": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireShowAll": "Show all {count}",
+  "@repertoireShowAll": {
+    "description": "Button that expands a Repertoire list to every row.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireShowFewer": "Show fewer",
+  "@repertoireShowFewer": {
+    "description": "Button that collapses an expanded Repertoire list."
+  },
+  "repertoireAuthorsHeader": "Authors you call",
+  "@repertoireAuthorsHeader": {
+    "description": "Repertoire section header: the authors of the dances called in the period."
+  },
+  "repertoireAuthorsSummary": "{count, plural, =0{No author called in this period.} =1{1 author called in this period.} other{{count} authors called in this period.}}",
+  "@repertoireAuthorsSummary": {
+    "description": "How many distinct authors' dances were called in the period.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireShareValue": "{calls, plural, =1{1 call} other{{calls} calls}} ({percent}%)",
+  "@repertoireShareValue": {
+    "description": "A row's calls in the period and their share of all calls in it.",
+    "placeholders": {
+      "calls": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireShareSemantics": "{label}: {calls, plural, =1{1 call} other{{calls} calls}}, {percent} percent of calls in this period",
+  "@repertoireShareSemantics": {
+    "description": "Screen reader label of a choreographer or formation row. {label} is the name.",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "calls": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireFormationHeader": "Formation mix",
+  "@repertoireFormationHeader": {
+    "description": "Repertoire section header: calls in the period by formation."
+  },
+  "repertoireVenuesHeader": "Repeats per venue",
+  "@repertoireVenuesHeader": {
+    "description": "Repertoire section header: for each venue, the dances called there more than once in the period."
+  },
+  "repertoireNoRepeats": "No dance was called more than once at one venue in this period.",
+  "@repertoireNoRepeats": {
+    "description": "Shown under Repeats per venue when there are none."
+  },
+  "repertoireVenueUnnamed": "Unnamed venue",
+  "@repertoireVenueUnnamed": {
+    "description": "Label for a venue with no name to show."
+  },
+  "repertoireVenueRepeats": "{count, plural, =1{1 dance repeated} other{{count} dances repeated}}",
+  "@repertoireVenueRepeats": {
+    "description": "How many dances were called more than once at a venue in the period.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "repertoireVenueSemantics": "{venue}: {count, plural, =1{1 dance called more than once} other{{count} dances called more than once}}",
+  "@repertoireVenueSemantics": {
+    "description": "Screen reader label of a venue row. {venue} is the venue's name.",
+    "placeholders": {
+      "venue": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsExperimentalRepertoireHeader": "Repertoire",
+  "@settingsExperimentalRepertoireHeader": {
+    "description": "Header of the Experimental settings section for the Repertoire page (#2357)."
+  },
+  "settingsExperimentalShowRepertoireTitle": "Repertoire",
+  "@settingsExperimentalShowRepertoireTitle": {
+    "description": "Title of the switch that adds Repertoire to Collection's More actions menu."
+  },
+  "settingsExperimentalShowRepertoireSubtitle": "Adds Repertoire to Collection's More actions menu: your most and least called dances, what you've never called, figure frequency, authors, formations and repeats per venue.",
+  "@settingsExperimentalShowRepertoireSubtitle": {
+    "description": "Subtitle of the Repertoire switch."
+  },
+  "importSourceLabelCsv": "Your own spreadsheet (CSV)",
+  "@importSourceLabelCsv": {
+    "description": "Import source label: a CSV file the person saved from their own spreadsheet (Excel, Numbers, LibreOffice or Google Sheets)."
+  },
+  "importCsvPickFile": "Choose a CSV file…",
+  "@importCsvPickFile": {
+    "description": "Button on the import screen that opens the file picker for a CSV spreadsheet file."
+  },
+  "importCsvSaveAsHint": "In your spreadsheet, choose File ▸ Save As (or Download) and pick \"CSV UTF-8\", then choose that file here.",
+  "@importCsvSaveAsHint": {
+    "description": "Help text under the CSV import source explaining how to get a CSV file out of a spreadsheet program."
+  },
+  "importCsvMapTitle": "Map columns",
+  "@importCsvMapTitle": {
+    "description": "Heading of the import step where the person says what each spreadsheet column holds."
+  },
+  "importCsvMapIntro": "Choose what each column holds. Columns set to Ignore are left out. Nothing is added until you review and confirm.",
+  "@importCsvMapIntro": {
+    "description": "Explanation at the top of the map-columns step of a CSV import."
+  },
+  "importCsvSeparatorLabel": "Separator",
+  "@importCsvSeparatorLabel": {
+    "description": "Label of the dropdown that chooses which character separates the columns of a CSV file."
+  },
+  "importCsvSeparatorComma": "Comma (,)",
+  "@importCsvSeparatorComma": {
+    "description": "Separator choice: comma."
+  },
+  "importCsvSeparatorSemicolon": "Semicolon (;)",
+  "@importCsvSeparatorSemicolon": {
+    "description": "Separator choice: semicolon, which Excel uses in many European languages."
+  },
+  "importCsvSeparatorTab": "Tab",
+  "@importCsvSeparatorTab": {
+    "description": "Separator choice: tab character."
+  },
+  "importCsvFirstRowHeader": "The first row names the columns",
+  "@importCsvFirstRowHeader": {
+    "description": "Switch on the map-columns step: whether the first row of the CSV holds column names rather than a dance."
+  },
+  "importCsvColumnFallback": "Column {number}",
+  "@importCsvColumnFallback": {
+    "description": "Name shown for a CSV column that has no header. {number} counts from 1.",
+    "placeholders": {
+      "number": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "importCsvTargetIgnore": "Ignore",
+  "@importCsvTargetIgnore": {
+    "description": "Dropdown choice: leave this CSV column out of the import."
+  },
+  "importCsvTargetPhrase": "Figures, {phrase}",
+  "@importCsvTargetPhrase": {
+    "description": "Dropdown choice: this CSV column holds the figures of one phrase, such as A1 or B2.",
+    "placeholders": {
+      "phrase": {
+        "type": "String",
+        "example": "A1"
+      }
+    }
+  },
+  "importCsvTargetNewField": "New custom field ({type})",
+  "@importCsvTargetNewField": {
+    "description": "Dropdown choice: create a new custom field of this type from the column. {type} is a custom field type such as Number.",
+    "placeholders": {
+      "type": {
+        "type": "String",
+        "example": "Number"
+      }
+    }
+  },
+  "importCsvTargetExistingField": "Custom field: {name}",
+  "@importCsvTargetExistingField": {
+    "description": "Dropdown choice: put this column into one of the person's existing custom fields. {name} is the field's name.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Season"
+      }
+    }
+  },
+  "importCsvNeedsTitle": "Choose the column that holds each dance's title.",
+  "@importCsvNeedsTitle": {
+    "description": "Shown on the map-columns step while no column, or more than one, is set to Title."
+  },
+  "importCsvContinue": "Continue",
+  "@importCsvContinue": {
+    "description": "Button that moves from the map-columns step to the review of the planned dances."
+  },
+  "importCsvPreviewHeading": "First rows",
+  "@importCsvPreviewHeading": {
+    "description": "Heading above the preview of the first few rows of the CSV file."
+  },
+  "importCsvNotUtf8": "This file isn't saved as UTF-8 text, so accented letters would come in wrong. In your spreadsheet, save it again as \"CSV UTF-8\" and choose that file.",
+  "@importCsvNotUtf8": {
+    "description": "Error when a CSV file is in an old encoding such as Windows-1252 instead of UTF-8."
+  },
+  "importCsvTooLarge": "This file is too large to import. Split it into smaller files.",
+  "@importCsvTooLarge": {
+    "description": "Error when a CSV file is larger than the import allows."
+  },
+  "importCsvTooManyRows": "This file has more than {limit} rows. Split it into smaller files.",
+  "@importCsvTooManyRows": {
+    "description": "Error when a CSV file has too many rows.",
+    "placeholders": {
+      "limit": {
+        "type": "int",
+        "example": "20000"
+      }
+    }
+  },
+  "importCsvTooManyColumns": "A row in this file has more than {limit} columns.",
+  "@importCsvTooManyColumns": {
+    "description": "Error when a row of a CSV file has too many columns.",
+    "placeholders": {
+      "limit": {
+        "type": "int",
+        "example": "200"
+      }
+    }
+  },
+  "importCsvCellTooLong": "A cell in this file is longer than {limit} characters.",
+  "@importCsvCellTooLong": {
+    "description": "Error when one cell of a CSV file is too long.",
+    "placeholders": {
+      "limit": {
+        "type": "int",
+        "example": "65536"
+      }
+    }
+  },
+  "importCsvUnterminatedQuote": "This file has a quoted cell that never ends, so it can't be read.",
+  "@importCsvUnterminatedQuote": {
+    "description": "Error when a CSV file has an opening double quote with no closing one."
+  },
+  "importCsvLargeBatch": "This file has {count} rows. Reviewing them may take a while.",
+  "@importCsvLargeBatch": {
+    "description": "Warning on the map-columns step when a CSV file has many rows.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1200"
+      }
+    }
+  },
+  "importCsvNoRows": "This file has no rows of dances, only the column names.",
+  "@importCsvNoRows": {
+    "description": "Shown on the map-columns step of a CSV import when the file has a header row but no dance rows (or only blank ones)."
+  },
+  "calendarImportUpdated": "{count, plural, =1{1 program updated from your calendar.} other{{count} programs updated from your calendar.}}",
+  "@calendarImportUpdated": {
+    "description": "Snack bar part after a calendar import updated existing programs from calendar changes. Offers Undo.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarImportReviewed": "Calendar checked. Nothing was added or changed.",
+  "@calendarImportReviewed": {
+    "description": "Snack bar after a calendar import in which only flags or bookkeeping were written: no program was added or updated."
+  },
+  "calendarChangeDate": "Date: {before} → {after}",
+  "@calendarChangeDate": {
+    "description": "A program's date as it is and as the calendar now has it, in the calendar import review.",
+    "placeholders": {
+      "before": {
+        "type": "String"
+      },
+      "after": {
+        "type": "String"
+      }
+    }
+  },
+  "calendarChangeTitle": "Title: {before} → {after}",
+  "@calendarChangeTitle": {
+    "description": "A program's title as it is and as the calendar now has it, in the calendar import review.",
+    "placeholders": {
+      "before": {
+        "type": "String"
+      },
+      "after": {
+        "type": "String"
+      }
+    }
+  },
+  "calendarChangeTime": "Time: {before} → {after}",
+  "@calendarChangeTime": {
+    "description": "A program's start and end time as it is and as the calendar now has it, in the calendar import review. Each side is already formatted, e.g. '7:00 PM–10:00 PM', or a dash when there is none.",
+    "placeholders": {
+      "before": {
+        "type": "String"
+      },
+      "after": {
+        "type": "String"
+      }
+    }
+  },
+  "calendarChangeVenue": "Venue: {before} → {after}",
+  "@calendarChangeVenue": {
+    "description": "A program's venue as it is and as the calendar now has it, in the calendar import review.",
+    "placeholders": {
+      "before": {
+        "type": "String"
+      },
+      "after": {
+        "type": "String"
+      }
+    }
+  },
+  "calendarImportUpdatedHeader": "Updated in your calendar",
+  "@calendarImportUpdatedHeader": {
+    "description": "Heading over changed calendar events whose draft program the user has not touched; ticked by default."
+  },
+  "calendarImportChangedHeader": "Changed in your calendar",
+  "@calendarImportChangedHeader": {
+    "description": "Heading over changed calendar events whose program the user has worked on; unticked by default."
+  },
+  "calendarImportChangedBody": "You've worked on these programs, so nothing changes unless you tick it.",
+  "@calendarImportChangedBody": {
+    "description": "Body under the Changed in your calendar heading."
+  },
+  "calendarImportFlaggedHeader": "Canceled or gone from your calendar",
+  "@calendarImportFlaggedHeader": {
+    "description": "Heading over imported programs whose event was cancelled or is no longer in the calendar."
+  },
+  "calendarImportFlaggedBody": "These programs are kept as they are and labeled. Archive or delete them yourself if you no longer need them.",
+  "@calendarImportFlaggedBody": {
+    "description": "Body under the cancelled-or-gone heading."
+  },
+  "calendarFlagCancelled": "Canceled in your calendar",
+  "@calendarFlagCancelled": {
+    "description": "Label on a program whose calendar event was cancelled."
+  },
+  "calendarFlagMissing": "No longer in your calendar",
+  "@calendarFlagMissing": {
+    "description": "Label on a program whose calendar event is no longer in the calendar."
+  },
+  "calendarFlagOther": "Flagged by your calendar",
+  "@calendarFlagOther": {
+    "description": "Label on a program carrying a calendar flag this version does not know."
+  },
+  "calendarFlagFieldLabel": "Calendar flag",
+  "@calendarFlagFieldLabel": {
+    "description": "Field name for a program's calendar flag when comparing two versions in a sync conflict."
+  },
+  "calendarClearFlag": "Clear calendar flag",
+  "@calendarClearFlag": {
+    "description": "Button on a program's summary that removes its calendar flag."
+  },
+  "calendarClearFlagError": "Couldn't clear the calendar flag. Try again.",
+  "@calendarClearFlagError": {
+    "description": "Snack bar when Clear calendar flag on a program's summary could not save the program."
+  },
+  "calendarOnStartupTitle": "Import calendar when the app starts",
+  "@calendarOnStartupTitle": {
+    "description": "Switch in Settings ▸ Program ▸ Calendar, off by default: read the calendar once each time the app starts."
+  },
+  "calendarOnStartupSubtitle": "Off by default. When on, the app reads your calendar once each time it starts, and says nothing if it can't.",
+  "@calendarOnStartupSubtitle": {
+    "description": "Subtitle of the start-up calendar import switch."
+  },
+  "calendarStartupModeTitle": "At startup",
+  "@calendarStartupModeTitle": {
+    "description": "Setting that chooses what the start-up calendar import does with new events."
+  },
+  "calendarStartupModeReport": "Report new events",
+  "@calendarStartupModeReport": {
+    "description": "Option of the At startup setting (the default): only say how many new events there are."
+  },
+  "calendarStartupModeAdd": "Add them as drafts",
+  "@calendarStartupModeAdd": {
+    "description": "Option of the At startup setting: create draft programs for new events."
+  },
+  "calendarStartupModeReportSubtitle": "Tells you about new events; nothing is added until you review them.",
+  "@calendarStartupModeReportSubtitle": {
+    "description": "Subtitle of the At startup setting when Report new events is chosen."
+  },
+  "calendarStartupModeAddSubtitle": "Adds new events as draft programs, with Undo. Changed or canceled events are only reported.",
+  "@calendarStartupModeAddSubtitle": {
+    "description": "Subtitle of the At startup setting when Add them as drafts is chosen."
+  },
+  "calendarLastResultFailed": "Couldn't reach the calendar at startup ({when})",
+  "@calendarLastResultFailed": {
+    "description": "Settings line: the last start-up calendar import failed. {when} is a date.",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "calendarLastResultAdded": "Checked at startup {when}: {count, plural, =1{1 draft added} other{{count} drafts added}}",
+  "@calendarLastResultAdded": {
+    "description": "Settings line: the last start-up calendar import added drafts. {when} is a date.",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarLastResultNew": "Checked at startup {when}: {count, plural, =0{no new events} =1{1 new event} other{{count} new events}}",
+  "@calendarLastResultNew": {
+    "description": "Settings line: the last start-up calendar import's result. {when} is a date.",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarStartupFailureNotice": "{count, plural, other{The calendar couldn't be reached the last {count} times the app started.}}",
+  "@calendarStartupFailureNotice": {
+    "description": "Quiet notice in Settings after several start-up calendar imports in a row failed.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarStartupFailureHint": "Check the calendar address, or your connection.",
+  "@calendarStartupFailureHint": {
+    "description": "Hint under the repeated-failure notice."
+  },
+  "calendarStartupNewEvents": "{count, plural, =1{1 new event in your calendar.} other{{count} new events in your calendar.}}",
+  "@calendarStartupNewEvents": {
+    "description": "Message after a start-up calendar import in Report mode found new events.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarStartupChanges": "{count, plural, =1{1 change needs you.} other{{count} changes need you.}}",
+  "@calendarStartupChanges": {
+    "description": "Message part after a start-up calendar import found changed or canceled events, which it never applies.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarStartupShow": "Show",
+  "@calendarStartupShow": {
+    "description": "Button in the start-up calendar message: open a draft it added."
+  },
+  "calendarStartupReview": "Review",
+  "@calendarStartupReview": {
+    "description": "Button in the start-up calendar message: open the import review with what it found."
+  },
+  "calendarLastResultError": "Couldn't import from the calendar at startup ({when})",
+  "@calendarLastResultError": {
+    "description": "Settings line: the last start-up calendar import reached the calendar but could not read it or add the drafts. {when} is a date.",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
   }
 }

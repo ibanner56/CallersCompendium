@@ -281,7 +281,12 @@ the **Filters** panel. It lets you narrow by:
   text, and number fields you have defined
 
 A filter appears only when there is something to filter by — the **Source**
-filter, for example, appears once a dance cites a published source. If an
+filter, for example, appears once a dance cites a published source. A choice
+you have made stays on screen as a selected chip even after no dance has it
+any more (you deleted the last dance at that level, say), so a filter that is
+still narrowing the list can always be seen and removed; a level, author or
+source that has since been deleted reads **Not in your library**. Tags differ:
+a tag you picked is taken out of the filter once no dance has it. If an
 author or source shows up twice under slightly different names, fix it once in
 the **Authors** or **Sources** manager under
 [Settings ▸ General ▸ Dances](./settings.md#dances): renaming or merging there
@@ -424,7 +429,9 @@ dances that carry it — "this tag but not that one", which the **Tags** filter
 cannot say. Tag rows sit alongside figure
 rows in the same group, so "tagged *Smooth* and has a petronella" is one query.
 **Has tag** appears in the **Add** menu once at least one of your dances has a
-tag.
+tag. A row keeps its tag even after no dance has it any more, and shows it
+(**Not in your library** if the tag was deleted); remove the row or pick
+another tag to change it.
 
 ### Ask per phrase with By phrase search
 
@@ -725,6 +732,52 @@ half-undone. Undoing **Edit custom field** puts back only the field you changed,
 so anything else you have edited in the meantime stays as it is. Selected rows are marked
 with a checkmark and a colored bar down the row's left edge — never color alone —
 so the selection is clear however you are reading the screen.
+
+## See your repertoire at a glance
+
+**Repertoire** is an experimental, read-only summary of what you call. Turn it
+on in [Settings ▸ Experimental ▸ Repertoire](./settings.md#repertoire); then
+choose **Repertoire** from the **More actions** (⋮) menu in the Collection
+toolbar. It opens as its own page, and **Back** returns to the Collection.
+
+At the top, choose a **Period**: **All time**, **Last month**, **Last 3
+months**, **Last 6 months**, or **Since a date…** for a longer season. These
+are the same windows as **Within** in
+[Filter by calling history](#filter-by-calling-history). If your collection has
+more than one type of dance, **Dance type** narrows the page to **Contra**,
+**English (ECD)** or **Square**. Neither choice is saved: the page opens on
+**All time** and every type each time.
+
+The page has these sections:
+
+- **Most called** and **Least called (of those you have called)**: the ten
+  dances called most, and the ten called least among those you called at all,
+  in the period. A dance is never in both lists.
+- **Never called**: how many dances you have never called at all, whatever the
+  period, with the first few titles. With a period chosen,
+  **Not called in this period** also counts the dances with no call in it,
+  never-called ones included.
+- **Figure frequency**: for each move, how many dances of that type contain it,
+  and how many calls in the period were of such a dance. A dance counts once
+  per move, however often the move appears in it. Each type is listed
+  separately, and **Show all** lists every move.
+- **Authors you call**: how many authors' dances you called in the
+  period, and each author's calls with their share of all calls. A dance with
+  two authors counts for both.
+- **Formation mix**: calls in the period by formation.
+- **Repeats per venue**: each venue where you called a dance more than once in
+  the period, and those dances.
+
+A call here is exactly what **called ×N** on a Collection row counts, under the
+[Calling history settings](./settings.md#calling-history): if a row says
+"called ×3", **All time** shows 3 for that dance. A period counts calls the way
+**Within** does.
+
+Select a dance to open it. Select any other row and the Collection shows the
+dances behind it, as a search you can change: **Never called** applies
+**Not called**; a move applies that type and a **Has figure** row in
+**Advanced**; an author, formation or venue applies that filter with
+**Called** and the period. Whatever you had searched for before is replaced.
 
 ## Jump straight to a dance or program
 

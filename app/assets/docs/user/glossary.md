@@ -105,7 +105,9 @@ A plain table that every spreadsheet program opens, such as Excel, Numbers,
 LibreOffice and Google Sheets: one line per row, with commas between the
 columns. Caller's Compendium can export your
 [dances](./sharing.md#export-dances-as-a-spreadsheet-csv) or your
-[programs](./sharing.md#export-programs-as-a-spreadsheet-csv) as one.
+[programs](./sharing.md#export-programs-as-a-spreadsheet-csv) as one, and
+import dances from one (see
+[Imports & migration](./imports.md#bring-in-your-own-spreadsheet)).
 
 ## Custom field
 
@@ -240,7 +242,7 @@ choose **Never**.
 
 Two to four [figures](#figure) danced one after another and written as one line,
 such as *ones balance and swing*. Its beats are the total of its figures', and
-must fit in one phrase. A sequence is most useful as one side of a
+must fit in the phrase it starts in. A sequence is most useful as one side of a
 [meanwhile](#meanwhile). See
 [Write & edit dances](./authoring.md#sequence-figures).
 

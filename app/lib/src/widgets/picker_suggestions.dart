@@ -1,5 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -10,12 +9,13 @@ import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 
 /// The program a [CollectionPicker] adds to (history-filters Q3, extended for
-/// suggestions, #2343): its id, its venue, and its slots.
+/// suggestions, #2343, #2344): its id, its venue, and where in it the chosen
+/// dance will go.
 ///
-/// Only the program builder's add-dance pickers pass one. [slots] is set only
-/// when the picker adds at the end of the program, the one position Suggested
-/// ranks for; while the builder adds before or after a slot (#2339) it is null
-/// and Suggested is not offered (#2344).
+/// The program builder's pickers pass one: the add-dance pickers with the end
+/// of the program, or the place an add before or after a slot lands (#2339),
+/// and **Replace…** with the place of the slot being replaced. Suggested ranks
+/// for [position], and is offered only when it is set.
 @immutable
 class PickerProgramContext {
   const PickerProgramContext({
@@ -23,7 +23,7 @@ class PickerProgramContext {
     this.venueId,
     this.venue,
     this.venueLabel,
-    this.slots,
+    this.position,
   });
 
   /// The program's id, or null for a program not saved yet (which has no
@@ -41,8 +41,10 @@ class PickerProgramContext {
   /// the Grange since …").
   final String? venueLabel;
 
-  /// Every slot of the program, in order, when the picker adds at the end.
-  final List<ProgramSlot>? slots;
+  /// Where the chosen dance will go: the slots before and after it, and
+  /// whether it takes an alternate's place. Null for no position, so no
+  /// Suggested.
+  final SuggestionPosition? position;
 
   /// The venue key calling history groups this program by
   /// (history-filters Q1), or null when it has no venue.
@@ -60,19 +62,11 @@ class PickerProgramContext {
       other.venueId == venueId &&
       other.venue == venue &&
       other.venueLabel == venueLabel &&
-      _slotsEqual(other.slots, slots);
+      other.position == position;
 
   @override
-  int get hashCode => Object.hash(
-    programId,
-    venueId,
-    venue,
-    venueLabel,
-    slots == null ? null : Object.hashAll(slots!),
-  );
-
-  static bool _slotsEqual(List<ProgramSlot>? a, List<ProgramSlot>? b) =>
-      a == null ? b == null : b != null && listEquals(a, b);
+  int get hashCode =>
+      Object.hash(programId, venueId, venue, venueLabel, position);
 }
 
 /// Ranks a [SuggestionRequest]. The picker uses a [SuggestionWorker] of its
@@ -91,6 +85,8 @@ class SuggestionReasonLabels {
     required this.userFigures,
     required this.venueLabel,
     required this.formatDate,
+    this.danceTitle,
+    this.dialectForColumn,
   });
 
   /// Reads the date format and localizations from [context].
@@ -101,6 +97,8 @@ class SuggestionReasonLabels {
     required MatrixColumnConfig matrixConfig,
     required UserFigureCatalog userFigures,
     required String? venueLabel,
+    String? Function(String danceId)? danceTitle,
+    Dialect Function(MatrixColumn column)? dialectForColumn,
   }) {
     final l10n = AppLocalizations.of(context);
     final dateFormat = DateFormatScope.of(context);
@@ -117,6 +115,8 @@ class SuggestionReasonLabels {
           ? venueLabel
           : l10n.programsVenueLinkedHintFallbackName,
       formatDate: (date) => formatEventDate(date, dateFormat, material, l10n),
+      danceTitle: danceTitle,
+      dialectForColumn: dialectForColumn,
     );
   }
 
@@ -128,17 +128,30 @@ class SuggestionReasonLabels {
   final String venueLabel;
   final String Function(DateTime date) formatDate;
 
-  String _move(String key) => matrixColumnLabel(
-    matrixColumnForKey(
+  /// The title of a program dance a reason names
+  /// ([SuggestionReason.neighborDanceId]), or null when it cannot be named;
+  /// the reason then says "the previous dance" or "the next dance".
+  final String? Function(String danceId)? danceTitle;
+
+  /// The dialect a column is named in, when it is not [dialect]: the one the
+  /// program matrix names the same column in, so a reason and the column it
+  /// points at read alike (#2294). Null names every column in [dialect].
+  final Dialect Function(MatrixColumn column)? dialectForColumn;
+
+  String _move(String key) {
+    final column = matrixColumnForKey(
       key,
       taxonomy: taxonomy,
       config: matrixConfig,
       userFigures: userFigures,
-    ),
-    taxonomy,
-    dialect,
-    config: matrixConfig,
-  );
+    );
+    return matrixColumnLabel(
+      column,
+      taxonomy,
+      dialectForColumn?.call(column) ?? dialect,
+      config: matrixConfig,
+    );
+  }
 
   /// The sentence for [reason].
   String text(SuggestionReason reason) {
@@ -146,26 +159,60 @@ class SuggestionReasonLabels {
         ? ''
         : formationShapeLabel(l10n, reason.formation!);
     final next = reason.neighbor == SuggestionNeighbor.next;
+    // The neighbour by name, and which side it is on (#2344): "…as Chorus
+    // Jig, after it" when this dance would follow it.
+    final neighborId = reason.neighborDanceId;
+    final dance = neighborId == null ? null : danceTitle?.call(neighborId);
     return switch (reason.kind) {
       SuggestionReasonKind.newMoves => l10n.suggestionReasonNewMoves(
         reason.count ?? 1,
       ),
-      SuggestionReasonKind.beatOverlap =>
-        next
-            ? l10n.suggestionReasonBeatOverlapNext(_move(reason.moveKey!))
-            : l10n.suggestionReasonBeatOverlapPrevious(_move(reason.moveKey!)),
-      SuggestionReasonKind.phraseOverlap =>
-        next
-            ? l10n.suggestionReasonPhraseOverlapNext(_move(reason.moveKey!))
-            : l10n.suggestionReasonPhraseOverlapPrevious(
-                _move(reason.moveKey!),
-              ),
+      SuggestionReasonKind.beatOverlap => switch ((next, dance)) {
+        (true, final String d) => l10n.suggestionReasonBeatOverlapBeforeDance(
+          _move(reason.moveKey!),
+          d,
+        ),
+        (false, final String d) => l10n.suggestionReasonBeatOverlapAfterDance(
+          _move(reason.moveKey!),
+          d,
+        ),
+        (true, null) => l10n.suggestionReasonBeatOverlapNext(
+          _move(reason.moveKey!),
+        ),
+        (false, null) => l10n.suggestionReasonBeatOverlapPrevious(
+          _move(reason.moveKey!),
+        ),
+      },
+      SuggestionReasonKind.phraseOverlap => switch ((next, dance)) {
+        (true, final String d) => l10n.suggestionReasonPhraseOverlapBeforeDance(
+          _move(reason.moveKey!),
+          d,
+        ),
+        (false, final String d) => l10n.suggestionReasonPhraseOverlapAfterDance(
+          _move(reason.moveKey!),
+          d,
+        ),
+        (true, null) => l10n.suggestionReasonPhraseOverlapNext(
+          _move(reason.moveKey!),
+        ),
+        (false, null) => l10n.suggestionReasonPhraseOverlapPrevious(
+          _move(reason.moveKey!),
+        ),
+      },
       SuggestionReasonKind.alreadyInProgram =>
         l10n.suggestionReasonAlreadyInProgram,
-      SuggestionReasonKind.sameFormationAsNeighbor =>
-        next
-            ? l10n.suggestionReasonSameFormationNext(formation)
-            : l10n.suggestionReasonSameFormationPrevious(formation),
+      SuggestionReasonKind.sameFormationAsNeighbor => switch ((next, dance)) {
+        (true, final String d) => l10n.suggestionReasonSameFormationBeforeDance(
+          formation,
+          d,
+        ),
+        (false, final String d) => l10n.suggestionReasonSameFormationAfterDance(
+          formation,
+          d,
+        ),
+        (true, null) => l10n.suggestionReasonSameFormationNext(formation),
+        (false, null) => l10n.suggestionReasonSameFormationPrevious(formation),
+      },
       SuggestionReasonKind.formationCommonTonight =>
         l10n.suggestionReasonFormationCommon(reason.count ?? 0, formation),
       SuggestionReasonKind.firstFormationTonight =>

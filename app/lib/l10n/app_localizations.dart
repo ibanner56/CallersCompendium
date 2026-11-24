@@ -7328,6 +7328,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 month} other{{count} months}}'**
   String collectionFacetWithinMonths(int count);
 
+  /// Selected time-window chip in the Calling history filter for a window of {count} calendar months that none of the 1/3/6-month choices offers, shown when the window came from a saved search. Without a saved search the chip reads like collectionFacetWithinMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 month, saved} other{{count} months, saved}}'**
+  String collectionFacetWithinMonthsSaved(int count);
+
   /// Time-window choice in the Calling history filter that opens a date picker: calls on or after the chosen date count.
   ///
   /// In en, this message translates to:
@@ -7435,6 +7441,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All filters are hidden. You can show them again in Settings ▸ Defaults.'**
   String get collectionFacetAllHidden;
+
+  /// Label of a selected filter chip (a level, author, tag or source) whose item no longer exists, e.g. it was deleted after a search naming it was saved. The chip stays so the filter can be seen and removed.
+  ///
+  /// In en, this message translates to:
+  /// **'Not in your library'**
+  String get collectionFacetMissingValue;
 
   /// Button that clears all active facet filters.
   ///
@@ -7802,6 +7814,12 @@ abstract class AppLocalizations {
   /// **'Any {param}'**
   String collectionQueryAnyParam(String param);
 
+  /// Removable notice on an Advanced search figure row: the row asks for a figure parameter value that the parameter's dropdown does not offer (it came in with a saved search). The value still narrows the search until the user removes it.
+  ///
+  /// In en, this message translates to:
+  /// **'{param}: {value} (not offered)'**
+  String collectionQueryParamNotOffered(String param, String value);
+
   /// Batch set-level option that clears (unsets) the level on the selected dances.
   ///
   /// In en, this message translates to:
@@ -8048,10 +8066,10 @@ abstract class AppLocalizations {
   /// **'The steps with bars of their own take {steps} of the sequence\'s {span}, leaving none for the rest.'**
   String danceEditorSequenceSpanNoRoom(String steps, String span);
 
-  /// Warning in a sequence of an English country dance that runs longer than one phrase. {length} and {limit} are lengths such as '10 bars'.
+  /// Warning in a sequence of an English country dance that runs longer than the phrase it starts in. {length} and {limit} are lengths such as '10 bars'; {limit} is the length of that phrase.
   ///
   /// In en, this message translates to:
-  /// **'This sequence is {length}, longer than one phrase ({limit}).'**
+  /// **'This sequence is {length}, longer than its phrase ({limit}).'**
   String danceEditorSequenceOverPhraseTimed(String length, String limit);
 
   /// Word inserted into a figure row's accessible label when the figure carries the progression.
@@ -13120,11 +13138,11 @@ abstract class AppLocalizations {
   /// **'Add phrase'**
   String get danceEditorPhrasesAdd;
 
-  /// Error under an English dance's named phrases when a bar count or a beats-to-the-bar count is empty, zero or above {max}, or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.
+  /// Error under an English dance's named phrases when a bar count or a beats-to-the-bar count is empty, zero or above its most ({maxBars} bars, {maxBeats} beats to the bar), or the phrases are too long. The phrase structure is kept as it was until it is fixed, and Save saves that kept structure.
   ///
   /// In en, this message translates to:
-  /// **'Give each phrase from 1 to {max} bars and from 1 to {max} beats to the bar. Until then the dance keeps its last valid phrases, and Save saves those.'**
-  String danceEditorPhrasesInvalid(int max);
+  /// **'Give each phrase from 1 to {maxBars} bars and from 1 to {maxBeats} beats to the bar. Until then the dance keeps its last valid phrases, and Save saves those.'**
+  String danceEditorPhrasesInvalid(int maxBars, int maxBeats);
 
   /// Label of the number field for how many bars of music one named phrase of an English dance has. The name is A, B or C, a phrase label of English country dance music.
   ///
@@ -13948,10 +13966,10 @@ abstract class AppLocalizations {
   /// **'The figures total {actual} beats; the phrase structure expects {expected}.'**
   String validationPhraseBeatMismatch(int actual, int expected);
 
-  /// Editor warning for a sequence group (figures danced in order on one line) whose beats run longer than one phrase of the dance. {position} is the dance's figure that is, or holds, the sequence: a sequence can be one side of a meanwhile group.
+  /// Editor warning for a sequence group (figures danced in order on one line) whose beats run longer than the phrase of the dance it starts in ({limit} is that phrase's length). {position} is the dance's figure that is, or holds, the sequence: a sequence can be one side of a meanwhile group.
   ///
   /// In en, this message translates to:
-  /// **'A sequence in figure {position} is {actual} beats, longer than one phrase ({limit} beats).'**
+  /// **'A sequence in figure {position} is {actual} beats, longer than its phrase ({limit} beats).'**
   String validationSequenceExceedsPhrase(int position, int actual, int limit);
 
   /// Editor warning for an English country dance's sequence whose steps each have a count that doesn't add up to the sequence's own. {position} is the figure holding it.
@@ -13966,10 +13984,10 @@ abstract class AppLocalizations {
   /// **'The figures total {actual}; the phrase structure expects {expected}.'**
   String validationPhraseCountMismatch(String actual, String expected);
 
-  /// Editor warning for an English country dance, timed in bars, whose sequence group runs longer than one phrase. {position} is the figure that is, or holds, the sequence; {actual} and {limit} are counts with their unit, such as '10 bars'.
+  /// Editor warning for an English country dance, timed in bars, whose sequence group runs longer than the phrase it starts in ({limit} is that phrase's length). {position} is the figure that is, or holds, the sequence; {actual} and {limit} are counts with their unit, such as '10 bars'.
   ///
   /// In en, this message translates to:
-  /// **'A sequence in figure {position} is {actual}, longer than one phrase ({limit}).'**
+  /// **'A sequence in figure {position} is {actual}, longer than its phrase ({limit}).'**
   String validationSequenceExceedsPhraseCount(
     int position,
     String actual,
@@ -14754,7 +14772,7 @@ abstract class AppLocalizations {
   /// **'Group with next as modifier'**
   String get danceEditorGroupWithNextAsModifier;
 
-  /// Menu item label that groups this figure row with the one immediately after it into a sequence: the two figures danced in order and shown on one line. Offered only while the two together fit in one phrase.
+  /// Menu item label that groups this figure row with the one immediately after it into a sequence: the two figures danced in order and shown on one line. Offered only while the two together fit in the phrase the first one starts in.
   ///
   /// In en, this message translates to:
   /// **'Group with next as sequence'**
@@ -14820,16 +14838,16 @@ abstract class AppLocalizations {
   /// **'{beats, plural, =1{1 beat in total} other{{beats} beats in total}}'**
   String danceEditorSequenceTotalBeats(int beats);
 
-  /// Warning in a sequence group's editor when its figures together run longer than one phrase of the dance.
+  /// Warning in a sequence group's editor when its figures together run longer than the phrase of the dance it starts in; {limit} is that phrase's length.
   ///
   /// In en, this message translates to:
-  /// **'This sequence is {beats} beats, longer than one phrase ({limit} beats).'**
+  /// **'This sequence is {beats} beats, longer than its phrase ({limit} beats).'**
   String danceEditorSequenceOverPhrase(int beats, int limit);
 
-  /// Shown in place of the add-figure button once a sequence's figures already fill a whole phrase, so no further figure fits.
+  /// Shown in place of the add-figure button once a sequence's figures already fill the whole phrase it starts in, so no further figure fits. {limit} is that phrase's length.
   ///
   /// In en, this message translates to:
-  /// **'These figures fill one phrase ({limit} beats).'**
+  /// **'These figures fill their phrase ({limit} beats).'**
   String danceEditorSequencePhraseFull(int limit);
 
   /// Inline message shown in place of the add-figure button once a sequence group holds the maximum number of figures.
@@ -19184,7 +19202,7 @@ abstract class AppLocalizations {
   /// Subtitle of the Suggest the next dance switch.
   ///
   /// In en, this message translates to:
-  /// **'Adds Suggested to the Sort menu of the program builder\'s dance list. It orders the dances for the end of the program and says why.'**
+  /// **'Adds Suggested to the Sort menu of the program builder\'s dance lists. It orders the dances for where the new one will go and says why.'**
   String get settingsSuggestionsEnabledSubtitle;
 
   /// Title of the row, and of the screen it opens, where the user chooses how much each suggestion factor counts.
@@ -19307,7 +19325,7 @@ abstract class AppLocalizations {
   /// **'These choices were saved by a newer version of the app, so they can\'t be changed here. Update the app to change them.'**
   String get suggestionsNewerVersion;
 
-  /// Sort choice in the program builder's dance list, offered when Suggestions is on: the dances ordered for the end of the program.
+  /// Sort choice in the program builder's dance lists (adding a dance, and Replace), offered when Suggestions is on: the dances ordered for where the new one will go (the end of the program, a place before or after a slot, or the slot being replaced).
   ///
   /// In en, this message translates to:
   /// **'Suggested'**
@@ -19420,6 +19438,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{move} in the same phrase as the next dance'**
   String suggestionReasonPhraseOverlapNext(String move);
+
+  /// Suggestion reason: a move lands on the same beats as in the named dance, which this one would follow (the matrix's collision rule). {move} is the matrix column's name, such as partner swing. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'Same {move} beats as {dance}, after it'**
+  String suggestionReasonBeatOverlapAfterDance(String move, String dance);
+
+  /// Suggestion reason: a move lands on the same beats as in the named dance, which this one would come before. {move} is the matrix column's name. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'Same {move} beats as {dance}, before it'**
+  String suggestionReasonBeatOverlapBeforeDance(String move, String dance);
+
+  /// Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the named dance, which this one would follow. {move} is the matrix column's name. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} in the same phrase as {dance}, after it'**
+  String suggestionReasonPhraseOverlapAfterDance(String move, String dance);
+
+  /// Suggestion reason when Flag exact beat overlap only is off: a move starts in the same phrase (A1, A2, B1…) as in the named dance, which this one would come before. {move} is the matrix column's name. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} in the same phrase as {dance}, before it'**
+  String suggestionReasonPhraseOverlapBeforeDance(String move, String dance);
+
+  /// Suggestion reason: the dance is in the same formation as the named dance, which this one would follow. {formation} is the formation's name. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'{formation}, like {dance}, after it'**
+  String suggestionReasonSameFormationAfterDance(
+    String formation,
+    String dance,
+  );
+
+  /// Suggestion reason: the dance is in the same formation as the named dance, which this one would come before. {formation} is the formation's name. "after it" means this dance would come after {dance} (the dance just before the place being filled); "before it" means it would come before {dance} (the dance just after that place). {dance} is that dance's title.
+  ///
+  /// In en, this message translates to:
+  /// **'{formation}, like {dance}, before it'**
+  String suggestionReasonSameFormationBeforeDance(
+    String formation,
+    String dance,
+  );
 
   /// Suggestion reason: the dance is already in the program being built, so the Suggested order puts it last (it is not removed).
   ///
@@ -20050,6 +20110,630 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pay is hidden in Settings, so it is left out. Turn on Show pay in Settings ▸ Program to include it.'**
   String get exportCsvPayHiddenNotice;
+
+  /// Collection More actions menu item that opens the Repertoire page (#2357, Experimental).
+  ///
+  /// In en, this message translates to:
+  /// **'Repertoire'**
+  String get collectionRepertoireMenuItem;
+
+  /// App bar title of the Repertoire page: a read-only summary of the collection and its calling history (#2357).
+  ///
+  /// In en, this message translates to:
+  /// **'Repertoire'**
+  String get repertoireTitle;
+
+  /// Shown when the Repertoire page fails to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t work out your repertoire'**
+  String get repertoireLoadError;
+
+  /// Label of the Repertoire page's period chips.
+  ///
+  /// In en, this message translates to:
+  /// **'Period'**
+  String get repertoirePeriodLabel;
+
+  /// Repertoire period chip: every call, whenever it was.
+  ///
+  /// In en, this message translates to:
+  /// **'All time'**
+  String get repertoirePeriodAllTime;
+
+  /// Repertoire period chip: calls in the last N calendar months (1, 3 or 6).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Last month} other{Last {count} months}}'**
+  String repertoirePeriodMonths(int count);
+
+  /// Repertoire period chip that opens a date picker.
+  ///
+  /// In en, this message translates to:
+  /// **'Since a date…'**
+  String get repertoirePeriodSinceDate;
+
+  /// Repertoire period chip once a date is chosen. {date} is the formatted date.
+  ///
+  /// In en, this message translates to:
+  /// **'Since {date}'**
+  String repertoirePeriodSince(String date);
+
+  /// Label of the Repertoire page's dance type chips.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance type'**
+  String get repertoireTypeLabel;
+
+  /// Repertoire dance type chip: every dance type.
+  ///
+  /// In en, this message translates to:
+  /// **'All types'**
+  String get repertoireTypeAll;
+
+  /// Summary line at the top of the Repertoire page.
+  ///
+  /// In en, this message translates to:
+  /// **'Calls in this period: {calls}. Dances called: {called} of {total}.'**
+  String repertoireSummary(int calls, int called, int total);
+
+  /// Repertoire section header: the dances called most in the period.
+  ///
+  /// In en, this message translates to:
+  /// **'Most called'**
+  String get repertoireMostCalledHeader;
+
+  /// Repertoire section header: the dances called least in the period, among those called at least once.
+  ///
+  /// In en, this message translates to:
+  /// **'Least called (of those you have called)'**
+  String get repertoireLeastCalledHeader;
+
+  /// Shown under Least called when ten or fewer dances were called, so all of them are under Most called.
+  ///
+  /// In en, this message translates to:
+  /// **'Every dance you called in this period is already listed under Most called.'**
+  String get repertoireLeastCalledAllShown;
+
+  /// Shown in a Repertoire section when nothing was called in the period.
+  ///
+  /// In en, this message translates to:
+  /// **'No counted calls in this period.'**
+  String get repertoireNoCalls;
+
+  /// How many times a dance was called in the period, beside its title.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{called once} other{called {count} times}}'**
+  String repertoireDanceCalls(int count);
+
+  /// Screen reader label of a dance row on the Repertoire page.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}: {count, plural, =1{called once} other{called {count} times}}'**
+  String repertoireDanceSemantics(String title, int count);
+
+  /// Repertoire section header: dances with no counted call ever.
+  ///
+  /// In en, this message translates to:
+  /// **'Never called'**
+  String get repertoireNeverCalledHeader;
+
+  /// Row label: dances with no counted call ever. Tapping it shows them in Collection.
+  ///
+  /// In en, this message translates to:
+  /// **'Never called'**
+  String get repertoireNeverCalledLabel;
+
+  /// A number of dances out of the collection's total.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of {total} dances'**
+  String repertoireOfDances(int count, int total);
+
+  /// Screen reader label of the Never called row.
+  ///
+  /// In en, this message translates to:
+  /// **'Never called: {count} of {total} dances'**
+  String repertoireNeverCalledSemantics(int count, int total);
+
+  /// Screen reader label of one never-called dance listed under the Never called row.
+  ///
+  /// In en, this message translates to:
+  /// **'{title}: never called'**
+  String repertoireNeverCalledDanceSemantics(String title);
+
+  /// Row label: dances with no counted call in the chosen period, including never-called ones.
+  ///
+  /// In en, this message translates to:
+  /// **'Not called in this period'**
+  String get repertoireNotCalledInPeriodLabel;
+
+  /// Screen reader label of the Not called in this period row.
+  ///
+  /// In en, this message translates to:
+  /// **'Not called in this period: {count} of {total} dances'**
+  String repertoireNotCalledInPeriodSemantics(int count, int total);
+
+  /// Repertoire section header: for each move, how many dances contain it.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure frequency'**
+  String get repertoireFigureHeader;
+
+  /// Shown under Figure frequency when no dance has figures.
+  ///
+  /// In en, this message translates to:
+  /// **'None of these dances has figures entered.'**
+  String get repertoireNoFigures;
+
+  /// A figure row's numbers: how many dances contain the move, as a share, and how many calls in the period were of such a dance.
+  ///
+  /// In en, this message translates to:
+  /// **'in {dances} of {total} dances ({percent}%) · {calls, plural, =1{1 call} other{{calls} calls}}'**
+  String repertoireFigureValue(int dances, int total, int percent, int calls);
+
+  /// Screen reader label of a figure row. {move} is the move's name.
+  ///
+  /// In en, this message translates to:
+  /// **'{move}: in {dances} of {total} dances, {percent} percent; {calls, plural, =1{1 call} other{{calls} calls}} in this period'**
+  String repertoireFigureSemantics(
+    String move,
+    int dances,
+    int total,
+    int percent,
+    int calls,
+  );
+
+  /// Button that expands a Repertoire list to every row.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all {count}'**
+  String repertoireShowAll(int count);
+
+  /// Button that collapses an expanded Repertoire list.
+  ///
+  /// In en, this message translates to:
+  /// **'Show fewer'**
+  String get repertoireShowFewer;
+
+  /// Repertoire section header: the authors of the dances called in the period.
+  ///
+  /// In en, this message translates to:
+  /// **'Authors you call'**
+  String get repertoireAuthorsHeader;
+
+  /// How many distinct authors' dances were called in the period.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No author called in this period.} =1{1 author called in this period.} other{{count} authors called in this period.}}'**
+  String repertoireAuthorsSummary(int count);
+
+  /// A row's calls in the period and their share of all calls in it.
+  ///
+  /// In en, this message translates to:
+  /// **'{calls, plural, =1{1 call} other{{calls} calls}} ({percent}%)'**
+  String repertoireShareValue(int calls, int percent);
+
+  /// Screen reader label of a choreographer or formation row. {label} is the name.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: {calls, plural, =1{1 call} other{{calls} calls}}, {percent} percent of calls in this period'**
+  String repertoireShareSemantics(String label, int calls, int percent);
+
+  /// Repertoire section header: calls in the period by formation.
+  ///
+  /// In en, this message translates to:
+  /// **'Formation mix'**
+  String get repertoireFormationHeader;
+
+  /// Repertoire section header: for each venue, the dances called there more than once in the period.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeats per venue'**
+  String get repertoireVenuesHeader;
+
+  /// Shown under Repeats per venue when there are none.
+  ///
+  /// In en, this message translates to:
+  /// **'No dance was called more than once at one venue in this period.'**
+  String get repertoireNoRepeats;
+
+  /// Label for a venue with no name to show.
+  ///
+  /// In en, this message translates to:
+  /// **'Unnamed venue'**
+  String get repertoireVenueUnnamed;
+
+  /// How many dances were called more than once at a venue in the period.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 dance repeated} other{{count} dances repeated}}'**
+  String repertoireVenueRepeats(int count);
+
+  /// Screen reader label of a venue row. {venue} is the venue's name.
+  ///
+  /// In en, this message translates to:
+  /// **'{venue}: {count, plural, =1{1 dance called more than once} other{{count} dances called more than once}}'**
+  String repertoireVenueSemantics(String venue, int count);
+
+  /// Header of the Experimental settings section for the Repertoire page (#2357).
+  ///
+  /// In en, this message translates to:
+  /// **'Repertoire'**
+  String get settingsExperimentalRepertoireHeader;
+
+  /// Title of the switch that adds Repertoire to Collection's More actions menu.
+  ///
+  /// In en, this message translates to:
+  /// **'Repertoire'**
+  String get settingsExperimentalShowRepertoireTitle;
+
+  /// Subtitle of the Repertoire switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds Repertoire to Collection\'s More actions menu: your most and least called dances, what you\'ve never called, figure frequency, authors, formations and repeats per venue.'**
+  String get settingsExperimentalShowRepertoireSubtitle;
+
+  /// Import source label: a CSV file the person saved from their own spreadsheet (Excel, Numbers, LibreOffice or Google Sheets).
+  ///
+  /// In en, this message translates to:
+  /// **'Your own spreadsheet (CSV)'**
+  String get importSourceLabelCsv;
+
+  /// Button on the import screen that opens the file picker for a CSV spreadsheet file.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a CSV file…'**
+  String get importCsvPickFile;
+
+  /// Help text under the CSV import source explaining how to get a CSV file out of a spreadsheet program.
+  ///
+  /// In en, this message translates to:
+  /// **'In your spreadsheet, choose File ▸ Save As (or Download) and pick \"CSV UTF-8\", then choose that file here.'**
+  String get importCsvSaveAsHint;
+
+  /// Heading of the import step where the person says what each spreadsheet column holds.
+  ///
+  /// In en, this message translates to:
+  /// **'Map columns'**
+  String get importCsvMapTitle;
+
+  /// Explanation at the top of the map-columns step of a CSV import.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what each column holds. Columns set to Ignore are left out. Nothing is added until you review and confirm.'**
+  String get importCsvMapIntro;
+
+  /// Label of the dropdown that chooses which character separates the columns of a CSV file.
+  ///
+  /// In en, this message translates to:
+  /// **'Separator'**
+  String get importCsvSeparatorLabel;
+
+  /// Separator choice: comma.
+  ///
+  /// In en, this message translates to:
+  /// **'Comma (,)'**
+  String get importCsvSeparatorComma;
+
+  /// Separator choice: semicolon, which Excel uses in many European languages.
+  ///
+  /// In en, this message translates to:
+  /// **'Semicolon (;)'**
+  String get importCsvSeparatorSemicolon;
+
+  /// Separator choice: tab character.
+  ///
+  /// In en, this message translates to:
+  /// **'Tab'**
+  String get importCsvSeparatorTab;
+
+  /// Switch on the map-columns step: whether the first row of the CSV holds column names rather than a dance.
+  ///
+  /// In en, this message translates to:
+  /// **'The first row names the columns'**
+  String get importCsvFirstRowHeader;
+
+  /// Name shown for a CSV column that has no header. {number} counts from 1.
+  ///
+  /// In en, this message translates to:
+  /// **'Column {number}'**
+  String importCsvColumnFallback(int number);
+
+  /// Dropdown choice: leave this CSV column out of the import.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignore'**
+  String get importCsvTargetIgnore;
+
+  /// Dropdown choice: this CSV column holds the figures of one phrase, such as A1 or B2.
+  ///
+  /// In en, this message translates to:
+  /// **'Figures, {phrase}'**
+  String importCsvTargetPhrase(String phrase);
+
+  /// Dropdown choice: create a new custom field of this type from the column. {type} is a custom field type such as Number.
+  ///
+  /// In en, this message translates to:
+  /// **'New custom field ({type})'**
+  String importCsvTargetNewField(String type);
+
+  /// Dropdown choice: put this column into one of the person's existing custom fields. {name} is the field's name.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom field: {name}'**
+  String importCsvTargetExistingField(String name);
+
+  /// Shown on the map-columns step while no column, or more than one, is set to Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the column that holds each dance\'s title.'**
+  String get importCsvNeedsTitle;
+
+  /// Button that moves from the map-columns step to the review of the planned dances.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get importCsvContinue;
+
+  /// Heading above the preview of the first few rows of the CSV file.
+  ///
+  /// In en, this message translates to:
+  /// **'First rows'**
+  String get importCsvPreviewHeading;
+
+  /// Error when a CSV file is in an old encoding such as Windows-1252 instead of UTF-8.
+  ///
+  /// In en, this message translates to:
+  /// **'This file isn\'t saved as UTF-8 text, so accented letters would come in wrong. In your spreadsheet, save it again as \"CSV UTF-8\" and choose that file.'**
+  String get importCsvNotUtf8;
+
+  /// Error when a CSV file is larger than the import allows.
+  ///
+  /// In en, this message translates to:
+  /// **'This file is too large to import. Split it into smaller files.'**
+  String get importCsvTooLarge;
+
+  /// Error when a CSV file has too many rows.
+  ///
+  /// In en, this message translates to:
+  /// **'This file has more than {limit} rows. Split it into smaller files.'**
+  String importCsvTooManyRows(int limit);
+
+  /// Error when a row of a CSV file has too many columns.
+  ///
+  /// In en, this message translates to:
+  /// **'A row in this file has more than {limit} columns.'**
+  String importCsvTooManyColumns(int limit);
+
+  /// Error when one cell of a CSV file is too long.
+  ///
+  /// In en, this message translates to:
+  /// **'A cell in this file is longer than {limit} characters.'**
+  String importCsvCellTooLong(int limit);
+
+  /// Error when a CSV file has an opening double quote with no closing one.
+  ///
+  /// In en, this message translates to:
+  /// **'This file has a quoted cell that never ends, so it can\'t be read.'**
+  String get importCsvUnterminatedQuote;
+
+  /// Warning on the map-columns step when a CSV file has many rows.
+  ///
+  /// In en, this message translates to:
+  /// **'This file has {count} rows. Reviewing them may take a while.'**
+  String importCsvLargeBatch(int count);
+
+  /// Shown on the map-columns step of a CSV import when the file has a header row but no dance rows (or only blank ones).
+  ///
+  /// In en, this message translates to:
+  /// **'This file has no rows of dances, only the column names.'**
+  String get importCsvNoRows;
+
+  /// Snack bar part after a calendar import updated existing programs from calendar changes. Offers Undo.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 program updated from your calendar.} other{{count} programs updated from your calendar.}}'**
+  String calendarImportUpdated(int count);
+
+  /// Snack bar after a calendar import in which only flags or bookkeeping were written: no program was added or updated.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar checked. Nothing was added or changed.'**
+  String get calendarImportReviewed;
+
+  /// A program's date as it is and as the calendar now has it, in the calendar import review.
+  ///
+  /// In en, this message translates to:
+  /// **'Date: {before} → {after}'**
+  String calendarChangeDate(String before, String after);
+
+  /// A program's title as it is and as the calendar now has it, in the calendar import review.
+  ///
+  /// In en, this message translates to:
+  /// **'Title: {before} → {after}'**
+  String calendarChangeTitle(String before, String after);
+
+  /// A program's start and end time as it is and as the calendar now has it, in the calendar import review. Each side is already formatted, e.g. '7:00 PM–10:00 PM', or a dash when there is none.
+  ///
+  /// In en, this message translates to:
+  /// **'Time: {before} → {after}'**
+  String calendarChangeTime(String before, String after);
+
+  /// A program's venue as it is and as the calendar now has it, in the calendar import review.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue: {before} → {after}'**
+  String calendarChangeVenue(String before, String after);
+
+  /// Heading over changed calendar events whose draft program the user has not touched; ticked by default.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated in your calendar'**
+  String get calendarImportUpdatedHeader;
+
+  /// Heading over changed calendar events whose program the user has worked on; unticked by default.
+  ///
+  /// In en, this message translates to:
+  /// **'Changed in your calendar'**
+  String get calendarImportChangedHeader;
+
+  /// Body under the Changed in your calendar heading.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve worked on these programs, so nothing changes unless you tick it.'**
+  String get calendarImportChangedBody;
+
+  /// Heading over imported programs whose event was cancelled or is no longer in the calendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Canceled or gone from your calendar'**
+  String get calendarImportFlaggedHeader;
+
+  /// Body under the cancelled-or-gone heading.
+  ///
+  /// In en, this message translates to:
+  /// **'These programs are kept as they are and labeled. Archive or delete them yourself if you no longer need them.'**
+  String get calendarImportFlaggedBody;
+
+  /// Label on a program whose calendar event was cancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Canceled in your calendar'**
+  String get calendarFlagCancelled;
+
+  /// Label on a program whose calendar event is no longer in the calendar.
+  ///
+  /// In en, this message translates to:
+  /// **'No longer in your calendar'**
+  String get calendarFlagMissing;
+
+  /// Label on a program carrying a calendar flag this version does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'Flagged by your calendar'**
+  String get calendarFlagOther;
+
+  /// Field name for a program's calendar flag when comparing two versions in a sync conflict.
+  ///
+  /// In en, this message translates to:
+  /// **'Calendar flag'**
+  String get calendarFlagFieldLabel;
+
+  /// Button on a program's summary that removes its calendar flag.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear calendar flag'**
+  String get calendarClearFlag;
+
+  /// Snack bar when Clear calendar flag on a program's summary could not save the program.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t clear the calendar flag. Try again.'**
+  String get calendarClearFlagError;
+
+  /// Switch in Settings ▸ Program ▸ Calendar, off by default: read the calendar once each time the app starts.
+  ///
+  /// In en, this message translates to:
+  /// **'Import calendar when the app starts'**
+  String get calendarOnStartupTitle;
+
+  /// Subtitle of the start-up calendar import switch.
+  ///
+  /// In en, this message translates to:
+  /// **'Off by default. When on, the app reads your calendar once each time it starts, and says nothing if it can\'t.'**
+  String get calendarOnStartupSubtitle;
+
+  /// Setting that chooses what the start-up calendar import does with new events.
+  ///
+  /// In en, this message translates to:
+  /// **'At startup'**
+  String get calendarStartupModeTitle;
+
+  /// Option of the At startup setting (the default): only say how many new events there are.
+  ///
+  /// In en, this message translates to:
+  /// **'Report new events'**
+  String get calendarStartupModeReport;
+
+  /// Option of the At startup setting: create draft programs for new events.
+  ///
+  /// In en, this message translates to:
+  /// **'Add them as drafts'**
+  String get calendarStartupModeAdd;
+
+  /// Subtitle of the At startup setting when Report new events is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Tells you about new events; nothing is added until you review them.'**
+  String get calendarStartupModeReportSubtitle;
+
+  /// Subtitle of the At startup setting when Add them as drafts is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds new events as draft programs, with Undo. Changed or canceled events are only reported.'**
+  String get calendarStartupModeAddSubtitle;
+
+  /// Settings line: the last start-up calendar import failed. {when} is a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach the calendar at startup ({when})'**
+  String calendarLastResultFailed(String when);
+
+  /// Settings line: the last start-up calendar import added drafts. {when} is a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Checked at startup {when}: {count, plural, =1{1 draft added} other{{count} drafts added}}'**
+  String calendarLastResultAdded(String when, int count);
+
+  /// Settings line: the last start-up calendar import's result. {when} is a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Checked at startup {when}: {count, plural, =0{no new events} =1{1 new event} other{{count} new events}}'**
+  String calendarLastResultNew(String when, int count);
+
+  /// Quiet notice in Settings after several start-up calendar imports in a row failed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, other{The calendar couldn\'t be reached the last {count} times the app started.}}'**
+  String calendarStartupFailureNotice(int count);
+
+  /// Hint under the repeated-failure notice.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the calendar address, or your connection.'**
+  String get calendarStartupFailureHint;
+
+  /// Message after a start-up calendar import in Report mode found new events.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 new event in your calendar.} other{{count} new events in your calendar.}}'**
+  String calendarStartupNewEvents(int count);
+
+  /// Message part after a start-up calendar import found changed or canceled events, which it never applies.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 change needs you.} other{{count} changes need you.}}'**
+  String calendarStartupChanges(int count);
+
+  /// Button in the start-up calendar message: open a draft it added.
+  ///
+  /// In en, this message translates to:
+  /// **'Show'**
+  String get calendarStartupShow;
+
+  /// Button in the start-up calendar message: open the import review with what it found.
+  ///
+  /// In en, this message translates to:
+  /// **'Review'**
+  String get calendarStartupReview;
+
+  /// Settings line: the last start-up calendar import reached the calendar but could not read it or add the drafts. {when} is a date.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t import from the calendar at startup ({when})'**
+  String calendarLastResultError(String when);
 }
 
 class _AppLocalizationsDelegate

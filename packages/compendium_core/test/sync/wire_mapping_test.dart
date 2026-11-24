@@ -899,6 +899,8 @@ const _valuePairs = <String, List<Object?>>{
   'programs.end_minute': [1350, 1351],
   'programs.lesson_minute': [1140, 1141],
   'programs.arrival_minute': [1110, 1111],
+  'programs.calendar_written_at': _earlier,
+  'programs.calendar_flag': ['cancelled', 'missing'],
   'program_slots.position': [0, 1],
   'program_slots.is_alt': [false, true],
   'program_slots.is_purged_dance': [false, true],
@@ -1208,6 +1210,9 @@ class _Fixture {
     deletedAt: _date('programs.deleted_at'),
     archivedAt: _date('programs.archived_at'),
     calendarEventKey: _str('programs.calendar_event_key'),
+    calendarEventFingerprint: _str('programs.calendar_event_fingerprint'),
+    calendarWrittenAt: _date('programs.calendar_written_at'),
+    calendarFlag: _str('programs.calendar_flag'),
   );
 
   StoredUserGlossaryEntry glossaryEntry() => StoredUserGlossaryEntry(

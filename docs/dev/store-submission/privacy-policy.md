@@ -124,6 +124,12 @@ internet, it does so only in the cases and for the purposes described below:
   **off by default** and only runs if you turn it on in Settings. It downloads
   version information only; it does not send us any information about you or your
   data.
+- **Optional calendar import at startup.** If you give the app the address of
+  your own online calendar, it reads that calendar when you ask it to. It can
+  also read it once each time the app starts, but this is **off by default** and
+  only runs if you turn it on in Settings. Either way the app requests only that
+  calendar from the service that hosts it, sends it nothing about you or your
+  data, and does not send the address to us.
 - **Optional Device Sync.** When you enable it, the app contacts the configured
   sync service to synchronize selected shareable content for app functionality.
 

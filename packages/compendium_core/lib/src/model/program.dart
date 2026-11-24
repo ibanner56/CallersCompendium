@@ -227,6 +227,12 @@ class ProgramSlotGroup {
   int get hashCode => Object.hash(primary, _listEq.hash(alternates));
 }
 
+/// [Program.calendarFlag]: the event was cancelled in the calendar (#2354).
+const String calendarFlagCancelled = 'cancelled';
+
+/// [Program.calendarFlag]: the event is no longer in the calendar (#2354).
+const String calendarFlagMissing = 'missing';
+
 /// A program (set list) for an event.
 @immutable
 class Program {
@@ -255,6 +261,9 @@ class Program {
     this.deletedAt,
     this.archivedAt,
     this.calendarEventKey,
+    this.calendarEventFingerprint,
+    this.calendarWrittenAt,
+    this.calendarFlag,
     this.provenance,
   }) : slots = List.unmodifiable(
          <ProgramSlot>[...slots]
@@ -429,6 +438,34 @@ class Program {
   /// own backups, but not in share files (`sanitizeProgramForShare`). Null
   /// for a program not imported from a calendar.
   final String? calendarEventKey;
+
+  /// What the calendar import last wrote from the event (#2354): a
+  /// per-field hash of its title, date, first location segment, and start
+  /// and end times (`calendarEventFingerprint`). A later import compares the event's
+  /// current fingerprint with it to see what changed upstream. Null for a
+  /// program not imported from a calendar, or imported before #2354.
+  final String? calendarEventFingerprint;
+
+  /// The [updatedAt] the calendar import last wrote (#2354). While the
+  /// program is still a Draft and [updatedAt] still equals it, the caller has
+  /// not touched it ([isUntouchedCalendarDraft]), so an upstream change is
+  /// offered ticked. Any edit, here or synced from another device, moves
+  /// [updatedAt] on.
+  final DateTime? calendarWrittenAt;
+
+  /// Why the calendar flags this program (#2354): [calendarFlagCancelled],
+  /// [calendarFlagMissing], or null. Stored as a string and read leniently,
+  /// so a value a later build adds reads as a generic flag rather than
+  /// refusing the program. Never deletes or edits anything: it is a label.
+  final String? calendarFlag;
+
+  /// Whether a calendar import created this program and the caller has not
+  /// touched it since: still a Draft, and [updatedAt] is the stamp the import
+  /// wrote. Conservative on purpose: linking a venue or adding a slot counts.
+  bool get isUntouchedCalendarDraft =>
+      status == ProgramStatus.draft &&
+      calendarWrittenAt != null &&
+      calendarWrittenAt == updatedAt;
 
   /// Import provenance: where this program came from, keyed on
   /// `(source, externalId)`. For a CC `.USR` import the key makes a re-import
@@ -786,6 +823,9 @@ class Program {
     DateTime? deletedAt,
     DateTime? archivedAt,
     String? calendarEventKey,
+    String? calendarEventFingerprint,
+    DateTime? calendarWrittenAt,
+    String? calendarFlag,
     Provenance? provenance,
     bool clearEventDate = false,
     bool clearVenue = false,
@@ -797,6 +837,7 @@ class Program {
     bool clearDeletedAt = false,
     bool clearArchivedAt = false,
     bool clearCalendarEventKey = false,
+    bool clearCalendarFlag = false,
     bool clearPay = false,
     bool clearStartMinute = false,
     bool clearEndMinute = false,
@@ -831,9 +872,19 @@ class Program {
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
     archivedAt: clearArchivedAt ? null : (archivedAt ?? this.archivedAt),
+    // Clearing the key clears everything the calendar import keeps with it.
     calendarEventKey: clearCalendarEventKey
         ? null
         : (calendarEventKey ?? this.calendarEventKey),
+    calendarEventFingerprint: clearCalendarEventKey
+        ? null
+        : (calendarEventFingerprint ?? this.calendarEventFingerprint),
+    calendarWrittenAt: clearCalendarEventKey
+        ? null
+        : (calendarWrittenAt ?? this.calendarWrittenAt),
+    calendarFlag: clearCalendarEventKey || clearCalendarFlag
+        ? null
+        : (calendarFlag ?? this.calendarFlag),
     provenance: clearProvenance ? null : (provenance ?? this.provenance),
   );
 
@@ -963,7 +1014,10 @@ class Program {
       other.updatedAt == updatedAt &&
       other.deletedAt == deletedAt &&
       other.archivedAt == archivedAt &&
-      other.calendarEventKey == calendarEventKey;
+      other.calendarEventKey == calendarEventKey &&
+      other.calendarEventFingerprint == calendarEventFingerprint &&
+      other.calendarWrittenAt == calendarWrittenAt &&
+      other.calendarFlag == calendarFlag;
 
   @override
   int get hashCode => Object.hash(id, title, updatedAt);

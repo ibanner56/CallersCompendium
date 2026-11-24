@@ -26,6 +26,7 @@ import '../data/calling_history_tracking_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/seed_service.dart' show kBabyRoseSeedDanceId;
+import '../data/show_repertoire_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
@@ -37,6 +38,7 @@ import '../search/collection_opening_sort.dart';
 import '../search/collection_query_labels.dart';
 import '../search/collection_selection.dart';
 import '../search/dance_detail_data.dart';
+import '../search/repertoire_drill_down.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
@@ -73,6 +75,7 @@ import '../sync/sync_scope.dart';
 import '../widgets/sync_now_action.dart';
 import '../screens/custom_fields_screen.dart';
 import '../screens/recently_deleted_screen.dart';
+import 'repertoire_screen.dart';
 import 'dance_detail_screen.dart';
 import 'dance_editor_screen.dart';
 import 'dance_reimport_flow.dart';
@@ -231,6 +234,7 @@ enum _CollectionCompactAction {
   batchSelect,
   manageCustomFields,
   recentlyDeleted,
+  repertoire,
   sortDirection,
 }
 
@@ -258,6 +262,15 @@ abstract interface class DanceListCommands {
   /// Moves the keyboard focus to the search box and selects its text. Returns
   /// false while the list is still loading and has no search box.
   bool focusSearch();
+
+  /// Shows [state] in place of the current search: its text, **Search in**,
+  /// every filter, the By phrase rows, the Advanced tree and the sort with its
+  /// direction, exactly. The list takes [state]'s objects as its own and
+  /// edits them from then on.
+  ///
+  /// Nothing in the app calls this yet; a saved search will
+  /// (`docs/design/search.md`).
+  void applyPanelState(CollectionPanelState state);
 }
 
 class _DanceListScreenState extends State<DanceListScreen>
@@ -318,9 +331,13 @@ class _DanceListScreenState extends State<DanceListScreen>
   final _ftsFocusNode = FocusNode(debugLabel: 'collection-search-field');
   FullTextScope _ftsScope = FullTextScope.omni;
   FullTextScope _localFtsScope = FullTextScope.omni;
-  final _facets = FacetSelections();
-  final _byPhrase = ByPhraseSelections();
-  final _advancedRoot = BuilderGroup();
+  // Replaced, not edited, by [applyPanelState].
+  var _facets = FacetSelections();
+  var _byPhrase = ByPhraseSelections();
+  var _advancedRoot = BuilderGroup();
+
+  /// Whether the panel state last applied came from a saved search.
+  bool _panelFromSavedSearch = false;
 
   CollectionSort _sort = CollectionSort.title;
 
@@ -737,6 +754,7 @@ class _DanceListScreenState extends State<DanceListScreen>
     final previous = _data;
     // Every path that changes the offered tags also changes a dance today, so
     // `tagsDropped` is a safeguard: dropping a tag must never skip the search.
+    // A tag a panel state brought is kept, not dropped (see retainTags).
     final tagsDropped = _facets.retainTags([for (final t in data.tags) t.id]);
     final searchAffected =
         previous == null ||
@@ -1461,6 +1479,49 @@ class _DanceListScreenState extends State<DanceListScreen>
     }
   }
 
+  /// Modelled on [_clearAll], but replaces **every** part of the search,
+  /// including what Clear all leaves alone: **Search in**, the sort and its
+  /// direction, and the tag rows a ContraDB search took out.
+  ///
+  /// The sort is set directly, never through [_selectSort], which would write
+  /// it over the user's last-used Collection sort; and a Best match the
+  /// state's own query no longer allows falls back to Title
+  /// ([CollectionPanelState.effectiveSort]). While online search is on, it is
+  /// turned off first, which returns ContraDB's taken tag rows to the old
+  /// tree, before those are forgotten and the tree replaced: see the
+  /// picker's `_applyPanelState`, which does the same.
+  @override
+  void applyPanelState(CollectionPanelState state) {
+    _debounceTimer?.cancel();
+    _searchSeq++;
+    _onlineSeq++;
+    setState(() {
+      if (_onlineEnabled) {
+        _onlineEnabled = false;
+        _syncAdvancedTagRows();
+        _onlineResults = const [];
+        _onlineError = null;
+        _onlineSearching = false;
+      }
+      _removedTags.clear();
+      _ftsController.text = state.text;
+      _ftsScope = state.scope;
+      _localFtsScope = state.scope;
+      // A tag the state names stays selected even if no dance carries it yet.
+      state.facets.keepSelectedTags();
+      _facets = state.facets;
+      _byPhrase = state.byPhrase;
+      _advancedRoot = state.advanced;
+      _panelFromSavedSearch = state.fromSavedSearch;
+      final (:sort, :direction) = state.effectiveSort;
+      _sort = sort;
+      _sortDir = direction;
+      // A late default-sort seed must not replace the state's sort.
+      _sortUserSet = true;
+    });
+    _runSearch();
+  }
+
   void _clearAll() {
     _debounceTimer?.cancel();
     _searchSeq++;
@@ -1472,6 +1533,7 @@ class _DanceListScreenState extends State<DanceListScreen>
       _advancedRoot.children.clear();
       _removedTags.clear();
       _advancedRoot.kind = GroupKind.all;
+      _panelFromSavedSearch = false;
       _onlineResults = const [];
       _onlineError = null;
       _onlineSearching = false;
@@ -2494,7 +2556,7 @@ class _DanceListScreenState extends State<DanceListScreen>
   }
 
   /// The ⋮ menu: always holds Select dances, Manage custom fields and Recently
-  /// deleted, plus whichever of the [_CollectionBarGlyph]s did not fit on the
+  /// deleted, Repertoire while its Experimental switch is on (#2357), plus whichever of the [_CollectionBarGlyph]s did not fit on the
   /// bar ([onBar] is what did). Sorting is left out while [hasDances] is false,
   /// as on the bar.
   Widget _buildMoreActions(
@@ -2503,6 +2565,7 @@ class _DanceListScreenState extends State<DanceListScreen>
     required bool hasDances,
   }) {
     final tags = _data?.tags ?? const <Tag>[];
+    final showRepertoire = ShowRepertoireScope.of(context);
     return PopupMenuButton<Object>(
       key: const ValueKey('collection-more-actions'),
       tooltip: l10n.danceMoreActions,
@@ -2522,6 +2585,8 @@ class _DanceListScreenState extends State<DanceListScreen>
           _openCustomFields();
         } else if (action == _CollectionCompactAction.recentlyDeleted) {
           _openRecentlyDeleted();
+        } else if (action == _CollectionCompactAction.repertoire) {
+          _openRepertoire();
         }
       },
       itemBuilder: (context) => [
@@ -2549,6 +2614,14 @@ class _DanceListScreenState extends State<DanceListScreen>
           value: _CollectionCompactAction.recentlyDeleted,
           child: Text(l10n.collectionRecentlyDeletedTooltip),
         ),
+        // Experimental (#2357): only while Settings ▸ Experimental ▸
+        // Repertoire is on. A pushed page, never a navigation destination.
+        if (showRepertoire)
+          PopupMenuItem<Object>(
+            key: const ValueKey('collection-repertoire'),
+            value: _CollectionCompactAction.repertoire,
+            child: Text(l10n.collectionRepertoireMenuItem),
+          ),
         if (hasDances && !onBar.contains(_CollectionBarGlyph.sort)) ...[
           const PopupMenuDivider(),
           PopupMenuItem<Object>(
@@ -2865,6 +2938,44 @@ class _DanceListScreenState extends State<DanceListScreen>
     ).push(MaterialPageRoute<void>(builder: (_) => const CustomFieldsScreen()));
     // Reload so newly-created/edited fields show up as facets.
     if (mounted) await _boot();
+  }
+
+  /// Opens the Repertoire page (#2357). A row there that stands for a set of
+  /// dances comes back as a [RepertoireDrillDown], applied as this list's
+  /// search.
+  Future<void> _openRepertoire() async {
+    final drillDown = await Navigator.of(context).push<RepertoireDrillDown>(
+      MaterialPageRoute<RepertoireDrillDown>(
+        builder: (_) => const RepertoireScreen(),
+      ),
+    );
+    if (drillDown != null && mounted) _applyRepertoireDrillDown(drillDown);
+  }
+
+  /// Replaces the search with [drillDown] (#2357): clears the text, every
+  /// facet, By phrase and Advanced, as Clear all does, then applies the
+  /// drill-down's selections, so the list shows the dances the tapped number
+  /// counted. Online mode is left: the numbers are the local library's.
+  void _applyRepertoireDrillDown(RepertoireDrillDown drillDown) {
+    _debounceTimer?.cancel();
+    _searchSeq++;
+    _onlineSeq++;
+    setState(() {
+      _ftsScope = _localFtsScope;
+      _onlineEnabled = false;
+      _onlineResults = const [];
+      _onlineError = null;
+      _onlineSearching = false;
+      _ftsController.clear();
+      _facets.clear();
+      _byPhrase.clear();
+      _advancedRoot.children.clear();
+      _removedTags.clear();
+      _advancedRoot.kind = GroupKind.all;
+      _panelFromSavedSearch = false;
+      drillDown.applyTo(_facets, _advancedRoot);
+    });
+    _runSearch();
   }
 
   Future<void> _openRecentlyDeleted() async {
@@ -3356,6 +3467,12 @@ class _DanceListScreenState extends State<DanceListScreen>
       booleanFields: data.booleanFields,
       textFields: data.textFields,
       numberFields: data.numberFields,
+      allLevels: data.allLevels,
+      authorNames: data.choreographerNames,
+      allTagNames: data.allTagNames,
+      sourceTitles: data.sourceTitles,
+      allCustomFields: data.customFieldDefs,
+      historyFromSavedSearch: _panelFromSavedSearch,
       onChanged: _onFacetsChanged,
     );
   }
@@ -3388,6 +3505,7 @@ class _DanceListScreenState extends State<DanceListScreen>
       dialect: _dialect,
       sectionLabels: data.sectionLabels,
       tags: data.tags,
+      allTagNames: data.allTagNames,
       tagsUnavailableFor: _onlineEnabled && _onlineSource.hidesAdvancedTags
           ? _onlineSource.label
           : null,

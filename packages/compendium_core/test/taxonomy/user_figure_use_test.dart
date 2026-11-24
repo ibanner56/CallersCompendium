@@ -464,6 +464,42 @@ void main() {
         );
       });
 
+      group('the opposite slot of an English group', () {
+        const withOther = '{who} {move} [with {otherWho}]';
+        String render(String form, String who) => rendererFor(
+          form,
+          template: withOther,
+        ).renderCanonical(use({'who': who}));
+
+        test('is filled for the four pairs of English\'s own groups', () {
+          expect(render('ecd', 'top'), 'top zoom with bottom');
+          expect(render('ecd', 'bottom'), 'bottom zoom with top');
+          expect(render('ecd', 'ends'), 'ends zoom with middles');
+          expect(render('ecd', 'middles'), 'middles zoom with ends');
+          expect(render('ecd', 'leftFile'), 'left file zoom with right file');
+          expect(render('ecd', 'rightFile'), 'right file zoom with left file');
+          expect(
+            render('ecd', 'firstDiagonals'),
+            'first diagonals zoom with second diagonals',
+          );
+          expect(
+            render('ecd', 'secondDiagonals'),
+            'second diagonals zoom with first diagonals',
+          );
+        });
+
+        test('is empty, and its bracket dropped, for a group with no '
+            'opposite', () {
+          expect(render('ecd', 'couples'), 'couples zoom');
+          expect(render('ecd', 'actives'), 'actives zoom');
+        });
+
+        test('still swaps partners and neighbors, in English as in contra', () {
+          expect(render('ecd', 'partners'), 'partners zoom with neighbors');
+          expect(render('contra', 'partners'), 'partners zoom with neighbors');
+        });
+      });
+
       test('"not stated" says nothing in an English figure', () {
         expect(
           rendererFor('ecd').renderCanonical(use(const {'who': 'unspecified'})),

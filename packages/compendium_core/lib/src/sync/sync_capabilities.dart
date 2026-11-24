@@ -105,7 +105,7 @@ final class SyncCapabilityPolicy {
   /// (every `saved_search:` key). It is gated but **not yet advertised**: the
   /// capability is advertised only once the whole feature, sync included, is in
   /// the build, as for glossary.v2 before #1023 completed. Until then this
-  /// build publishes none, and nothing writes one.
+  /// build publishes none, and nothing creates one.
   ///
   /// [SyncCapabilities.programTemplatesV1] (#2337) gates every program
   /// template (by its key prefix), the templates' order and the default

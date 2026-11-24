@@ -1,3 +1,8 @@
+import 'package:compendium_app/src/data/backup_document.dart'
+    show
+        defaultBackupCodecRunner,
+        runBackupCodecInline,
+        runBackupCodecOnIsolate;
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/show_program_pay_scope.dart';
 import 'package:compendium_app/src/export/csv_export.dart';
@@ -29,6 +34,10 @@ Program _program(String id, String title, {DateTime? archivedAt, int? pay}) =>
     );
 
 void main() {
+  // A worker isolate's reply never arrives under testWidgets' fake async.
+  setUp(() => defaultBackupCodecRunner = runBackupCodecInline);
+  tearDown(() => defaultBackupCodecRunner = runBackupCodecOnIsolate);
+
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
   for (final compact in [false, true]) {

@@ -9,6 +9,7 @@ import 'package:printing/printing.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/matrix_column_dialect.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/dialect_library_scope.dart';
@@ -680,34 +681,47 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// of one form. A column of a figure of the user's own reads in the dialect
   /// of the form it was made for, however the dances using it read (#2294); a
   /// free-text custom column, or one that isn't a figure, reads in [_dialect].
-  Dialect _dialectForMatrixColumn(ProgramMatrix matrix, MatrixColumn column) {
-    switch (column.kind) {
-      case MatrixColumnKind.userFigure when isUserFigureKey(column.moveId):
-        final view = UserFiguresScope.shownCatalogOf(
-          context,
-        )[column.moveId.substring(userFigureRefPrefix.length)];
-        return view == null ? _dialect : _dialects.forForm(view.form);
-      case MatrixColumnKind.known ||
-          MatrixColumnKind.split ||
-          MatrixColumnKind.unknown:
-        final form = shippedTaxonomies.formOfMoveId(column.moveId);
-        if (form != DanceForm.contra) return _dialects.forForm(form);
-        var users = {
+  Dialect _dialectForMatrixColumn(ProgramMatrix matrix, MatrixColumn column) =>
+      _dialectForColumn(
+        column,
+        usedBy: () => {
           for (final row in matrix.rows)
             if (row.contains(column)) _danceById(row.danceId)?.form,
-        };
-        if (users.isEmpty) {
-          users = {
-            for (final row in matrix.rows) _danceById(row.danceId)?.form,
-          };
-        }
-        return users.length == 1 && users.single != null
-            ? _dialects.forForm(users.single!)
-            : _dialect;
-      default:
-        return _dialect;
-    }
-  }
+        },
+        program: () => {
+          for (final row in matrix.rows) _danceById(row.danceId)?.form,
+        },
+      );
+
+  /// The dialect a column a **Suggested** reason names is read in, so a reason
+  /// names a figure as its column in the matrix does (#2294). The picker has
+  /// no matrix to say which dances use the column, so an unprefixed figure
+  /// reads in the form of the program's dances when they are all of one form,
+  /// and in [_dialect] when they mix forms or there are none (the same fallback
+  /// [_dialectForMatrixColumn] gives a column no dance uses).
+  Dialect _dialectForSuggestedColumn(MatrixColumn column) => _dialectForColumn(
+    column,
+    usedBy: () => const {},
+    program: () => {
+      for (final slot in _slots)
+        if (slot.danceId case final id?) _danceById(id)?.form,
+    },
+  );
+
+  /// [matrixColumnDialect] for [column], with the dances that use it
+  /// ([usedBy]) and all the program's dances ([program]).
+  Dialect _dialectForColumn(
+    MatrixColumn column, {
+    required Set<DanceForm?> Function() usedBy,
+    required Set<DanceForm?> Function() program,
+  }) => matrixColumnDialect(
+    column,
+    dialects: _dialects,
+    fallback: _dialect,
+    userFigure: (id) => UserFiguresScope.shownCatalogOf(context)[id],
+    usedBy: usedBy,
+    program: program,
+  );
 
   /// [_dialectForMatrixColumn] for every column of [matrix], by move ID, and
   /// each row's dance's dialect ([_dialectForSlotDance]) by dance ID: worked
@@ -1935,6 +1949,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     archivedAt: live.archivedAt,
     // The editor never edits it: the stored one stands (#2352).
     calendarEventKey: live.calendarEventKey,
+    calendarEventFingerprint: live.calendarEventFingerprint,
+    calendarWrittenAt: live.calendarWrittenAt,
+    calendarFlag: live.calendarFlag,
     provenance: live.provenance,
   );
 
@@ -3223,6 +3240,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       calendarEventKey: before != null
           ? before.calendarEventKey
           : existing?.calendarEventKey,
+      // The calendar import's change tracking and flag (#2354), likewise not
+      // edited here. The save's own new updated_at is what marks the program
+      // worked on; calendar_written_at keeps the import's stamp.
+      calendarEventFingerprint: before != null
+          ? before.calendarEventFingerprint
+          : existing?.calendarEventFingerprint,
+      calendarWrittenAt: before != null
+          ? before.calendarWrittenAt
+          : existing?.calendarWrittenAt,
+      calendarFlag: before != null
+          ? before.calendarFlag
+          : existing?.calendarFlag,
       provenance: existing?.provenance,
     );
     if (existing != null) {
@@ -3978,10 +4007,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                                   key: const ValueKey('inline-picker'),
                                   data: data,
                                   dialect: _dialect,
+                                  suggestionDialectForColumn:
+                                      _dialectForSuggestedColumn,
                                   enrichment: _enrichment,
                                   addedDanceCounts: _pickerCounts.value,
                                   programContext: _pickerProgramContext(
-                                    atEnd: _insertion == null,
+                                    _addPosition(),
                                   ),
                                   onAddDance: _addDanceSlot,
                                   onDanceImported: _rememberImportedDance,
@@ -4439,12 +4470,24 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     );
   }
 
-  /// The program, as the add-dance picker needs it (history-filters Q3,
-  /// #2343): its id, its venue as calling history keys it, and, when the
-  /// picker adds at the end ([atEnd]), its slots for Suggested. An insertion
-  /// before or after a slot passes no slots, so the picker does not offer
-  /// Suggested there (#2344).
-  PickerProgramContext _pickerProgramContext({required bool atEnd}) {
+  /// Where the next dance added lands, for Suggested (#2344): the place a
+  /// pending insertion lands ([Program.insertSlotAtGroupBoundary], the rule
+  /// [_addDanceSlot] adds with), or the end of the program.
+  SuggestionPosition _addPosition() {
+    final insertion = _insertion;
+    final index = _insertionIndex;
+    if (insertion == null || index == null) {
+      return SuggestionPosition.atEnd(List.unmodifiable(_slots));
+    }
+    return SuggestionPosition.inserting(_slots, index, after: insertion.after);
+  }
+
+  /// The program, as the builder's pickers need it (history-filters Q3,
+  /// #2343, #2344): its id, its venue as calling history keys it, and
+  /// [position], where the chosen dance will go, which Suggested ranks for:
+  /// the end, the place a pending add before or after a slot lands
+  /// ([_addPosition]), or the slot **Replace…** fills.
+  PickerProgramContext _pickerProgramContext(SuggestionPosition? position) {
     final typed = _venueController.text.trim();
     final venueId = _venueId;
     return PickerProgramContext(
@@ -4456,7 +4499,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       venueLabel: venueId != null
           ? (_linkedVenue?.displayName ?? (typed.isEmpty ? null : typed))
           : (typed.isEmpty ? null : typed),
-      slots: atEnd ? List.unmodifiable(_slots) : null,
+      position: position,
     );
   }
 
@@ -4548,11 +4591,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                             key: const ValueKey('sheet-picker'),
                             data: data,
                             dialect: _dialect,
+                            suggestionDialectForColumn:
+                                _dialectForSuggestedColumn,
                             enrichment: _enrichment,
                             scrollController: scrollController,
                             addedDanceCounts: counts,
+                            // The sheet is modal: [insertion] is the pending
+                            // one, or null for adds at the end.
                             programContext: _pickerProgramContext(
-                              atEnd: insertion == null,
+                              _addPosition(),
                             ),
                             // Keep the sheet open so callers can add several
                             // dances, unless this sheet is for one insertion.
@@ -4619,12 +4666,28 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   ///
   /// Unlike [_openPickerSheet] this pops on the **first** tap: replacing a
   /// slot's dance is a single choice, not an open-ended add session.
-  Future<String?> _pickReplacementDance() async {
+  ///
+  /// Its picker ranks Suggested for [slot]'s place, with [slot] itself left
+  /// out ([SuggestionPosition.replacing], #2344), so its saved dance is not a
+  /// neighbour. [slot]'s `danceId` is the dance the edit dialog shows (an
+  /// earlier pick in the dialog, else the saved dance); the picker leaves it
+  /// out of the list ([CollectionPicker.excludedDanceIds]). Online rows are
+  /// not filtered (their local id is unknown until import); one that
+  /// resolves to that dance hands it back, which leaves the dialog as it
+  /// was. A slot no longer in the program (it cannot leave while the modal
+  /// dialog is open) gets no position, so no Suggested.
+  Future<String?> _pickReplacementDance(ProgramSlot slot) async {
     // The sheet route would hand focus back to a focused field on close.
     FocusManager.instance.primaryFocus?.unfocus();
     final data = _data;
     if (data == null) return null;
     final l10n = AppLocalizations.of(context);
+    final slotIndex = _slots.indexWhere((s) => s.id == slot.id);
+    final programContext = _pickerProgramContext(
+      slotIndex < 0
+          ? null
+          : SuggestionPosition.replacing(List.unmodifiable(_slots), slotIndex),
+    );
     final importing = ValueNotifier(false);
     final importOwners = <Object>{};
     var importingDisposed = false;
@@ -4687,9 +4750,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                             key: const ValueKey('replace-picker'),
                             data: data,
                             dialect: _dialect,
+                            suggestionDialectForColumn:
+                                _dialectForSuggestedColumn,
                             enrichment: _enrichment,
                             scrollController: scrollController,
                             addedDanceCounts: counts,
+                            programContext: programContext,
+                            excludedDanceIds: {?slot.danceId},
                             rowAction: PickerRowAction.replace,
                             enableOnlineSearch: true,
                             onDanceImported: _rememberImportedDance,

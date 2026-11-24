@@ -163,7 +163,9 @@ two in step.
     after local changes and at app start (Wi-Fi only by default).
 - Rationale to keep on file: the app is local-first. Apart from Device Sync it
   makes only **user-initiated** network requests (imports the user chooses to
-  run) and an **opt-in, off-by-default** update check; those are not used to
+  run), an **opt-in, off-by-default** update check, and an **opt-in,
+  off-by-default** calendar import at startup (it reads only the calendar
+  address the user gave); those are not used to
   collect data about the user. There is no analytics/tracking SDK and no
   advertising identifier is used.
 - Note: a build with Device Sync compiled out would answer "Data Not Collected".
@@ -171,7 +173,8 @@ two in step.
 - [ ] **Tracking:** the app does **not** track users across apps/sites → no
   `NSUserTrackingUsageDescription`, no ATT prompt.
 
-> Honesty check: imports and the update check contact third-party or public
+> Honesty check: imports, the update check and the calendar import contact
+> third-party or public
 > servers, and Device Sync contacts the sync service. Keep the rationale above
 > handy in case a reviewer asks; the declared data type is only what Device Sync
 > sends.
@@ -201,7 +204,8 @@ for a Sync-capable build.
   service (see `site/privacy/index.html` §7); all local data is under the user's
   control via backup/restore and in-app delete.
 - Rationale to keep on file (same as Apple): local-first, no analytics, no ads, no
-  accounts; imports and the opt-in update check do not send personal user data to
+  accounts; imports, the opt-in update check and the opt-in startup calendar
+  import do not send personal user data to
   the developer. A build with Device Sync compiled out would answer "No data
   collected"; none exists today.
 - [ ] **Advertising ID:** declare the app does **not** use an advertising ID, and
@@ -241,7 +245,8 @@ Caller's Compendium is an offline organizer/reference for contra dance callers.
   contacts, or photos). Permissions are INTERNET and ACCESS_NETWORK_STATE (the
   latter added by the `connectivity_plus` plugin, used to honour the Wi-Fi-only
   sync setting), used for user-initiated imports, browsing or importing published collections, an opt-in (off by
-  default) update check, and Device Sync when the user enables it.
+  default) update check, an opt-in (off by default) calendar import at startup,
+  and Device Sync when the user enables it.
 - To exercise an import network feature: open Import and paste a ContraDB program
   URL (e.g. https://contradb.com/programs/1) or a Caller's Box dance id, then
   review and commit. Nothing is uploaded — imports only fetch.

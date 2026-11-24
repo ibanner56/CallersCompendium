@@ -236,15 +236,17 @@ ever written back to your calendar.
    choose **Fetch events**. The app remembers it on this device.
 3. Review the list, then choose **Import**.
 
-The app goes online only when you choose **Fetch events**: never in the
-background, on a timer, or when you come back to the app.
+The app goes online only when you choose **Fetch events**, or once each time
+the app starts if you turn on **Import calendar when the app starts** in
+[Settings ▸ Program ▸ Calendar](./settings.md#calendar) (off by default): never
+in the background, on a timer, or when you come back to the app.
 
 **Which events are offered.**
 
 - Events from **today** up to 6 months ahead. You can choose 3 or 12 months
   instead, and offer only events whose title contains a word such as "contra",
   in [Settings ▸ Program ▸ Calendar](./settings.md#calendar). Past events are
-  never offered, and nor are cancelled ones.
+  never offered, and nor are canceled ones.
 - **Repeating events** are read only **30 days ahead**, whatever the date range,
   so a weekly series never floods your list. Each occurrence becomes its own
   draft, and a later import picks up the next ones as they come within 30 days.
@@ -256,7 +258,8 @@ background, on a timer, or when you come back to the app.
   and the list says how many.
 
 **What each draft gets.** The event's title (or **Untitled event**), its date,
-and the first part of its location as the venue — "Glen Echo Park, 7300
+its [start and end times](#times) when the event has a time of day (an all-day
+event gets none), and the first part of its location as the venue — "Glen Echo Park, 7300
 MacArthur Blvd, …" becomes **Glen Echo Park**. If that matches the name of a
 saved [venue](./glossary.md#venue), the draft is linked to it. The rest of the
 location, usually a street address, is not kept. Nor is the event's
@@ -266,9 +269,18 @@ emails and phone numbers live. The draft starts with your **Default template**,
 [Settings ▸ Defaults](./settings.md#program-defaults), and its status is
 **Draft**.
 
+**The times.** An event's start and end become the draft's **Start time** and
+**End time**, shown beside its date in the list before you import. A time your
+calendar keeps in a time zone is taken as written, the clock at the hall; a
+time your calendar keeps in UTC is turned into your device's local time. An
+event that ends after midnight gets an end earlier than its start, read as the
+next day; one that lasts a day or more, or no time at all, gets only its
+start. The **Beginner lesson** and **Arrive by** times are never read from an
+event.
+
 **No duplicates.** Each imported program remembers which event it came from, so
 the next import lists that event as **Already imported** and does not offer it
-again — even if the event has since changed in your calendar. That memory
+again. That memory
 travels with [Device Sync](./settings.md#device-sync), so your other devices
 recognise it too once they have synced. (If two devices import the same
 calendar before either has synced, both create the program; delete one.)
@@ -280,8 +292,48 @@ calendar before either has synced, both create the program; delete one.)
   are listed under **From this app** and not offered, because the program is
   already here.
 
-**Undo.** After **Import**, a message says how many draft programs were added,
-with **Undo** to remove them all again.
+**When an event changes or is canceled.** The app never changes a program
+behind your back, and never deletes one because of your calendar.
+
+- **Updated in your calendar** — the event's title, date, location or times
+  changed, and you haven't touched the draft since it was imported (it is
+  still a **Draft** and you haven't edited anything, even a slot). The review
+  shows the old and new values ("Date: 20 Jun → 27 Jun", "Time: 7:00 PM–10:00
+  PM → 7:30 PM–10:30 PM"), ticked. **Import** updates the program. An event
+  made all-day clears the start and end times. The **Beginner lesson** and
+  **Arrive by** times are never changed. A time your calendar keeps in UTC
+  counts as changed only when the event moves, not when you import in
+  another time zone.
+- **Changed in your calendar** — the same, for a program you have worked on,
+  here or on another device. It starts unticked; tick it and **Import**
+  updates only what changed in the calendar. A program imported before this
+  check existed counts as worked on.
+- If you leave an offer unticked, the program stays as it is, and the change is
+  not offered again unless the event changes again.
+- **Canceled or gone from your calendar** — an event marked canceled, or one
+  that is no longer in the calendar. A one-off event that only moved, however
+  far, is not gone, and neither is one date of a repeating event moved on its
+  own. Changing a repeating event as a whole is different, because the app
+  knows each of its dates by its day and time. If you move the whole event to
+  another day or time, or change "this and following" events, the programs
+  already imported for the old dates are labeled **No longer in your
+  calendar**, and the new dates are offered as new drafts. If it repeats less
+  often, only the dates it drops are labeled. "No longer in the calendar" is
+  judged only for programs dated from today up to 30 days ahead, and only when
+  the app could read the whole
+  calendar (not when it holds repeating events the app can't read, or more
+  events than the app reads). The
+  program is kept as it is and, when you choose **Import**, labeled **Canceled
+  in your calendar** or **No longer in your calendar** in the Programs list and
+  on its summary, with an icon and words. Archive or delete it yourself if you
+  no longer need it. The label goes away if the event comes back, or when you
+  choose **Clear calendar flag** on the summary; the next import labels it again
+  if the event is still canceled or gone.
+
+Closing the review without choosing **Import** changes nothing.
+
+**Undo.** After **Import**, a message says how many draft programs were added
+and how many programs were updated, with **Undo** to put everything back.
 
 ## Build a program
 
@@ -361,25 +413,39 @@ you close them.
 [Settings ▸ Experimental ▸ Suggestions](./settings.md#suggestions), the picker's
 **Sort** menu has one more choice, **Suggested**. It orders the dances the
 picker is showing (your search and filters still decide which ones) by how well
-each would fit as the next dance at the end of your program, best first. It
-looks at variety on the [matrix](#check-your-evening-with-the-matrix), the
-balance of formations, the difficulty of the evening, and when you last called
-each dance at the program's venue, as much as you chose under
-**What suggestions look for**.
+each would fit where the dance will go, best first:
+
+- **Adding at the end** (**Add dance**): as the next dance after your last one.
+- **Adding before or after a slot** ([Add a dance before / after](#build-a-program)):
+  between the dances on either side of that place, compared with both of them.
+- **[Replace…](#edit-a-slot)**: in that slot's place, between the dances
+  before and after it. The dance you are replacing isn't in the list, since
+  picking it again would change nothing, and it isn't compared with.
+
+It looks at variety on the [matrix](#check-your-evening-with-the-matrix), the
+balance of formations, the difficulty of the evening at that point, and when
+you last called each dance at the program's venue, as much as you chose under
+**What suggestions look for**. The dances on either side count as the matrix
+counts them: a break in between means they are not next to each other, a note
+or waltz does not, and every alternate of a neighboring dance counts, since
+you might call any of them. A dance replacing an alternate is an alternative to
+its primary, not next to it.
 
 Each dance shows a short line under its details with the one or two things that
-moved it most, such as *Never called at the Grange · Same swing beats as the
-previous dance*. Select the question mark on a row to see why that dance is
-suggested there: every reason, each marked as raising or lowering it.
+moved it most, such as *Never called at the Grange · Same partner swing beats
+as Chorus Jig, after it*. A reason about a neighboring dance names it and says which
+side the suggested dance would be on: *after it* when it would follow Chorus
+Jig, *before it* when it would come just before. Select the question mark on a
+row to see why that dance is suggested there: every reason, each marked as
+raising or lowering it.
 
 - The picker always opens in your usual order. Suggested lasts until you
-  choose another sort or close the picker, and re-orders as you search or add
-  dances.
+  choose another sort or close the picker, and re-orders as you search, add
+  dances, or move where the dance will go (start or cancel an add before or
+  after a slot). Until the new order is ready the list shows its plain order,
+  never an order worked out for another place.
 - Ordering takes a moment on a large collection. Meanwhile the list shows in
   its plain order with a spinner by the count, and you can add dances as usual.
-- Suggested is only offered when the dance will go at the end of the program:
-  not while you are adding a dance before or after a slot, nor when you replace
-  a slot's dance.
 - English dances aren't covered yet. They are listed after the ordered
   dances, in their usual order, and say so.
 - A dance already in the program stays in the list but goes to the very
@@ -446,7 +512,8 @@ The same dialog has a **Replace…** button:
 
 - **On a dance slot**, it swaps in a different dance and keeps everything else —
   note, guest caller, lengths, and performed mark — so you don't have to add the
-  new dance, drag it into place, and delete the old one.
+  new dance, drag it into place, and delete the old one. The list leaves out the
+  dance the slot shows now, since picking it would change nothing.
 - **On a note slot** (other than a break), it imports or selects a dance and
   puts it in the slot in place of the note, keeping the timing details.
 

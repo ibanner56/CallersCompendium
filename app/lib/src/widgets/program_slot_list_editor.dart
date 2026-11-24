@@ -135,15 +135,19 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// discouraged-term wording.
   final bool canonicalizeDiscouragedTerms;
 
-  /// Opens the host's dance picker and resolves to the id of the dance the
-  /// user picked, or `null` if they dismissed it without picking one
-  /// (issue #964). Passed straight through to the slot edit dialog, whose
-  /// "Replace…" **button** (not the whole dance row) is omitted when this is
+  /// Opens the host's dance picker for the slot being edited (as it stands in
+  /// [slots], before the dialog's unsaved edits, except that its `danceId` is
+  /// the dance the dialog currently shows) and resolves to the id of the
+  /// dance the user picked, or `null` if they dismissed it without picking
+  /// one (issue #964). The host ranks Suggested for that slot's place
+  /// (#2344) and leaves the dance the dialog shows out of the list, since
+  /// picking it would change nothing. Passed straight through to the slot
+  /// edit dialog, whose "Replace…" **button** (not the whole dance row) is omitted when this is
   /// `null` — a host with no picker to offer (e.g. a future embedding without
   /// `CollectionData`) need not supply it. The pick is held in the dialog's
   /// own state and only committed if the dialog's Save is tapped afterward, so
   /// Cancel discards it like every other in-dialog edit.
-  final Future<String?> Function()? onPickReplacementDance;
+  final Future<String?> Function(ProgramSlot slot)? onPickReplacementDance;
 
   /// Optional Program-only lifecycle for a held preview of a resolvable dance.
   final void Function(String danceId)? onPreviewDanceStarted;
@@ -1017,7 +1021,7 @@ class _SlotEditDialog extends StatefulWidget {
   final String? Function(String danceId)? danceTitle;
 
   /// See [ProgramSlotListEditor.onPickReplacementDance].
-  final Future<String?> Function()? onPickReplacementDance;
+  final Future<String?> Function(ProgramSlot slot)? onPickReplacementDance;
 
   @override
   State<_SlotEditDialog> createState() => _SlotEditDialogState();
@@ -1076,7 +1080,14 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
   Future<void> _pickReplacement() async {
     final pick = widget.onPickReplacementDance;
     if (pick == null) return;
-    final picked = await pick();
+    // The dance shown now, which may be an earlier pick in this dialog, so
+    // the host can leave it out of the list.
+    final shown = _danceId;
+    final picked = await pick(
+      shown == null || shown == widget.slot.danceId
+          ? widget.slot
+          : widget.slot.copyWith(danceId: shown),
+    );
     if (picked == null || !mounted) return;
     final wasNoteSlot = _danceId == null;
     setState(() {

@@ -1,0 +1,9 @@
+{
+  "id": "2353-calendar-import-startup",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Settings ▸ Program ▸ Calendar has Import calendar when the app starts, off by default. When on, the app reads your calendar once each time it starts and never at any other time. At startup chooses what it does: Report new events (the default) tells you how many there are and lets you review them, adding nothing; Add them as drafts adds them, with Undo. It never changes a program you already have, and only counts events that changed or were canceled. If your calendar can't be reached, nothing interrupts you: Settings shows what the last run did, and a quiet notice there after three failures in a row. The README and privacy policy list it beside the automatic update check."
+    ]
+  }
+}

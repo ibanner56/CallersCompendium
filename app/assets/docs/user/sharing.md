@@ -370,7 +370,10 @@ interpreted it and when, type, formation, progression, level, whether it is a
 mixed-level dance and a mixer, status, your star **rating** (empty when
 unrated), tags, tunes, meter, key, its Barnes reference (English dances),
 published sources, hook, calling notes, walkthrough and figures, then one
-column for each custom field with **Include in sharing** on. Dates are written
+column for each custom field with **Include in sharing** on, headed by the
+field's name (a second field with the same name, or one named like a column
+above, is headed `Name (2)`, so importing the file maps every column back to its
+own field). Dates are written
 as a year, year-month or year-month-day, as precisely as you know them (for
 example `1951`, `1951-03` or `1951-03-14`). The figures are in one cell, one
 per line with their phrase labels, worded in your active
@@ -385,7 +388,8 @@ front, so the spreadsheet shows it as text instead of running it.
 A CSV is a file you might send to anyone, so it follows the same privacy rules
 as a shared dance, with one exception: **it includes your star ratings**. See
 [What stays private](#what-stays-private). It is not a backup, and the app
-cannot restore from it.
+cannot restore from it, but you can bring it back in as new or matching dances
+with [Bring in your own spreadsheet](./imports.md#bring-in-your-own-spreadsheet).
 
 ## Export programs as a spreadsheet (CSV)
 

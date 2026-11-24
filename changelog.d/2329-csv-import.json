@@ -1,0 +1,16 @@
+{
+  "id": "2329-csv-import",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can import dances from your own spreadsheet: save it as CSV UTF-8, then choose Import… ▸ Your own spreadsheet (CSV). A new step lets you say what each column holds (title, authors, figures, tags, a custom field and more, or Ignore), with columns named like a field already chosen. Figures, authors and tags are read as in other imports, a value that doesn't fit its field is kept in the calling notes, and everything goes through the usual review with Undo. Comma-, semicolon- and tab-separated files all work."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add an RFC 4180 CSV reader (`readCsv`, `detectCsvSeparator`, `decodeCsvBytes`) with caps on bytes, rows, columns and cell length, and typed `CsvReadException` failures.",
+      "Add `CsvAdapter`, a `SourceAdapter` that reads one dance per row through a `CsvImportMapping`, and `CsvImporter`, which resolves the tags and new custom fields a sheet names at commit and removes them again on undo.",
+      "Add `RawRecord.recordsProvenance`: when false, `ImportPipeline.commit` writes no provenance row, and a link or re-import keeps the existing dance's own."
+    ]
+  }
+}

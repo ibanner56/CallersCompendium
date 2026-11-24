@@ -1163,6 +1163,56 @@ void main() {
       expect(facets.tagIds, {'t1'});
     });
 
+    test('retainTags keeps a tag the host opened with, and drops it once the '
+        'user removes it and picks it again by hand', () {
+      // A saved "family" search whose tag nobody carries yet must keep
+      // searching for that tag, not quietly search for anything.
+      final facets = FacetSelections()..tagIds.addAll(['kept', 'manual']);
+      facets.keepSelectedTags();
+      facets.setTag('picked', selected: true);
+      expect(facets.retainTags(const []), isTrue);
+      expect(facets.tagIds, {'kept', 'manual'});
+      // Removing a kept tag ends the exemption: picked again by hand, it is
+      // pruned like any other manual pick.
+      facets
+        ..setTag('kept', selected: false)
+        ..setTag('kept', selected: true);
+      facets.retainTags(const ['manual']);
+      expect(facets.tagIds, {'manual'});
+      // Clearing drops the marks too.
+      facets
+        ..clear()
+        ..setTag('manual', selected: true);
+      facets.retainTags(const []);
+      expect(facets.tagIds, isEmpty);
+    });
+
+    test('Untagged alone is a selection of the Tags section, and clearing '
+        'the section clears it', () {
+      // With Tags hidden in Settings, a Tags section holding only Untagged
+      // must still show (so it can be removed), and hiding Tags must clear it,
+      // or UntaggedFilter narrows the list with no chip.
+      final facets = FacetSelections()..untagged = true;
+      expect(facets.hasSelectionFor(CollectionFacetIds.tags), isTrue);
+      expect(facets.clearFacets({CollectionFacetIds.tags}), isTrue);
+      expect(facets.untagged, isFalse);
+      expect(facets.isEmpty, isTrue);
+    });
+
+    test('clearCount counts clears, not edits', () {
+      final facets = FacetSelections();
+      facets.setTag('t1', selected: true);
+      expect(facets.clearCount, 0);
+      facets.clear();
+      expect(facets.clearCount, 1);
+      // Nothing selected in the section: nothing cleared, nothing counted.
+      facets.clearFacets({CollectionFacetIds.tags});
+      expect(facets.clearCount, 1);
+      facets.setTag('t1', selected: true);
+      facets.clearFacets({CollectionFacetIds.tags, CollectionFacetIds.form});
+      expect(facets.clearCount, 2);
+    });
+
     test('the mode is not a selection: it never counts or makes non-empty', () {
       final facets = FacetSelections()..tagsMatchAll = false;
       expect(facets.isEmpty, isTrue);

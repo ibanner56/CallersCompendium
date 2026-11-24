@@ -332,16 +332,19 @@ void main() {
         },
       );
 
-      test(
-        'singleFile: true with where:along — "single file promenade along"',
-        () {
-          final f = testFigure(
-            move: 'promenade',
-            params: {'singleFile': true, 'where': 'along'},
-          );
-          expect(renderer.render(f, d), 'single file promenade along');
-        },
-      );
+      test('singleFile: true with where:along — "single file promenade '
+          'counterclockwise along"', () {
+        // Along the set, the rotation always shows, even the default
+        // (maintainer ruling, 2026-11-23, #2331 follow-up).
+        final f = testFigure(
+          move: 'promenade',
+          params: {'singleFile': true, 'where': 'along'},
+        );
+        expect(
+          renderer.render(f, d),
+          'single file promenade counterclockwise along',
+        );
+      });
 
       test('singleFile: true shows in renderSummary', () {
         final f = testFigure(move: 'promenade', params: {'singleFile': true});
@@ -398,7 +401,10 @@ void main() {
               'destination': 'unspecified',
             },
           );
-          expect(renderer.render(f, d), 'single file promenade along');
+          expect(
+            renderer.render(f, d),
+            'single file promenade counterclockwise along',
+          );
         },
       );
     });

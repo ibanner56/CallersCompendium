@@ -174,10 +174,17 @@ Map<String, Object?>? previewArguments(
 /// ([glossaryEntryNameTaxonomy]), a dialect name, a shorthand, one of the
 /// user's entries in [live], or another figure the file brings. A figure
 /// already here as it came is never listed.
+///
+/// [dialects] are the names every figure must not take (the user's own
+/// dialects); [dialectsFor] adds, for one incoming figure, the dialects it
+/// will be shown in, its own form's active dialect, as the Glossary checks it
+/// ([resolveCustomGlossary], #2294), so a name the Glossary would mark Rename
+/// needed is said to be taken here.
 Set<String> importedFiguresWithTakenNames(
   List<UserFigureImportItem> items, {
   required List<UserGlossaryEntry> live,
   Iterable<Dialect> dialects = const [],
+  Iterable<Dialect> Function(Object? payload)? dialectsFor,
   Iterable<String> shorthandTokens = const [],
 }) {
   return {
@@ -186,7 +193,10 @@ Set<String> importedFiguresWithTakenNames(
           glossaryNameCollisions(
             item.incoming.name,
             taxonomy: glossaryEntryNameTaxonomy(item.incoming.payload),
-            dialects: dialects,
+            dialects: [
+              ...dialects,
+              ...?dialectsFor?.call(item.incoming.payload),
+            ],
             shorthandTokens: shorthandTokens,
             // Taking theirs replaces the figure with the same id, so its
             // name is not a clash; a copy's id belongs to another entry.
