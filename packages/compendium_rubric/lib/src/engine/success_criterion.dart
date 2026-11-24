@@ -70,8 +70,12 @@ final class ProgressionCriterion extends SuccessCriterion {
   /// progression and swaps the 1s and 2s within their hands four")*. The rule
   /// is applied at every count, which is the agent's reading of that ruling;
   /// at an odd count the result matches the earlier "one round later" reading
-  /// cell for cell, and at an even count the couple waiting out at each end
-  /// differs: here it has not changed over.
+  /// cell for cell, and at an even count it differs at the ends, where
+  /// nobody is left waiting out.
+  ///
+  /// [input] is a settled start, as every caller passes: a set with couples
+  /// already waiting out could send a travelling dancer into a waiting
+  /// couple's row, which [_shift] does not resolve.
   @override
   Formation expected(Formation input) {
     if (input.type == FormationType.progressedImproper) {

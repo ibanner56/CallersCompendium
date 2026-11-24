@@ -869,8 +869,10 @@ into a hands four — with D.
 > count, not only a double, is the agent's reading. At an odd count it gives the same cells as one
 > more Duple Improper round (so a triple still ends with D at the top and B beside F, as Hudson's
 > note on Men at Work describes); at an even count it differs at the ends, where nobody is left
-> waiting out. Before, the oracle walked the Progressed Improper set directly, and its second
-> round put the arriving couple on top of the one waiting out at each end.
+> waiting out. It replaces an agent's-call rule that walked the Progressed Improper set directly
+> and, on the second round, had the couple waiting out at each end pass the arriving one (so
+> Progressed Improper after `n` rounds landed where Duple Improper does after `n + 1`); that rule
+> agreed with this one at odd counts only.
 
 > **The marking rule is deliberately positional**, not "is this couple already in a complete
 > band?" In a settled Duple Improper set *every* row holds a whole couple, so an end row
