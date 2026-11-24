@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 
-/// Exposes the "Ignore leading articles when sorting" General setting as a live
-/// [ValueNotifier] to the widget tree.
+/// Exposes the "Ignore leading articles when sorting" setting (Settings ▸
+/// Collection ▸ Dances) as a live [ValueNotifier] to the widget tree.
 ///
 /// When `true` (the default), the dance list alphabetizes titles with a leading
 /// article ("the"/"a"/"an") ignored, so "The Nice Combination" files under

@@ -4774,19 +4774,19 @@ abstract class AppLocalizations {
   /// **'{field}: {value}'**
   String libraryManagerMergeDroppedLine(String field, String value);
 
-  /// General settings section header over the dance list and labeling preferences: title sorting, figure capitalization, tags, authors and sources.
+  /// Settings › Collection section header over the dance list and labeling preferences: title sorting, figure capitalization, tags, authors and sources. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Dances'**
   String get settingsGeneralLibraryHeader;
 
-  /// Title of the General settings toggle that sorts dance titles while ignoring leading articles such as 'the', 'a', and 'an'.
+  /// Title of the Settings › Collection › Dances toggle that sorts dance titles while ignoring leading articles such as 'the', 'a', and 'an'. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Ignore leading articles when sorting'**
   String get settingsGeneralSortIgnoreArticlesTitle;
 
-  /// Subtitle explaining the ignore-leading-articles sort toggle. Example title and articles are illustrative text.
+  /// Subtitle explaining the ignore-leading-articles sort toggle. Example title and articles are illustrative text. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'When on, the dance list alphabetizes titles ignoring a leading \"the\", \"a\", or \"an\" — so \"The Nice Combination\" files under N. Turn off to sort by the literal title.'**
@@ -5302,49 +5302,49 @@ abstract class AppLocalizations {
   /// **'{count, plural, =0{Don\'t show} =1{1 venue} other{{count} venues}}'**
   String settingsProgramVenueCallCountOption(num count);
 
-  /// Title of the General settings Library toggle that capitalizes the first letter of each figure shown on screen.
+  /// Title of the Settings › Collection › Dances toggle that capitalizes the first letter of each figure shown on screen. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Capitalize figures'**
   String get settingsGeneralCapitalizeFiguresTitle;
 
-  /// Subtitle explaining the capitalize figures toggle. ContraDB is a product name and stays untranslated.
+  /// Subtitle explaining the capitalize figures toggle. ContraDB is a product name and stays untranslated. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'When on, each figure in the dance view, Perform mode and the figure editor starts with a capital letter (\"Neighbors allemande left\"). When off, figures are shown as written; built-in figures start in lower case, as in ContraDB. Only how figures look in those places changes; exports, search, sync comparisons and screen-reader wording are unaffected.'**
   String get settingsGeneralCapitalizeFiguresSubtitle;
 
-  /// Settings › General › Library entry that opens the Tags manager.
+  /// Settings › Collection › Dances entry that opens the Tags manager. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Tags'**
   String get settingsGeneralLibraryTagsTitle;
 
-  /// Subtitle of the Settings › General › Library entry that opens the Tags manager.
+  /// Subtitle of the Settings › Collection › Dances entry that opens the Tags manager. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Rename, merge, color and delete your tags.'**
   String get settingsGeneralLibraryTagsSubtitle;
 
-  /// Title of the Settings › General › Library entry that opens the Authors manager.
+  /// Title of the Settings › Collection › Dances entry that opens the Authors manager. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Authors'**
   String get settingsGeneralLibraryAuthorsTitle;
 
-  /// Subtitle of the Settings › General › Library entry that opens the Authors manager.
+  /// Subtitle of the Settings › Collection › Dances entry that opens the Authors manager. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Rename, merge and delete authors, and edit their details.'**
   String get settingsGeneralLibraryAuthorsSubtitle;
 
-  /// Title of the Settings › General › Library entry that opens the Sources manager.
+  /// Title of the Settings › Collection › Dances entry that opens the Sources manager. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Sources'**
   String get settingsGeneralLibrarySourcesTitle;
 
-  /// Subtitle of the Settings › General › Library entry that opens the Sources manager.
+  /// Subtitle of the Settings › Collection › Dances entry that opens the Sources manager. (In Settings › Collection since #2325; the key keeps its General name.)
   ///
   /// In en, this message translates to:
   /// **'Rename, merge and delete sources, and edit their details.'**
@@ -21196,6 +21196,336 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t import from the calendar at startup ({when})'**
   String calendarLastResultError(String when);
+
+  /// Collection ⋮ menu entry: saves the search on screen under a name. Offered only while some text, filter, phrase row or Advanced row is set.
+  ///
+  /// In en, this message translates to:
+  /// **'Save this search…'**
+  String get savedSearchSaveThis;
+
+  /// Collection ⋮ menu entry while a saved search is loaded, enabled once it has been changed: writes the change back to it.
+  ///
+  /// In en, this message translates to:
+  /// **'Update \"{name}\"'**
+  String savedSearchUpdate(String name);
+
+  /// Collection ⋮ menu entry while a saved search is loaded: renames it.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename \"{name}\"…'**
+  String savedSearchRename(String name);
+
+  /// Collection ⋮ menu entry while a saved search is loaded: deletes it (with Undo).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"'**
+  String savedSearchDelete(String name);
+
+  /// Heading in Settings › Collection over saved searches this version of the app cannot open.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs attention'**
+  String get savedSearchNeedsAttention;
+
+  /// Settings › Collection entry for a saved search this version cannot read, under Needs attention. Also names it in the Deleted snackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'A saved search that can\'t be opened'**
+  String get savedSearchUnreadableItem;
+
+  /// Title of the dialog shown on choosing a saved search this version cannot read.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t open this saved search'**
+  String get savedSearchUnreadableTitle;
+
+  /// Body of the dialog shown on choosing a saved search this version cannot read.
+  ///
+  /// In en, this message translates to:
+  /// **'It was saved by a newer version of the app, or it is damaged, so it is not used. You can delete it, and undo that.'**
+  String get savedSearchUnreadableBody;
+
+  /// Title of the dialog that asks for a name for the search being saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Save this search'**
+  String get savedSearchSaveDialogTitle;
+
+  /// Title of the dialog that asks for a new name for the loaded saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename saved search'**
+  String get savedSearchRenameDialogTitle;
+
+  /// Label of the name field in the save and rename dialogs for a saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get savedSearchNameLabel;
+
+  /// Line in the save dialog: the calling-history window the search keeps, counted back from the day it runs. A chosen date is kept as whole months back.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Not called in the last month} other{Not called in the last {count} months}}'**
+  String savedSearchWindowNotCalled(int count);
+
+  /// Line in the save dialog: the calling-history window the search keeps, for a Called search.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Called in the last month} other{Called in the last {count} months}}'**
+  String savedSearchWindowCalled(int count);
+
+  /// Line in the save dialog: the calling-history window the search keeps, while neither or both of Called and Not called is chosen (so it does nothing yet).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Calling history window kept: the last month} other{Calling history window kept: the last {count} months}}'**
+  String savedSearchWindowInert(int count);
+
+  /// Title of the message shown when a search is too large to save.
+  ///
+  /// In en, this message translates to:
+  /// **'Search too large'**
+  String get savedSearchTooLargeTitle;
+
+  /// Body of the message shown when a search is too large to save.
+  ///
+  /// In en, this message translates to:
+  /// **'This search has too many filters or rows to save. Remove some, then save it again.'**
+  String get savedSearchTooLargeBody;
+
+  /// Title of the message shown when the most saved searches the app keeps has been reached.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many saved searches'**
+  String get savedSearchLimitTitle;
+
+  /// Body of the message shown when the most saved searches the app keeps has been reached.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{You can keep 1 saved search. Delete it to save another.} other{You can keep up to {count} saved searches. Delete one to save another.}}'**
+  String savedSearchLimitBody(int count);
+
+  /// Snackbar when a saved-search name is made only of invisible characters.
+  ///
+  /// In en, this message translates to:
+  /// **'That name can\'t be used. Try another.'**
+  String get savedSearchNameRefused;
+
+  /// Snackbar when reading or writing saved searches failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t do that with your saved searches. Try again.'**
+  String get savedSearchFailed;
+
+  /// Snackbar after saving a search under a name.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved \"{name}\"'**
+  String savedSearchSavedSnack(String name);
+
+  /// Snackbar after writing a change back to a saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated \"{name}\"'**
+  String savedSearchUpdatedSnack(String name);
+
+  /// Snackbar after deleting a saved search, with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted \"{name}\"'**
+  String savedSearchDeletedSnack(String name);
+
+  /// Title of the message when a saved search cannot be deleted because something uses it.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t delete \"{name}\"'**
+  String savedSearchInUseTitle(String name);
+
+  /// Body of the message when a saved search cannot be deleted; a list of what uses it follows.
+  ///
+  /// In en, this message translates to:
+  /// **'It is still used by these. Change or remove them first, then delete it.'**
+  String get savedSearchInUseBody;
+
+  /// Heading of the notice shown after loading a saved search that refers to deleted things; each one is listed below it.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" uses things that are gone:'**
+  String savedSearchNoticeTitle(String name);
+
+  /// Line at the end of the notice for a saved search that refers to deleted things.
+  ///
+  /// In en, this message translates to:
+  /// **'The rest of the search is shown. Remove these yourself to update it.'**
+  String get savedSearchNoticeRest;
+
+  /// Line in the notice when a loaded saved search filters on a custom field that was deleted: the search runs without that filter.
+  ///
+  /// In en, this message translates to:
+  /// **'A filter on a deleted custom field is left out of the results.'**
+  String get savedSearchNoticeFieldSkipped;
+
+  /// Tooltip on the button that closes the notice about a saved search that refers to deleted things.
+  ///
+  /// In en, this message translates to:
+  /// **'Close notice'**
+  String get savedSearchNoticeClose;
+
+  /// Line in the notice for a loaded saved search: it uses this tag, which was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The tag {name}, which was deleted'**
+  String savedSearchMissingTag(String name);
+
+  /// Line in the notice for a loaded saved search: it uses a tag that was deleted, whose name this device does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'A tag that was deleted'**
+  String get savedSearchMissingTagUnnamed;
+
+  /// Line in the notice for a loaded saved search: it uses this author, which was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The author {name}, which was deleted'**
+  String savedSearchMissingAuthor(String name);
+
+  /// Line in the notice for a loaded saved search: it uses a author that was deleted, whose name this device does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'An author that was deleted'**
+  String get savedSearchMissingAuthorUnnamed;
+
+  /// Line in the notice for a loaded saved search: it uses this source, which was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The source {name}, which was deleted'**
+  String savedSearchMissingSource(String name);
+
+  /// Line in the notice for a loaded saved search: it uses a source that was deleted, whose name this device does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'A source that was deleted'**
+  String get savedSearchMissingSourceUnnamed;
+
+  /// Line in the notice for a loaded saved search: it uses this level, which was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The level {name}, which was deleted'**
+  String savedSearchMissingLevel(String name);
+
+  /// Line in the notice for a loaded saved search: it uses a level that was deleted, whose name this device does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'A level that was deleted'**
+  String get savedSearchMissingLevelUnnamed;
+
+  /// Line in the notice for a loaded saved search: it uses this venue, which was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The venue {name}, which was deleted'**
+  String savedSearchMissingVenue(String name);
+
+  /// Line in the notice for a loaded saved search: it uses a venue that was deleted, whose name this device does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'A venue that was deleted'**
+  String get savedSearchMissingVenueUnnamed;
+
+  /// Line in the notice for a loaded saved search: it uses this custom field, which was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The custom field {name}, which was deleted'**
+  String savedSearchMissingField(String name);
+
+  /// Line in the notice for a loaded saved search: it uses a custom field that was deleted, whose name this device does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'A custom field that was deleted'**
+  String get savedSearchMissingFieldUnnamed;
+
+  /// Line in the notice for a loaded saved search: it filters on this custom field as it was before its type changed.
+  ///
+  /// In en, this message translates to:
+  /// **'The custom field {name}, whose type changed'**
+  String savedSearchMissingFieldType(String name);
+
+  /// Line in the notice for a loaded saved search: it filters on a choice that this custom field no longer offers.
+  ///
+  /// In en, this message translates to:
+  /// **'The choice {choice} of {name}, which was removed'**
+  String savedSearchMissingFieldChoice(String choice, String name);
+
+  /// Line in the notice for a loaded saved search: an Advanced figure row has a detail this version cannot show or clear.
+  ///
+  /// In en, this message translates to:
+  /// **'A figure detail in Advanced that can\'t be shown'**
+  String get savedSearchMissingFigureDetail;
+
+  /// Line in the notice for a loaded saved search: an Advanced row uses one of your own figures that was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'One of your figures, which was deleted'**
+  String get savedSearchMissingUserFigure;
+
+  /// Line in the notice for a loaded saved search that could not be read whole; not expected.
+  ///
+  /// In en, this message translates to:
+  /// **'Something this version can\'t read'**
+  String get savedSearchMissingInvalid;
+
+  /// First row of the saved-search dropdown under the search field, while text is typed: runs the ordinary search for that text, as Enter does.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for \"{text}\"'**
+  String savedSearchSearchFor(String text);
+
+  /// Screen-reader announcement when the arrow keys move the highlight in the saved-search dropdown under the search field: the row (a saved search, or Search for "…"), then its position.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}, {index} of {count}'**
+  String savedSearchHighlightedRow(String name, int index, int count);
+
+  /// Collection ⋮ menu entry while a saved search is loaded, in place of Save this search…: saves the search on screen as another saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as a new search…'**
+  String get savedSearchSaveAsNewSearch;
+
+  /// Settings section title (sidebar and app bar): the Dances settings and the saved searches.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection'**
+  String get settingsCollectionTitle;
+
+  /// Heading in Settings ▸ Collection over the list of saved searches.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved searches'**
+  String get settingsSavedSearchesHeader;
+
+  /// Shown in Settings ▸ Collection when there are no saved searches.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved searches yet. Save one from the Collection: set up a search, then choose Save this search… in the More actions menu.'**
+  String get settingsSavedSearchesEmpty;
+
+  /// Tooltip on the rename button of a saved search in Settings ▸ Collection.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename \"{name}\"'**
+  String settingsSavedSearchRenameTooltip(String name);
+
+  /// Tooltip on the delete button of a saved search in Settings ▸ Collection (with Undo).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"'**
+  String settingsSavedSearchDeleteTooltip(String name);
+
+  /// Message when a saved search the user is updating, renaming or deleting has already been deleted (in Settings, or by sync from another device).
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" was deleted, here or on another device, so nothing was changed.'**
+  String savedSearchGone(String name);
 }
 
 class _AppLocalizationsDelegate

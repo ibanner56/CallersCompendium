@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../theme/app_motion.dart';
 import '../../theme/destructive_button_style.dart';
-import 'settings_keys.dart';
 import '../../data/sync_writer_lifecycle_scope.dart';
 import '../../sync/sync_scope.dart';
 import '../../data/backup_document.dart'
@@ -29,11 +28,9 @@ import '../../data/regional_formats.dart';
 import '../../data/persisted_preference.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/soft_delete_retention.dart';
-import '../../data/sort_ignore_articles_scope.dart';
 import '../../data/verbose_figure_rendering_scope.dart';
 import '../../data/date_format_scope.dart';
 import '../../data/decimal_turns_scope.dart';
-import '../../data/capitalize_figures_scope.dart';
 import '../../diagnostics/error_log.dart';
 import '../../published_collections/published_collection_service.dart';
 import '../../theme/app_spacing.dart';
@@ -48,8 +45,6 @@ import '../import_review_screen.dart';
 import '../published_collection_navigation.dart';
 import '../ecd_migration_screen.dart';
 import '../reparse_custom_figures_screen.dart';
-import '../reference_manager_screen.dart';
-import '../tag_manager_screen.dart';
 import '../../widgets/app_dropdown_field.dart';
 
 /// The General settings section: app-wide toggles, soft-delete retention,
@@ -607,20 +602,6 @@ class _GeneralSectionState extends State<GeneralSection> {
   Future<void> _onPublishedCollections() =>
       pushPublishedCollectionCatalog(context);
 
-  Future<void> _onSortIgnoreArticlesChanged(bool value) async {
-    // Same instant-notifier-then-persist pattern: flip the live notifier so the
-    // dance list re-sorts immediately, then persist in the background.
-    SortIgnoreArticlesScope.notifierOf(context).value = value;
-    final repos = RepositoriesScope.of(context);
-    await persistSetting(repos.settings, kSortIgnoreArticlesKey, value);
-  }
-
-  Future<void> _onCapitalizeFiguresChanged(bool value) async {
-    CapitalizeFiguresScope.notifierOf(context).value = value;
-    final repos = RepositoriesScope.of(context);
-    await persistSetting(repos.settings, kCapitalizeFiguresKey, value);
-  }
-
   Future<void> _onReduceMotionChanged(bool value) async {
     // Same instant-notifier-then-persist pattern (ROADMAP G.7): flip the live
     // notifier so animation-gated widgets rebuild immediately, then persist.
@@ -658,10 +639,6 @@ class _GeneralSectionState extends State<GeneralSection> {
     _ensureSoftDeleteRetentionLoaded(context);
     _ensureBackupPrefsLoaded(context);
     return _GeneralView(
-      sortIgnoreArticles: SortIgnoreArticlesScope.of(context),
-      onSortIgnoreArticlesChanged: _onSortIgnoreArticlesChanged,
-      capitalizeFigures: CapitalizeFiguresScope.of(context),
-      onCapitalizeFiguresChanged: _onCapitalizeFiguresChanged,
       reduceMotion: ReduceMotionScope.of(context),
       onReduceMotionChanged: _onReduceMotionChanged,
       verboseFigureRendering: VerboseFigureRenderingScope.of(context),
@@ -695,15 +672,11 @@ class _GeneralSectionState extends State<GeneralSection> {
 
 /// The General section: app-wide preference switches (ROADMAP G).
 ///
-/// Hosts library, accessibility, deleted-items, import, and backup/restore
+/// Hosts accessibility, deleted-items, import, and backup/restore
 /// controls. New app-wide switches are added here as additional
 /// [SwitchListTile]s. (Program-facing toggles live in [ProgramSection].)
 class _GeneralView extends StatelessWidget {
   const _GeneralView({
-    required this.sortIgnoreArticles,
-    required this.onSortIgnoreArticlesChanged,
-    required this.capitalizeFigures,
-    required this.onCapitalizeFiguresChanged,
     required this.reduceMotion,
     required this.onReduceMotionChanged,
     required this.verboseFigureRendering,
@@ -728,10 +701,6 @@ class _GeneralView extends StatelessWidget {
     required this.onEcdMigration,
   });
 
-  final bool sortIgnoreArticles;
-  final ValueChanged<bool> onSortIgnoreArticlesChanged;
-  final bool capitalizeFigures;
-  final ValueChanged<bool> onCapitalizeFiguresChanged;
   final bool reduceMotion;
   final ValueChanged<bool> onReduceMotionChanged;
   final bool verboseFigureRendering;
@@ -775,57 +744,6 @@ class _GeneralView extends StatelessWidget {
     return ListView(
       keyboardDismissBehavior: textEntryKeyboardDismiss(),
       children: [
-        SectionHeader(title: l10n.settingsGeneralLibraryHeader),
-        SwitchListTile(
-          key: const ValueKey('general-sort-ignore-articles'),
-          value: sortIgnoreArticles,
-          onChanged: onSortIgnoreArticlesChanged,
-          title: Text(l10n.settingsGeneralSortIgnoreArticlesTitle),
-          subtitle: Text(l10n.settingsGeneralSortIgnoreArticlesSubtitle),
-          isThreeLine: true,
-        ),
-        SwitchListTile(
-          key: const ValueKey('general-capitalize-figures'),
-          value: capitalizeFigures,
-          onChanged: onCapitalizeFiguresChanged,
-          title: Text(l10n.settingsGeneralCapitalizeFiguresTitle),
-          subtitle: Text(l10n.settingsGeneralCapitalizeFiguresSubtitle),
-          isThreeLine: true,
-        ),
-        ListTile(
-          key: const ValueKey('general-library-tags'),
-          leading: const Icon(Icons.label_outline),
-          title: Text(l10n.settingsGeneralLibraryTagsTitle),
-          subtitle: Text(l10n.settingsGeneralLibraryTagsSubtitle),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const TagManagerScreen()),
-          ),
-        ),
-        ListTile(
-          key: const ValueKey('general-library-authors'),
-          leading: const Icon(Icons.person_outline),
-          title: Text(l10n.settingsGeneralLibraryAuthorsTitle),
-          subtitle: Text(l10n.settingsGeneralLibraryAuthorsSubtitle),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => const ReferenceManagerScreen.authors(),
-            ),
-          ),
-        ),
-        ListTile(
-          key: const ValueKey('general-library-sources'),
-          leading: const Icon(Icons.menu_book_outlined),
-          title: Text(l10n.settingsGeneralLibrarySourcesTitle),
-          subtitle: Text(l10n.settingsGeneralLibrarySourcesSubtitle),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => const ReferenceManagerScreen.sources(),
-            ),
-          ),
-        ),
         SectionHeader(title: l10n.settingsGeneralAccessibilityHeader),
         SwitchListTile(
           key: const ValueKey('general-reduce-motion'),
