@@ -384,23 +384,30 @@ Watch the chain at the top.
 
 How the file is read:
 
-- **Where a dance starts.** In a file whose dances are `##` headings (or
-  several `#` headings), each heading starts a dance and is its title. In a file
-  without them, the first line and each line after a blank line is a dance's
-  title, unless it is a detail or starts like a figure (`-`, `1.`, `A1`,
-  `(8)`). So in a file without headings, a note after a blank line starts a
-  new dance; keep notes straight under the dance's lines.
-- **A file title.** A `#` heading with no figures under it, such as
-  `# My dances` at the top, is the file's own title and is left out with the
-  text under it, unless every dance in the file is a `#` heading.
+- **Where a dance starts.** In a file whose dances are headings, each heading
+  starts a dance and is its title. If each dance is a `#` heading with `##`
+  parts under it (`## Figures`, `## Notes`), the `##` headings are parts of
+  that dance, and their lines come in with it. If the dances are `##`
+  headings, a `#` heading with no figures under it, such as `# My dances` at
+  the top or `# Squares` above a group, is a title for the file and is left
+  out with the text under it.
+- **A file without headings.** The first line, and each line after a blank
+  line, is a dance's title, unless it starts like a figure (`-`, `1.`, `A1`,
+  `(8)`) or is a detail line before the dance's figures. So a note after a
+  blank line starts a new dance; keep notes straight under the dance's lines.
+  A single `#` heading at the top with nothing but text under it is the
+  file's title and is left out.
 - **Details** are `Label: value` lines, with a label of up to three words.
-  `**Formation:** Improper` and a full-width colon (`：`) work too.
+  `**Formation:** Improper` and a full-width colon (`：`) work too; a label
+  needs a letter in it, so `10:30 start` is a note.
   `by Pat Example` and `Author: Pat Example` both fill **Authors**; a `by` line
   counts only above the dance's figures and notes. A web address is not a
   label.
 - **Figures** are lines that start with a list marker (`-`, `*`, `1.`), a phrase
-  (`A1`) or a count (`(8)` or `8`), and any line straight after one, so a figure
-  that wraps onto a second line stays one figure, even with a colon in it. They are read the way the app reads
+  (`A1`) or a count (`(8)`, or `8` within a dance), and any line straight after
+  one, so a figure that wraps onto a second line stays one figure, even with a
+  colon in it. A detail written as a list item (`- Formation: Improper`) is a
+  figure line too, so write details without a list marker. They are read the way the app reads
   typed figures, phrase and count included. A line it can't read comes in as an
   unrecognized figure with your words, never dropped.
 - **Anything else** goes into the dance's calling notes, as written.

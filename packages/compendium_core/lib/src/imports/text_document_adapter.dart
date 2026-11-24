@@ -104,8 +104,30 @@ class TextDocumentDance {
       labels.isNotEmpty || notes.isNotEmpty || figureLines.isNotEmpty;
 }
 
-/// A heading that starts a dance: `#` or `##`, then the title.
-final RegExp _danceHeading = RegExp(r'^(#{1,2})\s+(.*?)(?:\s+#+)?\s*$');
+/// [line], trimmed, as a Markdown ATX heading: its level (1 to 6) and its
+/// title without a closing `#` sequence; null when it is not one, or its
+/// title is empty.
+///
+/// Scanned by hand rather than with a regular expression: a pattern with an
+/// optional closing sequence backtracks quadratically on a long line.
+(int, String)? _parseHeading(String line) {
+  var level = 0;
+  while (level < line.length && line.codeUnitAt(level) == 0x23) {
+    level++;
+  }
+  if (level == 0 || level > 6 || level == line.length) return null;
+  if (line[level].trim().isNotEmpty) return null;
+  var title = line.substring(level).trim();
+  var end = title.length;
+  while (end > 0 && title.codeUnitAt(end - 1) == 0x23) {
+    end--;
+  }
+  // A closing sequence is a run of `#` after a space, or the whole title.
+  if (end < title.length && (end == 0 || title[end - 1].trim().isEmpty)) {
+    title = title.substring(0, end).trim();
+  }
+  return title.isEmpty ? null : (level, title);
+}
 
 /// Any Markdown heading (`#` to `######`).
 final RegExp _anyHeading = RegExp(r'^#{1,6}(\s|$)');
@@ -132,19 +154,29 @@ final RegExp _lineBreak = RegExp('\r\n|[\n\r\u2028\u2029\u0085]');
 /// Reads [text], a plain-text or Markdown file of dances (#2330).
 ///
 /// **Splitting into dances.** When the file has a `##` heading, or more than
-/// one `#` heading, each such heading starts a dance titled by it, and blank
-/// lines do not. Otherwise a dance starts at the first line, at a lone `#`
-/// heading, and at each line after a blank line that is not a detail of the
-/// dance before it and does not start like a figure (a list marker, a phrase
-/// label or a bracketed count; a bare number does not, so `12 Days of
-/// Christmas` is a title). A block with no detail, figure or note is a title
-/// only and is still a dance. Text before the first heading that names no
-/// figure and no label is kept in the first dance's notes.
+/// one `#` heading, headings split it, and blank lines do not. Each `#`
+/// heading is a dance when there are several and they read as dances
+/// (details or figures straight under one, or no `##` headings, or `##`
+/// titles that repeat, as `## Figures` under each dance); a `##` heading under
+/// one is then a section of that dance and is left out, its lines kept.
+/// Otherwise each `##` heading is a dance. Headings are read by hand
+/// ([_parseHeading]), not with a regular expression that could backtrack on
+/// a long line.
+///
+/// Without those headings, a dance starts at the first line, at a lone `#`
+/// heading, and at each line after a blank line that does not start like a
+/// figure (a list marker, a phrase label or a bracketed count; a bare number
+/// does not, so `12 Days of Christmas` is a title) and is not a detail of the
+/// dance before it (a `Label: value` line before that dance's figures).
+/// A block with no detail, figure or note is a title only and is still a
+/// dance. Text before the first heading is a dance of its own when the lines
+/// after its first hold a label or a figure, else it is kept in the first
+/// dance's notes.
 ///
 /// **Reading a dance.** After the title:
 /// - `Label: value` (a label of up to [kMaxTextDocumentLabelWords] words and
-///   30 characters; `**Label:**` emphasis and a full-width `：` are read
-///   too) is a detail, and so is `by Name` before any figure or note;
+///   30 characters, with a letter in it; `**Label:**` emphasis and a
+///   full-width `：` are read too) is a detail, and so is `by Name` before any figure or note;
 ///   `by Name` and `Author:` are kept under `Authors`;
 /// - a line with a list marker (`-`, `*`, `+`, `1.`), a phrase label (`A1`…)
 ///   or a leading count (`(8)`, `8`) is a figure, list marker removed, and so
@@ -152,9 +184,10 @@ final RegExp _lineBreak = RegExp('\r\n|[\n\r\u2028\u2029\u0085]');
 ///   `Circle left: 3 places`);
 /// - anything else is a note.
 ///
-/// A `#` heading with no figure under it is the file's own title or a section
-/// heading, not a dance, and is left out with its text, unless every dance in
-/// the file is a `#` heading.
+/// When `##` headings are the dances, a `#` heading with no figure under it
+/// is the file's own title or a section of the file and is left out with its
+/// text; in a file split by blank lines, so is a lone `#` heading with no
+/// figure and no detail.
 ///
 /// Markdown is read as text: only headings and list markers are read; links,
 /// emphasis and other syntax come in as written.
@@ -168,23 +201,53 @@ List<TextDocumentDance> readTextDocument(String text) {
   // file whose dances are split by blank lines.
   var topHeadings = 0;
   var hasSecondLevel = false;
+  var repeatedSecondLevel = false;
+  var topHasContent = false;
+  var underTop = false;
+  final secondTitles = <String>{};
   for (final l in lines) {
-    final m = _danceHeading.firstMatch(l.trim());
-    if (m == null) continue;
-    if (m.group(1)!.length == 2) {
-      hasSecondLevel = true;
-    } else {
-      topHeadings++;
+    final line = l.trim();
+    final heading = _parseHeading(line);
+    if (heading != null) {
+      final (level, title) = heading;
+      if (level == 1) {
+        topHeadings++;
+        underTop = true;
+      } else {
+        underTop = false;
+        if (level == 2) {
+          hasSecondLevel = true;
+          if (!secondTitles.add(title.toLowerCase())) {
+            repeatedSecondLevel = true;
+          }
+        }
+      }
+    } else if (underTop &&
+        line.isNotEmpty &&
+        (_labelOf(line) != null || _isFigureLine(line))) {
+      topHasContent = true;
     }
   }
   final byHeadings = hasSecondLevel || topHeadings > 1;
+  // The level whose headings are dances: `#` when there are several `#`
+  // headings and they read as dances (details or figures straight under
+  // one, or `##` titles that repeat, such as `## Figures` under each), so a
+  // `##` under one is a section of that dance; else `##`, and a `#` is the
+  // file's title or a section of the file.
+  final danceLevel =
+      topHeadings > 1 &&
+          (!hasSecondLevel || repeatedSecondLevel || topHasContent)
+      ? 1
+      : 2;
   final blocks = <_Block>[];
   _Block? current;
   var afterBlank = true;
   final preamble = <String>[];
 
   void start(String title, {required int level}) {
-    if (blocks.length == kMaxTextDocumentDances) {
+    // One block over the cap is allowed here for a `#` title left out below;
+    // the dances are counted again at the end.
+    if (blocks.length > kMaxTextDocumentDances) {
       throw const TextDocumentReadException(
         TextDocumentReadFailure.tooManyDances,
         limit: kMaxTextDocumentDances,
@@ -209,9 +272,15 @@ List<TextDocumentDance> readTextDocument(String text) {
     final wasAfterBlank = afterBlank;
     afterBlank = false;
     if (byHeadings) {
-      final heading = _danceHeading.firstMatch(line);
-      if (heading != null) {
-        start(heading.group(2)!, level: heading.group(1)!.length);
+      final heading = _parseHeading(line);
+      if (heading != null && heading.$1 <= danceLevel) {
+        start(heading.$2, level: heading.$1);
+        continue;
+      }
+      if (heading != null && current != null) {
+        // A deeper heading is a section of the dance (`## Figures`): its
+        // lines belong to the dance, and it ends a run of figure lines.
+        afterBlank = true;
         continue;
       }
       final block = current;
@@ -223,12 +292,13 @@ List<TextDocumentDance> readTextDocument(String text) {
       continue;
     }
     final block = current;
-    final heading = _danceHeading.firstMatch(line);
+    final heading = _parseHeading(line);
+    final topHeading = heading != null && heading.$1 == 1;
     if (block == null ||
-        heading != null ||
+        topHeading ||
         (wasAfterBlank && !_isLabelLine(line, block) && !_startsFigure(line))) {
-      if (heading != null) {
-        start(heading.group(2)!, level: 1);
+      if (topHeading) {
+        start(heading.$2, level: 1);
       } else {
         start(_stripHeading(line), level: 0);
       }
@@ -238,12 +308,18 @@ List<TextDocumentDance> readTextDocument(String text) {
   }
 
   // A `#` heading with no figures under it, in a file whose dances are `##`
-  // headings or blocks after blank lines, is the file's own title or a
-  // section heading, not a dance. In a file whose dances are all `#`
-  // headings, each is a dance.
-  if ((hasSecondLevel || !byHeadings) &&
+  // headings, is the file's own title or a section heading, not a dance; in
+  // a file whose dances are split by blank lines, so is a lone `#` heading
+  // with no figures and no details. When `#` headings are the dances, each
+  // is a dance.
+  if (danceLevel == 2 &&
       blocks.any((b) => b.level != 1 || b.figureLines.isNotEmpty)) {
-    blocks.removeWhere((b) => b.level == 1 && b.figureLines.isEmpty);
+    blocks.removeWhere(
+      (b) =>
+          b.level == 1 &&
+          b.figureLines.isEmpty &&
+          (byHeadings || b.labels.isEmpty),
+    );
   }
 
   // Text before the first heading: a dance of its own when it reads as one,
@@ -261,6 +337,12 @@ List<TextDocumentDance> readTextDocument(String text) {
       blocks.add(lead);
     }
   }
+  if (blocks.length > kMaxTextDocumentDances) {
+    throw const TextDocumentReadException(
+      TextDocumentReadFailure.tooManyDances,
+      limit: kMaxTextDocumentDances,
+    );
+  }
   return [for (final block in blocks) block.toDance()];
 }
 
@@ -272,14 +354,15 @@ String _stripHeading(String line) => _anyHeading.hasMatch(line)
 final RegExp _headingOpen = RegExp(r'^#+\s*');
 final RegExp _headingClose = RegExp(r'\s#+$');
 
-/// Whether [line] reads as a detail of [block]: a `Label: value` line, or a
-/// `by Name` line while [block] has only details so far.
+/// Whether [line], after a blank line, reads as a detail of [block] rather
+/// than a new dance's title: a `Label: value` line while [block] has no
+/// figures yet, or a `by Name` line while it has only details. After a
+/// dance's figures, a title such as `Petronella: Revisited` starts a dance.
 bool _isLabelLine(String line, _Block block) =>
+    block.figureLines.isEmpty &&
     splitPhraseLabel(line).$1 == null &&
     !_listMarker.hasMatch(line) &&
-    ((block.figureLines.isEmpty &&
-            block.notes.isEmpty &&
-            splitByLine(line) != null) ||
+    ((block.notes.isEmpty && splitByLine(line) != null) ||
         _labelOf(line) != null);
 
 /// [line] as a `Label: value` detail, or null. A web address (`https://…`) is
@@ -288,10 +371,11 @@ bool _isLabelLine(String line, _Block block) =>
   final bold = _boldLabel.firstMatch(line);
   final plain = bold == null
       ? line.replaceFirst('：', ':')
-      : '${bold.group(2)}: ${bold.group(3)}';
+      : '${bold.group(2)!.trim()}: ${bold.group(3)}';
   final label = splitLabelLine(plain, maxWords: kMaxTextDocumentLabelWords);
   if (label == null ||
       label.$1.length > _maxLabelChars ||
+      !_letter.hasMatch(label.$1) ||
       label.$2.startsWith('//')) {
     return null;
   }
@@ -299,10 +383,14 @@ bool _isLabelLine(String line, _Block block) =>
 }
 
 /// A Markdown bold or italic label: `**Formation:** Becket`,
-/// `**Formation**: Becket`, `_Music:_ Any reel`.
+/// `**Formation**: Becket`, `***Formation*** : Becket`, `_Music:_ Any reel`.
+/// The label group keeps any space before the colon, trimmed by the caller.
 final RegExp _boldLabel = RegExp(
-  r'^(\*\*|__|\*|_)([^*_:：]+)(?:[:：]\1|\1[:：])\s*(.*)$',
+  r'^(\*{1,3}|_{1,3})([^*_:：]+)(?:[:：]\1|\1\s*[:：])\s*(.*)$',
 );
+
+/// A letter: a label has one, so `10:30 start` is not a label.
+final RegExp _letter = RegExp(r'\p{L}', unicode: true);
 
 /// The longest label, in characters: a longer one is a sentence with a colon
 /// in it, also in a language written without spaces between words.

@@ -144,10 +144,77 @@ void main() {
 
     test('Unicode line separators split lines', () {
       final dance = readTextDocument(
-        'Dance A\u2028A1 swing\u0085(8) Long lines',
+        'Dance A\u2028A1 swing\u0085(8) Long lines\u2029(8) Swing',
       ).single;
       expect(dance.title, 'Dance A');
-      expect(dance.figureLines, ['A1 swing', '(8) Long lines']);
+      expect(dance.figureLines, ['A1 swing', '(8) Long lines', '(8) Swing']);
+    });
+
+    test('# dances with ## sections under each read as the # dances', () {
+      final dances = readTextDocument(
+        "# Rory's Reel\nFormation: Becket\n\n## Figures\n- A1 (8) swing\n"
+        '\n## Notes\nWatch it.\n\n# Petronella\n## Figures\n- A1 (8) balance\n',
+      );
+      expect([for (final d in dances) d.title], ["Rory's Reel", 'Petronella']);
+      expect(dances.first.labels, const [('Formation', 'Becket')]);
+      expect(dances.first.figureLines, ['A1 (8) swing']);
+      expect(dances.first.notes, ['Watch it.']);
+      expect(dances.last.figureLines, ['A1 (8) balance']);
+    });
+
+    test('# sections of a file with ## dances are left out', () {
+      final dances = readTextDocument(
+        '# Contras\n\n## Chorus Jig\n(8) Swing\n\n# Squares\n\n'
+        '## Grand Square\n(16) Grand square\n',
+      );
+      expect([for (final d in dances) d.title], ['Chorus Jig', 'Grand Square']);
+    });
+
+    test('a lone # dance with details is kept above blank-split dances', () {
+      final dances = readTextDocument(
+        '# Solo\nFormation: Proper\n\nOther\n(8) Swing\n',
+      );
+      expect([for (final d in dances) d.title], ['Solo', 'Other']);
+    });
+
+    test('a lone # heading with figures is a dance beside another', () {
+      final dances = readTextDocument(
+        '# Solo\n(8) Swing\n\nOther\n(8) Swing\n',
+      );
+      expect([for (final d in dances) d.title], ['Solo', 'Other']);
+    });
+
+    test("after a dance's figures, a title with a colon starts a dance", () {
+      final dances = readTextDocument(
+        'Chorus Jig\nA1 (8) balance\n\nPetronella: Revisited\nA1 (8) swing\n',
+      );
+      expect(
+        [for (final d in dances) d.title],
+        ['Chorus Jig', 'Petronella: Revisited'],
+      );
+      expect(dances.first.labels, isEmpty);
+    });
+
+    test('more emphasis forms and a time are read right', () {
+      final dance = readTextDocument(
+        'Dance\n***Formation:*** Becket\n**Music** : Any reel\n10:30 start\n',
+      ).single;
+      expect(dance.labels, const [
+        ('Formation', 'Becket'),
+        ('Music', 'Any reel'),
+      ]);
+      expect(dance.notes, ['10:30 start']);
+    });
+
+    test('a long heading line with spaces before its end is read', () {
+      final title = 'a${' ' * 60000}x';
+      final dance = readTextDocument('## $title\n(8) Swing').single;
+      expect(dance.title, title);
+    });
+
+    test('an empty heading is not a dance', () {
+      final dances = readTextDocument('## ##\n\n## Real\n(8) Swing\n');
+      expect([for (final d in dances) d.title], ['Real']);
     });
 
     test('a web address is not a label', () {
@@ -197,6 +264,27 @@ void main() {
         (i) => '## D$i',
       ).join('\n');
       expect(readCsv(textDocumentToCsv(readTextDocument(atCap))), isNotEmpty);
+    });
+
+    test('a dance before the first heading counts toward the cap', () {
+      final text =
+          'Pre\nFormation: X\n${List.generate(kMaxTextDocumentDances, (i) => '## D$i').join('\n')}';
+      expect(
+        () => readTextDocument(text),
+        throwsA(
+          isA<TextDocumentReadException>().having(
+            (e) => e.reason,
+            'reason',
+            TextDocumentReadFailure.tooManyDances,
+          ),
+        ),
+      );
+    });
+
+    test('a # title left out does not count toward the cap', () {
+      final text =
+          '# Title\n${List.generate(kMaxTextDocumentDances, (i) => '## D$i').join('\n')}';
+      expect(readTextDocument(text), hasLength(kMaxTextDocumentDances));
     });
 
     test('a cell the formula guard lengthens past the cap is refused', () {

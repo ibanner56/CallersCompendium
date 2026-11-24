@@ -20,7 +20,7 @@
   - [Signed published collections (#862)](#signed-published-collections-862) — 22 lines
   - [5. A list of titles (#823)](#5-a-list-of-titles-823) — 72 lines
   - [6. A spreadsheet (CSV) (#2329)](#6-a-spreadsheet-csv-2329) — 71 lines
-  - [7. A text or Markdown file (#2330)](#7-a-text-or-markdown-file-2330) — 53 lines
+  - [7. A text or Markdown file (#2330)](#7-a-text-or-markdown-file-2330) — 63 lines
   - [Simultaneous-action fan-out (`meanwhile`) (#591/#572)](#simultaneous-action-fan-out-meanwhile-591572) — 59 lines
   - [Shared free-text figure parser (cross-cutting)](#shared-free-text-figure-parser-cross-cutting) — 299 lines
   - [Balance-a-wave lines (CallersBox, #295 / taxonomy v21)](#balance-a-wave-lines-callersbox-295--taxonomy-v21) — 86 lines
@@ -1608,20 +1608,29 @@ custom-field commit and the no-provenance rule).
 | `Label: value` and `by Name` lines, shared with the Caller's Companion text adapter | `packages/compendium_core/lib/src/imports/label_lines.dart` |
 | source, picker, map-labels wiring | `app/lib/src/data/import_io.dart`, `app/lib/src/screens/import_review_screen.dart`, `app/lib/src/screens/import_csv_mapping.dart` |
 
-`readTextDocument` splits the text into `TextDocumentDance`s: at each `#`/`##`
-heading when the file has a `##` heading or more than one `#` heading,
-otherwise at the first line, a lone `#` heading, and each line after a blank
-line that is neither a detail of the dance before nor starts like a figure (a
-bare leading number does not, so `12 Days of Christmas` is a title). A `#`
-block with no figure is the file's title or a section heading and is dropped,
-except in a file whose dances are all `#` headings; text before the first dance
-becomes its own dance only when it holds a label or a figure, else it goes into
-the first dance's notes. A label line is `splitLabelLine` with up to
-`kMaxTextDocumentLabelWords` (3) words and 30 characters (a sentence in a
-language without spaces is not a label), a value not starting `//`, Markdown
-emphasis around the label removed and a full-width `：` read as `:`. A `by Name`
-line counts only before the dance's figures and notes. `by Name` and `Author:`
-are folded under `Authors`, the English name of the authors column, so the
+`readTextDocument` splits the text into `TextDocumentDance`s. Headings split
+it when it has a `##` heading or more than one `#` heading. `#` headings are
+the dances when there are several and they read as dances (a detail or figure
+straight under one, no `##` at all, or `##` titles that repeat, as
+`## Figures` under each); a deeper heading is then a section of the dance,
+left out with its lines kept. Otherwise `##` headings are the dances and a
+`#` block with no figure is the file's title or a section of the file, and is
+dropped. Headings are scanned by hand (`_parseHeading`): a regular expression
+with an optional closing `#` sequence backtracked quadratically, about 70 s
+for one line at the cell cap, on the UI thread. Without such headings, a dance
+starts at the first line, a lone `#` heading, and each line after a blank
+line that does not start like a figure (a bare leading number does not, so
+`12 Days of Christmas` is a title) and is not a detail of the dance before it
+(a label line counts as a detail only before that dance's figures); a lone
+`#` block with no figure and no detail is dropped. Text before the first
+dance becomes its own dance when the lines after its first hold a label or a
+figure, else it goes into the first dance's notes. A label line is
+`splitLabelLine` with up to `kMaxTextDocumentLabelWords` (3) words and 30
+characters (a sentence in a language without spaces is not a label), at least
+one letter (`10:30` is not a label), a value not starting `//`, Markdown
+emphasis around the label removed and a full-width `：` read as `:`. A
+`by Name` line counts only before the dance's figures and notes. `by Name` and
+`Author:` are folded under `Authors`, the English name of the authors column, so the
 header pre-mapping picks it. A figure line has a list marker, a phrase label or
 a leading count, or follows a figure line directly (a wrapped line, read as a
 figure even with a colon); list markers are removed and the rest is left for
@@ -1640,7 +1649,8 @@ value; an unmapped detail is kept with its label rather than ignored
 header-row controls are hidden for this source.
 
 Caps reuse the spreadsheet's: bytes (`kMaxCsvImportBytes`), dances
-(`kMaxCsvImportRows` less the header row), a line and one dance's cell
+(`kMaxCsvImportRows` less the header row, counted after dropped title blocks
+and with a dance before the first heading), a line and one dance's cell
 (`kMaxCsvImportCellChars`, measured with the formula guard's apostrophe),
 and labels (`kMaxCsvImportColumns` less the three fixed columns). A file that is
 not UTF-8 is refused (`decodeTextDocumentBytes`). Each refusal is a
