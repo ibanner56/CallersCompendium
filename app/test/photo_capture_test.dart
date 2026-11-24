@@ -484,6 +484,23 @@ void main() {
       },
     );
 
+    test('a resized photo\'s original beside it is deleted too', () async {
+      final cache = await cacheDir();
+      // Written while the camera was open, so after the capture began: the
+      // sweep of older files would not take it.
+      final original = await fileIn(cache, '${uuid}55.jpg');
+      await original.setLastModified(
+        DateTime.now().add(const Duration(minutes: 1)),
+      );
+      final scaled = await fileIn(cache, 'scaled_${uuid}55.jpg');
+      expect(
+        await androidCamera(cache, scaled).takePhoto(maxBytes: 1024),
+        _photoBytes,
+      );
+      expect(scaled.existsSync(), isFalse);
+      expect(original.existsSync(), isFalse);
+    });
+
     test('other files are left alone', () async {
       final cache = await cacheDir();
       for (final name in [

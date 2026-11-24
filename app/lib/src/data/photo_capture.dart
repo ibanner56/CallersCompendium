@@ -130,11 +130,22 @@ class SystemCameraPhotoCapture implements PhotoCaptureService {
       }
       return await file.readAsBytes();
     } finally {
+      final folder = temporaryDirectory ?? await _pluginFolder(platform);
       await deleteCapturedPhoto(
         file.path,
-        temporaryDirectory: temporaryDirectory ?? await _pluginFolder(platform),
+        temporaryDirectory: folder,
         platform: platform,
       );
+      // The Android plugin deletes the full-size original once it has
+      // written its `scaled_` copy; should it not, the original goes too.
+      final name = p.basename(file.path);
+      if (platform == TargetPlatform.android && name.startsWith('scaled_')) {
+        await deleteCapturedPhoto(
+          p.join(p.dirname(file.path), name.substring('scaled_'.length)),
+          temporaryDirectory: folder,
+          platform: platform,
+        );
+      }
     }
   }
 }
