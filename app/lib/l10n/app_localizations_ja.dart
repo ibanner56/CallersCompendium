@@ -9989,6 +9989,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorLessTooltip => '少なく';
 
   @override
+  String get danceEditorFigureNeedsValues => '保存する前に、このフィギュアのすべての項目で値を選んでください。';
+
+  @override
+  String get danceEditorSaveNeedsFigureValues =>
+      '追加したフィギュアに空欄の項目が残っています。入力すると保存できます。';
+
+  @override
   String get danceEditorParamNotStated => '未指定';
 
   @override

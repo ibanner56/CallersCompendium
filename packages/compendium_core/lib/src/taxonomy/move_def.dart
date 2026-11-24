@@ -132,6 +132,7 @@ class MoveAlias {
     this.searchKeywords = const [],
     this.inversePairId,
     this.listedAsMove = false,
+    this.defaultParams = const {},
   });
 
   final String id;
@@ -139,6 +140,18 @@ class MoveAlias {
   final String targetMove;
   final Map<String, Object?> pinnedParams;
   final List<String> searchKeywords;
+
+  /// What a figure stored under this alias means by leaving a param out, where
+  /// that differs from the target's [ParamSpec.defaultValue]. Unlike a pin,
+  /// the figure may state any value; this only replaces the default.
+  ///
+  /// It exists for two moves merged into one that each kept the meaning their
+  /// stored figures already had (taxonomy v40): `pass_by`, an alias of
+  /// `pass_through`, means `who: neighbors` and `where: unspecified` by an
+  /// omitted param, where a pass through means `who: unspecified` and
+  /// `where: along`. Read it through [Taxonomy.effectiveParams] or
+  /// [Taxonomy.defaultParamValue], never from the target's spec alone.
+  final Map<String, Object?> defaultParams;
 
   /// The id of the counterpart alias (or move) that this alias forms an
   /// inverse pair with. For `swat_the_flea` (pins `hand: left`), this is

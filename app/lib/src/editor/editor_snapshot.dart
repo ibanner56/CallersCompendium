@@ -18,6 +18,7 @@ class FigureDraftSnapshot {
     required this.schemaVersion,
     this.beatsTouched = false,
     this.assumedSubject = false,
+    this.enteredNew = false,
     this.customOrigin = CustomOrigin.userEntered,
     this.walkthroughOverride,
     this.wordingOverride,
@@ -37,6 +38,7 @@ class FigureDraftSnapshot {
         schemaVersion: draft.schemaVersion,
         beatsTouched: draft.beatsTouched,
         assumedSubject: draft.assumedSubject,
+        enteredNew: draft.enteredNew,
         customOrigin: draft.customOrigin,
         walkthroughOverride: draft.walkthroughOverride,
         wordingOverride: draft.wordingOverride,
@@ -75,6 +77,10 @@ class FigureDraftSnapshot {
   /// undo/redo and autosave so the non-authoritative marker never silently
   /// disappears while editing.
   final bool assumedSubject;
+
+  /// [FigureDraft.enteredNew], preserved across undo/redo and autosave so a
+  /// figure entered in this edit still has to state its required params.
+  final bool enteredNew;
 
   /// How the figure originated when it is a custom (see [CustomOrigin]);
   /// preserved across undo/redo and autosave so a free-text/import parser-gap
@@ -115,6 +121,7 @@ class FigureDraftSnapshot {
     schemaVersion: schemaVersion,
     beatsTouched: beatsTouched,
     assumedSubject: assumedSubject,
+    enteredNew: enteredNew,
     customOrigin: customOrigin,
     walkthroughOverride: walkthroughOverride,
     wordingOverride: wordingOverride,

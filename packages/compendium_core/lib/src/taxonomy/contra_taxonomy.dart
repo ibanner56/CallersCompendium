@@ -26,6 +26,22 @@ import 'taxonomy.dart';
 /// (CONTRIBUTING.md, "Versioned formats").
 const int contraTaxonomyVersion = 40;
 
+/// `pass_through.passType` (taxonomy v40): which of the two merged figures a
+/// pass is. `by` is the `pass_by` alias's pin.
+const List<String> passTypes = ['by', 'through'];
+
+/// `pass_through.who`: any dancer set, or unstated (v40).
+const List<String> _passWhoChoices = [
+  ...ParamVocab.dancerSets,
+  ParamVocab.unspecified,
+];
+
+/// `pass_through.where`: any direction, or unstated (v40).
+const List<String> _passWhereChoices = [
+  ...ParamVocab.directions,
+  ParamVocab.unspecified,
+];
+
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
 
@@ -428,15 +444,49 @@ final Taxonomy contraTaxonomy = Taxonomy(
       // ContraDB longLinesChange/GoodBeats: `beats = goBack ? 8 : 4`.
       paramBeats: ParamBeats(param: 'goBack', byValue: {true: 8, false: 4}),
     ),
+    // v40: pass through and pass by are one figure, told apart by `passType`
+    // (the maintainer's design, 2026-11-24). `pass_by` is the alias pinning
+    // `passType: by` (below), so each keeps its id, its picker entry and its
+    // stored figures. Each param means what that move's figures already meant
+    // by leaving it out: a pass through `who: unspecified` and `where: along`
+    // (the defaults here), a pass by `who: neighbors` and `where: unspecified`
+    // (its [MoveAlias.defaultParams]), so no stored figure changes meaning and
+    // an import that does not state the param its move lacked before v40
+    // leaves it unstated. A figure entered new in the editor must state both
+    // ([ParamSpec.requiredOnEntry]).
     const MoveDef(
       id: 'pass_through',
       displayName: 'pass through',
       params: {
-        'where': ParamSpec(ParamKind.direction, defaultValue: 'along'),
+        'who': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _passWhoChoices,
+          allowManualClear: false,
+          requiredOnEntry: true,
+        ),
+        'where': ParamSpec(
+          ParamKind.direction,
+          defaultValue: 'along',
+          choices: _passWhereChoices,
+          allowManualClear: false,
+          requiredOnEntry: true,
+        ),
         'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 2),
+        // Last, so the editor shows it under "More options". Never stored:
+        // the figure's id says it (`withoutListedAliasPins` drops it), so a
+        // build before v40 meets no such key.
+        'passType': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'through',
+          choices: passTypes,
+        ),
       },
-      renderTemplate: '{move} {where}',
+      // `where` is last so an unstated pass by's canonical text is the
+      // `{who} {move}` it had as a move, and a pass through's `{move} {where}`
+      // gains only a stated `who`.
+      renderTemplate: '{who} {move} {where}',
       goodBeats: [2],
     ),
     const MoveDef(
@@ -1595,18 +1645,6 @@ final Taxonomy contraTaxonomy = Taxonomy(
     // conditional beat rules aren't encoded (goodBeats carries a simple typical
     // list or is omitted, cf. poussette).
     const MoveDef(
-      id: 'pass_by',
-      displayName: 'pass by',
-      params: {
-        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
-        // Available for %S dialect injection (cf. pass_through); structured.
-        'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
-        'beats': ParamSpec(ParamKind.beats, defaultValue: 2),
-      },
-      renderTemplate: '{who} {move}',
-      goodBeats: [2],
-    ),
-    const MoveDef(
       id: 'hey',
       displayName: 'hey',
       params: {
@@ -2019,6 +2057,20 @@ final Taxonomy contraTaxonomy = Taxonomy(
       // Dialects hold names and wordings keyed on it from when it was a move,
       // and its name is the formation where its target's is the direction.
       listedAsMove: true,
+    ),
+    // v40: a move until then, now `pass_through` with `passType: by` (see
+    // there). Listed as a move for the reasons `long_lines` is: its figures
+    // are stored under its own id, and dialects hold names and wordings keyed
+    // on it. Its defaults keep what a stored pass by that leaves `who` or
+    // `where` out has always meant.
+    const MoveAlias(
+      id: 'pass_by',
+      displayName: 'pass by',
+      targetMove: 'pass_through',
+      pinnedParams: {'passType': 'by'},
+      inversePairId: 'pass_through',
+      listedAsMove: true,
+      defaultParams: {'who': 'neighbors', 'where': ParamVocab.unspecified},
     ),
     // v40 (issue #770): The Caller's Box's "Hand cast" is a gate. Its glossary
     // calls it "a cast off figure done with hands… very similar to a gate",

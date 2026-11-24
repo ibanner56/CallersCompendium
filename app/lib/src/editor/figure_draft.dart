@@ -18,6 +18,7 @@ class FigureDraft {
     this.schemaVersion = figureSchemaVersion,
     this.beatsTouched = false,
     this.assumedSubject = false,
+    this.enteredNew = false,
     this.customOrigin = CustomOrigin.userEntered,
     this.walkthroughOverride,
     this.wordingOverride,
@@ -312,6 +313,14 @@ class FigureDraft {
   /// as soon as the user picks a move or edits the `who` param, since either is
   /// an explicit, authoritative choice of subject.
   bool assumedSubject;
+
+  /// Whether this edit entered the figure's move: it was picked, or typed in
+  /// the free-text composer, rather than loaded with the dance. Such a figure
+  /// must state every [ParamSpec.requiredOnEntry] param before the dance saves
+  /// (taxonomy v40: a pass by's or pass through's `who` and `where`); one
+  /// loaded unstated saves as it is. Never stored on the figure; kept across
+  /// undo/redo, autosave and duplication.
+  bool enteredNew;
 
   /// How this figure originated when it is a [customMove] custom (see
   /// [CustomOrigin]). Carried through the editor so a custom figure produced by
@@ -625,6 +634,7 @@ class FigureDraft {
     schemaVersion: schemaVersion,
     beatsTouched: beatsTouched,
     assumedSubject: assumedSubject,
+    enteredNew: enteredNew,
     customOrigin: customOrigin,
     walkthroughOverride: walkthroughOverride,
     wordingOverride: wordingOverride,

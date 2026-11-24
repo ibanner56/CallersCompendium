@@ -1883,6 +1883,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     );
     if (widget.draft.move == moveId) return;
     widget.draft.move = moveId;
+    // Picking a move enters the figure: its required params must be stated
+    // before the dance saves (taxonomy v40).
+    widget.draft.enteredNew = true;
     widget.draft.compound = null;
     widget.draft.params
       ..clear()
@@ -3868,7 +3871,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             mixer: widget.mixer,
             moveId: draft.move,
             fractionAmountFollows: true,
-            value: draft.params[entry.key] ?? entry.value.defaultValue,
+            // An omitted param shows what the figure's own id means by it: a
+            // `pass_by`'s `who` is neighbors, its target's unstated (v40).
+            value:
+                draft.params[entry.key] ??
+                widget.taxonomy.defaultParamValue(draft.move!, entry.key),
             onChanged: (v) {
               if (entry.key == 'beats') {
                 draft.params['beats'] = v;
@@ -3887,12 +3894,38 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       ],
     );
 
-    if (!hasMore) return paramWrap(inline);
+    // A figure entered in this edit states every required param before the
+    // dance saves (taxonomy v40); say so on the figure itself.
+    final move = draft.move;
+    final missing = draft.enteredNew && move != null
+        ? widget.taxonomy.unstatedRequiredParams(
+            Figure(move: move, params: draft.params),
+          )
+        : const <String>[];
+    final missingNotice = missing.isEmpty
+        ? null
+        : Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
+            child: Text(
+              l10n.danceEditorFigureNeedsValues,
+              key: _key('needs-values'),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          );
+
+    if (!hasMore) {
+      if (missingNotice == null) return paramWrap(inline);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [paramWrap(inline), missingNotice],
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         paramWrap(inline),
+        ?missingNotice,
         const SizedBox(height: 4),
         Align(
           alignment: Alignment.centerLeft,
@@ -4116,7 +4149,11 @@ void _rerouteInversePair(FigureDraft draft, Taxonomy taxonomy) {
   final resolved = taxonomy.resolvedMoveId(
     Figure(move: move, params: draft.params),
   );
-  if (resolved != move) draft.move = resolved;
+  if (resolved == move) return;
+  // A pass by turned into a pass through keeps the neighbors its omitted
+  // `who` meant (taxonomy v40), as [applyParamChange] does.
+  keepOmittedMeaning(taxonomy, move, resolved, draft.params);
+  draft.move = resolved;
 }
 
 // ---------------------------------------------------------------------------
@@ -4252,6 +4289,7 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     final draft = widget.draft;
     if (draft.move == moveId) return;
     draft.move = moveId;
+    draft.enteredNew = true;
     draft.params
       ..clear()
       ..addAll(widget.taxonomy.entryParams(moveId));
@@ -4615,7 +4653,8 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
             fractionAmountFollows: true,
             value: isStep && entry.key == 'beats'
                 ? _shownStepBeats(context, entry.value)
-                : draft.params[entry.key] ?? entry.value.defaultValue,
+                : draft.params[entry.key] ??
+                      widget.taxonomy.defaultParamValue(draft.move!, entry.key),
             onChanged: (v) {
               if (entry.key == 'who') draft.assumedSubject = false;
               if (isStep) {

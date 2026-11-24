@@ -174,19 +174,23 @@ void main() {
       expect(f.params['shoulder'], 'right');
     });
 
-    // `pass_through` declares NO `who`. The dancer therefore has nowhere to go
-    // and must not be forced somewhere it does not belong.
+    // Taxonomy v40 gave `pass_through` a `who` (it is one figure with pass
+    // by), so The Caller's Box's dancer code now lands there with the shoulder:
+    // `(NR)` is neighbors passing right shoulders.
     //
-    // Mutation caught: writing `who` unconditionally, which
-    // `Taxonomy.validateFigure` rejects as an unknown param — sending the whole
-    // line to the custom fallback and REGRESSING 2,136 corpus figures from
-    // structured to custom.
-    test('pass_through gains a shoulder but no `who`', () async {
-      final f = await _importTcbLine('(2) Pass through along (NR)');
-      expect(f.isCustom, isFalse);
-      expect(f.move, 'pass_through');
-      expect(f.params.containsKey('who'), isFalse);
-      expect(f.params['shoulder'], 'right');
+    // Mutation caught: a `pass_through` without `who` (the pre-v40 move), which
+    // drops the dancer the source states and keeps only the shoulder.
+    test('pass_through takes the dancer and the shoulder', () async {
+      for (final (line, who, shoulder) in [
+        ('(2) Pass through along (NR)', 'neighbors', 'right'),
+        ('(2) Pass through across (PR)', 'partners', 'right'),
+        ('(2) Pass through along (N2L)', 'nextNeighbors', 'left'),
+      ]) {
+        final f = await _importTcbLine(line);
+        expect(f.move, 'pass_through', reason: line);
+        expect(f.params['who'], who, reason: line);
+        expect(f.params['shoulder'], shoulder, reason: line);
+      }
     });
   });
 

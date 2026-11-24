@@ -10030,6 +10030,14 @@
   "@danceEditorLessTooltip": {
     "x-sourceSha256": "ae5239ec63f28cd401ccd63e9f56e4ede8254a738a135ebcd33e844c18dd247f"
   },
+  "danceEditorFigureNeedsValues": "Kies een waarde voor elk veld van deze figuur voordat je opslaat.",
+  "@danceEditorFigureNeedsValues": {
+    "x-sourceSha256": "61017bcbb23d7350414081cf02df28c3b55cfeaa28b58390310d5828198ae1a8"
+  },
+  "danceEditorSaveNeedsFigureValues": "Sommige toegevoegde figuren hebben nog lege velden. Vul ze in om op te slaan.",
+  "@danceEditorSaveNeedsFigureValues": {
+    "x-sourceSha256": "899a2bb2764967487b319de39f17f242eb5d834d40066036fca864e6461c7e90"
+  },
   "danceEditorParamNotStated": "niet opgegeven",
   "@danceEditorParamNotStated": {
     "x-sourceSha256": "109df22c5a753d340af3ecee225f7a2a432a65dedfb163736943dfa7af638104"
