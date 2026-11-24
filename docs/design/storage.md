@@ -957,6 +957,10 @@ steps that can still fire are v40 onward.
   them. Added by the same step, after the times, each only if absent; no data
   rewritten.
 
+  Because test builds stamped v42 before these later pieces joined it,
+  `beforeOpen` also ensures v42's pieces on every open of a file at v42 or
+  later, as it does for v39 (`v42_partial_stamp_repair_test.dart`).
+
 ## The delete model
 
 Every syncable kind — dances, programs, choreographers, tags, published
