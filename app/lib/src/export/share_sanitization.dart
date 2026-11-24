@@ -66,6 +66,9 @@ Dance sanitizeDanceForShare(Dance dance) =>
 /// The calendar event key a calendar import stored (#2352) goes too: the
 /// recipient has no such calendar, and the key is a digest of a third party's
 /// event identifier (registry `programs.calendar_event_key`).
+/// The event rules applied to it (#2340) go as well: they are the caller's own
+/// planning aids and cite rules the recipient does not have (registry
+/// `programs.event_rule_ids`).
 /// See [sanitizeDanceForShare] for why this is not an egress class.
 ///
 /// It is [sanitizeProgramForCsv] with pay removed as well, so the two cannot
@@ -75,14 +78,16 @@ Program sanitizeProgramForShare(Program program) =>
     sanitizeProgramForCsv(program).copyWith(clearPay: true);
 
 /// What the programs CSV export (#2333) withholds from a [Program]: the
-/// Perform dialect name, the archived state and the calendar event
-/// identifier, as a share file does, but **not** pay. Ruling 2 (maintainer,
+/// Perform dialect name, the archived state, the calendar event identifier
+/// and the applied event rules (#2340), as a share file does, but **not**
+/// pay. Ruling 2 (maintainer,
 /// feature triage, 2026-11-22) keeps pay in the CSV, since it is the caller's
 /// own record of their gigs.
 Program sanitizeProgramForCsv(Program program) => program.copyWith(
   clearDialectName: true,
   clearArchivedAt: true,
   clearCalendarEventKey: true,
+  eventRuleIds: const [],
 );
 
 /// The six contact-person PII fields on a [Venue] (the two contacts' name,

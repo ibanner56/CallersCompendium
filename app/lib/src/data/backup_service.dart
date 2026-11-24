@@ -356,6 +356,7 @@ class BackupService {
       settings: settings,
       glossaryEntries: await _repos.userGlossary.listAll(),
       figureNotes: await _repos.figureNotes.listAll(),
+      eventRules: await _repos.eventRules.listAll(),
     );
   }
 
@@ -736,6 +737,48 @@ class BackupService {
     }
   });
 
+  /// The caller's event rules (#2340), when the backup describes them: as
+  /// [_applyGlossary] does for the glossary, one transaction; a replace
+  /// restore deletes softly the live rules the backup lacks, unless part of
+  /// the section could not be read, and a merge only adds and updates. A rule
+  /// the repository refuses is skipped, its live copy kept, and reported.
+  ///
+  /// The rules a program applies come back with the program, in the core
+  /// archive. A rule a program names that the backup lacks is ignored there
+  /// (the program's id list is a soft reference).
+  Future<void> _applyEventRules(
+    BackupReadResult read,
+    List<ArchiveError> errors, {
+    required RestoreMode mode,
+  }) => _repos.transaction(() async {
+    final doc = read.document;
+    final stamp = restoreStampFor(backupCreatedAt(doc));
+    if (mode == RestoreMode.replace && read.eventRulesComplete) {
+      final keptIds = {for (final r in doc.eventRules) r.id};
+      for (final live in await _repos.eventRules.listAll()) {
+        if (!keptIds.contains(live.id)) {
+          await _repos.eventRules.deleteFromRestore(live.id, at: stamp);
+        }
+      }
+    }
+    for (final rule in doc.eventRules) {
+      try {
+        await _repos.eventRules.upsertFromRestore(rule, backupCreatedAt: stamp);
+      } on EventRuleInvalid catch (e) {
+        // diagnostics: silent — the skipped rule is reported in the restore outcome's errors.
+        errors.add(
+          ArchiveError(
+            kind: ArchiveErrorKind.restore,
+            entityType: 'eventRule',
+            entityId: rule.id,
+            message:
+                'event rule skipped: ${e.field} cannot be stored', // i18n-ignore: internal diagnostic, never shown
+          ),
+        );
+      }
+    }
+  });
+
   /// Writes the backup's app-local pieces into the `settings` table so the
   /// dialect/theme controllers and preference notifiers pick them up on reload,
   /// and the user's glossary into its own tables ([_applyGlossary]).
@@ -797,6 +840,10 @@ class BackupService {
 
     if (read.hasGlossarySection) {
       await _applyGlossary(read, errors, mode: mode);
+    }
+
+    if (read.hasEventRulesSection) {
+      await _applyEventRules(read, errors, mode: mode);
     }
 
     // Custom themes: rewrite the list and the active id.

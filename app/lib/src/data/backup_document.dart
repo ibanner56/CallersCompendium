@@ -23,7 +23,9 @@ import 'custom_theme.dart';
 /// replace-restore one that has them rather than silently dropping them.
 ///
 /// v3 is stamped when a program in the backup is archived
-/// ([backupSchemaVersionArchivedPrograms]).
+/// ([backupSchemaVersionArchivedPrograms]), was imported from a calendar
+/// ([backupSchemaVersionCalendarEventKeys]), or when the backup carries event
+/// rules ([backupSchemaVersionEventRules]).
 const int backupSchemaVersion = backupSchemaVersionArchivedPrograms;
 
 /// The envelope version every backup carrying none of the conditional data
@@ -72,6 +74,18 @@ const int backupSchemaVersionArchivedPrograms = 3;
 /// this was added, and every build that reads v3 reads this key too.
 const int backupSchemaVersionCalendarEventKeys = 3;
 
+/// The envelope version a backup is written under when it carries the
+/// caller's event rules (`app.eventRules`, schema v42, #2340).
+///
+/// No build up to 0.10.0 reads `app.eventRules`, and 0.8.0 to 0.10.0 accept
+/// envelope v2, so they would replace-restore such a backup and drop the
+/// rules without a word. The same number as
+/// [backupSchemaVersionArchivedPrograms] on purpose: v3 had not shipped when
+/// this was added, and every build that reads v3 reads this section too. The
+/// rules a program applies (`eventRuleIds`) are stamped by the core archive
+/// version instead (`archiveSchemaVersionEventRules`).
+const int backupSchemaVersionEventRules = 3;
+
 /// The envelope version [doc] must be written under so that no build that
 /// would silently drop part of it restores it: the highest version any of its
 /// conditional data needs, otherwise [backupSchemaVersionBase].
@@ -94,6 +108,7 @@ int requiredBackupVersion(BackupDocument doc) {
   )) {
     return backupSchemaVersionCalendarEventKeys;
   }
+  if (doc.hasEventRules) return backupSchemaVersionEventRules;
   if (doc.hasGlossary) return backupSchemaVersionGlossary;
   // `Program` keeps the two pay keys set together, so one stands for both.
   final hasProgramPay = doc.core.programs.any(
@@ -126,6 +141,10 @@ const int kMaxBackupGlossaryEntries = 5000;
 /// Maximum notes on shipped figures restored from one backup (#709).
 const int kMaxBackupFigureNotes = 5000;
 
+/// Maximum event rules restored from one backup (#2340): as many as one
+/// device keeps ([maxEventRules]).
+const int kMaxBackupEventRules = maxEventRules;
+
 /// The only checksum algorithm the container understands. A backup that names
 /// anything else is refused rather than trusted.
 const String kBackupChecksumAlgorithm = 'sha256';
@@ -150,6 +169,7 @@ class BackupDocument {
     this.settings = const {},
     this.glossaryEntries = const [],
     this.figureNotes = const [],
+    this.eventRules = const [],
   });
 
   /// The `backupVersion` the file this document was read from carries. Only
@@ -190,6 +210,13 @@ class BackupDocument {
 
   /// Whether this document carries `app.glossary`.
   bool get hasGlossary => glossaryEntries.isNotEmpty || figureNotes.isNotEmpty;
+
+  /// The caller's event rules, live ones only (#2340), each as stored: a
+  /// quantifier or scope a newer build wrote is kept as text.
+  final List<EventRule> eventRules;
+
+  /// Whether this document carries `app.eventRules`.
+  bool get hasEventRules => eventRules.isNotEmpty;
 }
 
 /// Outcome of decoding a backup document: the recovered [document] plus any
@@ -212,6 +239,8 @@ class BackupReadResult {
     this.hasSettingsSection = false,
     this.hasGlossarySection = false,
     this.glossaryComplete = true,
+    this.hasEventRulesSection = false,
+    this.eventRulesComplete = true,
   });
 
   final BackupDocument document;
@@ -295,6 +324,16 @@ class BackupReadResult {
   /// read has no id it could be matched against, so a live entry sharing it
   /// must not be taken for one the backup lacks.
   final bool glossaryComplete;
+
+  /// Whether `app.eventRules` was a list (#2340). When false the restore
+  /// leaves the live rules untouched: absent is not "empty", so restoring a
+  /// backup made before them, or where there were none, never clears them.
+  final bool hasEventRulesSection;
+
+  /// Whether every rule in `app.eventRules` was read (#2340). When one could
+  /// not be read, or the section was over its limit, the restore adds what it
+  /// read but removes nothing, as for the glossary.
+  final bool eventRulesComplete;
 
   bool get hasErrors => errors.isNotEmpty;
 }
@@ -430,8 +469,58 @@ Map<String, Object?> backupToJson(BackupDocument doc) => {
             {'figureId': n.figureId, 'notes': n.notes},
         ],
       },
+    if (doc.hasEventRules)
+      'eventRules': [for (final r in doc.eventRules) _eventRuleJson(r)],
   },
 };
+
+/// A rule as a backup holds it: the same fields Device Sync carries
+/// (`syncEventRuleBody`), the quantifier and scope by their stored names.
+Map<String, Object?> _eventRuleJson(EventRule r) => {
+  'id': r.id,
+  'savedSearchId': r.savedSearchId,
+  'quantifier': r.quantifierName,
+  'count': r.count,
+  'scope': r.scopeName,
+  if (r.name != null) 'name': r.name,
+  'position': r.position,
+};
+
+/// A rule read from a backup, or null when [raw] is not one. The bounds are
+/// the repository's: on restore it refuses a rule outside them, which is
+/// skipped and reported.
+EventRule? _eventRuleFromJson(Object? raw) {
+  if (raw is! Map) return null;
+  final id = raw['id'];
+  final savedSearchId = raw['savedSearchId'];
+  final quantifier = raw['quantifier'];
+  final count = raw['count'];
+  final scope = raw['scope'];
+  final name = raw['name'];
+  final position = raw['position'] ?? 0;
+  if (id is! String ||
+      id.isEmpty ||
+      savedSearchId is! String ||
+      savedSearchId.isEmpty ||
+      quantifier is! String ||
+      quantifier.isEmpty ||
+      count is! int ||
+      scope is! String ||
+      scope.isEmpty ||
+      (name != null && name is! String) ||
+      position is! int) {
+    return null;
+  }
+  return EventRule(
+    id: id,
+    savedSearchId: savedSearchId,
+    quantifierName: quantifier,
+    count: count,
+    scopeName: scope,
+    name: name as String?,
+    position: position,
+  );
+}
 
 Map<String, Object?> _glossaryEntryJson(UserGlossaryEntry e) => {
   'id': e.id,
@@ -757,6 +846,9 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
   var glossaryComplete = true;
   final glossaryEntries = <UserGlossaryEntry>[];
   final figureNotes = <FigureNote>[];
+  var hasEventRulesSection = false;
+  var eventRulesComplete = true;
+  final eventRules = <EventRule>[];
 
   final rawApp = root['app'];
   if (rawApp is Map) {
@@ -908,6 +1000,47 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
         }
       }
     }
+
+    // The caller's event rules (#2340). Untrusted like every section: each
+    // rule is shape-checked here and bounded, and the repository enforces
+    // field bounds when it is restored.
+    final rawRules = app['eventRules'];
+    if (rawRules is List) {
+      hasEventRulesSection = true;
+      void readError(String message) {
+        eventRulesComplete = false;
+        errors.add(
+          ArchiveError(
+            kind: ArchiveErrorKind.read,
+            entityType: 'eventRule',
+            message: message, // i18n-ignore: internal diagnostic, never shown
+          ),
+        );
+      }
+
+      for (var index = 0; index < rawRules.length; index++) {
+        if (index >= kMaxBackupEventRules) {
+          readError('event rule limit exceeded; remaining rules skipped');
+          break;
+        }
+        final rule = _eventRuleFromJson(rawRules[index]);
+        if (rule == null) {
+          readError('an event rule could not be read');
+        } else {
+          eventRules.add(rule);
+        }
+      }
+    } else if (rawRules != null) {
+      eventRulesComplete = false;
+      errors.add(
+        const ArchiveError(
+          kind: ArchiveErrorKind.read,
+          entityType: 'eventRule',
+          message:
+              'event rules are not a list', // i18n-ignore: internal diagnostic, never shown
+        ),
+      );
+    }
   }
 
   return BackupReadResult(
@@ -922,6 +1055,7 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
       settings: settings,
       glossaryEntries: glossaryEntries,
       figureNotes: figureNotes,
+      eventRules: eventRules,
     ),
     errors: errors,
     warnings: warnings,
@@ -935,5 +1069,7 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
     hasSettingsSection: hasSettingsSection,
     hasGlossarySection: hasGlossarySection,
     glossaryComplete: glossaryComplete,
+    hasEventRulesSection: hasEventRulesSection,
+    eventRulesComplete: eventRulesComplete,
   );
 }
