@@ -9,7 +9,11 @@ Future<void> openDanceEditorSetup(WidgetTester tester) async {
   if (find.byType(Dialog).evaluate().isNotEmpty) return;
   final summary = find.byKey(const ValueKey('setup-summary'));
   if (summary.evaluate().isEmpty) return;
-  await tester.ensureVisible(summary);
+  // Scrolled to only when off screen: scrolling it to the top would move
+  // what is above it (the custom-number message) out of view.
+  if (summary.hitTestable().evaluate().isEmpty) {
+    await tester.ensureVisible(summary);
+  }
   await tester.tap(summary);
   await tester.pumpAndSettle();
 }

@@ -84,7 +84,8 @@ Future<void> _pumpEditor(
   // Fire any post-frame callbacks (e.g. the draft-restore dialog trigger)
   // and settle the dialog entrance animation if one was scheduled.
   await tester.pump();
-  await tester.pumpAndSettle();  // Most tests reach the setup panel's fields; the panel's own folding is
+  await tester
+      .pumpAndSettle(); // Most tests reach the setup panel's fields; the panel's own folding is
   // tested with [openSetup] false.
   if (openSetup) await openDanceEditorSetup(tester);
 }
