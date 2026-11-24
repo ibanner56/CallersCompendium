@@ -1,7 +1,9 @@
 import 'package:meta/meta.dart';
 
+import '../domain/dancer.dart';
 import '../domain/formation.dart';
 import '../domain/formation_type.dart';
+import '../domain/position.dart';
 import '../domain/starting_formations.dart';
 import '../ops/diagnostics.dart';
 import '../ops/operation.dart';
@@ -249,9 +251,79 @@ CompileResult _foldFrom(
   //
   // The reported state is the **real** one, offsets and all. Settling is how
   // the two are compared, not a claim about where the dancers are standing.
-  return normalizeWaveOffsets(state) == expected
-      ? Compiled(state, warnings: warnings)
-      : Mismatch(actual: state, expected: expected, warnings: warnings);
+  return judgeEnd(state, expected, warnings: warnings);
+}
+
+/// The end check [compile] makes once every figure has run: [state], the
+/// dancers' real final positions, against [expected], the oracle's
+/// prediction from the input. [warnings] are those gathered so far, carried
+/// into the result.
+///
+/// An exact match after [normalizeWaveOffsets] is [Compiled]. So is a near
+/// miss [endsWithinOneColumn] accepts, with an added
+/// [WarningKind.endedColumnOffset] naming the dancers off their column.
+/// Anything else is a [Mismatch].
+CompileResult judgeEnd(
+  Formation state,
+  Formation expected, {
+  List<Warning> warnings = const [],
+}) {
+  final settled = normalizeWaveOffsets(state);
+  if (settled == expected) return Compiled(state, warnings: warnings);
+  // A dance may also end with every dancer in the right row but up to one
+  // column to the side, in a wave the settling above does not recognise
+  // rather than on the side line (user-ruled 2026-11-24). It compiles, and
+  // says so.
+  if (endsWithinOneColumn(settled, expected)) {
+    return Compiled(
+      state,
+      warnings: [
+        ...warnings,
+        Warning(
+          WarningKind.endedColumnOffset,
+          detail:
+              'one column off: '
+              '${[for (final MapEntry(:key, :value) in settled.dancers.entries)
+                if (value.position.col != expected.stateOf(key).position.col) '$key'].join(', ')}',
+        ),
+      ],
+    );
+  }
+  return Mismatch(actual: state, expected: expected, warnings: warnings);
+}
+
+/// Whether [actual] holds exactly [expected]'s dancers, each with the
+/// expected couple number, in the expected row and at most one column away
+/// from their expected place, and with every row in the expected order from
+/// west to east: the near miss [compile] accepts, with
+/// [WarningKind.endedColumnOffset].
+///
+/// Only the column is relaxed. A wrong number (a couple at an end whose
+/// change-over never ran) or two dancers trading places in a row is still a
+/// mismatch.
+bool endsWithinOneColumn(Formation actual, Formation expected) {
+  if (actual.rowCount != expected.rowCount) return false;
+  if (actual.dancers.length != expected.dancers.length) return false;
+  for (final MapEntry(key: id, value: state) in actual.dancers.entries) {
+    final want = expected.dancers[id];
+    if (want == null) return false;
+    if (want.number != state.number) return false;
+    if (want.position.row != state.position.row) return false;
+    if ((want.position.col - state.position.col).abs() > 1) return false;
+  }
+  List<DancerId> order(Formation formation, int row) => [
+    for (var col = 0; col < kColumnCount; col++)
+      ?formation.dancerAt(Position(row, col)),
+  ];
+  for (var row = 0; row < actual.rowCount; row++) {
+    final got = order(actual, row);
+    final want = order(expected, row);
+    if (got.length != want.length) return false;
+    for (var i = 0; i < got.length; i++) {
+      if (got[i] != want[i]) return false;
+    }
+  }
+  return true;
 }
 
 /// Refuses a dance that claims a progression its figure list never performs.

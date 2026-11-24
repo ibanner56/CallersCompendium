@@ -14,6 +14,7 @@
 library;
 
 import 'package:compendium_core/compendium_core.dart' as core;
+import 'package:meta/meta.dart';
 
 import '../engine/compile_result.dart';
 import '../engine/compiler.dart';
@@ -361,33 +362,45 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
   //
   // A crash is never retried. The compiler throwing is a defect here, and a
   // second placement that happens to land would bury it.
+  //
+  // A near miss (compiled one column off, [WarningKind.endedColumnOffset]) is
+  // retried too, and gives way to a retry that matches exactly: an exact
+  // match on the record's own alternative is the better reading
+  // (agent's call).
   final positional = bridgeCoreDance(dance);
   var attempt = _attempt(positional);
-  if (attempt.outcome != DanceOutcome.compiled &&
-      attempt.outcome != DanceOutcome.crashed) {
+  if (triesAnotherReading(attempt.outcome, attempt.warnings)) {
     final fallback = bridgeCoreDance(dance, useNextNeighborsFallback: true);
     var crashed = false;
     if (retryPlacesDifferently(positional, fallback)) {
       final retry = _attempt(fallback);
-      if (retry.outcome == DanceOutcome.compiled) attempt = retry;
+      if (retryReplaces(
+        current: (attempt.outcome, attempt.warnings),
+        retry: (retry.outcome, retry.warnings),
+      )) {
+        attempt = retry;
+      }
       crashed = retry.outcome == DanceOutcome.crashed;
     }
     // A third and last reading: a hey whose final pass Caller's Box marks
     // partial ("~") is the progression *(user-ruled 2026-11-24)*. Tried only
     // after both readings above, so it never displaces one that compiles
-    // *(agent's call)*.
+    // exactly *(agent's call)*.
     // A crash on the N2 reading stops here too, so no later reading can bury
     // it, and a placement already tried is not compiled again.
-    if (!crashed &&
-        attempt.outcome != DanceOutcome.compiled &&
-        attempt.outcome != DanceOutcome.crashed) {
+    if (!crashed && triesAnotherReading(attempt.outcome, attempt.warnings)) {
       final partialPass = bridgeCoreDance(dance, usePartialPassFallback: true);
       final at = partialPass.assumedProgressionAt;
       if (at != null &&
           at != positional.assumedProgressionAt &&
           at != fallback.assumedProgressionAt) {
         final retry = _attempt(partialPass);
-        if (retry.outcome == DanceOutcome.compiled) attempt = retry;
+        if (retryReplaces(
+          current: (attempt.outcome, attempt.warnings),
+          retry: (retry.outcome, retry.warnings),
+        )) {
+          attempt = retry;
+        }
       }
     }
   }
@@ -408,6 +421,32 @@ typedef _Attempt = ({
   int? assumedAt,
   bool deferred,
 });
+
+/// Whether a reading that ended in [outcome], with [warnings], compiled only
+/// as a near miss, one column off ([WarningKind.endedColumnOffset]).
+bool _isNearMiss(DanceOutcome outcome, List<Warning> warnings) =>
+    outcome == DanceOutcome.compiled &&
+    warnings.any((w) => w.kind == WarningKind.endedColumnOffset);
+
+/// Whether [runCoreDance] tries the record's next placement after a reading
+/// that ended in [outcome], with [warnings]: when it did not compile, or
+/// compiled only as a near miss, and did not crash.
+@visibleForTesting
+bool triesAnotherReading(DanceOutcome outcome, List<Warning> warnings) =>
+    (outcome != DanceOutcome.compiled || _isNearMiss(outcome, warnings)) &&
+    outcome != DanceOutcome.crashed;
+
+/// Whether a [retry] reading replaces the [current] best one in
+/// [runCoreDance]: the retry must compile, and a near miss never replaces
+/// another near miss, so the earlier reading is kept (agent's call). Only
+/// asked when [triesAnotherReading] held for [current].
+@visibleForTesting
+bool retryReplaces({
+  required (DanceOutcome, List<Warning>) current,
+  required (DanceOutcome, List<Warning>) retry,
+}) =>
+    retry.$1 == DanceOutcome.compiled &&
+    !(_isNearMiss(current.$1, current.$2) && _isNearMiss(retry.$1, retry.$2));
 
 _Attempt _attempt(BridgedDance bridged) {
   _Attempt done(
@@ -749,7 +788,8 @@ core.Figure _mainFigure(core.Figure figure) =>
 ///   direction and wherever it falls, so the first of it and the moves above
 ///   progresses. Hudson ruled this for Apogee (report note, 2026-11-24: "the
 ///   slide_along_set right is the progression"); applying it to every such
-///   dance, and its limits, are the agent's calls. A dance whose source
+///   dance, with its limits, was the agent's proposal, ratified by the user
+///   2026-11-24. A dance whose source
 ///   states no progression tier imports as single and is included.
 ///
 /// Only a Becket dance with none of these falls back to the last figure.
@@ -800,10 +840,10 @@ int? assumedProgressionIndex(core.Dance dance) {
     //
     // In a single-progression dance whose only slide or slice is one couple
     // sliding once, that slide is a move along the set too, in either
-    // direction (Hudson's Apogee note, 2026-11-24; generalising it is the
-    // agent's call). Slides inside containers count towards "only"; a Rory
-    // O'More's slide does not count at all, since a Rory O'More is not its
-    // own progression (agent's call).
+    // direction (Hudson's Apogee note, 2026-11-24; generalising it, with
+    // these limits, was ratified by the user 2026-11-24). Slides inside
+    // containers count towards "only"; a Rory O'More's slide does not count
+    // at all, since a Rory O'More is not its own progression.
     var slideCount = 0;
     int? slideIndex;
     for (var index = 0; index < figures.length; index++) {
@@ -1182,8 +1222,8 @@ List<core.Figure>? dancedFigures(core.Dance dance) {
 /// neighbor:") over two allemandes, the chainers' half and then the courtesy
 /// allemande "3/4". Hudson's report note on Every Second Counts (10417,
 /// 2026-11-24) says that last allemande should be a full allemande, and that
-/// the source uses quarter allemandes inconsistently. Generalising it is the
-/// agent's call, and so are its limits: it applies only to a top-level
+/// the source uses quarter allemandes inconsistently. Generalising it, with
+/// these limits, was the agent's proposal, ratified by the user 2026-11-24: it applies only to a top-level
 /// sequence whose title contains "chain" and whose exactly two children are a
 /// `role1s` or `role2s` allemande of `0.5` and then an allemande of `0.75`.
 /// Anything else, including the same chain as one side of a `meanwhile` or

@@ -535,7 +535,7 @@ void main() {
     group('an open chain', () {
       // Hudson's report note on Every Second Counts (10417, 2026-11-24): the
       // courtesy allemande Caller's Box writes "3/4" is a full allemande.
-      // Reading every open chain that way is the agent's call.
+      // Reading every open chain that way was ratified by the user 2026-11-24.
       core.Figure allemande(String who, num travel, {String hand = 'left'}) =>
           core_test.testFigure(
             move: 'allemande',
@@ -1308,7 +1308,7 @@ void main() {
     test('a sole slide or slice right progresses', () {
       // Hudson's Apogee note (2026-11-24): "the slide_along_set right is the
       // progression". Reading every single-progression dance's only slide
-      // that way is the agent's call.
+      // that way was ratified by the user 2026-11-24.
       for (final slide in [
         figure('slice', {'slice': 'right'}),
         figure('slide_along_set', {'slide': 'right'}),
