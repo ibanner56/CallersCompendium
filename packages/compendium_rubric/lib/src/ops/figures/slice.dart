@@ -59,10 +59,10 @@ enum SliceReturn {
 /// (`modifier`, `meanwhile` or a nested `sequence`) it is a known limit: a
 /// flag there counts two progressions (the container reads its children's
 /// `progressionsSpent`) but the container is one step, so only one
-/// change-over runs. Today only 3 of the 21
-/// Caller's Box double slices import as a `slice` (those written "go forward
-/// to S1, fall back to S2", all mid-dance and unflagged); the rest stay free
-/// text, so none of them reaches the compiler (`taxonomy.md`, `slice`).
+/// change-over runs. 20 of the 21 Caller's Box double slices import as a
+/// `slice`: those written "go forward to S1, fall back to S2" and, since
+/// 2026-11-24, those that go forward to a neighbour and back to the next. 5 of
+/// them open a dance (`taxonomy.md`, `slice`).
 ///
 /// **Deferred:** `by: dancer` (a shift of a single dancer, which leaves a shape
 /// the slide does not model) and `return: none` (the couples stop in the
