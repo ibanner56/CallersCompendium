@@ -1,3 +1,4 @@
+import '../csv/csv_name_list.dart';
 import '../util/text_sanitizer.dart';
 import 'structured_draft.dart';
 
@@ -68,6 +69,15 @@ final RegExp _otherDelimiters = RegExp(
 /// many combined authors) never throws — it appends one non-fatal
 /// [ImportIssue] to [issues] (when provided) per triggered cap.
 ///
+/// [backslashEscapes] is for the CSV import alone (#2332): the dances CSV
+/// export writes a comma inside a name as `\,` and a backslash as `\\`
+/// ([escapeNameListItem]), so with it set the comma pass skips an escaped
+/// comma and each name is unescaped after the delimiter pass. Suffix
+/// protection and every other delimiter work as before, so the escape protects
+/// the comma only: a name holding `and`, `&`, `/` and the like still splits. A
+/// field with no backslash splits exactly as it does without the option. Every
+/// other importer leaves it off and reads a backslash literally.
+///
 /// The raw, un-split field(s) are never touched by this function — adapters
 /// keep the verbatim source string in `RawRecord`/provenance, so nothing is
 /// lost even though this function only returns the tokenized names.
@@ -75,6 +85,7 @@ List<String> splitAuthorNames(
   Iterable<String?> rawFields, {
   List<ImportIssue>? issues,
   AuthorSplitLimits limits = const AuthorSplitLimits(),
+  bool backslashEscapes = false,
 }) {
   var fieldTruncated = false;
   final combined = <String>[];
@@ -89,10 +100,14 @@ List<String> splitAuthorNames(
       fieldTruncated = true;
     }
 
-    for (final commaPart in _splitOnCommaWithSuffixProtection(field)) {
+    final commaParts = _splitOnCommaWithSuffixProtection(
+      field,
+      backslashEscapes: backslashEscapes,
+    );
+    for (final commaPart in commaParts) {
       for (final piece in commaPart.split(_otherDelimiters)) {
         final clean = sanitizeImportedText(
-          piece.trim(),
+          backslashEscapes ? unescapeNameListItem(piece.trim()) : piece.trim(),
           allowLineBreaks: false,
         ).trim();
         if (clean.isEmpty) continue;
@@ -149,8 +164,17 @@ List<String> splitAuthorNames(
 /// on the same comma-fragment (e.g. `"Doe, Jr. and Bob Smith"`): only the
 /// leading suffix token is peeled off and re-attached; anything after it
 /// stays in that fragment for the caller's subsequent delimiter split.
-List<String> _splitOnCommaWithSuffixProtection(String field) {
-  final rawParts = field.split(',');
+///
+/// With [backslashEscapes] a comma written `\,` does not split (and `\\` is an
+/// escaped backslash, so `\\,` splits); the escapes stay in the parts for the
+/// caller to unescape once the other delimiters have been applied.
+List<String> _splitOnCommaWithSuffixProtection(
+  String field, {
+  bool backslashEscapes = false,
+}) {
+  final rawParts = backslashEscapes
+      ? _splitOnUnescapedComma(field)
+      : field.split(',');
   if (rawParts.length == 1) return rawParts;
 
   final out = <String>[rawParts.first];
@@ -168,6 +192,34 @@ List<String> _splitOnCommaWithSuffixProtection(String field) {
     }
   }
   return out;
+}
+
+/// [field] split on each comma not preceded by an escaping backslash, escapes
+/// left in place. Linear, no regex.
+List<String> _splitOnUnescapedComma(String field) {
+  final parts = <String>[];
+  final current = StringBuffer();
+  for (var i = 0; i < field.length; i++) {
+    final c = field[i];
+    if (c == r'\' && i + 1 < field.length) {
+      final next = field[i + 1];
+      if (next == ',' || next == r'\') {
+        current
+          ..write(c)
+          ..write(next);
+        i++;
+        continue;
+      }
+    }
+    if (c == ',') {
+      parts.add(current.toString());
+      current.clear();
+    } else {
+      current.write(c);
+    }
+  }
+  parts.add(current.toString());
+  return parts;
 }
 
 /// If [text] starts with a recognized name-suffix token (optionally followed

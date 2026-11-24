@@ -176,6 +176,72 @@ void main() {
       ]);
     });
 
+    test('an author or interpreter with a comma survives a round trip, and '
+        'one without is written as before (#2332)', () async {
+      final authors = [
+        Choreographer(id: 'a1', name: 'Smith, John'),
+        Choreographer(id: 'a2', name: r'Back\slash, Sr.'),
+        Choreographer(id: 'a3', name: 'Mary Example'),
+      ];
+      final tricky = dance().copyWith(
+        authorIds: const ['a1', 'a2', 'a3'],
+        interpreterIds: const ['a1', 'a3'],
+      );
+      String export(Dance d) => buildDancesCsv(
+        [d],
+        l10n: en,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        renderer: plainRenderer,
+        lookups: DancesCsvLookups(
+          choreographersById: {for (final c in authors) c.id: c},
+          tagsById: lookups.tagsById,
+          sourcesById: lookups.sourcesById,
+        ),
+      );
+      final csv = export(tricky);
+      final rows = readCsv(csv);
+      final header = rows.first;
+      expect(
+        rows[1][header.indexOf(en.csvColumnAuthors)],
+        r'Smith\, John, Back\\slash\, Sr., Mary Example',
+      );
+      expect(
+        rows[1][header.indexOf(en.csvColumnInterpreters)],
+        r'Smith\, John, Mary Example',
+      );
+
+      final adapter = CsvAdapter();
+      final found = await adapter.discover(
+        ImportRequest(
+          payload: csv,
+          options: {
+            CsvAdapter.mappingOption: CsvImportMapping(
+              separator: ',',
+              hasHeader: true,
+              columns: autoMapCsvColumns(header, header.length, [en], const []),
+              existingFields: const {},
+            ),
+          },
+        ),
+      );
+      final draft = adapter.parse(await adapter.fetch(found.single));
+      expect(draft.authorNames, [
+        'Smith, John',
+        r'Back\slash, Sr.',
+        'Mary Example',
+      ]);
+
+      final plainRows = readCsv(build([dance()]));
+      expect(
+        plainRows[1][plainRows.first.indexOf(en.csvColumnAuthors)],
+        'Mary Example',
+      );
+      expect(
+        plainRows[1][plainRows.first.indexOf(en.csvColumnInterpreters)],
+        'Ivan Interpreter',
+      );
+    });
+
     test('a name with neither is written exactly as before', () {
       final csv = buildDancesCsv(
         [
