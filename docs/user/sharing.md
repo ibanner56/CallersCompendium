@@ -141,8 +141,8 @@ own figures stay on your devices.
 The other caller reads the code with their phone's own camera app: the iPhone
 Camera, or the Android camera or Google Lens. The camera offers a link; tapping it
 opens the dance in Caller's Compendium's import review, where they add it as
-they would a file you sent. Their phone needs no network, and the app asks for
-no camera permission. See
+they would a file you sent. Their phone needs no network, and Caller's
+Compendium doesn't ask them for camera access to do this. See
 [Open a dance someone shows you as a code](./imports.md#open-a-dance-someone-shows-you-as-a-code).
 A computer has no camera app to do this; send a computer user the dance with
 **Share dance file**.

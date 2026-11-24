@@ -1,0 +1,21 @@
+{
+  "id": "2325-saved-searches",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Save a search and use it again. Save this search… in the Collection's ⋮ menu saves the search text, Search in, every filter, the By phrase and Advanced rows and the sort under a name. Tapping the search box, in the Collection or in the program builder's dance list, drops down your saved searches (typing narrows them by name, and Search for \"…\" keeps the ordinary search); choosing one fills them in and runs it against your collection as it is now, so a dance tagged later shows up in it. A calling-history window is kept as months back from the day you use it (\"Not called in the last 12 months\"), so the list stays up to date. While one is in use, the ⋮ menu can update it once you change it, save it as a new search, rename it, or delete it with Undo. Settings ▸ Collection lists every saved search to rename or delete; one this version can't read is listed there under Needs attention and never used. If a saved search uses a tag, author, source, level, venue or custom field that has since been deleted, the rest of it still runs and a notice names what is missing. Saved searches are unavailable while Online search is on.",
+      "With Device Sync on, saved searches sync to your other devices once every device connected to your store has an up-to-date app; until then a note names the device that is holding them back."
+    ],
+    "changed": [
+      "Settings has a new Collection section, after General. The Dances settings (Ignore leading articles when sorting, Capitalize figures, and the Tags, Authors and Sources managers) moved there from General, above the new Saved searches list."
+    ]
+  },
+  "core": {
+    "added": [
+      "CompendiumRepositories.deletedRecordNames reads the names of deleted (tombstoned) tags, authors, sources, venues, levels and custom fields by id, for naming what a saved search uses that is gone. Read-only; nothing new is stored."
+    ],
+    "changed": [
+      "SyncCapabilityPolicy.build now advertises savedSearches.v1, so saved searches publish once every other device attached to the store advertises it. Deploy the sync server before the first client release that advertises it: the server validates the saved_search: prefix through the registry it is built from."
+    ]
+  }
+}

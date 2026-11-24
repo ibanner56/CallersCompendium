@@ -29,6 +29,7 @@ import '../models/dance_list_entry.dart';
 import '../search/called_venue_choices.dart';
 import '../search/collection_data.dart';
 import '../search/collection_opening_sort.dart';
+import '../search/saved_search_context.dart';
 import '../theme/app_spacing.dart';
 import '../utils/slot_dance_title.dart';
 import 'advanced_query_builder.dart';
@@ -43,6 +44,8 @@ import 'online_result_tile.dart';
 import 'online_search_toggle.dart';
 import 'picker_suggestions.dart';
 import 'preview_hold_listener.dart';
+import 'saved_search_actions.dart';
+import 'saved_search_field.dart';
 import 'search_panel_bar.dart';
 
 /// A reusable dance picker that reuses the Collection search stack (full-text
@@ -215,7 +218,8 @@ class CollectionPicker extends StatefulWidget {
   /// was sent so a re-rank after an add sends only the program and ids.
   final SuggestionRanker? rankSuggestions;
 
-  /// Where "today" comes from, for the venue window. A test seam.
+  /// Where "today" comes from, for a calling-history window, Suggested and
+  /// saving a search: the caller's own calendar day. A test seam.
   final SearchClock clock;
 
   /// Whether the search field and the row of search tools show. A host whose
@@ -332,6 +336,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
   static const Duration _addConfirmation = Duration(milliseconds: 1200);
 
   final _ftsController = TextEditingController();
+
+  /// The search box's focus, which opens the saved-search dropdown.
+  final _ftsFocusNode = FocusNode(debugLabel: 'picker-search-field');
   FullTextScope _ftsScope = FullTextScope.omni;
 
   /// The local Search in choice, restored when online search is turned off
@@ -344,6 +351,19 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   /// Whether the panel state last applied came from a saved search.
   bool _panelFromSavedSearch = false;
+
+  /// The saved search on screen, if one was loaded or just saved here
+  /// (#2325), for the notice about what it uses that is gone. Kept
+  /// here, not in the menu, so Clear all forgets it.
+  SavedSearchLoad? _loadedSearch;
+
+  /// Whether the notice about [_loadedSearch]'s missing references was closed.
+  bool _savedSearchNoticeClosed = false;
+
+  /// The request the saved-search dropdown last loaded a search through: the same
+  /// one-shot entry point as [CollectionPicker.panelState], held in a field
+  /// as that parameter asks, so nothing can apply it twice.
+  CollectionPanelRequest? _menuRequest;
 
   CollectionSort _sort = CollectionSort.title;
   SortDirection _sortDir = CollectionSort.title.searchSort.defaultDirection;
@@ -474,6 +494,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
     _byPhrase = state.byPhrase;
     _advancedRoot = state.advanced;
     _panelFromSavedSearch = state.fromSavedSearch;
+    // Whatever was loaded is not on screen any more; the dropdown says
+    // which saved search this is, once it has applied it.
+    _loadedSearch = null;
     // A host that asks for Suggested gets it back in didUpdateWidget (or,
     // for the first request, didChangeDependencies), and the search that
     // follows ranks.
@@ -693,6 +716,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     }
     _confirmTimers.clear();
     _ftsController.dispose();
+    _ftsFocusNode.dispose();
     _worker?.dispose();
     super.dispose();
   }
@@ -742,6 +766,11 @@ class _CollectionPickerState extends State<CollectionPicker> {
     advancedRoot: _advancedRoot,
   );
 
+  /// The caller's calendar day now, from [CollectionPicker.clock]: the one
+  /// "today" a window is counted back from, here, in Suggested and when a
+  /// search is saved.
+  DateTime _today() => widget.clock.today();
+
   Future<void> _runSearch() async {
     final data = widget.data;
     // Best match is only valid for a bare full-text search; fall back as the
@@ -767,7 +796,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         performedOnly: _requirePerformedForHistory,
         requireEventDate: _requireEventDateForHistory,
         tracking: _tracking,
-        today: widget.clock.today(),
+        today: _today(),
         currentProgramId: widget.programContext?.programId,
       );
       final ids = await _repos.dances.search(
@@ -932,7 +961,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
               SuggestionCandidate.fromDance(entry.dance),
           ],
           settings: settings,
-          today: widget.clock.today(),
+          today: _today(),
           collisionMode: _exactBeatCollision
               ? MatrixCollisionMode.exactBeats
               : MatrixCollisionMode.phrase,
@@ -1074,6 +1103,73 @@ class _CollectionPickerState extends State<CollectionPicker> {
       !_byPhrase.isEmpty ||
       _advancedRoot.toFilter() != null;
 
+  /// The search on screen, as a panel state for the dropdown's baseline. The
+  /// picker's own objects, read and not kept.
+  CollectionPanelState _currentPanelState() => CollectionPanelState(
+    text: _ftsController.text,
+    scope: _ftsScope,
+    facets: _facets,
+    byPhrase: _byPhrase,
+    advanced: _advancedRoot,
+    sort: _sort,
+    sortDirection: _sortDir,
+  );
+
+  /// Shows a saved search the dropdown loaded, through the picker's one
+  /// entry point for a whole panel state ([_applyPanelState]), and runs it.
+  void _applyMenuState(CollectionPanelState state) {
+    final request = CollectionPanelRequest(state);
+    _menuRequest = request;
+    _debounceTimer?.cancel();
+    _searchSeq++;
+    _onlineSeq++;
+    setState(() => _applyPanelState(_menuRequest));
+    _runSearch();
+  }
+
+  /// One context to resolve a saved search against: the live data, the
+  /// Calling history settings in force now, and the program being built.
+  Future<SavedSearchContext> _readSavedSearchContext(
+    SavedSearchTextCodec text,
+  ) => readSavedSearchContext(
+    _repos,
+    today: _today(),
+    taxonomy: widget.data.taxonomy,
+    text: text,
+    callerFilter: widget.data.callerFilter,
+    performedOnly: _requirePerformedForHistory,
+    requireEventDate: _requireEventDateForHistory,
+    tracking: _tracking,
+    currentProgramId: widget.programContext?.programId,
+  );
+
+  /// The search field's dropdown chose [search]: show it and run it. The
+  /// picker only loads; saving and managing are the Collection's ⋮ menu and
+  /// Settings ▸ Collection.
+  Future<void> _loadSavedSearch(SavedSearch search) async {
+    final load = await SavedSearchActions(
+      context,
+      clock: widget.clock,
+      dialect: widget.dialect,
+      enrichment: widget.enrichment,
+      current: _currentPanelState,
+      apply: _applyMenuState,
+      readContext: _readSavedSearchContext,
+    ).load(search);
+    if (load != null) _onSavedSearchLoaded(load);
+  }
+
+  void _onSavedSearchLoaded(SavedSearchLoad? load) {
+    if (!mounted) return;
+    setState(() {
+      if (load?.search.id != _loadedSearch?.search.id ||
+          !identical(load?.missing, _loadedSearch?.missing)) {
+        _savedSearchNoticeClosed = false;
+      }
+      _loadedSearch = load;
+    });
+  }
+
   void _clearAll() {
     _debounceTimer?.cancel();
     _searchSeq++;
@@ -1086,6 +1182,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _removedTags.clear();
       _advancedRoot.kind = GroupKind.all;
       _panelFromSavedSearch = false;
+      _loadedSearch = null;
       _onlineResults = const [];
       _onlineError = null;
       _onlineImportError = null;
@@ -1414,30 +1511,15 @@ class _CollectionPickerState extends State<CollectionPicker> {
   Widget build(BuildContext context) {
     final data = widget.data;
     final l10n = AppLocalizations.of(context);
-    final searchField = TextField(
-      key: const ValueKey('picker-search'),
+    final searchField = SavedSearchField(
       controller: _ftsController,
-      onChanged: _onFtsChanged,
-      textInputAction: TextInputAction.search,
-      decoration: InputDecoration(
-        labelText: _onlineEnabled
-            ? l10n.onlineSearchFieldLabel(_onlineSource.label)
-            : l10n.collectionPickerSearchLabel,
-        hintText: _onlineEnabled
-            ? l10n.collectionOnlineSearchFieldHint
-            : l10n.collectionSearchFieldHint,
-        // Dense, like Search in beside it, so the two line up in one row.
-        isDense: true,
-        prefixIcon: Icon(_onlineEnabled ? kOnlineSearchIcon : Icons.search),
-        suffixIcon: _hasActiveQuery
-            ? IconButton(
-                tooltip: l10n.collectionClearSearchTooltip,
-                icon: const Icon(Icons.clear),
-                onPressed: _clearAll,
-              )
-            : null,
-        border: const OutlineInputBorder(),
-      ),
+      focusNode: _ftsFocusNode,
+      enabled: !_onlineEnabled,
+      onLoad: _loadSavedSearch,
+      // Enter only ever ended editing here; the search runs as it is typed.
+      onSubmitted: () {},
+      fieldBuilder: (context, onSubmitted) =>
+          _buildSearchTextField(l10n, onSubmitted),
     );
     return ExcludeFocus(
       excluding: _onlineImporting,
@@ -1485,6 +1567,41 @@ class _CollectionPickerState extends State<CollectionPicker> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// The search box itself, under the saved-search dropdown
+  /// ([SavedSearchField]); [onSubmitted] is the dropdown's Enter.
+  Widget _buildSearchTextField(
+    AppLocalizations l10n,
+    VoidCallback onSubmitted,
+  ) {
+    return TextField(
+      key: const ValueKey('picker-search'),
+      controller: _ftsController,
+      focusNode: _ftsFocusNode,
+      onChanged: _onFtsChanged,
+      onSubmitted: (_) => onSubmitted(),
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        labelText: _onlineEnabled
+            ? l10n.onlineSearchFieldLabel(_onlineSource.label)
+            : l10n.collectionPickerSearchLabel,
+        hintText: _onlineEnabled
+            ? l10n.collectionOnlineSearchFieldHint
+            : l10n.collectionSearchFieldHint,
+        // Dense, like Search in beside it, so the two line up in one row.
+        isDense: true,
+        prefixIcon: Icon(_onlineEnabled ? kOnlineSearchIcon : Icons.search),
+        suffixIcon: _hasActiveQuery
+            ? IconButton(
+                tooltip: l10n.collectionClearSearchTooltip,
+                icon: const Icon(Icons.clear),
+                onPressed: _clearAll,
+              )
+            : null,
+        border: const OutlineInputBorder(),
       ),
     );
   }
@@ -1559,6 +1676,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         panelBar,
+        if (_loadedSearch case final load?
+            when load.missing.isNotEmpty && !_savedSearchNoticeClosed)
+          SavedSearchNotice(
+            load: load,
+            onClose: () => setState(() => _savedSearchNoticeClosed = true),
+          ),
         if (_onlineEnabled)
           Padding(
             padding: const EdgeInsets.fromLTRB(

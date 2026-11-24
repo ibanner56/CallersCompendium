@@ -297,8 +297,16 @@ the lines are then read exactly as typed text is.
   in all, is refused before anything is read. Crop it or choose a smaller one.
 - Typed text reads best. Handwriting may come out wrong, so check each line.
 
-**From an image…** isn't offered on Android, Windows or Linux: you can still
-type or paste the figures.
+On iPhone and iPad, **Take a photo** beside it opens the camera instead, so
+you can photograph the card without leaving the app. The first time, the
+system asks whether the app may use the camera; it uses it only when you tap
+**Take a photo**. The photo is read the same way and is **not kept**: it is
+deleted as soon as its text has been read, or straight away if reading fails,
+and it is never added to your photo library. If you said no to the camera, you
+can turn it on again in the Settings app, under **Caller's Compendium**.
+
+**From an image…** isn't offered on Android, Windows or Linux, and **Take a
+photo** is only on iPhone and iPad: you can still type or paste the figures.
 
 ### Figure shorthands
 
@@ -969,7 +977,7 @@ explicit about two things, and both matter:
   disagree. **Keep editing** takes you back to what you typed. After a merge,
   every dance that credited either author credits the one that's left, this
   dance included, and **Undo** in the message at the bottom of the screen puts
-  both back. The same merge is in **Settings ▸ General ▸ Dances ▸ Authors**;
+  both back. The same merge is in **Settings ▸ Collection ▸ Dances ▸ Authors**;
   see [Settings](./settings.md#dances).
 - **Email and location are private, and so is the deceased mark.** They are
   stored only on this device and are never shared or exported. See
@@ -979,7 +987,7 @@ explicit about two things, and both matter:
 **Source details** works the same way: a source's details are shared across every
 dance that cites it, and editing them here updates the source everywhere it is
 referenced. To combine two copies of the same source, use **Merge into…** in
-**Settings ▸ General ▸ Dances ▸ Sources**; see
+**Settings ▸ Collection ▸ Dances ▸ Sources**; see
 [Settings](./settings.md#dances).
 
 ## Undo, drafts, and saving

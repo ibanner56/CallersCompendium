@@ -9911,6 +9911,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get figureTextSheetFromImage => 'From an image…';
 
   @override
+  String get figureTextSheetTakePhoto => 'Take a photo';
+
+  @override
+  String get figureTextSheetCameraOff =>
+      'Camera access is off for Caller\'s Compendium. To take a photo, turn it on in the Settings app.';
+
+  @override
   String get figureTextSheetReadingImage => 'Reading the picture…';
 
   @override
@@ -14525,5 +14532,256 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String calendarLastResultError(String when) {
     return 'Couldn\'t import from the calendar at startup ($when)';
+  }
+
+  @override
+  String get savedSearchSaveThis => 'Save this search…';
+
+  @override
+  String savedSearchUpdate(String name) {
+    return 'Update \"$name\"';
+  }
+
+  @override
+  String savedSearchRename(String name) {
+    return 'Rename \"$name\"…';
+  }
+
+  @override
+  String savedSearchDelete(String name) {
+    return 'Delete \"$name\"';
+  }
+
+  @override
+  String get savedSearchNeedsAttention => 'Needs attention';
+
+  @override
+  String get savedSearchUnreadableItem =>
+      'A saved search that can\'t be opened';
+
+  @override
+  String get savedSearchUnreadableTitle => 'Can\'t open this saved search';
+
+  @override
+  String get savedSearchUnreadableBody =>
+      'It was saved by a newer version of the app, or it is damaged, so it is not used. You can delete it, and undo that.';
+
+  @override
+  String get savedSearchSaveDialogTitle => 'Save this search';
+
+  @override
+  String get savedSearchRenameDialogTitle => 'Rename saved search';
+
+  @override
+  String get savedSearchNameLabel => 'Name';
+
+  @override
+  String savedSearchWindowNotCalled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Not called in the last $count months',
+      one: 'Not called in the last month',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String savedSearchWindowCalled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Called in the last $count months',
+      one: 'Called in the last month',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String savedSearchWindowInert(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Calling history window kept: the last $count months',
+      one: 'Calling history window kept: the last month',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedSearchTooLargeTitle => 'Search too large';
+
+  @override
+  String get savedSearchTooLargeBody =>
+      'This search has too many filters or rows to save. Remove some, then save it again.';
+
+  @override
+  String get savedSearchLimitTitle => 'Too many saved searches';
+
+  @override
+  String savedSearchLimitBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'You can keep up to $count saved searches. Delete one to save another.',
+      one: 'You can keep 1 saved search. Delete it to save another.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedSearchNameRefused => 'That name can\'t be used. Try another.';
+
+  @override
+  String get savedSearchFailed =>
+      'Couldn\'t do that with your saved searches. Try again.';
+
+  @override
+  String savedSearchSavedSnack(String name) {
+    return 'Saved \"$name\"';
+  }
+
+  @override
+  String savedSearchUpdatedSnack(String name) {
+    return 'Updated \"$name\"';
+  }
+
+  @override
+  String savedSearchDeletedSnack(String name) {
+    return 'Deleted \"$name\"';
+  }
+
+  @override
+  String savedSearchInUseTitle(String name) {
+    return 'Can\'t delete \"$name\"';
+  }
+
+  @override
+  String get savedSearchInUseBody =>
+      'It is still used by these. Change or remove them first, then delete it.';
+
+  @override
+  String savedSearchNoticeTitle(String name) {
+    return '\"$name\" uses things that are gone:';
+  }
+
+  @override
+  String get savedSearchNoticeRest =>
+      'The rest of the search is shown. Remove these yourself to update it.';
+
+  @override
+  String get savedSearchNoticeFieldSkipped =>
+      'A filter on a deleted custom field is left out of the results.';
+
+  @override
+  String get savedSearchNoticeClose => 'Close notice';
+
+  @override
+  String savedSearchMissingTag(String name) {
+    return 'The tag $name, which was deleted';
+  }
+
+  @override
+  String get savedSearchMissingTagUnnamed => 'A tag that was deleted';
+
+  @override
+  String savedSearchMissingAuthor(String name) {
+    return 'The author $name, which was deleted';
+  }
+
+  @override
+  String get savedSearchMissingAuthorUnnamed => 'An author that was deleted';
+
+  @override
+  String savedSearchMissingSource(String name) {
+    return 'The source $name, which was deleted';
+  }
+
+  @override
+  String get savedSearchMissingSourceUnnamed => 'A source that was deleted';
+
+  @override
+  String savedSearchMissingLevel(String name) {
+    return 'The level $name, which was deleted';
+  }
+
+  @override
+  String get savedSearchMissingLevelUnnamed => 'A level that was deleted';
+
+  @override
+  String savedSearchMissingVenue(String name) {
+    return 'The venue $name, which was deleted';
+  }
+
+  @override
+  String get savedSearchMissingVenueUnnamed => 'A venue that was deleted';
+
+  @override
+  String savedSearchMissingField(String name) {
+    return 'The custom field $name, which was deleted';
+  }
+
+  @override
+  String get savedSearchMissingFieldUnnamed =>
+      'A custom field that was deleted';
+
+  @override
+  String savedSearchMissingFieldType(String name) {
+    return 'The custom field $name, whose type changed';
+  }
+
+  @override
+  String savedSearchMissingFieldChoice(String choice, String name) {
+    return 'The choice $choice of $name, which was removed';
+  }
+
+  @override
+  String get savedSearchMissingFigureDetail =>
+      'A figure detail in Advanced that can\'t be shown';
+
+  @override
+  String get savedSearchMissingUserFigure =>
+      'One of your figures, which was deleted';
+
+  @override
+  String get savedSearchMissingInvalid => 'Something this version can\'t read';
+
+  @override
+  String savedSearchSearchFor(String text) {
+    return 'Search for \"$text\"';
+  }
+
+  @override
+  String savedSearchHighlightedRow(String name, int index, int count) {
+    return '$name, $index of $count';
+  }
+
+  @override
+  String get savedSearchSaveAsNewSearch => 'Save as a new search…';
+
+  @override
+  String get settingsCollectionTitle => 'Collection';
+
+  @override
+  String get settingsSavedSearchesHeader => 'Saved searches';
+
+  @override
+  String get settingsSavedSearchesEmpty =>
+      'No saved searches yet. Save one from the Collection: set up a search, then choose Save this search… in the More actions menu.';
+
+  @override
+  String settingsSavedSearchRenameTooltip(String name) {
+    return 'Rename \"$name\"';
+  }
+
+  @override
+  String settingsSavedSearchDeleteTooltip(String name) {
+    return 'Delete \"$name\"';
+  }
+
+  @override
+  String savedSearchGone(String name) {
+    return '\"$name\" was deleted, here or on another device, so nothing was changed.';
   }
 }

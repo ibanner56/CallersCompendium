@@ -10044,6 +10044,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get figureTextSheetFromImage => 'Aus einem Bild…';
 
   @override
+  String get figureTextSheetTakePhoto => 'Foto aufnehmen';
+
+  @override
+  String get figureTextSheetCameraOff =>
+      'Der Kamerazugriff ist für Caller\'s Compendium ausgeschaltet. Um ein Foto aufzunehmen, schalten Sie ihn in der App „Einstellungen“ ein.';
+
+  @override
   String get figureTextSheetReadingImage => 'Bild wird gelesen…';
 
   @override
@@ -14700,5 +14707,263 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String calendarLastResultError(String when) {
     return 'Import aus dem Kalender beim Start fehlgeschlagen ($when)';
+  }
+
+  @override
+  String get savedSearchSaveThis => 'Diese Suche speichern…';
+
+  @override
+  String savedSearchUpdate(String name) {
+    return '„$name“ aktualisieren';
+  }
+
+  @override
+  String savedSearchRename(String name) {
+    return '„$name“ umbenennen…';
+  }
+
+  @override
+  String savedSearchDelete(String name) {
+    return '„$name“ löschen';
+  }
+
+  @override
+  String get savedSearchNeedsAttention => 'Braucht Aufmerksamkeit';
+
+  @override
+  String get savedSearchUnreadableItem =>
+      'Eine gespeicherte Suche, die sich nicht öffnen lässt';
+
+  @override
+  String get savedSearchUnreadableTitle =>
+      'Diese gespeicherte Suche lässt sich nicht öffnen';
+
+  @override
+  String get savedSearchUnreadableBody =>
+      'Sie wurde von einer neueren Version der App gespeichert oder ist beschädigt und wird daher nicht verwendet. Du kannst sie löschen und das rückgängig machen.';
+
+  @override
+  String get savedSearchSaveDialogTitle => 'Diese Suche speichern';
+
+  @override
+  String get savedSearchRenameDialogTitle => 'Gespeicherte Suche umbenennen';
+
+  @override
+  String get savedSearchNameLabel => 'Name';
+
+  @override
+  String savedSearchWindowNotCalled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'In den letzten $count Monaten nicht aufgerufen',
+      one: 'Im letzten Monat nicht aufgerufen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String savedSearchWindowCalled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'In den letzten $count Monaten aufgerufen',
+      one: 'Im letzten Monat aufgerufen',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String savedSearchWindowInert(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Gespeicherter Zeitraum im Anrufverlauf: die letzten $count Monate',
+      one: 'Gespeicherter Zeitraum im Anrufverlauf: der letzte Monat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedSearchTooLargeTitle => 'Suche zu groß';
+
+  @override
+  String get savedSearchTooLargeBody =>
+      'Diese Suche hat zu viele Filter oder Zeilen, um sie zu speichern. Entferne einige und speichere sie dann erneut.';
+
+  @override
+  String get savedSearchLimitTitle => 'Zu viele gespeicherte Suchen';
+
+  @override
+  String savedSearchLimitBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Du kannst bis zu $count gespeicherte Suchen behalten. Lösche eine, um eine weitere zu speichern.',
+      one:
+          'Du kannst 1 gespeicherte Suche behalten. Lösche sie, um eine weitere zu speichern.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedSearchNameRefused =>
+      'Dieser Name geht nicht. Versuche einen anderen.';
+
+  @override
+  String get savedSearchFailed =>
+      'Das hat mit deinen gespeicherten Suchen nicht geklappt. Versuche es erneut.';
+
+  @override
+  String savedSearchSavedSnack(String name) {
+    return '„$name“ gespeichert';
+  }
+
+  @override
+  String savedSearchUpdatedSnack(String name) {
+    return '„$name“ aktualisiert';
+  }
+
+  @override
+  String savedSearchDeletedSnack(String name) {
+    return '„$name“ gelöscht';
+  }
+
+  @override
+  String savedSearchInUseTitle(String name) {
+    return '„$name“ kann nicht gelöscht werden';
+  }
+
+  @override
+  String get savedSearchInUseBody =>
+      'Sie wird noch hiervon verwendet. Ändere oder entferne diese zuerst und lösche sie dann.';
+
+  @override
+  String savedSearchNoticeTitle(String name) {
+    return '„$name“ verwendet Dinge, die es nicht mehr gibt:';
+  }
+
+  @override
+  String get savedSearchNoticeRest =>
+      'Der Rest der Suche wird angezeigt. Entferne diese selbst, um sie zu aktualisieren.';
+
+  @override
+  String get savedSearchNoticeFieldSkipped =>
+      'Ein Filter auf ein gelöschtes benutzerdefiniertes Feld wird bei den Ergebnissen weggelassen.';
+
+  @override
+  String get savedSearchNoticeClose => 'Hinweis schließen';
+
+  @override
+  String savedSearchMissingTag(String name) {
+    return 'Der Tag $name, der gelöscht wurde';
+  }
+
+  @override
+  String get savedSearchMissingTagUnnamed => 'Ein Tag, der gelöscht wurde';
+
+  @override
+  String savedSearchMissingAuthor(String name) {
+    return 'Der Autor $name, der gelöscht wurde';
+  }
+
+  @override
+  String get savedSearchMissingAuthorUnnamed => 'Ein Autor, der gelöscht wurde';
+
+  @override
+  String savedSearchMissingSource(String name) {
+    return 'Die Quelle $name, die gelöscht wurde';
+  }
+
+  @override
+  String get savedSearchMissingSourceUnnamed =>
+      'Eine Quelle, die gelöscht wurde';
+
+  @override
+  String savedSearchMissingLevel(String name) {
+    return 'Die Stufe $name, die gelöscht wurde';
+  }
+
+  @override
+  String get savedSearchMissingLevelUnnamed => 'Eine Stufe, die gelöscht wurde';
+
+  @override
+  String savedSearchMissingVenue(String name) {
+    return 'Der Veranstaltungsort $name, der gelöscht wurde';
+  }
+
+  @override
+  String get savedSearchMissingVenueUnnamed =>
+      'Ein Veranstaltungsort, der gelöscht wurde';
+
+  @override
+  String savedSearchMissingField(String name) {
+    return 'Das benutzerdefinierte Feld $name, das gelöscht wurde';
+  }
+
+  @override
+  String get savedSearchMissingFieldUnnamed =>
+      'Ein benutzerdefiniertes Feld, das gelöscht wurde';
+
+  @override
+  String savedSearchMissingFieldType(String name) {
+    return 'Das benutzerdefinierte Feld $name, dessen Typ sich geändert hat';
+  }
+
+  @override
+  String savedSearchMissingFieldChoice(String choice, String name) {
+    return 'Die Auswahl $choice von $name, die entfernt wurde';
+  }
+
+  @override
+  String get savedSearchMissingFigureDetail =>
+      'Ein Figurdetail in Erweitert, das sich nicht anzeigen lässt';
+
+  @override
+  String get savedSearchMissingUserFigure =>
+      'Eine eigene Figur, die gelöscht wurde';
+
+  @override
+  String get savedSearchMissingInvalid =>
+      'Etwas, das diese Version nicht lesen kann';
+
+  @override
+  String savedSearchSearchFor(String text) {
+    return 'Nach „$text“ suchen';
+  }
+
+  @override
+  String savedSearchHighlightedRow(String name, int index, int count) {
+    return '$name, $index von $count';
+  }
+
+  @override
+  String get savedSearchSaveAsNewSearch => 'Als neue Suche speichern…';
+
+  @override
+  String get settingsCollectionTitle => 'Sammlung';
+
+  @override
+  String get settingsSavedSearchesHeader => 'Gespeicherte Suchen';
+
+  @override
+  String get settingsSavedSearchesEmpty =>
+      'Noch keine gespeicherten Suchen. Speichere eine in der Sammlung: Richte eine Suche ein und wähle dann im Menü Weitere Aktionen „Diese Suche speichern…“.';
+
+  @override
+  String settingsSavedSearchRenameTooltip(String name) {
+    return '„$name“ umbenennen';
+  }
+
+  @override
+  String settingsSavedSearchDeleteTooltip(String name) {
+    return '„$name“ löschen';
+  }
+
+  @override
+  String savedSearchGone(String name) {
+    return '„$name“ wurde gelöscht, hier oder auf einem anderen Gerät, daher wurde nichts geändert.';
   }
 }

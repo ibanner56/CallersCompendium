@@ -15,7 +15,7 @@
 
 ## Privacy Policy for Caller's Compendium
 
-**Effective date:** November 23, 2026 · **Last updated:** November 23, 2026
+**Effective date:** November 24, 2026 · **Last updated:** November 24, 2026
 
 Caller's Compendium ("the app") is a free, open-source, local-first application
 for dance callers, developed by Isaac Banner ("we," "us"). This policy explains
@@ -139,8 +139,12 @@ a response. We do not use that information to identify or track you.
 
 ### 4. Permissions
 
-The app requests only network (internet) access, used for the purposes in
-Section 3. It does **not** request access to your camera, microphone, location,
+The app requests network (internet) access, used for the purposes in Section 3.
+On iPhone and iPad it can also ask to use your **camera**, and uses it only when
+you choose to take a photo in the app, such as of a dance card to read its
+figures. The photo is read on your device and deleted as soon as it has been
+read. It is never sent to us or anyone else, and it is not saved to your photo
+library. The app does **not** request access to your microphone, location,
 contacts, photos, or similar sensitive device data.
 
 ### 5. Sharing between your own devices
