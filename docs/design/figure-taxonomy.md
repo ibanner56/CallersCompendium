@@ -2386,6 +2386,50 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     keeps or drops a param it does not declare when it saves was not
     checked. Whether the beta acceptance recorded above for the new dancer
     tokens also covers these is the maintainer's call, not assumed here.
+  - **`rory_o_more.twoPlaces`**: who slides two places, across the set,
+    while the others slide one, as in The Caller's Box's "Leap of Faith"
+    (#1797): `Slide left, women slide two places (M past N, W past (N;W))`.
+    The maintainer chose the shape and its choices (2026-11-24): a dancer
+    set of `role1s`, `role2s` or `ends` (the wave's ends; the token ECD and
+    squares already use), not `centers` and not `everyone`, defaulting to
+    `unspecified`, the ordinary one-place slide. The maintainer also chose the
+    display wording, a trailing clause in the dialect's words: `balance & Rory
+    O'More left, robins 2 places`. Display-only, like a hall's ender (the
+    author's call, rejecting a template slot because that would have changed
+    the canonical text and needed a rebuild): `renderTemplate` leaves it
+    out, so the canonical line, and so search text and dedupe, do not
+    change. Typing "2 places" into search does not find it. The Advanced
+    search param filter does. The display line reads back through the
+    ContraDB front end (`_roryTwoPlaces`). The Caller's Box adapter folds
+    the line into the Rory O'More only straight after a balance-wave line
+    (`_longSlide`, beside `_foldBalanceWaveIntoRory`), keeping the bracket as
+    the note. Alone, or naming other dancers, the line stays custom.
+    The clause is part of the summary, not the move's template, so a
+    dialect's move wording for `rory_o_more`, and a figure's own wording
+    override, show the line without it, as they do a hall's ender and the
+    `balance &` prefix. The snippet signature keys on template params only,
+    so a teaching snippet is shared by the long and the ordinary slide, as it
+    is by a single and a double figure 8 (the author's call: `amount` joins
+    the signature because it replaces the fraction on the line, while this
+    only adds to it).
+    **Stored only while it names dancers** (`roryTwoPlacesParam`), as
+    `figure_8.double` is: `entryParams` seeds none, `applyParamChange` removes
+    it when cleared, and `dropUnstatedParams` drops an unstated one. Settings ▸
+    Defaults now records neither a cleared `twoPlaces` nor a `double` turned
+    off as a move default, and picking a move or typing a figure drops one a
+    saved default still holds; before this, a `double` toggled on and off in
+    Settings was saved as `false` and seeded into every new figure 8.
+    **Older devices (v39)** do not declare the param. They show the Rory
+    O'More without the clause, and their dance editor copies every stored
+    param into its draft (`FigureDraft.fromFigure`), so the value should
+    survive an edit there; no v39 build was run to check that. Their
+    `validateFigure` rejects it as `unknown_param`, which, as with v39's
+    `amount` and `double`, bites a compound of the user's own whose template
+    holds such a Rory O'More: it is marked "needs repair" there, and a repair
+    that removes or changes the figure drops the value and syncs back. The
+    maintainer accepted that exposure for `amount` (2026-11-12, #2120) and
+    for `twoPlaces` (2026-11-24), with no refusal of such templates and no
+    sync capability gate.
   - **`shift`** (`who`, `direction`, `beats` 4): one named group sidesteps
     while the others stay or dance something else, as in The Caller's Box's
     "Women allemande right 3/4 || Men shift left" (Mary Cay's Reel, dance
@@ -2416,12 +2460,12 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       position", "to N2"), "one step", and the bare shifts with a target
       ("Shift left to N2", "Shift left with neighbor"), which were custom
       before.
-  - Migration: none, and no rebuild: new moves and an alias, nothing renamed
-    or removed, so no stored figure changes and every canonical text stays as
-    it was. **Older devices (v39)** show a synced `cast` as the bare word
-    "cast", a `hand_cast` as "hand_cast" and a `shift` as "shift", flag them
-    as unknown moves, and keep their params intact (the #358 raw-id
-    fallback).
+  - Migration: none, and no rebuild: new moves, an alias and a param,
+    nothing renamed or removed, so no stored figure changes and every
+    canonical text stays as it was. **Older devices (v39)** show a synced
+    `cast` as the bare word "cast", a `hand_cast` as "hand_cast" and a
+    `shift` as "shift", flag them as unknown moves, and keep their params
+    intact (the #358 raw-id fallback).
   - v40 also merges **pass by and pass through into one figure**,
     `pass_through`, keeping `pass_by` as an alias, amending v40 because v40
     has not shipped. The maintainer's design (2026-11-24, recorded in the

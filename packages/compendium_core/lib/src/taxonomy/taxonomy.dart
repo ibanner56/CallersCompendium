@@ -241,11 +241,11 @@ class Taxonomy {
 
   /// Removes the params a figure keeps only while they are stated, from
   /// [params] in place: a fraction's `amount` (#2120) unless an `other`
-  /// fraction states it, and a figure 8's `double` unless it is true. Neither
-  /// is an entry default, so a figure 8 or poussette that states neither stores
-  /// no such key, and a peer still on taxonomy v38 (whose `validateFigure`
-  /// rejects a param it does not know) only ever meets one on a figure that
-  /// states it. Every path that fills a figure's params from
+  /// fraction states it, a figure 8's `double` unless it is true, and a Rory
+  /// O'More's `twoPlaces` (v40) unless it names dancers. None is an entry
+  /// default, so a figure that states none stores no such key, and a peer on
+  /// an older taxonomy (whose `validateFigure` rejects a param it does not
+  /// know) only ever meets one on a figure that states it. Every path that fills a figure's params from
   /// [effectiveParams] (picking the move, and the free-text entry's draft)
   /// passes through here.
   void dropUnstatedParams(String moveId, Map<String, Object?> params) {
@@ -254,6 +254,10 @@ class Taxonomy {
     }
     if (moveId == 'figure_8' && params[figure8DoubleParam] != true) {
       params.remove(figure8DoubleParam);
+    }
+    if (moveId == 'rory_o_more' &&
+        params[roryTwoPlacesParam] == ParamVocab.unspecified) {
+      params.remove(roryTwoPlacesParam);
     }
   }
 

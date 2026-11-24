@@ -56,6 +56,42 @@ void main() {
     });
   });
 
+  group("Rory O'More twoPlaces (v40, stored only while stated)", () {
+    test('a new Rory O\'More seeds no twoPlaces key', () {
+      expect(
+        taxonomy.entryParams('rory_o_more').containsKey(roryTwoPlacesParam),
+        isFalse,
+      );
+      expect(
+        taxonomy.effectiveParams(
+          testFigure(move: 'rory_o_more'),
+        )[roryTwoPlacesParam],
+        ParamVocab.unspecified,
+      );
+    });
+
+    test('naming dancers stores them, and clearing removes the key', () {
+      final on = change(
+        'rory_o_more',
+        taxonomy.entryParams('rory_o_more'),
+        roryTwoPlacesParam,
+        'role2s',
+      );
+      expect(on.params[roryTwoPlacesParam], 'role2s');
+      expect(on.params['beats'], 8, reason: 'no beats rule');
+      final off = change(
+        'rory_o_more',
+        on.params,
+        roryTwoPlacesParam,
+        ParamVocab.unspecified,
+      );
+      expect(off.params.containsKey(roryTwoPlacesParam), isFalse);
+      final unset = {...on.params, roryTwoPlacesParam: ParamVocab.unspecified};
+      taxonomy.dropUnstatedParams('rory_o_more', unset);
+      expect(unset.containsKey(roryTwoPlacesParam), isFalse);
+    });
+  });
+
   group('hey length (#576)', () {
     test('a full or half length drops a stale meetTarget', () {
       for (final length in ['half', 'full']) {

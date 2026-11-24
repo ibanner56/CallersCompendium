@@ -298,6 +298,14 @@ const String fractionAmountParam = 'amount';
 /// `validateFigure` rejects a param it does not know) would refuse.
 const String figure8DoubleParam = 'double';
 
+/// The Rory O'More param naming who slides two places, across the set, while
+/// the others slide one (taxonomy v40). Stored only while it names dancers:
+/// [Taxonomy.entryParams] seeds none and `applyParamChange` removes it when
+/// cleared, so a Rory O'More with the ordinary slide carries no key a peer on
+/// taxonomy v39 (whose `validateFigure` rejects a param it does not know)
+/// would refuse.
+const String roryTwoPlacesParam = 'twoPlaces';
+
 /// Whether a fraction field with no amount beside it offers [choice] when its
 /// value is [current] (#2120): every fraction but `other`, which would be
 /// stored with no amount. Such fields are a figure of the user's own, whose

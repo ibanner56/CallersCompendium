@@ -2356,7 +2356,9 @@ FigureMatch? _contraCorners(String text) {
 
 /// roryOMoreWords: `[balance] [<who>] Rory O'More <slide>`, and the app's own
 /// display wording `<who> balance & Rory O'More <slide>` (#2121), which puts
-/// the subject before the balance as it does for a swing.
+/// the subject before the balance as it does for a swing. The display's
+/// trailing `, <dancers> 2 places` (taxonomy v40) reads as `twoPlaces`; ContraDB
+/// never writes it.
 FigureMatch? _roryOMore(String text) {
   final s = _Scan(text);
   final leadingBalance = _eatBalanceAmp(s);
@@ -2369,8 +2371,25 @@ FigureMatch? _roryOMore(String text) {
   if (slide != null) {
     s.take();
     params['slide'] = slide;
+    final twoPlaces = _roryTwoPlaces(s);
+    if (twoPlaces != null) params[roryTwoPlacesParam] = twoPlaces;
   }
   return FigureMatch('rory_o_more', params: params, note: s.note());
+}
+
+/// A Rory O'More's `, <dancers> 2 places` (taxonomy v40), consumed only when
+/// the dancers are one of `twoPlaces`' choices and the whole clause is there;
+/// otherwise nothing is consumed and the text stays in the note.
+String? _roryTwoPlaces(_Scan s) {
+  if (!s.previousTokenEndsWith(',')) return null;
+  final start = s.pos;
+  final who = s.peek();
+  if (who == 'role1s' || who == 'role2s' || who == 'ends') {
+    s.take();
+    if ((s.eat('2') || s.eat('two')) && s.eat('places')) return who;
+  }
+  s.reset(start);
+  return null;
 }
 
 /// ContraDB's `starPromenadeWords` — the `[who] star promenade HAND ROTATION`

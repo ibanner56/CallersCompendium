@@ -212,6 +212,8 @@ class FigureDraft {
     }
     if (figure.params.containsKey('beats')) {
       draft.params.addAll(defaults);
+      // A saved default may hold a value kept only while stated.
+      taxonomy.dropUnstatedParams(figure.move, draft.params);
     } else {
       draft.params
         ..clear()

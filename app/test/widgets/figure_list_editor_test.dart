@@ -1636,6 +1636,29 @@ void main() {
       expect(drafts.single.params.containsKey('not_a_param'), isFalse);
     });
 
+    testWidgets('a saved value kept only while stated is not seeded', (
+      tester,
+    ) async {
+      // Saved by a build whose Settings still recorded them: an unstated
+      // Rory O'More `twoPlaces` (v40) and a figure 8 that is not double. An
+      // older peer rejects either key, so neither reaches the figure.
+      final drafts = <FigureDraft>[FigureDraft(), FigureDraft()];
+      await _pump(
+        tester,
+        drafts,
+        moveParamDefaults: {
+          'rory_o_more': {'twoPlaces': 'unspecified', 'slide': 'left'},
+          'figure_8': {'double': false},
+        },
+      );
+      await _selectMove(tester, 0, 'rory', 'rory_o_more');
+      await _selectMove(tester, 1, 'figure 8', 'figure_8');
+
+      expect(drafts[0].params['slide'], 'left');
+      expect(drafts[0].params.containsKey('twoPlaces'), isFalse);
+      expect(drafts[1].params.containsKey('double'), isFalse);
+    });
+
     testWidgets('null moveParamDefaults leaves behavior unchanged', (
       tester,
     ) async {
