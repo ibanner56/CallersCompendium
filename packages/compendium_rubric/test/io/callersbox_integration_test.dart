@@ -16,6 +16,7 @@
 /// ```
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart' as core;
@@ -711,6 +712,127 @@ void main() {
       expect(report.inScope, 0);
       expect(report.attempted, 0);
       expect(report.count(DanceOutcome.unstructured), 1);
+    });
+  });
+
+  group('a hey whose last pass is marked "~" is the last-resort progression '
+      '(user-ruled 2026-11-24)', () {
+    /// A Caller's Box payload for a Becket dance, from its figure lines.
+    String payload(String id, String direction, List<List<String>> phrases) =>
+        jsonEncode({
+          'ID': id,
+          'Name': 'Caller\'s Box #$id',
+          'Authors': ['Test'],
+          'Permission': 'full',
+          'FormationBase': 'Duple Minor - Becket',
+          'FormationDetail': '',
+          'Progression': 'Single',
+          'Direction': direction,
+          'Mixer?': '',
+          'phrases': [
+            for (final (i, lines) in phrases.indexed)
+              {
+                'name': ['A1', 'A2', 'B1', 'B2'][i],
+                'figures': lines,
+              },
+          ],
+          'CallingNotes': <Object?>[],
+        });
+
+    /// Rowdy Rendezvous (Caller's Box #18981, permission `full`). It flags no
+    /// progression, and neither the positional nor the next-neighbours
+    /// reading compiles it.
+    String rowdy({bool tilde = true}) => payload('18981', 'CCW', [
+      ['(6) Circle left 3/4', '(10) Neighbor swing'],
+      [
+        '(8) In long lines, go forward and back',
+        '(8) On right diagonal, right and left through with neighbor',
+      ],
+      [
+        '(8) On right diagonal, ladies chain to shadow',
+        '(8) Hey 1/2 (WR;NL;MR${tilde ? '~' : ''})',
+      ],
+      ['(4) Partner balance', '(12) Partner swing'],
+    ]);
+
+    test('it compiles a dance progressing on its marked hey', () async {
+      final runs = await runCallersBoxPayload(rowdy(), label: '18981');
+      expect(runs.single.outcome, DanceOutcome.compiled, reason: '$runs');
+      expect(runs.single.assumedProgressionAt, 5);
+      expect(
+        runs.single.warnings.map((w) => w.detail),
+        contains(contains('marks partial ("~")')),
+      );
+    });
+
+    test('without the "~" the same dance does not compile', () async {
+      final runs = await runCallersBoxPayload(
+        rowdy(tilde: false),
+        label: '18981',
+      );
+      expect(runs.single.outcome, isNot(DanceOutcome.compiled));
+    });
+
+    test(
+      "Haven't We Met Before? compiles once its waiting couple swings",
+      () async {
+        // Caller's Box #10129, permission `full`. The next-neighbours reading
+        // places its progression on the second hey; the N0 swing of the
+        // couple waiting at the top is what lets it compile.
+        final runs = await runCallersBoxPayload(
+          payload('10129', 'CW', [
+            [
+              '(6) Star left 3/4; men turn around',
+              '(10) N1 neighbor do-si-do 1 & 1/2',
+            ],
+            ['(4) N0 neighbor balance', '(12) N0 neighbor swing'],
+            ['(8) Hey 1/2 (ML;PR;WL;N0R~)', '(8) Hey 1/2 (MR;PL;WR;N1L~)'],
+            [
+              '(6) N2 neighbor allemande right 1',
+              '(2) Men cross by right',
+              '(8) Partner swing',
+            ],
+          ]),
+          label: '10129',
+        );
+        expect(runs.single.outcome, DanceOutcome.compiled, reason: '$runs');
+        expect(runs.single.assumedProgressionAt, 4);
+      },
+    );
+
+    test('the last marked hey is the one, and a flag in the source wins', () {
+      core.Figure hey(String? note) => core_test.testFigure(
+        move: 'hey',
+        params: const {'length': 'half'},
+        note: note,
+      );
+      core.Figure figure(String move) => core_test.testFigure(move: move);
+      core.Dance shaped(List<core.Figure> figures) =>
+          _shapedLike(shape: core.FormationShape.becketCw, figures: figures);
+      expect(
+        partialPassProgressionIndex(
+          shaped([
+            hey('last pass partial'),
+            hey('with hands; last pass partial'),
+            hey(null),
+            figure('swing'),
+          ]),
+        ),
+        1,
+      );
+      expect(
+        partialPassProgressionIndex(shaped([hey(null), figure('swing')])),
+        isNull,
+      );
+      expect(
+        partialPassProgressionIndex(
+          shaped([
+            hey('last pass partial'),
+            core_test.testFigure(move: 'swing', progression: true),
+          ]),
+        ),
+        isNull,
+      );
     });
   });
 

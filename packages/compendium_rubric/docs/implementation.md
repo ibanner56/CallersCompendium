@@ -668,7 +668,7 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > rule is untouched: an unflagged record still refuses with
 > `unperformedProgression`. **The bridge assumes; the compiler never infers.**
 >
-> **One retry, and only one** *(user-ruled).* When the positional placement does
+> **One retry by the next neighbours** *(user-ruled)*. When the positional placement does
 > not compile, `runCoreDance` tries a second: the figure **immediately before the
 > first `nextNeighbors` reach**, in a param or (below) a note
 > (`nextNeighborsProgressionIndex`). A figure
@@ -705,10 +705,21 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > retry is compiled whenever it adds a later progression even if its first
 > matches the positional one. A Quadruple gets at most three (no N5 rule).
 >
+> **A last reading: the hey marked "~"** *(user-ruled 2026-11-24: a "~" on a
+> hey pass marks that last pass as the progression)*. When neither the
+> positional placement nor the N2 retry compiles, `runCoreDance` tries a third:
+> the last `hey` whose final pass Caller's Box marks partial ("~"), which the
+> core import keeps as the note clause `last pass partial`
+> (`partialPassProgressionIndex`). Trying it only after the other two, so it
+> never displaces a reading that compiles, and taking the **last** marked hey
+> rather than the first, are the agent's calls; the second follows Hudson's
+> description of Haven't We Met Before?, whose two hey halves are both marked
+> and whose second progresses. It places one progression and no later ones.
+>
 > This stays inside rule 5 because the landmark comes from the *record*: it reads
 > figure parameters and notes, exactly as the positional rule reads formation and
 > move names. Nothing looks at where the dancers ended up. It is also not a search —
-> two placements are ever tried, never more — which matters, because 155 of the
+> three placements at most are ever tried, each chosen by a named rule — which matters, because 155 of the
 > 416 dances a perfect oracle would rescue admit **more than one** working
 > placement, and a search would have no principled way to choose among them.
 >
@@ -810,7 +821,7 @@ written to `<dir>`:
 For a dance whose progression was assumed, the report also records a
 **placement hint**: the other figures that compile when the flag is moved onto
 them alone. It is diagnostic only *(agent's call, 2026-11-23)*: the scored run
-still tries exactly the two placements described in §10.1, and nothing in the
+still tries only the placements described in §10.1, and nothing in the
 report changes an outcome, a rate or the exit code. `--core-ids <file>` (one
 Caller's Box id per line) marks a focus set such as the Seattle core set, and
 every group then counts its members too.
@@ -894,7 +905,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,544 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,551 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

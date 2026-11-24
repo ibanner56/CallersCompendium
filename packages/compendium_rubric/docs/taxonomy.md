@@ -456,8 +456,9 @@ obvious that anything has happened: **balance & box the gnat with the neighbors,
 The box the gnat swaps the pair and turns them to face each other; the pull by swaps them back
 and lets them keep walking. Everyone finishes in their own row facing *the way they came*, so
 the couple behind is standing in front of them — and the couples at the two ends of the set have
-nobody behind them at all, fall outside every band in the reaching phase, and sit the figure out
-without anything having to special-case them.
+nobody behind them at all and fall outside every band in the reaching phase. Most figures leave
+them standing out; a `swing` has them swing each other in place (see `swing`, "a couple waiting
+out on an N0 swing", user-ruled 2026-11-24).
 
 The sign is load-bearing, not decorative. Reaching stands the same two couples together
 whichever direction is named, so only the sign distinguishes the meeting the choreographer wrote
@@ -880,6 +881,14 @@ To be defined later with worked examples.
     waiting. Every corpus dance this rule reaches is a Becket, where the couple stands on a side
     line, and facing up or down there would leave the two dancers one behind the other. So they
     finish facing across like any swing on the side (the agent's call).
+  - **a couple waiting out on an N0 swing:** when the swing names the previous neighbours
+    (`prevNeighbors`) and a whole couple stands alone across an end row, waiting out in the
+    grouping the swing is danced in, the partners swing each other and normalize facing into the
+    set, which swaps their sides *(user-ruled 2026-11-24, Haven't We Met Before?: "couple waiting
+    out at the top after N0 balance+swing should still swing and normalize (swap places)")*.
+    Limiting it to N0 is Hudson's choice ("go with option A for now"): read for every distance set
+    it compiled eight more Caller's Box dances and lost four. A stated `face` is not applied to
+    them (the agent's call).
   - **distance sets** (`nextNeighbors`, `thirdNeighbors`, `fourthNeighbors`, `prevNeighbors`):
     **distinguished, and enforced.** The engine checks the named distance against the couples
     actually standing together, using **home grouping** — `coupleIndex ~/ 2`, which the starting

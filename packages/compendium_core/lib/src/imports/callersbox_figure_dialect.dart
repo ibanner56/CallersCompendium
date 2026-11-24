@@ -3218,8 +3218,9 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 //   * rico1..4  <- ricochet flags, assigned SEQUENTIALLY to the 1st/2nd/3rd/4th
 //                  same-role center pass (the odd pass-list positions), capped
 //                  by what the hey length can physically reach.
-// The `~` partial-last-pass marker is dropped (informational only — not
-// representable, ratified). Any token the decoder cannot fully account for
+// The `~` partial-last-pass marker on the LAST pass is kept only as the note
+// clause [_partialLastPassNote] (the glossary's "partial hey pass"); the hey's
+// params cannot represent it, so a `~` elsewhere is still dropped. Any token the decoder cannot fully account for
 // forces `null` -> the custom fallback (parse-never-fails / prefer-custom).
 
 /// TCB pass-list people codes -> canonical dancer set (TCB glossary, see
@@ -4135,9 +4136,20 @@ FigureMatch? _hey(String scrubbed) {
   return FigureMatch(
     'hey',
     params: params,
-    note: combineFigureNotes(withHands ? 'with hands' : null, bracketNote),
+    note: combineFigureNotes(
+      combineFigureNotes(withHands ? 'with hands' : null, bracketNote),
+      cells.last.trim().endsWith('~') ? _partialLastPassNote : null,
+    ),
   );
 }
+
+/// The note a hey carries when its pass list marks the last pass partial
+/// (`Hey 1/2 (ML;PR;WL;N0R~)`), Caller's Box's `~` ("partial hey pass").
+/// Kept as prose because no hey param represents it; the Rubric compiler reads
+/// it as a hint for where the progression falls *(user-ruled 2026-11-24: a
+/// `~` on a hey pass marks that last pass as the progression; keeping it as
+/// this note is the agent's call)*.
+const String _partialLastPassNote = 'last pass partial';
 
 /// The hey's whole line before one clause-final square bracket (group 1) and
 /// that bracket's body (group 2). Bounded like [_circulateTrailingBracketRe].

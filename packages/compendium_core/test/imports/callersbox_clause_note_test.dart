@@ -560,6 +560,18 @@ void main() {
         frontEnd: tcbFigureFrontEnd,
       );
       expect(f!.move, 'hey');
+      // The `;` stays inside the pass list; the only note is the trailing
+      // `~`'s (Caller's Box "partial hey pass"), kept for Rubric's progression
+      // placement (agent's call 2026-11-24).
+      expect(f.note, 'last pass partial');
+    });
+
+    test('a hey whose last pass has no `~` carries no note', () {
+      final f = parseFigureLine(
+        'Hey 1/2 (WR;PL;MR;N2L)',
+        frontEnd: tcbFigureFrontEnd,
+      );
+      expect(f!.move, 'hey');
       expect(f.note, isNull);
     });
 

@@ -72,6 +72,20 @@
 > 14639, 15271, 7529), and three now reach a deferred figure and leave the
 > scope.
 >
+> **A waiting couple swings on an N0 swing, and "~" places a progression
+> (2026-11-24)**: a couple waiting out at an end when a swing names the
+> previous neighbours now swings each other and faces into the set, and when
+> neither the positional nor the N2 reading compiles a dance, the last hey
+> whose final pass Caller's Box marks "~" is tried as its progression (both
+> user-ruled; the core import now keeps that "~" as the note "last pass
+> partial"). Against `rubric` at `9680f588` they took the count from 4,228 to
+> 4,233 of 5,425 compiled in scope (77.9% to 78.0%), with the core set
+> unchanged at 544 and nothing lost: Haven't We Met Before? (10129), Be
+> Careful What You Wish For (12608) and Reverberations (2630) compile through
+> the swing, Rowdy Rendezvous (18981) and Joel and Louise 30th Anniversary
+> (4343) through the "~". Two that were refused now run to the end and
+> mismatch (14543, 1761).
+>
 > **Duple Proper starts proper (2026-11-24)**: Caller's Box's "Duple Minor -
 > Proper" was read as Duple Improper, with a warning. It now has its own start,
 > every lark in c0, with the 1s facing down crossed, so their first swing
