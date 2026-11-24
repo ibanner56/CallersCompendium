@@ -859,6 +859,18 @@ Note what the second row shows. The progression figure can only reach the active
 swaps A and D and leaves B and C exactly where they stand; the change-over is what puts B back
 into a hands four — with D.
 
+> **The oracle in a Progressed Improper set** *(agent's call, 2026-11-24, from Hudson's note on
+> Men at Work)*. This is the net-displacement oracle's bookkeeping (`ProgressionCriterion`), not
+> a move the figures make. A Progressed Improper set starts one progression in, with the 2s at
+> the top, so the oracle's first round already sends B out at the top (and the bottom couple
+> out at the bottom). On its second round D's target is B's row: B has served its round and
+> passes D, travelling down as the 1 it now is, and D is collected at the top in its place; the
+> bottom end mirrors it. So Progressed Improper after `n` rounds lands exactly where Duple
+> Improper does after `n + 1`, cell for cell, and a triple ends with D at the top and B beside
+> F, as Hudson's note describes. Before, the oracle put D on top of B and crashed. Only
+> positions are compared: the oracle's waiting-out marks need not match the figures' (a
+> `Formation` compares numbers and positions, not marks).
+
 > **The marking rule is deliberately positional**, not "is this couple already in a complete
 > band?" In a settled Duple Improper set *every* row holds a whole couple, so an end row
 > qualifies. The

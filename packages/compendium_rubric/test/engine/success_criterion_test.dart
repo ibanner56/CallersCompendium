@@ -49,6 +49,47 @@ void main() {
     });
   });
 
+  group('ProgressionCriterion — Progressed Improper', () {
+    // A Progressed Improper set starts one progression in, with the 2s at the
+    // top, so the first round already sends a couple out at each end. On the
+    // next, the arriving couple's target is that couple's row; before the
+    // fix the oracle put one on top of the other and threw. The waiting
+    // couple now passes the arriving one (agent's call, from Hudson's note on
+    // Men at Work, 2026-11-24).
+    test('lands where Duple Improper does one round later', () {
+      for (final handsFour in [2, 3, 4, 5]) {
+        for (final count in [1, 2, 3, 4]) {
+          expect(
+            after(
+              FormationType.progressedImproper,
+              count,
+              handsFour: handsFour,
+            ),
+            after(FormationType.dupleImproper, count + 1, handsFour: handsFour),
+            reason: '$handsFour hands four, $count rounds',
+          );
+        }
+      }
+    });
+
+    test(
+      'a triple ends with D at the top and F above B, as in Men at Work',
+      () {
+        // Hudson: "N4 is then fourth neighbors, which would be couples B and F
+        // with couple D out at the top." Positions only: the oracle's marks are
+        // not compared.
+        expect(after(FormationType.progressedImproper, 3, handsFour: 3), [
+          'R1-D . . . L1-D',
+          'L2-F . . . R2-F',
+          'R1-B . . . L1-B',
+          'L2-E . . . R2-E',
+          'R1-A . . . L1-A',
+          'L2-C . . . R2-C',
+        ]);
+      },
+    );
+  });
+
   group('ProgressionCriterion — Becket (fundamentals §10.6 references)', () {
     test('CW + single', () {
       expect(after(FormationType.becketCw, 1), [

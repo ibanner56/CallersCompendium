@@ -90,7 +90,17 @@ final class ProgressionCriterion extends SuccessCriterion {
   /// In **Duple Improper** a couple standing out is already lying the way a DI
   /// couple lies — along a row — so re-entry costs it no movement at all
   /// (§10.3.2's worked table: B and C simply stay where they are, and the
-  /// change-over alone puts them back in a hands four).
+  /// change-over alone puts them back in a hands four). The exception is a
+  /// waiting couple whose row a travelling dancer arrives in. That happens
+  /// only on the second round of a Progressed Improper set, at either end:
+  /// the set starts one progression in, so its first round already sends a
+  /// couple out at each end. That couple passes the arriving one, travelling
+  /// on its new number, and the arriving one is collected at the end in its
+  /// place. The result is that Progressed Improper after `n` rounds lands
+  /// exactly where Duple Improper does after `n + 1`, cell for cell (agent's
+  /// call, from Hudson's note on Men at Work, 2026-11-24, whose triple ends
+  /// with D at the top and B beside F). The positions are what is compared;
+  /// the waiting-out marks are not ([Formation] equality ignores them).
   ///
   /// In **Becket** it does not: a couple collected across an end row is lying
   /// *across* the set, but a Becket couple lies *along a column*. §10.6 is
@@ -102,6 +112,19 @@ final class ProgressionCriterion extends SuccessCriterion {
     for (final entry in formation.dancers.entries) {
       if (entry.value.waitingOut) continue;
       targets[entry.key] = entry.value.position.row + _delta(formation, entry);
+    }
+    // A couple waiting out in a set whose couples lie along a row stays where
+    // it is, unless a travelling dancer's target is its row: then it has
+    // served its round and passes them, travelling on its new number like
+    // everyone else.
+    if (!formation.type.couplesShareColumn) {
+      final arriving = targets.values.toSet();
+      for (final entry in formation.dancers.entries) {
+        if (!entry.value.waitingOut) continue;
+        if (!arriving.contains(entry.value.position.row)) continue;
+        targets[entry.key] =
+            entry.value.position.row + _delta(formation, entry);
+      }
     }
 
     final changes = <DancerId, DancerState>{};
