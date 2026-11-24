@@ -184,17 +184,13 @@ class TextRecognitionScope extends InheritedWidget {
   static TextRecognitionService? of(BuildContext context) {
     final scope = _scope(context);
     if (scope != null) return scope.service;
-    return _platformService ??= textRecognitionServiceFor(
-      defaultTargetPlatform,
-    );
+    return textRecognitionServiceFor(defaultTargetPlatform);
   }
 
   /// The picker from the nearest scope, else the system picker.
   static Future<PickedRecognitionImage?> Function() pickerOf(
     BuildContext context,
   ) => _scope(context)?.pickImage ?? pickRecognitionImage;
-
-  static TextRecognitionService? _platformService;
 
   @override
   bool updateShouldNotify(TextRecognitionScope oldWidget) =>
