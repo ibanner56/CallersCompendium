@@ -198,8 +198,15 @@ final class HeyForFour extends Operation {
         'diagonal right_left_through',
       );
     }
-    if (length == HeyLength.lessThanHalf ||
-        length == HeyLength.betweenHalfAndFull) {
+    if (length == HeyLength.lessThanHalf &&
+        (meetTarget == null || rico1 || rico2)) {
+      return OpError(
+        ErrorKind.unsupportedParam,
+        'hey length:lessThanHalf is modelled only as three passes stopping '
+        'to face a stated meetTarget, without a ricochet',
+      );
+    }
+    if (length == HeyLength.betweenHalfAndFull) {
       return OpError(
         ErrorKind.unsupportedParam,
         'hey length:${length.key} stops the weave mid-pass, with dancers '
@@ -215,7 +222,8 @@ final class HeyForFour extends Operation {
         'a full hey has a second one',
       );
     }
-    return _lines(formation).errorOrNull;
+    final lines = _lines(formation);
+    return lines.errorOrNull;
   }
 
   /// Reads each hands four as a line of four, or explains why it cannot be.
@@ -449,6 +457,38 @@ final class HeyForFour extends Operation {
     return happened.isOdd;
   }
 
+  /// The first three passes of a hey and no more, stopping where the last
+  /// pass would begin (user-ruled 2026-11-24: "Hey 1/2 …; face N2" stops
+  /// before its last pass, facing the next neighbours). Numbering the line
+  /// `a b c d`:
+  ///
+  /// - **opening in the centre**, three passes give `c d a b`: each centre
+  ///   dancer ends in the place of the end dancer on the far side, and that
+  ///   end dancer in the centre's;
+  /// - **opening on the side**, they give `d b c a`: the pair who meet in the
+  ///   centre exchange, and the other pair end where they started.
+  ///
+  /// Either way it is the half hey's `d c b a` without its last pass.
+  void _threePasses(
+    Formation formation,
+    Map<DancerId, DancerState> changes,
+    _HeyLine line,
+  ) {
+    if (line.sideStart) {
+      _place(formation, changes, line.centers, exchange: true);
+      _place(formation, changes, line.ends, exchange: false);
+      return;
+    }
+    bool isWest(DancerId id) =>
+        formation.stateOf(id).position.col < kColumnCount ~/ 2;
+    for (final center in [line.centers.a, line.centers.b]) {
+      final farEnd = isWest(line.ends.a) != isWest(center)
+          ? line.ends.a
+          : line.ends.b;
+      _place(formation, changes, (a: center, b: farEnd), exchange: true);
+    }
+  }
+
   /// Places [pair], exchanged or not, and hands their facing to the next
   /// figure: a hey ends mid-flow, and what a dancer is looking at depends on
   /// what is called next (`docs/fundamentals.md` §6).
@@ -474,6 +514,12 @@ final class HeyForFour extends Operation {
   Result<Formation, OpError> perform(Formation formation) =>
       _lines(formation).map((lines) {
         final changes = <DancerId, DancerState>{};
+        if (length == HeyLength.lessThanHalf) {
+          for (final line in lines) {
+            _threePasses(formation, changes, line);
+          }
+          return formation.withUpdates(changes);
+        }
         for (final line in lines) {
           _place(
             formation,

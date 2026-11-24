@@ -35,6 +35,22 @@ void main() {
       expect(after.toMatrix(), start.toMatrix());
     });
 
+    test('three passes stopping at a meetTarget cross each couple over', () {
+      // Hudson ruled 2026-11-24 that "Hey 1/2 (WR;PL;MR); face N2" stops
+      // before its last pass. The Robins cross in the centre, the partners
+      // pass on the sides, and the Larks cross in the centre: each centre
+      // ends in the place of the end on the far side, so every dancer has
+      // crossed the set in their own row, facing their neighbour on the side.
+      final after = applyOk(
+        const HeyForFour(
+          length: HeyLength.lessThanHalf,
+          meetTarget: WhoSet.nextNeighbors,
+        ),
+        di(_start),
+      );
+      expect(after.toRolesNotation(), ['L1-A . . . R1-A', 'R2-B . . . L2-B']);
+    });
+
     test('two half heys compose to a full hey', () {
       final start = di(_start);
       const half = HeyForFour();
@@ -154,13 +170,37 @@ void main() {
 
   group('HeyForFour refusals', () {
     test('the partial lengths are deferred, not approximated', () {
-      for (final length in [
-        HeyLength.lessThanHalf,
-        HeyLength.betweenHalfAndFull,
+      for (final hey in [
+        const HeyForFour(length: HeyLength.betweenHalfAndFull),
+        const HeyForFour(
+          length: HeyLength.betweenHalfAndFull,
+          meetTarget: WhoSet.nextNeighbors,
+        ),
+        // Three passes are modelled only stopping to face a stated meetTarget.
+        const HeyForFour(length: HeyLength.lessThanHalf),
       ]) {
-        final error = applyErr(HeyForFour(length: length), di(_start));
-        expect(error.kind, ErrorKind.unsupportedParam, reason: length.key);
-        expect(error.message, contains(length.key));
+        final error = applyErr(hey, di(_start));
+        expect(error.kind, ErrorKind.unsupportedParam, reason: '$hey');
+        expect(error.message, contains(hey.length.key));
+      }
+    });
+
+    test('three passes with a ricochet are refused', () {
+      for (final hey in [
+        const HeyForFour(
+          length: HeyLength.lessThanHalf,
+          meetTarget: WhoSet.nextNeighbors,
+          rico1: true,
+        ),
+        const HeyForFour(
+          length: HeyLength.lessThanHalf,
+          meetTarget: WhoSet.nextNeighbors,
+          rico2: true,
+        ),
+      ]) {
+        final error = applyErr(hey, di(_start));
+        expect(error.kind, ErrorKind.unsupportedParam, reason: '$hey');
+        expect(error.message, contains('ricochet'));
       }
     });
 
@@ -304,6 +344,23 @@ void main() {
         isNot(col(1, Role.lark)),
         reason: 'the Larks stand across the set',
       );
+    });
+
+    test('three passes opening on the side trade only the centres', () {
+      // Walking the line `a b c d` with the side passes first: `b a d c`, then
+      // `a, d` (the pass2 pair) cross in the centre for `b d a c`, then the
+      // sides again for `d b c a`. The centres have exchanged and the ends
+      // are back where they started.
+      final after = applyOk(
+        const HeyForFour(
+          pass1: WhoSet.partners,
+          pass2: WhoSet.role1s,
+          length: HeyLength.lessThanHalf,
+          meetTarget: WhoSet.nextNeighbors,
+        ),
+        di(carousel),
+      );
+      expect(after.toRolesNotation(), ['R2-B . . . L2-B', 'L1-A . . . R1-A']);
     });
 
     test('a full hey opening on the side is still the identity', () {

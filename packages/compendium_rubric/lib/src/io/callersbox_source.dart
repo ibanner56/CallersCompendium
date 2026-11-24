@@ -686,6 +686,10 @@ BridgedDance bridgeCoreDance(
                     ..._recordParams(figures[index].params),
                     if (_hallBackwards(figures[index])) 'facing': 'backward',
                     'endFacing': ?_swingNoteFacing(figures[index]),
+                    if (_heyStopsAtNextNeighbours(figures[index])) ...{
+                      'length': 'lessThanHalf',
+                      'meetTarget': 'nextNeighbors',
+                    },
                   },
             if (figures[index].progression ||
                 index == assumedAt ||
@@ -698,6 +702,24 @@ BridgedDance bridgeCoreDance(
     assumedProgressionAt: assumedAt,
     laterProgressionsAt: laterAt,
   );
+}
+
+/// Whether [figure] is a half hey Caller's Box writes as "Hey 1/2 (…); face
+/// N2", which the import keeps as a half hey whose note ends with the clause
+/// `face N2`. Hudson ruled (2026-11-24) that this wording, and only this one,
+/// is a less-than-half hey stopping at the next neighbours. A hey with a
+/// ricochet on either centre meeting, or with its last pass marked partial
+/// ("~", [_partialLastPassNote]), is left as the import read it (agent's
+/// call).
+bool _heyStopsAtNextNeighbours(core.Figure figure) {
+  if (figure.move != 'hey' || figure.params['length'] != 'half') return false;
+  if (figure.params['rico1'] == true || figure.params['rico2'] == true) {
+    return false;
+  }
+  final clauses = [
+    for (final clause in (figure.note ?? '').split(';')) clause.trim(),
+  ];
+  return clauses.last == 'face N2' && !clauses.contains(_partialLastPassNote);
 }
 
 /// Whether [figure] is a single-file promenade around the major set to the

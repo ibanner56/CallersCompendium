@@ -1481,6 +1481,57 @@ void main() {
       expect(assumedProgressionIndex(dance), 1);
     });
 
+    group('a half hey noted "face N2"', () {
+      // Hudson ruled 2026-11-24 that "Hey 1/2 (…); face N2", and only that
+      // wording, is a less-than-half hey stopping at the next neighbours.
+      core.Figure hey({String? note, Map<String, Object?> extra = const {}}) =>
+          core_test.testFigure(
+            move: 'hey',
+            params: {
+              'length': 'half',
+              'pass1': 'role2s',
+              'pass2': 'partners',
+              'beats': 8,
+              ...extra,
+            },
+            note: note,
+          );
+
+      Map<String, Object?> bridgedParams(core.Figure first) {
+        final dance = _shapedLike(
+          shape: core.FormationShape.dupleImproper,
+          figures: [first, figure('swing')],
+        );
+        return ((bridgeCoreDance(dance).record['figures']! as List<Object?>)[0]!
+                as Map<String, Object?>)['params']!
+            as Map<String, Object?>;
+      }
+
+      test('is bridged as three passes stopping at the next neighbours', () {
+        for (final note in ['face N2', 'with hands; face N2']) {
+          final params = bridgedParams(hey(note: note));
+          expect(params['length'], 'lessThanHalf', reason: note);
+          expect(params['meetTarget'], 'nextNeighbors', reason: note);
+        }
+      });
+
+      test('any other note, a ricochet or a partial last pass is left', () {
+        for (final figure in [
+          hey(),
+          hey(note: 'face N2 then swing'),
+          hey(note: 'face N2; with hands'),
+          hey(note: 'last pass partial; face N2'),
+          hey(note: 'face N2', extra: {'rico1': true}),
+          hey(note: 'face N2', extra: {'rico2': true}),
+          hey(note: 'face N2', extra: {'length': 'full'}),
+        ]) {
+          final params = bridgedParams(figure);
+          expect(params['length'], isNot('lessThanHalf'), reason: '$figure');
+          expect(params.containsKey('meetTarget'), isFalse, reason: '$figure');
+        }
+      });
+    });
+
     group('a single-file promenade around the major set to N2', () {
       // Hudson ruled 2026-11-24 that this is a promenade along the set, single
       // file, which carries every dancer on to the next neighbours. The

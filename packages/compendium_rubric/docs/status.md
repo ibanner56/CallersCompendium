@@ -224,6 +224,18 @@
 > crashing, in its end rows only, where its two assumed progressions fall on
 > the wrong figures.
 >
+> **"Hey 1/2 (…); face N2" stops after three passes (2026-11-24)**: the
+> Caller's Box bridge reads that half hey as a less-than-half hey meeting the
+> next neighbours, and the hey dances it as its first three passes, every
+> dancer ending facing the one they would have passed next (user-ruled
+> 2026-11-24 for that wording only; leaving ricochet and "~" heys alone, and
+> the side-opening walk, are the agent's calls; `taxonomy.md` `hey`).
+> Against `rubric` at `3051da0f`: 4,479 of 5,617 to 4,482 of 5,617 compiled
+> in scope (79.8%), the core set unchanged at 573. The Girls of Saint Louis
+> (10023, 6067), The King's Reel (11282) and Mary Mary (1182) now compile;
+> Roll Reversal (10697), which compiled only with the fourth pass, now
+> refuses, and shipping with that loss was Hudson's call.
+>
 > **A dance one column off still compiles (2026-11-24)**: a dance whose
 > final state has every dancer in the expected row, with the expected number
 > and in the row's expected order, but some up to one column to the side
