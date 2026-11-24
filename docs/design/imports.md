@@ -1783,9 +1783,10 @@ shared reading", "becomes an unrecognized figure") over the bare verb.
 
 Which is which, derived from the code rather than from memory:
 
-- `tcbFigureFrontEnd` registers **twenty-seven** pre-recognizers:
-  `_amountAlternativeAnnotation`, `_hey`, `_tcbNumberedRolePair`,
-  `_passTheOceanToWave`, `_circulate`, `_waveBalanceCirculate`, `_circulateCrossBracket`,
+- `tcbFigureFrontEnd` registers **TODO** pre-recognizers:
+  `_amountAlternativeAnnotation`, `_eighthHey`, `_hey`, `_tcbNumberedRolePair`,
+  `_passTheOceanToWave`, `_asCouplesDoSiDo`, `_jerseyTwirl`, `_circulate`,
+  `_waveBalanceCirculate`, `_circulateCrossBracket`,
   `_handBalanceSquareThrough`, `_squareThroughPassList`,
   `_balanceHandAnnotation`, `_balancePairHandAnnotation`, `_gateAnnotation`,
   `_courtesyTurnAnnotation`, `_tcbCast`, `_walkForwardAnnotation`,
@@ -1813,7 +1814,13 @@ Which is which, derived from the code rather than from memory:
   (`N2 Men allemande …`, read as `Men allemande … [with N2]`) is the
   falls-through kind too: it re-reads its rewritten line through the other
   entries as `_tcbCast` does, and passes on a `custom` result one of them
-  returned, but it never makes one itself.
+  returned, but it never makes one itself. `_asCouplesDoSiDo` (`As couples,
+  neighbor do si do`, read as the do si do with the note `as couples`) and
+  `_jerseyTwirl` (`Partner Jersey twirl`, read as `Partner California twirl`
+  with the note `Jersey twirl`) re-read the same way, and fall through unless
+  the re-read gives that move. `_eighthHey` reads `Hey 1/8 (WR)` as one pass by
+  (`pass_by`, note `1/8 hey`) and falls through on anything but a single cell
+  it decodes.
 - `contraDbHtmlFigureFrontEnd` registers its **entire grammar** as
   pre-recognizers, **and** supplies a veto. Both halves matter, and they pull in
   opposite directions, which is why this front end is the one most likely to be

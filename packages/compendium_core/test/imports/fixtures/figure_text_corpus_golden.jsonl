@@ -6669,7 +6669,7 @@
 {"in":"Full Hey, Partners start right shoulders","fanOut":"[{\"schemaVersion\":1,\"move\":\"hey\",\"params\":{\"pass1\":\"partners\",\"length\":\"full\",\"shoulder\":\"right\"}}]"}
 {"in":"Single-file promenade along the set (Robins in front)","scrub":"Single-file promenade along the set (role2s in front)","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Single-file promenade along the set (role2s in front)\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Larks pull by L to Neighbor","scrub":"role1s pull by L to Neighbor","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"role1s pull by L to Neighbor\"},\"customOrigin\":\"importGap\"}]"}
-{"in":"As couples, Neighbor Do-si-do","scrub":"As couples, Neighbor do si do","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"As couples, Neighbor do si do\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"As couples, Neighbor Do-si-do","scrub":"As couples, Neighbor do si do","fanOut":"[{\"schemaVersion\":1,\"move\":\"do_si_do\",\"params\":{\"who\":\"neighbors\"},\"note\":\"as couples\"}]"}
 {"in":"Shadow Left Shoulder Round 1.0","fanOut":"[{\"schemaVersion\":1,\"move\":\"shoulder_round\",\"params\":{\"who\":\"shadows\",\"shoulder\":\"left\",\"travel\":1.0}}]"}
 {"in":"Robins Right Shoulder Round 1.5","scrub":"role2s Right Shoulder Round 1.5","fanOut":"[{\"schemaVersion\":1,\"move\":\"shoulder_round\",\"params\":{\"who\":\"role2s\",\"shoulder\":\"right\",\"travel\":1.5}}]"}
 {"in":"Previous Neighbors Right-hand star 1.0","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Previous Neighbors Right-hand star 1.0\"},\"customOrigin\":\"importGap\"}]"}

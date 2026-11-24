@@ -649,6 +649,41 @@ void main() {
       expect(only.note, contains('fall back to S2'));
     });
 
+    test('a Double slice naming a neighbour and the next one maps too', () {
+      for (final pair in [
+        ['N1', 'N2'],
+        ['N2', 'N3'],
+      ]) {
+        final figures = _importFigures([
+          '(8) Double slice left:',
+          '     (4) On left diagonal, go forward to ${pair[0]}',
+          '     (4) On other diagonal, fall back to ${pair[1]}',
+        ]);
+        expect(figures, hasLength(1), reason: '$pair');
+        expect(figures.single.move, 'slice', reason: '$pair');
+        expect(figures.single.params['return'], 'diagonal', reason: '$pair');
+        expect(figures.single.note, contains('fall back to ${pair[1]}'));
+      }
+    });
+
+    test('a Double slice whose diagonals are not consecutive stays custom', () {
+      for (final pair in [
+        ['N2', 'N2'],
+        ['N1', 'N3'],
+        ['N1', 'S2'],
+        ['S1', 'N2'],
+        ['N3', 'N4'],
+      ]) {
+        final figures = _importFigures([
+          '(8) Double slice left:',
+          '     (4) On left diagonal, go forward to ${pair[0]}',
+          '     (4) On other diagonal, fall back to ${pair[1]}',
+        ]);
+        expect(figures, hasLength(1), reason: '$pair');
+        expect(figures.single.isCustom, isTrue, reason: '$pair');
+      }
+    });
+
     test('a near-miss Double slice stays a custom atomic parent', () {
       final figures = _importFigures([
         '(8) Double slice left:',

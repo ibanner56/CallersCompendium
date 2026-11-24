@@ -41,11 +41,12 @@ import 'while_container.dart';
 ///
 /// **Pre-recognizer ordering.** `_amountAlternativeAnnotation` is first: it
 /// writes a `(1 or 2)` line's first amount into the line and reads the result
-/// through every other entry. The next nineteen entries (through
-/// `_singleFileCircleRecognizer`) all anchor on a move keyword, and all
-/// require a successful resolution to their own move, so in most cases
-/// order is not correctness-critical.  Four overlapping anchor groups each
-/// resolve safely:
+/// through every other entry. The next TODO entries (through
+/// `_singleFileCircleRecognizer`) all anchor on a move keyword (or, for
+/// `_tcbNumberedRolePair` and `_asCouplesDoSiDo`, a fixed prefix in front of
+/// one), and all require a successful resolution to their own move, so in
+/// most cases order is not correctness-critical.  Four overlapping anchor
+/// groups each resolve safely:
 ///
 /// 1. `_balanceHandAnnotation` and `_balancePairHandAnnotation` share the
 ///    `\bbalance\b` anchor but match mutually exclusive annotation shapes:
@@ -85,11 +86,17 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     // #2331 follow-up: `(1 or 2)` writes the first amount into the line and
     // reads the result through every other entry here, so it is listed first.
     _amountAlternativeAnnotation,
+    // `Hey 1/8 (WR)` is one pass by, so it must claim the line before [_hey].
+    _eighthHey,
     _hey,
     // `N2 Men allemande left 3/4` is `Men allemande left 3/4 [with N2]`. It
     // reads the rest of the line through every other entry here.
     _tcbNumberedRolePair,
     _passTheOceanToWave,
+    // `As couples, neighbor do si do` and `Partner Jersey twirl` read the rest
+    // of the line through every other entry here, like `_tcbNumberedRolePair`.
+    _asCouplesDoSiDo,
+    _jerseyTwirl,
     _circulate,
     _waveBalanceCirculate,
     _circulateCrossBracket,
@@ -1301,6 +1308,104 @@ FigureMatch? _tcbNumberedRolePair(String scrubbed) {
 /// the line (group 3).
 final RegExp _numberedRolePairRe = RegExp(
   r'^\s*(n[0-4])\s+(role1s|role2s)\s+(\S.{0,200})$',
+  caseSensitive: false,
+);
+
+// --- `Hey 1/8 (WR)`, `As couples, … do si do`, `… Jersey twirl` -------------
+
+/// Reads [text] through every other pre-recognizer here, then the shared
+/// recognizer, as [_tcbNumberedRolePair] does. [skip] is the caller, so a
+/// rewrite never re-enters itself.
+FigureMatch? _rereadTcbLine(String text, FigureMatch? Function(String) skip) {
+  for (final pre in tcbFigureFrontEnd.preRecognizers) {
+    if (identical(pre, skip)) continue;
+    final inner = pre(text);
+    if (inner != null) return inner;
+  }
+  return recognizeSharedFigureLine(
+    text,
+    recognitionNormalize: _tcbRecognitionNormalize,
+  );
+}
+
+/// [match] with [note] placed before any note it already carries.
+FigureMatch _withLeadingNote(FigureMatch match, String note) => FigureMatch(
+  match.moveId,
+  params: match.params,
+  note: combineFigureNotes(note, match.note),
+  assumedSubject: match.assumedSubject,
+);
+
+/// The Caller's Box's `Hey 1/8 (WR)`: an eighth of a hey is one pass by, so
+/// `(WR)` is the robins passing by the right shoulder *(user-ruled
+/// 2026-11-24)*. It is read as `pass_by` with that pair and shoulder, and the
+/// note `1/8 hey` keeps the caller's word.
+///
+/// Only a single cell the hey decoder can read is accepted. A `~` (the
+/// progression mark), a second cell or an annotation leaves the line custom.
+/// *(Which cells are accepted: agent's call.)*
+FigureMatch? _eighthHey(String scrubbed) {
+  final m = _eighthHeyRe.firstMatch(scrubbed.trim());
+  if (m == null) return null;
+  final who = _heyPassPeople(m[1]!.toLowerCase());
+  if (who == null) return null;
+  return FigureMatch(
+    'pass_by',
+    params: {
+      'who': who,
+      'shoulder': m[2]!.toLowerCase() == 'r' ? 'right' : 'left',
+    },
+    note: '1/8 hey',
+  );
+}
+
+final RegExp _eighthHeyRe = RegExp(
+  r'^hey\s+1/8\s*\(\s*([a-z0-9]{1,4}?)([rl])\s*\)$',
+  caseSensitive: false,
+);
+
+/// The Caller's Box's `As couples, neighbor do si do`: each couple does a
+/// do si do around the other couple. Every dancer ends where the same do si do
+/// danced alone would leave them, so it is read as that do si do with the
+/// note `as couples` *(user-ruled 2026-11-24)*. The rest of the line must read
+/// as a `do_si_do`, or the line stays custom.
+FigureMatch? _asCouplesDoSiDo(String scrubbed) {
+  final m = _asCouplesRe.firstMatch(scrubbed.trim());
+  if (m == null) return null;
+  final inner = _rereadTcbLine(m[1]!, _asCouplesDoSiDo);
+  if (inner == null || inner.forceCustom || inner.moveId != 'do_si_do') {
+    return null;
+  }
+  return _withLeadingNote(inner, 'as couples');
+}
+
+final RegExp _asCouplesRe = RegExp(
+  r'^as\s+couples,\s+(\S.{0,200})$',
+  caseSensitive: false,
+);
+
+/// The Caller's Box's `Partner Jersey twirl`: a California twirl for dancers
+/// particular about who starts on which side *(user-ruled 2026-11-24)*. The
+/// pair ends where a California twirl leaves them, so the line is read as the
+/// same line with `California twirl`, plus the note `Jersey twirl`. The
+/// rewritten line must read as a `california_twirl`, or it stays custom.
+FigureMatch? _jerseyTwirl(String scrubbed) {
+  final m = _jerseyTwirlRe.firstMatch(scrubbed.trim());
+  if (m == null) return null;
+  final inner = _rereadTcbLine(
+    '${m[1]} california twirl${m[2] ?? ""}',
+    _jerseyTwirl,
+  );
+  if (inner == null ||
+      inner.forceCustom ||
+      inner.moveId != 'california_twirl') {
+    return null;
+  }
+  return _withLeadingNote(inner, 'Jersey twirl');
+}
+
+final RegExp _jerseyTwirlRe = RegExp(
+  r'^(\S.{0,120}?)\s+jersey\s+twirl(\s*\[[^\[\]]{1,120}\])?$',
   caseSensitive: false,
 );
 
