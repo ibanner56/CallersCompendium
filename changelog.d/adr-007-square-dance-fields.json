@@ -4,6 +4,7 @@
   "app": {
     "added": [
       "A square dance now records what kind of square it is (main part, break or patter), its repeat order (such as heads twice, then sides twice), who the new partner is each time through, and whether it is a singing call. The editor shows these up front for a square, and the dance's page shows each one that is set.",
+      "The dance spreadsheet export (CSV) gains four columns for these, after the Barnes reference, so the columns after it move four places to the right. They are empty for other types of dance, and a shared custom field named like one of them is headed Name (2).",
       "Importing a square from Caller's Companion reads its repeat order from the SubType, such as \"Keeper, H S H S\"."
     ]
   },
