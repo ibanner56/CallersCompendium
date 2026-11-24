@@ -102,6 +102,33 @@ void main() {
       );
     });
 
+    // An older build (0.10.0 and earlier) does not know `eventRuleIds`, and
+    // this build's allow-list is generated from its own registry, so it
+    // cannot be told to forget the key. What an older build does with it is
+    // what this build does with any top-level program key it does not know:
+    // this stands in for it, with the same shape (a list of rule ids).
+    test("an older build keeps a program's applied rule ids whole and puts "
+        'them back exactly, as it keeps any top-level key it does not know '
+        '(sync-spec §6.7)', () {
+      final body = syncBodyForEntity(
+        SyncRecordKind.program,
+        Program(
+          id: 'p1',
+          title: 'Saturday',
+          createdAt: created,
+          updatedAt: edited,
+        ),
+      )..['eventRuleIdsFromALaterBuild'] = ['r1', 'r2'];
+      final split = partitionInboundRecordBody(SyncRecordKind.program, body);
+      expect(split.refusedPath, isNull);
+      expect(split.retained?.keys, ['eventRuleIdsFromALaterBuild']);
+      expect(split.known.containsKey('eventRuleIdsFromALaterBuild'), isFalse);
+      expect(
+        canonicalJson(mergeRetainedFields(split.known, split.retained!)),
+        canonicalJson(body),
+      );
+    });
+
     test("a program's applied rule ids travel on the program's own record, "
         'as a part this build syncs', () {
       final body = syncBodyForEntity(
