@@ -105,9 +105,20 @@ bool whoIncludes(Formation formation, DancerId id, WhoSet who) {
 
 /// The pairs [who] names inside the band bounded by [topRow] and [bottomRow].
 ///
-/// Returns every unordered pair of dancers in the band that satisfies [who].
-/// Used by the figures that *act on* a named pair (`do_si_do`) rather than
-/// those that merely validate one (`swing`).
+/// Pairs the band's dancers first match first, so a dancer who matches two
+/// others pairs with the first, and a dancer left with no match stays
+/// unpaired. Used by the figures that *act on* a named pair (`do_si_do`)
+/// rather than those that merely validate one (`swing`).
+///
+/// For `shadows`, two dancers who remember each other as shadows
+/// ([DancerState.shadow]) pair first, and the rest pair first match first.
+/// Your shadow is the same dancer all dance *(user-ruled 2026-11-23)*; at an
+/// end with nobody out the first match could otherwise take one of a
+/// remembered pair, since the wrap lets a neighbour match too. *(Agent's
+/// calls, 2026-11-24:)* only a mutual memory counts, since a one-sided one is
+/// not a pair that danced; and the remembered pairs are kept only when they
+/// leave no more dancers unpaired than first match alone would, so honouring
+/// the memory never leaves a couple standing idle that would have danced.
 List<({DancerId a, DancerId b})> resolveWhoPairs(
   Formation formation,
   WhoSet who, {
@@ -118,8 +129,37 @@ List<({DancerId a, DancerId b})> resolveWhoPairs(
     ...formation.dancersInRow(topRow),
     ...formation.dancersInRow(bottomRow),
   ];
-  final pairs = <({DancerId a, DancerId b})>[];
+  final firstMatch = _pairFirstMatch(formation, who, members, const []);
+  if (who != WhoSet.shadows) return firstMatch;
+  final remembered = <({DancerId a, DancerId b})>[];
   final taken = <DancerId>{};
+  for (final a in members) {
+    if (taken.contains(a)) continue;
+    final b = formation.stateOf(a).shadow;
+    if (b == null || taken.contains(b) || !members.contains(b)) continue;
+    if (formation.stateOf(b).shadow != a) continue;
+    if (!whoMatches(formation, a, b, who)) continue;
+    remembered.add((a: a, b: b));
+    taken
+      ..add(a)
+      ..add(b);
+  }
+  if (remembered.isEmpty) return firstMatch;
+  final withMemory = _pairFirstMatch(formation, who, members, remembered);
+  return withMemory.length >= firstMatch.length ? withMemory : firstMatch;
+}
+
+/// [seed] followed by [members] not in it, paired first match first.
+List<({DancerId a, DancerId b})> _pairFirstMatch(
+  Formation formation,
+  WhoSet who,
+  List<DancerId> members,
+  List<({DancerId a, DancerId b})> seed,
+) {
+  final pairs = [...seed];
+  final taken = <DancerId>{
+    for (final pair in seed) ...[pair.a, pair.b],
+  };
   for (var i = 0; i < members.length; i++) {
     if (taken.contains(members[i])) continue;
     for (var j = i + 1; j < members.length; j++) {

@@ -353,6 +353,71 @@ void main() {
       expect(after.stateOf(lark('D')).shadow, robin('B'));
     });
 
+    test('a figure pairs dancers who remember each other first', () {
+      // Lauren's Lagniappe after its left diagonal chain: R1-C has chained up
+      // to L1-A, and R1-A, with nobody on her diagonal, went nowhere. With
+      // nobody out at the top, the shadow wraps to the neighbour there, so
+      // L2-B matches R1-C across the set as well as R1-A beside him. First
+      // match first took L2-B with R1-C, leaving partners A unpaired.
+      final input = remembering(
+        parseRolesNotation([
+          'L2-B . . . R1-C',
+          'R1-A . . . L1-A',
+          'L2-D . . . R1-E',
+          'R2-B . . . L1-C',
+          'L2-F . . . R1-G',
+          'R2-D . . . L1-E',
+          'L2-H . . . R2-H',
+          'R2-F . . . L1-G',
+        ], type: FormationType.becketCcw),
+        [
+          (lark('A'), robin('C')),
+          (lark('D'), robin('B')),
+          (lark('C'), robin('E')),
+          (lark('F'), robin('D')),
+          (lark('E'), robin('G')),
+          (lark('H'), robin('F')),
+        ],
+      );
+      final after = applyOk(
+        const Allemande(who: WhoSet.shadows, hand: Hand.left, turn: 1.5),
+        input,
+      );
+
+      expect(at(after, robin('C')), at(input, lark('A')));
+      expect(at(after, lark('A')), at(input, robin('C')));
+      expect(after.stateOf(lark('B')).shadow, robin('A'));
+      expect(after.stateOf(robin('A')).shadow, lark('B'));
+    });
+
+    test('remembered shadows do not pair when that would leave a couple '
+        'idle', () {
+      // The mirror of Lauren's Lagniappe at the top: A and C remember each
+      // other across the set, and partners B stand beside them. Keeping A
+      // with C would leave B with nobody, where first match pairs everyone.
+      final input = remembering(
+        parseRolesNotation([
+          'L2-B . . . R1-C',
+          'R2-B . . . L1-A',
+          'L2-D . . . R1-E',
+          'R1-A . . . L1-C',
+          'L2-F . . . R1-G',
+          'R2-D . . . L1-E',
+          'L2-H . . . R2-H',
+          'R2-F . . . L1-G',
+        ], type: FormationType.becketCcw),
+        [(lark('A'), robin('C'))],
+      );
+      final pairs = resolveWhoPairs(
+        input,
+        WhoSet.shadows,
+        topRow: 0,
+        bottomRow: 1,
+      );
+
+      expect(pairs, hasLength(2));
+    });
+
     test('a dancer keeps the shadow through any change of state', () {
       final state = allOnes.stateOf(lark('A')).copyWith(shadow: robin('C'));
 
