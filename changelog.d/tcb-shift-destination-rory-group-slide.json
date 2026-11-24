@@ -1,0 +1,15 @@
+{
+  "id": "tcb-shift-destination-rory-group-slide",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "More shift and slide lines from The Caller's Box now import as figures instead of text. \"Men shift right to next man's position\" and \"Women shift right one step\" become a shift, and \"Shift left to N2\" and \"Shift left with neighbor\" become a slide along the set, each keeping the destination as the figure's note. \"Re-check unrecognized figures\" reads these lines in dances imported earlier, one line at a time, so a slide written straight after a wave balance is joined into a Rory O'More only when you import the dance again.",
+      "\"Men slide right (past M)\" straight after a wave balance in a Caller's Box dance now imports as a Rory O'More in which the men slide two places. A dance imported earlier picks this up when you import it again."
+    ]
+  },
+  "core": {
+    "changed": [
+      "The figure parser keeps a shift's or bare slide's destination tail as the note; The Caller's Box adapter folds a one-group slide after a balance-wave line into `rory_o_more` with `twoPlaces`."
+    ]
+  }
+}

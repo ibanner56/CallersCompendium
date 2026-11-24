@@ -6186,7 +6186,7 @@
 {"in":"Larks cross Left","scrub":"role1s cross Left","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"role1s cross Left\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Ring of 8 balance, spin to the right","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Ring of 8 balance, spin to the right\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Neighbor Roll Away with half sashay","fanOut":"[{\"schemaVersion\":1,\"move\":\"roll_away\",\"params\":{\"whom\":\"neighbors\",\"halfSashay\":true},\"assumedSubject\":true}]"}
-{"in":"Slide Left with Neighbor","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Slide Left with Neighbor\"},\"customOrigin\":\"importGap\"}]"}
+{"in":"Slide Left with Neighbor","fanOut":"[{\"schemaVersion\":1,\"move\":\"slide_along_set\",\"params\":{\"slide\":\"left\"},\"note\":\"with neighbor\"}]"}
 {"in":"Wave balance, box circulate","fanOut":"[{\"schemaVersion\":1,\"move\":\"box_circulate\",\"params\":{\"balance\":true}}]"}
 {"in":"Neighbor hinge (alle R 1/4) to wave of 4","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Neighbor hinge (alle R 1/4) to wave of 4\"},\"customOrigin\":\"importGap\"}]"}
 {"in":"Balance the Wave, dance to new Neighbor","fanOut":"[{\"schemaVersion\":1,\"move\":\"custom\",\"params\":{\"text\":\"Balance the Wave, dance to new Neighbor\"},\"customOrigin\":\"importGap\"}]"}

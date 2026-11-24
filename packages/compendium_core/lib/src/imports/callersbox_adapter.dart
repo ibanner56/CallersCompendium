@@ -1480,7 +1480,9 @@ class CallersBoxAdapter implements SourceAdapter {
   /// `Slide left, women slide two places (M past N, W past (N;W))` ("Leap of
   /// Faith", TCB #1797). It reaches here as custom text with the role already
   /// scrubbed to `role2s`. Its dancers fill a Rory O'More's `twoPlaces`
-  /// (taxonomy v40) and the bracket is kept as the note. Only the two roles
+  /// (taxonomy v40) and the bracket is kept as the note. The shorter
+  /// spelling that names only the sliding group is read too
+  /// ([_groupSlideRe]). Only the two roles
   /// and `ends`, `twoPlaces`' own choices, match; anything else, or any other
   /// wording, returns `null` and the line stays custom. Read only as the slide
   /// of a balance-wave pair ([_foldBalanceWaveIntoRory]), so a line standing
@@ -1491,18 +1493,32 @@ class CallersBoxAdapter implements SourceAdapter {
     if (!f.isCustom) return null;
     final text = f.params['text'];
     if (text is! String) return null;
-    final m = _longSlideRe.firstMatch(text.trim());
-    if (m == null) return null;
-    final note = m[3]?.trim();
+    final trimmed = text.trim();
+    final long = _longSlideRe.firstMatch(trimmed);
+    final group = long == null ? _groupSlideRe.firstMatch(trimmed) : null;
+    if (long == null && group == null) return null;
+    final slide = long != null ? long[1]! : group![2]!;
+    final twoPlaces = long != null ? long[2]! : group![1]!;
+    final note = (long ?? group)![3]?.trim();
     // `(past N) (to P)` matches as one bracket holding `past N) (to P`; a
     // note whose brackets do not balance is declined, not kept garbled.
     if (note != null && !_bracketsBalance(note)) return null;
     return (
-      slide: m[1]!.toLowerCase(),
-      twoPlaces: m[2]!.toLowerCase(),
+      slide: slide.toLowerCase(),
+      twoPlaces: twoPlaces.toLowerCase(),
       note: note == null || note.isEmpty ? null : note,
     );
   }
+
+  /// TCB's other spelling of the two-place slide: only the group that slides
+  /// two places is named, `Men slide right (past M)` after `Balance wave of
+  /// four (NL,MR)` (Rick O'Shay's Hay, TCB #6185). The maintainer ruled
+  /// (2026-11-24) that this is a Rory O'More whose named group slides two
+  /// places, so the group fills `twoPlaces` and the bracket is the note.
+  static final RegExp _groupSlideRe = RegExp(
+    r'^(role1s|role2s|ends) slide (left|right)(?: \((.*)\))?$',
+    caseSensitive: false,
+  );
 
   /// Whether every `)` in [text] closes an earlier `(` and none is left open.
   static bool _bracketsBalance(String text) {
