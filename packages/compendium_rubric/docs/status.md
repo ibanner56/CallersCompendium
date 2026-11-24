@@ -245,8 +245,8 @@
 > pass list may name same-role neighbours (`SRN`), with `with hands` and a
 > trailing `[with N1]` kept as notes, and `Pass the ocean (to wave of four
 > (NR,WL))` reads its nested wave. The change is in `compendium_core`'s
-> Caller's Box dialect. Against `rubric` at `064b4256` it took 232 dances out
-> of the free-text group and the count from 4,072 to 4,175 compiled in scope
+> Caller's Box dialect. Against `rubric` at `fd3447ef` it took 232 dances out
+> of the free-text group and the count from 4,073 to 4,176 compiled in scope
 > (the denominator grew from 5,257 to 5,430, so the rate fell from 77.5% to
 > 76.9%), and the core set from 528 to 539, with no previously compiling
 > dance lost. Of the other 129, the largest group (about 25) is a same-role
