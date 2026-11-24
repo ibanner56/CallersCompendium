@@ -116,6 +116,10 @@ bool isNewDanceEditorDraftKey(String key) {
 /// - `alternateTitles` (the other titles as typed, one per line) and
 ///   `barnesReference`, each omitted when empty. They joined v42 while it was
 ///   unreleased, so the same holds for them.
+/// - The square fields (ADR-007 §8.1): `squareKind`, `repeatOrder` and
+///   `newPartner` as their wire names, `repeatOrderText`, `newPartnerText`
+///   and `singing`, each omitted at its default. They joined v42 the same
+///   way, and an unknown value decodes as the default.
 ///
 /// - `spanStated` (true, or omitted) on a sequence that states its own span
 ///   (ADR-006 §5.5). A sequence's `beatsTouched` is read from it alone, since
@@ -151,6 +155,9 @@ const _kDraftVersionWithoutCompounds = 13;
 ///   "phrase": "...", "formationDetail": "...",
 ///   "meter": "3/2", "musicalKey": "G minor",
 ///   "alternateTitles": "Monymusk", "barnesReference": "BIII p. 92",
+///   "squareKind": "break", "repeatOrder": "other",
+///   "repeatOrderText": "Heads once", "newPartner": "corner",
+///   "newPartnerText": "", "singing": true,
 ///   "form": "contra", "formationShape": "dupleImproper", "improper": true,
 ///   "progression": "single", "status": "active",
 ///   "level": "intermediate", "mixedLevel": false, "mixer": false,
@@ -213,6 +220,17 @@ String encodeDraft(EditorSnapshot snapshot) {
       'alternateTitles': snapshot.alternateTitles,
     if (snapshot.barnesReference.isNotEmpty)
       'barnesReference': snapshot.barnesReference,
+    if (snapshot.squareKind != SquareKind.main)
+      'squareKind': snapshot.squareKind.wireName,
+    if (snapshot.repeatOrder != SquareRepeatOrder.unstated)
+      'repeatOrder': snapshot.repeatOrder.wireName,
+    if (snapshot.repeatOrderText.isNotEmpty)
+      'repeatOrderText': snapshot.repeatOrderText,
+    if (snapshot.newPartner != SquareNewPartner.unstated)
+      'newPartner': snapshot.newPartner.wireName,
+    if (snapshot.newPartnerText.isNotEmpty)
+      'newPartnerText': snapshot.newPartnerText,
+    if (snapshot.singing) 'singing': true,
     'form': snapshot.form.name,
     'formationShape': snapshot.formationShape.name,
     if (snapshot.improper) 'improper': true,
@@ -321,6 +339,17 @@ EditorSnapshot decodeDraft(Object? value, {Iterable<DifficultyLevel>? levels}) {
     musicalKey: _str(json, 'musicalKey'),
     alternateTitles: _str(json, 'alternateTitles'),
     barnesReference: _str(json, 'barnesReference'),
+    squareKind:
+        SquareKind.fromWireName(_str(json, 'squareKind')) ?? SquareKind.main,
+    repeatOrder:
+        SquareRepeatOrder.fromWireName(_str(json, 'repeatOrder')) ??
+        SquareRepeatOrder.unstated,
+    repeatOrderText: _str(json, 'repeatOrderText'),
+    newPartner:
+        SquareNewPartner.fromWireName(_str(json, 'newPartner')) ??
+        SquareNewPartner.unstated,
+    newPartnerText: _str(json, 'newPartnerText'),
+    singing: _bool(json, 'singing'),
     form: _parseEnum(DanceForm.values, _str(json, 'form')),
     formationShape: _parseEnum(
       FormationShape.values,

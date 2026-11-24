@@ -709,6 +709,22 @@ class DanceRepository {
               barnesReference: Value(
                 normalizeShareableText(normalisedDance.barnesReference),
               ),
+              squareKind: Value(
+                normalizeShareableText(normalisedDance.squareKind.wireName),
+              ),
+              repeatOrder: Value(
+                normalizeShareableText(normalisedDance.repeatOrder.wireName),
+              ),
+              repeatOrderText: Value(
+                normalizeShareableText(normalisedDance.repeatOrderText),
+              ),
+              newPartner: Value(
+                normalizeShareableText(normalisedDance.newPartner.wireName),
+              ),
+              newPartnerText: Value(
+                normalizeShareableText(normalisedDance.newPartnerText),
+              ),
+              singing: Value(normalisedDance.singing),
               status: normalisedDance.status,
               levelId: Value(dance.difficultyLevelId),
               mixedLevel: Value(dance.mixedLevel),
@@ -3005,6 +3021,12 @@ class DanceRepository {
       row.musicalKey.isEmpty &&
       row.alternateTitles.isEmpty &&
       row.barnesReference.isEmpty &&
+      row.squareKind == SquareKind.main.wireName &&
+      row.repeatOrder == SquareRepeatOrder.unstated.wireName &&
+      row.repeatOrderText.isEmpty &&
+      row.newPartner == SquareNewPartner.unstated.wireName &&
+      row.newPartnerText.isEmpty &&
+      !row.singing &&
       row.status == DanceStatus.active &&
       row.levelId == null &&
       !row.mixedLevel &&
@@ -3097,6 +3119,16 @@ class DanceRepository {
         musicalKey: Value(normalizeShareableText('')),
         alternateTitles: Value(normalizeShareableText('')),
         barnesReference: Value(normalizeShareableText('')),
+        squareKind: Value(normalizeShareableText(SquareKind.main.wireName)),
+        repeatOrder: Value(
+          normalizeShareableText(SquareRepeatOrder.unstated.wireName),
+        ),
+        repeatOrderText: Value(normalizeShareableText('')),
+        newPartner: Value(
+          normalizeShareableText(SquareNewPartner.unstated.wireName),
+        ),
+        newPartnerText: Value(normalizeShareableText('')),
+        singing: const Value(false),
         status: const Value(DanceStatus.active),
         levelId: const Value(null),
         mixedLevel: const Value(false),
@@ -4278,6 +4310,19 @@ class DanceRepository {
       meter: row.meter,
       musicalKey: row.musicalKey,
       barnesReference: row.barnesReference,
+      // Tolerant, like the phrase structure: a value this build does not
+      // know (a newer build's, or a hand-edited database) reads as the
+      // default rather than blocking the load.
+      squareKind: SquareKind.fromWireName(row.squareKind) ?? SquareKind.main,
+      repeatOrder:
+          SquareRepeatOrder.fromWireName(row.repeatOrder) ??
+          SquareRepeatOrder.unstated,
+      repeatOrderText: row.repeatOrderText,
+      newPartner:
+          SquareNewPartner.fromWireName(row.newPartner) ??
+          SquareNewPartner.unstated,
+      newPartnerText: row.newPartnerText,
+      singing: row.singing,
       status: row.status,
       difficultyLevelId: row.levelId,
       mixedLevel: row.mixedLevel,

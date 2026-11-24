@@ -8898,6 +8898,94 @@
   "@danceEditorMixerSubtitle": {
     "x-sourceSha256": "7938ac9f04ea2f20e30bd38c78e049679f3020e643e9ee1e6f46c03b756014b8"
   },
+  "danceDetailSquareField": "{field}: {value}",
+  "@danceDetailSquareField": {
+    "x-sourceSha256": "d3ba5ccd5a5fb39ef6e9fff0582fbef871d2952d1fa9e1e2b454753407c5e043"
+  },
+  "danceEditorSquareKindLabel": "Soort square",
+  "@danceEditorSquareKindLabel": {
+    "x-sourceSha256": "96114a77535eafd86d98d137463bf3a584444efca0255d8b0b707827fb871932"
+  },
+  "squareKindMain": "Hoofddeel",
+  "@squareKindMain": {
+    "x-sourceSha256": "dac59242d7af1454b941518d9345932f3206887b8e5e369aff53f278c4a3cec2"
+  },
+  "squareKindBreak": "Break",
+  "@squareKindBreak": {
+    "x-sourceSha256": "f71081fb0af48ae614362bb396a02f189c24358d014a7daa12940aa6fc2ae29e"
+  },
+  "squareKindPatter": "Patter",
+  "@squareKindPatter": {
+    "x-sourceSha256": "abbb45c4e55f06516640c3d7553d21993911d49b97436dc9ae8d6b98693bb0f9"
+  },
+  "danceEditorRepeatOrderLabel": "Herhalingsvolgorde",
+  "@danceEditorRepeatOrderLabel": {
+    "x-sourceSha256": "7f3b138d336113f0730a1b5ed931c2e893c379d794f66da8d1d47c9c6f789ae5"
+  },
+  "squareRepeatOrderUnstated": "Niet vermeld",
+  "@squareRepeatOrderUnstated": {
+    "x-sourceSha256": "068109fd3f73fbbbb2d2cb3098fff4a0c65f549e103864b31f1987522d3c1fd5"
+  },
+  "squareRepeatOrderHeadsHeadsSidesSides": "Twee keer heads, dan twee keer sides",
+  "@squareRepeatOrderHeadsHeadsSidesSides": {
+    "x-sourceSha256": "9995b3319e5c17aa14dbdfde263fe8007fa340c470540f7f6f9a670098dc0206"
+  },
+  "squareRepeatOrderHeadsSidesHeadsSides": "Heads en sides om de beurt",
+  "@squareRepeatOrderHeadsSidesHeadsSides": {
+    "x-sourceSha256": "24a5ecb846331c0992e827158f5c9baad00fc017fb320722d80f3afd3a98945c"
+  },
+  "squareRepeatOrderAllFour": "Vier keer, iedereen actief",
+  "@squareRepeatOrderAllFour": {
+    "x-sourceSha256": "1fb2df995f455b6f75d5baf33c64a471592a4fabc6c05bee97e78f74b49c32e9"
+  },
+  "squareRepeatOrderOther": "Overig",
+  "@squareRepeatOrderOther": {
+    "x-sourceSha256": "f97e9da0e3b879f0a9df979ae260a5f7e1371edb127c1862d4f861981166cdc1"
+  },
+  "danceEditorRepeatOrderOtherLabel": "Herhalingsvolgorde in eigen woorden",
+  "@danceEditorRepeatOrderOtherLabel": {
+    "x-sourceSha256": "dd28904808d42286c5adf80645c077981f506259a871418e2e0a0151394e2a9e"
+  },
+  "danceEditorNewPartnerLabel": "Nieuwe partner",
+  "@danceEditorNewPartnerLabel": {
+    "x-sourceSha256": "61afc96d7515dbef9e1f39922bb7949413b04aa0f94dfdf4c3249c2884d56b07"
+  },
+  "squareNewPartnerUnstated": "Niet vermeld",
+  "@squareNewPartnerUnstated": {
+    "x-sourceSha256": "068109fd3f73fbbbb2d2cb3098fff4a0c65f549e103864b31f1987522d3c1fd5"
+  },
+  "squareNewPartnerNone": "Partners blijven hetzelfde",
+  "@squareNewPartnerNone": {
+    "x-sourceSha256": "ea0c05531f3acc49585f43b4289a1fce43c49f1dc2b3ae81b99ddb193165c279"
+  },
+  "squareNewPartnerCorner": "Corner",
+  "@squareNewPartnerCorner": {
+    "x-sourceSha256": "adfde70bdb6803f28a06bd8ee833192841603a836e226b85f61cc8d367e938a3"
+  },
+  "squareNewPartnerRightHand": "{role} rechts",
+  "@squareNewPartnerRightHand": {
+    "x-sourceSha256": "b8885d21fbbb869d8f9d75c7217c82c789dbedc1e0053917991fceb6a4155d42"
+  },
+  "squareNewPartnerOpposite": "Opposite",
+  "@squareNewPartnerOpposite": {
+    "x-sourceSha256": "620bda2fb2573a2f948f54f14fe5aa58c72f60da2003bde5d45a94960447dff4"
+  },
+  "squareNewPartnerOther": "Overig",
+  "@squareNewPartnerOther": {
+    "x-sourceSha256": "f97e9da0e3b879f0a9df979ae260a5f7e1371edb127c1862d4f861981166cdc1"
+  },
+  "danceEditorNewPartnerOtherLabel": "Nieuwe partner in eigen woorden",
+  "@danceEditorNewPartnerOtherLabel": {
+    "x-sourceSha256": "43f8151cd179a2e19eafc69bdca31229416206b10d88ba07ea2c8fb1f15fa035"
+  },
+  "danceEditorSingingLabel": "Singing call",
+  "@danceEditorSingingLabel": {
+    "x-sourceSha256": "3dedb04db4796f5db662393c9ec23549a9c6f037842f4830aa537e78a3dd54d4"
+  },
+  "danceEditorSingingSubtitle": "Het lied komt onder Deuntjes",
+  "@danceEditorSingingSubtitle": {
+    "x-sourceSha256": "70a3f697343593d8b1292308eb274994010a998fb17f552b10e79fee53b7017d"
+  },
   "danceEditorImproperLabel": "Begint improper",
   "@danceEditorImproperLabel": {
     "x-sourceSha256": "e4dd5166a2d36d72d17f292c5f3b00bbb89544e0a94b5c9658d538d2c89e159e"

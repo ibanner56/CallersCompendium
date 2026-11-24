@@ -801,6 +801,12 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   /// every existing dance has neither. They joined v42 while v42 was
   /// unreleased.
   ///
+  /// Also the square dance fields (ADR-007 §8.1): `dances.square_kind`
+  /// (`'main'`), `repeat_order` and `new_partner` (`'unstated'`),
+  /// `repeat_order_text` and `new_partner_text` (`''`) and `singing`
+  /// (`false`), so every existing dance reads as a main part with nothing
+  /// stated. They joined v42 while v42 was unreleased.
+  ///
   /// Also `programs.archived_at` (program archiving, #2218), nullable, so
   /// every existing program stays unarchived. It joined v42 while v42 was
   /// unreleased (CONTRIBUTING.md, "Adding to an unreleased version").
@@ -829,6 +835,12 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       dances.interpretedOn,
       dances.alternateTitles,
       dances.barnesReference,
+      dances.squareKind,
+      dances.repeatOrder,
+      dances.repeatOrderText,
+      dances.newPartner,
+      dances.newPartnerText,
+      dances.singing,
     ]) {
       if (!present.contains(column.name)) await m.addColumn(dances, column);
     }

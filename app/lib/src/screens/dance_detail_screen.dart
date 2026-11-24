@@ -1289,6 +1289,31 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                     ],
                   ),
                 ],
+                // A square's own fields (ADR-007 §8.1), each only when it
+                // says something: a main part with nothing stated shows none.
+                if (dance.form == DanceForm.square)
+                  for (final (key, icon, text) in _squareFieldLines(
+                    l10n,
+                    dance,
+                    dialect,
+                    render: (value) => canonicalDiscouragedTerms
+                        ? _proseRenderer
+                              .renderFreeTextWithCanonicalDiscouragedTerms(
+                                value,
+                                dialect,
+                              )
+                        : _proseRenderer.renderFreeText(value, dialect),
+                  )) ...[
+                    const SizedBox(height: AppSpacing.xxs),
+                    Row(
+                      key: ValueKey('dance-detail-$key'),
+                      children: [
+                        Icon(icon, size: 18),
+                        const SizedBox(width: AppSpacing.xs),
+                        Expanded(child: SelectableLine(child: Text(text))),
+                      ],
+                    ),
+                  ],
                 if (meterAndKeyLabel(
                       l10n,
                       dance,
@@ -2101,4 +2126,55 @@ class _CrossReferenceText extends StatelessWidget {
       children: span.children?.map(_transformUnlinkedSpan).toList(),
     );
   }
+}
+
+/// The lines a square dance's page shows for its own fields (ADR-007 §8.1),
+/// as (key, icon, text): each field that is off its default, and the text of
+/// an `other` in place of the word "Other", shown through [render] as the
+/// page shows other typed text.
+List<(String, IconData, String)> _squareFieldLines(
+  AppLocalizations l10n,
+  Dance dance,
+  Dialect dialect, {
+  required String Function(String) render,
+}) {
+  String line(String field, String value) =>
+      l10n.danceDetailSquareField(field, value);
+  return [
+    if (dance.squareKind != SquareKind.main)
+      (
+        'square-kind',
+        Icons.view_module_outlined,
+        line(
+          l10n.danceEditorSquareKindLabel,
+          squareKindLabel(l10n, dance.squareKind),
+        ),
+      ),
+    if (dance.singing && dance.squareKind == SquareKind.main)
+      ('singing', Icons.music_note_outlined, l10n.danceEditorSingingLabel),
+    if (dance.repeatOrder != SquareRepeatOrder.unstated)
+      (
+        'repeat-order',
+        Icons.repeat,
+        line(
+          l10n.danceEditorRepeatOrderLabel,
+          dance.repeatOrder == SquareRepeatOrder.other &&
+                  dance.repeatOrderText.isNotEmpty
+              ? render(dance.repeatOrderText)
+              : squareRepeatOrderLabel(l10n, dance.repeatOrder),
+        ),
+      ),
+    if (dance.newPartner != SquareNewPartner.unstated)
+      (
+        'new-partner',
+        Icons.people_alt_outlined,
+        line(
+          l10n.danceEditorNewPartnerLabel,
+          dance.newPartner == SquareNewPartner.other &&
+                  dance.newPartnerText.isNotEmpty
+              ? render(dance.newPartnerText)
+              : squareNewPartnerLabel(l10n, dance.newPartner, dialect),
+        ),
+      ),
+  ];
 }

@@ -739,6 +739,72 @@ void main() {
       expect(decoded.interpreterIds, isEmpty);
     });
 
+    test('the square fields round-trip, texts as typed, and are omitted at '
+        'their defaults (ADR-007 §8.1)', () {
+      final encoded = encodeDraft(_minimalSnapshot());
+      for (final key in [
+        'squareKind',
+        'repeatOrder',
+        'repeatOrderText',
+        'newPartner',
+        'newPartnerText',
+        'singing',
+      ]) {
+        expect(encoded, isNot(contains('"$key"')), reason: key);
+      }
+      final empty = decodeDraft(encoded);
+      expect(empty.squareKind, SquareKind.main);
+      expect(empty.repeatOrder, SquareRepeatOrder.unstated);
+      expect(empty.newPartner, SquareNewPartner.unstated);
+      expect(empty.singing, isFalse);
+
+      final snapshot = EditorSnapshot(
+        title: 'Circle Three Quarters',
+        hook: '',
+        notes: '',
+        phrase: '',
+        formationDetail: '',
+        squareKind: SquareKind.breakPart,
+        repeatOrder: SquareRepeatOrder.allFour,
+        // Kept as typed even off `other`, so moving the dropdown back
+        // restores it.
+        repeatOrderText: 'half typed ',
+        newPartner: SquareNewPartner.other,
+        newPartnerText: 'The original corner',
+        singing: true,
+        form: DanceForm.square,
+        formationShape: FormationShape.square,
+        progression: Progression.none,
+        status: DanceStatus.active,
+        authorIds: const [],
+        tagIds: const [],
+        tunes: const [],
+        links: const [],
+        sourceCitations: const [],
+        customValues: const {},
+        figureDrafts: const [],
+      );
+      final encodedSquare = encodeDraft(snapshot);
+      expect(encodedSquare, contains('"squareKind":"break"'));
+      expect(encodedSquare, contains('"repeatOrder":"allFour"'));
+      final decoded = decodeDraft(encodedSquare);
+      expect(decoded.squareKind, SquareKind.breakPart);
+      expect(decoded.repeatOrder, SquareRepeatOrder.allFour);
+      expect(decoded.repeatOrderText, 'half typed ');
+      expect(decoded.newPartner, SquareNewPartner.other);
+      expect(decoded.newPartnerText, 'The original corner');
+      expect(decoded.singing, isTrue);
+    });
+
+    test('an unknown square value decodes as the default', () {
+      final json = jsonDecode(encodeDraft(_minimalSnapshot())) as Map;
+      json['squareKind'] = 'medley';
+      json['newPartner'] = 'nextButOne';
+      final decoded = decodeDraft(jsonEncode(json));
+      expect(decoded.squareKind, SquareKind.main);
+      expect(decoded.newPartner, SquareNewPartner.unstated);
+    });
+
     test('other titles and the Barnes reference round-trip as typed, and '
         'are omitted when empty', () {
       final encoded = encodeDraft(_minimalSnapshot());

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 
+import '../data/active_dialect_scope.dart';
 import '../data/callersbox_online.dart';
 import '../data/collection_facets_scope.dart';
 import '../data/collection_tile_fields_scope.dart';
@@ -1619,6 +1620,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
       root: _advancedRoot,
       taxonomy: data.taxonomy,
       dialect: widget.dialect,
+      // Each figure of your own in its own form's dialect (#2294); the moves
+      // stay in the picker's.
+      dialects: ActiveDialectScope.maybeOf(context),
       sectionLabels: data.sectionLabels,
       tags: data.tags,
       allTagNames: data.allTagNames,

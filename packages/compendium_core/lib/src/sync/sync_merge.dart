@@ -352,7 +352,18 @@ Map<String, Object?> _mergeDanceBodies(
   // into two fingerprints. The copies merged here may differ in them; the latest copy's wins. Each is omitted
   // from a body when it holds its default, so a missing key is the default,
   // not "keep the survivor's".
-  for (final key in const ['meter', 'musicalKey', 'interpretedOn']) {
+  for (final key in const [
+    'meter',
+    'musicalKey',
+    'interpretedOn',
+    // The square fields (ADR-007 §8.1), kept for every form.
+    'squareKind',
+    'repeatOrder',
+    'repeatOrderText',
+    'newPartner',
+    'newPartnerText',
+    'singing',
+  ]) {
     if (latest.blob.body.containsKey(key)) {
       body[key] = latest.blob.body[key];
     } else {

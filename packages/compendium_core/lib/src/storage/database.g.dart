@@ -601,6 +601,81 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _squareKindMeta = const VerificationMeta(
+    'squareKind',
+  );
+  @override
+  late final GeneratedColumn<String> squareKind = GeneratedColumn<String>(
+    'square_kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('main'),
+  );
+  static const VerificationMeta _repeatOrderMeta = const VerificationMeta(
+    'repeatOrder',
+  );
+  @override
+  late final GeneratedColumn<String> repeatOrder = GeneratedColumn<String>(
+    'repeat_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('unstated'),
+  );
+  static const VerificationMeta _repeatOrderTextMeta = const VerificationMeta(
+    'repeatOrderText',
+  );
+  @override
+  late final GeneratedColumn<String> repeatOrderText = GeneratedColumn<String>(
+    'repeat_order_text',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _newPartnerMeta = const VerificationMeta(
+    'newPartner',
+  );
+  @override
+  late final GeneratedColumn<String> newPartner = GeneratedColumn<String>(
+    'new_partner',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('unstated'),
+  );
+  static const VerificationMeta _newPartnerTextMeta = const VerificationMeta(
+    'newPartnerText',
+  );
+  @override
+  late final GeneratedColumn<String> newPartnerText = GeneratedColumn<String>(
+    'new_partner_text',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _singingMeta = const VerificationMeta(
+    'singing',
+  );
+  @override
+  late final GeneratedColumn<bool> singing = GeneratedColumn<bool>(
+    'singing',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("singing" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   late final GeneratedColumnWithTypeConverter<DanceStatus, String> status =
       GeneratedColumn<String>(
@@ -768,6 +843,12 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     musicalKey,
     alternateTitles,
     barnesReference,
+    squareKind,
+    repeatOrder,
+    repeatOrderText,
+    newPartner,
+    newPartnerText,
+    singing,
     status,
     levelId,
     mixedLevel,
@@ -895,6 +976,51 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
           data['barnes_reference']!,
           _barnesReferenceMeta,
         ),
+      );
+    }
+    if (data.containsKey('square_kind')) {
+      context.handle(
+        _squareKindMeta,
+        squareKind.isAcceptableOrUnknown(data['square_kind']!, _squareKindMeta),
+      );
+    }
+    if (data.containsKey('repeat_order')) {
+      context.handle(
+        _repeatOrderMeta,
+        repeatOrder.isAcceptableOrUnknown(
+          data['repeat_order']!,
+          _repeatOrderMeta,
+        ),
+      );
+    }
+    if (data.containsKey('repeat_order_text')) {
+      context.handle(
+        _repeatOrderTextMeta,
+        repeatOrderText.isAcceptableOrUnknown(
+          data['repeat_order_text']!,
+          _repeatOrderTextMeta,
+        ),
+      );
+    }
+    if (data.containsKey('new_partner')) {
+      context.handle(
+        _newPartnerMeta,
+        newPartner.isAcceptableOrUnknown(data['new_partner']!, _newPartnerMeta),
+      );
+    }
+    if (data.containsKey('new_partner_text')) {
+      context.handle(
+        _newPartnerTextMeta,
+        newPartnerText.isAcceptableOrUnknown(
+          data['new_partner_text']!,
+          _newPartnerTextMeta,
+        ),
+      );
+    }
+    if (data.containsKey('singing')) {
+      context.handle(
+        _singingMeta,
+        singing.isAcceptableOrUnknown(data['singing']!, _singingMeta),
       );
     }
     if (data.containsKey('level_id')) {
@@ -1058,6 +1184,30 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
         DriftSqlType.string,
         data['${effectivePrefix}barnes_reference'],
       )!,
+      squareKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}square_kind'],
+      )!,
+      repeatOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}repeat_order'],
+      )!,
+      repeatOrderText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}repeat_order_text'],
+      )!,
+      newPartner: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}new_partner'],
+      )!,
+      newPartnerText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}new_partner_text'],
+      )!,
+      singing: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}singing'],
+      )!,
       status: $DancesTable.$converterstatus.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -1176,6 +1326,32 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
   /// as free text ("BIII p. 92", "NiB"); `''` when not given. Added in schema
   /// v42 while v42 was unreleased.
   final String barnesReference;
+
+  /// What a square dance record holds, `Dance.squareKind`, as its wire name
+  /// (`main`, `break`, `patter`); `main` by default. Kept for every form
+  /// (ADR-007 §8.1). Plain text rather than an enum converter, so a value
+  /// this build does not know reads as the default instead of failing. Added
+  /// in schema v42 while v42 was unreleased, as are the square columns below.
+  final String squareKind;
+
+  /// How a square's main part is repeated, `Dance.repeatOrder`, as its wire
+  /// name (`HHSS`, `HSHS`, `allFour`, `other`); `unstated` by default.
+  final String repeatOrder;
+
+  /// What `other` means for [repeatOrder], `Dance.repeatOrderText`; `''`
+  /// unless the order is `other`.
+  final String repeatOrderText;
+
+  /// Who the new partner is each time through a square, `Dance.newPartner`,
+  /// as its wire name; `unstated` by default.
+  final String newPartner;
+
+  /// What `other` means for [newPartner], `Dance.newPartnerText`; `''` unless
+  /// the new partner is `other`.
+  final String newPartnerText;
+
+  /// Whether a square's main part is a singing call, `Dance.singing`.
+  final bool singing;
   final DanceStatus status;
 
   /// Selected [DifficultyLevels] row, nullable when unspecified. Added in
@@ -1243,6 +1419,12 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     required this.musicalKey,
     required this.alternateTitles,
     required this.barnesReference,
+    required this.squareKind,
+    required this.repeatOrder,
+    required this.repeatOrderText,
+    required this.newPartner,
+    required this.newPartnerText,
+    required this.singing,
     required this.status,
     this.levelId,
     required this.mixedLevel,
@@ -1288,6 +1470,12 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     map['musical_key'] = Variable<String>(musicalKey);
     map['alternate_titles'] = Variable<String>(alternateTitles);
     map['barnes_reference'] = Variable<String>(barnesReference);
+    map['square_kind'] = Variable<String>(squareKind);
+    map['repeat_order'] = Variable<String>(repeatOrder);
+    map['repeat_order_text'] = Variable<String>(repeatOrderText);
+    map['new_partner'] = Variable<String>(newPartner);
+    map['new_partner_text'] = Variable<String>(newPartnerText);
+    map['singing'] = Variable<bool>(singing);
     {
       map['status'] = Variable<String>(
         $DancesTable.$converterstatus.toSql(status),
@@ -1342,6 +1530,12 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       musicalKey: Value(musicalKey),
       alternateTitles: Value(alternateTitles),
       barnesReference: Value(barnesReference),
+      squareKind: Value(squareKind),
+      repeatOrder: Value(repeatOrder),
+      repeatOrderText: Value(repeatOrderText),
+      newPartner: Value(newPartner),
+      newPartnerText: Value(newPartnerText),
+      singing: Value(singing),
       status: Value(status),
       levelId: levelId == null && nullToAbsent
           ? const Value.absent()
@@ -1400,6 +1594,12 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       musicalKey: serializer.fromJson<String>(json['musicalKey']),
       alternateTitles: serializer.fromJson<String>(json['alternateTitles']),
       barnesReference: serializer.fromJson<String>(json['barnesReference']),
+      squareKind: serializer.fromJson<String>(json['squareKind']),
+      repeatOrder: serializer.fromJson<String>(json['repeatOrder']),
+      repeatOrderText: serializer.fromJson<String>(json['repeatOrderText']),
+      newPartner: serializer.fromJson<String>(json['newPartner']),
+      newPartnerText: serializer.fromJson<String>(json['newPartnerText']),
+      singing: serializer.fromJson<bool>(json['singing']),
       status: $DancesTable.$converterstatus.fromJson(
         serializer.fromJson<String>(json['status']),
       ),
@@ -1443,6 +1643,12 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       'musicalKey': serializer.toJson<String>(musicalKey),
       'alternateTitles': serializer.toJson<String>(alternateTitles),
       'barnesReference': serializer.toJson<String>(barnesReference),
+      'squareKind': serializer.toJson<String>(squareKind),
+      'repeatOrder': serializer.toJson<String>(repeatOrder),
+      'repeatOrderText': serializer.toJson<String>(repeatOrderText),
+      'newPartner': serializer.toJson<String>(newPartner),
+      'newPartnerText': serializer.toJson<String>(newPartnerText),
+      'singing': serializer.toJson<bool>(singing),
       'status': serializer.toJson<String>(
         $DancesTable.$converterstatus.toJson(status),
       ),
@@ -1478,6 +1684,12 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     String? musicalKey,
     String? alternateTitles,
     String? barnesReference,
+    String? squareKind,
+    String? repeatOrder,
+    String? repeatOrderText,
+    String? newPartner,
+    String? newPartnerText,
+    bool? singing,
     DanceStatus? status,
     Value<String?> levelId = const Value.absent(),
     bool? mixedLevel,
@@ -1510,6 +1722,12 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     musicalKey: musicalKey ?? this.musicalKey,
     alternateTitles: alternateTitles ?? this.alternateTitles,
     barnesReference: barnesReference ?? this.barnesReference,
+    squareKind: squareKind ?? this.squareKind,
+    repeatOrder: repeatOrder ?? this.repeatOrder,
+    repeatOrderText: repeatOrderText ?? this.repeatOrderText,
+    newPartner: newPartner ?? this.newPartner,
+    newPartnerText: newPartnerText ?? this.newPartnerText,
+    singing: singing ?? this.singing,
     status: status ?? this.status,
     levelId: levelId.present ? levelId.value : this.levelId,
     mixedLevel: mixedLevel ?? this.mixedLevel,
@@ -1566,6 +1784,22 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       barnesReference: data.barnesReference.present
           ? data.barnesReference.value
           : this.barnesReference,
+      squareKind: data.squareKind.present
+          ? data.squareKind.value
+          : this.squareKind,
+      repeatOrder: data.repeatOrder.present
+          ? data.repeatOrder.value
+          : this.repeatOrder,
+      repeatOrderText: data.repeatOrderText.present
+          ? data.repeatOrderText.value
+          : this.repeatOrderText,
+      newPartner: data.newPartner.present
+          ? data.newPartner.value
+          : this.newPartner,
+      newPartnerText: data.newPartnerText.present
+          ? data.newPartnerText.value
+          : this.newPartnerText,
+      singing: data.singing.present ? data.singing.value : this.singing,
       status: data.status.present ? data.status.value : this.status,
       levelId: data.levelId.present ? data.levelId.value : this.levelId,
       mixedLevel: data.mixedLevel.present
@@ -1609,6 +1843,12 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           ..write('musicalKey: $musicalKey, ')
           ..write('alternateTitles: $alternateTitles, ')
           ..write('barnesReference: $barnesReference, ')
+          ..write('squareKind: $squareKind, ')
+          ..write('repeatOrder: $repeatOrder, ')
+          ..write('repeatOrderText: $repeatOrderText, ')
+          ..write('newPartner: $newPartner, ')
+          ..write('newPartnerText: $newPartnerText, ')
+          ..write('singing: $singing, ')
           ..write('status: $status, ')
           ..write('levelId: $levelId, ')
           ..write('mixedLevel: $mixedLevel, ')
@@ -1644,6 +1884,12 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     musicalKey,
     alternateTitles,
     barnesReference,
+    squareKind,
+    repeatOrder,
+    repeatOrderText,
+    newPartner,
+    newPartnerText,
+    singing,
     status,
     levelId,
     mixedLevel,
@@ -1678,6 +1924,12 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           other.musicalKey == this.musicalKey &&
           other.alternateTitles == this.alternateTitles &&
           other.barnesReference == this.barnesReference &&
+          other.squareKind == this.squareKind &&
+          other.repeatOrder == this.repeatOrder &&
+          other.repeatOrderText == this.repeatOrderText &&
+          other.newPartner == this.newPartner &&
+          other.newPartnerText == this.newPartnerText &&
+          other.singing == this.singing &&
           other.status == this.status &&
           other.levelId == this.levelId &&
           other.mixedLevel == this.mixedLevel &&
@@ -1710,6 +1962,12 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
   final Value<String> musicalKey;
   final Value<String> alternateTitles;
   final Value<String> barnesReference;
+  final Value<String> squareKind;
+  final Value<String> repeatOrder;
+  final Value<String> repeatOrderText;
+  final Value<String> newPartner;
+  final Value<String> newPartnerText;
+  final Value<bool> singing;
   final Value<DanceStatus> status;
   final Value<String?> levelId;
   final Value<bool> mixedLevel;
@@ -1741,6 +1999,12 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.musicalKey = const Value.absent(),
     this.alternateTitles = const Value.absent(),
     this.barnesReference = const Value.absent(),
+    this.squareKind = const Value.absent(),
+    this.repeatOrder = const Value.absent(),
+    this.repeatOrderText = const Value.absent(),
+    this.newPartner = const Value.absent(),
+    this.newPartnerText = const Value.absent(),
+    this.singing = const Value.absent(),
     this.status = const Value.absent(),
     this.levelId = const Value.absent(),
     this.mixedLevel = const Value.absent(),
@@ -1773,6 +2037,12 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.musicalKey = const Value.absent(),
     this.alternateTitles = const Value.absent(),
     this.barnesReference = const Value.absent(),
+    this.squareKind = const Value.absent(),
+    this.repeatOrder = const Value.absent(),
+    this.repeatOrderText = const Value.absent(),
+    this.newPartner = const Value.absent(),
+    this.newPartnerText = const Value.absent(),
+    this.singing = const Value.absent(),
     required DanceStatus status,
     this.levelId = const Value.absent(),
     this.mixedLevel = const Value.absent(),
@@ -1812,6 +2082,12 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Expression<String>? musicalKey,
     Expression<String>? alternateTitles,
     Expression<String>? barnesReference,
+    Expression<String>? squareKind,
+    Expression<String>? repeatOrder,
+    Expression<String>? repeatOrderText,
+    Expression<String>? newPartner,
+    Expression<String>? newPartnerText,
+    Expression<bool>? singing,
     Expression<String>? status,
     Expression<String>? levelId,
     Expression<bool>? mixedLevel,
@@ -1844,6 +2120,12 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       if (musicalKey != null) 'musical_key': musicalKey,
       if (alternateTitles != null) 'alternate_titles': alternateTitles,
       if (barnesReference != null) 'barnes_reference': barnesReference,
+      if (squareKind != null) 'square_kind': squareKind,
+      if (repeatOrder != null) 'repeat_order': repeatOrder,
+      if (repeatOrderText != null) 'repeat_order_text': repeatOrderText,
+      if (newPartner != null) 'new_partner': newPartner,
+      if (newPartnerText != null) 'new_partner_text': newPartnerText,
+      if (singing != null) 'singing': singing,
       if (status != null) 'status': status,
       if (levelId != null) 'level_id': levelId,
       if (mixedLevel != null) 'mixed_level': mixedLevel,
@@ -1878,6 +2160,12 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Value<String>? musicalKey,
     Value<String>? alternateTitles,
     Value<String>? barnesReference,
+    Value<String>? squareKind,
+    Value<String>? repeatOrder,
+    Value<String>? repeatOrderText,
+    Value<String>? newPartner,
+    Value<String>? newPartnerText,
+    Value<bool>? singing,
     Value<DanceStatus>? status,
     Value<String?>? levelId,
     Value<bool>? mixedLevel,
@@ -1910,6 +2198,12 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       musicalKey: musicalKey ?? this.musicalKey,
       alternateTitles: alternateTitles ?? this.alternateTitles,
       barnesReference: barnesReference ?? this.barnesReference,
+      squareKind: squareKind ?? this.squareKind,
+      repeatOrder: repeatOrder ?? this.repeatOrder,
+      repeatOrderText: repeatOrderText ?? this.repeatOrderText,
+      newPartner: newPartner ?? this.newPartner,
+      newPartnerText: newPartnerText ?? this.newPartnerText,
+      singing: singing ?? this.singing,
       status: status ?? this.status,
       levelId: levelId ?? this.levelId,
       mixedLevel: mixedLevel ?? this.mixedLevel,
@@ -1984,6 +2278,24 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     if (barnesReference.present) {
       map['barnes_reference'] = Variable<String>(barnesReference.value);
     }
+    if (squareKind.present) {
+      map['square_kind'] = Variable<String>(squareKind.value);
+    }
+    if (repeatOrder.present) {
+      map['repeat_order'] = Variable<String>(repeatOrder.value);
+    }
+    if (repeatOrderText.present) {
+      map['repeat_order_text'] = Variable<String>(repeatOrderText.value);
+    }
+    if (newPartner.present) {
+      map['new_partner'] = Variable<String>(newPartner.value);
+    }
+    if (newPartnerText.present) {
+      map['new_partner_text'] = Variable<String>(newPartnerText.value);
+    }
+    if (singing.present) {
+      map['singing'] = Variable<bool>(singing.value);
+    }
     if (status.present) {
       map['status'] = Variable<String>(
         $DancesTable.$converterstatus.toSql(status.value),
@@ -2050,6 +2362,12 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
           ..write('musicalKey: $musicalKey, ')
           ..write('alternateTitles: $alternateTitles, ')
           ..write('barnesReference: $barnesReference, ')
+          ..write('squareKind: $squareKind, ')
+          ..write('repeatOrder: $repeatOrder, ')
+          ..write('repeatOrderText: $repeatOrderText, ')
+          ..write('newPartner: $newPartner, ')
+          ..write('newPartnerText: $newPartnerText, ')
+          ..write('singing: $singing, ')
           ..write('status: $status, ')
           ..write('levelId: $levelId, ')
           ..write('mixedLevel: $mixedLevel, ')
@@ -17552,6 +17870,12 @@ typedef $$DancesTableCreateCompanionBuilder =
       Value<String> musicalKey,
       Value<String> alternateTitles,
       Value<String> barnesReference,
+      Value<String> squareKind,
+      Value<String> repeatOrder,
+      Value<String> repeatOrderText,
+      Value<String> newPartner,
+      Value<String> newPartnerText,
+      Value<bool> singing,
       required DanceStatus status,
       Value<String?> levelId,
       Value<bool> mixedLevel,
@@ -17585,6 +17909,12 @@ typedef $$DancesTableUpdateCompanionBuilder =
       Value<String> musicalKey,
       Value<String> alternateTitles,
       Value<String> barnesReference,
+      Value<String> squareKind,
+      Value<String> repeatOrder,
+      Value<String> repeatOrderText,
+      Value<String> newPartner,
+      Value<String> newPartnerText,
+      Value<bool> singing,
       Value<DanceStatus> status,
       Value<String?> levelId,
       Value<bool> mixedLevel,
@@ -17906,6 +18236,36 @@ class $$DancesTableFilterComposer
 
   ColumnFilters<String> get barnesReference => $composableBuilder(
     column: $table.barnesReference,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get squareKind => $composableBuilder(
+    column: $table.squareKind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get repeatOrder => $composableBuilder(
+    column: $table.repeatOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get repeatOrderText => $composableBuilder(
+    column: $table.repeatOrderText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get newPartner => $composableBuilder(
+    column: $table.newPartner,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get newPartnerText => $composableBuilder(
+    column: $table.newPartnerText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get singing => $composableBuilder(
+    column: $table.singing,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -18333,6 +18693,36 @@ class $$DancesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get squareKind => $composableBuilder(
+    column: $table.squareKind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get repeatOrder => $composableBuilder(
+    column: $table.repeatOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get repeatOrderText => $composableBuilder(
+    column: $table.repeatOrderText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get newPartner => $composableBuilder(
+    column: $table.newPartner,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get newPartnerText => $composableBuilder(
+    column: $table.newPartnerText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get singing => $composableBuilder(
+    column: $table.singing,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get status => $composableBuilder(
     column: $table.status,
     builder: (column) => ColumnOrderings(column),
@@ -18497,6 +18887,34 @@ class $$DancesTableAnnotationComposer
     column: $table.barnesReference,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get squareKind => $composableBuilder(
+    column: $table.squareKind,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get repeatOrder => $composableBuilder(
+    column: $table.repeatOrder,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get repeatOrderText => $composableBuilder(
+    column: $table.repeatOrderText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get newPartner => $composableBuilder(
+    column: $table.newPartner,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get newPartnerText => $composableBuilder(
+    column: $table.newPartnerText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get singing =>
+      $composableBuilder(column: $table.singing, builder: (column) => column);
 
   GeneratedColumnWithTypeConverter<DanceStatus, String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
@@ -18874,6 +19292,12 @@ class $$DancesTableTableManager
                 Value<String> musicalKey = const Value.absent(),
                 Value<String> alternateTitles = const Value.absent(),
                 Value<String> barnesReference = const Value.absent(),
+                Value<String> squareKind = const Value.absent(),
+                Value<String> repeatOrder = const Value.absent(),
+                Value<String> repeatOrderText = const Value.absent(),
+                Value<String> newPartner = const Value.absent(),
+                Value<String> newPartnerText = const Value.absent(),
+                Value<bool> singing = const Value.absent(),
                 Value<DanceStatus> status = const Value.absent(),
                 Value<String?> levelId = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
@@ -18905,6 +19329,12 @@ class $$DancesTableTableManager
                 musicalKey: musicalKey,
                 alternateTitles: alternateTitles,
                 barnesReference: barnesReference,
+                squareKind: squareKind,
+                repeatOrder: repeatOrder,
+                repeatOrderText: repeatOrderText,
+                newPartner: newPartner,
+                newPartnerText: newPartnerText,
+                singing: singing,
                 status: status,
                 levelId: levelId,
                 mixedLevel: mixedLevel,
@@ -18938,6 +19368,12 @@ class $$DancesTableTableManager
                 Value<String> musicalKey = const Value.absent(),
                 Value<String> alternateTitles = const Value.absent(),
                 Value<String> barnesReference = const Value.absent(),
+                Value<String> squareKind = const Value.absent(),
+                Value<String> repeatOrder = const Value.absent(),
+                Value<String> repeatOrderText = const Value.absent(),
+                Value<String> newPartner = const Value.absent(),
+                Value<String> newPartnerText = const Value.absent(),
+                Value<bool> singing = const Value.absent(),
                 required DanceStatus status,
                 Value<String?> levelId = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
@@ -18969,6 +19405,12 @@ class $$DancesTableTableManager
                 musicalKey: musicalKey,
                 alternateTitles: alternateTitles,
                 barnesReference: barnesReference,
+                squareKind: squareKind,
+                repeatOrder: repeatOrder,
+                repeatOrderText: repeatOrderText,
+                newPartner: newPartner,
+                newPartnerText: newPartnerText,
+                singing: singing,
                 status: status,
                 levelId: levelId,
                 mixedLevel: mixedLevel,

@@ -184,6 +184,12 @@ class EditorSnapshot {
     this.musicalKey = '',
     this.alternateTitles = '',
     this.barnesReference = '',
+    this.squareKind = SquareKind.main,
+    this.repeatOrder = SquareRepeatOrder.unstated,
+    this.repeatOrderText = '',
+    this.newPartner = SquareNewPartner.unstated,
+    this.newPartnerText = '',
+    this.singing = false,
     required this.form,
     required this.formationShape,
     this.improper = false,
@@ -232,6 +238,12 @@ class EditorSnapshot {
     musicalKey: musicalKey,
     alternateTitles: alternateTitles,
     barnesReference: barnesReference,
+    squareKind: squareKind,
+    repeatOrder: repeatOrder,
+    repeatOrderText: repeatOrderText,
+    newPartner: newPartner,
+    newPartnerText: newPartnerText,
+    singing: singing,
     form: form,
     formationShape: formationShape,
     improper: improper,
@@ -284,6 +296,17 @@ class EditorSnapshot {
 
   /// The Barnes book reference as typed ([Dance.barnesReference]).
   final String barnesReference;
+
+  /// The square fields (ADR-007 §8.1; [Dance.squareKind], [Dance.repeatOrder],
+  /// [Dance.newPartner], [Dance.singing]). The texts are as typed, and kept
+  /// whatever the value, so moving a dropdown off `other` and back restores
+  /// them; only `other` saves them.
+  final SquareKind squareKind;
+  final SquareRepeatOrder repeatOrder;
+  final String repeatOrderText;
+  final SquareNewPartner newPartner;
+  final String newPartnerText;
+  final bool singing;
 
   // ---- Enum fields ----
   final DanceForm form;

@@ -1144,6 +1144,37 @@ void main() {
     expect(merged['barnesReference'], 'BIII p. 92');
   });
 
+  test('fresh attach takes the latest copy\'s square fields, and a copy '
+      'that leaves one out has the default', () {
+    final body = planFreshAttachDedupe([
+      _danceCandidate(
+        'a-survivor',
+        'Shared',
+        updatedSeconds: 1,
+        extra: const {
+          'squareKind': 'break',
+          'newPartner': 'corner',
+          'singing': true,
+        },
+      ),
+      _danceCandidate(
+        'm-newest',
+        'Shared',
+        updatedSeconds: 2,
+        extra: const {'repeatOrder': 'other', 'repeatOrderText': 'Heads once'},
+      ),
+    ]).merges.single.winner.blob.body;
+    expect(body['repeatOrder'], 'other');
+    expect(body['repeatOrderText'], 'Heads once');
+    for (final key in ['squareKind', 'newPartner', 'singing']) {
+      expect(
+        body.keys,
+        isNot(contains(key)),
+        reason: 'the newest copy leaves $key at its default',
+      );
+    }
+  });
+
   test('fresh attach unions interpreters as it does authors, leaves the '
       'list out when nobody is credited, and takes the latest copy\'s '
       'interpretation date', () {

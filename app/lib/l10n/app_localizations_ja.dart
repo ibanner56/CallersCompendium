@@ -8745,6 +8745,76 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorMixerSubtitle => '踊るたびにパートナーが変わります';
 
   @override
+  String danceDetailSquareField(String field, String value) {
+    return '$field：$value';
+  }
+
+  @override
+  String get danceEditorSquareKindLabel => 'スクエアの種類';
+
+  @override
+  String get squareKindMain => 'メインパート';
+
+  @override
+  String get squareKindBreak => 'ブレイク';
+
+  @override
+  String get squareKindPatter => 'パター';
+
+  @override
+  String get danceEditorRepeatOrderLabel => '繰り返しの順序';
+
+  @override
+  String get squareRepeatOrderUnstated => '記載なし';
+
+  @override
+  String get squareRepeatOrderHeadsHeadsSidesSides => 'ヘッズ2回、続いてサイズ2回';
+
+  @override
+  String get squareRepeatOrderHeadsSidesHeadsSides => 'ヘッズとサイズを交互に';
+
+  @override
+  String get squareRepeatOrderAllFour => '4回、全員がアクティブ';
+
+  @override
+  String get squareRepeatOrderOther => 'その他';
+
+  @override
+  String get danceEditorRepeatOrderOtherLabel => '繰り返しの順序（自由記述）';
+
+  @override
+  String get danceEditorNewPartnerLabel => '新しいパートナー';
+
+  @override
+  String get squareNewPartnerUnstated => '記載なし';
+
+  @override
+  String get squareNewPartnerNone => 'パートナーは変わらない';
+
+  @override
+  String get squareNewPartnerCorner => 'コーナー';
+
+  @override
+  String squareNewPartnerRightHand(String role) {
+    return '右隣の$role';
+  }
+
+  @override
+  String get squareNewPartnerOpposite => 'オポジット';
+
+  @override
+  String get squareNewPartnerOther => 'その他';
+
+  @override
+  String get danceEditorNewPartnerOtherLabel => '新しいパートナー（自由記述）';
+
+  @override
+  String get danceEditorSingingLabel => 'シンギングコール';
+
+  @override
+  String get danceEditorSingingSubtitle => '曲名はチューンに入力します';
+
+  @override
   String get danceEditorImproperLabel => 'インプロパーで始まる';
 
   @override

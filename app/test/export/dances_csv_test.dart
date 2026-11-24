@@ -136,6 +136,7 @@ void main() {
         field('d', 'story (2)'),
         field('e', en.csvColumnRating),
         field('f', en.csvColumnBarnes),
+        field('g', en.danceEditorSingingLabel),
       ];
       final withValues = dance(
         customFields: [
@@ -159,6 +160,7 @@ void main() {
         'story (2) (2)',
         'Rating (2)',
         'Barnes reference (2)',
+        'Singing call (2)',
       ]);
       expect(
         {for (final h in header) h.toLowerCase()}.length,
@@ -177,7 +179,13 @@ void main() {
         CsvColumnMapping.customField('d'),
         CsvColumnMapping.customField('e'),
         CsvColumnMapping.customField('f'),
+        CsvColumnMapping.customField('g'),
       ]);
+      expect(
+        mapped[header.indexOf(en.danceEditorSingingLabel)],
+        isNot(CsvColumnMapping.customField('g')),
+        reason: "the built-in Singing call column does not fill the field",
+      );
       expect(
         mapped[header.indexOf(en.csvColumnTitle)],
         const CsvColumnMapping(CsvColumnTarget.title),
@@ -401,6 +409,67 @@ void main() {
     expect(contra[en.csvColumnBarnes], '');
     expect(contra[en.csvColumnComposed], '');
     expect(contra[en.csvColumnInterpreted], '');
+  });
+
+  test("a square's own fields have columns, blank for another form "
+      '(ADR-007 §8.1)', () {
+    final square = Dance(
+      id: 's1',
+      title: 'Circle Three Quarters',
+      form: DanceForm.square,
+      repeatOrder: SquareRepeatOrder.headsHeadsSidesSides,
+      newPartner: SquareNewPartner.other,
+      newPartnerText: 'The original corner',
+      createdAt: now,
+      updatedAt: now,
+    );
+    final row = csvRecords(build([square])).single;
+    expect(row[en.danceEditorSquareKindLabel], 'Main part');
+    expect(
+      row[en.danceEditorRepeatOrderLabel],
+      'Heads twice, then sides twice',
+    );
+    expect(row[en.danceEditorNewPartnerLabel], 'The original corner');
+    expect(row[en.danceEditorSingingLabel], en.commonNo);
+
+    final contra = csvRecords(
+      build([dance().copyWith(repeatOrder: SquareRepeatOrder.allFour)]),
+    ).single;
+    expect(contra[en.danceEditorRepeatOrderLabel], '');
+    expect(contra[en.danceEditorSingingLabel], '');
+  });
+
+  test("a square's `other` text is worded as the dance page words it, and "
+      'only a main part is a singing call', () {
+    final square = Dance(
+      id: 's1',
+      title: 'Gypsy Square',
+      form: DanceForm.square,
+      squareKind: SquareKind.breakPart,
+      newPartner: SquareNewPartner.other,
+      newPartnerText: 'Gypsy partner',
+      singing: true,
+      createdAt: now,
+      updatedAt: now,
+    );
+    final row = csvRecords(
+      buildDancesCsv(
+        [square],
+        l10n: en,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        renderer: plainRenderer,
+        lookups: lookups,
+        canonicalizeDiscouragedTerms: true,
+      ),
+    ).single;
+    expect(row[en.danceEditorNewPartnerLabel], 'Shoulder round partner');
+    expect(row[en.danceEditorSingingLabel], en.commonNo);
+    expect(
+      csvRecords(
+        build([square.copyWith(squareKind: SquareKind.main)]),
+      ).single[en.danceEditorSingingLabel],
+      en.commonYes,
+    );
   });
 
   test('the file name is the localized stem and the date', () {

@@ -1546,8 +1546,8 @@ class ImportPipeline {
   /// null to preserve them. [interpreterIds] are always the pipeline's
   /// resolved ids, never [src]'s. [keepFrom] is the dance being linked over:
   /// its custom-field values for fields [src] does not carry survive, and so
-  /// do its rating, interpreters, interpretation date, other titles and
-  /// Barnes reference when [src] carries none.
+  /// do its rating, interpreters, interpretation date, other titles, Barnes
+  /// reference and square fields when [src] carries none.
   Dance _rebuildWithIdentity(
     Dance src, {
     required String id,
@@ -1582,6 +1582,26 @@ class ImportPipeline {
     barnesReference: src.barnesReference.isNotEmpty
         ? src.barnesReference
         : keepFrom?.barnesReference ?? '',
+    // The square fields (ADR-007 §8.1) likewise: only the native archive and
+    // a Caller's Companion square's repeat order carry any, so a source left
+    // at the default keeps what the linked-over dance holds. The texts go
+    // with their values.
+    squareKind: src.squareKind != SquareKind.main
+        ? src.squareKind
+        : keepFrom?.squareKind ?? SquareKind.main,
+    repeatOrder: src.repeatOrder != SquareRepeatOrder.unstated
+        ? src.repeatOrder
+        : keepFrom?.repeatOrder ?? SquareRepeatOrder.unstated,
+    repeatOrderText: src.repeatOrder != SquareRepeatOrder.unstated
+        ? src.repeatOrderText
+        : keepFrom?.repeatOrderText ?? '',
+    newPartner: src.newPartner != SquareNewPartner.unstated
+        ? src.newPartner
+        : keepFrom?.newPartner ?? SquareNewPartner.unstated,
+    newPartnerText: src.newPartner != SquareNewPartner.unstated
+        ? src.newPartnerText
+        : keepFrom?.newPartnerText ?? '',
+    singing: src.singing || (keepFrom?.singing ?? false),
     status: src.status,
     difficultyLevelId: src.difficultyLevelId,
     mixedLevel: src.mixedLevel,
