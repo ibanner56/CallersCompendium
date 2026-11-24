@@ -245,6 +245,21 @@ jobs:
       - name: Check the Linux bundle's glibc floor
         if: matrix.target == 'linux'
         run: python3 tools/ci/check_linux_glibc_floor.py app/build/linux/x64/release/bundle
+      # Native tests for the Windows OCR recognizer behind From an image...
+      # (#2327). `flutter build` compiles the recognizer into the app but no
+      # test of it, so this is the only place it is exercised: it builds the
+      # standalone test project and runs it against this machine's own
+      # Windows OCR and English language pack. It runs on every Windows leg;
+      # the build takes about a minute.
+      - name: Test native Windows code (text recognition)
+        if: matrix.target == 'windows'
+        shell: bash
+        timeout-minutes: 15
+        run: |
+          set -euo pipefail
+          cmake -S app/windows/text_recognition/tests -B "$RUNNER_TEMP/ocr-tests"
+          cmake --build "$RUNNER_TEMP/ocr-tests" --config Release
+          "$RUNNER_TEMP/ocr-tests/Release/text_recognizer_tests.exe"
       # Native Swift tests (post-audit finding platform-7). `flutter build`
       # never compiles the RunnerTests targets, so these steps are the only
       # place the XCTest suites in app/ios/RunnerTests and

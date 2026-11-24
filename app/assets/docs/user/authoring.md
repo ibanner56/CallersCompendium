@@ -278,21 +278,23 @@ added: add it in parts.
 
 #### Read the figures from a picture
 
-On iPhone, iPad and Mac, **From an image…** in the same sheet reads the text of
-a picture you choose, such as a photo of an index card or a page of a book, and
-puts it in the box in place of what is there. Check it and correct it there:
-the lines are then read exactly as typed text is.
+On iPhone, iPad, Mac and Windows, **From an image…** in the same sheet reads
+the text of a picture you choose, such as a photo of an index card or a page
+of a book, and puts it in the box in place of what is there. Check it and
+correct it there: the lines are then read exactly as typed text is.
 
 - The picture is read **on your device**, by the text recognition built into
-  iOS and macOS. Nothing is sent anywhere, and nothing is downloaded to read
-  it.
+  iOS, macOS and Windows. Nothing is sent anywhere, and nothing is downloaded
+  to read it.
 - **The picture is not kept.** It is read once and let go; only the text
   reaches the sheet. Nothing about the picture is saved with the dance, synced
   or backed up. A copy the picker makes for the app is deleted once read.
 - It reads the app's language and English. Where the device can't read the
   app's language (some languages, such as Japanese, need a newer iOS or
   macOS, and some aren't offered at all), the sheet says so and reads
-  English.
+  English. Windows reads the languages whose language packs are installed in
+  Windows Settings; the app never installs one. If none of them is the app's
+  language or English, **From an image…** stays off and the sheet says why.
 - A picture over 25 MB, or over 10,000 pixels on a side or 50 million pixels
   in all, is refused before anything is read. Crop it or choose a smaller one.
 - Typed text reads best. Handwriting may come out wrong, so check each line.
@@ -305,8 +307,8 @@ deleted as soon as its text has been read, or straight away if reading fails,
 and it is never added to your photo library. If you said no to the camera, you
 can turn it on again in the Settings app, under **Caller's Compendium**.
 
-**From an image…** isn't offered on Android, Windows or Linux, and **Take a
-photo** is only on iPhone and iPad: you can still type or paste the figures.
+**From an image…** isn't offered on Android or Linux, and **Take a photo** is
+only on iPhone and iPad: you can still type or paste the figures.
 
 ### Figure shorthands
 
