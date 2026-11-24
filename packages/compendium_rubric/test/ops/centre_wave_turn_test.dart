@@ -1,5 +1,6 @@
 import 'package:compendium_rubric/compendium_rubric.dart';
-import 'package:compendium_rubric/src/ops/transforms.dart' show waveHoldOf;
+import 'package:compendium_rubric/src/ops/transforms.dart'
+    show WaveHoldShape, waveHoldOf;
 import 'package:test/test.dart';
 
 Formation di(List<String> rows) =>
@@ -79,7 +80,84 @@ void main() {
       );
       expect(after.toRolesNotation(), ['. L1-A . . R2-B', 'R1-A . . L2-B .']);
       expect(facingAt(after, 0, 1), Facing.down);
+      expect(facingAt(after, 0, 4), Facing.down);
+      expect(facingAt(after, 1, 0), Facing.up);
       expect(facingAt(after, 1, 3), Facing.up);
+    });
+
+    test('the ends join the wave holding the other hand', () {
+      final after = applyOk(
+        const Allemande(who: WhoSet.role1s, hand: Hand.left, turn: 0.75),
+        larksInTheCentre(),
+      );
+      // Each side pair of the new short wave reads back as holding right.
+      for (final (end, centre) in [((1, 0), (0, 1)), ((0, 4), (1, 3))]) {
+        final pair = (
+          a: at(after, end.$1, end.$2),
+          b: at(after, centre.$1, centre.$2),
+        );
+        expect(waveHoldOf(after, pair), (
+          shape: WaveHoldShape.short,
+          hand: Hand.right,
+        ));
+      }
+    });
+
+    test('Robins in the centre turn by the right into the mirror wave', () {
+      final wave = applyOk(
+        const FormALongWave(who: WhoSet.role2s),
+        di(['R1-A . . . L1-A', 'L2-B . . . R2-B']),
+      );
+      expect(wave.toRolesNotation(), ['. . R1-A . L1-A', 'L2-B . R2-B . .']);
+      final after = applyOk(
+        const Allemande(who: WhoSet.role2s, turn: 0.75),
+        wave,
+      );
+      // Top row Down, bottom row Up in the left-handed layout: the Larks
+      // hold left on the ends and the Robins right in the centre.
+      expect(after.toRolesNotation(), ['L2-B . . R2-B .', '. R1-A . . L1-A']);
+      final west = (a: at(after, 0, 0), b: at(after, 1, 1));
+      expect(waveHoldOf(after, west), (
+        shape: WaveHoldShape.short,
+        hand: Hand.left,
+      ));
+      expect(facingAt(after, 0, 3), Facing.down);
+      expect(facingAt(after, 1, 4), Facing.up);
+    });
+
+    test('bands that start a row down, with couples out at the ends', () {
+      // A Becket slide sends the end rows out and shifts the bands to (1,2)
+      // and (3,4); the Larks of those bands then hold right in the centre.
+      final slid = applyOk(
+        const SlideAlongSet(),
+        parseRolesNotation([
+          'L1-A . . . R1-A',
+          'R2-B . . . L2-B',
+          'L1-C . . . R1-C',
+          'R2-D . . . L2-D',
+          'L1-E . . . R1-E',
+          'R2-F . . . L2-F',
+        ], type: FormationType.becketCw),
+      );
+      final wave = applyOk(const FormALongWave(who: WhoSet.role1s), slid);
+      final after = applyOk(
+        const Allemande(who: WhoSet.role1s, turn: 0.75),
+        wave,
+      );
+      expect(after.toRolesNotation(), [
+        'R2-B . . . L1-A',
+        'R2-D . . L2-B .',
+        '. L1-C . . R1-A',
+        'R2-F . . L2-D .',
+        '. L1-E . . R1-C',
+        'L2-F . . . R1-E',
+      ]);
+      // The couples standing out are left exactly as they were.
+      for (final row in [0, after.lastRow]) {
+        for (final id in after.dancersInRow(row)) {
+          expect(after.stateOf(id), wave.stateOf(id));
+        }
+      }
     });
 
     test('every hands four turns', () {
