@@ -131,6 +131,9 @@ const _programFields = [
   ]),
   SyncWireField('slots.danceMinutes', ['program_slots.dance_minutes']),
   SyncWireField('slots.performedAt', ['program_slots.performed_at']),
+  SyncWireField('slots.placeholderSearchId', [
+    'program_slots.placeholder_search_id',
+  ]),
   SyncWireField('provenance', []),
   SyncWireField('provenance.source', ['program_provenance.source']),
   SyncWireField('provenance.externalId', ['program_provenance.external_id']),

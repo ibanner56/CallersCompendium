@@ -14916,4 +14916,70 @@ class AppLocalizationsNl extends AppLocalizations {
   String savedSearchGone(String name) {
     return '\"$name\" is verwijderd, hier of op een ander apparaat, dus er is niets gewijzigd.';
   }
+
+  @override
+  String get programTemplateAddSlotRule => 'Plekregel toevoegen';
+
+  @override
+  String get programTemplateSlotRuleBadge => 'Plekregel';
+
+  @override
+  String programTemplateSlotRuleSubtitle(String name) {
+    return 'Gevuld uit de opgeslagen zoekopdracht \"$name\"';
+  }
+
+  @override
+  String get programTemplateSlotRuleSearchGone =>
+      'De opgeslagen zoekopdracht is verwijderd';
+
+  @override
+  String get programTemplateSlotRuleDialogTitle => 'Plekregel toevoegen';
+
+  @override
+  String get programTemplateSlotRuleDialogBody =>
+      'Beschrijf een soort dans in plaats van er een te noemen. Een programma dat met dit sjabloon is gemaakt, toont het als een tijdelijke plek die je vult uit de opgeslagen zoekopdracht.';
+
+  @override
+  String get programTemplateSlotRuleLabel => 'Label';
+
+  @override
+  String get programTemplateSlotRuleLabelHint => 'Eenvoudige improper-opener';
+
+  @override
+  String get programTemplateSlotRuleSearch => 'Opgeslagen zoekopdracht';
+
+  @override
+  String get programTemplateSlotRuleNoSearches =>
+      'Een plekregel gebruikt een opgeslagen zoekopdracht. Sla eerst een zoekopdracht op in Collectie en kies die dan hier.';
+
+  @override
+  String get programsPlaceholderSubtitle => 'Tijdelijke plek';
+
+  @override
+  String get programsFillPlaceholderButton => 'Vullen';
+
+  @override
+  String programsFillPlaceholderSemantics(String label) {
+    return '\"$label\" met een dans vullen';
+  }
+
+  @override
+  String programsFillSheetTitle(String label) {
+    return '\"$label\" vullen';
+  }
+
+  @override
+  String programsFillSearchGone(String label) {
+    return 'De opgeslagen zoekopdracht voor \"$label\" is verwijderd, dus alle dansen worden getoond.';
+  }
+
+  @override
+  String programsFillSearchUnresolvable(String label, String name) {
+    return '\"$label\" kan de opgeslagen zoekopdracht \"$name\" niet gebruiken, omdat die dingen gebruikt die er niet meer zijn, dus alle dansen worden getoond:';
+  }
+
+  @override
+  String savedSearchUsedBySlotRule(String rule, String template) {
+    return 'De plekregel \"$rule\" in het sjabloon $template';
+  }
 }

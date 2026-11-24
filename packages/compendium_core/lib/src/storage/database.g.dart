@@ -5966,6 +5966,17 @@ class $ProgramSlotsTable extends ProgramSlots
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _placeholderSearchIdMeta =
+      const VerificationMeta('placeholderSearchId');
+  @override
+  late final GeneratedColumn<String> placeholderSearchId =
+      GeneratedColumn<String>(
+        'placeholder_search_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -5979,6 +5990,7 @@ class $ProgramSlotsTable extends ProgramSlots
     walkthroughMinutes,
     danceMinutes,
     performedAt,
+    placeholderSearchId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -6076,6 +6088,15 @@ class $ProgramSlotsTable extends ProgramSlots
         ),
       );
     }
+    if (data.containsKey('placeholder_search_id')) {
+      context.handle(
+        _placeholderSearchIdMeta,
+        placeholderSearchId.isAcceptableOrUnknown(
+          data['placeholder_search_id']!,
+          _placeholderSearchIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -6129,6 +6150,10 @@ class $ProgramSlotsTable extends ProgramSlots
         DriftSqlType.dateTime,
         data['${effectivePrefix}performed_at'],
       ),
+      placeholderSearchId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}placeholder_search_id'],
+      ),
     );
   }
 
@@ -6150,6 +6175,14 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
   final int? walkthroughMinutes;
   final int? danceMinutes;
   final DateTime? performedAt;
+
+  /// The saved search (#2325) an unfilled placeholder slot is to be filled
+  /// from (#2338, schema v42): the id of a `saved_search:<id>` settings value.
+  /// A soft reference, not a foreign key, since saved searches live in
+  /// settings; the search may be gone, and **Fill** then says so. `NULL` on
+  /// every other slot, and on every slot before v42. It joined v42 while v42
+  /// was unreleased.
+  final String? placeholderSearchId;
   const ProgramSlotRow({
     required this.id,
     required this.programId,
@@ -6162,6 +6195,7 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
     this.walkthroughMinutes,
     this.danceMinutes,
     this.performedAt,
+    this.placeholderSearchId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -6190,6 +6224,9 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
     }
     if (!nullToAbsent || performedAt != null) {
       map['performed_at'] = Variable<DateTime>(performedAt);
+    }
+    if (!nullToAbsent || placeholderSearchId != null) {
+      map['placeholder_search_id'] = Variable<String>(placeholderSearchId);
     }
     return map;
   }
@@ -6221,6 +6258,9 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
       performedAt: performedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(performedAt),
+      placeholderSearchId: placeholderSearchId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(placeholderSearchId),
     );
   }
 
@@ -6241,6 +6281,9 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
       walkthroughMinutes: serializer.fromJson<int?>(json['walkthroughMinutes']),
       danceMinutes: serializer.fromJson<int?>(json['danceMinutes']),
       performedAt: serializer.fromJson<DateTime?>(json['performedAt']),
+      placeholderSearchId: serializer.fromJson<String?>(
+        json['placeholderSearchId'],
+      ),
     );
   }
   @override
@@ -6258,6 +6301,7 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
       'walkthroughMinutes': serializer.toJson<int?>(walkthroughMinutes),
       'danceMinutes': serializer.toJson<int?>(danceMinutes),
       'performedAt': serializer.toJson<DateTime?>(performedAt),
+      'placeholderSearchId': serializer.toJson<String?>(placeholderSearchId),
     };
   }
 
@@ -6273,6 +6317,7 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
     Value<int?> walkthroughMinutes = const Value.absent(),
     Value<int?> danceMinutes = const Value.absent(),
     Value<DateTime?> performedAt = const Value.absent(),
+    Value<String?> placeholderSearchId = const Value.absent(),
   }) => ProgramSlotRow(
     id: id ?? this.id,
     programId: programId ?? this.programId,
@@ -6289,6 +6334,9 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
         : this.walkthroughMinutes,
     danceMinutes: danceMinutes.present ? danceMinutes.value : this.danceMinutes,
     performedAt: performedAt.present ? performedAt.value : this.performedAt,
+    placeholderSearchId: placeholderSearchId.present
+        ? placeholderSearchId.value
+        : this.placeholderSearchId,
   );
   ProgramSlotRow copyWithCompanion(ProgramSlotsCompanion data) {
     return ProgramSlotRow(
@@ -6313,6 +6361,9 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
       performedAt: data.performedAt.present
           ? data.performedAt.value
           : this.performedAt,
+      placeholderSearchId: data.placeholderSearchId.present
+          ? data.placeholderSearchId.value
+          : this.placeholderSearchId,
     );
   }
 
@@ -6329,7 +6380,8 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
           ..write('guestCaller: $guestCaller, ')
           ..write('walkthroughMinutes: $walkthroughMinutes, ')
           ..write('danceMinutes: $danceMinutes, ')
-          ..write('performedAt: $performedAt')
+          ..write('performedAt: $performedAt, ')
+          ..write('placeholderSearchId: $placeholderSearchId')
           ..write(')'))
         .toString();
   }
@@ -6347,6 +6399,7 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
     walkthroughMinutes,
     danceMinutes,
     performedAt,
+    placeholderSearchId,
   );
   @override
   bool operator ==(Object other) =>
@@ -6362,7 +6415,8 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
           other.guestCaller == this.guestCaller &&
           other.walkthroughMinutes == this.walkthroughMinutes &&
           other.danceMinutes == this.danceMinutes &&
-          other.performedAt == this.performedAt);
+          other.performedAt == this.performedAt &&
+          other.placeholderSearchId == this.placeholderSearchId);
 }
 
 class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
@@ -6377,6 +6431,7 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
   final Value<int?> walkthroughMinutes;
   final Value<int?> danceMinutes;
   final Value<DateTime?> performedAt;
+  final Value<String?> placeholderSearchId;
   final Value<int> rowid;
   const ProgramSlotsCompanion({
     this.id = const Value.absent(),
@@ -6390,6 +6445,7 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
     this.walkthroughMinutes = const Value.absent(),
     this.danceMinutes = const Value.absent(),
     this.performedAt = const Value.absent(),
+    this.placeholderSearchId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProgramSlotsCompanion.insert({
@@ -6404,6 +6460,7 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
     this.walkthroughMinutes = const Value.absent(),
     this.danceMinutes = const Value.absent(),
     this.performedAt = const Value.absent(),
+    this.placeholderSearchId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        programId = Value(programId),
@@ -6420,6 +6477,7 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
     Expression<int>? walkthroughMinutes,
     Expression<int>? danceMinutes,
     Expression<DateTime>? performedAt,
+    Expression<String>? placeholderSearchId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -6434,6 +6492,8 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
       if (walkthroughMinutes != null) 'walkthrough_minutes': walkthroughMinutes,
       if (danceMinutes != null) 'dance_minutes': danceMinutes,
       if (performedAt != null) 'performed_at': performedAt,
+      if (placeholderSearchId != null)
+        'placeholder_search_id': placeholderSearchId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -6450,6 +6510,7 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
     Value<int?>? walkthroughMinutes,
     Value<int?>? danceMinutes,
     Value<DateTime?>? performedAt,
+    Value<String?>? placeholderSearchId,
     Value<int>? rowid,
   }) {
     return ProgramSlotsCompanion(
@@ -6464,6 +6525,7 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
       walkthroughMinutes: walkthroughMinutes ?? this.walkthroughMinutes,
       danceMinutes: danceMinutes ?? this.danceMinutes,
       performedAt: performedAt ?? this.performedAt,
+      placeholderSearchId: placeholderSearchId ?? this.placeholderSearchId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -6504,6 +6566,11 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
     if (performedAt.present) {
       map['performed_at'] = Variable<DateTime>(performedAt.value);
     }
+    if (placeholderSearchId.present) {
+      map['placeholder_search_id'] = Variable<String>(
+        placeholderSearchId.value,
+      );
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -6524,6 +6591,7 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
           ..write('walkthroughMinutes: $walkthroughMinutes, ')
           ..write('danceMinutes: $danceMinutes, ')
           ..write('performedAt: $performedAt, ')
+          ..write('placeholderSearchId: $placeholderSearchId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -22369,6 +22437,7 @@ typedef $$ProgramSlotsTableCreateCompanionBuilder =
       Value<int?> walkthroughMinutes,
       Value<int?> danceMinutes,
       Value<DateTime?> performedAt,
+      Value<String?> placeholderSearchId,
       Value<int> rowid,
     });
 typedef $$ProgramSlotsTableUpdateCompanionBuilder =
@@ -22384,6 +22453,7 @@ typedef $$ProgramSlotsTableUpdateCompanionBuilder =
       Value<int?> walkthroughMinutes,
       Value<int?> danceMinutes,
       Value<DateTime?> performedAt,
+      Value<String?> placeholderSearchId,
       Value<int> rowid,
     });
 
@@ -22482,6 +22552,11 @@ class $$ProgramSlotsTableFilterComposer
 
   ColumnFilters<DateTime> get performedAt => $composableBuilder(
     column: $table.performedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get placeholderSearchId => $composableBuilder(
+    column: $table.placeholderSearchId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -22586,6 +22661,11 @@ class $$ProgramSlotsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get placeholderSearchId => $composableBuilder(
+    column: $table.placeholderSearchId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ProgramsTableOrderingComposer get programId {
     final $$ProgramsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -22679,6 +22759,11 @@ class $$ProgramSlotsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get placeholderSearchId => $composableBuilder(
+    column: $table.placeholderSearchId,
+    builder: (column) => column,
+  );
+
   $$ProgramsTableAnnotationComposer get programId {
     final $$ProgramsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -22767,6 +22852,7 @@ class $$ProgramSlotsTableTableManager
                 Value<int?> walkthroughMinutes = const Value.absent(),
                 Value<int?> danceMinutes = const Value.absent(),
                 Value<DateTime?> performedAt = const Value.absent(),
+                Value<String?> placeholderSearchId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProgramSlotsCompanion(
                 id: id,
@@ -22780,6 +22866,7 @@ class $$ProgramSlotsTableTableManager
                 walkthroughMinutes: walkthroughMinutes,
                 danceMinutes: danceMinutes,
                 performedAt: performedAt,
+                placeholderSearchId: placeholderSearchId,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -22795,6 +22882,7 @@ class $$ProgramSlotsTableTableManager
                 Value<int?> walkthroughMinutes = const Value.absent(),
                 Value<int?> danceMinutes = const Value.absent(),
                 Value<DateTime?> performedAt = const Value.absent(),
+                Value<String?> placeholderSearchId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProgramSlotsCompanion.insert(
                 id: id,
@@ -22808,6 +22896,7 @@ class $$ProgramSlotsTableTableManager
                 walkthroughMinutes: walkthroughMinutes,
                 danceMinutes: danceMinutes,
                 performedAt: performedAt,
+                placeholderSearchId: placeholderSearchId,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

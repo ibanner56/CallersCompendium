@@ -14958,4 +14958,70 @@ class AppLocalizationsDe extends AppLocalizations {
   String savedSearchGone(String name) {
     return '„$name“ wurde gelöscht, hier oder auf einem anderen Gerät, daher wurde nichts geändert.';
   }
+
+  @override
+  String get programTemplateAddSlotRule => 'Eintragsregel hinzufügen';
+
+  @override
+  String get programTemplateSlotRuleBadge => 'Eintragsregel';
+
+  @override
+  String programTemplateSlotRuleSubtitle(String name) {
+    return 'Gefüllt aus der gespeicherten Suche „$name“';
+  }
+
+  @override
+  String get programTemplateSlotRuleSearchGone =>
+      'Ihre gespeicherte Suche wurde gelöscht';
+
+  @override
+  String get programTemplateSlotRuleDialogTitle => 'Eintragsregel hinzufügen';
+
+  @override
+  String get programTemplateSlotRuleDialogBody =>
+      'Beschreibe eine Art von Tanz, statt einen zu nennen. Ein Programm aus dieser Vorlage zeigt sie als Platzhalter, den du aus der gespeicherten Suche füllst.';
+
+  @override
+  String get programTemplateSlotRuleLabel => 'Bezeichnung';
+
+  @override
+  String get programTemplateSlotRuleLabelHint => 'Leichter Improper-Auftakt';
+
+  @override
+  String get programTemplateSlotRuleSearch => 'Gespeicherte Suche';
+
+  @override
+  String get programTemplateSlotRuleNoSearches =>
+      'Eine Eintragsregel verwendet eine gespeicherte Suche. Speichere zuerst eine Suche in der Sammlung und wähle sie dann hier.';
+
+  @override
+  String get programsPlaceholderSubtitle => 'Platzhalter';
+
+  @override
+  String get programsFillPlaceholderButton => 'Füllen';
+
+  @override
+  String programsFillPlaceholderSemantics(String label) {
+    return '„$label“ mit einem Tanz füllen';
+  }
+
+  @override
+  String programsFillSheetTitle(String label) {
+    return '„$label“ füllen';
+  }
+
+  @override
+  String programsFillSearchGone(String label) {
+    return 'Die gespeicherte Suche für „$label“ wurde gelöscht, daher werden alle Tänze angezeigt.';
+  }
+
+  @override
+  String programsFillSearchUnresolvable(String label, String name) {
+    return '„$label“ kann seine gespeicherte Suche „$name“ nicht verwenden, da sie Dinge verwendet, die es nicht mehr gibt; daher werden alle Tänze angezeigt:';
+  }
+
+  @override
+  String savedSearchUsedBySlotRule(String rule, String template) {
+    return 'Die Eintragsregel „$rule“ in der Vorlage $template';
+  }
 }

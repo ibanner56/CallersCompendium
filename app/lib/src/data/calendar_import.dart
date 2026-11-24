@@ -536,13 +536,10 @@ Future<List<String>> commitCalendarImport(
           band: band,
           status: ProgramStatus.draft,
           slots: [
+            // A slot rule is saved as a placeholder that remembers its saved
+            // search, so Fill still works on the draft later (#2338).
             for (final (i, slot) in template.indexed)
-              ProgramSlot(
-                id: uuidV4(),
-                position: i,
-                danceId: slot.danceId,
-                text: slot.text,
-              ),
+              programSlotForTemplateEntry(slot, position: i),
           ],
           calendarEventKey: c.eventKey,
           calendarEventFingerprint: c.fingerprint,

@@ -14833,4 +14833,70 @@ class AppLocalizationsDa extends AppLocalizations {
   String savedSearchGone(String name) {
     return '\"$name\" er slettet, her eller på en anden enhed, så intet blev ændret.';
   }
+
+  @override
+  String get programTemplateAddSlotRule => 'Tilføj pladsregel';
+
+  @override
+  String get programTemplateSlotRuleBadge => 'Pladsregel';
+
+  @override
+  String programTemplateSlotRuleSubtitle(String name) {
+    return 'Udfyldes fra den gemte søgning \"$name\"';
+  }
+
+  @override
+  String get programTemplateSlotRuleSearchGone =>
+      'Dens gemte søgning er slettet';
+
+  @override
+  String get programTemplateSlotRuleDialogTitle => 'Tilføj pladsregel';
+
+  @override
+  String get programTemplateSlotRuleDialogBody =>
+      'Beskriv en slags dans i stedet for at nævne én. Et program lavet ud fra denne skabelon viser den som en pladsholder, som du udfylder fra den gemte søgning.';
+
+  @override
+  String get programTemplateSlotRuleLabel => 'Etiket';
+
+  @override
+  String get programTemplateSlotRuleLabelHint => 'Let improper-åbner';
+
+  @override
+  String get programTemplateSlotRuleSearch => 'Gemt søgning';
+
+  @override
+  String get programTemplateSlotRuleNoSearches =>
+      'En pladsregel bruger en gemt søgning. Gem først en søgning i Samling, og vælg den så her.';
+
+  @override
+  String get programsPlaceholderSubtitle => 'Pladsholder';
+
+  @override
+  String get programsFillPlaceholderButton => 'Udfyld';
+
+  @override
+  String programsFillPlaceholderSemantics(String label) {
+    return 'Udfyld \"$label\" med en dans';
+  }
+
+  @override
+  String programsFillSheetTitle(String label) {
+    return 'Udfyld \"$label\"';
+  }
+
+  @override
+  String programsFillSearchGone(String label) {
+    return 'Den gemte søgning for \"$label\" er slettet, så alle danse vises.';
+  }
+
+  @override
+  String programsFillSearchUnresolvable(String label, String name) {
+    return '\"$label\" kan ikke bruge sin gemte søgning \"$name\", som bruger ting, der ikke findes længere, så alle danse vises:';
+  }
+
+  @override
+  String savedSearchUsedBySlotRule(String rule, String template) {
+    return 'Pladsreglen \"$rule\" i skabelonen $template';
+  }
 }

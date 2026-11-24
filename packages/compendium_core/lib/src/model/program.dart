@@ -26,7 +26,11 @@ class ProgramSlot {
     this.walkthroughMinutes,
     this.danceMinutes,
     this.performedAt,
-  }) {
+    String? placeholderSearchId,
+  }) : placeholderSearchId =
+           danceId == null && (placeholderSearchId?.trim().isNotEmpty ?? false)
+           ? placeholderSearchId
+           : null {
     if (danceId == null && text == null) {
       throw ArgumentError(
         'a slot requires a danceId, text, or both',
@@ -91,6 +95,22 @@ class ProgramSlot {
   /// (which is derived by query, never stored on the dance).
   final DateTime? performedAt;
 
+  /// The id of the saved search (#2325) an unfilled placeholder slot is to be
+  /// filled from (#2338): a template's slot rule became this slot, and its
+  /// label is the slot's [text]. **Fill** opens the picker with that search
+  /// loaded, and choosing a dance clears it.
+  ///
+  /// Only a slot without a dance holds one: the constructor drops it (and a
+  /// blank one) when [danceId] is set, so a slot that becomes a dance slot by
+  /// any route never keeps a stale reference. Syncs and is kept in backups,
+  /// but a shared program file and the PDF carry only the label, because the
+  /// recipient cannot hold the caller's saved searches.
+  final String? placeholderSearchId;
+
+  /// Whether this slot is an unfilled placeholder: a text slot that remembers
+  /// the saved search it is to be filled from ([placeholderSearchId]).
+  bool get isPlaceholder => placeholderSearchId != null;
+
   /// Whether this slot counts toward its dance's calling history ("called
   /// ×N", the Called filter, history rows, last-called, venue repeats and half
   /// stats), before the "Require mark performed" setting is applied.
@@ -150,10 +170,12 @@ class ProgramSlot {
     int? walkthroughMinutes,
     int? danceMinutes,
     DateTime? performedAt,
+    String? placeholderSearchId,
     bool clearGuestCaller = false,
     bool clearWalkthroughMinutes = false,
     bool clearDanceMinutes = false,
     bool clearPerformedAt = false,
+    bool clearPlaceholderSearchId = false,
   }) => ProgramSlot(
     id: id,
     position: position ?? this.position,
@@ -171,6 +193,9 @@ class ProgramSlot {
         ? null
         : (danceMinutes ?? this.danceMinutes),
     performedAt: clearPerformedAt ? null : (performedAt ?? this.performedAt),
+    placeholderSearchId: clearPlaceholderSearchId
+        ? null
+        : (placeholderSearchId ?? this.placeholderSearchId),
   );
 
   @override
@@ -185,7 +210,8 @@ class ProgramSlot {
       other.guestCaller == guestCaller &&
       other.walkthroughMinutes == walkthroughMinutes &&
       other.danceMinutes == danceMinutes &&
-      other.performedAt == performedAt;
+      other.performedAt == performedAt &&
+      other.placeholderSearchId == placeholderSearchId;
 
   @override
   int get hashCode => Object.hash(
@@ -199,6 +225,7 @@ class ProgramSlot {
     walkthroughMinutes,
     danceMinutes,
     performedAt,
+    placeholderSearchId,
   );
 }
 
@@ -1016,6 +1043,8 @@ class Program {
           guestCaller: s.guestCaller,
           walkthroughMinutes: s.walkthroughMinutes,
           danceMinutes: s.danceMinutes,
+          // An unfilled placeholder stays fillable in the copy (#2338).
+          placeholderSearchId: s.placeholderSearchId,
         ),
     ],
     createdAt: now,

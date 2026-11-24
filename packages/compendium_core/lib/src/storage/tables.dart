@@ -460,6 +460,14 @@ class ProgramSlots extends Table {
   IntColumn get danceMinutes => integer().nullable()();
   DateTimeColumn get performedAt => dateTime().nullable()();
 
+  /// The saved search (#2325) an unfilled placeholder slot is to be filled
+  /// from (#2338, schema v42): the id of a `saved_search:<id>` settings value.
+  /// A soft reference, not a foreign key, since saved searches live in
+  /// settings; the search may be gone, and **Fill** then says so. `NULL` on
+  /// every other slot, and on every slot before v42. It joined v42 while v42
+  /// was unreleased.
+  TextColumn get placeholderSearchId => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

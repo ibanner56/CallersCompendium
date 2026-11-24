@@ -68,6 +68,10 @@ Dance sanitizeDanceForShare(Dance dance) =>
 /// event identifier (registry `programs.calendar_event_key`).
 /// See [sanitizeDanceForShare] for why this is not an egress class.
 ///
+/// An unfilled placeholder's saved-search reference (#2338,
+/// `program_slots.placeholder_search_id`) goes too, leaving its label as the
+/// slot's text: the recipient cannot hold the caller's saved searches.
+///
 /// It is [sanitizeProgramForCsv] with pay removed as well, so the two cannot
 /// drift apart: besides the owner's backup, the programs CSV is the one export
 /// that keeps pay.
@@ -75,14 +79,23 @@ Program sanitizeProgramForShare(Program program) =>
     sanitizeProgramForCsv(program).copyWith(clearPay: true);
 
 /// What the programs CSV export (#2333) withholds from a [Program]: the
-/// Perform dialect name, the archived state and the calendar event
-/// identifier, as a share file does, but **not** pay. Ruling 2 (maintainer,
+/// Perform dialect name, the archived state, the calendar event identifier
+/// and every placeholder's saved-search reference (#2338), as a share file
+/// does, but **not** pay. Ruling 2 (maintainer,
 /// feature triage, 2026-11-22) keeps pay in the CSV, since it is the caller's
 /// own record of their gigs.
 Program sanitizeProgramForCsv(Program program) => program.copyWith(
   clearDialectName: true,
   clearArchivedAt: true,
   clearCalendarEventKey: true,
+  slots: program.slots.any((slot) => slot.isPlaceholder)
+      ? [
+          for (final slot in program.slots)
+            slot.isPlaceholder
+                ? slot.copyWith(clearPlaceholderSearchId: true)
+                : slot,
+        ]
+      : null,
 );
 
 /// The six contact-person PII fields on a [Venue] (the two contacts' name,
