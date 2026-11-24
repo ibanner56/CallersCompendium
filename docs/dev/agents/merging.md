@@ -39,7 +39,22 @@ reasoning below when a gate fails, or when you are checking by hand.
   [code-review.md](code-review.md#requesting-a-claude-review).
 
 - **CI green on the commit being merged.** Re-check after any push; a green run
-  on a superseded commit proves nothing about the current head.
+  on a superseded commit proves nothing about the current head. "Every check on
+  the head is green" is not enough on its own: a `pull_request_target` workflow
+  such as "Claude review status" reports on a head that CI has not reached, so
+  bookkeeping checks alone read as green: on a conflicted PR (#2421's body
+  records three such heads) and on a fresh head before CI starts. The `ci` gate
+  therefore also requires the check the `official` ruleset requires, `Merge
+  gate` (below), to have run on the head and finished `success`; any other
+  check may also be `neutral` or `skipped`.
+
+- **No merge conflict.** GitHub builds no merge ref for a PR that conflicts with
+  its base, so it starts no `pull_request` workflow on it: no CI and no Claude
+  review. The `ci` gate fails when the PR's `mergeable_state` is `dirty`, saying
+  CI cannot run until the conflict is resolved. `unknown` (GitHub has not
+  computed mergeability yet) is not a failure on its own; `Merge gate` is still
+  required. GitHub computes mergeability lazily, so a first read after the base
+  moves can say `unknown` for a PR that conflicts: re-run the gate.
 
 - **The review is on the commit being merged.** A completed review is reported
   the same way whether or not the head has moved under it, so check it
