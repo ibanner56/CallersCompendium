@@ -110,14 +110,77 @@ void main() {
       expect(figure.note, 'past W');
     });
 
+    test('a destination is kept as the note', () {
+      // The maintainer's ruling (2026-11-24): a group shift that says where
+      // it goes, or how far, still reads as the shift, with those words as
+      // the note. Verbatim lines.
+      for (final (line, who, direction, note) in const [
+        (
+          "Men shift right to next man's position",
+          'role1s',
+          'right',
+          "to next role1's position",
+        ),
+        ('Women shift right one step', 'role2s', 'right', 'one step'),
+        (
+          'Men shift right behind neighbor',
+          'role1s',
+          'right',
+          'behind neighbor',
+        ),
+        (
+          'Women shift left a step until across from N3 women',
+          'role2s',
+          'left',
+          'a step until across from N3 role2s',
+        ),
+        ('Men shift left to N2', 'role1s', 'left', 'to N2'),
+      ]) {
+        final figure = parse(line).single;
+        expect(figure.move, 'shift', reason: line);
+        expect(figure.params, {
+          'who': who,
+          'direction': direction,
+          'beats': 4,
+        }, reason: line);
+        expect(figure.note, note, reason: line);
+      }
+    });
+
+    test('a bare shift that says where everyone goes stays the slide', () {
+      // The maintainer's ruling (2026-11-24): the destination is the note.
+      // Verbatim lines.
+      for (final (line, side, note) in const [
+        ('Shift left to N2', 'left', 'to N2'),
+        ('Shift right to N1', 'right', 'to N1'),
+        ('Shift right to shadow', 'right', 'to shadow'),
+        ('Shift left with neighbor', 'left', 'with neighbor'),
+        ('Shift left with neighbor N2', 'left', 'with neighbor N2'),
+      ]) {
+        final figure = parse(line).single;
+        expect(figure.move, 'slide_along_set', reason: line);
+        expect(figure.params, {'slide': side, 'beats': 4}, reason: line);
+        expect(figure.note, note, reason: line);
+      }
+    });
+
     for (final line in const [
-      // Not a shift's shape, so kept whole.
-      "Men shift left to next man's position",
-      'Women shift right one step',
+      // A tail that is not a destination is another figure, so the line is
+      // kept whole (invented lines).
+      'Men shift left and swing',
+      // A tail that runs on into another figure or a facing (invented lines).
+      'Men shift left to new neighbor, swing',
+      'Men shift right to swing',
+      'Men shift left behind and allemande left',
+      'Men shift left to the right',
+      'Women shift left a step to face N3',
+      'Shift left to ones',
+      'Shift left to the end of the line',
+      'Shift left with partner',
+      'Shift left two places to N2',
       // A count that disagrees with its noun (invented lines).
       'Men shift left one places',
       'Men shift left two place',
-      'Men shift right behind neighbor',
       // "Others" depends on the line before; no dancer set holds it.
       'Others shift up',
       // A slide, not a shift; and "everyone" is the slide (invented line).
@@ -128,6 +191,26 @@ void main() {
         expect(parse(line).single.isCustom, isTrue);
       });
     }
+
+    test('a re-check reads a destination line imported before', () {
+      // The text an import stored for these lines before the destination
+      // ruling: roles as tokens, the line otherwise as written.
+      Figure gap(String text) => testFigure(
+        move: customMove,
+        params: {'text': text},
+        customOrigin: CustomOrigin.importGap,
+      );
+      final reparsed = reparseImportGapFigures([
+        gap('role2s shift right one step'),
+        gap('Shift left to N2'),
+      ]);
+      expect(reparsed.upgradedCount, 2);
+      final [shift, slide] = reparsed.figures;
+      expect(shift.move, 'shift');
+      expect(shift.note, 'one step');
+      expect(slide.move, 'slide_along_set');
+      expect(slide.note, 'to N2');
+    });
 
     test('a re-check reads a shift imported before the move existed', () {
       // The text an import stored for these lines before v40 read them: the

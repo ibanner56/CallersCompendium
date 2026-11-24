@@ -1494,6 +1494,53 @@ void main() {
         }
       });
 
+      test('balance wave → one group\'s slide is that group sliding two '
+          'places (TCB #6185)', () async {
+        // The maintainer's ruling (2026-11-24): "Men slide right (past M)"
+        // after a balanced wave is a Rory O'More whose men slide two places.
+        for (final (wave, line, who, slide, note) in [
+          (
+            '(4) Balance wave of four (NL,MR)',
+            '(4) Men slide right (past M)',
+            'role1s',
+            'right',
+            'past M',
+          ),
+          (
+            '(4) Balance wave of four (NR,WL)',
+            '(4) Women slide left (past W)',
+            'role2s',
+            'left',
+            'past W',
+          ),
+        ]) {
+          final figures = await figuresFor([wave, line]);
+          expect(figures, hasLength(1), reason: line);
+          expect(figures.single.move, 'rory_o_more', reason: line);
+          expect(figures.single.params, {
+            'balance': true,
+            'slide': slide,
+            'twoPlaces': who,
+            'beats': 8,
+          }, reason: line);
+          expect(figures.single.note, note, reason: line);
+        }
+      });
+
+      test('one group\'s slide stays custom alone, or when the group is not '
+          'a twoPlaces choice', () async {
+        // Alone: nothing says the dancers are in a wave.
+        final alone = await figuresFor(['(4) Women slide right (past W)']);
+        expect(alone.single.isCustom, isTrue);
+        // Ones are not one of twoPlaces' choices.
+        final ones = await figuresFor([
+          '(4) Balance wave of four (NR,WL)',
+          '(4) Ones slide left (past P)',
+        ]);
+        expect(ones, hasLength(2));
+        expect(ones.last.isCustom, isTrue);
+      });
+
       test('a longer slide stays custom alone or with other dancers', () async {
         // Alone: nothing says the dancers are in a wave.
         final alone = await figuresFor([

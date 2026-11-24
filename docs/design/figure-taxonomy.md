@@ -2389,6 +2389,9 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
   - **`rory_o_more.twoPlaces`**: who slides two places, across the set,
     while the others slide one, as in The Caller's Box's "Leap of Faith"
     (#1797): `Slide left, women slide two places (M past N, W past (N;W))`.
+    The maintainer also ruled (2026-11-24) that a slide naming only one
+    group after the wave balance, `Men slide right (past M)` (#6185), is
+    that group sliding two places.
     The maintainer chose the shape and its choices (2026-11-24): a dancer
     set of `role1s`, `role2s` or `ends` (the wave's ends; the token ECD and
     squares already use), not `centers` and not `everyone`, defaulting to
@@ -2465,6 +2468,14 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       position", "to N2"), "one step", and the bare shifts with a target
       ("Shift left to N2", "Shift left with neighbor"), which were custom
       before.
+    - Later the same day the maintainer ruled that a destination is kept as
+      the note: a group shift's `to …`, `behind …`, `until …`, `one step` or
+      `a step …` tail ("Men shift right to next man's position" → shift,
+      note `to next role1's position`), and a bare shift's `to <dancer>` or
+      `with neighbor [<dancer>]` ("Shift left to N2" → `slide_along_set`,
+      note `to N2`). A tail that holds a `face …` clause, or anything else,
+      still leaves the line custom ("Others shift …", "Shift left with
+      partner", "Shift left two places to N2").
   - Migration: none, and no rebuild: new moves, an alias and a param,
     nothing renamed or removed, so no stored figure changes and every
     canonical text stays as it was. **Older devices (v39)** show a synced
