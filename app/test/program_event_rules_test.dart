@@ -559,6 +559,8 @@ void main() {
     final stored = (await delayed.repos.programs.getById('p1'))!;
     expect(stored.title, 'Night renamed');
     expect(stored.eventRuleIds, [seeded.oneBecket.id]);
+    // The builder takes the stored list, so its next pick starts from it.
+    expect(find.text('Rules (1)'), findsOneWidget);
   });
 
   testWidgets("the picker's write keeps what changed while it was in flight, "
@@ -593,24 +595,85 @@ void main() {
     expect(find.byTooltip('Unarchive'), findsNothing);
   });
 
-  testWidgets('the Rules button counts only rules still here, not a deleted '
-      'one kept for its Undo', (tester) async {
-    final seeded = await _seed();
-    await seeded.repos.eventRules.delete(seeded.noBecketFirstHalf.id);
-    await _pump(tester, seeded.repos, enabled: true);
-    await pumpUntilFound(tester, find.text('Rules (1)'));
-    expect(find.text('Rules (2)'), findsNothing);
-  });
-
-  testWidgets('a program applies at most $maxProgramEventRules rules still '
-      "here: a deleted rule's id makes room, and a rule past the most is "
-      'never shown ticked', (tester) async {
+  testWidgets('a rule another writer applies stays when the picker ticks '
+      'another, and the builder shows it', (tester) async {
     final seeded = await _seed(applied: const []);
     final repos = seeded.repos;
-    // The two seeded rules, then more up to one short of the most, applied,
-    // and one deleted (kept for its Undo) to fill the list.
+    final third = await repos.eventRules.create(
+      savedSearchId: seeded.becket.id,
+      quantifier: EventRuleQuantifier.atLeast,
+      count: 1,
+      scope: EventRuleScope.wholeProgram,
+      name: 'Some Becket',
+    );
+    await _pump(tester, repos, enabled: true);
+    expect(find.text('Rules'), findsOneWidget);
+
+    // Sync applies a rule while the builder is open: the builder takes it.
+    await repos.programs.setEventRuleIds('p1', [seeded.oneBecket.id]);
+    await pumpUntilFound(tester, find.text('Rules (1)'));
+
+    // The picker opens, then another writer applies a second rule before the
+    // caller ticks a third: all three stay.
+    await tester.tap(find.byKey(const ValueKey('program-rules')));
+    await tester.pumpAndSettle();
+    final box = find.byKey(ValueKey('program-rule-${third.id}'));
+    await pumpUntilFound(tester, box);
+    await repos.programs.setEventRuleIds('p1', [
+      seeded.oneBecket.id,
+      seeded.noBecketFirstHalf.id,
+    ]);
+    await tester.pumpAndSettle();
+    await tester.tap(box);
+    await tester.pumpAndSettle();
+    final stored = (await repos.programs.getById('p1'))!;
+    expect(stored.eventRuleIds, [
+      seeded.oneBecket.id,
+      seeded.noBecketFirstHalf.id,
+      third.id,
+    ]);
+    expect(
+      tester
+          .widget<CheckboxListTile>(
+            find.byKey(ValueKey('program-rule-${seeded.noBecketFirstHalf.id}')),
+          )
+          .value,
+      isTrue,
+      reason: "the picker shows the other writer's rule",
+    );
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    expect(find.text('Rules (3)'), findsOneWidget);
+  });
+
+  testWidgets('the Rules button counts a rule not on this device yet, but '
+      'not a deleted one kept for its Undo', (tester) async {
+    final seeded = await _seed();
+    // A rule another device applied that has not arrived here: applied all
+    // the same.
+    await seeded.repos.programs.setEventRuleIds('p1', [
+      'r-not-here-yet',
+      seeded.oneBecket.id,
+      seeded.noBecketFirstHalf.id,
+    ]);
+    await seeded.repos.eventRules.delete(seeded.noBecketFirstHalf.id);
+    await _pump(tester, seeded.repos, enabled: true);
+    await pumpUntilFound(tester, find.text('Rules (2)'));
+    expect(find.text('Rules (1)'), findsNothing);
+    expect(find.text('Rules (3)'), findsNothing);
+  });
+
+  testWidgets('a program applies at most $maxProgramEventRules rules, '
+      "counting one not on this device yet: a deleted rule's id makes room, "
+      'and a rule past the most is never shown ticked', (tester) async {
+    final seeded = await _seed(applied: const []);
+    final repos = seeded.repos;
+    // A rule another device applied that has not arrived here, the two
+    // seeded rules and more up to two short of the most, applied, and one
+    // deleted (kept for its Undo) to fill the list.
+    const notHereYet = 'r-not-here-yet';
     final live = [seeded.oneBecket.id, seeded.noBecketFirstHalf.id];
-    while (live.length < maxProgramEventRules - 1) {
+    while (live.length < maxProgramEventRules - 2) {
       live.add(
         (await repos.eventRules.create(
           savedSearchId: seeded.becket.id,
@@ -625,7 +688,7 @@ void main() {
       quantifier: EventRuleQuantifier.none,
       scope: EventRuleScope.afterFirstBreak,
     );
-    await repos.programs.setEventRuleIds('p1', [gone.id, ...live]);
+    await repos.programs.setEventRuleIds('p1', [notHereYet, gone.id, ...live]);
     await repos.eventRules.delete(gone.id);
     Future<EventRule> another(int n) => repos.eventRules.create(
       savedSearchId: seeded.becket.id,
@@ -664,13 +727,14 @@ void main() {
     WidgetController.hitTestWarningShouldBeFatal = true;
     addTearDown(() => WidgetController.hitTestWarningShouldBeFatal = false);
 
-    // The deleted rule's id goes to make room for the last one.
+    // The deleted rule's id goes to make room for the last one; the rule not
+    // here yet stays.
     await reach(last);
     await tester.tap(box(last));
     await tester.pumpAndSettle();
     expect(ticked(last), isTrue);
     var stored = (await repos.programs.getById('p1'))!;
-    expect(stored.eventRuleIds, [...live, last.id]);
+    expect(stored.eventRuleIds, [notHereYet, ...live, last.id]);
 
     // Now full: one more is refused, and not shown ticked.
     await reach(past);
@@ -685,7 +749,7 @@ void main() {
       findsOneWidget,
     );
     stored = (await repos.programs.getById('p1'))!;
-    expect(stored.eventRuleIds, [...live, last.id]);
+    expect(stored.eventRuleIds, [notHereYet, ...live, last.id]);
   });
 }
 

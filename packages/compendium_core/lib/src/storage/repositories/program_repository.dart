@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart' show ListEquality;
 import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 
@@ -733,16 +734,44 @@ class ProgramRepository {
   /// stale list. [ids] is normalized ([normalizeEventRuleIds]). Returns
   /// `false` when the program is missing or in Recently deleted, or already
   /// applies exactly these rules.
-  Future<bool> setEventRuleIds(String id, List<String> ids, {DateTime? at}) {
+  Future<bool> setEventRuleIds(
+    String id,
+    List<String> ids, {
+    DateTime? at,
+  }) async {
+    var changed = false;
+    await updateEventRuleIds(id, (stored) {
+      final next = normalizeEventRuleIds(ids);
+      changed = !const ListEquality<String>().equals(stored, next);
+      return next;
+    }, at: at);
+    return changed;
+  }
+
+  /// Changes the event rules applied to the live program [id] (#2340) from
+  /// the list stored now: reads it, passes it to [change] and writes what
+  /// that returns, in one transaction, so a rule another writer applied in
+  /// the meantime is kept. [change] returning `null`, or the list it was
+  /// given, writes nothing. Returns the list stored afterwards, or `null`
+  /// when the program is missing or in Recently deleted.
+  Future<List<String>?> updateEventRuleIds(
+    String id,
+    List<String>? Function(List<String> stored) change, {
+    DateTime? at,
+  }) {
     final now = resolveStamp(at);
-    final encoded = encodeEventRuleIds(normalizeEventRuleIds(ids));
     return _db.transaction(() async {
       final row =
           await (_db.select(_db.programs)
                 ..where((t) => t.id.equals(id) & t.deletedAt.isNull()))
               .getSingleOrNull();
-      if (row == null) return false;
-      if (row.eventRuleIds == encoded) return false;
+      if (row == null) return null;
+      final stored = decodeEventRuleIds(row.eventRuleIds);
+      final changed = change(stored);
+      if (changed == null) return stored;
+      final next = normalizeEventRuleIds(changed);
+      final encoded = encodeEventRuleIds(next);
+      if (row.eventRuleIds == encoded) return stored;
       final current = asUtc(row.updatedAt);
       await (_db.update(_db.programs)..where((t) => t.id.equals(id))).write(
         ProgramsCompanion(
@@ -757,7 +786,7 @@ class ProgramRepository {
           ),
         ),
       );
-      return true;
+      return next;
     });
   }
 

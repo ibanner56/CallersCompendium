@@ -35,6 +35,38 @@ List<String> normalizeEventRuleIds(Iterable<Object?> ids) {
   ]);
 }
 
+/// [applied] with [ruleId] ticked ([on]) or unticked, as the builder's Rules
+/// picker applies it to the stored list (#2340); `null` when it cannot be
+/// ticked because the program already applies [maxProgramEventRules] rules.
+///
+/// Every id counts toward the most except one in [deleted]: a rule this
+/// device holds deleted, kept on the program for its Undo. A rule another
+/// device applied that has not arrived here yet counts, and is never dropped.
+/// To make room, deleted rules' ids go first, oldest first, so the list never
+/// cuts off the rule just ticked.
+List<String>? toggleEventRuleId(
+  List<String> applied,
+  String ruleId, {
+  required bool on,
+  required Set<String> deleted,
+}) {
+  if (!on)
+    return [
+      for (final id in applied)
+        if (id != ruleId) id,
+    ];
+  if (applied.contains(ruleId)) return applied;
+  final counted = applied.where((id) => !deleted.contains(id)).length;
+  if (counted >= maxProgramEventRules) return null;
+  final ids = [...applied, ruleId];
+  while (ids.length > maxProgramEventRules) {
+    final dead = ids.indexWhere(deleted.contains);
+    if (dead < 0) return null;
+    ids.removeAt(dead);
+  }
+  return ids;
+}
+
 /// How many dances an [EventRule] allows (#2340).
 ///
 /// Stored and sent as its [name] (`atMost`, `atLeast`, `none`), read

@@ -181,6 +181,50 @@ void main() {
       expect(await repos.programs.setEventRuleIds('nope', ['r1']), isFalse);
     });
 
+    test('the Rules picker ticks a rule on the list stored now, keeping one '
+        'another writer applied since', () async {
+      await repos.programs.create(program('p'));
+      await repos.programs.setEventRuleIds('p', ['x']);
+      final after = await repos.programs.updateEventRuleIds(
+        'p',
+        (stored) => toggleEventRuleId(stored, 'y', on: true, deleted: {}),
+      );
+      expect(after, ['x', 'y']);
+      expect((await repos.programs.getById('p'))!.eventRuleIds, ['x', 'y']);
+      // A refused tick writes nothing and answers the stored list.
+      final stamp = (await repos.programs.getById('p'))!.updatedAt;
+      expect(await repos.programs.updateEventRuleIds('p', (_) => null), [
+        'x',
+        'y',
+      ]);
+      expect((await repos.programs.getById('p'))!.updatedAt, stamp);
+      expect(await repos.programs.updateEventRuleIds('nope', (s) => s), isNull);
+    });
+
+    test('a tick counts a rule not on this device yet toward the most, and '
+        "makes room only from a deleted rule's id", () {
+      final live = [for (var i = 0; i < maxProgramEventRules - 2; i++) 'r$i'];
+      final full = ['not-here-yet', 'gone', ...live];
+      expect(toggleEventRuleId(full, 'new', on: true, deleted: {'gone'}), [
+        'not-here-yet',
+        ...live,
+        'new',
+      ]);
+      // Only the rule not here yet and the live ones left: full.
+      expect(
+        toggleEventRuleId(
+          ['not-here-yet', ...live, 'new'],
+          'past',
+          on: true,
+          deleted: {'gone'},
+        ),
+        isNull,
+      );
+      // Unticking, and ticking one already applied.
+      expect(toggleEventRuleId(['a', 'b'], 'a', on: false, deleted: {}), ['b']);
+      expect(toggleEventRuleId(['a'], 'a', on: true, deleted: {}), ['a']);
+    });
+
     test('a save that keeps the stored rules keeps those set since its copy '
         'was read', () async {
       await repos.programs.create(program('p'));

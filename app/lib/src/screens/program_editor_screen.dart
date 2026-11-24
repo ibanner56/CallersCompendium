@@ -283,9 +283,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   bool _hideAlternates = false;
 
   /// The event rules applied to this program (#2340), in the order they were
-  /// applied. The Rules picker writes them straight to the stored program
-  /// ([ProgramRepository.setEventRuleIds]), so a save takes the stored list.
+  /// applied. The Rules picker changes them straight on the stored program
+  /// ([ProgramRepository.updateEventRuleIds]), so a save takes the stored
+  /// list; this copy takes the stored one after each pick and save, and when
+  /// sync or another writer changes it ([_storedRulesWatch]).
   List<String> _eventRuleIds = const [];
+
+  /// Takes a stored program's rule ids into [_eventRuleIds] as they change.
+  StreamSubscription<Object?>? _storedRulesWatch;
 
   /// Checks [_eventRuleIds] whenever the program changes, while Event rules
   /// is on ([EventRulesEnabledScope]).
@@ -859,6 +864,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         repos: _repos,
         evaluate: widget.eventRuleEvaluator,
       )..addListener(_onEventRulesChecked);
+      _storedRulesWatch ??= watchStoredEventRuleIds(
+        _repos,
+        programId: () => _existing?.id,
+        onStored: _adoptStoredEventRuleIds,
+      );
       _reimport = DanceReimportCoordinator(
         repos: _repos,
         callersBox: widget.callersBoxOnline ?? CallersBoxOnline(),
@@ -1288,6 +1298,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _replaceSubscription();
     _pickerCounts.dispose();
     _eventRules?.dispose();
+    unawaited(_storedRulesWatch?.cancel());
     _tabController.dispose();
     _moreDetailsController.dispose();
     _titleController.dispose();
@@ -2473,23 +2484,39 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     return null;
   }
 
-  /// The Rules control (#2340): the picker writes each change to a stored
-  /// program at once, and keeps a new program's for its first save.
+  /// Takes the stored program's rule ids, as read after a pick, a save or
+  /// another writer's change.
+  void _adoptStoredEventRuleIds(List<String> ids) {
+    if (!mounted || listEquals(ids, _eventRuleIds)) return;
+    setState(() => _eventRuleIds = List.unmodifiable(ids));
+  }
+
+  /// The Rules control (#2340): the picker applies each change to a stored
+  /// program's list as stored at the write, and keeps a new program's for its
+  /// first save.
   Future<void> _openRulesPicker() => showProgramRulesPicker(
     context,
     applied: _eventRuleIds,
-    onChanged: (ids) async {
-      if (!mounted) return;
-      setState(() => _eventRuleIds = List.unmodifiable(ids));
+    onChange: (change) async {
+      if (!mounted) return null;
       final existing = _existing;
       if (existing == null) {
-        _markDirty();
-        return;
+        final next = change(_eventRuleIds);
+        if (next != null) {
+          setState(() => _eventRuleIds = List.unmodifiable(next));
+          _markDirty();
+        }
+        return _eventRuleIds;
       }
       try {
-        await _repos.programs.setEventRuleIds(existing.id, ids);
+        final ids = await _repos.programs.updateEventRuleIds(
+          existing.id,
+          change,
+        );
+        if (ids == null) return null;
+        _adoptStoredEventRuleIds(ids);
         final stored = await _repos.programs.getById(existing.id);
-        if (!mounted || stored == null) return;
+        if (!mounted || stored == null) return ids;
         // Merge only the rules, and the write's stamp, into the copy as it is
         // now: a save, an archive or an unarchive may have replaced it while
         // the write was in flight, and the copy from before must not undo
@@ -2504,12 +2531,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             ),
           );
         }
+        return ids;
       } catch (error, stackTrace) {
         logCaughtError(
           error,
           stackTrace,
           source: 'program_editor_screen._openRulesPicker',
         );
+        return null;
       }
     },
   );
@@ -3438,6 +3467,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       if (holdPay && mounted && _payHeldBack) _setPayFrom(stored);
       _adoptStoredVenueId(sent: draft.venueId, stored: stored.venueId);
       _adoptStoredTimes(sent: sentTimes, stored: ProgramTimes.of(stored));
+      _adoptStoredEventRuleIds(stored.eventRuleIds);
       return stored;
     }
     await _repos.programs.create(persisted);

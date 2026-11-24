@@ -300,17 +300,19 @@ class DelayedProgramRepository extends ProgramRepository {
     );
   }
 
-  /// Held by [holdNextWrite] like any other write: the Rules picker's write
-  /// to a stored program (#2340).
+  /// Held by [holdNextWrite] like any other write: the Rules picker's change
+  /// to a stored program (#2340), and [setEventRuleIds], which makes one. The
+  /// hold sits before the repository's transaction, so the change applies to
+  /// what is stored once it is released.
   @override
-  Future<bool> setEventRuleIds(
+  Future<List<String>?> updateEventRuleIds(
     String id,
-    List<String> ids, {
+    List<String>? Function(List<String> stored) change, {
     DateTime? at,
   }) async {
     await _beforeWrite();
     if (_shouldFailWrite) throw const InjectedProgramFailure();
-    return super.setEventRuleIds(id, ids, at: at);
+    return super.updateEventRuleIds(id, change, at: at);
   }
 
   /// Held by [holdNextWrite] like any other write. The hold sits before the

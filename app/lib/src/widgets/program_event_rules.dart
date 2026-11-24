@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart'
     show
+        BooleanExpressionOperators,
         OrderingTerm,
         ResultSetImplementation,
         StringExpressionOperators,
@@ -469,27 +470,67 @@ class _StripEntry extends StatelessWidget {
   }
 }
 
+/// A change to a program's applied rule ids: given the list as stored now,
+/// the list to store, or `null` to store nothing ([toggleEventRuleId]).
+typedef EventRuleIdsChange = List<String>? Function(List<String> applied);
+
+/// Applies a picker's [EventRuleIdsChange] to the program's list as it is
+/// stored when the write runs, and answers the list stored afterwards (or
+/// `null` when there is none to show).
+typedef ApplyEventRuleIdsChange =
+    Future<List<String>?> Function(EventRuleIdsChange change);
+
 /// The program's rule picker (#2340): a pinned **New rule…** line, which
 /// opens the rule editor and applies the rule once it is saved, then every
-/// rule with a check box. Each change is passed to [onChanged] at once, with
-/// the program's applied rule ids in the order they were applied.
+/// rule with a check box. Each tick or untick is passed to [onChange] at
+/// once, as a change to apply to the list as stored then
+/// ([ProgramRepository.updateEventRuleIds]), so a rule another writer
+/// applied while the picker was open is kept; the picker then shows the
+/// list stored.
 Future<void> showProgramRulesPicker(
   BuildContext context, {
   required List<String> applied,
-  required Future<void> Function(List<String> ids) onChanged,
+  required ApplyEventRuleIdsChange onChange,
 }) => showModalBottomSheet<void>(
   context: context,
   isScrollControlled: true,
   showDragHandle: true,
   sheetAnimationStyle: AppMotion.styleFor(context),
-  builder: (_) => _RulesPicker(applied: applied, onChanged: onChanged),
+  builder: (_) => _RulesPicker(applied: applied, onChange: onChange),
 );
 
+/// Calls [onStored] with the rule ids stored for the program [programId]
+/// names (none while it returns `null`) after each write to `programs`, so
+/// the builder takes a list sync or another writer changed (#2340).
+StreamSubscription<Set<TableUpdate>> watchStoredEventRuleIds(
+  CompendiumRepositories repos, {
+  required String? Function() programId,
+  required void Function(List<String> ids) onStored,
+}) {
+  final db = repos.db;
+  return db.tableUpdates(TableUpdateQuery.onAllTables([db.programs])).listen((
+    _,
+  ) async {
+    final id = programId();
+    if (id == null) return;
+    final column = db.programs.eventRuleIds;
+    final row =
+        await (db.selectOnly(db.programs)
+              ..addColumns([column])
+              ..where(
+                db.programs.id.equals(id) & db.programs.deletedAt.isNull(),
+              ))
+            .getSingleOrNull();
+    if (row == null || programId() != id) return;
+    onStored(decodeEventRuleIds(row.read(column)));
+  });
+}
+
 class _RulesPicker extends StatefulWidget {
-  const _RulesPicker({required this.applied, required this.onChanged});
+  const _RulesPicker({required this.applied, required this.onChange});
 
   final List<String> applied;
-  final Future<void> Function(List<String> ids) onChanged;
+  final ApplyEventRuleIdsChange onChange;
 
   @override
   State<_RulesPicker> createState() => _RulesPickerState();
@@ -500,6 +541,11 @@ class _RulesPickerState extends State<_RulesPicker> {
   List<EventRule>? _rules;
   Map<String, String> _names = const {};
 
+  /// The ids of the rules this device holds deleted, kept for their Undo:
+  /// the only applied ids that do not count toward the most, and the only
+  /// ones dropped to make room. A rule not on this device yet counts.
+  Set<String> _deleted = const {};
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -509,6 +555,11 @@ class _RulesPickerState extends State<_RulesPicker> {
   Future<void> _read() async {
     final repos = RepositoriesScope.of(context);
     final rules = await repos.eventRules.listAll();
+    final live = {for (final r in rules) r.id};
+    final deleted = {
+      for (final r in await repos.eventRules.listAll(includeDeleted: true))
+        if (!live.contains(r.id)) r.id,
+    };
     final names = {
       for (final stored in await repos.savedSearches.list())
         if (stored.search case final search?) search.id: search.name,
@@ -517,43 +568,34 @@ class _RulesPickerState extends State<_RulesPicker> {
     setState(() {
       _rules = rules;
       _names = names;
+      _deleted = deleted;
     });
   }
 
-  Future<void> _set(List<String> ids) async {
-    setState(() => _applied = ids);
-    await widget.onChanged(ids);
-  }
-
-  Set<String> get _live => {
-    for (final r in _rules ?? const <EventRule>[]) r.id,
-  };
-
-  /// Whether the program already applies as many rules still here as it may.
+  /// Whether the program already applies as many rules as it may: every
+  /// applied id but a deleted rule's counts ([toggleEventRuleId]).
   bool get _full =>
-      _applied.where(_live.contains).length >= maxProgramEventRules;
+      _applied.where((id) => !_deleted.contains(id)).length >=
+      maxProgramEventRules;
 
-  /// [_applied] with [id] added, or null when the program is [_full]. To
-  /// make room, the ids of deleted rules (kept for their Undo) go first,
-  /// oldest first, so the stored list never cuts off the rule just ticked.
-  List<String>? _withAdded(String id) {
-    if (_full) return null;
-    final live = _live;
-    final ids = [..._applied, id];
-    while (ids.length > maxProgramEventRules) {
-      final dead = ids.indexWhere((x) => !live.contains(x));
-      if (dead < 0) return null;
-      ids.removeAt(dead);
-    }
-    return ids;
+  /// Ticks or unticks [id]: at once on screen, then on the list as stored
+  /// when the write runs, and shows the list stored. A refused tick leaves
+  /// the box unticked, and the picker says why.
+  Future<void> _toggle(String id, {required bool on}) async {
+    final deleted = _deleted;
+    List<String>? change(List<String> applied) =>
+        toggleEventRuleId(applied, id, on: on, deleted: deleted);
+    final shown = change(_applied);
+    setState(() {
+      if (shown != null) _applied = shown;
+    });
+    if (shown == null) return;
+    final stored = await widget.onChange(change);
+    if (!mounted || stored == null) return;
+    setState(() => _applied = stored);
   }
 
-  Future<void> _add(String id) async {
-    final ids = _withAdded(id);
-    // Refused: the box stays unticked, and the picker says why.
-    if (ids == null) return setState(() {});
-    await _set(ids);
-  }
+  Future<void> _add(String id) => _toggle(id, on: true);
 
   Future<void> _newRule() async {
     final rule = await showEventRuleEditor(context);
@@ -632,12 +674,7 @@ class _RulesPickerState extends State<_RulesPicker> {
                                   _names[rule.savedSearchId],
                                 ),
                               ),
-                        onChanged: (on) => on == true
-                            ? _add(rule.id)
-                            : _set([
-                                for (final id in _applied)
-                                  if (id != rule.id) id,
-                              ]),
+                        onChanged: (on) => _toggle(rule.id, on: on == true),
                       ),
                 ],
               ),
