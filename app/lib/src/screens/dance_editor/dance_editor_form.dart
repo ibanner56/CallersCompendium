@@ -510,7 +510,8 @@ class DanceEditorForm extends StatelessWidget {
                   FigureListEditor(
                     drafts: controller.figureDrafts,
                     taxonomy: taxonomy,
-                    phraseStructure: controller.phraseStructure,
+                    phraseStructure: controller.figurePhraseStructure,
+                    freeForm: controller.isFreeForm,
                     dialect: dialect,
                     mixer: controller.mixer,
                     formationShape: controller.formationShape,
@@ -962,8 +963,8 @@ class DanceEditorForm extends StatelessWidget {
     );
   }
 
-  /// A square dance's own fields (ADR-007 §8.1): what the record holds, how
-  /// its main part is repeated, who the new partner is, and whether it is a
+  /// A square dance's own fields (ADR-007 §8.1): what the record holds,
+  /// whether it is free form, how its main part is repeated, who the new partner is, and whether it is a
   /// singing call. A text field describes `other` for the repeat order and
   /// the new partner, shown only while the dropdown says so.
   List<Widget> _squareFields(BuildContext context) {
@@ -1003,6 +1004,19 @@ class DanceEditorForm extends StatelessWidget {
         labelOf: (value) => squareKindLabel(l10n, value),
         onChanged: controller.setSquareKind,
       ),
+      // Free-form patter follows no phrasing (ADR-007 §8.1). Patter starts
+      // free form and the other kinds phrased; the caller can change either.
+      // It means something only for a square, so another form does not offer
+      // it, though the dance keeps it.
+      if (controller.form == DanceForm.square)
+        SwitchListTile(
+          key: const ValueKey('free-form-field'),
+          value: controller.isFreeForm,
+          onChanged: controller.setFreeForm,
+          title: Text(l10n.danceEditorFreeFormLabel),
+          subtitle: Text(l10n.danceEditorFreeFormSubtitle),
+          contentPadding: EdgeInsets.zero,
+        ),
       const SizedBox(height: AppSpacing.md),
       EnumDropdown<SquareRepeatOrder>(
         fieldKey: 'repeat-order',
@@ -1052,7 +1066,8 @@ class DanceEditorForm extends StatelessWidget {
   /// What the collapsed setup panel says of the dance, so a caller can see
   /// its credits, formation and music without opening it: the authors, the
   /// type, the formation (and improper, mixer), the phrase structure as typed,
-  /// and an English dance's meter and key. Fields left empty are left out.
+  /// and an English dance's meter and key. Fields left empty are left out, and
+  /// so is the phrase structure of a free-form square, which hides it.
   String _setupSummary(AppLocalizations l10n) {
     String? text(String value) {
       final trimmed = value.trim();
@@ -1069,7 +1084,8 @@ class DanceEditorForm extends StatelessWidget {
       if (controller.offersImproper && controller.improper)
         l10n.danceEditorImproperLabel,
       if (controller.mixer) l10n.commonMixer,
-      ?text(controller.phraseController.text),
+      // A free-form square keeps its phrase text hidden, so it is left out.
+      if (!controller.isFreeForm) ?text(controller.phraseController.text),
       if (controller.showsCreditsUpFront) ...[
         ?text(controller.meterController.text),
         ?text(controller.musicalKeyController.text),
@@ -1299,17 +1315,20 @@ class DanceEditorForm extends StatelessWidget {
         ),
       // A form whose phrases are not named (contra, square) reads and sets
       // its phrase structure as rows over the same text; the formula field
-      // below stays beside them (#2304).
-      if (!controller.offersNamedPhrases)
+      // below stays beside them (#2304). Free-form patter follows no phrasing
+      // (ADR-007 §8.1), so neither shows for it; the text is kept for when
+      // the toggle goes off.
+      if (!controller.offersNamedPhrases && !controller.isFreeForm)
         PhraseGroupsEditor(
           key: const ValueKey('phrase-groups'),
           title: l10n.danceEditorPhraseStructureLabel,
           structure: controller.typedPhraseStructure,
           onChanged: controller.setPhraseStructureText,
         ),
-      if (!controller.offersNamedPhrases ||
-          controller.typedPhraseStructure?.isNamed != true ||
-          controller.phraseFocusNode.hasFocus)
+      if (!controller.isFreeForm &&
+          (!controller.offersNamedPhrases ||
+              controller.typedPhraseStructure?.isNamed != true ||
+              controller.phraseFocusNode.hasFocus))
         TextFormField(
           key: const ValueKey('phrase-field'),
           controller: controller.phraseController,
@@ -1335,11 +1354,12 @@ class DanceEditorForm extends StatelessWidget {
             }
           },
         ),
-      LingoDiscouragedHint(
-        controller: controller.phraseController,
-        dialect: dialect,
-        fieldKey: 'phrase',
-      ),
+      if (!controller.isFreeForm)
+        LingoDiscouragedHint(
+          controller: controller.phraseController,
+          dialect: dialect,
+          fieldKey: 'phrase',
+        ),
       // An English dance's tune is usually given with its meter and key, so
       // they sit beside the phrase structure; other forms keep them in More
       // details (ADR-006 §12.1, F3).

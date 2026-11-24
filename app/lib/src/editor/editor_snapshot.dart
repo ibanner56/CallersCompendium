@@ -190,6 +190,7 @@ class EditorSnapshot {
     this.newPartner = SquareNewPartner.unstated,
     this.newPartnerText = '',
     this.singing = false,
+    this.freeForm,
     required this.form,
     required this.formationShape,
     this.improper = false,
@@ -244,6 +245,7 @@ class EditorSnapshot {
     newPartner: newPartner,
     newPartnerText: newPartnerText,
     singing: singing,
+    freeForm: freeForm,
     form: form,
     formationShape: formationShape,
     improper: improper,
@@ -307,6 +309,10 @@ class EditorSnapshot {
   final SquareNewPartner newPartner;
   final String newPartnerText;
   final bool singing;
+
+  /// The free-form toggle as the caller set it ([Dance.freeForm]), or `null`
+  /// while it follows the kind.
+  final bool? freeForm;
 
   // ---- Enum fields ----
   final DanceForm form;

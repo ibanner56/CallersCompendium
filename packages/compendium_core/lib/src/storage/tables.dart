@@ -135,6 +135,10 @@ class Dances extends Table {
 
   /// Whether a square's main part is a singing call, `Dance.singing`.
   BoolColumn get singing => boolean().withDefault(const Constant(false))();
+
+  /// Whether a square is free-form patter, `Dance.freeForm`; NULL follows its
+  /// kind.
+  BoolColumn get freeForm => boolean().nullable()();
   TextColumn get status =>
       text().map(const EnumNameConverter(DanceStatus.values))();
 

@@ -8990,6 +8990,14 @@
   "@danceEditorSingingSubtitle": {
     "x-sourceSha256": "70a3f697343593d8b1292308eb274994010a998fb17f552b10e79fee53b7017d"
   },
+  "danceEditorFreeFormLabel": "Fri form",
+  "@danceEditorFreeFormLabel": {
+    "x-sourceSha256": "1a031a22354330c7103b5c53f48c8d23778895f261c01fe4afc27c884c773188"
+  },
+  "danceEditorFreeFormSubtitle": "Følger ingen frasering: ingen frasenavne og intet frasetjek",
+  "@danceEditorFreeFormSubtitle": {
+    "x-sourceSha256": "3d81249be3c062230d9e1eb42314c93a48fd4e39988785c02d567c65f4aa8f92"
+  },
   "danceEditorImproperLabel": "Starter improper",
   "@danceEditorImproperLabel": {
     "x-sourceSha256": "e4dd5166a2d36d72d17f292c5f3b00bbb89544e0a94b5c9658d538d2c89e159e"
@@ -9949,6 +9957,10 @@
   "danceEditorLingoStylingHelper": "Bevægelsesnavne får en prikket understregning, rolleudtryk en understregning, og frarådte termer en gennemstregning",
   "@danceEditorLingoStylingHelper": {
     "x-sourceSha256": "dad9477c721781411e575d8ab7388d8d97b37402d9399db55fad5096e3c992ca"
+  },
+  "danceEditorBeatTotalFreeForm": "{total, plural, =1{Total: 1 slag} other{Total: {total} slag}}",
+  "@danceEditorBeatTotalFreeForm": {
+    "x-sourceSha256": "a1cfbb9bd59bce9b9b0d49d0c2b52224055e648f0c2206584d0ffb345d4b2a88"
   },
   "danceEditorBeatTotal": "Total: {total} / {expected} slag",
   "@danceEditorBeatTotal": {

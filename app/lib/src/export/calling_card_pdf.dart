@@ -592,6 +592,7 @@ class _CardBuilder {
     for (final sf in deriveSections(
       content.figures,
       entry.dance.phraseStructure,
+      freeForm: entry.dance.isFreeForm,
     )) {
       if (sections.isEmpty || sections.last.first.label != sf.label) {
         sections.add([sf]);
@@ -641,7 +642,9 @@ class _CardBuilder {
         pw.Row(
           crossAxisAlignment: pw.CrossAxisAlignment.center,
           children: [
-            if (b.phrases)
+            // A free-form dance (ADR-007 §8.1) is one section with no label,
+            // so it gives the column no width.
+            if (b.phrases && section.first.label.isNotEmpty)
               pw.SizedBox(
                 width: s * 2.4,
                 child: pw.Text(

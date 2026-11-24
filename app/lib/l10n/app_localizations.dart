@@ -13642,6 +13642,18 @@ abstract class AppLocalizations {
   /// **'The song goes under Tunes'**
   String get danceEditorSingingSubtitle;
 
+  /// Switch on a square dance (ADR-007 §8.1): the dance is free-form patter that follows no phrasing. On by default for patter, off for a main part or break.
+  ///
+  /// In en, this message translates to:
+  /// **'Free form'**
+  String get danceEditorFreeFormLabel;
+
+  /// Subtitle under the Free form switch, saying what turning it on does: the figures get no phrase labels (A1, A2…) and the editor does not check that they fill each phrase.
+  ///
+  /// In en, this message translates to:
+  /// **'Follows no phrasing: no phrase labels or phrase checks'**
+  String get danceEditorFreeFormSubtitle;
+
   /// Toggle chip in the dance editor, offered for English country dances only: the dance starts improper (the first couple crossed over). Off means it starts proper, the default.
   ///
   /// In en, this message translates to:
@@ -15113,6 +15125,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Move names get a dotted underline, role terms an underline, and discouraged terms a strikethrough'**
   String get danceEditorLingoStylingHelper;
+
+  /// Total figure beats of a free-form square (ADR-007 §8.1), which has no phrase structure to measure against, so no expected total is shown.
+  ///
+  /// In en, this message translates to:
+  /// **'{total, plural, =1{Total: 1 beat} other{Total: {total} beats}}'**
+  String danceEditorBeatTotalFreeForm(int total);
 
   /// Summary of total figure beats versus the phrase-structure expectation.
   ///

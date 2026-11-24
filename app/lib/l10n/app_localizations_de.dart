@@ -9277,6 +9277,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceEditorSingingSubtitle => 'Das Lied gehört unter Melodien';
 
   @override
+  String get danceEditorFreeFormLabel => 'Freie Form';
+
+  @override
+  String get danceEditorFreeFormSubtitle =>
+      'Folgt keiner Phrasierung: keine Phrasenbezeichnungen und keine Phrasenprüfung';
+
+  @override
   String get danceEditorImproperLabel => 'Beginnt improper';
 
   @override
@@ -10402,6 +10409,17 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get danceEditorLingoStylingHelper =>
       'Bewegungsnamen werden punktiert unterstrichen, Rollenbegriffe unterstrichen und abgeratene Begriffe durchgestrichen';
+
+  @override
+  String danceEditorBeatTotalFreeForm(int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: 'Gesamt: $total Schläge',
+      one: 'Gesamt: 1 Schlag',
+    );
+    return '$_temp0';
+  }
 
   @override
   String danceEditorBeatTotal(int total, int expected) {

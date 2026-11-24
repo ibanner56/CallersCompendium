@@ -305,6 +305,7 @@ class DanceEditorController extends ChangeNotifier {
   SquareRepeatOrder _repeatOrder = SquareRepeatOrder.unstated;
   SquareNewPartner _newPartner = SquareNewPartner.unstated;
   bool _singing = false;
+  bool? _freeForm;
   int? _rating;
   PartialDate? _composedOn;
   PartialDate? _revisedOn;
@@ -343,6 +344,18 @@ class DanceEditorController extends ChangeNotifier {
   SquareRepeatOrder get repeatOrder => _repeatOrder;
   SquareNewPartner get newPartner => _newPartner;
   bool get singing => _singing;
+
+  /// Whether the dance is free-form patter (ADR-007 §8.1), as
+  /// [Dance.isFreeForm] reads it: a square whose toggle is on, or left to its
+  /// kind and patter. Its figures then have no phrase labels, no phrase
+  /// checks and no phrase limit on a sequence, and the phrase structure is
+  /// kept but not shown.
+  bool get isFreeForm =>
+      _form == DanceForm.square &&
+      (_freeForm ?? _squareKind == SquareKind.patter);
+
+  /// What [setFreeForm] has set, or `null` while the toggle follows the kind.
+  bool? get freeForm => _freeForm;
   int? get rating => _rating;
   PartialDate? get composedOn => _composedOn;
   PartialDate? get revisedOn => _revisedOn;
@@ -919,6 +932,7 @@ class DanceEditorController extends ChangeNotifier {
       _repeatOrder = dance.repeatOrder;
       _newPartner = dance.newPartner;
       _singing = dance.singing;
+      _freeForm = dance.freeForm;
       _rating = dance.rating;
       _composedOn = dance.composedOn;
       _revisedOn = dance.revisedOn;
@@ -1247,6 +1261,10 @@ class DanceEditorController extends ChangeNotifier {
   /// expand a compound into several, so its position is mapped back to the
   /// row that built the figure.
   void recomputeWarnings() {
+    // A free-form dance has no phrase warnings, whatever its hidden phrase
+    // text holds: clear them first, so a text that no longer parses cannot
+    // leave the last ones on screen.
+    if (isFreeForm) _phraseWarnings = const [];
     try {
       _phraseStructure = PhraseStructure.parse(phraseController.text);
       final issues = <ValidationIssue>[];
@@ -1256,6 +1274,7 @@ class DanceEditorController extends ChangeNotifier {
         _phraseStructure,
         issues: issues,
         checkPhraseFill: _form == DanceForm.square,
+        freeForm: isFreeForm,
       );
       for (final (index, figure) in figures.indexed) {
         _flagSequenceSpans(
@@ -1415,6 +1434,7 @@ class DanceEditorController extends ChangeNotifier {
     newPartner: _newPartner,
     newPartnerText: newPartnerTextController.text,
     singing: _singing,
+    freeForm: _freeForm,
     form: _form,
     formationShape: _formationShape,
     improper: _improper,
@@ -1528,6 +1548,7 @@ class DanceEditorController extends ChangeNotifier {
     _repeatOrder = s.repeatOrder;
     _newPartner = s.newPartner;
     _singing = s.singing;
+    _freeForm = s.freeForm;
     _rating = s.rating;
     _composedOn = s.composedOn;
     _revisedOn = s.revisedOn;
@@ -1865,10 +1886,11 @@ class DanceEditorController extends ChangeNotifier {
         newPartner: _newPartner,
         newPartnerText: newPartnerText,
         singing: _singing,
+        freeForm: _freeForm,
         form: _form,
         formation: formation,
         progression: _progression,
-        phraseStructure: phraseController.text.trim(),
+        phraseStructure: _savedPhraseText,
         hook: hookController.text.trim(),
         callingNotes: notesController.text.trim(),
         walkthrough: walkthroughController.text.trim(),
@@ -1908,10 +1930,11 @@ class DanceEditorController extends ChangeNotifier {
       newPartner: _newPartner,
       newPartnerText: newPartnerText,
       singing: _singing,
+      freeForm: _freeForm,
       form: _form,
       formation: formation,
       progression: _progression,
-      phraseStructure: phraseController.text.trim(),
+      phraseStructure: _savedPhraseText,
       hook: hookController.text.trim(),
       callingNotes: notesController.text.trim(),
       walkthrough: walkthroughController.text.trim(),
@@ -2028,6 +2051,9 @@ class DanceEditorController extends ChangeNotifier {
 
   void setSquareKind(SquareKind value) {
     _squareKind = value;
+    // Patter is free form unless the caller said otherwise, so the kind can
+    // turn the phrase checks on or off.
+    recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();
     _notify();
@@ -2049,6 +2075,18 @@ class DanceEditorController extends ChangeNotifier {
 
   void setSinging(bool value) {
     _singing = value;
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  /// Turns free form on or off. A value the kind would give anyway (on for
+  /// patter, off otherwise) is stored as following the kind, so only a
+  /// choice that differs from it is kept, and a later change of kind carries
+  /// the toggle with it.
+  void setFreeForm(bool value) {
+    _freeForm = value == (_squareKind == SquareKind.patter) ? null : value;
+    recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();
     _notify();
@@ -2666,8 +2704,35 @@ class DanceEditorController extends ChangeNotifier {
   /// The most beats a sequence at row [index] may hold: the phrase of this
   /// dance it starts in ([PhraseStructure.phraseBeatsAt]), counting the rows
   /// before it as Save does ([figureStartBeat]).
-  int sequenceBeatLimitAt(int index) =>
-      _phraseStructure.phraseBeatsAt(figureStartBeat(figureDrafts.take(index)));
+  int sequenceBeatLimitAt(int index) => figurePhraseStructure.phraseBeatsAt(
+    figureStartBeat(figureDrafts.take(index)),
+  );
+
+  /// The phrase text Save writes: the field as typed, unless the dance is
+  /// free form, which hides the field and its checks (ADR-007 §8.1). Then a
+  /// text that does not parse, or names its phrases where the form does not
+  /// offer that, would block Save from a field the caller cannot see, so the
+  /// last structure that parsed is kept instead, or the standard one.
+  String get _savedPhraseText {
+    final typed = phraseController.text.trim();
+    if (!isFreeForm) return typed;
+    try {
+      final structure = PhraseStructure.parse(typed);
+      if (!structure.isNamed || offersNamedPhrases) return typed;
+    } on FormatException {
+      // diagnostics: silent — the hidden field's text is replaced below, as
+      // the doc says.
+    }
+    return _phraseStructure.isNamed && !offersNamedPhrases
+        ? ''
+        : _phraseStructure.raw;
+  }
+
+  /// The structure the figure list measures phrases against: the dance's own,
+  /// or, for a free-form dance, one phrase that nothing runs past
+  /// ([PhraseStructure.unphrased]).
+  PhraseStructure get figurePhraseStructure =>
+      isFreeForm ? PhraseStructure.unphrased : _phraseStructure;
 
   void convertContainerToMeanwhile(FigureDraft draft) =>
       _convertContainer(draft, meanwhileMove);

@@ -12050,6 +12050,14 @@
   "@danceEditorSingingSubtitle": {
     "description": "Subtitle under the singing call checkbox: the song's name is entered in the dance's Tunes field."
   },
+  "danceEditorFreeFormLabel": "Free form",
+  "@danceEditorFreeFormLabel": {
+    "description": "Switch on a square dance (ADR-007 §8.1): the dance is free-form patter that follows no phrasing. On by default for patter, off for a main part or break."
+  },
+  "danceEditorFreeFormSubtitle": "Follows no phrasing: no phrase labels or phrase checks",
+  "@danceEditorFreeFormSubtitle": {
+    "description": "Subtitle under the Free form switch, saying what turning it on does: the figures get no phrase labels (A1, A2…) and the editor does not check that they fill each phrase."
+  },
   "danceEditorImproperLabel": "Starts improper",
   "@danceEditorImproperLabel": {
     "description": "Toggle chip in the dance editor, offered for English country dances only: the dance starts improper (the first couple crossed over). Off means it starts proper, the default."
@@ -13623,6 +13631,16 @@
   "danceEditorLingoStylingHelper": "Move names get a dotted underline, role terms an underline, and discouraged terms a strikethrough",
   "@danceEditorLingoStylingHelper": {
     "description": "Helper text explaining lingo-aware styling in a custom figure text field."
+  },
+  "danceEditorBeatTotalFreeForm": "{total, plural, =1{Total: 1 beat} other{Total: {total} beats}}",
+  "@danceEditorBeatTotalFreeForm": {
+    "description": "Total figure beats of a free-form square (ADR-007 §8.1), which has no phrase structure to measure against, so no expected total is shown.",
+    "placeholders": {
+      "total": {
+        "type": "int",
+        "example": "64"
+      }
+    }
   },
   "danceEditorBeatTotal": "Total: {total} / {expected} beats",
   "@danceEditorBeatTotal": {

@@ -734,8 +734,9 @@ Canonical JSON means:
   `alternateTitles` and `barnesReference` (schema v42) are omitted when they
   hold their default (`''`, `''`, `false`, `[]`, `null`, `[]`, `''`), as are
   the square fields `squareKind` (`main`), `repeatOrder` and `newPartner`
-  (`unstated`), `repeatOrderText` and `newPartnerText` (`''`) and `singing`
-  (`false`), and a receiver reads a missing one as that default (§6.7);
+  (`unstated`), `repeatOrderText` and `newPartnerText` (`''`), `singing`
+  (`false`) and `freeForm` (`null`, following the kind), and a receiver reads
+  a missing one as that default (§6.7);
 - **timestamps emitted at exactly one-tick precision** (§2), UTC, with the
   sub-tick component always zero;
 - **all strings in Unicode NFC**, normalised on write as described below.
@@ -3998,7 +3999,8 @@ The exception is the dance fields added after Device Sync shipped, listed in
 (ADR-006 §12, F2 and F3), `interpreterIds` and `interpretedOn` (ADR-006
 §9.2), `alternateTitles` and `barnesReference` (ADR-006 §9.2, point 9), and
 the square fields `squareKind`, `repeatOrder`, `repeatOrderText`,
-`newPartner`, `newPartnerText` and `singing` (ADR-007 §8.1). The sender omits
+`newPartner`, `newPartnerText`, `singing` and `freeForm` (ADR-007 §8.1). The
+sender omits
 each when it holds its default, so a
 dance that never had one keeps the body, and the content hash, it had before
 the field existed: no device republishes every dance on updating, and a device

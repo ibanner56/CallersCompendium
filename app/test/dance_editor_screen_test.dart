@@ -3444,6 +3444,124 @@ void main() {
       expect(saved.singing, isTrue);
     });
 
+    testWidgets('free form drops the phrase checks and the phrase field, '
+        'shows the bare total, and saves (ADR-007 §8.1)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Phrased',
+          // A custom line, which every form shares, so the only warning is
+          // the phrase one.
+          figures: [customFigure('Allemande left your corner', beats: 20)],
+        ).copyWith(form: DanceForm.square),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      // A main part starts phrased: 20 beats miss the phrase total.
+      final toggle = find.byKey(const ValueKey('free-form-field'));
+      expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+      expect(find.byKey(const ValueKey('warnings-card')), findsOneWidget);
+      expect(find.byKey(const ValueKey('phrase-field')), findsOneWidget);
+      expect(find.text('Total: 20 / 64 beats'), findsOneWidget);
+
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('warnings-card')), findsNothing);
+      expect(find.byKey(const ValueKey('phrase-field')), findsNothing);
+      expect(find.text('Total: 20 beats'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      final saved = (await repos.dances.getById('d1'))!;
+      expect(saved.freeForm, isTrue);
+      expect(saved.isFreeForm, isTrue);
+      expect(saved.phraseStructure, PhraseStructure.standard);
+    });
+
+    testWidgets('a phrase text left unreadable before turning free form on '
+        'neither blocks Save nor leaves its warnings', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Phrased',
+          figures: [customFigure('Allemande left your corner', beats: 20)],
+        ).copyWith(form: DanceForm.square, phraseStructure: '6*8*2'),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      expect(find.byKey(const ValueKey('warnings-card')), findsOneWidget);
+
+      await tester.enterText(find.byKey(const ValueKey('phrase-field')), '4*');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('free-form-field')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('warnings-card')), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      final saved = (await repos.dances.getById('d1'))!;
+      expect(saved.freeForm, isTrue);
+      // The last structure that parsed is kept for when it goes off again.
+      expect(saved.phraseStructure, PhraseStructure.parse('6*8*2'));
+    });
+
+    testWidgets('patter starts free form, and turning it off is what is '
+        'saved', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Patter',
+        ).copyWith(form: DanceForm.square, squareKind: SquareKind.patter),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+
+      final toggle = find.byKey(const ValueKey('free-form-field'));
+      expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+      expect(find.byKey(const ValueKey('phrase-field')), findsNothing);
+
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('phrase-field')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      expect((await repos.dances.getById('d1'))!.freeForm, isFalse);
+    });
+
+    testWidgets('setting the switch back to what the kind gives saves it as '
+        'following the kind', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Patter',
+        ).copyWith(form: DanceForm.square, squareKind: SquareKind.patter),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      final toggle = find.byKey(const ValueKey('free-form-field'));
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+      final saved = (await repos.dances.getById('d1'))!;
+      expect(saved.freeForm, isNull);
+      expect(saved.isFreeForm, isTrue);
+    });
+
+    testWidgets('another form does not offer the free-form switch', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Contra'));
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await _expandMoreDetails(tester);
+      expect(find.byKey(const ValueKey('square-kind-field')), findsOneWidget);
+      expect(find.byKey(const ValueKey('free-form-field')), findsNothing);
+    });
+
     testWidgets('only a main part offers the singing call box', (tester) async {
       final repos = openTestRepositories();
       await repos.dances.create(

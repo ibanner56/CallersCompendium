@@ -97,7 +97,7 @@ String syncConflictColourText(int argb) {
 }
 
 typedef _FigureLine = ({
-  String section,
+  String? section,
   String text,
   String data,
   Figure figure,
@@ -227,6 +227,7 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'newPartner': l10n.danceEditorNewPartnerLabel,
         'newPartnerText': l10n.danceEditorNewPartnerOtherLabel,
         'singing': l10n.danceEditorSingingLabel,
+        'freeForm': l10n.danceEditorFreeFormLabel,
         'difficultyLevelId': l10n.danceEditorLevelLabel,
         'mixedLevel': l10n.commonMixedLevel,
         'mixer': l10n.commonMixer,
@@ -999,14 +1000,23 @@ class SyncConflictComparison extends StatelessWidget {
       return null;
     }
     final phrase = body?['phraseStructure'];
+    // A free-form square (ADR-007 §8.1) is read from the copy's own fields,
+    // as [Dance.isFreeForm] reads them: its figures then have no section.
+    final freeForm =
+        body?['form'] == DanceForm.square.name &&
+        switch (body?['freeForm']) {
+          final bool stated => stated,
+          _ => body?['squareKind'] == SquareKind.patter.wireName,
+        };
     final sections = deriveSections(
       figures,
       PhraseStructure.parseOrStandard(phrase is String ? phrase : ''),
+      freeForm: freeForm,
     );
     return [
       for (final s in sections)
         (
-          section: s.label,
+          section: s.label.isEmpty ? null : s.label,
           text: renderer.renderSummary(s.figure, dialect),
           data: canonicalJson(figureToJson(s.figure)),
           figure: s.figure,

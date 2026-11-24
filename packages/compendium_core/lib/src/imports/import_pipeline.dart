@@ -1602,6 +1602,8 @@ class ImportPipeline {
         ? src.newPartnerText
         : keepFrom?.newPartnerText ?? '',
     singing: src.singing || (keepFrom?.singing ?? false),
+    // A source that leaves it to the kind keeps the caller's own setting.
+    freeForm: src.freeForm ?? keepFrom?.freeForm,
     status: src.status,
     difficultyLevelId: src.difficultyLevelId,
     mixedLevel: src.mixedLevel,

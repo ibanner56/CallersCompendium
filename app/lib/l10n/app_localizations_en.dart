@@ -9150,6 +9150,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorSingingSubtitle => 'The song goes under Tunes';
 
   @override
+  String get danceEditorFreeFormLabel => 'Free form';
+
+  @override
+  String get danceEditorFreeFormSubtitle =>
+      'Follows no phrasing: no phrase labels or phrase checks';
+
+  @override
   String get danceEditorImproperLabel => 'Starts improper';
 
   @override
@@ -10265,6 +10272,17 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get danceEditorLingoStylingHelper =>
       'Move names get a dotted underline, role terms an underline, and discouraged terms a strikethrough';
+
+  @override
+  String danceEditorBeatTotalFreeForm(int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: 'Total: $total beats',
+      one: 'Total: 1 beat',
+    );
+    return '$_temp0';
+  }
 
   @override
   String danceEditorBeatTotal(int total, int expected) {
