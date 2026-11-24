@@ -944,9 +944,10 @@ A saved search is the search panel's state, stored under a name, and resolved
 against the collection as it is when it runs. This section is the format and
 the resolver contract; both live in `compendium_core`
 (`packages/compendium_core/lib/src/search/saved_search*.dart`). How a saved
-search is stored, synced and kept consistent through merges and deletes, and the
-menu that uses it, are specified where they land (`sync-spec.md` §6.15,
-`tags-and-people.md`, `collection.md`).
+search is stored, synced and kept consistent through merges and deletes is
+specified in `sync-spec.md` §6.15 and `tags-and-people.md`; the menu that uses
+it is [The Saved menu](#the-saved-menu), below, and the user guide's
+`docs/user/collection.md`.
 
 **What is stored: the panel state, not the compiled filter** (maintainer
 decision). A compiled `DanceFilter` would freeze the computed recency cutoff and
@@ -1121,6 +1122,76 @@ state, and nothing in it is silently dropped or left filtering out of sight:
   value yet (a lone "-", Between's first bound, spaces). The field tells
   those apart from a rebuild its own typing caused by the facets' identity
   and `FacetSelections.clearCount`, a count kept in memory only.
+
+### The Saved menu
+
+The Collection and the picker share one menu, `SavedSearchMenu`
+(`app/lib/src/widgets/saved_search_menu.dart`), at the end of their row of
+search tools, beside the Online search icon. It is an icon button named
+**Saved** (tooltip and screen-reader label). On a 390dp phone the row has no
+room for it: the three tools take 282dp of the 358dp inside the margins (304dp
+with "Filters · 3") and the two 40dp icons need 80dp, so there the Saved and
+Online search icons share a second line under the tools, always, so nothing
+moves as the first filter is chosen. A wider screen keeps them in the row.
+
+The menu is flat, with no submenus:
+
+- **Save this search…** asks for a name (duplicates are allowed: two devices
+  could not prevent them offline; the list orders them by name, then id) and
+  saves the panel through `SavedSearchSpec.fromPanelState`. It is offered only
+  while text, a filter, a phrase row or an Advanced row is set
+  (`CollectionPanelState.hasQuery`). The dialog says what is kept of a
+  calling-history window: a chosen date is kept as whole months back from
+  today ("Not called in the last 12 months"). A search over the format's limits
+  is refused with a message, never truncated; at `savedSearchMaxCount` saved
+  searches the message says so and nothing is added. The search just saved
+  becomes the loaded one.
+- For a **loaded** search: **Update "…"**, only once the panel's saved form
+  differs from the form it had when loaded (or last saved), which writes it back
+  under the same id; **Save as new…** in place of **Save this search…** at that
+  point; **Rename "…"…**, which renames the stored search and does not save the
+  panel's edits; and **Delete "…"**. The host, not the menu, keeps which search
+  is loaded, so **Clear all**, or any other state applied, forgets it.
+- Then every saved search by name. One this version cannot read (a newer
+  format, a damaged value) is listed last under **Needs attention** and is
+  never applied; choosing it explains why and offers Delete.
+
+**Delete** follows the app's rule: `confirmDeleteIfEnabled`, then Undo
+(`showUndoSnackBar`). The Undo writes the stored value back exactly as it was
+read before the delete (`SettingsRepository.set` on the tombstoned key, which
+revives it), so a value this version cannot read comes back byte for byte. A
+delete that a registered dependent refuses (`SavedSearchInUse`) shows a message
+listing each use and deletes nothing. The picker has a `ScaffoldMessenger` of
+its own, so the Undo prompt shows inside the program builder's bottom sheet,
+where the app's messenger draws under the sheet.
+
+**Loading** reads one `SavedSearchContext` (`readSavedSearchContext`,
+`app/lib/src/search/saved_search_context.dart`): one read each of the live tags,
+authors, sources, levels, venues, figures of your own and custom field
+definitions, the merge aliases from one `SyncLocalRepository.aliasMaps()`, and
+the host's live Calling history settings (the picker adds the program being
+built). Then `resolveSavedSearch`:
+
+- a `ResolvedFilter` is applied through the host's one entry point
+  (`DanceListCommands.applyPanelState`; in the picker a
+  `CollectionPanelRequest` held in a field), which never writes the last-used
+  sort;
+- an `UnresolvableSavedSearch` is **still applied, whole**: the spec's own
+  panel state, read through the aliases, so nothing is dropped. The host shows
+  a lasting notice naming each missing thing ("The tag Bouncey, which was
+  deleted"; the name comes from the tombstoned record,
+  `CompendiumRepositories.deletedRecordNames`, or "A tag that was deleted" when
+  this device never knew it), and the user removes each criterion themselves.
+  A Filters criterion on a deleted custom field is left out by
+  `buildCollectionFilter`, so the notice also says that one is not in the
+  results. There is no "open anyway" step: the issue has none, and the notice
+  is what keeps the load from being silent.
+
+The menu is disabled while Online search is on; it never turns Online search
+off itself. Both hosts take "today" from a `SearchClock` (`DanceListScreen.clock`,
+`CollectionPicker.clock`) through `calendarDayAt`, for the filter, for the
+context and for saving, and never from `DateTime.now()`:
+`app/test/search/host_today_source_test.dart` scans for it.
 
 ## Performance
 

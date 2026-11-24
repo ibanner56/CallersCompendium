@@ -201,7 +201,9 @@ covers online search step by step.
 
 Under the search bar sit three buttons — **Filters**, **By phrase** and
 **Advanced** — that each open a panel of search tools, followed by the
-**Online search** icon. One panel is open at a
+**Saved** icon ([saved searches](#save-a-search-and-use-it-again)) and the
+**Online search** icon; on a phone those two sit on a line of their own just
+under the buttons. One panel is open at a
 time: tap a button to open its panel, and tap it again (or another button) to
 close it. Whatever you chose in a closed panel still applies, and its button
 says so: **Filters** and **By phrase** show how many choices are active (for
@@ -450,6 +452,55 @@ panel, the **Advanced** builder, and the **By phrase** panel all apply together 
 a dance has to satisfy all of them to appear. As you narrow things down, the
 number of matching dances is announced to screen readers, so the result count is
 never hidden behind a visual-only cue.
+
+## Save a search and use it again
+
+When you ask the same question of your collection again and again, such as
+"Becket dances I haven't called lately" or "easy mixers tagged *family*", save
+it once and choose it from then on. The **Saved** button (a bookmark icon) sits
+at the end of the row of search tools, beside the Online search icon; on a
+phone the two share a line under **Filters**, **By phrase** and **Advanced**.
+
+- **Save this search…** asks for a name and keeps the whole search: the search
+  text, **Search in**, every filter (the calling-history venue and window
+  included), the By phrase rows, the Advanced rows and the sort. It's offered
+  once you've typed something or set a filter or row. Two searches may share a
+  name.
+- **A calling-history window is kept as a distance.** "Since a date" is saved
+  as the whole number of months back from today, and the save dialog says what
+  is kept, for example "Not called in the last 12 months". Each time you use
+  the search, the window is counted back from that day, so the list stays up to
+  date. A window that isn't one of 1, 3 or 6 months shows as its own chip in
+  the **Within** row, such as "12 months, saved".
+- **Choosing a saved search** fills in the search bar and the panels as they
+  were saved and runs the search against your collection as it is now: a dance
+  you tag later shows up in it. The settings under Settings ▸ Calling history
+  are the ones in force when you use it. Choosing one doesn't change the sort
+  the Collection opens in.
+- After you change a search you loaded, **Update "…"** saves the change into
+  it, and **Save as new…** keeps it as another search. **Rename "…"…** renames
+  the one you loaded; **Delete "…"** deletes it, with **Undo** (and a question
+  first if you've turned on **Confirm before delete**). **Clear search and
+  filters** (the ✕ in the search box) leaves the saved search as it was and
+  starts a new search.
+- **Something it uses is gone.** If a saved search uses a tag, author, source,
+  level, venue or custom field that has since been deleted, the rest of it is
+  still filled in and run, and a notice names what is missing ("The tag
+  *Bouncey*, which was deleted"). Nothing is left out quietly: remove that
+  criterion yourself, then **Update** the search. A filter on a deleted custom
+  field can't be run, so it is left out of the results until you remove it; the
+  notice says so.
+- **Needs attention.** A saved search that this version of the app can't read
+  (saved by a newer version, or damaged) is listed last, under **Needs
+  attention**. It is never used; you can delete it, and undo that.
+- **Not with Online search.** A saved search searches your own collection, so
+  the **Saved** button is unavailable while Online search is on.
+- **In the program builder too.** The dance list you add dances from has the
+  same **Saved** button, so a search saved in the Collection works there, and
+  the other way round.
+- **On your other devices.** With [Device Sync](./settings.md) on, saved
+  searches travel to your other devices once every device connected to your
+  store has an up-to-date app (see "New kinds of data wait for every device").
 
 ## Read a dance in detail
 

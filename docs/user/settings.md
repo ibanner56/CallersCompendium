@@ -1692,8 +1692,9 @@ note.)
 
 Some things this version syncs can't be read by earlier versions of the app:
 your [own figures and terms, and your notes on built-in
-figures](#glossary-and-custom-figures), the Custom Figures setting, and your
-shorthands for your own figures. They start syncing only once every device
+figures](#glossary-and-custom-figures), the Custom Figures setting, your
+shorthands for your own figures, and your [saved
+searches](./collection.md#save-a-search-and-use-it-again). They start syncing only once every device
 connected to your store has an up-to-date app. Until then changes to them
 aren't sent to your other devices, and nothing already on a device is removed;
 you can keep using and editing them on each device.

@@ -5203,11 +5203,16 @@ what a peer already did with the copy.
 record whole (ADR-004) but cannot read its search, so they wait for every device
 to advertise the capability. Like `programTemplates.v1`, it gates a settings **prefix**: a gated key that is
 not an exact entry matches the longest gated prefix it starts with, as the
-registry's classification does, and an exact key still wins. The reference client gates the prefix from the change that adds
-storage for saved searches and advertises the capability from the change that
-completes the feature (the menu), as `glossary.v2` was gated before #1023 was
-complete; until then nothing creates a saved search and none is published.
-Saved searches reach a peer on a build that predates the prefix as unknown,
+registry's classification does, and an exact key still wins. The reference client gated the prefix from the change that added
+storage for saved searches, before anything could create one, and advertises
+the capability from the change that completes the feature, the Saved menu
+(amended 2026-11-24), as `glossary.v2` was gated before #1023 was complete. So
+it is subject to *Rollout*: a device on a build that lists every other
+capability but this one holds it closed and is named for it, while what the
+others gate publishes past it. Because the server validates the prefix through
+the registry it is built from, the server MUST be deployed before the first
+client build that advertises `savedSearches.v1` (see **Server**, below, and
+§7.5). Saved searches reach a peer on a build that predates the prefix as unknown,
 retained records, which is why the gate exists. Deleting one is a tombstone that
 keeps its value until the record is purged, so a held-back deletion is published
 once the gate opens, as any gated tombstone is.

@@ -1,0 +1,18 @@
+{
+  "id": "2325-saved-searches",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Save a search and use it again: a Saved button at the end of the Collection's search tools, and in the program builder's dance list, saves the search text, Search in, every filter, the By phrase and Advanced rows and the sort under a name. Choosing a saved search fills them in and runs it against your collection as it is now, so a dance tagged later shows up in it. A calling-history window is kept as months back from the day you use it (\"Not called in the last 12 months\"), so the list stays up to date. After changing a loaded search you can update it or save it as a new one; you can rename it, and delete it with Undo. If a saved search uses a tag, author, source, level, venue or custom field that has since been deleted, the rest of it still runs and a notice names what is missing; one this version can't read is listed under Needs attention and never used. The Saved button is unavailable while Online search is on.",
+      "With Device Sync on, saved searches sync to your other devices once every device connected to your store has an up-to-date app; until then a note names the device that is holding them back."
+    ]
+  },
+  "core": {
+    "added": [
+      "CompendiumRepositories.deletedRecordNames reads the names of deleted (tombstoned) tags, authors, sources, venues, levels and custom fields by id, for naming what a saved search uses that is gone. Read-only; nothing new is stored."
+    ],
+    "changed": [
+      "SyncCapabilityPolicy.build now advertises savedSearches.v1, so saved searches publish once every other device attached to the store advertises it. Deploy the sync server before the first client release that advertises it: the server validates the saved_search: prefix through the registry it is built from."
+    ]
+  }
+}
