@@ -295,7 +295,7 @@ to two hands four where a nominal reading would demand three and then refuse.
 ### 5.2 `travelDirection(formation, id)`
 
 Which way "on down the set" points for one dancer. **Duple Improper** (and
-Progressed Improper): by
+Progressed Improper and Duple Proper): by
 number, 1s `+1` (down), 2s `-1`. **Becket:** by line and Becket sense — under CW
 the c4 line shifts down, CCW mirrors. The line is read from the dancer's
 **number** (c4 = 1s line, c0 = 2s line, `fundamentals.md` §10.2.2), never from
@@ -611,7 +611,9 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
   N3 and N4 place). The bridge *adds* one other field: a hall figure whose note
   is "backwards" (Caller's Box "go up the hall (backwards)", which the import
   keeps only as a note) gets `facing: backward`, unless it states a facing or
-  is led by part of the set *(agent's call, 2026-11-24)*. The one figure it
+  is led by part of the set *(agent's call, 2026-11-24)*; and a swing whose note
+  is "face up" or "finish proper" (Caller's Box "Ones swing; face up") gets
+  `endFacing: up`, unless it states one *(agent's call, 2026-11-24)*. The one figure it
   *rewrites* is a slide after a balanced long
   wave: Caller's Box writes a Rory O'More as two lines, "Balance long wave"
   then "Slide right (past N)", and the import reads them as `form_long_waves`
@@ -895,7 +897,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,535 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,547 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

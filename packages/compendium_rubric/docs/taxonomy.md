@@ -855,6 +855,14 @@ To be defined later with worked examples.
     baseline default `in`); the Compendium notes it is the same kind of value as the `gate`
     move's `face` and was named apart only to keep the two separately addressable. We accept
     `endFacing` as an input synonym for `face`.
+    Caller's Box writes a swing's ending as a clause after it ("Ones swing; face up", "Ones
+    swing; finish proper"), which the import keeps only as the swing's note; the bridge reads
+    a note clause that is exactly `face up` or `finish proper`, on a swing stating no
+    `endFacing`, as `up`, inside a container too. Facing up, the lark on the left stands in
+    c0, which is proper. `face down` is not read *(agent's call, 2026-11-24)*: reading it too
+    compiled two more Caller's Box dances and lost three Becket dances whose partner swing ends
+    "face down" in a line of four across the hall, which a swing on the side line does not
+    model.
   - `beats` — int. Timing (universal).
 - **`who` semantics** (within a hands four `L1-x / R1-x / L2-y / R2-y`), canonical spellings:
   - `ones` = the #1 couple (L1, R1); `twos` = the #2 couple (L2, R2).

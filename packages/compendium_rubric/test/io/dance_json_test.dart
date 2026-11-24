@@ -550,6 +550,18 @@ void main() {
       expect(dance.warnings, isEmpty);
     });
 
+    test('reads a duple proper record as its own start, unwarned', () {
+      // Caller's Box's "Duple Minor - Proper" arrives through the core import
+      // as `dupleProper`. *(User-ruled 2026-11-24: the dance is proper.)*
+      final dance = _parseOk(
+        '{"form": "contra", "formation": {"shape": "dupleProper"}, '
+        '"progression": "single", "figures": []}',
+      );
+
+      expect(dance.formation, FormationType.dupleProper);
+      expect(dance.warnings, isEmpty);
+    });
+
     test('warns on an unrecognized formation and reads it as the base', () {
       // Not a refusal: the shape vocabulary is owned upstream and grows, and a
       // dance whose own figures establish the arrangement it dances in is

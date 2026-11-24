@@ -119,7 +119,12 @@ Formation _normalizeEndRow(
   final number = row == 0
       ? formation.type.topEndNumber
       : formation.type.bottomEndNumber;
-  final placement = normalizeAlongHall(row: row, facing: facing);
+  final normal = normalizeAlongHall(row: row, facing: facing);
+  // A Duple Proper couple turning down at the top stands crossed, as the 1s
+  // start: nobody crosses the set at the top of a proper set.
+  final placement = row == 0 && formation.type.topEndCrossed
+      ? (lark: normal.robin, robin: normal.lark)
+      : normal;
 
   return formation.withUpdates({
     couple.lark: formation
