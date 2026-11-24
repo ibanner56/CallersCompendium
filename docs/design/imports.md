@@ -1072,7 +1072,9 @@ lowers the line onto one `pull_by_dancers` per stated pass, carrying that pass's
   read); `P6`+/`P-n` (mixer partners beyond the
   modelled depth); `N5`+/`N-1`/`N-2`, `S3`+/`S-n`; `Ph*` (phantoms),
   `TB*` (trail buddy), `SR*`; and a bare `R`/`L` cell, which states a hand but
-  no dancer.
+  no dancer. One exception: the hey decoder alone reads `SRN`/`SRN1` as
+  `sameRoles`, through its own `_heyPassPeople` lookup rather than this map.
+  Every other `SR*` code, and every other decoder, still declines.
 - **Whole-line strictness.** The text outside the pass list must be exactly
   `grand right and left` (modulo filler), so `Progressive grand right and left`
   (its own glossary figure), `Same-role grand right and left`, `… to place`, a
@@ -1781,9 +1783,9 @@ shared reading", "becomes an unrecognized figure") over the bare verb.
 
 Which is which, derived from the code rather than from memory:
 
-- `tcbFigureFrontEnd` registers **twenty-five** pre-recognizers:
-  `_amountAlternativeAnnotation`, `_hey`,
-  `_circulate`, `_waveBalanceCirculate`, `_circulateCrossBracket`,
+- `tcbFigureFrontEnd` registers **twenty-seven** pre-recognizers:
+  `_amountAlternativeAnnotation`, `_hey`, `_tcbNumberedRolePair`,
+  `_passTheOceanToWave`, `_circulate`, `_waveBalanceCirculate`, `_circulateCrossBracket`,
   `_handBalanceSquareThrough`, `_squareThroughPassList`,
   `_balanceHandAnnotation`, `_balancePairHandAnnotation`, `_gateAnnotation`,
   `_courtesyTurnAnnotation`, `_tcbCast`, `_walkForwardAnnotation`,
@@ -1807,7 +1809,11 @@ Which is which, derived from the code rather than from memory:
   the major set it cannot read whole (an unresolved destination, a places
   amount, or a counter-rotation annotation). The front end also has a veto
   (`_tcbDeclineToCustom`): a single-file circle amount that is not a
-  fraction, and a per-role amount (`(M 1 & 1/2, W 2)`).
+  fraction, and a per-role amount (`(M 1 & 1/2, W 2)`). `_tcbNumberedRolePair`
+  (`N2 Men allemande …`, read as `Men allemande … [with N2]`) is the
+  falls-through kind too: it re-reads its rewritten line through the other
+  entries as `_tcbCast` does, and passes on a `custom` result one of them
+  returned, but it never makes one itself.
 - `contraDbHtmlFigureFrontEnd` registers its **entire grammar** as
   pre-recognizers, **and** supplies a veto. Both halves matter, and they pull in
   opposite directions, which is why this front end is the one most likely to be
@@ -2814,6 +2820,14 @@ form figure is ever emitted.
    `Balance interlocking long waves in center`. (That one was a regression this
    same change set introduced — recognizing `form long waves` is what made the
    pair foldable.)
+
+   A forming line that already states its centre or centre hand (`Pass the
+   ocean (to wave of four (NR,WL))`, readable since 2026-11-24) refuses a
+   balance that states a different one: the two lines describe different
+   waves, and folding would keep one and drop the other. `sides` is
+   deliberately not compared: after a forming line that says `with N2`, the
+   balance writes those same dancers as `N`, and the forming line's
+   `nextNeighbors` has always won there.
 3. **Promotion** — whatever is left becomes the form figure on its own. This is
    the implicit case (an allemande or shoulder round leaves the dancers in the
    wave the very next line balances): the forming is a fact the source implies,
