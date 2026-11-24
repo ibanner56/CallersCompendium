@@ -207,6 +207,31 @@ class Taxonomy {
     return resolve(moveId)?.params[param]?.defaultValue;
   }
 
+  /// Whether a figure's id already says [param] on [moveId], so a picker of
+  /// values for it (Advanced search, Settings' per-move defaults) does not
+  /// offer it: the param an alias listed as a move pins (`long_lines`'
+  /// formation, `pass_by`'s pass type), or, on that alias's target, the same
+  /// param when the target's own default is not the pin. A pass through's
+  /// `passType` is `through` by its id and `by` only as a pass by, and
+  /// neither is stored (taxonomy v40). A forward and back's `formation` is
+  /// offered: its default is the pin, and its other values are stored.
+  bool isParamNamedById(String moveId, String param) {
+    final alias = aliases[moveId];
+    if (alias != null) {
+      return alias.listedAsMove && alias.pinnedParams.containsKey(param);
+    }
+    final own = moves[moveId]?.params[param]?.defaultValue;
+    return aliases.values.any(
+      (listed) =>
+          listed.listedAsMove &&
+          listed.targetMove == moveId &&
+          listed.inversePairId == moveId &&
+          listed.pinnedParams.length == 1 &&
+          listed.pinnedParams.containsKey(param) &&
+          own != listed.pinnedParams[param],
+    );
+  }
+
   /// The params the figure editor seeds when [moveId] is first picked: the
   /// move's [effectiveParams], with each spec's [ParamSpec.entryDefault]
   /// laid over its [ParamSpec.defaultValue]. Everything that reads a stored

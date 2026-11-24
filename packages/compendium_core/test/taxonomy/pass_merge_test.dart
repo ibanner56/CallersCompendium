@@ -408,6 +408,17 @@ void main() {
     expect(twin?.params['where'], 'across');
   });
 
+  test('the pass type is named by either id, unlike a stored pair param', () {
+    expect(tax.isParamNamedById('pass_through', 'passType'), isTrue);
+    expect(tax.isParamNamedById('pass_by', 'passType'), isTrue);
+    expect(tax.isParamNamedById('pass_through', 'who'), isFalse);
+    expect(tax.isParamNamedById('long_lines', 'formation'), isTrue);
+    // Its default is the alias's pin, and its other values are stored.
+    expect(tax.isParamNamedById('forward_and_back', 'formation'), isFalse);
+    // Not listed as a move: its pin is no name of its own.
+    expect(tax.isParamNamedById('see_saw', 'shoulder'), isFalse);
+  });
+
   group('required on entry', () {
     test('a new pass starts with who and where unstated', () {
       for (final id in ['pass_by', 'pass_through']) {
