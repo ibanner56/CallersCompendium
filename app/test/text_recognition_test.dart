@@ -364,6 +364,20 @@ void main() {
       expect(copy.existsSync(), isFalse);
     });
 
+    test('a copy reached through a link still matches', () async {
+      final (temp, copy) = await copyIn('app.bundle-Inbox/card.png');
+      final links = await Directory.systemTemp.createTemp('ocr-link');
+      addTearDown(() => links.delete(recursive: true));
+      final link = await Link(p.join(links.path, 'tmp')).create(temp.path);
+      final linked = p.join(link.path, 'app.bundle-Inbox', 'card.png');
+      await pickRecognitionImage(
+        open: () async => XFile(linked),
+        platform: TargetPlatform.iOS,
+        temporaryDirectory: temp,
+      );
+      expect(copy.existsSync(), isFalse);
+    });
+
     test('the copy is deleted even when reading it is refused', () async {
       final (temp, copy) = await copyIn(
         'app.bundle-Inbox/big.png',

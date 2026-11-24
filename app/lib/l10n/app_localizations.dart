@@ -14683,7 +14683,7 @@ abstract class AppLocalizations {
   /// **'Add figures'**
   String get figureTextSheetAdd;
 
-  /// Button in the Add figures from text sheet that opens the system picker to choose a picture (a photo of an index card or a book page) whose text is read on the device and put in the text box. Shown only on iOS, macOS and Windows.
+  /// Button in the Add figures from text sheet that opens the system picker to choose a picture (a photo of an index card or a book page) whose text is read on the device and put in the text box. Shown only on iOS and macOS.
   ///
   /// In en, this message translates to:
   /// **'From an image…'**

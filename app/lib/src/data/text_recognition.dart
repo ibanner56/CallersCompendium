@@ -113,8 +113,9 @@ class ChannelTextRecognitionService implements TextRecognitionService {
     } on MissingPluginException {
       // diagnostics: silent — no native recognizer here; the image path is hidden
       return TextRecognitionAvailability.none;
-    } on PlatformException {
-      // diagnostics: silent — the native query failed; the image path is hidden
+    } on PlatformException catch (e, stack) {
+      // The native query failed; the image path is shown as unavailable.
+      logCaughtErrorTypeOnly(e, stack, source: 'text_recognition.availability');
       return TextRecognitionAvailability.none;
     }
   }
@@ -291,9 +292,10 @@ Future<PickedRecognitionImage?> pickRecognitionImage({
   }
 }
 
-/// Deletes [path] when it lies in an `…-Inbox` folder directly inside
+/// Deletes [path] when it lies in an `…-Inbox` folder at the top of
 /// [temporaryDirectory] (on iOS, the app's tmp folder, where the
-/// document picker's import mode puts its copies).
+/// document picker's import mode puts its copies), links resolved on both
+/// sides.
 @visibleForTesting
 Future<void> deletePickerCopy(
   String path, {

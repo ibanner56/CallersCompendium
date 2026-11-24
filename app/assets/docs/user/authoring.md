@@ -290,8 +290,9 @@ the lines are then read exactly as typed text is.
   reaches the sheet. Nothing about the picture is saved with the dance, synced
   or backed up. A copy the picker makes for the app is deleted once read.
 - It reads the app's language and English. Where the device can't read the
-  app's language (Japanese needs a newer iOS or macOS), the sheet says so and
-  reads English.
+  app's language (some languages, such as Japanese, need a newer iOS or
+  macOS, and some aren't offered at all), the sheet says so and reads
+  English.
 - A picture over 25 MB, or over 10,000 pixels on a side or 50 million pixels
   in all, is refused before anything is read. Crop it or choose a smaller one.
 - Typed text reads best. Handwriting may come out wrong, so check each line.

@@ -232,6 +232,35 @@ final class TextRecognizerTests: XCTestCase {
     XCTAssertTrue(lines[1].contains("Long lines"), text)
   }
 
+  func testAPictureStoredSidewaysIsReadUpright() throws {
+    // Orientation 6: the stored pixels must turn 90° clockwise to display, so
+    // the upright card is drawn turned 90° counter-clockwise.
+    let upright = CGImageSourceCreateImageAtIndex(
+      CGImageSourceCreateWithData(
+        card(["A1 (8) Neighbor balance and swing", "A2 (8) Long lines"]) as CFData, nil)!,
+      0, nil)!
+    let context = CGContext(
+      data: nil, width: upright.height, height: upright.width, bitsPerComponent: 8,
+      bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+    context.translateBy(x: CGFloat(upright.height), y: 0)
+    context.rotate(by: .pi / 2)
+    context.draw(upright, in: CGRect(x: 0, y: 0, width: upright.width, height: upright.height))
+    let data = NSMutableData()
+    let destination = CGImageDestinationCreateWithData(
+      data as CFMutableData, "public.jpeg" as CFString, 1, nil)!
+    CGImageDestinationAddImage(
+      destination, context.makeImage()!,
+      [kCGImagePropertyOrientation: 6] as CFDictionary)
+    XCTAssertTrue(CGImageDestinationFinalize(destination))
+
+    let text = try TextRecognizer.recognize(data: data as Data, languages: ["en"])
+    let lines = text.split(separator: "\n").map(String.init)
+    XCTAssertEqual(lines.count, 2, text)
+    XCTAssertTrue(lines[0].contains("Neighbor balance"), text)
+    XCTAssertTrue(lines[1].contains("Long lines"), text)
+  }
+
   func testAPictureOverThePixelCapIsRefusedBeforeReading() {
     let context = CGContext(
       data: nil, width: TextRecognizer.maxSide + 1, height: 1, bitsPerComponent: 8,
