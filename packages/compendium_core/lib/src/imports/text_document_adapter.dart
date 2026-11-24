@@ -157,9 +157,11 @@ final RegExp _lineBreak = RegExp('\r\n|[\n\r\u2028\u2029\u0085]');
 /// one `#` heading, headings split it, and blank lines do not. Each `#`
 /// heading is a dance when there are several and they read as dances
 /// (details or figures straight under one, or no `##` headings, or `##`
-/// titles that repeat, as `## Figures` under each dance); a `##` heading under
-/// one is then a section of that dance and is left out, its lines kept.
-/// Otherwise each `##` heading is a dance. Headings are read by hand
+/// titles that repeat, as `## Figures` under each dance), and so is a single
+/// `#` heading with a detail or figure straight under it whose figures sit
+/// under at most one `##` heading; a `##` heading under a `#` dance is then a
+/// section of that dance and is left out, its lines kept. Otherwise each `##`
+/// heading is a dance. Headings are read by hand
 /// ([_parseHeading]), not with a regular expression that could backtrack on
 /// a long line.
 ///
@@ -204,6 +206,10 @@ List<TextDocumentDance> readTextDocument(String text) {
   var repeatedSecondLevel = false;
   var topHasContent = false;
   var underTop = false;
+  // `##` headings with a figure line under them, and whether the current
+  // `##` heading has one yet.
+  var secondWithFigures = 0;
+  var secondHasFigure = true;
   final secondTitles = <String>{};
   for (final l in lines) {
     final line = l.trim();
@@ -217,6 +223,7 @@ List<TextDocumentDance> readTextDocument(String text) {
         underTop = false;
         if (level == 2) {
           hasSecondLevel = true;
+          secondHasFigure = false;
           if (!secondTitles.add(title.toLowerCase())) {
             repeatedSecondLevel = true;
           }
@@ -226,6 +233,9 @@ List<TextDocumentDance> readTextDocument(String text) {
         line.isNotEmpty &&
         (_labelOf(line) != null || _isFigureLine(line))) {
       topHasContent = true;
+    } else if (!underTop && !secondHasFigure && _isFigureLine(line)) {
+      secondHasFigure = true;
+      secondWithFigures++;
     }
   }
   final byHeadings = hasSecondLevel || topHeadings > 1;
@@ -234,13 +244,17 @@ List<TextDocumentDance> readTextDocument(String text) {
   // one, or `##` titles that repeat, such as `## Figures` under each), or
   // one `#` heading with details or figures straight under it, so a `##`
   // under one is a section of that dance; else `##`, and a `#` is the file's
-  // title or a section of the file.
-  // A single `#` heading with details or figures straight under it, and
-  // `##` headings after, is one dance in parts.
+  // title or a section of the file. A lone `#` heading is one dance in
+  // parts only when figures sit under at most one `##` heading (`## Figures`):
+  // `##` headings that each hold figures are dances under a file title, even
+  // one with an `Author:` line under it.
   final danceLevel =
       (topHeadings > 1 &&
               (!hasSecondLevel || repeatedSecondLevel || topHasContent)) ||
-          (topHeadings == 1 && hasSecondLevel && topHasContent)
+          (topHeadings == 1 &&
+              hasSecondLevel &&
+              topHasContent &&
+              secondWithFigures <= 1)
       ? 1
       : 2;
   final blocks = <_Block>[];

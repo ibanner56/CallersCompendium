@@ -392,7 +392,8 @@ How the file is read:
   parts under it (`## Figures`, `## Notes`), the `##` headings are parts of
   that dance, and their lines come in with it. In a file with one such dance,
   put at least one detail (`Formation: Improper`) straight under its `#`
-  heading, so it reads as one dance rather than a title over `##` dances. If the dances are `##`
+  heading and keep its figures under one `##` heading, so it reads as one
+  dance rather than a title over `##` dances. If the dances are `##`
   headings, a `#` heading with no figures under it, such as `# My dances` at
   the top or `# Squares` above a group, is a title for the file and is left
   out with the text under it.

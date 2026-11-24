@@ -173,6 +173,18 @@ void main() {
       expect(dance.notes, ['Watch it.']);
     });
 
+    test('a # file title with a detail, above ## dances that each have '
+        'figures, is left out', () {
+      final dances = readTextDocument(
+        '# My dances\nAuthor: Jane Smith\n\n## Chorus Jig\n(8) Swing\n\n'
+        '## Petronella\nFormation: Improper\n(8) Balance\n',
+      );
+      expect([for (final d in dances) d.title], ['Chorus Jig', 'Petronella']);
+      expect(dances.first.figureLines, ['(8) Swing']);
+      expect(dances.last.labels, const [('Formation', 'Improper')]);
+      expect(dances.last.figureLines, ['(8) Balance']);
+    });
+
     test('# sections of a file with ## dances are left out', () {
       final dances = readTextDocument(
         '# Contras\n\n## Chorus Jig\n(8) Swing\n\n# Squares\n\n'
