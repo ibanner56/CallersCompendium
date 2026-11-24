@@ -55,6 +55,15 @@ abstract final class SyncCapabilities {
   /// keep the key without using it; it waits so a peer never holds a setting
   /// it cannot show or edit.
   static const String performSwapV1 = 'performSwap.v1';
+
+  /// Event rules (#2340): every `eventRule` record and the Experimental
+  /// Event rules toggle (`event_rules_enabled`). An older build has no
+  /// `event_rules` table, so it could only keep such a record whole without
+  /// using it; they wait so a peer never holds a rule it cannot show, edit or
+  /// check. A program's applied rule ids (`eventRuleIds`) are not gated:
+  /// they are a top-level field of the `program` record, which an older build
+  /// keeps as a kept part (sync-spec §6.7).
+  static const String eventRulesV1 = 'eventRules.v1';
 }
 
 /// What this build understands and what it holds back until every attached
@@ -126,6 +135,11 @@ final class SyncCapabilityPolicy {
   ///
   /// [SyncCapabilities.performSwapV1] (#2346) gates the Swap a dance
   /// defaults, and this build advertises it.
+  ///
+  /// [SyncCapabilities.eventRulesV1] (#2340) gates the caller's event rules
+  /// and their toggle, and this build advertises it. The sync server must
+  /// already accept the `eventRule` record kind: deploy it before the first
+  /// build that advertises this (sync-spec §6.15).
   static const SyncCapabilityPolicy build = SyncCapabilityPolicy(
     advertised: {
       SyncCapabilities.glossaryV1,
@@ -134,10 +148,12 @@ final class SyncCapabilityPolicy {
       SyncCapabilities.savedSearchesV1,
       SyncCapabilities.suggestionsV1,
       SyncCapabilities.performSwapV1,
+      SyncCapabilities.eventRulesV1,
     },
     gatedRecordKinds: {
       SyncRecordKind.glossaryEntry: SyncCapabilities.glossaryV1,
       SyncRecordKind.figureNote: SyncCapabilities.glossaryV1,
+      SyncRecordKind.eventRule: SyncCapabilities.eventRulesV1,
     },
     gatedSettingKeys: {
       'show_custom_figures': SyncCapabilities.glossaryV1,
@@ -149,6 +165,7 @@ final class SyncCapabilityPolicy {
       'suggestion_settings': SyncCapabilities.suggestionsV1,
       'suggestions_in_perform_swap': SyncCapabilities.suggestionsV1,
       'perform_swap_defaults': SyncCapabilities.performSwapV1,
+      'event_rules_enabled': SyncCapabilities.eventRulesV1,
     },
     gatedSettingKeyPrefixes: {
       'program_template:': SyncCapabilities.programTemplatesV1,

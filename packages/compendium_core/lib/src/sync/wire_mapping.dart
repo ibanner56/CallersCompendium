@@ -118,6 +118,7 @@ const _programFields = [
   ]),
   SyncWireField('calendarWrittenAt', ['programs.calendar_written_at']),
   SyncWireField('calendarFlag', ['programs.calendar_flag']),
+  SyncWireField('eventRuleIds', ['programs.event_rule_ids']),
   SyncWireField('slots', []),
   SyncWireField('slots.id', ['program_slots.id']),
   SyncWireField('slots.position', ['program_slots.position']),
@@ -241,6 +242,17 @@ const _figureNoteFields = [
   SyncWireField('notes', ['figure_notes.notes']),
 ];
 
+// The caller's event rules (#2340); see `sync_event_rule_body.dart`.
+const _eventRuleFields = [
+  SyncWireField('id', ['event_rules.id']),
+  SyncWireField('savedSearchId', ['event_rules.saved_search_id']),
+  SyncWireField('quantifier', ['event_rules.quantifier']),
+  SyncWireField('count', ['event_rules.count']),
+  SyncWireField('scope', ['event_rules.scope']),
+  SyncWireField('name', ['event_rules.name']),
+  SyncWireField('position', ['event_rules.position']),
+];
+
 const _settingFields = [
   SyncWireField('id', ['settings.key']),
   SyncWireField('value', ['settings.value_json']),
@@ -269,6 +281,7 @@ const Map<SyncRecordKind, List<SyncWireField>> syncWireFields = {
   SyncRecordKind.setting: _settingFields,
   SyncRecordKind.glossaryEntry: _glossaryEntryFields,
   SyncRecordKind.figureNote: _figureNoteFields,
+  SyncRecordKind.eventRule: _eventRuleFields,
 };
 
 /// Shareable source fields represented by metadata outside an archive body or by
@@ -282,6 +295,9 @@ const Set<String> syncWireMappingExceptions = {
   'figure_notes.updated_at',
   'figure_notes.deleted_at',
   'figure_notes.existence_at',
+  'event_rules.updated_at',
+  'event_rules.deleted_at',
+  'event_rules.existence_at',
   'dances.existence_at',
   'choreographers.updated_at',
   'choreographers.deleted_at',

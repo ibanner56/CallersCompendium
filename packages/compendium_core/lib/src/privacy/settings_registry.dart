@@ -142,6 +142,8 @@ final Map<String, DataClassification> settingsClassifications = {
   // Suggested sort looks for; and whether Perform's swap sheet orders by it
   // (#2348).
   'suggestions_enabled': _preference,
+  // Experimental Event rules (#2340): the toggle.
+  'event_rules_enabled': _preference,
   'suggestions_in_perform_swap': _preference,
   'suggestion_settings': const DataClassification(
     term: DpvTerm.nonPersonal,

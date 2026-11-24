@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/src/serialization/archive_entity_codec.dart';
+import 'package:compendium_core/src/sync/sync_event_rule_body.dart';
 import 'package:compendium_core/src/sync/sync_glossary_body.dart';
 import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
@@ -28,6 +29,7 @@ const _entityKinds = <SyncRecordKind>[
   SyncRecordKind.venue,
   SyncRecordKind.glossaryEntry,
   SyncRecordKind.figureNote,
+  SyncRecordKind.eventRule,
 ];
 
 /// Every registry column the entity kinds map a wire path to.
@@ -127,6 +129,7 @@ void main() {
         fixture.glossaryEntry(),
       ),
       SyncRecordKind.figureNote: syncFigureNoteBody(fixture.figureNote()),
+      SyncRecordKind.eventRule: syncEventRuleBody(fixture.eventRule()),
     };
     for (final MapEntry(key: kind, value: body) in glossaryBodies.entries) {
       final paths = _wirePaths(kind, body);
@@ -629,6 +632,10 @@ Map<SyncRecordKind, Map<String, Object?>> _bodies(
       SyncRecordKind.figureNote,
       fixture.figureNote(),
     ),
+    SyncRecordKind.eventRule: body(
+      SyncRecordKind.eventRule,
+      fixture.eventRule(),
+    ),
   };
 }
 
@@ -678,6 +685,7 @@ Map<String, Object?> _archiveBody(SyncRecordKind kind, Object entity) =>
         entity as StoredUserGlossaryEntry,
       ),
       SyncRecordKind.figureNote => syncFigureNoteBody(entity as FigureNote),
+      SyncRecordKind.eventRule => syncEventRuleBody(entity as EventRule),
       SyncRecordKind.setting => throw StateError('settings have no entity'),
     };
 
@@ -788,6 +796,7 @@ Future<Map<String, List<Object?>>> _storedColumns(_Fixture fixture) async {
     // The glossary's sync writers, which store an entry as it arrives.
     await UserGlossaryRepository(db).writeFromSync(fixture.glossaryEntry());
     await FigureNoteRepository(db).writeFromSync(fixture.figureNote());
+    await EventRuleRepository(db).writeFromSync(fixture.eventRule());
 
     final stored = <String, List<Object?>>{};
     for (final column in _inScopeColumns) {
@@ -917,6 +926,10 @@ const _valuePairs = <String, List<Object?>>{
   'venue_provenance.imported_at': _earlier,
   'user_glossary_entries.created_at': _earlier,
   'user_glossary_entries.payload_json': ['{"seed":1}', '{"seed":2}'],
+  'event_rules.quantifier': ['atMost', 'atLeast'],
+  'event_rules.count': [2, 3],
+  'event_rules.scope': ['wholeProgram', 'neighbouring'],
+  'event_rules.position': [0, 1],
 };
 
 const _earlier = ['2031-01-05T00:00:00.000Z', '2032-02-06T00:00:00.000Z'];
@@ -1213,6 +1226,7 @@ class _Fixture {
     deletedAt: _date('programs.deleted_at'),
     archivedAt: _date('programs.archived_at'),
     calendarEventKey: _str('programs.calendar_event_key'),
+    eventRuleIds: [_str('programs.event_rule_ids')],
     calendarEventFingerprint: _str('programs.calendar_event_fingerprint'),
     calendarWrittenAt: _date('programs.calendar_written_at'),
     calendarFlag: _str('programs.calendar_flag'),
@@ -1233,6 +1247,16 @@ class _Fixture {
   FigureNote figureNote() => FigureNote(
     figureId: _str('figure_notes.figure_id'),
     notes: _str('figure_notes.notes'),
+  );
+
+  EventRule eventRule() => EventRule(
+    id: _str('event_rules.id'),
+    savedSearchId: _str('event_rules.saved_search_id'),
+    quantifierName: _str('event_rules.quantifier'),
+    count: _int('event_rules.count'),
+    scopeName: _str('event_rules.scope'),
+    name: _str('event_rules.name'),
+    position: _int('event_rules.position'),
   );
 
   Venue venue() => Venue(

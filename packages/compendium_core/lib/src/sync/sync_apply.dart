@@ -942,6 +942,9 @@ int syncApplyKindOrder(SyncRecordKind kind) => switch (kind) {
   // §6.15, "Self-contained data").
   SyncRecordKind.glossaryEntry => 9,
   SyncRecordKind.figureNote => 10,
+  // An event rule cites a saved search, a setting, by id; a missing one is
+  // shown as needing attention, so it need not apply first (#2340).
+  SyncRecordKind.eventRule => 11,
 };
 
 DateTime _syncNowUtc() => DateTime.now().toUtc();

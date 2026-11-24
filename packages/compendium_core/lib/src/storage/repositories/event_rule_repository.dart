@@ -241,21 +241,25 @@ class EventRuleRepository {
     position: row.position,
   );
 
-  EventRulesCompanion _companion(EventRule rule, DateTime now) =>
-      EventRulesCompanion.insert(
-        id: rule.id,
-        savedSearchId: normalizeShareableText(rule.savedSearchId),
-        quantifier: normalizeShareableText(rule.quantifierName),
-        count: Value(rule.count),
-        scope: normalizeShareableText(rule.scopeName),
-        name: Value(_name(rule.name)),
-        position: Value(rule.position),
-        updatedAt: Value(now),
-      );
+  EventRulesCompanion _companion(EventRule rule, DateTime now) {
+    final name = _name(rule.name);
+    return EventRulesCompanion.insert(
+      id: rule.id,
+      savedSearchId: normalizeShareableText(rule.savedSearchId),
+      quantifier: normalizeShareableText(rule.quantifierName),
+      count: Value(rule.count),
+      scope: normalizeShareableText(rule.scopeName),
+      name: Value(name == null ? null : normalizeShareableText(name)),
+      position: Value(rule.position),
+      updatedAt: Value(now),
+    );
+  }
 
+  /// A typed name with invisible characters and edge spaces removed, or null
+  /// when nothing is left.
   static String? _name(String? name) {
     if (name == null) return null;
-    final text = normalizeShareableText(sanitizeShareableText(name).trim());
+    final text = sanitizeShareableText(name).trim();
     return text.isEmpty ? null : text;
   }
 

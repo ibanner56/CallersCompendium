@@ -140,6 +140,18 @@ void main() {
           SyncRecordKind.figureNote,
           const FigureNote(figureId: 'swing', notes: 'Smooth.'),
         ),
+        // A rule a newer build wrote, its quantifier and scope kept as text.
+        _blob(
+          SyncRecordKind.eventRule,
+          const EventRule(
+            id: 'rule-1',
+            savedSearchId: 'search-1',
+            quantifierName: 'exactly',
+            count: 1,
+            scopeName: 'lastHour',
+            name: 'Later',
+          ),
+        ),
         // A setting this build does not sync, kept whole.
         SyncRecordBlob(
           kind: SyncRecordKind.setting,

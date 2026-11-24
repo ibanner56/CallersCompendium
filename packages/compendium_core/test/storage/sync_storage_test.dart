@@ -7291,6 +7291,7 @@ void main() {
         case SyncRecordKind.setting:
         case SyncRecordKind.glossaryEntry:
         case SyncRecordKind.figureNote:
+        case SyncRecordKind.eventRule:
           throw StateError('unsupported test kind: $kind');
       }
     }
@@ -7337,7 +7338,8 @@ void main() {
         SyncRecordKind.venue ||
         SyncRecordKind.setting ||
         SyncRecordKind.glossaryEntry ||
-        SyncRecordKind.figureNote => throw StateError('unsupported test kind'),
+        SyncRecordKind.figureNote ||
+        SyncRecordKind.eventRule => throw StateError('unsupported test kind'),
       };
       return SyncRecordBlob(
         kind: kind,
@@ -7399,6 +7401,7 @@ void main() {
         case SyncRecordKind.setting:
         case SyncRecordKind.glossaryEntry:
         case SyncRecordKind.figureNote:
+        case SyncRecordKind.eventRule:
           throw StateError('unsupported test kind: $kind');
       }
     }
@@ -7440,6 +7443,7 @@ void main() {
         case SyncRecordKind.setting:
         case SyncRecordKind.glossaryEntry:
         case SyncRecordKind.figureNote:
+        case SyncRecordKind.eventRule:
           throw StateError('unsupported test kind: $kind');
       }
     }

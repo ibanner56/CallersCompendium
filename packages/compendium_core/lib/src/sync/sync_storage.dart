@@ -11,6 +11,7 @@ import '../model/tunes_source.dart';
 import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/difficulty_level.dart';
+import '../model/event_rule.dart';
 import '../model/provenance.dart';
 import '../model/published_source.dart';
 import '../model/program.dart';
@@ -27,6 +28,7 @@ import '../storage/existence.dart';
 import '../storage/reference_rewrite.dart';
 import '../storage/repositories/repositories.dart';
 import '../storage/repositories/custom_field_repository.dart';
+import '../storage/repositories/event_rule_repository.dart';
 import '../storage/repositories/sync_local_repository.dart';
 import '../storage/repositories/user_glossary_repository.dart';
 import '../storage/shareable_text.dart';
@@ -791,6 +793,20 @@ final class CompendiumSyncStorage
         kind: SyncRecordKind.figureNote,
         id: row.figureId,
         entity: FigureNoteRepository.fromRow(row),
+        updatedAt: row.updatedAt ?? row.existenceAt ?? _epoch,
+        existenceAt: row.existenceAt ?? row.updatedAt ?? _epoch,
+        deletedAt: row.deletedAt,
+      );
+    }
+
+    // The caller's event rules (#2340): read from the rows, so a rule a newer
+    // build wrote is published exactly as stored.
+    final eventRuleRows = await _db.select(_db.eventRules).get();
+    for (final row in eventRuleRows) {
+      await addEntity(
+        kind: SyncRecordKind.eventRule,
+        id: row.id,
+        entity: EventRuleRepository.fromRow(row),
         updatedAt: row.updatedAt ?? row.existenceAt ?? _epoch,
         existenceAt: row.existenceAt ?? row.updatedAt ?? _epoch,
         deletedAt: row.deletedAt,
@@ -1590,6 +1606,7 @@ final class CompendiumSyncStorage
         case SyncRecordKind.setting:
         case SyncRecordKind.glossaryEntry:
         case SyncRecordKind.figureNote:
+        case SyncRecordKind.eventRule:
           return false;
       }
     }
@@ -1700,6 +1717,9 @@ final class CompendiumSyncStorage
       // figures when a dance is saved, recording no origin (§6.15).
       case SyncRecordKind.glossaryEntry:
       case SyncRecordKind.figureNote:
+      // Nothing cites an event rule but a program's applied ids, a soft
+      // reference that an id with no rule leaves harmless (#2340).
+      case SyncRecordKind.eventRule:
         return false;
     }
   }
@@ -1829,6 +1849,10 @@ final class CompendiumSyncStorage
         return (await (_db.select(
           _db.figureNotes,
         )..where((t) => t.figureId.equals(id))).getSingleOrNull())?.updatedAt;
+      case SyncRecordKind.eventRule:
+        return (await (_db.select(
+          _db.eventRules,
+        )..where((t) => t.id.equals(id))).getSingleOrNull())?.updatedAt;
     }
   }
 
@@ -3118,6 +3142,7 @@ final class CompendiumSyncStorage
       case SyncRecordKind.setting:
       case SyncRecordKind.glossaryEntry:
       case SyncRecordKind.figureNote:
+      case SyncRecordKind.eventRule:
         throw const SyncReviewException(
           SyncReviewFailureCode.unsupportedReason,
         );
@@ -3168,6 +3193,7 @@ final class CompendiumSyncStorage
         address.recordId,
       ),
       SyncRecordKind.figureNote => await _readFigureNoteBody(address.recordId),
+      SyncRecordKind.eventRule => await _readEventRuleBody(address.recordId),
       SyncRecordKind.setting => throw StateError('handled above'),
     };
     return body;
@@ -3237,6 +3263,7 @@ final class CompendiumSyncStorage
           _db.figureNotes,
           _db.figureNotes.figureId,
         ),
+        SyncRecordKind.eventRule => (_db.eventRules, _db.eventRules.id),
         SyncRecordKind.setting => (_db.settings, _db.settings.key),
       };
       for (final chunk in _chunked(ids, 500)) {
@@ -3483,6 +3510,19 @@ final class CompendiumSyncStorage
                 kind,
                 row.figureId,
                 FigureNoteRepository.fromRow(row),
+                updatedAt: row.updatedAt,
+                existenceAt: row.existenceAt,
+                deletedAt: row.deletedAt,
+              );
+            }
+          case SyncRecordKind.eventRule:
+            for (final row in await (_db.select(
+              _db.eventRules,
+            )..where((table) => table.id.isIn(chunk))).get()) {
+              add(
+                kind,
+                row.id,
+                EventRuleRepository.fromRow(row),
                 updatedAt: row.updatedAt,
                 existenceAt: row.existenceAt,
                 deletedAt: row.deletedAt,
@@ -4729,6 +4769,7 @@ final class CompendiumSyncStorage
       case SyncRecordKind.setting:
       case SyncRecordKind.glossaryEntry:
       case SyncRecordKind.figureNote:
+      case SyncRecordKind.eventRule:
         return null;
     }
   }
@@ -4795,6 +4836,7 @@ final class CompendiumSyncStorage
       case SyncRecordKind.setting:
       case SyncRecordKind.glossaryEntry:
       case SyncRecordKind.figureNote:
+      case SyncRecordKind.eventRule:
         break;
     }
     return null;
@@ -5036,6 +5078,7 @@ final class CompendiumSyncStorage
       case SyncRecordKind.setting:
       case SyncRecordKind.glossaryEntry:
       case SyncRecordKind.figureNote:
+      case SyncRecordKind.eventRule:
         return null;
     }
   }
@@ -5538,6 +5581,7 @@ final class CompendiumSyncStorage
       case SyncRecordKind.setting:
       case SyncRecordKind.glossaryEntry:
       case SyncRecordKind.figureNote:
+      case SyncRecordKind.eventRule:
         return;
     }
     await rewriteLocalReferences(_db, kind, losingId, survivingId);
@@ -5578,6 +5622,7 @@ final class CompendiumSyncStorage
       case SyncRecordKind.setting:
       case SyncRecordKind.glossaryEntry:
       case SyncRecordKind.figureNote:
+      case SyncRecordKind.eventRule:
         return;
     }
   }
@@ -5821,6 +5866,11 @@ final class CompendiumSyncStorage
           entityToWrite as FigureNote,
           at: record.updatedAt,
         );
+      case SyncRecordKind.eventRule:
+        await repositories.eventRules.writeFromSync(
+          entityToWrite as EventRule,
+          at: record.updatedAt,
+        );
       case SyncRecordKind.setting:
         throw StateError('settings are handled above');
     }
@@ -5877,6 +5927,7 @@ final class CompendiumSyncStorage
       case SyncRecordKind.venue:
       case SyncRecordKind.glossaryEntry:
       case SyncRecordKind.figureNote:
+      case SyncRecordKind.eventRule:
         throw StateError('unexpected non-parent sync kind: $kind');
     }
     return prepared.report;
@@ -5910,6 +5961,7 @@ final class CompendiumSyncStorage
       case SyncRecordKind.setting:
       case SyncRecordKind.glossaryEntry:
       case SyncRecordKind.figureNote:
+      case SyncRecordKind.eventRule:
         return null;
     }
   }
@@ -5960,6 +6012,7 @@ final class CompendiumSyncStorage
       case SyncRecordKind.setting:
       case SyncRecordKind.glossaryEntry:
       case SyncRecordKind.figureNote:
+      case SyncRecordKind.eventRule:
         return;
     }
     _deferredEntities.remove(address);
@@ -6003,6 +6056,7 @@ final class CompendiumSyncStorage
       case SyncRecordKind.venue:
       case SyncRecordKind.glossaryEntry:
       case SyncRecordKind.figureNote:
+      case SyncRecordKind.eventRule:
         return null;
     }
     await _restoreTimestamps(
@@ -6175,6 +6229,7 @@ final class CompendiumSyncStorage
         case SyncRecordKind.venue:
         case SyncRecordKind.setting:
         case SyncRecordKind.figureNote:
+        case SyncRecordKind.eventRule:
           break;
       }
     }
@@ -6971,6 +7026,18 @@ final class CompendiumSyncStorage
           );
   }
 
+  Future<Map<String, Object?>?> _readEventRuleBody(String id) async {
+    final row = await (_db.select(
+      _db.eventRules,
+    )..where((table) => table.id.equals(id))).getSingleOrNull();
+    return row == null
+        ? null
+        : syncBodyForEntity(
+            SyncRecordKind.eventRule,
+            EventRuleRepository.fromRow(row),
+          );
+  }
+
   Object _decodeEntity(SyncRecordKind kind, Map<String, Object?> body) {
     return decodeSyncRecordEntity(kind, body);
   }
@@ -7114,6 +7181,16 @@ final class CompendiumSyncStorage
             existenceAt: Value(existenceAt),
           ),
         );
+      case SyncRecordKind.eventRule:
+        await (_db.update(
+          _db.eventRules,
+        )..where((row) => row.id.equals(id))).write(
+          EventRulesCompanion(
+            updatedAt: Value(effectiveUpdatedAt),
+            deletedAt: Value(deletedAt),
+            existenceAt: Value(existenceAt),
+          ),
+        );
     }
   }
 
@@ -7164,6 +7241,10 @@ final class CompendiumSyncStorage
               _db.figureNotes,
             )..where((row) => row.figureId.equals(id))).getSingleOrNull())
             ?.updatedAt;
+      case SyncRecordKind.eventRule:
+        return (await (_db.select(
+          _db.eventRules,
+        )..where((row) => row.id.equals(id))).getSingleOrNull())?.updatedAt;
     }
   }
 

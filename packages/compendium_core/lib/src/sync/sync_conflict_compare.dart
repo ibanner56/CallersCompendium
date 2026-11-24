@@ -285,6 +285,8 @@ Set<String>? syncUserVisibleFields(SyncRecordKind kind) => switch (kind) {
     'arrivalMinute',
     // Shown on the Programs list and the summary (#2354).
     'calendarFlag',
+    // Shown by the builder's Rules control (#2340).
+    'eventRuleIds',
   },
   SyncRecordKind.choreographer => const {'name', 'website', 'notes'},
   SyncRecordKind.tag => const {'name', 'color'},
@@ -309,6 +311,15 @@ Set<String>? syncUserVisibleFields(SyncRecordKind kind) => switch (kind) {
     'payload',
   },
   SyncRecordKind.figureNote => const {'notes'},
+  // An event rule (#2340), as the rules manager shows it: its sentence and
+  // name. Its place in the list is not shown as a field.
+  SyncRecordKind.eventRule => const {
+    'savedSearchId',
+    'quantifier',
+    'count',
+    'scope',
+    'name',
+  },
   SyncRecordKind.publishedSource ||
   SyncRecordKind.customFieldDef ||
   SyncRecordKind.difficultyLevel ||
@@ -380,6 +391,12 @@ Map<String, String> syncUserHiddenFields(SyncRecordKind kind) => switch (kind) {
   SyncRecordKind.difficultyLevel ||
   SyncRecordKind.setting ||
   SyncRecordKind.figureNote => const {},
+  SyncRecordKind.eventRule => const {
+    'position':
+        'Where the rule sits in the rules manager\'s list. The list shows '
+        'the order, not a number, so two versions that differ only in it are '
+        'settled without asking. Hidden by the implementer in #2340.',
+  },
 };
 
 /// What a person can see of a [kind] record's [body]: its

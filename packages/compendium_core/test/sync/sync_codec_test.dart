@@ -81,6 +81,18 @@ void main() {
           updatedAt: _stamp,
           existenceAt: _stamp,
         )!,
+        syncRecordBlobForEntity(
+          SyncRecordKind.eventRule,
+          EventRule.of(
+            id: 'r1',
+            savedSearchId: 's1',
+            quantifier: EventRuleQuantifier.atMost,
+            count: 4,
+            scope: EventRuleScope.wholeProgram,
+          ),
+          updatedAt: _stamp,
+          existenceAt: _stamp,
+        )!,
         SyncSettingsRecord(
           key: 'custom_dialects',
           value: null,
