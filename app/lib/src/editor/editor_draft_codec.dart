@@ -711,6 +711,8 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
     },
     // Additive/tolerant (#460): absent or non-bool → not assumed.
     assumedSubject: m['assumedSubject'] == true,
+    // Additive/tolerant (taxonomy v40): absent or non-bool → loaded, not new.
+    enteredNew: m['enteredNew'] == true,
     // Additive/tolerant (#419): only the string 'importGap' flags a parser-gap
     // custom; any other/absent/garbage value decodes as the userEntered default.
     customOrigin: m['customOrigin'] == 'importGap'
@@ -776,6 +778,7 @@ Map<String, Object?> _figureDraftJson(FigureDraftSnapshot draft) {
         draft.params['beats'] is int)
       'spanStated': true,
     if (draft.assumedSubject) 'assumedSubject': true,
+    if (draft.enteredNew) 'enteredNew': true,
     if (draft.customOrigin == CustomOrigin.importGap)
       'customOrigin': 'importGap',
     if (draft.walkthroughOverride != null &&

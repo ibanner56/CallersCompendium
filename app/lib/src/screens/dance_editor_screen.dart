@@ -515,6 +515,21 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       });
       return;
     }
+    // A figure entered in this edit that leaves a required param unstated
+    // (taxonomy v40: a pass by's or pass through's who and where) says so on
+    // its card; the dance waits until it is filled in.
+    if (_controller.figuresMissingRequiredParams.isNotEmpty) {
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          key: const ValueKey('save-needs-figure-values'),
+          content: Text(
+            AppLocalizations.of(context).danceEditorSaveNeedsFigureValues,
+          ),
+        ),
+      );
+      return;
+    }
     setState(() => _saving = true);
     final Dance dance;
     try {

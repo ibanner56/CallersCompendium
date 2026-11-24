@@ -2177,6 +2177,43 @@ void main() {
         final f = Figure(move: 'rory_o_more', params: {'balance': false});
         expect(renderer.renderSummary(f, d), renderer.render(f, d));
       });
+      test('rory_o_more twoPlaces names who slides across (v40)', () {
+        final f = Figure(
+          move: 'rory_o_more',
+          params: {'slide': 'left', 'twoPlaces': 'role2s'},
+        );
+        expect(
+          renderer.renderSummary(f, d),
+          "balance & Rory O'More left, role2s 2 places",
+        );
+        expect(
+          renderer.renderSummary(f, Dialect.larksRobins),
+          "balance & Rory O'More left, robins 2 places",
+        );
+        expect(
+          renderer.renderSummary(
+            Figure(move: 'rory_o_more', params: {'twoPlaces': 'ends'}),
+            d,
+          ),
+          "balance & Rory O'More right, ends 2 places",
+        );
+        // Display-only: the canonical (search/dedupe) text is the line a
+        // figure without it has, so no stored canonical text changes.
+        expect(
+          renderer.renderCanonical(f),
+          renderer.renderCanonical(
+            Figure(move: 'rory_o_more', params: {'slide': 'left'}),
+          ),
+        );
+        // The unstated default adds nothing.
+        expect(
+          renderer.renderSummary(
+            Figure(move: 'rory_o_more', params: {'twoPlaces': 'unspecified'}),
+            d,
+          ),
+          "balance & Rory O'More right",
+        );
+      });
       test('box_circulate (leading) surfaces balance when set', () {
         final f = Figure(move: 'box_circulate', params: {'balance': true});
         expect(

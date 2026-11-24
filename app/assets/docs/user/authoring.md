@@ -278,21 +278,28 @@ added: add it in parts.
 
 #### Read the figures from a picture
 
-On iPhone, iPad and Mac, **From an image…** in the same sheet reads the text of
-a picture you choose, such as a photo of an index card or a page of a book, and
-puts it in the box in place of what is there. Check it and correct it there:
-the lines are then read exactly as typed text is.
+On iPhone, iPad, Mac and Windows, **From an image…** in the same sheet reads
+the text of a picture you choose, such as a photo of an index card or a page
+of a book, and puts it in the box in place of what is there. Check it and
+correct it there: the lines are then read exactly as typed text is.
 
 - The picture is read **on your device**, by the text recognition built into
-  iOS and macOS. Nothing is sent anywhere, and nothing is downloaded to read
-  it.
+  iOS, macOS and Windows. Nothing is sent anywhere, and nothing is downloaded
+  to read it.
 - **The picture is not kept.** It is read once and let go; only the text
   reaches the sheet. Nothing about the picture is saved with the dance, synced
   or backed up. A copy the picker makes for the app is deleted once read.
 - It reads the app's language and English. Where the device can't read the
   app's language (some languages, such as Japanese, need a newer iOS or
   macOS, and some aren't offered at all), the sheet says so and reads
-  English.
+  English. Windows reads one language at a time: the app's language when its
+  language pack is installed in Windows Settings, otherwise English. The app
+  never installs one. If neither is installed, **From an image…** stays off
+  and the sheet says why.
+- On Windows, HEIC photos (the format iPhones save in) can be read only once
+  the HEIF and HEVC extensions from the Microsoft Store are installed;
+  otherwise the sheet says the device can't open it. A JPEG or PNG always
+  works.
 - A picture over 25 MB, or over 10,000 pixels on a side or 50 million pixels
   in all, is refused before anything is read. Crop it or choose a smaller one.
 - Typed text reads best. Handwriting may come out wrong, so check each line.
@@ -305,8 +312,8 @@ deleted as soon as its text has been read, or straight away if reading fails,
 and it is never added to your photo library. If you said no to the camera, you
 can turn it on again in the Settings app, under **Caller's Compendium**.
 
-**From an image…** isn't offered on Android, Windows or Linux, and **Take a
-photo** is only on iPhone and iPad: you can still type or paste the figures.
+**From an image…** isn't offered on Android or Linux, and **Take a photo** is
+only on iPhone and iPad: you can still type or paste the figures.
 
 ### Figure shorthands
 
@@ -419,6 +426,13 @@ full amount. One saved by an earlier version as "other" with no amount reads
 `an unstated amount of figure 8` and asks you to choose the amount; nothing is
 filled in for you. Your own figures and the per-figure defaults in Settings
 don't offer "other", because they have no amount to go with it.
+
+**Pass by** and **pass through** are one figure under two names, and both are
+in the move list. Each says who passes, in which direction, by which shoulder,
+and its beats; **Pass type** under **More options** switches between the two.
+When you add one to a dance, choose who passes and the direction before you save: until
+you do, the figure says so under its fields and the dance doesn't save. A pass
+saved earlier, or imported, with either one unstated saves as it is.
 
 A figure 8 also has a **Double** switch. Turned on, the first pair leads the
 figure 8 and the other pair casts the mirror way round the outside, as in
@@ -769,7 +783,11 @@ a wider screen. If **Save** finds a mistake in one of its fields, it opens to
 show you. Inside, fields sit side by side where there is room and one under
 another where there is not.
 
-- **Title** — required.
+- **Title** — required. On a new dance, the keyboard's **Next** (or Enter)
+  takes you straight to the figures: it opens the first figure still to
+  fill, ready for you to type its move, or starts the first one. On a dance
+  you're editing, or a new one whose figures are all set, the key is
+  **Done**.
 - **Authors** — the [author](./glossary.md#author) or authors of the dance.
   Tap the field to open the list of people: check each author, type in the
   search box to narrow the list, or choose **Create** to add someone new. The

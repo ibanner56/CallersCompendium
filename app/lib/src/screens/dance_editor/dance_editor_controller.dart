@@ -17,6 +17,7 @@ import '../../editor/editor_draft_codec.dart';
 import '../../editor/editor_snapshot.dart';
 import '../../editor/editor_undo_stack.dart';
 import '../../editor/figure_draft.dart';
+import '../../editor/figure_entry_controller.dart';
 import '../../editor/free_text_composer_controller.dart';
 import '../../editor/pending_move_text_controller.dart';
 import '../../editor/user_figure_draft.dart';
@@ -682,6 +683,9 @@ class DanceEditorController extends ChangeNotifier {
   /// The figure list's free-text composer (#419), so a line still in its box
   /// counts as unsaved ([dirty]) and Save can add it first.
   final freeTextComposer = FreeTextComposerController();
+
+  /// The figure list's way in from the Title field ([FigureEntryController]).
+  final figureEntry = FigureEntryController();
 
   /// The figure list's Move boxes (AUTH-1), so a move name or shorthand typed
   /// into one and not yet applied counts as unsaved ([dirty]) and Save can
@@ -2453,8 +2457,10 @@ class DanceEditorController extends ChangeNotifier {
           figure,
           taxonomy,
           moveParamDefaults: moveParamDefaults,
+          requireStatedParams: true,
         ),
     ];
+    _markEnteredNew(inserted);
     figureDrafts.addAll(inserted);
     _renderDraftTextRecursively(inserted);
     recomputeWarnings();
@@ -2480,8 +2486,10 @@ class DanceEditorController extends ChangeNotifier {
           figure,
           taxonomy,
           moveParamDefaults: moveParamDefaults,
+          requireStatedParams: true,
         ),
     ];
+    _markEnteredNew(inserted);
     figureDrafts.replaceRange(index, index + 1, inserted);
     _renderDraftTextRecursively(inserted);
     FigureDraft.carryRowExtras(draft, inserted);
@@ -2533,10 +2541,50 @@ class DanceEditorController extends ChangeNotifier {
           figure,
           taxonomy,
           moveParamDefaults: moveParamDefaults,
+          requireStatedParams: true,
         ),
     ];
+    _markEnteredNew(drafts);
     _renderDraftTextRecursively(drafts);
     return drafts;
+  }
+
+  /// Marks [drafts], and every figure inside a group among them, as entered
+  /// in this edit ([FigureDraft.enteredNew]): a typed line is new entry, so
+  /// its figures must state their required params before the dance saves.
+  static void _markEnteredNew(Iterable<FigureDraft> drafts) {
+    for (final draft in drafts) {
+      draft.enteredNew = true;
+      _markEnteredNew(draft.meanwhileSides ?? const []);
+      _markEnteredNew(draft.modifierFigures ?? const []);
+      _markEnteredNew(draft.sequenceFigures ?? const []);
+    }
+  }
+
+  /// The figures entered in this edit ([FigureDraft.enteredNew]) that still
+  /// leave a required param unstated ([Taxonomy.unstatedRequiredParams]),
+  /// each with those params, in list order and groups' figures in theirs.
+  /// The dance does not save while any remains (taxonomy v40).
+  List<({FigureDraft draft, List<String> params})>
+  get figuresMissingRequiredParams {
+    final found = <({FigureDraft draft, List<String> params})>[];
+    void visit(Iterable<FigureDraft> drafts) {
+      for (final draft in drafts) {
+        final move = draft.move;
+        if (draft.enteredNew && move != null && draft.compound == null) {
+          final missing = taxonomy.unstatedRequiredParams(
+            Figure(move: move, params: draft.params),
+          );
+          if (missing.isNotEmpty) found.add((draft: draft, params: missing));
+        }
+        visit(draft.meanwhileSides ?? const []);
+        visit(draft.modifierFigures ?? const []);
+        visit(draft.sequenceFigures ?? const []);
+      }
+    }
+
+    visit(figureDrafts);
+    return found;
   }
 
   /// Appends a row for the compound [shorthand] stands for, with its values

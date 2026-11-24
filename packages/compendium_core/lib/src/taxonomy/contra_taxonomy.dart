@@ -26,8 +26,36 @@ import 'taxonomy.dart';
 /// (CONTRIBUTING.md, "Versioned formats").
 const int contraTaxonomyVersion = 40;
 
+/// `pass_through.passType` (taxonomy v40): which of the two merged figures a
+/// pass is. `by` is the `pass_by` alias's pin.
+const List<String> passTypes = ['by', 'through'];
+
+/// `pass_through.who`: any dancer set, or unstated (v40).
+const List<String> _passWhoChoices = [
+  ...ParamVocab.dancerSets,
+  ParamVocab.unspecified,
+];
+
+/// `pass_through.where`: any direction, or unstated (v40).
+const List<String> _passWhereChoices = [
+  ...ParamVocab.directions,
+  ParamVocab.unspecified,
+];
+
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
+
+// `shift.direction` (v40): sideways to the dancer's left or right, or up or
+// down the set (The Caller's Box's "Twos shift up").
+const _shiftDirections = ['left', 'right', 'up', 'down'];
+
+// `shift.who` (v40): any group but `everyone`. Everyone sliding along the set
+// is `slide_along_set`, so a shift by everyone would be that move under a
+// second name. Every other dancer set is offered, as on most moves.
+final List<String> _shiftWhoChoices = [
+  for (final dancers in ParamVocab.dancerSets)
+    if (dancers != 'everyone') dancers,
+];
 
 // ContraDB chooser_down_the_hall_ender values (shared by down/up the hall).
 const _downTheHallEnders = [
@@ -428,15 +456,49 @@ final Taxonomy contraTaxonomy = Taxonomy(
       // ContraDB longLinesChange/GoodBeats: `beats = goBack ? 8 : 4`.
       paramBeats: ParamBeats(param: 'goBack', byValue: {true: 8, false: 4}),
     ),
+    // v40: pass through and pass by are one figure, told apart by `passType`
+    // (the maintainer's design, 2026-11-24). `pass_by` is the alias pinning
+    // `passType: by` (below), so each keeps its id, its picker entry and its
+    // stored figures. Each param means what that move's figures already meant
+    // by leaving it out: a pass through `who: unspecified` and `where: along`
+    // (the defaults here), a pass by `who: neighbors` and `where: unspecified`
+    // (its [MoveAlias.defaultParams]), so no stored figure changes meaning and
+    // an import that does not state the param its move lacked before v40
+    // leaves it unstated. A figure entered new in the editor must state both
+    // ([ParamSpec.requiredOnEntry]).
     const MoveDef(
       id: 'pass_through',
       displayName: 'pass through',
       params: {
-        'where': ParamSpec(ParamKind.direction, defaultValue: 'along'),
+        'who': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _passWhoChoices,
+          allowManualClear: false,
+          requiredOnEntry: true,
+        ),
+        'where': ParamSpec(
+          ParamKind.direction,
+          defaultValue: 'along',
+          choices: _passWhereChoices,
+          allowManualClear: false,
+          requiredOnEntry: true,
+        ),
         'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 2),
+        // Last, so the editor shows it under "More options". Never stored:
+        // the figure's id says it (`withoutListedAliasPins` drops it), so a
+        // build before v40 meets no such key.
+        'passType': ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'through',
+          choices: passTypes,
+        ),
       },
-      renderTemplate: '{move} {where}',
+      // `where` is last so an unstated pass by's canonical text is the
+      // `{who} {move}` it had as a move, and a pass through's `{move} {where}`
+      // gains only a stated `who`.
+      renderTemplate: '{who} {move} {where}',
       goodBeats: [2],
     ),
     const MoveDef(
@@ -890,6 +952,32 @@ final Taxonomy contraTaxonomy = Taxonomy(
       },
       renderTemplate: '{move} {slide}',
       goodBeats: [2],
+    ),
+    // v40: one group sidesteps while the others stay or dance something else
+    // ("Men shift left", "Twos shift up"). `slide_along_set` is everyone
+    // sliding as couples, so The Caller's Box's bare "Shift left" stays that
+    // move; a shift reads only when the line names who.
+    MoveDef(
+      id: 'shift',
+      displayName: 'shift',
+      params: {
+        'who': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: 'role1s',
+          choices: _shiftWhoChoices,
+        ),
+        'direction': const ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'left',
+          choices: _shiftDirections,
+        ),
+        'beats': _beats4,
+      },
+      renderTemplate: '{who} {move} {direction}',
+      // The beats of the 117 shifts read from the 1,427 public Caller's Box
+      // dances that mention a shift (fetched 2026-11-24): 4 on 59, 8 on 27, 6
+      // on 21, 2 on 7, 3 on 2, and 1 on a line that gives none.
+      goodBeats: [2, 4, 6, 8],
     ),
     const MoveDef(
       id: 'mad_robin',
@@ -1450,6 +1538,19 @@ final Taxonomy contraTaxonomy = Taxonomy(
           defaultValue: 'right',
           choices: ['left', 'right'],
         ),
+        // v40: who slides two places, across the set, while the others slide
+        // one (The Caller's Box #1797, "Leap of Faith": "Slide left, women
+        // slide two places"). `unspecified`, the default, is the ordinary
+        // slide. The maintainer chose the param and its choices (2026-11-24):
+        // the two roles and the `ends` of the wave, not `centers` and not
+        // `everyone`. Display-only, like a hall's ender: the canonical
+        // template leaves it out, so stored canonical text is unchanged.
+        // Stored only while it names dancers ([roryTwoPlacesParam]).
+        roryTwoPlacesParam: ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: [ParamVocab.unspecified, 'role1s', 'role2s', 'ends'],
+        ),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{who} {move} {slide}',
@@ -1594,18 +1695,6 @@ final Taxonomy contraTaxonomy = Taxonomy(
     // structured params for the verbose renderer + structural search. ContraDB
     // conditional beat rules aren't encoded (goodBeats carries a simple typical
     // list or is omitted, cf. poussette).
-    const MoveDef(
-      id: 'pass_by',
-      displayName: 'pass by',
-      params: {
-        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
-        // Available for %S dialect injection (cf. pass_through); structured.
-        'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
-        'beats': ParamSpec(ParamKind.beats, defaultValue: 2),
-      },
-      renderTemplate: '{who} {move}',
-      goodBeats: [2],
-    ),
     const MoveDef(
       id: 'hey',
       displayName: 'hey',
@@ -2019,6 +2108,20 @@ final Taxonomy contraTaxonomy = Taxonomy(
       // Dialects hold names and wordings keyed on it from when it was a move,
       // and its name is the formation where its target's is the direction.
       listedAsMove: true,
+    ),
+    // v40: a move until then, now `pass_through` with `passType: by` (see
+    // there). Listed as a move for the reasons `long_lines` is: its figures
+    // are stored under its own id, and dialects hold names and wordings keyed
+    // on it. Its defaults keep what a stored pass by that leaves `who` or
+    // `where` out has always meant.
+    const MoveAlias(
+      id: 'pass_by',
+      displayName: 'pass by',
+      targetMove: 'pass_through',
+      pinnedParams: {'passType': 'by'},
+      inversePairId: 'pass_through',
+      listedAsMove: true,
+      defaultParams: {'who': 'neighbors', 'where': ParamVocab.unspecified},
     ),
     // v40 (issue #770): The Caller's Box's "Hand cast" is a gate. Its glossary
     // calls it "a cast off figure done with hands… very similar to a gate",

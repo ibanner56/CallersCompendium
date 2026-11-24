@@ -11,7 +11,7 @@ import 'package:path/path.dart' as p;
 import '../diagnostics/error_log.dart';
 
 /// Reading the text of a chosen picture on the device (#2327): Apple Vision
-/// on iOS and macOS, nothing elsewhere yet. The picture
+/// on iOS and macOS, Windows OCR on Windows, nothing elsewhere. The picture
 /// is read once and released; only the text leaves this file.
 
 /// Largest picture file read, in bytes.
@@ -83,8 +83,9 @@ abstract interface class TextRecognitionService {
 }
 
 /// The platform channel to the native recognizer: app/ios/Runner/
-/// TextRecognitionPlugin.swift on iOS and app/macos/Runner/
-/// TextRecognitionBridge.swift on macOS.
+/// TextRecognitionPlugin.swift on iOS, app/macos/Runner/
+/// TextRecognitionBridge.swift on macOS and app/windows/runner/
+/// text_recognition_channel.cpp on Windows.
 class ChannelTextRecognitionService implements TextRecognitionService {
   ChannelTextRecognitionService({MethodChannel? channel})
     : _channel = channel ?? const MethodChannel(channelName);
@@ -155,8 +156,7 @@ class ChannelTextRecognitionService implements TextRecognitionService {
 }
 
 /// The recognizer for [platform], or null where none is offered: Android
-/// (no OS text recognition the app may use), Linux (none ships with it), and
-/// for now Windows, whose Windows OCR recognizer is still to come.
+/// (no OS text recognition the app may use) and Linux (none ships with it).
 TextRecognitionService? textRecognitionServiceFor(
   TargetPlatform platform, {
   bool isWeb = kIsWeb,
@@ -164,8 +164,8 @@ TextRecognitionService? textRecognitionServiceFor(
   if (isWeb) return null;
   return switch (platform) {
     TargetPlatform.iOS ||
-    TargetPlatform.macOS => ChannelTextRecognitionService(),
-    TargetPlatform.windows ||
+    TargetPlatform.macOS ||
+    TargetPlatform.windows => ChannelTextRecognitionService(),
     TargetPlatform.android ||
     TargetPlatform.linux ||
     TargetPlatform.fuchsia => null,

@@ -17,8 +17,9 @@ final class TextRecognitionBridge {
     let channel = FlutterMethodChannel(
       name: "is.banner.callerscompendium/text_recognition",
       binaryMessenger: messenger)
-    // Repeats the iOS switch in `app/ios/Runner/TextRecognitionPlugin.swift`;
-    // keep the two in step.
+    // Repeats the iOS switch in `app/ios/Runner/TextRecognitionPlugin.swift`,
+    // and `app/windows/runner/text_recognition_channel.cpp` answers the same
+    // calls on Windows; keep the three in step.
     channel.setMethodCallHandler { call, result in
       switch call.method {
       case "availableLanguages":

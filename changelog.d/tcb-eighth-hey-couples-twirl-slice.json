@@ -1,0 +1,14 @@
+{
+  "id": "tcb-eighth-hey-couples-twirl-slice",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Dances you import from The Caller's Box read four more kinds of line as figures instead of text: \"Hey 1/8 (WR)\" is the robins passing by the right shoulder; \"As couples, neighbor do si do\" is a neighbor do si do, noted as danced as couples; \"Partner Jersey twirl\" is a California twirl, noted as a Jersey twirl; and a double slice that goes forward to one neighbor and back to the next is a slice with a diagonal return. A figure you type as \"As couples, neighbor do si do\" or \"Partner Jersey twirl\" is read the same way."
+    ]
+  },
+  "core": {
+    "changed": [
+      "The Caller's Box figure dialect reads `Hey 1/8 (<pair><side>)` as `pass_by`, `As couples, … do si do` as `do_si_do` with an `as couples` note, `… Jersey twirl` as `california_twirl` with a `Jersey twirl` note, and the adapter's double-slice fold accepts `N<k>` then `N<k+1>` as well as `S1` then `S2`."
+    ]
+  }
+}

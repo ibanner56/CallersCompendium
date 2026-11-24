@@ -10529,6 +10529,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceEditorLessTooltip => 'Moins';
 
   @override
+  String get danceEditorFigureNeedsValues =>
+      'Choisissez une valeur pour chaque champ de cette figure avant d’enregistrer.';
+
+  @override
+  String get danceEditorSaveNeedsFigureValues =>
+      'Certaines figures ajoutées ont encore des champs vides. Remplissez-les pour enregistrer.';
+
+  @override
   String get danceEditorParamNotStated => 'non précisé';
 
   @override

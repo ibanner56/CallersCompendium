@@ -10404,6 +10404,14 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorLessTooltip => 'Færre';
 
   @override
+  String get danceEditorFigureNeedsValues =>
+      'Vælg en værdi i hvert felt i denne figur, før du gemmer.';
+
+  @override
+  String get danceEditorSaveNeedsFigureValues =>
+      'Nogle figurer, du har tilføjet, har stadig tomme felter. Udfyld dem for at gemme.';
+
+  @override
   String get danceEditorParamNotStated => 'ikke angivet';
 
   @override

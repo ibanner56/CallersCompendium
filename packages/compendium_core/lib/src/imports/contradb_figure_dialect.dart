@@ -2205,7 +2205,8 @@ const Map<String, String> _singleDancerCouples = {
   'fourth': 'fours',
 };
 
-/// pass by (generic renderer): `<who> pass by [<side> shoulders]`.
+/// pass by (generic renderer): `<who> pass by [<side> shoulders] [<dir>]`; the
+/// direction is the app's display of a stated `where` (taxonomy v40).
 FigureMatch? _passBy(String text) {
   final s = _Scan(text);
   // The display's subjects too (`neighbor`, #2121), but only with the shoulder
@@ -2219,6 +2220,14 @@ FigureMatch? _passBy(String text) {
   final side = _shoulderPhrase(s);
   if (side == null && contraDbWho == null) return null;
   if (side != null) params['shoulder'] = side;
+  // A stated direction, as the display writes it after the shoulder (taxonomy
+  // v40, when pass by gained `where`).
+  final dir = _direction(s.peek());
+  if (dir != null) {
+    s.take();
+    params['where'] = dir;
+  }
+  _readTrailingDisplayDirection(s, params);
   return FigureMatch('pass_by', params: params, note: s.note());
 }
 
@@ -2256,13 +2265,18 @@ FigureMatch? _tradeBy(String text) {
 /// positional rather than a direction (`by the left`, `past partners`,
 /// `to next neighbors`, `to form an ocean wave with shadows`; real renders:
 /// Barack Me Obamadeus, In Cahoots, Ad Vielle, The Young Adult Rose). The
-/// recognised template is just `pass through` plus an optional shoulder/where; any
+/// recognised template is just `pass through` plus an optional shoulder/where,
+/// after an optional subject (the app's display of a stated `who`, taxonomy
+/// v40; ContraDB writes none); any
 /// remaining qualifier survives verbatim as the note (`where` then defaults to the
 /// taxonomy `along`).
 FigureMatch? _passThrough(String text) {
   final s = _Scan(text);
+  // A subject, as the display writes a stated `who` (taxonomy v40); ContraDB
+  // writes none, so its own lines are unaffected.
+  final who = _subject(s) ?? _displaySubject(s);
   if (!s.eatPhrase('pass through')) return null;
-  final params = <String, Object?>{};
+  final params = <String, Object?>{'who': ?who};
   final side = _shoulderPhrase(s);
   if (side != null) params['shoulder'] = side;
   final dir = _direction(s.peek());
@@ -2342,7 +2356,9 @@ FigureMatch? _contraCorners(String text) {
 
 /// roryOMoreWords: `[balance] [<who>] Rory O'More <slide>`, and the app's own
 /// display wording `<who> balance & Rory O'More <slide>` (#2121), which puts
-/// the subject before the balance as it does for a swing.
+/// the subject before the balance as it does for a swing. The display's
+/// trailing `, <dancers> 2 places` (taxonomy v40) reads as `twoPlaces`; ContraDB
+/// never writes it.
 FigureMatch? _roryOMore(String text) {
   final s = _Scan(text);
   final leadingBalance = _eatBalanceAmp(s);
@@ -2355,8 +2371,25 @@ FigureMatch? _roryOMore(String text) {
   if (slide != null) {
     s.take();
     params['slide'] = slide;
+    final twoPlaces = _roryTwoPlaces(s);
+    if (twoPlaces != null) params[roryTwoPlacesParam] = twoPlaces;
   }
   return FigureMatch('rory_o_more', params: params, note: s.note());
+}
+
+/// A Rory O'More's `, <dancers> 2 places` (taxonomy v40), consumed only when
+/// the dancers are one of `twoPlaces`' choices and the whole clause is there;
+/// otherwise nothing is consumed and the text stays in the note.
+String? _roryTwoPlaces(_Scan s) {
+  if (!s.previousTokenEndsWith(',')) return null;
+  final start = s.pos;
+  final who = s.peek();
+  if (who == 'role1s' || who == 'role2s' || who == 'ends') {
+    s.take();
+    if ((s.eat('2') || s.eat('two')) && s.eat('places')) return who;
+  }
+  s.reset(start);
+  return null;
 }
 
 /// ContraDB's `starPromenadeWords` — the `[who] star promenade HAND ROTATION`

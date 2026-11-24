@@ -150,7 +150,8 @@ void main() {
       expect(_totalBeats(figures), 4);
     });
 
-    // `pass_through` has no `who` slot, so a stated subject cannot ride — the
+    // Nothing reads a walk-forward subject onto `pass_through.who` (which the
+    // move has had since taxonomy v40), so a stated subject cannot ride — the
     // line stays whole-custom rather than silently dropping the role.
     test('a stated subject declines the line (prefer-custom)', () {
       final figures = _parse(
@@ -197,7 +198,7 @@ void main() {
       expect(notes, hasLength(6));
     });
 
-    test('a stated subject declines the line (pass_through has no who)', () {
+    test('a stated subject declines the line (not read onto who)', () {
       expect(
         _parse('Women walk forward to N2', beats: 4).single.isCustom,
         isTrue,

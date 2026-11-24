@@ -447,6 +447,13 @@ You do **not** need to write code to translate the app.
      (`<string>fr</string>`, `<string>pt-BR</string>`, …), using the
      **hyphenated BCP-47 tag** (e.g. `fr`, `pt-BR`, `zh-Hant`), not the
      underscore filename form.
+   - iOS: translations of the permission prompts in a new
+     `app/ios/Runner/<locale>.lproj/InfoPlist.strings` (copy an existing
+     language's file) and of the Share Extension's messages in
+     `app/ios/ShareExtension/<locale>.lproj/Localizable.strings`. Each file
+     must also be added to its variant group in
+     `app/ios/Runner.xcodeproj/project.pbxproj`, or it isn't built into the
+     app; Xcode does that when you add the localization there.
    - macOS: `CFBundleLocalizations` in `app/macos/Runner/Info.plist`, with the
      same tag form. macOS `knownRegions` in
      `app/macos/Runner.xcodeproj/project.pbxproj` still lists only `en, Base`;

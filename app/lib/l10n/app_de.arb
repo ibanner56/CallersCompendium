@@ -10038,6 +10038,14 @@
   "@danceEditorLessTooltip": {
     "x-sourceSha256": "ae5239ec63f28cd401ccd63e9f56e4ede8254a738a135ebcd33e844c18dd247f"
   },
+  "danceEditorFigureNeedsValues": "Wähle vor dem Speichern für jedes Feld dieser Figur einen Wert.",
+  "@danceEditorFigureNeedsValues": {
+    "x-sourceSha256": "61017bcbb23d7350414081cf02df28c3b55cfeaa28b58390310d5828198ae1a8"
+  },
+  "danceEditorSaveNeedsFigureValues": "Einige hinzugefügte Figuren haben noch leere Felder. Fülle sie aus, um zu speichern.",
+  "@danceEditorSaveNeedsFigureValues": {
+    "x-sourceSha256": "899a2bb2764967487b319de39f17f242eb5d834d40066036fca864e6461c7e90"
+  },
   "danceEditorParamNotStated": "nicht angegeben",
   "@danceEditorParamNotStated": {
     "x-sourceSha256": "109df22c5a753d340af3ecee225f7a2a432a65dedfb163736943dfa7af638104"

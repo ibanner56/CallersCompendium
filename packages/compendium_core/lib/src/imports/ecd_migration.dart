@@ -457,7 +457,12 @@ const Map<String, _Twin> _twins = {
     {'goBack', 'beats'},
     fill: {'goBack': true, 'distance': 'double'},
   ),
-  'pass_through': _Twin('ecd_pass_through', {'where', 'shoulder', 'beats'}),
+  'pass_through': _Twin('ecd_pass_through', {
+    ..._who,
+    'where',
+    'shoulder',
+    'beats',
+  }),
   'right_left_through': _Twin('ecd_right_left_through', {'where', 'beats'}),
   'roll_away': _Twin('ecd_rollaway', {..._who, 'whom', 'halfSashay', 'beats'}),
   'orbit': _Twin('ecd_orbit', {..._who, 'direction', 'travel', 'beats'}),
