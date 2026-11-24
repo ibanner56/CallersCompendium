@@ -8821,7 +8821,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorImproperLabel => 'インプロパーで始まる';
 
   @override
-  String get danceEditorImproperSubtitle => 'プロパーで始まるダンスではチェックを外したままにします。';
+  String get danceEditorImproperSubtitle => 'プロパーで始まるダンスではオフのままにします。';
 
   @override
   String get danceEditorComposedLabel => '振付年';

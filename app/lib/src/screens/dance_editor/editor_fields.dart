@@ -489,8 +489,9 @@ class TuneEditor extends StatelessWidget {
 /// where only one fits. The width grows with the body text's scale, so large
 /// text stacks the fields sooner rather than squeezing them. A short last row
 /// keeps the columns' width. Children read, and take focus, row by row in
-/// their given order, which is the order they show in.
-class FieldGrid extends StatelessWidget {
+/// their given order, which is the order they show in. Each child keeps its
+/// state, and a field its focus, when a resize moves it between rows.
+class FieldGrid extends StatefulWidget {
   const FieldGrid({
     super.key,
     required this.children,
@@ -503,11 +504,25 @@ class FieldGrid extends StatelessWidget {
   final double minChildWidth;
 
   @override
+  State<FieldGrid> createState() => _FieldGridState();
+}
+
+class _FieldGridState extends State<FieldGrid> {
+  /// One per place in [FieldGrid.children], so a child moved from one row
+  /// (or from the stacked column) to another is moved, not built again.
+  final List<GlobalKey> _keys = [];
+
+  @override
   Widget build(BuildContext context) {
+    final children = widget.children;
+    while (_keys.length < children.length) {
+      _keys.add(GlobalKey(debugLabel: 'field-grid-${_keys.length}'));
+    }
+    Widget child(int i) => KeyedSubtree(key: _keys[i], child: children[i]);
     // As the credit lines measure: by the body text's scale, which Android
     // 14's nonlinear scaling grows more than it would a width.
     final textScale = MediaQuery.textScalerOf(context).scale(16) / 16;
-    final minWidth = minChildWidth * textScale;
+    final minWidth = widget.minChildWidth * textScale;
     const gap = AppSpacing.sm;
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -519,7 +534,7 @@ class FieldGrid extends StatelessWidget {
             children: [
               for (var i = 0; i < children.length; i++) ...[
                 if (i > 0) const SizedBox(height: AppSpacing.md),
-                children[i],
+                child(i),
               ],
             ],
           );
@@ -536,7 +551,7 @@ class FieldGrid extends StatelessWidget {
                     if (c > 0) const SizedBox(width: gap),
                     Expanded(
                       child: start + c < children.length
-                          ? children[start + c]
+                          ? child(start + c)
                           : const SizedBox.shrink(),
                     ),
                   ],

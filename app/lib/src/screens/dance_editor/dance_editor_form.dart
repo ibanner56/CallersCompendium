@@ -37,6 +37,15 @@ import '../../theme/app_shapes.dart';
 /// ([DanceEditorForm._buildSetup]); narrower, it starts folded.
 const double _setupOpenWhenNewMinWidth = 600;
 
+/// The setup panel's controller ([DanceEditorForm._buildSetup]), which also
+/// remembers whether the panel has shown yet: a lazy list lets go of the panel
+/// once it is scrolled far enough away, and builds it again on the way back,
+/// and only its first showing may open it, so a panel the caller folded stays
+/// folded.
+class SetupPanelController extends ExpansibleController {
+  bool _shown = false;
+}
+
 /// The dance editor's scrolling metadata form. Presentational only: it reads
 /// the working draft from [controller] and routes edits back through the
 /// controller's mutation methods (which own undo/autosave), plus a handful of
@@ -51,6 +60,7 @@ class DanceEditorForm extends StatelessWidget {
     required this.scrollController,
     required this.setupController,
     required this.moreDetailsController,
+    this.openPanelsInstantly = false,
     required this.taxonomy,
     required this.moveParamDefaults,
     this.freeTextEntry = false,
@@ -87,8 +97,13 @@ class DanceEditorForm extends StatelessWidget {
 
   /// Folds and opens the setup panel ([_buildSetup]): the screen opens it
   /// when a save finds an error in one of its fields.
-  final ExpansibleController setupController;
+  final SetupPanelController setupController;
   final ExpansibleController moreDetailsController;
+
+  /// Whether the setup panel and More details open and fold without their
+  /// animation: the screen sets it while it opens one to show a field's
+  /// error, so the field is in its final place when it is scrolled to.
+  final bool openPanelsInstantly;
   final Taxonomy taxonomy;
   final Map<String, Map<String, Object?>> moveParamDefaults;
 
@@ -1074,15 +1089,19 @@ class DanceEditorForm extends StatelessWidget {
   /// Inside, the fields sit side by side where the form is wide enough
   /// ([FieldGrid]) and one under another where it is not.
   Widget _buildSetup(BuildContext context) {
-    // Measured once, as it first shows: a new dance opens the panel where the
+    // Decided once, as it first shows: a new dance opens the panel where the
     // form is wide enough for the fields to sit side by side, and leaves it
     // folded on a phone, where they would fill the screen before the figures.
+    // Built again later, it keeps the state the controller holds.
     return LayoutBuilder(
-      builder: (context, constraints) => _setupTile(
-        context,
-        initiallyExpanded:
-            isNew && constraints.maxWidth >= _setupOpenWhenNewMinWidth,
-      ),
+      builder: (context, constraints) {
+        final opens =
+            !setupController._shown &&
+            isNew &&
+            constraints.maxWidth >= _setupOpenWhenNewMinWidth;
+        setupController._shown = true;
+        return _setupTile(context, initiallyExpanded: opens);
+      },
     );
   }
 
@@ -1125,6 +1144,9 @@ class DanceEditorForm extends StatelessWidget {
         ],
       ),
       initiallyExpanded: initiallyExpanded,
+      expansionAnimationStyle: openPanelsInstantly
+          ? AnimationStyle.noAnimation
+          : null,
       maintainState: true,
       shape: sectionShape,
       collapsedShape: sectionShape,
@@ -1329,8 +1351,7 @@ class DanceEditorForm extends StatelessWidget {
   }
 
   /// The collapsible "More details" drawer (Tier 2). Holds the less-frequently
-  /// used metadata; collapsed by default so the always-visible Tier 1 fields
-  /// stay above the fold. Its form children stay mounted while collapsed so
+  /// used metadata; collapsed by default so the figures stay near the top. Its form children stay mounted while collapsed so
   /// their validators remain reachable during save; values still live in the
   /// [DanceEditorController] and are re-seeded when the section is expanded.
   Widget _buildMoreDetails(BuildContext context) {
@@ -1350,6 +1371,9 @@ class DanceEditorForm extends StatelessWidget {
         style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
       ),
       initiallyExpanded: false,
+      expansionAnimationStyle: openPanelsInstantly
+          ? AnimationStyle.noAnimation
+          : null,
       maintainState: true,
       backgroundColor: colorScheme.surfaceContainerHighest,
       collapsedBackgroundColor: colorScheme.surfaceContainerHighest,

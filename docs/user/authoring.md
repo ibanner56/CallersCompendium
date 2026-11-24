@@ -747,7 +747,7 @@ another where there is not.
 - **Formation** and **Formation detail** — the shape the dance is danced in, plus
   anything worth adding in words. An English dance offers English formations,
   such as duple minor, triple minor and three-couple longways, with a
-  **Starts improper** switch under them: tap it on for a dance that starts
+  **Starts improper** chip under them: tap it on for a dance that starts
   improper, and leave it off for one that starts proper. A square offers **Square**, **Circle** for a big-circle dance such
   as a running set, and **Other**. Changing the type to one whose list
   doesn't have the dance's formation starts the formation over: on **Duple
@@ -755,7 +755,11 @@ another where there is not.
   A formation both lists have, such as triple minor between contra and
   English or circle between English and square, is kept. Undo brings the
   old formation back.
-- **Mixer** — tap this on when the dance is a
+- **Progression** — how the dance progresses, such as **Single**. It sits
+  beside **Type** and **Formation** where there is room.
+- **Rating** — your own star rating, with **Clear rating** to unset it. It
+  sits beside the **Starts improper** and **Mixer** chips where there is room.
+- **Mixer** — tap this chip on when the dance is a
   [mixer](./glossary.md#mixer): one where you change partners each time through.
   It's kept separate from the formation, because a mixer can be danced in many
   shapes and not every circle is a mixer.
@@ -877,7 +881,6 @@ updates the default used everywhere.
 | **Other titles** | Other names the dance goes by, one per line; the dance page shows them under the title, and searching by **Title** finds them |
 | **Level** and **Status** | How hard it is, and where it is in your workflow |
 | **Mixed level** | For dances that span the difficulty scale |
-| **Rating** | Your own star rating, with **Clear rating** to unset it |
 | **Composed** / **Revised** | A year, optionally with a month and day; for an English dance, Composed is a year, up front beside the authors |
 | **Interpreted by** / **Interpreted in** | Who reconstructed the dance from its original, and when; for an English dance, up front, with Interpreted in as a year beside the names |
 | **Meter** / **Key** | The tune's written meter and key; up front for an English dance, with its **Barnes reference** |

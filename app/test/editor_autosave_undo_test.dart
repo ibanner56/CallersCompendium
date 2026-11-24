@@ -46,7 +46,6 @@ Future<void> _pumpEditor(
   WidgetTester tester,
   CompendiumRepositories repos, {
   String? danceId,
-  bool openSetup = true,
 }) async {
   // Tall enough that More details, which grew with the meter, key and
   // interpretation fields, lays out within the lazy ListView's cache extent;
@@ -84,10 +83,10 @@ Future<void> _pumpEditor(
   // Fire any post-frame callbacks (e.g. the draft-restore dialog trigger)
   // and settle the dialog entrance animation if one was scheduled.
   await tester.pump();
-  await tester
-      .pumpAndSettle(); // Most tests reach the setup panel's fields; the panel's own folding is
-  // tested with [openSetup] false.
-  if (openSetup) await openDanceEditorSetup(tester);
+  await tester.pumpAndSettle();
+  // Most tests reach the setup panel's fields, so it is opened for them; its
+  // own folding is tested in dance_editor_setup_panel_test.dart.
+  await openDanceEditorSetup(tester);
 }
 
 /// Expands the collapsible "More details" (Tier 2) section so its fields

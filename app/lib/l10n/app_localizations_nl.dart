@@ -9250,7 +9250,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorImproperSubtitle =>
-      'Laat leeg voor een dans die proper begint.';
+      'Laat uit voor een dans die proper begint.';
 
   @override
   String get danceEditorComposedLabel => 'Gecomponeerd';

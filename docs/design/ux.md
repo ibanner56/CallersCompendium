@@ -195,13 +195,19 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   Title, the rest of Details (credits, Type, Formation and its detail,
   Progression, the improper and mixer flags, Rating, the phrase structure,
   and an English dance's Meter, Key and Barnes reference) is one panel,
-  *Credits, formation and music*, that folds to a two-line summary of those
-  values. It starts folded on an existing dance, and on a new dance where the
+  *Credits, formation and music*, that folds to a summary of at most two
+  lines: the authors, Type, Formation, the improper and mixer flags, the
+  phrase structure as typed, and an English dance's Meter and Key. It starts folded on an existing dance, and on a new dance where the
   form is narrower than 600 px; a new dance on a wider form starts with it
   open. Its fields stay mounted while folded, so a save validates them, and
-  a save that finds an error inside opens it (as it opens More details).
-  Inside, fields share rows where they fit at about 200 px each (scaled with
-  the text), an English dance's two credit lines share one row, and the
+  a save that finds an error inside opens it, as it opens More details, and
+  without the opening animation, so the field is in its final place when it
+  is scrolled into view.
+  The decision is made once per editor: built again after a lazy list let
+  it go, the panel keeps the state the caller left it in. Inside, fields
+  share rows where they fit (Type, Formation, Formation detail and
+  Progression at 200 px each, Meter, Key and Barnes reference at 150 px,
+  scaled with the text), an English dance's two credit lines share one row, and the
   improper and mixer flags are filter chips with their explanations as
   tooltips, rather than two-line checkbox rows. Measured in a widget test of
   an English dance with nothing yet entered, the Figures header was 1,088 px

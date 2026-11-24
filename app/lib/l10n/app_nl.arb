@@ -8994,9 +8994,9 @@
   "@danceEditorImproperLabel": {
     "x-sourceSha256": "e4dd5166a2d36d72d17f292c5f3b00bbb89544e0a94b5c9658d538d2c89e159e"
   },
-  "danceEditorImproperSubtitle": "Laat leeg voor een dans die proper begint.",
+  "danceEditorImproperSubtitle": "Laat uit voor een dans die proper begint.",
   "@danceEditorImproperSubtitle": {
-    "x-sourceSha256": "55e6931dac76da40b06ac10ab8416ab58539aa4e3cdfb25881f38341ec846e37"
+    "x-sourceSha256": "491b162a317fef1c7a15931783093dcf4dbfccd1e732bce375220f9368ddfee8"
   },
   "danceEditorComposedLabel": "Gecomponeerd",
   "@danceEditorComposedLabel": {

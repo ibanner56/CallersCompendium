@@ -68,7 +68,6 @@ Future<void> _pumpEditor(
   WidgetTester tester,
   CompendiumRepositories repos, {
   String? danceId,
-  bool openSetup = true,
   ThemeData? theme,
   Size surfaceSize = const Size(1200, 3600),
   Dialect? activeDialect,
@@ -115,10 +114,10 @@ Future<void> _pumpEditor(
     ),
   );
   await tester.tap(find.byKey(const ValueKey('open-editor')));
-  await tester
-      .pumpAndSettle(); // Most tests reach the setup panel's fields; the panel's own folding is
-  // tested with [openSetup] false.
-  if (openSetup) await openDanceEditorSetup(tester);
+  await tester.pumpAndSettle();
+  // Most tests reach the setup panel's fields, so it is opened for them; its
+  // own folding is tested in dance_editor_setup_panel_test.dart.
+  await openDanceEditorSetup(tester);
 }
 
 /// Types [typed] into figure [index]'s move field and taps the [optionId]

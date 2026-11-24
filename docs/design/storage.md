@@ -829,7 +829,7 @@ steps that can still fire are v40 onward.
   added, no data rewritten, no derived rebuild.
 
 - v42 (ADR-006 §12, F2 and F3): adds three columns to `dances` for English
-  country dance. `formation_improper` is ECD's proper/improper checkbox
+  country dance. `formation_improper` is ECD's proper/improper flag
   (`Formation.improper`), stored apart from the shape because ECD's shapes
   name only the set; contra's shapes already say proper or improper, so a
   contra dance keeps it `0`. `meter` and `musical_key` are the tune's written

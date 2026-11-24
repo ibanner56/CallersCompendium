@@ -6688,7 +6688,7 @@ abstract class AppLocalizations {
   /// **'Mixed level'**
   String get commonMixedLevel;
 
-  /// Label for a mixer — a dance in which dancers change partners each time through the sequence (a progressive partner-changing dance), NOT an audio or kitchen mixer. Used as a dance editor checkbox label and a dance-detail indicator.
+  /// Label for a mixer — a dance in which dancers change partners each time through the sequence (a progressive partner-changing dance), NOT an audio or kitchen mixer. Used as the label of a dance editor toggle chip and a dance-detail indicator.
   ///
   /// In en, this message translates to:
   /// **'Mixer'**
@@ -13480,7 +13480,7 @@ abstract class AppLocalizations {
   /// **'Edit snippet'**
   String get settingsWalkthroughSnippetEditTitle;
 
-  /// Title of the dance editor's foldable panel holding the dance's authors (and, for an English dance, interpreters and years), type, formation, progression, rating, phrase structure and the tune's meter and key. Folded, a one-line summary of those values shows under it.
+  /// Title of the dance editor's foldable panel holding the dance's authors (and, for an English dance, interpreters and years), type, formation, progression, rating, phrase structure and the tune's meter and key. Folded, a short summary of some of those values (the authors, type, formation, improper and mixer, phrase structure, meter and key) shows under it.
   ///
   /// In en, this message translates to:
   /// **'Credits, formation and music'**
@@ -13504,7 +13504,7 @@ abstract class AppLocalizations {
   /// **'Spans the difficulty scale'**
   String get danceEditorMixedLevelSubtitle;
 
-  /// Subtitle explaining the mixer checkbox in the dance editor: the dance progresses dancers to a new partner each time through the sequence.
+  /// Tooltip of the Mixer toggle chip in the dance editor, also read by screen readers: the dance progresses dancers to a new partner each time through the sequence.
   ///
   /// In en, this message translates to:
   /// **'Dancers change partners each time through'**
@@ -13642,16 +13642,16 @@ abstract class AppLocalizations {
   /// **'The song goes under Tunes'**
   String get danceEditorSingingSubtitle;
 
-  /// Checkbox in the dance editor, offered for English country dances only: the dance starts improper (the first couple crossed over). Unchecked means it starts proper, the default.
+  /// Toggle chip in the dance editor, offered for English country dances only: the dance starts improper (the first couple crossed over). Off means it starts proper, the default.
   ///
   /// In en, this message translates to:
   /// **'Starts improper'**
   String get danceEditorImproperLabel;
 
-  /// Subtitle of the 'Starts improper' checkbox in the dance editor.
+  /// Tooltip of the 'Starts improper' toggle chip in the dance editor, also read by screen readers: leave the chip off (not selected) for a dance that starts proper.
   ///
   /// In en, this message translates to:
-  /// **'Leave unchecked for a dance that starts proper.'**
+  /// **'Leave off for a dance that starts proper.'**
   String get danceEditorImproperSubtitle;
 
   /// Label for the partial date when the dance was composed.

@@ -152,4 +152,77 @@ void main() {
       greaterThan(tester.getBottomLeft(type).dy),
     );
   });
+
+  testWidgets('on a phone, Save scrolls the error in a folded panel onto the '
+      'screen', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      Dance(id: 'd1', title: 'Contra', createdAt: _now, updatedAt: _now),
+    );
+    const size = Size(390, 844);
+    await _pump(tester, repos, danceId: 'd1', size: size);
+    await openDanceEditorSetup(tester);
+    final phrase = find.byKey(const ValueKey('phrase-field'));
+    await tester.ensureVisible(phrase);
+    await tester.enterText(phrase, 'x*y');
+    await tester.pumpAndSettle();
+    final header = find.text('Credits, formation and music');
+    await tester.ensureVisible(header);
+    await tester.pumpAndSettle();
+    await tester.tap(header);
+    await tester.pumpAndSettle();
+    expect(phrase, findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+    final rect = tester.getRect(phrase);
+    expect(rect.top, greaterThanOrEqualTo(0));
+    expect(rect.bottom, lessThanOrEqualTo(size.height));
+  });
+
+  testWidgets('a panel folded on a new dance stays folded after the list lets '
+      'it go and builds it again', (tester) async {
+    await _pump(tester, openTestRepositories(), size: const Size(1200, 400));
+    await tester.tap(find.text('Credits, formation and music'));
+    await tester.pumpAndSettle();
+    expect(_summary, findsOneWidget);
+    // A focused Title would keep its list item, the panel's, alive.
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+
+    final list = tester.state<ScrollableState>(find.byType(Scrollable).first);
+    list.position.jumpTo(list.position.maxScrollExtent);
+    await tester.pumpAndSettle();
+    // Gone from the lazy list, so it is built afresh on the way back.
+    expect(
+      find.byKey(const ValueKey('setup-tile'), skipOffstage: false),
+      findsNothing,
+    );
+    list.position.jumpTo(0);
+    await tester.pumpAndSettle();
+    expect(_summary, findsOneWidget);
+    expect(_formation, findsNothing);
+  });
+
+  testWidgets('a field keeps its focus when a resize moves it between rows', (
+    tester,
+  ) async {
+    await _pump(tester, openTestRepositories());
+    final detail = find.byKey(const ValueKey('formation-detail-field'));
+    await tester.tap(detail);
+    await tester.pumpAndSettle();
+    bool focused() => tester
+        .widget<EditableText>(
+          find.descendant(of: detail, matching: find.byType(EditableText)),
+        )
+        .focusNode
+        .hasFocus;
+    expect(focused(), isTrue);
+    final wideTop = tester.getTopLeft(detail).dy;
+
+    await tester.binding.setSurfaceSize(const Size(420, 2400));
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(detail).dy, isNot(wideTop));
+    expect(focused(), isTrue);
+  });
 }

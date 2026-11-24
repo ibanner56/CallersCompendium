@@ -352,7 +352,8 @@ class DanceEditorController extends ChangeNotifier {
   /// ([formHasImproperFlag]): ECD (ADR-006 §12.1, F2).
   bool get improper => _improper;
 
-  /// Whether this dance's form records proper or improper with a checkbox.
+  /// Whether this dance's form records proper or improper as a flag of its own,
+  /// which the editor shows as the Starts improper chip.
   bool get offersImproper => formHasImproperFlag(_form);
 
   /// When the dance was interpreted ([Dance.interpretedOn]).

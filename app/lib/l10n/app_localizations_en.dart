@@ -9154,7 +9154,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorImproperSubtitle =>
-      'Leave unchecked for a dance that starts proper.';
+      'Leave off for a dance that starts proper.';
 
   @override
   String get danceEditorComposedLabel => 'Composed';
