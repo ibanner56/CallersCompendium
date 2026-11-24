@@ -7,6 +7,7 @@ library;
 
 export 'src/analysis/half_calling_stats.dart';
 export 'src/analysis/matrix_column_config.dart';
+export 'src/analysis/perform_swap_defaults.dart';
 export 'src/analysis/program_matrix.dart';
 export 'src/analysis/repertoire_stats.dart';
 export 'src/analysis/suggestion_settings.dart';
@@ -132,6 +133,7 @@ export 'src/search/saved_search.dart';
 export 'src/search/saved_search_resolver.dart';
 export 'src/search/saved_search_text.dart';
 export 'src/search/search_clock.dart';
+export 'src/search/swap_keep.dart';
 export 'src/search/title_match.dart';
 export 'src/search/title_sort_key.dart';
 export 'src/search/filter.dart';

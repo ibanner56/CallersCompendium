@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart';
 
 import 'program_slot_rebase.dart';
 
@@ -8,6 +9,7 @@ class PerformAdjustmentWrite {
     required this.base,
     required this.stored,
     required this.changedUnderneath,
+    this.refused = false,
   });
 
   /// The stored program the adjustment was applied to, as read just before
@@ -22,9 +24,16 @@ class PerformAdjustmentWrite {
 
   /// Whether the stored program was no longer the one Perform's copy was
   /// based on, so another write (Device Sync, the summary, another screen)
-  /// landed while Perform was open. The adjustment was applied on top of that
-  /// write instead of replacing it.
+  /// landed while Perform was open. Unless [refused], the adjustment was
+  /// applied on top of that write instead of replacing it; when [refused],
+  /// this is true and nothing was written.
   final bool changedUnderneath;
+
+  /// Whether nothing was written because changes elsewhere made the
+  /// adjustment unsafe to merge ([performAdjustmentStillApplies]): the stored
+  /// program is left as it is ([stored] is [base]), and the caller is asked
+  /// to make the change again.
+  final bool refused;
 }
 
 /// How often [writePerformAdjustment] re-reads and retries before giving up,
@@ -59,13 +68,35 @@ Future<PerformAdjustmentWrite> writePerformAdjustment(
       throw StateError('program "$programId" is gone');
     }
     if (expected != null && current != expected) changed = true;
+    final slots = renumberSlots(
+      rebaseSlotEdits(before: before, after: after, onto: current.slots),
+    );
+    // Already in place: every slot the adjustment changed is stored as it
+    // left it (and every slot it removed is gone), so there is nothing to
+    // write and nothing to refuse. An Undo of an adjustment that was itself
+    // refused lands here.
+    if (listEquals(slots, renumberSlots(current.slots))) {
+      return PerformAdjustmentWrite(
+        base: current,
+        stored: current,
+        changedUnderneath: changed,
+      );
+    }
+    if (!performAdjustmentStillApplies(
+      before: before,
+      after: after,
+      onto: current.slots,
+    )) {
+      return PerformAdjustmentWrite(
+        base: current,
+        stored: current,
+        changedUnderneath: true,
+        refused: true,
+      );
+    }
     final stored = await programs.replaceIfUnchangedAndReadBack(
       expected: current,
-      replacement: current.copyWith(
-        slots: renumberSlots(
-          rebaseSlotEdits(before: before, after: after, onto: current.slots),
-        ),
-      ),
+      replacement: current.copyWith(slots: slots),
       updatedAt: DateTime.now().toUtc(),
     );
     if (stored != null) {

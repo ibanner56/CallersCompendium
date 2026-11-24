@@ -13875,6 +13875,123 @@ class AppLocalizationsNl extends AppLocalizations {
       'De gage is verborgen in Instellingen en wordt daarom weggelaten. Zet ‘Gage tonen’ aan onder Instellingen ▸ Programma om hem op te nemen.';
 
   @override
+  String get performSwapThisDance => 'Deze dans wisselen';
+
+  @override
+  String performSwapDanceNamed(String title) {
+    return '$title wisselen';
+  }
+
+  @override
+  String performSwappedAnnounce(String title) {
+    return '$title ingewisseld';
+  }
+
+  @override
+  String get performSwapKeepHeader => 'Behouden';
+
+  @override
+  String performSwapKeepFormation(String formation) {
+    return 'Zelfde formatie: $formation';
+  }
+
+  @override
+  String performSwapKeepLevel(String level) {
+    return 'Dit niveau of makkelijker: $level';
+  }
+
+  @override
+  String performSwapKeepType(String type) {
+    return 'Zelfde type: $type';
+  }
+
+  @override
+  String get performSwapKeepNotInProgram =>
+      'Nog niet in het programma van vanavond';
+
+  @override
+  String get performSwapFiguresHeader => 'Figuren behouden';
+
+  @override
+  String performSwapFigureInPhrase(String figure, String phrase) {
+    return '$figure in $phrase';
+  }
+
+  @override
+  String performSwapKeepFigureSemantic(String figure) {
+    return '$figure behouden';
+  }
+
+  @override
+  String performSwapSamePhrase(String phrase) {
+    return 'In dezelfde frase ($phrase)';
+  }
+
+  @override
+  String performSwapSamePhraseSemantic(String figure, String phrase) {
+    return '$figure in dezelfde frase behouden, $phrase';
+  }
+
+  @override
+  String performSwapWithBefore(String figure) {
+    return 'Met wat eraan voorafgaat ($figure)';
+  }
+
+  @override
+  String performSwapWithBeforeSemantic(String figure, String before) {
+    return '$figure direct na $before behouden';
+  }
+
+  @override
+  String get performSwapMoreFilters => 'Meer filters';
+
+  @override
+  String get performSwapKeepInPanels =>
+      'De andere keuzes om te behouden staan nu onder Filters en Geavanceerd.';
+
+  @override
+  String get performSwapEnglishNote =>
+      'Voor Engelse dansen zijn zelfde formatie en de verfijningen van figuren nog niet beschikbaar.';
+
+  @override
+  String get performSwapAlternatesHeading => 'Je alternatieven';
+
+  @override
+  String get performSwapResultsHeading => 'Passende dansen';
+
+  @override
+  String get performSwapRefused =>
+      'Dit programma is op een ander apparaat gewijzigd, dus een van je wijzigingen is niet opgeslagen. Controleer het programma en breng de wijziging opnieuw aan als je die nog wilt.';
+
+  @override
+  String get settingsPerformSwapTitle => 'Een dans wisselen';
+
+  @override
+  String get settingsPerformSwapSubtitle =>
+      'Kies welke keuzes om te behouden aan staan als je een dans wisselt tijdens het uitvoeren.';
+
+  @override
+  String get settingsPerformSwapFormation => 'Zelfde formatie';
+
+  @override
+  String get settingsPerformSwapLevel => 'Dit niveau of makkelijker';
+
+  @override
+  String get settingsPerformSwapType => 'Zelfde type';
+
+  @override
+  String get settingsPerformSwapTypeSubtitle =>
+      'Alleen in een programma met verschillende types, zoals contra’s en Engelse dansen.';
+
+  @override
+  String get settingsPerformSwapNewerVersion =>
+      'Deze keuzes zijn opgeslagen door een nieuwere versie van de app. Deze versie gebruikt haar beginkeuzes, allemaal aan, en overschrijft die van jou niet. Werk de app bij om ze te wijzigen.';
+
+  @override
+  String get settingsPerformSwapReadError =>
+      'Je keuzes voor ‘Een dans wisselen’ konden niet worden gelezen en kunnen nu niet worden gewijzigd. Sluit dit scherm en probeer het opnieuw.';
+
+  @override
   String get collectionRepertoireMenuItem => 'Repertoire';
 
   @override

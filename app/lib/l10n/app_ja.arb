@@ -13302,6 +13302,122 @@
   "@exportCsvPayHiddenNotice": {
     "x-sourceSha256": "7211fa66aebc90d9f812f84eb5311ec7ce3c9492040b40a47ae3cce07f2f9e6d"
   },
+  "performSwapThisDance": "このダンスを入れ替え",
+  "@performSwapThisDance": {
+    "x-sourceSha256": "c111607bdcc160350dd927de458d5fbbec46ca39c6cfd0b5f5e0b46d836d264f"
+  },
+  "performSwapDanceNamed": "{title}を入れ替え",
+  "@performSwapDanceNamed": {
+    "x-sourceSha256": "0591a41e96632554cfbec4cf694d77711a635de5315f20ce9ada6f473c5389ac"
+  },
+  "performSwappedAnnounce": "{title}に入れ替えました",
+  "@performSwappedAnnounce": {
+    "x-sourceSha256": "f3f1e4aed0f981809bb0368c4869c4eb34adc82780b45bbf79f37d90be015c34"
+  },
+  "performSwapKeepHeader": "維持する条件",
+  "@performSwapKeepHeader": {
+    "x-sourceSha256": "183f00f483d3844e875d26eac74c676054383aef38ed5a8e4d1505ef21008585"
+  },
+  "performSwapKeepFormation": "同じフォーメーション：{formation}",
+  "@performSwapKeepFormation": {
+    "x-sourceSha256": "d7ec9345df3d1f0a62294ad628d82c747fe44db1c919b9f2c56ecfb918dc2100"
+  },
+  "performSwapKeepLevel": "このレベル以下：{level}",
+  "@performSwapKeepLevel": {
+    "x-sourceSha256": "c7f77c70ac4408a4071c047f4a94100fd38674248e8300019246dd54e9a903b4"
+  },
+  "performSwapKeepType": "同じタイプ：{type}",
+  "@performSwapKeepType": {
+    "x-sourceSha256": "c0cb476747261e0d6f8a308badb546df523f2c702b9545c0fb09aa2d0591ff95"
+  },
+  "performSwapKeepNotInProgram": "今夜のプログラムにまだないもの",
+  "@performSwapKeepNotInProgram": {
+    "x-sourceSha256": "be434791939447608dec62aa7ce7c3306d69f18ed248919882ed178d752bb393"
+  },
+  "performSwapFiguresHeader": "維持するフィギュア",
+  "@performSwapFiguresHeader": {
+    "x-sourceSha256": "aa66d205559c0458a3596aceb1f8d440cb2088d2f0df3ac2f98d03285d24ac22"
+  },
+  "performSwapFigureInPhrase": "{phrase}の{figure}",
+  "@performSwapFigureInPhrase": {
+    "x-sourceSha256": "6fe5e0f91214e4b626f284d5278b4627a20bcb163a30b4a6c3d87d45498b542d"
+  },
+  "performSwapKeepFigureSemantic": "{figure}を維持",
+  "@performSwapKeepFigureSemantic": {
+    "x-sourceSha256": "03d54a6a036fa5ec9787f11fbaadcd4bffd21e2fc0a23d65b49e9fef8656f106"
+  },
+  "performSwapSamePhrase": "同じフレーズ（{phrase}）",
+  "@performSwapSamePhrase": {
+    "x-sourceSha256": "218f6e3e4c2651d3a4d8e4b7a5a8fdd4b6aea7efa25671704eb00eea30bfa8f9"
+  },
+  "performSwapSamePhraseSemantic": "{figure}を同じフレーズ{phrase}で維持",
+  "@performSwapSamePhraseSemantic": {
+    "x-sourceSha256": "3145ba0d0256dce1f7e7212076359d7c1fc8e07b0c85861ff5bbea4ca9fd34d9"
+  },
+  "performSwapWithBefore": "直前のフィギュアも（{figure}）",
+  "@performSwapWithBefore": {
+    "x-sourceSha256": "187b5dc3be47dda387e623d23e3f4ef4aad4a89eceabbc2ff06246d23d8090e4"
+  },
+  "performSwapWithBeforeSemantic": "{figure}を{before}の直後で維持",
+  "@performSwapWithBeforeSemantic": {
+    "x-sourceSha256": "54349c28769552b0ef5a150c2c291a1c4dbfc5c92f10941a48e53b5a4b82c0ca"
+  },
+  "performSwapMoreFilters": "その他のフィルター",
+  "@performSwapMoreFilters": {
+    "x-sourceSha256": "b1ab49a6fedc4d334a37dc3da5bfe172ab72d0944e4e51f316d11a2a75b99fc7"
+  },
+  "performSwapKeepInPanels": "ほかの維持する条件は、フィルターと詳細検索に移りました。",
+  "@performSwapKeepInPanels": {
+    "x-sourceSha256": "ecfe9dad2d04adad8177df3a3be5ef6e6be3dd59020276ddbb201fedbd81fa75"
+  },
+  "performSwapEnglishNote": "イングリッシュダンスでは、同じフォーメーションとフィギュアの細かい条件はまだ使えません。",
+  "@performSwapEnglishNote": {
+    "x-sourceSha256": "dde5c1fddc3cb65a8bc62fe4684beb58a8e7ba7ffeec763980aff222cb2c41ec"
+  },
+  "performSwapAlternatesHeading": "あなたの代替",
+  "@performSwapAlternatesHeading": {
+    "x-sourceSha256": "03361ce91f4284c5e91d49b19007a51e3f044868254103fa49e8a0d90e77a9a5"
+  },
+  "performSwapResultsHeading": "条件に合うダンス",
+  "@performSwapResultsHeading": {
+    "x-sourceSha256": "57d1b7c78aa3bcdc4cefed7536863f6187b0cdd701bd866eb819aa9ea7445248"
+  },
+  "performSwapRefused": "このプログラムは別のデバイスで変更されたため、変更の一部が保存されませんでした。プログラムを確認し、必要であればもう一度変更してください。",
+  "@performSwapRefused": {
+    "x-sourceSha256": "bff07f1000f8c282777aee0febdea8672296cfa8345aa1f19d728328ecab6bf5"
+  },
+  "settingsPerformSwapTitle": "ダンスの入れ替え",
+  "@settingsPerformSwapTitle": {
+    "x-sourceSha256": "e892cbf90746d0f5694e8ea42e38375d7706b1aec52e295ca46dc7149a5f0db7"
+  },
+  "settingsPerformSwapSubtitle": "パフォームモードでダンスを入れ替えるときに、最初からオンにする維持条件を選びます。",
+  "@settingsPerformSwapSubtitle": {
+    "x-sourceSha256": "093a12b31d4b618c56bd82daffc64298ee251716c3486a90a380f587b781df0e"
+  },
+  "settingsPerformSwapFormation": "同じフォーメーション",
+  "@settingsPerformSwapFormation": {
+    "x-sourceSha256": "4e9a14a575b317860b43a67699036904f8d731db4b52e5e543e650c27bf7dd1f"
+  },
+  "settingsPerformSwapLevel": "このレベル以下",
+  "@settingsPerformSwapLevel": {
+    "x-sourceSha256": "c8db678f12f4724468f294a4a42ac3c0be07f2bd139795ac5d7124945f33a59a"
+  },
+  "settingsPerformSwapType": "同じタイプ",
+  "@settingsPerformSwapType": {
+    "x-sourceSha256": "74d6cfee24005aec61965c8b818191bece6146e67d7db1e941e298cf815777fa"
+  },
+  "settingsPerformSwapTypeSubtitle": "コントラとイングリッシュダンスのように、タイプが混在するプログラムでのみ表示されます。",
+  "@settingsPerformSwapTypeSubtitle": {
+    "x-sourceSha256": "d477c65b9b06d3c267eb941d0ad97e19db2b427277abf2a21193e81e860436d4"
+  },
+  "settingsPerformSwapNewerVersion": "この設定は新しいバージョンのアプリで保存されました。このバージョンはすべてオンの初期設定を使い、保存された設定は上書きしません。変更するにはアプリを更新してください。",
+  "@settingsPerformSwapNewerVersion": {
+    "x-sourceSha256": "96ac44b0564bd59fdb1a23ea224abfc09144b09558df30d58c12f74d67dc1b30"
+  },
+  "settingsPerformSwapReadError": "「ダンスの入れ替え」の設定を読み込めなかったため、今は変更できません。この画面を閉じて、もう一度お試しください。",
+  "@settingsPerformSwapReadError": {
+    "x-sourceSha256": "639bb23bf8d638bbe909bbd0c2060faf16c5b7af09edd63ddec51439436e0427"
+  },
   "collectionRepertoireMenuItem": "レパートリー",
   "@collectionRepertoireMenuItem": {
     "x-sourceSha256": "e6aa060e3e9ade6f2eaabed41f149848661b4924de917e5835589e30178bbb3e"
