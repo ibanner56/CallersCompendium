@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "Dances you import from The Caller's Box read three more kinds of line as figures instead of text: \"N2 Men allemande left 3/4\" is the two men allemanding, noted as being with the next neighbors; a hey that names same-role neighbors in its passes, or says \"with hands\" or \"[with N1]\", is a hey with that wording as a note; and \"Pass the ocean (to wave of four (NR,WL))\" is a pass the ocean into that wave."
+      "Dances you import from The Caller's Box read three more kinds of line as figures instead of text: \"N2 Men allemande left 3/4\" is the two men allemanding, noted as being with the next neighbors; a hey whose passes name same-role neighbors (SRN) is read as a hey, and \"with hands\" or a trailing \"[with N1]\" on a hey is kept as a note instead of leaving the line as text; and \"Pass the ocean (to wave of four (NR,WL))\" is a pass the ocean into that wave."
     ]
   },
   "core": {

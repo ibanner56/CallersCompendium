@@ -1165,12 +1165,23 @@ FigureMatch? _tcbCast(String scrubbed) {
 /// read here: it stays custom, as `callersbox_subject_vocabulary_test` already
 /// records (no ordinal same-role token). A line that already carries a square
 /// bracket is left alone, so two brackets never meet, and a remainder no entry
-/// or shared recognizer reads stays custom. *(Which numbers: agent's call.)*
+/// or shared recognizer reads stays custom.
+///
+/// A remainder with its own `(…)` annotation also stays custom (`N3 Men
+/// balance (RH)`, `N2 Women allemande right (1 or 2)`): the readers of those
+/// annotations do not all keep a square bracket beside them, so the number
+/// could be dropped, and some drop the annotation itself. And the result must
+/// still carry the number as its note, or the line stays custom rather than
+/// losing it. *(Which numbers, and declining annotated remainders: agent's
+/// call.)*
 FigureMatch? _tcbNumberedRolePair(String scrubbed) {
   final m = _numberedRolePairRe.firstMatch(scrubbed);
-  if (m == null || scrubbed.contains('[')) return null;
+  if (m == null || scrubbed.contains('[') || scrubbed.contains('(')) {
+    return null;
+  }
   final number = m[1]!.toUpperCase();
-  if (resolveDancerSetPhrase(number) == null) return null;
+  final numbered = resolveDancerSetPhrase(number);
+  if (numbered == null) return null;
   final text = '${m[2]} ${m[3]!.trim()} [with $number]';
   FigureMatch? inner;
   for (final pre in tcbFigureFrontEnd.preRecognizers) {
@@ -1182,6 +1193,14 @@ FigureMatch? _tcbNumberedRolePair(String scrubbed) {
     text,
     recognitionNormalize: _tcbRecognitionNormalize,
   );
+  if (inner == null || inner.forceCustom) return inner;
+  // The number must survive as the note, canonical (`with nextNeighbors`) or
+  // as written (`with N2`, which some readers keep verbatim).
+  final note = inner.note?.toLowerCase() ?? '';
+  if (!note.contains('with $numbered'.toLowerCase()) &&
+      !note.contains('with ${number.toLowerCase()}')) {
+    return null;
+  }
   return inner;
 }
 

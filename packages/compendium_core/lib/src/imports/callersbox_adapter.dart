@@ -1355,6 +1355,20 @@ class CallersBoxAdapter implements SourceAdapter {
     final extra = decoded == null
         ? const <String, Object?>{}
         : _compatibleFormParams(wave.move, decoded);
+    // A wave that already states who is in its centre and with which hand
+    // (`Pass the ocean (to wave of four (NR,WL))`), followed by a balance
+    // stating a different centre or hand, describes two different waves:
+    // folding would keep one and drop the other, so refuse. `sides` is not
+    // compared: a balance line writes the current neighbours as `N` after a
+    // forming line that said `with N2`, and the forming line wins there, as
+    // it always has.
+    for (final key in const ['center', 'centerHand']) {
+      if (wave.params.containsKey(key) &&
+          extra.containsKey(key) &&
+          wave.params[key] != extra[key]) {
+        return null;
+      }
+    }
     final balanceNote = decoded?.note ?? balance.note;
     return wave.copyWith(
       params: {

@@ -34,7 +34,20 @@ void main() {
       expect(f.note, 'with neighbors');
     });
 
-    test('a numbered same-role neighbour is not read here', () {
+    test('a remainder with its own annotation stays custom', () {
+      // `(RH)` is read by a recognizer that would drop the number.
+      expect(_parse('N3 role1s balance (RH)').isCustom, isTrue);
+      expect(_parse('N2 role2s allemande right (1 or 2)').isCustom, isTrue);
+    });
+
+    test('mixed case and other moves keep the number as the note', () {
+      final f = _parse('n2 Role2s trade by right');
+      expect(f.isCustom, isFalse);
+      expect(f.params['who'], 'role2s');
+      expect(f.note, 'with nextNeighbors');
+    });
+
+    test('a numbered same-role neighbour stays custom', () {
       expect(
         _parse('N0 same-role neighbor allemande right 1/2').isCustom,
         isTrue,
@@ -70,10 +83,34 @@ void main() {
       expect(f.note, isNull);
     });
 
-    test('SRN in a later pass still decodes', () {
+    test('SRN in a later pass does not force the hey custom', () {
+      // Only pass1 and pass2 are stored; later passes are checked to decode.
       final f = _parse('Hey (NR;2L;SRNR;1L;NR;2L;SRNR;1L)');
+      expect(f.isCustom, isFalse);
       expect(f.params['pass1'], 'neighbors');
       expect(f.params['pass2'], 'twos');
+    });
+
+    test('SRN1 is the same dancers as SRN', () {
+      expect(_parse('Hey 1/2 (1R;SRN1L;2R;N1L)').params['pass2'], 'sameRoles');
+    });
+
+    test('an unmapped SR code still keeps the hey custom', () {
+      expect(_parse('Hey 1/2 (1R;SRN2L;2R;NL)').isCustom, isTrue);
+    });
+
+    test('with hands and a bracket together make one note each', () {
+      final f = _parse('Hey 1/2 with hands (WL;PR;ML) [With N1]');
+      expect(f.move, 'hey');
+      expect(f.note, contains('with hands'));
+      expect(f.note, contains('with neighbors'));
+    });
+
+    test('with hands said twice stays custom', () {
+      expect(
+        _parse('Hey 1/2 with hands with hands (WL;PR;ML)').isCustom,
+        isTrue,
+      );
     });
 
     test('with hands is a note on the same hey', () {
