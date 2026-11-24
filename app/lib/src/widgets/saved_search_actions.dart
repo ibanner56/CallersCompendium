@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
 import '../data/user_figures_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
@@ -113,10 +114,7 @@ class SavedSearchActions {
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
   /// The caller's calendar day now, from [clock].
-  DateTime _today() {
-    final reading = clock.read();
-    return calendarDayAt(reading.instantUtc, reading.offset);
-  }
+  DateTime _today() => clock.today();
 
   SavedSearchTextCodec _text() {
     final catalog =
@@ -361,6 +359,7 @@ class SavedSearchActions {
       if (!context.mounted) return false;
       await showDialog<void>(
         context: context,
+        animationStyle: AppMotion.styleFor(context),
         builder: (context) => AlertDialog(
           key: const ValueKey('saved-search-in-use'),
           title: Text(l10n.savedSearchInUseTitle(label)),
@@ -400,6 +399,7 @@ class SavedSearchActions {
     final l10n = _l10n;
     final delete = await showDialog<bool>(
       context: context,
+      animationStyle: AppMotion.styleFor(context),
       builder: (context) => AlertDialog(
         key: const ValueKey('saved-search-unreadable'),
         title: Text(l10n.savedSearchUnreadableTitle),
@@ -427,12 +427,14 @@ class SavedSearchActions {
     String? window,
   }) => showDialog<String>(
     context: context,
+    animationStyle: AppMotion.styleFor(context),
     builder: (context) =>
         _SavedSearchNameDialog(title: title, initial: initial, window: window),
   );
 
   Future<void> _tell(String title, String body) => showDialog<void>(
     context: context,
+    animationStyle: AppMotion.styleFor(context),
     builder: (context) => AlertDialog(
       key: const ValueKey('saved-search-message'),
       title: Text(title),

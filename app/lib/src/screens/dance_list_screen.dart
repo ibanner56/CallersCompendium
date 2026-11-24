@@ -910,10 +910,7 @@ class _DanceListScreenState extends State<DanceListScreen>
 
   /// The caller's calendar day now, from [DanceListScreen.clock]: the one
   /// "today" a window is counted back from, here and when a search is saved.
-  DateTime _today() {
-    final reading = widget.clock.read();
-    return calendarDayAt(reading.instantUtc, reading.offset);
-  }
+  DateTime _today() => widget.clock.today();
 
   Future<void> _runSearch() async {
     final data = _data;

@@ -122,9 +122,16 @@ List<String> todayProblems(String source) {
       body = _balanced(code, def.end);
     }
     if (now.hasMatch(body)) problems.add('_today() reads DateTime.now');
-    if (!RegExp(r'\bclock\s*\.\s*read\s*\(').hasMatch(body) ||
-        !body.contains('calendarDayAt')) {
-      problems.add('_today() does not read its clock through calendarDayAt');
+    // The day comes from the host's SearchClock: its own `today()` (which is
+    // `calendarDayAt` of one reading), or a reading turned into a day with
+    // `calendarDayAt`. A subclass that overrides `today()` (a test clock) is
+    // honoured only by the first form.
+    final fromToday = RegExp(r'\bclock\s*\.\s*today\s*\(').hasMatch(body);
+    final fromReading =
+        RegExp(r'\bclock\s*\.\s*read\s*\(').hasMatch(body) &&
+        body.contains('calendarDayAt');
+    if (!fromToday && !fromReading) {
+      problems.add('_today() does not take its day from its clock');
     }
   }
   return problems;
@@ -132,6 +139,17 @@ List<String> todayProblems(String source) {
 
 void main() {
   group('the checker itself', () {
+    test('a host that takes its day from clock.today() is clean, so a test '
+        'clock that overrides today() is honoured', () {
+      const source = '''
+DateTime _today() => widget.clock.today();
+void run() {
+  buildCollectionFilter(ftsText: f(x), today: _today());
+}
+''';
+      expect(todayProblems(source), isEmpty);
+    });
+
     test('a host that passes today from its clock is clean', () {
       const source = '''
 DateTime _today() {
@@ -189,7 +207,7 @@ DateTime _today() {
         todayProblems(source),
         containsAll([
           '_today() reads DateTime.now',
-          '_today() does not read its clock through calendarDayAt',
+          '_today() does not take its day from its clock',
         ]),
       );
     });
