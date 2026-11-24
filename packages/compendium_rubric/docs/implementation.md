@@ -657,15 +657,17 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > `chain` or `pass_through` along the set** does (user-ruled 2026-11-23: a
 > Becket progression is the obvious move), or a diagonal `right_left_through`
 > (agent's call 2026-11-24, by analogy with the diagonal chain). In a
-> single-progression dance with exactly one slide or straight slice, that
-> slide joins those moves in either direction, wherever it falls (Hudson's
-> Apogee note 2026-11-24 named its slide right; generalising it is the
-> agent's call). Only a Becket dance with none of these falls back to the
-> last figure. Outside Becket,
+> single-progression dance (which includes one whose source states no tier)
+> whose only `slide_along_set` or `slice`, counting those inside containers
+> but not a Rory O'More's slide, is a slide or a straight slice by couple,
+> that slide joins those moves in either direction, wherever it falls
+> (Hudson's Apogee note 2026-11-24 named its slide right; generalising it,
+> and those limits, are the agent's calls). Only a Becket dance with none of
+> these falls back to the last figure. Outside Becket,
 > an `arch_and_dive` straight after a hall figure progresses before the last
 > figure does (user-ruled 2026-11-24: the line bends into a ring and the arch
 > and dive carries the couples on). A `modifier` is read by its main
-> figure for both Becket rules, so "slice left while partner roll away"
+> figure for every Becket rule, so "slice left while partner roll away"
 > opening the dance progresses there (user-ruled 2026-11-23: a modifier's
 > progression is its main figure's). (Core's `slide_along_set.slide` and
 > `slice.slice` both default to `left`, so a bare slide or slice takes the
@@ -906,7 +908,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,556 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,561 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

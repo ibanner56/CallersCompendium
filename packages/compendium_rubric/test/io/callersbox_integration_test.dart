@@ -1142,6 +1142,93 @@ void main() {
       expect(assumedProgressionIndex(dance), 2);
     });
 
+    test('a sole slide left later in the dance progresses too', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        figures: [
+          figure('circle'),
+          figure('slide_along_set', {'slide': 'left'}),
+          figure('swing'),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 1);
+    });
+
+    test('a sole slide is read through a modifier as its main figure', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        figures: [
+          figure('circle'),
+          core.Figure.modifier(
+            figures: [
+              figure('slide_along_set', {'slide': 'right'}),
+              figure('roll_away'),
+            ],
+            beats: 8,
+          ),
+          figure('swing'),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 1);
+    });
+
+    test('a second slide inside a container counts against the first', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        figures: [
+          figure('slide_along_set', {'slide': 'right'}),
+          figure('circle'),
+          core.Figure.modifier(
+            figures: [
+              figure('swing'),
+              figure('slide_along_set', {'slide': 'right'}),
+            ],
+            beats: 8,
+          ),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 2);
+    });
+
+    test("a Rory O'More's slide is not a sole slide", () {
+      // The bridge reads a slide straight after a balance in a long wave as
+      // a Rory O'More, which is not its own progression (agent's call).
+      final rory = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        figures: [
+          figure('circle'),
+          figure('form_long_waves', {'balance': true}),
+          figure('slide_along_set', {'slide': 'right'}),
+          figure('swing'),
+        ],
+      );
+      expect(assumedProgressionIndex(rory), 3);
+      // Nor does it count against a plain slide elsewhere.
+      final both = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        figures: [
+          figure('form_long_waves', {'balance': true}),
+          figure('slide_along_set', {'slide': 'right'}),
+          figure('circle'),
+          figure('slide_along_set', {'slide': 'right'}),
+          figure('swing'),
+        ],
+      );
+      expect(assumedProgressionIndex(both), 3);
+    });
+
+    test('a sole slice by dancer does not', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        figures: [
+          figure('circle'),
+          figure('slice', {'slice': 'right', 'by': 'dancer'}),
+          figure('swing'),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 2);
+    });
+
     test('a sole double slice later in the dance does not', () {
       final dance = _shapedLike(
         shape: core.FormationShape.becketCw,
