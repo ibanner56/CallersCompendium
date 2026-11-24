@@ -406,7 +406,13 @@ as draft programs.
 - **Import calendar when the app starts** (off) — reads your calendar once each
   time the app starts, and never at any other time: not in the background, not
   on a timer, not when you come back to the app. Like the automatic
-  [update check](#updates), it is off until you turn it on.
+  [update check](#updates), it is off until you turn it on. With
+  [Device Sync](#device-sync) on, it first waits up to 30 seconds for the sync
+  the app runs when it starts, so events another of your devices has already
+  imported and synced aren't added again here. Both can still add a draft for
+  the same event if that device hasn't synced them yet, or if this one can't
+  sync when it starts (offline, or on mobile data with **Sync only on WiFi**)
+  or takes longer than that.
 - **At startup** — what that run does with events not imported before:
   - **Report new events** (the default) — adds nothing. If there are new events,
     a message says how many, with **Review**, which opens the import review with
