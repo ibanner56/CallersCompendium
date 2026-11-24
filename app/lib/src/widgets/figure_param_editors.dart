@@ -192,6 +192,9 @@ class FigureParamEditor extends StatelessWidget {
           onChanged: onChanged,
         );
       case ParamKind.beats:
+        // A step of a sequence that states its own span may be left with no
+        // timing of its own ([SequenceSpanScope]).
+        final allowsUntimed = SequenceSpanScope.allowsUntimedOf(context);
         // An English dance is timed in bars (ADR-006 §5.5).
         if (BarTimingScope.maybeOf(context) case final bars?) {
           return BarsField(
@@ -200,7 +203,16 @@ class FigureParamEditor extends StatelessWidget {
             beats: value is int ? value! as int : null,
             timing: bars.timing,
             startBeat: FigureStartScope.startOf(context),
-            allowsUntimed: bars.allowsUntimed,
+            allowsUntimed: allowsUntimed,
+            onChanged: onChanged,
+          );
+        }
+        // A square's, in beats (ADR-007 Q10).
+        if (allowsUntimed) {
+          return BeatsField(
+            fieldKey: _key,
+            label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
+            beats: value is int ? value! as int : null,
             onChanged: onChanged,
           );
         }

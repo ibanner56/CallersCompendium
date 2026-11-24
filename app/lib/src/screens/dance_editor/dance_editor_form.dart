@@ -716,12 +716,17 @@ class DanceEditorForm extends StatelessWidget {
 
   /// [child] timed in bars where the dance is ([barTimingFor]): an English
   /// dance, by one bar length where its tune has one meter and by each
-  /// phrase's own where the phrases differ in beats per bar.
+  /// phrase's own where the phrases differ in beats per bar. Its sequences
+  /// may state a span of their own where the form has spans
+  /// ([SequenceSpanScope]): an English dance's in bars, a square's in beats.
   Widget _withBarTiming(Widget child) {
     final timing = _barTiming;
-    return timing == null
+    final timed = timing == null
         ? child
         : BarTimingScope(timing: timing, child: child);
+    return formHasSequenceSpan(controller.form)
+        ? SequenceSpanScope(child: timed)
+        : timed;
   }
 
   /// The Authors label and picker.

@@ -569,7 +569,8 @@ other points below are this ADR's proposal.
 - **Bar ranges are derived.** "Bars 1–4" and phrase labels (A1, B2) come from
   the order and length of the lines, as section labels do for contra. They
   are not stored.
-- **One span for a sequence** (ECD only for now). A sequence can carry a single span ("A, B and C in bars 1–4") while its
+- **One span for a sequence** (ECD only at acceptance; opened to squares
+  by ADR-007 Q10, 24 November 2026). A sequence can carry a single span ("A, B and C in bars 1–4") while its
   steps carry no timing of their own. Contra sequences keep their current
   contract, where the total is always the sum of the steps.
 - **Rules for the span.** If every step carries

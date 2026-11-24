@@ -768,20 +768,20 @@ void main() {
 
     test('untimed steps share the span', () {
       expect(
-        ecdSequenceSpanIssue(sequence([step(), step()], 8), DanceForm.ecd),
+        sequenceSpanIssue(sequence([step(), step()], 8), DanceForm.ecd),
         isNull,
       );
     });
 
     test('timed steps must add up to the span', () {
       expect(
-        ecdSequenceSpanIssue(
+        sequenceSpanIssue(
           sequence([step(beats: 4), step(beats: 4)], 8),
           DanceForm.ecd,
         ),
         isNull,
       );
-      final issue = ecdSequenceSpanIssue(
+      final issue = sequenceSpanIssue(
         sequence([step(beats: 4), step(beats: 8)], 8),
         DanceForm.ecd,
       );
@@ -792,14 +792,11 @@ void main() {
 
     test('timed steps must leave time for the untimed', () {
       expect(
-        ecdSequenceSpanIssue(
-          sequence([step(beats: 4), step()], 8),
-          DanceForm.ecd,
-        ),
+        sequenceSpanIssue(sequence([step(beats: 4), step()], 8), DanceForm.ecd),
         isNull,
       );
       expect(
-        ecdSequenceSpanIssue(
+        sequenceSpanIssue(
           sequence([step(beats: 8), step()], 8),
           DanceForm.ecd,
         )?.code,
@@ -809,10 +806,28 @@ void main() {
 
     test('contra keeps its own contract', () {
       expect(
-        ecdSequenceSpanIssue(
+        sequenceSpanIssue(
           sequence([step(beats: 4), step(beats: 8)], 8),
           DanceForm.contra,
         ),
+        isNull,
+      );
+    });
+
+    test('a square has spans too (ADR-007 Q10); contra alone has none', () {
+      expect(
+        {for (final form in DanceForm.values) form: formHasSequenceSpan(form)},
+        {DanceForm.contra: false, DanceForm.ecd: true, DanceForm.square: true},
+      );
+      expect(
+        sequenceSpanIssue(
+          sequence([step(beats: 4), step(beats: 8)], 8),
+          DanceForm.square,
+        )?.data,
+        {'actual': 12, 'expected': 8, 'allTimed': true},
+      );
+      expect(
+        sequenceSpanIssue(sequence([step(), step()], 8), DanceForm.square),
         isNull,
       );
     });

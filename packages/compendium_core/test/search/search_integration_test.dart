@@ -3856,5 +3856,30 @@ FROM seq
       await dances.create(spanDance(DanceForm.contra));
       expect(await inSection('ecd_cast', 'A1'), ['span']);
     });
+
+    test("a square's steps share its span as an English dance's do "
+        '(ADR-007 Q10)', () async {
+      await dances.create(
+        _dance(
+          id: 'square',
+          title: 'Square',
+          form: DanceForm.square,
+          figures: [
+            Figure.sequence(
+              beats: 32,
+              figures: [
+                Figure(move: 'sq_forward_and_back'),
+                Figure(move: 'sq_swing'),
+                Figure(move: 'sq_promenade'),
+              ],
+            ),
+            Figure(move: 'sq_circle', params: const {'beats': 32}),
+          ],
+        ),
+      );
+      expect(await inSection('sq_swing', 'A1'), ['square']);
+      expect(await inSection('sq_promenade', 'A2'), ['square']);
+      expect(await inSection('sq_promenade', 'A1'), isEmpty);
+    });
   });
 }

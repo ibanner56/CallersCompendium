@@ -526,8 +526,8 @@ share that step's group), so a "balance and swing" kept as one sequence
 matches `ThenFilter(balance, swing)` exactly as two adjacent figures would, and
 not `ThenFilter(swing, balance)`. Each step also takes the section it starts
 in, so a step that begins the next phrase is found in that phrase. In an
-English sequence that states one span for steps with no timing of their own
-(ADR-006 §5.5), those steps share what the timed ones leave of the span,
+English or square sequence that states one span for steps with no timing of
+their own (ADR-006 §5.5, ADR-007 Q10; `formHasSequenceSpan`), those steps share what the timed ones leave of the span,
 evenly and in order, for placing them (`DanceRepository._sequenceStepBeats`).
 A share of 0 (a span already full) puts such a step where the step before it
 ends, so on a phrase boundary it takes the earlier phrase; the editor warns

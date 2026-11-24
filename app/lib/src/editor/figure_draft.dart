@@ -354,7 +354,7 @@ class FigureDraft {
   /// order and shown on one line. Unlike the other two kinds, a sequence's
   /// count is normally not edited on the container: [beats] is the sum of its
   /// children's, and `params['beats']` is not read. The exception is an
-  /// English dance's sequence that states its own span
+  /// English dance's or a square's sequence that states its own span
   /// ([sequenceSpanStated]).
   ///
   /// At most one of [meanwhileSides], [modifierFigures] and [sequenceFigures]
@@ -465,7 +465,7 @@ class FigureDraft {
   /// A new container of [kind] holding [first] and [second]. A meanwhile's or
   /// modifier's shared count follows its children until the user types one
   /// ([syncContainerBeats]); a new sequence's count is its children's sum,
-  /// until an English sequence states a span ([setSequenceSpan]).
+  /// until an English or square sequence states a span ([setSequenceSpan]).
   static FigureDraft group(String kind, FigureDraft first, FigureDraft second) {
     final group = FigureDraft()..setContainer(kind, [first, second]);
     if (kind != sequenceMove) {
@@ -517,9 +517,10 @@ class FigureDraft {
   /// Whether this sequence states a span of its own, "A, B and C in bars
   /// 1–4", rather than counting its steps (ADR-006 §5.5): its
   /// `params['beats']`, once set by hand ([beatsTouched]). Its steps may then
-  /// carry no timing of their own. Only an English dance's editor offers a
-  /// span, and the dance editor clears it from every other form's sequences,
-  /// so a contra sequence always counts its steps.
+  /// carry no timing of their own. Only an English dance's or a square's
+  /// editor offers a span (`formHasSequenceSpan`, ADR-007 Q10), and the dance
+  /// editor clears it from a contra dance's sequences, so a contra sequence
+  /// always counts its steps.
   bool get sequenceSpanStated =>
       isSequenceGroup && beatsTouched && params['beats'] is int;
 

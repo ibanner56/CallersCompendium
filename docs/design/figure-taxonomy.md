@@ -68,7 +68,8 @@ searchKeywords: [allemande, almond]
   group only while the flag is set, and a stated `destination` is worded as a
   phrase ("back to place", "to second place"). Contra templates use none of
   it. An ECD sequence may carry one span for steps with no timing of their
-  own (`ecdSequenceSpanIssue`, ADR-006 §5.5). The containers and `custom`
+  own (`sequenceSpanIssue`, ADR-006 §5.5), as a square's may (ADR-007 Q10;
+  `formHasSequenceSpan`). The containers and `custom`
   stay shared and unprefixed.
 - **Traditional squares have their own taxonomy** (`squareTaxonomy`,
   `square_taxonomy.dart`): ADR-007 §7.1's traditional core, stored under

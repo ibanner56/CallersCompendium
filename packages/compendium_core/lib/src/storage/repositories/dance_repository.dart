@@ -27,7 +27,7 @@ import '../../search/fts_query.dart';
 import '../../serialization/figure_codec.dart';
 import '../figure_reparse.dart';
 import '../../sync/sync_record_kind.dart';
-import '../../taxonomy/ecd_sequence_span.dart';
+import '../../taxonomy/sequence_span.dart';
 import '../../taxonomy/param_types.dart';
 import '../../taxonomy/taxonomy.dart';
 import '../calling_history_scope.dart';
@@ -1234,9 +1234,9 @@ class DanceRepository {
 
   /// The beats each step of [sequence] takes, for placing it in a phrase.
   ///
-  /// A step that states its timing takes its own beats. In an English
-  /// sequence that states one span for steps with no timing of their own
-  /// ("A, B and C in bars 1–4", ADR-006 §5.5), those steps share what the
+  /// A step that states its timing takes its own beats. In an English or
+  /// square sequence that states one span for steps with no timing of their
+  /// own ([formHasSequenceSpan]), those steps share what the
   /// timed ones leave of the span, evenly and in order, so a step late in a
   /// span that crosses a phrase is placed in the later phrase rather than
   /// where the sequence starts. Where the order of the steps is all the
@@ -1245,7 +1245,7 @@ class DanceRepository {
   static List<int> _sequenceStepBeats(Figure sequence, DanceForm form) {
     final steps = sequence.subFigures;
     final untimed = steps.where((step) => !stepStatesTiming(step)).length;
-    if (form != DanceForm.ecd || untimed == 0) {
+    if (!formHasSequenceSpan(form) || untimed == 0) {
       return [for (final step in steps) step.beats];
     }
     final timed = steps
