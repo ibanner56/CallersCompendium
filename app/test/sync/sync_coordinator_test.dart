@@ -7902,9 +7902,11 @@ void main() {
       expect(SyncCapabilityPolicy.build.advertised, {
         SyncCapabilities.glossaryV1,
         SyncCapabilities.glossaryV2,
-        // Program templates (#2337), suggestions (#2343) and the Swap a
-        // dance defaults (#2346) are covered by their own rollout tests.
+        // Program templates (#2337), saved searches (#2325), suggestions
+        // (#2343) and the Swap a dance defaults (#2346) are covered by their
+        // own rollout tests.
         SyncCapabilities.programTemplatesV1,
+        SyncCapabilities.savedSearchesV1,
         SyncCapabilities.suggestionsV1,
         SyncCapabilities.performSwapV1,
       });
@@ -8625,6 +8627,7 @@ void main() {
           SyncCapabilities.glossaryV2,
           SyncCapabilities.performSwapV1,
           SyncCapabilities.programTemplatesV1,
+          SyncCapabilities.savedSearchesV1,
           SyncCapabilities.suggestionsV1,
         ],
       }, reason: 'this build advertises the capabilities');
@@ -8796,14 +8799,17 @@ void main() {
         );
       });
 
-      test('the shipped build does not publish a saved search yet: it gates '
-          'them but does not advertise the capability', () async {
+      test('the shipped build advertises savedSearches.v1, and publishes a '
+          'saved search once every other device advertises it', () async {
+        expect(
+          SyncCapabilityPolicy.build.advertised,
+          contains(SyncCapabilities.savedSearchesV1),
+        );
         final mine = savedSearch('a', 'Easy mixers');
-        // A peer that advertises everything, saved searches included.
-        final peerCaps = capabilityOf('peer', {
-          ...SyncCapabilityPolicy.build.advertised,
-          SyncCapabilities.savedSearchesV1,
-        });
+        final peerCaps = capabilityOf(
+          'peer',
+          SyncCapabilityPolicy.build.advertised,
+        );
         final store = _FakeStore(
           local: {
             mine.address: mine,
@@ -8811,7 +8817,47 @@ void main() {
             peerCaps.address: peerCaps,
           },
         );
-        final transport = transportFor(['peer'], missing: {plain.wireHash});
+        final transport = transportFor(
+          ['peer'],
+          missing: {plain.wireHash, mine.wireHash},
+        );
+        final result = await coordinatorFor(
+          store,
+          transport,
+          capabilities: SyncCapabilityPolicy.build,
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.completed);
+        expect(awaiting(result), isEmpty);
+        expect(publishedSettings(transport), contains('saved_search:a'));
+        expect(uploaded(transport), contains(mine.wireHash));
+      });
+
+      test('the shipped build holds a saved search back from a device on the '
+          'build before this one, and names that device', () async {
+        final mine = savedSearch('a', 'Easy mixers');
+        // The build before this one: everything but saved searches.
+        final previous = {
+          for (final c in SyncCapabilityPolicy.build.advertised)
+            if (c != SyncCapabilities.savedSearchesV1) c,
+        };
+        final updated = capabilityOf(
+          'updated',
+          SyncCapabilityPolicy.build.advertised,
+        );
+        final older = capabilityOf('older', previous);
+        final store = _FakeStore(
+          local: {
+            mine.address: mine,
+            plain.address: plain,
+            updated.address: updated,
+            older.address: older,
+          },
+        );
+        final transport = transportFor(
+          ['updated', 'older'],
+          missing: {plain.wireHash, mine.wireHash},
+        );
         final result = await coordinatorFor(
           store,
           transport,
@@ -8823,10 +8869,9 @@ void main() {
         expect(result.status, SyncPassStatus.completed);
         expect(publishedSettings(transport), contains('theme_mode'));
         expect(publishedSettings(transport), isNot(contains('saved_search:a')));
-        expect(
-          SyncCapabilityPolicy.build.advertised,
-          isNot(contains(SyncCapabilities.savedSearchesV1)),
-        );
+        expect(uploaded(transport), isNot(contains(mine.wireHash)));
+        expect(awaiting(result).map((r) => r.peerId), ['older']);
+        expect(awaiting(result).single.message, contains('savedSearches.v1'));
       });
 
       test('end to end on the real store: two devices that each add a search '

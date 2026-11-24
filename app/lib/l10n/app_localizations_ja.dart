@@ -14014,4 +14014,244 @@ class AppLocalizationsJa extends AppLocalizations {
   String calendarLastResultError(String when) {
     return '起動時にカレンダーからインポートできませんでした（$when）';
   }
+
+  @override
+  String get savedSearchSaveThis => 'この検索を保存…';
+
+  @override
+  String savedSearchUpdate(String name) {
+    return '「$name」を更新';
+  }
+
+  @override
+  String savedSearchRename(String name) {
+    return '「$name」の名前を変更…';
+  }
+
+  @override
+  String savedSearchDelete(String name) {
+    return '「$name」を削除';
+  }
+
+  @override
+  String get savedSearchNeedsAttention => '確認が必要';
+
+  @override
+  String get savedSearchUnreadableItem => '開けない保存した検索';
+
+  @override
+  String get savedSearchUnreadableTitle => 'この保存した検索を開けません';
+
+  @override
+  String get savedSearchUnreadableBody =>
+      '新しいバージョンのアプリで保存されたか、壊れているため、使われません。削除でき、削除は元に戻せます。';
+
+  @override
+  String get savedSearchSaveDialogTitle => 'この検索を保存';
+
+  @override
+  String get savedSearchRenameDialogTitle => '保存した検索の名前を変更';
+
+  @override
+  String get savedSearchNameLabel => '名前';
+
+  @override
+  String savedSearchWindowNotCalled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '過去$countか月コールしていない',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String savedSearchWindowCalled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '過去$countか月にコールした',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String savedSearchWindowInert(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '保存するコール履歴の期間：過去$countか月',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedSearchTooLargeTitle => '検索が大きすぎます';
+
+  @override
+  String get savedSearchTooLargeBody =>
+      'この検索はフィルターや行が多すぎて保存できません。いくつか外してから、もう一度保存してください。';
+
+  @override
+  String get savedSearchLimitTitle => '保存した検索が多すぎます';
+
+  @override
+  String savedSearchLimitBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '保存した検索は$count件まで残せます。別の検索を保存するには、どれかを削除してください。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedSearchNameRefused => 'その名前は使えません。別の名前を試してください。';
+
+  @override
+  String get savedSearchFailed => '保存した検索の操作ができませんでした。もう一度試してください。';
+
+  @override
+  String savedSearchSavedSnack(String name) {
+    return '「$name」を保存しました';
+  }
+
+  @override
+  String savedSearchUpdatedSnack(String name) {
+    return '「$name」を更新しました';
+  }
+
+  @override
+  String savedSearchDeletedSnack(String name) {
+    return '「$name」を削除しました';
+  }
+
+  @override
+  String savedSearchInUseTitle(String name) {
+    return '「$name」を削除できません';
+  }
+
+  @override
+  String get savedSearchInUseBody =>
+      '次のものでまだ使われています。先にそれらを変更するか外してから、削除してください。';
+
+  @override
+  String savedSearchNoticeTitle(String name) {
+    return '「$name」は、なくなったものを使っています：';
+  }
+
+  @override
+  String get savedSearchNoticeRest => '検索の残りは表示されています。更新するには、これらをご自分で外してください。';
+
+  @override
+  String get savedSearchNoticeFieldSkipped =>
+      '削除されたカスタムフィールドのフィルターは、結果に反映されません。';
+
+  @override
+  String get savedSearchNoticeClose => 'お知らせを閉じる';
+
+  @override
+  String savedSearchMissingTag(String name) {
+    return '削除されたタグ「$name」';
+  }
+
+  @override
+  String get savedSearchMissingTagUnnamed => '削除されたタグ';
+
+  @override
+  String savedSearchMissingAuthor(String name) {
+    return '削除された作者「$name」';
+  }
+
+  @override
+  String get savedSearchMissingAuthorUnnamed => '削除された作者';
+
+  @override
+  String savedSearchMissingSource(String name) {
+    return '削除された出典「$name」';
+  }
+
+  @override
+  String get savedSearchMissingSourceUnnamed => '削除された出典';
+
+  @override
+  String savedSearchMissingLevel(String name) {
+    return '削除されたレベル「$name」';
+  }
+
+  @override
+  String get savedSearchMissingLevelUnnamed => '削除されたレベル';
+
+  @override
+  String savedSearchMissingVenue(String name) {
+    return '削除された会場「$name」';
+  }
+
+  @override
+  String get savedSearchMissingVenueUnnamed => '削除された会場';
+
+  @override
+  String savedSearchMissingField(String name) {
+    return '削除されたカスタムフィールド「$name」';
+  }
+
+  @override
+  String get savedSearchMissingFieldUnnamed => '削除されたカスタムフィールド';
+
+  @override
+  String savedSearchMissingFieldType(String name) {
+    return '種類が変わったカスタムフィールド「$name」';
+  }
+
+  @override
+  String savedSearchMissingFieldChoice(String choice, String name) {
+    return '「$name」から外された選択肢「$choice」';
+  }
+
+  @override
+  String get savedSearchMissingFigureDetail => '表示できない詳細検索のフィギュアの詳細';
+
+  @override
+  String get savedSearchMissingUserFigure => '削除された自作のフィギュア';
+
+  @override
+  String get savedSearchMissingInvalid => 'このバージョンでは読めないもの';
+
+  @override
+  String savedSearchSearchFor(String text) {
+    return '「$text」を検索';
+  }
+
+  @override
+  String savedSearchHighlightedRow(String name, int index, int count) {
+    return '$name、$count件中$index件目';
+  }
+
+  @override
+  String get savedSearchSaveAsNewSearch => '新しい検索として保存…';
+
+  @override
+  String get settingsCollectionTitle => 'コレクション';
+
+  @override
+  String get settingsSavedSearchesHeader => '保存した検索';
+
+  @override
+  String get settingsSavedSearchesEmpty =>
+      '保存した検索はまだありません。コレクションで検索を設定してから、その他のアクションメニューで「この検索を保存…」を選んでください。';
+
+  @override
+  String settingsSavedSearchRenameTooltip(String name) {
+    return '「$name」の名前を変更';
+  }
+
+  @override
+  String settingsSavedSearchDeleteTooltip(String name) {
+    return '「$name」を削除';
+  }
+
+  @override
+  String savedSearchGone(String name) {
+    return '「$name」はこの端末か別の端末で削除されたため、何も変更されませんでした。';
+  }
 }

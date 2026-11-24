@@ -1238,7 +1238,7 @@ class _TunesFacetState extends State<_TunesFacet> {
             displayStringForOption: (c) => c.value,
             sheetSemanticLabel: l10n.collectionFacetTunes,
             // The first row is the typed text; Enter must commit it in the
-            // compact sheet too, as `RawAutocomplete` already does inline.
+            // compact sheet too, as Flutter's RawAutocomplete already does inline.
             selectFirstOnSheetSubmit: true,
             optionsBuilder: _options,
             onSelected: (c) => _add(c.value),

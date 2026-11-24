@@ -655,6 +655,7 @@ class _CollectionShellState extends State<CollectionShell> {
         }
         return DanceListScreen(
           key: _listKey,
+          isActive: widget.isActive,
           onImport: _pushImportRoute,
           callersBoxOnline: _callersBox,
           contraDbOnline: _contraDb,
@@ -675,6 +676,7 @@ class _CollectionShellState extends State<CollectionShell> {
           child: ScaffoldMessenger(
             child: DanceListScreen(
               key: _listKey,
+              isActive: widget.isActive,
               onSelectDance: _onSelectDance,
               onNewDance: _onNewDance,
               selectedDanceId: _selectedDanceId,

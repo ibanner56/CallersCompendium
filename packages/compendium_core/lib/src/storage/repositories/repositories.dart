@@ -10,6 +10,7 @@ import '../../privacy/field_registry.dart';
 import '../../privacy/data_classification.dart';
 import '../../privacy/settings_registry.dart';
 import '../../serialization/figure_codec.dart';
+import '../../sync/sync_record_kind.dart';
 import '../../sync/sync_storage.dart' show CompendiumSyncStorage;
 import '../../taxonomy/taxonomy.dart';
 import '../../taxonomy/user_figure_switch.dart';
@@ -317,6 +318,82 @@ class CompendiumRepositories {
       await userGlossary.delete(id, at: now);
       return switched;
     });
+  }
+
+  /// The names of the **deleted** records of [kind] among [ids], by id: a
+  /// tag, author, source, venue, level or custom field that is tombstoned
+  /// (soft-deleted, or merged away) but still on disk. Ids that are live, that
+  /// were never seen or have been purged, are absent, as is every id of
+  /// another kind.
+  ///
+  /// For naming what a saved search refers to that is gone ("uses the tag
+  /// *Bouncey*, which was deleted", #2325). Reads only, one query, and changes
+  /// nothing; a name read here is what the record was called when it was
+  /// deleted, never shown as if it were live.
+  Future<Map<String, String>> deletedRecordNames(
+    SyncRecordKind kind,
+    Iterable<String> ids,
+  ) async {
+    final wanted = ids.toSet().toList();
+    if (wanted.isEmpty) return const {};
+    Future<Map<String, String>> read<T extends Table, R>(
+      TableInfo<T, R> table,
+      Expression<String> Function(T t) id,
+      Expression<DateTime> Function(T t) deletedAt,
+      String Function(R row) idOf,
+      String Function(R row) nameOf,
+    ) async {
+      final rows = await (db.select(
+        table,
+      )..where((t) => id(t).isIn(wanted) & deletedAt(t).isNotNull())).get();
+      return {for (final row in rows) idOf(row): nameOf(row)};
+    }
+
+    return switch (kind) {
+      SyncRecordKind.tag => read(
+        db.tags,
+        (t) => t.id,
+        (t) => t.deletedAt,
+        (r) => r.id,
+        (r) => r.name,
+      ),
+      SyncRecordKind.choreographer => read(
+        db.choreographers,
+        (t) => t.id,
+        (t) => t.deletedAt,
+        (r) => r.id,
+        (r) => r.name,
+      ),
+      SyncRecordKind.publishedSource => read(
+        db.publishedSources,
+        (t) => t.id,
+        (t) => t.deletedAt,
+        (r) => r.id,
+        (r) => r.title,
+      ),
+      SyncRecordKind.venue => read(
+        db.venues,
+        (t) => t.id,
+        (t) => t.deletedAt,
+        (r) => r.id,
+        (r) => r.name,
+      ),
+      SyncRecordKind.difficultyLevel => read(
+        db.difficultyLevels,
+        (t) => t.id,
+        (t) => t.deletedAt,
+        (r) => r.id,
+        (r) => r.label,
+      ),
+      SyncRecordKind.customFieldDef => read(
+        db.customFieldDefs,
+        (t) => t.id,
+        (t) => t.deletedAt,
+        (r) => r.id,
+        (r) => r.label,
+      ),
+      _ => Future.value(const <String, String>{}),
+    };
   }
 
   /// Read-only collection and calling-history aggregates for the Repertoire

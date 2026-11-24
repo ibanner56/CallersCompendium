@@ -944,9 +944,10 @@ A saved search is the search panel's state, stored under a name, and resolved
 against the collection as it is when it runs. This section is the format and
 the resolver contract; both live in `compendium_core`
 (`packages/compendium_core/lib/src/search/saved_search*.dart`). How a saved
-search is stored, synced and kept consistent through merges and deletes, and the
-menu that uses it, are specified where they land (`sync-spec.md` §6.15,
-`tags-and-people.md`, `collection.md`).
+search is stored, synced and kept consistent through merges and deletes is
+specified in `sync-spec.md` §6.15 and `tags-and-people.md`; the menu that uses
+it is [Using saved searches](#using-saved-searches), below, and the user guide's
+`docs/user/collection.md`.
 
 **What is stored: the panel state, not the compiled filter** (maintainer
 decision). A compiled `DanceFilter` would freeze the computed recency cutoff and
@@ -1121,6 +1122,114 @@ state, and nothing in it is silently dropped or left filtering out of sight:
   value yet (a lone "-", Between's first bound, spaces). The field tells
   those apart from a rebuild its own typing caused by the facets' identity
   and `FacetSelections.clearCount`, a count kept in memory only.
+
+### Using saved searches
+
+The maintainer replaced the issue's toolbar **Saved** button (2026-11-24, in
+the PR6 session): on a 390dp phone the row of tools has no room for it (the
+three tools take 282dp of the 358dp inside the margins, 304dp with "Filters ·
+3", and two 40dp icons need 80dp). Saved searches are used in three places
+instead, all through one set of UI-free actions, `SavedSearchActions`
+(`app/lib/src/widgets/saved_search_actions.dart`):
+
+- **The search field's dropdown** (`SavedSearchField`,
+  `app/lib/src/widgets/saved_search_field.dart`), in the Collection and the
+  picker: a popover of its own (an `OverlayPortal` under the field, over the
+  host's own controller and focus node), not Flutter's autocomplete widgets.
+  Those decide whether to show only when focus or text changes, and write the
+  chosen option into the field; this dropdown must open when the list
+  arrives after focus, and must never touch what is typed (nor the cursor, nor
+  an input method's composition). Nor is it `ResponsiveAutocomplete`, whose
+  phone layout turns the field into a read-only launcher.
+  - With the field focused it lists the saved searches by name (duplicates
+    are allowed: two devices could not prevent them offline), narrowed to the
+    names containing what is typed. The list is read again each time the
+    field gains focus, and after the host saves, renames or deletes one.
+  - While there is text, the first row is **Search for "…"** and is
+    highlighted; with nothing typed no row is highlighted. That row, Enter
+    with nothing highlighted, and a tap outside keep the ordinary search: the
+    host's debounce runs it as it is typed, and Enter runs it at once, as
+    before. A tap outside, while the field has focus, closes the popover
+    without taking focus, as a text field on a phone keeps it.
+  - Up and Down move the highlight (from none, Down lands on the first row and
+    Up on the last) and Enter chooses it. A move is announced as the command
+    palette does; "results found" is announced once each time typing opens
+    the popover, not on focus, nor when a tap reopens it.
+  - Escape is handled by a `Focus` key handler around the field, below the
+    app's shortcuts, and only to close an open popover. With the popover
+    closed it is ignored, so the app's Escape does exactly what it did before:
+    leave the page, or close a dismissible sheet the picker is in (Perform's
+    Insert a dance). No `DismissIntent` action is registered: the app's
+    Escape offers its dismiss to the nearest one, and a disabled one would
+    stop it there.
+  - While an input method is composing, the arrow keys move nothing here, and
+    Escape neither closes the popover nor reaches the app's Escape (the input
+    method has already received it); the composition is never touched.
+  - Choosing a saved search takes focus from the field, so the popover does
+    not reopen over the results the load shows. The popover's height is
+    bounded by the room above the window's own keyboard inset, and is worked
+    out again whenever the window's metrics change (a keyboard that appears
+    after the popover opened).
+  - Disabled while Online search is on. A saved search this version cannot
+    read is not listed there.
+- **The Collection's ⋮ menu**: **Save this search…** (while a query is set,
+  `CollectionPanelState.hasQuery`; the dialog says what is kept of a
+  calling-history window, a chosen date as whole months back from today; a
+  search over the format's limits, or one past `savedSearchMaxCount`, is
+  refused with a message). While a saved search is loaded: **Update "…"**,
+  enabled only once the panel's saved form differs from the form it had when
+  loaded or last saved; **Save as a new search…** in place of Save this
+  search…; **Rename "…"…**, which renames the stored search and does not save
+  the panel's edits; **Delete "…"**. The screen keeps which search is loaded
+  (`_loadedSearch`); clearing the search forgets it, and the entries go. The
+  picker has no ⋮ menu: it only loads.
+- **Settings ▸ Collection ▸ Saved searches**
+  (`app/lib/src/screens/settings/collection_section.dart`, after the
+  **Dances** group that moved there from General): every saved search, with
+  Rename and Delete, and those this version cannot read last under **Needs
+  attention**, explained and deletable. No Update there: it needs a panel.
+
+**Writes re-read first.** Update, Rename and Delete read the stored search
+again before writing (`SavedSearchActions._storedNow`): Update keeps the name
+stored now, Rename keeps the content stored now, and a search deleted
+meanwhile (in Settings, or by sync) is refused with a message and forgotten,
+never brought back. The Collection reads its loaded search again, and Settings
+▸ Collection its list, each time its destination is shown again (`isActive`,
+passed down from the app shell, which keeps every destination mounted).
+
+**Delete** follows the app's rule: `confirmDeleteIfEnabled`, then Undo
+(`showUndoSnackBar`). The Undo writes the stored value back exactly as it was
+read before the delete (`SettingsRepository.set` on the tombstoned key, which
+revives it), so a value this version cannot read comes back byte for byte. A
+delete that a registered dependent refuses (`SavedSearchInUse`) shows a message
+listing each use and deletes nothing.
+
+**Loading** reads one `SavedSearchContext` (`readSavedSearchContext`,
+`app/lib/src/search/saved_search_context.dart`): one read each of the live tags,
+authors, sources, levels, venues, figures of your own and custom field
+definitions, the merge aliases from one `SyncLocalRepository.aliasMaps()`, and
+the host's live Calling history settings (the picker adds the program being
+built). Then `resolveSavedSearch`:
+
+- a `ResolvedFilter` is applied through the host's one entry point
+  (`DanceListCommands.applyPanelState`; in the picker a
+  `CollectionPanelRequest` held in a field), which never writes the last-used
+  sort;
+- an `UnresolvableSavedSearch` is **still applied, whole**: the spec's own
+  panel state, read through the aliases, so nothing is dropped. The host shows
+  a lasting notice naming each missing thing ("The tag Bouncey, which was
+  deleted"; the name comes from the tombstoned record,
+  `CompendiumRepositories.deletedRecordNames`, or "A tag that was deleted" when
+  this device never knew it), and the user removes each criterion themselves.
+  A Filters criterion on a deleted custom field is left out by
+  `buildCollectionFilter`, so the notice also says that one is not in the
+  results. There is no "open anyway" step: the notice is what keeps the load
+  from being silent.
+
+Both hosts take "today" from a `SearchClock` (`DanceListScreen.clock`,
+`CollectionPicker.clock`) through `calendarDayAt`, for the filter, for the
+context and for saving, and never from `DateTime.now()`:
+`app/test/search/host_today_source_test.dart` scans for it.
 
 ## Performance
 
