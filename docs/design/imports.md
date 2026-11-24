@@ -1904,6 +1904,16 @@ has to be judged in its own context.
   Companion text adapter reads its sections with. English and square dances
   keep the label: the ECD bar reader drops one only in front of a bar range
   (`A1 1-8 lead up`), and other labelled lines stay custom.
+- **Only the dance's own form's calls.** Free-text entry and the re-read of
+  import-gap lines (`reparseImportGapFigures`) keep a figure only when it
+  and every figure inside it belong to the dance's form (`figureFitsForm`,
+  `taxonomy/form_figures.dart`): its own taxonomy's moves, a custom line,
+  or, in a square, the stand still placeholder. Hudson ruled on 24 November
+  2026: "we should not parse out figures from the wrong taxonomy - we need
+  to match the selected dance type". Squares have no grammar yet (ADR-007
+  phase 3), so a square's line that contra's grammar reads is kept whole as
+  a custom line, never turned into contra calls. The importers still read a
+  square's lines with contra's grammar (ADR-007 §8.4).
 - **Conservative, whole-line, single-move matching.** A line structures only
   when exactly one covered move plus its recognized modifiers (dancer set,
   direction, hand/shoulder, rotation/fraction, places) account for the *entire*

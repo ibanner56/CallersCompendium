@@ -383,7 +383,8 @@ void main() {
     });
   });
 
-  group('a square dance reads typed text as contra until squares have a '
+  group('a square dance never reads typed text into contra calls '
+      '(Hudson, 24 November 2026), nor into its own until squares have a '
       'parser (ADR-007 §9)', () {
     final square = shippedTaxonomies.forForm(DanceForm.square);
     for (final line in ['hey.', 'hey', 'separate', 'backtrack', 'hand turn']) {
@@ -392,19 +393,20 @@ void main() {
         expect(read, isNotEmpty);
         for (final figure in read) {
           expect(figure.move, isNot(startsWith('sq_')), reason: '$read');
+          expect(figureFitsForm(figure, DanceForm.square), isTrue);
         }
       });
     }
-    for (final line in ['hey.', 'hey', 'separate', 'backtrack', 'hand turn']) {
-      test('"$line" reads as it does in a contra dance', () {
-        expect(
-          parseFreeTextFigureEntry(line, taxonomy: square).map((f) => f.move),
-          parseFreeTextFigureEntry(
-            line,
-            taxonomy: contraTaxonomy,
-          ).map((f) => f.move),
-        );
-      });
-    }
+    test('"hey" is a contra call in a contra dance and a custom line in a '
+        'square', () {
+      expect(
+        parseFreeTextFigureEntry('hey', taxonomy: contraTaxonomy).single.move,
+        'hey',
+      );
+      expect(
+        parseFreeTextFigureEntry('hey', taxonomy: square).single.isCustom,
+        isTrue,
+      );
+    });
   });
 }
