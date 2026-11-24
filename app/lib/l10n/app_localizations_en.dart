@@ -14839,6 +14839,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get eventRuleCountOnlyOne => 'Enter 1, the only number allowed here.';
+
+  @override
   String get eventRuleScopeLabel => 'Where';
 
   @override
@@ -15094,7 +15097,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get savedSearchInUseRulesOff =>
-      'Event rules is off. Your rules are in Settings ▸ Experimental ▸ Event rules: turn Event rules on there to change them, or open them now with Manage rules.';
+      'Event rules is off, but Manage rules can change your rules now. To check programs against them, turn on “Check programs against your rules” under Settings ▸ Experimental ▸ Event rules.';
 
   @override
   String programsRulesPickerFull(int max) {

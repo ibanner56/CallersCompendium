@@ -218,6 +218,12 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
   Map<String, String>? _searches;
   bool _saving = false;
 
+  /// Whether the number, the quantifier or the scope has changed here. Until
+  /// then a stored rule's number stands as it is, even one past what its
+  /// scope now allows (stored before that limit, or by another build), so
+  /// the rule can still be renamed and saved.
+  bool _countTouched = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -249,7 +255,9 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
   int? get _countValue {
     if (_quantifier == EventRuleQuantifier.none) return 0;
     final value = int.tryParse(_count.text.trim());
-    if (value == null || value < 1 || value > _countLimit) return null;
+    if (value == null || value < 1) return null;
+    if (!_countTouched && widget.rule != null) return value;
+    if (value > _countLimit) return null;
     return value;
   }
 
@@ -257,6 +265,7 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
   /// becomes the most it allows, so "at most 3" moved to neighbouring dances
   /// reads "at most 1" rather than a rule that could never break.
   void _clampCount() {
+    _countTouched = true;
     final value = int.tryParse(_count.text.trim());
     if (value != null && value > _countLimit) _count.text = '$_countLimit';
   }
@@ -306,7 +315,9 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
     final searches = _searches;
     final countError =
         _quantifier != EventRuleQuantifier.none && _countValue == null
-        ? l10n.eventRuleCountInvalid(_countLimit)
+        ? (_countLimit == 1
+              ? l10n.eventRuleCountOnlyOne
+              : l10n.eventRuleCountInvalid(_countLimit))
         : null;
     final preview = _searchId == null || _countValue == null
         ? null
@@ -404,7 +415,7 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
                           : null,
                       helperMaxLines: 3,
                     ),
-                    onChanged: (_) => setState(() {}),
+                    onChanged: (_) => setState(() => _countTouched = true),
                   ),
                 ],
                 const SizedBox(height: AppSpacing.md),

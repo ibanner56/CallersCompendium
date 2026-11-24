@@ -14262,6 +14262,10 @@
   "@eventRuleCountInvalid": {
     "x-sourceSha256": "221d640652c6410679de05db4cff1dd13bafa16904477d9b9e996d7db77acc68"
   },
+  "eventRuleCountOnlyOne": "Gib 1 ein, die einzige hier erlaubte Zahl.",
+  "@eventRuleCountOnlyOne": {
+    "x-sourceSha256": "1761335e77be158f2cf323d03abf59a8760bff19c9c56d4def4704a2e49d27c4"
+  },
   "eventRuleScopeLabel": "Wo",
   "@eventRuleScopeLabel": {
     "x-sourceSha256": "1daaa38f33cd860e9710c74ef1ebbb00af9f348ad0e991b94bba044a61ece936"
@@ -14410,9 +14414,9 @@
   "@programsSlotRuleMarkerAlternateSemantic": {
     "x-sourceSha256": "255b3c7c450d5eaf9d96688258f0e69616c5a0cf9f12d3edb5ef7093f94f4909"
   },
-  "savedSearchInUseRulesOff": "Abendregeln sind ausgeschaltet. Deine Regeln findest du unter Einstellungen ▸ Experimentell ▸ Abendregeln: Schalte Abendregeln dort ein, um sie zu ändern, oder öffne sie jetzt mit Regeln verwalten.",
+  "savedSearchInUseRulesOff": "Abendregeln sind ausgeschaltet, aber mit Regeln verwalten kannst du deine Regeln jetzt ändern. Um Programme anhand deiner Regeln zu prüfen, schalte „Programme anhand deiner Regeln prüfen“ unter Einstellungen ▸ Experimentell ▸ Abendregeln ein.",
   "@savedSearchInUseRulesOff": {
-    "x-sourceSha256": "a9e430619b06de31e120d78386c4a5bf6560c2ca34ca04e26fbcd30e8054db0b"
+    "x-sourceSha256": "952310ec486c4a1bc344759dae8bf00fb08a7505f0b19c23f64b37d689ee0cce"
   },
   "programsRulesPickerFull": "Dieses Programm nutzt {max} Regeln, mehr geht nicht. Entferne einen Haken, um eine andere hinzuzufügen.",
   "@programsRulesPickerFull": {

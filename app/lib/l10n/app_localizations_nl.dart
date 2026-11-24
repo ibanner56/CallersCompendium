@@ -14979,6 +14979,10 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get eventRuleCountOnlyOne =>
+      'Voer 1 in, het enige toegestane getal hier.';
+
+  @override
   String get eventRuleScopeLabel => 'Waar';
 
   @override
@@ -15239,7 +15243,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get savedSearchInUseRulesOff =>
-      'Avondregels staat uit. Je regels staan onder Instellingen ▸ Experimenteel ▸ Avondregels: zet Avondregels daar aan om ze te wijzigen, of open ze nu met Regels beheren.';
+      'Avondregels staat uit, maar met Regels beheren kun je je regels nu wijzigen. Zet “Programma\'s toetsen aan je regels” aan onder Instellingen ▸ Experimenteel ▸ Avondregels om programma\'s aan je regels te toetsen.';
 
   @override
   String programsRulesPickerFull(int max) {

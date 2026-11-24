@@ -21635,6 +21635,12 @@ abstract class AppLocalizations {
   /// **'Enter a whole number from 1 to {max}.'**
   String eventRuleCountInvalid(int max);
 
+  /// Error under the rule editor's number field when the quantifier and scope allow only 1, for example at most this many in two neighboring dances (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Enter 1, the only number allowed here.'**
+  String get eventRuleCountOnlyOne;
+
   /// Label of the rule editor choice of where in the program a rule counts (#2340).
   ///
   /// In en, this message translates to:
@@ -21857,10 +21863,10 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Breaks the rule if called: {rules}} other{Breaks {count} rules if called: {rules}}}'**
   String programsSlotRuleMarkerAlternateSemantic(int count, String rules);
 
-  /// Shown in the message when a saved search cannot be deleted because event rules use it, while the Experimental Event rules switch is off (#2340). 'Manage rules' is the button below it.
+  /// Shown in the message when a saved search cannot be deleted because event rules use it, while the Experimental switch “Check programs against your rules” (settingsExperimentalEventRulesTitle, under the Event rules heading) is off (#2340). 'Manage rules' is the button below it, which opens the rules manager even while the switch is off.
   ///
   /// In en, this message translates to:
-  /// **'Event rules is off. Your rules are in Settings ▸ Experimental ▸ Event rules: turn Event rules on there to change them, or open them now with Manage rules.'**
+  /// **'Event rules is off, but Manage rules can change your rules now. To check programs against them, turn on “Check programs against your rules” under Settings ▸ Experimental ▸ Event rules.'**
   String get savedSearchInUseRulesOff;
 
   /// Shown in a program's Rules picker when it already applies as many rules as a program can (#2340).

@@ -235,9 +235,9 @@ void main() {
     );
     await pumpUntilFound(tester, delete);
     const offText =
-        'Event rules is off. Your rules are in Settings ▸ Experimental ▸ '
-        'Event rules: turn Event rules on there to change them, or open them '
-        'now with Manage rules.';
+        'Event rules is off, but Manage rules can change your rules now. To '
+        'check programs against them, turn on “Check programs against your '
+        'rules” under Settings ▸ Experimental ▸ Event rules.';
     final manage = find.byKey(
       const ValueKey('saved-search-in-use-manage-rules'),
     );
@@ -295,7 +295,7 @@ void main() {
     );
     await tester.enterText(count, '2');
     await tester.pumpAndSettle();
-    expect(find.text('Enter a whole number from 1 to 1.'), findsOneWidget);
+    expect(find.text('Enter 1, the only number allowed here.'), findsOneWidget);
     expect(canSave(), isFalse);
 
     // At least 2 is a pair of matching dances; 3 never is.
@@ -314,6 +314,64 @@ void main() {
     expect(
       (rule.quantifier, rule.count, rule.scope),
       (EventRuleQuantifier.atLeast, 2, EventRuleScope.neighbouring),
+    );
+  });
+
+  testWidgets('a rule whose stored number is past what its scope now allows '
+      'can still be renamed and saved as it is; the number is checked once '
+      'it, the quantifier or the scope changes', (tester) async {
+    final repos = openTestRepositories();
+    final search = await repos.savedSearches.create(
+      name: 'Becket',
+      spec: _spec(),
+    );
+    // Stored by an older build, before a pair allowed at most 1.
+    final rule = await repos.eventRules.create(
+      savedSearchId: search.id,
+      quantifier: EventRuleQuantifier.atMost,
+      count: 3,
+      scope: EventRuleScope.neighbouring,
+    );
+    await _pump(tester, repos, const EventRulesScreen(), enabled: true);
+    const sentence =
+        'At most 3 dances matching "Becket" in any two neighboring dances';
+    await pumpUntilFound(tester, find.text(sentence));
+    await tester.tap(find.text(sentence));
+    await tester.pumpAndSettle();
+    final count = find.byKey(const ValueKey('event-rule-count'));
+    final save = find.byKey(const ValueKey('event-rule-save'));
+    bool canSave() => tester.widget<AppBarTextAction>(save).onPressed != null;
+    expect(tester.widget<TextField>(count).controller!.text, '3');
+    expect(find.text('Enter 1, the only number allowed here.'), findsNothing);
+    expect(canSave(), isTrue);
+
+    // Changing the number checks it.
+    await tester.enterText(count, '2');
+    await tester.pumpAndSettle();
+    expect(find.text('Enter 1, the only number allowed here.'), findsOneWidget);
+    expect(canSave(), isFalse);
+    await tester.enterText(count, '3');
+    await tester.pumpAndSettle();
+    expect(canSave(), isFalse, reason: 'changed, so checked');
+
+    // Opened again: a rename alone saves the rule with its number.
+    Navigator.of(tester.element(count)).pop();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(sentence));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('event-rule-name')),
+      'Beckets apart',
+    );
+    await tester.pumpAndSettle();
+    expect(canSave(), isTrue);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    final stored = (await repos.eventRules.get(rule.id))!;
+    expect(stored.name, 'Beckets apart');
+    expect(
+      (stored.quantifier, stored.count, stored.scope),
+      (EventRuleQuantifier.atMost, 3, EventRuleScope.neighbouring),
     );
   });
 }

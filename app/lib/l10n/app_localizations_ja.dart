@@ -14314,6 +14314,9 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get eventRuleCountOnlyOne => '1を入力してください（ここで使える数は1だけです）。';
+
+  @override
   String get eventRuleScopeLabel => '範囲';
 
   @override
@@ -14546,7 +14549,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get savedSearchInUseRulesOff =>
-      'イベントルールはオフです。ルールは 設定 ▸ 実験的 ▸ イベントルール にあります。変更するにはそこでイベントルールをオンにするか、今すぐ「ルールを管理」で開いてください。';
+      'イベントルールはオフですが、「ルールを管理」で今すぐルールを変更できます。プログラムをルールで確認するには、設定 ▸ 実験的 ▸ イベントルール で「プログラムを自分のルールで確認」をオンにしてください。';
 
   @override
   String programsRulesPickerFull(int max) {

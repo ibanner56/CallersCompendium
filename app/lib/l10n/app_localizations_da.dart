@@ -14896,6 +14896,10 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get eventRuleCountOnlyOne =>
+      'Indtast 1, det eneste tal, der er tilladt her.';
+
+  @override
   String get eventRuleScopeLabel => 'Hvor';
 
   @override
@@ -15148,7 +15152,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get savedSearchInUseRulesOff =>
-      'Aftenregler er slået fra. Dine regler ligger under Indstillinger ▸ Eksperimentelt ▸ Aftenregler: slå Aftenregler til der for at ændre dem, eller åbn dem nu med Administrer regler.';
+      'Aftenregler er slået fra, men med Administrer regler kan du ændre dine regler nu. Slå »Tjek programmer mod dine regler« til under Indstillinger ▸ Eksperimentelt ▸ Aftenregler for at tjekke programmer mod dem.';
 
   @override
   String programsRulesPickerFull(int max) {

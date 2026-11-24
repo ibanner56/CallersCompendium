@@ -15021,6 +15021,10 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get eventRuleCountOnlyOne =>
+      'Gib 1 ein, die einzige hier erlaubte Zahl.';
+
+  @override
   String get eventRuleScopeLabel => 'Wo';
 
   @override
@@ -15278,7 +15282,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get savedSearchInUseRulesOff =>
-      'Abendregeln sind ausgeschaltet. Deine Regeln findest du unter Einstellungen ▸ Experimentell ▸ Abendregeln: Schalte Abendregeln dort ein, um sie zu ändern, oder öffne sie jetzt mit Regeln verwalten.';
+      'Abendregeln sind ausgeschaltet, aber mit Regeln verwalten kannst du deine Regeln jetzt ändern. Um Programme anhand deiner Regeln zu prüfen, schalte „Programme anhand deiner Regeln prüfen“ unter Einstellungen ▸ Experimentell ▸ Abendregeln ein.';
 
   @override
   String programsRulesPickerFull(int max) {

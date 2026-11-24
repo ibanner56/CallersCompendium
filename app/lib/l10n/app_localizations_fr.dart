@@ -15053,6 +15053,9 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get eventRuleCountOnlyOne => 'Saisissez 1, le seul nombre permis ici.';
+
+  @override
   String get eventRuleScopeLabel => 'Où';
 
   @override
@@ -15318,7 +15321,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get savedSearchInUseRulesOff =>
-      'Les règles de soirée sont désactivées. Vos règles se trouvent dans Paramètres ▸ Expérimental ▸ Règles de soirée : activez-les là pour les modifier, ou ouvrez-les maintenant avec Gérer les règles.';
+      'Les règles de soirée sont désactivées, mais Gérer les règles permet de modifier vos règles dès maintenant. Pour vérifier les programmes selon elles, activez « Vérifier les programmes selon vos règles » dans Paramètres ▸ Expérimental ▸ Règles de soirée.';
 
   @override
   String programsRulesPickerFull(int max) {

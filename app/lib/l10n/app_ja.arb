@@ -14262,6 +14262,10 @@
   "@eventRuleCountInvalid": {
     "x-sourceSha256": "221d640652c6410679de05db4cff1dd13bafa16904477d9b9e996d7db77acc68"
   },
+  "eventRuleCountOnlyOne": "1を入力してください（ここで使える数は1だけです）。",
+  "@eventRuleCountOnlyOne": {
+    "x-sourceSha256": "1761335e77be158f2cf323d03abf59a8760bff19c9c56d4def4704a2e49d27c4"
+  },
   "eventRuleScopeLabel": "範囲",
   "@eventRuleScopeLabel": {
     "x-sourceSha256": "1daaa38f33cd860e9710c74ef1ebbb00af9f348ad0e991b94bba044a61ece936"
@@ -14410,9 +14414,9 @@
   "@programsSlotRuleMarkerAlternateSemantic": {
     "x-sourceSha256": "255b3c7c450d5eaf9d96688258f0e69616c5a0cf9f12d3edb5ef7093f94f4909"
   },
-  "savedSearchInUseRulesOff": "イベントルールはオフです。ルールは 設定 ▸ 実験的 ▸ イベントルール にあります。変更するにはそこでイベントルールをオンにするか、今すぐ「ルールを管理」で開いてください。",
+  "savedSearchInUseRulesOff": "イベントルールはオフですが、「ルールを管理」で今すぐルールを変更できます。プログラムをルールで確認するには、設定 ▸ 実験的 ▸ イベントルール で「プログラムを自分のルールで確認」をオンにしてください。",
   "@savedSearchInUseRulesOff": {
-    "x-sourceSha256": "a9e430619b06de31e120d78386c4a5bf6560c2ca34ca04e26fbcd30e8054db0b"
+    "x-sourceSha256": "952310ec486c4a1bc344759dae8bf00fb08a7505f0b19c23f64b37d689ee0cce"
   },
   "programsRulesPickerFull": "このプログラムはルールを上限の{max}件使っています。別のルールを追加するには、どれかのチェックを外してください。",
   "@programsRulesPickerFull": {

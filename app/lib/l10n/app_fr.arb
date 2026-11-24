@@ -14262,6 +14262,10 @@
   "@eventRuleCountInvalid": {
     "x-sourceSha256": "221d640652c6410679de05db4cff1dd13bafa16904477d9b9e996d7db77acc68"
   },
+  "eventRuleCountOnlyOne": "Saisissez 1, le seul nombre permis ici.",
+  "@eventRuleCountOnlyOne": {
+    "x-sourceSha256": "1761335e77be158f2cf323d03abf59a8760bff19c9c56d4def4704a2e49d27c4"
+  },
   "eventRuleScopeLabel": "Où",
   "@eventRuleScopeLabel": {
     "x-sourceSha256": "1daaa38f33cd860e9710c74ef1ebbb00af9f348ad0e991b94bba044a61ece936"
@@ -14410,9 +14414,9 @@
   "@programsSlotRuleMarkerAlternateSemantic": {
     "x-sourceSha256": "255b3c7c450d5eaf9d96688258f0e69616c5a0cf9f12d3edb5ef7093f94f4909"
   },
-  "savedSearchInUseRulesOff": "Les règles de soirée sont désactivées. Vos règles se trouvent dans Paramètres ▸ Expérimental ▸ Règles de soirée : activez-les là pour les modifier, ou ouvrez-les maintenant avec Gérer les règles.",
+  "savedSearchInUseRulesOff": "Les règles de soirée sont désactivées, mais Gérer les règles permet de modifier vos règles dès maintenant. Pour vérifier les programmes selon elles, activez « Vérifier les programmes selon vos règles » dans Paramètres ▸ Expérimental ▸ Règles de soirée.",
   "@savedSearchInUseRulesOff": {
-    "x-sourceSha256": "a9e430619b06de31e120d78386c4a5bf6560c2ca34ca04e26fbcd30e8054db0b"
+    "x-sourceSha256": "952310ec486c4a1bc344759dae8bf00fb08a7505f0b19c23f64b37d689ee0cce"
   },
   "programsRulesPickerFull": "Ce programme utilise {max} règles, le maximum possible. Décochez-en une pour en ajouter une autre.",
   "@programsRulesPickerFull": {
