@@ -2101,6 +2101,116 @@ void main() {
     });
   });
 
+  group('v41 -> v42 upgrade (event rules, #2340)', () {
+    Future<Set<String>> columnsOf(
+      DatabaseConnectionUser db,
+      String table,
+    ) async => {
+      for (final row
+          in await db
+              .customSelect("SELECT name FROM pragma_table_info('$table')")
+              .get())
+        row.read<String>('name'),
+    };
+
+    test('creates event_rules and gives every program no rule', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        41,
+      );
+      await historical.customSelect('SELECT 1').get();
+      expect(await columnsOf(historical, 'event_rules'), isEmpty);
+      expect(
+        await columnsOf(historical, 'programs'),
+        isNot(contains('event_rule_ids')),
+        reason: 'a v41 database has no applied rules',
+      );
+      await historical.customStatement(
+        "INSERT INTO programs (id, title, event_date, notes, status, "
+        "hide_alternates, created_at, updated_at) "
+        "VALUES ('p1', 'Keep', 1700000000, 'n', 'finalized', 0, 1700000000, "
+        "1700000100)",
+      );
+      await historical.close();
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      expect(await columnsOf(db, 'event_rules'), {
+        'id',
+        'saved_search_id',
+        'quantifier',
+        'count',
+        'scope',
+        'name',
+        'position',
+        'updated_at',
+        'deleted_at',
+        'existence_at',
+      });
+      expect(await columnsOf(db, 'programs'), contains('event_rule_ids'));
+      // The same column order as a fresh v42 database.
+      Future<List<String>> ordered(DatabaseConnectionUser d) async => [
+        for (final row
+            in await d
+                .customSelect(
+                  "SELECT name FROM pragma_table_info('programs') ORDER BY cid",
+                )
+                .get())
+          row.read<String>('name'),
+      ];
+      final fresh = CompendiumDatabase(NativeDatabase.memory());
+      addTearDown(fresh.close);
+      await fresh.customSelect('SELECT 1').get();
+      expect(await ordered(db), await ordered(fresh));
+
+      final program = await ProgramRepository(db).getById('p1');
+      expect(program!.title, 'Keep');
+      expect(program.eventRuleIds, isEmpty);
+      expect(
+        program.updatedAt,
+        DateTime.fromMillisecondsSinceEpoch(1700000100 * 1000, isUtc: true),
+        reason: 'the migration must not touch updated_at',
+      );
+      final stored = await db
+          .customSelect("SELECT event_rule_ids FROM programs WHERE id = 'p1'")
+          .getSingle();
+      expect(stored.read<String>('event_rule_ids'), '[]');
+    });
+
+    test('is idempotent over a table and column that already exist', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        41,
+      );
+      await historical.customSelect('SELECT 1').get();
+      await historical.close();
+      raw.execute(
+        "ALTER TABLE programs ADD COLUMN event_rule_ids TEXT NOT NULL "
+        "DEFAULT '[]'",
+      );
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+      expect(await columnsOf(db, 'programs'), contains('event_rule_ids'));
+      expect(await columnsOf(db, 'event_rules'), contains('saved_search_id'));
+    });
+  });
+
   group('v40 -> v41 upgrade (cited-id lookup indexes, #1935)', () {
     const indexes = {
       'dance_authors_choreographer_id',

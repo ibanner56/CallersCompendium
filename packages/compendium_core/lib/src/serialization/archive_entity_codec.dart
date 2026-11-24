@@ -344,6 +344,11 @@ Map<String, Object?> archiveProgramToJson(
   if (p.calendarWrittenAt != null)
     'calendarWrittenAt': archiveIso(p.calendarWrittenAt!),
   if (p.calendarFlag != null) 'calendarFlag': p.calendarFlag,
+  // The applied event rules (#2340): only when there are any, for the same
+  // wire-hash reason, and stamped by the core archive version
+  // (`archiveSchemaVersionEventRules`). Share files never carry them: the
+  // share bundles strip them (`sanitizeProgramForShare`).
+  if (p.eventRuleIds.isNotEmpty) 'eventRuleIds': p.eventRuleIds,
   'slots': [
     for (final s in p.slots)
       archiveProgramSlotToJson(s, includeOptionalFields: includeOptionalFields),

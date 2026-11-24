@@ -30,6 +30,7 @@ const _programColumns = [
   'calendar_event_fingerprint',
   'calendar_written_at',
   'calendar_flag',
+  'event_rule_ids',
 ];
 
 void main() {
@@ -51,6 +52,7 @@ void main() {
       for (final column in _programColumns) {
         raw.execute('ALTER TABLE programs DROP COLUMN $column');
       }
+      raw.execute('DROP TABLE event_rules');
       raw.execute('PRAGMA user_version = 42');
 
       final reopened = CompendiumDatabase(
@@ -65,6 +67,7 @@ void main() {
           .toSet();
       expect(columnsOf('dances'), containsAll(_danceColumns));
       expect(columnsOf('programs'), containsAll(_programColumns));
+      expect(columnsOf('event_rules'), contains('saved_search_id'));
     },
   );
 }

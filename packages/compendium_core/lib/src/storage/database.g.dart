@@ -4524,6 +4524,18 @@ class $ProgramsTable extends Programs
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _eventRuleIdsMeta = const VerificationMeta(
+    'eventRuleIds',
+  );
+  @override
+  late final GeneratedColumn<String> eventRuleIds = GeneratedColumn<String>(
+    'event_rule_ids',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4553,6 +4565,7 @@ class $ProgramsTable extends Programs
     calendarEventFingerprint,
     calendarWrittenAt,
     calendarFlag,
+    eventRuleIds,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4766,6 +4779,15 @@ class $ProgramsTable extends Programs
         ),
       );
     }
+    if (data.containsKey('event_rule_ids')) {
+      context.handle(
+        _eventRuleIdsMeta,
+        eventRuleIds.isAcceptableOrUnknown(
+          data['event_rule_ids']!,
+          _eventRuleIdsMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -4885,6 +4907,10 @@ class $ProgramsTable extends Programs
         DriftSqlType.string,
         data['${effectivePrefix}calendar_flag'],
       ),
+      eventRuleIds: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}event_rule_ids'],
+      )!,
     );
   }
 
@@ -5003,6 +5029,15 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
   /// Why the calendar flags the program (#2354, schema v42): `cancelled`,
   /// `missing`, or NULL. Free text, read leniently.
   final String? calendarFlag;
+
+  /// The event rules applied to this program (#2340, schema v42), as a JSON
+  /// array of `event_rules.id` strings in the order the caller added them;
+  /// `'[]'` (every program before v42) means none. A soft reference: an id
+  /// whose rule was deleted is kept and ignored, so a rule's Undo applies it
+  /// again. No rule is ever added automatically: creating, duplicating or
+  /// importing a program leaves it empty. Declared last for the same
+  /// column-order reason as [archivedAt].
+  final String eventRuleIds;
   const ProgramRow({
     required this.id,
     required this.title,
@@ -5031,6 +5066,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     this.calendarEventFingerprint,
     this.calendarWrittenAt,
     this.calendarFlag,
+    required this.eventRuleIds,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5108,6 +5144,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     if (!nullToAbsent || calendarFlag != null) {
       map['calendar_flag'] = Variable<String>(calendarFlag);
     }
+    map['event_rule_ids'] = Variable<String>(eventRuleIds);
     return map;
   }
 
@@ -5178,6 +5215,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       calendarFlag: calendarFlag == null && nullToAbsent
           ? const Value.absent()
           : Value(calendarFlag),
+      eventRuleIds: Value(eventRuleIds),
     );
   }
 
@@ -5220,6 +5258,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
         json['calendarWrittenAt'],
       ),
       calendarFlag: serializer.fromJson<String?>(json['calendarFlag']),
+      eventRuleIds: serializer.fromJson<String>(json['eventRuleIds']),
     );
   }
   @override
@@ -5257,6 +5296,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       ),
       'calendarWrittenAt': serializer.toJson<DateTime?>(calendarWrittenAt),
       'calendarFlag': serializer.toJson<String?>(calendarFlag),
+      'eventRuleIds': serializer.toJson<String>(eventRuleIds),
     };
   }
 
@@ -5288,6 +5328,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     Value<String?> calendarEventFingerprint = const Value.absent(),
     Value<DateTime?> calendarWrittenAt = const Value.absent(),
     Value<String?> calendarFlag = const Value.absent(),
+    String? eventRuleIds,
   }) => ProgramRow(
     id: id ?? this.id,
     title: title ?? this.title,
@@ -5326,6 +5367,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
         ? calendarWrittenAt.value
         : this.calendarWrittenAt,
     calendarFlag: calendarFlag.present ? calendarFlag.value : this.calendarFlag,
+    eventRuleIds: eventRuleIds ?? this.eventRuleIds,
   );
   ProgramRow copyWithCompanion(ProgramsCompanion data) {
     return ProgramRow(
@@ -5384,6 +5426,9 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
       calendarFlag: data.calendarFlag.present
           ? data.calendarFlag.value
           : this.calendarFlag,
+      eventRuleIds: data.eventRuleIds.present
+          ? data.eventRuleIds.value
+          : this.eventRuleIds,
     );
   }
 
@@ -5416,7 +5461,8 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           ..write('arrivalMinute: $arrivalMinute, ')
           ..write('calendarEventFingerprint: $calendarEventFingerprint, ')
           ..write('calendarWrittenAt: $calendarWrittenAt, ')
-          ..write('calendarFlag: $calendarFlag')
+          ..write('calendarFlag: $calendarFlag, ')
+          ..write('eventRuleIds: $eventRuleIds')
           ..write(')'))
         .toString();
   }
@@ -5450,6 +5496,7 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
     calendarEventFingerprint,
     calendarWrittenAt,
     calendarFlag,
+    eventRuleIds,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -5481,7 +5528,8 @@ class ProgramRow extends DataClass implements Insertable<ProgramRow> {
           other.arrivalMinute == this.arrivalMinute &&
           other.calendarEventFingerprint == this.calendarEventFingerprint &&
           other.calendarWrittenAt == this.calendarWrittenAt &&
-          other.calendarFlag == this.calendarFlag);
+          other.calendarFlag == this.calendarFlag &&
+          other.eventRuleIds == this.eventRuleIds);
 }
 
 class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
@@ -5512,6 +5560,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
   final Value<String?> calendarEventFingerprint;
   final Value<DateTime?> calendarWrittenAt;
   final Value<String?> calendarFlag;
+  final Value<String> eventRuleIds;
   final Value<int> rowid;
   const ProgramsCompanion({
     this.id = const Value.absent(),
@@ -5541,6 +5590,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.calendarEventFingerprint = const Value.absent(),
     this.calendarWrittenAt = const Value.absent(),
     this.calendarFlag = const Value.absent(),
+    this.eventRuleIds = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProgramsCompanion.insert({
@@ -5571,6 +5621,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     this.calendarEventFingerprint = const Value.absent(),
     this.calendarWrittenAt = const Value.absent(),
     this.calendarFlag = const Value.absent(),
+    this.eventRuleIds = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        title = Value(title),
@@ -5605,6 +5656,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Expression<String>? calendarEventFingerprint,
     Expression<DateTime>? calendarWrittenAt,
     Expression<String>? calendarFlag,
+    Expression<String>? eventRuleIds,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -5636,6 +5688,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
         'calendar_event_fingerprint': calendarEventFingerprint,
       if (calendarWrittenAt != null) 'calendar_written_at': calendarWrittenAt,
       if (calendarFlag != null) 'calendar_flag': calendarFlag,
+      if (eventRuleIds != null) 'event_rule_ids': eventRuleIds,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -5668,6 +5721,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     Value<String?>? calendarEventFingerprint,
     Value<DateTime?>? calendarWrittenAt,
     Value<String?>? calendarFlag,
+    Value<String>? eventRuleIds,
     Value<int>? rowid,
   }) {
     return ProgramsCompanion(
@@ -5699,6 +5753,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
           calendarEventFingerprint ?? this.calendarEventFingerprint,
       calendarWrittenAt: calendarWrittenAt ?? this.calendarWrittenAt,
       calendarFlag: calendarFlag ?? this.calendarFlag,
+      eventRuleIds: eventRuleIds ?? this.eventRuleIds,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -5791,6 +5846,9 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
     if (calendarFlag.present) {
       map['calendar_flag'] = Variable<String>(calendarFlag.value);
     }
+    if (eventRuleIds.present) {
+      map['event_rule_ids'] = Variable<String>(eventRuleIds.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -5827,6 +5885,7 @@ class ProgramsCompanion extends UpdateCompanion<ProgramRow> {
           ..write('calendarEventFingerprint: $calendarEventFingerprint, ')
           ..write('calendarWrittenAt: $calendarWrittenAt, ')
           ..write('calendarFlag: $calendarFlag, ')
+          ..write('eventRuleIds: $eventRuleIds, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -17346,6 +17405,620 @@ class FigureNotesCompanion extends UpdateCompanion<FigureNoteRow> {
   }
 }
 
+class $EventRulesTable extends EventRules
+    with TableInfo<$EventRulesTable, EventRuleRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EventRulesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _savedSearchIdMeta = const VerificationMeta(
+    'savedSearchId',
+  );
+  @override
+  late final GeneratedColumn<String> savedSearchId = GeneratedColumn<String>(
+    'saved_search_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _quantifierMeta = const VerificationMeta(
+    'quantifier',
+  );
+  @override
+  late final GeneratedColumn<String> quantifier = GeneratedColumn<String>(
+    'quantifier',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _countMeta = const VerificationMeta('count');
+  @override
+  late final GeneratedColumn<int> count = GeneratedColumn<int>(
+    'count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _scopeMeta = const VerificationMeta('scope');
+  @override
+  late final GeneratedColumn<String> scope = GeneratedColumn<String>(
+    'scope',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _existenceAtMeta = const VerificationMeta(
+    'existenceAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> existenceAt = GeneratedColumn<DateTime>(
+    'existence_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    savedSearchId,
+    quantifier,
+    count,
+    scope,
+    name,
+    position,
+    updatedAt,
+    deletedAt,
+    existenceAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'event_rules';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<EventRuleRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('saved_search_id')) {
+      context.handle(
+        _savedSearchIdMeta,
+        savedSearchId.isAcceptableOrUnknown(
+          data['saved_search_id']!,
+          _savedSearchIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_savedSearchIdMeta);
+    }
+    if (data.containsKey('quantifier')) {
+      context.handle(
+        _quantifierMeta,
+        quantifier.isAcceptableOrUnknown(data['quantifier']!, _quantifierMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_quantifierMeta);
+    }
+    if (data.containsKey('count')) {
+      context.handle(
+        _countMeta,
+        count.isAcceptableOrUnknown(data['count']!, _countMeta),
+      );
+    }
+    if (data.containsKey('scope')) {
+      context.handle(
+        _scopeMeta,
+        scope.isAcceptableOrUnknown(data['scope']!, _scopeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scopeMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('existence_at')) {
+      context.handle(
+        _existenceAtMeta,
+        existenceAt.isAcceptableOrUnknown(
+          data['existence_at']!,
+          _existenceAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  EventRuleRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EventRuleRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      savedSearchId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}saved_search_id'],
+      )!,
+      quantifier: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quantifier'],
+      )!,
+      count: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}count'],
+      )!,
+      scope: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}scope'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      ),
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      existenceAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}existence_at'],
+      ),
+    );
+  }
+
+  @override
+  $EventRulesTable createAlias(String alias) {
+    return $EventRulesTable(attachedDatabase, alias);
+  }
+}
+
+class EventRuleRow extends DataClass implements Insertable<EventRuleRow> {
+  final String id;
+  final String savedSearchId;
+  final String quantifier;
+  final int count;
+  final String scope;
+
+  /// A name the caller typed for the rule, or NULL to show its sentence.
+  final String? name;
+  final int position;
+  final DateTime? updatedAt;
+  final DateTime? deletedAt;
+  final DateTime? existenceAt;
+  const EventRuleRow({
+    required this.id,
+    required this.savedSearchId,
+    required this.quantifier,
+    required this.count,
+    required this.scope,
+    this.name,
+    required this.position,
+    this.updatedAt,
+    this.deletedAt,
+    this.existenceAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['saved_search_id'] = Variable<String>(savedSearchId);
+    map['quantifier'] = Variable<String>(quantifier);
+    map['count'] = Variable<int>(count);
+    map['scope'] = Variable<String>(scope);
+    if (!nullToAbsent || name != null) {
+      map['name'] = Variable<String>(name);
+    }
+    map['position'] = Variable<int>(position);
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || existenceAt != null) {
+      map['existence_at'] = Variable<DateTime>(existenceAt);
+    }
+    return map;
+  }
+
+  EventRulesCompanion toCompanion(bool nullToAbsent) {
+    return EventRulesCompanion(
+      id: Value(id),
+      savedSearchId: Value(savedSearchId),
+      quantifier: Value(quantifier),
+      count: Value(count),
+      scope: Value(scope),
+      name: name == null && nullToAbsent ? const Value.absent() : Value(name),
+      position: Value(position),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      existenceAt: existenceAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(existenceAt),
+    );
+  }
+
+  factory EventRuleRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EventRuleRow(
+      id: serializer.fromJson<String>(json['id']),
+      savedSearchId: serializer.fromJson<String>(json['savedSearchId']),
+      quantifier: serializer.fromJson<String>(json['quantifier']),
+      count: serializer.fromJson<int>(json['count']),
+      scope: serializer.fromJson<String>(json['scope']),
+      name: serializer.fromJson<String?>(json['name']),
+      position: serializer.fromJson<int>(json['position']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      existenceAt: serializer.fromJson<DateTime?>(json['existenceAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'savedSearchId': serializer.toJson<String>(savedSearchId),
+      'quantifier': serializer.toJson<String>(quantifier),
+      'count': serializer.toJson<int>(count),
+      'scope': serializer.toJson<String>(scope),
+      'name': serializer.toJson<String?>(name),
+      'position': serializer.toJson<int>(position),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'existenceAt': serializer.toJson<DateTime?>(existenceAt),
+    };
+  }
+
+  EventRuleRow copyWith({
+    String? id,
+    String? savedSearchId,
+    String? quantifier,
+    int? count,
+    String? scope,
+    Value<String?> name = const Value.absent(),
+    int? position,
+    Value<DateTime?> updatedAt = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
+    Value<DateTime?> existenceAt = const Value.absent(),
+  }) => EventRuleRow(
+    id: id ?? this.id,
+    savedSearchId: savedSearchId ?? this.savedSearchId,
+    quantifier: quantifier ?? this.quantifier,
+    count: count ?? this.count,
+    scope: scope ?? this.scope,
+    name: name.present ? name.value : this.name,
+    position: position ?? this.position,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    existenceAt: existenceAt.present ? existenceAt.value : this.existenceAt,
+  );
+  EventRuleRow copyWithCompanion(EventRulesCompanion data) {
+    return EventRuleRow(
+      id: data.id.present ? data.id.value : this.id,
+      savedSearchId: data.savedSearchId.present
+          ? data.savedSearchId.value
+          : this.savedSearchId,
+      quantifier: data.quantifier.present
+          ? data.quantifier.value
+          : this.quantifier,
+      count: data.count.present ? data.count.value : this.count,
+      scope: data.scope.present ? data.scope.value : this.scope,
+      name: data.name.present ? data.name.value : this.name,
+      position: data.position.present ? data.position.value : this.position,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      existenceAt: data.existenceAt.present
+          ? data.existenceAt.value
+          : this.existenceAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EventRuleRow(')
+          ..write('id: $id, ')
+          ..write('savedSearchId: $savedSearchId, ')
+          ..write('quantifier: $quantifier, ')
+          ..write('count: $count, ')
+          ..write('scope: $scope, ')
+          ..write('name: $name, ')
+          ..write('position: $position, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('existenceAt: $existenceAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    savedSearchId,
+    quantifier,
+    count,
+    scope,
+    name,
+    position,
+    updatedAt,
+    deletedAt,
+    existenceAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EventRuleRow &&
+          other.id == this.id &&
+          other.savedSearchId == this.savedSearchId &&
+          other.quantifier == this.quantifier &&
+          other.count == this.count &&
+          other.scope == this.scope &&
+          other.name == this.name &&
+          other.position == this.position &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.existenceAt == this.existenceAt);
+}
+
+class EventRulesCompanion extends UpdateCompanion<EventRuleRow> {
+  final Value<String> id;
+  final Value<String> savedSearchId;
+  final Value<String> quantifier;
+  final Value<int> count;
+  final Value<String> scope;
+  final Value<String?> name;
+  final Value<int> position;
+  final Value<DateTime?> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<DateTime?> existenceAt;
+  final Value<int> rowid;
+  const EventRulesCompanion({
+    this.id = const Value.absent(),
+    this.savedSearchId = const Value.absent(),
+    this.quantifier = const Value.absent(),
+    this.count = const Value.absent(),
+    this.scope = const Value.absent(),
+    this.name = const Value.absent(),
+    this.position = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.existenceAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  EventRulesCompanion.insert({
+    required String id,
+    required String savedSearchId,
+    required String quantifier,
+    this.count = const Value.absent(),
+    required String scope,
+    this.name = const Value.absent(),
+    this.position = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.existenceAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       savedSearchId = Value(savedSearchId),
+       quantifier = Value(quantifier),
+       scope = Value(scope);
+  static Insertable<EventRuleRow> custom({
+    Expression<String>? id,
+    Expression<String>? savedSearchId,
+    Expression<String>? quantifier,
+    Expression<int>? count,
+    Expression<String>? scope,
+    Expression<String>? name,
+    Expression<int>? position,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<DateTime>? existenceAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (savedSearchId != null) 'saved_search_id': savedSearchId,
+      if (quantifier != null) 'quantifier': quantifier,
+      if (count != null) 'count': count,
+      if (scope != null) 'scope': scope,
+      if (name != null) 'name': name,
+      if (position != null) 'position': position,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (existenceAt != null) 'existence_at': existenceAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  EventRulesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? savedSearchId,
+    Value<String>? quantifier,
+    Value<int>? count,
+    Value<String>? scope,
+    Value<String?>? name,
+    Value<int>? position,
+    Value<DateTime?>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<DateTime?>? existenceAt,
+    Value<int>? rowid,
+  }) {
+    return EventRulesCompanion(
+      id: id ?? this.id,
+      savedSearchId: savedSearchId ?? this.savedSearchId,
+      quantifier: quantifier ?? this.quantifier,
+      count: count ?? this.count,
+      scope: scope ?? this.scope,
+      name: name ?? this.name,
+      position: position ?? this.position,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      existenceAt: existenceAt ?? this.existenceAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (savedSearchId.present) {
+      map['saved_search_id'] = Variable<String>(savedSearchId.value);
+    }
+    if (quantifier.present) {
+      map['quantifier'] = Variable<String>(quantifier.value);
+    }
+    if (count.present) {
+      map['count'] = Variable<int>(count.value);
+    }
+    if (scope.present) {
+      map['scope'] = Variable<String>(scope.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (existenceAt.present) {
+      map['existence_at'] = Variable<DateTime>(existenceAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EventRulesCompanion(')
+          ..write('id: $id, ')
+          ..write('savedSearchId: $savedSearchId, ')
+          ..write('quantifier: $quantifier, ')
+          ..write('count: $count, ')
+          ..write('scope: $scope, ')
+          ..write('name: $name, ')
+          ..write('position: $position, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('existenceAt: $existenceAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$CompendiumDatabase extends GeneratedDatabase {
   _$CompendiumDatabase(QueryExecutor e) : super(e);
   $CompendiumDatabaseManager get managers => $CompendiumDatabaseManager(this);
@@ -17402,6 +18075,7 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
   late final $UserGlossaryEntriesTable userGlossaryEntries =
       $UserGlossaryEntriesTable(this);
   late final $FigureNotesTable figureNotes = $FigureNotesTable(this);
+  late final $EventRulesTable eventRules = $EventRulesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -17439,6 +18113,7 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
     peerManifests,
     userGlossaryEntries,
     figureNotes,
+    eventRules,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -21528,6 +22203,7 @@ typedef $$ProgramsTableCreateCompanionBuilder =
       Value<String?> calendarEventFingerprint,
       Value<DateTime?> calendarWrittenAt,
       Value<String?> calendarFlag,
+      Value<String> eventRuleIds,
       Value<int> rowid,
     });
 typedef $$ProgramsTableUpdateCompanionBuilder =
@@ -21559,6 +22235,7 @@ typedef $$ProgramsTableUpdateCompanionBuilder =
       Value<String?> calendarEventFingerprint,
       Value<DateTime?> calendarWrittenAt,
       Value<String?> calendarFlag,
+      Value<String> eventRuleIds,
       Value<int> rowid,
     });
 
@@ -21752,6 +22429,11 @@ class $$ProgramsTableFilterComposer
 
   ColumnFilters<String> get calendarFlag => $composableBuilder(
     column: $table.calendarFlag,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get eventRuleIds => $composableBuilder(
+    column: $table.eventRuleIds,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -21949,6 +22631,11 @@ class $$ProgramsTableOrderingComposer
     column: $table.calendarFlag,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get eventRuleIds => $composableBuilder(
+    column: $table.eventRuleIds,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ProgramsTableAnnotationComposer
@@ -22069,6 +22756,11 @@ class $$ProgramsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get eventRuleIds => $composableBuilder(
+    column: $table.eventRuleIds,
+    builder: (column) => column,
+  );
+
   Expression<T> programSlotsRefs<T extends Object>(
     Expression<T> Function($$ProgramSlotsTableAnnotationComposer a) f,
   ) {
@@ -22179,6 +22871,7 @@ class $$ProgramsTableTableManager
                 Value<String?> calendarEventFingerprint = const Value.absent(),
                 Value<DateTime?> calendarWrittenAt = const Value.absent(),
                 Value<String?> calendarFlag = const Value.absent(),
+                Value<String> eventRuleIds = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProgramsCompanion(
                 id: id,
@@ -22208,6 +22901,7 @@ class $$ProgramsTableTableManager
                 calendarEventFingerprint: calendarEventFingerprint,
                 calendarWrittenAt: calendarWrittenAt,
                 calendarFlag: calendarFlag,
+                eventRuleIds: eventRuleIds,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -22239,6 +22933,7 @@ class $$ProgramsTableTableManager
                 Value<String?> calendarEventFingerprint = const Value.absent(),
                 Value<DateTime?> calendarWrittenAt = const Value.absent(),
                 Value<String?> calendarFlag = const Value.absent(),
+                Value<String> eventRuleIds = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProgramsCompanion.insert(
                 id: id,
@@ -22268,6 +22963,7 @@ class $$ProgramsTableTableManager
                 calendarEventFingerprint: calendarEventFingerprint,
                 calendarWrittenAt: calendarWrittenAt,
                 calendarFlag: calendarFlag,
+                eventRuleIds: eventRuleIds,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -30331,6 +31027,320 @@ typedef $$FigureNotesTableProcessedTableManager =
       FigureNoteRow,
       PrefetchHooks Function()
     >;
+typedef $$EventRulesTableCreateCompanionBuilder =
+    EventRulesCompanion Function({
+      required String id,
+      required String savedSearchId,
+      required String quantifier,
+      Value<int> count,
+      required String scope,
+      Value<String?> name,
+      Value<int> position,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
+typedef $$EventRulesTableUpdateCompanionBuilder =
+    EventRulesCompanion Function({
+      Value<String> id,
+      Value<String> savedSearchId,
+      Value<String> quantifier,
+      Value<int> count,
+      Value<String> scope,
+      Value<String?> name,
+      Value<int> position,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
+      Value<int> rowid,
+    });
+
+class $$EventRulesTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $EventRulesTable> {
+  $$EventRulesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get savedSearchId => $composableBuilder(
+    column: $table.savedSearchId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get quantifier => $composableBuilder(
+    column: $table.quantifier,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get count => $composableBuilder(
+    column: $table.count,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get scope => $composableBuilder(
+    column: $table.scope,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$EventRulesTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $EventRulesTable> {
+  $$EventRulesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get savedSearchId => $composableBuilder(
+    column: $table.savedSearchId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get quantifier => $composableBuilder(
+    column: $table.quantifier,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get count => $composableBuilder(
+    column: $table.count,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get scope => $composableBuilder(
+    column: $table.scope,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$EventRulesTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $EventRulesTable> {
+  $$EventRulesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get savedSearchId => $composableBuilder(
+    column: $table.savedSearchId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get quantifier => $composableBuilder(
+    column: $table.quantifier,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get count =>
+      $composableBuilder(column: $table.count, builder: (column) => column);
+
+  GeneratedColumn<String> get scope =>
+      $composableBuilder(column: $table.scope, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => column,
+  );
+}
+
+class $$EventRulesTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $EventRulesTable,
+          EventRuleRow,
+          $$EventRulesTableFilterComposer,
+          $$EventRulesTableOrderingComposer,
+          $$EventRulesTableAnnotationComposer,
+          $$EventRulesTableCreateCompanionBuilder,
+          $$EventRulesTableUpdateCompanionBuilder,
+          (
+            EventRuleRow,
+            BaseReferences<
+              _$CompendiumDatabase,
+              $EventRulesTable,
+              EventRuleRow
+            >,
+          ),
+          EventRuleRow,
+          PrefetchHooks Function()
+        > {
+  $$EventRulesTableTableManager(_$CompendiumDatabase db, $EventRulesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$EventRulesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$EventRulesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$EventRulesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> savedSearchId = const Value.absent(),
+                Value<String> quantifier = const Value.absent(),
+                Value<int> count = const Value.absent(),
+                Value<String> scope = const Value.absent(),
+                Value<String?> name = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<DateTime?> existenceAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => EventRulesCompanion(
+                id: id,
+                savedSearchId: savedSearchId,
+                quantifier: quantifier,
+                count: count,
+                scope: scope,
+                name: name,
+                position: position,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                existenceAt: existenceAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String savedSearchId,
+                required String quantifier,
+                Value<int> count = const Value.absent(),
+                required String scope,
+                Value<String?> name = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<DateTime?> existenceAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => EventRulesCompanion.insert(
+                id: id,
+                savedSearchId: savedSearchId,
+                quantifier: quantifier,
+                count: count,
+                scope: scope,
+                name: name,
+                position: position,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                existenceAt: existenceAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$EventRulesTable, EventRuleRow>(table),
+                  BaseReferences<
+                    _$CompendiumDatabase,
+                    $EventRulesTable,
+                    EventRuleRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$EventRulesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $EventRulesTable,
+      EventRuleRow,
+      $$EventRulesTableFilterComposer,
+      $$EventRulesTableOrderingComposer,
+      $$EventRulesTableAnnotationComposer,
+      $$EventRulesTableCreateCompanionBuilder,
+      $$EventRulesTableUpdateCompanionBuilder,
+      (
+        EventRuleRow,
+        BaseReferences<_$CompendiumDatabase, $EventRulesTable, EventRuleRow>,
+      ),
+      EventRuleRow,
+      PrefetchHooks Function()
+    >;
 
 class $CompendiumDatabaseManager {
   final _$CompendiumDatabase _db;
@@ -30401,4 +31411,6 @@ class $CompendiumDatabaseManager {
       $$UserGlossaryEntriesTableTableManager(_db, _db.userGlossaryEntries);
   $$FigureNotesTableTableManager get figureNotes =>
       $$FigureNotesTableTableManager(_db, _db.figureNotes);
+  $$EventRulesTableTableManager get eventRules =>
+      $$EventRulesTableTableManager(_db, _db.eventRules);
 }

@@ -174,6 +174,19 @@ const int archiveSchemaVersionEcdDanceFields = 8;
 /// a separate number would protect no extra build.
 const int archiveSchemaVersionProgramTimes = 8;
 
+/// The envelope version a program's applied event rules are stamped under:
+/// `eventRuleIds` (#2340, schema v42).
+///
+/// No build up to 0.10.0 reads them, so without a stamp it would restore the
+/// program with no rule applied and report success. Only a backup carries
+/// them (share files strip them, `sanitizeProgramForShare`), but the key is
+/// in the program body, which the core archive versions. Stamped only when a
+/// program applies a rule.
+///
+/// The same number as [archiveSchemaVersionProgramTimes] on purpose: v8 had
+/// not shipped when this joined it.
+const int archiveSchemaVersionEventRules = 8;
+
 /// Whether [dance] carries anything only a v8 reader understands
 /// ([archiveSchemaVersionEcdDanceFields]).
 bool _hasEcdDanceFields(Dance dance) =>
@@ -227,6 +240,9 @@ int requiredSchemaVersion(
   }
   if (archive.programs.any((p) => p.hasTimes)) {
     return archiveSchemaVersionProgramTimes;
+  }
+  if (archive.programs.any((p) => p.eventRuleIds.isNotEmpty)) {
+    return archiveSchemaVersionEventRules;
   }
   if (includeDeletedTags && archive.deletedTags.isNotEmpty) {
     return archiveSchemaVersionDeletedTags;

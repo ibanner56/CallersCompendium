@@ -1171,6 +1171,16 @@
             "default_dart": null,
             "default_client_dart": null,
             "dsl_features": []
+          },
+          {
+            "name": "event_rule_ids",
+            "getter_name": "eventRuleIds",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL DEFAULT '[]'",
+            "default_dart": "const CustomExpression('\\'[]\\'')",
+            "default_client_dart": null,
+            "dsl_features": []
           }
         ],
         "is_virtual": false,
@@ -3510,6 +3520,125 @@
       "references": [],
       "type": "table",
       "data": {
+        "name": "event_rules",
+        "was_declared_in_moor": true,
+        "columns": [
+          {
+            "name": "id",
+            "getter_name": "id",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "saved_search_id",
+            "getter_name": "savedSearchId",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "quantifier",
+            "getter_name": "quantifier",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "count",
+            "getter_name": "count",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL DEFAULT 0",
+            "default_dart": "const CustomExpression('0')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "scope",
+            "getter_name": "scope",
+            "moor_type": "string",
+            "nullable": false,
+            "customConstraints": "NOT NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "name",
+            "getter_name": "name",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "position",
+            "getter_name": "position",
+            "moor_type": "int",
+            "nullable": false,
+            "customConstraints": "NOT NULL DEFAULT 0",
+            "default_dart": "const CustomExpression('0')",
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "updated_at",
+            "getter_name": "updatedAt",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "deleted_at",
+            "getter_name": "deletedAt",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "existence_at",
+            "getter_name": "existenceAt",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          }
+        ],
+        "is_virtual": false,
+        "without_rowid": false,
+        "constraints": [
+          "PRIMARY KEY(id)"
+        ],
+        "explicit_pk": [
+          "id"
+        ]
+      }
+    },
+    {
+      "id": 33,
+      "references": [],
+      "type": "table",
+      "data": {
         "name": "dance_fts",
         "was_declared_in_moor": true,
         "columns": [
@@ -3601,7 +3730,7 @@
       }
     },
     {
-      "id": 33,
+      "id": 34,
       "references": [],
       "type": "table",
       "data": {
@@ -3696,7 +3825,7 @@
       }
     },
     {
-      "id": 34,
+      "id": 35,
       "references": [
         5
       ],
@@ -3710,7 +3839,7 @@
       }
     },
     {
-      "id": 35,
+      "id": 36,
       "references": [
         12
       ],
@@ -3724,7 +3853,7 @@
       }
     },
     {
-      "id": 36,
+      "id": 37,
       "references": [
         12
       ],
@@ -3738,7 +3867,7 @@
       }
     },
     {
-      "id": 37,
+      "id": 38,
       "references": [
         1
       ],
@@ -3752,7 +3881,7 @@
       }
     },
     {
-      "id": 38,
+      "id": 39,
       "references": [
         6
       ],
@@ -3766,7 +3895,7 @@
       }
     },
     {
-      "id": 39,
+      "id": 40,
       "references": [
         7
       ],
@@ -3780,7 +3909,7 @@
       }
     },
     {
-      "id": 40,
+      "id": 41,
       "references": [
         3
       ],
@@ -3794,7 +3923,7 @@
       }
     },
     {
-      "id": 41,
+      "id": 42,
       "references": [
         11
       ],
@@ -3808,7 +3937,7 @@
       }
     },
     {
-      "id": 42,
+      "id": 43,
       "references": [
         15
       ],
@@ -3822,7 +3951,7 @@
       }
     },
     {
-      "id": 43,
+      "id": 44,
       "references": [
         9
       ],
@@ -3836,7 +3965,7 @@
       }
     },
     {
-      "id": 44,
+      "id": 45,
       "references": [
         4
       ],

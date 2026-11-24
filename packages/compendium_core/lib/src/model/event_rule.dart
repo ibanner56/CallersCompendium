@@ -1,4 +1,39 @@
+import 'dart:convert';
+
 import 'package:meta/meta.dart';
+
+/// Most rules one program may apply. More than this is not a set of rules a
+/// caller reads while building.
+const int maxProgramEventRules = 64;
+
+/// The stored form of `Program.eventRuleIds` (`programs.event_rule_ids`): a
+/// JSON array of the rule ids, in order.
+String encodeEventRuleIds(List<String> ids) => jsonEncode(ids);
+
+/// The rule ids a stored `programs.event_rule_ids` value lists. Read
+/// leniently: a value that is not a JSON array of strings reads as none, and
+/// a repeated id once, so a hand-edited row never fails the program.
+List<String> decodeEventRuleIds(String? stored) {
+  if (stored == null || stored.isEmpty) return const [];
+  Object? raw;
+  try {
+    raw = jsonDecode(stored);
+  } on FormatException {
+    return const [];
+  }
+  return normalizeEventRuleIds(raw is List ? raw : const []);
+}
+
+/// [ids] as a program keeps them: strings only, non-empty, each once, in
+/// order, at most [maxProgramEventRules].
+List<String> normalizeEventRuleIds(Iterable<Object?> ids) {
+  final seen = <String>{};
+  return List.unmodifiable([
+    for (final id in ids)
+      if (id is String && id.isNotEmpty && seen.length < maxProgramEventRules)
+        if (seen.add(id)) id,
+  ]);
+}
 
 /// How many dances an [EventRule] allows (#2340).
 ///

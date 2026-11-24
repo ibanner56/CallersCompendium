@@ -3,6 +3,8 @@ import 'package:meta/meta.dart';
 
 import '../../analysis/half_calling_stats.dart';
 import '../../model/enums.dart';
+import '../../model/event_rule.dart'
+    show decodeEventRuleIds, encodeEventRuleIds;
 import '../../model/program.dart';
 import '../../model/provenance.dart' as model;
 import '../../model/stored_timestamp.dart';
@@ -993,6 +995,7 @@ class ProgramRepository {
               calendarFlag: Value(
                 normalizeShareableTextOrNull(program.calendarFlag),
               ),
+              eventRuleIds: Value(encodeEventRuleIds(program.eventRuleIds)),
             ),
           );
       await seedExistenceIfMissing(
@@ -2497,6 +2500,7 @@ class ProgramRepository {
       row.calendarEventFingerprint == null &&
       row.calendarWrittenAt == null &&
       row.calendarFlag == null &&
+      decodeEventRuleIds(row.eventRuleIds).isEmpty &&
       await (_db.selectOnly(_db.programSlots)
                 ..addColumns([_db.programSlots.id])
                 ..where(_db.programSlots.programId.equals(row.id))
@@ -2556,6 +2560,7 @@ class ProgramRepository {
         calendarEventFingerprint: Value(normalizeShareableTextOrNull(null)),
         calendarWrittenAt: const Value(null),
         calendarFlag: Value(normalizeShareableTextOrNull(null)),
+        eventRuleIds: Value(encodeEventRuleIds(const [])),
         updatedAt: Value(
           nextStoredTimestamp(
             now: now.isAfter(current) ? now : current.add(storedTimestampTick),
@@ -2599,6 +2604,7 @@ class ProgramRepository {
     calendarEventFingerprint: row.calendarEventFingerprint,
     calendarWrittenAt: asUtcOrNull(row.calendarWrittenAt),
     calendarFlag: row.calendarFlag,
+    eventRuleIds: decodeEventRuleIds(row.eventRuleIds),
     provenance: provenance,
   );
 

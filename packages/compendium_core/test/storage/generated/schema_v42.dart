@@ -1051,6 +1051,15 @@ class Programs extends Table with TableInfo {
     requiredDuringInsert: false,
     $customConstraints: 'NULL',
   );
+  late final GeneratedColumn<String> eventRuleIds = GeneratedColumn<String>(
+    'event_rule_ids',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'[]\'',
+    defaultValue: const CustomExpression('\'[]\''),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1080,6 +1089,7 @@ class Programs extends Table with TableInfo {
     calendarEventFingerprint,
     calendarWrittenAt,
     calendarFlag,
+    eventRuleIds,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3361,6 +3371,129 @@ class FigureNotes extends Table with TableInfo {
   bool get dontWriteConstraints => true;
 }
 
+class EventRules extends Table with TableInfo {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  EventRules(this.attachedDatabase, [this._alias]);
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  late final GeneratedColumn<String> savedSearchId = GeneratedColumn<String>(
+    'saved_search_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  late final GeneratedColumn<String> quantifier = GeneratedColumn<String>(
+    'quantifier',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  late final GeneratedColumn<int> count = GeneratedColumn<int>(
+    'count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT 0',
+    defaultValue: const CustomExpression('0'),
+  );
+  late final GeneratedColumn<String> scope = GeneratedColumn<String>(
+    'scope',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT 0',
+    defaultValue: const CustomExpression('0'),
+  );
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<int> existenceAt = GeneratedColumn<int>(
+    'existence_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    savedSearchId,
+    quantifier,
+    count,
+    scope,
+    name,
+    position,
+    updatedAt,
+    deletedAt,
+    existenceAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'event_rules';
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Never map(Map<String, dynamic> data, {String? tablePrefix}) {
+    throw UnsupportedError('TableInfo.map in schema verification code');
+  }
+
+  @override
+  EventRules createAlias(String alias) {
+    return EventRules(attachedDatabase, alias);
+  }
+
+  @override
+  List<String> get customConstraints => const ['PRIMARY KEY(id)'];
+  @override
+  bool get dontWriteConstraints => true;
+}
+
 class DanceFts extends Table with TableInfo, VirtualTableInfo {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -3602,6 +3735,7 @@ class DatabaseAtV42 extends GeneratedDatabase {
     this,
   );
   late final FigureNotes figureNotes = FigureNotes(this);
+  late final EventRules eventRules = EventRules(this);
   late final DanceFts danceFts = DanceFts(this);
   late final DanceSubstringFts danceSubstringFts = DanceSubstringFts(this);
   late final Index danceFiguresMoveSection = Index(
@@ -3685,6 +3819,7 @@ class DatabaseAtV42 extends GeneratedDatabase {
     peerManifests,
     userGlossaryEntries,
     figureNotes,
+    eventRules,
     danceFts,
     danceSubstringFts,
     danceFiguresMoveSection,

@@ -436,6 +436,16 @@ class Programs extends Table {
   /// `missing`, or NULL. Free text, read leniently.
   TextColumn get calendarFlag => text().nullable()();
 
+  /// The event rules applied to this program (#2340, schema v42), as a JSON
+  /// array of `event_rules.id` strings in the order the caller added them;
+  /// `'[]'` (every program before v42) means none. A soft reference: an id
+  /// whose rule was deleted is kept and ignored, so a rule's Undo applies it
+  /// again. No rule is ever added automatically: creating, duplicating or
+  /// importing a program leaves it empty. Declared last for the same
+  /// column-order reason as [archivedAt].
+  TextColumn get eventRuleIds =>
+      text().named('event_rule_ids').withDefault(const Constant('[]'))();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -995,4 +1005,34 @@ class FigureNotes extends Table {
 
   @override
   Set<Column> get primaryKey => {figureId};
+}
+
+/// The caller's event rules (#2340): "at most 1 dance matching *Petronella*
+/// in the whole program". Which dances a rule means is a saved search,
+/// referenced by id (`saved_search:<id>` in settings, #2325); a rule applies
+/// to a program only when the program lists it (`programs.event_rule_ids`).
+/// Added in schema v42, while v42 was unreleased.
+///
+/// [quantifier] and [scope] hold the names of `EventRuleQuantifier` and
+/// `EventRuleScope` as plain text rather than an enum converter, so a value a
+/// newer build wrote reads as a rule this build cannot check rather than
+/// failing the row. Carries the sync timestamp triple; a delete is a
+/// tombstone.
+@DataClassName('EventRuleRow')
+class EventRules extends Table {
+  TextColumn get id => text()();
+  TextColumn get savedSearchId => text().named('saved_search_id')();
+  TextColumn get quantifier => text()();
+  IntColumn get count => integer().withDefault(const Constant(0))();
+  TextColumn get scope => text()();
+
+  /// A name the caller typed for the rule, or NULL to show its sentence.
+  TextColumn get name => text().nullable()();
+  IntColumn get position => integer().withDefault(const Constant(0))();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+  DateTimeColumn get existenceAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
 }
