@@ -2488,8 +2488,21 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       }
       try {
         await _repos.programs.setEventRuleIds(existing.id, ids);
-        if (mounted) {
-          setState(() => _existing = existing.copyWith(eventRuleIds: ids));
+        final stored = await _repos.programs.getById(existing.id);
+        if (!mounted || stored == null) return;
+        // Merge only the rules, and the write's stamp, into the copy as it is
+        // now: a save, an archive or an unarchive may have replaced it while
+        // the write was in flight, and the copy from before must not undo
+        // that. The stamp keeps this copy the stored program's own token, as
+        // `_unarchive` does.
+        final current = _existing;
+        if (current != null && current.id == existing.id) {
+          setState(
+            () => _existing = current.copyWith(
+              eventRuleIds: stored.eventRuleIds,
+              updatedAt: stored.updatedAt,
+            ),
+          );
         }
       } catch (error, stackTrace) {
         logCaughtError(
@@ -3406,7 +3419,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           ? before.calendarFlag
           : existing?.calendarFlag,
       // The Rules picker writes a stored program's rules directly (#2340), so
-      // the stored list stands; a program not yet stored takes the picker's.
+      // the stored list stands, read inside the write's transaction
+      // (`keepStoredEventRuleIds` below); a program not yet stored takes the
+      // picker's.
       eventRuleIds: before != null ? before.eventRuleIds : _eventRuleIds,
       provenance: existing?.provenance,
     );
@@ -3416,6 +3431,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       final stored = await _repos.programs.updateAndReadBack(
         persisted,
         keepStoredArchivedAt: true,
+        keepStoredEventRuleIds: true,
       );
       // Still hidden and untouched across the write: show the input what was
       // written. An edit typed in the meantime is left alone.

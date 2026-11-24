@@ -181,6 +181,22 @@ void main() {
       expect(await repos.programs.setEventRuleIds('nope', ['r1']), isFalse);
     });
 
+    test('a save that keeps the stored rules keeps those set since its copy '
+        'was read', () async {
+      await repos.programs.create(program('p'));
+      final copy = (await repos.programs.getById('p'))!;
+      await repos.programs.setEventRuleIds('p', ['r1']);
+      final saved = await repos.programs.updateAndReadBack(
+        copy.copyWith(title: 'Sunday'),
+        keepStoredEventRuleIds: true,
+      );
+      expect(saved.title, 'Sunday');
+      expect(saved.eventRuleIds, ['r1']);
+      // Without it, the copy's rules are written, as for any other field.
+      final plain = await repos.programs.updateAndReadBack(copy);
+      expect(plain.eventRuleIds, isEmpty);
+    });
+
     test('creating a program applies none', () async {
       await addRule('s');
       await repos.programs.create(program('p'));

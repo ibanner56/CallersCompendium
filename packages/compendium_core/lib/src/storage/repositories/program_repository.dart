@@ -442,10 +442,27 @@ class ProgramRepository {
   /// [archive] or [unarchive] that lands while its copy is in flight then
   /// survives the save, which a read made before the transaction could not
   /// promise.
+  ///
+  /// [keepStoredEventRuleIds] does the same for the applied event rules
+  /// (#2340), which the builder's Rules picker writes on its own
+  /// ([setEventRuleIds]): a pick that lands while a save is in flight
+  /// survives it.
   Future<Program> updateAndReadBack(
     Program program, {
     bool keepStoredArchivedAt = false,
+    bool keepStoredEventRuleIds = false,
   }) => _db.transaction(() async {
+    if (keepStoredEventRuleIds) {
+      final stored =
+          await (_db.selectOnly(_db.programs)
+                ..addColumns([_db.programs.eventRuleIds])
+                ..where(_db.programs.id.equals(program.id)))
+              .map((row) => row.read(_db.programs.eventRuleIds))
+              .getSingleOrNull();
+      if (stored != null) {
+        program = program.copyWith(eventRuleIds: decodeEventRuleIds(stored));
+      }
+    }
     if (keepStoredArchivedAt) {
       final storedArchivedAt =
           await (_db.selectOnly(_db.programs)

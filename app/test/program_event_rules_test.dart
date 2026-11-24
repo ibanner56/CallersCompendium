@@ -55,8 +55,11 @@ class _Seeded {
 /// A Becket before the break, then an improper dance with a Becket alternate:
 /// "at most 1 Becket" holds as planned and breaks only if the alternate is
 /// called; "no Becket before the first break" breaks as planned.
-Future<_Seeded> _seed({List<String>? applied}) async {
-  final repos = openTestRepositories();
+Future<_Seeded> _seed({
+  List<String>? applied,
+  CompendiumRepositories? into,
+}) async {
+  final repos = into ?? openTestRepositories();
   await repos.dances.create(
     _dance('d-a', 'Becket Reel', FormationShape.becketCcw),
   );
@@ -473,11 +476,8 @@ void main() {
       );
     }
 
-    Future<void> checked(int n) => pumpUntil(
-      tester,
-      () => checks >= n,
-      description: 'check $n',
-    );
+    Future<void> checked(int n) =>
+        pumpUntil(tester, () => checks >= n, description: 'check $n');
     void update(List<ProgramSlot> slots, {Object? key}) => controller.update(
       enabled: true,
       ruleIds: program.eventRuleIds,
@@ -511,5 +511,63 @@ void main() {
     update(program.slots.take(2).toList(), key: 'another program id');
     await checked(5);
     expect(reads, 3);
+  });
+
+  testWidgets('rules applied while a save is in flight survive the save', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    final seeded = await _seed(into: delayed.repos, applied: const []);
+    await _pump(tester, delayed.repos, enabled: true);
+    await tester.enterText(
+      find.byKey(const ValueKey('program-title')),
+      'Night renamed',
+    );
+    await tester.pump();
+
+    // The save has read the program and is held just before its write; the
+    // picker (or another device) applies a rule in that gap.
+    delayed.programs.holdNextWrite();
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await delayed.programs.writeStarted;
+    await delayed.repos.programs.setEventRuleIds('p1', [seeded.oneBecket.id]);
+    delayed.programs.releaseWrite();
+    await tester.pumpAndSettle();
+
+    final stored = (await delayed.repos.programs.getById('p1'))!;
+    expect(stored.title, 'Night renamed');
+    expect(stored.eventRuleIds, [seeded.oneBecket.id]);
+  });
+
+  testWidgets("the picker's write keeps what changed while it was in flight, "
+      "and adopts the stored stamp", (tester) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    final seeded = await _seed(into: delayed.repos, applied: const []);
+    await delayed.repos.programs.archive('p1', at: DateTime.utc(2026, 2, 1));
+    await _pump(tester, delayed.repos, enabled: true);
+    expect(find.byTooltip('Unarchive'), findsOneWidget);
+
+    // The picker's write is held; meanwhile the program is unarchived here.
+    delayed.programs.holdNextWrite();
+    await tester.tap(find.byKey(const ValueKey('program-rules')));
+    await tester.pumpAndSettle();
+    final rule = find.byKey(ValueKey('program-rule-${seeded.oneBecket.id}'));
+    await pumpUntilFound(tester, rule);
+    await tester.tap(rule);
+    await delayed.programs.writeStarted;
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('archive-program')));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Archive'), findsOneWidget);
+
+    delayed.programs.releaseWrite();
+    await tester.pumpAndSettle();
+    final stored = (await delayed.repos.programs.getById('p1'))!;
+    expect(stored.eventRuleIds, [seeded.oneBecket.id]);
+    expect(stored.isArchived, isFalse);
+    // The builder's copy is not put back to the archived one it held before.
+    expect(find.byTooltip('Archive'), findsOneWidget);
+    expect(find.byTooltip('Unarchive'), findsNothing);
   });
 }

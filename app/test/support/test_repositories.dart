@@ -289,13 +289,28 @@ class DelayedProgramRepository extends ProgramRepository {
   Future<Program> updateAndReadBack(
     Program program, {
     bool keepStoredArchivedAt = false,
+    bool keepStoredEventRuleIds = false,
   }) async {
     await _beforeWrite();
     if (_shouldFailWrite) throw const InjectedProgramFailure();
     return super.updateAndReadBack(
       program,
       keepStoredArchivedAt: keepStoredArchivedAt,
+      keepStoredEventRuleIds: keepStoredEventRuleIds,
     );
+  }
+
+  /// Held by [holdNextWrite] like any other write: the Rules picker's write
+  /// to a stored program (#2340).
+  @override
+  Future<bool> setEventRuleIds(
+    String id,
+    List<String> ids, {
+    DateTime? at,
+  }) async {
+    await _beforeWrite();
+    if (_shouldFailWrite) throw const InjectedProgramFailure();
+    return super.setEventRuleIds(id, ids, at: at);
   }
 
   /// Held by [holdNextWrite] like any other write. The hold sits before the
@@ -446,11 +461,13 @@ class FailingProgramRepository extends ProgramRepository {
   Future<Program> updateAndReadBack(
     Program program, {
     bool keepStoredArchivedAt = false,
+    bool keepStoredEventRuleIds = false,
   }) async {
     _checkWrite();
     return super.updateAndReadBack(
       program,
       keepStoredArchivedAt: keepStoredArchivedAt,
+      keepStoredEventRuleIds: keepStoredEventRuleIds,
     );
   }
 
