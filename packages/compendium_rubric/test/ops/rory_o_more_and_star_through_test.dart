@@ -176,7 +176,8 @@ void main() {
     });
 
     test('a couple standing out at an end does not slide or step in', () {
-      // §10.3.2: outside every hands four, untouched by any figure. Rows 0
+      // §10.3.2: outside every hands four, never taken out of its end row
+      // (only an N0 swing turns it in place). Rows 0
       // and 3 stand out facing in; the one hands four between them faces
       // across its band, ready for the wave.
       final two = start(handsFour: 2);

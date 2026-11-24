@@ -104,7 +104,8 @@ void main() {
 
     test('the couples stranded at the ends are left where they stand', () {
       // B and E are outside every active hands four while the set is reaching,
-      // so no figure's transform touches them -- and because the reach is
+      // so no figure's transform takes them out of their end row (an N0 swing
+      // turns them in place; this one names N2) -- and because the reach is
       // handed back, they are not left marked out afterwards either.
       final after = applyOk(
         const Swing(who: WhoSet.nextNeighbors),
@@ -330,7 +331,7 @@ void main() {
     );
 
     test('the couples that dance are the ones a grouping back', () {
-      // B and C swing, and D and E; A and F are the ends and stay put.
+      // B and C swing, and D and E; A and F are the ends, waiting out.
       final before = reversed();
       final after = applyOk(const Swing(who: WhoSet.prevNeighbors), before);
 
@@ -342,18 +343,31 @@ void main() {
       }
     });
 
-    test('the ends have nobody behind them and are left alone', () {
+    test('the ends have nobody behind them, so they swing each other', () {
       // A is a 1s couple in the top grouping, so there is no grouping further
       // up for it to reach; F is the mirror at the bottom. They fall outside
-      // every band in the reaching phase, so no transform touches them -- and
-      // nothing has to special-case them to arrange it.
+      // every band in the reaching phase, waiting out, so they swing their
+      // partners and face into the set *(user-ruled 2026-11-24: a couple
+      // waiting out on an N0 swing "should still swing and normalize")*.
       final before = reversed();
       final after = applyOk(const Swing(who: WhoSet.prevNeighbors), before);
 
-      for (final couple in [0, 5]) {
+      for (final (couple, row, facing) in [
+        (0, 0, Facing.down),
+        (5, before.rowCount - 1, Facing.up),
+      ]) {
+        final normal = normalizeAlongHall(row: row, facing: facing);
         for (final role in Role.values) {
           final id = DancerId(couple, role);
-          expect(after.stateOf(id), before.stateOf(id), reason: '$id');
+          expect(before.stateOf(id).position.row, row, reason: '$id');
+          final state = after.stateOf(id);
+          expect(
+            state.position,
+            role == Role.lark ? normal.lark : normal.robin,
+            reason: '$id',
+          );
+          expect(state.facing, facing, reason: '$id');
+          expect(state.number, before.stateOf(id).number, reason: '$id');
         }
       }
     });

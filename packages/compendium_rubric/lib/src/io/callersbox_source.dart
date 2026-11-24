@@ -353,10 +353,11 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
   }
 
   // One compile with the positional assumption. If the assumption is the only
-  // thing in the way, try the single alternative the record itself names.
-  // *(User-ruled.)* The retry is deliberately not a search: exactly two
-  // placements are ever tried, both chosen by reading the figures rather than
-  // the formation, and a second failure is reported as the first one's.
+  // thing in the way, try the alternative the record itself names: the N2
+  // reading *(user-ruled)*, then the hey marked "~" (below). The retries are
+  // deliberately not a search: at most three placements are ever tried, each
+  // chosen by reading the figures rather than the formation, and a failed
+  // retry is reported as the positional one's.
   //
   // A crash is never retried. The compiler throwing is a defect here, and a
   // second placement that happens to land would bury it.
@@ -365,9 +366,29 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
   if (attempt.outcome != DanceOutcome.compiled &&
       attempt.outcome != DanceOutcome.crashed) {
     final fallback = bridgeCoreDance(dance, useNextNeighborsFallback: true);
+    var crashed = false;
     if (retryPlacesDifferently(positional, fallback)) {
       final retry = _attempt(fallback);
       if (retry.outcome == DanceOutcome.compiled) attempt = retry;
+      crashed = retry.outcome == DanceOutcome.crashed;
+    }
+    // A third and last reading: a hey whose final pass Caller's Box marks
+    // partial ("~") is the progression *(user-ruled 2026-11-24)*. Tried only
+    // after both readings above, so it never displaces one that compiles
+    // *(agent's call)*.
+    // A crash on the N2 reading stops here too, so no later reading can bury
+    // it, and a placement already tried is not compiled again.
+    if (!crashed &&
+        attempt.outcome != DanceOutcome.compiled &&
+        attempt.outcome != DanceOutcome.crashed) {
+      final partialPass = bridgeCoreDance(dance, usePartialPassFallback: true);
+      final at = partialPass.assumedProgressionAt;
+      if (at != null &&
+          at != positional.assumedProgressionAt &&
+          at != fallback.assumedProgressionAt) {
+        final retry = _attempt(partialPass);
+        if (retry.outcome == DanceOutcome.compiled) attempt = retry;
+      }
     }
   }
   return finish(
@@ -462,6 +483,35 @@ class BridgedDance {
   final List<int> laterProgressionsAt;
 }
 
+/// The danced figure that the source's `~` places the progression on: the
+/// last `hey` whose final pass Caller's Box marks partial (`Hey 1/2
+/// (ML;PR;WL;N0R~)`), which the import keeps as the note clause
+/// [_partialLastPassNote] *(user-ruled 2026-11-24: a "~" on a hey pass marks
+/// that last pass as the progression)*. Null when the source flags a figure
+/// itself or marks no hey.
+///
+/// The **last** such hey, not the first, is the agent's call: in Haven't We
+/// Met Before? (Caller's Box #10129) both halves of the hey carry a `~` and
+/// the second is the one that progresses, as the maintainer describes it
+/// ("second half hey with couple B again progresses them to D"). It is tried
+/// only when the positional and next-neighbours readings both fail.
+int? partialPassProgressionIndex(core.Dance dance) {
+  final figures = _requireDecoded(dance);
+  if (figures.any((figure) => figure.progression)) return null;
+  final at = figures.lastIndexWhere(
+    (figure) =>
+        figure.move == 'hey' &&
+        (figure.note ?? '')
+            .split(';')
+            .any((clause) => clause.trim() == _partialLastPassNote),
+  );
+  return at < 0 ? null : at;
+}
+
+/// The note clause `compendium_core`'s Caller's Box import puts on a hey whose
+/// last pass carries the `~` marker.
+const _partialLastPassNote = 'last pass partial';
+
 /// Whether the N2 retry [fallback] reads the dance differently from the
 /// positional [attempt], and so is worth compiling: it places a progression,
 /// and either its first one differs or it adds later ones.
@@ -475,11 +525,13 @@ bool retryPlacesDifferently(BridgedDance attempt, BridgedDance fallback) =>
 /// The translation is deliberately thin — four fields, because those are the
 /// four [parseDance] looks at. Its figures are [dancedFigures], so a `sequence`
 /// arrives as its children (and a flagged sequence's flag on its last child).
-/// Beyond that it does three things the source did not: it may supply the
+/// Beyond that it does four things the source did not: it may supply the
 /// progression flag (see [assumedProgressionIndex]), it reads a slide
 /// after a balanced long wave as the Rory O'More it is (see
-/// [_slidesTheWave]), and it reads a hall figure noted "backwards" as a line
-/// backing along the hall (see [_hallBackwards]).
+/// [_slidesTheWave]), it reads a hall figure noted "backwards" as a line
+/// backing along the hall (see [_hallBackwards]), and it reads a swing noted
+/// "face up" or "finish proper" as finishing facing up (see
+/// [_swingNoteFacing]).
 ///
 /// Set [useNextNeighborsFallback] to place the progression by
 /// [nextNeighborsProgressionIndex] instead. That is the retry
@@ -489,15 +541,26 @@ bool retryPlacesDifferently(BridgedDance attempt, BridgedDance fallback) =>
 /// [laterNeighborsProgressionIndex] (N3, then N4), reported in
 /// [BridgedDance.laterProgressionsAt]. A Quadruple gets at most three: no
 /// rule names its fourth.
+///
+/// Set [usePartialPassFallback] instead to place it by
+/// [partialPassProgressionIndex], the hey marked "~": the third and last
+/// reading [runCoreDance] tries. It places no later progressions.
 BridgedDance bridgeCoreDance(
   core.Dance dance, {
   bool useNextNeighborsFallback = false,
+  bool usePartialPassFallback = false,
 }) {
+  assert(
+    !(useNextNeighborsFallback && usePartialPassFallback),
+    'the two retries are separate readings',
+  );
   final figures = _requireDecoded(dance);
   final flagged = figures.any((figure) => figure.progression);
   final assumedAt = flagged
       ? null
-      : (useNextNeighborsFallback
+      : (usePartialPassFallback
+            ? partialPassProgressionIndex(dance)
+            : useNextNeighborsFallback
             ? nextNeighborsProgressionIndex(dance)
             : assumedProgressionIndex(dance));
   // A double progression places its second progression by the first N3
@@ -530,7 +593,10 @@ BridgedDance bridgeCoreDance(
             'to be it'
             '${useNextNeighborsFallback ? ', because the positional rule did '
                       'not compile and this is where the first mention of the '
-                      'next neighbours (nextNeighbors, N2) puts it' : ''}',
+                      'next neighbours (nextNeighbors, N2) puts it' : ''}'
+            '${usePartialPassFallback ? ', because the earlier placements '
+                      'did not compile and this is the last hey whose final '
+                      'pass the source marks partial ("~")' : ''}',
       ),
     for (final (step, at) in laterAt.indexed)
       Warning(
