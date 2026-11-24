@@ -466,11 +466,15 @@ in the whole program* for a family dance, or *At most 1 dance matching
 with one of your [saved searches](./collection.md#save-a-search-and-use-it-again).
 
 - **Rules**, beside **Insert break**, opens the rules for this program, with
-  the number it uses. Tick the ones that apply; untick one to take it off.
+  the number it uses (a rule you deleted doesn't count). Tick the ones that
+  apply; untick one to take it off. A program can use up to 64 rules; once it
+  does, the list says so and another can't be ticked.
   **New rule…** at the top opens the rule editor and, once you save the rule,
   adds it to this program. A new program, a copy of a program, and a program
   you import start with no rules: a rule is never added for you.
-- **Whenever the program changes**, each of its rules is checked. A broken
+- **Whenever the program changes**, each of its rules is checked, and again
+  when something a rule reads changes while the program is open: a rule, its
+  saved search, a dance, or a tag, author or other thing a search names. A broken
   rule shows in a **Rules** strip above the program, such as **1 rule not
   met**. Open it to read each rule's sentence, how many dances match (or, for
   neighboring dances, which pairs break it), and the dances involved. Those

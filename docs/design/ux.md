@@ -305,9 +305,13 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   break and Insert break) gains **Rules** ("Rules (2)" with two applied). It
   opens a picker sheet titled "Rules for this program": a pinned **New rule…**
   row first (it opens the rule editor and applies the saved rule), then a
-  checkbox per rule showing its name or sentence; ticks apply at once. Each
-  program change re-checks the applied rules (one query per rule restricted to
-  the program's dance ids) and, when a rule is broken or
+  checkbox per rule showing its name or sentence; ticks apply at once (at
+  most 64 live rules; a deleted rule's id makes room first, and once full the
+  sheet says so above the list). Each program change re-checks the applied
+  rules (one query per rule restricted to the program's dance ids), as does a
+  write to any table a check reads (rules, saved searches, dances, calling
+  history, or what a search resolves against; the search context is kept
+  until one of its own tables changes) and, when a rule is broken or
   needs attention, a collapsible **Rules strip** sits under the warnings card:
   "1 rule not met" / "1 rule needs attention" (rule icon plus text, never
   colour alone). Expanded, each broken rule shows its sentence, the count or
@@ -315,7 +319,8 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   "If you call *X*"; each rule needing attention names what is missing and is
   not checked. Involved slots carry a marker in the slot row, icon plus
   "Breaks a rule" (or "Breaks a rule if called" on an alternate), with a
-  screen-reader label naming the rules. Nothing blocks Save, Perform or
+  screen-reader label naming the rules ("Breaks the rule if called: …" on an
+  alternate). Nothing blocks Save, Perform or
   export. Off, no button, strip or marker is built and nothing is checked.
   The manager (Settings ▸ Experimental ▸ Event rules ▸ Manage rules, also
   linked from Settings ▸ Program while on) is a full-screen list of rule
