@@ -1,0 +1,16 @@
+{
+  "id": "pass-by-pass-through-merge",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Pass by and pass through are now one figure. Both stay in the figure picker under their own names, and a new “Pass type” choice under More options switches a figure between them. Either can now say who passes and in which direction: a pass through can be “neighbor pass through across”, and a pass by can state a direction. Your existing figures read exactly as before.",
+      "When you add a pass by or pass through, choose who passes and the direction before saving; the figure tells you if either is still empty. Figures you saved earlier, or imported, keep any value they leave unstated.",
+      "Importing from The Caller's Box now keeps the dancer its pass-through lines name: “Pass through along (NR)” becomes neighbors passing right shoulders. Re-importing a dance you imported before offers those pass throughs as a variation, because the new import says more than the saved figure."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Contra taxonomy v40: `pass_by` is an alias of `pass_through` pinning the new `passType: by`, listed as a move. `pass_through` gains `who` (default `unspecified`) and `passType`; `where` keeps its `along` default, and the alias keeps `who: neighbors` and `where: unspecified` for an omitted param through the new `MoveAlias.defaultParams`. Adds `Taxonomy.defaultParamValue`, `ParamSpec.requiredOnEntry` with `Taxonomy.unstatedRequiredParams`, and `keepOmittedMeaning`, which `applyParamChange` runs when a change re-routes a figure."
+    ]
+  }
+}

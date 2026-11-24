@@ -415,6 +415,91 @@ void main() {
     expect(figure.params, isNot(contains('formation')));
   });
 
+  group('pass by and pass through (taxonomy v40)', () {
+    testWidgets('picking either asks for who and where until they are chosen', (
+      tester,
+    ) async {
+      for (final (typed, id) in [
+        ('pass by', 'pass_by'),
+        ('pass through', 'pass_through'),
+      ]) {
+        final drafts = <FigureDraft>[FigureDraft()];
+        await _pump(tester, drafts);
+        await _selectMove(tester, 0, typed, id);
+
+        final draft = drafts.single;
+        expect(draft.move, id);
+        expect(draft.enteredNew, isTrue);
+        expect(draft.params['who'], ParamVocab.unspecified);
+        expect(draft.params['where'], ParamVocab.unspecified);
+        expect(
+          find.byKey(const ValueKey('figure-0-needs-values')),
+          findsOneWidget,
+          reason: id,
+        );
+
+        await _selectDropdownOption(tester, 'figure-0-who', 'neighbors');
+        expect(
+          find.byKey(const ValueKey('figure-0-needs-values')),
+          findsOneWidget,
+          reason: '$id: where is still empty',
+        );
+        await _selectDropdownOption(tester, 'figure-0-where', 'across');
+        expect(
+          find.byKey(const ValueKey('figure-0-needs-values')),
+          findsNothing,
+          reason: id,
+        );
+        // Neither id stores the pass type: its id says it.
+        expect(draft.toFigure()!.params, isNot(contains('passType')));
+      }
+    });
+
+    testWidgets('a pass by loaded with the dance shows its neighbors and asks '
+        'for nothing', (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(Figure(move: 'pass_by')),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+
+      expect(find.byKey(const ValueKey('figure-0-needs-values')), findsNothing);
+      // The omitted `who` of a stored pass by means neighbors, not its
+      // target's unstated default.
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('figure-0-who')),
+          matching: find.text('neighbors'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the pass type under More options switches the figure and '
+        'keeps its values', (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(move: 'pass_by', params: const {'shoulder': 'left'}),
+        ),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+      expect(find.byKey(const ValueKey('figure-0-passType')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+      await tester.pumpAndSettle();
+      await _selectDropdownOption(tester, 'figure-0-passType', 'through');
+
+      final draft = drafts.single;
+      expect(draft.move, 'pass_through');
+      final effective = contraTaxonomy.effectiveParams(draft.toFigure()!);
+      expect(effective['who'], 'neighbors');
+      expect(effective['where'], ParamVocab.unspecified);
+      expect(effective['shoulder'], 'left');
+      // Not a figure entered in this edit, so nothing is asked for.
+      expect(find.byKey(const ValueKey('figure-0-needs-values')), findsNothing);
+    });
+  });
+
   testWidgets('a forward and back default applies when the pick routes', (
     tester,
   ) async {

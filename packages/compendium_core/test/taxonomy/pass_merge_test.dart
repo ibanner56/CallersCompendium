@@ -85,7 +85,10 @@ void main() {
     // The pre-v40 renderings, so no canonical/FTS rebuild is owed.
     for (final (figure, text) in [
       (f('pass_by'), 'neighbors pass by'),
-      (f('pass_by', {'who': 'partners', 'shoulder': 'left'}), 'partners pass by'),
+      (
+        f('pass_by', {'who': 'partners', 'shoulder': 'left'}),
+        'partners pass by',
+      ),
       (f('pass_through'), 'pass through along'),
       (f('pass_through', {'where': 'across'}), 'pass through across'),
     ]) {
@@ -244,14 +247,40 @@ void main() {
     });
   });
 
+  group('walkthrough snippet keys', () {
+    // Stored library keys: a stored pass keeps the key it had before v40.
+    // Mutation caught: letting an unstated `who`/`where` into the key, which
+    // orphans every saved pass snippet.
+    for (final (figure, key) in [
+      (f('pass_by'), 'pass_by(who=neighbors)'),
+      (f('pass_by', {'who': 'partners'}), 'pass_by(who=partners)'),
+      (f('pass_through'), 'pass_through(where=along)'),
+      (f('pass_through', {'where': 'across'}), 'pass_through(where=across)'),
+    ]) {
+      test('${figure.move} ${figure.params}', () {
+        expect(figureSnippetSignature(figure, tax), key);
+      });
+    }
+
+    test('a stated new param joins the key', () {
+      expect(
+        figureSnippetSignature(f('pass_through', {'who': 'neighbors'}), tax),
+        'pass_through(where=along,who=neighbors)',
+      );
+      expect(
+        figureSnippetSignature(f('pass_by', {'where': 'across'}), tax),
+        'pass_by(where=across,who=neighbors)',
+      );
+    });
+  });
+
   group('required on entry', () {
     test('a new pass starts with who and where unstated', () {
       for (final id in ['pass_by', 'pass_through']) {
-        expect(
-          tax.unstatedRequiredParams(f(id, tax.entryParams(id))),
-          ['who', 'where'],
-          reason: id,
-        );
+        expect(tax.unstatedRequiredParams(f(id, tax.entryParams(id))), [
+          'who',
+          'where',
+        ], reason: id);
       }
     });
 

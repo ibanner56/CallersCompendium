@@ -412,6 +412,13 @@ full amount. One saved by an earlier version as "other" with no amount reads
 filled in for you. Your own figures and the per-figure defaults in Settings
 don't offer "other", because they have no amount to go with it.
 
+**Pass by** and **pass through** are one figure under two names, and both are
+in the move list. Each says who passes, in which direction, by which shoulder,
+and its beats; **Pass type** under **More options** switches between the two.
+When you add one, choose who passes and the direction before you save: until
+you do, the figure says so under its fields and the dance doesn't save. A pass
+saved earlier, or imported, with either one unstated saves as it is.
+
 A figure 8 also has a **Double** switch. Turned on, the first pair leads the
 figure 8 and the other pair casts the mirror way round the outside, as in
 `ones lead a double half figure 8 up between twos, twos cast down the outside`

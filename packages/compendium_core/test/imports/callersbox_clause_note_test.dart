@@ -255,8 +255,8 @@ void main() {
       // flag already renders the inbound travel). That removes the line from
       // the set where a leading clause FAILS; it does not weaken the rule.
       // `Women walk forward; form wave of four with N2` is the same shape and
-      // still exercises it exactly: #733 declines the fold because
-      // `pass_through` has no `who` slot to carry "women", so the leading
+      // still exercises it exactly: #733 declines the fold because nothing
+      // reads "women" onto the pass through's `who`, so the leading
       // clause still fails while the trailing `form wave of four with N2`
       // still structures — which is precisely the "note would have to hang on
       // a LATER figure" case.

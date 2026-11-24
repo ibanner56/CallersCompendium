@@ -45,17 +45,20 @@ void main() {
     }
   });
 
-  test('a pass by, like a pass through, starts with who and where unstated', () {
-    // Its own defaults (neighbors, unstated) are what an omitted param means
-    // on a stored pass by; entry seeds neither.
-    expect(tax.entryParams('pass_by'), {
-      'who': ParamVocab.unspecified,
-      'where': ParamVocab.unspecified,
-      'shoulder': 'right',
-      'beats': 2,
-      'passType': 'by',
-    });
-  });
+  test(
+    'a pass by, like a pass through, starts with who and where unstated',
+    () {
+      // Its own defaults (neighbors, unstated) are what an omitted param means
+      // on a stored pass by; entry seeds neither.
+      expect(tax.entryParams('pass_by'), {
+        'who': ParamVocab.unspecified,
+        'where': ParamVocab.unspecified,
+        'shoulder': 'right',
+        'beats': 2,
+        'passType': 'by',
+      });
+    },
+  );
 
   group('a figure that omits balance is still unbalanced', () {
     for (final id in balanceSeeded) {
@@ -75,7 +78,6 @@ void main() {
 
   group('the entry state is one the editor itself would produce', () {
     for (final id in balanceSeeded) {
-
       test('$id: entry values raise no validation issue', () {
         // Catches an entry `beats` that `goodBeats` would flag as atypical.
         final issues = tax.validateFigure(

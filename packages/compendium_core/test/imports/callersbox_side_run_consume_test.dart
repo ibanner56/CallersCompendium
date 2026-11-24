@@ -11,7 +11,7 @@
 //    The decode either fires on a run or it does not. This is byte-identical at
 //    both identity layers, which is asserted rather than assumed.
 // 2. **Dancer identity fills `who`/`who2` where the move declares them.**
-//    `pass_through` declares no `who`, so its dancer code is dropped.
+//    `pass_through` has declared a `who` since taxonomy v40.
 //
 // ## Why folding is tested through the ADAPTER
 //

@@ -986,8 +986,10 @@ const String _walkForwardPassThroughMove = 'form_short_waves';
 ///   (`turn alone`, `face across`, `form interlocking long waves`, `form wave
 ///   of two`, `form ring of four`, …);
 /// - the walk clause names a subject AND the reading is the pass-through one:
-///   `pass_through` has no `who` slot, so `Women walk forward; form wave of
-///   four with N2` would silently drop the role.
+///   `Women walk forward; form wave of four with N2` would silently drop the
+///   role. (`pass_through` has had a `who` since taxonomy v40, when it became
+///   one figure with pass by, but nothing yet reads a walk-forward subject
+///   onto it.)
 ///
 /// **Beats.** The pair consumes two clauses but the source states ONE combined
 /// total, which by the file's Option A convention rides on the FIRST clause —
@@ -2989,11 +2991,9 @@ bool _isSquareRoleSetDescriptor(String body) =>
 /// **Dancer identity (Part C).** The same cells name dancers, so `who`/`who2`
 /// are filled too, on the moves that declare them. Two-pass moves alternate:
 /// odd 1-based positions name `who`, even positions name `who2`. `pass_through`
-/// declares NO `who`, so its dancer code has nowhere to go and is dropped —
-/// which is the status quo for that half of the annotation, minus the wrong
-/// shoulder. (Preserving it as a note instead would add one to ~2,048 figures
-/// across 1,773 dances; that is a visible change at corpus scale and is the
-/// owner's call, not this decoder's.)
+/// has declared a `who` since taxonomy v40 (one figure with pass by), so
+/// `Pass through along (NR)` is neighbors passing right shoulders; before, its
+/// dancer code had nowhere to go and was dropped.
 ///
 /// **Declines (returns `null` → the ordinary annotation-stripped path) when:**
 ///   * the line has no `(...)` annotation, or more than one unless exactly one
