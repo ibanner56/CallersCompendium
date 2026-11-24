@@ -14,7 +14,8 @@ part of '../operation.dart';
 /// quarter cases.
 ///
 /// What distinguishes them is entirely the facing they leave behind:
-/// `do_si_do` preserves it, `allemande` inverts it on a half, `two_hand_turn`
+/// `do_si_do` preserves it, `allemande` inverts it on a half (except along a
+/// side line, where it keeps travelling across the set), `two_hand_turn`
 /// ends relational, `shoulder_round` uses the focus rule, and `mad_robin` ends
 /// across the set.
 
@@ -179,9 +180,32 @@ final class Allemande extends Operation {
       swapPairs(
         formation,
         whoPairsInSet(formation, who),
-        facing: (before, after, other) => before.facing.reversed,
+        facing: (before, after, other) =>
+            _alongTheSetFinish(after, other) ?? before.facing.reversed,
       ),
     );
+  }
+
+  /// The way a dancer of a pair turning along a side line faces when the
+  /// half turn ends at [after], with the other dancer at [other]: still
+  /// travelling the way the turn carried them, across the set. A left turn
+  /// wheels counter-clockwise seen from above, so the dancer who finishes up
+  /// the set faces out of the west line and into the east one, and the one
+  /// below faces the other way; a right turn is the mirror. A couple facing
+  /// across after an allemande left therefore has its robin facing in and its
+  /// lark out. *(User-ruled 2026-11-24, note on Heather's Hop Redux: "R2-D
+  /// should be facing in (along with all the other robins) because of the
+  /// allemande left", and L1-A facing out. The agent's calls: the rule is
+  /// read from the turn's direction rather than from role, and applies to
+  /// the right hand by the same geometry.)*
+  ///
+  /// `null` for a pair not on one side line, which keeps reversing.
+  Facing? _alongTheSetFinish(Position after, Position other) {
+    if (after.col != other.col || after.row == other.row) return null;
+    if (after.col != 0 && after.col != kColumnCount - 1) return null;
+    final up = after.row < other.row;
+    final west = up == (hand == Hand.left);
+    return west ? Facing.acrossWest : Facing.acrossEast;
   }
 
   /// Whether [pair] already holds this allemande's [hand] in a wave, and so
