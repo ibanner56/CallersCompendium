@@ -837,7 +837,7 @@ row is simply the best way to do it.
 #### 10.3.2 The change-over — how a couple stops waiting out
 
 A couple standing out is outside every active hands four, so **no figure's transform takes it
-out of its end row** (an N0 swing turns it in place, `taxonomy.md` `swing`): it is still sitting
+out of its end row** (a swing naming a distance set turns it in place, `taxonomy.md` `swing`): it is still sitting
 in the end row when the next progression fires. Something has to bring
 it back in, and that something is the progression itself. §10.6 fixes the term: **wait-out lasts
 one round.** So each progression, in order:
@@ -967,7 +967,8 @@ number-derived rule as §10.3.
 
 ### 10.7 End effects — a waiting pair trades places
 
-Dancers waiting out at an end stand outside every hands four, so no figure moves them. In the
+Dancers waiting out at an end stand outside every hands four, so no figure moves them, apart from
+a swing naming a distance set, which turns them in place (`taxonomy.md` `swing`). In the
 hall they do not stand perfectly still: when the active couples all cross the set, or swap with
 a neighbour, the pair waiting at the end often crosses too, so as to be in the right place when
 they come back in. The source never writes this down. *(User-ruled, 2026-11-24: "This is
@@ -997,8 +998,13 @@ The compiler reads it as a **retry**, not a rule applied to every figure (`compi
   have to try a trade before every figure, and is the likeliest to pass a dance that is wrong.)*
 
 Nobody warps: the two dancers are the only ones who move, and they move to where each other
-stood. Trading just before the refusing figure stands for a trade made at any point while they
-waited, since no figure moves them meanwhile.
+stood. Trading just before the refusing figure stands for a trade made at any point since the
+last figure that moved them, since nothing moves them in between. A swing naming a distance set
+does turn them in place: when it swaps their sides, they have moved, and no trade is read back
+across it. When they already stood on the spots it gives them, only their facing changes, and the
+retry may still trade them after it (the agent's call: `endEffectCandidates` treats a dancer as
+having stood still when their position is unchanged, whatever their facing,
+`engine/end_effects.dart`).
 
 *Rejected (agent's call, measured 2026-11-24 on rubric `253f56db`):* trading the waiting pair
 **ahead of time** whenever every active couple crosses the set gained 10 dances and lost 687.

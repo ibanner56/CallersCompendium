@@ -80,7 +80,7 @@ Formation _after(Map<String, Object?> record, int upTo) {
 }
 
 void main() {
-  group('a couple waiting out swings each other on an N0 swing '
+  group('a couple waiting out swings each other on a distance swing '
       '(user-ruled 2026-11-24)', () {
     test('the couple at the top swaps sides and faces into the set', () {
       final before = _after(havenNotMet(), 1);
@@ -159,8 +159,9 @@ void main() {
       }
     });
 
-    test('only an N0 swing moves them, and only a couple waiting out', () {
-      // Limited to N0 by the maintainer ("go with option A for now").
+    test('a distance swing moves them, and only a couple waiting out', () {
+      // Every distance set, on Hudson's go-ahead (2026-11-24); a plain
+      // neighbours or partners swing does not.
       final start = _after(havenNotMet(), 1);
       final top = start.dancersInRow(0).toList();
       final waiting = start.withUpdates({
@@ -175,7 +176,16 @@ void main() {
         topCells(swung(waiting, WhoSet.prevNeighbors)),
         isNot(topCells(waiting)),
       );
-      expect(topCells(swung(waiting, WhoSet.nextNeighbors)), topCells(waiting));
+      expect(
+        topCells(swung(waiting, WhoSet.nextNeighbors)),
+        isNot(topCells(waiting)),
+      );
+      expect(
+        topCells(swung(waiting, WhoSet.thirdNeighbors)),
+        isNot(topCells(waiting)),
+      );
+      expect(topCells(swung(waiting, WhoSet.neighbors)), topCells(waiting));
+      expect(topCells(swung(waiting, WhoSet.partners)), topCells(waiting));
       expect(topCells(swung(start, WhoSet.prevNeighbors)), topCells(start));
     });
   });
