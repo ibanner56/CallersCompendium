@@ -154,8 +154,8 @@
 > memory, and only when it leaves nobody more unpaired than first match would,
 > are the agent's calls). At an end with nobody out the shadow wraps to
 > the neighbour, and the first match had been taking one of a remembered
-> pair. Against `rubric` at `a1c3cf7b`: 4,195 of 5,425 to 4,207 of 5,425
-> compiled in scope (77.5%), the core set 544 to 547, no previously compiling
+> pair. Against `rubric` at `9680f588`: 4,228 of 5,425 to 4,240 of 5,425
+> compiled in scope (78.2%), the core set 544 to 547, no previously compiling
 > dance lost. Now compiling: Lauren's Lagniappe (10025, 6086, 6087), Sawdust
 > Liquor (10027, 6126), Chaos Pie (10338), Spare Parts (12030), Train Delay
 > (14841), Head of the Bed (4528), Salute to Denice Reese (5437), Moonshadow
