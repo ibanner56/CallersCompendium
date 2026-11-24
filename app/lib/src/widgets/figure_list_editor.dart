@@ -664,15 +664,28 @@ class _FigureListEditorState extends State<FigureListEditor>
 
   /// Opens [draft]'s editor, whose Move box takes focus for a figure still to
   /// fill, and brings it into view; with null, starts a new figure as Add
-  /// does ([FigureEntryController]).
-  void _startFigureEntry(FigureDraft? draft) {
+  /// does ([FigureEntryController]). Returns whether it did.
+  bool _startFigureEntry(FigureDraft? draft) {
     if (draft == null) {
+      if (!widget.allowAdding) return false;
       _addFigure();
-      return;
+      return true;
     }
-    if (!widget.drafts.contains(draft)) return;
-    _openDraft(draft.id);
+    if (!widget.drafts.contains(draft)) return false;
     _ensureVisibleSoon(draft.id);
+    if (_openDraftId == draft.id) {
+      // Already open, so its Move box, which takes focus only as its editor
+      // mounts, would not take it again: close the editor and open it anew
+      // on the next frame.
+      _pendingMoveText.settle();
+      setState(() => _openDraftId = null);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && widget.drafts.contains(draft)) _openDraft(draft.id);
+      });
+      return true;
+    }
+    _openDraft(draft.id);
+    return true;
   }
 
   void _addFigure() {

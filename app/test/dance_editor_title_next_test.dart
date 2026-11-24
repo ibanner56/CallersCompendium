@@ -19,8 +19,9 @@ Future<void> _pump(
   WidgetTester tester,
   CompendiumRepositories repos, {
   String? danceId,
+  Size size = const Size(390, 2400),
 }) async {
-  await tester.binding.setSurfaceSize(const Size(390, 2400));
+  await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
   addTearDown(notifier.dispose);
@@ -109,6 +110,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(_focused(tester, _title), isFalse);
     expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
+    // Focus moves on to what follows the Title, as Flutter's default would,
+    // so a keyboard user keeps their place rather than losing focus.
+    final focused = FocusManager.instance.primaryFocus!.context!;
+    expect(
+      find.ancestor(
+        of: find.byElementPredicate((element) => element == focused),
+        matching: find.byKey(const ValueKey('setup-tile')),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('on a new dance whose figures are all set, the key is Done', (
@@ -123,5 +134,41 @@ void main() {
     );
     await _pump(tester, repos);
     expect(_titleAction(tester), TextInputAction.done);
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(_focused(tester, _title), isFalse);
+  });
+
+  // The form is a lazy list: on a short screen, or with the setup panel open
+  // above them, the figures are not built when Next is pressed.
+  for (final (name, size) in [
+    ('a tablet with the keyboard up, panel open', const Size(900, 450)),
+    ('a short phone', const Size(390, 500)),
+  ]) {
+    testWidgets('on $name, Next still reaches the figures', (tester) async {
+      await _pump(tester, openTestRepositories(), size: size);
+      final move = find.byKey(const ValueKey('figure-0-move-input'));
+      expect(move, findsNothing);
+      await tester.testTextInput.receiveAction(TextInputAction.next);
+      await tester.pumpAndSettle();
+      expect(move, findsOneWidget);
+      expect(_focused(tester, move), isTrue);
+      expect(tester.testTextInput.isVisible, isTrue);
+    });
+  }
+
+  testWidgets('Next reaches a figure that is already open', (tester) async {
+    await _pump(tester, openTestRepositories());
+    await tester.testTextInput.receiveAction(TextInputAction.next);
+    await tester.pumpAndSettle();
+    final move = find.byKey(const ValueKey('figure-0-move-input'));
+    expect(_focused(tester, move), isTrue);
+
+    await tester.tap(_title);
+    await tester.pumpAndSettle();
+    expect(_focused(tester, _title), isTrue);
+    await tester.testTextInput.receiveAction(TextInputAction.next);
+    await tester.pumpAndSettle();
+    expect(_focused(tester, move), isTrue);
   });
 }

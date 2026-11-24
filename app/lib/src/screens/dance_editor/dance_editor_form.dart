@@ -421,6 +421,33 @@ class DanceEditorForm extends StatelessWidget {
   ({FigureDraft? draft})? get _titleHandsOn =>
       isNew ? figureToFill(controller.figureDrafts) : null;
 
+  /// The Title field's Next or Done ([_titleHandsOn]). Next puts the focus in
+  /// the figure still to fill; the figures may not be built yet (the form is
+  /// a lazy list, and the setup panel may be open above them), so it scrolls
+  /// toward them a screen at a time until they are, keeping the Title, and
+  /// the keyboard, focused meanwhile. Done, or Next that finds no figures to
+  /// reach, moves focus on as Flutter's default would, so a keyboard user
+  /// keeps their place.
+  Future<void> _handOnFromTitle() async {
+    final target = _titleHandsOn;
+    if (target != null) {
+      final entry = controller.figureEntry;
+      while (!entry.isAttached && scrollController.hasClients) {
+        final position = scrollController.position;
+        if (position.pixels >= position.maxScrollExtent) break;
+        scrollController.jumpTo(
+          (position.pixels + position.viewportDimension).clamp(
+            position.minScrollExtent,
+            position.maxScrollExtent,
+          ),
+        );
+        await WidgetsBinding.instance.endOfFrame;
+      }
+      if (entry.start(target.draft)) return;
+    }
+    controller.titleFocusNode.nextFocus();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -473,13 +500,7 @@ class DanceEditorForm extends StatelessWidget {
                   textInputAction: _titleHandsOn == null
                       ? TextInputAction.done
                       : TextInputAction.next,
-                  onEditingComplete: () {
-                    final target = _titleHandsOn;
-                    if (target == null ||
-                        !controller.figureEntry.start(target.draft)) {
-                      controller.titleFocusNode.unfocus();
-                    }
-                  },
+                  onEditingComplete: _handOnFromTitle,
                   decoration: InputDecoration(
                     labelText: l10n.danceEditorTitleRequiredLabel,
                   ),
