@@ -3581,6 +3581,38 @@ void main() {
       expect(saved.subFigures.any(stepStatesTiming), isFalse);
     });
 
+    testWidgets("a contra dance's sequence offers no span and shows its "
+        "steps' total", (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Contra',
+          figures: [
+            Figure.sequence(
+              figures: [
+                Figure(move: 'balance', params: const {'beats': 4}),
+                Figure(move: 'swing', params: const {'beats': 12}),
+              ],
+              beats: 16,
+            ),
+          ],
+        ),
+      );
+      await _pumpEditor(tester, repos, danceId: 'd1');
+      await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('figure-0-sequence-span')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('figure-0-sequence-beats')),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('another form does not offer the free-form switch', (
       tester,
     ) async {

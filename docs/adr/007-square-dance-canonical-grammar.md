@@ -1219,7 +1219,10 @@ November 2026): yes, a `sequence`, with the span opened to squares.*
 *Implemented 24 November 2026: a square's sequence takes **Beats for all**
 in beats, as an English one takes **Bars for all** in bars, and its steps
 may leave their beats empty; the span check (`sequenceSpanIssue`) and the
-figure index's share of the span (`formHasSequenceSpan`) cover squares.*
+figure index's share of the span (`formHasSequenceSpan`) cover squares.
+A dance changed between English and square keeps its spans, and only a
+change to contra drops them (this ADR author's call, as both forms now have
+spans).*
 
 **Q11. Gypsy timing.** Should a gypsy (shoulder round) default to 8 beats,
 like the other phrase-filling calls, or to 6? No held square states it.

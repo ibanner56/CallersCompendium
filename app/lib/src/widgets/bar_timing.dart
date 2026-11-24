@@ -307,6 +307,7 @@ class BeatsField extends StatefulWidget {
     required this.beats,
     required this.onChanged,
     this.emptyHint,
+    this.minBeats = 0,
     this.maxBeats = 64,
   });
 
@@ -319,6 +320,10 @@ class BeatsField extends StatefulWidget {
 
   /// What an empty field says; "no timing of its own" when null.
   final String? emptyHint;
+
+  /// The smallest count the field takes: 1 for a span, which a count of 0
+  /// would leave its untimed steps no time.
+  final int minBeats;
 
   /// The largest count the field takes.
   final int maxBeats;
@@ -336,7 +341,7 @@ class _BeatsFieldState extends State<BeatsField> {
   /// The count [text] names, or null when it names none in range.
   int? _beatsOf(String text) {
     final n = int.tryParse(text.trim());
-    return n != null && n >= 0 && n <= widget.maxBeats ? n : null;
+    return n != null && n >= widget.minBeats && n <= widget.maxBeats ? n : null;
   }
 
   @override
@@ -349,11 +354,10 @@ class _BeatsFieldState extends State<BeatsField> {
   void didUpdateWidget(BeatsField old) {
     super.didUpdateWidget(old);
     // Only a count set from elsewhere replaces the text, so half-typed text
-    // is kept.
-    if (widget.beats != old.beats &&
-        (_controller.text.trim().isEmpty
-            ? widget.beats != null
-            : _beatsOf(_controller.text) != widget.beats)) {
+    // is kept; refused text gives way to it too, as it was never reported.
+    final text = _controller.text.trim();
+    final shown = text.isEmpty ? null : _beatsOf(text);
+    if (widget.beats != old.beats && (_invalid || shown != widget.beats)) {
       _controller.text = widget.beats?.toString() ?? '';
       _invalid = false;
     }
@@ -387,7 +391,10 @@ class _BeatsFieldState extends State<BeatsField> {
           ),
           hintMaxLines: 2,
           errorText: _invalid
-              ? l10n.danceEditorIntParamRangeError(0, widget.maxBeats)
+              ? l10n.danceEditorIntParamRangeError(
+                  widget.minBeats,
+                  widget.maxBeats,
+                )
               : null,
           errorMaxLines: 4,
         ),

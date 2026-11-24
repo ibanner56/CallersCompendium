@@ -667,9 +667,11 @@ contra sequence does; emptying it gives each figure with no bars its move's
 usual length. A figure that leaves the sequence, by ungrouping it or turning
 it into another kind of group, takes its usual length too. If every figure has bars of its own and they don't add
 up to **Bars for all**, or the figures with bars already fill it, the sequence
-and the dance's warnings say so. Changing the dance to another type puts its
+and the dance's warnings say so. Changing the dance to a contra puts its
 sequences back to adding up their figures, and a figure with no bars takes its
-move's usual length; **Undo** puts them back.
+move's usual length; **Undo** puts them back. Changing it to a square keeps
+each span, counted in beats there (see
+[One count for a square's calls](#one-count-for-a-squares-calls)).
 
 ### One count for a square's calls
 

@@ -3148,6 +3148,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             fieldKey: '$keyPrefix-sequence-span',
             label: l10n.danceEditorSequenceSpanBeatsLabel,
             beats: spanStated ? draft.beats : null,
+            minBeats: 1,
             emptyHint: timingLabel(context, draft.beats),
             onChanged: setSpan,
           ),
@@ -3196,8 +3197,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   /// modifier shows one shared Beats field (the container's single count —
   /// never per-child); a sequence instead shows its total, the sum of its
   /// steps' own Beats fields, and a warning once that total is longer than the
-  /// phrase of [_FigureDraftCard.phraseStructure] it starts in. An English sequence timed
-  /// in bars ([BarTimingScope]) shows its own span field instead
+  /// phrase of [_FigureDraftCard.phraseStructure] it starts in. A sequence
+  /// that may state a span ([SequenceSpanScope]), an English one's in bars or
+  /// a square's in beats, shows its own span field instead
   /// ([_buildSequenceSpan]). Then come each ordered child
   /// editor, an add-child control (capped at the kind's
   /// [maxContainerChildren], and for a sequence hidden once a phrase is full),

@@ -167,6 +167,25 @@ void main() {
     expect(drafts.single.beats, 16);
   });
 
+  testWidgets('a span of 0 is refused, and refused text gives way to a span '
+      'set from elsewhere', (tester) async {
+    final drafts = [_forwardAgainAndSwing()..setSequenceSpan(8)];
+    await _pump(tester, drafts);
+    final span = find.byKey(const ValueKey('figure-0-sequence-span'));
+
+    await tester.enterText(span, '0');
+    await tester.pumpAndSettle();
+    expect(drafts.single.beats, 8, reason: 'nothing reported');
+    expect(find.text('Enter a whole number from 1 to 64'), findsOneWidget);
+
+    // As Undo would: the span goes, and the field shows none.
+    drafts.single.setSequenceSpan(null);
+    await tester.pumpWidget(_Host(drafts: drafts, spans: true));
+    await tester.pumpAndSettle();
+    expect(_fieldText(tester, 'figure-0-sequence-span'), '');
+    expect(find.text('Enter a whole number from 1 to 64'), findsNothing);
+  });
+
   testWidgets('without spans, a sequence shows the total of its steps', (
     tester,
   ) async {
