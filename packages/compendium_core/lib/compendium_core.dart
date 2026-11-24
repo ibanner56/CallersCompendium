@@ -5,6 +5,7 @@
 /// domain layer stays portable and independently testable (ADR-001).
 library;
 
+export 'src/analysis/event_rules.dart';
 export 'src/analysis/half_calling_stats.dart';
 export 'src/analysis/matrix_column_config.dart';
 export 'src/analysis/perform_swap_defaults.dart';
@@ -107,6 +108,7 @@ export 'src/model/difficulty_level.dart';
 export 'src/model/user_glossary.dart';
 export 'src/model/dance_link.dart';
 export 'src/model/enums.dart';
+export 'src/model/event_rule.dart';
 export 'src/model/figure.dart';
 export 'src/model/figure_source.dart';
 export 'src/model/tunes_source.dart';
