@@ -73,6 +73,12 @@ const _sites = <String, List<(String, String)>>{
     ("const ValueKey('calling-card-size')", 'false'),
     ("const ValueKey('calling-card-unit')", 'false'),
   ],
+  'lib/src/screens/settings/event_rules_screen.dart': [
+    (
+      "const ValueKey('event-rule-search')",
+      'searches.length >= appDropdownFilterFrom',
+    ),
+  ],
   'lib/src/screens/settings/defaults_section.dart': [
     ("const ValueKey('defaults-collection-sort')", 'false'),
     ("const ValueKey('defaults-program-sort')", 'false'),

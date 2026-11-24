@@ -4966,7 +4966,7 @@ A client MUST therefore show a **persistent hint** on a venue whose
 3. **It MUST name the fields that stay on the device, and MUST NOT promise that
    contact details do not travel.** `venues.notes` is `shareable` — ruled so
    deliberately, because it is the user's own words — and the classification it
-   carries (`_freeformNote`, `field_registry.dart:251`) records the interaction
+   carries (`_freeformNote`, `field_registry.dart:264`) records the interaction
    as knowingly accepted residual risk: *"a user who wrote 'ask for Bob,
    555-1234' into a venue note will have that text travel with the note."* A
    hint saying "contact details stay on this device" would be a false assurance

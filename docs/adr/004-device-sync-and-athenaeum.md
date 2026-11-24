@@ -847,7 +847,7 @@ Specified at spec §6.13 and owned by W13.
 The hint must **name the fields that stay local** rather than promise that
 contact details do not travel. `venues.notes` is `shareable` — ruled so
 deliberately, as the user's own words — and the classification it carries
-(`_freeformNote`, `field_registry.dart:251`) records the interaction as
+(`_freeformNote`, `field_registry.dart:264`) records the interaction as
 knowingly accepted residual risk: *"a user who wrote 'ask for Bob, 555-1234'
 into a venue note will have that text travel with the note."* A hint saying
 "contact details stay on this device" would therefore be a false assurance about
