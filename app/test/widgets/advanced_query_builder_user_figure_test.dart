@@ -320,6 +320,47 @@ void main() {
       expect(restingText(tester, row), 'swoop · English (ECD)');
     });
 
+    testWidgets('typing the exact name of a built-in move lists a lone figure '
+        'of that name first, and the move first when two figures of different '
+        'forms are told apart by their form', (tester) async {
+      double top(Finder f) => tester.getTopLeft(f.first).dy;
+
+      final lone = await pump(
+        tester,
+        dialects: dialects,
+        entries: [figure('e', 'hey', payload: madeFor('ecd'))],
+      );
+      await type(tester, lone, 'hey');
+      expect(option(lone, 'hey'), findsOneWidget);
+      expect(
+        top(option(lone, 'userFigure:e')),
+        lessThan(top(option(lone, 'hey'))),
+      );
+    });
+
+    testWidgets('two same-named figures of different forms no longer name the '
+        'move exactly, so the move comes first', (tester) async {
+      double top(Finder f) => tester.getTopLeft(f.first).dy;
+
+      final row = await pump(
+        tester,
+        dialects: dialects,
+        entries: [
+          figure('e', 'hey', payload: madeFor('ecd')),
+          figure('c', 'hey', payload: madeFor('contra')),
+        ],
+      );
+      await type(tester, row, 'hey');
+      expect(
+        top(option(row, 'hey')),
+        lessThan(top(option(row, 'userFigure:e'))),
+      );
+      expect(
+        top(option(row, 'hey')),
+        lessThan(top(option(row, 'userFigure:c'))),
+      );
+    });
+
     testWidgets('with no dialects every figure reads in the search\'s dialect, '
         'and none is told apart, as before', (tester) async {
       final row = await pump(

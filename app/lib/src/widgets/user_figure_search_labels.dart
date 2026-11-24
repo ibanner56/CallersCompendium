@@ -33,12 +33,12 @@ Map<String, String> userFigureSearchLabels(
   final formsByLabel = <String, Set<DanceForm>>{};
   for (final view in views) {
     formsByLabel
-        .putIfAbsent(labels[view.id]!.toLowerCase(), () => {})
+        .putIfAbsent(labels[view.id]!.trim().toLowerCase(), () => {})
         .add(view.form);
   }
   return {
     for (final view in views)
-      view.id: (formsByLabel[labels[view.id]!.toLowerCase()]!.length > 1)
+      view.id: (formsByLabel[labels[view.id]!.trim().toLowerCase()]!.length > 1)
           ? '${labels[view.id]} · ${danceFormLabel(l10n, view.form)}'
           : labels[view.id]!,
   };

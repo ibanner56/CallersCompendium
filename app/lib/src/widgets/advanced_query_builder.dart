@@ -1119,7 +1119,8 @@ class MoveTypeAheadField extends StatelessWidget {
   final ValueChanged<String> onSelected;
 
   /// The user's own figures to offer before the moves (#1023), each found by
-  /// its name in [dialect] and marked as theirs. Offered only with
+  /// its name in [dialect], or in its own form's dialect when [dialects] is
+  /// given, and marked as theirs. Offered only with
   /// [onUserFigureSelected]; a figure that no longer decodes is never offered,
   /// since no use of it is searchable.
   final UserFigureCatalog userFigures;
