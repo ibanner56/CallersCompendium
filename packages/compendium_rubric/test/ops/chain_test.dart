@@ -401,6 +401,55 @@ void main() {
       );
     });
 
+    test('a dancer who already has a shadow keeps the first one', () {
+      final start = becket(const [
+        'L1-A . . . R1-A',
+        'R2-B . . . L2-B',
+        'L1-C . . . R1-C',
+        'R2-D . . . L2-D',
+      ]);
+      final remembered = start.withUpdates({
+        id('L2-B'): start.stateOf(id('L2-B')).copyWith(shadow: id('R1-C')),
+      });
+      final after = applyOk(
+        const Chain(who: WhoSet.role2s, dir: ChainDirection.leftDiagonal),
+        remembered,
+      );
+      expect(after.stateOf(id('L2-B')).shadow, id('R1-C'));
+      expect(after.stateOf(id('R2-D')).shadow, id('L2-B'));
+    });
+
+    test('with couples waiting out, nobody remembers a partner or a waiting '
+        'dancer', () {
+      final start = markWaitingOut(
+        startingFormation(FormationType.dupleImproper, handsFour: 3),
+        rows: const [0, 5],
+      );
+      for (final chain in const [
+        Chain(who: WhoSet.role2s, dir: ChainDirection.leftDiagonal),
+        Chain(who: WhoSet.role2s, dir: ChainDirection.rightDiagonal),
+        Chain(who: WhoSet.role1s, dir: ChainDirection.leftDiagonal),
+        Chain(who: WhoSet.role1s, dir: ChainDirection.rightDiagonal),
+      ]) {
+        final after = applyOk(chain, start);
+        for (final MapEntry(key: dancer, value: state)
+            in after.dancers.entries) {
+          final shadow = state.shadow;
+          if (shadow == null) continue;
+          expect(
+            shadow.coupleIndex,
+            isNot(dancer.coupleIndex),
+            reason: '$chain: $dancer remembers a partner',
+          );
+          expect(
+            start.stateOf(shadow).waitingOut,
+            isFalse,
+            reason: '$chain: $dancer remembers a waiting dancer',
+          );
+        }
+      }
+    });
+
     test('a chain across remembers nothing', () {
       final after = applyOk(
         const Chain(who: WhoSet.role2s),

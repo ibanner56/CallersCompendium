@@ -144,7 +144,8 @@
 > (77.3%), the core set unchanged at 544, no previously compiling dance lost. South
 > Carolina Education Lottery (2411) now compiles. Lauren's Lagniappe (10025)
 > and Sawdust Liquor (10027) get past the shadow figures and still refuse at
-> the B2 partner swing, in the top hands four.
+> the B2 partner swing, in the top hands four. One refused dance (15111) now
+> reaches a deferred allemande and leaves the scope.
 >
 > **An arch and dive from a line of four bends it first (2026-11-24)**: "in
 > a line of four, go up the hall; ones arch, twos dive" bends the line into a

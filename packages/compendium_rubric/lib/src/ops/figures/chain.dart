@@ -294,21 +294,33 @@ final class Chain extends Operation {
   /// by who they are ([DancerState.shadow]). One who stood beside her partner
   /// chains to a neighbour and makes no shadow. A dancer who already has a
   /// shadow keeps the one they first danced with.
+  ///
+  /// "Beside" is read in the hands fours the chain was danced in, before and
+  /// after alike: the chain moves no one between groupings' boundaries, but a
+  /// trade with a couple waiting out can leave the end rows looking like a
+  /// different grouping. A dancer who lands in a waiting couple's row, or
+  /// beside someone of her own role or her own partner, remembers nobody
+  /// *(agent's calls)*.
   static Formation _rememberShadows(
     Formation before,
     Formation after,
     Set<DancerId> swapped,
   ) {
+    final bands = handsFourBands(before);
     final changes = <DancerId, DancerState>{};
     for (final id in swapped) {
-      final besideBefore = _beside(before, id);
+      final besideBefore = _beside(before, bands, id);
       if (besideBefore == null ||
           besideBefore.role == id.role ||
           besideBefore.coupleIndex == id.coupleIndex) {
         continue;
       }
-      final shadow = _beside(after, id);
-      if (shadow == null || shadow.role == id.role) continue;
+      final shadow = _beside(after, bands, id);
+      if (shadow == null ||
+          shadow.role == id.role ||
+          shadow.coupleIndex == id.coupleIndex) {
+        continue;
+      }
       for (final (who, other) in [(id, shadow), (shadow, id)]) {
         final state = changes[who] ?? after.stateOf(who);
         if (state.shadow == null) changes[who] = state.copyWith(shadow: other);
@@ -317,11 +329,16 @@ final class Chain extends Operation {
     return changes.isEmpty ? after : after.withUpdates(changes);
   }
 
-  /// The dancer standing beside [id] on their side line: the same column,
-  /// the other row of their hands four.
-  static DancerId? _beside(Formation formation, DancerId id) {
+  /// The dancer standing beside [id] in [formation] on their side line: the
+  /// same column, the other row of whichever of [bands] holds their row.
+  /// `null` when their row is in none of them (a waiting couple's row).
+  static DancerId? _beside(
+    Formation formation,
+    List<({int topRow, int bottomRow})> bands,
+    DancerId id,
+  ) {
     final at = formation.stateOf(id).position;
-    for (final band in handsFourBands(formation)) {
+    for (final band in bands) {
       if (at.row != band.topRow && at.row != band.bottomRow) continue;
       final other = at.row == band.topRow ? band.bottomRow : band.topRow;
       return formation.dancerAt(Position(other, at.col));

@@ -203,4 +203,28 @@ void main() {
       isNull,
     );
   });
+
+  test('the shadow promenade remembers the pairs that danced side by side', () {
+    DancerId id(String cell) => DancerId(
+      cell.codeUnitAt(cell.length - 1) - 0x41,
+      cell.startsWith('L') ? Role.lark : Role.robin,
+    );
+    final afterChain = applyOk(
+      const Chain(who: WhoSet.role2s, dir: ChainDirection.leftDiagonal),
+      becket(const [
+        'L1-A . . . R1-A',
+        'R2-B . . . L2-B',
+        'L1-C . . . R1-C',
+        'R2-D . . . L2-D',
+        'L1-E . . . R1-E',
+        'R2-F . . . L2-F',
+      ]),
+    );
+    final after = applyOk(const Promenade(who: WhoSet.shadows), afterChain);
+    // L1-A had no shadow yet: he promenaded with R2-B beside him, not with
+    // R2-D across the set, who keeps the L2-B her chain gave her.
+    expect(after.stateOf(id('L1-A')).shadow, id('R2-B'));
+    expect(after.stateOf(id('R2-B')).shadow, id('L1-A'));
+    expect(after.stateOf(id('R2-D')).shadow, id('L2-B'));
+  });
 }
