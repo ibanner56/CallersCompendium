@@ -81,7 +81,8 @@ void main() {
 
     test('a bare "Shift left/right" stays a slide along the set', () {
       // Mutation caught: reading the shift without requiring a named group
-      // turns every bare shift (710 lines) into this move.
+      // turns every bare shift into this move (710 bare "Shift left/right"
+      // lines in the 2026-11-24 census).
       for (final side in const ['left', 'right']) {
         final figure = parse('Shift $side').single;
         expect(figure.move, 'slide_along_set', reason: side);
@@ -113,6 +114,9 @@ void main() {
       // Not a shift's shape, so kept whole.
       "Men shift left to next man's position",
       'Women shift right one step',
+      // A count that disagrees with its noun (invented lines).
+      'Men shift left one places',
+      'Men shift left two place',
       'Men shift right behind neighbor',
       // "Others" depends on the line before; no dancer set holds it.
       'Others shift up',

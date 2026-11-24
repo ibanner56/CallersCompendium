@@ -209,7 +209,8 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
     description:
         'Used when some dancers rest while others move, or to fill out a phrase. Any length is possible; the figure records the number of beats.',
   ),
-  // TCB "Shift"; Jennings "SHIFT" (one station by default).
+  // TCB's bare "Shift left/right" (a named group's shift is `shift`); Jennings
+  // "SHIFT" (one station by default).
   'slide_along_set': FigureDefinition(
     definition:
         'Couples on the side of the set sidestep left or right until they face the next couple.',
