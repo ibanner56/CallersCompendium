@@ -741,8 +741,18 @@ core.Figure _mainFigure(core.Figure figure) =>
 ///   it happens.
 /// - Otherwise its **first diagonal chain or pass through along the set**
 ///   progresses (user-ruled 2026-11-23), or its first diagonal right and left
-///   through (agent's call 2026-11-24). Only a Becket dance with none of these
-///   falls back to the last figure.
+///   through (agent's call 2026-11-24).
+/// - In a **single-progression dance whose only slide or slice** (counting
+///   those inside containers, but not a Rory O'More's slide) is one couple
+///   sliding once along the set, a `slide_along_set` or a straight slice by
+///   couple, that slide counts as a move along the set too, in either
+///   direction and wherever it falls, so the first of it and the moves above
+///   progresses. Hudson ruled this for Apogee (report note, 2026-11-24: "the
+///   slide_along_set right is the progression"); applying it to every such
+///   dance, and its limits, are the agent's calls. A dance whose source
+///   states no progression tier imports as single and is included.
+///
+/// Only a Becket dance with none of these falls back to the last figure.
 ///
 /// Outside Becket, an **arch and dive straight after a hall figure**
 /// progresses (user-ruled 2026-11-24): "in a line of four, go up the hall;
@@ -787,7 +797,29 @@ int? assumedProgressionIndex(core.Dance dance) {
     // end until a figure or two later; the compiler holds the progression
     // until they do (`OperationInvocation.applyHolding`); a diagonal right and
     // left through is its own progression and is never held.
+    //
+    // In a single-progression dance whose only slide or slice is one couple
+    // sliding once, that slide is a move along the set too, in either
+    // direction (Hudson's Apogee note, 2026-11-24; generalising it is the
+    // agent's call). Slides inside containers count towards "only"; a Rory
+    // O'More's slide does not count at all, since a Rory O'More is not its
+    // own progression (agent's call).
+    var slideCount = 0;
+    int? slideIndex;
     for (var index = 0; index < figures.length; index++) {
+      if (_slidesTheWave(figures, index)) continue;
+      final here = _slidesIn(figures[index]);
+      if (here > 0) slideIndex = index;
+      slideCount += here;
+    }
+    final soleSlide =
+        dance.progression == core.Progression.single &&
+            slideCount == 1 &&
+            _slidesAlongTheSet(_mainFigure(figures[slideIndex!]))
+        ? slideIndex
+        : null;
+    for (var index = 0; index < figures.length; index++) {
+      if (index == soleSlide) return index;
       if (_movesAlongTheSet(_mainFigure(figures[index]))) return index;
     }
   }
@@ -825,6 +857,23 @@ bool _movesAlongTheSet(core.Figure figure) => switch (figure.move) {
   },
   _ => false,
 };
+
+/// Whether [figure] is one couple sliding once along the set: a
+/// `slide_along_set`, or a `slice` by couple with a straight return (a
+/// diagonal return is a double slice, and a slice by dancer is deferred).
+bool _slidesAlongTheSet(core.Figure figure) => switch (figure.move) {
+  'slide_along_set' => true,
+  'slice' =>
+    (figure.params['return'] ?? 'straight') == 'straight' &&
+        (figure.params['by'] ?? 'couple') == 'couple',
+  _ => false,
+};
+
+/// How many `slide_along_set` and `slice` figures [figure] is or contains,
+/// counting every child of a container.
+int _slidesIn(core.Figure figure) =>
+    (const {'slide_along_set', 'slice'}.contains(figure.move) ? 1 : 0) +
+    figure.subFigures.fold(0, (sum, child) => sum + _slidesIn(child));
 
 /// The one alternative placement the *record itself* suggests, for when the
 /// positional rule of [assumedProgressionIndex] does not compile.
@@ -1080,8 +1129,9 @@ Iterable<String> _movesIn(core.Figure figure) => [
 ];
 
 /// [dance]'s figures as the compiler dances them: [decodedFigures] with every
-/// `sequence` container replaced by its children, or `null` when the
-/// transcription did not decode.
+/// top-level `sequence` container replaced by its children (and an open
+/// chain's closing allemande turned in full, [_openChainChildren]), or `null`
+/// when the transcription did not decode.
 ///
 /// `compendium_core` defines a sequence as figures "danced one after another
 /// and shown on one line", and says ordinary sequence is still just the order
@@ -1107,18 +1157,52 @@ Iterable<String> _movesIn(core.Figure figure) => [
 /// is the same reading [assumedProgressionIndex] gives a dance whose final
 /// figure is the progression. *(Agent's call, not yet ruled; the alternative
 /// was refusing a flagged sequence, which no Caller's Box record can carry.)*
+///
+/// An open chain's closing allemande is danced as a full turn: see
+/// [_openChainChildren].
 List<core.Figure>? dancedFigures(core.Dance dance) {
   final figures = decodedFigures(dance);
   if (figures == null) return null;
   return [
     for (final figure in figures)
       if (figure.isSequence && figure.subFigures.isNotEmpty)
-        for (var i = 0; i < figure.subFigures.length; i++)
+        for (final (i, child) in _openChainChildren(figure).indexed)
           figure.progression && i == figure.subFigures.length - 1
-              ? figure.subFigures[i].copyWith(progression: true)
-              : figure.subFigures[i]
+              ? child.copyWith(progression: true)
+              : child
       else
         figure,
+  ];
+}
+
+/// [sequence]'s children, with an open chain's closing allemande turned
+/// once around in full.
+///
+/// Caller's Box writes an open chain as a titled line ("Open ladies chain to
+/// neighbor:") over two allemandes, the chainers' half and then the courtesy
+/// allemande "3/4". Hudson's report note on Every Second Counts (10417,
+/// 2026-11-24) says that last allemande should be a full allemande, and that
+/// the source uses quarter allemandes inconsistently. Generalising it is the
+/// agent's call, and so are its limits: it applies only to a top-level
+/// sequence whose title contains "chain" and whose exactly two children are a
+/// `role1s` or `role2s` allemande of `0.5` and then an allemande of `0.75`.
+/// Anything else, including the same chain as one side of a `meanwhile` or
+/// `modifier` (which is not spliced here), is danced as written.
+List<core.Figure> _openChainChildren(core.Figure sequence) {
+  final children = sequence.subFigures;
+  final title = sequence.containerTitle?.toLowerCase() ?? '';
+  if (!title.contains('chain') || children.length != 2) return children;
+  final [chainers, courtesy] = children;
+  final isOpenChain =
+      chainers.move == 'allemande' &&
+      const {'role1s', 'role2s'}.contains(chainers.params['who']) &&
+      chainers.params['travel'] == 0.5 &&
+      courtesy.move == 'allemande' &&
+      courtesy.params['travel'] == 0.75;
+  if (!isOpenChain) return children;
+  return [
+    chainers,
+    courtesy.copyWith(params: {...courtesy.params, 'travel': 1.0}),
   ];
 }
 

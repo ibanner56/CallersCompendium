@@ -598,7 +598,13 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
   shown on one line, so splicing is that definition read literally, and doing it
   first means the progression rules below see the figures actually danced. A
   sequence flagged as the progression hands the flag to its last child *(agent's
-  call, unratified; the alternative was refusing it)*. A `meanwhile` or
+  call, unratified; the alternative was refusing it)*. A top-level open
+  chain (a sequence whose title contains "chain" and whose exactly two
+  children are a `role1s`/`role2s` allemande `0.5` and then an allemande
+  `0.75`) has that closing allemande danced as `1.0` (Hudson's report note on
+  Every Second Counts, 2026-11-24; generalising it, and those limits, are the
+  agent's calls). The same chain inside a container is danced as written, and
+  the bridge adds no warning when it rewrites the turn. A `meanwhile` or
   `modifier` stays one figure here, children and all (a sequence inside one
   stays inside it), and the parser builds it as a container
   (`docs/taxonomy.md`, "Containers"). Every figure index reported from here on (warnings, a refusal's
@@ -656,12 +662,18 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > one, user-ruled 2026-11-22), progresses; otherwise the **first diagonal
 > `chain` or `pass_through` along the set** does (user-ruled 2026-11-23: a
 > Becket progression is the obvious move), or a diagonal `right_left_through`
-> (agent's call 2026-11-24, by analogy with the diagonal chain), and only a
-> Becket dance with none of these falls back to the last figure. Outside Becket,
+> (agent's call 2026-11-24, by analogy with the diagonal chain). In a
+> single-progression dance (which includes one whose source states no tier)
+> whose only `slide_along_set` or `slice`, counting those inside containers
+> but not a Rory O'More's slide, is a slide or a straight slice by couple,
+> that slide joins those moves in either direction, wherever it falls
+> (Hudson's Apogee note 2026-11-24 named its slide right; generalising it,
+> and those limits, are the agent's calls). Only a Becket dance with none of
+> these falls back to the last figure. Outside Becket,
 > an `arch_and_dive` straight after a hall figure progresses before the last
 > figure does (user-ruled 2026-11-24: the line bends into a ring and the arch
 > and dive carries the couples on). A `modifier` is read by its main
-> figure for both Becket rules, so "slice left while partner roll away"
+> figure for every Becket rule, so "slice left while partner roll away"
 > opening the dance progresses there (user-ruled 2026-11-23: a modifier's
 > progression is its main figure's). (Core's `slide_along_set.slide` and
 > `slice.slice` both default to `left`, so a bare slide or slice takes the
@@ -913,7 +925,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,562 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,575 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

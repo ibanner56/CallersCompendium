@@ -635,9 +635,15 @@ exactly as it would be on a line of its own. Implemented in `lib/src/ops/figures
   is not caught; catching it would need each figure to report who dances it. A `meanwhile` is
   its own progression if any part is *(agent's call)*.
 - **`sequence`** — a top-level sequence is spliced into its children by the bridge
-  (`implementation.md` §10.1). One **inside** a container is one side of it, so it stays
+  (`implementation.md` §10.1). A sequence **inside** a container is one side of it, so it stays
   together and is danced in order, like a modifier. Having no main figure, it is its own
   progression if any child is *(agent's call)*.
+- **An open chain closes with a full allemande**: a top-level sequence whose title contains
+  "chain" and whose exactly two children are a `role1s` or `role2s` allemande `0.5` and then an
+  allemande `0.75` has its closing allemande danced as a full `1.0` (Hudson's report note on
+  Every Second Counts, 2026-11-24: the courtesy allemande Caller's Box writes "3/4" should be a
+  full allemande; generalising it, and those limits, are the agent's calls). The same chain as
+  one side of a container is not spliced and is danced as written.
 - **A flagged modifier is progressed as one figure** (known limit): the change-over runs after
   its last modifier, and whether to hold is judged on the state the modifiers leave. Splitting the
   flag's effects at the main figure would need the engine to see inside the container. The two
@@ -1370,6 +1376,14 @@ To be defined later with worked examples.
   variant}, A Second Slice of Cake), so assuming it would turn those into mismatches. A dance
   ending in one can still get the ordinary last-figure flag. Reading the dance's progression
   tier before assuming would settle it, but no double slice that opens a dance imports today.
+  In a **single-progression** dance (including one whose source states no tier) whose
+  **only** slide or slice, counting those inside containers but not a Rory O'More's slide, is
+  one couple sliding once (a `slide_along_set`, or a straight slice by couple), that slide is a
+  progression move in either direction and wherever it falls; the first of it and the diagonal
+  chain, right and left through or pass through along the set progresses (Hudson's report note
+  on Apogee, 2026-11-24: "the slide_along_set right is the progression"; applying it to every
+  such dance, and not to a dance with two slides, a double progression or a Rory O'More's slide,
+  is the agent's call).
 - **sources:** user rulings 2026-11-22 (slice = slide; straight one couple, diagonal two) and
   2026-11-23 (a flagged diagonal slice is two progressions;
   measured on the Caller's Box mirror before the ruling was asked); CallersCompendium taxonomy

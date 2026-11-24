@@ -51,12 +51,14 @@ Future<core.StructuredDraft> _draft() async {
 core.Dance _shapedLike({
   required core.FormationShape shape,
   required List<core.Figure> figures,
+  core.Progression progression = core.Progression.single,
 }) {
   final now = DateTime.utc(2020);
   return core.Dance(
     id: 'rule-under-test',
     title: 'rule under test',
     formation: core.Formation(shape),
+    progression: progression,
     figures: figures,
     createdAt: now,
     updatedAt: now,
@@ -528,6 +530,113 @@ void main() {
       final run = runCoreDance(draft);
       expect(run.outcome, DanceOutcome.compiled);
       expect(run.assumedProgressionAt, isNull, reason: 'the source said');
+    });
+
+    group('an open chain', () {
+      // Hudson's report note on Every Second Counts (10417, 2026-11-24): the
+      // courtesy allemande Caller's Box writes "3/4" is a full allemande.
+      // Reading every open chain that way is the agent's call.
+      core.Figure allemande(String who, num travel, {String hand = 'left'}) =>
+          core_test.testFigure(
+            move: 'allemande',
+            params: {'who': who, 'hand': hand, 'travel': travel, 'beats': 4},
+          );
+      core.Dance withChain(
+        String? title,
+        List<core.Figure> children, {
+        bool progression = false,
+      }) {
+        final now = DateTime.utc(2020);
+        return core.Dance(
+          id: 'open-chain',
+          title: 'open chain',
+          formation: const core.Formation(core.FormationShape.dupleImproper),
+          figures: [
+            core.Figure.sequence(
+              figures: children,
+              beats: 8,
+              title: title,
+              progression: progression,
+            ),
+          ],
+          createdAt: now,
+          updatedAt: now,
+        );
+      }
+
+      List<Object?> travels(core.Dance dance) => [
+        for (final f in dancedFigures(dance)!) f.params['travel'],
+      ];
+
+      test('closes with a full allemande', () {
+        for (final who in ['role1s', 'role2s']) {
+          final dance = withChain('Open $who chain to neighbor', [
+            allemande(who, 0.5, hand: 'right'),
+            allemande('neighbors', 0.75),
+          ]);
+          expect(travels(dance), [0.5, 1.0], reason: who);
+        }
+      });
+
+      test('keeps the rest of the turn and takes a flag to it', () {
+        final flagged = withChain('OPEN ROLE2S CHAIN', [
+          allemande('role2s', 0.5, hand: 'right'),
+          allemande('neighbors', 0.75),
+        ], progression: true);
+        final courtesy = dancedFigures(flagged)!.last;
+        expect(courtesy.params, {
+          'who': 'neighbors',
+          'hand': 'left',
+          'travel': 1.0,
+          'beats': 4,
+        });
+        expect(courtesy.progression, isTrue);
+      });
+
+      test('leaves a courtesy turn that is not an allemande', () {
+        // "Men allemande left 1/2 / Neighbor right shoulder round 3/4".
+        final dance = withChain('Modified open role1s chain', [
+          allemande('role1s', 0.5),
+          core_test.testFigure(
+            move: 'shoulder_round',
+            params: {'who': 'neighbors', 'travel': 0.75, 'beats': 4},
+          ),
+        ]);
+        expect(travels(dance), [0.5, 0.75]);
+      });
+
+      test('is danced as written without a chain title', () {
+        final dance = withChain('Allemandes', [
+          allemande('role2s', 0.5, hand: 'right'),
+          allemande('neighbors', 0.75),
+        ]);
+        expect(travels(dance), [0.5, 0.75]);
+      });
+
+      test('is danced as written when the turns differ', () {
+        for (final children in [
+          [allemande('neighbors', 0.5), allemande('neighbors', 0.75)],
+          [allemande('role2s', 0.75), allemande('neighbors', 0.75)],
+          [allemande('role2s', 0.5), allemande('neighbors', 0.5)],
+          [
+            core_test.testFigure(
+              move: 'shoulder_round',
+              params: {'who': 'role2s', 'travel': 0.5, 'beats': 4},
+            ),
+            allemande('neighbors', 0.75),
+          ],
+          [
+            allemande('role2s', 0.5),
+            allemande('neighbors', 0.75),
+            allemande('partners', 0.75),
+          ],
+        ]) {
+          final dance = withChain('Open role2s chain to neighbor', children);
+          expect(travels(dance), [
+            for (final c in children) c.params['travel'],
+          ], reason: '$children');
+        }
+      });
     });
 
     test('a sequence inside another container is left inside it', () {
@@ -1196,21 +1305,27 @@ void main() {
       expect(assumedProgressionIndex(dance), 2);
     });
 
-    test('a Becket dance slicing right does not', () {
+    test('a sole slide or slice right progresses', () {
+      // Hudson's Apogee note (2026-11-24): "the slide_along_set right is the
+      // progression". Reading every single-progression dance's only slide
+      // that way is the agent's call.
+      for (final slide in [
+        figure('slice', {'slice': 'right'}),
+        figure('slide_along_set', {'slide': 'right'}),
+      ]) {
+        final dance = _shapedLike(
+          shape: core.FormationShape.becketCcw,
+          figures: [slide, figure('swing')],
+        );
+        expect(assumedProgressionIndex(dance), 0, reason: '$slide');
+      }
+    });
+
+    test('a sole slide progresses wherever it falls', () {
       final dance = _shapedLike(
         shape: core.FormationShape.becketCw,
         figures: [
-          figure('slice', {'slice': 'right'}),
-          figure('swing'),
-        ],
-      );
-      expect(assumedProgressionIndex(dance), 1);
-    });
-
-    test('a Becket dance sliding right does not', () {
-      final dance = _shapedLike(
-        shape: core.FormationShape.becketCcw,
-        figures: [
+          figure('circle'),
           figure('slide_along_set', {'slide': 'right'}),
           figure('swing'),
         ],
@@ -1218,12 +1333,137 @@ void main() {
       expect(assumedProgressionIndex(dance), 1);
     });
 
-    test('a Becket dance that does not open with a slide does not', () {
+    test('an earlier diagonal chain still comes first', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        figures: [
+          figure('chain', {'who': 'role2s', 'where': 'leftDiagonal'}),
+          figure('slide_along_set', {'slide': 'right'}),
+          figure('swing'),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 0);
+    });
+
+    test('a slide right in a dance with two slides does not', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.becketCcw,
+        figures: [
+          figure('slide_along_set', {'slide': 'right'}),
+          figure('swing'),
+          figure('slice', {'slice': 'right'}),
+          figure('circle'),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 3);
+    });
+
+    test('a sole slide right in a double-progression dance does not', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        progression: core.Progression.double,
+        figures: [
+          figure('circle'),
+          figure('slide_along_set', {'slide': 'right'}),
+          figure('swing'),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 2);
+    });
+
+    test('a sole slide left later in the dance progresses too', () {
       final dance = _shapedLike(
         shape: core.FormationShape.becketCw,
         figures: [
           figure('circle'),
           figure('slide_along_set', {'slide': 'left'}),
+          figure('swing'),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 1);
+    });
+
+    test('a sole slide is read through a modifier as its main figure', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        figures: [
+          figure('circle'),
+          core.Figure.modifier(
+            figures: [
+              figure('slide_along_set', {'slide': 'right'}),
+              figure('roll_away'),
+            ],
+            beats: 8,
+          ),
+          figure('swing'),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 1);
+    });
+
+    test('a second slide inside a container counts against the first', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        figures: [
+          figure('slide_along_set', {'slide': 'right'}),
+          figure('circle'),
+          core.Figure.modifier(
+            figures: [
+              figure('swing'),
+              figure('slide_along_set', {'slide': 'right'}),
+            ],
+            beats: 8,
+          ),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 2);
+    });
+
+    test("a Rory O'More's slide is not a sole slide", () {
+      // The bridge reads a slide straight after a balance in a long wave as
+      // a Rory O'More, which is not its own progression (agent's call).
+      final rory = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        figures: [
+          figure('circle'),
+          figure('form_long_waves', {'balance': true}),
+          figure('slide_along_set', {'slide': 'right'}),
+          figure('swing'),
+        ],
+      );
+      expect(assumedProgressionIndex(rory), 3);
+      // Nor does it count against a plain slide elsewhere.
+      final both = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        figures: [
+          figure('form_long_waves', {'balance': true}),
+          figure('slide_along_set', {'slide': 'right'}),
+          figure('circle'),
+          figure('slide_along_set', {'slide': 'right'}),
+          figure('swing'),
+        ],
+      );
+      expect(assumedProgressionIndex(both), 3);
+    });
+
+    test('a sole slice by dancer does not', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        figures: [
+          figure('circle'),
+          figure('slice', {'slice': 'right', 'by': 'dancer'}),
+          figure('swing'),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 2);
+    });
+
+    test('a sole double slice later in the dance does not', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        figures: [
+          figure('circle'),
+          figure('slice', {'slice': 'right', 'return': 'diagonal'}),
           figure('swing'),
         ],
       );

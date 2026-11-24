@@ -78,8 +78,8 @@
 > neither the positional nor the N2 reading compiles a dance, the last hey
 > whose final pass Caller's Box marks "~" is tried as its progression (both
 > user-ruled; the core import now keeps that "~" as the note "last pass
-> partial"). Against `rubric` at `75e4e565` they took the count from 4,240 to
-> 4,245 of 5,425 compiled in scope (78.2%), with the core set unchanged at 547
+> partial"). Against `rubric` at `6e39e4e1` they took the count from 4,298 to
+> 4,303 of 5,423 compiled in scope (79.3%), with the core set unchanged at 554
 > and nothing lost: Haven't We Met Before? (10129), Be
 > Careful What You Wish For (12608) and Reverberations (2630) compile through
 > the swing, Rowdy Rendezvous (18981) and Joel and Louise 30th Anniversary
@@ -160,6 +160,36 @@
 > compiled in scope (77.5%), the core set unchanged at 532. Rerouted to
 > Tulsa (4959) now compiles; nothing else changed outcome. Heather's Hop
 > Redux and its alternate still mismatch, at their final half figure eight.
+>
+> **An open chain closes with a full allemande (2026-11-24)**: where Caller's
+> Box writes an open chain as a titled line over the chainers' allemande half
+> and a courtesy allemande "3/4", the bridge now dances that courtesy
+> allemande once around in full (Hudson's report note on Every Second Counts:
+> it should be a full allemande, and the source uses quarter allemandes
+> inconsistently; reading every open chain that way, and its limits, are the
+> agent's calls). Against `rubric` at `cc543ed3`:
+> 4,277 of 5,423 to 4,298 of 5,423 compiled in scope (79.3%), the core set
+> 551 to 554, no previously compiling dance lost. Every Second Counts (10417)
+> now compiles, with 20 others. The Prodigal Daughter (84) still fails, now
+> refused at an allemande with the next neighbours rather than mismatching
+> at the end.
+>
+> **A Becket dance's only slide is a progression move (2026-11-24)**: in a
+> single-progression Becket dance (including one whose source states no
+> tier) whose only slide or slice, counting those inside containers but not a
+> Rory O'More's slide, is a `slide_along_set` or a straight slice by couple,
+> the import now treats that slide as a progression move in either direction
+> and wherever it falls, alongside the diagonal chain, right and left through
+> and pass through along the set; the first of them progresses (Hudson's
+> report note on Apogee: the slide right is the progression; applying it to
+> every such dance, and those limits, are the agent's calls). Against
+> `rubric` at `75e4e565` (whose corpus result matches `253f56db`'s): 4,240 of
+> 5,425 to 4,277 of 5,423 compiled in scope (78.9%), the core set 547 to
+> 551, no previously compiling dance lost. Apogee (10265) now compiles, with
+> 36 others. Two failing dances now get further and stop at a deferred
+> figure, so they leave the denominator: More New-mown Hay (3115, at a hey
+> stopping mid-pass) and Salute to Dave Colestock (14148, at an
+> across-the-set quarter allemande).
 >
 > **Refused when keeping remembered shadows would strand a couple
 > (2026-11-24)**: where a remembered shadow pair stand beside each other and
