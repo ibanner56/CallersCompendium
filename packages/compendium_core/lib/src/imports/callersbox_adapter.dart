@@ -1429,17 +1429,54 @@ class CallersBoxAdapter implements SourceAdapter {
     final form = _balanceWaveAsFormMove(balanceWave);
     if (form == null || form.move != 'form_short_waves') return null;
     final slideDirection = _slideAlongSetDirection(slide);
-    if (slideDirection == null) return null;
+    final longSlide = slideDirection == null ? _longSlide(slide) : null;
+    final direction = slideDirection ?? longSlide?.slide;
+    if (direction == null) return null;
     return slide.copyWith(
       move: 'rory_o_more',
       params: {
         'balance': true,
-        'slide': slideDirection,
+        'slide': direction,
+        'twoPlaces': ?longSlide?.twoPlaces,
         'beats': ?_sumBeats(balanceWave, slide),
       },
-      note: combineFigureNotes(slide.note, form.note),
+      note: combineFigureNotes(
+        longSlide == null ? slide.note : longSlide.note,
+        form.note,
+      ),
     );
   }
+
+  /// TCB's longer slide across the set, written after a balance-wave line:
+  /// `Slide left, women slide two places (M past N, W past (N;W))` ("Leap of
+  /// Faith", TCB #1797). It reaches here as custom text with the role already
+  /// scrubbed to `role2s`. Its dancers fill a Rory O'More's `twoPlaces`
+  /// (taxonomy v40) and the bracket is kept as the note. Only the two roles
+  /// and `ends`, `twoPlaces`' own choices, match; anything else, or any other
+  /// wording, returns `null` and the line stays custom. Read only as the slide
+  /// of a balance-wave pair ([_foldBalanceWaveIntoRory]), so a line standing
+  /// alone stays custom.
+  static ({String slide, String twoPlaces, String? note})? _longSlide(
+    Figure f,
+  ) {
+    if (!f.isCustom) return null;
+    final text = f.params['text'];
+    if (text is! String) return null;
+    final m = _longSlideRe.firstMatch(text.trim());
+    if (m == null) return null;
+    final note = m[3]?.trim();
+    return (
+      slide: m[1]!.toLowerCase(),
+      twoPlaces: m[2]!.toLowerCase(),
+      note: note == null || note.isEmpty ? null : note,
+    );
+  }
+
+  static final RegExp _longSlideRe = RegExp(
+    r'^slide (left|right), (role1s|role2s|ends) (?:slide )?(?:two|2) places'
+    r'(?: \((.*)\))?$',
+    caseSensitive: false,
+  );
 
   /// Returns [wave] with the TRAILING [balance] wave line folded in as
   /// `balance: true` and the summed beats (#577), or `null` when [wave] already
