@@ -163,7 +163,7 @@
 > other as shadows first, then the rest as before (the user's 2026-11-23
 > ruling that your shadow is the same dancer all dance; pairing only a mutual
 > memory is the agent's call; where the remembered pairs strand dancers it
-> falls back to first match, except in the case refused below). At an end with nobody out the shadow wraps to
+> falls back to first match, except in the case refused in the entry above). At an end with nobody out the shadow wraps to
 > the neighbour, and the first match had been taking one of a remembered
 > pair. Against `rubric` at `9680f588`: 4,228 of 5,425 to 4,240 of 5,425
 > compiled in scope (78.2%), the core set 544 to 547, no previously compiling
