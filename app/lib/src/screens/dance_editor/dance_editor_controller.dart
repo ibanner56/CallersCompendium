@@ -1354,27 +1354,20 @@ class DanceEditorController extends ChangeNotifier {
   /// structural one, which every form shares, or a stand still in a square
   /// dance.
   ValidationIssue? _otherFormFiguresWarning() {
-    final ownForm = shippedTaxonomies.ownTaxonomy(_form) == null
-        ? shippedTaxonomies.base.form
-        : _form;
     final counts = <DanceForm, int>{};
     void visit(Figure figure) {
       if (figure.isContainer) {
         figure.subFigures.forEach(visit);
         return;
       }
-      final move = figure.move;
-      if (move == customMove ||
-          shippedTaxonomies.anyForm.resolve(move) == null) {
-        return;
-      }
       // A new dance's template rows and a new meanwhile's sides are contra's
-      // stand still in every form. Until squares get a placeholder of their
-      // own (ADR-007 §9, phase 1), a square dance does not count them, so a
-      // new square dance opens without this warning.
-      if (_form == DanceForm.square && move == 'stand_still') return;
+      // stand still in every form, which a square takes as its placeholder:
+      // [moveFitsForm] lets it be, so a new square dance opens without this
+      // warning.
+      final move = figure.move;
+      if (moveFitsForm(move, _form)) return;
       final form = shippedTaxonomies.formOfMoveId(move);
-      if (form != ownForm) counts[form] = (counts[form] ?? 0) + 1;
+      counts[form] = (counts[form] ?? 0) + 1;
     }
 
     _figures.forEach(visit);
@@ -1391,7 +1384,7 @@ class DanceEditorController extends ChangeNotifier {
         'count': count,
         'figureForm': form.name,
         'danceForm': _form.name,
-        'pickerForm': ownForm.name,
+        'pickerForm': ownFigureForm(_form).name,
       },
     );
   }

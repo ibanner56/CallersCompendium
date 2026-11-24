@@ -1,3 +1,5 @@
+import 'package:compendium_core/compendium_core.dart';
+
 import 'figure_draft.dart';
 
 /// Lets the dance editor's Title field hand the caller on to the figures
@@ -48,6 +50,3 @@ class FigureEntryController {
   }
   return null;
 }
-
-/// The move id of the placeholder figure a new dance's rows start as.
-const String standStillMove = 'stand_still';

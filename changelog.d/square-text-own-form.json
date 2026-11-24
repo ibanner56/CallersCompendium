@@ -1,0 +1,17 @@
+{
+  "id": "square-text-own-form",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "A line typed with Free-text entry in a square dance, and a square's unrecognized imported figure that Re-check unrecognized figures re-reads, are no longer turned into contra figures. The app can't read square calls from text yet, so such a line stays as typed until it can."
+    ]
+  },
+  "core": {
+    "added": [
+      "figureFitsForm, moveFitsForm, ownFigureForm and standStillMove (taxonomy/form_figures.dart): whether a figure belongs in a dance of a form, its own taxonomy's moves, a custom line, or a square's stand still placeholder."
+    ],
+    "changed": [
+      "parseFreeTextFigureEntry and reparseImportGapFigures yield only figures of their taxonomy's form: a line that reads only as another form's calls stays custom."
+    ]
+  }
+}
