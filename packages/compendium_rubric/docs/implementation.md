@@ -768,7 +768,10 @@ its figures and the figure the parse error names, but no trace. All are
 written to `<dir>`:
 
 - `failures.jsonl`, one record per dance: the source's phrases as written, the
-  figures as danced, the set after every figure up to the one that refused,
+  figures as the compiler read them (after the bridge's rewrites, such as a
+  balanced long wave and slide read as `rory_o_more`, with every progression
+  flag it placed or assumed marked), the set after every figure up to the one
+  that refused,
   and for a mismatch the expected and actual end states, the dancers that are
   off, and a class (`noNetProgression`, `oneProgressionTooMany`,
   `oneProgressionShort`, `numbersOnly`, `elsewhere`);
