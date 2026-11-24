@@ -729,6 +729,7 @@ Dance _danceFromJson(Map<String, Object?> m) => Dance(
       SquareNewPartner.unstated,
   newPartnerText: _strOr(m, 'newPartnerText', ''),
   singing: _boolOr(m, 'singing', false),
+  freeForm: _boolOrNull(m, 'freeForm'),
   status: _enumByNameOr(
     DanceStatus.values,
     m['status'],

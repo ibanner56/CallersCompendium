@@ -191,7 +191,11 @@ List<String> danceCardFigureLines(
   if (content.figures.isEmpty) return const [];
   final cardDialect = content.dialect;
   final lines = <String>[];
-  final sectioned = deriveSections(content.figures, dance.phraseStructure);
+  final sectioned = deriveSections(
+    content.figures,
+    dance.phraseStructure,
+    freeForm: dance.isFreeForm,
+  );
   final timing = barTimingFor(
     dance.form,
     dance.phraseStructure,
@@ -206,7 +210,9 @@ List<String> danceCardFigureLines(
         : renderer.renderSummary(sf.figure, cardDialect);
     final beatsLabel = labels.count(sf.figure.beats, timing, sf.startBeat);
     final marker = sf.figure.progression ? ' ¶' : '';
-    lines.add('${sf.label}  $text ($beatsLabel)$marker');
+    // A free-form dance's figures have no phrase label to lead with.
+    final lead = sf.label.isEmpty ? '' : '${sf.label}  ';
+    lines.add('$lead$text ($beatsLabel)$marker');
     final note = sf.figure.note?.trim();
     if (note != null && note.isNotEmpty) {
       final renderedNote = canonicalizeDiscouragedTerms

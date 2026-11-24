@@ -134,6 +134,7 @@ class Dance {
     this.newPartner = SquareNewPartner.unstated,
     String newPartnerText = '',
     this.singing = false,
+    this.freeForm,
     this.status = DanceStatus.active,
     String? difficultyLevelId,
     DifficultyLevel? level,
@@ -304,6 +305,18 @@ class Dance {
   /// Whether a square's main part is a singing call (ADR-007 §8.1); its song
   /// goes in the tunes. Defaults to `false`.
   final bool singing;
+
+  /// Whether a square is free-form patter that follows no phrasing (ADR-007
+  /// §8.1), as the caller set it, or `null` to follow [squareKind]: on for
+  /// [SquareKind.patter], off for the others. Read [isFreeForm] for the value
+  /// that applies. Kept for every form, like the other square fields.
+  final bool? freeForm;
+
+  /// Whether this dance is free form: a square whose [freeForm] is on, or
+  /// left to its kind and patter. A free-form dance has no phrase sections
+  /// and no phrase checks; its [phraseStructure] is kept but not used.
+  bool get isFreeForm =>
+      form == DanceForm.square && (freeForm ?? squareKind == SquareKind.patter);
   final DanceStatus status;
 
   /// ID of the selected [DifficultyLevel], or `null` when unspecified.
@@ -394,12 +407,17 @@ class Dance {
 
   bool get isDeleted => deletedAt != null;
 
-  /// Figures annotated with derived phrase labels (A1, B2, …).
+  /// Figures annotated with derived phrase labels (A1, B2, …), or with none
+  /// when the dance [isFreeForm].
   /// An undecodable transcription has no figures to label, so this is empty
   /// rather than throwing. Surfacing that state to the user is deliberately not
   /// done here — see [FigureSource].
   List<SectionedFigure> get sectionedFigures => switch (figuresSource) {
-    DecodedFigures(:final figures) => deriveSections(figures, phraseStructure),
+    DecodedFigures(:final figures) => deriveSections(
+      figures,
+      phraseStructure,
+      freeForm: isFreeForm,
+    ),
     UnreadableFigures() => const [],
   };
 
@@ -414,6 +432,7 @@ class Dance {
           phraseStructure,
           issues: issues,
           checkPhraseFill: form == DanceForm.square,
+          freeForm: isFreeForm,
         );
       // Nothing to derive, and deliberately no issue raised: `validate` reports
       // warnings about content the user can act on in the editor, and an
@@ -476,6 +495,8 @@ class Dance {
     SquareNewPartner? newPartner,
     String? newPartnerText,
     bool? singing,
+    bool? freeForm,
+    bool clearFreeForm = false,
     DanceStatus? status,
     String? difficultyLevelId,
     @Deprecated('Use difficultyLevelId.') DifficultyLevel? level,
@@ -529,6 +550,7 @@ class Dance {
     newPartner: newPartner ?? this.newPartner,
     newPartnerText: newPartnerText ?? this.newPartnerText,
     singing: singing ?? this.singing,
+    freeForm: clearFreeForm ? null : (freeForm ?? this.freeForm),
     status: status ?? this.status,
     difficultyLevelId: clearDifficultyLevel
         ? null
@@ -607,6 +629,7 @@ class Dance {
       newPartner: newPartner,
       newPartnerText: newPartnerText,
       singing: singing,
+      freeForm: freeForm,
       status: status,
       difficultyLevelId: difficultyLevelId,
       mixedLevel: mixedLevel,
@@ -661,6 +684,7 @@ class Dance {
       other.newPartner == newPartner &&
       other.newPartnerText == newPartnerText &&
       other.singing == singing &&
+      other.freeForm == freeForm &&
       other.status == status &&
       other.difficultyLevelId == difficultyLevelId &&
       other.mixedLevel == mixedLevel &&

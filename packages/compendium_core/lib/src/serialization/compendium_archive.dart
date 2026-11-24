@@ -57,8 +57,9 @@ const DeepCollectionEquality _deepEq = DeepCollectionEquality();
 ///   and the ECD formation shapes (ADR-006 §12, F2 and F3), its interpreters,
 ///   its `alternateTitles` and its `barnesReference`, and the square fields
 ///   (ADR-007 §8.1: `squareKind`, `repeatOrder`, `repeatOrderText`,
-///   `newPartner`, `newPartnerText`, `singing`). Stamped only when a dance
-///   carries one of them. See [archiveSchemaVersionEcdDanceFields].
+///   `newPartner`, `newPartnerText`, `singing`, `freeForm`). Stamped only
+///   when a dance carries one of them. See
+///   [archiveSchemaVersionEcdDanceFields].
 ///   Also a program's times, `startMinute`, `endMinute`, `lessonMinute` and
 ///   `arrivalMinute` (#2350), which joined v8 while it was unreleased. See
 ///   [archiveSchemaVersionProgramTimes].
@@ -146,8 +147,8 @@ const int archiveSchemaVersionDeletedTags = 7;
 /// `interpretedOn`, and the formation shapes from [FormationShape.dupleMinor]
 /// on; two fields any dance can have, `alternateTitles` and
 /// `barnesReference`; and the square fields (ADR-007 §8.1), `squareKind`,
-/// `repeatOrder`, `repeatOrderText`, `newPartner`, `newPartnerText` and
-/// `singing`. The last eight joined v8 while it was unreleased.
+/// `repeatOrder`, `repeatOrderText`, `newPartner`, `newPartnerText`,
+/// `singing` and `freeForm`. The last nine joined v8 while it was unreleased.
 ///
 /// A pre-v8 reader ignores these keys, so without the bump it would restore
 /// the dance without its meter, key, interpreters, other titles, Barnes
@@ -187,6 +188,7 @@ bool _hasEcdDanceFields(Dance dance) =>
     dance.repeatOrder != SquareRepeatOrder.unstated ||
     dance.newPartner != SquareNewPartner.unstated ||
     dance.singing ||
+    dance.freeForm != null ||
     // Every shape before ECD's is one contra offers; any other is newer.
     !contraFormationShapes.contains(dance.formation.shape);
 

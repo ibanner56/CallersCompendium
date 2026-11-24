@@ -30,6 +30,14 @@ class PhraseStructure {
     PhraseComponent._(4, 8, 2),
   ], '');
 
+  /// What a free-form dance (ADR-007 §8.1) is measured against where a phrase
+  /// is needed, such as the most beats a sequence may hold: one phrase as
+  /// long as a component may be, which nothing a dance holds runs past. It
+  /// is never stored; the dance keeps its own structure, unused.
+  static const PhraseStructure unphrased = PhraseStructure._([
+    PhraseComponent._(1, maxComponentNumber, 4),
+  ], '1*$maxComponentNumber*4');
+
   /// Largest accepted value for any one of `phrases`, `bars` or `beatsPerBar`.
   static const int maxComponentNumber = 1000;
 
@@ -518,12 +526,29 @@ class SectionedFigure {
 /// call, so ADR-007 §5.3 asks for this check on square dances; contra and
 /// English dances leave it off, because a figure across a phrase line is
 /// ordinary there (a balance and swing that starts mid-phrase).
+///
+/// With [freeForm] (free-form patter, ADR-007 §8.1) the figures follow no
+/// phrasing: every label is `''`, [structure] is not read, and no phrase
+/// warning is added, whatever [checkPhraseFill] says. The start beats are
+/// still counted.
 List<SectionedFigure> deriveSections(
   List<Figure> figures,
   PhraseStructure structure, {
   List<ValidationIssue>? issues,
   bool checkPhraseFill = false,
+  bool freeForm = false,
 }) {
+  if (freeForm) {
+    final unlabelled = <SectionedFigure>[];
+    var start = 0;
+    for (final (i, figure) in figures.indexed) {
+      unlabelled.add(
+        SectionedFigure(index: i, figure: figure, startBeat: start, label: ''),
+      );
+      start += figure.beats;
+    }
+    return unlabelled;
+  }
   final result = <SectionedFigure>[];
   var beat = 0;
   for (var i = 0; i < figures.length; i++) {

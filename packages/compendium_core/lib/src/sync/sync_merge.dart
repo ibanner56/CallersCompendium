@@ -363,6 +363,7 @@ Map<String, Object?> _mergeDanceBodies(
     'newPartner',
     'newPartnerText',
     'singing',
+    'freeForm',
   ]) {
     if (latest.blob.body.containsKey(key)) {
       body[key] = latest.blob.body[key];

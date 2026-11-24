@@ -139,6 +139,7 @@ Map<String, Object?> archiveDanceToJson(
     'newPartner': d.newPartner.wireName,
   if (d.newPartnerText.isNotEmpty) 'newPartnerText': d.newPartnerText,
   if (d.singing) 'singing': true,
+  if (d.freeForm != null) 'freeForm': d.freeForm,
   'status': d.status.name,
   if (includeOptionalFields || d.difficultyLevelId != null)
     'difficultyLevelId': d.difficultyLevelId,
@@ -207,6 +208,7 @@ const Map<String, Object?> omittedDanceDefaults = {
   'newPartner': 'unstated',
   'newPartnerText': '',
   'singing': false,
+  'freeForm': null,
   'interpreterIds': <String>[],
   'interpretedOn': null,
 };

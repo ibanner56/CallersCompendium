@@ -676,6 +676,20 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _freeFormMeta = const VerificationMeta(
+    'freeForm',
+  );
+  @override
+  late final GeneratedColumn<bool> freeForm = GeneratedColumn<bool>(
+    'free_form',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("free_form" IN (0, 1))',
+    ),
+  );
   @override
   late final GeneratedColumnWithTypeConverter<DanceStatus, String> status =
       GeneratedColumn<String>(
@@ -849,6 +863,7 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
     newPartner,
     newPartnerText,
     singing,
+    freeForm,
     status,
     levelId,
     mixedLevel,
@@ -1021,6 +1036,12 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
       context.handle(
         _singingMeta,
         singing.isAcceptableOrUnknown(data['singing']!, _singingMeta),
+      );
+    }
+    if (data.containsKey('free_form')) {
+      context.handle(
+        _freeFormMeta,
+        freeForm.isAcceptableOrUnknown(data['free_form']!, _freeFormMeta),
       );
     }
     if (data.containsKey('level_id')) {
@@ -1208,6 +1229,10 @@ class $DancesTable extends Dances with TableInfo<$DancesTable, DanceRow> {
         DriftSqlType.bool,
         data['${effectivePrefix}singing'],
       )!,
+      freeForm: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}free_form'],
+      ),
       status: $DancesTable.$converterstatus.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -1352,6 +1377,10 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
 
   /// Whether a square's main part is a singing call, `Dance.singing`.
   final bool singing;
+
+  /// Whether a square is free-form patter, `Dance.freeForm`; NULL follows its
+  /// kind.
+  final bool? freeForm;
   final DanceStatus status;
 
   /// Selected [DifficultyLevels] row, nullable when unspecified. Added in
@@ -1425,6 +1454,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     required this.newPartner,
     required this.newPartnerText,
     required this.singing,
+    this.freeForm,
     required this.status,
     this.levelId,
     required this.mixedLevel,
@@ -1476,6 +1506,9 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     map['new_partner'] = Variable<String>(newPartner);
     map['new_partner_text'] = Variable<String>(newPartnerText);
     map['singing'] = Variable<bool>(singing);
+    if (!nullToAbsent || freeForm != null) {
+      map['free_form'] = Variable<bool>(freeForm);
+    }
     {
       map['status'] = Variable<String>(
         $DancesTable.$converterstatus.toSql(status),
@@ -1536,6 +1569,9 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       newPartner: Value(newPartner),
       newPartnerText: Value(newPartnerText),
       singing: Value(singing),
+      freeForm: freeForm == null && nullToAbsent
+          ? const Value.absent()
+          : Value(freeForm),
       status: Value(status),
       levelId: levelId == null && nullToAbsent
           ? const Value.absent()
@@ -1600,6 +1636,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       newPartner: serializer.fromJson<String>(json['newPartner']),
       newPartnerText: serializer.fromJson<String>(json['newPartnerText']),
       singing: serializer.fromJson<bool>(json['singing']),
+      freeForm: serializer.fromJson<bool?>(json['freeForm']),
       status: $DancesTable.$converterstatus.fromJson(
         serializer.fromJson<String>(json['status']),
       ),
@@ -1649,6 +1686,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
       'newPartner': serializer.toJson<String>(newPartner),
       'newPartnerText': serializer.toJson<String>(newPartnerText),
       'singing': serializer.toJson<bool>(singing),
+      'freeForm': serializer.toJson<bool?>(freeForm),
       'status': serializer.toJson<String>(
         $DancesTable.$converterstatus.toJson(status),
       ),
@@ -1690,6 +1728,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     String? newPartner,
     String? newPartnerText,
     bool? singing,
+    Value<bool?> freeForm = const Value.absent(),
     DanceStatus? status,
     Value<String?> levelId = const Value.absent(),
     bool? mixedLevel,
@@ -1728,6 +1767,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     newPartner: newPartner ?? this.newPartner,
     newPartnerText: newPartnerText ?? this.newPartnerText,
     singing: singing ?? this.singing,
+    freeForm: freeForm.present ? freeForm.value : this.freeForm,
     status: status ?? this.status,
     levelId: levelId.present ? levelId.value : this.levelId,
     mixedLevel: mixedLevel ?? this.mixedLevel,
@@ -1800,6 +1840,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           ? data.newPartnerText.value
           : this.newPartnerText,
       singing: data.singing.present ? data.singing.value : this.singing,
+      freeForm: data.freeForm.present ? data.freeForm.value : this.freeForm,
       status: data.status.present ? data.status.value : this.status,
       levelId: data.levelId.present ? data.levelId.value : this.levelId,
       mixedLevel: data.mixedLevel.present
@@ -1849,6 +1890,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           ..write('newPartner: $newPartner, ')
           ..write('newPartnerText: $newPartnerText, ')
           ..write('singing: $singing, ')
+          ..write('freeForm: $freeForm, ')
           ..write('status: $status, ')
           ..write('levelId: $levelId, ')
           ..write('mixedLevel: $mixedLevel, ')
@@ -1890,6 +1932,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
     newPartner,
     newPartnerText,
     singing,
+    freeForm,
     status,
     levelId,
     mixedLevel,
@@ -1930,6 +1973,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
           other.newPartner == this.newPartner &&
           other.newPartnerText == this.newPartnerText &&
           other.singing == this.singing &&
+          other.freeForm == this.freeForm &&
           other.status == this.status &&
           other.levelId == this.levelId &&
           other.mixedLevel == this.mixedLevel &&
@@ -1968,6 +2012,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
   final Value<String> newPartner;
   final Value<String> newPartnerText;
   final Value<bool> singing;
+  final Value<bool?> freeForm;
   final Value<DanceStatus> status;
   final Value<String?> levelId;
   final Value<bool> mixedLevel;
@@ -2005,6 +2050,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.newPartner = const Value.absent(),
     this.newPartnerText = const Value.absent(),
     this.singing = const Value.absent(),
+    this.freeForm = const Value.absent(),
     this.status = const Value.absent(),
     this.levelId = const Value.absent(),
     this.mixedLevel = const Value.absent(),
@@ -2043,6 +2089,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     this.newPartner = const Value.absent(),
     this.newPartnerText = const Value.absent(),
     this.singing = const Value.absent(),
+    this.freeForm = const Value.absent(),
     required DanceStatus status,
     this.levelId = const Value.absent(),
     this.mixedLevel = const Value.absent(),
@@ -2088,6 +2135,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Expression<String>? newPartner,
     Expression<String>? newPartnerText,
     Expression<bool>? singing,
+    Expression<bool>? freeForm,
     Expression<String>? status,
     Expression<String>? levelId,
     Expression<bool>? mixedLevel,
@@ -2126,6 +2174,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       if (newPartner != null) 'new_partner': newPartner,
       if (newPartnerText != null) 'new_partner_text': newPartnerText,
       if (singing != null) 'singing': singing,
+      if (freeForm != null) 'free_form': freeForm,
       if (status != null) 'status': status,
       if (levelId != null) 'level_id': levelId,
       if (mixedLevel != null) 'mixed_level': mixedLevel,
@@ -2166,6 +2215,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     Value<String>? newPartner,
     Value<String>? newPartnerText,
     Value<bool>? singing,
+    Value<bool?>? freeForm,
     Value<DanceStatus>? status,
     Value<String?>? levelId,
     Value<bool>? mixedLevel,
@@ -2204,6 +2254,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
       newPartner: newPartner ?? this.newPartner,
       newPartnerText: newPartnerText ?? this.newPartnerText,
       singing: singing ?? this.singing,
+      freeForm: freeForm ?? this.freeForm,
       status: status ?? this.status,
       levelId: levelId ?? this.levelId,
       mixedLevel: mixedLevel ?? this.mixedLevel,
@@ -2296,6 +2347,9 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
     if (singing.present) {
       map['singing'] = Variable<bool>(singing.value);
     }
+    if (freeForm.present) {
+      map['free_form'] = Variable<bool>(freeForm.value);
+    }
     if (status.present) {
       map['status'] = Variable<String>(
         $DancesTable.$converterstatus.toSql(status.value),
@@ -2368,6 +2422,7 @@ class DancesCompanion extends UpdateCompanion<DanceRow> {
           ..write('newPartner: $newPartner, ')
           ..write('newPartnerText: $newPartnerText, ')
           ..write('singing: $singing, ')
+          ..write('freeForm: $freeForm, ')
           ..write('status: $status, ')
           ..write('levelId: $levelId, ')
           ..write('mixedLevel: $mixedLevel, ')
@@ -17876,6 +17931,7 @@ typedef $$DancesTableCreateCompanionBuilder =
       Value<String> newPartner,
       Value<String> newPartnerText,
       Value<bool> singing,
+      Value<bool?> freeForm,
       required DanceStatus status,
       Value<String?> levelId,
       Value<bool> mixedLevel,
@@ -17915,6 +17971,7 @@ typedef $$DancesTableUpdateCompanionBuilder =
       Value<String> newPartner,
       Value<String> newPartnerText,
       Value<bool> singing,
+      Value<bool?> freeForm,
       Value<DanceStatus> status,
       Value<String?> levelId,
       Value<bool> mixedLevel,
@@ -18266,6 +18323,11 @@ class $$DancesTableFilterComposer
 
   ColumnFilters<bool> get singing => $composableBuilder(
     column: $table.singing,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get freeForm => $composableBuilder(
+    column: $table.freeForm,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -18723,6 +18785,11 @@ class $$DancesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get freeForm => $composableBuilder(
+    column: $table.freeForm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get status => $composableBuilder(
     column: $table.status,
     builder: (column) => ColumnOrderings(column),
@@ -18915,6 +18982,9 @@ class $$DancesTableAnnotationComposer
 
   GeneratedColumn<bool> get singing =>
       $composableBuilder(column: $table.singing, builder: (column) => column);
+
+  GeneratedColumn<bool> get freeForm =>
+      $composableBuilder(column: $table.freeForm, builder: (column) => column);
 
   GeneratedColumnWithTypeConverter<DanceStatus, String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
@@ -19298,6 +19368,7 @@ class $$DancesTableTableManager
                 Value<String> newPartner = const Value.absent(),
                 Value<String> newPartnerText = const Value.absent(),
                 Value<bool> singing = const Value.absent(),
+                Value<bool?> freeForm = const Value.absent(),
                 Value<DanceStatus> status = const Value.absent(),
                 Value<String?> levelId = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
@@ -19335,6 +19406,7 @@ class $$DancesTableTableManager
                 newPartner: newPartner,
                 newPartnerText: newPartnerText,
                 singing: singing,
+                freeForm: freeForm,
                 status: status,
                 levelId: levelId,
                 mixedLevel: mixedLevel,
@@ -19374,6 +19446,7 @@ class $$DancesTableTableManager
                 Value<String> newPartner = const Value.absent(),
                 Value<String> newPartnerText = const Value.absent(),
                 Value<bool> singing = const Value.absent(),
+                Value<bool?> freeForm = const Value.absent(),
                 required DanceStatus status,
                 Value<String?> levelId = const Value.absent(),
                 Value<bool> mixedLevel = const Value.absent(),
@@ -19411,6 +19484,7 @@ class $$DancesTableTableManager
                 newPartner: newPartner,
                 newPartnerText: newPartnerText,
                 singing: singing,
+                freeForm: freeForm,
                 status: status,
                 levelId: levelId,
                 mixedLevel: mixedLevel,

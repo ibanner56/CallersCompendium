@@ -748,9 +748,15 @@ nothing in it to lose.
   [mixer](./glossary.md#mixer): one where you change partners each time through.
   It's kept separate from the formation, because a mixer can be danced in many
   shapes and not every circle is a mixer.
-- **Square fields** — a square dance shows four more fields here:
+- **Square fields** — a square dance shows five more fields here:
   - **Kind of square**: **Main part** (the figure danced several times
     through), **Break**, or **Patter**.
+  - **Free form**: turn this on for patter that follows no phrasing. The
+    figures then get no phrase labels (A1, A2 and so on), nothing checks
+    that they fill each phrase, the phrase structure is hidden, and the
+    figure list shows only the total beats. Patter starts with it on and
+    the other kinds with it off; you can change either. The phrase
+    structure you had is kept for when you turn it off.
   - **Repeat order**: **Heads twice, then sides twice**, **Heads and sides
     alternating**, **Four times, everyone active**, or **Other**, which
     opens a field to describe it.
@@ -869,7 +875,7 @@ updates the default used everywhere.
 | **Composed** / **Revised** | A year, optionally with a month and day; for an English dance, Composed is a year, up front beside the authors |
 | **Interpreted by** / **Interpreted in** | Who reconstructed the dance from its original, and when; for an English dance, up front, with Interpreted in as a year beside the names |
 | **Meter** / **Key** | The tune's written meter and key; up front for an English dance, with its **Barnes reference** |
-| **Kind of square** / **Repeat order** / **New partner** / **Singing call** | A square's own fields; up front for a square dance |
+| **Kind of square** / **Repeat order** / **New partner** / **Singing call** | A square's own fields; up front for a square dance (**Free form** shows for a square only) |
 | **Tags** | Your own labels |
 | **Tunes** | Tunes you like with this dance |
 | **Links** | A URL with an optional label, marked **Source**, **Video**, or **Other** |

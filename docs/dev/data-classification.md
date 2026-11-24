@@ -218,7 +218,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**273 columns**: 192 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 31 personal data by category.
+**274 columns**: 193 shareable, 21 device-local, 33 device-scoped, 25 derived, 2 protocol-identifier. 31 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -316,6 +316,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `dances` | `formation_detail` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `formation_improper` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `formation_shape` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `dances` | `free_form` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `hook` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dances` | `interpreted_on` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |

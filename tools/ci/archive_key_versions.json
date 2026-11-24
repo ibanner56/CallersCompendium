@@ -59,6 +59,7 @@
     "newPartner": "archiveSchemaVersionEcdDanceFields",
     "newPartnerText": "archiveSchemaVersionEcdDanceFields",
     "singing": "archiveSchemaVersionEcdDanceFields",
+    "freeForm": "archiveSchemaVersionEcdDanceFields",
     "status": "baseline",
     "difficultyLevelId": "archiveSchemaVersionDifficultyLevels",
     "mixedLevel": "baseline",

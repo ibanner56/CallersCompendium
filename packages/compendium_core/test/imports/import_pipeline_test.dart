@@ -876,6 +876,7 @@ void main() {
           repeatOrderText: 'Heads once, sides once',
           newPartner: SquareNewPartner.corner,
           singing: true,
+          freeForm: false,
         ),
       );
       final session = await pipeline.commit(
@@ -894,6 +895,7 @@ void main() {
       expect(linked.repeatOrderText, 'Heads once, sides once');
       expect(linked.newPartner, SquareNewPartner.corner);
       expect(linked.singing, isTrue);
+      expect(linked.freeForm, isFalse);
     });
 
     test('resolution link takes the square fields the incoming record '
@@ -905,12 +907,14 @@ void main() {
           squareKind: SquareKind.breakPart,
           repeatOrder: SquareRepeatOrder.other,
           repeatOrderText: 'Heads once, sides once',
+          freeForm: false,
         ),
       );
       final incoming = FakeSourceAdapter([
         record('fake-2', 'Nice Combination', form: 'square')
           ..['squareKind'] = 'patter'
-          ..['repeatOrder'] = 'HSHS',
+          ..['repeatOrder'] = 'HSHS'
+          ..['freeForm'] = true,
       ]);
       await pipeline.commit(
         await pipeline.plan(incoming, const ImportRequest()),
@@ -922,6 +926,7 @@ void main() {
       expect(linked.squareKind, SquareKind.patter);
       expect(linked.repeatOrder, SquareRepeatOrder.headsSidesHeadsSides);
       expect(linked.repeatOrderText, '');
+      expect(linked.freeForm, isTrue);
     });
 
     test('resolution duplicate imports a separate new dance', () async {

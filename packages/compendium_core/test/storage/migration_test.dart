@@ -1763,6 +1763,7 @@ void main() {
       'new_partner',
       'new_partner_text',
       'singing',
+      'free_form',
     };
 
     Future<(sqlite3.Database, CompendiumDatabase)> upgrade(
@@ -1814,6 +1815,9 @@ void main() {
       expect(dance.newPartner, SquareNewPartner.unstated);
       expect(dance.newPartnerText, '');
       expect(dance.singing, isFalse);
+      // NULL: the dance follows its kind, and a main part is phrased.
+      expect(dance.freeForm, isNull);
+      expect(dance.isFreeForm, isFalse);
       expect(
         dance.updatedAt,
         DateTime.fromMillisecondsSinceEpoch(1700000100 * 1000, isUtc: true),
