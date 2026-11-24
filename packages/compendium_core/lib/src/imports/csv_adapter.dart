@@ -429,7 +429,9 @@ StructuredDraft csvRowToDraft(
       case CsvColumnTarget.title:
         title ??= value;
       case CsvColumnTarget.authors:
-        authors.addAll(splitAuthorNames([value], issues: issues));
+        authors.addAll(
+          splitAuthorNames([value], issues: issues, backslashEscapes: true),
+        );
       case CsvColumnTarget.form:
         final f =
             vocab.forms[csvFold(value)] ?? _byName(DanceForm.values, value);
