@@ -1100,14 +1100,19 @@ To be defined later with worked examples.
   - **quarter from a wave** (fundamentals §8.5.7, user-ruled) ⇒ a pair already holding `hand`
     in a wave — a short-wave side pair, or a pair in a side long wave — turns **rigidly from
     where it stands**: a short wave and ¾ lands in a long wave, a long wave and ¾ in a short
-    wave. Any other pair, apart from the centre long-wave pair below, leaves the wave and
-    turns from facing, as above.
+    wave. Any other pair, apart from the two centre holds below, leaves the wave and turns from
+    facing, as above.
   - **quarter from a centre long wave** (fundamentals §8.5.7; agent's call 2026-11-24, not yet
     ratified) ⇒ one hands four's pair in c2 holding `hand` turns rigidly the same way and lands as
     the centre pair of a short wave; the band's two side dancers join it as the ends. This is the
     "Trip to Lambertville" family: "men walk forward, form long wave in center || women fall back;
     men allemande left ¾". A band whose other two dancers are not one on each side is refused
     (`unresolvableDancerSet`). `do_si_do` and `shoulder_round` hold no hands and still refuse.
+  - **quarter from the centre of a short wave** (fundamentals §8.5.7; agent's call 2026-11-24,
+    which Hudson said was worth keeping) ⇒ the centre pair of a short wave (c1 and c3, the top
+    row facing Down) holding `hand` turns rigidly the same way into the centre column, the
+    dancer the rotation carries north in the band's top row, both facing across; the ends of the
+    short wave stay where they stand.
 - **normalization:** none — not a normalizing figure. A whole or half turn settles wave offsets
   first (§8.5.4); a quarter or three-quarter keeps them, because it may start from the wave.
 - **facing (output):** per the rotation-facing principle (CallersCompendium `gate_facing`): a

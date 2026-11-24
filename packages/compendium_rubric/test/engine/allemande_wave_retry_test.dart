@@ -155,6 +155,11 @@ List<int?> _retriedAt(CompileResult result) => [
     if (warning.kind == WarningKind.allemandeWaveRetry) warning.opIndex,
 ];
 
+Map<String, Object?> _allemande(String who, String hand, num travel) => {
+  'move': 'allemande',
+  'params': {'who': who, 'hand': hand, 'travel': travel, 'beats': 8},
+};
+
 bool _retried(CompileResult result) => result.warnings.any(
   (warning) => warning.kind == WarningKind.allemandeWaveRetry,
 );
@@ -297,7 +302,7 @@ void main() {
       expect(_retried(result), isFalse);
     });
 
-    test('a retry that does not compile reports the original refusal', () {
+    test('an allemande with no reading is not retried', () {
       // Partners' allemande 1 1/2 has no reading (they finish in one row),
       // so the Larks' 3/4 across the set refuses exactly as it did before.
       final record = {
@@ -328,6 +333,51 @@ void main() {
       expect(result, isA<CompileError>(), reason: '$result');
       expect((result as CompileError).opIndex, 1);
       expect(result.error.kind, ErrorKind.unsupportedParam);
+      expect(_retried(result), isFalse);
+    });
+
+    test('a retry that refuses too reports the original refusal', () {
+      // The neighbours' right 1 1/2 has a side reading, so the swing is
+      // retried from the short waves; the partners are no swing pair there
+      // either, and the side-line refusal comes back unchanged.
+      final result = compile(
+        _parse({
+          ..._jerryGoesToCamp,
+          'figures': [
+            _allemande('neighbors', 'right', 1.5),
+            {
+              'move': 'swing',
+              'params': {'who': 'partners', 'beats': 16},
+              'progression': true,
+            },
+          ],
+        }),
+      );
+      expect(result, isA<CompileError>(), reason: '$result');
+      expect((result as CompileError).opIndex, 1);
+      expect(result.error.kind, ErrorKind.whoMismatch);
+      expect(result.error.detail, contains('in swing position in column 0'));
+      expect(_retried(result), isFalse);
+    });
+
+    test('a retry that lands elsewhere too reports the original mismatch', () {
+      // The first allemande has a side reading; nothing moves anyone on, so
+      // the dance mismatches from the side lines and from the waves alike.
+      final record = {
+        ..._jerryGoesToCamp,
+        'figures': [
+          _allemande('neighbors', 'right', 1.0),
+          {..._allemande('neighbors', 'right', 1.0), 'progression': true},
+        ],
+      };
+      final dance = _parse(record);
+      final result = compile(dance);
+      expect(result, isA<Mismatch>(), reason: '$result');
+      // The side-line fold's own end: everyone back where they started.
+      expect(
+        (result as Mismatch).actual.toRolesNotation(),
+        dance.instantiate().toRolesNotation(),
+      );
       expect(_retried(result), isFalse);
     });
   });
