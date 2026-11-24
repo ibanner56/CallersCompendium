@@ -324,7 +324,8 @@ sealed class Operation {
   ) {
     final distance = who.distance! - progressions;
     if (distance == 0) {
-      final failure = checkPreconditions(formation);
+      final failure =
+          checkPreconditions(formation) ?? _shadowMemoryRefusal(formation);
       if (failure != null) return Err<Formation, OpError>(failure);
       return perform(formation);
     }
@@ -341,7 +342,8 @@ sealed class Operation {
     );
     if (unreachable != null) return Err<Formation, OpError>(unreachable);
 
-    final failure = checkPreconditions(shifted);
+    final failure =
+        checkPreconditions(shifted) ?? _shadowMemoryRefusal(shifted);
     if (failure != null) return Err<Formation, OpError>(failure);
 
     return perform(
@@ -401,7 +403,7 @@ sealed class Operation {
     Formation phase, {
     required bool handBack,
   }) {
-    final failure = checkPreconditions(phase);
+    final failure = checkPreconditions(phase) ?? _shadowMemoryRefusal(phase);
     if (failure != null) return Err<Formation, OpError>(failure);
     final pairs = _shadowPairsDanced(phase);
     final danced = perform(phase).map((next) => _remember(next, pairs));
@@ -442,6 +444,34 @@ sealed class Operation {
       together++;
     }
     return together > 0;
+  }
+
+  /// Refuses a figure naming shadows that picks its own pairs when, in some
+  /// hands four of [formation], pairing the remembered shadows first would
+  /// leave dancers unpaired whom first match would have paired
+  /// ([shadowMemoryStrandsDancers]; user-ruled 2026-11-24: refuse rather than
+  /// break the remembered pair or leave the couple idle). `swing` and
+  /// `promenade` pair by side column instead and refuse a column that is not a
+  /// pair themselves.
+  OpError? _shadowMemoryRefusal(Formation formation) {
+    if (!dancerSets.contains(WhoSet.shadows)) return null;
+    if (this is Swing || this is Promenade) return null;
+    for (final band in handsFourBands(formation)) {
+      if (!shadowMemoryStrandsDancers(
+        formation,
+        topRow: band.topRow,
+        bottomRow: band.bottomRow,
+      )) {
+        continue;
+      }
+      return OpError(
+        ErrorKind.unresolvableDancerSet,
+        '$name names shadows, but in the hands four at rows '
+        '${band.topRow}-${band.bottomRow} keeping the shadows the dance '
+        'remembers together would leave dancers with no one to dance with',
+      );
+    }
+    return null;
   }
 
   /// The shadow pairs this figure dances in [formation]'s hands fours, which

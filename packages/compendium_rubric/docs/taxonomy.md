@@ -507,12 +507,20 @@ is refused as before. *(Agent's calls, not ratified:*
   remembered pair: in Lauren's Lagniappe, at the top after the diagonal chain, the shadow
   allemande paired the lark beside the robin who went nowhere with the robin who had just
   chained to someone else. Only a mutual memory counts; trusting either dancer's memory alone was
-  rejected, since a one-sided memory is not a pair that danced together. The remembered pairs
-  are kept only when they leave no more dancers unpaired than first match alone would; otherwise
-  the band pairs first match first, as before. Where a remembered pair stand beside each other on
-  one side and the couple across the set from them are partners, and so not shadows, keeping the
-  memory would leave that couple standing idle while the figure succeeds; first match pairs each
-  of them across the set instead. Which is right there is unasked.*
+  rejected, since a one-sided memory is not a pair that danced together.*
+
+**Keeping a remembered pair must not strand anyone.** *(User-ruled 2026-11-24.)* Where a remembered
+pair stand beside each other at an end with nobody out and the couple across the set from them are
+partners, and so not shadows, keeping the pair would leave that couple standing idle while the
+figure succeeds, and first match would break the pair up. Neither: the figure is refused
+(`unresolvableDancerSet`). In general, a figure that picks its own pairs is refused when, in some
+hands four, pairing the remembered shadows first leaves dancers unpaired whom first match would
+have paired (`shadowMemoryStrandsDancers`). *(Agent's calls: the check is made whatever the
+geometry, so a remembered pair across the set from each other with a couple beside them is refused
+too, as Baker's Square (Caller's Box 14368) is at the bottom of the set; and `swing` and
+`promenade` are not checked, since they pair by side column and already refuse a side column that
+is not a pair.)*
+*(Agent's calls, continued:*
 - *"Remembered" is the pairs danced by a figure routed through the shadows rule. A figure that
   also names a distance set takes its phase from the distance and remembers nothing. At an end
   where the shadow wraps to the neighbour, a dancer can match both the dancer beside them and

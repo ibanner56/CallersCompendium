@@ -376,8 +376,10 @@ routed through `_applyWithShadows` that each dancer dances, or by a diagonal
 carries a part's memory across its merge) are kept together by exactly one
 phase, which is then used (user-ruled 2026-11-23; `_identityPicksCurrent`).
 Whichever phase is danced, `resolveWhoPairs` pairs two dancers who remember
-each other first, unless that would leave more dancers unpaired than first
-match (the user's 2026-11-23 identity ruling, applied as the agent's call of
+each other first (the user's 2026-11-23 identity ruling, applied as the
+agent's call of 2026-11-24), and a figure for which that would leave dancers
+unpaired whom first match would have paired is refused
+(`shadowMemoryStrandsDancers`, `_shadowMemoryRefusal`; user-ruled
 2026-11-24); the agent's calls around it are listed in
 `docs/taxonomy.md`, "Shadows". A figure
 that also names a distance set is danced in the phase the distance picks, and

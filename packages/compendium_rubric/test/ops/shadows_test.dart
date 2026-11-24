@@ -390,12 +390,13 @@ void main() {
       expect(after.stateOf(robin('A')).shadow, lark('B'));
     });
 
-    test('remembered shadows do not pair when that would leave a couple '
-        'idle', () {
+    test('a figure is refused when keeping remembered shadows would leave a '
+        'couple idle (user-ruled 2026-11-24)', () {
       // At the top with nobody out, A and C remember each other and stand
       // beside each other in one side column, and partners B stand across the
-      // set from them. Keeping A with C would leave B with nobody, where first
-      // match pairs each B across the set and so pairs everyone.
+      // set from them. Keeping A with C would leave B with nobody; first match
+      // would pair each B across the set and break A and C up. Neither: the
+      // figure is refused.
       final input = remembering(
         parseRolesNotation([
           'L2-B . . . R1-C',
@@ -409,14 +410,20 @@ void main() {
         ], type: FormationType.becketCcw),
         [(lark('A'), robin('C'))],
       );
-      final pairs = resolveWhoPairs(
-        input,
-        WhoSet.shadows,
-        topRow: 0,
-        bottomRow: 1,
-      );
 
-      expect(pairs, hasLength(2));
+      expect(
+        shadowMemoryStrandsDancers(input, topRow: 0, bottomRow: 1),
+        isTrue,
+      );
+      expect(resolveWhoPairs(input, WhoSet.shadows, topRow: 0, bottomRow: 1), [
+        (a: robin('C'), b: lark('A')),
+      ]);
+      final error = applyErr(
+        const Allemande(who: WhoSet.shadows, hand: Hand.left, turn: 1.5),
+        input,
+      );
+      expect(error.kind, ErrorKind.unresolvableDancerSet);
+      expect(error.detail, contains('rows 0-1'));
     });
 
     test('a dancer keeps the shadow through any change of state', () {
