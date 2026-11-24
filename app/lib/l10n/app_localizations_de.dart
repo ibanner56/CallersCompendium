@@ -10028,6 +10028,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get figureTextSheetFromImage => 'Aus einem Bild…';
 
   @override
+  String get figureTextSheetTakePhoto => 'Foto aufnehmen';
+
+  @override
   String get figureTextSheetReadingImage => 'Bild wird gelesen…';
 
   @override

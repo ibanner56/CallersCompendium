@@ -9997,6 +9997,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get figureTextSheetFromImage => 'Uit een afbeelding…';
 
   @override
+  String get figureTextSheetTakePhoto => 'Foto maken';
+
+  @override
   String get figureTextSheetReadingImage => 'Afbeelding wordt gelezen…';
 
   @override

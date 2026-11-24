@@ -9539,6 +9539,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get figureTextSheetFromImage => '画像から…';
 
   @override
+  String get figureTextSheetTakePhoto => '写真を撮る';
+
+  @override
   String get figureTextSheetReadingImage => '画像を読み取り中…';
 
   @override

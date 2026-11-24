@@ -115,6 +115,8 @@
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Caller's Compendium uses the camera only when you take a photo in the app, such as of a dance card to read its figures. The photo is read on your device and then deleted. It is never sent anywhere.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

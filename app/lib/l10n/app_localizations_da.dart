@@ -9936,6 +9936,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get figureTextSheetFromImage => 'Fra et billede…';
 
   @override
+  String get figureTextSheetTakePhoto => 'Tag et billede';
+
+  @override
   String get figureTextSheetReadingImage => 'Læser billedet…';
 
   @override

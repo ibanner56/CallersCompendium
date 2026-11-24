@@ -151,10 +151,17 @@ Internal testing (≤100 teammates, instant) is already live. "Open beta" is
 - [ ] **Reviewer can't reach a feature** — spell out that everything is offline and
   login-free; give steps to trigger an import (paste a ContraDB link) so the one
   network feature is demonstrable.
-- [x] **Privacy string / permission mismatch** — we request no runtime permissions
-  (no camera/mic/location/contacts), so there should be **no `NS*UsageDescription`
-  prompts**. Confirm none are triggered; if a plugin adds one, add the matching
-  `Info.plist` purpose string or the build is rejected. A dance's QR code is
+- [ ] **Privacy string / permission mismatch** — the one runtime permission is
+  the **camera** (#2328): **Take a photo** in **Add figures from text** opens
+  the system camera through `image_picker`, and `NSCameraUsageDescription` in
+  `app/ios/Runner/Info.plist` says why. The prompt appears the first time a
+  user taps **Take a photo**, never at launch. The photo is read on the device
+  and deleted, so the App Privacy answers do not change
+  ([`listing-copy.md`](listing-copy.md#app-privacy-apple)). Confirm no other
+  prompt is triggered (no mic/location/contacts/photo library); if a plugin
+  adds one, add the matching `Info.plist` purpose string or the build is
+  rejected. `app/test/photo_capture_test.dart` fails if the camera string is
+  removed. A dance's QR code is
   read by the system **Camera** app, not by ours: it opens the app through the
   `ccdance` URL scheme in `Info.plist` (#2335), which needs no permission and no
   review note.

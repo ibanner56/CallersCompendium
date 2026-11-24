@@ -9678,6 +9678,10 @@
   "@figureTextSheetFromImage": {
     "x-sourceSha256": "dd6ac7c7817e072d8f4fd986c8d3378ea6f0d45dbb856b1c69a01a97b4734964"
   },
+  "figureTextSheetTakePhoto": "Foto aufnehmen",
+  "@figureTextSheetTakePhoto": {
+    "x-sourceSha256": "996e6a73eaebe70299816a9a45e7e3500ea67c91cd79d32a4db00cd843c66285"
+  },
   "figureTextSheetReadingImage": "Bild wird gelesen…",
   "@figureTextSheetReadingImage": {
     "x-sourceSha256": "be307d1b34cfc5f81c61c434df7f63403aa59cb2851ebd760f9d031319d2361b"

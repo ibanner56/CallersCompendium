@@ -14695,6 +14695,12 @@ abstract class AppLocalizations {
   /// **'From an image…'**
   String get figureTextSheetFromImage;
 
+  /// Button in the Add figures from text sheet, beside From an image…, that opens the camera to photograph an index card or a book page; the photo's text is read on the device and put in the text box, and the photo is not kept. Shown only on iPhone and iPad.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo'**
+  String get figureTextSheetTakePhoto;
+
   /// Label of the From an image… button while the chosen picture's text is being read on the device.
   ///
   /// In en, this message translates to:

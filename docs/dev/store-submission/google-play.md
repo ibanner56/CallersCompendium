@@ -163,7 +163,11 @@ any track (including testing) can go live. Answers are drafted in
   phone's camera app or Google Lens, which opens the app through a `BROWSABLE`
   `VIEW` filter on the `ccdance` scheme (#2335). It is a custom scheme, not an
   `https` app link, so there is no Digital Asset Links file to publish, and no
-  `CAMERA` permission to declare.
+  `CAMERA` permission to declare. **Take a photo** (#2328) is iOS only, so the
+  Android build offers no camera feature; `app/test/photo_capture_test.dart`
+  fails if any Android manifest in the app declares `CAMERA`. The
+  `image_picker` plugin adds a file provider and a disabled photo-picker
+  service to the merged manifest, but no permission.
 
 ## 5. The testing ladder — [the critical path]
 

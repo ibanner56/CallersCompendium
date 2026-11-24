@@ -13103,6 +13103,10 @@
   "@figureTextSheetFromImage": {
     "description": "Button in the Add figures from text sheet that opens the system picker to choose a picture (a photo of an index card or a book page) whose text is read on the device and put in the text box. Shown only on iOS and macOS."
   },
+  "figureTextSheetTakePhoto": "Take a photo",
+  "@figureTextSheetTakePhoto": {
+    "description": "Button in the Add figures from text sheet, beside From an image…, that opens the camera to photograph an index card or a book page; the photo's text is read on the device and put in the text box, and the photo is not kept. Shown only on iPhone and iPad."
+  },
   "figureTextSheetReadingImage": "Reading the picture…",
   "@figureTextSheetReadingImage": {
     "description": "Label of the From an image… button while the chosen picture's text is being read on the device."
