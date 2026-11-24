@@ -753,9 +753,13 @@ void main() {
         repos,
         ProgramTemplateEditorScreen(template: template),
       );
-      final edit = find.byKey(const ValueKey('program-template-rule-edit-0'));
-      await tester.tap(edit);
-      await tester.tap(edit);
+      // Two presses before the saved searches are read and the dialog opens.
+      // Pressed directly: two simulated taps on this button reach it once.
+      final edit = tester.widget<IconButton>(
+        find.byKey(const ValueKey('program-template-rule-edit-0')),
+      );
+      edit.onPressed!();
+      edit.onPressed!();
       await tester.pumpAndSettle();
       expect(
         find.byKey(const ValueKey('program-template-rule-dialog')),
