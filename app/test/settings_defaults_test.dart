@@ -2494,6 +2494,39 @@ void main() {
       );
     });
 
+    testWidgets('a figure 8 double turned on then off saves no key', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultMoveParamOverridesKey,
+        encodeMoveParamOverrides({
+          'figure_8': {'fraction': 'full'},
+        }),
+      );
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+      final double = find.byWidgetPredicate(
+        (w) =>
+            w is Switch &&
+            w.key == const ValueKey('move-default-figure_8-double'),
+      );
+      await tester.ensureVisible(double);
+      await tester.tap(double);
+      await tester.pumpAndSettle();
+      await tester.tap(double);
+      await tester.pumpAndSettle();
+      expect(
+        moveParamOverridesFromStored(
+          await repos.settings.get(kDefaultMoveParamOverridesKey),
+        ),
+        {
+          'figure_8': {'fraction': 'full'},
+        },
+      );
+    });
+
     testWidgets('removing a move override persists and hides its card', (
       tester,
     ) async {
