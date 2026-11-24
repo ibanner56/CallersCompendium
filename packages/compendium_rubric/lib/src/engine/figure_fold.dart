@@ -1,5 +1,7 @@
 import '../domain/formation.dart';
+import '../geometry/geometry.dart';
 import '../ops/diagnostics.dart';
+import '../ops/operation.dart';
 import 'end_normalization.dart';
 import 'invocation.dart';
 import 'result.dart';
@@ -26,6 +28,11 @@ import 'result.dart';
 /// the formation. The cost is that a flag placed early, sometimes several
 /// figures early, can be carried to a later figure that finishes it rather than
 /// failing (`docs/fundamentals.md` §10.2.1 has the measurement).
+///
+/// **A chain after an N2 figure** (`docs/fundamentals.md` §10.3.0,
+/// user-ruled 2026-11-24): an unflagged `across` chain straight after a figure
+/// reaching an odd distance is danced in the phase that figure reached, and
+/// the set is handed back after it.
 class FigureFold {
   FigureFold();
 
@@ -34,6 +41,14 @@ class FigureFold {
   /// [OperationInvocation.progressionCount]).
   int get progressions => _progressions;
   int _progressions = 0;
+
+  /// Whether the figure just run was danced one grouping over, by reaching
+  /// or by following a reach, so a chain across after it is danced there too.
+  bool _followReach = false;
+
+  /// Whether the set was in its shifted phase when the figure just run was
+  /// handed it, which is the phase a following chain must find it in again.
+  bool _reachHandedShifted = false;
 
   /// The figure indexes of progressions still held, oldest first.
   final List<int> _held = [];
@@ -54,7 +69,37 @@ class FigureFold {
     Formation state, {
     required int index,
   }) {
-    final outcome = figure.applyHolding(state, progressions: progressions);
+    // A chain across straight after a figure danced one grouping over is
+    // danced in that grouping too, and the set is handed back after it, as
+    // reaching always does. So is every chain straight after that one.
+    // *(User-ruled 2026-11-24, note on Heather's Hop Redux: after an N2
+    // allemande left, "R1-A and R2-D should be the ones who swap in the
+    // chain". The agent's calls: only an unflagged chain across follows, and
+    // only straight after; see `docs/fundamentals.md` §10.3.0.)*
+    final steppedOut = figure.operation.reachAfter(progressions).isOdd;
+    final operation = figure.operation;
+    final follows =
+        _followReach &&
+        !steppedOut &&
+        !figure.progression &&
+        operation is Chain &&
+        operation.dir == ChainDirection.across &&
+        // A held progression that finished on the reaching figure moved the
+        // set to the other phase; one phase over from there is not where the
+        // reach was danced, so the chain stays put. *(Agent's call.)*
+        isShiftedBandPhase(state) == _reachHandedShifted;
+    if (steppedOut) _reachHandedShifted = isShiftedBandPhase(state);
+    _followReach = steppedOut || follows;
+    final outcome = follows
+        ? figure
+              .applyHolding(toggleBandPhase(state), progressions: progressions)
+              .map(
+                (value) => (
+                  formation: toggleBandPhase(value.formation),
+                  held: value.held,
+                ),
+              )
+        : figure.applyHolding(state, progressions: progressions);
     return outcome.map((value) {
       var next = value.formation;
       if (value.held) {

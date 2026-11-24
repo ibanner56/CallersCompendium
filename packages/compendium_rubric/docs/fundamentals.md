@@ -796,7 +796,7 @@ be evaluated against any state, which the rule it replaced could not.
 #### 10.3.0 The two phases, and what moves between them
 
 The two band arrangements above are the grid's only two **phases** — *aligned* (`(0,1),(2,3),…`,
-nobody out) and *shifted* (`(1,2),(3,4),…`, the end rows stranded). Four things move the set
+nobody out) and *shifted* (`(1,2),(3,4),…`, the end rows stranded). Five things move the set
 between them, and they are worth keeping distinct:
 
 | What | Advances by | Why |
@@ -805,6 +805,7 @@ between them, and they are worth keeping distinct:
 | `slide_along_set` | one phase | the slide carries everyone one row along, so the boundaries fall between different rows. It **is** the progression, so a progression flag on it adds nothing. A `slice` dances one slide (two for a diagonal return) and is the same; a flagged diagonal slice is two flagged slides, so two progressions (user-ruled 2026-11-23) |
 | A figure naming a **distance** set (`nextNeighbors` and friends) | *nothing*, unless it also carries the progression flag — in which case, one phase | reaching is **transient**: the figure is danced *d* phases from the one it was handed and always hands that phase back. A progression flag on top names movement the reach did not make, so a flagged reaching figure advances once |
 | A figure naming **only `partners`** that is refused with `whoMismatch` in the current phase | one phase, if it succeeds in the other | the hands fours follow the dancers (user-ruled 2026-11-24): the partners are found where they stand, nobody moves, and the set stays grouped with them. See `docs/taxonomy.md`, "The hands fours follow the dancers" |
+| An unflagged **`across` chain** straight after a figure reaching an odd distance (N2, N4), or after such a chain | *nothing* | it is danced in that figure's phase and hands it back, so the robins chain with the couple they have just turned with (user-ruled 2026-11-24, Heather's Hop Redux). See `docs/taxonomy.md`, "A chain after an N2 figure chains with N2" |
 
 **Reaching is decided by parity, not by history.** A distance-*d* set is danced *d* places from
 the current phase, and since there are only two phases, only `d.isOdd` survives: odd distances

@@ -43,7 +43,7 @@ enum Facing {
   /// [Facing.flexible] reverses to itself: the opposite of an undetermined
   /// direction is still undetermined. This is the shared primitive behind
   /// `turn_alone`, `california_twirl`, `turn_as_couples`, and the half-turn
-  /// case of the allemande family.
+  /// case of the allemande family away from the side lines.
   Facing get reversed => switch (this) {
     Facing.up => Facing.down,
     Facing.down => Facing.up,
