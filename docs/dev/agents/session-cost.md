@@ -1,14 +1,27 @@
 # Session cost: what makes an agent session expensive here
 
-Load this chapter when scoping work for an agent, when a session feels
-disproportionately expensive, or before adding anything to the resident
-instructions.
+Load this chapter when scoping work for an agent, when starting child sessions
+or scheduling check-ins, when a session feels disproportionately expensive, or
+before adding anything to the resident instructions.
 
 ## The cost model
 
-A session's input cost is roughly `resident_prompt × turns`, plus whatever it
-reads. So there are exactly two levers: **shrink what is resident** and **take
-fewer turns**. Everything below is one or the other.
+Every model call re-sends the whole conversation so far: the resident prompt,
+everything the session has read, and every earlier turn. So a session's input
+cost is roughly `context_size × model_calls`, and `context_size` grows for as
+long as the session lives. There are three levers: **shrink what is resident**,
+**take fewer turns**, and **keep long-lived sessions small**. Everything below
+is one of those.
+
+The third lever dominates once sessions run for days. Across the sessions of
+2026-11-18 to 2026-11-24 (101 sessions with reported usage, read from each
+session's own usage record), sessions re-read 11.3 billion cached tokens while
+writing 27.8 million: 394 tokens read for each token written. Cache reads cost
+1% of the output rate, and still came to 60% of Opus spend; cache writes were
+25% and output 15%. 47 of those sessions held more than 300k tokens of context
+when they were read. The resident prompt is 8 KiB, so it is a rounding error
+next to a context of that size. See
+[Long-lived and waiting sessions](#long-lived-and-waiting-sessions).
 
 Resident context is `AGENTS.md` plus any
 [`.github/instructions/*.instructions.md`](../../../.github/instructions/) whose
@@ -169,15 +182,73 @@ So the usable test is: *does this comment constrain the line it sits on, or does
 it record something already decided?* The first stays, however long. The second
 belongs in a document, with a gate keeping it fed.
 
+## Long-lived and waiting sessions
+
+A session that lives for days pays for its whole history on every model call,
+including calls that only find out nothing has changed. In the week measured
+above, the most expensive work was not the busiest: it was the project channel
+threads and the orchestrators that start child sessions, which together came to
+81% of the spend; child sessions alone were 57% of it.
+
+### Hand off at a milestone
+
+When a unit of work lands (a PR merges, a plan is approved, a child is
+archived) and the session will go on to something else, start a fresh session
+with a brief instead of carrying the history forward. The brief is the same one
+[Scope before dispatch](#scope-before-dispatch) asks for. Keep state in the
+repository, the PR and the issue, which a fresh session can read, rather than
+in the conversation, which only that session has.
+
+This holds for project channel threads too. They ran with a 1M-token window
+and compacted only at 384k tokens, so a thread that mostly waits can sit at
+several hundred thousand tokens for days.
+
+### Make waiting cheap
+
+Every wake-up re-reads the whole context: a PR event, a child reporting back,
+a scheduled check-in. A wake-up that finds nothing new costs the same re-read as
+one that does work.
+
+- **Let events wake the session.** A session subscribed to a PR already wakes
+  for its comments, reviews and CI results. A safety-net check-in is for what
+  events do not deliver, such as a merge conflict or a child that has gone
+  quiet, so space it hours apart rather than hourly, and stop after two empty
+  check-ins.
+- **Run a recurring poll in a fresh session.** A cron-style check (new notes,
+  new failures, a corpus re-run) should start a new session on each firing,
+  with a self-contained prompt and its state in files, rather than firing into a
+  long-lived thread whose context it has to re-read to do a small job.
+- **Wait on a condition, not a timer.** Poll a log or a PR state in a
+  background command or a cheap sub-agent, and wake the large session only when
+  there is something to act on.
+
+### Choose the model for each task
+
+An orchestrator chooses the model when it starts each child session or
+sub-agent, so it can match the model to the task instead of defaulting either
+way.
+
+- **Use the strongest model where fidelity is judged:** plans, design, UI and
+  user-facing copy, code review, and anything ambiguous.
+- **Use a lighter model where the output is mechanical and checkable:**
+  fetching and collating records, sweeping for a string, running a gate and
+  summarising its log, applying a rename the plan has already specified.
+- **Set effort the same way.** High effort is for tasks that need deliberation,
+  not the default for every child.
+
+If a lighter model's result has to be redone, that costs more than using the
+stronger model in the first place. So downgrade only where a script or a check
+can tell whether the result is right.
 
 ## Measure, so this does not silently regress
 
-Track per-session input tokens against two numbers: the resident prompt size and
-the turn count. The ratio says which lever moved — a month's rise is either
-prompt growth (fix by moving rules out of residency) or round-trip growth (fix by
-scoping, batching, and local gates). Without both numbers, a rise is
-uninterpretable and the usual response is to add another rule, which makes it
-worse.
+Track per-session input tokens against three numbers: the resident prompt size,
+the turn count, and the size of the context being re-sent. The ratio says which
+lever moved. A rise is either prompt growth (fix it by moving rules out of
+residency), round-trip growth (fix it by scoping, batching and local gates), or
+context growth (fix it by handing off at milestones and making waiting cheap).
+Without these numbers a rise is uninterpretable, and the usual response is to
+add another rule, which makes it worse.
 
 The budget ratchet prints the current resident total on every run, and the
 comment-weight report prints the per-read total, so both numbers are available
