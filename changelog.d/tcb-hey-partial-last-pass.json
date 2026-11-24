@@ -1,0 +1,14 @@
+{
+  "id": "tcb-hey-partial-last-pass",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "When you import a dance from The Caller's Box, a hey whose last pass is marked \"~\" (a partial last pass) now keeps that as the note \"last pass partial\" instead of dropping it."
+    ]
+  },
+  "core": {
+    "changed": [
+      "The Caller's Box figure dialect keeps a hey pass list's trailing `~` as the hey's note clause `last pass partial` instead of dropping it."
+    ]
+  }
+}
