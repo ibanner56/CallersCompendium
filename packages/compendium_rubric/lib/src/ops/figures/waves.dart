@@ -637,7 +637,7 @@ final class FormALongWave extends Operation {
     Formation formation,
   ) {
     // Only the active hands fours: a couple standing out at an end is outside
-    // every band, and no figure's transform touches it
+    // every band, and no figure's transform takes it out of its end row
     // (`docs/fundamentals.md` §10.3.2). Stepping its dancer in as well left
     // them in the centre of a row the next settle does not cover, and the
     // other role's step then landed on them.
@@ -948,7 +948,8 @@ final class RoryOMore extends Operation {
       if (!whoIncludes(formation, id, who)) continue;
       final state = formation.stateOf(id);
       // A couple standing out at an end is outside every hands four, and no
-      // figure's transform touches it (`docs/fundamentals.md` §10.3.2).
+      // figure's transform takes it out of its end row
+      // (`docs/fundamentals.md` §10.3.2).
       if (state.waitingOut) continue;
       final target = _landing(formation, state);
       if (target == null) {

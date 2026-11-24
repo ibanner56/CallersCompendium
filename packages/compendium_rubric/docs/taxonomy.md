@@ -3026,7 +3026,7 @@ To be defined later with worked examples.
 - **preconditions:** with `in:true`, every rank of an active hands four must hold exactly two
   dancers, exactly one of them in `who` — otherwise `unresolvableDancerSet`, per the capacity
   argument above. A couple standing out at an end is outside every hands four and does not step
-  in (`fundamentals.md` §10.3.2: no figure's transform touches it).
+  in (`fundamentals.md` §10.3.2: no figure's transform takes it out of its end row).
   Refusing rather than approximating is deliberate: guessing would strand a dancer in a line that
   is not theirs.
 - **effect:** each active rank's `who` dancer moves to `c2`. `c2` is **exact — no offset** (see

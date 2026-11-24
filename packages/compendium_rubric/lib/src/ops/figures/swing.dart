@@ -6,7 +6,9 @@ part of '../operation.dart';
 /// A swing is a *normalizing* figure: the finishing placement is
 /// lark-left / robin-right relative to [face], and the pair's own starting
 /// arrangement is discarded. Placement is set by `where` × `face`; [who] only
-/// **validates** the pairing.
+/// **validates** the pairing, except that an N0 (`prevNeighbors`) swing also
+/// turns a couple waiting out at an end in place, facing into the set (see
+/// [_waitingCouplesSwing]).
 ///
 /// Only `where: sides` is implemented. It is the case both golden fixtures use,
 /// and the one the taxonomy marks *verified*; `where: center` is partly

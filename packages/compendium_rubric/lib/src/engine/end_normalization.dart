@@ -25,7 +25,8 @@ import '../geometry/geometry.dart';
 ///
 /// The exemption in step 2 is what makes the change-over actually happen. A
 /// couple standing out is outside every active hands four, so no figure's
-/// transform touches it and it is still sitting in the end row when the next
+/// transform takes it out of its end row (an N0 swing turns it in place,
+/// `docs/taxonomy.md` `swing`) and it is still sitting there when the next
 /// progression fires; without the exemption it would simply be re-marked and
 /// wait out forever. Worked through on a four-row Duple Improper set:
 ///

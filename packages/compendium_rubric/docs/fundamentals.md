@@ -836,8 +836,9 @@ row is simply the best way to do it.
 
 #### 10.3.2 The change-over — how a couple stops waiting out
 
-A couple standing out is outside every active hands four, so **no figure's transform touches
-it**: it is still sitting in the end row when the next progression fires. Something has to bring
+A couple standing out is outside every active hands four, so **no figure's transform takes it
+out of its end row** (an N0 swing turns it in place, `taxonomy.md` `swing`): it is still sitting
+in the end row when the next progression fires. Something has to bring
 it back in, and that something is the progression itself. §10.6 fixes the term: **wait-out lasts
 one round.** So each progression, in order:
 
