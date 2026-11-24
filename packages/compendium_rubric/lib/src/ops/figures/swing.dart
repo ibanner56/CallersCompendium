@@ -233,7 +233,8 @@ final class Swing extends Operation {
   /// band phase over), is moved. Limiting it to `prevNeighbors` is the maintainer's choice
   /// ("go with option A for now"): read for every distance set it compiled
   /// eight more Caller's Box dances and lost four. A stated `face` is not
-  /// applied to them.
+  /// applied to them, and at the top of a Duple Proper set they stand crossed,
+  /// as end normalization leaves them (the agent's calls).
   Map<DancerId, DancerState> _waitingCouplesSwing(Formation formation) {
     if (who != WhoSet.prevNeighbors) return const {};
     final changes = <DancerId, DancerState>{};
@@ -245,11 +246,15 @@ final class Swing extends Operation {
       if (ids.any((id) => !formation.stateOf(id).waitingOut)) continue;
       final facing = row == 0 ? Facing.down : Facing.up;
       final normal = normalizeAlongHall(row: row, facing: facing);
+      // At the top of a proper set a couple facing down stands crossed, as end
+      // normalization places it (`FormationType.topEndCrossed`).
+      final crossed = row == 0 && formation.type.topEndCrossed;
       for (final id in ids) {
+        final isLark = (id.role == Role.lark) != crossed;
         changes[id] = formation
             .stateOf(id)
             .copyWith(
-              position: id.role == Role.lark ? normal.lark : normal.robin,
+              position: isLark ? normal.lark : normal.robin,
               facing: facing,
             );
       }

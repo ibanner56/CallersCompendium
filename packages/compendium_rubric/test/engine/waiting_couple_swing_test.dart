@@ -106,6 +106,28 @@ void main() {
       expect(compile(_dance(havenNotMet())), isA<Compiled>());
     });
 
+    test('at the top of a Duple Proper set they stand crossed', () {
+      // As end normalization leaves a proper couple there (topEndCrossed).
+      final start = startingFormation(FormationType.dupleProper, handsFour: 3);
+      final top = start.dancersInRow(0).toList();
+      final waiting = start.withUpdates({
+        for (final id in top)
+          id: start.stateOf(id).copyWith(waitingOut: true, facing: Facing.up),
+      });
+      final after =
+          (const Swing(who: WhoSet.prevNeighbors).perform(waiting)
+                  as Ok<Formation, OpError>)
+              .value;
+      for (final id in top) {
+        expect(
+          after.stateOf(id).position.col,
+          id.role == Role.lark ? Position.westColumn : Position.eastColumn,
+          reason: '$id',
+        );
+        expect(after.stateOf(id).facing, Facing.down, reason: '$id');
+      }
+    });
+
     test('only an N0 swing moves them, and only a couple waiting out', () {
       // Limited to N0 by the maintainer ("go with option A for now").
       final start = _after(havenNotMet(), 1);

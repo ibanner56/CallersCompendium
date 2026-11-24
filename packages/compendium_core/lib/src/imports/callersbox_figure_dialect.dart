@@ -2926,8 +2926,8 @@ FigureMatch? _decodeSideRunAnnotation(String scrubbed) {
   final decoded = <_SideCell>[];
   String? sideBase;
   for (var i = 0; i < cells.length; i++) {
-    // The `~` partial-last-pass marker is informational only (ratified) and is
-    // dropped here exactly as the hey decoder drops it.
+    // The `~` partial-last-pass marker is dropped here: no side-run param
+    // represents it. (The hey decoder keeps a last-pass `~` as a note.)
     final cell = cells[i].endsWith('~')
         ? cells[i].substring(0, cells[i].length - 1)
         : cells[i];

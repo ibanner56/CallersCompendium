@@ -457,7 +457,7 @@ The box the gnat swaps the pair and turns them to face each other; the pull by s
 and lets them keep walking. Everyone finishes in their own row facing *the way they came*, so
 the couple behind is standing in front of them — and the couples at the two ends of the set have
 nobody behind them at all and fall outside every band in the reaching phase. Most figures leave
-them standing out; a `swing` has them swing each other in place (see `swing`, "a couple waiting
+them standing out; an N0 `swing` has them swing each other in place (see `swing`, "a couple waiting
 out on an N0 swing", user-ruled 2026-11-24).
 
 The sign is load-bearing, not decorative. Reaching stands the same two couples together
@@ -888,7 +888,8 @@ To be defined later with worked examples.
     out at the top after N0 balance+swing should still swing and normalize (swap places)")*.
     Limiting it to N0 is Hudson's choice ("go with option A for now"): read for every distance set
     it compiled eight more Caller's Box dances and lost four. A stated `face` is not applied to
-    them (the agent's call).
+    them, and at the top of a Duple Proper set they stand crossed, as end normalization leaves
+    them (the agent's calls).
   - **distance sets** (`nextNeighbors`, `thirdNeighbors`, `fourthNeighbors`, `prevNeighbors`):
     **distinguished, and enforced.** The engine checks the named distance against the couples
     actually standing together, using **home grouping** — `coupleIndex ~/ 2`, which the starting

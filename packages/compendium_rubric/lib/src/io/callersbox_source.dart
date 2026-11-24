@@ -366,19 +366,26 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
   if (attempt.outcome != DanceOutcome.compiled &&
       attempt.outcome != DanceOutcome.crashed) {
     final fallback = bridgeCoreDance(dance, useNextNeighborsFallback: true);
+    var crashed = false;
     if (retryPlacesDifferently(positional, fallback)) {
       final retry = _attempt(fallback);
       if (retry.outcome == DanceOutcome.compiled) attempt = retry;
+      crashed = retry.outcome == DanceOutcome.crashed;
     }
     // A third and last reading: a hey whose final pass Caller's Box marks
     // partial ("~") is the progression *(user-ruled 2026-11-24)*. Tried only
     // after both readings above, so it never displaces one that compiles
     // *(agent's call)*.
-    if (attempt.outcome != DanceOutcome.compiled &&
+    // A crash on the N2 reading stops here too, so no later reading can bury
+    // it, and a placement already tried is not compiled again.
+    if (!crashed &&
+        attempt.outcome != DanceOutcome.compiled &&
         attempt.outcome != DanceOutcome.crashed) {
       final partialPass = bridgeCoreDance(dance, usePartialPassFallback: true);
-      if (partialPass.assumedProgressionAt != null &&
-          partialPass.assumedProgressionAt != positional.assumedProgressionAt) {
+      final at = partialPass.assumedProgressionAt;
+      if (at != null &&
+          at != positional.assumedProgressionAt &&
+          at != fallback.assumedProgressionAt) {
         final retry = _attempt(partialPass);
         if (retry.outcome == DanceOutcome.compiled) attempt = retry;
       }
@@ -587,10 +594,9 @@ BridgedDance bridgeCoreDance(
             '${useNextNeighborsFallback ? ', because the positional rule did '
                       'not compile and this is where the first mention of the '
                       'next neighbours (nextNeighbors, N2) puts it' : ''}'
-            '${usePartialPassFallback ? ', because neither the positional '
-                      'rule nor the next-neighbours reading compiled and this '
-                      'is the last hey whose final pass the source marks '
-                      'partial ("~")' : ''}',
+            '${usePartialPassFallback ? ', because the earlier placements '
+                      'did not compile and this is the last hey whose final '
+                      'pass the source marks partial ("~")' : ''}',
       ),
     for (final (step, at) in laterAt.indexed)
       Warning(
