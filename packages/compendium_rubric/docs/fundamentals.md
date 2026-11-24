@@ -518,7 +518,7 @@ other role in the centre of the final wave.
 
 The pair is turned **rigidly about its own midpoint**: positions and facings rotate together,
 clockwise for the right hand and counter-clockwise for the left, through a quarter or three
-quarters. Two holds are recognized:
+quarters. Three holds are recognized:
 
 - **a short-wave side pair** — one dancer in a side column, the other in the offset column beside
   it, in the band's two rows, the top row facing Down (§8.5.1). The pair stand in one physical
@@ -529,6 +529,25 @@ quarters. Two holds are recognized:
   set in opposite directions. A quarter of a turn takes them **across** the set: they finish as
   the side pair of a short wave, the dancer the rotation carries toward the centre in the offset
   column, each in the row the short wave gives their facing (top row Down, bottom row Up).
+- **a centre long-wave pair** — the two dancers of one hands four standing in c2 after
+  `form_a_long_wave`, in the band's two rows, facing across the set in opposite directions.
+  *(Agent's call, 2026-11-24, extending the ruling above; not yet ratified.)* A quarter of a turn
+  takes them across the set to the **centre pair of a short wave**: each a step either side of
+  the centre line (c1 or c3), in the row the short wave gives their facing. The other role, which
+  held its lines at c0/c4 while the wave stood in the centre, **joins that short wave as its
+  ends**: each side dancer takes the other row from the centre dancer on their side and faces
+  the other way. That is forced rather than chosen: left facing across in their lines, the side
+  dancers would share a cell with the centre dancers the moment the wave settled (§8.5.4). The
+  pair must be one hands four's; two Larks of neighbouring hands fours also hold hands down the
+  centre line, but a turn they start is not covered and still refuses as an across-the-set
+  quarter.
+
+```
+from the centre long wave, Larks in:               Larks allemande left 3/4:
+
+R1-A  .   L1-A  .    .    (R1-A, L1-A face →, ←)    .   L2-B  .    .   R2-B   (face ↓)
+ .    .   L2-B  .   R2-B  (L2-B, R2-B face →, ←)  R1-A  .    .   L1-A   .    (face ↑)
+```
 
 ```
 from a right-hand wave, neighbours on the sides:     allemande right 3/4:
@@ -545,7 +564,7 @@ R1-A  .    .   L1-A   .
 **Holding the hand is part of the hold.** Which hand a pair holds is read from the geometry as
 always (§8.5.2). A pair whose hold is the *other* hand — an allemande left from a right-hand
 wave — is not turning from a hold it has, so it leaves the wave and turns from facing each
-other, exactly as before this ruling. So does every pair that is not one of the two shapes
+other, exactly as before this ruling. So does every pair that is not one of the three shapes
 above, such as the centre pair of a short wave. Whole and half turns still settle the wave first.
 
 ---

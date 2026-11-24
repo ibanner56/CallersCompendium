@@ -625,9 +625,6 @@ final class FormALongWave extends Operation {
   @override
   Iterable<WhoSet?> get dancerSets => [who];
 
-  /// The centre column of the set.
-  static const int _centreColumn = kColumnCount ~/ 2;
-
   /// The rows this figure has to place a dancer in, each with the dancer who
   /// steps to the centre and the side column their rank leaves free.
   ///
@@ -695,13 +692,13 @@ final class FormALongWave extends Operation {
       for (final step in steps) {
         // A dancer walks in facing the way they walk, which alternates down the
         // set for free because consecutive ranks step in from opposite lines.
-        final facing = step.from < _centreColumn
+        final facing = step.from < kCentreColumn
             ? Facing.acrossEast
             : Facing.acrossWest;
         changes[step.mover] = formation
             .stateOf(step.mover)
             .copyWith(
-              position: Position(step.row, _centreColumn),
+              position: Position(step.row, kCentreColumn),
               facing: facing,
             );
       }
