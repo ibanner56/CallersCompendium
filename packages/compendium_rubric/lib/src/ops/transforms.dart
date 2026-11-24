@@ -330,6 +330,11 @@ enum WaveHoldShape {
   /// centre column, in the band's two rows, facing across the set in opposite
   /// directions.
   centre,
+
+  /// The centre pair of a short wave: one in each offset column, in the
+  /// band's two rows, facing up and down the hall. Physically the two stand
+  /// side by side in the middle of one line across the set.
+  shortCentre,
 }
 
 /// How [pair] is holding hands in a wave, or `null` when it is not.
@@ -361,6 +366,13 @@ enum WaveHoldShape {
       (cols.containsAll(const {0, 1}) ||
           cols.containsAll(const {east - 1, east}))) {
     shape = WaveHoldShape.short;
+    towardB = b.col > a.col ? Facing.acrossEast : Facing.acrossWest;
+  } else if (a.facing.isAlongHall &&
+      upper.facing == Facing.down &&
+      cols.length == 2 &&
+      cols.containsAll(const {1, east - 1}) &&
+      handsFourBands(formation).any((band) => band.topRow == upper.row)) {
+    shape = WaveHoldShape.shortCentre;
     towardB = b.col > a.col ? Facing.acrossEast : Facing.acrossWest;
   } else if (a.facing.isAcross && a.col == b.col && _isSideColumn(a.col)) {
     shape = WaveHoldShape.long;
@@ -433,7 +445,9 @@ Map<DancerId, DancerState> quarterTurnFromWaveHold(
       // The dancer's offset from the pair's midpoint, x east and y north. In a
       // short wave the pair stand in one physical line, whatever rows the
       // matrix keeps them in; in a long wave the top row is the northern one.
-      final from = hold.shape == WaveHoldShape.short
+      final from =
+          hold.shape == WaveHoldShape.short ||
+              hold.shape == WaveHoldShape.shortCentre
           ? (x: self.col > other.col ? 1 : -1, y: 0)
           : (x: 0, y: self.row < other.row ? 1 : -1);
       final to = turn(from);
@@ -441,6 +455,10 @@ Map<DancerId, DancerState> quarterTurnFromWaveHold(
       final Position at;
       if (hold.shape == WaveHoldShape.short) {
         at = Position(to.y > 0 ? topRow : bottomRow, sideCol);
+      } else if (hold.shape == WaveHoldShape.shortCentre) {
+        // Out of the middle of the line across into a centre long wave, the
+        // dancer the rotation carries north in the band's top row.
+        at = Position(to.y > 0 ? topRow : bottomRow, kCentreColumn);
       } else if (hold.shape == WaveHoldShape.centre) {
         // Across the set, each a step from the centre line: the centre pair
         // of a short wave, in the row its facing gives it (§8.5.1).

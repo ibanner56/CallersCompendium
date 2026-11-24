@@ -10,6 +10,7 @@ import '../ops/operation.dart';
 import '../ops/params.dart';
 // For the §8.5.4 settler used to compare a dance that ends standing in a wave.
 import '../ops/transforms.dart';
+import 'allemande_waves.dart';
 import 'compile_result.dart';
 import 'end_effects.dart';
 import 'figure_fold.dart';
@@ -166,9 +167,20 @@ CompileResult _foldFrom(
   required Formation? previous,
   required List<Warning> inherited,
   required Set<int> spentRows,
+  Set<int> waveRetried = const {},
 }) {
   final warnings = [...inherited];
   var previousState = previous;
+  final allemandeWaves =
+      <
+        ({
+          int index,
+          Formation handed,
+          Formation waves,
+          FigureFold fold,
+          List<Warning> warnings,
+        })
+      >[];
   for (var index = from; index < dance.figures.length; index++) {
     final figure = dance.figures[index];
     // Linted against the state the figure is handed, before it runs -- a
@@ -189,6 +201,19 @@ CompileResult _foldFrom(
       case Ok(:final value):
         warnings.addAll(lints);
         // As danced, so the end rows it left out read as waiting.
+        if (figure.operation case final Allemande allemande
+            when waveRetried.isEmpty && const bool.fromEnvironment('WAVE_MISMATCH', defaultValue: true)) {
+          final waves = allemandeWaveReading(handed, value, allemande);
+          if (waves != null) {
+            allemandeWaves.add((
+              index: index,
+              handed: handed,
+              waves: waves,
+              fold: fold.copy(),
+              warnings: [...warnings, ...lints],
+            ));
+          }
+        }
         previousState = handed;
         state = value;
       case Err(:final error):
@@ -217,6 +242,37 @@ CompileResult _foldFrom(
                 ),
               ],
               spentRows: {...spentRows, row},
+              waveRetried: waveRetried,
+            );
+            if (retry is Compiled) return retry;
+          }
+        }
+        final before = index > 0 ? dance.figures[index - 1].operation : null;
+        if (before is Allemande &&
+            previousState != null &&
+            !waveRetried.contains(index)) {
+          final waves = allemandeWaveReading(previousState, state, before);
+          if (waves != null) {
+            final retry = _foldFrom(
+              dance,
+              input: input,
+              state: waves,
+              fold: foldBefore.copy(),
+              from: index,
+              previous: previousState,
+              inherited: [
+                ...warnings,
+                Warning(
+                  WarningKind.allemandeWaveRetry,
+                  opIndex: index,
+                  detail:
+                      '${figure.name} refused straight after an allemande, '
+                      'and is danced from the short waves that allemande '
+                      'can leave',
+                ),
+              ],
+              spentRows: spentRows,
+              waveRetried: {...waveRetried, index},
             );
             if (retry is Compiled) return retry;
           }
@@ -251,7 +307,33 @@ CompileResult _foldFrom(
   //
   // The reported state is the **real** one, offsets and all. Settling is how
   // the two are compared, not a claim about where the dancers are standing.
-  return judgeEnd(state, expected, warnings: warnings);
+  final judged = judgeEnd(state, expected, warnings: warnings);
+  if (judged is! Compiled) {
+    for (final reading in allemandeWaves) {
+      if (reading.index + 1 >= dance.figures.length) continue;
+      final retry = _foldFrom(
+        dance,
+        input: input,
+        state: reading.waves,
+        fold: reading.fold.copy(),
+        from: reading.index + 1,
+        previous: reading.handed,
+        inherited: [
+          ...reading.warnings,
+          Warning(
+            WarningKind.allemandeWaveRetry,
+            opIndex: reading.index + 1,
+            detail: 'the dance landed elsewhere, and is danced on from the '
+                'short waves the allemande before can leave',
+          ),
+        ],
+        spentRows: spentRows,
+        waveRetried: {...waveRetried, reading.index + 1},
+      );
+      if (retry is Compiled) return retry;
+    }
+  }
+  return judged;
 }
 
 /// The end check [compile] makes once every figure has run: [state], the

@@ -297,6 +297,16 @@ enum WarningKind {
     'two dancers waiting at an end traded places so the dance could go on',
   ),
 
+  /// A figure that refused straight after an allemande was danced from the
+  /// short waves that allemande can leave, and the whole dance then compiled
+  /// (`docs/fundamentals.md` §8.5.8, user-ruled 2026-11-24). Raised by the
+  /// engine at the refusing figure, never by a figure.
+  allemandeWaveRetry(
+    'allemandeWaveRetry',
+    'a figure that refused after an allemande was danced from the short '
+        'waves that allemande can leave',
+  ),
+
   /// The dance ended with every dancer in the row the oracle expects, with the
   /// expected number and in the row's expected order, but some up to one
   /// column to the side of it, so it compiled without matching
