@@ -677,6 +677,13 @@ core.Figure _mainFigure(core.Figure figure) =>
 ///   progresses (user-ruled 2026-11-23), or its first diagonal right and left
 ///   through (agent's call 2026-11-24). Only a Becket dance with none of these
 ///   falls back to the last figure.
+/// - In a **single-progression dance with exactly one slide** (or straight
+///   slice), that slide counts as a move along the set too, in either
+///   direction and wherever it falls, so the first of it and the moves above
+///   progresses. Hudson ruled this for Apogee (report note, 2026-11-24: "the
+///   slide_along_set right is the progression"); applying it to every such
+///   dance, and only when the dance has exactly one slide, is the agent's
+///   call.
 ///
 /// Outside Becket, an **arch and dive straight after a hall figure**
 /// progresses (user-ruled 2026-11-24): "in a line of four, go up the hall;
@@ -721,7 +728,27 @@ int? assumedProgressionIndex(core.Dance dance) {
     // end until a figure or two later; the compiler holds the progression
     // until they do (`OperationInvocation.applyHolding`); a diagonal right and
     // left through is its own progression and is never held.
+    //
+    // In a single-progression dance with exactly one slide (or straight
+    // slice), that slide is a move along the set too, in either direction
+    // (Hudson's Apogee note, 2026-11-24; generalising it is the agent's call).
+    // Two slides, or a double progression, leave only the moves above.
+    final slides = [
+      for (var index = 0; index < figures.length; index++)
+        if (const {
+          'slide_along_set',
+          'slice',
+        }.contains(_mainFigure(figures[index]).move))
+          index,
+    ];
+    final soleSlide =
+        dance.progression == core.Progression.single &&
+            slides.length == 1 &&
+            _slidesAlongTheSet(_mainFigure(figures[slides.single]))
+        ? slides.single
+        : null;
     for (var index = 0; index < figures.length; index++) {
+      if (index == soleSlide) return index;
       if (_movesAlongTheSet(_mainFigure(figures[index]))) return index;
     }
   }
@@ -757,6 +784,14 @@ bool _movesAlongTheSet(core.Figure figure) => switch (figure.move) {
     'leftDiagonal' || 'rightDiagonal' => true,
     _ => false,
   },
+  _ => false,
+};
+
+/// Whether [figure] is one slide along the set: a `slide_along_set`, or a
+/// `slice` with a straight return (a diagonal return is a double slice).
+bool _slidesAlongTheSet(core.Figure figure) => switch (figure.move) {
+  'slide_along_set' => true,
+  'slice' => (figure.params['return'] ?? 'straight') == 'straight',
   _ => false,
 };
 

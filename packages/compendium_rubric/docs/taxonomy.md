@@ -1360,6 +1360,12 @@ To be defined later with worked examples.
   variant}, A Second Slice of Cake), so assuming it would turn those into mismatches. A dance
   ending in one can still get the ordinary last-figure flag. Reading the dance's progression
   tier before assuming would settle it, but no double slice that opens a dance imports today.
+  In a **single-progression** dance whose **only** slide or slice is one slide (a straight
+  slice or a `slide_along_set`), that slide is a progression move in either direction and
+  wherever it falls; the first of it and the diagonal chain, right and left through or pass
+  through along the set progresses (Hudson's report note on Apogee, 2026-11-24: "the
+  slide_along_set right is the progression"; applying it to every such dance, and not to a
+  dance with two slides or a double progression, is the agent's call).
 - **sources:** user rulings 2026-11-22 (slice = slide; straight one couple, diagonal two) and
   2026-11-23 (a flagged diagonal slice is two progressions;
   measured on the Caller's Box mirror before the ruling was asked); CallersCompendium taxonomy

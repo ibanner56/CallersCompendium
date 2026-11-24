@@ -147,6 +147,20 @@
 > Tulsa (4959) now compiles; nothing else changed outcome. Heather's Hop
 > Redux and its alternate still mismatch, at their final half figure eight.
 >
+> **A Becket dance's only slide is a progression move (2026-11-24)**: in a
+> single-progression Becket dance with exactly one slide along the set (or
+> straight slice), the import now treats that slide as a progression move in
+> either direction and wherever it falls, alongside the diagonal chain, right
+> and left through and pass through along the set; the first of them
+> progresses (Hudson's report note on Apogee: the slide right is the
+> progression; applying it to every such dance, and not to a dance with two
+> slides or a double progression, is the agent's call). Against `rubric` at
+> `75e4e565` (whose corpus result matches `253f56db`'s): 4,240 of 5,425 to
+> 4,276 of 5,424 compiled in scope (78.8%), the
+> core set 547 to 551, no previously compiling dance lost; one failing dance
+> now stops at a deferred figure and leaves the denominator. Apogee (10265)
+> now compiles, with 35 others.
+>
 > **Refused when keeping remembered shadows would strand a couple
 > (2026-11-24)**: where a remembered shadow pair stand beside each other and
 > keeping them would leave dancers in the hands four unpaired who could all

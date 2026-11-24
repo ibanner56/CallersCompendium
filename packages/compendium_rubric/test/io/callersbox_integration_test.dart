@@ -50,12 +50,14 @@ Future<core.StructuredDraft> _draft() async {
 core.Dance _shapedLike({
   required core.FormationShape shape,
   required List<core.Figure> figures,
+  core.Progression progression = core.Progression.single,
 }) {
   final now = DateTime.utc(2020);
   return core.Dance(
     id: 'rule-under-test',
     title: 'rule under test',
     formation: core.Formation(shape),
+    progression: progression,
     figures: figures,
     createdAt: now,
     updatedAt: now,
@@ -1074,21 +1076,27 @@ void main() {
       expect(assumedProgressionIndex(dance), 2);
     });
 
-    test('a Becket dance slicing right does not', () {
+    test('a sole slide or slice right progresses', () {
+      // Hudson's Apogee note (2026-11-24): "the slide_along_set right is the
+      // progression". Reading every single-progression dance's only slide
+      // that way is the agent's call.
+      for (final slide in [
+        figure('slice', {'slice': 'right'}),
+        figure('slide_along_set', {'slide': 'right'}),
+      ]) {
+        final dance = _shapedLike(
+          shape: core.FormationShape.becketCcw,
+          figures: [slide, figure('swing')],
+        );
+        expect(assumedProgressionIndex(dance), 0, reason: '$slide');
+      }
+    });
+
+    test('a sole slide progresses wherever it falls', () {
       final dance = _shapedLike(
         shape: core.FormationShape.becketCw,
         figures: [
-          figure('slice', {'slice': 'right'}),
-          figure('swing'),
-        ],
-      );
-      expect(assumedProgressionIndex(dance), 1);
-    });
-
-    test('a Becket dance sliding right does not', () {
-      final dance = _shapedLike(
-        shape: core.FormationShape.becketCcw,
-        figures: [
+          figure('circle'),
           figure('slide_along_set', {'slide': 'right'}),
           figure('swing'),
         ],
@@ -1096,12 +1104,50 @@ void main() {
       expect(assumedProgressionIndex(dance), 1);
     });
 
-    test('a Becket dance that does not open with a slide does not', () {
+    test('an earlier diagonal chain still comes first', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        figures: [
+          figure('chain', {'who': 'role2s', 'where': 'leftDiagonal'}),
+          figure('slide_along_set', {'slide': 'right'}),
+          figure('swing'),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 0);
+    });
+
+    test('a slide right in a dance with two slides does not', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.becketCcw,
+        figures: [
+          figure('slide_along_set', {'slide': 'right'}),
+          figure('swing'),
+          figure('slice', {'slice': 'right'}),
+          figure('circle'),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 3);
+    });
+
+    test('a sole slide right in a double-progression dance does not', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.becketCw,
+        progression: core.Progression.double,
+        figures: [
+          figure('circle'),
+          figure('slide_along_set', {'slide': 'right'}),
+          figure('swing'),
+        ],
+      );
+      expect(assumedProgressionIndex(dance), 2);
+    });
+
+    test('a sole double slice later in the dance does not', () {
       final dance = _shapedLike(
         shape: core.FormationShape.becketCw,
         figures: [
           figure('circle'),
-          figure('slide_along_set', {'slide': 'left'}),
+          figure('slice', {'slice': 'right', 'return': 'diagonal'}),
           figure('swing'),
         ],
       );
