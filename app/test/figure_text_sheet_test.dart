@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'figures_support.dart';
+import 'support/announcements.dart';
 import 'support/l10n_harness.dart';
 import 'support/test_repositories.dart';
 
@@ -318,6 +319,38 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('figure-0-summary')), findsOneWidget);
     expect(find.byKey(const ValueKey('figure-1-summary')), findsNothing);
+  });
+
+  testWidgets('after Add figures, focus is on the last added row and the '
+      'count is announced', (tester) async {
+    final announcements = recordAnnouncements();
+    final repos = await _repos(
+      freeText: false,
+      figures: [
+        Figure(move: 'swing', params: const {'beats': 16}),
+      ],
+    );
+    await _pumpEditor(tester, repos);
+    await _openSheet(tester);
+    await _enterSheetText(tester, _lines.join('\n'));
+    await _tapAdd(tester);
+    expect(find.byKey(const ValueKey('figure-7-summary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('figure-8-summary')), findsNothing);
+
+    final focused = FocusManager.instance.primaryFocus?.context;
+    expect(focused, isNotNull);
+    bool holdsFocus(String key) {
+      var found = false;
+      tester.element(find.byKey(ValueKey(key))).visitAncestorElements((e) {
+        if (e == focused) found = true;
+        return !found;
+      });
+      return found;
+    }
+
+    expect(holdsFocus('figure-7-summary'), isTrue);
+    expect(holdsFocus('figure-6-summary'), isFalse);
+    expect(announcements, contains('Added 7 figures.'));
   });
 
   group('input over a cap is refused and inserts nothing', () {
