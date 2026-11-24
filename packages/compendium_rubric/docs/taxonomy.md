@@ -372,8 +372,8 @@ the reach is handed back they are not left marked out either.
 a couple further along *is* movement along the set, and a progression flag on top of that names
 more — so a flagged reaching figure finishes one phase past where an ordinary one would. The
 couples at the ends collect their end numbers from the normalization and then step straight
-back in beside whoever has arrived next to them. `slide_along_set` (and `slice`, which dances it)
-is the **exception** — the
+back in beside whoever has arrived next to them. `slide_along_set` (and `slice`, which dances it,
+and a diagonal `right_left_through`) is the **exception** — the
 slide *is* the progression, so flagging it names displacement the figure has already made
 rather than asking for more, and it advances once. That difference is
 carried by `Operation.isItsOwnProgression` rather than by naming the slide, so a future figure

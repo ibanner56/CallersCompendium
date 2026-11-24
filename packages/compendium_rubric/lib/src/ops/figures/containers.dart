@@ -97,6 +97,13 @@ final class FiguresInOrder extends _Container {
       ? figures.first.isItsOwnProgression
       : figures.any((figure) => figure.isItsOwnProgression);
 
+  /// A modifier spends what its main figure spends; a sequence, the most any
+  /// one child spends, as [isItsOwnProgression] reads any child.
+  @override
+  int get progressionsSpent => _isModifier
+      ? figures.first.progressionsSpent
+      : figures.map((figure) => figure.progressionsSpent).reduce(math.max);
+
   /// The main figure's warnings, read from the state it starts in.
   ///
   /// The later children start from states that only exist part-way through, so
@@ -170,6 +177,11 @@ final class Meanwhile extends _Container {
   @override
   bool get isItsOwnProgression =>
       figures.any((figure) => figure.isItsOwnProgression);
+
+  /// The most any one part spends, as [isItsOwnProgression] reads any part.
+  @override
+  int get progressionsSpent =>
+      figures.map((figure) => figure.progressionsSpent).reduce(math.max);
 
   /// Every part starts from the same state, so every part is linted on it.
   @override

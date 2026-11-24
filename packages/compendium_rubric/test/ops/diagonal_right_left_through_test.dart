@@ -88,24 +88,51 @@ void main() {
   });
 
   group('the diagonal trade and the progression', () {
-    test('Becket CCW: the couples left at the ends change number', () {
-      final ccw = parseRolesNotation([
-        'L1-A . . . R2-B',
-        'R1-A . . . L2-B',
-        'L1-C . . . R2-D',
-        'R1-C . . . L2-D',
-        'L1-E . . . R2-F',
-        'R1-E . . . L2-F',
-      ], type: FormationType.becketCcw);
-      final after = applyOk(const RightLeftThrough(dir: 'leftDiagonal'), ccw);
-      expect(after.toRolesNotation(), [
-        'L2-A . . . R1-C',
-        'R2-A . . . L1-C',
-        'L2-B . . . R1-E',
-        'R2-B . . . L1-E',
-        'L2-D . . . R1-F',
-        'R2-D . . . L1-F',
-      ]);
+    test('Becket CCW from its start: every hands four keeps one #1 and one '
+        '#2 couple, the ends facing in', () {
+      // The trade never reads the formation type; this pins the CCW start
+      // with its forward diagonal, the right one.
+      final after = applyOk(
+        const RightLeftThrough(dir: 'rightDiagonal'),
+        startingFormation(FormationType.becketCcw, handsFour: 3),
+      );
+      for (final band in handsFourBands(after)) {
+        final numbers = [
+          for (final row in [band.topRow, band.topRow + 1])
+            for (final id in after.dancersInRow(row)) after.stateOf(id).number,
+        ];
+        expect(numbers.where((n) => n == CoupleNumber.one), hasLength(2));
+        expect(numbers.where((n) => n == CoupleNumber.two), hasLength(2));
+      }
+      for (var row = 0; row <= after.lastRow; row++) {
+        for (final id in after.dancersInRow(row)) {
+          final state = after.stateOf(id);
+          expect(
+            state.facing,
+            state.col == 0 ? Facing.acrossEast : Facing.acrossWest,
+            reason: '$id faces into the set',
+          );
+        }
+      }
+    });
+
+    test('a couple at an end facing out turns back in', () {
+      final start = becketStart();
+      final top = [
+        start.dancerAt(const Position(0, 0))!,
+        start.dancerAt(const Position(1, 0))!,
+      ];
+      final facingOut = start.withUpdates({
+        for (final id in top)
+          id: start.stateOf(id).copyWith(facing: Facing.acrossWest),
+      });
+      final after = applyOk(
+        const RightLeftThrough(dir: 'leftDiagonal'),
+        facingOut,
+      );
+      for (final id in top) {
+        expect(after.stateOf(id).facing, Facing.acrossEast, reason: '$id');
+      }
     });
 
     test('a flagged diagonal trade spends two progressions', () {
@@ -130,6 +157,24 @@ void main() {
           RightLeftThrough(dir: 'rightDiagonal'),
         ).progressionCount,
         0,
+      );
+      // A container spends what its diagonal trade spends.
+      expect(
+        const OperationInvocation(
+          FiguresInOrder([
+            RightLeftThrough(dir: 'leftDiagonal'),
+            LongLines(),
+          ], name: 'modifier'),
+          progression: true,
+        ).progressionCount,
+        2,
+      );
+      expect(
+        const OperationInvocation(
+          Meanwhile([RightLeftThrough(dir: 'leftDiagonal'), LongLines()]),
+          progression: true,
+        ).progressionCount,
+        2,
       );
     });
 

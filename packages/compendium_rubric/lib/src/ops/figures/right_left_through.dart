@@ -47,6 +47,12 @@ final class RightLeftThrough extends Operation {
   /// two slides. *(Agent's call, 2026-11-24, after the user-ruled diagonal
   /// `slice`: "diagonal is double".)* It is still danced as one step; only the
   /// count that distance-named figures read advances by two.
+  ///
+  /// That is the count for a trade that carries couples **forward**, the way
+  /// the formation progresses (Becket CW `leftDiagonal`, CCW `rightDiagonal`),
+  /// which is every flagged diagonal in the corpus measured. A flagged trade
+  /// the other way would carry them back, and is counted the same: deferred,
+  /// with no dance to check it against.
   @override
   int get progressionsSpent => _isDiagonal ? 2 : 1;
 
@@ -140,10 +146,13 @@ final class RightLeftThrough extends Operation {
     }
 
     // The couple left at each end with no one on its diagonal has, for that
-    // moment, stood out at the end, and comes back in as the other number
-    // (fundamentals §10.2). *(Agent's call, 2026-11-24.)* A line that is not
-    // one couple keeps its numbers, as an end row that is not one couple does
-    // (§10.2.1).
+    // moment, stood out at the end. Everyone else in its hands four has
+    // traded lines around it, so it comes back in as the other of its own
+    // number, facing into the set, and its hands four again holds one #1 and
+    // one #2 couple (fundamentals §10.2.2, the diagonal-trade exception).
+    // This happens flagged or not: the trade moves the couples either way.
+    // *(Agent's call, 2026-11-24.)* A line that is not one couple keeps its
+    // numbers, as an end row that is not one couple does (§10.2.1).
     for (final (index, col) in [
       (0, dir == 'leftDiagonal' ? 0 : kColumnCount - 1),
       (groupings.length - 1, dir == 'leftDiagonal' ? kColumnCount - 1 : 0),
@@ -155,7 +164,10 @@ final class RightLeftThrough extends Operation {
       if (line[0].coupleIndex != line[1].coupleIndex) continue;
       for (final id in line) {
         final state = formation.stateOf(id);
-        changes[id] = state.copyWith(number: state.number.flipped);
+        changes[id] = state.copyWith(
+          number: state.number.flipped,
+          facing: col == 0 ? Facing.acrossEast : Facing.acrossWest,
+        );
       }
     }
     return Ok(changes);

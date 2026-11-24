@@ -162,7 +162,7 @@ behind §3.5's equality rule.
                                any held progression is overtaken (given up, reported)
                              else, if a progression is held:
                                finishHeldProgression(...) once a whole couple is at an end
-                             if flagged, progressions += progressionCount (counted where flagged, held or not; a flagged diagonal slice counts two)
+                             if flagged, progressions += progressionCount (counted where flagged, held or not; a flagged diagonal slice or diagonal right_left_through counts two)
                         c. Err  -> return CompileError(opIndex, opName, error, warnings)
                         d. Ok   -> state = value
    then            <- a held progression never finished -> heldProgressionUnfinished warning
@@ -627,8 +627,8 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > one, user-ruled 2026-11-22), progresses; otherwise the **first diagonal
 > `chain` or `pass_through` along the set** does (user-ruled 2026-11-23: a
 > Becket progression is the obvious move), or a diagonal `right_left_through`
-> (agent's call 2026-11-24, by analogy with the diagonal chain), and only a Becket dance with
-> neither falls back to the last figure. A `modifier` is read by its main
+> (agent's call 2026-11-24, by analogy with the diagonal chain), and only a
+> Becket dance with none of these falls back to the last figure. A `modifier` is read by its main
 > figure for both Becket rules, so "slice left while partner roll away"
 > opening the dance progresses there (user-ruled 2026-11-23: a modifier's
 > progression is its main figure's). (Core's `slide_along_set.slide` and
@@ -867,7 +867,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,474 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,475 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

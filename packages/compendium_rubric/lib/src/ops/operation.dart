@@ -80,10 +80,11 @@ sealed class Operation {
   /// Whether this figure **is** the dance's progression rather than merely
   /// carrying its flag.
   ///
-  /// `slide_along_set` is one, and `slice`, which dances one or two slides, is
-  /// the other: the slide's own displacement is what carries dancers on to the
-  /// next couple, so flagging it as the progression names the movement that
-  /// has already happened. Every other figure that
+  /// `slide_along_set` is one; `slice`, which dances one or two slides, and a
+  /// diagonal `right_left_through`, which trades couples with the next hands
+  /// four, are the others: the figure's own displacement is what carries
+  /// dancers on to the next couple, so flagging it as the progression names
+  /// the movement that has already happened. Every other figure that
   /// re-bands the set — a figure danced with the next neighbours — is *not* a
   /// progression, so a progression flag on top of it advances the set a second
   /// time (§8.1). See [OperationInvocation.apply], which is where the

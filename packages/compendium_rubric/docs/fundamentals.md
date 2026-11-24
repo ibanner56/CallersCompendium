@@ -736,7 +736,15 @@ the top, and it re-enters c0 as a **2**. The invariant is not "top is #1" — it
 number matches the line you are re-entering."*
 
 On every well-formed state this produces the same result as the older *"flip the number"*
-wording, because a couple always crosses to the opposite line. Assigning rather than flipping
+wording, because a couple always crosses to the opposite line.
+
+**The diagonal-trade exception** *(agent's call 2026-11-24, not yet ratified)*. A diagonal
+`right_left_through` trades each couple with the next hands four, and the couple at each end
+with no one on its diagonal stands still while everyone else in its hands four trades lines
+around it. It is the one couple that has *not* crossed, so the line rule would give it the
+number of the couple now across from it. Instead it takes **the other of its own number**,
+in the figure's own transform, flagged or not (the trade moves the couples either way), and
+faces into the set: its hands four again holds one #1 and one #2 couple. Assigning rather than flipping
 buys two things:
 
 - **It is self-repairing.** If the arriving dancers somehow hold inconsistent numbers, the
