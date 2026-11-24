@@ -89,9 +89,10 @@ final class RightLeftThrough extends Operation {
   /// 2026-11-24, pairing by line as the user-ruled diagonal chain does.)*
   ///
   /// A couple with no grouping on its diagonal, at an end of the set, stays
-  /// where it is and takes that end's number (see below). A set with couples
-  /// already waiting out is refused as deferred: which line a waiting couple
-  /// would trade from is unruled.
+  /// where it is and comes back in as the other of its own number, facing in
+  /// (see below; fundamentals §10.2.2, the diagonal-trade exception). A set
+  /// with couples already waiting out is refused as deferred: which line a
+  /// waiting couple would trade from is unruled.
   Result<Map<DancerId, DancerState>, OpError> _diagonalPlan(
     Formation formation,
   ) {

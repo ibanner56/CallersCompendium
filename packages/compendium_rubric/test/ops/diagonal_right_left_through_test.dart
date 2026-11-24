@@ -34,7 +34,8 @@ void main() {
         );
         // D (west, second hands four) and A (east, first) trade, as do F and C.
         // Each lands end for end and faces in; B at the top and E at the bottom
-        // have no one on their diagonal and stay, taking their end's number.
+        // have no one on their diagonal and stay, coming back in as the other
+        // of their own number.
         expect(after.toRolesNotation(), [
           'L1-B . . . R2-D',
           'R1-B . . . L2-D',
