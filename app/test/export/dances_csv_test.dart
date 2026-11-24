@@ -177,9 +177,32 @@ void main() {
     });
 
     test('a name with neither is written exactly as before', () {
-      final csv = build([dance()]);
-      expect(csv, contains('Favourite'));
-      expect(csv, isNot(contains(r'\')));
+      final csv = buildDancesCsv(
+        [
+          dance().copyWith(
+            tagIds: const ['t1', 't3'],
+            tunes: const ['Reel', "Rory O'More"],
+          ),
+        ],
+        l10n: en,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        renderer: plainRenderer,
+        lookups: DancesCsvLookups(
+          tagsById: {
+            't1': Tag(id: 't1', name: 'Favourite'),
+            't3': Tag(id: 't3', name: 'Hey Ho'),
+          },
+        ),
+      );
+      final rows = readCsv(csv);
+      expect(
+        rows[1][rows.first.indexOf(en.csvColumnTags)],
+        'Favourite, Hey Ho',
+      );
+      expect(
+        rows[1][rows.first.indexOf(en.csvColumnTunes)],
+        "Reel, Rory O'More",
+      );
     });
   });
 

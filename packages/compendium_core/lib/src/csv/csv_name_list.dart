@@ -2,13 +2,19 @@
 /// the way the CSV import reads them back.
 ///
 /// A name that holds a comma would split in two on re-import, so a list writes
-/// a comma inside a name as `\,` and a backslash as `\\` (maintainer decision
-/// on #2332/#2329). A name with neither is written exactly as it always was, so
-/// every earlier export reads back unchanged.
+/// a comma inside a name as `\,` and a backslash as `\\`. A name with neither
+/// is written exactly as it always was, and a cell with no backslash splits as
+/// it always did. A cell written before this existed reads the same, except
+/// where a name itself held a backslash next to a comma or another backslash
+/// (`a\, b` was two names, and is now one name `a, b`).
 ///
 /// Reading: `\,` is a comma and `\\` a backslash, both part of the name. Any
 /// other backslash (before another character, or last in the cell) stays a
 /// literal backslash, so a hand-typed sheet is never mangled.
+///
+/// Only the comma can be protected. A tunes cell is also split on `;` and line
+/// breaks ([splitNameList]'s `extraSeparators`), and a tune name holding one of
+/// those still splits on re-import.
 library;
 
 /// The separator [joinNameList] writes between names.

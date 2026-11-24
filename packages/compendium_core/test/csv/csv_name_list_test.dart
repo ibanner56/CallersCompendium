@@ -61,4 +61,13 @@ void main() {
       expect(splitNameList(joinNameList(names)), names);
     });
   });
+
+  group('a cell written before the escape existed', () {
+    test('reads as it did unless a name held a backslash beside a comma or '
+        'another backslash (a recorded consequence of the escape)', () {
+      expect(splitNameList(r'a\, b'), ['a, b'], reason: 'was [a\\, b]');
+      expect(splitNameList(r'A\\B'), [r'A\B'], reason: 'was A\\\\B');
+      expect(splitNameList(r'C:\temp'), [r'C:\temp']);
+    });
+  });
 }

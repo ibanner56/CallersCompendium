@@ -376,7 +376,8 @@ field's name (a second field with the same name, or one named like a column
 above, is headed `Name (2)`, so importing the file maps every column back to its
 own field). Tags and tunes are each listed in one cell, separated by a comma
 and a space; a comma inside a name is written `\,` and a backslash `\\`, so
-importing the file gives every name back whole. Dates are written
+importing the file keeps a name with a comma whole. (A tune name with a
+semicolon or a line break in it is still split in two on import.) Dates are written
 as a year, year-month or year-month-day, as precisely as you know them (for
 example `1951`, `1951-03` or `1951-03-14`). The figures are in one cell, one
 per line with their phrase labels, worded in your active

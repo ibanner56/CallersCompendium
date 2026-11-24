@@ -311,7 +311,8 @@ How the values come in:
   a tag, write `\,` (the app's own export does); a backslash is written `\\`,
   and a backslash before anything else is read as it is.
 - **Tunes** are separated by commas, semicolons or line breaks, and read the
-  same way: `\,` keeps a comma in a tune's name.
+  same way: `\,` keeps a comma in a tune's name. There is no way to keep a
+  semicolon or a line break inside one tune name.
 - **Level** is matched to your difficulty levels by name.
 - **Numbers** are read as you would type them, with one exception: in a sheet
   separated by semicolons (what Excel saves in Danish, German, French and Dutch)
