@@ -173,7 +173,8 @@ behind §3.5's equality rule.
                                    (tradeInPlace; each end at most once); keep it only if it
                                    Compiles, with an endEffectSwap warning (fundamentals §10.7)
                                    else, if the figure before was an allemande with a
-                                   short-wave reading (allemandeWaveReading), re-fold from
+                                   short-wave reading (allemandeWaveReading), and this figure
+                                   has not been wave-retried on this path, re-fold from
                                    here with the set in that reading; keep it only if it
                                    Compiles, with an allemandeWaveRetry warning (§8.5.8)
                                    else return CompileError(opIndex, opName, error, warnings)
@@ -460,6 +461,7 @@ index.
 | `assumedProgression` | **an import bridge** | the source flagged no progression, so one was assumed (§10.1) |
 | `heldProgressionUnfinished` | engine (`FigureFold`) | a held progression's change-over never ran |
 | `endEffectSwap` | engine (`compile`) | a pair waiting at an end traded places so a refused figure could be danced, and the dance then compiled |
+| `allemandeWaveRetry` | engine (`compile`) | the dance was danced on from the short waves an allemande can leave, after the next figure refused or the dance landed elsewhere, and then compiled *(user-ruled 2026-11-24)* |
 | `endedColumnOffset` | engine (comparison) | the dance compiled with every dancer in the expected row but some one column off *(user-ruled 2026-11-24)* |
 
 Three rules about warnings:
@@ -722,9 +724,11 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > `unperformedProgression`. **The bridge assumes; the compiler never infers.**
 >
 > **One retry by the next neighbours** *(user-ruled)*. When the positional placement does
-> not compile, or compiles only as a one-column near miss (`endedColumnOffset`,
-> in which case a retry replaces it only if it matches exactly; extending the
-> retries to near misses is the agent's call, 2026-11-24), `runCoreDance` tries a
+> not compile, or compiles only as a near miss (one column off,
+> `endedColumnOffset`, or only from an allemande's short waves,
+> `allemandeWaveRetry`; a retry then replaces it only if it matches exactly;
+> extending the retries to near misses is the agent's call, 2026-11-24),
+> `runCoreDance` tries a
 > second: the figure **immediately before the
 > first `nextNeighbors` reach**, in a param or (below) a note
 > (`nextNeighborsProgressionIndex`). A figure
@@ -962,7 +966,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,635 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,641 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across and single file along the set built.
 - **53 figures registered**, plus the three containers (`modifier`,

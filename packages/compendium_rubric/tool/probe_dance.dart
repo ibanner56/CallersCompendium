@@ -52,8 +52,9 @@ void main(List<String> args) {
     final fig = dance.figures[i];
     // Threaded exactly as the engine threads it (`FigureFold`): the distance
     // count, and any progression held until a couple reaches an end. Folding
-    // by hand made the trace disagree with `compile` on both. The end-effect
-    // retry is the one thing it leaves to `compile`, printed below.
+    // by hand made the trace disagree with `compile` on both. The retries
+    // (end effects, §10.7; an allemande's short waves, §8.5.8) are left to
+    // `compile`, printed below.
     final r = fold.step(fig, state, index: i);
     print('\nop $i  $fig');
     switch (r) {
@@ -63,7 +64,8 @@ void main(List<String> args) {
       case Err(:final error):
         print('  REFUSED ${error.kind.name}: ${error.detail}');
         // `compile` may still go on: a refusal naming a pair waiting at an
-        // end is retried with them traded (`docs/fundamentals.md` §10.7),
+        // end is retried with them traded (`docs/fundamentals.md` §10.7), and
+        // one straight after an allemande from its short waves (§8.5.8),
         // which this step-through does not do.
         print('\ncompile: ${compile(dance)}');
         return;

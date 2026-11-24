@@ -109,8 +109,11 @@ class Dance {
 /// The pipeline is: pre-scan the figure list for size (§3.1) → instantiate the
 /// starting matrix → fold the figures over it, short-circuiting on the first
 /// refusal (§3.2, §3.3) unless a pair waiting at an end trading places lets
-/// the whole dance compile (`docs/fundamentals.md` §10.7) → compare the result against the criterion's
-/// independently computed expectation (§3.4, §3.5).
+/// the whole dance compile (`docs/fundamentals.md` §10.7) → compare the result
+/// against the criterion's independently computed expectation (§3.4, §3.5).
+/// Either a refusal straight after an allemande or a result that lands
+/// elsewhere is first retried from that allemande's short waves
+/// (`docs/fundamentals.md` §8.5.8), kept only if the whole dance compiles.
 ///
 /// Three outcomes, and the last two stay distinct on purpose: a [Mismatch]
 /// means the dance *ran* and landed somewhere else, while a [CompileError]
@@ -158,6 +161,17 @@ CompileResult compile(Dance dance) {
 /// the original refusal is reported, so a retry never turns one failure into
 /// another or touches a dance that compiles without it. Each end trades at
 /// most once along one path ([spentRows]; [maxEndEffectSwaps]).
+///
+/// **Short waves after an allemande** (`docs/fundamentals.md` §8.5.8,
+/// user-ruled 2026-11-24). When the figure straight after an allemande
+/// refuses (and no end-effect trade rescued it), the fold is re-run from that
+/// figure with the set in the allemande's short-wave reading
+/// ([allemandeWaveReading]). When every figure runs but the dance lands
+/// elsewhere, it is re-run from the figure after each allemande of this fold
+/// that has a reading, in order. Either is kept only if the whole dance
+/// compiles. [waveRetried] holds the figures already retried this way along
+/// one path, so none is retried twice; a fold that is itself a wave retry
+/// makes no retry after a mismatch.
 CompileResult _foldFrom(
   Dance dance, {
   required Formation input,
@@ -200,9 +214,9 @@ CompileResult _foldFrom(
     switch (outcome) {
       case Ok(:final value):
         warnings.addAll(lints);
-        // As danced, so the end rows it left out read as waiting.
         // Kept for the retry after a mismatched end, below. A fold that is
-        // already a wave retry records none, so the retries do not nest.
+        // already a wave retry records none, so a mismatch is retried from
+        // one allemande's waves at most (a refusal inside it still may be).
         if (figure.operation case final Allemande allemande
             when waveRetried.isEmpty) {
           final waves = allemandeWaveReading(handed, value, allemande);
@@ -212,10 +226,11 @@ CompileResult _foldFrom(
               handed: handed,
               waves: waves,
               fold: fold.copy(),
-              warnings: [...warnings, ...lints],
+              warnings: [...warnings],
             ));
           }
         }
+        // As danced, so the end rows it left out read as waiting.
         previousState = handed;
         state = value;
       case Err(:final error):

@@ -313,7 +313,7 @@ Formation quarterTurnIntoWave(
   return formation.withUpdates(changes);
 }
 
-/// The three shapes in which a pair already stands **holding hands in a wave**,
+/// The four shapes in which a pair already stands **holding hands in a wave**,
 /// so that a turn can start from the hold rather than from facing each other
 /// (`docs/fundamentals.md` §8.5.7).
 enum WaveHoldShape {
@@ -341,10 +341,9 @@ enum WaveHoldShape {
 ///
 /// The hand comes from the geometry, as it always does here (§8.5.2): a dancer
 /// holds right hands with the other when the other stands on their right.
-/// The two side-pair shapes of [WaveHoldShape] are recognized, and so is the
-/// pair of one hands four in a centre long wave. The centre pair of a short
-/// wave is not, so a turn it starts leaves the wave and is turned from facing
-/// (`Allemande`, §8.5.7).
+/// Every shape of [WaveHoldShape] is recognized: the two side-pair shapes,
+/// the pair of one hands four in a centre long wave, and the centre pair of a
+/// short wave (§8.5.7).
 ({WaveHoldShape shape, Hand hand})? waveHoldOf(
   Formation formation,
   DancerPair pair,
@@ -403,8 +402,9 @@ enum WaveHoldShape {
 ///
 /// Positions and facings rotate together, clockwise for the right hand and
 /// counter-clockwise for the left. A quarter of a turn takes a pair's line
-/// through a right angle: the two side shapes trade places, and a centre
-/// long-wave pair turns out into a short wave:
+/// through a right angle: the two side shapes trade places, a centre
+/// long-wave pair turns out into a short wave, and the centre pair of a short
+/// wave turns into a centre long wave:
 ///
 /// - a **short-wave** side pair ends in the side long wave of its own side
 ///   column, the dancer the rotation carries north in the band's top row;
@@ -413,7 +413,10 @@ enum WaveHoldShape {
 ///   in the row a short wave gives their facing (top row Down, bottom row Up,
 ///   §8.5.1);
 /// - a **centre long-wave** pair ends as the centre pair of a short wave, and
-///   the band's two side dancers join it as the ends (§8.5.7, agent's call).
+///   the band's two side dancers join it as the ends (§8.5.7, agent's call);
+/// - a **short-wave centre** pair ends in the centre column, the dancer the
+///   rotation carries north in the band's top row, both facing across; the
+///   ends stay where they stand (§8.5.7, agent's call).
 ///
 /// Throws [ArgumentError] for a pair not holding [hand], or a centre pair whose
 /// band has no side dancer on each side ([centreWaveSides]); callers refuse

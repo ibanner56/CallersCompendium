@@ -150,6 +150,11 @@ Formation _ok(Operation op, Formation input) {
 Dance _parse(Map<String, Object?> record) =>
     (parseDance(record) as Ok<Dance, DanceParseError>).value;
 
+List<int?> _retriedAt(CompileResult result) => [
+  for (final warning in result.warnings)
+    if (warning.kind == WarningKind.allemandeWaveRetry) warning.opIndex,
+];
+
 bool _retried(CompileResult result) => result.warnings.any(
   (warning) => warning.kind == WarningKind.allemandeWaveRetry,
 );
@@ -193,6 +198,43 @@ void main() {
       expect(waves.toRolesNotation(), ['. L2-B . . R2-B', 'R1-A . . L1-A .']);
     });
 
+    test('partners who finish in one row have no reading, not a box', () {
+      // Partners stand in one row in Duple Improper; stepping both pairs in
+      // would leave each row side by side facing the same way.
+      const allemande = Allemande(
+        who: WhoSet.partners,
+        hand: Hand.right,
+        turn: 1.5,
+      );
+      final handed = _di();
+      final after = _ok(allemande, handed);
+      expect(allemandeWaveReading(handed, after, allemande), isNull);
+    });
+
+    test('a flagged side allemande is still read on the side', () {
+      // Its change-over crosses the end couples, so read from where they end
+      // the neighbours would look across the set; they started along it.
+      final handed = parseRolesNotation([
+        'R1-A . . . L1-A',
+        'L2-B . . . R2-B',
+        'R1-C . . . L1-C',
+        'L2-D . . . R2-D',
+      ], type: FormationType.dupleImproper);
+      const allemande = Allemande(
+        who: WhoSet.neighbors,
+        hand: Hand.right,
+        turn: 1.5,
+      );
+      const invocation = OperationInvocation(allemande, progression: true);
+      final after = (invocation.apply(handed) as Ok<Formation, OpError>).value;
+      final waves = allemandeWaveReading(handed, after, allemande)!;
+      final expected = _ok(
+        const FormShortWaves(centerHand: Hand.left, center: null, sides: null),
+        after,
+      );
+      expect(waves.toRolesNotation(), expected.toRolesNotation());
+    });
+
     test('a quarter allemande already lands in a wave and has no reading', () {
       const allemande = Allemande(who: WhoSet.neighbors, turn: 0.75);
       final handed = _di();
@@ -215,7 +257,78 @@ void main() {
     test('when the next figure refuses: Top Spin', () {
       final result = compile(_parse(_topSpin));
       expect(result, isA<Compiled>(), reason: '$result');
-      expect(_retried(result), isTrue);
+      // Figure 3 (index 2), the Larks' 3/4 after the neighbours' half.
+      expect(_retriedAt(result), [2]);
+    });
+
+    test('the mismatch retry is warned at the figure after the allemande', () {
+      // Jerry's Larks' 1 1/2 is figure 6 (index 5).
+      expect(_retriedAt(compile(_parse(_jerryGoesToCamp))), [6]);
+    });
+
+    test('a dance that compiles as written is not retried', () {
+      final record = {
+        ..._jerryGoesToCamp,
+        'figures': [
+          // Has a side reading, which the dance never needs.
+          {
+            'move': 'allemande',
+            'params': {
+              'who': 'neighbors',
+              'hand': 'right',
+              'travel': 1.0,
+              'beats': 8,
+            },
+          },
+          {
+            'move': 'allemande',
+            'params': {
+              'who': 'neighbors',
+              'hand': 'right',
+              'travel': 1.5,
+              'beats': 8,
+            },
+            'progression': true,
+          },
+        ],
+      };
+      final result = compile(_parse(record));
+      expect(result, isA<Compiled>(), reason: '$result');
+      expect(_retried(result), isFalse);
+    });
+
+    test('a retry that does not compile reports the original refusal', () {
+      // Partners' allemande 1 1/2 has no reading (they finish in one row),
+      // so the Larks' 3/4 across the set refuses exactly as it did before.
+      final record = {
+        ..._jerryGoesToCamp,
+        'figures': [
+          {
+            'move': 'allemande',
+            'params': {
+              'who': 'partners',
+              'hand': 'right',
+              'travel': 1.5,
+              'beats': 8,
+            },
+          },
+          {
+            'move': 'allemande',
+            'params': {
+              'who': 'role1s',
+              'hand': 'left',
+              'travel': 0.75,
+              'beats': 8,
+            },
+            'progression': true,
+          },
+        ],
+      };
+      final result = compile(_parse(record));
+      expect(result, isA<CompileError>(), reason: '$result');
+      expect((result as CompileError).opIndex, 1);
+      expect(result.error.kind, ErrorKind.unsupportedParam);
+      expect(_retried(result), isFalse);
     });
   });
 }

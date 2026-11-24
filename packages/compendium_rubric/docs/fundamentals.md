@@ -599,16 +599,22 @@ progressed places only when the Larks finish the 1½ as the centre of a short wa
 The **short-wave reading** of an allemande (`allemandeWaveReading`,
 `engine/allemande_waves.dart`) is:
 
-- **in the centre** — every turning pair stands one on each side of the set: each of those
+- **in the centre** — every turning pair started one on each side of the set: each of those
   dancers moves one column in (c0 to c1, c4 to c3), so the pair is the centre of a short wave,
-  and every band's top row faces Down and bottom row Up (§8.5.1). Nobody changes row.
-- **on the side** — every turning pair stands on one side line: the set is placed as
+  and every band's top row faces Down and bottom row Up (§8.5.1). Nobody changes row. The pair
+  must finish in the two rows of one band: two who finish in one row, such as partners after
+  an allemande 1½, would step in side by side facing the same way, a box rather than a wave, so
+  that allemande has no reading. A pair that a progression's change-over sent out to an end is
+  waiting, and stays where it is. *(Both agent's calls, 2026-11-24, from review; neither changed
+  a corpus outcome.)*
+- **on the side** — every turning pair started on one side line: the set is placed as
   `form_short_waves` would place it with that **outside** hand, so the centre joins the other
   hand. A neighbour allemande right gives the wave whose `centerHand` is `left`.
 
-A quarter or three-quarter allemande already lands in a wave and has no reading; neither does a
-set whose turning pairs are some across and some along, or a centre allemande whose turners are
-not on the side lines.
+Across or along is read from where the pairs **started**, since a flagged allemande's change-over
+may already have crossed the end couples. A quarter or three-quarter allemande already lands in
+a wave and has no reading; neither does a set whose turning pairs are some across and some along,
+or a centre allemande whose turners are not on the side lines.
 
 The compiler uses the reading as a **retry**, in two places (`compile`):
 
@@ -619,10 +625,17 @@ The compiler uses the reading as a **retry**, in two places (`compile`):
 
 Either way the retried fold is kept **only if the whole dance compiles**, with an
 `allemandeWaveRetry` warning at the figure after the allemande; otherwise the original result is
-reported unchanged. So it cannot cost a dance that compiles without it. A fold that is itself a
-wave retry makes no further wave retry after a mismatch, so the retries do not nest *(agent's
-call)*. Unlike the end-effect retry (§10.7), this one does run on a dance that lands elsewhere:
+reported unchanged. So it cannot cost a dance that compiles without it. Each figure is retried
+this way at most once along one path, and a fold that is itself a wave retry makes no retry after
+a mismatch, so a mismatch is retried from one allemande's waves at most *(agent's call)*; a
+refusal inside such a fold may still be. Unlike the end-effect retry (§10.7), this one does run on a dance that lands elsewhere:
 there is one reading per allemande, not one per figure, so the search stays small.
+
+The wave is a guess the source never states, so the Caller's Box bridge treats a dance that
+compiled only this way as a **near miss**, like one that ended a column off: it still tries the
+record's own alternative progression placement, and takes that if it matches exactly *(agent's
+call, from review)*. That keeps one dance (8017) on the next-neighbours placement it already
+compiled on exactly, rather than a guessed wave on its positional one.
 
 *Measured 2026-11-24 against `rubric` at `4cc6c406`, with the centre-pair turn above:* 4,484 of
 5,617 to 4,532 of 5,623 compiled in scope (79.8% to 80.6%), 48 dances gained (44 through the

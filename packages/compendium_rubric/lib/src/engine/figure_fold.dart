@@ -13,10 +13,12 @@ import 'result.dart';
 ///
 /// Anything that steps through a dance figure by figure (a trace, a probe, a
 /// golden test's failure report) goes through this, so it cannot disagree
-/// with the compile it is explaining. The one thing it does not do is the
-/// end-effect retry (`docs/fundamentals.md` §10.7): a dance that compiled only
-/// after a waiting pair traded places says so with an `endEffectSwap` warning,
-/// and a plain step-through of it refuses where the compile retried.
+/// with the compile it is explaining. What it does not do is the compiler's
+/// retries: the end-effect retry (`docs/fundamentals.md` §10.7) and the
+/// short-wave retry after an allemande (§8.5.8). A dance that compiled only
+/// through one says so with an `endEffectSwap` or `allemandeWaveRetry`
+/// warning, and a plain step-through of it refuses or lands elsewhere where
+/// the compile retried.
 ///
 /// **Holding** (`docs/fundamentals.md` §10.2.1, user-ruled 2026-11-23). A
 /// progression-flagged figure that leaves no whole couple at either end has
