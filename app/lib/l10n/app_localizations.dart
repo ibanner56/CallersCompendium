@@ -14719,7 +14719,19 @@ abstract class AppLocalizations {
   /// **'From an image…'**
   String get figureTextSheetFromImage;
 
-  /// Label of the From an image… button while the chosen picture's text is being read on the device.
+  /// Button in the Add figures from text sheet, beside From an image…, that opens the camera to photograph an index card or a book page; the photo's text is read on the device and put in the text box, and the photo is not kept. Shown only on iPhone and iPad.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo'**
+  String get figureTextSheetTakePhoto;
+
+  /// Error under the Take a photo button on iPhone and iPad when the user has turned camera access off for the app (or a device policy has), so the camera did not open. Settings app is the iOS Settings app.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera access is off for Caller\'s Compendium. To take a photo, turn it on in the Settings app.'**
+  String get figureTextSheetCameraOff;
+
+  /// Label of the From an image… or Take a photo button while the chosen picture's or the new photo's text is being read on the device.
   ///
   /// In en, this message translates to:
   /// **'Reading the picture…'**

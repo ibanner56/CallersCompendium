@@ -10013,6 +10013,13 @@ class AppLocalizationsNl extends AppLocalizations {
   String get figureTextSheetFromImage => 'Uit een afbeelding…';
 
   @override
+  String get figureTextSheetTakePhoto => 'Foto maken';
+
+  @override
+  String get figureTextSheetCameraOff =>
+      'Cameratoegang staat uit voor Caller\'s Compendium. Zet hem aan in de app Instellingen om een foto te maken.';
+
+  @override
   String get figureTextSheetReadingImage => 'Afbeelding wordt gelezen…';
 
   @override

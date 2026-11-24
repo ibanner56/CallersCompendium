@@ -297,8 +297,16 @@ the lines are then read exactly as typed text is.
   in all, is refused before anything is read. Crop it or choose a smaller one.
 - Typed text reads best. Handwriting may come out wrong, so check each line.
 
-**From an image…** isn't offered on Android, Windows or Linux: you can still
-type or paste the figures.
+On iPhone and iPad, **Take a photo** beside it opens the camera instead, so
+you can photograph the card without leaving the app. The first time, the
+system asks whether the app may use the camera; it uses it only when you tap
+**Take a photo**. The photo is read the same way and is **not kept**: it is
+deleted as soon as its text has been read, or straight away if reading fails,
+and it is never added to your photo library. If you said no to the camera, you
+can turn it on again in the Settings app, under **Caller's Compendium**.
+
+**From an image…** isn't offered on Android, Windows or Linux, and **Take a
+photo** is only on iPhone and iPad: you can still type or paste the figures.
 
 ### Figure shorthands
 
