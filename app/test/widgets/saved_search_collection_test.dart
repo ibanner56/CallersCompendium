@@ -713,15 +713,17 @@ void main() {
         await _seed(repos, 'Search $i', CollectionPanelState(text: 's$i'));
       }
       await _pump(tester, repos);
-      // A keyboard covering all but the top 400 logical pixels of the window.
+      // A keyboard covering everything from 150 logical pixels under the
+      // field: room for a few rows, far less than the dropdown's 320.
+      final keyboardTop = tester.getRect(_field).bottom + 150;
       tester.view.viewInsets = FakeViewPadding(
-        bottom: (3000 - 400) * tester.view.devicePixelRatio,
+        bottom: (3000 - keyboardTop) * tester.view.devicePixelRatio,
       );
       addTearDown(tester.view.resetViewInsets);
       await _focusField(tester);
 
       expect(_dropdown, findsOneWidget);
-      expect(tester.getRect(_dropdown).bottom, lessThanOrEqualTo(400));
+      expect(tester.getRect(_dropdown).bottom, lessThanOrEqualTo(keyboardTop));
     });
   });
 
