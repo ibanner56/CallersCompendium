@@ -133,11 +133,24 @@
 > Tulsa (4959) now compiles; nothing else changed outcome. Heather's Hop
 > Redux and its alternate still mismatch, at their final half figure eight.
 >
+> **An arch and dive from a line of four bends it first (2026-11-24)**: "in
+> a line of four, go up the hall; ones arch, twos dive" bends the line into a
+> ring before the couples trade, and the Caller's Box bridge takes an arch and
+> dive straight after a hall figure as the progression (both user-ruled). The
+> bridge also reads a hall figure noted "backwards" as a line backing along the
+> hall. The bend geometry, that reading and the progression rule's scope are
+> the agent's calls. Against `rubric` at `fd3447ef`: 4,073 to 4,090 of 5,257
+> compiled in scope (77.5% to 77.8%), the core set unchanged at 532, no
+> previously compiling dance lost. 17 dances now compile, among them Peekaboo
+> Street (14834) and Ends Turn in Contra (11511). Contra Madness (1013) still
+> refuses, at its N3 swing: it needs a second progression. Three refused
+> dances now mismatch (2012, 5397, 16963).
+>
 > **A hey after an N2 figure follows it too (2026-11-24)**: a hey straight
 > after a figure danced one grouping over is danced there, like the chain
 > (the agent's call, from the maintainer's notes on Haven't We Met Before?
-> and Hey-ja Vu). Against `rubric` at `fd3447ef`: 4,073 of 5,257 to 4,075 of
-> 5,254 compiled in scope (77.6%), the core set from 532 to 533, losing none.
+> and Hey-ja Vu). Against `rubric` at `db0f6537`: 4,090 of 5,257 to 4,092 of
+> 5,254 compiled in scope (77.9%), the core set from 532 to 533, losing none.
 > Blue and Green Candles (16101) and Waylaid in Tulsa (4960) now compile, four
 > refused dances now run to the end and mismatch, and three now stop at a
 > deferred figure past the hey and leave the scope (945, 946, 18296).

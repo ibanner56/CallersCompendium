@@ -420,7 +420,7 @@ index.
 | `hallFacingConflict` | figure lint | the line was already facing the other way along the hall; it turns around before travelling |
 | `facingPrecondition` | figure lint | dancers are not facing the way the figure assumes |
 | `unstatedPairing` | figure lint | a `form_short_waves` / `pass_the_ocean` with no stated `sides` or `center` formed with dancers who are not the default pairing *(user-ruled 2026-11-23)* |
-| `archFromLine` | figure lint | `arch_and_dive` was called on a line of four; the row swap moves the whole line *(user-ruled 2026-11-23)* |
+| `archFromLine` | figure lint | `arch_and_dive` was called on a line of four that cannot bend into a ring (it does not face one way along the hall); the row swap moves the whole line *(user-ruled 2026-11-23; a line that can bend bends first, user-ruled 2026-11-24)* |
 | `anchorMismatch` | figure lint | a descriptive param contradicts the derived arrangement |
 | `unrecognizedFormation` | **the parser** | unknown shape; falls back to `dupleImproper` |
 | `assumedProgression` | **an import bridge** | the source flagged no progression, so one was assumed (§10.1) |
@@ -604,8 +604,11 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
   their own under `params.figures`), plus `progression: true` on each figure
   that progresses: the source's own flags, or, when it flags none, the one the
   assumed-progression rule below places (and, on its N2 retry, the later ones
-  N3 and N4 place). That flag is the only field the bridge *adds* rather than
-  translates. The one figure it *rewrites* is a slide after a balanced long
+  N3 and N4 place). The bridge *adds* one other field: a hall figure whose note
+  is "backwards" (Caller's Box "go up the hall (backwards)", which the import
+  keeps only as a note) gets `facing: backward`, unless it states a facing or
+  is led by part of the set *(agent's call, 2026-11-24)*. The one figure it
+  *rewrites* is a slide after a balanced long
   wave: Caller's Box writes a Rory O'More as two lines, "Balance long wave"
   then "Slide right (past N)", and the import reads them as `form_long_waves`
   (balance) and `slide_along_set`. Danced from the wave, that slide is each
@@ -643,7 +646,10 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > `chain` or `pass_through` along the set** does (user-ruled 2026-11-23: a
 > Becket progression is the obvious move), or a diagonal `right_left_through`
 > (agent's call 2026-11-24, by analogy with the diagonal chain), and only a
-> Becket dance with none of these falls back to the last figure. A `modifier` is read by its main
+> Becket dance with none of these falls back to the last figure. Outside Becket,
+> an `arch_and_dive` straight after a hall figure progresses before the last
+> figure does (user-ruled 2026-11-24: the line bends into a ring and the arch
+> and dive carries the couples on). A `modifier` is read by its main
 > figure for both Becket rules, so "slice left while partner roll away"
 > opening the dance progresses there (user-ruled 2026-11-23: a modifier's
 > progression is its main figure's). (Core's `slide_along_set.slide` and
@@ -885,7 +891,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,515 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,524 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,
