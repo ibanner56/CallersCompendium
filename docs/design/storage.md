@@ -971,8 +971,9 @@ steps that can still fire are v40 onward.
   program template's slot rule is to be filled from; NULL on every other slot,
   and cleared when the slot gets a dance. It syncs (`slots.placeholderSearchId`),
   is kept in backups (envelope v3) and is stripped from share files and the
-  programs CSV. Added by the same `from < 42` step, after the calendar
-  columns, only if absent (`_ensureV42PlaceholderSearchId`); no data
+  programs CSV. Added by the same `from < 42` step, first, in its own
+  helper at the start of `_ensureV42Schema`, only if absent
+  (`_ensureV42PlaceholderSearchId`); no data
   rewritten, no derived rebuild. The template side needs no schema: a slot rule
   is an entry `{"savedSearchId", "label"}` in a `program_template:` settings
   value (a label that is the break token is refused on read, and written as a
