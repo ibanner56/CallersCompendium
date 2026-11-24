@@ -14276,70 +14276,73 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get savedSearchButton => 'Saved';
+  String get savedSearchButton => 'Enregistrées';
 
   @override
   String get savedSearchTooltip =>
-      'Saved searches: save this search, or use one you saved';
+      'Recherches enregistrées : enregistrer cette recherche ou en utiliser une enregistrée';
 
   @override
   String get savedSearchOnlineTooltip =>
-      'Saved searches are not available while Online search is on';
+      'Les recherches enregistrées ne sont pas disponibles pendant la recherche en ligne';
 
   @override
-  String get savedSearchSaveThis => 'Save this search…';
+  String get savedSearchSaveThis => 'Enregistrer cette recherche…';
 
   @override
-  String get savedSearchSaveAsNew => 'Save as new…';
+  String get savedSearchSaveAsNew => 'Enregistrer comme nouvelle…';
 
   @override
   String savedSearchUpdate(String name) {
-    return 'Update \"$name\"';
+    return 'Mettre à jour « $name »';
   }
 
   @override
   String savedSearchRename(String name) {
-    return 'Rename \"$name\"…';
+    return 'Renommer « $name »…';
   }
 
   @override
   String savedSearchDelete(String name) {
-    return 'Delete \"$name\"';
+    return 'Supprimer « $name »';
   }
 
   @override
-  String get savedSearchNoneYet => 'No saved searches yet';
+  String get savedSearchNoneYet =>
+      'Aucune recherche enregistrée pour l\'instant';
 
   @override
-  String get savedSearchNeedsAttention => 'Needs attention';
+  String get savedSearchNeedsAttention => 'À vérifier';
 
   @override
   String get savedSearchUnreadableItem =>
-      'A saved search that can\'t be opened';
+      'Une recherche enregistrée impossible à ouvrir';
 
   @override
-  String get savedSearchUnreadableTitle => 'Can\'t open this saved search';
+  String get savedSearchUnreadableTitle =>
+      'Impossible d\'ouvrir cette recherche enregistrée';
 
   @override
   String get savedSearchUnreadableBody =>
-      'It was saved by a newer version of the app, or it is damaged, so it is not used. You can delete it, and undo that.';
+      'Elle a été enregistrée par une version plus récente de l\'application, ou elle est endommagée ; elle n\'est donc pas utilisée. Vous pouvez la supprimer, et annuler cette suppression.';
 
   @override
-  String get savedSearchSaveDialogTitle => 'Save this search';
+  String get savedSearchSaveDialogTitle => 'Enregistrer cette recherche';
 
   @override
-  String get savedSearchRenameDialogTitle => 'Rename saved search';
+  String get savedSearchRenameDialogTitle =>
+      'Renommer la recherche enregistrée';
 
   @override
-  String get savedSearchNameLabel => 'Name';
+  String get savedSearchNameLabel => 'Nom';
 
   @override
   String savedSearchWindowNotCalled(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Not called in the last $count months',
-      one: 'Not called in the last month',
+      other: 'Pas appelée au cours des $count derniers mois',
+      one: 'Pas appelée au cours du dernier mois',
     );
     return '$_temp0';
   }
@@ -14349,8 +14352,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Called in the last $count months',
-      one: 'Called in the last month',
+      other: 'Appelée au cours des $count derniers mois',
+      one: 'Appelée au cours du dernier mois',
     );
     return '$_temp0';
   }
@@ -14360,21 +14363,21 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Calling history window kept: the last $count months',
-      one: 'Calling history window kept: the last month',
+      other: 'Période d\'historique conservée : les $count derniers mois',
+      one: 'Période d\'historique conservée : le dernier mois',
     );
     return '$_temp0';
   }
 
   @override
-  String get savedSearchTooLargeTitle => 'Search too large';
+  String get savedSearchTooLargeTitle => 'Recherche trop grande';
 
   @override
   String get savedSearchTooLargeBody =>
-      'This search has too many filters or rows to save. Remove some, then save it again.';
+      'Cette recherche a trop de filtres ou de lignes pour être enregistrée. Retirez-en quelques-uns, puis enregistrez-la à nouveau.';
 
   @override
-  String get savedSearchLimitTitle => 'Too many saved searches';
+  String get savedSearchLimitTitle => 'Trop de recherches enregistrées';
 
   @override
   String savedSearchLimitBody(int count) {
@@ -14382,126 +14385,130 @@ class AppLocalizationsFr extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'You can keep up to $count saved searches. Delete one to save another.',
-      one: 'You can keep 1 saved search. Delete it to save another.',
+          'Vous pouvez garder jusqu\'à $count recherches enregistrées. Supprimez-en une pour en enregistrer une autre.',
+      one:
+          'Vous pouvez garder 1 recherche enregistrée. Supprimez-la pour en enregistrer une autre.',
     );
     return '$_temp0';
   }
 
   @override
-  String get savedSearchNameRefused => 'That name can\'t be used. Try another.';
+  String get savedSearchNameRefused =>
+      'Ce nom ne peut pas être utilisé. Essayez-en un autre.';
 
   @override
   String get savedSearchFailed =>
-      'Couldn\'t do that with your saved searches. Try again.';
+      'Impossible de faire cela avec vos recherches enregistrées. Réessayez.';
 
   @override
   String savedSearchSavedSnack(String name) {
-    return 'Saved \"$name\"';
+    return '« $name » enregistrée';
   }
 
   @override
   String savedSearchUpdatedSnack(String name) {
-    return 'Updated \"$name\"';
+    return '« $name » mise à jour';
   }
 
   @override
   String savedSearchDeletedSnack(String name) {
-    return 'Deleted \"$name\"';
+    return '« $name » supprimée';
   }
 
   @override
   String savedSearchInUseTitle(String name) {
-    return 'Can\'t delete \"$name\"';
+    return 'Impossible de supprimer « $name »';
   }
 
   @override
   String get savedSearchInUseBody =>
-      'It is still used by these. Change or remove them first, then delete it.';
+      'Elle est encore utilisée par ces éléments. Modifiez-les ou retirez-les d\'abord, puis supprimez-la.';
 
   @override
   String savedSearchNoticeTitle(String name) {
-    return '\"$name\" uses things that are gone:';
+    return '« $name » utilise des éléments qui n\'existent plus :';
   }
 
   @override
   String get savedSearchNoticeRest =>
-      'The rest of the search is shown. Remove these yourself to update it.';
+      'Le reste de la recherche est affiché. Retirez vous-même ces éléments pour la mettre à jour.';
 
   @override
   String get savedSearchNoticeFieldSkipped =>
-      'A filter on a deleted custom field is left out of the results.';
+      'Un filtre sur un champ personnalisé supprimé est ignoré dans les résultats.';
 
   @override
-  String get savedSearchNoticeClose => 'Close notice';
+  String get savedSearchNoticeClose => 'Fermer l\'avis';
 
   @override
   String savedSearchMissingTag(String name) {
-    return 'The tag $name, which was deleted';
+    return 'Le tag $name, qui a été supprimé';
   }
 
   @override
-  String get savedSearchMissingTagUnnamed => 'A tag that was deleted';
+  String get savedSearchMissingTagUnnamed => 'Un tag qui a été supprimé';
 
   @override
   String savedSearchMissingAuthor(String name) {
-    return 'The author $name, which was deleted';
+    return 'L\'auteur $name, qui a été supprimé';
   }
 
   @override
-  String get savedSearchMissingAuthorUnnamed => 'A author that was deleted';
+  String get savedSearchMissingAuthorUnnamed => 'Un auteur qui a été supprimé';
 
   @override
   String savedSearchMissingSource(String name) {
-    return 'The source $name, which was deleted';
+    return 'La source $name, qui a été supprimée';
   }
 
   @override
-  String get savedSearchMissingSourceUnnamed => 'A source that was deleted';
+  String get savedSearchMissingSourceUnnamed =>
+      'Une source qui a été supprimée';
 
   @override
   String savedSearchMissingLevel(String name) {
-    return 'The level $name, which was deleted';
+    return 'Le niveau $name, qui a été supprimé';
   }
 
   @override
-  String get savedSearchMissingLevelUnnamed => 'A level that was deleted';
+  String get savedSearchMissingLevelUnnamed => 'Un niveau qui a été supprimé';
 
   @override
   String savedSearchMissingVenue(String name) {
-    return 'The venue $name, which was deleted';
+    return 'Le lieu $name, qui a été supprimé';
   }
 
   @override
-  String get savedSearchMissingVenueUnnamed => 'A venue that was deleted';
+  String get savedSearchMissingVenueUnnamed => 'Un lieu qui a été supprimé';
 
   @override
   String savedSearchMissingField(String name) {
-    return 'The custom field $name, which was deleted';
+    return 'Le champ personnalisé $name, qui a été supprimé';
   }
 
   @override
   String get savedSearchMissingFieldUnnamed =>
-      'A custom field that was deleted';
+      'Un champ personnalisé qui a été supprimé';
 
   @override
   String savedSearchMissingFieldType(String name) {
-    return 'The custom field $name, whose type changed';
+    return 'Le champ personnalisé $name, dont le type a changé';
   }
 
   @override
   String savedSearchMissingFieldChoice(String choice, String name) {
-    return 'The choice $choice of $name, which was removed';
+    return 'Le choix $choice de $name, qui a été retiré';
   }
 
   @override
   String get savedSearchMissingFigureDetail =>
-      'A figure detail in Advanced that can\'t be shown';
+      'Un détail de figure dans Avancé qui ne peut pas être affiché';
 
   @override
   String get savedSearchMissingUserFigure =>
-      'A figure of your own that was deleted';
+      'Une de vos propres figures, qui a été supprimée';
 
   @override
-  String get savedSearchMissingInvalid => 'Something this version can\'t read';
+  String get savedSearchMissingInvalid =>
+      'Quelque chose que cette version ne peut pas lire';
 }

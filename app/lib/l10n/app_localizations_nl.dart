@@ -14205,70 +14205,72 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get savedSearchButton => 'Saved';
+  String get savedSearchButton => 'Opgeslagen';
 
   @override
   String get savedSearchTooltip =>
-      'Saved searches: save this search, or use one you saved';
+      'Opgeslagen zoekopdrachten: sla deze zoekopdracht op of gebruik er een die je hebt opgeslagen';
 
   @override
   String get savedSearchOnlineTooltip =>
-      'Saved searches are not available while Online search is on';
+      'Opgeslagen zoekopdrachten zijn niet beschikbaar zolang Online zoeken aan staat';
 
   @override
-  String get savedSearchSaveThis => 'Save this search…';
+  String get savedSearchSaveThis => 'Deze zoekopdracht opslaan…';
 
   @override
-  String get savedSearchSaveAsNew => 'Save as new…';
+  String get savedSearchSaveAsNew => 'Opslaan als nieuwe…';
 
   @override
   String savedSearchUpdate(String name) {
-    return 'Update \"$name\"';
+    return '\"$name\" bijwerken';
   }
 
   @override
   String savedSearchRename(String name) {
-    return 'Rename \"$name\"…';
+    return '\"$name\" hernoemen…';
   }
 
   @override
   String savedSearchDelete(String name) {
-    return 'Delete \"$name\"';
+    return '\"$name\" verwijderen';
   }
 
   @override
-  String get savedSearchNoneYet => 'No saved searches yet';
+  String get savedSearchNoneYet => 'Nog geen opgeslagen zoekopdrachten';
 
   @override
-  String get savedSearchNeedsAttention => 'Needs attention';
+  String get savedSearchNeedsAttention => 'Vraagt aandacht';
 
   @override
   String get savedSearchUnreadableItem =>
-      'A saved search that can\'t be opened';
+      'Een opgeslagen zoekopdracht die niet te openen is';
 
   @override
-  String get savedSearchUnreadableTitle => 'Can\'t open this saved search';
+  String get savedSearchUnreadableTitle =>
+      'Deze opgeslagen zoekopdracht kan niet worden geopend';
 
   @override
   String get savedSearchUnreadableBody =>
-      'It was saved by a newer version of the app, or it is damaged, so it is not used. You can delete it, and undo that.';
+      'Hij is opgeslagen door een nieuwere versie van de app, of hij is beschadigd, dus hij wordt niet gebruikt. Je kunt hem verwijderen en dat ongedaan maken.';
 
   @override
-  String get savedSearchSaveDialogTitle => 'Save this search';
+  String get savedSearchSaveDialogTitle => 'Deze zoekopdracht opslaan';
 
   @override
-  String get savedSearchRenameDialogTitle => 'Rename saved search';
+  String get savedSearchRenameDialogTitle =>
+      'Opgeslagen zoekopdracht hernoemen';
 
   @override
-  String get savedSearchNameLabel => 'Name';
+  String get savedSearchNameLabel => 'Naam';
 
   @override
   String savedSearchWindowNotCalled(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Not called in the last $count months',
-      one: 'Not called in the last month',
+      other: 'Niet gebeld in de afgelopen $count maanden',
+      one: 'Niet gebeld in de afgelopen maand',
     );
     return '$_temp0';
   }
@@ -14278,8 +14280,8 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Called in the last $count months',
-      one: 'Called in the last month',
+      other: 'Gebeld in de afgelopen $count maanden',
+      one: 'Gebeld in de afgelopen maand',
     );
     return '$_temp0';
   }
@@ -14289,21 +14291,22 @@ class AppLocalizationsNl extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Calling history window kept: the last $count months',
-      one: 'Calling history window kept: the last month',
+      other:
+          'Bewaarde periode van de belgeschiedenis: de afgelopen $count maanden',
+      one: 'Bewaarde periode van de belgeschiedenis: de afgelopen maand',
     );
     return '$_temp0';
   }
 
   @override
-  String get savedSearchTooLargeTitle => 'Search too large';
+  String get savedSearchTooLargeTitle => 'Zoekopdracht te groot';
 
   @override
   String get savedSearchTooLargeBody =>
-      'This search has too many filters or rows to save. Remove some, then save it again.';
+      'Deze zoekopdracht heeft te veel filters of rijen om op te slaan. Verwijder er een paar en sla hem dan opnieuw op.';
 
   @override
-  String get savedSearchLimitTitle => 'Too many saved searches';
+  String get savedSearchLimitTitle => 'Te veel opgeslagen zoekopdrachten';
 
   @override
   String savedSearchLimitBody(int count) {
@@ -14311,126 +14314,128 @@ class AppLocalizationsNl extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'You can keep up to $count saved searches. Delete one to save another.',
-      one: 'You can keep 1 saved search. Delete it to save another.',
+          'Je kunt tot $count opgeslagen zoekopdrachten bewaren. Verwijder er een om een andere op te slaan.',
+      one:
+          'Je kunt 1 opgeslagen zoekopdracht bewaren. Verwijder die om een andere op te slaan.',
     );
     return '$_temp0';
   }
 
   @override
-  String get savedSearchNameRefused => 'That name can\'t be used. Try another.';
+  String get savedSearchNameRefused =>
+      'Die naam kan niet worden gebruikt. Probeer een andere.';
 
   @override
   String get savedSearchFailed =>
-      'Couldn\'t do that with your saved searches. Try again.';
+      'Dat lukte niet met je opgeslagen zoekopdrachten. Probeer het opnieuw.';
 
   @override
   String savedSearchSavedSnack(String name) {
-    return 'Saved \"$name\"';
+    return '\"$name\" opgeslagen';
   }
 
   @override
   String savedSearchUpdatedSnack(String name) {
-    return 'Updated \"$name\"';
+    return '\"$name\" bijgewerkt';
   }
 
   @override
   String savedSearchDeletedSnack(String name) {
-    return 'Deleted \"$name\"';
+    return '\"$name\" verwijderd';
   }
 
   @override
   String savedSearchInUseTitle(String name) {
-    return 'Can\'t delete \"$name\"';
+    return '\"$name\" kan niet worden verwijderd';
   }
 
   @override
   String get savedSearchInUseBody =>
-      'It is still used by these. Change or remove them first, then delete it.';
+      'Hij wordt nog gebruikt door deze. Wijzig of verwijder die eerst en verwijder hem daarna.';
 
   @override
   String savedSearchNoticeTitle(String name) {
-    return '\"$name\" uses things that are gone:';
+    return '\"$name\" gebruikt dingen die er niet meer zijn:';
   }
 
   @override
   String get savedSearchNoticeRest =>
-      'The rest of the search is shown. Remove these yourself to update it.';
+      'De rest van de zoekopdracht wordt getoond. Verwijder deze zelf om hem bij te werken.';
 
   @override
   String get savedSearchNoticeFieldSkipped =>
-      'A filter on a deleted custom field is left out of the results.';
+      'Een filter op een verwijderd aangepast veld wordt bij de resultaten weggelaten.';
 
   @override
-  String get savedSearchNoticeClose => 'Close notice';
+  String get savedSearchNoticeClose => 'Melding sluiten';
 
   @override
   String savedSearchMissingTag(String name) {
-    return 'The tag $name, which was deleted';
+    return 'De tag $name, die is verwijderd';
   }
 
   @override
-  String get savedSearchMissingTagUnnamed => 'A tag that was deleted';
+  String get savedSearchMissingTagUnnamed => 'Een tag die is verwijderd';
 
   @override
   String savedSearchMissingAuthor(String name) {
-    return 'The author $name, which was deleted';
+    return 'De auteur $name, die is verwijderd';
   }
 
   @override
-  String get savedSearchMissingAuthorUnnamed => 'A author that was deleted';
+  String get savedSearchMissingAuthorUnnamed => 'Een auteur die is verwijderd';
 
   @override
   String savedSearchMissingSource(String name) {
-    return 'The source $name, which was deleted';
+    return 'De bron $name, die is verwijderd';
   }
 
   @override
-  String get savedSearchMissingSourceUnnamed => 'A source that was deleted';
+  String get savedSearchMissingSourceUnnamed => 'Een bron die is verwijderd';
 
   @override
   String savedSearchMissingLevel(String name) {
-    return 'The level $name, which was deleted';
+    return 'Het niveau $name, dat is verwijderd';
   }
 
   @override
-  String get savedSearchMissingLevelUnnamed => 'A level that was deleted';
+  String get savedSearchMissingLevelUnnamed => 'Een niveau dat is verwijderd';
 
   @override
   String savedSearchMissingVenue(String name) {
-    return 'The venue $name, which was deleted';
+    return 'De locatie $name, die is verwijderd';
   }
 
   @override
-  String get savedSearchMissingVenueUnnamed => 'A venue that was deleted';
+  String get savedSearchMissingVenueUnnamed => 'Een locatie die is verwijderd';
 
   @override
   String savedSearchMissingField(String name) {
-    return 'The custom field $name, which was deleted';
+    return 'Het aangepaste veld $name, dat is verwijderd';
   }
 
   @override
   String get savedSearchMissingFieldUnnamed =>
-      'A custom field that was deleted';
+      'Een aangepast veld dat is verwijderd';
 
   @override
   String savedSearchMissingFieldType(String name) {
-    return 'The custom field $name, whose type changed';
+    return 'Het aangepaste veld $name, waarvan het type is veranderd';
   }
 
   @override
   String savedSearchMissingFieldChoice(String choice, String name) {
-    return 'The choice $choice of $name, which was removed';
+    return 'De keuze $choice van $name, die is verwijderd';
   }
 
   @override
   String get savedSearchMissingFigureDetail =>
-      'A figure detail in Advanced that can\'t be shown';
+      'Een figuurdetail in Geavanceerd dat niet kan worden getoond';
 
   @override
   String get savedSearchMissingUserFigure =>
-      'A figure of your own that was deleted';
+      'Een eigen figuur die is verwijderd';
 
   @override
-  String get savedSearchMissingInvalid => 'Something this version can\'t read';
+  String get savedSearchMissingInvalid => 'Iets wat deze versie niet kan lezen';
 }

@@ -14129,70 +14129,69 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get savedSearchButton => 'Saved';
+  String get savedSearchButton => 'Gemte';
 
   @override
   String get savedSearchTooltip =>
-      'Saved searches: save this search, or use one you saved';
+      'Gemte søgninger: gem denne søgning, eller brug en, du har gemt';
 
   @override
   String get savedSearchOnlineTooltip =>
-      'Saved searches are not available while Online search is on';
+      'Gemte søgninger er ikke tilgængelige, mens onlinesøgning er slået til';
 
   @override
-  String get savedSearchSaveThis => 'Save this search…';
+  String get savedSearchSaveThis => 'Gem denne søgning…';
 
   @override
-  String get savedSearchSaveAsNew => 'Save as new…';
+  String get savedSearchSaveAsNew => 'Gem som ny…';
 
   @override
   String savedSearchUpdate(String name) {
-    return 'Update \"$name\"';
+    return 'Opdater \"$name\"';
   }
 
   @override
   String savedSearchRename(String name) {
-    return 'Rename \"$name\"…';
+    return 'Omdøb \"$name\"…';
   }
 
   @override
   String savedSearchDelete(String name) {
-    return 'Delete \"$name\"';
+    return 'Slet \"$name\"';
   }
 
   @override
-  String get savedSearchNoneYet => 'No saved searches yet';
+  String get savedSearchNoneYet => 'Ingen gemte søgninger endnu';
 
   @override
-  String get savedSearchNeedsAttention => 'Needs attention';
+  String get savedSearchNeedsAttention => 'Kræver opmærksomhed';
 
   @override
-  String get savedSearchUnreadableItem =>
-      'A saved search that can\'t be opened';
+  String get savedSearchUnreadableItem => 'En gemt søgning, der ikke kan åbnes';
 
   @override
-  String get savedSearchUnreadableTitle => 'Can\'t open this saved search';
+  String get savedSearchUnreadableTitle => 'Kan ikke åbne denne gemte søgning';
 
   @override
   String get savedSearchUnreadableBody =>
-      'It was saved by a newer version of the app, or it is damaged, so it is not used. You can delete it, and undo that.';
+      'Den er gemt af en nyere version af appen, eller den er beskadiget, så den bruges ikke. Du kan slette den og fortryde det.';
 
   @override
-  String get savedSearchSaveDialogTitle => 'Save this search';
+  String get savedSearchSaveDialogTitle => 'Gem denne søgning';
 
   @override
-  String get savedSearchRenameDialogTitle => 'Rename saved search';
+  String get savedSearchRenameDialogTitle => 'Omdøb gemt søgning';
 
   @override
-  String get savedSearchNameLabel => 'Name';
+  String get savedSearchNameLabel => 'Navn';
 
   @override
   String savedSearchWindowNotCalled(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Not called in the last $count months',
-      one: 'Not called in the last month',
+      other: 'Ikke kaldt inden for de seneste $count måneder',
+      one: 'Ikke kaldt inden for den seneste måned',
     );
     return '$_temp0';
   }
@@ -14202,8 +14201,8 @@ class AppLocalizationsDa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Called in the last $count months',
-      one: 'Called in the last month',
+      other: 'Kaldt inden for de seneste $count måneder',
+      one: 'Kaldt inden for den seneste måned',
     );
     return '$_temp0';
   }
@@ -14213,21 +14212,21 @@ class AppLocalizationsDa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Calling history window kept: the last $count months',
-      one: 'Calling history window kept: the last month',
+      other: 'Gemt periode i opkaldshistorikken: de seneste $count måneder',
+      one: 'Gemt periode i opkaldshistorikken: den seneste måned',
     );
     return '$_temp0';
   }
 
   @override
-  String get savedSearchTooLargeTitle => 'Search too large';
+  String get savedSearchTooLargeTitle => 'Søgningen er for stor';
 
   @override
   String get savedSearchTooLargeBody =>
-      'This search has too many filters or rows to save. Remove some, then save it again.';
+      'Denne søgning har for mange filtre eller rækker til at blive gemt. Fjern nogle, og gem den så igen.';
 
   @override
-  String get savedSearchLimitTitle => 'Too many saved searches';
+  String get savedSearchLimitTitle => 'For mange gemte søgninger';
 
   @override
   String savedSearchLimitBody(int count) {
@@ -14235,126 +14234,129 @@ class AppLocalizationsDa extends AppLocalizations {
       count,
       locale: localeName,
       other:
-          'You can keep up to $count saved searches. Delete one to save another.',
-      one: 'You can keep 1 saved search. Delete it to save another.',
+          'Du kan have op til $count gemte søgninger. Slet en for at gemme en anden.',
+      one: 'Du kan have 1 gemt søgning. Slet den for at gemme en anden.',
     );
     return '$_temp0';
   }
 
   @override
-  String get savedSearchNameRefused => 'That name can\'t be used. Try another.';
+  String get savedSearchNameRefused =>
+      'Det navn kan ikke bruges. Prøv et andet.';
 
   @override
   String get savedSearchFailed =>
-      'Couldn\'t do that with your saved searches. Try again.';
+      'Det lykkedes ikke med dine gemte søgninger. Prøv igen.';
 
   @override
   String savedSearchSavedSnack(String name) {
-    return 'Saved \"$name\"';
+    return 'Gemte \"$name\"';
   }
 
   @override
   String savedSearchUpdatedSnack(String name) {
-    return 'Updated \"$name\"';
+    return 'Opdaterede \"$name\"';
   }
 
   @override
   String savedSearchDeletedSnack(String name) {
-    return 'Deleted \"$name\"';
+    return 'Slettede \"$name\"';
   }
 
   @override
   String savedSearchInUseTitle(String name) {
-    return 'Can\'t delete \"$name\"';
+    return 'Kan ikke slette \"$name\"';
   }
 
   @override
   String get savedSearchInUseBody =>
-      'It is still used by these. Change or remove them first, then delete it.';
+      'Den bruges stadig af disse. Ret eller fjern dem først, og slet den så.';
 
   @override
   String savedSearchNoticeTitle(String name) {
-    return '\"$name\" uses things that are gone:';
+    return '\"$name\" bruger ting, der ikke findes længere:';
   }
 
   @override
   String get savedSearchNoticeRest =>
-      'The rest of the search is shown. Remove these yourself to update it.';
+      'Resten af søgningen vises. Fjern disse selv for at opdatere den.';
 
   @override
   String get savedSearchNoticeFieldSkipped =>
-      'A filter on a deleted custom field is left out of the results.';
+      'Et filter på et slettet brugerdefineret felt udelades af resultaterne.';
 
   @override
-  String get savedSearchNoticeClose => 'Close notice';
+  String get savedSearchNoticeClose => 'Luk besked';
 
   @override
   String savedSearchMissingTag(String name) {
-    return 'The tag $name, which was deleted';
+    return 'Tagget $name, som blev slettet';
   }
 
   @override
-  String get savedSearchMissingTagUnnamed => 'A tag that was deleted';
+  String get savedSearchMissingTagUnnamed => 'Et tag, der blev slettet';
 
   @override
   String savedSearchMissingAuthor(String name) {
-    return 'The author $name, which was deleted';
+    return 'Forfatteren $name, som blev slettet';
   }
 
   @override
-  String get savedSearchMissingAuthorUnnamed => 'A author that was deleted';
+  String get savedSearchMissingAuthorUnnamed =>
+      'En forfatter, der blev slettet';
 
   @override
   String savedSearchMissingSource(String name) {
-    return 'The source $name, which was deleted';
+    return 'Kilden $name, som blev slettet';
   }
 
   @override
-  String get savedSearchMissingSourceUnnamed => 'A source that was deleted';
+  String get savedSearchMissingSourceUnnamed => 'En kilde, der blev slettet';
 
   @override
   String savedSearchMissingLevel(String name) {
-    return 'The level $name, which was deleted';
+    return 'Niveauet $name, som blev slettet';
   }
 
   @override
-  String get savedSearchMissingLevelUnnamed => 'A level that was deleted';
+  String get savedSearchMissingLevelUnnamed => 'Et niveau, der blev slettet';
 
   @override
   String savedSearchMissingVenue(String name) {
-    return 'The venue $name, which was deleted';
+    return 'Spillestedet $name, som blev slettet';
   }
 
   @override
-  String get savedSearchMissingVenueUnnamed => 'A venue that was deleted';
+  String get savedSearchMissingVenueUnnamed =>
+      'Et spillested, der blev slettet';
 
   @override
   String savedSearchMissingField(String name) {
-    return 'The custom field $name, which was deleted';
+    return 'Det brugerdefinerede felt $name, som blev slettet';
   }
 
   @override
   String get savedSearchMissingFieldUnnamed =>
-      'A custom field that was deleted';
+      'Et brugerdefineret felt, der blev slettet';
 
   @override
   String savedSearchMissingFieldType(String name) {
-    return 'The custom field $name, whose type changed';
+    return 'Det brugerdefinerede felt $name, hvis type er ændret';
   }
 
   @override
   String savedSearchMissingFieldChoice(String choice, String name) {
-    return 'The choice $choice of $name, which was removed';
+    return 'Valget $choice i $name, som blev fjernet';
   }
 
   @override
   String get savedSearchMissingFigureDetail =>
-      'A figure detail in Advanced that can\'t be shown';
+      'En figurdetalje i Avanceret, der ikke kan vises';
 
   @override
   String get savedSearchMissingUserFigure =>
-      'A figure of your own that was deleted';
+      'En af dine egne figurer, der blev slettet';
 
   @override
-  String get savedSearchMissingInvalid => 'Something this version can\'t read';
+  String get savedSearchMissingInvalid => 'Noget, denne version ikke kan læse';
 }

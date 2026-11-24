@@ -19258,7 +19258,7 @@
       }
     }
   },
-  "savedSearchMissingAuthorUnnamed": "A author that was deleted",
+  "savedSearchMissingAuthorUnnamed": "An author that was deleted",
   "@savedSearchMissingAuthorUnnamed": {
     "description": "Line in the notice for a loaded saved search: it uses a author that was deleted, whose name this device does not know."
   },

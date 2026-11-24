@@ -14248,7 +14248,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get savedSearchMissingAuthorUnnamed => 'A author that was deleted';
+  String get savedSearchMissingAuthorUnnamed => 'An author that was deleted';
 
   @override
   String savedSearchMissingSource(String name) {

@@ -20828,7 +20828,7 @@ abstract class AppLocalizations {
   /// Line in the notice for a loaded saved search: it uses a author that was deleted, whose name this device does not know.
   ///
   /// In en, this message translates to:
-  /// **'A author that was deleted'**
+  /// **'An author that was deleted'**
   String get savedSearchMissingAuthorUnnamed;
 
   /// Line in the notice for a loaded saved search: it uses this source, which was deleted.

@@ -13577,70 +13577,66 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get savedSearchButton => 'Saved';
+  String get savedSearchButton => '保存済み';
 
   @override
-  String get savedSearchTooltip =>
-      'Saved searches: save this search, or use one you saved';
+  String get savedSearchTooltip => '保存した検索：この検索を保存するか、保存した検索を使います';
 
   @override
-  String get savedSearchOnlineTooltip =>
-      'Saved searches are not available while Online search is on';
+  String get savedSearchOnlineTooltip => 'オンライン検索がオンの間は保存した検索を使えません';
 
   @override
-  String get savedSearchSaveThis => 'Save this search…';
+  String get savedSearchSaveThis => 'この検索を保存…';
 
   @override
-  String get savedSearchSaveAsNew => 'Save as new…';
+  String get savedSearchSaveAsNew => '新しく保存…';
 
   @override
   String savedSearchUpdate(String name) {
-    return 'Update \"$name\"';
+    return '「$name」を更新';
   }
 
   @override
   String savedSearchRename(String name) {
-    return 'Rename \"$name\"…';
+    return '「$name」の名前を変更…';
   }
 
   @override
   String savedSearchDelete(String name) {
-    return 'Delete \"$name\"';
+    return '「$name」を削除';
   }
 
   @override
-  String get savedSearchNoneYet => 'No saved searches yet';
+  String get savedSearchNoneYet => '保存した検索はまだありません';
 
   @override
-  String get savedSearchNeedsAttention => 'Needs attention';
+  String get savedSearchNeedsAttention => '確認が必要';
 
   @override
-  String get savedSearchUnreadableItem =>
-      'A saved search that can\'t be opened';
+  String get savedSearchUnreadableItem => '開けない保存した検索';
 
   @override
-  String get savedSearchUnreadableTitle => 'Can\'t open this saved search';
+  String get savedSearchUnreadableTitle => 'この保存した検索を開けません';
 
   @override
   String get savedSearchUnreadableBody =>
-      'It was saved by a newer version of the app, or it is damaged, so it is not used. You can delete it, and undo that.';
+      '新しいバージョンのアプリで保存されたか、壊れているため、使われません。削除でき、削除は元に戻せます。';
 
   @override
-  String get savedSearchSaveDialogTitle => 'Save this search';
+  String get savedSearchSaveDialogTitle => 'この検索を保存';
 
   @override
-  String get savedSearchRenameDialogTitle => 'Rename saved search';
+  String get savedSearchRenameDialogTitle => '保存した検索の名前を変更';
 
   @override
-  String get savedSearchNameLabel => 'Name';
+  String get savedSearchNameLabel => '名前';
 
   @override
   String savedSearchWindowNotCalled(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Not called in the last $count months',
-      one: 'Not called in the last month',
+      other: '過去$countか月コールしていない',
     );
     return '$_temp0';
   }
@@ -13650,8 +13646,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Called in the last $count months',
-      one: 'Called in the last month',
+      other: '過去$countか月にコールした',
     );
     return '$_temp0';
   }
@@ -13661,148 +13656,140 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Calling history window kept: the last $count months',
-      one: 'Calling history window kept: the last month',
+      other: '保存するコール履歴の期間：過去$countか月',
     );
     return '$_temp0';
   }
 
   @override
-  String get savedSearchTooLargeTitle => 'Search too large';
+  String get savedSearchTooLargeTitle => '検索が大きすぎます';
 
   @override
   String get savedSearchTooLargeBody =>
-      'This search has too many filters or rows to save. Remove some, then save it again.';
+      'この検索はフィルターや行が多すぎて保存できません。いくつか外してから、もう一度保存してください。';
 
   @override
-  String get savedSearchLimitTitle => 'Too many saved searches';
+  String get savedSearchLimitTitle => '保存した検索が多すぎます';
 
   @override
   String savedSearchLimitBody(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other:
-          'You can keep up to $count saved searches. Delete one to save another.',
-      one: 'You can keep 1 saved search. Delete it to save another.',
+      other: '保存した検索は$count件まで残せます。別の検索を保存するには、どれかを削除してください。',
     );
     return '$_temp0';
   }
 
   @override
-  String get savedSearchNameRefused => 'That name can\'t be used. Try another.';
+  String get savedSearchNameRefused => 'その名前は使えません。別の名前を試してください。';
 
   @override
-  String get savedSearchFailed =>
-      'Couldn\'t do that with your saved searches. Try again.';
+  String get savedSearchFailed => '保存した検索の操作ができませんでした。もう一度試してください。';
 
   @override
   String savedSearchSavedSnack(String name) {
-    return 'Saved \"$name\"';
+    return '「$name」を保存しました';
   }
 
   @override
   String savedSearchUpdatedSnack(String name) {
-    return 'Updated \"$name\"';
+    return '「$name」を更新しました';
   }
 
   @override
   String savedSearchDeletedSnack(String name) {
-    return 'Deleted \"$name\"';
+    return '「$name」を削除しました';
   }
 
   @override
   String savedSearchInUseTitle(String name) {
-    return 'Can\'t delete \"$name\"';
+    return '「$name」を削除できません';
   }
 
   @override
   String get savedSearchInUseBody =>
-      'It is still used by these. Change or remove them first, then delete it.';
+      '次のものでまだ使われています。先にそれらを変更するか外してから、削除してください。';
 
   @override
   String savedSearchNoticeTitle(String name) {
-    return '\"$name\" uses things that are gone:';
+    return '「$name」は、なくなったものを使っています：';
   }
 
   @override
-  String get savedSearchNoticeRest =>
-      'The rest of the search is shown. Remove these yourself to update it.';
+  String get savedSearchNoticeRest => '検索の残りは表示されています。更新するには、これらをご自分で外してください。';
 
   @override
   String get savedSearchNoticeFieldSkipped =>
-      'A filter on a deleted custom field is left out of the results.';
+      '削除されたカスタムフィールドのフィルターは、結果に反映されません。';
 
   @override
-  String get savedSearchNoticeClose => 'Close notice';
+  String get savedSearchNoticeClose => 'お知らせを閉じる';
 
   @override
   String savedSearchMissingTag(String name) {
-    return 'The tag $name, which was deleted';
+    return '削除されたタグ「$name」';
   }
 
   @override
-  String get savedSearchMissingTagUnnamed => 'A tag that was deleted';
+  String get savedSearchMissingTagUnnamed => '削除されたタグ';
 
   @override
   String savedSearchMissingAuthor(String name) {
-    return 'The author $name, which was deleted';
+    return '削除された作者「$name」';
   }
 
   @override
-  String get savedSearchMissingAuthorUnnamed => 'A author that was deleted';
+  String get savedSearchMissingAuthorUnnamed => '削除された作者';
 
   @override
   String savedSearchMissingSource(String name) {
-    return 'The source $name, which was deleted';
+    return '削除された出典「$name」';
   }
 
   @override
-  String get savedSearchMissingSourceUnnamed => 'A source that was deleted';
+  String get savedSearchMissingSourceUnnamed => '削除された出典';
 
   @override
   String savedSearchMissingLevel(String name) {
-    return 'The level $name, which was deleted';
+    return '削除されたレベル「$name」';
   }
 
   @override
-  String get savedSearchMissingLevelUnnamed => 'A level that was deleted';
+  String get savedSearchMissingLevelUnnamed => '削除されたレベル';
 
   @override
   String savedSearchMissingVenue(String name) {
-    return 'The venue $name, which was deleted';
+    return '削除された会場「$name」';
   }
 
   @override
-  String get savedSearchMissingVenueUnnamed => 'A venue that was deleted';
+  String get savedSearchMissingVenueUnnamed => '削除された会場';
 
   @override
   String savedSearchMissingField(String name) {
-    return 'The custom field $name, which was deleted';
+    return '削除されたカスタムフィールド「$name」';
   }
 
   @override
-  String get savedSearchMissingFieldUnnamed =>
-      'A custom field that was deleted';
+  String get savedSearchMissingFieldUnnamed => '削除されたカスタムフィールド';
 
   @override
   String savedSearchMissingFieldType(String name) {
-    return 'The custom field $name, whose type changed';
+    return '種類が変わったカスタムフィールド「$name」';
   }
 
   @override
   String savedSearchMissingFieldChoice(String choice, String name) {
-    return 'The choice $choice of $name, which was removed';
+    return '「$name」から外された選択肢「$choice」';
   }
 
   @override
-  String get savedSearchMissingFigureDetail =>
-      'A figure detail in Advanced that can\'t be shown';
+  String get savedSearchMissingFigureDetail => '表示できない詳細検索のフィギュアの詳細';
 
   @override
-  String get savedSearchMissingUserFigure =>
-      'A figure of your own that was deleted';
+  String get savedSearchMissingUserFigure => '削除された自作のフィギュア';
 
   @override
-  String get savedSearchMissingInvalid => 'Something this version can\'t read';
+  String get savedSearchMissingInvalid => 'このバージョンでは読めないもの';
 }
