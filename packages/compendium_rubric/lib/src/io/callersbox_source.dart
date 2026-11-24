@@ -564,14 +564,16 @@ bool retryPlacesDifferently(BridgedDance attempt, BridgedDance fallback) =>
 /// The translation is deliberately thin — four fields, because those are the
 /// four [parseDance] looks at. Its figures are [dancedFigures], so a `sequence`
 /// arrives as its children (and a flagged sequence's flag on its last child).
-/// Beyond that it does five things the source did not: it may supply the
+/// Beyond that it does six things the source did not: it may supply the
 /// progression flag (see [assumedProgressionIndex]), it reads a slide
 /// after a balanced long wave as the Rory O'More it is (see
 /// [_slidesTheWave]), it reads a single-file circle around the major set to
 /// N2 as the promenade along the set it is (see [_promenadesAroundTheSet]),
 /// it reads a hall figure noted "backwards" as a line backing along the hall
-/// (see [_hallBackwards]), and it reads a swing noted "face up" or "finish
-/// proper" as finishing facing up (see [_swingNoteFacing]).
+/// (see [_hallBackwards]), it reads a swing noted "face up" or "finish
+/// proper" as finishing facing up (see [_swingNoteFacing]), and it reads a
+/// half hey noted "face N2" as three passes stopping at the next neighbours
+/// (see [_heyStopsAtNextNeighbours]).
 ///
 /// A single-file promenade around the major set, when the dance has one, is
 /// the progression on every reading, so neither retry below moves it (agent's
