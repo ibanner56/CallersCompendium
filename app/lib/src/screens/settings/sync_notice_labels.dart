@@ -261,6 +261,7 @@ String _kindCount(AppLocalizations l10n, SyncRecordKind kind, int count) =>
       SyncRecordKind.figureNote => l10n.settingsSyncNoticeCountFigureNote(
         count,
       ),
+      SyncRecordKind.eventRule => l10n.settingsSyncNoticeCountEventRule(count),
     };
 
 /// The records [reports] name as refused for figures a newer version of the
@@ -340,6 +341,7 @@ String syncRecordKindLabel(AppLocalizations l10n, SyncRecordKind kind) =>
       SyncRecordKind.setting => l10n.syncReviewKindSetting,
       SyncRecordKind.glossaryEntry => l10n.syncReviewKindGlossaryEntry,
       SyncRecordKind.figureNote => l10n.syncReviewKindFigureNote,
+      SyncRecordKind.eventRule => l10n.syncReviewKindEventRule,
     };
 
 /// What this device knows a notice's record by.
@@ -392,7 +394,9 @@ Future<SyncNoticeRecordName> lookupSyncNoticeRecordName(
     SyncRecordKind.publishedSource ||
     SyncRecordKind.setting ||
     SyncRecordKind.glossaryEntry ||
-    SyncRecordKind.figureNote => null,
+    SyncRecordKind.figureNote ||
+    // A rule is shown by kind: its sentence needs its saved search's name.
+    SyncRecordKind.eventRule => null,
   };
   if (name != null && name.trim().isNotEmpty) {
     return SyncNoticeRecordNamed(name);

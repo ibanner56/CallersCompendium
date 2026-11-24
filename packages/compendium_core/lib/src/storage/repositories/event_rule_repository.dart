@@ -72,10 +72,7 @@ class EventRuleRepository {
     if (ids.isEmpty) return const [];
     final rows = await (_live()..where((t) => t.id.isIn(ids))).get();
     final byId = {for (final row in rows) row.id: fromRow(row)};
-    return [
-      for (final id in ids)
-        if (byId[id] != null) byId[id]!,
-    ];
+    return [for (final id in ids) ?byId[id]];
   }
 
   /// The live rules that use the saved search [savedSearchId], for the

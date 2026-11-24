@@ -56,6 +56,7 @@ class ProgramSlotListEditor extends StatefulWidget {
     this.onViewDanceDetails,
     this.onAddDanceAt,
     this.insertionTargetSlotIds = const {},
+    this.ruleMarkers = const {},
   });
 
   /// Slots in position order.
@@ -167,6 +168,11 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// Ids of the slots a pending "Add a dance before/after" will land next to,
   /// highlighted until a dance is chosen or the insertion is cancelled.
   final Set<String> insertionTargetSlotIds;
+
+  /// The event-rule marker for each slot that breaks an applied rule
+  /// (#2340), by slot id: an icon and a text, never colour alone, with a
+  /// screen-reader label naming the rules. Empty while Event rules is off.
+  final Map<String, SlotRuleMarker> ruleMarkers;
 
   /// List width below which rows use the compact layout even on a wide window.
   /// The builder's two-pane layout halves the window, so up to about 1100dp
@@ -351,6 +357,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
               insertionTarget: widget.insertionTargetSlotIds.contains(
                 slots[i].id,
               ),
+              ruleMarker: widget.ruleMarkers[slots[i].id],
             ),
         ],
       ),
@@ -543,7 +550,11 @@ class _SlotTile extends StatelessWidget {
     this.onAddDanceBefore,
     this.onAddDanceAfter,
     this.insertionTarget = false,
+    this.ruleMarker,
   });
+
+  /// The slot's event-rule marker, or null (#2340).
+  final SlotRuleMarker? ruleMarker;
 
   /// Keep only the drag handle and the "…" menu on the row; View details,
   /// move up/down and cut become menu items (see
@@ -800,6 +811,8 @@ class _SlotTile extends StatelessWidget {
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
                           ),
+                        if (ruleMarker case final marker?)
+                          _RuleMarker(slotId: slot.id, marker: marker),
                       ],
                     ),
                   ),
@@ -1350,6 +1363,58 @@ class _ReplaceDanceRow extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// What a slot's event-rule marker says (#2340): whether the slot is an
+/// alternate that breaks a rule only if called, and the sentences of the
+/// rules it breaks.
+@immutable
+class SlotRuleMarker {
+  const SlotRuleMarker({required this.ifCalled, required this.rules});
+
+  final bool ifCalled;
+  final List<String> rules;
+}
+
+class _RuleMarker extends StatelessWidget {
+  const _RuleMarker({required this.slotId, required this.marker});
+
+  final String slotId;
+  final SlotRuleMarker marker;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final color = theme.colorScheme.error;
+    return Semantics(
+      key: ValueKey('slot-$slotId-rule-marker'),
+      container: true,
+      label: l10n.programsSlotRuleMarkerSemantic(
+        marker.rules.length,
+        marker.rules.join('; '),
+      ),
+      child: ExcludeSemantics(
+        child: Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.xxs),
+          child: Row(
+            children: [
+              Icon(Icons.rule, size: 16, color: color),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  marker.ifCalled
+                      ? l10n.programsSlotRuleMarkerAlternate
+                      : l10n.programsSlotRuleMarker,
+                  style: theme.textTheme.labelSmall?.copyWith(color: color),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

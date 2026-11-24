@@ -7,6 +7,8 @@ import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
+import 'package:compendium_app/src/data/event_rules_scope.dart';
+import 'package:compendium_app/src/screens/settings/event_rules_screen.dart';
 import 'package:compendium_app/src/data/matrix_collision_mode_scope.dart';
 import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
@@ -43,6 +45,7 @@ Future<ValueNotifier<bool>> _pumpProgram(
   void Function(ValueNotifier<bool> autoCommit, ValueNotifier<int> venueCalls)?
   onScopeNotifiers,
   ValueNotifier<bool>? requireEventDate,
+  ValueNotifier<bool>? eventRules,
 }) async {
   await setScreenSize(tester, surface);
 
@@ -124,19 +127,22 @@ Future<ValueNotifier<bool>> _pumpProgram(
             ),
           ),
         ),
-        home: ShowPerformedTogglesScope(
-          notifier: showPerformedToggles,
-          child: MarkAllSetsStatusScope(
-            notifier: markAllSetsStatus,
-            child: ShareSetListTitleScope(
-              notifier: shareTitle,
-              child: ShareSetListCallerBandScope(
-                notifier: shareCallerBand,
-                child: ShareSetListDateVenueScope(
-                  notifier: shareDateVenue,
-                  child: ShowProgramPayScope(
-                    notifier: showProgramPay,
-                    child: const SettingsScreen(),
+        home: EventRulesEnabledScope(
+          notifier: eventRules ?? ValueNotifier(false),
+          child: ShowPerformedTogglesScope(
+            notifier: showPerformedToggles,
+            child: MarkAllSetsStatusScope(
+              notifier: markAllSetsStatus,
+              child: ShareSetListTitleScope(
+                notifier: shareTitle,
+                child: ShareSetListCallerBandScope(
+                  notifier: shareCallerBand,
+                  child: ShareSetListDateVenueScope(
+                    notifier: shareDateVenue,
+                    child: ShowProgramPayScope(
+                      notifier: showProgramPay,
+                      child: const SettingsScreen(),
+                    ),
                   ),
                 ),
               ),
@@ -155,6 +161,36 @@ Future<ValueNotifier<bool>> _pumpProgram(
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('Manage rules is linked from Program only while Event rules is '
+      'on, and the switch itself is not here (#2340)', (tester) async {
+    final repos = openTestRepositories();
+    final eventRules = ValueNotifier(false);
+    addTearDown(eventRules.dispose);
+    await _pumpProgram(tester, repos, eventRules: eventRules);
+    final link = find.byKey(const ValueKey('program-manage-event-rules'));
+    expect(link, findsNothing);
+    expect(
+      find.byKey(const ValueKey('experimental-event-rules')),
+      findsNothing,
+    );
+
+    eventRules.value = true;
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      link,
+      200,
+      scrollable: verticalScrollable(),
+    );
+    expect(find.text('Manage rules'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('experimental-event-rules')),
+      findsNothing,
+    );
+    await tester.tap(link);
+    await tester.pumpAndSettle();
+    expect(find.byType(EventRulesScreen), findsOneWidget);
+  });
 
   testWidgets('Program venue call count survives 360 dp wide at 1.3x text', (
     tester,

@@ -163,6 +163,24 @@ void main() {
       expect(read!.eventRuleIds, ['r2', 'r1']);
     });
 
+    test('the Rules picker sets them on a stored program, stamping it, and '
+        'leaves the rest of the program as it was', () async {
+      await repos.programs.create(program('p'));
+      final before = (await repos.programs.getById('p'))!;
+      expect(
+        await repos.programs.setEventRuleIds('p', ['r1', 'r2', 'r1']),
+        isTrue,
+      );
+      final after = (await repos.programs.getById('p'))!;
+      expect(after.eventRuleIds, ['r1', 'r2']);
+      expect(after.updatedAt.isAfter(before.updatedAt), isTrue);
+      expect(after.title, before.title);
+      expect(after.slots, before.slots);
+      // The same list again writes nothing; a missing program is refused.
+      expect(await repos.programs.setEventRuleIds('p', ['r1', 'r2']), isFalse);
+      expect(await repos.programs.setEventRuleIds('nope', ['r1']), isFalse);
+    });
+
     test('creating a program applies none', () async {
       await addRule('s');
       await repos.programs.create(program('p'));

@@ -14833,4 +14833,319 @@ class AppLocalizationsDa extends AppLocalizations {
   String savedSearchGone(String name) {
     return '\"$name\" er slettet, her eller på en anden enhed, så intet blev ændret.';
   }
+
+  @override
+  String get settingsExperimentalEventRulesHeader => 'Aftenregler';
+
+  @override
+  String get settingsExperimentalEventRulesTitle =>
+      'Tjek programmer mod dine regler';
+
+  @override
+  String get settingsExperimentalEventRulesSubtitle =>
+      'Føj regler til et program, fx ingen to Becket-danse i træk, så advarer editoren dig, når programmet bryder en af dem. Advarsler forhindrer dig aldrig i at gemme eller kalde.';
+
+  @override
+  String get eventRulesManageTitle => 'Administrer regler';
+
+  @override
+  String get eventRulesManageSubtitle =>
+      'Se, tilføj, rediger og slet dine regler.';
+
+  @override
+  String get eventRulesEmpty =>
+      'Ingen regler endnu. En regel bruger en af dine gemte søgninger til at sige, hvilke danse den gælder.';
+
+  @override
+  String get eventRulesNewRule => 'Ny regel…';
+
+  @override
+  String get eventRuleDeletedSnack => 'Reglen er slettet.';
+
+  @override
+  String get eventRuleEditorNewTitle => 'Ny regel';
+
+  @override
+  String get eventRuleEditorEditTitle => 'Rediger regel';
+
+  @override
+  String get eventRuleSearchLabel => 'Hvilke danse';
+
+  @override
+  String get eventRuleNoSavedSearches =>
+      'Gem først en søgning i Samlingen: en regel bruger en gemt søgning til at sige, hvilke danse den gælder.';
+
+  @override
+  String get eventRuleQuantifierLabel => 'Hvor mange';
+
+  @override
+  String get eventRuleQuantifierAtMost => 'Højst';
+
+  @override
+  String get eventRuleQuantifierAtLeast => 'Mindst';
+
+  @override
+  String get eventRuleQuantifierNone => 'Ingen';
+
+  @override
+  String get eventRuleCountLabel => 'Antal danse';
+
+  @override
+  String eventRuleCountInvalid(int max) {
+    return 'Indtast et helt tal fra 1 til $max.';
+  }
+
+  @override
+  String get eventRuleScopeLabel => 'Hvor';
+
+  @override
+  String get eventRuleScopeWholeProgram => 'Hele programmet';
+
+  @override
+  String get eventRuleScopeBeforeFirstBreak => 'Før første pause';
+
+  @override
+  String get eventRuleScopeAfterFirstBreak => 'Efter første pause';
+
+  @override
+  String get eventRuleScopeNeighbouring => 'To vilkårlige nabodanse';
+
+  @override
+  String get eventRuleNameLabel => 'Navn (valgfrit)';
+
+  @override
+  String eventRuleSentenceAtMostWhole(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Højst $count danse, der matcher \"$search\", i hele programmet',
+      one: 'Højst 1 dans, der matcher \"$search\", i hele programmet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtMostBefore(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Højst $count danse, der matcher \"$search\", før første pause',
+      one: 'Højst 1 dans, der matcher \"$search\", før første pause',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtMostAfter(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Højst $count danse, der matcher \"$search\", efter første pause',
+      one: 'Højst 1 dans, der matcher \"$search\", efter første pause',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtMostNeighbouring(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Højst $count danse, der matcher \"$search\", i to vilkårlige nabodanse',
+      one: 'Højst 1 dans, der matcher \"$search\", i to vilkårlige nabodanse',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtLeastWhole(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Mindst $count danse, der matcher \"$search\", i hele programmet',
+      one: 'Mindst 1 dans, der matcher \"$search\", i hele programmet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtLeastBefore(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Mindst $count danse, der matcher \"$search\", før første pause',
+      one: 'Mindst 1 dans, der matcher \"$search\", før første pause',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtLeastAfter(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Mindst $count danse, der matcher \"$search\", efter første pause',
+      one: 'Mindst 1 dans, der matcher \"$search\", efter første pause',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtLeastNeighbouring(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'Mindst $count danse, der matcher \"$search\", i to vilkårlige nabodanse',
+      one: 'Mindst 1 dans, der matcher \"$search\", i to vilkårlige nabodanse',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceNoneWhole(String search) {
+    return 'Ingen dans, der matcher \"$search\", i hele programmet';
+  }
+
+  @override
+  String eventRuleSentenceNoneBefore(String search) {
+    return 'Ingen dans, der matcher \"$search\", før første pause';
+  }
+
+  @override
+  String eventRuleSentenceNoneAfter(String search) {
+    return 'Ingen dans, der matcher \"$search\", efter første pause';
+  }
+
+  @override
+  String eventRuleSentenceNoneNeighbouring(String search) {
+    return 'Ingen dans, der matcher \"$search\", i to vilkårlige nabodanse';
+  }
+
+  @override
+  String get eventRuleSentenceUnreadable =>
+      'En regel fra en nyere version af appen';
+
+  @override
+  String get eventRuleSearchUnknown => '…';
+
+  @override
+  String get eventRuleAttentionUnreadable =>
+      'Lavet af en nyere version af appen, så den tjekkes ikke.';
+
+  @override
+  String get eventRuleAttentionSearchGone =>
+      'Dens gemte søgning er slettet eller kan ikke læses, så den tjekkes ikke.';
+
+  @override
+  String get eventRuleAttentionUnresolvable =>
+      'Dens gemte søgning bruger ting, der ikke findes længere, så den tjekkes ikke:';
+
+  @override
+  String programsRulesButton(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Regler ($count)',
+      zero: 'Regler',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsRulesLabel => 'Regler';
+
+  @override
+  String get programsRulesPickerTitle => 'Regler for dette program';
+
+  @override
+  String get programsRulesPickerEmpty => 'Du har ingen regler endnu.';
+
+  @override
+  String programsRulesStripBroken(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count regler ikke opfyldt',
+      one: '1 regel ikke opfyldt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programsRulesStripAttention(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count regler kræver opmærksomhed',
+      one: '1 regel kræver opmærksomhed',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programsRuleBreachMatching(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count matchende danse',
+      one: '1 matchende dans',
+      zero: 'Ingen matchende danse',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programsRuleBreachPairs(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count par nabodanse',
+      one: '1 par nabodanse',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programsRuleBreachDances(String titles) {
+    return 'Danse: $titles';
+  }
+
+  @override
+  String programsRuleBreachIfCalled(String title) {
+    return 'Hvis du kalder $title';
+  }
+
+  @override
+  String get programsSlotRuleMarker => 'Bryder en regel';
+
+  @override
+  String get programsSlotRuleMarkerAlternate =>
+      'Bryder en regel, hvis den kaldes';
+
+  @override
+  String programsSlotRuleMarkerSemantic(int count, String rules) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Bryder $count regler: $rules',
+      one: 'Bryder reglen: $rules',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountEventRule(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count aftenregler',
+      one: '1 aftenregel',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get syncReviewKindEventRule => 'Aftenregel';
 }

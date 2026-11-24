@@ -19990,5 +19990,397 @@
         "example": "Easy mixers"
       }
     }
+  },
+  "settingsExperimentalEventRulesHeader": "Event rules",
+  "@settingsExperimentalEventRulesHeader": {
+    "description": "Header of the Event rules section in Settings > Experimental (#2340), and the title of the rules manager screen. An event rule is a sentence about a program, such as 'at most 1 dance matching Becket in any two neighbouring dances'."
+  },
+  "settingsExperimentalEventRulesTitle": "Check programs against your rules",
+  "@settingsExperimentalEventRulesTitle": {
+    "description": "Title of the switch that turns on event rules in Settings > Experimental (#2340)."
+  },
+  "settingsExperimentalEventRulesSubtitle": "Add rules to a program, such as no two Becket dances in a row, and the builder warns you when the program breaks one. Warnings never stop you saving or calling.",
+  "@settingsExperimentalEventRulesSubtitle": {
+    "description": "Subtitle of the event rules switch in Settings > Experimental (#2340)."
+  },
+  "eventRulesManageTitle": "Manage rules",
+  "@eventRulesManageTitle": {
+    "description": "Row that opens the event rules manager, in Settings > Experimental > Event rules and in Settings > Program while event rules are on (#2340)."
+  },
+  "eventRulesManageSubtitle": "View, add, edit and delete your rules.",
+  "@eventRulesManageSubtitle": {
+    "description": "Subtitle of the Manage rules row (#2340)."
+  },
+  "eventRulesEmpty": "No rules yet. A rule uses one of your saved searches to say which dances it means.",
+  "@eventRulesEmpty": {
+    "description": "Shown in the event rules manager when there are no rules (#2340)."
+  },
+  "eventRulesNewRule": "New rule…",
+  "@eventRulesNewRule": {
+    "description": "Button in the rules manager, and the pinned first line of a program's rule picker, that opens the rule editor for a new rule (#2340)."
+  },
+  "eventRuleDeletedSnack": "Rule deleted.",
+  "@eventRuleDeletedSnack": {
+    "description": "Snackbar after deleting an event rule, with Undo (#2340)."
+  },
+  "eventRuleEditorNewTitle": "New rule",
+  "@eventRuleEditorNewTitle": {
+    "description": "Title of the rule editor for a new event rule (#2340)."
+  },
+  "eventRuleEditorEditTitle": "Edit rule",
+  "@eventRuleEditorEditTitle": {
+    "description": "Title of the rule editor for an existing event rule (#2340)."
+  },
+  "eventRuleSearchLabel": "Which dances",
+  "@eventRuleSearchLabel": {
+    "description": "Label of the rule editor field choosing the saved search that says which dances an event rule means (#2340)."
+  },
+  "eventRuleNoSavedSearches": "Save a search in the Collection first: a rule uses a saved search to say which dances it means.",
+  "@eventRuleNoSavedSearches": {
+    "description": "Shown in the rule editor when there are no saved searches to choose (#2340)."
+  },
+  "eventRuleQuantifierLabel": "How many",
+  "@eventRuleQuantifierLabel": {
+    "description": "Label of the rule editor choice between At most, At least and None (#2340)."
+  },
+  "eventRuleQuantifierAtMost": "At most",
+  "@eventRuleQuantifierAtMost": {
+    "description": "Event rule quantifier: at most N matching dances (#2340)."
+  },
+  "eventRuleQuantifierAtLeast": "At least",
+  "@eventRuleQuantifierAtLeast": {
+    "description": "Event rule quantifier: at least N matching dances (#2340)."
+  },
+  "eventRuleQuantifierNone": "None",
+  "@eventRuleQuantifierNone": {
+    "description": "Event rule quantifier: no matching dance (#2340)."
+  },
+  "eventRuleCountLabel": "Number of dances",
+  "@eventRuleCountLabel": {
+    "description": "Label of the rule editor field for N in 'at most N' or 'at least N' (#2340)."
+  },
+  "eventRuleCountInvalid": "Enter a whole number from 1 to {max}.",
+  "@eventRuleCountInvalid": {
+    "description": "Error under the rule editor's number field (#2340).",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "example": "99"
+      }
+    }
+  },
+  "eventRuleScopeLabel": "Where",
+  "@eventRuleScopeLabel": {
+    "description": "Label of the rule editor choice of where in the program a rule counts (#2340)."
+  },
+  "eventRuleScopeWholeProgram": "The whole program",
+  "@eventRuleScopeWholeProgram": {
+    "description": "Event rule scope: every dance in the program (#2340)."
+  },
+  "eventRuleScopeBeforeFirstBreak": "Before the first break",
+  "@eventRuleScopeBeforeFirstBreak": {
+    "description": "Event rule scope: the dances before the program's first break (#2340)."
+  },
+  "eventRuleScopeAfterFirstBreak": "After the first break",
+  "@eventRuleScopeAfterFirstBreak": {
+    "description": "Event rule scope: the dances after the program's first break (#2340)."
+  },
+  "eventRuleScopeNeighbouring": "Any two neighbouring dances",
+  "@eventRuleScopeNeighbouring": {
+    "description": "Event rule scope: each pair of dances next to each other, counted pair by pair; a break separates two dances, a note does not (#2340)."
+  },
+  "eventRuleNameLabel": "Name (optional)",
+  "@eventRuleNameLabel": {
+    "description": "Label of the rule editor's optional name field (#2340)."
+  },
+  "eventRuleSentenceAtMostWhole": "{count, plural, =1{At most 1 dance matching \"{search}\" in the whole program} other{At most {count} dances matching \"{search}\" in the whole program}}",
+  "@eventRuleSentenceAtMostWhole": {
+    "description": "An event rule as a sentence (#2340). {search} is the name of a saved search.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1"
+      },
+      "search": {
+        "type": "String",
+        "example": "Petronella"
+      }
+    }
+  },
+  "eventRuleSentenceAtMostBefore": "{count, plural, =1{At most 1 dance matching \"{search}\" before the first break} other{At most {count} dances matching \"{search}\" before the first break}}",
+  "@eventRuleSentenceAtMostBefore": {
+    "description": "An event rule as a sentence (#2340). {search} is the name of a saved search.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1"
+      },
+      "search": {
+        "type": "String",
+        "example": "Petronella"
+      }
+    }
+  },
+  "eventRuleSentenceAtMostAfter": "{count, plural, =1{At most 1 dance matching \"{search}\" after the first break} other{At most {count} dances matching \"{search}\" after the first break}}",
+  "@eventRuleSentenceAtMostAfter": {
+    "description": "An event rule as a sentence (#2340). {search} is the name of a saved search.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1"
+      },
+      "search": {
+        "type": "String",
+        "example": "Petronella"
+      }
+    }
+  },
+  "eventRuleSentenceAtMostNeighbouring": "{count, plural, =1{At most 1 dance matching \"{search}\" in any two neighbouring dances} other{At most {count} dances matching \"{search}\" in any two neighbouring dances}}",
+  "@eventRuleSentenceAtMostNeighbouring": {
+    "description": "An event rule as a sentence (#2340): counted pair by pair. {search} is the name of a saved search.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1"
+      },
+      "search": {
+        "type": "String",
+        "example": "Becket"
+      }
+    }
+  },
+  "eventRuleSentenceAtLeastWhole": "{count, plural, =1{At least 1 dance matching \"{search}\" in the whole program} other{At least {count} dances matching \"{search}\" in the whole program}}",
+  "@eventRuleSentenceAtLeastWhole": {
+    "description": "An event rule as a sentence (#2340). {search} is the name of a saved search.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "search": {
+        "type": "String",
+        "example": "Not improper"
+      }
+    }
+  },
+  "eventRuleSentenceAtLeastBefore": "{count, plural, =1{At least 1 dance matching \"{search}\" before the first break} other{At least {count} dances matching \"{search}\" before the first break}}",
+  "@eventRuleSentenceAtLeastBefore": {
+    "description": "An event rule as a sentence (#2340). {search} is the name of a saved search.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "search": {
+        "type": "String",
+        "example": "Not improper"
+      }
+    }
+  },
+  "eventRuleSentenceAtLeastAfter": "{count, plural, =1{At least 1 dance matching \"{search}\" after the first break} other{At least {count} dances matching \"{search}\" after the first break}}",
+  "@eventRuleSentenceAtLeastAfter": {
+    "description": "An event rule as a sentence (#2340). {search} is the name of a saved search.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      },
+      "search": {
+        "type": "String",
+        "example": "Not improper"
+      }
+    }
+  },
+  "eventRuleSentenceAtLeastNeighbouring": "{count, plural, =1{At least 1 dance matching \"{search}\" in any two neighbouring dances} other{At least {count} dances matching \"{search}\" in any two neighbouring dances}}",
+  "@eventRuleSentenceAtLeastNeighbouring": {
+    "description": "An event rule as a sentence (#2340): counted pair by pair. {search} is the name of a saved search.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1"
+      },
+      "search": {
+        "type": "String",
+        "example": "Easy"
+      }
+    }
+  },
+  "eventRuleSentenceNoneWhole": "No dance matching \"{search}\" in the whole program",
+  "@eventRuleSentenceNoneWhole": {
+    "description": "An event rule as a sentence (#2340). {search} is the name of a saved search.",
+    "placeholders": {
+      "search": {
+        "type": "String",
+        "example": "Above level 3"
+      }
+    }
+  },
+  "eventRuleSentenceNoneBefore": "No dance matching \"{search}\" before the first break",
+  "@eventRuleSentenceNoneBefore": {
+    "description": "An event rule as a sentence (#2340). {search} is the name of a saved search.",
+    "placeholders": {
+      "search": {
+        "type": "String",
+        "example": "Above level 3"
+      }
+    }
+  },
+  "eventRuleSentenceNoneAfter": "No dance matching \"{search}\" after the first break",
+  "@eventRuleSentenceNoneAfter": {
+    "description": "An event rule as a sentence (#2340). {search} is the name of a saved search.",
+    "placeholders": {
+      "search": {
+        "type": "String",
+        "example": "Becket"
+      }
+    }
+  },
+  "eventRuleSentenceNoneNeighbouring": "No dance matching \"{search}\" in any two neighbouring dances",
+  "@eventRuleSentenceNoneNeighbouring": {
+    "description": "An event rule as a sentence (#2340). {search} is the name of a saved search.",
+    "placeholders": {
+      "search": {
+        "type": "String",
+        "example": "Becket"
+      }
+    }
+  },
+  "eventRuleSentenceUnreadable": "A rule from a newer version of the app",
+  "@eventRuleSentenceUnreadable": {
+    "description": "Shown in place of an event rule's sentence when a newer version of the app wrote it and this one cannot read it (#2340)."
+  },
+  "eventRuleSearchUnknown": "…",
+  "@eventRuleSearchUnknown": {
+    "description": "Stands for the saved search's name in an event rule's sentence when the saved search is gone (#2340). Usually just an ellipsis."
+  },
+  "eventRuleAttentionUnreadable": "Made by a newer version of the app, so it is not checked.",
+  "@eventRuleAttentionUnreadable": {
+    "description": "Why an event rule needs attention: a newer version of the app wrote it (#2340)."
+  },
+  "eventRuleAttentionSearchGone": "Its saved search was deleted or can't be read, so it is not checked.",
+  "@eventRuleAttentionSearchGone": {
+    "description": "Why an event rule needs attention: its saved search is gone (#2340)."
+  },
+  "eventRuleAttentionUnresolvable": "Its saved search uses things that are gone, so it is not checked:",
+  "@eventRuleAttentionUnresolvable": {
+    "description": "Why an event rule needs attention: its saved search names deleted things, listed after this line (#2340)."
+  },
+  "programsRulesButton": "{count, plural, =0{Rules} other{Rules ({count})}}",
+  "@programsRulesButton": {
+    "description": "The program builder's Rules control, with how many rules the program applies (#2340).",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "programsRulesLabel": "Rules",
+  "@programsRulesLabel": {
+    "description": "Label for the event rules a program applies, as a field name (for example when two devices disagree about a program) (#2340)."
+  },
+  "programsRulesPickerTitle": "Rules for this program",
+  "@programsRulesPickerTitle": {
+    "description": "Title of the sheet where the caller picks which event rules apply to the program (#2340)."
+  },
+  "programsRulesPickerEmpty": "You have no rules yet.",
+  "@programsRulesPickerEmpty": {
+    "description": "Shown in the rule picker under the pinned New rule line when there are no rules (#2340)."
+  },
+  "programsRulesStripBroken": "{count, plural, =1{1 rule not met} other{{count} rules not met}}",
+  "@programsRulesStripBroken": {
+    "description": "The Rules strip on the program builder's Build tab: how many applied rules the program breaks (#2340).",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "programsRulesStripAttention": "{count, plural, =1{1 rule needs attention} other{{count} rules need attention}}",
+  "@programsRulesStripAttention": {
+    "description": "The Rules strip on the program builder's Build tab: how many applied rules cannot be checked (#2340).",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "programsRuleBreachMatching": "{count, plural, =0{No matching dances} =1{1 matching dance} other{{count} matching dances}}",
+  "@programsRuleBreachMatching": {
+    "description": "Under a broken event rule in the Rules strip: how many dances in its scope match (#2340).",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "programsRuleBreachPairs": "{count, plural, =1{1 pair of neighbouring dances} other{{count} pairs of neighbouring dances}}",
+  "@programsRuleBreachPairs": {
+    "description": "Under a broken neighbouring-dances event rule in the Rules strip: how many pairs break it (#2340).",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1"
+      }
+    }
+  },
+  "programsRuleBreachDances": "Dances: {titles}",
+  "@programsRuleBreachDances": {
+    "description": "Under a broken event rule in the Rules strip: the dances that break it, as a list (#2340).",
+    "placeholders": {
+      "titles": {
+        "type": "String",
+        "example": "Petronella, Hull's Victory"
+      }
+    }
+  },
+  "programsRuleBreachIfCalled": "If you call {title}",
+  "@programsRuleBreachIfCalled": {
+    "description": "Under an event rule in the Rules strip: an alternate dance that would break the rule if called instead of its primary (#2340).",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Hull's Victory"
+      }
+    }
+  },
+  "programsSlotRuleMarker": "Breaks a rule",
+  "@programsSlotRuleMarker": {
+    "description": "Marker on a program slot whose dance breaks an applied event rule; shown with an icon (#2340)."
+  },
+  "programsSlotRuleMarkerAlternate": "Breaks a rule if called",
+  "@programsSlotRuleMarkerAlternate": {
+    "description": "Marker on an alternate slot that would break an applied event rule if called instead of its primary (#2340)."
+  },
+  "programsSlotRuleMarkerSemantic": "{count, plural, =1{Breaks the rule: {rules}} other{Breaks {count} rules: {rules}}}",
+  "@programsSlotRuleMarkerSemantic": {
+    "description": "Screen-reader label of a slot's event rule marker, naming the rules (#2340).",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "1"
+      },
+      "rules": {
+        "type": "String",
+        "example": "At most 1 dance matching \"Becket\" in any two neighbouring dances"
+      }
+    }
+  },
+  "settingsSyncNoticeCountEventRule": "{count, plural, =1{1 event rule} other{{count} event rules}}",
+  "@settingsSyncNoticeCountEventRule": {
+    "description": "One entry in the {items} list of settingsSyncNoticeNewerVersionItems: how many of the user's event rules (#2340) are waiting for an app update. Must read correctly as the object of 'to receive …' in that sentence.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "syncReviewKindEventRule": "Event rule",
+  "@syncReviewKindEventRule": {
+    "description": "Device Sync: the kind of record that is an event rule (#2340)."
   }
 }

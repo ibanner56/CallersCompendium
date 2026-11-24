@@ -14254,4 +14254,296 @@ class AppLocalizationsJa extends AppLocalizations {
   String savedSearchGone(String name) {
     return '「$name」はこの端末か別の端末で削除されたため、何も変更されませんでした。';
   }
+
+  @override
+  String get settingsExperimentalEventRulesHeader => 'イベントルール';
+
+  @override
+  String get settingsExperimentalEventRulesTitle => 'プログラムを自分のルールで確認';
+
+  @override
+  String get settingsExperimentalEventRulesSubtitle =>
+      'プログラムにルール（例：Becketのダンスを2曲続けない）を追加すると、プログラムがルールに反したときにエディターが警告します。警告によって保存やコールが妨げられることはありません。';
+
+  @override
+  String get eventRulesManageTitle => 'ルールを管理';
+
+  @override
+  String get eventRulesManageSubtitle => 'ルールを表示、追加、編集、削除します。';
+
+  @override
+  String get eventRulesEmpty => 'ルールはまだありません。ルールは保存した検索を使って、対象のダンスを指定します。';
+
+  @override
+  String get eventRulesNewRule => '新しいルール…';
+
+  @override
+  String get eventRuleDeletedSnack => 'ルールを削除しました。';
+
+  @override
+  String get eventRuleEditorNewTitle => '新しいルール';
+
+  @override
+  String get eventRuleEditorEditTitle => 'ルールを編集';
+
+  @override
+  String get eventRuleSearchLabel => '対象のダンス';
+
+  @override
+  String get eventRuleNoSavedSearches =>
+      '先にコレクションで検索を保存してください。ルールは保存した検索を使って、対象のダンスを指定します。';
+
+  @override
+  String get eventRuleQuantifierLabel => '数';
+
+  @override
+  String get eventRuleQuantifierAtMost => '最大';
+
+  @override
+  String get eventRuleQuantifierAtLeast => '最小';
+
+  @override
+  String get eventRuleQuantifierNone => 'なし';
+
+  @override
+  String get eventRuleCountLabel => 'ダンスの数';
+
+  @override
+  String eventRuleCountInvalid(int max) {
+    return '1から$maxまでの整数を入力してください。';
+  }
+
+  @override
+  String get eventRuleScopeLabel => '範囲';
+
+  @override
+  String get eventRuleScopeWholeProgram => 'プログラム全体';
+
+  @override
+  String get eventRuleScopeBeforeFirstBreak => '最初のブレイクより前';
+
+  @override
+  String get eventRuleScopeAfterFirstBreak => '最初のブレイクより後';
+
+  @override
+  String get eventRuleScopeNeighbouring => '隣接する任意の2曲';
+
+  @override
+  String get eventRuleNameLabel => '名前（任意）';
+
+  @override
+  String eventRuleSentenceAtMostWhole(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'プログラム全体で「$search」に該当するダンスは最大$count曲',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtMostBefore(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '最初のブレイクより前で「$search」に該当するダンスは最大$count曲',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtMostAfter(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '最初のブレイクより後で「$search」に該当するダンスは最大$count曲',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtMostNeighbouring(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '隣接する任意の2曲で「$search」に該当するダンスは最大$count曲',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtLeastWhole(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'プログラム全体で「$search」に該当するダンスは最小$count曲',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtLeastBefore(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '最初のブレイクより前で「$search」に該当するダンスは最小$count曲',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtLeastAfter(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '最初のブレイクより後で「$search」に該当するダンスは最小$count曲',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceAtLeastNeighbouring(int count, String search) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '隣接する任意の2曲で「$search」に該当するダンスは最小$count曲',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eventRuleSentenceNoneWhole(String search) {
+    return 'プログラム全体で「$search」に該当するダンスはなし';
+  }
+
+  @override
+  String eventRuleSentenceNoneBefore(String search) {
+    return '最初のブレイクより前で「$search」に該当するダンスはなし';
+  }
+
+  @override
+  String eventRuleSentenceNoneAfter(String search) {
+    return '最初のブレイクより後で「$search」に該当するダンスはなし';
+  }
+
+  @override
+  String eventRuleSentenceNoneNeighbouring(String search) {
+    return '隣接する任意の2曲で「$search」に該当するダンスはなし';
+  }
+
+  @override
+  String get eventRuleSentenceUnreadable => '新しいバージョンのアプリのルール';
+
+  @override
+  String get eventRuleSearchUnknown => '…';
+
+  @override
+  String get eventRuleAttentionUnreadable => '新しいバージョンのアプリで作成されたため、確認されません。';
+
+  @override
+  String get eventRuleAttentionSearchGone => '保存した検索が削除されたか読み込めないため、確認されません。';
+
+  @override
+  String get eventRuleAttentionUnresolvable =>
+      '保存した検索が、なくなったものを使っているため、確認されません：';
+
+  @override
+  String programsRulesButton(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'ルール（$count）',
+      zero: 'ルール',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsRulesLabel => 'ルール';
+
+  @override
+  String get programsRulesPickerTitle => 'このプログラムのルール';
+
+  @override
+  String get programsRulesPickerEmpty => 'ルールはまだありません。';
+
+  @override
+  String programsRulesStripBroken(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '満たされていないルール：$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programsRulesStripAttention(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '確認が必要なルール：$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programsRuleBreachMatching(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '該当するダンス：$count曲',
+      zero: '該当するダンスはありません',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programsRuleBreachPairs(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '隣接するダンスの組：$count組',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programsRuleBreachDances(String titles) {
+    return 'ダンス：$titles';
+  }
+
+  @override
+  String programsRuleBreachIfCalled(String title) {
+    return '$titleをコールした場合';
+  }
+
+  @override
+  String get programsSlotRuleMarker => 'ルールに反します';
+
+  @override
+  String get programsSlotRuleMarkerAlternate => 'コールするとルールに反します';
+
+  @override
+  String programsSlotRuleMarkerSemantic(int count, String rules) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のルールに反します：$rules',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String settingsSyncNoticeCountEventRule(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'イベントルール$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get syncReviewKindEventRule => 'イベントルール';
 }

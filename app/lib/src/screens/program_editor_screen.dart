@@ -14,6 +14,13 @@ import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
+import '../data/event_rules_scope.dart';
+import '../data/calling_history_tracking_scope.dart';
+import '../data/require_event_date_for_history_scope.dart';
+import '../data/require_performed_for_history_scope.dart';
+import '../search/event_rule_check.dart';
+import '../search/saved_search_context.dart';
+import '../widgets/program_event_rules.dart';
 import '../data/program_templates.dart';
 import '../data/editor_draft_shutdown_scope.dart';
 import '../data/mark_all_sets_status_scope.dart';
@@ -163,6 +170,7 @@ class ProgramEditorScreen extends StatefulWidget {
     this.reimportPicker,
     this.pdfLayouter,
     this.templateChoice = const ProgramTemplateChoice.useDefault(),
+    this.eventRuleEvaluator = evaluateEventRules,
   });
 
   final String? programId;
@@ -193,6 +201,10 @@ class ProgramEditorScreen extends StatefulWidget {
   /// Print/share seam for the Matrix tab's PDF export; defaults to
   /// [Printing.layoutPdf]. Supplied by widget tests.
   final PdfLayouter? pdfLayouter;
+
+  /// Checks the program's applied event rules (#2340); a seam so a test can
+  /// watch whether it is called. Never called while Event rules is off.
+  final EventRuleEvaluator eventRuleEvaluator;
 
   bool get isNew => programId == null;
   bool get isEmbedded =>
@@ -269,6 +281,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   ProgramTimes _timesBaseline = const ProgramTimes();
   ProgramStatus _status = ProgramStatus.draft;
   bool _hideAlternates = false;
+
+  /// The event rules applied to this program (#2340), in the order they were
+  /// applied. The Rules picker writes them straight to the stored program
+  /// ([ProgramRepository.setEventRuleIds]), so a save takes the stored list.
+  List<String> _eventRuleIds = const [];
+
+  /// Checks [_eventRuleIds] whenever the program changes, while Event rules
+  /// is on ([EventRulesEnabledScope]).
+  ProgramEventRulesController? _eventRules;
 
   /// The stored dialect name Perform uses for this program; `null` follows the
   /// application dialect. May name a dialect that no longer exists, which the
@@ -834,6 +855,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
     if (!_loaded && _loadError == null && _data == null) {
       _repos = RepositoriesScope.of(context);
+      _eventRules ??= ProgramEventRulesController(
+        repos: _repos,
+        evaluate: widget.eventRuleEvaluator,
+      )..addListener(_onEventRulesChecked);
       _reimport = DanceReimportCoordinator(
         repos: _repos,
         callersBox: widget.callersBoxOnline ?? CallersBoxOnline(),
@@ -1089,6 +1114,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _venueIdBaseline = program?.venueId;
         _status = program?.status ?? ProgramStatus.draft;
         _hideAlternates = program?.hideAlternates ?? false;
+        // A new program applies no rule (#2340): only the caller adds them.
+        _eventRuleIds = program?.eventRuleIds ?? const [];
         _dialectName = program?.dialectName;
         _slots = program?.slots.toList() ?? newProgramSlots;
         _insertion = null;
@@ -1187,6 +1214,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         : program.venueId;
     _status = program.status;
     _hideAlternates = program.hideAlternates;
+    _eventRuleIds = program.eventRuleIds;
     _dialectName = program.dialectName;
     _slots = program.slots.toList();
     _insertion = null;
@@ -1259,6 +1287,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _bulkUndoSnackBar?.close();
     _replaceSubscription();
     _pickerCounts.dispose();
+    _eventRules?.dispose();
     _tabController.dispose();
     _moreDetailsController.dispose();
     _titleController.dispose();
@@ -1949,6 +1978,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     archivedAt: live.archivedAt,
     // The editor never edits it: the stored one stands (#2352).
     calendarEventKey: live.calendarEventKey,
+    // The Rules picker writes these directly, so the stored ones stand
+    // (#2340).
+    eventRuleIds: live.eventRuleIds,
     calendarEventFingerprint: live.calendarEventFingerprint,
     calendarWrittenAt: live.calendarWrittenAt,
     calendarFlag: live.calendarFlag,
@@ -2348,6 +2380,107 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (dance == null || !canRestoreSlotDance(dance)) return;
     await restoreSlotDanceFromRecentlyDeleted(context, _repos, dance);
   }
+
+  void _onEventRulesChecked() {
+    if (mounted) setState(() {});
+  }
+
+  /// Hands the program as it is now to the rule checker (#2340), which
+  /// re-checks only when the slots or the applied rules changed. While Event
+  /// rules is off it checks nothing.
+  void _updateEventRules({required bool enabled}) {
+    final controller = _eventRules;
+    if (controller == null) return;
+    if (!enabled || !_loaded) {
+      controller.update(
+        enabled: false,
+        ruleIds: const [],
+        slots: const [],
+        readContext: _readRuleSearchContext,
+      );
+      return;
+    }
+    controller.update(
+      enabled: true,
+      ruleIds: _eventRuleIds,
+      slots: List.unmodifiable(_renumber(_slots)),
+      readContext: _readRuleSearchContext,
+      dialect: _dialect,
+      enrichment: _enrichment,
+    );
+  }
+
+  /// The context a rule's saved search resolves against: the live data, the
+  /// Calling history settings in force now, and this program, which never
+  /// counts as its own history.
+  Future<SavedSearchContext> _readRuleSearchContext() {
+    final catalog =
+        context
+            .getInheritedWidgetOfExactType<UserFiguresScope>()
+            ?.notifier
+            ?.catalog ??
+        UserFigureCatalog.empty;
+    final dialect = _dialect;
+    return readSavedSearchContext(
+      _repos,
+      today: const SearchClock().today(),
+      taxonomy: _data?.taxonomy ?? shippedTaxonomies.anyForm,
+      text: savedSearchTextCodec(
+        saveDialect: dialect,
+        showDialect: dialect,
+        enrichment: _enrichment,
+        renderer: FigureRenderer(
+          shippedTaxonomies.anyForm,
+          userFigures: catalog,
+        ),
+      ),
+      callerFilter: _data?.callerFilter,
+      performedOnly: RequirePerformedForHistoryScope.of(context),
+      requireEventDate: RequireEventDateForHistoryScope.of(context),
+      tracking: callingHistoryTrackingOf(context),
+      currentProgramId: _existing?.id,
+    );
+  }
+
+  /// What the Rules strip calls slot [slotId]: its dance's title, or its text.
+  String? _slotTitleById(String slotId) {
+    for (final slot in _slots) {
+      if (slot.id != slotId) continue;
+      if (slot.danceId case final id?) {
+        return _slotTitleForDance(id) ?? slot.text;
+      }
+      return slot.text;
+    }
+    return null;
+  }
+
+  /// The Rules control (#2340): the picker writes each change to a stored
+  /// program at once, and keeps a new program's for its first save.
+  Future<void> _openRulesPicker() => showProgramRulesPicker(
+    context,
+    applied: _eventRuleIds,
+    onChanged: (ids) async {
+      if (!mounted) return;
+      setState(() => _eventRuleIds = List.unmodifiable(ids));
+      final existing = _existing;
+      if (existing == null) {
+        _markDirty();
+        return;
+      }
+      try {
+        await _repos.programs.setEventRuleIds(existing.id, ids);
+        if (mounted) {
+          setState(() => _existing = existing.copyWith(eventRuleIds: ids));
+        }
+      } catch (error, stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'program_editor_screen._openRulesPicker',
+        );
+      }
+    },
+  );
 
   /// The slot list's title for [danceId]: the dance's title, marked as
   /// deleted while the dance is in Recently deleted, as Perform marks it.
@@ -3159,6 +3292,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             payMinorUnits: pay.units,
             payCurrency: pay.units == null ? null : pay.currency,
             clearPay: pay.isEmpty,
+            eventRuleIds: _eventRuleIds,
             slots: _renumber(_slots),
           );
     } catch (_) {
@@ -3252,6 +3386,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       calendarFlag: before != null
           ? before.calendarFlag
           : existing?.calendarFlag,
+      // The Rules picker writes a stored program's rules directly (#2340), so
+      // the stored list stands; a program not yet stored takes the picker's.
+      eventRuleIds: before != null ? before.eventRuleIds : _eventRuleIds,
       provenance: existing?.provenance,
     );
     if (existing != null) {
@@ -4345,6 +4482,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final l10n = AppLocalizations.of(context);
     final draft = _draftProgram;
     final warnings = draft?.validate() ?? const <ValidationIssue>[];
+    final rulesOn = EventRulesEnabledScope.of(context);
+    _updateEventRules(enabled: rulesOn);
+    final ruleCheck = rulesOn
+        ? (_eventRules?.check ?? EventRuleCheck.empty)
+        : EventRuleCheck.empty;
 
     return Form(
       key: _formKey,
@@ -4363,6 +4505,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           const SizedBox(height: 24),
           if (warnings.isNotEmpty) ...[
             _ProgramWarningsCard(warnings: warnings),
+            const SizedBox(height: 12),
+          ],
+          if (ruleCheck.broken.isNotEmpty ||
+              ruleCheck.needingAttention.isNotEmpty) ...[
+            EventRulesStrip(check: ruleCheck, slotTitle: _slotTitleById),
             const SizedBox(height: 12),
           ],
           Row(
@@ -4409,6 +4556,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 icon: const Icon(Icons.free_breakfast_outlined),
                 label: Text(l10n.programsInsertBreakButton),
               ),
+              if (rulesOn)
+                OutlinedButton.icon(
+                  key: const ValueKey('program-rules'),
+                  onPressed: _openRulesPicker,
+                  icon: const Icon(Icons.rule),
+                  label: Text(l10n.programsRulesButton(_eventRuleIds.length)),
+                ),
             ],
           ),
           const SizedBox(height: 8),
@@ -4448,6 +4602,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 : (index, {required after}) =>
                       _startInsertion(index, after: after, twoPane: twoPane),
             insertionTargetSlotIds: _insertionTargetSlotIds,
+            ruleMarkers: rulesOn
+                ? eventRuleSlotMarkers(l10n, ruleCheck)
+                : const {},
             onPreviewDanceStarted: twoPane
                 ? (id) => _showSavedPreview(
                     id,

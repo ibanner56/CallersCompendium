@@ -4,7 +4,7 @@ import 'package:meta/meta.dart';
 import '../../analysis/half_calling_stats.dart';
 import '../../model/enums.dart';
 import '../../model/event_rule.dart'
-    show decodeEventRuleIds, encodeEventRuleIds;
+    show decodeEventRuleIds, encodeEventRuleIds, normalizeEventRuleIds;
 import '../../model/program.dart';
 import '../../model/provenance.dart' as model;
 import '../../model/stored_timestamp.dart';
@@ -709,6 +709,40 @@ class ProgramRepository {
   /// archived.
   Future<bool> unarchive(String id, {required DateTime at}) =>
       _setArchivedAt(id, archivedAt: null, at: at);
+
+  /// Sets the event rules applied to the live program [id] (#2340): the
+  /// builder's Rules picker writes them here directly, as Archive writes the
+  /// archived state, so an edit to the rest of the program never carries a
+  /// stale list. [ids] is normalized ([normalizeEventRuleIds]). Returns
+  /// `false` when the program is missing or in Recently deleted, or already
+  /// applies exactly these rules.
+  Future<bool> setEventRuleIds(String id, List<String> ids, {DateTime? at}) {
+    final now = resolveStamp(at);
+    final encoded = encodeEventRuleIds(normalizeEventRuleIds(ids));
+    return _db.transaction(() async {
+      final row =
+          await (_db.select(_db.programs)
+                ..where((t) => t.id.equals(id) & t.deletedAt.isNull()))
+              .getSingleOrNull();
+      if (row == null) return false;
+      if (row.eventRuleIds == encoded) return false;
+      final current = asUtc(row.updatedAt);
+      await (_db.update(_db.programs)..where((t) => t.id.equals(id))).write(
+        ProgramsCompanion(
+          eventRuleIds: Value(encoded),
+          updatedAt: Value(
+            nextStoredTimestamp(
+              now: now.isAfter(current)
+                  ? now
+                  : current.add(storedTimestampTick),
+              current: [current],
+            ),
+          ),
+        ),
+      );
+      return true;
+    });
+  }
 
   Future<bool> _setArchivedAt(
     String id, {

@@ -266,6 +266,7 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'lessonMinute': l10n.programsLessonTimeLabel,
         'arrivalMinute': l10n.programsArrivalTimeLabel,
         'calendarFlag': l10n.calendarFlagFieldLabel,
+        'eventRuleIds': l10n.programsRulesLabel,
       },
       SyncRecordKind.choreographer => {
         'name': l10n.syncConflictFieldName,
@@ -287,6 +288,14 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'payload': l10n.glossaryEntryKindHeading,
       },
       SyncRecordKind.figureNote => {'notes': l10n.glossaryNotes},
+      // An event rule (#2340), labelled as the rule editor labels it.
+      SyncRecordKind.eventRule => {
+        'savedSearchId': l10n.eventRuleSearchLabel,
+        'quantifier': l10n.eventRuleQuantifierLabel,
+        'count': l10n.eventRuleCountLabel,
+        'scope': l10n.eventRuleScopeLabel,
+        'name': l10n.eventRuleNameLabel,
+      },
       SyncRecordKind.venue => {
         'name': l10n.syncConflictFieldName,
         'eventName': l10n.venueEditorEventNameLabel,
