@@ -1289,6 +1289,7 @@ class FigureRenderer {
       'lead_up_the_center': 'leading up the center',
       'long_lines': 'forming long lines',
       'forward_and_back': 'going forward and back',
+      'sq_forward_and_back': 'going forward and back',
       'mad_robin': 'doing a mad robin',
       'pass_through': 'passing through',
       'pass_the_ocean': 'passing the ocean',
@@ -1351,7 +1352,7 @@ class FigureRenderer {
     }
     // Its display line reads "forward & back", or "forward" alone, not its
     // name "forward and back"; the direction takes the verb.
-    if (moveId == 'forward_and_back') {
+    if (moveId == 'forward_and_back' || moveId == 'sq_forward_and_back') {
       return rendered.replaceFirst(_forwardWord, 'going forward');
     }
     if (moveId != 'zig_zag') return rendered;

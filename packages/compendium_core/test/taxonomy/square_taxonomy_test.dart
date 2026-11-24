@@ -357,6 +357,42 @@ void main() {
       );
     });
 
+    test('a forward reads as a verb in a sequence, a gerund in a modifier', () {
+      Figure forward(Map<String, Object?> more) => testFigure(
+        move: 'sq_forward_and_back',
+        params: {'who': 'heads', ...more},
+      );
+      final swing = testFigure(move: 'sq_swing', params: {'who': 'heads'});
+      String shown(Figure figure) =>
+          _renderer.renderSummary(figure, Dialect.larksRobins);
+      expect(
+        shown(
+          Figure.sequence(
+            figures: [
+              forward({'goBack': false}),
+              swing,
+            ],
+            beats: 12,
+          ),
+        ),
+        'heads forward and swing',
+      );
+      // A modifier's side steps read as gerunds, as contra's do.
+      final modified = shown(
+        Figure.modifier(
+          figures: [
+            swing,
+            forward({'goBack': false}),
+            forward({}),
+          ],
+          beats: 16,
+        ),
+      );
+      expect(modified, contains('heads going forward'));
+      expect(modified, contains('heads going forward and back'));
+      expect(modified, isNot(contains('backing')));
+    });
+
     test('a promenade goes counter-clockwise unless it says otherwise', () {
       Figure promenade([Map<String, Object?> more = const {}]) => testFigure(
         move: 'sq_promenade',
