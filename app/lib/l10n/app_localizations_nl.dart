@@ -9991,6 +9991,45 @@ class AppLocalizationsNl extends AppLocalizations {
   String get figureTextSheetAdd => 'Figuren toevoegen';
 
   @override
+  String get figureTextSheetFromImage => 'Uit een afbeelding…';
+
+  @override
+  String get figureTextSheetReadingImage => 'Afbeelding wordt gelezen…';
+
+  @override
+  String get figureTextSheetImageUnavailable =>
+      'Dit apparaat kan geen tekst in afbeeldingen lezen in de taal van de app of in het Engels. Op Windows worden afbeeldingen gelezen in de talen waarvan het Windows-taalpakket tekstherkenning bevat; de app installeert er geen.';
+
+  @override
+  String get figureTextSheetImageEnglishOnly =>
+      'Dit apparaat leest afbeeldingen in het Engels, niet in de taal van de app.';
+
+  @override
+  String figureTextSheetImageTooLarge(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Deze afbeelding is groter dan $limitString MB en is daarom niet gelezen. Kies een kleinere.';
+  }
+
+  @override
+  String get figureTextSheetImageTooManyPixels =>
+      'Deze afbeelding heeft te veel pixels om te lezen. Kies een kleinere of snijd hem bij.';
+
+  @override
+  String get figureTextSheetImageUnreadable =>
+      'Dit bestand is geen afbeelding die dit apparaat kan openen.';
+
+  @override
+  String get figureTextSheetImageNoText =>
+      'Er is geen tekst gevonden in deze afbeelding.';
+
+  @override
+  String get figureTextSheetImageFailed =>
+      'De tekst van de afbeelding kon niet worden gelezen.';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList =>
       'Plakken aan het einde van de figurenlijst';
 

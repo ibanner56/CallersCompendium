@@ -9533,6 +9533,42 @@ class AppLocalizationsJa extends AppLocalizations {
   String get figureTextSheetAdd => 'フィギュアを追加';
 
   @override
+  String get figureTextSheetFromImage => '画像から…';
+
+  @override
+  String get figureTextSheetReadingImage => '画像を読み取り中…';
+
+  @override
+  String get figureTextSheetImageUnavailable =>
+      'このデバイスは、アプリの言語でも英語でも画像の文字を読み取れません。Windowsでは、文字認識を含むWindows言語パックの言語で画像を読み取ります。アプリが言語パックをインストールすることはありません。';
+
+  @override
+  String get figureTextSheetImageEnglishOnly =>
+      'このデバイスは画像を英語で読み取ります。アプリの言語では読み取れません。';
+
+  @override
+  String figureTextSheetImageTooLarge(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'この画像は$limitString MBを超えているため、読み取りませんでした。もっと小さい画像を選んでください。';
+  }
+
+  @override
+  String get figureTextSheetImageTooManyPixels =>
+      'この画像はピクセル数が多すぎて読み取れません。もっと小さい画像を選ぶか、トリミングしてください。';
+
+  @override
+  String get figureTextSheetImageUnreadable => 'このファイルは、このデバイスで開ける画像ではありません。';
+
+  @override
+  String get figureTextSheetImageNoText => 'この画像に文字は見つかりませんでした。';
+
+  @override
+  String get figureTextSheetImageFailed => '画像の文字を読み取れませんでした。';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList => 'フィギュアリストの末尾にペースト';
 
   @override

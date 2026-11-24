@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/text_recognition.dart';
 import '../editor/figure_draft.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
@@ -175,6 +176,12 @@ class _FigureTextSheetState extends State<FigureTextSheet> {
                           : l10n.figureTextSheetHelp,
                       style: theme.textTheme.bodyMedium,
                     ),
+                    if (TextRecognitionScope.of(context) case final service?)
+                      _FromImage(
+                        service: service,
+                        pickImage: TextRecognitionScope.pickerOf(context),
+                        onText: (text) => _textController.text = text,
+                      ),
                     const SizedBox(height: AppSpacing.md),
                     TextField(
                       key: const ValueKey('figure-text-sheet-field'),
@@ -248,6 +255,149 @@ class _FigureTextSheetState extends State<FigureTextSheet> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// **From an image…** (#2327): reads a chosen picture's text on the device
+/// and puts it in the sheet's text box, replacing what is there, for the
+/// user to correct. The picture is read once and released.
+class _FromImage extends StatefulWidget {
+  const _FromImage({
+    required this.service,
+    required this.pickImage,
+    required this.onText,
+  });
+
+  final TextRecognitionService service;
+  final Future<PickedRecognitionImage?> Function() pickImage;
+  final ValueChanged<String> onText;
+
+  @override
+  State<_FromImage> createState() => _FromImageState();
+}
+
+class _FromImageState extends State<_FromImage> {
+  /// Null until the device answers which languages it reads.
+  TextRecognitionAvailability? _availability;
+  List<String> _wanted = const [];
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final wanted = recognitionLanguagesFor(Localizations.localeOf(context));
+    if (wanted.join(',') == _wanted.join(',')) return;
+    _wanted = wanted;
+    _availability = null;
+    widget.service.availability(wanted).then((availability) {
+      if (mounted && wanted == _wanted) {
+        setState(() => _availability = availability);
+      }
+    });
+  }
+
+  Future<void> _read() async {
+    final availability = _availability;
+    if (_busy || availability == null || !availability.isAvailable) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    String? error;
+    try {
+      final picked = await widget.pickImage();
+      if (picked == null) return;
+      await checkRecognitionImage(picked.bytes);
+      final text = await widget.service.recognize(
+        picked.bytes,
+        languages: availability.languages,
+      );
+      if (!mounted) return;
+      widget.onText(text);
+    } on TextRecognitionException catch (e) {
+      error = _message(e.reason);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _error = error;
+        });
+      }
+    }
+  }
+
+  String _message(TextRecognitionFailure reason) {
+    final l10n = AppLocalizations.of(context);
+    return switch (reason) {
+      TextRecognitionFailure.tooLarge => l10n.figureTextSheetImageTooLarge(
+        kMaxRecognitionImageBytes ~/ (1024 * 1024),
+      ),
+      TextRecognitionFailure.tooManyPixels =>
+        l10n.figureTextSheetImageTooManyPixels,
+      TextRecognitionFailure.unreadable => l10n.figureTextSheetImageUnreadable,
+      TextRecognitionFailure.noText => l10n.figureTextSheetImageNoText,
+      TextRecognitionFailure.failed => l10n.figureTextSheetImageFailed,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final availability = _availability;
+    if (availability == null) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final note = !availability.isAvailable
+        ? l10n.figureTextSheetImageUnavailable
+        : availability.languages.contains(_wanted.first)
+        ? null
+        : l10n.figureTextSheetImageEnglishOnly;
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          OutlinedButton.icon(
+            key: const ValueKey('figure-text-sheet-from-image'),
+            onPressed: availability.isAvailable && !_busy ? _read : null,
+            icon: _busy
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.image_outlined),
+            label: Text(
+              _busy
+                  ? l10n.figureTextSheetReadingImage
+                  : l10n.figureTextSheetFromImage,
+            ),
+          ),
+          if (note != null)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
+              child: Text(
+                key: const ValueKey('figure-text-sheet-image-note'),
+                note,
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
+          if (_error case final error?)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
+              child: Semantics(
+                liveRegion: true,
+                child: Text(
+                  key: const ValueKey('figure-text-sheet-image-error'),
+                  error,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

@@ -9670,6 +9670,42 @@
   "@figureTextSheetAdd": {
     "x-sourceSha256": "5b26f322f63864bc8538081ffb00549cd3359633df43ad71178bdd627f0bd9b7"
   },
+  "figureTextSheetFromImage": "Aus einem Bild…",
+  "@figureTextSheetFromImage": {
+    "x-sourceSha256": "dd6ac7c7817e072d8f4fd986c8d3378ea6f0d45dbb856b1c69a01a97b4734964"
+  },
+  "figureTextSheetReadingImage": "Bild wird gelesen…",
+  "@figureTextSheetReadingImage": {
+    "x-sourceSha256": "be307d1b34cfc5f81c61c434df7f63403aa59cb2851ebd760f9d031319d2361b"
+  },
+  "figureTextSheetImageUnavailable": "Dieses Gerät kann Text in Bildern weder in der Sprache der App noch auf Englisch lesen. Unter Windows werden Bilder in den Sprachen gelesen, deren Windows-Sprachpaket Texterkennung enthält; die App installiert keines.",
+  "@figureTextSheetImageUnavailable": {
+    "x-sourceSha256": "6ac8ef49c746376af410c7a1d0c2b99cebb6a1d8869d912cef0e6c38380d1423"
+  },
+  "figureTextSheetImageEnglishOnly": "Dieses Gerät liest Bilder auf Englisch, nicht in der Sprache der App.",
+  "@figureTextSheetImageEnglishOnly": {
+    "x-sourceSha256": "bd0891d06fd0e811fafa2c4d42d4ead78224080a6bdb22ad36a59bdd8fe4ae8d"
+  },
+  "figureTextSheetImageTooLarge": "Dieses Bild ist größer als {limit} MB und wurde deshalb nicht gelesen. Wählen Sie ein kleineres.",
+  "@figureTextSheetImageTooLarge": {
+    "x-sourceSha256": "1bb69766d216ed5cb9684a05e78700f2dbb36387e7357e871b9d03fec1dcb7ab"
+  },
+  "figureTextSheetImageTooManyPixels": "Dieses Bild hat zu viele Pixel, um gelesen zu werden. Wählen Sie ein kleineres oder schneiden Sie es zu.",
+  "@figureTextSheetImageTooManyPixels": {
+    "x-sourceSha256": "b50a0545135cdaba32030e933955ed45f156fdb1f439a92ec17de47fc8cd4fbd"
+  },
+  "figureTextSheetImageUnreadable": "Diese Datei ist kein Bild, das dieses Gerät öffnen kann.",
+  "@figureTextSheetImageUnreadable": {
+    "x-sourceSha256": "0dac83a132c45d04835392cb021c627112c8127ea3f7542fb5e5f01d981a2e80"
+  },
+  "figureTextSheetImageNoText": "In diesem Bild wurde kein Text gefunden.",
+  "@figureTextSheetImageNoText": {
+    "x-sourceSha256": "70c2f81285a31cf551ec4673df6cdf571ae387d10aa497c1e53764752bb212e5"
+  },
+  "figureTextSheetImageFailed": "Der Text des Bildes konnte nicht gelesen werden.",
+  "@figureTextSheetImageFailed": {
+    "x-sourceSha256": "14449d451f327587d0d60907d54377246b50588e6cf4ae87a5df11ed78f9d5fc"
+  },
   "danceEditorPasteAtEndOfFigureList": "Am Ende der Figurenliste einfügen",
   "@danceEditorPasteAtEndOfFigureList": {
     "x-sourceSha256": "5fb0b2b7335edd026fe96ab368850eb36c66826ba99ec38674181575aa24c07c"

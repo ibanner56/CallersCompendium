@@ -13095,6 +13095,49 @@
   "@figureTextSheetAdd": {
     "description": "Button in the Add figures from text sheet that inserts the previewed figures at the end of the dance's figure list and closes the sheet."
   },
+  "figureTextSheetFromImage": "From an image…",
+  "@figureTextSheetFromImage": {
+    "description": "Button in the Add figures from text sheet that opens the system picker to choose a picture (a photo of an index card or a book page) whose text is read on the device and put in the text box. Shown only on iOS, macOS and Windows."
+  },
+  "figureTextSheetReadingImage": "Reading the picture…",
+  "@figureTextSheetReadingImage": {
+    "description": "Label of the From an image… button while the chosen picture's text is being read on the device."
+  },
+  "figureTextSheetImageUnavailable": "This device can't read text from pictures in the app's language or in English. On Windows, pictures are read in the languages whose Windows language pack includes text recognition; the app doesn't install one.",
+  "@figureTextSheetImageUnavailable": {
+    "description": "Note under the disabled From an image… button when the device reads no language the app asked for (on Windows, no suitable OCR language is installed). It must not offer to install anything."
+  },
+  "figureTextSheetImageEnglishOnly": "This device reads pictures in English, not in the app's language.",
+  "@figureTextSheetImageEnglishOnly": {
+    "description": "Note under the From an image… button when the device cannot read the app's language (for example Japanese on an older iOS or macOS) but can read English."
+  },
+  "figureTextSheetImageTooLarge": "This picture is larger than {limit} MB, so it wasn't read. Choose a smaller one.",
+  "@figureTextSheetImageTooLarge": {
+    "description": "Error under the From an image… button when the chosen file is over the size limit. Nothing is read.",
+    "placeholders": {
+      "limit": {
+        "type": "int",
+        "format": "decimalPattern",
+        "example": "25"
+      }
+    }
+  },
+  "figureTextSheetImageTooManyPixels": "This picture has too many pixels to read. Choose a smaller one, or crop it.",
+  "@figureTextSheetImageTooManyPixels": {
+    "description": "Error under the From an image… button when the chosen picture's dimensions are over the limit. Nothing is read."
+  },
+  "figureTextSheetImageUnreadable": "This file isn't a picture this device can open.",
+  "@figureTextSheetImageUnreadable": {
+    "description": "Error under the From an image… button when the chosen file cannot be decoded as an image."
+  },
+  "figureTextSheetImageNoText": "No text was found in this picture.",
+  "@figureTextSheetImageNoText": {
+    "description": "Error under the From an image… button when recognition found no text. The text box is left as it was."
+  },
+  "figureTextSheetImageFailed": "The picture's text couldn't be read.",
+  "@figureTextSheetImageFailed": {
+    "description": "Error under the From an image… button when the device's text recognition failed."
+  },
   "danceEditorPasteAtEndOfFigureList": "Paste at end of figure list",
   "@danceEditorPasteAtEndOfFigureList": {
     "description": "Semantics label for pasting a cut figure at the end of the list."
