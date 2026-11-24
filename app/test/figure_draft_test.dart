@@ -1,5 +1,6 @@
 import 'package:compendium_app/src/editor/figure_draft.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -20,7 +21,7 @@ void main() {
     ]) {
       test('typed params $params', () {
         final draft = FigureDraft.fromFreeTextFigure(
-          Figure(move: 'rory_o_more', params: params),
+          testFigure(move: 'rory_o_more', params: params),
           contraTaxonomy,
           moveParamDefaults: defaults,
         );

@@ -1461,25 +1461,22 @@ void main() {
         expect(figures.single.params['beats'], 8);
       });
 
-      test(
-        'balance wave → longer slide folds into a Rory O\'More with '
-        'twoPlaces (TCB #1797)',
-        () async {
-          final figures = await figuresFor([
-            '(4) Balance wave of four (NL,MR)',
-            '(4) Slide left, women slide two places (M past N, W past (N;W))',
-          ]);
-          expect(figures, hasLength(1));
-          expect(figures.single.move, 'rory_o_more');
-          expect(figures.single.params, {
-            'balance': true,
-            'slide': 'left',
-            'twoPlaces': 'role2s',
-            'beats': 8,
-          });
-          expect(figures.single.note, 'M past N, W past (N;W)');
-        },
-      );
+      test('balance wave → longer slide folds into a Rory O\'More with '
+          'twoPlaces (TCB #1797)', () async {
+        final figures = await figuresFor([
+          '(4) Balance wave of four (NL,MR)',
+          '(4) Slide left, women slide two places (M past N, W past (N;W))',
+        ]);
+        expect(figures, hasLength(1));
+        expect(figures.single.move, 'rory_o_more');
+        expect(figures.single.params, {
+          'balance': true,
+          'slide': 'left',
+          'twoPlaces': 'role2s',
+          'beats': 8,
+        });
+        expect(figures.single.note, 'M past N, W past (N;W)');
+      });
 
       test('the longer slide names ends and men too', () async {
         for (final (line, who) in [

@@ -186,6 +186,8 @@ void main() {
         'poussette': ['amount'],
         'promenade': ['destination', 'singleFile'],
         'roll_away': ['halfSashay'],
+        // ContraDB's Rory O'More has no longer slide (taxonomy v40).
+        'rory_o_more': ['twoPlaces'],
         'slice': ['by', 'return'],
         'swing': ['endFacing'],
         'turn_alone': ['custom'],
