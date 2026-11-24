@@ -945,9 +945,9 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,609 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,615 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
-  with `promenade` across built.
+  with `promenade` across and single file along the set built.
 - **53 figures registered**, plus the three containers (`modifier`,
   `meanwhile`, and `sequence` when nested in one; `docs/taxonomy.md`,
   "Containers"), plus 7 upstream aliases resolved to them
@@ -1115,7 +1115,8 @@ post-taxonomy-v35 snapshot.
 - **Vocabulary coverage is high**: 44 of the 49 moves this package advertises are
   exercised by real choreography. The genuine backlog named by the corpus is
   `butterfly_whirl`, `contra_corners`, `promenade`, `revolving_door` and `slice`.
-  *(Since then `promenade` across is built, its other forms still deferred,
+  *(Since then `promenade` across and single file along the set are built,
+  its other forms still deferred,
   and `butterfly_whirl`, `revolving_door`, `slice`, `arch_and_dive` and
   `contra_corners` are built on user rulings of 2026-11-22.)*
 - **`rory_o_more` appears in none of the 24,107 dances**, which is not credible

@@ -14,7 +14,9 @@ part of '../operation.dart';
 /// promenade `along` the set (user-ruled 2026-11-24): every dancer walks one
 /// place around the outside of the whole set, which lands exactly as a
 /// [SlideAlongSet] does, clockwise as a slide left and counterclockwise as a
-/// slide right, and like the slide is its own progression. Any other single
+/// slide right, and like the slide is its own progression. It ends with every
+/// dancer facing across, toward the next neighbours, as the ruling says; the
+/// slide alone would keep their facing. Any other single
 /// file or `where`, and a stated `destination`, raise
 /// [ErrorKind.unsupportedParam]. A Caller's Box promenade that states no
 /// `where` (a whole-set or around-a-dancer promenade there) is stopped before
@@ -128,9 +130,24 @@ final class Promenade extends Operation {
   }
 
   @override
-  Result<Formation, OpError> perform(Formation formation) => _aroundTheSet
-      ? _asSlide.perform(formation)
-      : Ok(_tradeDiagonallyFacingIn(formation));
+  Result<Formation, OpError> perform(Formation formation) {
+    if (!_aroundTheSet) return Ok(_tradeDiagonallyFacingIn(formation));
+    return switch (_asSlide.perform(formation)) {
+      Ok(:final value) => Ok(_facingAcross(value)),
+      final Err<Formation, OpError> err => err,
+    };
+  }
+
+  /// [formation] with every side-column dancer facing across the set: the
+  /// promenade around the set ends facing the next neighbours (user-ruled
+  /// 2026-11-24), which the slide alone would leave as it found them.
+  static Formation _facingAcross(Formation formation) => formation.withUpdates({
+    for (final MapEntry(:key, :value) in formation.dancers.entries)
+      if (value.position.col == 0)
+        key: value.copyWith(facing: Facing.acrossEast)
+      else if (value.position.col == kColumnCount - 1)
+        key: value.copyWith(facing: Facing.acrossWest),
+  });
 
   @override
   bool operator ==(Object other) =>

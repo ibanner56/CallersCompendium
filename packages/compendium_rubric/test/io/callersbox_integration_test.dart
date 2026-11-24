@@ -1548,6 +1548,116 @@ void main() {
         expect(assumedProgressionIndex(dance), 1);
       });
 
+      String bridgedMove(core.Figure circle) {
+        final dance = _shapedLike(
+          shape: core.FormationShape.dupleImproper,
+          figures: [circle, figure('swing')],
+        );
+        return ((bridgeCoreDance(dance).record['figures']! as List<Object?>)[0]!
+                as Map<String, Object?>)['move']!
+            as String;
+      }
+
+      test('parses as a promenade along the set and runs', () {
+        final dance = _shapedLike(
+          shape: core.FormationShape.dupleImproper,
+          figures: [figure('star'), around('left'), figure('circle')],
+        );
+        final parsed =
+            (parseDance(bridgeCoreDance(dance).record)
+                    as Ok<Dance, DanceParseError>)
+                .value;
+        expect(
+          parsed.figures[1].operation,
+          const Promenade(
+            where: 'along',
+            singleFile: true,
+            direction: SpinDirection.clockwise,
+          ),
+        );
+        expect(compile(parsed), isNot(isA<CompileError>()));
+      });
+
+      test('is read in any letter case, with its annotation', () {
+        // Agent's call: the import keeps the source's casing.
+        core.Figure noted(String note) => core_test.testFigure(
+          move: 'circle',
+          params: {'direction': 'left', 'singleFile': true, 'beats': 2},
+          note: note,
+        );
+        expect(bridgedMove(noted('Around the Major Set to N2')), 'promenade');
+        expect(
+          bridgedMove(noted('around the major set to N2 [8 beats]')),
+          'promenade',
+        );
+        expect(
+          bridgedMove(
+            noted(
+              'around the major set to N2 '
+              '(role2s CCW in Center, role1s CW on Outside)',
+            ),
+          ),
+          'circle',
+        );
+        expect(
+          bridgedMove(noted('around the major set to N2 (bring partner)')),
+          'promenade',
+        );
+      });
+
+      test('is left alone when the note goes on, or places are counted', () {
+        // Agent's call: trailing words or a count are something this reading
+        // would drop, so the circle stays as the import read it.
+        for (final tail in [' and swing', 'R', ' while partner roll away']) {
+          expect(
+            bridgedMove(around('left', tail: tail)),
+            'circle',
+            reason: tail,
+          );
+        }
+        expect(
+          bridgedMove(
+            core_test.testFigure(
+              move: 'circle',
+              params: {
+                'direction': 'left',
+                'singleFile': true,
+                'places': 2,
+                'beats': 2,
+              },
+              note: 'around the major set to N2',
+            ),
+          ),
+          'circle',
+        );
+      });
+
+      test('stays the progression on the retry readings', () {
+        // Agent's call: the N2 and "~" retries never move the progression
+        // off the promenade, so a figure the N2 rule would pick is not taken.
+        final dance = _shapedLike(
+          shape: core.FormationShape.dupleImproper,
+          figures: [
+            figure('swing'),
+            around('left'),
+            figure('swing'),
+            core_test.testFigure(
+              move: 'circle',
+              params: {'direction': 'left', 'places': 3},
+              note: '[to N2]',
+            ),
+            figure('do_si_do', {'who': 'nextNeighbors'}),
+          ],
+        );
+        final positional = bridgeCoreDance(dance);
+        final fallback = bridgeCoreDance(dance, useNextNeighborsFallback: true);
+        final partial = bridgeCoreDance(dance, usePartialPassFallback: true);
+        expect(positional.assumedProgressionAt, 1);
+        expect(fallback.assumedProgressionAt, 1);
+        expect(partial.assumedProgressionAt, 1);
+        expect(retryPlacesDifferently(positional, fallback), isFalse);
+      });
+
       test('a single-file circle without the phrase is a circle', () {
         final dance = _shapedLike(
           shape: core.FormationShape.dupleImproper,

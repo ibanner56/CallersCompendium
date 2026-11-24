@@ -149,6 +149,35 @@ void main() {
       expect(const Promenade().isItsOwnProgression, isFalse);
     });
 
+    test('ends facing across, toward the next neighbours', () {
+      // The ruling: the promenade ends facing N2. The slide alone keeps each
+      // dancer's facing, so a set facing up the hall would stay facing up.
+      final facingUp = improper.withUpdates({
+        for (final MapEntry(:key, :value) in improper.dancers.entries)
+          key: value.copyWith(facing: Facing.up),
+      });
+      const op = Promenade(where: 'along', singleFile: true);
+      final landed = applyOk(op, facingUp);
+      for (final state in landed.dancers.values) {
+        expect(
+          state.facing,
+          state.position.col == 0 ? Facing.acrossEast : Facing.acrossWest,
+          reason: '${state.position}',
+        );
+      }
+    });
+
+    test('sizes and names its dancers like the slide', () {
+      // It moves the whole set, so it names no dancer set and spans one
+      // hands four, as the slide does; the across promenade spans none.
+      const op = Promenade(where: 'along', singleFile: true);
+      expect(op.hands4Contribution, const SlideAlongSet().hands4Contribution);
+      expect(op.hands4Contribution, 1);
+      expect(op.dancerSets, isEmpty);
+      expect(const Promenade().hands4Contribution, 0);
+      expect(const Promenade().dancerSets, [WhoSet.partners]);
+    });
+
     test('a stated destination is still deferred', () {
       const op = Promenade(
         where: 'along',

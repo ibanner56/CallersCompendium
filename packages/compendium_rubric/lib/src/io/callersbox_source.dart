@@ -596,13 +596,17 @@ BridgedDance bridgeCoreDance(
   );
   final figures = _requireDecoded(dance);
   final flagged = figures.any((figure) => figure.progression);
+  // A single-file promenade around the major set is the progression on every
+  // reading, so a retry never moves the progression off it (agent's call).
+  final aroundAt = flagged ? null : _aroundTheSetIndex(figures);
   final assumedAt = flagged
       ? null
-      : (usePartialPassFallback
-            ? partialPassProgressionIndex(dance)
-            : useNextNeighborsFallback
-            ? nextNeighborsProgressionIndex(dance)
-            : assumedProgressionIndex(dance));
+      : aroundAt ??
+            (usePartialPassFallback
+                ? partialPassProgressionIndex(dance)
+                : useNextNeighborsFallback
+                ? nextNeighborsProgressionIndex(dance)
+                : assumedProgressionIndex(dance));
   // A double progression places its second progression by the first N3
   // mention, and a triple its third by N4, on the same retry (user-ruled
   // 2026-11-23).
@@ -631,10 +635,13 @@ BridgedDance bridgeCoreDance(
             'the source flagged no figure as the progression, so figure '
             '${assumedAt + 1} (${figures[assumedAt].move}) was assumed '
             'to be it'
-            '${useNextNeighborsFallback ? ', because the positional rule did '
+            '${aroundAt != null ? ', because a single-file promenade around '
+                      'the major set carries every dancer on to the next '
+                      'neighbours' : ''}'
+            '${useNextNeighborsFallback && aroundAt == null ? ', because the positional rule did '
                       'not compile and this is where the first mention of the '
                       'next neighbours (nextNeighbors, N2) puts it' : ''}'
-            '${usePartialPassFallback ? ', because the earlier placements '
+            '${usePartialPassFallback && aroundAt == null ? ', because the earlier placements '
                       'did not compile and this is the last hey whose final '
                       'pass the source marks partial ("~")' : ''}',
       ),
@@ -695,13 +702,39 @@ BridgedDance bridgeCoreDance(
 /// file, and the bridge writes it as one ([_aroundTheSetParams]). A note
 /// naming a counter-rotation ("women ccw in center, men cw on outside") is a
 /// different figure and is left alone (agent's call).
+///
+/// The note must be that phrase alone, or the phrase and one bracketed
+/// annotation, in any letter case, and the circle must not name a number of
+/// places: other words after the phrase are figures or counts this reading
+/// would drop, so such a circle is left as it is (agent's call).
 bool _promenadesAroundTheSet(core.Figure figure) {
-  if (figure.move != 'circle' || figure.params['singleFile'] != true) {
+  if (figure.move != 'circle' ||
+      figure.params['singleFile'] != true ||
+      figure.params['places'] != null) {
     return false;
   }
-  final note = figure.note ?? '';
-  if (!note.startsWith('around the major set to N2')) return false;
-  return !RegExp(r'center|centre|inside|outside|ring').hasMatch(note);
+  final match = _aroundTheSetNote.firstMatch((figure.note ?? '').trim());
+  if (match == null) return false;
+  return !_counterRotation.hasMatch(match.group(1) ?? '');
+}
+
+final _aroundTheSetNote = RegExp(
+  r'^around the major set to N2(?:\s*[(\[]([^()\[\]]*)[)\]])?$',
+  caseSensitive: false,
+);
+
+final _counterRotation = RegExp(
+  r'\b(?:center|centre|inside|outside|ring)\b',
+  caseSensitive: false,
+);
+
+/// The first top-level figure that is a single-file promenade around the
+/// major set ([_promenadesAroundTheSet]), or `null`.
+int? _aroundTheSetIndex(List<core.Figure> figures) {
+  for (var index = 0; index < figures.length; index++) {
+    if (_promenadesAroundTheSet(figures[index])) return index;
+  }
+  return null;
 }
 
 Map<String, Object?> _aroundTheSetParams(core.Figure figure) => {
@@ -843,9 +876,8 @@ int? assumedProgressionIndex(core.Dance dance) {
   // A single-file promenade around the major set to N2 carries everyone on
   // to the next neighbours (user-ruled 2026-11-24), so it is the progression
   // wherever it falls (agent's call).
-  for (var index = 0; index < figures.length; index++) {
-    if (_promenadesAroundTheSet(_mainFigure(figures[index]))) return index;
-  }
+  final aroundAt = _aroundTheSetIndex(figures);
+  if (aroundAt != null) return aroundAt;
 
   final shape = dance.formation.shape;
   final isBecket =

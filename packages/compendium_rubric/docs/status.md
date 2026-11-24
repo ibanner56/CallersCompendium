@@ -189,10 +189,11 @@
 > file promenade clockwise around the major set to N2", which the Caller's
 > Box import reads as a single-file circle, is now bridged as a promenade
 > along the set, single file, in which every dancer walks one place around
-> the outside of the whole set, landing exactly as a slide along the set
-> does and progressing the dance (user-ruled 2026-11-24 from Hudson's note
-> on Honeymoon; counterclockwise as the mirror, the import rewrite and taking
-> it as the progression are the agent's calls). Against `rubric` at
+> the outside of the whole set, landing as a slide along the set does,
+> ending facing across toward the next neighbours, and progressing the dance
+> (user-ruled 2026-11-24 from Hudson's note on Honeymoon; counterclockwise as
+> the mirror, the import rewrite, and taking it as the progression on every
+> placement retry are the agent's calls). Against `rubric` at
 > `BASE_SHA`: 4,298 of 5,423 to 4,315 of 5,423 compiled in scope (79.6%),
 > the core set 554 to 559, no previously compiling dance lost. Honeymoon
 > (10500) now compiles, with 16 others.

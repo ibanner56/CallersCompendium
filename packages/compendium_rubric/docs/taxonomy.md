@@ -1195,7 +1195,7 @@ To be defined later with worked examples.
   import cleanly is the import pipeline's problem. The alternative was the parser's default, which
   would compile those lines as a promenade across.)* Like a free-text figure, it is reported before
   any compiler blocker.
-- **preconditions:** in **every** hands four, the two `who` pairs stand **side by side in the two
+- **preconditions** (across)**:** in **every** hands four, the two `who` pairs stand **side by side in the two
   side columns**, one pair per side (column-mates spanning the band's two rows). Otherwise
   `whoMismatch`. Each side column is read for its own pair: a dancer who also matches someone
   across the set (as a shadow does at an end with nobody out, where it wraps to the neighbour)
@@ -1204,7 +1204,7 @@ To be defined later with worked examples.
   checked, as `right_left_through` does not check it *(agent's call)*: the landing is
   positional, and the dancers' facing before the figure is often undetermined after a ring or a
   hey.
-- **effect:** the `right_left_through` **diagonal swap** — `(r0,c0) ↔ (r1,c4)` and
+- **effect** (across)**:** the `right_left_through` **diagonal swap** — `(r0,c0) ↔ (r1,c4)` and
   `(r0,c4) ↔ (r1,c0)` in each band. Derivation: the pair crosses keeping its sides, then the wheel
   is a half turn about the couple's own centre, which turns the pair end for end, so the dancer
   who crossed on the top row lands on the bottom one.
@@ -1212,9 +1212,10 @@ To be defined later with worked examples.
     `[[L1-A,0,0,0,R2-B],[R1-A,0,0,0,L2-B]]` → `[[L2-B,0,0,0,R1-A],[R2-B,0,0,0,L1-A]]`.
 - **normalization:** none beyond the wheel — like `right_left_through`, handedness is preserved,
   not imposed.
-- **facing (output):** **into the set** (across).
-- **interaction scope:** within the hands four; `nextNeighbors` and other distance sets reach as
-  for every figure (`dancerSets`).
+- **facing (output):** **into the set**, across; single file along the set, every dancer also ends
+  facing across (below).
+- **interaction scope** (across)**:** within the hands four; `nextNeighbors` and other distance
+  sets reach as for every figure (`dancerSets`). Single file along the set it is the whole set.
 - **h4 contribution** (D7): 0 (+1 single file along the set).
 - **progression-eligible:** no (yes single file along the set).
 - **single file along the set** *(user-ruled 2026-11-24, Hudson's note on Honeymoon)*: with
@@ -1223,16 +1224,21 @@ To be defined later with worked examples.
   the west line up and the east line down, which is exactly a `slide_along_set` left, ends and
   re-banding included; counterclockwise is a slide right. Like the slide it **is its own
   progression**, is progression-eligible, needs both lines on the side columns, and contributes
-  +1 to the hands-four count. `who` is not read (nobody dances in pairs). A stated `destination`
-  is still deferred. Treating counterclockwise as the mirror, and reusing the slide's ends and
-  re-banding, are the agent's calls.
+  +1 to the hands-four count. Unlike the slide, which keeps each dancer's facing, it ends with
+  every dancer **facing across**, toward the next neighbours, as the ruling says. `who` is not
+  read (nobody dances in pairs). A stated `destination` is still deferred. Treating
+  counterclockwise as the mirror, and reusing the slide's ends and re-banding, are the agent's
+  calls.
   - **Caller's Box bridge** (`io/callersbox_source.dart`): that source's "Single file promenade
     clockwise around the major set to N2" imports as a single-file `circle` noted "around the
     major set to N2"; the bridge rewrites it to this promenade (circle `left` → `clockwise`,
     `right` → `counterclockwise`), and assumes it is the dance's progression in any formation
-    *(the ruling's reading; the import rewrite and the placement are the agent's calls)*. A note
-    naming a counter-rotation ("women ccw in center, men cw on outside") is left as the import
-    read it.
+    *(the ruling's reading; the import rewrite and the placement are the agent's calls)*. The
+    placement holds on the N2 and "~" retries too, so no retry moves the progression off the
+    promenade. The phrase is read in any letter case, alone or with one bracketed annotation;
+    an annotation naming a counter-rotation ("women ccw in center, men cw on outside"), a note
+    that goes on past the phrase, or a circle counting its places is left as the import read it,
+    since this reading would drop the rest *(agent's calls)*.
 - **still deferred:** single-file promenades other than along the set, whole-set and
   around-a-dancer promenades (above), stated destinations, and every other `where`. The prior verifier's conflation of
   `promenade across` with `right_left_through across` for *row* couples does not arise here: a
