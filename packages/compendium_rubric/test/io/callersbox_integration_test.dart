@@ -1481,6 +1481,264 @@ void main() {
       expect(assumedProgressionIndex(dance), 1);
     });
 
+    group('a single-file promenade around the major set to N2', () {
+      // Hudson ruled 2026-11-24 that this is a promenade along the set, single
+      // file, which carries every dancer on to the next neighbours. The
+      // import reads it as a single-file circle with the phrase as its note.
+      core.Figure around(String direction, {String? tail}) =>
+          core_test.testFigure(
+            move: 'circle',
+            params: {'direction': direction, 'singleFile': true, 'beats': 2},
+            note: 'around the major set to N2${tail ?? ''}',
+          );
+
+      test('is bridged as a promenade along the set', () {
+        for (final (direction, rotation) in [
+          ('left', 'clockwise'),
+          ('right', 'counterclockwise'),
+        ]) {
+          final dance = _shapedLike(
+            shape: core.FormationShape.dupleImproper,
+            figures: [figure('star'), around(direction), figure('circle')],
+          );
+          final record =
+              (bridgeCoreDance(dance).record['figures']! as List<Object?>)[1]!
+                  as Map<String, Object?>;
+          expect(record['move'], 'promenade', reason: direction);
+          expect(record['params'], {
+            'where': 'along',
+            'singleFile': true,
+            'direction': rotation,
+            'beats': 2,
+          }, reason: direction);
+        }
+      });
+
+      test('is where the progression is assumed, in any formation', () {
+        // Agent's call: the promenade ends facing the next neighbours, so it
+        // is the progression, as a Becket slide is.
+        for (final shape in [
+          core.FormationShape.dupleImproper,
+          core.FormationShape.becketCw,
+        ]) {
+          final dance = _shapedLike(
+            shape: shape,
+            figures: [
+              figure('chain', {'who': 'role2s', 'where': 'leftDiagonal'}),
+              around('left'),
+              figure('swing'),
+            ],
+          );
+          expect(assumedProgressionIndex(dance), 1, reason: '$shape');
+        }
+      });
+
+      test('a counter-rotating one is left as the import read it', () {
+        final dance = _shapedLike(
+          shape: core.FormationShape.dupleImproper,
+          figures: [
+            around('left', tail: ' (women ccw in center, men cw on outside)'),
+            figure('swing'),
+          ],
+        );
+        final record =
+            (bridgeCoreDance(dance).record['figures']! as List<Object?>)[0]!
+                as Map<String, Object?>;
+        expect(record['move'], 'circle');
+        expect(assumedProgressionIndex(dance), 1);
+      });
+
+      String bridgedMove(core.Figure circle) {
+        final dance = _shapedLike(
+          shape: core.FormationShape.dupleImproper,
+          figures: [circle, figure('swing')],
+        );
+        return ((bridgeCoreDance(dance).record['figures']! as List<Object?>)[0]!
+                as Map<String, Object?>)['move']!
+            as String;
+      }
+
+      test(
+        'parses as a promenade along the set and compiles without error',
+        () {
+          final dance = _shapedLike(
+            shape: core.FormationShape.dupleImproper,
+            figures: [figure('star'), around('left'), figure('circle')],
+          );
+          final parsed =
+              (parseDance(bridgeCoreDance(dance).record)
+                      as Ok<Dance, DanceParseError>)
+                  .value;
+          expect(
+            parsed.figures[1].operation,
+            const Promenade(
+              where: 'along',
+              singleFile: true,
+              direction: SpinDirection.clockwise,
+            ),
+          );
+          expect(compile(parsed), isNot(isA<CompileError>()));
+        },
+      );
+
+      test('is read in any letter case, with its annotation', () {
+        // Agent's call: the import keeps the source's casing.
+        core.Figure noted(String note) => core_test.testFigure(
+          move: 'circle',
+          params: {'direction': 'left', 'singleFile': true, 'beats': 2},
+          note: note,
+        );
+        expect(bridgedMove(noted('Around the Major Set to N2')), 'promenade');
+        expect(
+          bridgedMove(noted('around the major set to N2 [8 beats]')),
+          'promenade',
+        );
+        expect(
+          bridgedMove(
+            noted(
+              'around the major set to N2 '
+              '(role2s CCW in Center, role1s CW on Outside)',
+            ),
+          ),
+          'circle',
+        );
+        expect(
+          bridgedMove(noted('around the major set to N2 (bring partner)')),
+          'promenade',
+        );
+        expect(
+          bridgedMove(noted('  around the major set to N2 ')),
+          'promenade',
+        );
+      });
+
+      test('is left alone when its annotation says more than it reads', () {
+        // Agent's call: a rotation, a place in the set or a count in the
+        // annotation is something a one-place promenade would drop.
+        core.Figure noted(String note) => core_test.testFigure(
+          move: 'circle',
+          params: {'direction': 'left', 'singleFile': true, 'beats': 2},
+          note: note,
+        );
+        for (final annotation in [
+          '(twice)',
+          '(2x)',
+          '(all the way around)',
+          '(role2s CCW, role1s CW)',
+          '(in the middle)',
+          '(rings)',
+          '()',
+          '(8 beats]',
+        ]) {
+          expect(
+            bridgedMove(noted('around the major set to N2 $annotation')),
+            'circle',
+            reason: annotation,
+          );
+        }
+      });
+
+      test('only the first is rewritten, and only when nothing is flagged', () {
+        // Agent's call: the bridge rewrites the one promenade it takes as the
+        // progression, so no unflagged promenade moves the set.
+        List<Object?> moves(core.Dance dance) => [
+          for (final f in bridgeCoreDance(dance).record['figures']! as List)
+            (f as Map<String, Object?>)['move'],
+        ];
+        final twice = _shapedLike(
+          shape: core.FormationShape.dupleImproper,
+          figures: [around('left'), figure('swing'), around('left')],
+        );
+        expect(moves(twice), ['promenade', 'swing', 'circle']);
+        final flagged = _shapedLike(
+          shape: core.FormationShape.dupleImproper,
+          figures: [
+            around('left'),
+            core_test.testFigure(move: 'swing', progression: true),
+          ],
+        );
+        expect(moves(flagged), ['circle', 'swing']);
+      });
+
+      test('is left alone when the note goes on, or places are counted', () {
+        // Agent's call: trailing words or a count are something this reading
+        // would drop, so the circle stays as the import read it.
+        for (final tail in [' and swing', 'R', ' while partner roll away']) {
+          expect(
+            bridgedMove(around('left', tail: tail)),
+            'circle',
+            reason: tail,
+          );
+        }
+        expect(
+          bridgedMove(
+            core_test.testFigure(
+              move: 'circle',
+              params: {
+                'direction': 'left',
+                'singleFile': true,
+                'places': 2,
+                'beats': 2,
+              },
+              note: 'around the major set to N2',
+            ),
+          ),
+          'circle',
+        );
+      });
+
+      test('stays the progression on the retry readings', () {
+        // Agent's call: the N2 and "~" retries never move the progression
+        // off the promenade, so a figure the N2 rule would pick is not taken.
+        final dance = _shapedLike(
+          shape: core.FormationShape.dupleImproper,
+          figures: [
+            figure('swing'),
+            around('left'),
+            figure('swing'),
+            core_test.testFigure(
+              move: 'circle',
+              params: {'direction': 'left', 'places': 3},
+              note: '[to N2]',
+            ),
+            figure('do_si_do', {'who': 'nextNeighbors'}),
+          ],
+        );
+        final positional = bridgeCoreDance(dance);
+        final fallback = bridgeCoreDance(dance, useNextNeighborsFallback: true);
+        final partial = bridgeCoreDance(dance, usePartialPassFallback: true);
+        expect(positional.assumedProgressionAt, 1);
+        expect(fallback.assumedProgressionAt, 1);
+        expect(partial.assumedProgressionAt, 1);
+        expect(retryPlacesDifferently(positional, fallback), isFalse);
+        for (final reading in [positional, fallback, partial]) {
+          final detail = reading.warnings.first.detail!;
+          expect(detail, contains('(promenade)'));
+          expect(detail, contains('single-file promenade around'));
+          expect(detail, isNot(contains('first mention of the next')));
+          expect(detail, isNot(contains('marks partial')));
+        }
+      });
+
+      test('a single-file circle without the phrase is a circle', () {
+        final dance = _shapedLike(
+          shape: core.FormationShape.dupleImproper,
+          figures: [
+            core_test.testFigure(
+              move: 'circle',
+              params: {'direction': 'left', 'singleFile': true, 'beats': 4},
+              note: '[with N2]',
+            ),
+            figure('swing'),
+          ],
+        );
+        final record =
+            (bridgeCoreDance(dance).record['figures']! as List<Object?>)[0]!
+                as Map<String, Object?>;
+        expect(record['move'], 'circle');
+      });
+    });
+
     test('a dance with no figures has nothing to assume', () {
       final dance = _shapedLike(
         shape: core.FormationShape.dupleImproper,

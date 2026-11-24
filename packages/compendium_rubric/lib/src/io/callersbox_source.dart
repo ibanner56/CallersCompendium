@@ -564,13 +564,18 @@ bool retryPlacesDifferently(BridgedDance attempt, BridgedDance fallback) =>
 /// The translation is deliberately thin — four fields, because those are the
 /// four [parseDance] looks at. Its figures are [dancedFigures], so a `sequence`
 /// arrives as its children (and a flagged sequence's flag on its last child).
-/// Beyond that it does four things the source did not: it may supply the
+/// Beyond that it does five things the source did not: it may supply the
 /// progression flag (see [assumedProgressionIndex]), it reads a slide
 /// after a balanced long wave as the Rory O'More it is (see
-/// [_slidesTheWave]), it reads a hall figure noted "backwards" as a line
-/// backing along the hall (see [_hallBackwards]), and it reads a swing noted
-/// "face up" or "finish proper" as finishing facing up (see
-/// [_swingNoteFacing]).
+/// [_slidesTheWave]), it reads a single-file circle around the major set to
+/// N2 as the promenade along the set it is (see [_promenadesAroundTheSet]),
+/// it reads a hall figure noted "backwards" as a line backing along the hall
+/// (see [_hallBackwards]), and it reads a swing noted "face up" or "finish
+/// proper" as finishing facing up (see [_swingNoteFacing]).
+///
+/// A single-file promenade around the major set, when the dance has one, is
+/// the progression on every reading, so neither retry below moves it (agent's
+/// call).
 ///
 /// Set [useNextNeighborsFallback] to place the progression by
 /// [nextNeighborsProgressionIndex] instead. That is the retry
@@ -595,13 +600,17 @@ BridgedDance bridgeCoreDance(
   );
   final figures = _requireDecoded(dance);
   final flagged = figures.any((figure) => figure.progression);
+  // A single-file promenade around the major set is the progression on every
+  // reading, so a retry never moves the progression off it (agent's call).
+  final aroundAt = flagged ? null : _aroundTheSetIndex(figures);
   final assumedAt = flagged
       ? null
-      : (usePartialPassFallback
-            ? partialPassProgressionIndex(dance)
-            : useNextNeighborsFallback
-            ? nextNeighborsProgressionIndex(dance)
-            : assumedProgressionIndex(dance));
+      : aroundAt ??
+            (usePartialPassFallback
+                ? partialPassProgressionIndex(dance)
+                : useNextNeighborsFallback
+                ? nextNeighborsProgressionIndex(dance)
+                : assumedProgressionIndex(dance));
   // A double progression places its second progression by the first N3
   // mention, and a triple its third by N4, on the same retry (user-ruled
   // 2026-11-23).
@@ -628,12 +637,17 @@ BridgedDance bridgeCoreDance(
         opIndex: assumedAt,
         detail:
             'the source flagged no figure as the progression, so figure '
-            '${assumedAt + 1} (${figures[assumedAt].move}) was assumed '
+            '${assumedAt + 1} '
+            '(${assumedAt == aroundAt ? 'promenade' : figures[assumedAt].move}) '
+            'was assumed '
             'to be it'
-            '${useNextNeighborsFallback ? ', because the positional rule did '
+            '${aroundAt != null ? ', because a single-file promenade around '
+                      'the major set carries every dancer on to the next '
+                      'neighbours' : ''}'
+            '${useNextNeighborsFallback && aroundAt == null ? ', because the positional rule did '
                       'not compile and this is where the first mention of the '
                       'next neighbours (nextNeighbors, N2) puts it' : ''}'
-            '${usePartialPassFallback ? ', because the earlier placements '
+            '${usePartialPassFallback && aroundAt == null ? ', because the earlier placements '
                       'did not compile and this is the last hey whose final '
                       'pass the source marks partial ("~")' : ''}',
       ),
@@ -661,9 +675,13 @@ BridgedDance bridgeCoreDance(
           {
             'move': _slidesTheWave(figures, index)
                 ? 'rory_o_more'
+                : index == aroundAt
+                ? 'promenade'
                 : figures[index].move,
             'params': _slidesTheWave(figures, index)
                 ? _roryParams(figures, index)
+                : index == aroundAt
+                ? _aroundTheSetParams(figures[index])
                 : {
                     ..._recordParams(figures[index].params),
                     if (_hallBackwards(figures[index])) 'facing': 'backward',
@@ -681,6 +699,68 @@ BridgedDance bridgeCoreDance(
     laterProgressionsAt: laterAt,
   );
 }
+
+/// Whether [figure] is a single-file promenade around the major set to the
+/// next neighbours, which the Caller's Box import reads as a single-file
+/// circle noted "around the major set to N2".
+///
+/// Hudson ruled (2026-11-24) that it is a promenade along the set, single
+/// file, and the bridge writes it as one ([_aroundTheSetParams]). A note
+/// naming a counter-rotation ("women ccw in center, men cw on outside") is a
+/// different figure and is left alone (agent's call).
+///
+/// The note must be that phrase alone, or the phrase and one bracketed
+/// annotation, in any letter case, and the circle must not name a number of
+/// places: other words after the phrase are figures or counts this reading
+/// would drop, so such a circle is left as it is (agent's call). For the same
+/// reason an annotation that names a place in the set ("center", "inside",
+/// "ring"), a rotation ("cw", "ccw", "counter…") or a count ("twice", "2x",
+/// "all the way") leaves it alone too.
+///
+/// Only a top-level figure is read this way, and only the first: the bridge
+/// rewrites that one figure, the one it takes as the progression, and leaves
+/// any other noted circle, one inside a `modifier` included, as the import
+/// read it.
+bool _promenadesAroundTheSet(core.Figure figure) {
+  if (figure.move != 'circle' ||
+      figure.params['singleFile'] != true ||
+      figure.params['places'] != null) {
+    return false;
+  }
+  final match = _aroundTheSetNote.firstMatch((figure.note ?? '').trim());
+  if (match == null) return false;
+  return !_otherAnnotation.hasMatch(match.group(1) ?? match.group(2) ?? '');
+}
+
+final _aroundTheSetNote = RegExp(
+  r'^around the major set to N2'
+  r'(?:\s*(?:\(([^()\[\]]*\S[^()\[\]]*)\)|\[([^()\[\]]*\S[^()\[\]]*)\]))?$',
+  caseSensitive: false,
+);
+
+final _otherAnnotation = RegExp(
+  r'\b(?:center|centre|middle|inside|outside|rings?|cw|ccw|counter\w*|'
+  r'clockwise|twice|\d+\s*x|all the way)\b',
+  caseSensitive: false,
+);
+
+/// The first top-level figure that is a single-file promenade around the
+/// major set ([_promenadesAroundTheSet]), or `null`.
+int? _aroundTheSetIndex(List<core.Figure> figures) {
+  for (var index = 0; index < figures.length; index++) {
+    if (_promenadesAroundTheSet(figures[index])) return index;
+  }
+  return null;
+}
+
+Map<String, Object?> _aroundTheSetParams(core.Figure figure) => {
+  'where': 'along',
+  'singleFile': true,
+  'direction': (figure.params['direction'] ?? 'left') == 'right'
+      ? 'counterclockwise'
+      : 'clockwise',
+  'beats': ?figure.params['beats'],
+};
 
 /// Whether figure [index] is a slide along the set straight after a balance
 /// in a long wave, which is a Rory O'More *(user-ruled 2026-11-23)*.
@@ -763,7 +843,11 @@ core.Figure _mainFigure(core.Figure figure) =>
 /// imported from it arrives with no figure flagged.
 ///
 /// The rule is a rule rather than a search on purpose: it never tries a
-/// placement to see what compiles. Outside Becket it is positional, apart
+/// placement to see what compiles. First, in any formation, a **single-file
+/// promenade around the major set to N2** progresses: Hudson ruled
+/// (2026-11-24) that it carries every dancer on to the next neighbours, and
+/// taking it as the progression is the agent's call. Outside Becket the rule
+/// is otherwise positional, apart
 /// from an arch and dive after a hall figure (below). **The last figure
 /// progresses**, which is where contra choreography
 /// overwhelmingly puts it — the dance ends standing with the next couple. In
@@ -804,6 +888,12 @@ core.Figure _mainFigure(core.Figure figure) =>
 int? assumedProgressionIndex(core.Dance dance) {
   final figures = _requireDecoded(dance);
   if (figures.isEmpty) return null;
+
+  // A single-file promenade around the major set to N2 carries everyone on
+  // to the next neighbours (user-ruled 2026-11-24), so it is the progression
+  // wherever it falls (agent's call).
+  final aroundAt = _aroundTheSetIndex(figures);
+  if (aroundAt != null) return aroundAt;
 
   final shape = dance.formation.shape;
   final isBecket =

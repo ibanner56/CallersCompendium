@@ -185,6 +185,19 @@
 > Tulsa (4959) now compiles; nothing else changed outcome. Heather's Hop
 > Redux and its alternate still mismatch, at their final half figure eight.
 >
+> **A single-file promenade around the major set (2026-11-24)**: "Single
+> file promenade clockwise around the major set to N2", which the Caller's
+> Box import reads as a single-file circle, is now bridged as a promenade
+> along the set, single file, in which every dancer walks one place around
+> the outside of the whole set, landing as a slide along the set does,
+> ending facing across toward the next neighbours, and progressing the dance
+> (user-ruled 2026-11-24 from Hudson's note on Honeymoon; counterclockwise as
+> the mirror, the import rewrite, and taking it as the progression on every
+> placement retry are the agent's calls). Against `rubric` at
+> `75190a5f`: 4,435 of 5,590 to 4,452 of 5,590 compiled in scope (79.6%),
+> the core set 568 to 573, no previously compiling dance lost. Honeymoon
+> (10500) now compiles, with 16 others.
+>
 > **A dance one column off still compiles (2026-11-24)**: a dance whose
 > final state has every dancer in the expected row, with the expected number
 > and in the row's expected order, but some up to one column to the side
@@ -550,8 +563,8 @@ from this table because the compiler never ran against them. **Pass rate** is
   `right_left_through` supports across and the diagonals, the diagonals only
   with no couples waiting out.
 - `chain dir:along` is deferred as four-facing-four choreography.
-- `promenade` supports `where: across` for side-by-side pairs only. Single-file
-  promenades, stated destinations, every other `where`, and a `direction`
+- `promenade` supports `where: across` for side-by-side pairs, and single file
+  `where: along` the set. Other single-file promenades, stated destinations, every other `where`, and a `direction`
   stated `unspecified` are deferred. (A Caller's Box promenade that imports
   with no `where` is not a deferral: see "Entirely deferred impact".)
 - Diagonal `hey` is deferred; it must agree with diagonal

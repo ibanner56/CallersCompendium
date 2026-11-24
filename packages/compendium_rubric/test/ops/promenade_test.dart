@@ -113,6 +113,81 @@ void main() {
     }
   });
 
+  group('A single-file promenade around the major set', () {
+    // Hudson ruled 2026-11-24 that "single file promenade clockwise around
+    // the major set to N2" is a promenade along the set, single file, in
+    // which every dancer walks one place clockwise around the outside of the
+    // whole set. Clockwise from above, with the top of the set at row 0 and
+    // the west column on the left, carries the west line up and the east
+    // line down: the same displacement as a slide left.
+    final improper = startingFormation(
+      FormationType.dupleImproper,
+      handsFour: 2,
+    );
+
+    test('clockwise lands where a slide left does', () {
+      const op = Promenade(
+        where: 'along',
+        singleFile: true,
+        direction: SpinDirection.clockwise,
+      );
+      expect(applyOk(op, improper), applyOk(const SlideAlongSet(), improper));
+    });
+
+    test('counterclockwise lands where a slide right does', () {
+      const op = Promenade(where: 'along', singleFile: true);
+      expect(
+        applyOk(op, improper),
+        applyOk(const SlideAlongSet(slide: SlideDirection.right), improper),
+      );
+    });
+
+    test('is its own progression, like the slide', () {
+      const op = Promenade(where: 'along', singleFile: true);
+      expect(op.isItsOwnProgression, isTrue);
+      expect(op.progressionEligible, isTrue);
+      expect(const Promenade().isItsOwnProgression, isFalse);
+    });
+
+    test('ends facing across, toward the next neighbours', () {
+      // The ruling: the promenade ends facing N2. The slide alone keeps each
+      // dancer's facing, so a set facing up the hall would stay facing up.
+      final facingUp = improper.withUpdates({
+        for (final MapEntry(:key, :value) in improper.dancers.entries)
+          key: value.copyWith(facing: Facing.up),
+      });
+      const op = Promenade(where: 'along', singleFile: true);
+      final landed = applyOk(op, facingUp);
+      for (final state in landed.dancers.values) {
+        expect(
+          state.facing,
+          state.position.col == 0 ? Facing.acrossEast : Facing.acrossWest,
+          reason: '${state.position}',
+        );
+      }
+    });
+
+    test('sizes and names its dancers like the slide', () {
+      // It moves the whole set, so it names no dancer set and spans one
+      // hands four, as the slide does; the across promenade spans none.
+      const op = Promenade(where: 'along', singleFile: true);
+      expect(op.hands4Contribution, const SlideAlongSet().hands4Contribution);
+      expect(op.hands4Contribution, 1);
+      expect(op.dancerSets, isEmpty);
+      expect(const Promenade().hands4Contribution, 0);
+      expect(const Promenade().dancerSets, [WhoSet.partners]);
+    });
+
+    test('a stated destination is still deferred', () {
+      const op = Promenade(
+        where: 'along',
+        singleFile: true,
+        destination: WhoSet.nextNeighbors,
+      );
+      expect(applyErr(op, improper).kind, ErrorKind.unsupportedParam);
+    });
+  });
+
   group('Promenade across in a longer set', () {
     test('every hands four promenades on its own', () {
       final after = applyOk(

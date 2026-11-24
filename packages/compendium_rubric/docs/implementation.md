@@ -671,7 +671,12 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 
 > **The assumed-progression rule** *(user-ruled).* `CallersBoxAdapter` never sets
 > `Figure.progression` — the Caller's Box records do not carry it. Rather than
-> refuse every imported dance, `assumedProgressionIndex` assumes a placement:
+> refuse every imported dance, `assumedProgressionIndex` assumes a placement.
+> First, in any formation, a **single-file promenade around the major set to
+> N2** progresses: Hudson ruled (2026-11-24) that it carries every dancer on to
+> the next neighbours, and taking it as the progression, on the positional
+> reading and on both retries below (so no retry moves it), is the agent's
+> call. Otherwise the placement is
 > the **last figure**, except in a Becket dance. There, a first figure that is
 > `slide_along_set` sliding left, or a `slice` left (which lands exactly like
 > one, user-ruled 2026-11-22), progresses; otherwise the **first diagonal
@@ -945,9 +950,9 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,601 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,617 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
-  with `promenade` across built.
+  with `promenade` across and single file along the set built.
 - **53 figures registered**, plus the three containers (`modifier`,
   `meanwhile`, and `sequence` when nested in one; `docs/taxonomy.md`,
   "Containers"), plus 7 upstream aliases resolved to them
@@ -999,7 +1004,8 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
   required to refuse with `unresolvableDancerSet` rather than pick one.
 - **Deferred, with worked examples still needed** (the Held table, and the
   deferrals in each figure's `docs/taxonomy.md` entry): `promenade`
-  beyond `where: across` (single-file, whole-set, and stated destinations),
+  beyond `where: across` and single file along the set (whole-set promenades
+  and stated destinations),
   `slice` by a single dancer or with no return, `dolphin_hey`, and the moves
   taxonomy v36–v40
   added and not yet built (`trade_the_wave`, `starburst`, `hey_for_three`),
@@ -1114,7 +1120,8 @@ post-taxonomy-v35 snapshot.
 - **Vocabulary coverage is high**: 44 of the 49 moves this package advertises are
   exercised by real choreography. The genuine backlog named by the corpus is
   `butterfly_whirl`, `contra_corners`, `promenade`, `revolving_door` and `slice`.
-  *(Since then `promenade` across is built, its other forms still deferred,
+  *(Since then `promenade` across and single file along the set are built,
+  its other forms still deferred,
   and `butterfly_whirl`, `revolving_door`, `slice`, `arch_and_dive` and
   `contra_corners` are built on user rulings of 2026-11-22.)*
 - **`rory_o_more` appears in none of the 24,107 dances**, which is not credible
