@@ -216,6 +216,13 @@ const Map<String, FigureDefinition> contraFigureDefinitions = {
     description:
         'It usually moves dancers one place and takes 2 beats. It is common at the start of Becket formation dances, usually just before a circle with the new couple. The figure names which way to slide.',
   ),
+  // TCB "<role> shift left", "Twos shift up"; contra_taxonomy.dart `shift`.
+  'shift': FigureDefinition(
+    definition:
+        'One group of dancers sidesteps to a new place while the others stay where they are or dance something else.',
+    description:
+        'Often the role1s or the role2s shift left or right along the side of the set while the others turn, or the twos shift up the set. Unlike a slide along the set, where every couple moves, only the named dancers shift. The figure names who shifts and which way: left, right, up or down. It usually takes 4 beats.',
+  ),
   // TCB "Mad robin".
   'mad_robin': FigureDefinition(
     definition:

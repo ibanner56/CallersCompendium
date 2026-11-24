@@ -29,6 +29,18 @@ const int contraTaxonomyVersion = 40;
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
 
+// `shift.direction` (v40): sideways to the dancer's left or right, or up or
+// down the set (The Caller's Box's "Twos shift up").
+const _shiftDirections = ['left', 'right', 'up', 'down'];
+
+// `shift.who` (v40): any group but `everyone`. Everyone sliding along the set
+// is `slide_along_set`, so a shift by everyone would be that move under a
+// second name. Every other dancer set is offered, as on most moves.
+final List<String> _shiftWhoChoices = [
+  for (final dancers in ParamVocab.dancerSets)
+    if (dancers != 'everyone') dancers,
+];
+
 // ContraDB chooser_down_the_hall_ender values (shared by down/up the hall).
 const _downTheHallEnders = [
   'none',
@@ -890,6 +902,32 @@ final Taxonomy contraTaxonomy = Taxonomy(
       },
       renderTemplate: '{move} {slide}',
       goodBeats: [2],
+    ),
+    // v40: one group sidesteps while the others stay or dance something else
+    // ("Men shift left", "Twos shift up"). `slide_along_set` is everyone
+    // sliding as couples, so The Caller's Box's bare "Shift left" stays that
+    // move; a shift reads only when the line names who.
+    MoveDef(
+      id: 'shift',
+      displayName: 'shift',
+      params: {
+        'who': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: 'role1s',
+          choices: _shiftWhoChoices,
+        ),
+        'direction': const ParamSpec(
+          ParamKind.choice,
+          defaultValue: 'left',
+          choices: _shiftDirections,
+        ),
+        'beats': _beats4,
+      },
+      renderTemplate: '{who} {move} {direction}',
+      // The beats of the 136 shifts by a named group in the 1,427 public
+      // Caller's Box dances that mention a shift (2026-11-24): 4 on 63, 8 on
+      // 41, 6 on 21, 2 on 10, 3 on 2.
+      goodBeats: [2, 4, 6, 8],
     ),
     const MoveDef(
       id: 'mad_robin',

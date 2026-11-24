@@ -2487,7 +2487,18 @@ _Match? _promenade(List<String> w) {
 /// in a `(past …)` annotation, which `_normalize` strips (all 25 surveyed
 /// "Slide" lines are this Becket slide, never a progression/other sense). A
 /// direction is required — a bare "shift"/"slide" is too ambiguous → custom.
+///
+/// A line that names who shifts ("Men shift left", "Twos shift up") is the
+/// `shift` move (taxonomy v40): that group sidesteps, and nobody else. The
+/// dancers must lead, and only "shift" reads this way, never "slide". A line
+/// with no dancers stays `slide_along_set`, which is how TCB writes everyone
+/// sliding, so this reading never takes one of those lines. `everyone` leading
+/// is not read, and `shift.who` does not offer it: everyone shifting is the
+/// slide, and no TCB line writes it. A count of places ("Men shift left one place") is kept as the note,
+/// in the line's words; no move holds it.
 _Match? _shift(List<String> w) {
+  final who = _takeLeadingDancer(w);
+  if (who != null) return _groupShift(who, w);
   if (!_consumePhrase(w, ['shift']) && !_consumePhrase(w, ['slide'])) {
     return null;
   }
@@ -2496,6 +2507,27 @@ _Match? _shift(List<String> w) {
   if (slide == null || w.isNotEmpty) return null;
   return _Match('slide_along_set', {'slide': slide});
 }
+
+/// The rest of a `<who> shift <direction> [<n> place(s)]` line, after [who];
+/// see [_shift].
+_Match? _groupShift(String who, List<String> w) {
+  if (who == 'everyone') return null;
+  if (w.length < 2 || w[0] != 'shift') return null;
+  final direction = w[1];
+  if (!_shiftDirectionWords.contains(direction)) return null;
+  final rest = w.sublist(2);
+  String? note;
+  if (rest.length == 2 &&
+      _castPlaceCount(rest[0]) != null &&
+      (rest[1] == 'place' || rest[1] == 'places')) {
+    note = rest.join(' ');
+  } else if (rest.isNotEmpty) {
+    return null;
+  }
+  return _Match('shift', {'who': who, 'direction': direction}, note);
+}
+
+const Set<String> _shiftDirectionWords = {'left', 'right', 'up', 'down'};
 
 /// Tier A: TCB writes "Men give-and-take partner" / "Men give-and-take
 /// neighbor" (hyphenated; TCB never spells the "give & take only" variant, so

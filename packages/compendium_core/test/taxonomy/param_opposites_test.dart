@@ -284,6 +284,9 @@ void main() {
         // v40 (#770): left/right are shoulders and up/down directions along
         // the set, in one free-form slot like circle's, so it takes none.
         'cast.direction',
+        // v40: a shift's left/right and up/down in one slot, like cast's, so
+        // it takes none either.
+        'shift.direction',
       });
       expect(ParamOpposites.coverage(ParamKind.choice), OppositeCoverage.none);
     },
