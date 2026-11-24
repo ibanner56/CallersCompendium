@@ -515,9 +515,47 @@ void main() {
       ).apply(strandedOtherWayRound(), progressions: 1);
 
       expect(result, isA<Err<Formation, OpError>>(), reason: '$result');
+      final error = (result as Err<Formation, OpError>).error;
+      expect(error.kind, ErrorKind.unresolvableDancerSet);
+      expect(error.detail, contains('rows 0-1'));
+    });
+
+    test('a figure applied inside another reports nothing to it', () {
+      // Probing pairs while choosing a band phase, or dancing a figure that
+      // pairs nobody, must not refuse an enclosing figure.
+      final reported = <int>[];
+      final result = watchShadowStrands(
+        () =>
+            const TurnAlone(who: WhoSet.shadows).apply(strandedOtherWayRound()),
+        (topRow, bottomRow) => reported.add(topRow),
+      );
+
+      expect(result, isA<Ok<Formation, OpError>>(), reason: '$result');
+      expect(reported, isEmpty);
+    });
+
+    test('a remembered pair across the set gives way to first match where '
+        'that pairs more', () {
+      // E and H remember each other across the bottom row, partners K stand
+      // in the row above: first match pairs L2-K with R2-H and R2-K with L1-E
+      // by the wrap, where keeping E with H would leave K idle.
+      final input = remembering(
+        parseRolesNotation([
+          'L2-B . . . R1-A',
+          'R2-B . . . L1-A',
+          'L2-D . . . R1-C',
+          'R2-D . . . L1-C',
+          'L2-F . . . R1-G',
+          'R2-F . . . L1-G',
+          'L2-K . . . R2-K',
+          'L1-E . . . R2-H',
+        ], type: FormationType.becketCcw),
+        [(lark('E'), robin('H'))],
+      );
+
       expect(
-        (result as Err<Formation, OpError>).error.kind,
-        ErrorKind.unresolvableDancerSet,
+        resolveWhoPairs(input, WhoSet.shadows, topRow: 6, bottomRow: 7),
+        hasLength(2),
       );
     });
 

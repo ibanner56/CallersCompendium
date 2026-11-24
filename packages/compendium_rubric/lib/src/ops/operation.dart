@@ -222,6 +222,17 @@ sealed class Operation {
   Result<Formation, OpError> apply(
     Formation formation, {
     int progressions = 0,
+  }) =>
+      // A figure applied inside another's transform answers only for itself:
+      // the shadow pairings it probes are not the enclosing figure's
+      // ([watchShadowStrands]).
+      unwatchedShadowStrands(
+        () => _apply(formation, progressions: progressions),
+      );
+
+  Result<Formation, OpError> _apply(
+    Formation formation, {
+    required int progressions,
   }) {
     final settled = preservesWaveOffsets
         ? formation
@@ -323,21 +334,19 @@ sealed class Operation {
     int progressions,
   ) {
     final distance = who.distance! - progressions;
-    if (distance == 0) {
-      return _tryGuardingShadowMemory(formation);
-    }
-
     final stepsOut = distance.isOdd;
     final shifted = stepsOut ? toggleBandPhase(formation) : formation;
 
-    final unreachable = crossHandsFourRefusal(
-      formation,
-      shifted,
-      who,
-      name,
-      distance: distance,
-    );
-    if (unreachable != null) return Err<Formation, OpError>(unreachable);
+    if (distance != 0) {
+      final unreachable = crossHandsFourRefusal(
+        formation,
+        shifted,
+        who,
+        name,
+        distance: distance,
+      );
+      if (unreachable != null) return Err<Formation, OpError>(unreachable);
+    }
 
     return _tryGuardingShadowMemory(
       shifted,
@@ -445,12 +454,13 @@ sealed class Operation {
   ///
   /// *(User-ruled 2026-11-24, for a remembered pair beside each other at an
   /// end with partners across: refuse, rather than break the pair or leave the
-  /// couple idle.)* The agent's calls: it is checked in any geometry, and only
+  /// couple idle.)* The agent's calls: it is checked only where a remembered
+  /// pair stands beside each other ([shadowMemoryStrandsDancers]), and only
   /// for figures that ask for shadow pairs, so `swing` and `promenade`, which
   /// pair by side column, and figures that only read positions are not
   /// refused by it. The stranding refusal is reported ahead of the figure's
-  /// own, since a figure's count check would otherwise report it as a
-  /// shortfall.
+  /// own refusal, since a figure's count check would otherwise report it as a
+  /// shortfall, but never ahead of a deferral (`unsupportedParam`).
   Result<Formation, OpError> _tryGuardingShadowMemory(Formation phase) {
     ({int topRow, int bottomRow})? stranded;
     final result = watchShadowStrands(
@@ -460,6 +470,11 @@ sealed class Operation {
     );
     final band = stranded;
     if (band == null) return result;
+    // A deferral stays a deferral: the stranding refusal replaces a success or
+    // the figure's own refusal, never an unsupported parameter.
+    if (result case Err(error: OpError(kind: ErrorKind.unsupportedParam))) {
+      return result;
+    }
     return Err<Formation, OpError>(
       OpError(
         ErrorKind.unresolvableDancerSet,

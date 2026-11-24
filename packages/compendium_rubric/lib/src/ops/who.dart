@@ -158,6 +158,13 @@ List<({DancerId a, DancerId b})> resolveWhoPairs(
 
 final Object _strandsKey = Object();
 
+/// Runs [body] with no [watchShadowStrands] watching, so the pairings it
+/// probes are reported to nobody.
+T unwatchedShadowStrands<T>(T Function() body) =>
+    Zone.current[_strandsKey] == null
+    ? body()
+    : runZoned(body, zoneValues: {_strandsKey: null});
+
 /// Runs [body], calling [onStrand] for each band in which a shadows pairing
 /// it asks [resolveWhoPairs] for leaves dancers stranded by the remembered
 /// pairs.
