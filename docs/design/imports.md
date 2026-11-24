@@ -1585,8 +1585,8 @@ shared reading", "becomes an unrecognized figure") over the bare verb.
 
 Which is which, derived from the code rather than from memory:
 
-- `tcbFigureFrontEnd` registers **twenty-two** pre-recognizers: `_hey`,
-  `_circulate`, `_waveBalanceCirculate`, `_circulateCrossBracket`,
+- `tcbFigureFrontEnd` registers **twenty-four** pre-recognizers: `_hey`,
+  `_tcbNumberedRolePair`, `_passTheOceanToWave`, `_circulate`, `_waveBalanceCirculate`, `_circulateCrossBracket`,
   `_handBalanceSquareThrough`, `_squareThroughPassList`,
   `_balanceHandAnnotation`, `_balancePairHandAnnotation`, `_gateAnnotation`,
   `_courtesyTurnAnnotation`, `_tcbCast`, `_walkForwardAnnotation`,
@@ -1598,7 +1598,11 @@ Which is which, derived from the code rather than from memory:
   whose pass list does not decode to `custom` (#1971),
   `_bracketAnnotation` does the same for a leading bracket that names no
   modelled subject, and `_tcbCast` (taxonomy v40) does it for a `(past …)`
-  list it cannot count, or a count the line contradicts. The front end also has a veto (`_tcbDeclineToCustom`).
+  list it cannot count, or a count the line contradicts. `_tcbNumberedRolePair`
+  (`N2 Men allemande …`, read as `Men allemande … [with N2]`) is the
+  falls-through kind too: it re-reads its rewritten line through the other
+  entries as `_tcbCast` does, and passes on a `custom` result one of them
+  returned, but it never makes one itself. The front end also has a veto (`_tcbDeclineToCustom`).
 - `contraDbHtmlFigureFrontEnd` registers its **entire grammar** as
   pre-recognizers, **and** supplies a veto. Both halves matter, and they pull in
   opposite directions, which is why this front end is the one most likely to be
@@ -2557,7 +2561,13 @@ form figure is ever emitted.
    `intersecting`, `circular`) is refused here, exactly as the promotion refuses
    it: it is not a balance of the wave the previous line formed, and folding it
    would drop the qualifier from a structured figure that then asserts something
-   the source never said. **86** corpus lines carry such a qualifier, but that
+   the source never said. A forming line that already states its centre or
+   centre hand (`Pass the ocean (to wave of four (NR,WL))`, readable since
+   2026-11-24) refuses a balance that states a different one: the two lines
+   describe different waves, and folding would keep one and drop the other.
+   `sides` is deliberately not compared: after a forming line that says
+   `with N2`, the balance writes those same dancers as `N`, and the forming
+   line's `nextNeighbors` has always won there. **86** corpus lines carry such a qualifier, but that
    is a census of the wording — **85** already fell to custom regardless, and
    exactly **1** was actually being folded and losing the word: dance 2463
    *Gypsy Star* B1, `form long waves in center` /

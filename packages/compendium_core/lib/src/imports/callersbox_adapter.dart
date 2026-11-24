@@ -1326,7 +1326,11 @@ class CallersBoxAdapter implements SourceAdapter {
   /// does NOT already carry is folded in as well (#295) — otherwise the merge
   /// would silently discard detail the source stated. Only param sets with an
   /// identical meaning on both moves are transferred (see
-  /// [_compatibleFormParams]); an existing value is never overwritten.
+  /// [_compatibleFormParams]); an existing value is never overwritten. A wave
+  /// that already states its `center` or `centerHand` refuses a balance that
+  /// decodes to a different one (`null`): they describe different waves.
+  /// `sides` is not compared, because a balance writes the forming line's
+  /// `with N2` dancers as `N`.
   static Figure? _foldTrailingBalanceIntoWave(Figure wave, Figure balance) {
     if (wave.params['balance'] == true) return null;
     // Dancer-prefix mismatch guard (#872): if the balance line names a specific
