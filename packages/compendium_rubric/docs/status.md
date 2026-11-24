@@ -133,6 +133,19 @@
 > Tulsa (4959) now compiles; nothing else changed outcome. Heather's Hop
 > Redux and its alternate still mismatch, at their final half figure eight.
 >
+> **A diagonal chain from beside a neighbour is to a shadow (2026-11-24)**:
+> each robin who stood beside a neighbour before a diagonal chain remembers
+> the lark she ends beside as her shadow (user-ruled: the pairing comes from
+> where the dancers stand, not from Caller's Box's "to shadow"). A shadow
+> promenade across now reads each side column for its own pair, so at an end
+> where the shadow wraps to the neighbour a dancer who also matches someone
+> across the set no longer hides the pair beside them (agent's call). Against
+> `rubric` at `fd6083a1`: 4,194 of 5,426 to 4,195 of 5,425 compiled in scope
+> (77.3%), the core set unchanged at 544, no previously compiling dance lost. South
+> Carolina Education Lottery (2411) now compiles. Lauren's Lagniappe (10025)
+> and Sawdust Liquor (10027) get past the shadow figures and still refuse at
+> the B2 partner swing, in the top hands four.
+>
 > **An arch and dive from a line of four bends it first (2026-11-24)**: "in
 > a line of four, go up the hall; ones arch, twos dive" bends the line into a
 > ring before the couples trade, and the Caller's Box bridge takes an arch and

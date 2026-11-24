@@ -280,7 +280,53 @@ final class Chain extends Operation {
         ..add(initiator)
         ..add(receiver);
     }
-    return Ok(formation.withUpdates(changes));
+    final chained = formation.withUpdates(changes);
+    return Ok(
+      dir.isDiagonal ? _rememberShadows(formation, chained, swapped) : chained,
+    );
+  }
+
+  /// [after] with the shadows a diagonal chain makes remembered.
+  ///
+  /// A chaining dancer who stood beside a neighbour before the chain is
+  /// chaining to a shadow *(user-ruled 2026-11-24)*: whoever she ends beside
+  /// is her shadow from then on, so a later figure naming shadows finds them
+  /// by who they are ([DancerState.shadow]). One who stood beside her partner
+  /// chains to a neighbour and makes no shadow. A dancer who already has a
+  /// shadow keeps the one they first danced with.
+  static Formation _rememberShadows(
+    Formation before,
+    Formation after,
+    Set<DancerId> swapped,
+  ) {
+    final changes = <DancerId, DancerState>{};
+    for (final id in swapped) {
+      final besideBefore = _beside(before, id);
+      if (besideBefore == null ||
+          besideBefore.role == id.role ||
+          besideBefore.coupleIndex == id.coupleIndex) {
+        continue;
+      }
+      final shadow = _beside(after, id);
+      if (shadow == null || shadow.role == id.role) continue;
+      for (final (who, other) in [(id, shadow), (shadow, id)]) {
+        final state = changes[who] ?? after.stateOf(who);
+        if (state.shadow == null) changes[who] = state.copyWith(shadow: other);
+      }
+    }
+    return changes.isEmpty ? after : after.withUpdates(changes);
+  }
+
+  /// The dancer standing beside [id] on their side line: the same column,
+  /// the other row of their hands four.
+  static DancerId? _beside(Formation formation, DancerId id) {
+    final at = formation.stateOf(id).position;
+    for (final band in handsFourBands(formation)) {
+      if (at.row != band.topRow && at.row != band.bottomRow) continue;
+      final other = at.row == band.topRow ? band.bottomRow : band.topRow;
+      return formation.dancerAt(Position(other, at.col));
+    }
+    return null;
   }
 
   /// Dancers finish facing **across, into the set**.

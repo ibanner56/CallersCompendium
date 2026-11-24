@@ -183,4 +183,24 @@ void main() {
       );
     });
   });
+
+  test('each side column is read for its own pair, so a pair across the '
+      'set does not hide a side pair', () {
+    // Sawdust Liquor (Caller's Box #10027) after the diagonal chain to the
+    // shadow. In the top hands four nobody is out, so the shadow wraps to the
+    // neighbour, and L1-A would match R2-D across the set as well as R2-B
+    // beside him.
+    final afterChain = becket(const [
+      'L1-A . . . R2-D',
+      'R2-B . . . L2-B',
+      'L1-C . . . R2-F',
+      'R1-A . . . L2-D',
+      'L1-E . . . R1-E',
+      'R1-C . . . L2-F',
+    ]);
+    expect(
+      const Promenade(who: WhoSet.shadows).checkPreconditions(afterChain),
+      isNull,
+    );
+  });
 }

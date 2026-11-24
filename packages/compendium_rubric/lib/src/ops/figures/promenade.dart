@@ -73,14 +73,16 @@ final class Promenade extends Operation {
       );
     }
     for (final band in handsFourBands(formation)) {
-      final pairs = resolveWhoPairs(
-        formation,
-        who,
-        topRow: band.topRow,
-        bottomRow: band.bottomRow,
-      );
-      final sides = {for (final pair in pairs) ?_sideColumnOf(formation, pair)};
-      if (pairs.length != 2 || sides.length != 2) {
+      // Each side column must hold a pair [who] names, side by side. Read
+      // column by column rather than from [resolveWhoPairs], whose first-match
+      // pairing can take a dancer into a pair across the set first.
+      final paired = [
+        for (final col in const [0, kColumnCount - 1])
+          if (formation.dancerAt(Position(band.topRow, col)) case final a?)
+            if (formation.dancerAt(Position(band.bottomRow, col)) case final b?)
+              if (whoMatches(formation, a, b, who)) col,
+      ];
+      if (paired.length != 2) {
         return OpError(
           ErrorKind.whoMismatch,
           'promenade across needs each side of the hands four (rows '
@@ -90,16 +92,6 @@ final class Promenade extends Operation {
       }
     }
     return null;
-  }
-
-  /// The side column [pair] shares, or `null` when the two are not side by
-  /// side in one of the two side columns.
-  static int? _sideColumnOf(Formation formation, DancerPair pair) {
-    final a = formation.stateOf(pair.a).position;
-    final b = formation.stateOf(pair.b).position;
-    if (a.col != b.col) return null;
-    if (a.col != 0 && a.col != kColumnCount - 1) return null;
-    return a.col;
   }
 
   @override
