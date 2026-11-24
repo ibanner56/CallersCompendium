@@ -4,6 +4,7 @@ import '../domain/couple_number.dart';
 import '../domain/dancer.dart';
 import '../domain/facing.dart';
 import '../domain/formation.dart';
+import '../domain/formation_type.dart';
 import '../domain/position.dart';
 import '../domain/role.dart';
 import '../geometry/geometry.dart';
@@ -61,13 +62,66 @@ final class ProgressionCriterion extends SuccessCriterion {
   @override
   int get hands4Contribution => count - 1;
 
+  /// A **Progressed Improper** set is a Duple Improper one with the 1s and 2s
+  /// swapped within each hands four, and so is its end: take the Duple
+  /// Improper end state for the same number of progressions and swap the 1s
+  /// and 2s within their hands four again *(user-ruled 2026-11-24: "Double
+  /// progressed improper takes the normal end state from a double
+  /// progression and swaps the 1s and 2s within their hands four")*. The rule
+  /// is applied at every count, which is the agent's reading of that ruling;
+  /// at an odd count the result matches the earlier "one round later" reading
+  /// cell for cell, and at an even count it differs at the ends, where
+  /// nobody is left waiting out.
+  ///
+  /// [input] is a settled start, as every caller passes: a set with couples
+  /// already waiting out could send a travelling dancer into a waiting
+  /// couple's row, which [_shift] does not resolve.
   @override
   Formation expected(Formation input) {
+    if (input.type == FormationType.progressedImproper) {
+      final duple = _swappedInHandsFour(input, FormationType.dupleImproper);
+      return _swappedInHandsFour(
+        _progressed(duple),
+        FormationType.progressedImproper,
+      );
+    }
+    return _progressed(input);
+  }
+
+  Formation _progressed(Formation input) {
     var state = input;
     for (var round = 0; round < count; round++) {
       state = _oneProgression(state);
     }
     return state;
+  }
+
+  /// [formation] with the two couples of each complete hands four trading
+  /// rows, each dancer keeping its column, number and facing, retyped as
+  /// [type]. Couples waiting out at an end are not in a hands four and stay.
+  static Formation _swappedInHandsFour(
+    Formation formation,
+    FormationType type,
+  ) {
+    final dancers = Map<DancerId, DancerState>.of(formation.dancers);
+    for (final band in handsFourBands(formation)) {
+      for (final (from, to) in [
+        (band.topRow, band.bottomRow),
+        (band.bottomRow, band.topRow),
+      ]) {
+        for (final id in formation.dancersInRow(from)) {
+          final state = formation.stateOf(id);
+          dancers[id] = state.copyWith(
+            position: Position(to, state.position.col),
+          );
+        }
+      }
+    }
+    return Formation(
+      type: type,
+      rowCount: formation.rowCount,
+      dancers: dancers,
+    );
   }
 
   /// One round of net displacement, followed by the same end-normalization a
@@ -90,17 +144,7 @@ final class ProgressionCriterion extends SuccessCriterion {
   /// In **Duple Improper** a couple standing out is already lying the way a DI
   /// couple lies — along a row — so re-entry costs it no movement at all
   /// (§10.3.2's worked table: B and C simply stay where they are, and the
-  /// change-over alone puts them back in a hands four). The exception is a
-  /// waiting couple whose row a travelling dancer arrives in. That happens
-  /// only on the second round of a Progressed Improper set, at either end:
-  /// the set starts one progression in, so its first round already sends a
-  /// couple out at each end. That couple passes the arriving one, travelling
-  /// on its new number, and the arriving one is collected at the end in its
-  /// place. The result is that Progressed Improper after `n` rounds lands
-  /// exactly where Duple Improper does after `n + 1`, cell for cell (agent's
-  /// call, from Hudson's note on Men at Work, 2026-11-24, whose triple ends
-  /// with D at the top and B beside F). The positions are what is compared;
-  /// the waiting-out marks are not ([Formation] equality ignores them).
+  /// change-over alone puts them back in a hands four).
   ///
   /// In **Becket** it does not: a couple collected across an end row is lying
   /// *across* the set, but a Becket couple lies *along a column*. §10.6 is
@@ -113,20 +157,6 @@ final class ProgressionCriterion extends SuccessCriterion {
       if (entry.value.waitingOut) continue;
       targets[entry.key] = entry.value.position.row + _delta(formation, entry);
     }
-    // A couple waiting out in a set whose couples lie along a row stays where
-    // it is, unless a travelling dancer's target is its row: then it has
-    // served its round and passes them, travelling on its new number like
-    // everyone else.
-    if (!formation.type.couplesShareColumn) {
-      final arriving = targets.values.toSet();
-      for (final entry in formation.dancers.entries) {
-        if (!entry.value.waitingOut) continue;
-        if (!arriving.contains(entry.value.position.row)) continue;
-        targets[entry.key] =
-            entry.value.position.row + _delta(formation, entry);
-      }
-    }
-
     final changes = <DancerId, DancerState>{};
     final collected = <int>{};
     for (final entry in targets.entries) {
