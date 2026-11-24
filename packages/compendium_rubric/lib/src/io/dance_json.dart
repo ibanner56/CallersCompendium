@@ -410,8 +410,13 @@ Operation _buildPromenade(_Params p) {
   );
 }
 
-Operation _buildRightLeftThrough(_Params p) =>
-    RightLeftThrough(dir: p.optionalString(['where', 'dir']) ?? 'across');
+Operation _buildRightLeftThrough(_Params p) => RightLeftThrough(
+  // The diagonals take the same spellings `chain` accepts.
+  dir: switch (p.optionalString(['where', 'dir'])) {
+    null => 'across',
+    final raw => ChainDirection.fromKey(raw)?.key ?? raw,
+  },
+);
 
 Operation _buildChain(_Params p) => Chain(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.role2s),

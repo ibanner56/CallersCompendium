@@ -64,13 +64,15 @@ void main() {
           const RightLeftThrough(dir: 'rightDiagonal'),
           becketStart(),
         );
+        // A at the top and F at the bottom stay and come back in as the
+        // other number, so each hands four holds one #1 and one #2 couple.
         expect(after.toRolesNotation(), [
-          'L1-C . . . R1-A',
-          'R1-C . . . L1-A',
+          'L1-C . . . R2-A',
+          'R1-C . . . L2-A',
           'L1-E . . . R2-B',
           'R1-E . . . L2-B',
-          'L2-F . . . R2-D',
-          'R2-F . . . L2-D',
+          'L1-F . . . R2-D',
+          'R1-F . . . L2-D',
         ]);
       },
     );
@@ -82,6 +84,71 @@ void main() {
       expect(diagonal.hands4Contribution, 1);
       expect(across.isItsOwnProgression, isFalse);
       expect(across.hands4Contribution, 0);
+    });
+  });
+
+  group('the diagonal trade and the progression', () {
+    test('Becket CCW: the couples left at the ends change number', () {
+      final ccw = parseRolesNotation([
+        'L1-A . . . R2-B',
+        'R1-A . . . L2-B',
+        'L1-C . . . R2-D',
+        'R1-C . . . L2-D',
+        'L1-E . . . R2-F',
+        'R1-E . . . L2-F',
+      ], type: FormationType.becketCcw);
+      final after = applyOk(const RightLeftThrough(dir: 'leftDiagonal'), ccw);
+      expect(after.toRolesNotation(), [
+        'L2-A . . . R1-C',
+        'R2-A . . . L1-C',
+        'L2-B . . . R1-E',
+        'R2-B . . . L1-E',
+        'L2-D . . . R1-F',
+        'R2-D . . . L1-F',
+      ]);
+    });
+
+    test('a flagged diagonal trade spends two progressions', () {
+      // Each couple ends facing the couple two hands fours from its start, so
+      // a figure naming the next neighbours afterwards reaches two further.
+      expect(
+        const OperationInvocation(
+          RightLeftThrough(dir: 'rightDiagonal'),
+          progression: true,
+        ).progressionCount,
+        2,
+      );
+      expect(
+        const OperationInvocation(
+          RightLeftThrough(),
+          progression: true,
+        ).progressionCount,
+        1,
+      );
+      expect(
+        const OperationInvocation(
+          RightLeftThrough(dir: 'rightDiagonal'),
+        ).progressionCount,
+        0,
+      );
+    });
+
+    test('a flagged diagonal trade is never held for a change-over', () {
+      final result = const OperationInvocation(
+        RightLeftThrough(dir: 'leftDiagonal'),
+        progression: true,
+      ).applyHolding(becketStart());
+      expect(result, isA<Ok<({Formation formation, bool held}), OpError>>());
+      final applied =
+          (result as Ok<({Formation formation, bool held}), OpError>).value;
+      expect(applied.held, isFalse);
+      expect(
+        applied.formation.toRolesNotation(),
+        applyOk(
+          const RightLeftThrough(dir: 'leftDiagonal'),
+          becketStart(),
+        ).toRolesNotation(),
+      );
     });
   });
 

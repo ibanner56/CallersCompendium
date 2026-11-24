@@ -194,8 +194,8 @@ final class HeyForFour extends Operation {
       return OpError(
         ErrorKind.unsupportedParam,
         'hey supports dir:across only; ${dir.key} lays the line of four across '
-        'more than one hands four, and is deferred behind the diagonal '
-        'right_left_through it would have to agree with',
+        'more than one hands four, and is deferred: it must agree with the '
+        'diagonal right_left_through',
       );
     }
     if (length == HeyLength.lessThanHalf ||

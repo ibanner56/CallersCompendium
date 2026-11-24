@@ -42,6 +42,14 @@ final class RightLeftThrough extends Operation {
   @override
   bool get isItsOwnProgression => _isDiagonal;
 
+  /// A flagged diagonal trade spends **two** progressions: each traded couple
+  /// ends facing the couple two hands fours from where it started, as after
+  /// two slides. *(Agent's call, 2026-11-24, after the user-ruled diagonal
+  /// `slice`: "diagonal is double".)* It is still danced as one step; only the
+  /// count that distance-named figures read advances by two.
+  @override
+  int get progressionsSpent => _isDiagonal ? 2 : 1;
+
   @override
   OpError? checkPreconditions(Formation formation) {
     if (_isDiagonal) return _diagonalPlan(formation).errorOrNull;
@@ -133,9 +141,9 @@ final class RightLeftThrough extends Operation {
 
     // The couple left at each end with no one on its diagonal has, for that
     // moment, stood out at the end, and comes back in as the other number
-    // (fundamentals §10.2): it takes that end's number, as end-normalization
-    // assigns it. *(Agent's call, 2026-11-24.)* A line that is not one couple
-    // keeps its numbers, as an end row that is not one couple does (§10.2.1).
+    // (fundamentals §10.2). *(Agent's call, 2026-11-24.)* A line that is not
+    // one couple keeps its numbers, as an end row that is not one couple does
+    // (§10.2.1).
     for (final (index, col) in [
       (0, dir == 'leftDiagonal' ? 0 : kColumnCount - 1),
       (groupings.length - 1, dir == 'leftDiagonal' ? kColumnCount - 1 : 0),
@@ -145,11 +153,9 @@ final class RightLeftThrough extends Operation {
       final line = lineOf(grouping, col);
       if (line == null || changes.containsKey(line.first)) continue;
       if (line[0].coupleIndex != line[1].coupleIndex) continue;
-      final number = index == 0
-          ? formation.type.topEndNumber
-          : formation.type.bottomEndNumber;
       for (final id in line) {
-        changes[id] = formation.stateOf(id).copyWith(number: number);
+        final state = formation.stateOf(id);
+        changes[id] = state.copyWith(number: state.number.flipped);
       }
     }
     return Ok(changes);

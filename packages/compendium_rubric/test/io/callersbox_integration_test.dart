@@ -860,6 +860,23 @@ void main() {
       }
     });
 
+    test('a Becket dance progresses on its first diagonal right and left '
+        'through', () {
+      // Agent's call 2026-11-24, by analogy with the diagonal chain.
+      for (final where in ['leftDiagonal', 'rightDiagonal']) {
+        final dance = _shapedLike(
+          shape: core.FormationShape.becketCw,
+          figures: [
+            figure('circle'),
+            figure('right_left_through', {'where': 'across'}),
+            figure('right_left_through', {'where': where}),
+            figure('swing'),
+          ],
+        );
+        expect(assumedProgressionIndex(dance), 2, reason: where);
+      }
+    });
+
     test('a Becket dance progresses on a pass through along the set', () {
       for (final params in [
         {'where': 'along'},

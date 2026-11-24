@@ -67,10 +67,9 @@ class OperationInvocation {
         .map((next) => _finish(formation, next, progressions));
   }
 
-  /// How many progressions this entry spends: none unflagged, otherwise one
-  /// per [Operation.progressionSteps].
-  int get progressionCount =>
-      progression ? operation.progressionSteps.length : 0;
+  /// How many progressions this entry spends: none unflagged, otherwise
+  /// [Operation.progressionsSpent].
+  int get progressionCount => progression ? operation.progressionsSpent : 0;
 
   /// The steps of a flagged figure that spends more than one progression, or
   /// `null` for every other entry.

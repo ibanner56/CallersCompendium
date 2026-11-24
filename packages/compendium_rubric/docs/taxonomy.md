@@ -1057,9 +1057,9 @@ To be defined later with worked examples.
   **above** (`leftDiagonal`) or **below** (`rightDiagonal`) — pairing by line, as the user-ruled
   diagonal `chain` does. Each couple crosses as a unit and wheels, so it lands end for end (top
   row to bottom) and faces into the set, as `across` does. The couple at each end with no one on
-  its diagonal stays where it stands and takes that end's number (§10.2, as end-normalization
-  assigns it) — it has, for that moment, stood out at the end. A line that is not one couple
-  keeps its numbers.
+  its diagonal stays where it stands and comes back in as **the other number** (§10.2) — it
+  has, for that moment, stood out at the end — so every hands four still holds one #1 and one #2
+  couple. A line that is not one couple keeps its numbers.
   - Example (Becket CW, three hands fours, `leftDiagonal`) — rows
     `L2-B…R1-A / R2-B…L1-A / L2-D…R1-C / R2-D…L1-C / L2-F…R1-E / R2-F…L1-E` →
     `L1-B…R2-D / R1-B…L2-D / L1-A…R2-F / R1-A…L2-F / L1-C…R2-E / R1-C…L2-E`: D trades with A
@@ -1071,8 +1071,13 @@ To be defined later with worked examples.
   (diagonals).
 - **h4 contribution** (D7): 0 for `across`, 1 for the diagonals.
 - **progression-eligible:** yes. A diagonal trade **is its own progression**, as
-  `slide_along_set` is: a flag on it names movement it has already made. A flagged `across` is
-  changed over like any other figure.
+  `slide_along_set` is: a flag on it names movement it has already made. A flagged diagonal
+  spends **two** progressions of the distance count (`progressionsSpent`): each couple ends
+  facing the couple two hands fours from where it started, as after two slides — the same
+  "diagonal is double" the user ruled for `slice` *(agent's call 2026-11-24)*. A flagged
+  `across` is changed over like any other figure.
+- **spellings:** `where` accepts the spellings `chain` does (`left_diagonal` and
+  `right_diagonal` too).
 - **`along`:** deferred — the baseline `where` vocabulary allows it, but its effect is not yet
   defined here.
 - **sources:** ContraDanceVerifier `TryRightAndLeftThrough` (same-role swaps + courtesy-turn

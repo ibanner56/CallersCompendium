@@ -214,8 +214,9 @@ diagonal slice is two progressions.)* Tools that trace a dance step by step
   sent out.
 - **A reaching figure that is also flagged advances twice.** Stepping out to the
   next neighbours is itself movement along the set; the flag names more.
-  `slide_along_set` and `slice` are exempt via `isItsOwnProgression`, because
-  for them the displacement *is* the progression.
+  `slide_along_set`, `slice` and a diagonal `right_left_through` are exempt
+  via `isItsOwnProgression`, because for them the displacement *is* the
+  progression.
 
 ### 4.3 `Operation.apply` — `ops/operation.dart`
 
@@ -866,7 +867,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,464 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,474 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

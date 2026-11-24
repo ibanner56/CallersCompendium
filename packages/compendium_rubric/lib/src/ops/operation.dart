@@ -101,6 +101,12 @@ sealed class Operation {
   /// and the progression count advances once per step.
   List<Operation> get progressionSteps => [this];
 
+  /// How many progressions a flag on this figure spends: what the distance
+  /// count (`reachAfter`) advances by. One per [progressionSteps], except
+  /// where a single step carries the set further, as a diagonal
+  /// `right_left_through` does.
+  int get progressionsSpent => progressionSteps.length;
+
   /// Whether this figure reads the wave offsets rather than needing them
   /// settled away first (`docs/fundamentals.md` §8.5.4).
   ///
