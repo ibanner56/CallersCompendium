@@ -1517,8 +1517,8 @@ class CallersBoxAdapter implements SourceAdapter {
   static final RegExp _longSlideRe = RegExp(
     r'^slide (left|right), (role1s|role2s|ends) (?:slide )?(?:two|2) places'
     r'(?: \((.*)\))?$',
-      caseSensitive: false,
-    );
+    caseSensitive: false,
+  );
 
   /// The Caller's Box's two-line give and take: `(4) Men go forward` then
   /// `(4) Men bring back partner` (or `neighbor`). One role walks across the
