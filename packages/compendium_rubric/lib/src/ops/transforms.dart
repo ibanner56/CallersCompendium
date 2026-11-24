@@ -391,7 +391,8 @@ enum WaveHoldShape {
 ///
 /// Positions and facings rotate together, clockwise for the right hand and
 /// counter-clockwise for the left. A quarter of a turn takes a pair's line
-/// through a right angle, so the two shapes trade places:
+/// through a right angle: the two side shapes trade places, and a centre
+/// long-wave pair turns out into a short wave:
 ///
 /// - a **short-wave** side pair ends in the side long wave of its own side
 ///   column, the dancer the rotation carries north in the band's top row;

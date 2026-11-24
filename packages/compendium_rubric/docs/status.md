@@ -72,9 +72,9 @@
 > four standing in a centre long wave turns a quarter or three quarters from
 > its hold into the centre of a short wave, and the band's side dancers join
 > as the ends (the agent's call, not yet ratified). Against `rubric` at
-> `5e7cfac3`, measured on `bb68f3b0` (later commits on the PR change only
-> comments and docs): 3,874 of 5,119 to 3,904 of 5,150 compiled in scope
-> (75.8%), the core set from 519 to 526. 30 refused dances now compile and 1
+> `3e525db2`, measured on `d8b81b20` (later commits on the PR change only
+> comments): 3,908 of 5,118 to 3,938 of 5,149 compiled in scope (76.5%), the
+> core set from 521 to 528. 30 refused dances now compile and 1
 > now mismatches; no previously compiling dance was lost. The denominator grows
 > by those 31 because a dance blocked by a deferral is counted outside it.
 >
