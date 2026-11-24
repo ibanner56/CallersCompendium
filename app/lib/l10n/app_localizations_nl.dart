@@ -13286,11 +13286,11 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsSuggestionsInPerformSwapTitle =>
-      'Gebruiken bij Deze dans wisselen tijdens het uitvoeren';
+      'Gebruiken bij Deze dans wisselen in Uitvoeren';
 
   @override
   String get settingsSuggestionsInPerformSwapSubtitle =>
-      'Als je tijdens het uitvoeren een dans wisselt, worden de dansen na je alternatieven geordend voor zijn plek in het programma, met de reden erbij. Er valt niets weg.';
+      'Als je in Uitvoeren een dans wisselt, staan de dansen onder Je alternatieven in de volgorde die het best past bij die plek in het programma, met de reden erbij. Er valt niets weg.';
 
   @override
   String get settingsSuggestionsEditorTitle => 'Waar suggesties op letten';

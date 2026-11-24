@@ -19292,7 +19292,7 @@ abstract class AppLocalizations {
   /// Subtitle of the Use in Perform's Swap this dance switch.
   ///
   /// In en, this message translates to:
-  /// **'When you swap a dance in Perform, orders the dances after your alternates for that place in the program, and says why. Nothing is left out.'**
+  /// **'When you swap a dance in Perform, lists the dances below Your alternates in the order that best fits that place in the program, and says why. Nothing is left out.'**
   String get settingsSuggestionsInPerformSwapSubtitle;
 
   /// Title of the row, and of the screen it opens, where the user chooses how much each suggestion factor counts.

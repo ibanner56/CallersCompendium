@@ -12689,11 +12689,12 @@ class AppLocalizationsJa extends AppLocalizations {
       'プログラム作成画面のダンス一覧の「並べ替え」メニューに「おすすめ順」を追加します。新しいダンスを入れる位置に合わせてダンスを並べ、その理由を示します。';
 
   @override
-  String get settingsSuggestionsInPerformSwapTitle => 'パフォームモードのダンスの入れ替えで使う';
+  String get settingsSuggestionsInPerformSwapTitle =>
+      'パフォームモードの「このダンスを入れ替え」で使う';
 
   @override
   String get settingsSuggestionsInPerformSwapSubtitle =>
-      'パフォームモードでダンスを入れ替えるとき、あなたの代替の後のダンスを、プログラム内のその位置に合わせて並べ、理由を示します。どのダンスも除外されません。';
+      'パフォームモードでダンスを入れ替えるとき、「あなたの代替」の下のダンスを、プログラム内のその位置に最も合う順に並べ、理由を示します。どのダンスも除外されません。';
 
   @override
   String get settingsSuggestionsEditorTitle => '提案で考慮すること';

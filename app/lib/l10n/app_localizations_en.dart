@@ -13162,7 +13162,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSuggestionsInPerformSwapSubtitle =>
-      'When you swap a dance in Perform, orders the dances after your alternates for that place in the program, and says why. Nothing is left out.';
+      'When you swap a dance in Perform, lists the dances below Your alternates in the order that best fits that place in the program, and says why. Nothing is left out.';
 
   @override
   String get settingsSuggestionsEditorTitle => 'What suggestions look for';

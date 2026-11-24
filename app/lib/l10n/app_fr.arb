@@ -12706,9 +12706,9 @@
   "@settingsSuggestionsInPerformSwapTitle": {
     "x-sourceSha256": "2861517a06444df39f4337868669d82b0a2bd4e15b3a3074720c693e1e52df56"
   },
-  "settingsSuggestionsInPerformSwapSubtitle": "Quand vous échangez une danse en mode Perform, ordonne les danses après vos alternatives selon sa place dans le programme, et dit pourquoi. Rien n'est écarté.",
+  "settingsSuggestionsInPerformSwapSubtitle": "Quand vous échangez une danse en mode Perform, liste les danses sous Vos alternatives dans l’ordre qui convient le mieux à cette place du programme, et dit pourquoi. Rien n’est écarté.",
   "@settingsSuggestionsInPerformSwapSubtitle": {
-    "x-sourceSha256": "622fe091996597efb62753f81eb0ea67eb856ca132aa6012eb959c54d3c27e6d"
+    "x-sourceSha256": "d650f25a86c80aab53d7f25b39160a67720bfc35ec3731055b4cb954c973c28e"
   },
   "settingsSuggestionsEditorTitle": "Ce que regardent les suggestions",
   "@settingsSuggestionsEditorTitle": {

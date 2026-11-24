@@ -13210,11 +13210,11 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsSuggestionsInPerformSwapTitle =>
-      'Brug i Byt denne dans under fremførelse';
+      'Brug i Byt denne dans i Fremfør';
 
   @override
   String get settingsSuggestionsInPerformSwapSubtitle =>
-      'Når du bytter en dans under fremførelse, ordnes dansene efter dine alternativer til dens plads i programmet, og der står hvorfor. Intet udelades.';
+      'Når du bytter en dans i Fremfør, vises dansene under Dine alternativer i den rækkefølge, der passer bedst til pladsen i programmet, og der står hvorfor. Intet udelades.';
 
   @override
   String get settingsSuggestionsEditorTitle => 'Hvad forslag tager hensyn til';

@@ -13358,7 +13358,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsSuggestionsInPerformSwapSubtitle =>
-      'Quand vous échangez une danse en mode Perform, ordonne les danses après vos alternatives selon sa place dans le programme, et dit pourquoi. Rien n\'est écarté.';
+      'Quand vous échangez une danse en mode Perform, liste les danses sous Vos alternatives dans l’ordre qui convient le mieux à cette place du programme, et dit pourquoi. Rien n’est écarté.';
 
   @override
   String get settingsSuggestionsEditorTitle =>

@@ -13320,11 +13320,11 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsSuggestionsInPerformSwapTitle =>
-      'Beim Tanztausch im Perform-Modus verwenden';
+      'In „Diesen Tanz tauschen“ im Perform-Modus verwenden';
 
   @override
   String get settingsSuggestionsInPerformSwapSubtitle =>
-      'Wenn du im Perform-Modus einen Tanz tauschst, werden die Tänze nach deinen Alternativen für seine Stelle im Programm geordnet, mit Begründung. Nichts wird ausgelassen.';
+      'Wenn du im Perform-Modus einen Tanz tauschst, stehen die Tänze unter „Deine Alternativen“ in der Reihenfolge, die am besten zu dieser Stelle im Programm passt, mit Begründung. Nichts wird ausgelassen.';
 
   @override
   String get settingsSuggestionsEditorTitle => 'Worauf Vorschläge achten';

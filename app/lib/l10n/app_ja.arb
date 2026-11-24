@@ -12702,13 +12702,13 @@
   "@settingsSuggestionsEnabledSubtitle": {
     "x-sourceSha256": "193f4023841f384da42426d70da634dc5d4d49ee61e7badccda4d0a10b121202"
   },
-  "settingsSuggestionsInPerformSwapTitle": "パフォームモードのダンスの入れ替えで使う",
+  "settingsSuggestionsInPerformSwapTitle": "パフォームモードの「このダンスを入れ替え」で使う",
   "@settingsSuggestionsInPerformSwapTitle": {
     "x-sourceSha256": "2861517a06444df39f4337868669d82b0a2bd4e15b3a3074720c693e1e52df56"
   },
-  "settingsSuggestionsInPerformSwapSubtitle": "パフォームモードでダンスを入れ替えるとき、あなたの代替の後のダンスを、プログラム内のその位置に合わせて並べ、理由を示します。どのダンスも除外されません。",
+  "settingsSuggestionsInPerformSwapSubtitle": "パフォームモードでダンスを入れ替えるとき、「あなたの代替」の下のダンスを、プログラム内のその位置に最も合う順に並べ、理由を示します。どのダンスも除外されません。",
   "@settingsSuggestionsInPerformSwapSubtitle": {
-    "x-sourceSha256": "622fe091996597efb62753f81eb0ea67eb856ca132aa6012eb959c54d3c27e6d"
+    "x-sourceSha256": "d650f25a86c80aab53d7f25b39160a67720bfc35ec3731055b4cb954c973c28e"
   },
   "settingsSuggestionsEditorTitle": "提案で考慮すること",
   "@settingsSuggestionsEditorTitle": {
