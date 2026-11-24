@@ -10,6 +10,7 @@ import '../../data/validation_issue_labels.dart';
 import '../../data/walkthrough_snippet_library_controller.dart';
 import '../../data/walkthrough_snippet_library_scope.dart';
 import '../../editor/figure_draft.dart';
+import '../../editor/figure_entry_controller.dart';
 import '../../search/facet_labels.dart';
 import '../../theme/app_motion.dart';
 import '../../theme/app_spacing.dart';
@@ -414,6 +415,39 @@ class DanceEditorForm extends StatelessWidget {
         ParamSpec(ParamKind.beats, defaultValue: 8).validate(split.beats);
   }
 
+  /// Where the Title field's Next goes ([figureToFill]): a new dance's first
+  /// figure still to fill, or a new first figure; null on an existing dance,
+  /// or when every figure is set.
+  ({FigureDraft? draft})? get _titleHandsOn =>
+      isNew ? figureToFill(controller.figureDrafts) : null;
+
+  /// The Title field's Next or Done ([_titleHandsOn]). Next puts the focus in
+  /// the figure still to fill; the figures may not be built yet (the form is
+  /// a lazy list, and the setup panel may be open above them), so it scrolls
+  /// toward them a screen at a time until they are, keeping the Title, and
+  /// the keyboard, focused meanwhile. Done, or Next that finds no figures to
+  /// reach, moves focus on as Flutter's default would, so a keyboard user
+  /// keeps their place.
+  Future<void> _handOnFromTitle() async {
+    final target = _titleHandsOn;
+    if (target != null) {
+      final entry = controller.figureEntry;
+      while (!entry.isAttached && scrollController.hasClients) {
+        final position = scrollController.position;
+        if (position.pixels >= position.maxScrollExtent) break;
+        scrollController.jumpTo(
+          (position.pixels + position.viewportDimension).clamp(
+            position.minScrollExtent,
+            position.maxScrollExtent,
+          ),
+        );
+        await WidgetsBinding.instance.endOfFrame;
+      }
+      if (entry.start(target.draft)) return;
+    }
+    controller.titleFocusNode.nextFocus();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -456,7 +490,17 @@ class DanceEditorForm extends StatelessWidget {
                   controller: controller.titleController,
                   focusNode: controller.titleFocusNode,
                   autofocus: isNew,
-                  textInputAction: TextInputAction.next,
+                  // A new dance's Title hands on to its figures: Next opens
+                  // the first one still to fill, or starts the first, so the
+                  // keyboard stays up for the Move box. What follows Title
+                  // in the page takes no typing (the setup panel's header,
+                  // or a picker), so focusing it would close the keyboard
+                  // under a Next key; with no figure to fill, or on an
+                  // existing dance, the key is Done and closes it on purpose.
+                  textInputAction: _titleHandsOn == null
+                      ? TextInputAction.done
+                      : TextInputAction.next,
+                  onEditingComplete: _handOnFromTitle,
                   decoration: InputDecoration(
                     labelText: l10n.danceEditorTitleRequiredLabel,
                   ),
@@ -533,6 +577,7 @@ class DanceEditorForm extends StatelessWidget {
                     onAddFreeText: controller.insertFreeTextFigures,
                     onAddFromText: () => _addFromText(context),
                     freeTextComposerController: controller.freeTextComposer,
+                    figureEntryController: controller.figureEntry,
                     pendingMoveTextController: controller.pendingMoveText,
                     onReplaceWithFreeText:
                         controller.replaceWithFreeTextFigures,

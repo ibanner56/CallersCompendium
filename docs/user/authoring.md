@@ -776,7 +776,11 @@ a wider screen. If **Save** finds a mistake in one of its fields, it opens to
 show you. Inside, fields sit side by side where there is room and one under
 another where there is not.
 
-- **Title** — required.
+- **Title** — required. On a new dance, the keyboard's **Next** (or Enter)
+  takes you straight to the figures: it opens the first figure still to
+  fill, ready for you to type its move, or starts the first one. On a dance
+  you're editing, or a new one whose figures are all set, the key is
+  **Done**.
 - **Authors** — the [author](./glossary.md#author) or authors of the dance.
   Tap the field to open the list of people: check each author, type in the
   search box to narrow the list, or choose **Create** to add someone new. The

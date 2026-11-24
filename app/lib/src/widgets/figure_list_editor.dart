@@ -12,6 +12,7 @@ import '../data/reduce_motion_scope.dart';
 import '../data/capitalize_figures_scope.dart';
 import '../data/decimal_turns_scope.dart';
 import '../editor/figure_draft.dart';
+import '../editor/figure_entry_controller.dart';
 import '../editor/free_text_composer_controller.dart';
 import '../editor/pending_move_text_controller.dart';
 import '../editor/user_figure_draft.dart';
@@ -35,7 +36,7 @@ import '../theme/app_shapes.dart';
 /// "stand still" text. Only the editing field is blanked — the stored draft
 /// keeps its move/params until a real move is chosen, so nothing is lost if
 /// the editor is collapsed as-is.
-const String _standStillMove = 'stand_still';
+const String _standStillMove = standStillMove;
 
 /// Replaces each run of line breaks, with the spaces around it, by one space.
 final TextInputFormatter _lineBreaksToSpaces = FilteringTextInputFormatter(
@@ -79,6 +80,7 @@ class FigureListEditor extends StatefulWidget {
     this.onAddFreeText,
     this.onAddFromText,
     this.freeTextComposerController,
+    this.figureEntryController,
     this.pendingMoveTextController,
     this.onReplaceWithFreeText,
     this.onSubmitCompoundShorthand,
@@ -212,6 +214,11 @@ class FigureListEditor extends StatefulWidget {
   /// to add it, so the screen can count that line as unsaved and add it on
   /// Save. Null (the default) leaves the composer to itself.
   final FreeTextComposerController? freeTextComposerController;
+
+  /// Asked by the screen to open a figure's Move box, or start a new figure,
+  /// as the caller moves on from the dance's Title. Null (the default) leaves
+  /// that to taps and the Add button.
+  final FigureEntryController? figureEntryController;
 
   /// Told whether a row's Move box holds text that leaving it would apply,
   /// and able to settle it (AUTH-1), so the screen can count that text as
@@ -465,6 +472,7 @@ class _FigureListEditorState extends State<FigureListEditor>
     super.initState();
     _freeTextController.addListener(_reportPendingLine);
     widget.freeTextComposerController?.attach(_submitPendingLine);
+    widget.figureEntryController?.attach(_startFigureEntry);
     // A fresh editor has no line; this clears a flag left by one it replaced.
     _reportPendingLine();
   }
@@ -476,6 +484,10 @@ class _FigureListEditorState extends State<FigureListEditor>
       old.freeTextComposerController?.detach(_submitPendingLine);
       widget.freeTextComposerController?.attach(_submitPendingLine);
       _reportPendingLine();
+    }
+    if (old.figureEntryController != widget.figureEntryController) {
+      old.figureEntryController?.detach(_startFigureEntry);
+      widget.figureEntryController?.attach(_startFigureEntry);
     }
     final ids = widget.drafts.map((d) => d.id).toSet();
 
@@ -520,6 +532,7 @@ class _FigureListEditorState extends State<FigureListEditor>
     _addButtonFocusNode.dispose();
     _addMenuFirstItemFocusNode.dispose();
     widget.freeTextComposerController?.detach(_submitPendingLine);
+    widget.figureEntryController?.detach(_startFigureEntry);
     _ownPendingMoveText?.dispose();
     _freeTextController.dispose();
     _freeTextFocusNode.dispose();
@@ -654,6 +667,32 @@ class _FigureListEditorState extends State<FigureListEditor>
     } else {
       _addFigure();
     }
+  }
+
+  /// Opens [draft]'s editor, whose Move box takes focus for a figure still to
+  /// fill, and brings it into view; with null, starts a new figure as Add
+  /// does ([FigureEntryController]). Returns whether it did.
+  bool _startFigureEntry(FigureDraft? draft) {
+    if (draft == null) {
+      if (!widget.allowAdding) return false;
+      _addFigure();
+      return true;
+    }
+    if (!widget.drafts.contains(draft)) return false;
+    _ensureVisibleSoon(draft.id);
+    if (_openDraftId == draft.id) {
+      // Already open, so its Move box, which takes focus only as its editor
+      // mounts, would not take it again: close the editor and open it anew
+      // on the next frame.
+      _pendingMoveText.settle();
+      setState(() => _openDraftId = null);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && widget.drafts.contains(draft)) _openDraft(draft.id);
+      });
+      return true;
+    }
+    _openDraft(draft.id);
+    return true;
   }
 
   void _addFigure() {
