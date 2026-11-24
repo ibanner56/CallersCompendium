@@ -200,6 +200,10 @@ sealed class Operation {
 
   /// Runs this figure against [formation]: preconditions, then the transform.
   ///
+  /// A figure naming only partners that is refused because they are not
+  /// standing together is tried once more one band phase over, and on
+  /// success the set is left in that phase (see the comment in the body).
+  ///
   /// This does **not** apply progression end-normalization — that is the
   /// engine's job, driven by the per-invocation flag rather than by the figure
   /// (§3.2, §8.1).
@@ -247,9 +251,48 @@ sealed class Operation {
       return _applyWithShadows(settled);
     }
 
-    final failure = checkPreconditions(settled);
+    // A figure naming partners finds its hands fours by where they stand: if
+    // they are not together in the grouping the set is in, it is danced one
+    // band phase over, and the set stays grouped that way for the figures
+    // after it *(user-ruled 2026-11-24: the hands fours follow the dancers,
+    // and the grouping is found by where they stand, never by moving
+    // anyone)*. The agent's calls: the current grouping is tried first, and
+    // its refusal is the one reported when neither works; only a pairing
+    // refusal (`whoMismatch`) is retried; and only a figure naming partners
+    // and nothing else. `neighbors` is read from couple numbers, so one
+    // phase over it would accept the next neighbours in their place, and
+    // allowing it gained no dance.
+    final here = _tryIn(settled);
+    if (here is Ok<Formation, OpError>) return here;
+    if (!_namesPartners || !_isPairingRefusal(here)) return here;
+    final otherPhase = toggleBandPhase(settled);
+    // With no hands four in the other phase, nothing would be danced there.
+    if (handsFourBands(otherPhase).isEmpty) return here;
+    final over = _tryIn(otherPhase);
+    return over is Ok<Formation, OpError> ? over : here;
+  }
+
+  /// Whether partners are the only set this figure names (stated, or the
+  /// parser's default when the record names no one): the one pairing that is
+  /// the same two dancers whichever grouping they stand in. A figure that
+  /// also names another set is not retried, since that set would be read in
+  /// a grouping nobody chose for it.
+  bool get _namesPartners {
+    final named = dancerSets.whereType<WhoSet>().toSet();
+    return named.length == 1 && named.single == WhoSet.partners;
+  }
+
+  /// Whether [result] is a refusal because the named dancers are not the
+  /// ones standing together, the only refusal another grouping can answer.
+  static bool _isPairingRefusal(Result<Formation, OpError> result) =>
+      result is Err<Formation, OpError> &&
+      result.error.kind == ErrorKind.whoMismatch;
+
+  /// Checks and dances this figure with [phase]'s hands fours, as they stand.
+  Result<Formation, OpError> _tryIn(Formation phase) {
+    final failure = checkPreconditions(phase);
     if (failure != null) return Err<Formation, OpError>(failure);
-    return perform(settled);
+    return perform(phase);
   }
 
   /// Runs a figure that names dancers a stated distance along the set.
