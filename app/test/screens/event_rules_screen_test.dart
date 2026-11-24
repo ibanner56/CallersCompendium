@@ -209,4 +209,56 @@ void main() {
     expect(find.byKey(const ValueKey('saved-search-in-use')), findsNothing);
     expect(await repos.savedSearches.get(search.id), isNull);
   });
+
+  testWidgets('with Event rules off, the refusal says where the rules are '
+      'and Manage rules opens them there and then; on, it offers only Manage '
+      'rules', (tester) async {
+    final repos = openTestRepositories();
+    final search = await repos.savedSearches.create(
+      name: 'Becket',
+      spec: _spec(),
+    );
+    await repos.eventRules.create(
+      savedSearchId: search.id,
+      quantifier: EventRuleQuantifier.none,
+      scope: EventRuleScope.wholeProgram,
+      name: 'No Beckets',
+    );
+    final on = await _pump(
+      tester,
+      repos,
+      const Scaffold(body: CollectionSection(isActive: true)),
+    );
+    final delete = find.byKey(
+      ValueKey('settings-saved-search-delete-${search.id}'),
+    );
+    await pumpUntilFound(tester, delete);
+    const offText =
+        'Event rules is off. Your rules are in Settings ▸ Experimental ▸ '
+        'Event rules: turn Event rules on there to change them, or open them '
+        'now with Manage rules.';
+    final manage = find.byKey(
+      const ValueKey('saved-search-in-use-manage-rules'),
+    );
+
+    await tester.tap(delete);
+    await tester.pumpAndSettle();
+    expect(find.text(offText), findsOneWidget);
+    expect(manage, findsOneWidget);
+    await tester.tap(manage);
+    await tester.pumpAndSettle();
+    expect(find.byType(EventRulesScreen), findsOneWidget);
+    expect(find.text('No Beckets'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('saved-search-in-use')), findsNothing);
+
+    on.value = true;
+    await tester.pumpAndSettle();
+    await tester.tap(delete);
+    await tester.pumpAndSettle();
+    expect(find.text(offText), findsNothing);
+    expect(manage, findsOneWidget);
+    expect(await repos.savedSearches.get(search.id), isNotNull);
+  });
 }

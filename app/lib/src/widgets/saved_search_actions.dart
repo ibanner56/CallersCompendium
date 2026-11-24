@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/event_rules_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/user_figures_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../screens/settings/event_rules_screen.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../utils/confirm_delete.dart';
@@ -360,6 +362,7 @@ class SavedSearchActions {
       // An event rule (#2340) is named by its sentence, or its typed name
       // above it, and the search it uses is the one being deleted.
       final uses = <(IconData, String, String?)>[];
+      var usedByRules = false;
       for (final use in inUse.uses) {
         final rule = use.kind == eventRuleUseKind && use.id != null
             ? await repos.eventRules.get(use.id!)
@@ -367,6 +370,7 @@ class SavedSearchActions {
         if (rule == null) {
           uses.add((Icons.link, use.label, null));
         } else {
+          usedByRules = true;
           final sentence = eventRuleSentence(l10n, rule, label);
           uses.add(
             rule.name == null
@@ -376,6 +380,11 @@ class SavedSearchActions {
         }
       }
       if (!context.mounted) return false;
+      // The rules are refused here whether or not Event rules is on, but
+      // Settings shows Manage rules only while it is: so say where they are,
+      // and open the manager from here, which works either way.
+      final rulesOn = EventRulesEnabledScope.of(context);
+      final navigator = Navigator.of(context);
       await showDialog<void>(
         context: context,
         animationStyle: AppMotion.styleFor(context),
@@ -397,9 +406,28 @@ class SavedSearchActions {
                   title: Text(title),
                   subtitle: subtitle == null ? null : Text(subtitle),
                 ),
+              if (usedByRules && !rulesOn) ...[
+                const SizedBox(height: AppSpacing.xs),
+                Text(l10n.savedSearchInUseRulesOff),
+              ],
             ],
           ),
           actions: [
+            if (usedByRules)
+              TextButton(
+                key: const ValueKey('saved-search-in-use-manage-rules'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  unawaited(
+                    navigator.push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const EventRulesScreen(),
+                      ),
+                    ),
+                  );
+                },
+                child: Text(l10n.eventRulesManageTitle),
+              ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(l10n.commonOk),

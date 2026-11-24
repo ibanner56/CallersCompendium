@@ -505,6 +505,8 @@ it once and choose it from then on.
   else; it is never used, and you can delete it. A saved search that one of
   your [event rules](./settings.md#event-rules) uses can't be deleted: the app
   lists the rules that use it, so change or delete those rules first.
+  **Manage rules** in that message opens your rules, even while Event rules
+  is off.
 - **Not with Online search.** A saved search searches your own collection, so
   the list doesn't drop down, and saving isn't offered, while Online search is
   on.

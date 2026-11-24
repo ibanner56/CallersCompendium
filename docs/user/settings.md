@@ -208,7 +208,12 @@ again](./collection.md#save-a-search-and-use-it-again)) is listed here by name.
 - A saved search that one of your [event rules](#event-rules) uses can't be
   deleted. The app says **Can't delete "…"** and lists the rules that use it;
   change those rules to another search, or delete them, and then delete the
-  saved search. A rule you deleted doesn't count.
+  saved search. A rule you deleted doesn't count. **Manage rules** in the
+  message opens your rules there and then. It is there even while [Event
+  rules](#event-rules) is off, when Settings doesn't show Manage rules; the
+  message then also says where your rules are: under Settings ▸
+  Experimental ▸ Event rules, where turning Event rules on shows Manage rules
+  in Settings again.
 
 ## Program
 
