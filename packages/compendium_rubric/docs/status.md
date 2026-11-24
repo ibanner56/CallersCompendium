@@ -56,7 +56,9 @@
 > the count from 3,962 of 5,149 to 3,973 of 5,146 compiled in scope (76.9% to
 > 77.2%), and the core set from 530 to 531, losing nothing: 11 dances now
 > compile, among them Prince of Hales (16691) and Bees in a Becket (7978).
-> Three refused dances now reach a deferred figure and leave the scope.
+> Five that were refused now run to the end and mismatch (10098, 10738,
+> 14639, 15271, 7529), and three now reach a deferred figure and leave the
+> scope.
 >
 > **Progressed Improper starts with the 1s below the 2s (2026-11-24)**:
 > Caller's Box's "Duple Minor - Progressed improper" was read as Duple

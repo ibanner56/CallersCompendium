@@ -96,9 +96,12 @@ final class Swing extends Operation {
 
   /// Whether [a] and [b] are an end couple with no one at [who]'s distance:
   /// partners standing in swing position in the hands four at an end of the
-  /// set, when the swing names a distance set (`nextNeighbors`, …). They
-  /// swing each other *(user-ruled 2026-11-24: "they swing each other,
-  /// basically")*. Every couple further in still has to match [who].
+  /// set, travelling off that end, when the swing names a distance set
+  /// (`nextNeighbors`, …). They swing each other *(user-ruled 2026-11-24:
+  /// "they swing each other, basically")*. A couple at an end travelling
+  /// into the set still has neighbours ahead of it and is not let through.
+  /// Applying this to every distance set, and to `swing` alone, is the
+  /// agent's call; every couple further in still has to match [who].
   bool _endCoupleAlone(
     Formation formation,
     ({int topRow, int bottomRow}) band,
@@ -108,7 +111,9 @@ final class Swing extends Operation {
     if (a.coupleIndex != b.coupleIndex) return false;
     if (!who.isCrossHandsFour) return false;
     final bands = handsFourBands(formation);
-    return band == bands.first || band == bands.last;
+    final travel = travelDirection(formation, a);
+    return (band == bands.first && travel < 0) ||
+        (band == bands.last && travel > 0);
   }
 
   /// The across facing a dancer in [col] takes to satisfy [face].

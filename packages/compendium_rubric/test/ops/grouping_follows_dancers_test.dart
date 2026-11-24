@@ -2,9 +2,10 @@ import 'package:compendium_rubric/compendium_rubric.dart';
 import 'package:test/test.dart';
 
 // The hands fours follow the dancers (user-ruled 2026-11-24). A figure naming
-// partners or neighbours finds its grouping by where those dancers stand,
-// never by moving anyone, and the set stays grouped that way afterwards. An
-// end couple with nobody at the named distance swings each other.
+// partners finds its grouping by where they stand, never by moving anyone,
+// and the set stays grouped that way afterwards (limiting it to partners is
+// the agent's call). An end couple with nobody at the named distance swings
+// each other.
 
 Formation becket(List<String> rows) =>
     parseRolesNotation(rows, type: FormationType.becketCw);
@@ -123,6 +124,38 @@ void main() {
 
       expect(error?.kind, ErrorKind.whoMismatch);
       expect(error?.message, contains('L-C and R-C'));
+    });
+
+    test('an end couple travelling into the set is still refused', () {
+      // The top couple are 1s on the west line of a clockwise Becket, so
+      // they travel down, toward next neighbours they do have.
+      final intoTheSet = becket([
+        'L1-B . . . R1-A',
+        'R1-B . . . L2-D',
+        'L1-A . . . R2-C',
+        'R2-D . . . L2-F',
+        'L1-E . . . L2-C',
+        'R1-E . . . R2-F',
+      ]);
+      final error = const Swing(
+        who: WhoSet.nextNeighbors,
+      ).checkPreconditions(intoTheSet);
+
+      expect(error?.kind, ErrorKind.whoMismatch);
+      expect(error?.message, contains('L-B and R-B'));
+    });
+
+    test('the swing runs once a progression has spent the distance', () {
+      // Until then the cross-hands-four check in Operation.apply refuses the
+      // end couple first: they did not start a grouping apart.
+      expect(
+        const Swing(who: WhoSet.nextNeighbors).apply(input, progressions: 1),
+        isA<Ok<Formation, OpError>>(),
+      );
+      expect(
+        const Swing(who: WhoSet.nextNeighbors).apply(input),
+        isA<Err<Formation, OpError>>(),
+      );
     });
 
     test('the end couple is not let through when the swing names no '
