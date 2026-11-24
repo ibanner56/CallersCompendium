@@ -28,74 +28,23 @@ choose **Settings…** in the **Caller's Compendium** menu on a Mac (see
 Inside, on a wide screen (a desktop, or a tablet in landscape), a list of
 sections sits beside the controls for the section you've chosen, starting with
 **General**. On a narrower screen (a phone, or a tablet in portrait) you pick a
-section and it opens as its own page, then you step back to switch sections. There are ten sections, always in this order:
+section and it opens as its own page, then you step back to switch sections. There are eleven sections, always in this order:
 
 1. **General**
-2. **Program**
-3. **Appearance**
-4. **Dialect**
-5. **Language & region**
-6. **Defaults**
-7. **Updates**
-8. **Diagnostics**
-9. **Experimental**
-10. **About**
+2. **Collection**
+3. **Program**
+4. **Appearance**
+5. **Dialect**
+6. **Language & region**
+7. **Defaults**
+8. **Updates**
+9. **Diagnostics**
+10. **Experimental**
+11. **About**
 
 ## General
 
 The **General** section gathers everyday behavior into small groups.
-
-### Dances
-
-- **Ignore leading articles when sorting** (on by default) — alphabetizes titles
-  by their first meaningful word. With this on, "The Nice Combination" files under
-  **N**, not **T**. It applies to the Collection, the program dance picker, the
-  Programs list, and the order of [quick search](./collection.md#jump-straight-to-a-dance-or-program)
-  results.
-- **Capitalize figures** (off by default) — starts each
-  [figure](./glossary.md#figure) in the dance view, [Perform mode](./perform.md) and
-  the figure editor with a capital letter. Off, figures are shown as written
-  (built-in figures start in lower case, as in ContraDB). Only the look in those
-  places changes; exports, search, sync comparisons and screen-reader wording are
-  unaffected.
-- **Tags** — opens the Tags manager, where you rename, merge, color and delete
-  your tags. **Show dances** in a tag's menu closes Settings and adds that tag to
-  your collection's filter; your search text, other filters and any tags
-  already chosen stay (with two or more tags, the collection shows dances that
-  have all of them unless you pick **Any tag**). See [Group by category](./collection.md#group-by-category-a-dances-vibe)
-  for what each action does.
-- **Authors** and **Sources** — open the Authors and Sources managers. They
-  work like the Tags manager: search, a **Not used** filter, sort by name or by
-  number of dances, and a ⋮ on each row (or tap the row) for its actions.
-  Each row shows how many dances use it; a dance in
-  [Recently deleted](#recently-deleted) doesn't count. A source's row also shows
-  its author and year, so two sources with the same title can be told apart.
-  - **Rename** changes the name everywhere it is credited. Renaming an author
-    to a name another author already has offers to **merge** the two instead.
-  - **Merge into…** combines two entries into the one you pick: every dance that
-    credited either now credits that one. Any detail the kept entry leaves
-    empty is filled from the other — an email, say, typed only on a misspelled
-    copy. Where both hold different values, the kept entry's value stays and the
-    other is dropped; the app lists what it will drop and asks before it merges.
-    An author marked deceased on either copy stays marked. For a source, a dance
-    that cited both keeps one citation, with the page and number it had for the
-    source you merged into; an empty one is filled from the other citation. A
-    page or number the two citations disagree on isn't listed: the one for the
-    source you merged into is kept.
-  - **Edit details…** opens the same details you edit from the dance editor.
-  - **Delete** appears only for an entry no dance uses. One still in use can
-    only be merged, so no dance loses its author or source.
-
-  Rename, merge and delete happen at once (a delete asks first only when
-  **Confirm before delete** is on) and show an **Undo** in the message at
-  the bottom of the screen; once that message goes, the change stays. A merge's
-  dropped details come back with Undo, and are gone after it.
-
-  Merging two authors loses something on your other devices, as merging two
-  authors in [Sync decisions](#sync-decisions) does: an email address,
-  location, and deceased marker are kept only on your own device and are never
-  sent to your other devices, so the ones another device holds for the author
-  that is not kept cannot be recovered there.
 
 ### Accessibility
 
@@ -184,6 +133,78 @@ the full picture.
   [Export dances as a spreadsheet](./sharing.md#export-dances-as-a-spreadsheet-csv).
 
 For the whole workflow, see [Backup & portability](./backup-portability.md).
+
+## Collection
+
+The **Collection** section holds the settings for your dances and your saved
+searches.
+
+### Dances
+
+- **Ignore leading articles when sorting** (on by default) — alphabetizes titles
+  by their first meaningful word. With this on, "The Nice Combination" files under
+  **N**, not **T**. It applies to the Collection, the program dance picker, the
+  Programs list, and the order of [quick search](./collection.md#jump-straight-to-a-dance-or-program)
+  results.
+- **Capitalize figures** (off by default) — starts each
+  [figure](./glossary.md#figure) in the dance view, [Perform mode](./perform.md) and
+  the figure editor with a capital letter. Off, figures are shown as written
+  (built-in figures start in lower case, as in ContraDB). Only the look in those
+  places changes; exports, search, sync comparisons and screen-reader wording are
+  unaffected.
+- **Tags** — opens the Tags manager, where you rename, merge, color and delete
+  your tags. **Show dances** in a tag's menu closes Settings and adds that tag to
+  your collection's filter; your search text, other filters and any tags
+  already chosen stay (with two or more tags, the collection shows dances that
+  have all of them unless you pick **Any tag**). See [Group by category](./collection.md#group-by-category-a-dances-vibe)
+  for what each action does.
+- **Authors** and **Sources** — open the Authors and Sources managers. They
+  work like the Tags manager: search, a **Not used** filter, sort by name or by
+  number of dances, and a ⋮ on each row (or tap the row) for its actions.
+  Each row shows how many dances use it; a dance in
+  [Recently deleted](#recently-deleted) doesn't count. A source's row also shows
+  its author and year, so two sources with the same title can be told apart.
+  - **Rename** changes the name everywhere it is credited. Renaming an author
+    to a name another author already has offers to **merge** the two instead.
+  - **Merge into…** combines two entries into the one you pick: every dance that
+    credited either now credits that one. Any detail the kept entry leaves
+    empty is filled from the other — an email, say, typed only on a misspelled
+    copy. Where both hold different values, the kept entry's value stays and the
+    other is dropped; the app lists what it will drop and asks before it merges.
+    An author marked deceased on either copy stays marked. For a source, a dance
+    that cited both keeps one citation, with the page and number it had for the
+    source you merged into; an empty one is filled from the other citation. A
+    page or number the two citations disagree on isn't listed: the one for the
+    source you merged into is kept.
+  - **Edit details…** opens the same details you edit from the dance editor.
+  - **Delete** appears only for an entry no dance uses. One still in use can
+    only be merged, so no dance loses its author or source.
+
+  Rename, merge and delete happen at once (a delete asks first only when
+  **Confirm before delete** is on) and show an **Undo** in the message at
+  the bottom of the screen; once that message goes, the change stays. A merge's
+  dropped details come back with Undo, and are gone after it.
+
+  Merging two authors loses something on your other devices, as merging two
+  authors in [Sync decisions](#sync-decisions) does: an email address,
+  location, and deceased marker are kept only on your own device and are never
+  sent to your other devices, so the ones another device holds for the author
+  that is not kept cannot be recovered there.
+
+### Saved searches
+
+Every search you have saved from the Collection (see [Save a search and use it
+again](./collection.md#save-a-search-and-use-it-again)) is listed here by name.
+
+- **Rename** (the pencil) changes a saved search's name. What it searches for
+  stays as it was saved; to change that, load it in the Collection, change the
+  search and choose **Update** in the ⋮ menu.
+- **Delete** (the bin) deletes it at once (it asks first only when **Confirm
+  before delete** is on) and shows an **Undo** in the message at the bottom of
+  the screen.
+- A saved search that this version of the app can't read (saved by a newer
+  version, or damaged) is listed last, under **Needs attention**. It is never
+  used. Tap it to read what that means and to delete it; you can undo that.
 
 ## Program
 
@@ -528,7 +549,7 @@ accents are optional: *frappe* finds *Catppuccin Frappé*.
   every other tag looks exactly as it does now. The tag's name is always shown
   beside the color, so tags stay readable without relying on color, and the
   app picks a black or white label automatically so your color stays legible in
-  every theme. This opens the Tags manager (also under **General ▸ Dances ▸
+  every theme. This opens the Tags manager (also under **Collection ▸ Dances ▸
   Tags**): choose **Color…** in a tag's menu to pick one, or **Remove color**.
 
 ## Dialect
@@ -1716,8 +1737,9 @@ note.)
 
 Some things this version syncs can't be read by earlier versions of the app:
 your [own figures and terms, and your notes on built-in
-figures](#glossary-and-custom-figures), the Custom Figures setting, and your
-shorthands for your own figures. They start syncing only once every device
+figures](#glossary-and-custom-figures), the Custom Figures setting, your
+shorthands for your own figures, and your [saved
+searches](./collection.md#save-a-search-and-use-it-again). They start syncing only once every device
 connected to your store has an up-to-date app. Until then changes to them
 aren't sent to your other devices, and nothing already on a device is removed;
 you can keep using and editing them on each device.

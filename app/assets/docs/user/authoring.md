@@ -970,7 +970,7 @@ explicit about two things, and both matter:
   disagree. **Keep editing** takes you back to what you typed. After a merge,
   every dance that credited either author credits the one that's left, this
   dance included, and **Undo** in the message at the bottom of the screen puts
-  both back. The same merge is in **Settings ▸ General ▸ Dances ▸ Authors**;
+  both back. The same merge is in **Settings ▸ Collection ▸ Dances ▸ Authors**;
   see [Settings](./settings.md#dances).
 - **Email and location are private, and so is the deceased mark.** They are
   stored only on this device and are never shared or exported. See
@@ -980,7 +980,7 @@ explicit about two things, and both matter:
 **Source details** works the same way: a source's details are shared across every
 dance that cites it, and editing them here updates the source everywhere it is
 referenced. To combine two copies of the same source, use **Merge into…** in
-**Settings ▸ General ▸ Dances ▸ Sources**; see
+**Settings ▸ Collection ▸ Dances ▸ Sources**; see
 [Settings](./settings.md#dances).
 
 ## Undo, drafts, and saving

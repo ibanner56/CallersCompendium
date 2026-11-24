@@ -372,9 +372,10 @@ void main() {
   group('SettingsScreen — General & Program settings (G.2)', () {
     // Section content only shows once its sidebar entry is picked (side-by-side
     // layout shows only the selected section). The calling-history toggles moved
-    // to the Program section (issue #935); sort-ignore stays under General.
-    Future<void> openGeneral(WidgetTester tester) async {
-      await tester.tap(find.byKey(const ValueKey('settings-nav-general')));
+    // to the Program section (issue #935), and sort-ignore, with the rest of
+    // the Dances settings, to the Collection section (#2325).
+    Future<void> openCollection(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('settings-nav-collection')));
       await tester.pumpAndSettle();
     }
 
@@ -555,13 +556,13 @@ void main() {
       },
     );
 
-    const sortToggleKey = ValueKey('general-sort-ignore-articles');
+    const sortToggleKey = ValueKey('collection-sort-ignore-articles');
 
     testWidgets('sort-ignore-articles toggle is present and on by default', (
       tester,
     ) async {
       await _pumpSettings(tester);
-      await openGeneral(tester);
+      await openCollection(tester);
 
       expect(find.byKey(sortToggleKey), findsOneWidget);
       final toggle = tester.widget<SwitchListTile>(find.byKey(sortToggleKey));
@@ -572,7 +573,7 @@ void main() {
       tester,
     ) async {
       await _pumpSettings(tester, initialSortIgnoreArticles: false);
-      await openGeneral(tester);
+      await openCollection(tester);
 
       final toggle = tester.widget<SwitchListTile>(find.byKey(sortToggleKey));
       expect(toggle.value, isFalse);
@@ -582,7 +583,7 @@ void main() {
       tester,
     ) async {
       final harness = await _pumpSettings(tester);
-      await openGeneral(tester);
+      await openCollection(tester);
 
       await tester.tap(find.byKey(sortToggleKey));
       await tester.pumpAndSettle();
@@ -2039,6 +2040,31 @@ void main() {
       );
     });
 
+    testWidgets('the sidebar lists every section in its documented order, '
+        'Collection between General and Program (#2325)', (tester) async {
+      await _pumpSettings(tester, surfaceSize: const Size(500, 1400));
+      const order = [
+        'general',
+        'collection',
+        'program',
+        'appearance',
+        'dialect',
+        'regional',
+        'defaults',
+        'updates',
+        'diagnostics',
+        'experimental',
+        'about',
+      ];
+      final tops = [
+        for (final name in order)
+          tester.getTopLeft(find.byKey(ValueKey('settings-nav-$name'))).dy,
+      ];
+      for (var i = 1; i < tops.length; i++) {
+        expect(tops[i], greaterThan(tops[i - 1]), reason: order[i]);
+      }
+    });
+
     testWidgets('navigation preserves section order, content, and icon pairs', (
       tester,
     ) async {
@@ -2137,7 +2163,7 @@ void main() {
         isTrue,
       );
       expect(
-        find.byKey(const ValueKey('general-sort-ignore-articles')),
+        find.byKey(const ValueKey('general-reduce-motion')),
         findsOneWidget,
       );
       // No other section is selected, and Appearance's Theme row is not
@@ -2167,7 +2193,7 @@ void main() {
           '$sideBySide', (tester) async {
         await _pumpSettings(tester, surfaceSize: Size(width, 1400));
         expect(
-          find.byKey(const ValueKey('general-sort-ignore-articles')),
+          find.byKey(const ValueKey('general-reduce-motion')),
           sideBySide ? findsOneWidget : findsNothing,
         );
         expect(
@@ -2195,7 +2221,7 @@ void main() {
               (w.key! as ValueKey<String>).value.startsWith('settings-nav-'),
         );
         final sideBySide = find
-            .byKey(const ValueKey('general-sort-ignore-articles'))
+            .byKey(const ValueKey('general-reduce-motion'))
             .evaluate()
             .isNotEmpty;
         if (scale == 2.0) {
@@ -2245,6 +2271,7 @@ void main() {
           .height;
       final oneLine = labelHeight('general');
       for (final section in [
+        'collection',
         'program',
         'appearance',
         'dialect',

@@ -285,7 +285,7 @@ website. Like an [author](#author), a source is a shared record with its own
 details (its title, author and year among them), and each dance that cites it
 can add a page and number.
 You can filter your [collection](#collection) by source, and rename or merge
-sources in **Settings ▸ General ▸ Dances ▸ Sources**. See
+sources in **Settings ▸ Collection ▸ Dances ▸ Sources**. See
 [Write & edit dances](./authoring.md#author-and-source-details-are-shared).
 
 ## Tag
@@ -294,7 +294,7 @@ A label of your own that you give a [dance](#dance) — often its "vibe" or
 category, such as *smooth* or *easy*. A dance can carry any number of tags, and
 a tag can have a color. Use tags to filter and group your
 [collection](#collection), and rename, merge, color or delete them in the
-**Tags** manager under **Settings ▸ General ▸ Dances ▸ Tags**. See
+**Tags** manager under **Settings ▸ Collection ▸ Dances ▸ Tags**. See
 [Collection & search](./collection.md#group-by-category-a-dances-vibe).
 
 ## Unrecognized figure

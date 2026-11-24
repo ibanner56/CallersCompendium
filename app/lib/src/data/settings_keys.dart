@@ -119,8 +119,8 @@ const String kPerformStageModeKey = 'perform_stage_mode';
 /// from older versions, which still write it, keep round-tripping it.
 const String kPerformCanonicalViewKey = 'perform_canonical_view';
 
-/// Key used to persist the "Ignore leading articles when sorting" General
-/// setting. Stored as a bool; absent/unset means on (`true`), so the dance
+/// Key used to persist the "Ignore leading articles when sorting" setting
+/// (Settings ▸ Collection ▸ Dances). Stored as a bool; absent/unset means on (`true`), so the dance
 /// list alphabetizes titles with a leading article ("the"/"a"/"an") ignored.
 const String kSortIgnoreArticlesKey = 'sort_ignore_articles';
 

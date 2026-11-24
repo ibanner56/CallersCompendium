@@ -13969,5 +13969,225 @@
   "calendarLastResultError": "Importeren uit de agenda bij het starten mislukt ({when})",
   "@calendarLastResultError": {
     "x-sourceSha256": "a826d9f8828d360f373473072915ffe0c2fb4944f9b9e733a3e75a6f72591f5c"
+  },
+  "savedSearchSaveThis": "Deze zoekopdracht opslaan…",
+  "@savedSearchSaveThis": {
+    "x-sourceSha256": "cf3f327a07df12455fab6baa6bd5a7c23b802ef20024bd2b6ca368557e3bdb8c"
+  },
+  "savedSearchUpdate": "\"{name}\" bijwerken",
+  "@savedSearchUpdate": {
+    "x-sourceSha256": "25e29e20763db975b4aa0d8a26ac18a65b401b8aeb773cab1b6bd80314afb499"
+  },
+  "savedSearchRename": "\"{name}\" hernoemen…",
+  "@savedSearchRename": {
+    "x-sourceSha256": "df8dd3d34aa17b7722c71250f624f88c3146049dc02d2f829026ebf967cc66c3"
+  },
+  "savedSearchDelete": "\"{name}\" verwijderen",
+  "@savedSearchDelete": {
+    "x-sourceSha256": "914b12d4d231c275650f13980556632b84b7235e562e4c64b199ed260ac32dc8"
+  },
+  "savedSearchNeedsAttention": "Vraagt aandacht",
+  "@savedSearchNeedsAttention": {
+    "x-sourceSha256": "c1ebc7817870e5be78fceae559ba5fcac2b68d5c5498d8080298004f3f79d62d"
+  },
+  "savedSearchUnreadableItem": "Een opgeslagen zoekopdracht die niet te openen is",
+  "@savedSearchUnreadableItem": {
+    "x-sourceSha256": "71e1a2a33ebf476871cd7c433276a70f25ba4bcc6e4aeb066a493dd34f34ee00"
+  },
+  "savedSearchUnreadableTitle": "Deze opgeslagen zoekopdracht kan niet worden geopend",
+  "@savedSearchUnreadableTitle": {
+    "x-sourceSha256": "f79804d5582ae9b14c358c8a58b63f14d958e6f7f9171ae760421d11859516bc"
+  },
+  "savedSearchUnreadableBody": "Hij is opgeslagen door een nieuwere versie van de app, of hij is beschadigd, dus hij wordt niet gebruikt. Je kunt hem verwijderen en dat ongedaan maken.",
+  "@savedSearchUnreadableBody": {
+    "x-sourceSha256": "3ada189eb779fc4d8f53909cc10242263df8a1cffa21fd68320203aba59c2f37"
+  },
+  "savedSearchSaveDialogTitle": "Deze zoekopdracht opslaan",
+  "@savedSearchSaveDialogTitle": {
+    "x-sourceSha256": "cd3b55bc11fafd8eab70cdc50b941f0fce17da720cb6da6ceb00b8e17ce04fa0"
+  },
+  "savedSearchRenameDialogTitle": "Opgeslagen zoekopdracht hernoemen",
+  "@savedSearchRenameDialogTitle": {
+    "x-sourceSha256": "86b097728b9fa42d89407a4652247db95f4e1ac4df4fbb95e6504dd6c77bbf72"
+  },
+  "savedSearchNameLabel": "Naam",
+  "@savedSearchNameLabel": {
+    "x-sourceSha256": "dcd1d5223f73b3a965c07e3ff5dbee3eedcfedb806686a05b9b3868a2c3d6d50"
+  },
+  "savedSearchWindowNotCalled": "{count, plural, =1{Niet gebeld in de afgelopen maand} other{Niet gebeld in de afgelopen {count} maanden}}",
+  "@savedSearchWindowNotCalled": {
+    "x-sourceSha256": "807c9cf19ca86d72282c54d666d7eac4617b1f66140020d7308c0b69c635a71c"
+  },
+  "savedSearchWindowCalled": "{count, plural, =1{Gebeld in de afgelopen maand} other{Gebeld in de afgelopen {count} maanden}}",
+  "@savedSearchWindowCalled": {
+    "x-sourceSha256": "8d8eeb142c430ef9c1b2d4902074b3f1c3f5ab9cb5882f557d51df9d866573d2"
+  },
+  "savedSearchWindowInert": "{count, plural, =1{Bewaarde periode van de belgeschiedenis: de afgelopen maand} other{Bewaarde periode van de belgeschiedenis: de afgelopen {count} maanden}}",
+  "@savedSearchWindowInert": {
+    "x-sourceSha256": "c2f2d0219a330f1ffd99a268d8de8b05f42768d9ecd8aeb4f094d3e219d5a11d"
+  },
+  "savedSearchTooLargeTitle": "Zoekopdracht te groot",
+  "@savedSearchTooLargeTitle": {
+    "x-sourceSha256": "a0fbe87007d7ec5d913a8209d7287c448c4eea98a218cc80aab2d14b1081c8a5"
+  },
+  "savedSearchTooLargeBody": "Deze zoekopdracht heeft te veel filters of rijen om op te slaan. Verwijder er een paar en sla hem dan opnieuw op.",
+  "@savedSearchTooLargeBody": {
+    "x-sourceSha256": "2c85d8802c56622519838132fe029862c01003a8bc7331dfbd0ba99ff0c99899"
+  },
+  "savedSearchLimitTitle": "Te veel opgeslagen zoekopdrachten",
+  "@savedSearchLimitTitle": {
+    "x-sourceSha256": "18d7d9d6ebfe585acf2cf2fd57e02369d24a71aceeee520ef2d7b414f1137b86"
+  },
+  "savedSearchLimitBody": "{count, plural, =1{Je kunt 1 opgeslagen zoekopdracht bewaren. Verwijder die om een andere op te slaan.} other{Je kunt tot {count} opgeslagen zoekopdrachten bewaren. Verwijder er een om een andere op te slaan.}}",
+  "@savedSearchLimitBody": {
+    "x-sourceSha256": "a96518875331a0aba022b630c3a6f973e4c6bfa32ce7997203d7bd2813a2de00"
+  },
+  "savedSearchNameRefused": "Die naam kan niet worden gebruikt. Probeer een andere.",
+  "@savedSearchNameRefused": {
+    "x-sourceSha256": "826243cfdded5b4bc91897c813c4b718ec31c5a256f7dd7b94bca255e61991ac"
+  },
+  "savedSearchFailed": "Dat lukte niet met je opgeslagen zoekopdrachten. Probeer het opnieuw.",
+  "@savedSearchFailed": {
+    "x-sourceSha256": "7bf023aebe93efbb4799d49fb775c70fc028c1e52e486e00f36cfa57b5189283"
+  },
+  "savedSearchSavedSnack": "\"{name}\" opgeslagen",
+  "@savedSearchSavedSnack": {
+    "x-sourceSha256": "074df9b048bb554da2479a0c96bf7a41efb0dd1340fe2035a0ee88a83f8edb77"
+  },
+  "savedSearchUpdatedSnack": "\"{name}\" bijgewerkt",
+  "@savedSearchUpdatedSnack": {
+    "x-sourceSha256": "14cba7e221b3a871ff24a295050baef282b16fcc9235b9e1310319f4196a4936"
+  },
+  "savedSearchDeletedSnack": "\"{name}\" verwijderd",
+  "@savedSearchDeletedSnack": {
+    "x-sourceSha256": "c01d33e1bbf843edb8f635f4bc33095283004bceeac7fd456d43b330d8a904d4"
+  },
+  "savedSearchInUseTitle": "\"{name}\" kan niet worden verwijderd",
+  "@savedSearchInUseTitle": {
+    "x-sourceSha256": "534b62762bcff41795639ef23835c25d87d583cdb0b6741292ff0438af675da2"
+  },
+  "savedSearchInUseBody": "Hij wordt nog gebruikt door deze. Wijzig of verwijder die eerst en verwijder hem daarna.",
+  "@savedSearchInUseBody": {
+    "x-sourceSha256": "eea976c087ea927408bec93b8528cebe27e596df9afb2a5a9a5565831ce8df69"
+  },
+  "savedSearchNoticeTitle": "\"{name}\" gebruikt dingen die er niet meer zijn:",
+  "@savedSearchNoticeTitle": {
+    "x-sourceSha256": "6980efb7194f390fd00ba3d6232528a06dd61afd0d87cf1f7387f6bcba92075c"
+  },
+  "savedSearchNoticeRest": "De rest van de zoekopdracht wordt getoond. Verwijder deze zelf om hem bij te werken.",
+  "@savedSearchNoticeRest": {
+    "x-sourceSha256": "3c31859d1f6ed8e0d8409392efea4667f385063f43d518f9d9ed640bf030b54d"
+  },
+  "savedSearchNoticeFieldSkipped": "Een filter op een verwijderd aangepast veld wordt bij de resultaten weggelaten.",
+  "@savedSearchNoticeFieldSkipped": {
+    "x-sourceSha256": "2c4e65b31ea837645a7ae67b51e53ad230552ff1defc50f94d0cad4c6d2f1462"
+  },
+  "savedSearchNoticeClose": "Melding sluiten",
+  "@savedSearchNoticeClose": {
+    "x-sourceSha256": "48a4eccdf1100a36491fef33df9c8db691358cec7e6ce67c5a0b1a6e19d80b92"
+  },
+  "savedSearchMissingTag": "De tag {name}, die is verwijderd",
+  "@savedSearchMissingTag": {
+    "x-sourceSha256": "088c7551d733b5540d0ac148876709fbe5ccaddeee6eb132706fdc8914095747"
+  },
+  "savedSearchMissingTagUnnamed": "Een tag die is verwijderd",
+  "@savedSearchMissingTagUnnamed": {
+    "x-sourceSha256": "7b4393c62ef2d67a12d2fc529a46ea9c245e0fbfb03c07d16b88672f72b12567"
+  },
+  "savedSearchMissingAuthor": "De auteur {name}, die is verwijderd",
+  "@savedSearchMissingAuthor": {
+    "x-sourceSha256": "d6360811dbf423b18c8e77ecf773769428bd265a1deeaac260c4616f49da9af1"
+  },
+  "savedSearchMissingAuthorUnnamed": "Een auteur die is verwijderd",
+  "@savedSearchMissingAuthorUnnamed": {
+    "x-sourceSha256": "233470cbf9c61538d3167d7aa50b962d48dc95761b85297911e0c9a21cda1703"
+  },
+  "savedSearchMissingSource": "De bron {name}, die is verwijderd",
+  "@savedSearchMissingSource": {
+    "x-sourceSha256": "a6efd0009d90004088ce84f18250c451bf808c72cce9526eae64d77283c1646a"
+  },
+  "savedSearchMissingSourceUnnamed": "Een bron die is verwijderd",
+  "@savedSearchMissingSourceUnnamed": {
+    "x-sourceSha256": "14562eb9cc6b3ab02965861d8c1a30aad18d39795c8f1061bb7e79af10fb55ad"
+  },
+  "savedSearchMissingLevel": "Het niveau {name}, dat is verwijderd",
+  "@savedSearchMissingLevel": {
+    "x-sourceSha256": "0116ead5d5fe5eba9203955aa80fd10ef1a4c8d0646b8ed0be34fec305fe0b99"
+  },
+  "savedSearchMissingLevelUnnamed": "Een niveau dat is verwijderd",
+  "@savedSearchMissingLevelUnnamed": {
+    "x-sourceSha256": "089493891b22ad308b2e6a0e2834bfba7e8d8faeeffce6c3d9012e6022479d86"
+  },
+  "savedSearchMissingVenue": "De locatie {name}, die is verwijderd",
+  "@savedSearchMissingVenue": {
+    "x-sourceSha256": "c6b533eb70eeb62e7b6585a2b2d1ec88b0601141dcd0e9dc213140eab30f8c37"
+  },
+  "savedSearchMissingVenueUnnamed": "Een locatie die is verwijderd",
+  "@savedSearchMissingVenueUnnamed": {
+    "x-sourceSha256": "32cc370281396997647d0f925585179d3ec70962c138d4ca18f9480773567c29"
+  },
+  "savedSearchMissingField": "Het aangepaste veld {name}, dat is verwijderd",
+  "@savedSearchMissingField": {
+    "x-sourceSha256": "ac25e28b0ab8b8a578aa03719f6e6b03b1d8e9897fd8f34c98f1a384eac32b2b"
+  },
+  "savedSearchMissingFieldUnnamed": "Een aangepast veld dat is verwijderd",
+  "@savedSearchMissingFieldUnnamed": {
+    "x-sourceSha256": "b7e67e986e1922c82356bb67d0bf75d7dff2f7492fdd462ec035346971737025"
+  },
+  "savedSearchMissingFieldType": "Het aangepaste veld {name}, waarvan het type is veranderd",
+  "@savedSearchMissingFieldType": {
+    "x-sourceSha256": "c26b4365610ffb1ec0e062888c61ec2f6bfc06943369107f443a34004b975b67"
+  },
+  "savedSearchMissingFieldChoice": "De keuze {choice} van {name}, die is verwijderd",
+  "@savedSearchMissingFieldChoice": {
+    "x-sourceSha256": "94168ccb764f77ea9c28d5b9dd40d728ecf073926bbcaea7166775ef4a8fc509"
+  },
+  "savedSearchMissingFigureDetail": "Een figuurdetail in Geavanceerd dat niet kan worden getoond",
+  "@savedSearchMissingFigureDetail": {
+    "x-sourceSha256": "ed2a3e9f785e5adde224531d800f9af6eacb60ccb6aaec0af29fad81019dd0c1"
+  },
+  "savedSearchMissingUserFigure": "Een eigen figuur die is verwijderd",
+  "@savedSearchMissingUserFigure": {
+    "x-sourceSha256": "490f36ab8f9347f3caa810e965d7f5ce268316d5386ca183f44169e19134c4be"
+  },
+  "savedSearchMissingInvalid": "Iets wat deze versie niet kan lezen",
+  "@savedSearchMissingInvalid": {
+    "x-sourceSha256": "e5e8bc0453e3a8cbd561f898df9f830bffc99850f535ef1ccd745da28ef35c93"
+  },
+  "savedSearchSearchFor": "Zoeken naar \"{text}\"",
+  "@savedSearchSearchFor": {
+    "x-sourceSha256": "7f13bf2ba00d10d9a01317b95572039dcd737b939d560f7329c1362a5883de46"
+  },
+  "savedSearchHighlightedRow": "{name}, {index} van {count}",
+  "@savedSearchHighlightedRow": {
+    "x-sourceSha256": "cb00ceb52224a6c9e0a0a28855223161c92e559d446b086f116c9737f893e001"
+  },
+  "savedSearchSaveAsNewSearch": "Opslaan als nieuwe zoekopdracht…",
+  "@savedSearchSaveAsNewSearch": {
+    "x-sourceSha256": "2fca854bab4826159a6994814c85bb3f46a03be76288353b5e7c0cdd6092d6fe"
+  },
+  "settingsCollectionTitle": "Collectie",
+  "@settingsCollectionTitle": {
+    "x-sourceSha256": "7b790708ff1b171315a152018f3712e8c71c82f4f9000635f77a1336c34f1893"
+  },
+  "settingsSavedSearchesHeader": "Opgeslagen zoekopdrachten",
+  "@settingsSavedSearchesHeader": {
+    "x-sourceSha256": "3e3e125453ca1f3b012dfb95c2ebb8a9acbd3b242263cd2332e6f45216a91112"
+  },
+  "settingsSavedSearchesEmpty": "Nog geen opgeslagen zoekopdrachten. Sla er een op vanuit de collectie: stel een zoekopdracht in en kies dan Deze zoekopdracht opslaan… in het menu Meer acties.",
+  "@settingsSavedSearchesEmpty": {
+    "x-sourceSha256": "1cf66b83e59f62f66bc10d31727833c734fabc727f1daf1682f2faa7a4948d17"
+  },
+  "settingsSavedSearchRenameTooltip": "\"{name}\" hernoemen",
+  "@settingsSavedSearchRenameTooltip": {
+    "x-sourceSha256": "68b8304fa832bf82013935aa98b2a65b9c96fd660b547cb0191fbbfb373e27d8"
+  },
+  "settingsSavedSearchDeleteTooltip": "\"{name}\" verwijderen",
+  "@settingsSavedSearchDeleteTooltip": {
+    "x-sourceSha256": "914b12d4d231c275650f13980556632b84b7235e562e4c64b199ed260ac32dc8"
+  },
+  "savedSearchGone": "\"{name}\" is verwijderd, hier of op een ander apparaat, dus er is niets gewijzigd.",
+  "@savedSearchGone": {
+    "x-sourceSha256": "ab5406d87f7d19b06fc50656b460d0e08c5d025ccd9845b3cc7ba37c22f8a0ce"
   }
 }
