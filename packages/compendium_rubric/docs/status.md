@@ -47,6 +47,18 @@
 > previously compiling dance lost. 8 dances that refused now mismatch and 3
 > that mismatched now refuse.
 >
+> **A balanced long wave and a slide is a Rory O'More (2026-11-24)**: Caller's
+> Box writes a Rory O'More as "Balance long wave" then "Slide right (past N)",
+> which the import reads as a wave and a slide along the set; the bridge now
+> records the slide as `rory_o_more` (user-ruled 2026-11-23). Against `rubric`
+> at `5e7cfac3` it took the count from 3,874 of 5,119 to 3,908 of 5,118
+> compiled in scope (75.7% to 76.4%), and the core set from 519 to 521: 41
+> dances now compile, among them Butterbump (10017) and Cards on the Table
+> (10019), and 7 that compiled before do not, including Missing Duck (2754,
+> core). Each of the 7 refuses on the Rory O'More's own geometry: a long-wave
+> slide at the end of the set, or into an occupied cell. One dance (7276) left
+> scope, because it now reaches a deferred across-the-set allemande.
+>
 > **A waiting couple chains on either diagonal (2026-11-23)**: a couple
 > waiting out at an end now takes part in a diagonal chain from whichever line
 > its chaining dancer stands on (user-ruled, on Ragtime Annie, 10098); a

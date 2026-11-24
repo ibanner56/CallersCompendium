@@ -589,7 +589,21 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
   that progresses: the source's own flags, or, when it flags none, the one the
   assumed-progression rule below places (and, on its N2 retry, the later ones
   N3 and N4 place). That flag is the only field the bridge *adds* rather than
-  translates.
+  translates. The one figure it *rewrites* is a slide after a balanced long
+  wave: Caller's Box writes a Rory O'More as two lines, "Balance long wave"
+  then "Slide right (past N)", and the import reads them as `form_long_waves`
+  (balance) and `slide_along_set`. Danced from the wave, that slide is each
+  dancer sliding toward their own side, so the bridge records it as
+  `rory_o_more` with `balance: false` (the wave's balance is already danced),
+  the slide's own direction (`left` when it states none, as
+  `slide_along_set` reads it) and beats, and, when the wave was formed with a
+  later neighbour set ("N2R"), that set as `who`. The slide is then checked as
+  any figure naming that set is: danced in place once the progressions have
+  brought those couples together, refused while they stand a grouping apart
+  *(user-ruled 2026-11-23 that the shape is a Rory O'More; carrying the
+  wave's neighbour set is the agent's call, which on the corpus compiled four
+  dances that dropping it did not and lost none)*. A slide inside a container
+  is not rewritten.
 - **`DanceOutcome`** keeps eight buckets deliberately separate, because they name
   eight different problems with eight different owners. `unstructured` is
   upstream's (the import pipeline's); `unsupported`, `mismatch`,
@@ -851,7 +865,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,459 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,464 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

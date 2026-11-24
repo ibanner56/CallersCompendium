@@ -373,6 +373,85 @@ void main() {
     );
   });
 
+  group('a slide after a balanced long wave is a Rory O\'More '
+      '(user-ruled 2026-11-23)', () {
+    core.Figure figure(String move, [Map<String, Object?> params = const {}]) =>
+        core_test.testFigure(move: move, params: params);
+    core.Figure wave({String whom = 'neighbors', bool balance = true}) =>
+        figure('form_long_waves', {
+          'whom': whom,
+          'whomHand': 'right',
+          'who': 'role1s',
+          'balance': balance,
+          'beats': 4,
+        });
+    Map<String, Object?> bridgedAt(List<core.Figure> figures, int index) =>
+        (bridgeCoreDance(
+                  _shapedLike(
+                    shape: core.FormationShape.dupleImproper,
+                    figures: figures,
+                  ),
+                ).record['figures']!
+                as List<Object?>)[index]!
+            as Map<String, Object?>;
+
+    test('"Balance long wave; Slide left (past N2)" slides the wave', () {
+      final slide = bridgedAt([
+        wave(),
+        figure('slide_along_set', {'slide': 'left', 'beats': 4}),
+      ], 1);
+      expect(slide['move'], 'rory_o_more');
+      expect(slide['params'], {'balance': false, 'slide': 'left', 'beats': 4});
+    });
+
+    test('a wave formed with a later neighbour set slides among them', () {
+      final slide = bridgedAt([
+        wave(whom: 'nextNeighbors'),
+        figure('slide_along_set', {'slide': 'right', 'beats': 4}),
+      ], 1);
+      expect(slide['move'], 'rory_o_more');
+      expect((slide['params']! as Map)['who'], 'nextNeighbors');
+    });
+
+    test('a slide that states no direction slides left, as it would have', () {
+      final slide = bridgedAt([wave(), figure('slide_along_set')], 1);
+      expect(slide['move'], 'rory_o_more');
+      expect((slide['params']! as Map)['slide'], 'left');
+    });
+
+    test('the wave itself is left as it was imported', () {
+      final first = bridgedAt([
+        wave(),
+        figure('slide_along_set', {'slide': 'right', 'beats': 4}),
+      ], 0);
+      expect(first['move'], 'form_long_waves');
+      expect((first['params']! as Map)['balance'], isTrue);
+    });
+
+    test('a slide with no balanced wave just before it stays a slide', () {
+      expect(
+        bridgedAt([
+          wave(balance: false),
+          figure('slide_along_set', {'slide': 'left'}),
+        ], 1)['move'],
+        'slide_along_set',
+      );
+      expect(
+        bridgedAt([
+          figure('swing'),
+          figure('slide_along_set', {'slide': 'left'}),
+        ], 1)['move'],
+        'slide_along_set',
+      );
+      expect(
+        bridgedAt([
+          figure('slide_along_set', {'slide': 'left'}),
+        ], 0)['move'],
+        'slide_along_set',
+      );
+    });
+  });
+
   group('a sequence container is danced as its children', () {
     // `compendium_core` puts a run of figures written on one line ("pass
     // through and California twirl") in a `sequence` container. It defines no
