@@ -94,6 +94,21 @@ EventRuleScope? eventRuleScopeFromName(String name) {
 /// one a caller plans by count.
 const int maxEventRuleCount = 99;
 
+/// The most [EventRule.count] can usefully be for [quantifier] in [scope].
+///
+/// A neighbouring pair holds two dances, so "at most 2 or more" in it can
+/// never break and "at least 3 or more" always does: there, at most is 1
+/// (at most 0 is [EventRuleQuantifier.none]) and at least is 1 or 2. Any
+/// other scope allows up to [maxEventRuleCount]. The rule editor keeps to
+/// this; a stored rule outside it (another build's) is still read and
+/// checked as it says.
+int eventRuleCountLimit(EventRuleQuantifier quantifier, EventRuleScope scope) =>
+    switch ((quantifier, scope)) {
+      (EventRuleQuantifier.atMost, EventRuleScope.neighbouring) => 1,
+      (EventRuleQuantifier.atLeast, EventRuleScope.neighbouring) => 2,
+      _ => maxEventRuleCount,
+    };
+
 /// Longest typed name an [EventRule] may have, in UTF-16 code units.
 const int maxEventRuleNameLength = 200;
 

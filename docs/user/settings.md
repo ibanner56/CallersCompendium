@@ -1279,7 +1279,10 @@ with **Undo** in the message at the bottom of the screen. A rule has:
   [saved searches](./collection.md#save-a-search-and-use-it-again). Save a
   search in the Collection first.
 - **How many** — **At most** or **At least** a number of dances from 1 to 99,
-  or **None**.
+  or **None**. For **Any two neighboring dances**, which holds two dances,
+  it is **At most** 1 or **At least** 1 or 2: a larger number could never
+  break, or would always break. Changing to that scope lowers a larger
+  number to the most it allows.
 - **Where** — **The whole program**, **Before the first break**, **After the
   first break**, or **Any two neighboring dances**, which checks each pair of
   dances next to each other.

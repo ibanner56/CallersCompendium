@@ -485,7 +485,10 @@ with one of your [saved searches](./collection.md#save-a-search-and-use-it-again
 - **Neighboring dances** are next to each other as the
   [matrix](#check-your-evening-with-the-matrix) sees them: a break in between
   means they are not, a note or waltz does not, and each alternate is compared
-  with the dances on either side of its primary.
+  with the dances on either side of its primary. It is compared only with
+  their planned dances, not with their alternates: one alternate is checked
+  at a time, as if it alone were called. A pair holds two dances, so the
+  editor offers **At most** 1 or **At least** 1 or 2 here.
 - **Before and after the first break** need a break: in a program without one,
   neither half exists, so *At most* is always met and *At least* never is.
 - **A rule that can't be checked** shows in the strip as needing attention,

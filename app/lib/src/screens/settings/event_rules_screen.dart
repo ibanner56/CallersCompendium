@@ -242,11 +242,23 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
     super.dispose();
   }
 
+  /// The most the number may be for the quantifier and scope chosen: a
+  /// neighbouring pair holds only two dances.
+  int get _countLimit => eventRuleCountLimit(_quantifier, _scope);
+
   int? get _countValue {
     if (_quantifier == EventRuleQuantifier.none) return 0;
     final value = int.tryParse(_count.text.trim());
-    if (value == null || value < 1 || value > maxEventRuleCount) return null;
+    if (value == null || value < 1 || value > _countLimit) return null;
     return value;
+  }
+
+  /// After the quantifier or scope changed: a number past what it now allows
+  /// becomes the most it allows, so "at most 3" moved to neighbouring dances
+  /// reads "at most 1" rather than a rule that could never break.
+  void _clampCount() {
+    final value = int.tryParse(_count.text.trim());
+    if (value != null && value > _countLimit) _count.text = '$_countLimit';
   }
 
   bool get _canSave => !_saving && _searchId != null && _countValue != null;
@@ -294,7 +306,7 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
     final searches = _searches;
     final countError =
         _quantifier != EventRuleQuantifier.none && _countValue == null
-        ? l10n.eventRuleCountInvalid(maxEventRuleCount)
+        ? l10n.eventRuleCountInvalid(_countLimit)
         : null;
     final preview = _searchId == null || _countValue == null
         ? null
@@ -372,8 +384,10 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
                       ),
                   ],
                   selected: {_quantifier},
-                  onSelectionChanged: (s) =>
-                      setState(() => _quantifier = s.single),
+                  onSelectionChanged: (s) => setState(() {
+                    _quantifier = s.single;
+                    _clampCount();
+                  }),
                 ),
                 if (_quantifier != EventRuleQuantifier.none) ...[
                   const SizedBox(height: AppSpacing.md),
@@ -385,6 +399,10 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
                     decoration: InputDecoration(
                       labelText: l10n.eventRuleCountLabel,
                       errorText: countError,
+                      helperText: _scope == EventRuleScope.neighbouring
+                          ? l10n.eventRuleCountNeighbouringHelp
+                          : null,
+                      helperMaxLines: 3,
                     ),
                     onChanged: (_) => setState(() {}),
                   ),
@@ -397,7 +415,11 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
                 RadioGroup<EventRuleScope>(
                   groupValue: _scope,
                   onChanged: (s) {
-                    if (s != null) setState(() => _scope = s);
+                    if (s == null) return;
+                    setState(() {
+                      _scope = s;
+                      _clampCount();
+                    });
                   },
                   child: Column(
                     children: [

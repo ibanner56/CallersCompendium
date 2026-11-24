@@ -10,6 +10,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/settings/collection_section.dart';
 import 'package:compendium_app/src/screens/settings/event_rules_screen.dart';
 import 'package:compendium_app/src/screens/settings/experimental_section.dart';
+import 'package:compendium_app/src/widgets/app_bar_text_action.dart';
 
 import '../support/dropdown.dart';
 import '../support/l10n_harness.dart';
@@ -260,5 +261,59 @@ void main() {
     expect(find.text(offText), findsNothing);
     expect(manage, findsOneWidget);
     expect(await repos.savedSearches.get(search.id), isNotNull);
+  });
+
+  testWidgets('for any two neighboring dances the number is what a pair can '
+      'hold: at most 1, at least 1 or 2', (tester) async {
+    final repos = openTestRepositories();
+    await repos.savedSearches.create(name: 'Becket', spec: _spec());
+    await _pump(tester, repos, const EventRulesScreen(), enabled: true);
+    await tester.tap(find.byKey(const ValueKey('event-rules-new')));
+    await tester.pumpAndSettle();
+    await pickDropdownEntry(
+      tester,
+      find.byKey(const ValueKey('event-rule-search')),
+      'Becket',
+    );
+    final count = find.byKey(const ValueKey('event-rule-count'));
+    final save = find.byKey(const ValueKey('event-rule-save'));
+    String countText() => tester.widget<TextField>(count).controller!.text;
+    bool canSave() => tester.widget<AppBarTextAction>(save).onPressed != null;
+
+    // At most 5 in the whole program is fine; for a pair, it becomes 1.
+    await tester.enterText(count, '5');
+    await tester.pumpAndSettle();
+    expect(canSave(), isTrue);
+    await tester.tap(
+      find.byKey(const ValueKey('event-rule-scope-neighbouring')),
+    );
+    await tester.pumpAndSettle();
+    expect(countText(), '1');
+    expect(
+      find.text('Two neighboring dances hold at most 2 matching dances.'),
+      findsOneWidget,
+    );
+    await tester.enterText(count, '2');
+    await tester.pumpAndSettle();
+    expect(find.text('Enter a whole number from 1 to 1.'), findsOneWidget);
+    expect(canSave(), isFalse);
+
+    // At least 2 is a pair of matching dances; 3 never is.
+    await tester.tap(find.text('At least'));
+    await tester.pumpAndSettle();
+    expect(canSave(), isTrue);
+    await tester.enterText(count, '3');
+    await tester.pumpAndSettle();
+    expect(find.text('Enter a whole number from 1 to 2.'), findsOneWidget);
+    expect(canSave(), isFalse);
+    await tester.enterText(count, '2');
+    await tester.pumpAndSettle();
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    final rule = (await repos.eventRules.listAll()).single;
+    expect(
+      (rule.quantifier, rule.count, rule.scope),
+      (EventRuleQuantifier.atLeast, 2, EventRuleScope.neighbouring),
+    );
   });
 }
