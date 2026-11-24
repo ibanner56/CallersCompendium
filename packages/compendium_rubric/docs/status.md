@@ -78,7 +78,7 @@
 > leaves them improper (user-ruled, from Heather's Hop Redux). The bridge also
 > reads a swing noted "face up" or "finish proper" as finishing facing up, which
 > is how several of them bring the 1s back proper (agent's call). Against
-> `rubric` at `fd6083a1` the two took the count from 4,194 to 4,227 of 5,426
+> `rubric` at `a1c3cf7b` the two took the count from 4,195 to 4,228 of 5,425
 > compiled in scope (77.3% to 77.9%), with the core set unchanged at 544: 35
 > dances now compile, among them Heather's Hop Redux (10172, 10173), Chorus
 > Jig (3418) and Festival Jig (3793). Two that compiled no longer do: Venetia
