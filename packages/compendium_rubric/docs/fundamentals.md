@@ -574,7 +574,7 @@ above, such as the centre pair of a short wave. Whole and half turns still settl
 | Formation | Description | Status |
 |---|---|---|
 | **Duple Improper** (our standard start) | 1s face down & normalize (Lark c4, Robin c0); 2s face up & normalize (Lark c0, Robin c4). Larks and Robins alternate down each line. | **Active** |
-| **Duple Proper** | All Larks in c0, all Robins in c4. | Future |
+| **Duple Proper** | All Larks in c0, all Robins in c4. The 2s face up and stand as in Duple Improper; the 1s face down **crossed** (Lark c0), so a swing that normalizes them leaves them improper *(user-ruled 2026-11-24: "the dance is proper. The ones do end improper after they swing")*. The 1s facing down is the *agent's call*: on the Caller's Box corpus, facing them up instead changes no outcome. Same hands fours, numbering and travel as Duple Improper. | **Active** |
 | **Becket CW** / **Becket CCW** (two separate formations) | DI circled **left one place** — **partners share a column**, both lines facing **across (in)**. c4 = 1s line, c0 = 2s line. Direction sets progression sense (§10.6). Tracked as two formations for now (only two directions exist); easy to unify later. | **Active** |
 | **Indecent** | Variant start. | Future |
 | **Progressed Improper** | Duple Improper with the **1s below the 2s** in each hands four *(user-ruled 2026-11-24)*: `[[L2-B,0,0,0,R2-B],[R1-A,0,0,0,L1-A]]`. Each couple keeps its DI side and facing (2s face up, 1s face down), which the normalization rule gives for that matrix *(agent's call; on the Caller's Box corpus, facing every couple the other way changes no outcome)*. Same hands fours, numbering and travel as Duple Improper. | **Active** |

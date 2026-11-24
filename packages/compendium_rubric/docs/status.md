@@ -72,6 +72,20 @@
 > 14639, 15271, 7529), and three now reach a deferred figure and leave the
 > scope.
 >
+> **Duple Proper starts proper (2026-11-24)**: Caller's Box's "Duple Minor -
+> Proper" was read as Duple Improper, with a warning. It now has its own start,
+> every lark in c0, with the 1s facing down crossed, so their first swing
+> leaves them improper (user-ruled, from Heather's Hop Redux). The bridge also
+> reads a swing noted "face up" or "finish proper" as finishing facing up, which
+> is how several of them bring the 1s back proper (agent's call). Against
+> `rubric` at `fd6083a1` the two took the count from 4,194 to 4,227 of 5,426
+> compiled in scope (77.3% to 77.9%), with the core set unchanged at 544: 35
+> dances now compile, among them Heather's Hop Redux (10172, 10173), Chorus
+> Jig (3418) and Festival Jig (3793). Two that compiled no longer do: Venetia
+> Burney's Planet (14847), whose neighbours along the side are the same role,
+> and the triple-minor Chorus Jig (11113), which no start models. One more that
+> was refused now runs to the end and mismatches (2018).
+>
 > **Progressed Improper starts with the 1s below the 2s (2026-11-24)**:
 > Caller's Box's "Duple Minor - Progressed improper" was read as Duple
 > Improper, with a warning. It now has its own start, Duple Improper with the

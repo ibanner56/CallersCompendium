@@ -100,13 +100,10 @@ Formation _dupleProper(int handsFour) {
   for (var block = 0; block < handsFour; block++) {
     final row = block * kRowsPerHandsFour;
     final normal = normalizeAlongHall(row: row, facing: Facing.down);
-    _place(
-      dancers,
-      block * 2,
-      CoupleNumber.one,
-      Facing.down,
-      (lark: normal.robin, robin: normal.lark),
-    );
+    _place(dancers, block * 2, CoupleNumber.one, Facing.down, (
+      lark: normal.robin,
+      robin: normal.lark,
+    ));
     _placeAlongHall(
       dancers,
       coupleIndex: block * 2 + 1,

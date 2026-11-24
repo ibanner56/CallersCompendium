@@ -50,7 +50,7 @@ enum FormationType {
   ///
   /// | Formation | Runs off the top | Re-enters | Top-end number |
   /// |---|---|---|---|
-  /// | Duple Improper, Progressed Improper | the 2s (they travel up) | as 1s | **#1** |
+  /// | Duple Improper, Progressed Improper, Duple Proper | the 2s (they travel up) | as 1s | **#1** |
   /// | Becket CW | c0, the 2s line | c4, the 1s line | **#1** |
   /// | Becket CCW | c4, the 1s line | c0, the 2s line | **#2** |
   ///
