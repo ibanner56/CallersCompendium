@@ -226,7 +226,7 @@ OpError? crossHandsFourRefusal(
 
 /// The grouping a couple began the repetition in, fixed by its letter.
 ///
-/// Both starting formations lay couple `2k` and couple `2k + 1` out as hands
+/// Every starting formation lays couple `2k` and couple `2k + 1` out as hands
 /// four `k` (`lib/src/domain/starting_formations.dart`), so this needs no
 /// stored state: identity is already carried by [DancerId.coupleIndex], and
 /// the arithmetic that turns it into a grouping is a constant.

@@ -18,6 +18,7 @@ Formation startingFormation(FormationType type, {required int handsFour}) {
   }
   return switch (type) {
     FormationType.dupleImproper => _dupleImproper(handsFour),
+    FormationType.progressedImproper => _progressedImproper(handsFour),
     FormationType.becketCw ||
     FormationType.becketCcw => _becket(type, handsFour),
   };
@@ -48,6 +49,40 @@ Formation _dupleImproper(int handsFour) {
   }
   return Formation(
     type: FormationType.dupleImproper,
+    rowCount: handsFour * kRowsPerHandsFour,
+    dancers: dancers,
+  );
+}
+
+/// Progressed Improper: Duple Improper with the 1s starting **below** the 2s
+/// in each hands four *(user-ruled 2026-11-24)*:
+/// `[[L2-B . . . R2-B], [R1-A . . . L1-A]]`.
+///
+/// Each couple keeps its Duple Improper side and facing (2s face up with the
+/// lark in c0, 1s face down with the lark in c4), which is what the
+/// normalization rule gives for that matrix. The hands fours are the Duple
+/// Improper ones, couples `2k` and `2k + 1`, so neighbour distances count from
+/// the same home groupings.
+Formation _progressedImproper(int handsFour) {
+  final dancers = <DancerId, DancerState>{};
+  for (var block = 0; block < handsFour; block++) {
+    _placeAlongHall(
+      dancers,
+      coupleIndex: block * 2 + 1,
+      number: CoupleNumber.two,
+      row: block * kRowsPerHandsFour,
+      facing: Facing.up,
+    );
+    _placeAlongHall(
+      dancers,
+      coupleIndex: block * 2,
+      number: CoupleNumber.one,
+      row: block * kRowsPerHandsFour + 1,
+      facing: Facing.down,
+    );
+  }
+  return Formation(
+    type: FormationType.progressedImproper,
     rowCount: handsFour * kRowsPerHandsFour,
     dancers: dancers,
   );

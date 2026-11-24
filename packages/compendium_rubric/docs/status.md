@@ -47,6 +47,16 @@
 > previously compiling dance lost. 8 dances that refused now mismatch and 3
 > that mismatched now refuse.
 >
+> **Progressed Improper starts with the 1s below the 2s (2026-11-24)**:
+> Caller's Box's "Duple Minor - Progressed improper" was read as Duple
+> Improper, with a warning. It now has its own start, Duple Improper with the
+> 1s below the 2s in each hands four (user-ruled). Against `rubric` at
+> `58b6d4e4` it took the count from 3,938 to 3,962 of 5,149 compiled in scope
+> (76.5% to 76.9%), and the core set from 528 to 530: 25 dances now compile,
+> among them Camden's Cap and Gown (10018) and Ice House (10035), and one that
+> compiled under the Duple Improper reading, Last Train to Chester (18653), no
+> longer does.
+>
 > **A balanced long wave and a slide is a Rory O'More (2026-11-24)**: Caller's
 > Box writes a Rory O'More as "Balance long wave" then "Slide right (past N)",
 > which the import reads as a wave and a slide along the set; the bridge now
