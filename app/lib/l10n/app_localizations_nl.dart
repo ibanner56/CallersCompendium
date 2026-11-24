@@ -14269,6 +14269,17 @@ class AppLocalizationsNl extends AppLocalizations {
       'Kies wat elk label in je bestand bevat. Een label dat geen veld overneemt, blijft met zijn naam in de callnotities staan; kies Negeren om het weg te laten. Er wordt niets toegevoegd voordat je hebt nagekeken en bevestigd.';
 
   @override
+  String get importTextDanceStartLabel => 'Elke dans begint bij';
+
+  @override
+  String importTextDanceStartHeading(String marks) {
+    return 'Een $marks-kop';
+  }
+
+  @override
+  String get importTextDanceStartBlankLine => 'Een titel na een lege regel';
+
+  @override
   String get importTextTargetLabelledNotes => 'Callnotities, met het label';
 
   @override

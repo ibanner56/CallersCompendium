@@ -130,6 +130,69 @@ void main() {
     expect(figuresOf(rory).where((f) => f.isCustom), isEmpty);
   });
 
+  testWidgets('choosing where dances start reads the file again: one '
+      'dance in ## parts comes in as that one dance', (tester) async {
+    const parts =
+        "# Rory's Reel\n\n## Figures\n(8) Neighbor swing\n\n"
+        '## Variations\n(8) Long lines\n';
+    final repos = await pump(tester, Uint8List.fromList(utf8.encode(parts)));
+    AppDropdownField<int> start() => tester.widget<AppDropdownField<int>>(
+      find.byKey(const ValueKey('text-dance-start')),
+    );
+    // The guess reads the parts as dances; the file's own choices are its
+    // heading levels and blank lines.
+    expect(start().initialValue, 2);
+    expect(find.text('A ## heading'), findsOneWidget);
+
+    start().onChanged!(1);
+    await tester.pumpAndSettle();
+    expect(start().initialValue, 1);
+
+    await tester.tap(find.byKey(const ValueKey('csv-continue')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+    await tester.pumpAndSettle();
+    final dance = (await tester.runAsync(repos.dances.listAll))!.single;
+    expect(dance.title, "Rory's Reel");
+    expect(figuresOf(dance), hasLength(2));
+  });
+
+  testWidgets('a file with no headings offers no choice of where dances '
+      'start', (tester) async {
+    await pump(
+      tester,
+      Uint8List.fromList(utf8.encode('Chorus Jig\n(8) Swing\n')),
+    );
+    expect(find.byKey(const ValueKey('csv-mapping')), findsOneWidget);
+    expect(find.byKey(const ValueKey('text-dance-start')), findsNothing);
+  });
+
+  testWidgets('a choice that reads past the dance cap is refused with a '
+      'message, and the last reading stays', (tester) async {
+    // Three # dances whose notes, read as titles after blank lines, would
+    // be one dance more than the cap.
+    const perDance = (kMaxTextDocumentDances + 1) ~/ 3 + 1;
+    final text = [
+      for (var d = 0; d < 3; d++) ...[
+        '# Dance $d',
+        for (var i = 0; i < perDance; i++) 'N$i\n',
+      ],
+    ].join('\n');
+    await pump(tester, Uint8List.fromList(utf8.encode(text)));
+    AppDropdownField<int> start() => tester.widget<AppDropdownField<int>>(
+      find.byKey(const ValueKey('text-dance-start')),
+    );
+    expect(start().initialValue, 1);
+    start().onChanged!(0);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('import-text-unreadable')),
+      findsOneWidget,
+    );
+    expect(start().initialValue, 1);
+    expect(find.byKey(const ValueKey('csv-mapping')), findsOneWidget);
+  });
+
   testWidgets('a file that is not UTF-8 is refused with a message, and '
       'nothing is mapped', (tester) async {
     await pump(

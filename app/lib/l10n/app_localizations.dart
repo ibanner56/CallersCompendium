@@ -20687,6 +20687,24 @@ abstract class AppLocalizations {
   /// **'Choose what each label in your file holds. A label no field takes is kept in the calling notes with its name; choose Ignore to leave it out. Nothing is added until you review and confirm.'**
   String get importTextMapIntro;
 
+  /// Label of the dropdown on the Map labels step of a text or Markdown file import that chooses where each dance in the file starts. Its choices are importTextDanceStartHeading for each heading level the file uses, and importTextDanceStartBlankLine. The app picks one first; changing it reads the file again.
+  ///
+  /// In en, this message translates to:
+  /// **'Each dance starts at'**
+  String get importTextDanceStartLabel;
+
+  /// A choice in the Each dance starts at dropdown: each Markdown heading at this level starts a dance. {marks} is the heading's hash marks, such as # or ##, shown as typed in the file; keep it as is.
+  ///
+  /// In en, this message translates to:
+  /// **'A {marks} heading'**
+  String importTextDanceStartHeading(String marks);
+
+  /// A choice in the Each dance starts at dropdown: the first line, and each line after a blank line that isn't a figure or a detail, starts a dance.
+  ///
+  /// In en, this message translates to:
+  /// **'A title after a blank line'**
+  String get importTextDanceStartBlankLine;
+
   /// Choice in the Map labels step: keep each value of this label in the dance's calling notes, written as "Label: value".
   ///
   /// In en, this message translates to:

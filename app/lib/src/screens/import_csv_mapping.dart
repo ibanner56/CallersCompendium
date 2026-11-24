@@ -52,6 +52,9 @@ class CsvMappingStep extends StatefulWidget {
     required this.fields,
     this.levels = const [],
     this.textDocument = false,
+    this.danceLevels = const [],
+    this.danceLevel = 0,
+    this.onDanceLevel,
     required this.onContinue,
     required this.onBack,
   });
@@ -71,6 +74,14 @@ class CsvMappingStep extends StatefulWidget {
   /// field takes starts in the calling notes with the label
   /// ([textDocumentDefaultColumns]).
   final bool textDocument;
+
+  /// For [textDocument], where its dances may start: heading levels (1 for
+  /// `#`) and 0 for titles after blank lines. With more than one, the step
+  /// offers them, starting at [danceLevel], and [onDanceLevel] reads the file
+  /// again into a new [text].
+  final List<int> danceLevels;
+  final int danceLevel;
+  final ValueChanged<int>? onDanceLevel;
 
   final void Function(CsvImportMapping mapping) onContinue;
 
@@ -96,6 +107,16 @@ class _CsvMappingStepState extends State<CsvMappingStep> {
     _started = true;
     _separator = widget.textDocument ? ',' : detectCsvSeparator(widget.text);
     _read(detectHeader: !widget.textDocument);
+  }
+
+  @override
+  void didUpdateWidget(CsvMappingStep oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The text file was read again from another starting point: its labels
+    // may differ, so they are mapped afresh.
+    if (widget.text != oldWidget.text) {
+      _read(detectHeader: !widget.textDocument);
+    }
   }
 
   List<AppLocalizations> get _languages => [
@@ -189,6 +210,24 @@ class _CsvMappingStepState extends State<CsvMappingStep> {
               : l10n.importCsvMapIntro,
         ),
         const SizedBox(height: AppSpacing.md),
+        if (widget.textDocument && widget.danceLevels.length > 1)
+          AppDropdownField<int>(
+            key: const ValueKey('text-dance-start'),
+            value: widget.danceLevel,
+            decoration: InputDecoration(
+              labelText: l10n.importTextDanceStartLabel,
+            ),
+            entries: [
+              for (final level in widget.danceLevels)
+                AppDropdownEntry(
+                  value: level,
+                  label: level == 0
+                      ? l10n.importTextDanceStartBlankLine
+                      : l10n.importTextDanceStartHeading('#' * level),
+                ),
+            ],
+            onChanged: (value) => widget.onDanceLevel?.call(value),
+          ),
         if (!widget.textDocument) ...[
           AppDropdownField<String>(
             key: const ValueKey('csv-separator'),

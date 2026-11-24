@@ -557,6 +557,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// ([decodeCsvBytes]); the map-columns step reads it.
   String? _csvText;
 
+  /// A text or Markdown file's decoded text (#2330), kept so the map-labels
+  /// step can read it again from another starting point.
+  String? _textSource;
+
+  /// Where each dance in [_textSource] starts ([readTextDocument]'s
+  /// `danceLevel`), and the choices the file offers.
+  int _textLevel = 0;
+  List<int> _textLevels = const [];
+
   /// The caller's custom fields, offered as targets on the map-columns step.
   List<CustomFieldDef> _csvFields = const [];
 
@@ -809,6 +818,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           // A new file is mapped afresh (#2329).
           _csvMapping = null;
           _csvText = null;
+          _textSource = null;
         });
         return;
       }
@@ -891,6 +901,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         // A new file is mapped afresh (#2329).
         _csvMapping = null;
         _csvText = null;
+        _textSource = null;
       });
     } on ImportFileTooLargeException catch (e, stackTrace) {
       logCaughtError(
@@ -1236,10 +1247,16 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// and nothing is planned.
   Future<void> _openCsvMapping(Uint8List bytes) async {
     final String text;
+    String? source;
+    var level = 0;
     try {
-      text = _selected.kind == ImportSourceKind.textDocument
-          ? _textDocumentAsCsv(bytes)
-          : decodeCsvBytes(bytes);
+      if (_selected.kind == ImportSourceKind.textDocument) {
+        source = decodeTextDocumentBytes(bytes);
+        level = detectTextDocumentDanceLevel(source);
+        text = _textDocumentAsCsv(source, level);
+      } else {
+        text = decodeCsvBytes(bytes);
+      }
     } on TextDocumentReadException catch (e, stackTrace) {
       logCaughtErrorTypeOnly(
         e,
@@ -1276,18 +1293,53 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     if (!mounted) return;
     setState(() {
       _csvText = text;
+      _textSource = source;
+      _textLevel = level;
+      _textLevels = source == null
+          ? const []
+          : [...textDocumentHeadingLevels(source), 0];
       _csvFields = fields;
       _csvLevels = levels;
       _phase = _Phase.mapping;
     });
   }
 
+  /// Reads the text file again with its dances starting at [level], chosen
+  /// on the map-labels step. A file that reads past a cap from there is
+  /// refused with its message, and the step keeps the last good reading.
+  void _rereadTextDocument(int level) {
+    final source = _textSource;
+    if (source == null || level == _textLevel) return;
+    try {
+      final text = _textDocumentAsCsv(source, level);
+      setState(() {
+        _csvText = text;
+        _textLevel = level;
+      });
+    } on TextDocumentReadException catch (e, stackTrace) {
+      logCaughtErrorTypeOnly(
+        e,
+        stackTrace,
+        source: 'import_review_screen._rereadTextDocument',
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          key: const ValueKey('import-text-unreadable'),
+          content: Text(
+            textDocumentReadFailureMessage(AppLocalizations.of(context), e),
+          ),
+        ),
+      );
+    }
+  }
+
   /// A text or Markdown file (#2330) as the spreadsheet the map-columns step
-  /// reads: its fixed columns named in the UI language.
-  String _textDocumentAsCsv(Uint8List bytes) {
+  /// reads: its fixed columns named in the UI language, its dances starting
+  /// at [level].
+  String _textDocumentAsCsv(String source, int level) {
     final l10n = AppLocalizations.of(context);
     return textDocumentToCsv(
-      readTextDocument(decodeTextDocumentBytes(bytes)),
+      readTextDocument(source, danceLevel: level),
       titleColumn: l10n.csvColumnTitle,
       notesColumn: l10n.csvColumnCallingNotes,
       figuresColumn: l10n.csvColumnFigures,
@@ -1486,6 +1538,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     _phase = _Phase.input;
     _csvMapping = null;
     _csvText = null;
+    _textSource = null;
     _batch = null;
     _titleList = null;
     _programLineOfRow = const [];
@@ -3070,6 +3123,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             fields: _csvFields,
             levels: _csvLevels,
             textDocument: _selected.kind == ImportSourceKind.textDocument,
+            danceLevels: _textLevels,
+            danceLevel: _textLevel,
+            onDanceLevel: _rereadTextDocument,
             onContinue: (mapping) {
               _csvMapping = mapping;
               _plan();

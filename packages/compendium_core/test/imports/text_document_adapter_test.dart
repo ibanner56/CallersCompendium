@@ -259,6 +259,126 @@ void main() {
     });
   });
 
+  group('guessing where dances start', () {
+    List<String> titles(String text) => [
+      for (final d in readTextDocument(text)) d.title,
+    ];
+
+    test('## dances that start with a detail, under a # file title with '
+        'details, are the dances', () {
+      final dances = readTextDocument(
+        '# My dances\nAuthor: Jane Smith\nUpdated: 2026-01-05\n\n'
+        '## Chorus Jig\nFormation: Proper\n- Actives down the outside\n'
+        '- Down the center\n\n'
+        '## Petronella\nFormation: Proper\n- Balance and spin right\n',
+      );
+      expect([for (final d in dances) d.title], ['Chorus Jig', 'Petronella']);
+      expect(dances.last.figureLines, ['Balance and spin right']);
+    });
+
+    test('# sections with a note under one, over ## dances with figures, '
+        'are left out', () {
+      expect(
+        titles(
+          '# Contras\nNote: all improper unless marked\n\n'
+          '## Chorus Jig\n(8) Swing\n\n## Petronella\n(8) Balance\n\n'
+          '# Squares\n\n## Grand Square\n(16) Grand square\n',
+        ),
+        ['Chorus Jig', 'Petronella', 'Grand Square'],
+      );
+    });
+
+    test('a one-dance file headed # keeps its later paragraphs as notes', () {
+      final dance = readTextDocument(
+        "# Rory's Reel\n\nby Pat Example\nFormation: Improper\n\n"
+        '- A1 (8) Neighbor balance & swing\n- A2 (16) Partner swing\n\n'
+        'Watch the chain at the top.\n\nGood for beginners.\n',
+      ).single;
+      expect(dance.title, "Rory's Reel");
+      expect(dance.notes, [
+        'Watch the chain at the top.',
+        'Good for beginners.',
+      ]);
+    });
+
+    test('### headings without blank lines each start a dance', () {
+      expect(
+        titles('### Chorus Jig\n(8) Swing\n### Petronella\n(8) Balance\n'),
+        ['Chorus Jig', 'Petronella'],
+      );
+    });
+
+    test('a --- line between dances reads as a blank line', () {
+      expect(titles('Chorus Jig\n(8) Swing\n---\nPetronella\n(8) Balance\n'), [
+        'Chorus Jig',
+        'Petronella',
+      ]);
+    });
+
+    test('the guess is reported', () {
+      expect(detectTextDocumentDanceLevel('Chorus Jig\n(8) Swing\n'), 0);
+      expect(
+        detectTextDocumentDanceLevel('# A\n(8) Swing\n\n# B\n(8) Balance\n'),
+        1,
+      );
+      expect(detectTextDocumentDanceLevel('# Mine\n\n## A\n(8) Swing\n'), 2);
+    });
+  });
+
+  group('choosing where dances start', () {
+    const parts =
+        "# Rory's Reel\n\n## Figures\n(8) Swing\n\n## Variations\n(8) Gypsy\n";
+
+    test('the heading levels a file uses are offered', () {
+      expect(textDocumentHeadingLevels(parts), [1, 2]);
+      expect(textDocumentHeadingLevels('Chorus Jig\n(8) Swing\n'), isEmpty);
+    });
+
+    test('# headings chosen: a dance the guess split into parts is one', () {
+      expect(
+        [for (final d in readTextDocument(parts)) d.title],
+        ['Figures', 'Variations'],
+      );
+      final dance = readTextDocument(parts, danceLevel: 1).single;
+      expect(dance.title, "Rory's Reel");
+      expect(dance.figureLines, ['(8) Swing', '(8) Gypsy']);
+    });
+
+    test('## headings chosen: # sections are left out', () {
+      final dances = readTextDocument(
+        '# Contras\nNote: favourites\n\n## Chorus Jig\n(8) Swing\n\n'
+        '## Petronella\n(8) Balance\n',
+        danceLevel: 2,
+      );
+      expect([for (final d in dances) d.title], ['Chorus Jig', 'Petronella']);
+    });
+
+    test('### headings chosen: shallower headings without figures are left '
+        'out, and #### parts stay with their dance', () {
+      final dances = readTextDocument(
+        '# Book\n\n## Contras\n\n### Chorus Jig\n#### Figures\n(8) Swing\n\n'
+        '### Petronella\n(8) Balance\n',
+        danceLevel: 3,
+      );
+      expect([for (final d in dances) d.title], ['Chorus Jig', 'Petronella']);
+      expect(dances.first.figureLines, ['(8) Swing']);
+    });
+
+    test('blank lines chosen: every heading and paragraph title starts a '
+        'dance', () {
+      final dances = readTextDocument(
+        '## Chorus Jig\n(8) Swing\n\nPetronella\n(8) Balance\n',
+        danceLevel: 0,
+      );
+      expect([for (final d in dances) d.title], ['Chorus Jig', 'Petronella']);
+    });
+
+    test('a level outside 0 to 6 is refused', () {
+      expect(() => readTextDocument('A', danceLevel: 7), throwsArgumentError);
+      expect(() => readTextDocument('A', danceLevel: -1), throwsArgumentError);
+    });
+  });
+
   group('caps', () {
     test('too many dances is refused', () {
       final atCap = List.generate(

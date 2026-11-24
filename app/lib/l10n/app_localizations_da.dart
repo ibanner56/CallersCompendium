@@ -14190,6 +14190,17 @@ class AppLocalizationsDa extends AppLocalizations {
       'Vælg, hvad hver betegnelse i din fil indeholder. En betegnelse, som intet felt tager, beholdes i kaldsnoterne med sit navn; vælg Ignorer for at udelade den. Intet tilføjes, før du gennemser og bekræfter.';
 
   @override
+  String get importTextDanceStartLabel => 'Hver dans starter ved';
+
+  @override
+  String importTextDanceStartHeading(String marks) {
+    return 'En $marks-overskrift';
+  }
+
+  @override
+  String get importTextDanceStartBlankLine => 'En titel efter en tom linje';
+
+  @override
   String get importTextTargetLabelledNotes => 'Kaldsnotes, med betegnelsen';
 
   @override

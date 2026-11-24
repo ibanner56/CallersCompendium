@@ -14134,6 +14134,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Choose what each label in your file holds. A label no field takes is kept in the calling notes with its name; choose Ignore to leave it out. Nothing is added until you review and confirm.';
 
   @override
+  String get importTextDanceStartLabel => 'Each dance starts at';
+
+  @override
+  String importTextDanceStartHeading(String marks) {
+    return 'A $marks heading';
+  }
+
+  @override
+  String get importTextDanceStartBlankLine => 'A title after a blank line';
+
+  @override
   String get importTextTargetLabelledNotes => 'Calling notes, with the label';
 
   @override

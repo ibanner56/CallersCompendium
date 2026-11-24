@@ -14339,6 +14339,17 @@ class AppLocalizationsFr extends AppLocalizations {
       'Choisissez ce que contient chaque étiquette de votre fichier. Une étiquette qu’aucun champ ne prend est conservée dans les notes d’appel avec son nom ; choisissez Ignorer pour la laisser de côté. Rien n’est ajouté tant que vous n’avez pas vérifié et confirmé.';
 
   @override
+  String get importTextDanceStartLabel => 'Chaque danse commence à';
+
+  @override
+  String importTextDanceStartHeading(String marks) {
+    return 'Un titre $marks';
+  }
+
+  @override
+  String get importTextDanceStartBlankLine => 'Un titre après une ligne vide';
+
+  @override
   String get importTextTargetLabelledNotes => 'Notes d’appel, avec l’étiquette';
 
   @override

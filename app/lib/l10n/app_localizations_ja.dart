@@ -13638,6 +13638,17 @@ class AppLocalizationsJa extends AppLocalizations {
       'ファイル内の各ラベルが何を表すかを選んでください。どの項目にも割り当てられないラベルは、名前付きでコーリングノートに残ります。除外するには「無視」を選びます。確認して確定するまで何も追加されません。';
 
   @override
+  String get importTextDanceStartLabel => '各ダンスの始まり';
+
+  @override
+  String importTextDanceStartHeading(String marks) {
+    return '$marks 見出し';
+  }
+
+  @override
+  String get importTextDanceStartBlankLine => '空行の後のタイトル';
+
+  @override
   String get importTextTargetLabelledNotes => 'コーリングノート(ラベル付き)';
 
   @override

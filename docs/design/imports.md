@@ -20,7 +20,7 @@
   - [Signed published collections (#862)](#signed-published-collections-862) — 22 lines
   - [5. A list of titles (#823)](#5-a-list-of-titles-823) — 72 lines
   - [6. A spreadsheet (CSV) (#2329)](#6-a-spreadsheet-csv-2329) — 71 lines
-  - [7. A text or Markdown file (#2330)](#7-a-text-or-markdown-file-2330) — 67 lines
+  - [7. A text or Markdown file (#2330)](#7-a-text-or-markdown-file-2330) — 81 lines
   - [Simultaneous-action fan-out (`meanwhile`) (#591/#572)](#simultaneous-action-fan-out-meanwhile-591572) — 59 lines
   - [Shared free-text figure parser (cross-cutting)](#shared-free-text-figure-parser-cross-cutting) — 299 lines
   - [Balance-a-wave lines (CallersBox, #295 / taxonomy v21)](#balance-a-wave-lines-callersbox-295--taxonomy-v21) — 86 lines
@@ -1608,25 +1608,39 @@ custom-field commit and the no-provenance rule).
 | `Label: value` and `by Name` lines, shared with the Caller's Companion text adapter | `packages/compendium_core/lib/src/imports/label_lines.dart` |
 | source, picker, map-labels wiring | `app/lib/src/data/import_io.dart`, `app/lib/src/screens/import_review_screen.dart`, `app/lib/src/screens/import_csv_mapping.dart` |
 
-`readTextDocument` splits the text into `TextDocumentDance`s. Headings split
-it when it has a `##` heading or more than one `#` heading. `#` headings are
-the dances when there are several and they read as dances (a detail or figure
-straight under one, no `##` at all, or `##` titles that repeat, as
+`readTextDocument` splits the text into `TextDocumentDance`s at a dance level:
+a heading level (1 for `#`) or 0 for titles after blank lines. The caller
+can choose it on the map-labels step (**Each dance starts at**, offering the
+heading levels the file uses, `textDocumentHeadingLevels`, and blank lines);
+the review screen reads the file again on a change and keeps the last good
+reading when the new one passes a cap. This choice was added after four
+review rounds each found a note layout the guess misread (Claude's call; the
+alternative, guessing only, leaves those files split or merged wrongly with
+no way to correct them). The guess, `detectTextDocumentDanceLevel`: headings
+split the file when it has a `##` heading or more than one `#` heading. `#`
+headings are the dances when there are several and they read as dances (a
+detail or figure straight under one, unless one `#` holds timed figures under
+two `##` headings; no `##` at all; or `##` titles that repeat, as
 `## Figures` under each), and so is a single `#` heading with a detail or
 figure straight under it whose timed figures (a phrase label or a count,
-list marker aside) sit under at most one `##` heading (`##` headings that each
-hold them are dances under a file title, even one with an `Author:` line; a
-bulleted `## Notes` part does not count); a deeper heading is then a section of the dance,
-left out with its lines kept. Otherwise `##` headings are the dances and a
-`#` block with no figure is the file's title or a section of the file, and is
+list marker aside) sit under at most one `##` heading and fewer than two of
+whose `##` headings start with a detail (`##` headings that each hold timed
+figures, or that each start with `Formation:` or a `by` line, are dances
+under a file title, even one with an `Author:` line). Otherwise `##` headings
+are the dances. A heading deeper than the dance level is a section of the
+dance, left out with its lines kept; a heading shallower than it with no
+figure under it is the file's title or a section of the file, and is
 dropped. Headings are scanned by hand (`_parseHeading`): a regular expression
 with an optional closing `#` sequence backtracked quadratically, about 70 s
-for one line at the cell cap, on the UI thread. Without such headings, a dance
-starts at the first line, a lone `#` heading, and each line after a blank
+for one line at the cell cap, on the UI thread. At level 0, a dance
+starts at the first line, at any heading, and at each line after a blank
 line that does not start like a figure (a bare leading number does not, so
 `12 Days of Christmas` is a title) and is not a detail of the dance before it
 (a label line counts as a detail only before that dance's figures); a lone
-`#` block with no figure and no detail is dropped. Text before the first
+`#` block with no figure and no detail is dropped, and a block with neither
+after a lone `#` block that has one is folded into its notes (a one-dance
+file headed `#`). A Markdown thematic break (`---`, `***`, `___`) reads as a
+blank line. Text before the first
 dance becomes its own dance when the lines after its first hold a label or a
 figure, else it goes into the first dance's notes. A label line is
 `splitLabelLine` with up to `kMaxTextDocumentLabelWords` (3) words and 30

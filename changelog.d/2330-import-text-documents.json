@@ -3,12 +3,12 @@
   "user_visible": true,
   "app": {
     "added": [
-      "Import ▸ Your own text or Markdown file: bring in dances you typed up as notes in a .txt or .md file. Each heading, or each title after a blank line, starts a dance; Label: value lines are its details and one figure per line its figures. A Map labels step lets you choose what each label holds, and a label no field takes is kept in the calling notes with its name."
+      "Import ▸ Your own text or Markdown file: bring in dances you typed up as notes in a .txt or .md file. Each heading, or each title after a blank line, starts a dance, and Map labels lets you change where dances start if the app guessed wrong; Label: value lines are a dance's details and one figure per line its figures. Map labels also lets you choose what each label holds, and a label no field takes is kept in the calling notes with its name."
     ]
   },
   "core": {
     "added": [
-      "readTextDocument, textDocumentToCsv, textDocumentDefaultColumns and decodeTextDocumentBytes: read a text or Markdown file of dances into the spreadsheet import's columns, under the spreadsheet's caps (TextDocumentReadException).",
+      "readTextDocument (with an optional danceLevel), detectTextDocumentDanceLevel, textDocumentHeadingLevels, textDocumentToCsv, textDocumentDefaultColumns and decodeTextDocumentBytes: read a text or Markdown file of dances into the spreadsheet import's columns, under the spreadsheet's caps (TextDocumentReadException).",
       "CsvColumnMapping.labelledNotes: a column kept in the calling notes as Label: value.",
       "splitLabelLine and splitByLine: the Label: value and by Name line readers, shared with the Caller's Companion text adapter."
     ]
