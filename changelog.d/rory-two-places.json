@@ -1,0 +1,15 @@
+{
+  "id": "rory-two-places",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A Rory O'More can have one role, or the ends of the wave, slide two places across the set while the others slide one: set \"two places\" in the dance editor, and the line reads \"balance & Rory O'More left, robins 2 places\". Typing or pasting that line reads it back.",
+      "Dances from The Caller's Box that write the longer slide straight after a wave balance, such as \"Slide left, women slide two places\" in Leap of Faith, now import it as part of that Rory O'More instead of leaving it as text."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add `rory_o_more.twoPlaces` (contra taxonomy v40): `role1s`, `role2s` or `ends`, stored only while stated and shown only in the display summary, with a display read-back and The Caller's Box adapter's fold of a two-place slide after a balance-wave line."
+    ]
+  }
+}

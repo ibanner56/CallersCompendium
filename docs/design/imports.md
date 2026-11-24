@@ -1936,7 +1936,9 @@ has to be judged in its own context.
   (→ `ender: turnCouple`), hall + turn alone
   (→ `ender: turnAlone` when dancer subjects agree), shoulder round + swing
   (→ meltdown swing with adjacent source beats), balance wave + slide
-  (→ balanced Rory O'More), and directed promenade around the major set
+  (→ balanced Rory O'More; a slide whose role or ends `slide two places`,
+  TCB #1797's `Slide left, women slide two places (…)`, fills `twoPlaces`
+  and keeps the bracket as its note, taxonomy v40), and directed promenade around the major set
   (→ structured turn plus a preserved note; a `to <dancer>` tail or
   `(to <dancer>)` annotation also fills `destination`, and its words stay in
   the note because the v30 render gate hides the clause at the `across`
