@@ -2,6 +2,7 @@ import '../domain/formation.dart';
 import '../geometry/geometry.dart';
 import '../ops/diagnostics.dart';
 import '../ops/operation.dart';
+import '../ops/params.dart';
 import 'end_normalization.dart';
 import 'invocation.dart';
 import 'result.dart';
@@ -29,10 +30,10 @@ import 'result.dart';
 /// figures early, can be carried to a later figure that finishes it rather than
 /// failing (`docs/fundamentals.md` §10.2.1 has the measurement).
 ///
-/// **A chain after an N2 figure** (`docs/fundamentals.md` §10.3.0,
-/// user-ruled 2026-11-24): an unflagged `across` chain straight after a figure
-/// reaching an odd distance is danced in the phase that figure reached, and
-/// the set is handed back after it.
+/// **A chain or hey after an N2 figure** (`docs/fundamentals.md` §10.3.0):
+/// an unflagged `across` chain or hey straight after a figure reaching an odd
+/// distance is danced in the phase that figure reached, and the set is handed
+/// back after it.
 class FigureFold {
   FigureFold();
 
@@ -43,11 +44,12 @@ class FigureFold {
   int _progressions = 0;
 
   /// Whether the figure just run was danced one grouping over, by reaching
-  /// or by following a reach, so a chain across after it is danced there too.
+  /// or by following a reach, so a chain across or a hey after it is danced
+  /// there too.
   bool _followReach = false;
 
   /// Whether the set was in its shifted phase when the figure just run was
-  /// handed it, which is the phase a following chain must find it in again.
+  /// handed it, which is the phase a following figure must find it in again.
   bool _reachHandedShifted = false;
 
   /// The figure indexes of progressions still held, oldest first.
@@ -63,31 +65,70 @@ class FigureFold {
   /// a dance is a [WarningKind.heldProgressionUnfinished].
   List<int> get unfinished => List.unmodifiable([..._abandoned, ..._held]);
 
+  /// The set as [figure] will be danced from it when handed [state]: [state]
+  /// itself, or one band phase over when [figure] follows a reach (see
+  /// [step]). A lint about the figure's own input reads this.
+  Formation dancedFrom(OperationInvocation figure, Formation state) =>
+      _follows(figure, state) ? toggleBandPhase(state) : state;
+
+  /// Whether [figure], handed [state], follows the reach just danced.
+  ///
+  /// A hey follows only when its first pass names a role set or partners,
+  /// and its second pass one of those or a distance set lying an odd
+  /// distance away: partners are the same two dancers in either grouping,
+  /// and such a distance set names the grouping the hey is danced in, where
+  /// it is matched as plain neighbours. `neighbors`, or a distance set lying
+  /// an even distance away, would accept the N2 couple in place of the
+  /// couple it names, and a first pass naming a distance set or `shadows`
+  /// picks its own phase. *(Agent's call.)* A chain names a role set, as it must to
+  /// be danced at all.
+  bool _follows(OperationInvocation figure, Formation state) {
+    final operation = figure.operation;
+    return _followReach &&
+        !operation.reachAfter(progressions).isOdd &&
+        !figure.progression &&
+        ((operation is Chain && operation.dir == ChainDirection.across) ||
+            (operation is HeyForFour &&
+                _followsIn(operation.pass1) &&
+                (operation.pass2 == null ||
+                    _followsIn(operation.pass2!) ||
+                    _namesReachedGrouping(operation.pass2!)))) &&
+        // A held progression that finished on the reaching figure moved the
+        // set to the other phase; one phase over from there is not where the
+        // reach was danced, so the figure stays put. *(Agent's call.)*
+        isShiftedBandPhase(state) == _reachHandedShifted;
+  }
+
+  /// Whether [set] is a distance set that, after the progressions so far,
+  /// lies an odd distance away, and so names the grouping one phase over.
+  bool _namesReachedGrouping(WhoSet set) {
+    final distance = set.distance;
+    return distance != null && (distance - progressions).abs().isOdd;
+  }
+
+  /// Whether a hey pass naming [set] reads the same dancers one grouping
+  /// over: role sets and partners do.
+  static bool _followsIn(WhoSet set) =>
+      set == WhoSet.role1s || set == WhoSet.role2s || set == WhoSet.partners;
+
   /// Runs [figure] (figure number [index]) on [state].
   Result<Formation, OpError> step(
     OperationInvocation figure,
     Formation state, {
     required int index,
   }) {
-    // A chain across straight after a figure danced one grouping over is
-    // danced in that grouping too, and the set is handed back after it, as
-    // reaching always does. So is every chain straight after that one.
-    // *(User-ruled 2026-11-24, note on Heather's Hop Redux: after an N2
-    // allemande left, "R1-A and R2-D should be the ones who swap in the
-    // chain". The agent's calls: only an unflagged chain across follows, and
-    // only straight after; see `docs/fundamentals.md` §10.3.0.)*
+    // A chain across or a hey straight after a figure danced one grouping
+    // over is danced in that grouping too, and the set is handed back after
+    // it, as reaching always does. So is every such figure straight after
+    // that one. *(User-ruled 2026-11-24 for the chain, note on Heather's Hop
+    // Redux: after an N2 allemande left, "R1-A and R2-D should be the ones who
+    // swap in the chain". The hey is the agent's call, from Hudson's notes on
+    // Haven't We Met Before? and Hey-ja Vu, whose half hey after an N0 or N2
+    // swing is with that couple. The other limits are the agent's calls too:
+    // only unflagged, and only straight after; see `docs/fundamentals.md`
+    // §10.3.0.)*
     final steppedOut = figure.operation.reachAfter(progressions).isOdd;
-    final operation = figure.operation;
-    final follows =
-        _followReach &&
-        !steppedOut &&
-        !figure.progression &&
-        operation is Chain &&
-        operation.dir == ChainDirection.across &&
-        // A held progression that finished on the reaching figure moved the
-        // set to the other phase; one phase over from there is not where the
-        // reach was danced, so the chain stays put. *(Agent's call.)*
-        isShiftedBandPhase(state) == _reachHandedShifted;
+    final follows = _follows(figure, state);
     if (steppedOut) _reachHandedShifted = isShiftedBandPhase(state);
     _followReach = steppedOut || follows;
     final outcome = follows

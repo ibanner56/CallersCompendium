@@ -146,6 +146,15 @@
 > refuses, at its N3 swing: it needs a second progression. Three refused
 > dances now mismatch (2012, 5397, 16963).
 >
+> **A hey after an N2 figure follows it too (2026-11-24)**: a hey straight
+> after a figure danced one grouping over is danced there, like the chain
+> (the agent's call, from the maintainer's notes on Haven't We Met Before?
+> and Hey-ja Vu). Against `rubric` at `db0f6537`: 4,090 of 5,257 to 4,092 of
+> 5,254 compiled in scope (77.9%), the core set from 532 to 533, losing none.
+> Blue and Green Candles (16101) and Waylaid in Tulsa (4960) now compile, four
+> refused dances now run to the end and mismatch, and three now stop at a
+> deferred figure past the hey and leave the scope (945, 946, 18296).
+>
 > **N3 and N4 place later progressions (2026-11-23)**: on the N2 retry, a
 > Double dance flags its second progression by the first N3 mention and a
 > Triple its third by the first N4 (user-ruled). Against `rubric` at

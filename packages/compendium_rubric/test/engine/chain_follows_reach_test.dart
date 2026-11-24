@@ -159,4 +159,146 @@ void main() {
       expect(anyOut(after[_secondChain]), isFalse);
     });
   });
+
+  group('a hey straight after an N2 figure dances with N2', () {
+    /// The opening of Hey-ja Vu (Caller's Box #10136) as the bridge reads
+    /// it: a balanced long wave and Rory O'More, the N2 swing, the half hey.
+    Map<String, Object?> heyJaVu({
+      bool flagHey = false,
+      String pass1 = 'role1s',
+      String pass2 = 'partners',
+    }) => {
+      'title': 'Hey-ja Vu',
+      'form': 'contra',
+      'formation': {'shape': 'dupleImproper'},
+      'progression': 'single',
+      'figures': [
+        {
+          'move': 'form_long_waves',
+          'params': {
+            'whom': 'neighbors',
+            'whomHand': 'right',
+            'who': 'role2s',
+            'balance': true,
+          },
+        },
+        {
+          'move': 'rory_o_more',
+          'params': {'balance': false, 'slide': 'right'},
+        },
+        {
+          'move': 'swing',
+          'params': {'who': 'nextNeighbors'},
+        },
+        {
+          'move': 'hey',
+          'params': {
+            'length': 'half',
+            'pass1': pass1,
+            'shoulder': 'left',
+            'pass2': pass2,
+          },
+          if (flagHey) 'progression': true,
+        },
+      ],
+    };
+    const hey = 3;
+
+    Result<Formation, OpError> heyStep(Map<String, Object?> record) {
+      final dance = (parseDance(record) as Ok<Dance, DanceParseError>).value;
+      final fold = FigureFold();
+      var state = dance.instantiate();
+      for (var i = 0; i < hey; i++) {
+        state =
+            (fold.step(dance.figures[i], state, index: i)
+                    as Ok<Formation, OpError>)
+                .value;
+      }
+      return fold.step(dance.figures[hey], state, index: hey);
+    }
+
+    test('the half hey runs in the N2 grouping and hands the set back', () {
+      // Agent's call, 2026-11-24, from Hudson's notes on #10129 and #10136:
+      // the half hey is with the couple just swung. In the grouping handed
+      // back after the N2 swing two larks stand on one line and it refuses.
+      final step = heyStep(heyJaVu());
+      expect(step, isA<Ok<Formation, OpError>>(), reason: '$step');
+      final after = (step as Ok<Formation, OpError>).value;
+      expect(after.dancers.values.any((d) => d.waitingOut), isFalse);
+    });
+
+    test('a flagged hey does not follow', () {
+      expect(heyStep(heyJaVu(flagHey: true)), isA<Err<Formation, OpError>>());
+    });
+
+    test('a hey whose second pass names neighbours does not follow', () {
+      final step = heyStep(heyJaVu(pass2: 'neighbors'));
+      final direct = heyStep(heyJaVu(pass2: 'partners'));
+      expect(direct, isA<Ok<Formation, OpError>>(), reason: 'control');
+      expect(step, isA<Err<Formation, OpError>>());
+    });
+
+    test('a hey whose second pass names the N2 couple follows', () {
+      // An odd distance away, it names the grouping the hey is danced in
+      // (Waylaid in Tulsa, #4960: "Hey 1/2 (MR;N0L;WR)" after an N0
+      // allemande).
+      expect(
+        heyStep(heyJaVu(pass2: 'nextNeighbors')),
+        isA<Ok<Formation, OpError>>(),
+      );
+    });
+
+    test('a hey whose second pass names N3 does not follow', () {
+      // N3 lies an even distance away, so it names the grouping the set was
+      // handed back in, not the N2 one.
+      expect(
+        heyStep(heyJaVu(pass2: 'thirdNeighbors')),
+        isA<Err<Formation, OpError>>(),
+      );
+    });
+
+    test('a hey naming neighbours does not follow', () {
+      // One grouping over, `neighbors` would accept the N2 couple in their
+      // place. *(Agent's call.)*
+      final step = heyStep(heyJaVu(pass1: 'neighbors', pass2: 'role1s'));
+      expect(step, isA<Err<Formation, OpError>>());
+      expect(
+        (step as Err<Formation, OpError>).error.kind,
+        ErrorKind.unresolvableDancerSet,
+      );
+    });
+
+    test('a followed hey is linted where it is danced', () {
+      // The robins cannot be the second pass of this hey in the N2 grouping;
+      // linted in the grouping handed back, the hey could not be read at all
+      // and the warning was lost.
+      // A flagged figure after the hey, so the record compiles at all.
+      final record = heyJaVu(pass2: 'role2s');
+      final dance =
+          (parseDance({
+                    ...record,
+                    'figures': [
+                      ...record['figures']! as List<Object?>,
+                      {
+                        'move': 'stand_still',
+                        'params': <String, Object?>{},
+                        'progression': true,
+                      },
+                    ],
+                  })
+                  as Ok<Dance, DanceParseError>)
+              .value;
+      final warnings = switch (compile(dance)) {
+        Compiled(:final warnings) => warnings,
+        Mismatch(:final warnings) => warnings,
+        CompileError(:final warnings) => warnings,
+      };
+      expect(
+        warnings.where(
+          (w) => w.kind == WarningKind.anchorMismatch && w.opIndex == hey,
+        ),
+        isNotEmpty,
+      );
+    });
+  });
 }

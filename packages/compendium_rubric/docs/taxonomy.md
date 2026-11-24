@@ -336,8 +336,8 @@ couple they have just turned with, not across the grouping the set was handed ba
 danced in that grouping too,
 and the set is handed back after it, as reaching always does. Each `across` chain straight
 after that one follows as well (Heather's Hop chains to partner and back to N2). The rest are
-the agent's calls. Only an unflagged `across` chain follows, only straight after the reach (or
-after a chain that followed), and only in the fold, so a chain inside a container does not.
+the agent's calls. Only an unflagged `across` chain follows (or a hey, below), only straight
+after the reach or after a chain or hey that followed, and only in the fold, so a chain inside a container does not.
 The reach is read from the figure's distance sets, so a chain does not follow a shadows figure,
 nor a container whose widest reach is even; and it does not follow when a held progression
 finished on the reaching figure and changed the set's phase.
@@ -347,6 +347,22 @@ figure that names only a role set follow lost 6; picking the phase where every r
 on her lark's right lost 53, because a roll away leaves couples the other way round before a
 chain. The import does not carry a chain's "to partner" or "to neighbor N2", and both phases
 satisfy "to partner" here, so it would not have decided it.
+
+**A hey after an N2 figure follows it too** *(agent's call, 2026-11-24)*. An unflagged `hey`
+straight after a figure reaching an odd distance is danced in the grouping that figure reached,
+under the same limits as the chain, and a hey or `across` chain straight after that one follows
+as well. It follows only when its first pass names a role set or `partners` and its second
+pass one of those or a distance set lying an odd distance away after the progressions so far
+(N0, N2), which names the grouping the hey is danced in and is matched there as plain neighbours.
+`neighbors`, or a distance set an even distance away (N3), would accept the N2 couple in place of
+the couple it names, and a first pass naming a distance set or `shadows` picks its own phase. A followed hey is linted (the `anchorMismatch` check of its second pass) in the grouping
+it is danced in.
+Hudson's notes on Haven't We Met Before? (Caller's Box #10129, "After a balance and swing with
+N0 … the first half hey") and Hey-ja Vu (#10136, "N2 neighbor swing" then "Hey 1/2") put the
+hey with the couple just swung; danced in the handed-back grouping, both were refused because
+two larks stood on one line. Against `db0f6537` it took 4,090 of 5,257 to 4,092 of 5,254
+compiled in scope and the core set from 532 to 533, losing none. Both dances now run past the
+hey and stop later: they need the progression placed at a half hey, which this does not do.
 
 **Which phase: parity of the distance.** A figure naming a distance-*d* set is danced *d*
 places from the phase it was handed, and **always hands that phase back**. The grid has exactly
@@ -735,7 +751,8 @@ To be defined later with worked examples.
   - `hand` (left/right) does not change end positions (Op1 vs Op2).
   - **Straight after an N2 figure**, an `across` chain is danced in the grouping that figure
     reached, and so is each `across` chain straight after that one; see "A chain after an N2
-    figure chains with N2" *(user-ruled 2026-11-24, Heather's Hop Redux, #10172)*.
+    figure chains with N2" *(user-ruled 2026-11-24, Heather's Hop Redux, #10172)*. A hey can
+    stand between them too *(agent's call)*.
   - **Verified against:** base Op1 (across/robins), Op2 (across/larks), Op3 (leftDiagonal),
     Op4 (rightDiagonal), and the waiting-out `leftDiagonal` example (couples B & E out at the
     ends); all still hold under the where-they-stand pairing, as does The Judge's golden trace,
@@ -3217,6 +3234,10 @@ To be defined later with worked examples.
     `unresolvableDancerSet`.
 - **facing:** `flexible` for all four. A hey ends mid-flow, and what a dancer looks at depends on
   what is called next (fundamentals §6).
+- **after an N2 figure:** an unflagged hey whose first pass names a role set or `partners` (and
+  whose second pass names one of those or a distance set an odd distance away), straight after
+  a figure reaching an odd distance, is danced in the grouping that figure reached; see "A hey after an N2 figure follows it too" *(agent's
+  call, 2026-11-24)*.
 - **interaction scope:** one hands four.
 - **h4 contribution** (D7): 0.
 - **progression-eligible:** **yes** (user-ruled).
