@@ -229,11 +229,19 @@ diagonal slice is two progressions.)* Tools that trace a dance step by step
                               _applyWithShadows (see §6.4)
 3. checkPreconditions       -> Err short-circuits
 4. perform                  the figure's transform (@protected)
+5. other band phase         if 3 or 4 failed with whoMismatch, partners are
+                              the only set the figure names, and the other
+                              phase has a hands four: steps 3-4 again one band
+                              phase over,
+                              keeping that phase on success; otherwise the
+                              first failure is returned
 ```
 
 > **Trap.** `perform` is `@protected`. A figure delegating to another figure must
 > call the public `.apply(...)` so the delegate's own preconditions run. See
-> `PassTheOcean`, which delegates to `FormShortWaves` exactly this way.
+> `PassTheOcean`, which delegates to `FormShortWaves` exactly this way. A
+> delegate naming only partners can come back danced, and left, one band phase
+> over (step 5).
 
 ### 4.4 Sizing — `engine/sizing.dart` + `Dance.requiredHandsFour`
 
@@ -869,7 +877,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,471 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,480 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,
