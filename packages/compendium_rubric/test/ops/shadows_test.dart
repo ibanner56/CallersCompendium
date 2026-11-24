@@ -426,6 +426,101 @@ void main() {
       expect(error.detail, contains('rows 0-1'));
     });
 
+    // The ruled case the other way round: the remembered pair beside each
+    // other in column 0, partners B across in column 4. First match would
+    // pair A with C and strand B here too, so only a comparison against the
+    // largest pairing catches it.
+    Formation strandedOtherWayRound() => remembering(
+      parseRolesNotation([
+        'L1-A . . . L2-B',
+        'R1-C . . . R2-B',
+        'L2-D . . . R1-E',
+        'R1-A . . . L1-C',
+        'L2-F . . . R1-G',
+        'R2-D . . . L1-E',
+        'L2-H . . . R2-H',
+        'R2-F . . . L1-G',
+      ], type: FormationType.becketCcw),
+      [(lark('A'), robin('C'))],
+    );
+
+    test('the refusal does not depend on which way round the dancers '
+        'stand', () {
+      final input = strandedOtherWayRound();
+
+      expect(
+        shadowMemoryStrandsDancers(input, topRow: 0, bottomRow: 1),
+        isTrue,
+      );
+      final error = applyErr(
+        const Allemande(who: WhoSet.shadows, hand: Hand.left, turn: 1.5),
+        input,
+      );
+      expect(error.kind, ErrorKind.unresolvableDancerSet);
+      expect(error.detail, contains('rows 0-1'));
+    });
+
+    test('a remembered pair across the set from each other is not '
+        'refused', () {
+      // Train Delay (Caller's Box 14841) at the bottom: E and H remember each
+      // other across the set, and partners G stand beside them. Only a pair
+      // beside each other, the case ruled on, is checked.
+      final input = remembering(
+        parseRolesNotation([
+          'L2-B . . . R1-A',
+          'R2-B . . . L1-A',
+          'L2-D . . . R1-C',
+          'R2-D . . . L1-C',
+          'L2-F . . . R1-G',
+          'R2-F . . . L1-G',
+          'L1-E . . . R2-H',
+          'L2-K . . . R2-K',
+        ], type: FormationType.becketCcw),
+        [(lark('E'), robin('H'))],
+      );
+
+      expect(
+        shadowMemoryStrandsDancers(input, topRow: 6, bottomRow: 7),
+        isFalse,
+      );
+    });
+
+    test('a figure that pairs nobody is not refused for it', () {
+      // Turning alone asks for no pairs, so nobody is left without one: not
+      // in the case ruled on, nor the other way round.
+      final ruled = remembering(
+        parseRolesNotation([
+          'L2-B . . . R1-C',
+          'R2-B . . . L1-A',
+          'L2-D . . . R1-E',
+          'R1-A . . . L1-C',
+          'L2-F . . . R1-G',
+          'R2-D . . . L1-E',
+          'L2-H . . . R2-H',
+          'R2-F . . . L1-G',
+        ], type: FormationType.becketCcw),
+        [(lark('A'), robin('C'))],
+      );
+      applyOk(const TurnAlone(who: WhoSet.shadows), ruled);
+      applyOk(const TurnAlone(who: WhoSet.shadows), strandedOtherWayRound());
+    });
+
+    test('a figure that also names a distance set is refused too', () {
+      // After one progression the next neighbours are the ones standing
+      // there, so the figure is danced in place; the shadows it pairs by
+      // `whom` would strand partners B.
+      final result = const RollAway(
+        who: WhoSet.nextNeighbors,
+        whom: WhoSet.shadows,
+      ).apply(strandedOtherWayRound(), progressions: 1);
+
+      expect(result, isA<Err<Formation, OpError>>(), reason: '$result');
+      expect(
+        (result as Err<Formation, OpError>).error.kind,
+        ErrorKind.unresolvableDancerSet,
+      );
+    });
+
     test('a dancer keeps the shadow through any change of state', () {
       final state = allOnes.stateOf(lark('A')).copyWith(shadow: robin('C'));
 

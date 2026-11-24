@@ -148,18 +148,15 @@
 > Redux and its alternate still mismatch, at their final half figure eight.
 >
 > **Refused when keeping remembered shadows would strand a couple
-> (2026-11-24)**: where pairing the shadows a dance remembers first would leave
-> dancers in a hands four unpaired whom first match would have paired, a
-> figure naming shadows is now refused instead of falling back to first match
-> (user-ruled 2026-11-24, for a remembered pair beside each other with
-> partners across; refusing whenever the remembered pairs strand someone,
-> whatever the geometry, is the agent's call). Against `rubric` at
-> `253f56db`: 4,240 of 5,425 to 4,239 of 5,425 compiled in scope (78.1%),
-> the core set unchanged at 547, nothing gained. One dance lost: Baker's
-> Square (14368) is now refused at its second shadow square through, at the
-> bottom of the set. There the remembered pair (L1-E and R2-H) stand across
-> the set from each other and partners G beside them; first match had paired
-> each G with one of them and the dance compiled.
+> (2026-11-24)**: where a remembered shadow pair stand beside each other and
+> keeping them would leave dancers in the hands four unpaired who could all
+> have been paired, a figure that asks for shadow pairs is now refused instead
+> of falling back to first match (user-ruled 2026-11-24, for that pair with
+> partners across; testing against the largest pairing, and leaving a pair
+> across the set to pair as before, are the agent's calls). Against `rubric`
+> at `253f56db`: 4,240 of 5,425 compiled in scope (78.2%) before and after,
+> the core set unchanged at 547, and no dance changes outcome: no corpus dance
+> reaches the case ruled on.
 >
 > **Shadows who remember each other dance together (2026-11-24)**: within a
 > hands four, a figure naming shadows pairs two dancers who remember each

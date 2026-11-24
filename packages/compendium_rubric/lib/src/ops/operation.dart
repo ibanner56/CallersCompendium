@@ -324,10 +324,7 @@ sealed class Operation {
   ) {
     final distance = who.distance! - progressions;
     if (distance == 0) {
-      final failure =
-          checkPreconditions(formation) ?? _shadowMemoryRefusal(formation);
-      if (failure != null) return Err<Formation, OpError>(failure);
-      return perform(formation);
+      return _tryGuardingShadowMemory(formation);
     }
 
     final stepsOut = distance.isOdd;
@@ -342,11 +339,7 @@ sealed class Operation {
     );
     if (unreachable != null) return Err<Formation, OpError>(unreachable);
 
-    final failure =
-        checkPreconditions(shifted) ?? _shadowMemoryRefusal(shifted);
-    if (failure != null) return Err<Formation, OpError>(failure);
-
-    return perform(
+    return _tryGuardingShadowMemory(
       shifted,
     ).map((next) => stepsOut ? toggleBandPhase(next) : next);
   }
@@ -403,10 +396,10 @@ sealed class Operation {
     Formation phase, {
     required bool handBack,
   }) {
-    final failure = checkPreconditions(phase) ?? _shadowMemoryRefusal(phase);
-    if (failure != null) return Err<Formation, OpError>(failure);
     final pairs = _shadowPairsDanced(phase);
-    final danced = perform(phase).map((next) => _remember(next, pairs));
+    final danced = _tryGuardingShadowMemory(
+      phase,
+    ).map((next) => _remember(next, pairs));
     return handBack ? danced.map(toggleBandPhase) : danced;
   }
 
@@ -446,32 +439,35 @@ sealed class Operation {
     return together > 0;
   }
 
-  /// Refuses a figure naming shadows that picks its own pairs when, in some
-  /// hands four of [formation], pairing the remembered shadows first would
-  /// leave dancers unpaired whom first match would have paired
-  /// ([shadowMemoryStrandsDancers]; user-ruled 2026-11-24: refuse rather than
-  /// break the remembered pair or leave the couple idle). `swing` and
-  /// `promenade` pair by side column instead and refuse a column that is not a
-  /// pair themselves.
-  OpError? _shadowMemoryRefusal(Formation formation) {
-    if (!dancerSets.contains(WhoSet.shadows)) return null;
-    if (this is Swing || this is Promenade) return null;
-    for (final band in handsFourBands(formation)) {
-      if (!shadowMemoryStrandsDancers(
-        formation,
-        topRow: band.topRow,
-        bottomRow: band.bottomRow,
-      )) {
-        continue;
-      }
-      return OpError(
+  /// Checks and dances this figure in [phase], refusing it when any shadows
+  /// pairing it asks for leaves dancers stranded by the remembered pairs
+  /// ([watchShadowStrands], [shadowMemoryStrandsDancers]).
+  ///
+  /// *(User-ruled 2026-11-24, for a remembered pair beside each other at an
+  /// end with partners across: refuse, rather than break the pair or leave the
+  /// couple idle.)* The agent's calls: it is checked in any geometry, and only
+  /// for figures that ask for shadow pairs, so `swing` and `promenade`, which
+  /// pair by side column, and figures that only read positions are not
+  /// refused by it. The stranding refusal is reported ahead of the figure's
+  /// own, since a figure's count check would otherwise report it as a
+  /// shortfall.
+  Result<Formation, OpError> _tryGuardingShadowMemory(Formation phase) {
+    ({int topRow, int bottomRow})? stranded;
+    final result = watchShadowStrands(
+      () => _tryIn(phase),
+      (topRow, bottomRow) =>
+          stranded ??= (topRow: topRow, bottomRow: bottomRow),
+    );
+    final band = stranded;
+    if (band == null) return result;
+    return Err<Formation, OpError>(
+      OpError(
         ErrorKind.unresolvableDancerSet,
         '$name names shadows, but in the hands four at rows '
         '${band.topRow}-${band.bottomRow} keeping the shadows the dance '
         'remembers together would leave dancers with no one to dance with',
-      );
-    }
-    return null;
+      ),
+    );
   }
 
   /// The shadow pairs this figure dances in [formation]'s hands fours, which

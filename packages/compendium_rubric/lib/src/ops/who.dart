@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../domain/couple_number.dart';
 import '../domain/dancer.dart';
 import '../domain/formation.dart';
@@ -116,10 +118,15 @@ bool whoIncludes(Formation formation, DancerId id, WhoSet who) {
 /// end with nobody out the first match could otherwise take one of a
 /// remembered pair, since the wrap lets a neighbour match too. Only a mutual
 /// memory counts, since a one-sided one is not a pair that danced *(agent's
-/// call, 2026-11-24)*. Where keeping the remembered pairs leaves dancers
-/// unpaired whom first match would have paired, the remembered pairs are still
-/// returned; the figure is refused for it (`shadowMemoryStrandsDancers`) and
-/// never falls back to first match *(user-ruled 2026-11-24)*.
+/// call, 2026-11-24)*.
+///
+/// Where keeping the remembered pairs leaves dancers unpaired who could all
+/// have been paired, with a remembered pair beside each other
+/// ([shadowMemoryStrandsDancers]), the remembered pairs are still returned and
+/// the band is reported to the enclosing [watchShadowStrands], whose figure is
+/// then refused: it never falls back to another pairing. Anywhere else,
+/// remembered pairs that would leave more dancers unpaired than first match
+/// give way to first match.
 List<({DancerId a, DancerId b})> resolveWhoPairs(
   Formation formation,
   WhoSet who, {
@@ -130,21 +137,57 @@ List<({DancerId a, DancerId b})> resolveWhoPairs(
     ...formation.dancersInRow(topRow),
     ...formation.dancersInRow(bottomRow),
   ];
-  final remembered = who == WhoSet.shadows
-      ? _rememberedShadowPairs(formation, members)
-      : const <({DancerId a, DancerId b})>[];
-  return _pairFirstMatch(formation, who, members, remembered);
+  if (who != WhoSet.shadows) {
+    return _pairFirstMatch(formation, who, members, const []);
+  }
+  final remembered = _rememberedShadowPairs(formation, members);
+  final pairs = _pairFirstMatch(formation, who, members, remembered);
+  if (_strands(formation, members, remembered, pairs)) {
+    final onStrand = Zone.current[_strandsKey];
+    if (onStrand is void Function(int topRow, int bottomRow)) {
+      onStrand(topRow, bottomRow);
+    }
+    return pairs;
+  }
+  // Outside the case ruled on, remembered pairs that would leave more dancers
+  // unpaired than first match give way to first match, as they did before the
+  // ruling *(agent's call, 2026-11-24)*.
+  final firstMatch = _pairFirstMatch(formation, who, members, const []);
+  return pairs.length < firstMatch.length ? firstMatch : pairs;
 }
 
-/// Whether, in the band bounded by [topRow] and [bottomRow], pairing the
-/// shadows who remember each other first leaves dancers unpaired whom first
-/// match alone would have paired.
+final Object _strandsKey = Object();
+
+/// Runs [body], calling [onStrand] for each band in which a shadows pairing
+/// it asks [resolveWhoPairs] for leaves dancers stranded by the remembered
+/// pairs.
 ///
-/// A remembered pair beside each other at an end with nobody out, with the
-/// couple across the set from them partners and so not shadows: keeping the
-/// pair would leave that couple standing idle while the figure succeeds, and
-/// first match would break the remembered pair. The figure is refused
-/// *(user-ruled 2026-11-24)*.
+/// A zone rather than a parameter, so that every figure that picks shadow
+/// pairs, in its preconditions or its transform, primary `who` or another
+/// slot, is caught without each figure having to pass anything on, and a
+/// figure that only reads positions, never asking for pairs, is not.
+T watchShadowStrands<T>(
+  T Function() body,
+  void Function(int topRow, int bottomRow) onStrand,
+) => runZoned(body, zoneValues: {_strandsKey: onStrand});
+
+/// Whether, in the band bounded by [topRow] and [bottomRow], pairing the
+/// shadows who remember each other first leaves dancers unpaired who could
+/// all have been paired, by any pairing at all.
+///
+/// The case ruled on: a remembered pair beside each other at an end with
+/// nobody out, with the couple across the set from them partners and so not
+/// shadows. Keeping the pair would leave that couple standing idle while the
+/// figure succeeds, and pairing everyone would break the remembered pair; the
+/// figure is refused *(user-ruled 2026-11-24)*. *(Agent's calls:)* comparing
+/// against the largest pairing, rather than against first match, is what
+/// makes the answer the same whichever way round the dancers stand; and it is
+/// only asked where a remembered pair stands beside each other, as in the case
+/// ruled on. A remembered pair across the set from each other, with a couple
+/// beside them, is left to pair as before ([resolveWhoPairs] falls back to
+/// first match there when that pairs more): at the bottom of the set that couple
+/// is often the one waiting out, brought into the band only by the phase the
+/// figure is danced in, and refusing there cost three dances that compile.
 bool shadowMemoryStrandsDancers(
   Formation formation, {
   required int topRow,
@@ -155,20 +198,53 @@ bool shadowMemoryStrandsDancers(
     ...formation.dancersInRow(bottomRow),
   ];
   final remembered = _rememberedShadowPairs(formation, members);
-  if (remembered.isEmpty) return false;
-  final firstMatch = _pairFirstMatch(
-    formation,
-    WhoSet.shadows,
-    members,
-    const [],
-  );
   final withMemory = _pairFirstMatch(
     formation,
     WhoSet.shadows,
     members,
     remembered,
   );
-  return withMemory.length < firstMatch.length;
+  return _strands(formation, members, remembered, withMemory);
+}
+
+/// Whether [pairs], the band's shadow pairs with [remembered] taken first,
+/// leave dancers unpaired who could all have been paired, where a remembered
+/// pair stands beside each other in one side column.
+bool _strands(
+  Formation formation,
+  List<DancerId> members,
+  List<({DancerId a, DancerId b})> remembered,
+  List<({DancerId a, DancerId b})> pairs,
+) {
+  final besideEachOther = remembered.any(
+    (pair) => formation.stateOf(pair.a).col == formation.stateOf(pair.b).col,
+  );
+  return besideEachOther &&
+      pairs.length < _mostPairs(formation, members, WhoSet.shadows);
+}
+
+/// The largest number of disjoint pairs [who] can make among [members].
+///
+/// An exhaustive search: a band holds at most a handful of dancers.
+int _mostPairs(Formation formation, List<DancerId> members, WhoSet who) {
+  int best(int from, Set<DancerId> taken) {
+    var i = from;
+    while (i < members.length && taken.contains(members[i])) {
+      i++;
+    }
+    if (i >= members.length) return 0;
+    // Leave members[i] unpaired, or pair it with any later free match.
+    var most = best(i + 1, taken);
+    for (var j = i + 1; j < members.length; j++) {
+      if (taken.contains(members[j])) continue;
+      if (!whoMatches(formation, members[i], members[j], who)) continue;
+      final paired = 1 + best(i + 1, {...taken, members[i], members[j]});
+      if (paired > most) most = paired;
+    }
+    return most;
+  }
+
+  return best(0, const {});
 }
 
 /// The pairs among [members] who remember each other as shadows and still
