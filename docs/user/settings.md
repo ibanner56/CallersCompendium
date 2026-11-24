@@ -209,11 +209,12 @@ again](./collection.md#save-a-search-and-use-it-again)) is listed here by name.
   deleted. The app says **Can't delete "…"** and lists the rules that use it;
   change those rules to another search, or delete them, and then delete the
   saved search. A rule you deleted doesn't count. **Manage rules** in the
-  message opens your rules there and then. It is there even while [Event
-  rules](#event-rules) is off, when Settings doesn't show Manage rules; the
-  message then also says where your rules are: under Settings ▸
-  Experimental ▸ Event rules, where turning Event rules on shows Manage rules
-  in Settings again.
+  message opens your rules there and then, so you can change them now. It is
+  there even while **Check programs against your rules** (under
+  [Event rules](#event-rules)) is off, when Settings doesn't show Manage
+  rules; the message then also says that to check programs against your
+  rules again, you turn that switch on under Settings ▸ Experimental ▸
+  Event rules.
 
 ## Program
 
@@ -1282,7 +1283,9 @@ with **Undo** in the message at the bottom of the screen. A rule has:
   or **None**. For **Any two neighboring dances**, which holds two dances,
   it is **At most** 1 or **At least** 1 or 2: a larger number could never
   break, or would always break. Changing to that scope lowers a larger
-  number to the most it allows.
+  number to the most it allows. A rule saved with a larger number before
+  keeps it until you change its number, **How many** or **Where**: you can
+  still rename it and save it as it is.
 - **Where** — **The whole program**, **Before the first break**, **After the
   first break**, or **Any two neighboring dances**, which checks each pair of
   dances next to each other.

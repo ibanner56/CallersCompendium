@@ -466,9 +466,13 @@ in the whole program* for a family dance, or *At most 1 dance matching
 with one of your [saved searches](./collection.md#save-a-search-and-use-it-again).
 
 - **Rules**, beside **Insert break**, opens the rules for this program, with
-  the number it uses (a rule you deleted doesn't count). Tick the ones that
-  apply; untick one to take it off. A program can use up to 64 rules; once it
-  does, the list says so and another can't be ticked.
+  the number it uses. A rule you deleted doesn't count; a rule another device
+  added to the program that hasn't arrived on this one yet does. Tick the
+  ones that apply; untick one to take it off. Each tick changes the program's
+  rules as they are saved at that moment, so a rule added on another device
+  meanwhile stays. A program can use up to 64 rules; once it does, the list
+  says so and another can't be ticked. To make room, only the rules you
+  deleted are let go.
   **New rule…** at the top opens the rule editor and, once you save the rule,
   adds it to this program. A new program, a copy of a program, and a program
   you import start with no rules: a rule is never added for you.
