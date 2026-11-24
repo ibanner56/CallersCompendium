@@ -26,7 +26,12 @@ import 'settings_keys.dart';
 /// ⋮ menu and its search field); this list is where every one of them,
 /// including one this version cannot read, can be seen and removed.
 class CollectionSection extends StatefulWidget {
-  const CollectionSection({super.key});
+  const CollectionSection({super.key, this.isActive = true});
+
+  /// Whether Settings is the destination showing ([SettingsScreen.isActive]).
+  /// The list is read again each time it becomes true, so a search saved,
+  /// renamed or deleted in the Collection or by sync meanwhile shows.
+  final bool isActive;
 
   @override
   State<CollectionSection> createState() => _CollectionSectionState();
@@ -35,20 +40,27 @@ class CollectionSection extends StatefulWidget {
 class _CollectionSectionState extends State<CollectionSection> {
   List<StoredSavedSearch>? _saved;
   int _readSeq = 0;
-  bool _inView = false;
+  bool _started = false;
 
-  /// Reads the list whenever this section comes into view: when it is opened,
-  /// and when Settings is shown again (the app shell keeps every destination
-  /// mounted and turns tickers off in the hidden ones), so a search saved,
-  /// renamed or deleted in the Collection or by sync meanwhile is shown as it
-  /// is now. Nothing streams the settings table (see `SettingsRepository`), so
-  /// this, and a read after each action here, is what keeps it current.
+  /// Reads the list when this section is opened, and again whenever Settings
+  /// is shown again ([CollectionSection.isActive]; the app shell keeps every
+  /// destination mounted), so a search saved, renamed or deleted in the
+  /// Collection or by sync meanwhile is shown as it is now. Nothing streams
+  /// the settings table (see `SettingsRepository`), so this, and a read after
+  /// each action here, is what keeps it current.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final inView = TickerMode.valuesOf(context).enabled;
-    if (inView && !_inView) unawaited(_read());
-    _inView = inView;
+    if (!_started) {
+      _started = true;
+      unawaited(_read());
+    }
+  }
+
+  @override
+  void didUpdateWidget(CollectionSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) unawaited(_read());
   }
 
   Future<void> _read() async {

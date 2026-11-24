@@ -480,12 +480,14 @@ it once and choose it from then on.
   shows up in it. The settings under Settings ▸ Calling history are the ones in
   force when you use it. Choosing one doesn't change the sort the Collection
   opens in. With a keyboard, the arrow keys move through the list and
-  **Escape** closes it.
+  **Enter** chooses the highlighted row; **Escape** closes the list (with the
+  list closed, Escape goes back as it always has).
 - **While a saved search is in use**, the ⋮ menu also offers **Update "…"**
   (once you've changed the search) to save the change into it, **Save as a new
   search…** to keep the changed search as another one, **Rename "…"…** and
   **Delete "…"**, with **Undo** (and a question first if you've turned on
-  **Confirm before delete**). **Clear search and filters** (the ✕ in the
+  **Confirm before delete**); if you undo a delete before changing the
+  search, it is the one in use again. **Clear search and filters** (the ✕ in the
   search box) starts a new search, and those entries go away; the saved search
   stays as it was.
 - **Something it uses is gone.** If a saved search uses a tag, author, source,

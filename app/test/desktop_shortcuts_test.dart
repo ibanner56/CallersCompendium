@@ -342,6 +342,36 @@ void main() {
       expect(find.byKey(const ValueKey('discard-cancel')), findsNothing);
     });
 
+    testWidgets('Esc in the dance list search of the program builder closes '
+        'its saved-search dropdown first, then leaves the page (#2325)', (
+      tester,
+    ) async {
+      final appData = await _pump(tester, size: _wide);
+      final saved = await appData.repositories.savedSearches.create(
+        name: 'Pet',
+        spec: SavedSearchSpec.fromPanelState(
+          CollectionPanelState(text: 'Petronella'),
+          today: DateTime.utc(2026, 11, 23),
+        ).value!,
+      );
+      await _openProgramEditor(tester);
+      await tester.tap(find.byKey(const ValueKey('picker-search')));
+      await tester.pumpAndSettle();
+      final row = find.byKey(ValueKey('saved-search-row-${saved.id}'));
+      expect(row, findsOneWidget);
+
+      await _press(tester, LogicalKeyboardKey.escape);
+
+      expect(row, findsNothing);
+      expect(find.byType(ProgramEditorScreen), findsOneWidget);
+
+      // The dropdown is closed: Esc now leaves the page, as it did before
+      // there was a dropdown.
+      await _press(tester, LogicalKeyboardKey.escape);
+
+      expect(find.byType(ProgramEditorScreen), findsNothing);
+    });
+
     testWidgets('Esc closes an open menu and leaves the page under it', (
       tester,
     ) async {

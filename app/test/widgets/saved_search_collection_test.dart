@@ -62,7 +62,7 @@ Future<void> _pump(
   WidgetTester tester,
   CompendiumRepositories repos, {
   ContraDbOnline? contraDbOnline,
-  ValueNotifier<bool>? inView,
+  ValueNotifier<bool>? isActive,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 3000));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -97,13 +97,15 @@ Future<void> _pump(
           ),
         ),
       ),
-      // The app shell keeps every destination mounted and turns tickers off
-      // in the hidden ones; [inView] does the same.
+      // [isActive] is the real signal: the app shell's CollectionShell
+      // passes whether the Collection is the destination showing.
       home: ValueListenableBuilder<bool>(
-        valueListenable: inView ?? ValueNotifier(true),
-        builder: (context, visible, child) =>
-            TickerMode(enabled: visible, child: child!),
-        child: DanceListScreen(clock: _clock, contraDbOnline: contraDbOnline),
+        valueListenable: isActive ?? ValueNotifier(true),
+        builder: (context, active, _) => DanceListScreen(
+          clock: _clock,
+          contraDbOnline: contraDbOnline,
+          isActive: active,
+        ),
       ),
     ),
   );
@@ -299,7 +301,8 @@ void main() {
 
       expect(_searchText(tester), 'Petronella');
       expect(_shows('Chorus Jig'), isFalse);
-      expect(pet.name, 'Pet');
+      expect(_shows('Petronella'), isTrue);
+      expect(pet.spec.toJson()['text'], 'Petronella');
     });
 
     testWidgets('choosing Search for keeps the text and searches it', (
@@ -608,13 +611,117 @@ void main() {
       final tiles = tester.widgetList<ListTile>(
         find.descendant(of: _dropdown, matching: find.byType(ListTile)),
       );
-      // Row 0 is highlighted (where Enter would act), but with nothing typed
-      // and no arrow key since, Enter searches.
-      expect([for (final t in tiles) t.selected], [true]);
+      // With nothing typed and no arrow key since, no row is highlighted, and
+      // Enter searches.
+      expect([for (final t in tiles) t.selected], [false]);
       await tester.testTextInput.receiveAction(TextInputAction.search);
       await tester.pumpAndSettle();
       expect(_searchText(tester), '');
       expect(_shows('Chorus Jig'), isTrue);
+    });
+  });
+
+  group('the keyboard in the dropdown', () {
+    testWidgets('with nothing typed, nothing is highlighted, and the first '
+        'Down lands on the first saved search', (tester) async {
+      final repos = await _library();
+      final a = await _seed(repos, 'Alpha', CollectionPanelState(text: 'a'));
+      await _seed(repos, 'Becket', CollectionPanelState(text: 'b'));
+      await _pump(tester, repos);
+      await _focusField(tester);
+      List<bool> selected() => [
+        for (final t in tester.widgetList<ListTile>(
+          find.descendant(of: _dropdown, matching: find.byType(ListTile)),
+        ))
+          t.selected,
+      ];
+      expect(selected(), [false, false]);
+      tester.takeAnnouncements();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+
+      expect(selected(), [true, false]);
+      expect(
+        tester.takeAnnouncements().map((a) => a.message),
+        contains('Alpha, 1 of 2'),
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pumpAndSettle();
+      expect(_searchText(tester), 'a');
+      expect(a.name, 'Alpha');
+    });
+
+    testWidgets('while an input method is composing, the arrow keys are its '
+        'own', (tester) async {
+      final repos = await _library();
+      await _seed(repos, 'Pet', CollectionPanelState(text: 'Petronella'));
+      await _pump(tester, repos);
+      await _focusField(tester);
+      final controller = tester.widget<TextField>(_field).controller!;
+      controller.value = const TextEditingValue(
+        text: 'pe',
+        selection: TextSelection.collapsed(offset: 2),
+        composing: TextRange(start: 0, end: 2),
+      );
+      await tester.pump();
+      expect(_dropdown, findsOneWidget);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+
+      // The dropdown left the key alone: its highlight did not move. (The
+      // field may still use it; on macOS the framework sees a key before the
+      // input method does, which is what this guards.)
+      final tiles = tester.widgetList<ListTile>(
+        find.descendant(of: _dropdown, matching: find.byType(ListTile)),
+      );
+      expect([for (final t in tiles) t.selected], [true, false]);
+    });
+
+    testWidgets('focusing the field does not announce results; typing that '
+        'opens the dropdown does', (tester) async {
+      final repos = await _library();
+      await _seed(repos, 'Pet', CollectionPanelState(text: 'Petronella'));
+      await _pump(tester, repos);
+      tester.takeAnnouncements();
+
+      await _focusField(tester);
+      expect(_dropdown, findsOneWidget);
+      expect(
+        tester.takeAnnouncements().map((a) => a.message),
+        isNot(contains('Search results found')),
+      );
+
+      await _tapOff(tester);
+      expect(_dropdown, findsNothing);
+      await tester.enterText(_field, 'p');
+      await tester.pump();
+      await tester.pump();
+      expect(_dropdown, findsOneWidget);
+      expect(
+        tester.takeAnnouncements().map((a) => a.message),
+        contains('Search results found'),
+      );
+    });
+
+    testWidgets('the dropdown stays above the on-screen keyboard', (
+      tester,
+    ) async {
+      final repos = await _library();
+      for (var i = 0; i < 20; i++) {
+        await _seed(repos, 'Search $i', CollectionPanelState(text: 's$i'));
+      }
+      await _pump(tester, repos);
+      // A keyboard covering all but the top 400 logical pixels of the window.
+      tester.view.viewInsets = FakeViewPadding(
+        bottom: (3000 - 400) * tester.view.devicePixelRatio,
+      );
+      addTearDown(tester.view.resetViewInsets);
+      await _focusField(tester);
+
+      expect(_dropdown, findsOneWidget);
+      expect(tester.getRect(_dropdown).bottom, lessThanOrEqualTo(400));
     });
   });
 
@@ -710,7 +817,7 @@ void main() {
       });
     }
 
-    testWidgets('when the Collection comes back into view, a rename made '
+    testWidgets('when the Collection is shown again, a rename made '
         'meanwhile shows in the ⋮ menu, and a delete is forgotten', (
       tester,
     ) async {
@@ -720,31 +827,125 @@ void main() {
         'Pet',
         CollectionPanelState(text: 'Petronella'),
       );
-      final inView = ValueNotifier(true);
-      addTearDown(inView.dispose);
-      await _pump(tester, repos, inView: inView);
+      final isActive = ValueNotifier(true);
+      addTearDown(isActive.dispose);
+      await _pump(tester, repos, isActive: isActive);
       await _load(tester, search);
 
-      inView.value = false;
+      isActive.value = false;
       await tester.pumpAndSettle();
       await repos.savedSearches.save(
         SavedSearch(id: search.id, name: 'Renamed', spec: search.spec),
       );
-      inView.value = true;
+      isActive.value = true;
       await tester.pumpAndSettle();
       await _openMore(tester);
       expect(find.text('Rename "Renamed"…'), findsOneWidget);
       await tester.tapAt(Offset.zero);
       await tester.pumpAndSettle();
 
-      inView.value = false;
+      isActive.value = false;
       await tester.pumpAndSettle();
       await repos.savedSearches.delete(search.id);
-      inView.value = true;
+      isActive.value = true;
       await tester.pumpAndSettle();
       await _openMore(tester);
       expect(find.byKey(const ValueKey('saved-search-rename')), findsNothing);
       expect(find.text('Save this search…'), findsOneWidget);
+    });
+
+    testWidgets('Undo of a delete does not take over from a search loaded '
+        'since', (tester) async {
+      final repos = await _library();
+      final pet = await _seed(
+        repos,
+        'Pet',
+        CollectionPanelState(text: 'Petronella'),
+      );
+      final jig = await _seed(
+        repos,
+        'Jig',
+        CollectionPanelState(text: 'Chorus'),
+      );
+      await _pump(tester, repos);
+      await _load(tester, pet);
+      await _openMore(tester);
+      await _choose(tester, 'saved-search-delete');
+      // Jig is listed once the field no longer holds Pet's text.
+      await tester.tap(_field);
+      await tester.pump();
+      await tester.enterText(_field, '');
+      await tester.pump();
+      await tester.tap(_row(jig.id));
+      await tester.pump();
+      await tester.pump();
+
+      await tester.tap(find.byKey(const ValueKey('saved-search-undo')));
+      await tester.pumpAndSettle();
+
+      await _openMore(tester);
+      expect(find.text('Rename "Jig"…'), findsOneWidget);
+      expect(find.text('Rename "Pet"…'), findsNothing);
+    });
+
+    testWidgets('Undo of a delete does not make it the loaded search once the '
+        'search on screen was changed', (tester) async {
+      final repos = await _library();
+      final pet = await _seed(
+        repos,
+        'Pet',
+        CollectionPanelState(text: 'Petronella'),
+      );
+      await _pump(tester, repos);
+      await _load(tester, pet);
+      await _openMore(tester);
+      await _choose(tester, 'saved-search-delete');
+      await tester.enterText(_field, 'Chorus');
+      await tester.pump();
+
+      await tester.tap(find.byKey(const ValueKey('saved-search-undo')));
+      await tester.pumpAndSettle();
+
+      await _openMore(tester);
+      expect(find.byKey(const ValueKey('saved-search-rename')), findsNothing);
+      expect(find.text('Save this search…'), findsOneWidget);
+    });
+
+    testWidgets('Undo of a delete keeps a closed notice closed', (
+      tester,
+    ) async {
+      final repos = await _library();
+      final search = await _seed(
+        repos,
+        'Not bouncey',
+        CollectionPanelState(
+          advanced: BuilderGroup(
+            kind: GroupKind.none,
+            children: [BuilderTag(tagId: 't1')],
+          ),
+        ),
+      );
+      await repos.tags.delete('t1');
+      await _pump(tester, repos);
+      await _load(tester, search);
+      final notice = find.byKey(const ValueKey('saved-search-notice'));
+      await tester.tap(find.byKey(const ValueKey('saved-search-notice-close')));
+      await tester.pumpAndSettle();
+      expect(notice, findsNothing);
+      await _openMore(tester);
+      await _choose(tester, 'saved-search-delete');
+      tester.takeAnnouncements();
+
+      await tester.tap(find.byKey(const ValueKey('saved-search-undo')));
+      await tester.pumpAndSettle();
+
+      await _openMore(tester);
+      expect(find.text('Rename "Not bouncey"…'), findsOneWidget);
+      expect(notice, findsNothing);
+      expect(
+        tester.takeAnnouncements().map((a) => a.message),
+        isNot(contains(startsWith('"Not bouncey" uses things that are gone'))),
+      );
     });
 
     testWidgets('Undo of a delete makes it the loaded search again', (

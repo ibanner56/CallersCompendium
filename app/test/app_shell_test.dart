@@ -533,6 +533,72 @@ void main() {
     expect(searchText(), 'petro');
   });
 
+  testWidgets('on a wide window, saved searches stay current between the '
+      'Collection and Settings ▸ Collection, though both stay mounted '
+      '(#2325)', (tester) async {
+    final repos = openTestRepositories();
+    final stamp = DateTime.utc(2026, 1, 1);
+    await repos.dances.create(
+      Dance(id: 'd1', title: 'Petronella', createdAt: stamp, updatedAt: stamp),
+    );
+    final pet = await repos.savedSearches.create(
+      name: 'Pet',
+      spec: SavedSearchSpec.fromPanelState(
+        CollectionPanelState(text: 'Petronella'),
+        today: DateTime.utc(2026, 11, 23),
+      ).value!,
+    );
+    await _pump(tester, repos, size: const Size(1000, 1200));
+    Finder rail(String label) => find.descendant(
+      of: find.byType(NavigationRail),
+      matching: find.text(label),
+    );
+    // Load it in the Collection.
+    await tester.tap(find.byKey(const ValueKey('collection-search-field')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('saved-search-row-${pet.id}')));
+    await tester.pumpAndSettle();
+
+    // Settings ▸ Collection lists it; rename it there.
+    await tester.tap(rail('Settings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-nav-collection')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(ValueKey('settings-saved-search-rename-${pet.id}')),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('saved-search-name-field')),
+      'Petronella only',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('saved-search-name-save')));
+    await tester.pumpAndSettle();
+
+    // Back in the Collection, the ⋮ menu names it as renamed.
+    await tester.tap(rail('Collection'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+    await tester.pumpAndSettle();
+    expect(find.text('Rename "Petronella only"…'), findsOneWidget);
+    await tester.tapAt(Offset.zero);
+    await tester.pumpAndSettle();
+
+    // A search saved meanwhile (here, by sync) is listed when Settings is
+    // shown again; its Collection section stayed mounted.
+    final becket = await repos.savedSearches.create(
+      name: 'Becket',
+      spec: pet.spec,
+    );
+    await tester.tap(rail('Settings'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(ValueKey('settings-saved-search-${becket.id}')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('exposes four destinations including Settings and Guide', (
     tester,
   ) async {

@@ -43,7 +43,14 @@ class SettingsScreen extends StatefulWidget {
     this.diagnosticsLogSaver,
     this.sensitiveTermsProvider,
     this.csvExportDelivery = const CsvExportDelivery(),
+    this.isActive = true,
   });
+
+  /// Whether Settings is the destination showing. The app shell keeps it
+  /// mounted while another is selected; a section that shows data edited
+  /// elsewhere (Collection's saved searches) reads it again when this turns
+  /// true.
+  final bool isActive;
 
   /// Delivers the dances CSV export from General ▸ Backup & restore (#2332);
   /// a test seam forwarded to [GeneralSection].
@@ -172,7 +179,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           csvExportDelivery: widget.csvExportDelivery,
         );
       case _SettingsSection.collection:
-        return const CollectionSection();
+        return CollectionSection(isActive: widget.isActive);
       case _SettingsSection.defaults:
         return const DefaultsSection();
       case _SettingsSection.program:

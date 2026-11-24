@@ -132,6 +132,7 @@ class DanceListScreen extends StatefulWidget {
     this.contraDbOnline,
     this.csvExportDelivery = const CsvExportDelivery(),
     this.clock = const SearchClock(),
+    this.isActive = true,
   });
 
   /// Called with the tapped dance's id when the split-pane shell needs to
@@ -182,6 +183,12 @@ class DanceListScreen extends StatefulWidget {
   /// months") and for saving one as a distance: the caller's own calendar day,
   /// from one reading of the instant and the zone offset. A test seam.
   final SearchClock clock;
+
+  /// Whether the Collection is the destination showing ([CollectionShell]
+  /// passes its own `isActive`; the app shell keeps every destination
+  /// mounted). When it becomes true again, the loaded saved search is read
+  /// again: it may have been renamed or deleted in Settings, or by sync.
+  final bool isActive;
 
   @override
   State<DanceListScreen> createState() => _DanceListScreenState();
@@ -361,9 +368,6 @@ class _DanceListScreenState extends State<DanceListScreen>
   /// Whether the notice about [_loadedSearch]'s missing references was closed.
   bool _savedSearchNoticeClosed = false;
 
-  /// Whether the Collection was in view at the last dependency change.
-  bool _inView = true;
-
   /// Bumped after a saved search is saved, renamed or deleted here, so the
   /// search field's dropdown reads the list again.
   int _savedSearchRevision = 0;
@@ -514,12 +518,6 @@ class _DanceListScreenState extends State<DanceListScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Coming back into view (the app shell keeps every destination mounted,
-    // and turns tickers off in the hidden ones): the loaded saved search may
-    // have been renamed or deleted elsewhere meanwhile.
-    final inView = TickerMode.valuesOf(context).enabled;
-    if (inView && !_inView) unawaited(_refreshLoadedSearch());
-    _inView = inView;
     // Read the active dialect from the scope (registers rebuild dependency so
     // didChangeDependencies fires again when the dialect changes).
     // The collection mixes forms; a query is read in contra's dialect (the
@@ -628,6 +626,9 @@ class _DanceListScreenState extends State<DanceListScreen>
   @override
   void didUpdateWidget(DanceListScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      unawaited(_refreshLoadedSearch());
+    }
     if (!identical(widget.callersBoxOnline, oldWidget.callersBoxOnline)) {
       // Sync when the injected service changes, including when it is removed
       // (non-null -> null) so we revert to the default network-backed instance
@@ -1656,6 +1657,8 @@ class _DanceListScreenState extends State<DanceListScreen>
   Future<void> _deleteSavedSearch() async {
     final loaded = _loadedSearch;
     if (loaded == null) return;
+    // A notice the user closed stays closed if Undo brings this back.
+    final noticeClosed = _savedSearchNoticeClosed;
     final deleted = await _savedSearchActions().delete(
       loaded.search.id,
       loaded.search.name,
@@ -1665,6 +1668,7 @@ class _DanceListScreenState extends State<DanceListScreen>
         setState(() => _savedSearchRevision++);
         if (_loadedSearch == null && !_savedSearchActions().changed(loaded)) {
           _onSavedSearchLoaded(loaded);
+          setState(() => _savedSearchNoticeClosed = noticeClosed);
         }
       },
     );
@@ -1681,8 +1685,9 @@ class _DanceListScreenState extends State<DanceListScreen>
     _onSavedSearchLoaded(null);
   }
 
-  /// Reads the loaded search again when the Collection comes back into view
-  /// (the app keeps every destination mounted): a rename in Settings, or one
+  /// Reads the loaded search again when the Collection is shown again
+  /// ([DanceListScreen.isActive]; the app shell keeps every destination
+  /// mounted): a rename in Settings, or one
   /// synced from another device, shows in the ⋮ menu, and one deleted there is
   /// forgotten. What the panel shows, and its baseline, are unchanged.
   Future<void> _refreshLoadedSearch() async {

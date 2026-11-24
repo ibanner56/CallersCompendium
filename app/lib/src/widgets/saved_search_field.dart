@@ -34,8 +34,9 @@ class _Move extends Intent {
   final int by;
 }
 
-/// An action that consumes its key only while the dropdown is open, so the
-/// arrow keys and Escape reach the field (and the screen) otherwise.
+/// An action that acts, and consumes its key, only while [open] says so:
+/// otherwise the arrow keys reach the field (and an input method's candidate
+/// list), and a dismiss goes on to the page (Escape leaves it, as before).
 class _WhileOpen<T extends Intent> extends CallbackAction<T> {
   _WhileOpen({required super.onInvoke, required this.open});
 
@@ -61,12 +62,16 @@ class _WhileOpen<T extends Intent> extends CallbackAction<T> {
 /// Nothing here writes to [controller]: what is typed, the cursor and an IME
 /// composition are left as they are.
 ///
-/// The arrow keys move the highlight (it goes back to the first row whenever
-/// the text changes), Enter chooses the highlighted row, Escape closes the
-/// popover, and the highlighted row is announced, as in the command palette.
-/// With nothing typed there is no Search for row, so Enter loads a saved
-/// search only once the arrow keys have moved onto one; otherwise it searches,
-/// as it always did.
+/// While there is text, Search for is highlighted, and goes back to being so
+/// whenever the text changes. With nothing typed no row is highlighted, so
+/// Enter searches as it always did; the first Down highlights the first saved
+/// search (Up, the last). The arrow keys move the highlight and Enter chooses
+/// the highlighted row; the highlighted row is announced, as in the command
+/// palette. While an input method is composing, the arrow keys are left to
+/// it. Escape closes the popover while it is open; with it closed, Escape is
+/// not handled here, so it leaves the page as it always did. No key is bound
+/// to Escape here: the app's Escape reaches this field's dismiss action
+/// through the field.
 ///
 /// The popover's visibility is worked out on every build, from the focus, the
 /// list and [enabled], so a list that arrives after the field has focus, or
@@ -117,12 +122,13 @@ class _SavedSearchFieldState extends State<SavedSearchField> {
   int _readSeq = 0;
   String _lastText = '';
 
-  /// The highlighted row: the one Enter chooses.
-  int _highlight = 0;
+  /// The highlighted row, the one Enter chooses; null for none (nothing
+  /// typed, and no arrow key since).
+  int? _highlight;
 
-  /// Whether the arrow keys have moved the highlight since the text last
-  /// changed.
-  bool _moved = false;
+  /// Set by a change of text, so the popover announces that it opened when
+  /// typing opens it, but not on every focus.
+  bool _announceOpen = false;
 
   /// Set by a tap outside the field and the dropdown while the field has
   /// focus: the dropdown closes, though the field keeps its focus (as a text
@@ -135,12 +141,19 @@ class _SavedSearchFieldState extends State<SavedSearchField> {
   /// Whether the popover was open at the last build, to announce it opening.
   bool _wasOpen = false;
 
+  /// No highlight with nothing typed; otherwise Search for, the first row.
+  int? get _startHighlight => widget.controller.text.trim().isEmpty ? null : 0;
+
+  /// Whether an input method is composing, when the arrow keys are its own.
+  bool get _composing => widget.controller.value.composing.isValid;
+
   final Map<int, GlobalKey> _rowKeys = {};
 
   late final Map<Type, Action<Intent>> _actions = {
-    _Move: _WhileOpen<_Move>(open: () => _open, onInvoke: _move),
+    _Move: _WhileOpen<_Move>(open: () => _open && !_composing, onInvoke: _move),
+    // Reached by the app's Escape through the field (no key is bound here).
     DismissIntent: _WhileOpen<DismissIntent>(
-      open: () => _open,
+      open: () => _open && !_composing,
       onInvoke: (_) {
         setState(() => _dismissed = true);
         return null;
@@ -151,7 +164,6 @@ class _SavedSearchFieldState extends State<SavedSearchField> {
   static const _shortcuts = <ShortcutActivator, Intent>{
     SingleActivator(LogicalKeyboardKey.arrowDown): _Move(1),
     SingleActivator(LogicalKeyboardKey.arrowUp): _Move(-1),
-    SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
   };
 
   @override
@@ -194,8 +206,8 @@ class _SavedSearchFieldState extends State<SavedSearchField> {
     if (widget.controller.text == _lastText) return;
     _lastText = widget.controller.text;
     setState(() {
-      _highlight = 0;
-      _moved = false;
+      _highlight = _startHighlight;
+      _announceOpen = true;
       _closedByTap = false;
       _dismissed = false;
     });
@@ -208,8 +220,8 @@ class _SavedSearchFieldState extends State<SavedSearchField> {
       unawaited(_read());
     }
     setState(() {
-      _highlight = 0;
-      _moved = false;
+      _highlight = _startHighlight;
+      _announceOpen = false;
       _closedByTap = false;
       _dismissed = false;
     });
@@ -249,9 +261,13 @@ class _SavedSearchFieldState extends State<SavedSearchField> {
     final count = _rows().length;
     if (count == 0) return null;
     setState(() {
-      _highlight = (_highlight + intent.by) % count;
-      if (_highlight < 0) _highlight += count;
-      _moved = true;
+      final from = _highlight;
+      // From no highlight, Down lands on the first row and Up on the last.
+      var next = from == null
+          ? (intent.by > 0 ? 0 : count - 1)
+          : (from + intent.by) % count;
+      if (next < 0) next += count;
+      _highlight = next;
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -279,12 +295,13 @@ class _SavedSearchFieldState extends State<SavedSearchField> {
 
   void _announceHighlighted() {
     final rows = _rows();
-    if (_highlight >= rows.length) return;
+    final at = _highlight;
+    if (at == null || at >= rows.length) return;
     final l10n = AppLocalizations.of(context);
     _send(
       l10n.savedSearchHighlightedRow(
-        _label(l10n, rows[_highlight]),
-        _highlight + 1,
+        _label(l10n, rows[at]),
+        at + 1,
         rows.length,
       ),
     );
@@ -295,9 +312,9 @@ class _SavedSearchFieldState extends State<SavedSearchField> {
   /// arrow keys moved onto), and otherwise the ordinary search.
   void _submit() {
     final rows = _rows();
-    final typed = widget.controller.text.trim().isNotEmpty;
-    if (_open && (typed || _moved) && _highlight < rows.length) {
-      _choose(rows[_highlight]);
+    final at = _highlight;
+    if (_open && at != null && at < rows.length) {
+      _choose(rows[at]);
     } else {
       widget.onSubmitted();
     }
@@ -333,7 +350,11 @@ class _SavedSearchFieldState extends State<SavedSearchField> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final open = _open;
-    if (open && !_wasOpen && MediaQuery.supportsAnnounceOf(context)) {
+    // Announced when typing opens it, not each time the field gains focus.
+    if (open &&
+        !_wasOpen &&
+        _announceOpen &&
+        MediaQuery.supportsAnnounceOf(context)) {
       final found = WidgetsLocalizations.of(context).searchResultsFound;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _send(found);
@@ -342,7 +363,7 @@ class _SavedSearchFieldState extends State<SavedSearchField> {
     _wasOpen = open;
     _sync(open);
     final rows = _rows();
-    if (_highlight >= rows.length) _highlight = 0;
+    if ((_highlight ?? 0) >= rows.length) _highlight = _startHighlight;
     return OverlayPortal.overlayChildLayoutBuilder(
       controller: _overlay,
       overlayChildBuilder: (context, info) =>
@@ -393,8 +414,11 @@ class _SavedSearchFieldState extends State<SavedSearchField> {
       info.childPaintTransform,
       Offset(0, field.height),
     );
-    final insets = MediaQuery.viewInsetsOf(context);
-    final padding = MediaQuery.paddingOf(context);
+    // The window's own insets: a Scaffold above strips the keyboard's from
+    // the MediaQuery here, while the overlay spans the whole window.
+    final view = MediaQueryData.fromView(View.of(context));
+    final insets = view.viewInsets;
+    final padding = view.padding;
     final below =
         info.overlaySize.height - insets.bottom - padding.bottom - origin.dy;
     final maxHeight = math.max(

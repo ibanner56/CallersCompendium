@@ -28,7 +28,7 @@ Future<SavedSearch> _seed(
 Future<void> _pump(
   WidgetTester tester,
   CompendiumRepositories repos, {
-  ValueNotifier<bool>? inView,
+  ValueNotifier<bool>? isActive,
 }) async {
   await tester.binding.setSurfaceSize(const Size(800, 2000));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -38,13 +38,12 @@ Future<void> _pump(
       supportedLocales: testSupportedLocales,
       builder: (context, child) =>
           RepositoriesScope(repositories: repos, child: child!),
-      // The app shell keeps Settings mounted and turns tickers off while
-      // another destination is shown; [inView] does the same.
+      // [isActive] is the real signal: the app shell tells SettingsScreen
+      // whether Settings is the destination showing, and it passes it on.
       home: ValueListenableBuilder<bool>(
-        valueListenable: inView ?? ValueNotifier(true),
-        builder: (context, visible, child) =>
-            TickerMode(enabled: visible, child: child!),
-        child: const Scaffold(body: CollectionSection()),
+        valueListenable: isActive ?? ValueNotifier(true),
+        builder: (context, active, _) =>
+            Scaffold(body: CollectionSection(isActive: active)),
       ),
     ),
   );
@@ -188,26 +187,26 @@ void main() {
       'elsewhere meanwhile', (tester) async {
     final repos = openTestRepositories();
     final pet = await _seed(repos, 'Pet', 'petronella');
-    final inView = ValueNotifier(true);
-    addTearDown(inView.dispose);
-    await _pump(tester, repos, inView: inView);
+    final isActive = ValueNotifier(true);
+    addTearDown(isActive.dispose);
+    await _pump(tester, repos, isActive: isActive);
 
-    inView.value = false;
+    isActive.value = false;
     await tester.pumpAndSettle();
     final becket = await _seed(repos, 'Becket', 'becket');
     await repos.savedSearches.save(
       SavedSearch(id: pet.id, name: 'Petronella only', spec: pet.spec),
     );
-    inView.value = true;
+    isActive.value = true;
     await tester.pumpAndSettle();
 
     expect(find.text('Becket'), findsOneWidget);
     expect(find.text('Petronella only'), findsOneWidget);
 
-    inView.value = false;
+    isActive.value = false;
     await tester.pumpAndSettle();
     await repos.savedSearches.delete(becket.id);
-    inView.value = true;
+    isActive.value = true;
     await tester.pumpAndSettle();
     expect(find.text('Becket'), findsNothing);
   });

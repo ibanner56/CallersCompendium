@@ -1134,20 +1134,35 @@ instead, all through one set of UI-free actions, `SavedSearchActions`
 
 - **The search field's dropdown** (`SavedSearchField`,
   `app/lib/src/widgets/saved_search_field.dart`), in the Collection and the
-  picker. It is Flutter's `RawAutocomplete` over the host's own controller and
-  focus node, always a popover (not `ResponsiveAutocomplete`, whose phone
-  layout turns the field into a read-only launcher). With the field focused
-  it lists the saved searches by name (duplicates are allowed: two devices
-  could not prevent them offline), narrowed to the names containing what is
-  typed. While there is text the first row is **Search for "…"**. That row,
-  Enter (unless the arrow keys moved onto a saved search) and a tap outside
-  keep the ordinary search: the host's debounce runs it as it is typed, and
-  Enter runs it at once, as before. A tap outside closes the popover without
-  taking focus, as a text field on a phone keeps it. Choosing a row never
-  writes its label into the field. Arrow keys, Escape and the "results"
-  announcement come from `RawAutocomplete`; a move of the highlight is
-  announced as the command palette does. Disabled while Online search is on.
-  A saved search this version cannot read is not listed there.
+  picker: a popover of its own (an `OverlayPortal` under the field, over the
+  host's own controller and focus node), not Flutter's autocomplete widgets.
+  Those decide whether to show only when focus or text changes, and write the
+  chosen option into the field; this dropdown must open when the list
+  arrives after focus, and must never touch what is typed (nor the cursor, nor
+  an input method's composition). Nor is it `ResponsiveAutocomplete`, whose
+  phone layout turns the field into a read-only launcher.
+  - With the field focused it lists the saved searches by name (duplicates
+    are allowed: two devices could not prevent them offline), narrowed to the
+    names containing what is typed. The list is read again each time the
+    field gains focus, and after the host saves, renames or deletes one.
+  - While there is text, the first row is **Search for "…"** and is
+    highlighted; with nothing typed no row is highlighted. That row, Enter
+    with nothing highlighted, and a tap outside keep the ordinary search: the
+    host's debounce runs it as it is typed, and Enter runs it at once, as
+    before. A tap outside, while the field has focus, closes the popover
+    without taking focus, as a text field on a phone keeps it.
+  - Up and Down move the highlight (from none, Down lands on the first row and
+    Up on the last) and Enter chooses it; they are left to an input method
+    while it is composing. A move is announced as the command palette does;
+    "results found" is announced when typing opens the popover, not on every
+    focus. No key is bound to Escape: the app's Escape reaches the dropdown's
+    dismiss action through the field, so Escape closes an open popover and,
+    with it closed, leaves the page as it did before.
+  - Choosing a saved search takes focus from the field, so the popover does
+    not reopen over the results the load shows. The popover's height is
+    bounded by the window's own keyboard inset.
+  - Disabled while Online search is on. A saved search this version cannot
+    read is not listed there.
 - **The Collection's ⋮ menu**: **Save this search…** (while a query is set,
   `CollectionPanelState.hasQuery`; the dialog says what is kept of a
   calling-history window, a chosen date as whole months back from today; a
@@ -1164,6 +1179,14 @@ instead, all through one set of UI-free actions, `SavedSearchActions`
   **Dances** group that moved there from General): every saved search, with
   Rename and Delete, and those this version cannot read last under **Needs
   attention**, explained and deletable. No Update there: it needs a panel.
+
+**Writes re-read first.** Update, Rename and Delete read the stored search
+again before writing (`SavedSearchActions._storedNow`): Update keeps the name
+stored now, Rename keeps the content stored now, and a search deleted
+meanwhile (in Settings, or by sync) is refused with a message and forgotten,
+never brought back. The Collection reads its loaded search again, and Settings
+▸ Collection its list, each time its destination is shown again (`isActive`,
+passed down from the app shell, which keeps every destination mounted).
 
 **Delete** follows the app's rule: `confirmDeleteIfEnabled`, then Undo
 (`showUndoSnackBar`). The Undo writes the stored value back exactly as it was
