@@ -1170,11 +1170,12 @@ To be defined later with worked examples.
 - **params** (meets CallersCompendium baseline `{who, where, singleFile, destination, direction,
   beats}`):
   - `who` — dancer set, default `partners`. The pairs that travel together.
-  - `where` — direction, default `across`. **Only `across` is modelled**; any other value is
-    deferred (`unsupportedParam`).
+  - `where` — direction, default `across`. **`across` is modelled, and `along` with
+    `singleFile`** (below); any other value is deferred (`unsupportedParam`).
   - `direction` — **spin direction**, default `counterclockwise`: the wheel's sense. **No
     net-position effect** — a 180° wheel lands the same either way, as for `courtesy_turn`.
-  - `singleFile` — flag, default `false`. A single-file promenade is **deferred**.
+  - `singleFile` — flag, default `false`. A single-file promenade **along** the set is modelled
+    (below); one in any other `where` is **deferred**.
   - `destination` — dancer set, default `unspecified`. A stated destination names travel past the
     hands four and is **deferred**.
   - `beats` — int, default 8.
@@ -1214,10 +1215,26 @@ To be defined later with worked examples.
 - **facing (output):** **into the set** (across).
 - **interaction scope:** within the hands four; `nextNeighbors` and other distance sets reach as
   for every figure (`dancerSets`).
-- **h4 contribution** (D7): 0.
-- **progression-eligible:** no.
-- **still deferred:** single-file promenades, whole-set and around-a-dancer promenades (above),
-  stated destinations, and every `where` but `across`. The prior verifier's conflation of
+- **h4 contribution** (D7): 0 (+1 single file along the set).
+- **progression-eligible:** no (yes single file along the set).
+- **single file along the set** *(user-ruled 2026-11-24, Hudson's note on Honeymoon)*: with
+  `singleFile` and `where: along`, every dancer walks **one place around the outside of the whole
+  set**, single file. Clockwise from above (row 0 at the top, the west column on the left) carries
+  the west line up and the east line down, which is exactly a `slide_along_set` left, ends and
+  re-banding included; counterclockwise is a slide right. Like the slide it **is its own
+  progression**, is progression-eligible, needs both lines on the side columns, and contributes
+  +1 to the hands-four count. `who` is not read (nobody dances in pairs). A stated `destination`
+  is still deferred. Treating counterclockwise as the mirror, and reusing the slide's ends and
+  re-banding, are the agent's calls.
+  - **Caller's Box bridge** (`io/callersbox_source.dart`): that source's "Single file promenade
+    clockwise around the major set to N2" imports as a single-file `circle` noted "around the
+    major set to N2"; the bridge rewrites it to this promenade (circle `left` → `clockwise`,
+    `right` → `counterclockwise`), and assumes it is the dance's progression in any formation
+    *(the ruling's reading; the import rewrite and the placement are the agent's calls)*. A note
+    naming a counter-rotation ("women ccw in center, men cw on outside") is left as the import
+    read it.
+- **still deferred:** single-file promenades other than along the set, whole-set and
+  around-a-dancer promenades (above), stated destinations, and every other `where`. The prior verifier's conflation of
   `promenade across` with `right_left_through across` for *row* couples does not arise here: a
   pair that is not side by side in a side column is refused.
 - **sources:** user ruling, 2026-11-22; CallersCompendium taxonomy `promenade` MoveDef;
@@ -1321,7 +1338,8 @@ To be defined later with worked examples.
 - **h4 contribution** (D7): **+1** (needs room to slide to the adjacent grouping).
 - **progression-eligible:** yes — this is the figure that carries the Becket column-slide
   progression. **This is the one known figure where a Becket progression column-slides instead
-  of progressing DI-style** (fundamentals §10.6); other single-file-promenade-like figures TBD.
+  of progressing DI-style** (fundamentals §10.6), apart from the single-file `promenade` along the
+  set, which lands exactly as a slide does (see `promenade`).
 - **its own progression:** the slide **is** the progression, so a progression flag on it names
   displacement the figure has already made rather than asking for more, and the set advances
   **once**. This is what separates it from a figure danced with the `nextNeighbors`, which

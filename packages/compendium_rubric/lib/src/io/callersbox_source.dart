@@ -564,13 +564,14 @@ bool retryPlacesDifferently(BridgedDance attempt, BridgedDance fallback) =>
 /// The translation is deliberately thin — four fields, because those are the
 /// four [parseDance] looks at. Its figures are [dancedFigures], so a `sequence`
 /// arrives as its children (and a flagged sequence's flag on its last child).
-/// Beyond that it does four things the source did not: it may supply the
+/// Beyond that it does five things the source did not: it may supply the
 /// progression flag (see [assumedProgressionIndex]), it reads a slide
 /// after a balanced long wave as the Rory O'More it is (see
-/// [_slidesTheWave]), it reads a hall figure noted "backwards" as a line
-/// backing along the hall (see [_hallBackwards]), and it reads a swing noted
-/// "face up" or "finish proper" as finishing facing up (see
-/// [_swingNoteFacing]).
+/// [_slidesTheWave]), it reads a single-file circle around the major set to
+/// N2 as the promenade along the set it is (see [_promenadesAroundTheSet]),
+/// it reads a hall figure noted "backwards" as a line backing along the hall
+/// (see [_hallBackwards]), and it reads a swing noted "face up" or "finish
+/// proper" as finishing facing up (see [_swingNoteFacing]).
 ///
 /// Set [useNextNeighborsFallback] to place the progression by
 /// [nextNeighborsProgressionIndex] instead. That is the retry
@@ -661,9 +662,13 @@ BridgedDance bridgeCoreDance(
           {
             'move': _slidesTheWave(figures, index)
                 ? 'rory_o_more'
+                : _promenadesAroundTheSet(figures[index])
+                ? 'promenade'
                 : figures[index].move,
             'params': _slidesTheWave(figures, index)
                 ? _roryParams(figures, index)
+                : _promenadesAroundTheSet(figures[index])
+                ? _aroundTheSetParams(figures[index])
                 : {
                     ..._recordParams(figures[index].params),
                     if (_hallBackwards(figures[index])) 'facing': 'backward',
@@ -681,6 +686,32 @@ BridgedDance bridgeCoreDance(
     laterProgressionsAt: laterAt,
   );
 }
+
+/// Whether [figure] is a single-file promenade around the major set to the
+/// next neighbours, which the Caller's Box import reads as a single-file
+/// circle noted "around the major set to N2".
+///
+/// Hudson ruled (2026-11-24) that it is a promenade along the set, single
+/// file, and the bridge writes it as one ([_aroundTheSetParams]). A note
+/// naming a counter-rotation ("women ccw in center, men cw on outside") is a
+/// different figure and is left alone (agent's call).
+bool _promenadesAroundTheSet(core.Figure figure) {
+  if (figure.move != 'circle' || figure.params['singleFile'] != true) {
+    return false;
+  }
+  final note = figure.note ?? '';
+  if (!note.startsWith('around the major set to N2')) return false;
+  return !RegExp(r'center|centre|inside|outside|ring').hasMatch(note);
+}
+
+Map<String, Object?> _aroundTheSetParams(core.Figure figure) => {
+  'where': 'along',
+  'singleFile': true,
+  'direction': (figure.params['direction'] ?? 'left') == 'right'
+      ? 'counterclockwise'
+      : 'clockwise',
+  'beats': ?figure.params['beats'],
+};
 
 /// Whether figure [index] is a slide along the set straight after a balance
 /// in a long wave, which is a Rory O'More *(user-ruled 2026-11-23)*.
@@ -763,7 +794,11 @@ core.Figure _mainFigure(core.Figure figure) =>
 /// imported from it arrives with no figure flagged.
 ///
 /// The rule is a rule rather than a search on purpose: it never tries a
-/// placement to see what compiles. Outside Becket it is positional, apart
+/// placement to see what compiles. First, in any formation, a **single-file
+/// promenade around the major set to N2** progresses: Hudson ruled
+/// (2026-11-24) that it carries every dancer on to the next neighbours, and
+/// taking it as the progression is the agent's call. Outside Becket the rule
+/// is otherwise positional, apart
 /// from an arch and dive after a hall figure (below). **The last figure
 /// progresses**, which is where contra choreography
 /// overwhelmingly puts it — the dance ends standing with the next couple. In
@@ -804,6 +839,13 @@ core.Figure _mainFigure(core.Figure figure) =>
 int? assumedProgressionIndex(core.Dance dance) {
   final figures = _requireDecoded(dance);
   if (figures.isEmpty) return null;
+
+  // A single-file promenade around the major set to N2 carries everyone on
+  // to the next neighbours (user-ruled 2026-11-24), so it is the progression
+  // wherever it falls (agent's call).
+  for (var index = 0; index < figures.length; index++) {
+    if (_promenadesAroundTheSet(_mainFigure(figures[index]))) return index;
+  }
 
   final shape = dance.formation.shape;
   final isBecket =

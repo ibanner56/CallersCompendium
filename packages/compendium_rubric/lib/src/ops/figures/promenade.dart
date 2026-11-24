@@ -10,8 +10,12 @@ part of '../operation.dart';
 /// diagonally across the hands four, facing in. Positions and facings are
 /// [_tradeDiagonallyFacingIn], shared with [RightLeftThrough].
 ///
-/// Only `where: across` with partnered pairs is modelled. A single-file
-/// promenade, any other `where`, and a stated `destination` raise
+/// `where: across` with partnered pairs is modelled, and so is a single-file
+/// promenade `along` the set (user-ruled 2026-11-24): every dancer walks one
+/// place around the outside of the whole set, which lands exactly as a
+/// [SlideAlongSet] does, clockwise as a slide left and counterclockwise as a
+/// slide right, and like the slide is its own progression. Any other single
+/// file or `where`, and a stated `destination`, raise
 /// [ErrorKind.unsupportedParam]. A Caller's Box promenade that states no
 /// `where` (a whole-set or around-a-dancer promenade there) is stopped before
 /// it reaches this operation and reported as `unstructured`, an import
@@ -29,7 +33,8 @@ final class Promenade extends Operation {
   /// side column of its hands four.
   final WhoSet who;
 
-  /// Where the pairs travel. Only `across` is modelled.
+  /// Where the pairs travel: `across`, or `along` for a single-file
+  /// promenade. Nothing else is modelled.
   final String where;
 
   /// The wheel's sense. A 180° wheel lands the same either way — as for
@@ -38,7 +43,7 @@ final class Promenade extends Operation {
   final SpinDirection direction;
 
   /// A single-file promenade: dancers one behind another, not in pairs.
-  /// Deferred.
+  /// Modelled only `along` the set.
   final bool singleFile;
 
   /// Whom the pairs travel to, when the source says. `null` is the upstream
@@ -50,10 +55,38 @@ final class Promenade extends Operation {
   String get name => 'promenade';
 
   @override
-  Iterable<WhoSet?> get dancerSets => [who];
+  Iterable<WhoSet?> get dancerSets => _aroundTheSet ? const [] : [who];
+
+  /// A single-file promenade along the set: every dancer walks one place
+  /// around the outside of the whole set.
+  bool get _aroundTheSet => singleFile && where == 'along';
+
+  SlideAlongSet get _asSlide => SlideAlongSet(
+    slide: direction == SpinDirection.counterclockwise
+        ? SlideDirection.right
+        : SlideDirection.left,
+  );
+
+  @override
+  int get hands4Contribution => _aroundTheSet ? 1 : 0;
+
+  @override
+  bool get progressionEligible => _aroundTheSet;
+
+  @override
+  bool get isItsOwnProgression => _aroundTheSet;
 
   @override
   OpError? checkPreconditions(Formation formation) {
+    if (_aroundTheSet) {
+      if (destination != null) {
+        return OpError(
+          ErrorKind.unsupportedParam,
+          'a promenade to ${destination!.key} is deferred',
+        );
+      }
+      return _asSlide.checkPreconditions(formation);
+    }
     if (singleFile) {
       return const OpError(
         ErrorKind.unsupportedParam,
@@ -95,8 +128,9 @@ final class Promenade extends Operation {
   }
 
   @override
-  Result<Formation, OpError> perform(Formation formation) =>
-      Ok(_tradeDiagonallyFacingIn(formation));
+  Result<Formation, OpError> perform(Formation formation) => _aroundTheSet
+      ? _asSlide.perform(formation)
+      : Ok(_tradeDiagonallyFacingIn(formation));
 
   @override
   bool operator ==(Object other) =>

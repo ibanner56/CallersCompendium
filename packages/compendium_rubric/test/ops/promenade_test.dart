@@ -113,6 +113,52 @@ void main() {
     }
   });
 
+  group('A single-file promenade around the major set', () {
+    // Hudson ruled 2026-11-24 that "single file promenade clockwise around
+    // the major set to N2" is a promenade along the set, single file, in
+    // which every dancer walks one place clockwise around the outside of the
+    // whole set. Clockwise from above, with the top of the set at row 0 and
+    // the west column on the left, carries the west line up and the east
+    // line down: the same displacement as a slide left.
+    final improper = startingFormation(
+      FormationType.dupleImproper,
+      handsFour: 2,
+    );
+
+    test('clockwise lands where a slide left does', () {
+      const op = Promenade(
+        where: 'along',
+        singleFile: true,
+        direction: SpinDirection.clockwise,
+      );
+      expect(applyOk(op, improper), applyOk(const SlideAlongSet(), improper));
+    });
+
+    test('counterclockwise lands where a slide right does', () {
+      const op = Promenade(where: 'along', singleFile: true);
+      expect(
+        applyOk(op, improper),
+        applyOk(const SlideAlongSet(slide: SlideDirection.right), improper),
+      );
+    });
+
+    test('is its own progression, like the slide', () {
+      const op = Promenade(where: 'along', singleFile: true);
+      expect(op.isItsOwnProgression, isTrue);
+      expect(op.progressionEligible, isTrue);
+      expect(const Promenade().isItsOwnProgression, isFalse);
+    });
+
+    test('a stated destination is still deferred', () {
+      const op = Promenade(
+        where: 'along',
+        singleFile: true,
+        destination: WhoSet.nextNeighbors,
+      );
+      expect(applyErr(op, improper).kind, ErrorKind.unsupportedParam);
+    });
+  });
+
   group('Promenade across in a longer set', () {
     test('every hands four promenades on its own', () {
       final after = applyOk(

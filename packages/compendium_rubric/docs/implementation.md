@@ -945,7 +945,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,601 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,609 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,
@@ -999,7 +999,8 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
   required to refuse with `unresolvableDancerSet` rather than pick one.
 - **Deferred, with worked examples still needed** (the Held table, and the
   deferrals in each figure's `docs/taxonomy.md` entry): `promenade`
-  beyond `where: across` (single-file, whole-set, and stated destinations),
+  beyond `where: across` and single file along the set (whole-set promenades
+  and stated destinations),
   `slice` by a single dancer or with no return, `dolphin_hey`, and the moves
   taxonomy v36–v40
   added and not yet built (`trade_the_wave`, `starburst`, `hey_for_three`),
