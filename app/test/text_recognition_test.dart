@@ -544,8 +544,9 @@ void main() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, null);
       expect(
-        (await ChannelTextRecognitionService().availability(['en']))
-            .isAvailable,
+        (await ChannelTextRecognitionService().availability([
+          'en',
+        ])).isAvailable,
         isFalse,
       );
     });

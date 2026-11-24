@@ -251,6 +251,21 @@ jobs:
       # standalone test project and runs it against this machine's own
       # Windows OCR and English language pack. It runs on every Windows leg;
       # the build takes about a minute.
+      # Windows OCR reads English only when the en-US OCR language feature is
+      # installed. Report it, and add it when the image lacks it, so a missing
+      # feature reads as that rather than as a recognizer failure.
+      - name: Ensure the English OCR language (Windows)
+        if: matrix.target == 'windows'
+        shell: pwsh
+        timeout-minutes: 15
+        run: |
+          $name = 'Language.OCR~~~en-US~0.0.1.0'
+          $state = (Get-WindowsCapability -Online -Name $name).State
+          Write-Output "$name is $state"
+          if ($state -ne 'Installed') {
+            Add-WindowsCapability -Online -Name $name | Out-Null
+            Write-Output "$name is now $((Get-WindowsCapability -Online -Name $name).State)"
+          }
       - name: Test native Windows code (text recognition)
         if: matrix.target == 'windows'
         shell: bash

@@ -112,6 +112,10 @@ const std::vector<std::string> kInstalled = {"en-US"};
 
 void TestInstalledLanguagesIncludeEnglish() {
   const auto installed = text_recognition::InstalledLanguageTags();
+  std::string tags;
+  for (const auto& tag : installed) tags += (tags.empty() ? "" : ", ") + tag;
+  std::printf("Installed OCR languages: %s\n",
+              tags.empty() ? "(none)" : tags.c_str());
   Check(!text_recognition::TagsFor("en", installed).empty(),
         "Windows OCR offers English on this machine (the CI image's own "
         "language); the recognition tests below need it");
@@ -192,6 +196,48 @@ void TestAPictureStoredSidewaysIsReadUpright() {
   }
 }
 
+void TestALargeSidewaysPhotoIsScaledDownAndReadUpright() {
+  // Over kDecodeSide on its longer side, so it is scaled before reading, and
+  // stored sideways as a phone stores a portrait photo.
+  const int width = 6000;
+  const int height = 1500;
+  Gdiplus::Bitmap card(width, height, PixelFormat24bppRGB);
+  {
+    Gdiplus::Graphics graphics(&card);
+    graphics.Clear(Gdiplus::Color(255, 255, 255, 255));
+    graphics.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
+    Gdiplus::FontFamily family(L"Arial");
+    Gdiplus::Font font(&family, 200, Gdiplus::FontStyleRegular,
+                       Gdiplus::UnitPixel);
+    Gdiplus::SolidBrush ink(Gdiplus::Color(255, 0, 0, 0));
+    graphics.DrawString(L"A1 (8) Neighbor balance", -1, &font,
+                        Gdiplus::PointF(150.0f, 200.0f), &ink);
+    graphics.DrawString(L"A2 (8) Long lines", -1, &font,
+                        Gdiplus::PointF(150.0f, 750.0f), &ink);
+  }
+  card.RotateFlip(Gdiplus::Rotate270FlipNone);
+  USHORT orientation = 6;
+  Gdiplus::PropertyItem item{};
+  item.id = PropertyTagOrientation;
+  item.length = sizeof(orientation);
+  item.type = PropertyTagTypeShort;
+  item.value = &orientation;
+  card.SetPropertyItem(&item);
+  const auto reading = text_recognition::Recognize(
+      Encode(card, L"image/jpeg"), {"en"},
+      text_recognition::InstalledLanguageTags());
+  Check(!reading.error, "a large sideways photo is read");
+  const auto lines = Lines(reading.text);
+  Check(lines.size() == 2, "a large sideways photo reads as two lines",
+        reading.text);
+  if (lines.size() == 2) {
+    Check(Contains(lines[0], "Neighbor balance"), "large: line 1 first",
+          reading.text);
+    Check(Contains(lines[1], "Long lines"), "large: line 2 second",
+          reading.text);
+  }
+}
+
 void TestAPictureOverThePixelCapIsRefusedBeforeReading() {
   Gdiplus::Bitmap wide(static_cast<INT>(text_recognition::kMaxSide + 1), 1,
                        PixelFormat24bppRGB);
@@ -231,22 +277,39 @@ void TestErrorCodesMatchTheChannel() {
   Check(std::string(ErrorCode(Error::kFailed)) == "failed", "failed code");
 }
 
+// Runs |test|, counting an exception it throws as a failure.
+void Run(const char* name, void (*test)()) {
+  try {
+    test();
+  } catch (const winrt::hresult_error& e) {
+    Check(false, name, winrt::to_string(e.message()));
+  } catch (...) {
+    Check(false, name, "threw");
+  }
+}
+
 }  // namespace
 
 int main() {
+  // Unbuffered, so every FAIL line is printed even if the program crashes.
+  std::setvbuf(stdout, nullptr, _IONBF, 0);
   winrt::init_apartment(winrt::apartment_type::multi_threaded);
   Gdiplus::GdiplusStartupInput input;
   ULONG_PTR token = 0;
-  Gdiplus::GdiplusStartup(&token, &input, nullptr);
+  if (Gdiplus::GdiplusStartup(&token, &input, nullptr) != Gdiplus::Ok) {
+    std::printf("FAIL: GDI+ did not start\n");
+    return 1;
+  }
 
-  TestInstalledLanguagesIncludeEnglish();
-  TestLanguageCodesMatchInstalledTags();
-  TestATypedCardReadsAsItsLinesInOrder();
-  TestAPictureStoredSidewaysIsReadUpright();
-  TestAPictureOverThePixelCapIsRefusedBeforeReading();
-  TestBytesThatAreNotAPictureAreUnreadable();
-  TestNoInstalledLanguageFailsWithoutReading();
-  TestErrorCodesMatchTheChannel();
+  Run("installed languages", TestInstalledLanguagesIncludeEnglish);
+  Run("language codes", TestLanguageCodesMatchInstalledTags);
+  Run("typed card", TestATypedCardReadsAsItsLinesInOrder);
+  Run("sideways photo", TestAPictureStoredSidewaysIsReadUpright);
+  Run("large sideways photo", TestALargeSidewaysPhotoIsScaledDownAndReadUpright);
+  Run("pixel cap", TestAPictureOverThePixelCapIsRefusedBeforeReading);
+  Run("not a picture", TestBytesThatAreNotAPictureAreUnreadable);
+  Run("no language", TestNoInstalledLanguageFailsWithoutReading);
+  Run("error codes", TestErrorCodesMatchTheChannel);
 
   Gdiplus::GdiplusShutdown(token);
   std::printf("Windows text recognition tests: %d failure(s)\n", failures);

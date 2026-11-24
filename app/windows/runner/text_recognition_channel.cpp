@@ -43,6 +43,9 @@ void RunInBackground(HWND window,
       // The window is gone, and the engine with it: nobody is waiting.
       delete answer;
     }
+    // An answer posted while the window is being destroyed is discarded
+    // with it, unfreed, and a reading still running when the app quits is
+    // cut short. Both happen only at exit, where the process frees all.
   }).detach();
 }
 

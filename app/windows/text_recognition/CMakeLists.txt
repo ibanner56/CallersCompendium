@@ -5,7 +5,10 @@
 cmake_minimum_required(VERSION 3.14)
 
 add_library(text_recognizer STATIC text_recognizer.cpp)
-target_compile_features(text_recognizer PUBLIC cxx_std_17)
+# C++20: in C++17 the SDK's C++/WinRT includes <experimental/coroutine>,
+# which current MSVC refuses. The header it exports needs only C++17, so the
+# runner stays on C++17.
+target_compile_features(text_recognizer PRIVATE cxx_std_20)
 target_compile_options(text_recognizer PRIVATE /W4 /WX /EHsc /permissive- /bigobj)
 target_compile_definitions(text_recognizer PRIVATE UNICODE _UNICODE NOMINMAX)
 target_include_directories(text_recognizer PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")

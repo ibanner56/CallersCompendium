@@ -292,9 +292,10 @@ correct it there: the lines are then read exactly as typed text is.
 - It reads the app's language and English. Where the device can't read the
   app's language (some languages, such as Japanese, need a newer iOS or
   macOS, and some aren't offered at all), the sheet says so and reads
-  English. Windows reads the languages whose language packs are installed in
-  Windows Settings; the app never installs one. If none of them is the app's
-  language or English, **From an image…** stays off and the sheet says why.
+  English. Windows reads one language at a time: the app's language when its
+  language pack is installed in Windows Settings, otherwise English. The app
+  never installs one. If neither is installed, **From an image…** stays off
+  and the sheet says why.
 - A picture over 25 MB, or over 10,000 pixels on a side or 50 million pixels
   in all, is refused before anything is read. Crop it or choose a smaller one.
 - Typed text reads best. Handwriting may come out wrong, so check each line.
