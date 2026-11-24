@@ -199,6 +199,12 @@ List<List<String>> buildDancesCsvRows(
         ? null
         : lookups.difficultyLevelsById[levelId] ??
               DifficultyLevel.knownForId(levelId);
+    String renderSquareText(String text) => canonicalizeDiscouragedTerms
+        ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+            text,
+            cardDialect,
+          )
+        : renderer.renderFreeText(text, cardDialect);
     rows.add([
       dance.title.trim(),
       authorNames.join(', '),
@@ -232,15 +238,17 @@ List<List<String>> buildDancesCsvRows(
       ...(dance.form == DanceForm.square
           ? [
               squareKindLabel(l10n, dance.squareKind),
+              // An `other` text is prose, worded as the dance page words it.
               dance.repeatOrder == SquareRepeatOrder.other &&
                       dance.repeatOrderText.isNotEmpty
-                  ? dance.repeatOrderText
+                  ? renderSquareText(dance.repeatOrderText)
                   : squareRepeatOrderLabel(l10n, dance.repeatOrder),
               dance.newPartner == SquareNewPartner.other &&
                       dance.newPartnerText.isNotEmpty
-                  ? dance.newPartnerText
+                  ? renderSquareText(dance.newPartnerText)
                   : squareNewPartnerLabel(l10n, dance.newPartner, cardDialect),
-              yesNo(dance.singing),
+              // Only a main part is sung; the page and editor agree.
+              yesNo(dance.singing && dance.squareKind == SquareKind.main),
             ]
           : const ['', '', '', '']),
       danceSourceLines(l10n, dance, (id) => lookups.sourcesById[id]).join('\n'),

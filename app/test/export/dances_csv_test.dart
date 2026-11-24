@@ -431,6 +431,39 @@ void main() {
     expect(contra[en.danceEditorSingingLabel], '');
   });
 
+  test("a square's `other` text is worded as the dance page words it, and "
+      'only a main part is a singing call', () {
+    final square = Dance(
+      id: 's1',
+      title: 'Gypsy Square',
+      form: DanceForm.square,
+      squareKind: SquareKind.breakPart,
+      newPartner: SquareNewPartner.other,
+      newPartnerText: 'Gypsy partner',
+      singing: true,
+      createdAt: now,
+      updatedAt: now,
+    );
+    final row = csvRecords(
+      buildDancesCsv(
+        [square],
+        l10n: en,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        renderer: plainRenderer,
+        lookups: lookups,
+        canonicalizeDiscouragedTerms: true,
+      ),
+    ).single;
+    expect(row[en.danceEditorNewPartnerLabel], 'Shoulder round partner');
+    expect(row[en.danceEditorSingingLabel], en.commonNo);
+    expect(
+      csvRecords(
+        build([square.copyWith(squareKind: SquareKind.main)]),
+      ).single[en.danceEditorSingingLabel],
+      en.commonYes,
+    );
+  });
+
   test('the file name is the localized stem and the date', () {
     expect(
       dancesCsvFileName('dances', DateTime(2026, 11, 23)),
