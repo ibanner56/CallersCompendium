@@ -74,11 +74,13 @@ class FigureFold {
   /// Whether [figure], handed [state], follows the reach just danced.
   ///
   /// A hey follows only when its first pass names a role set or partners,
-  /// and its second pass one of those or a distance set: partners are the
-  /// same two dancers in either grouping, and a distance set is checked by
-  /// where the couples started, but `neighbors` would accept the N2 couple in
-  /// their place, and a first pass naming a distance set or `shadows` picks
-  /// its own phase. *(Agent's call.)* A chain names a role set, as it must to
+  /// and its second pass one of those or a distance set lying an odd
+  /// distance away: partners are the same two dancers in either grouping,
+  /// and such a distance set names the grouping the hey is danced in, where
+  /// it is matched as plain neighbours. `neighbors`, or a distance set lying
+  /// an even distance away, would accept the N2 couple in place of the
+  /// couple it names, and a first pass naming a distance set or `shadows`
+  /// picks its own phase. *(Agent's call.)* A chain names a role set, as it must to
   /// be danced at all.
   bool _follows(OperationInvocation figure, Formation state) {
     final operation = figure.operation;
@@ -90,11 +92,18 @@ class FigureFold {
                 _followsIn(operation.pass1) &&
                 (operation.pass2 == null ||
                     _followsIn(operation.pass2!) ||
-                    operation.pass2!.isCrossHandsFour))) &&
+                    _namesReachedGrouping(operation.pass2!)))) &&
         // A held progression that finished on the reaching figure moved the
         // set to the other phase; one phase over from there is not where the
         // reach was danced, so the figure stays put. *(Agent's call.)*
         isShiftedBandPhase(state) == _reachHandedShifted;
+  }
+
+  /// Whether [set] is a distance set that, after the progressions so far,
+  /// lies an odd distance away, and so names the grouping one phase over.
+  bool _namesReachedGrouping(WhoSet set) {
+    final distance = set.distance;
+    return distance != null && (distance - progressions).abs().isOdd;
   }
 
   /// Whether a hey pass naming [set] reads the same dancers one grouping

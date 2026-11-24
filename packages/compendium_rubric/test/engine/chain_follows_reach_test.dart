@@ -239,12 +239,21 @@ void main() {
     });
 
     test('a hey whose second pass names the N2 couple follows', () {
-      // A distance set is checked by where the couples started, so it reads
-      // the same couple one grouping over (Waylaid in Tulsa, #4960: "Hey 1/2
-      // (MR;N0L;WR)" after an N0 allemande).
+      // An odd distance away, it names the grouping the hey is danced in
+      // (Waylaid in Tulsa, #4960: "Hey 1/2 (MR;N0L;WR)" after an N0
+      // allemande).
       expect(
         heyStep(heyJaVu(pass2: 'nextNeighbors')),
         isA<Ok<Formation, OpError>>(),
+      );
+    });
+
+    test('a hey whose second pass names N3 does not follow', () {
+      // N3 lies an even distance away, so it names the grouping the set was
+      // handed back in, not the N2 one.
+      expect(
+        heyStep(heyJaVu(pass2: 'thirdNeighbors')),
+        isA<Err<Formation, OpError>>(),
       );
     });
 

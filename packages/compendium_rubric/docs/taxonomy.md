@@ -352,9 +352,10 @@ satisfy "to partner" here, so it would not have decided it.
 straight after a figure reaching an odd distance is danced in the grouping that figure reached,
 under the same limits as the chain, and a hey or `across` chain straight after that one follows
 as well. It follows only when its first pass names a role set or `partners` and its second
-pass one of those or a distance set (checked by where the couples started, so it reads the same
-couple one grouping over). `neighbors` would accept the N2 couple in their place, and a first
-pass naming a distance set or `shadows` picks its own phase. A followed hey is linted (the `anchorMismatch` check of its second pass) in the grouping
+pass one of those or a distance set lying an odd distance away after the progressions so far
+(N0, N2), which names the grouping the hey is danced in and is matched there as plain neighbours.
+`neighbors`, or a distance set an even distance away (N3), would accept the N2 couple in place of
+the couple it names, and a first pass naming a distance set or `shadows` picks its own phase. A followed hey is linted (the `anchorMismatch` check of its second pass) in the grouping
 it is danced in.
 Hudson's notes on Haven't We Met Before? (Caller's Box #10129, "After a balance and swing with
 N0 … the first half hey") and Hey-ja Vu (#10136, "N2 neighbor swing" then "Hey 1/2") put the
@@ -3218,7 +3219,7 @@ To be defined later with worked examples.
 - **facing:** `flexible` for all four. A hey ends mid-flow, and what a dancer looks at depends on
   what is called next (fundamentals §6).
 - **after an N2 figure:** an unflagged hey whose first pass names a role set or `partners` (and
-  whose second pass names one of those or a distance set), straight after
+  whose second pass names one of those or a distance set an odd distance away), straight after
   a figure reaching an odd distance, is danced in the grouping that figure reached; see "A hey after an N2 figure follows it too" *(agent's
   call, 2026-11-24)*.
 - **interaction scope:** one hands four.
