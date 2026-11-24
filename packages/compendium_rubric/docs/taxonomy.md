@@ -348,6 +348,16 @@ on her lark's right lost 53, because a roll away leaves couples the other way ro
 chain. The import does not carry a chain's "to partner" or "to neighbor N2", and both phases
 satisfy "to partner" here, so it would not have decided it.
 
+**A hey after an N2 figure follows it too** *(agent's call, 2026-11-24)*. A `hey` straight
+after a figure reaching an odd distance is danced in the grouping that figure reached, under the
+same limits as the chain, and a hey or `across` chain straight after that one follows as well.
+Hudson's notes on Haven't We Met Before? (Caller's Box #10129, "After a balance and swing with
+N0 … the first half hey") and Hey-ja Vu (#10136, "N2 neighbor swing" then "Hey 1/2") put the
+hey with the couple just swung; danced in the handed-back grouping, both were refused because
+two larks stood on one line. Against `fd3447ef` it took 4,073 of 5,257 to 4,075 of 5,254
+compiled in scope and the core set from 532 to 533, losing none. Both dances now run past the
+hey and stop later: they need the progression placed at a half hey, which this does not do.
+
 **Which phase: parity of the distance.** A figure naming a distance-*d* set is danced *d*
 places from the phase it was handed, and **always hands that phase back**. The grid has exactly
 two phases, so only `d.isOdd` survives: odd distances dance in the other phase, even distances
@@ -734,8 +744,8 @@ To be defined later with worked examples.
     swapped again.
   - `hand` (left/right) does not change end positions (Op1 vs Op2).
   - **Straight after an N2 figure**, an `across` chain is danced in the grouping that figure
-    reached, and so is each `across` chain straight after that one; see "A chain after an N2
-    figure chains with N2" *(user-ruled 2026-11-24, Heather's Hop Redux, #10172)*.
+    reached, and so is each `across` chain or hey straight after that one; see "A chain after an
+    N2 figure chains with N2" *(user-ruled 2026-11-24, Heather's Hop Redux, #10172)*.
   - **Verified against:** base Op1 (across/robins), Op2 (across/larks), Op3 (leftDiagonal),
     Op4 (rightDiagonal), and the waiting-out `leftDiagonal` example (couples B & E out at the
     ends); all still hold under the where-they-stand pairing, as does The Judge's golden trace,
@@ -3201,6 +3211,9 @@ To be defined later with worked examples.
     `unresolvableDancerSet`.
 - **facing:** `flexible` for all four. A hey ends mid-flow, and what a dancer looks at depends on
   what is called next (fundamentals §6).
+- **after an N2 figure:** a hey straight after a figure reaching an odd distance is danced in
+  the grouping that figure reached; see "A hey after an N2 figure follows it too" *(agent's
+  call, 2026-11-24)*.
 - **interaction scope:** one hands four.
 - **h4 contribution** (D7): 0.
 - **progression-eligible:** **yes** (user-ruled).

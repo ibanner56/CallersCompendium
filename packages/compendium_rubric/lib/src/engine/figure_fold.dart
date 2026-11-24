@@ -29,10 +29,10 @@ import 'result.dart';
 /// figures early, can be carried to a later figure that finishes it rather than
 /// failing (`docs/fundamentals.md` §10.2.1 has the measurement).
 ///
-/// **A chain after an N2 figure** (`docs/fundamentals.md` §10.3.0,
-/// user-ruled 2026-11-24): an unflagged `across` chain straight after a figure
-/// reaching an odd distance is danced in the phase that figure reached, and
-/// the set is handed back after it.
+/// **A chain or hey after an N2 figure** (`docs/fundamentals.md` §10.3.0):
+/// an unflagged `across` chain or hey straight after a figure reaching an odd
+/// distance is danced in the phase that figure reached, and the set is handed
+/// back after it.
 class FigureFold {
   FigureFold();
 
@@ -43,11 +43,12 @@ class FigureFold {
   int _progressions = 0;
 
   /// Whether the figure just run was danced one grouping over, by reaching
-  /// or by following a reach, so a chain across after it is danced there too.
+  /// or by following a reach, so a chain across or a hey after it is danced
+  /// there too.
   bool _followReach = false;
 
   /// Whether the set was in its shifted phase when the figure just run was
-  /// handed it, which is the phase a following chain must find it in again.
+  /// handed it, which is the phase a following figure must find it in again.
   bool _reachHandedShifted = false;
 
   /// The figure indexes of progressions still held, oldest first.
@@ -69,24 +70,27 @@ class FigureFold {
     Formation state, {
     required int index,
   }) {
-    // A chain across straight after a figure danced one grouping over is
-    // danced in that grouping too, and the set is handed back after it, as
-    // reaching always does. So is every chain straight after that one.
-    // *(User-ruled 2026-11-24, note on Heather's Hop Redux: after an N2
-    // allemande left, "R1-A and R2-D should be the ones who swap in the
-    // chain". The agent's calls: only an unflagged chain across follows, and
-    // only straight after; see `docs/fundamentals.md` §10.3.0.)*
+    // A chain across or a hey straight after a figure danced one grouping
+    // over is danced in that grouping too, and the set is handed back after
+    // it, as reaching always does. So is every such figure straight after
+    // that one. *(User-ruled 2026-11-24 for the chain, note on Heather's Hop
+    // Redux: after an N2 allemande left, "R1-A and R2-D should be the ones who
+    // swap in the chain". The hey is the agent's call, from Hudson's notes on
+    // Haven't We Met Before? and Hey-ja Vu, whose half hey after an N0 or N2
+    // swing is with that couple. The other limits are the agent's calls too:
+    // only unflagged, and only straight after; see `docs/fundamentals.md`
+    // §10.3.0.)*
     final steppedOut = figure.operation.reachAfter(progressions).isOdd;
     final operation = figure.operation;
     final follows =
         _followReach &&
         !steppedOut &&
         !figure.progression &&
-        operation is Chain &&
-        operation.dir == ChainDirection.across &&
+        ((operation is Chain && operation.dir == ChainDirection.across) ||
+            operation is HeyForFour) &&
         // A held progression that finished on the reaching figure moved the
         // set to the other phase; one phase over from there is not where the
-        // reach was danced, so the chain stays put. *(Agent's call.)*
+        // reach was danced, so the figure stays put. *(Agent's call.)*
         isShiftedBandPhase(state) == _reachHandedShifted;
     if (steppedOut) _reachHandedShifted = isShiftedBandPhase(state);
     _followReach = steppedOut || follows;

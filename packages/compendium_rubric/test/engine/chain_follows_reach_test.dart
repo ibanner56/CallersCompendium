@@ -159,4 +159,72 @@ void main() {
       expect(anyOut(after[_secondChain]), isFalse);
     });
   });
+
+  group('a hey straight after an N2 figure dances with N2', () {
+    /// The opening of Hey-ja Vu (Caller's Box #10136) as the bridge reads
+    /// it: a balanced long wave and Rory O'More, the N2 swing, the half hey.
+    Map<String, Object?> heyJaVu({bool flagHey = false}) => {
+      'title': 'Hey-ja Vu',
+      'form': 'contra',
+      'formation': {'shape': 'dupleImproper'},
+      'progression': 'single',
+      'figures': [
+        {
+          'move': 'form_long_waves',
+          'params': {
+            'whom': 'neighbors',
+            'whomHand': 'right',
+            'who': 'role2s',
+            'balance': true,
+          },
+        },
+        {
+          'move': 'rory_o_more',
+          'params': {'balance': false, 'slide': 'right'},
+        },
+        {
+          'move': 'swing',
+          'params': {'who': 'nextNeighbors'},
+        },
+        {
+          'move': 'hey',
+          'params': {
+            'length': 'half',
+            'pass1': 'role1s',
+            'shoulder': 'left',
+            'pass2': 'partners',
+          },
+          if (flagHey) 'progression': true,
+        },
+      ],
+    };
+    const hey = 3;
+
+    Result<Formation, OpError> heyStep(Map<String, Object?> record) {
+      final dance = (parseDance(record) as Ok<Dance, DanceParseError>).value;
+      final fold = FigureFold();
+      var state = dance.instantiate();
+      for (var i = 0; i < hey; i++) {
+        state =
+            (fold.step(dance.figures[i], state, index: i)
+                    as Ok<Formation, OpError>)
+                .value;
+      }
+      return fold.step(dance.figures[hey], state, index: hey);
+    }
+
+    test('the half hey runs in the N2 grouping and hands the set back', () {
+      // Agent's call, 2026-11-24, from Hudson's notes on #10129 and #10136:
+      // the half hey is with the couple just swung. In the grouping handed
+      // back after the N2 swing two larks stand on one line and it refuses.
+      final step = heyStep(heyJaVu());
+      expect(step, isA<Ok<Formation, OpError>>(), reason: '$step');
+      final after = (step as Ok<Formation, OpError>).value;
+      expect(after.dancers.values.any((d) => d.waitingOut), isFalse);
+    });
+
+    test('a flagged hey does not follow', () {
+      expect(heyStep(heyJaVu(flagHey: true)), isA<Err<Formation, OpError>>());
+    });
+  });
 }
