@@ -827,6 +827,37 @@ void main() {
       expect(facings, ['backward', 'backward', 'forward', null, null, null]);
     });
 
+    test('a swing noted "face up" or "finish proper" finishes facing up', () {
+      // Caller's Box "Ones swing; face up" arrives as a note on the swing.
+      // Agent's call 2026-11-24: "face down" is not read (see
+      // `_swingNoteFacing`).
+      core.Figure swing(
+        String? note, [
+        String move = 'swing',
+        Map<String, Object?> params = const {},
+      ]) => core_test.testFigure(move: move, params: params, note: note);
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleProper,
+        figures: [
+          swing('face up'),
+          swing('finish proper'),
+          swing('with nextNeighbors; face up'),
+          swing('face down'),
+          swing('face up [with n0]'),
+          swing('face up', 'swing', {'endFacing': 'down'}),
+          swing('face up', 'allemande'),
+          swing(null),
+        ],
+      );
+      final facings = [
+        for (final record
+            in bridgeCoreDance(dance).record['figures']! as List<Object?>)
+          ((record! as Map<String, Object?>)['params']!
+              as Map<String, Object?>)['endFacing'],
+      ];
+      expect(facings, ['up', 'up', 'up', null, null, 'down', null, null]);
+    });
+
     test('inside a container too', () {
       final dance = _shapedLike(
         shape: core.FormationShape.dupleImproper,
@@ -850,6 +881,32 @@ void main() {
         ((children.first! as Map<String, Object?>)['params']!
             as Map<String, Object?>)['facing'],
         'backward',
+      );
+    });
+
+    test('a swing inside a container reads its facing too', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleProper,
+        figures: [
+          core.Figure.modifier(
+            figures: [
+              core_test.testFigure(move: 'swing', note: 'face up'),
+              figure('turn_alone'),
+            ],
+            beats: 8,
+          ),
+        ],
+      );
+      final container =
+          (bridgeCoreDance(dance).record['figures']! as List<Object?>).first!
+              as Map<String, Object?>;
+      final children =
+          (container['params']! as Map<String, Object?>)['figures']!
+              as List<Object?>;
+      expect(
+        ((children.first! as Map<String, Object?>)['params']!
+            as Map<String, Object?>)['endFacing'],
+        'up',
       );
     });
 

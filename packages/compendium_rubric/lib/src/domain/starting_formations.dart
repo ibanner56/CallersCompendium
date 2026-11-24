@@ -19,6 +19,7 @@ Formation startingFormation(FormationType type, {required int handsFour}) {
   return switch (type) {
     FormationType.dupleImproper => _dupleImproper(handsFour),
     FormationType.progressedImproper => _progressedImproper(handsFour),
+    FormationType.dupleProper => _dupleProper(handsFour),
     FormationType.becketCw ||
     FormationType.becketCcw => _becket(type, handsFour),
   };
@@ -83,6 +84,36 @@ Formation _progressedImproper(int handsFour) {
   }
   return Formation(
     type: FormationType.progressedImproper,
+    rowCount: handsFour * kRowsPerHandsFour,
+    dancers: dancers,
+  );
+}
+
+/// Duple Proper: every lark in c0 and every robin in c4 (§9). The 2s face up
+/// and stand as Duple Improper's do; the 1s face down **crossed**, lark in c0,
+/// so a swing that normalizes them leaves them improper, as the maintainer
+/// describes Heather's Hop Redux *(user-ruled 2026-11-24: "the dance is
+/// proper. The ones do end improper after they swing")*. The 1s facing down,
+/// like Duple Improper's, is the agent's call.
+Formation _dupleProper(int handsFour) {
+  final dancers = <DancerId, DancerState>{};
+  for (var block = 0; block < handsFour; block++) {
+    final row = block * kRowsPerHandsFour;
+    final normal = normalizeAlongHall(row: row, facing: Facing.down);
+    _place(dancers, block * 2, CoupleNumber.one, Facing.down, (
+      lark: normal.robin,
+      robin: normal.lark,
+    ));
+    _placeAlongHall(
+      dancers,
+      coupleIndex: block * 2 + 1,
+      number: CoupleNumber.two,
+      row: row + 1,
+      facing: Facing.up,
+    );
+  }
+  return Formation(
+    type: FormationType.dupleProper,
     rowCount: handsFour * kRowsPerHandsFour,
     dancers: dancers,
   );

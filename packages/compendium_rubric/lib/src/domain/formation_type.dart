@@ -11,6 +11,7 @@ import 'couple_number.dart';
 enum FormationType {
   dupleImproper(key: 'duple_improper', label: 'Duple Improper'),
   progressedImproper(key: 'progressed_improper', label: 'Progressed Improper'),
+  dupleProper(key: 'duple_proper', label: 'Duple Proper'),
   becketCw(key: 'becket_cw', label: 'Becket CW'),
   becketCcw(key: 'becket_ccw', label: 'Becket CCW');
 
@@ -49,7 +50,7 @@ enum FormationType {
   ///
   /// | Formation | Runs off the top | Re-enters | Top-end number |
   /// |---|---|---|---|
-  /// | Duple Improper, Progressed Improper | the 2s (they travel up) | as 1s | **#1** |
+  /// | Duple Improper, Progressed Improper, Duple Proper | the 2s (they travel up) | as 1s | **#1** |
   /// | Becket CW | c0, the 2s line | c4, the 1s line | **#1** |
   /// | Becket CCW | c4, the 1s line | c0, the 2s line | **#2** |
   ///
@@ -57,6 +58,13 @@ enum FormationType {
   /// reference states.
   CoupleNumber get topEndNumber =>
       this == becketCcw ? CoupleNumber.two : CoupleNumber.one;
+
+  /// Whether a couple facing down at the **top** stands crossed, lark in c0,
+  /// rather than normalized: true for Duple Proper, whose 1s start that way
+  /// *(user-ruled 2026-11-24: "the dance is proper. The ones do end improper
+  /// after they swing")*. A couple changing over to #1 at the top of a proper
+  /// set stays on its side, so the end step places it as the 1s start.
+  bool get topEndCrossed => this == dupleProper;
 
   /// The number a couple takes when it normalizes at the **bottom** row.
   CoupleNumber get bottomEndNumber => topEndNumber.flipped;
@@ -74,6 +82,7 @@ enum FormationType {
     }
     return switch (normalized) {
       'dupleimproper' || 'duple_minor_improper' => FormationType.dupleImproper,
+      'dupleproper' || 'duple_minor_proper' => FormationType.dupleProper,
       'progressedimproper' ||
       'duple_minor_progressed_improper' => FormationType.progressedImproper,
       'becket' || 'becketcw' || 'becket_clockwise' => FormationType.becketCw,

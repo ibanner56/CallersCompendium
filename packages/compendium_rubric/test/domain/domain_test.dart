@@ -172,6 +172,53 @@ void main() {
     });
   });
 
+  group('duple proper start (user-ruled 2026-11-24)', () {
+    final formation = startingFormation(
+      FormationType.dupleProper,
+      handsFour: 2,
+    );
+
+    test('puts every lark in c0 and every robin in c4', () {
+      expect(formation.toRolesNotation(), [
+        'L1-A . . . R1-A',
+        'L2-B . . . R2-B',
+        'L1-C . . . R1-C',
+        'L2-D . . . R2-D',
+      ]);
+    });
+
+    test('the 1s face down crossed, so a swing leaves them improper', () {
+      // "The ones do end improper after they swing." The 1s facing down is
+      // the agent's call: facing up instead changed no corpus outcome.
+      for (final id in formation.dancers.keys) {
+        final state = formation.stateOf(id);
+        expect(
+          state.facing,
+          state.number == CoupleNumber.one ? Facing.down : Facing.up,
+          reason: '$id',
+        );
+      }
+      final ones = normalizeAlongHall(row: 0, facing: Facing.down);
+      expect(formation.stateOf(DancerId(0, Role.lark)).position, ones.robin);
+      expect(formation.stateOf(DancerId(0, Role.robin)).position, ones.lark);
+    });
+
+    test('keeps the Duple Improper hands fours and sizing', () {
+      expect(formation.rowCount, 4);
+      expect(formation.handsFourCount, 2);
+      expect(waitingOutRows(formation), isEmpty);
+    });
+
+    test('is read from the record spellings', () {
+      expect(FormationType.fromKey('dupleProper'), FormationType.dupleProper);
+      expect(
+        FormationType.fromKey('Duple Minor - Proper'),
+        FormationType.dupleProper,
+      );
+      expect(FormationType.fromKey('duple_proper'), FormationType.dupleProper);
+    });
+  });
+
   group('becket start (fundamentals.md §9, §10.6)', () {
     test('matches the §10.6 worked reference at 2 hands four', () {
       final formation = startingFormation(FormationType.becketCw, handsFour: 2);
