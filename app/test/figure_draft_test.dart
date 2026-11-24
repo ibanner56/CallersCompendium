@@ -1,11 +1,36 @@
 import 'package:compendium_app/src/editor/figure_draft.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   // A custom figure never renders a wording override (renderer.dart:
   // `figure.isCustom ? null : _renderWordingOverride`) and the editor offers no
   // field for it, so toFigure must not persist one (#1394).
+  group('fromFreeTextFigure and a saved value kept only while stated', () {
+    // A Move default saved by a build whose Settings still recorded it: an
+    // unstated Rory O'More `twoPlaces` (taxonomy v40). An older peer rejects
+    // the key, so the typed figure must not carry it, with a count typed or
+    // without one.
+    const defaults = {
+      'rory_o_more': {'twoPlaces': 'unspecified', 'slide': 'left'},
+    };
+    for (final params in [
+      <String, Object?>{'beats': 8},
+      <String, Object?>{},
+    ]) {
+      test('typed params $params', () {
+        final draft = FigureDraft.fromFreeTextFigure(
+          testFigure(move: 'rory_o_more', params: params),
+          contraTaxonomy,
+          moveParamDefaults: defaults,
+        );
+        expect(draft.params['slide'], 'left');
+        expect(draft.params.containsKey('twoPlaces'), isFalse);
+      });
+    }
+  });
+
   group('childStartBeatsOfDraft (#2303)', () {
     FigureDraft step(int beats) =>
         FigureDraft(move: 'ecd_lead', params: {'beats': beats});

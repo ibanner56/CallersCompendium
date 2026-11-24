@@ -2087,6 +2087,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         }
       }
     }
+    // A default saved before Settings stopped recording them may hold a value
+    // kept only while stated (`double: false`, `twoPlaces: unspecified`).
+    widget.taxonomy.dropUnstatedParams(moveId, widget.draft.params);
   }
 
   void _clearMove() {
@@ -4354,6 +4357,8 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
         if (entry.key == 'beats') draft.beatsTouched = true;
       }
     }
+    // As above: no saved default stores a value kept only while stated.
+    widget.taxonomy.dropUnstatedParams(moveId, draft.params);
   }
 
   void _clearMove() {

@@ -1488,6 +1488,19 @@ final Taxonomy contraTaxonomy = Taxonomy(
           defaultValue: 'right',
           choices: ['left', 'right'],
         ),
+        // v40: who slides two places, across the set, while the others slide
+        // one (The Caller's Box #1797, "Leap of Faith": "Slide left, women
+        // slide two places"). `unspecified`, the default, is the ordinary
+        // slide. The maintainer chose the param and its choices (2026-11-24):
+        // the two roles and the `ends` of the wave, not `centers` and not
+        // `everyone`. Display-only, like a hall's ender: the canonical
+        // template leaves it out, so stored canonical text is unchanged.
+        // Stored only while it names dancers ([roryTwoPlacesParam]).
+        roryTwoPlacesParam: ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: [ParamVocab.unspecified, 'role1s', 'role2s', 'ends'],
+        ),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{who} {move} {slide}',

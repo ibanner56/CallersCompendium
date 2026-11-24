@@ -221,7 +221,7 @@ class FigureRenderer {
   /// [renderVerbose], when [verbose]) text plus the ContraDB-parity secondary
   /// modifiers the terse `renderTemplate` deliberately omits — down/up-the-hall
   /// and zig-zag `ender`, hey `length`, the `balance` flag (a "balance &"
-  /// prefix), and long-lines `goBack`. These params otherwise render as nothing
+  /// prefix), long-lines `goBack`, and Rory O'More's `twoPlaces`. These params otherwise render as nothing
   /// (enders, balance) or drop information (hey length, hall direction), so a
   /// caller reading the summary loses information ContraDB's params→description
   /// rendering surfaces.
@@ -231,9 +231,11 @@ class FigureRenderer {
   /// unchanged. The appended wording is copied verbatim from ContraDB's
   /// `libfigure` (`param.js`/`figure.js`), except `bendTheLine` — a
   /// CallersBox-origin ender not present in ContraDB — which uses CallersBox's
-  /// own "bend the line" phrasing (see `docs/research/callersbox.md`). The
-  /// modifier phrases are fixed structural vocabulary (not role/move tokens),
-  /// so they are dialect-independent; the dialect-aware part is the [_render]
+  /// own "bend the line" phrasing (see `docs/research/callersbox.md`), and a
+  /// Rory O'More's `twoPlaces` (taxonomy v40), which ContraDB does not have.
+  /// The modifier phrases are fixed structural vocabulary, so they are
+  /// dialect-independent, except `twoPlaces`, which names dancers in
+  /// [dialect]'s words; the rest of the dialect-aware part is the [_render]
   /// base, which already maps roles and move names under [dialect].
   String renderSummary(
     Figure figure,
@@ -400,22 +402,30 @@ class FigureRenderer {
         }
       }
     }
-    final suffix = _summarySuffix(figure.move, params, verbose);
+    final suffix = _summarySuffix(figure.move, params, verbose, dialect);
     return suffix.isEmpty ? out : '$out$suffix';
   }
 
   /// The trailing secondary-modifier clause (connective included) appended by
   /// [renderSummary] for [moveId], or the empty string when nothing is
-  /// surfaced. Only non-`none` enders and set hey lengths produce a clause.
-  /// For hey `half`/`full`, the visible path shows a compact parenthetical and
-  /// the spoken [verbose] path expands to ContraDB's "half hey"/"full hey"
-  /// comma clause (avoiding a "hey … hey" repetition on screen).
+  /// surfaced. Hall and zig-zag enders other than `none`, long lines'
+  /// direction, and a Rory O'More's `twoPlaces` produce a clause; a hey's
+  /// length is already on its display base line, so it adds none. A Rory
+  /// O'More's `twoPlaces` (taxonomy v40) names, in [dialect]'s words, who
+  /// slides two places across the set: ", robins 2 places".
   String _summarySuffix(
     String moveId,
     Map<String, Object?> params,
     bool verbose,
+    Dialect dialect,
   ) {
     switch (moveId) {
+      case 'rory_o_more':
+        final twoPlaces = params[roryTwoPlacesParam];
+        if (twoPlaces is! String || twoPlaces == ParamVocab.unspecified) {
+          return '';
+        }
+        return ', ${_displayGroup(twoPlaces, dialect)} 2 places';
       case 'down_the_hall':
       case 'up_the_hall':
         // ContraDB `upOrDownTheHallWords`: `words(..., sfacing, "and", sender)`.
