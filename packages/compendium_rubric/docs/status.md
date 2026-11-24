@@ -72,6 +72,20 @@
 > 14639, 15271, 7529), and three now reach a deferred figure and leave the
 > scope.
 >
+> **A pair waiting at an end trades places when a refused figure needs it
+> (2026-11-24)**: when a figure refuses and names one of two dancers standing
+> alone in an end row who stood out of the figure before, the compile re-runs
+> from that figure with the two traded in place, and keeps the retry only if
+> the whole dance compiles (`fundamentals.md` §10.7; user-ruled, partners or
+> not, and a dance that runs but lands elsewhere is not retried). Against
+> `rubric` at `c610d077` it took the count from 4,303 of 5,423 to 4,316 of
+> 5,426 compiled in scope (79.3% to 79.5%), and the core set from 554 to 556,
+> losing nothing: Jam Doodle (10513) and Some Pig (16666) are the core
+> dances, and Kimberley's Here (15249), Swing to Sian (16771) and Redwood Reel
+> (8077) compile through a pair that is not a couple. Trading the waiting pair
+> ahead of time, whenever every active couple crossed the set, was measured at
+> +10 / −687 and not built.
+>
 > **A waiting couple swings on an N0 swing, and "~" places a progression
 > (2026-11-24)**: a couple waiting out at an end when a swing names the
 > previous neighbours now swings each other and faces into the set, and when

@@ -67,6 +67,7 @@ lib/
       sizing.dart               computeHandsFour
       success_criterion.dart    the oracle
       end_normalization.dart    §10.2 progression end behaviour
+      end_effects.dart          §10.7 which waiting pair a refused figure retries with, traded in place
       figure_fold.dart          FigureFold — threads figures, holds progressions with nobody at an end
       compile_result.dart       sealed Compiled / Mismatch / CompileError
       result.dart               Result<T, E> — Ok / Err
@@ -163,7 +164,14 @@ behind §3.5's equality rule.
                              else, if a progression is held:
                                finishHeldProgression(...) once a whole couple is at an end
                              if flagged, progressions += progressionCount (counted where flagged, held or not; a flagged diagonal slice or diagonal right_left_through counts two)
-                        c. Err  -> return CompileError(opIndex, opName, error, warnings)
+                        c. Err  -> if the error names a dancer of a pair alone at an end who
+                                   stood still while others moved, and who stood out of
+                                   that figure or saw every middle dancer move
+                                   (endEffectCandidates),
+                                   re-fold from here with that pair traded in place
+                                   (tradeInPlace; each end at most once); keep it only if it
+                                   Compiles, with an endEffectSwap warning (fundamentals §10.7)
+                                   else return CompileError(opIndex, opName, error, warnings)
                         d. Ok   -> state = value
    then            <- a held progression never finished -> heldProgressionUnfinished warning
 5. oracle          <- expected = dance.success.expected(input)      // from the INPUT
@@ -206,7 +214,10 @@ change-over, and spends one progression per step (`progressionCount`). Neither
 `apply` nor `applyHolding` holds that path. *(User-ruled 2026-11-23: a flagged
 diagonal slice is two progressions.)* Tools that trace a dance step by step
 (`tool/probe_dance.dart`, the golden test's failure report) fold through
-`FigureFold` too, so a trace cannot disagree with `compile`.
+`FigureFold` too, so a trace cannot disagree with `compile`, with one
+exception: `FigureFold` does not run the end-effect retry (`fundamentals.md`
+§10.7), so a dance that compiled only after a waiting pair traded places (an
+`endEffectSwap` warning) traces as refusing where `compile` retried.
 
 - **`servedRound` is read from the state the figure *started* in.** Only
   `slide_along_set` (and `slice`, which dances it) can tell the difference — it sets its own waiting-out state,
@@ -434,6 +445,7 @@ index.
 | `unrecognizedFormation` | **the parser** | unknown shape; falls back to `dupleImproper` |
 | `assumedProgression` | **an import bridge** | the source flagged no progression, so one was assumed (§10.1) |
 | `heldProgressionUnfinished` | engine (`FigureFold`) | a held progression's change-over never ran |
+| `endEffectSwap` | engine (`compile`) | a pair waiting at an end traded places so a refused figure could be danced, and the dance then compiled |
 
 Three rules about warnings:
 
@@ -925,7 +937,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,575 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,585 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,
