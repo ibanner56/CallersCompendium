@@ -68,6 +68,7 @@ lib/
       success_criterion.dart    the oracle
       end_normalization.dart    §10.2 progression end behaviour
       end_effects.dart          §10.7 which waiting pair a refused figure retries with, traded in place
+      allemande_waves.dart      §8.5.8 the short waves an allemande can leave, for the retry
       figure_fold.dart          FigureFold — threads figures, holds progressions with nobody at an end
       compile_result.dart       sealed Compiled / Mismatch / CompileError
       result.dart               Result<T, E> — Ok / Err
@@ -171,8 +172,13 @@ behind §3.5's equality rule.
                                    re-fold from here with that pair traded in place
                                    (tradeInPlace; each end at most once); keep it only if it
                                    Compiles, with an endEffectSwap warning (fundamentals §10.7)
+                                   else, if the figure before was an allemande with a
+                                   short-wave reading (allemandeWaveReading), re-fold from
+                                   here with the set in that reading; keep it only if it
+                                   Compiles, with an allemandeWaveRetry warning (§8.5.8)
                                    else return CompileError(opIndex, opName, error, warnings)
-                        d. Ok   -> state = value
+                        d. Ok   -> state = value; if the figure is an allemande with a
+                                   short-wave reading, remember it and the fold so far
    then            <- a held progression never finished -> heldProgressionUnfinished warning
 5. oracle          <- expected = dance.success.expected(input)      // from the INPUT
 6. compare         <- normalizeWaveOffsets(state) == expected
@@ -180,6 +186,10 @@ behind §3.5's equality rule.
                         : endsWithinOneColumn(settled, expected)   // right rows, numbers and order, ≤1 column off
                           ? Compiled(state) + endedColumnOffset warning
                           : Mismatch(actual: state, expected: expected)
+                      on anything but Compiled, re-fold from the figure after each
+                      remembered allemande, from its short-wave reading, and return the
+                      first that Compiles, with an allemandeWaveRetry warning
+                      (fundamentals §8.5.8; not inside a fold that is itself a wave retry)
 ```
 
 Two subtleties worth internalizing:
@@ -218,8 +228,10 @@ diagonal slice is two progressions.)* Tools that trace a dance step by step
 (`tool/probe_dance.dart`, the golden test's failure report) fold through
 `FigureFold` too, so a trace cannot disagree with `compile`, with one
 exception: `FigureFold` does not run the end-effect retry (`fundamentals.md`
-§10.7), so a dance that compiled only after a waiting pair traded places (an
-`endEffectSwap` warning) traces as refusing where `compile` retried.
+§10.7) or the short-wave retry (§8.5.8), so a dance that compiled only after a
+waiting pair traded places (an `endEffectSwap` warning) or from an allemande's
+short waves (an `allemandeWaveRetry` warning) traces as refusing or
+mismatching where `compile` retried.
 
 - **`servedRound` is read from the state the figure *started* in.** Only
   `slide_along_set` (and `slice`, which dances it) can tell the difference — it sets its own waiting-out state,
@@ -950,7 +962,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,627 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,635 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across and single file along the set built.
 - **53 figures registered**, plus the three containers (`modifier`,

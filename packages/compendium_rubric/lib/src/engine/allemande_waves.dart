@@ -8,8 +8,9 @@ import '../ops/params.dart';
 import '../ops/transforms.dart';
 import 'result.dart';
 
-/// The set an allemande may have left in short waves, for the retry the
-/// compiler makes when the figure straight after it refuses
+/// The set an allemande may have left in short waves, for the retries the
+/// compiler makes when the figure straight after it refuses, or when the
+/// whole dance lands somewhere other than its expected end
 /// (`docs/fundamentals.md` §8.5.8, user-ruled 2026-11-24).
 ///
 /// [handed] is the set [allemande] was danced from and [state] the set it
@@ -23,10 +24,13 @@ import 'result.dart';
 ///   that outside hand, so a neighbour allemande right forms the wave whose
 ///   centre joins left.
 ///
-/// Only columns change: each dancer keeps their row, facing and marks. A
-/// quarter or three-quarter allemande already lands in a wave and is not
-/// read again, and a set whose turning pairs are some across and some along,
-/// or whose centre dancers are not on the side lines, has no reading.
+/// In the centre case each dancer keeps their row and marks, and only
+/// columns and facing change: the turning pairs step in, and every band's top
+/// row faces down and bottom row up, as a short wave stands (§8.5.1). The
+/// side case takes the positions and facings `form_short_waves` gives
+/// outright. A quarter or three-quarter allemande already lands in a wave and
+/// is not read again, and a set whose turning pairs are some across and some
+/// along, or whose centre turners are not on the side lines, has no reading.
 Formation? allemandeWaveReading(
   Formation handed,
   Formation state,

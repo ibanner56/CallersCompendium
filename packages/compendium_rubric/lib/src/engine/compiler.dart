@@ -201,8 +201,10 @@ CompileResult _foldFrom(
       case Ok(:final value):
         warnings.addAll(lints);
         // As danced, so the end rows it left out read as waiting.
+        // Kept for the retry after a mismatched end, below. A fold that is
+        // already a wave retry records none, so the retries do not nest.
         if (figure.operation case final Allemande allemande
-            when waveRetried.isEmpty && const bool.fromEnvironment('WAVE_MISMATCH', defaultValue: true)) {
+            when waveRetried.isEmpty) {
           final waves = allemandeWaveReading(handed, value, allemande);
           if (waves != null) {
             allemandeWaves.add((
@@ -323,7 +325,8 @@ CompileResult _foldFrom(
           Warning(
             WarningKind.allemandeWaveRetry,
             opIndex: reading.index + 1,
-            detail: 'the dance landed elsewhere, and is danced on from the '
+            detail:
+                'the dance landed elsewhere, and is danced on from the '
                 'short waves the allemande before can leave',
           ),
         ],

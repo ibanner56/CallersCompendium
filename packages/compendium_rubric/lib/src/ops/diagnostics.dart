@@ -297,14 +297,16 @@ enum WarningKind {
     'two dancers waiting at an end traded places so the dance could go on',
   ),
 
-  /// A figure that refused straight after an allemande was danced from the
-  /// short waves that allemande can leave, and the whole dance then compiled
+  /// The dance was danced on from the short waves an allemande can leave,
+  /// and then compiled: either the figure straight after the allemande
+  /// refused, or the whole dance landed somewhere other than its expected end
   /// (`docs/fundamentals.md` §8.5.8, user-ruled 2026-11-24). Raised by the
-  /// engine at the refusing figure, never by a figure.
+  /// engine at the figure after the allemande, never by a figure.
   allemandeWaveRetry(
     'allemandeWaveRetry',
-    'a figure that refused after an allemande was danced from the short '
-        'waves that allemande can leave',
+    'the dance was danced on from the short waves an allemande can leave, '
+        'after the figure that followed it refused or the dance landed '
+        'elsewhere',
   ),
 
   /// The dance ended with every dancer in the row the oracle expects, with the

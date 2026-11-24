@@ -518,7 +518,7 @@ other role in the centre of the final wave.
 
 The pair is turned **rigidly about its own midpoint**: positions and facings rotate together,
 clockwise for the right hand and counter-clockwise for the left, through a quarter or three
-quarters. Three holds are recognized:
+quarters. Three holds are recognized, and a fourth below:
 
 - **a short-wave side pair** — one dancer in a side column, the other in the offset column beside
   it, in the band's two rows, the top row facing Down (§8.5.1). The pair stand in one physical
@@ -561,11 +561,74 @@ and a second 3/4 from there:
 R1-A  .    .   L1-A   .
 ```
 
+**The centre pair of a short wave** is a fourth hold: one dancer in each offset column (c1 and
+c3), in the band's two rows, the top row facing Down. Physically the two stand side by side in
+the middle of one line across the set, so a quarter of a turn stands them **along** it: they
+finish in the centre column (c2), the dancer the rotation carries north in the band's top row,
+both facing across — the centre long wave of §8.5.5. The ends of the short wave stay where they
+stand. *(Agent's call, 2026-11-24, which Hudson said was worth keeping; it is what lets a figure
+danced from §8.5.8's short-wave reading turn out of it. On its own it gained one Caller's Box
+dance.)*
+
+```
+the canonical short wave, Larks joined left:         Larks allemande left 3/4:
+
+ .   L2-B  .    .   R2-B                              .    .   L2-B  .   R2-B
+R1-A  .    .   L1-A   .                              R1-A  .   L1-A  .    .
+                                                    (L2-B faces ←, L1-A faces →)
+```
+
 **Holding the hand is part of the hold.** Which hand a pair holds is read from the geometry as
 always (§8.5.2). A pair whose hold is the *other* hand — an allemande left from a right-hand
 wave — is not turning from a hold it has, so it leaves the wave and turns from facing each
-other, exactly as before this ruling. So does every pair that is not one of the three shapes
-above, such as the centre pair of a short wave. Whole and half turns still settle the wave first.
+other, exactly as before this ruling. So does every pair that is not one of the four shapes
+above. Whole and half turns still settle the wave first.
+
+### 8.5.8 Short waves after an allemande — a retry
+
+> **Status:** user-ruled (2026-11-24). Hudson: a figure that fails straight after an allemande
+> is retried "from short waves instead", and the retry runs on a dance that lands elsewhere too,
+> not only on a refusal.
+
+An allemande that is not a quarter or three quarters (§8.5.6) settles back to the side lines.
+Often that is what the hall does, but sometimes the dancers finish it holding on in a short wave,
+ready for what comes next, and the source does not say which. Jerry Goes to Camp (Caller's Box
+10518) is the example: the Larks' left 1½ in the centre, then the neighbours' right 1¾, lands in
+progressed places only when the Larks finish the 1½ as the centre of a short wave.
+
+The **short-wave reading** of an allemande (`allemandeWaveReading`,
+`engine/allemande_waves.dart`) is:
+
+- **in the centre** — every turning pair stands one on each side of the set: each of those
+  dancers moves one column in (c0 to c1, c4 to c3), so the pair is the centre of a short wave,
+  and every band's top row faces Down and bottom row Up (§8.5.1). Nobody changes row.
+- **on the side** — every turning pair stands on one side line: the set is placed as
+  `form_short_waves` would place it with that **outside** hand, so the centre joins the other
+  hand. A neighbour allemande right gives the wave whose `centerHand` is `left`.
+
+A quarter or three-quarter allemande already lands in a wave and has no reading; neither does a
+set whose turning pairs are some across and some along, or a centre allemande whose turners are
+not on the side lines.
+
+The compiler uses the reading as a **retry**, in two places (`compile`):
+
+- When the figure **straight after** an allemande refuses, the fold is run again from that figure
+  with the set in the allemande's short-wave reading.
+- When every figure runs but the dance **lands elsewhere** than the expected end, the fold is run
+  again from the figure after each allemande that has a reading, in order, until one compiles.
+
+Either way the retried fold is kept **only if the whole dance compiles**, with an
+`allemandeWaveRetry` warning at the figure after the allemande; otherwise the original result is
+reported unchanged. So it cannot cost a dance that compiles without it. A fold that is itself a
+wave retry makes no further wave retry after a mismatch, so the retries do not nest *(agent's
+call)*. Unlike the end-effect retry (§10.7), this one does run on a dance that lands elsewhere:
+there is one reading per allemande, not one per figure, so the search stays small.
+
+*Measured 2026-11-24 against `rubric` at `4cc6c406`, with the centre-pair turn above:* 4,484 of
+5,617 to 4,532 of 5,623 compiled in scope (79.8% to 80.6%), 48 dances gained (44 through the
+retry after a mismatch, 3 after a refusal, 1 through the centre-pair turn alone), none lost, and
+the Seattle core set from 573 to 577. The retry on refusals alone, without the centre-pair turn,
+gained nothing: every such retry refused again at the same figure.
 
 ---
 
