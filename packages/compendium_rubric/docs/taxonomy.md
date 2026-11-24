@@ -1236,9 +1236,11 @@ To be defined later with worked examples.
     *(the ruling's reading; the import rewrite and the placement are the agent's calls)*. The
     placement holds on the N2 and "~" retries too, so no retry moves the progression off the
     promenade. The phrase is read in any letter case, alone or with one bracketed annotation;
-    an annotation naming a counter-rotation ("women ccw in center, men cw on outside"), a note
-    that goes on past the phrase, or a circle counting its places is left as the import read it,
-    since this reading would drop the rest *(agent's calls)*.
+    an annotation naming a place in the set, a rotation or a count ("women ccw in center, men cw
+    on outside", "twice"), a note that goes on past the phrase, or a circle counting its places
+    is left as the import read it, since this reading would drop the rest. Only the first such
+    top-level circle is rewritten, and only in a dance with no figure flagged, so no unflagged
+    promenade moves the set *(agent's calls)*.
 - **still deferred:** single-file promenades other than along the set, whole-set and
   around-a-dancer promenades (above), stated destinations, and every other `where`. The prior verifier's conflation of
   `promenade across` with `right_left_through across` for *row* couples does not arise here: a

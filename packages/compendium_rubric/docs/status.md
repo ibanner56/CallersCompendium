@@ -563,8 +563,8 @@ from this table because the compiler never ran against them. **Pass rate** is
   `right_left_through` supports across and the diagonals, the diagonals only
   with no couples waiting out.
 - `chain dir:along` is deferred as four-facing-four choreography.
-- `promenade` supports `where: across` for side-by-side pairs only. Single-file
-  promenades, stated destinations, every other `where`, and a `direction`
+- `promenade` supports `where: across` for side-by-side pairs, and single file
+  `where: along` the set. Other single-file promenades, stated destinations, every other `where`, and a `direction`
   stated `unspecified` are deferred. (A Caller's Box promenade that imports
   with no `where` is not a deferral: see "Entirely deferred impact".)
 - Diagonal `hey` is deferred; it must agree with diagonal

@@ -573,6 +573,10 @@ bool retryPlacesDifferently(BridgedDance attempt, BridgedDance fallback) =>
 /// (see [_hallBackwards]), and it reads a swing noted "face up" or "finish
 /// proper" as finishing facing up (see [_swingNoteFacing]).
 ///
+/// A single-file promenade around the major set, when the dance has one, is
+/// the progression on every reading, so neither retry below moves it (agent's
+/// call).
+///
 /// Set [useNextNeighborsFallback] to place the progression by
 /// [nextNeighborsProgressionIndex] instead. That is the retry
 /// [runCoreDance] makes when the positional rule does not compile; it is not a
@@ -633,7 +637,9 @@ BridgedDance bridgeCoreDance(
         opIndex: assumedAt,
         detail:
             'the source flagged no figure as the progression, so figure '
-            '${assumedAt + 1} (${figures[assumedAt].move}) was assumed '
+            '${assumedAt + 1} '
+            '(${assumedAt == aroundAt ? 'promenade' : figures[assumedAt].move}) '
+            'was assumed '
             'to be it'
             '${aroundAt != null ? ', because a single-file promenade around '
                       'the major set carries every dancer on to the next '
@@ -669,12 +675,12 @@ BridgedDance bridgeCoreDance(
           {
             'move': _slidesTheWave(figures, index)
                 ? 'rory_o_more'
-                : _promenadesAroundTheSet(figures[index])
+                : index == aroundAt
                 ? 'promenade'
                 : figures[index].move,
             'params': _slidesTheWave(figures, index)
                 ? _roryParams(figures, index)
-                : _promenadesAroundTheSet(figures[index])
+                : index == aroundAt
                 ? _aroundTheSetParams(figures[index])
                 : {
                     ..._recordParams(figures[index].params),
@@ -706,7 +712,15 @@ BridgedDance bridgeCoreDance(
 /// The note must be that phrase alone, or the phrase and one bracketed
 /// annotation, in any letter case, and the circle must not name a number of
 /// places: other words after the phrase are figures or counts this reading
-/// would drop, so such a circle is left as it is (agent's call).
+/// would drop, so such a circle is left as it is (agent's call). For the same
+/// reason an annotation that names a place in the set ("center", "inside",
+/// "ring"), a rotation ("cw", "ccw", "counter…") or a count ("twice", "2x",
+/// "all the way") leaves it alone too.
+///
+/// Only a top-level figure is read this way, and only the first: the bridge
+/// rewrites that one figure, the one it takes as the progression, and leaves
+/// any other noted circle, one inside a `modifier` included, as the import
+/// read it.
 bool _promenadesAroundTheSet(core.Figure figure) {
   if (figure.move != 'circle' ||
       figure.params['singleFile'] != true ||
@@ -715,16 +729,18 @@ bool _promenadesAroundTheSet(core.Figure figure) {
   }
   final match = _aroundTheSetNote.firstMatch((figure.note ?? '').trim());
   if (match == null) return false;
-  return !_counterRotation.hasMatch(match.group(1) ?? '');
+  return !_otherAnnotation.hasMatch(match.group(1) ?? match.group(2) ?? '');
 }
 
 final _aroundTheSetNote = RegExp(
-  r'^around the major set to N2(?:\s*[(\[]([^()\[\]]*)[)\]])?$',
+  r'^around the major set to N2'
+  r'(?:\s*(?:\(([^()\[\]]*\S[^()\[\]]*)\)|\[([^()\[\]]*\S[^()\[\]]*)\]))?$',
   caseSensitive: false,
 );
 
-final _counterRotation = RegExp(
-  r'\b(?:center|centre|inside|outside|ring)\b',
+final _otherAnnotation = RegExp(
+  r'\b(?:center|centre|middle|inside|outside|rings?|cw|ccw|counter\w*|'
+  r'clockwise|twice|\d+\s*x|all the way)\b',
   caseSensitive: false,
 );
 

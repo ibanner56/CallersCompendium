@@ -45,7 +45,8 @@ import '../geometry/geometry.dart';
 /// **[servedRound] is read from the state the figure *started* in.** For every
 /// figure but the slide, who is standing out before and after the transform is
 /// the same set, so this is invisible. `slide_along_set` (and `slice`, which
-/// dances one or two slides) is the exception: it
+/// dances one or two slides, and a single-file `promenade` along the set,
+/// which dances one) is the exception: it
 /// re-bands the set and so decides its own waiting-out state, and taking the
 /// served list from the state it produced would immediately retire the couples
 /// it had just sent out — clearing them and then exempting them from being
@@ -55,7 +56,8 @@ import '../geometry/geometry.dart';
 ///
 /// Omitted, it is derived from [formation] itself. That is correct for any
 /// caller whose transform left waiting-out state alone, which is every figure
-/// but the slide and `slice`; [OperationInvocation.apply] passes it explicitly because it
+/// but the slide, `slice` and the single-file promenade along the set;
+/// [OperationInvocation.apply] passes it explicitly because it
 /// is the one path that must be right for all of them.
 Formation applyEndNormalization(Formation formation, {Set<int>? servedRound}) {
   final served = servedRound ?? waitingCouples(formation);

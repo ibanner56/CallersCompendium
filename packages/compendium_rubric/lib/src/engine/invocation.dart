@@ -45,7 +45,8 @@ class OperationInvocation {
   /// dance with a couple further along the set is itself movement along the
   /// set, and a progression flag on top of that names more, so a flagged
   /// reaching figure finishes one phase past where an ordinary one would.
-  /// `slide_along_set` is exempt because the slide *is* the progression
+  /// `slide_along_set` (like `slice` and a single-file `promenade` along the
+  /// set) is exempt because the slide *is* the progression
   /// ([Operation.isItsOwnProgression]): its displacement is the movement the
   /// flag names, so counting it twice would undo it. A figure whose reach has
   /// been closed to nothing by earlier progressions did not step out at all,

@@ -1558,25 +1558,28 @@ void main() {
             as String;
       }
 
-      test('parses as a promenade along the set and runs', () {
-        final dance = _shapedLike(
-          shape: core.FormationShape.dupleImproper,
-          figures: [figure('star'), around('left'), figure('circle')],
-        );
-        final parsed =
-            (parseDance(bridgeCoreDance(dance).record)
-                    as Ok<Dance, DanceParseError>)
-                .value;
-        expect(
-          parsed.figures[1].operation,
-          const Promenade(
-            where: 'along',
-            singleFile: true,
-            direction: SpinDirection.clockwise,
-          ),
-        );
-        expect(compile(parsed), isNot(isA<CompileError>()));
-      });
+      test(
+        'parses as a promenade along the set and compiles without error',
+        () {
+          final dance = _shapedLike(
+            shape: core.FormationShape.dupleImproper,
+            figures: [figure('star'), around('left'), figure('circle')],
+          );
+          final parsed =
+              (parseDance(bridgeCoreDance(dance).record)
+                      as Ok<Dance, DanceParseError>)
+                  .value;
+          expect(
+            parsed.figures[1].operation,
+            const Promenade(
+              where: 'along',
+              singleFile: true,
+              direction: SpinDirection.clockwise,
+            ),
+          );
+          expect(compile(parsed), isNot(isA<CompileError>()));
+        },
+      );
 
       test('is read in any letter case, with its annotation', () {
         // Agent's call: the import keeps the source's casing.
@@ -1603,6 +1606,58 @@ void main() {
           bridgedMove(noted('around the major set to N2 (bring partner)')),
           'promenade',
         );
+        expect(
+          bridgedMove(noted('  around the major set to N2 ')),
+          'promenade',
+        );
+      });
+
+      test('is left alone when its annotation says more than it reads', () {
+        // Agent's call: a rotation, a place in the set or a count in the
+        // annotation is something a one-place promenade would drop.
+        core.Figure noted(String note) => core_test.testFigure(
+          move: 'circle',
+          params: {'direction': 'left', 'singleFile': true, 'beats': 2},
+          note: note,
+        );
+        for (final annotation in [
+          '(twice)',
+          '(2x)',
+          '(all the way around)',
+          '(role2s CCW, role1s CW)',
+          '(in the middle)',
+          '(rings)',
+          '()',
+          '(8 beats]',
+        ]) {
+          expect(
+            bridgedMove(noted('around the major set to N2 $annotation')),
+            'circle',
+            reason: annotation,
+          );
+        }
+      });
+
+      test('only the first is rewritten, and only when nothing is flagged', () {
+        // Agent's call: the bridge rewrites the one promenade it takes as the
+        // progression, so no unflagged promenade moves the set.
+        List<Object?> moves(core.Dance dance) => [
+          for (final f in bridgeCoreDance(dance).record['figures']! as List)
+            (f as Map<String, Object?>)['move'],
+        ];
+        final twice = _shapedLike(
+          shape: core.FormationShape.dupleImproper,
+          figures: [around('left'), figure('swing'), around('left')],
+        );
+        expect(moves(twice), ['promenade', 'swing', 'circle']);
+        final flagged = _shapedLike(
+          shape: core.FormationShape.dupleImproper,
+          figures: [
+            around('left'),
+            core_test.testFigure(move: 'swing', progression: true),
+          ],
+        );
+        expect(moves(flagged), ['circle', 'swing']);
       });
 
       test('is left alone when the note goes on, or places are counted', () {
@@ -1656,6 +1711,13 @@ void main() {
         expect(fallback.assumedProgressionAt, 1);
         expect(partial.assumedProgressionAt, 1);
         expect(retryPlacesDifferently(positional, fallback), isFalse);
+        for (final reading in [positional, fallback, partial]) {
+          final detail = reading.warnings.first.detail!;
+          expect(detail, contains('(promenade)'));
+          expect(detail, contains('single-file promenade around'));
+          expect(detail, isNot(contains('first mention of the next')));
+          expect(detail, isNot(contains('marks partial')));
+        }
       });
 
       test('a single-file circle without the phrase is a circle', () {

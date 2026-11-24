@@ -671,7 +671,12 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 
 > **The assumed-progression rule** *(user-ruled).* `CallersBoxAdapter` never sets
 > `Figure.progression` — the Caller's Box records do not carry it. Rather than
-> refuse every imported dance, `assumedProgressionIndex` assumes a placement:
+> refuse every imported dance, `assumedProgressionIndex` assumes a placement.
+> First, in any formation, a **single-file promenade around the major set to
+> N2** progresses: Hudson ruled (2026-11-24) that it carries every dancer on to
+> the next neighbours, and taking it as the progression, on the positional
+> reading and on both retries below (so no retry moves it), is the agent's
+> call. Otherwise the placement is
 > the **last figure**, except in a Becket dance. There, a first figure that is
 > `slide_along_set` sliding left, or a `slice` left (which lands exactly like
 > one, user-ruled 2026-11-22), progresses; otherwise the **first diagonal
@@ -945,7 +950,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,615 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,617 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across and single file along the set built.
 - **53 figures registered**, plus the three containers (`modifier`,
