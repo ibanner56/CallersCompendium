@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "In the Advanced search, in the dance list and in the program builder's dance picker, a Has figure row names your own figures, offers them and finds them by typing in the dialect of the type each was made for, as the Glossary shows them: a figure made for English reads in your English dialect, not your contra dialect. Two figures of different types that read alike are told apart by their type. The moves beside them still read in the search's own dialect, contra's, and nothing changes while your dialects are the same."
+      "In the Advanced search, in the dance list and in the program builder's dance picker, a Has figure row names your own figures, offers them and finds them by typing in the dialect of the type each was made for, as the Glossary shows them: a figure made for English reads in your English dialect, not your contra dialect. The moves beside them still read in the search's own dialect, contra's. Two figures of different types with the same name, which read alike in any dialect, are now told apart by their type (\"Hey \u00b7 Contra\", \"Hey \u00b7 English (ECD)\"), and typing that exact name then lists the built-in move first. While your dialects are the same, that is the only change."
     ]
   }
 }
