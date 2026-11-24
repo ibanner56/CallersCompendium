@@ -10025,6 +10025,45 @@ class AppLocalizationsDe extends AppLocalizations {
   String get figureTextSheetAdd => 'Figuren hinzufügen';
 
   @override
+  String get figureTextSheetFromImage => 'Aus einem Bild…';
+
+  @override
+  String get figureTextSheetReadingImage => 'Bild wird gelesen…';
+
+  @override
+  String get figureTextSheetImageUnavailable =>
+      'Dieses Gerät kann Text in Bildern weder in der Sprache der App noch auf Englisch lesen.';
+
+  @override
+  String get figureTextSheetImageEnglishOnly =>
+      'Dieses Gerät liest Bilder auf Englisch, nicht in der Sprache der App.';
+
+  @override
+  String figureTextSheetImageTooLarge(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'Dieses Bild ist größer als $limitString MB und wurde deshalb nicht gelesen. Wählen Sie ein kleineres.';
+  }
+
+  @override
+  String get figureTextSheetImageTooManyPixels =>
+      'Dieses Bild hat zu viele Pixel, um gelesen zu werden. Wählen Sie ein kleineres oder schneiden Sie es zu.';
+
+  @override
+  String get figureTextSheetImageUnreadable =>
+      'Diese Datei ist kein Bild, das dieses Gerät öffnen kann.';
+
+  @override
+  String get figureTextSheetImageNoText =>
+      'In diesem Bild wurde kein Text gefunden.';
+
+  @override
+  String get figureTextSheetImageFailed =>
+      'Der Text des Bildes konnte nicht gelesen werden.';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList =>
       'Am Ende der Figurenliste einfügen';
 

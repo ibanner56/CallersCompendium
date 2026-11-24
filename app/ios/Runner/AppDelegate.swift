@@ -18,5 +18,9 @@ import UIKit
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "IncomingFilesPlugin") {
       IncomingFilesPlugin.register(with: registrar)
     }
+    // From an image… (#2327): reads a chosen picture's text with Apple Vision.
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "TextRecognitionPlugin") {
+      TextRecognitionPlugin.register(with: registrar)
+    }
   }
 }
