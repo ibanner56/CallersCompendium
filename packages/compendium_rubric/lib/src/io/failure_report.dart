@@ -6,7 +6,8 @@
 /// This file re-runs a failing dance step by step and records what a person
 /// (or an agent) needs in order to see where it went wrong:
 ///
-/// - the source's own figure lines, beside the figures they imported as;
+/// - the source's own figure lines, beside the figures the compiler read them
+///   as, after the bridge's rewrites and progression flags;
 /// - the set after every figure, up to the one that refused;
 /// - for a mismatch, the expected and actual end states, which dancers are
 ///   off, and a coarse [MismatchClass];
@@ -128,7 +129,9 @@ class FailureDiagnosis {
   /// The source's phrases as written: `(name, lines)`.
   final List<(String, List<String>)> phrases;
 
-  /// The figures as danced, one line each (`move(param: value, ...)`).
+  /// The figures as the compiler reads them, one line each
+  /// (`move(param: value, ...)`), after the bridge's rewrites, with
+  /// `[progression]` on every flagged figure, assumed or written.
   final List<String> figures;
 
   /// The set at the start and after each figure that ran.
@@ -275,12 +278,17 @@ FailureDiagnosis diagnoseFailure(
   BridgedDance? bridged,
 }) {
   final dance = draft.dance;
-  final danced = dancedFigures(dance) ?? const <core.Figure>[];
-  final figures = [for (final figure in danced) describeFigure(figure)];
   final phrases = sourcePhrases(draft.raw.payload);
   var signature = failureSignature(run);
 
   final reading = bridged ?? bridgeCoreDance(dance);
+  // The figures as the compiler reads them, after the bridge's own rewrites
+  // (a balanced long wave and a slide becomes `rory_o_more`) and its assumed
+  // progression flags, not as the importer left them.
+  final figures = [
+    for (final figure in reading.record['figures']! as List)
+      describeRecordFigure(figure as Map<String, Object?>),
+  ];
   final parsed = parseDance(reading.record);
   if (parsed is! Ok<Dance, DanceParseError>) {
     // Never compiled, so there is no trace; the parse error names the figure
@@ -476,18 +484,22 @@ List<(String, List<String>)> sourcePhrases(String payload) {
   ];
 }
 
-/// One figure as a line: `move(param: value, ...)`, a container's children
-/// in brackets, and ` [progression]` when the source flagged it.
-String describeFigure(core.Figure figure) {
+/// One figure of a bridged record (`move`, `params`, `progression`) as one
+/// line: `move(param: value, ...)`. A `progression` flag reads
+/// `[progression]` whether the source wrote it or the bridge assumed it.
+String describeRecordFigure(Map<String, Object?> figure) {
   final params = <String>[
-    for (final entry in figure.params.entries)
+    for (final entry
+        in ((figure['params'] as Map?) ?? const {})
+            .cast<String, Object?>()
+            .entries)
       if (entry.key == 'figures' && entry.value is List)
-        'figures: [${[for (final child in entry.value! as List) child is core.Figure ? describeFigure(child) : '$child'].join('; ')}]'
+        'figures: [${[for (final child in entry.value! as List) child is Map ? describeRecordFigure(child.cast<String, Object?>()) : '$child'].join('; ')}]'
       else
         '${entry.key}: ${entry.value}',
   ];
-  return '${figure.move}(${params.join(', ')})'
-      '${figure.progression ? ' [progression]' : ''}';
+  return '${figure['move']}(${params.join(', ')})'
+      '${figure['progression'] == true ? ' [progression]' : ''}';
 }
 
 /// [formation] as one string per row. See [TraceStep.grid].
