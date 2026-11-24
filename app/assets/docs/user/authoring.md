@@ -58,7 +58,9 @@ dance offers contra figures, and a square dance offers square calls, such as
 promenade, allemande left, circle, chain and separate. A figure the dance
 already holds from another type stays as it is; it just isn't offered for a
 new row. Square calls are picked here for now: a line you type with
-**Free-text entry** in a square dance is still read with contra's figures.
+**Free-text entry** in a square dance is kept as you typed it, as a custom
+line, because the app can't read square calls from text yet. It never turns
+a square's line into a contra figure.
 
 With **Free-text entry** on, **Add figure** opens **Type a figure** instead: one
 box that takes a whole line and offers no move suggestions. Press Enter and the
@@ -734,10 +736,9 @@ back to adding up their calls, and **Undo** puts them back.
 If a dance holds figures of another type than its own, for example English
 figures in a dance you have just changed to contra, **Warnings** says how
 many. They are kept and shown as they are, but the figure picker offers only
-the dance's own type's figures. Imports and **Free-text entry** still read a
-square dance's lines as contra figures, so a square typed or imported that
-way shows this warning; a **stand still** row, such as those a new dance
-starts with, isn't counted.
+the dance's own type's figures. Imports still read a square dance's lines as
+contra figures, so a square imported that way shows this warning; a **stand
+still** row, such as those a new dance starts with, isn't counted.
 
 ### Keep an eye on the beats
 
@@ -1142,6 +1143,11 @@ happen.
 Your tags, ratings, notes, and everything else on each dance are kept exactly as
 they are — only figures that now recognize a known move are replaced. If there is
 nothing to upgrade, the app tells you that and leaves your collection alone.
+
+A figure is upgraded only to one of its own dance's type: an English dance's
+lines to English figures, and a contra dance's to contra figures. The app
+can't read square calls from text yet, so a square dance's lines stay as
+they are, rather than becoming contra figures.
 
 A dance whose stored figures the app cannot read at all is left out of the scan
 rather than upgraded, and its stored text is not touched. The dance's own page
