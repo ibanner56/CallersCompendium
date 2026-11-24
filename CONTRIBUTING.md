@@ -213,7 +213,9 @@ of a file stamped `N` or later (`database.dart`, with
 `v39_partial_stamp_repair_test.dart`). v39 is now the floor, so its `from < 39`
 step is retired and only the `beforeOpen` call remains; a new repair of this
 kind would still call the helper from both. Weigh the cost: the helper runs on every
-open for as long as it stays, and v39 is the only step repaired this way today.
+open for as long as it stays. v39 and v42 are repaired this way today: v42 because
+test builds stamped it before later pieces joined it while it was unreleased,
+and reading a dance then failed on a missing column.
 `_ensureV40Schema` has no `beforeOpen` call, so copying that helper does not
 give you the repair.
 
