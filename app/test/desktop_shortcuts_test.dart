@@ -460,6 +460,33 @@ void main() {
       expect(picker, findsOneWidget);
     });
 
+    testWidgets('Esc while an input method is composing in the program '
+        'builder\'s dance list search leaves neither the dropdown nor the '
+        'page (#2325)', (tester) async {
+      final appData = await _pump(tester, size: _wide);
+      final saved = await seedSaved(appData);
+      await _openProgramEditor(tester);
+      final field = find.byKey(const ValueKey('picker-search'));
+      await tester.tap(field);
+      await tester.pumpAndSettle();
+      tester
+          .widget<TextField>(field)
+          .controller!
+          .value = const TextEditingValue(
+        text: 'pe',
+        selection: TextSelection.collapsed(offset: 2),
+        composing: TextRange(start: 0, end: 2),
+      );
+      await tester.pumpAndSettle();
+      final row = find.byKey(ValueKey('saved-search-row-${saved.id}'));
+      expect(row, findsOneWidget);
+
+      await _press(tester, LogicalKeyboardKey.escape);
+
+      expect(row, findsOneWidget);
+      expect(find.byType(ProgramEditorScreen), findsOneWidget);
+    });
+
     testWidgets('Esc closes an open menu and leaves the page under it', (
       tester,
     ) async {
