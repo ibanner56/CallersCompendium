@@ -360,6 +360,12 @@ sealed class Operation {
     final here = _shadowsStandTogether(formation);
     final there = _shadowsStandTogether(over);
     if (here && there) {
+      // Both phases have shadow pairs: the shadows the dance has already
+      // named decide, when they pick one *(user-ruled 2026-11-23)*.
+      final current = _identityPicksCurrent(formation, over);
+      if (current != null) {
+        return _danceShadows(current ? formation : over, handBack: !current);
+      }
       return Err<Formation, OpError>(
         OpError(
           ErrorKind.unresolvableDancerSet,
@@ -377,11 +383,84 @@ sealed class Operation {
         ),
       );
     }
-    final phase = here ? formation : over;
+    return _danceShadows(here ? formation : over, handBack: !here);
+  }
+
+  /// Dances a shadows figure in [phase], remembering who danced as shadows,
+  /// and toggles the phase back afterwards when [handBack].
+  Result<Formation, OpError> _danceShadows(
+    Formation phase, {
+    required bool handBack,
+  }) {
     final failure = checkPreconditions(phase);
     if (failure != null) return Err<Formation, OpError>(failure);
-    final danced = perform(phase);
-    return here ? danced : danced.map(toggleBandPhase);
+    final pairs = _shadowPairs(phase);
+    final danced = perform(phase).map((next) => _remember(next, pairs));
+    return handBack ? danced.map(toggleBandPhase) : danced;
+  }
+
+  /// Which band phase holds the shadows the dance has already named, when
+  /// shadow pairs stand together in both: the one in which no dancer stands
+  /// in a hands four apart from their remembered [DancerState.shadow], given
+  /// that some remembered pair stands together in it. `null` when that does
+  /// not pick exactly one phase, or nobody has a shadow yet.
+  static bool? _identityPicksCurrent(Formation here, Formation over) {
+    final fitsHere = _keepsShadowsTogether(here);
+    final fitsOver = _keepsShadowsTogether(over);
+    if (fitsHere == fitsOver) return null;
+    return fitsHere;
+  }
+
+  /// Whether [formation]'s hands fours keep every remembered shadow pair
+  /// together, with at least one such pair in them.
+  static bool _keepsShadowsTogether(Formation formation) {
+    final bandOf = <DancerId, int>{};
+    final bands = handsFourBands(formation);
+    for (var i = 0; i < bands.length; i++) {
+      for (final row in [bands[i].topRow, bands[i].bottomRow]) {
+        for (final id in formation.dancersInRow(row)) {
+          bandOf[id] = i;
+        }
+      }
+    }
+    var together = 0;
+    for (final MapEntry(key: id, value: band) in bandOf.entries) {
+      final shadow = formation.stateOf(id).shadow;
+      if (shadow == null) continue;
+      final shadowBand = bandOf[shadow];
+      if (shadowBand == null) continue;
+      if (shadowBand != band) return false;
+      together++;
+    }
+    return together > 0;
+  }
+
+  /// The shadow pairs standing together in [formation]'s hands fours.
+  static List<({DancerId a, DancerId b})> _shadowPairs(Formation formation) => [
+    for (final band in handsFourBands(formation))
+      ...resolveWhoPairs(
+        formation,
+        WhoSet.shadows,
+        topRow: band.topRow,
+        bottomRow: band.bottomRow,
+      ),
+  ];
+
+  /// [formation] with each dancer in [pairs] remembering the other as their
+  /// shadow, unless they already have one: the first shadow a dance names is
+  /// the one it keeps *(user-ruled 2026-11-23)*.
+  static Formation _remember(
+    Formation formation,
+    List<({DancerId a, DancerId b})> pairs,
+  ) {
+    final changes = <DancerId, DancerState>{};
+    for (final pair in pairs) {
+      for (final (id, other) in [(pair.a, pair.b), (pair.b, pair.a)]) {
+        final state = formation.stateOf(id);
+        if (state.shadow == null) changes[id] = state.copyWith(shadow: other);
+      }
+    }
+    return formation.withUpdates(changes);
   }
 
   /// Whether every hands four of [formation] holds at least one shadow pair.

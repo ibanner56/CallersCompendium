@@ -60,6 +60,7 @@ class DancerState {
     required this.number,
     required this.facing,
     this.waitingOut = false,
+    this.shadow,
   });
 
   final Position position;
@@ -80,6 +81,16 @@ class DancerState {
   /// end need not be partners — a real case (see §10.2.1).
   final bool waitingOut;
 
+  /// The dancer this one first danced with as a shadow, once the dance has
+  /// named shadows; `null` before that.
+  ///
+  /// Once a dance names a shadow, it is the same dancer for the whole dance,
+  /// every time through and across progressions *(user-ruled 2026-11-23)*, so
+  /// later figures naming shadows pair by it. Like [waitingOut] it sits
+  /// outside the encoded cell value, and it is left out of [operator ==]: it
+  /// records who someone is paired with, not where or how they stand.
+  final DancerId? shadow;
+
   int get row => position.row;
   int get col => position.col;
 
@@ -88,11 +99,13 @@ class DancerState {
     CoupleNumber? number,
     Facing? facing,
     bool? waitingOut,
+    DancerId? shadow,
   }) => DancerState(
     position: position ?? this.position,
     number: number ?? this.number,
     facing: facing ?? this.facing,
     waitingOut: waitingOut ?? this.waitingOut,
+    shadow: shadow ?? this.shadow,
   );
 
   /// This dancer moved to [newPosition], keeping number and facing.
