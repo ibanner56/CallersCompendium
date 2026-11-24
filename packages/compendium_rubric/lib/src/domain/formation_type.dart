@@ -59,6 +59,13 @@ enum FormationType {
   CoupleNumber get topEndNumber =>
       this == becketCcw ? CoupleNumber.two : CoupleNumber.one;
 
+  /// Whether a couple facing down at the **top** stands crossed, lark in c0,
+  /// rather than normalized: true for Duple Proper, whose 1s start that way
+  /// *(user-ruled 2026-11-24: "the dance is proper. The ones do end improper
+  /// after they swing")*. A couple changing over to #1 at the top of a proper
+  /// set stays on its side, so the end step places it as the 1s start.
+  bool get topEndCrossed => this == dupleProper;
+
   /// The number a couple takes when it normalizes at the **bottom** row.
   CoupleNumber get bottomEndNumber => topEndNumber.flipped;
 

@@ -1084,7 +1084,8 @@ bool _hallBackwards(core.Figure figure) =>
         .any((clause) => clause.trim().toLowerCase() == 'backwards');
 
 /// The finishing facing a swing's note states, as the swing's `endFacing`, or
-/// null when the note states none or the swing already carries one.
+/// null when the note states none or the swing already carries one (as
+/// `endFacing` or `face`).
 ///
 /// Caller's Box writes a swing's ending as a note clause after the swing
 /// ("Ones swing; face up", "Ones swing; finish proper"), and the import keeps
@@ -1098,7 +1099,9 @@ bool _hallBackwards(core.Figure figure) =>
 /// ends "face down" in a line of four across the hall, which a swing on the
 /// side line does not model.)*
 String? _swingNoteFacing(core.Figure figure) {
-  if (figure.move != 'swing' || figure.params['endFacing'] != null) {
+  if (figure.move != 'swing' ||
+      figure.params['endFacing'] != null ||
+      figure.params['face'] != null) {
     return null;
   }
   for (final clause in (figure.note ?? '').split(';')) {

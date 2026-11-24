@@ -67,6 +67,25 @@ void main() {
     });
   });
 
+  test('a couple changing over at the top stays proper, crossed as 1s', () {
+    // Nobody crosses the set at the top of a proper set: the 2s arriving at
+    // the top turn down as 1s with the lark still in c0, as the 1s start.
+    final start = startingFormation(FormationType.dupleProper, handsFour: 2);
+    final end = ProgressionCriterion().expected(start);
+    final top = end.dancersInRow(0).toList();
+    expect(top, hasLength(2));
+    for (final id in top) {
+      final state = end.stateOf(id);
+      expect(state.number, CoupleNumber.one, reason: '$id');
+      expect(state.facing, Facing.down, reason: '$id');
+      expect(
+        state.position.col,
+        id.role == Role.lark ? Position.westColumn : Position.eastColumn,
+        reason: '$id',
+      );
+    }
+  });
+
   group('a swing that ends "face up" finishes facing up', () {
     test('Chorus Jig compiles: the 1s swing back to proper', () {
       expect(_compile(chorusJig()), isA<Compiled>());
