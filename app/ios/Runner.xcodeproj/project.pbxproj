@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A1B2C3D40000000000000017 /* TextRecognitionPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40000000000000018 /* TextRecognitionPlugin.swift */; };
+		A1B2C3D40000000000000015 /* TextRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D40000000000000016 /* TextRecognizer.swift */; };
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		2E150D4481C9598B7ED086D9 /* ShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 1DE6A4795AA134E46DF9D265 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
@@ -67,6 +69,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A1B2C3D40000000000000018 /* TextRecognitionPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextRecognitionPlugin.swift; sourceTree = "<group>"; };
+		A1B2C3D40000000000000016 /* TextRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextRecognizer.swift; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
 		1DE6A4795AA134E46DF9D265 /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -195,6 +199,8 @@
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				A1B2C3D40000000000000002 /* IncomingFilesPlugin.swift */,
+				A1B2C3D40000000000000018 /* TextRecognitionPlugin.swift */,
+				A1B2C3D40000000000000016 /* TextRecognizer.swift */,
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 			);
@@ -407,6 +413,8 @@
 			files = (
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				A1B2C3D40000000000000001 /* IncomingFilesPlugin.swift in Sources */,
+				A1B2C3D40000000000000017 /* TextRecognitionPlugin.swift in Sources */,
+				A1B2C3D40000000000000015 /* TextRecognizer.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 			);

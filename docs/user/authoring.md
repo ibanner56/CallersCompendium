@@ -276,6 +276,30 @@ The sheet reads up to 200 lines and 20,000 characters at a time, and up to
 2,000 characters on one line. Longer text is refused, and nothing from it is
 added: add it in parts.
 
+#### Read the figures from a picture
+
+On iPhone, iPad and Mac, **From an image…** in the same sheet reads the text of
+a picture you choose, such as a photo of an index card or a page of a book, and
+puts it in the box in place of what is there. Check it and correct it there:
+the lines are then read exactly as typed text is.
+
+- The picture is read **on your device**, by the text recognition built into
+  iOS and macOS. Nothing is sent anywhere, and nothing is downloaded to read
+  it.
+- **The picture is not kept.** It is read once and let go; only the text
+  reaches the sheet. Nothing about the picture is saved with the dance, synced
+  or backed up. A copy the picker makes for the app is deleted once read.
+- It reads the app's language and English. Where the device can't read the
+  app's language (some languages, such as Japanese, need a newer iOS or
+  macOS, and some aren't offered at all), the sheet says so and reads
+  English.
+- A picture over 25 MB, or over 10,000 pixels on a side or 50 million pixels
+  in all, is refused before anything is read. Crop it or choose a smaller one.
+- Typed text reads best. Handwriting may come out wrong, so check each line.
+
+**From an image…** isn't offered on Android, Windows or Linux: you can still
+type or paste the figures.
+
 ### Figure shorthands
 
 If you type the same run of figures over and over, teach it to the app once as

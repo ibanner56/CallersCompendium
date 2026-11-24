@@ -9674,6 +9674,42 @@
   "@figureTextSheetAdd": {
     "x-sourceSha256": "5b26f322f63864bc8538081ffb00549cd3359633df43ad71178bdd627f0bd9b7"
   },
+  "figureTextSheetFromImage": "画像から…",
+  "@figureTextSheetFromImage": {
+    "x-sourceSha256": "dd6ac7c7817e072d8f4fd986c8d3378ea6f0d45dbb856b1c69a01a97b4734964"
+  },
+  "figureTextSheetReadingImage": "画像を読み取り中…",
+  "@figureTextSheetReadingImage": {
+    "x-sourceSha256": "be307d1b34cfc5f81c61c434df7f63403aa59cb2851ebd760f9d031319d2361b"
+  },
+  "figureTextSheetImageUnavailable": "このデバイスは、アプリの言語でも英語でも画像の文字を読み取れません。",
+  "@figureTextSheetImageUnavailable": {
+    "x-sourceSha256": "d990a1bae0df59cb352eb2e47fd76f3fba5565e08229612222edb489f31836cf"
+  },
+  "figureTextSheetImageEnglishOnly": "このデバイスは画像を英語で読み取ります。アプリの言語では読み取れません。",
+  "@figureTextSheetImageEnglishOnly": {
+    "x-sourceSha256": "bd0891d06fd0e811fafa2c4d42d4ead78224080a6bdb22ad36a59bdd8fe4ae8d"
+  },
+  "figureTextSheetImageTooLarge": "この画像は{limit} MBを超えているため、読み取りませんでした。もっと小さい画像を選んでください。",
+  "@figureTextSheetImageTooLarge": {
+    "x-sourceSha256": "1bb69766d216ed5cb9684a05e78700f2dbb36387e7357e871b9d03fec1dcb7ab"
+  },
+  "figureTextSheetImageTooManyPixels": "この画像はピクセル数が多すぎて読み取れません。もっと小さい画像を選ぶか、トリミングしてください。",
+  "@figureTextSheetImageTooManyPixels": {
+    "x-sourceSha256": "b50a0545135cdaba32030e933955ed45f156fdb1f439a92ec17de47fc8cd4fbd"
+  },
+  "figureTextSheetImageUnreadable": "このファイルは、このデバイスで開ける画像ではありません。",
+  "@figureTextSheetImageUnreadable": {
+    "x-sourceSha256": "0dac83a132c45d04835392cb021c627112c8127ea3f7542fb5e5f01d981a2e80"
+  },
+  "figureTextSheetImageNoText": "この画像に文字は見つかりませんでした。",
+  "@figureTextSheetImageNoText": {
+    "x-sourceSha256": "70c2f81285a31cf551ec4673df6cdf571ae387d10aa497c1e53764752bb212e5"
+  },
+  "figureTextSheetImageFailed": "画像の文字を読み取れませんでした。",
+  "@figureTextSheetImageFailed": {
+    "x-sourceSha256": "14449d451f327587d0d60907d54377246b50588e6cf4ae87a5df11ed78f9d5fc"
+  },
   "danceEditorPasteAtEndOfFigureList": "フィギュアリストの末尾にペースト",
   "@danceEditorPasteAtEndOfFigureList": {
     "x-sourceSha256": "5fb0b2b7335edd026fe96ab368850eb36c66826ba99ec38674181575aa24c07c"

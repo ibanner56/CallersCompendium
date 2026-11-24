@@ -14689,6 +14689,60 @@ abstract class AppLocalizations {
   /// **'Add figures'**
   String get figureTextSheetAdd;
 
+  /// Button in the Add figures from text sheet that opens the system picker to choose a picture (a photo of an index card or a book page) whose text is read on the device and put in the text box. Shown only on iOS and macOS.
+  ///
+  /// In en, this message translates to:
+  /// **'From an image…'**
+  String get figureTextSheetFromImage;
+
+  /// Label of the From an image… button while the chosen picture's text is being read on the device.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the picture…'**
+  String get figureTextSheetReadingImage;
+
+  /// Note under the disabled From an image… button when the device reads neither the app's language nor English.
+  ///
+  /// In en, this message translates to:
+  /// **'This device can\'t read text from pictures in the app\'s language or in English.'**
+  String get figureTextSheetImageUnavailable;
+
+  /// Note under the From an image… button when the device cannot read the app's language (for example Japanese on an older iOS or macOS) but can read English.
+  ///
+  /// In en, this message translates to:
+  /// **'This device reads pictures in English, not in the app\'s language.'**
+  String get figureTextSheetImageEnglishOnly;
+
+  /// Error under the From an image… button when the chosen file is over the size limit. Nothing is read.
+  ///
+  /// In en, this message translates to:
+  /// **'This picture is larger than {limit} MB, so it wasn\'t read. Choose a smaller one.'**
+  String figureTextSheetImageTooLarge(int limit);
+
+  /// Error under the From an image… button when the chosen picture's dimensions are over the limit. Nothing is read.
+  ///
+  /// In en, this message translates to:
+  /// **'This picture has too many pixels to read. Choose a smaller one, or crop it.'**
+  String get figureTextSheetImageTooManyPixels;
+
+  /// Error under the From an image… button when the chosen file cannot be decoded as an image.
+  ///
+  /// In en, this message translates to:
+  /// **'This file isn\'t a picture this device can open.'**
+  String get figureTextSheetImageUnreadable;
+
+  /// Error under the From an image… button when recognition found no text. The text box is left as it was.
+  ///
+  /// In en, this message translates to:
+  /// **'No text was found in this picture.'**
+  String get figureTextSheetImageNoText;
+
+  /// Error under the From an image… button when the device's text recognition failed.
+  ///
+  /// In en, this message translates to:
+  /// **'The picture\'s text couldn\'t be read.'**
+  String get figureTextSheetImageFailed;
+
   /// Semantics label for pasting a cut figure at the end of the list.
   ///
   /// In en, this message translates to:
