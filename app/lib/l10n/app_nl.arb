@@ -13242,6 +13242,10 @@
   "@performSwapResultsHeading": {
     "x-sourceSha256": "57d1b7c78aa3bcdc4cefed7536863f6187b0cdd701bd866eb819aa9ea7445248"
   },
+  "performSwapRefused": "Dit programma is op een ander apparaat gewijzigd, dus de dans is niet gewisseld. Wissel hem opnieuw.",
+  "@performSwapRefused": {
+    "x-sourceSha256": "bd8f0cef267959e44d23da816111198a6198e0f301e3df5fdf910586906ef62b"
+  },
   "settingsPerformSwapTitle": "Een dans wisselen",
   "@settingsPerformSwapTitle": {
     "x-sourceSha256": "e892cbf90746d0f5694e8ea42e38375d7706b1aec52e295ca46dc7149a5f0db7"
@@ -13266,9 +13270,9 @@
   "@settingsPerformSwapTypeSubtitle": {
     "x-sourceSha256": "d477c65b9b06d3c267eb941d0ad97e19db2b427277abf2a21193e81e860436d4"
   },
-  "settingsPerformSwapNewerVersion": "Deze keuzes zijn opgeslagen door een nieuwere versie van de app en kunnen hier niet worden gewijzigd. Werk de app bij om ze te wijzigen.",
+  "settingsPerformSwapNewerVersion": "Deze keuzes zijn opgeslagen door een nieuwere versie van de app. Deze versie gebruikt haar beginkeuzes, allemaal aan, en overschrijft die van jou niet. Werk de app bij om ze te wijzigen.",
   "@settingsPerformSwapNewerVersion": {
-    "x-sourceSha256": "2a254caa1dda5cf8027427ef99d36604519c94756e9c61a2cb19eab1795d7376"
+    "x-sourceSha256": "96ac44b0564bd59fdb1a23ea224abfc09144b09558df30d58c12f74d67dc1b30"
   },
   "settingsPerformSwapReadError": "Je keuzes voor ‘Een dans wisselen’ konden niet worden gelezen en kunnen nu niet worden gewijzigd. Sluit dit scherm en probeer het opnieuw.",
   "@settingsPerformSwapReadError": {

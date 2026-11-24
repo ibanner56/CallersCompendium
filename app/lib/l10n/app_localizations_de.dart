@@ -13818,6 +13818,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get performSwapResultsHeading => 'Passende Tänze';
 
   @override
+  String get performSwapRefused =>
+      'Dieses Programm wurde auf einem anderen Gerät geändert, daher wurde der Tanz nicht getauscht. Tausche ihn erneut.';
+
+  @override
   String get settingsPerformSwapTitle => 'Tanz tauschen';
 
   @override
@@ -13839,7 +13843,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsPerformSwapNewerVersion =>
-      'Diese Auswahl wurde von einer neueren App-Version gespeichert und kann hier nicht geändert werden. Aktualisiere die App, um sie zu ändern.';
+      'Diese Auswahl wurde von einer neueren App-Version gespeichert. Diese Version verwendet ihre Startauswahl, bei der alles eingeschaltet ist, und überschreibt deine Auswahl nicht. Aktualisiere die App, um sie zu ändern.';
 
   @override
   String get settingsPerformSwapReadError =>

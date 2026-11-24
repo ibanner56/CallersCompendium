@@ -13168,6 +13168,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get performSwapResultsHeading => '条件に合うダンス';
 
   @override
+  String get performSwapRefused =>
+      'このプログラムは別のデバイスで変更されたため、ダンスは入れ替えられませんでした。もう一度入れ替えてください。';
+
+  @override
   String get settingsPerformSwapTitle => 'ダンスの入れ替え';
 
   @override
@@ -13189,7 +13193,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsPerformSwapNewerVersion =>
-      'この設定は新しいバージョンのアプリで保存されたため、ここでは変更できません。変更するにはアプリを更新してください。';
+      'この設定は新しいバージョンのアプリで保存されました。このバージョンはすべてオンの初期設定を使い、保存された設定は上書きしません。変更するにはアプリを更新してください。';
 
   @override
   String get settingsPerformSwapReadError =>

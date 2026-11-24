@@ -287,4 +287,79 @@ void main() {
       expect(stored.slots.first.performedAt, isNull);
     });
   });
+
+  // #2346: a swap whose slots another device changed meanwhile is not merged
+  // field by field (see perform_swap_conflict_test.dart): nothing is written,
+  // Perform shows the stored program and asks for the swap again.
+  testWidgets('a swap whose group changed elsewhere is not made, and Perform '
+      'asks to swap again', (tester) async {
+    final repos = openTestRepositories();
+    for (final (id, title) in [
+      ('d1', 'First Dance'),
+      ('d2', 'Backup Dance'),
+      ('d3', 'Third Dance'),
+      ('d4', 'Fresh Dance'),
+    ]) {
+      await repos.dances.create(dance(id, title));
+    }
+    await repos.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Barn Dance',
+        status: ProgramStatus.draft,
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's1x', position: 1, danceId: 'd2', isAlt: true),
+          ProgramSlot(id: 's2', position: 2, danceId: 'd3'),
+        ],
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+    );
+    await pumpHome(tester, repos, const ProgramSummaryScreen(programId: 'p1'));
+    await tester.tap(find.byKey(const ValueKey('summary-perform')));
+    await tester.pumpAndSettle();
+
+    // Another device deletes the alternate.
+    final stored = (await repos.programs.getById('p1'))!;
+    await repos.programs.update(
+      stored.copyWith(
+        slots: [stored.slots[0], stored.slots[2].copyWith(position: 1)],
+        updatedAt: stored.updatedAt.add(const Duration(minutes: 5)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('adjust-swap-current')));
+    await tester.pumpAndSettle();
+    final pick = find.descendant(
+      of: find.byKey(const ValueKey('adjust-swap-sheet')),
+      matching: find.byKey(const ValueKey('picker-add-d4')),
+    );
+    // Any dance will do: drop Same formation.
+    await tester.tap(find.byKey(const ValueKey('swap-keep-formation')));
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const ValueKey('swap-picker')),
+      const Offset(0, -400),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(pick);
+    await tester.pumpAndSettle();
+    await tester.tap(pick);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('adjust-done')));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    final after = (await repos.programs.getById('p1'))!;
+    expect(after.slots.map((s) => (s.id, s.danceId)), [
+      ('s1', 'd1'),
+      ('s2', 'd3'),
+    ]);
+    expect(find.text(l10nOf(tester).performSwapRefused), findsOneWidget);
+    expect(position(tester), 'Slot 1 of 2');
+  });
 }

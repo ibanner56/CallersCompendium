@@ -98,6 +98,52 @@ List<ProgramSlot> rebaseSlotEdits({
   return result;
 }
 
+/// Whether the swaps Perform made from [before] to [after] (#2346) can still
+/// be applied to [onto], the program as stored now.
+///
+/// A swap changes several slots at once: the swapped slot, the group's
+/// primary it may demote, and the alternate it may trade with, each changing
+/// its dance or whether it is an alternate. Merged field by field onto a
+/// program another device has changed meanwhile, such a change can land a
+/// dance in the wrong group or on a slot that counts toward calling history.
+/// So every slot whose dance or alternate flag Perform changed must still be
+/// in [onto] with the dance and flag it had in [before], in a group of the
+/// same slots; otherwise the caller is asked to swap again rather than
+/// having the edit merged. Perform's adjust sheet changes a slot's dance or
+/// flag only by a swap, so an adjustment without one always passes.
+bool performSwapsStillApply({
+  required List<ProgramSlot> before,
+  required List<ProgramSlot> after,
+  required List<ProgramSlot> onto,
+}) {
+  final afterById = {for (final slot in after) slot.id: slot};
+  final ontoIndex = {for (var i = 0; i < onto.length; i++) onto[i].id: i};
+  Set<String> group(List<ProgramSlot> slots, int index) {
+    final range = Program.alternateGroupRange(slots, index);
+    return {for (var i = range.start; i < range.end; i++) slots[i].id};
+  }
+
+  for (var i = 0; i < before.length; i++) {
+    final was = before[i];
+    final now = afterById[was.id];
+    if (now == null) continue;
+    if (now.danceId == was.danceId && now.isAlt == was.isAlt) continue;
+    final j = ontoIndex[was.id];
+    if (j == null) return false;
+    final current = onto[j];
+    if (current.danceId != was.danceId || current.isAlt != was.isAlt) {
+      return false;
+    }
+    final wasGroup = group(before, i);
+    final currentGroup = group(onto, j);
+    if (wasGroup.length != currentGroup.length ||
+        !wasGroup.containsAll(currentGroup)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /// Whether the alternate at [index] in [after] belongs to a group whose
 /// primary (the nearest slot before it that is not an alternate) is missing
 /// from [result]. An alternate with no primary before it leads its own run

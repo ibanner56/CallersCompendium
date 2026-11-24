@@ -329,9 +329,12 @@ does, and the one you swapped out stays in the program as an unmarked
   **Your alternates**, it takes that alternate's place. You stay on the same
   card. Each slot keeps its own note, guest caller and times.
 
-**Undo** puts the program back exactly as it was. If another device deleted the
-slot while you were swapping it, the swapped-out dance is not added anywhere
-else. The swap searches only your collection, never online.
+**Undo** puts the program back exactly as it was. If another device changed
+any slot the swap touches while you were swapping (deleted it, or changed its
+dance, its group or whether it is an alternate), the swap is not made: Perform
+shows the program as it now is and says *This program changed on another
+device, so the swap wasn't made. Swap again.* The swap searches only your
+collection, never online.
 
 For an English dance, Same formation is not offered, and its figures can be
 kept but without the two phrase choices. The swap sheet says so.

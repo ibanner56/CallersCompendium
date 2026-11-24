@@ -934,7 +934,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               );
               return null;
             }
-            storedAfterWrite[updated] = write.stored;
+            // A refused swap wrote nothing: there is nothing to undo after
+            // leaving Perform.
+            if (!write.swapRefused) storedAfterWrite[updated] = write.stored;
             // The write itself is what reloads this pane and every other view
             // of these slots — the coexisting program list, the Collection's
             // "called N times" badge, a mounted dance detail's calling history.

@@ -13652,6 +13652,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get performSwapResultsHeading => 'Matching dances';
 
   @override
+  String get performSwapRefused =>
+      'This program changed on another device, so the swap wasn\'t made. Swap again.';
+
+  @override
   String get settingsPerformSwapTitle => 'Swap a dance';
 
   @override
@@ -13673,7 +13677,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsPerformSwapNewerVersion =>
-      'These choices were saved by a newer version of the app, so they can\'t be changed here. Update the app to change them.';
+      'These choices were saved by a newer version of the app. This version uses its starting choices, with every one on, and won\'t overwrite yours. Update the app to change them.';
 
   @override
   String get settingsPerformSwapReadError =>

@@ -20099,6 +20099,12 @@ abstract class AppLocalizations {
   /// **'Matching dances'**
   String get performSwapResultsHeading;
 
+  /// Message in Perform when a swap could not be saved because another device changed the slots it touched meanwhile; the program is shown as stored and the caller is asked to swap again.
+  ///
+  /// In en, this message translates to:
+  /// **'This program changed on another device, so the swap wasn\'t made. Swap again.'**
+  String get performSwapRefused;
+
   /// Settings ▸ Program ▸ Perform mode row, and the title of its screen: which Keep choices are on when the caller swaps a dance in Perform. Also names this setting in Device Sync lists.
   ///
   /// In en, this message translates to:
@@ -20135,10 +20141,10 @@ abstract class AppLocalizations {
   /// **'Offered only in a program that mixes types, such as contras and English dances.'**
   String get settingsPerformSwapTypeSubtitle;
 
-  /// Notice in Settings ▸ Program ▸ Perform mode ▸ Swap a dance when the stored choices came from a newer version of the app; the switches are shown read-only.
+  /// Notice in Settings ▸ Program ▸ Perform mode ▸ Swap a dance when the stored choices came from a newer version of the app: this version cannot read them, so the switches show its starting choices (all on), read-only, and the stored choices are kept.
   ///
   /// In en, this message translates to:
-  /// **'These choices were saved by a newer version of the app, so they can\'t be changed here. Update the app to change them.'**
+  /// **'These choices were saved by a newer version of the app. This version uses its starting choices, with every one on, and won\'t overwrite yours. Update the app to change them.'**
   String get settingsPerformSwapNewerVersion;
 
   /// Error in Settings ▸ Program ▸ Perform mode ▸ Swap a dance when the stored choices could not be read; the switches are shown read-only and nothing is saved.

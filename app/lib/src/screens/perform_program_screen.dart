@@ -946,7 +946,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       _pendingPersist = write;
       unawaited(
         write.then((newer) {
-          if (newer != null) _showNewerProgram(updated, newer);
+          if (newer != null) _showNewerProgram(before, updated, newer);
         }),
       );
     }
@@ -956,8 +956,27 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// [adjusted] applied, after that adjustment's write found the program had
   /// changed since Perform's copy was taken (GIG-6), and tells the caller.
   /// Adjustments made while the write was in flight stay applied on top.
-  void _showNewerProgram(Program adjusted, Program newer) {
+  void _showNewerProgram(Program before, Program adjusted, Program newer) {
     if (!mounted) return;
+    // A swap the owner refused (another device changed the slots it touched,
+    // [performSwapsStillApply]) is not in [newer]: show the stored program,
+    // with no Undo for a change that was never made, and ask for the swap
+    // again.
+    if (!_swapsLanded(before, adjusted, newer)) {
+      if (identical(_undoable?.updated, adjusted)) _undoable = null;
+      _applyProgram(newer, persist: false);
+      final messenger = ScaffoldMessenger.of(context);
+      _undoPrompt = null;
+      messenger
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            key: const ValueKey('perform-swap-refused'),
+            content: Text(AppLocalizations.of(context).performSwapRefused),
+          ),
+        );
+      return;
+    }
     final shown = identical(_program, adjusted)
         ? newer
         : newer.copyWith(
@@ -991,6 +1010,28 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           ),
         );
     }
+  }
+
+  /// Whether every slot whose dance or alternate flag the adjustment
+  /// [before] → [adjusted] changed (a swap, #2346) holds its new value in
+  /// [newer], the program the owner stored.
+  static bool _swapsLanded(Program before, Program adjusted, Program newer) {
+    final beforeById = {for (final slot in before.slots) slot.id: slot};
+    final newerById = {for (final slot in newer.slots) slot.id: slot};
+    for (final slot in adjusted.slots) {
+      final was = beforeById[slot.id];
+      if (was == null ||
+          (was.danceId == slot.danceId && was.isAlt == slot.isAlt)) {
+        continue;
+      }
+      final stored = newerById[slot.id];
+      if (stored == null ||
+          stored.danceId != slot.danceId ||
+          stored.isAlt != slot.isAlt) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /// Applies [updated] and offers a one-tap SnackBar undo restoring the

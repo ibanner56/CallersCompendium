@@ -13706,6 +13706,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get performSwapResultsHeading => 'Danse der passer';
 
   @override
+  String get performSwapRefused =>
+      'Programmet blev ændret på en anden enhed, så dansen blev ikke byttet. Byt den igen.';
+
+  @override
   String get settingsPerformSwapTitle => 'Byt en dans';
 
   @override
@@ -13727,7 +13731,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsPerformSwapNewerVersion =>
-      'Disse valg blev gemt af en nyere version af appen og kan ikke ændres her. Opdater appen for at ændre dem.';
+      'Disse valg blev gemt af en nyere version af appen. Denne version bruger sine startvalg, hvor alle er slået til, og overskriver ikke dine. Opdater appen for at ændre dem.';
 
   @override
   String get settingsPerformSwapReadError =>

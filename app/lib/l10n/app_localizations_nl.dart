@@ -13783,6 +13783,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get performSwapResultsHeading => 'Passende dansen';
 
   @override
+  String get performSwapRefused =>
+      'Dit programma is op een ander apparaat gewijzigd, dus de dans is niet gewisseld. Wissel hem opnieuw.';
+
+  @override
   String get settingsPerformSwapTitle => 'Een dans wisselen';
 
   @override
@@ -13804,7 +13808,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsPerformSwapNewerVersion =>
-      'Deze keuzes zijn opgeslagen door een nieuwere versie van de app en kunnen hier niet worden gewijzigd. Werk de app bij om ze te wijzigen.';
+      'Deze keuzes zijn opgeslagen door een nieuwere versie van de app. Deze versie gebruikt haar beginkeuzes, allemaal aan, en overschrijft die van jou niet. Werk de app bij om ze te wijzigen.';
 
   @override
   String get settingsPerformSwapReadError =>

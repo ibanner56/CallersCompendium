@@ -8,6 +8,7 @@ class PerformAdjustmentWrite {
     required this.base,
     required this.stored,
     required this.changedUnderneath,
+    this.swapRefused = false,
   });
 
   /// The stored program the adjustment was applied to, as read just before
@@ -25,6 +26,12 @@ class PerformAdjustmentWrite {
   /// landed while Perform was open. The adjustment was applied on top of that
   /// write instead of replacing it.
   final bool changedUnderneath;
+
+  /// Whether nothing was written because the adjustment holds a swap that
+  /// changes elsewhere made unsafe to apply ([performSwapsStillApply]): the
+  /// stored program is left as it is ([stored] is [base]), and the caller is
+  /// asked to swap again.
+  final bool swapRefused;
 }
 
 /// How often [writePerformAdjustment] re-reads and retries before giving up,
@@ -59,6 +66,18 @@ Future<PerformAdjustmentWrite> writePerformAdjustment(
       throw StateError('program "$programId" is gone');
     }
     if (expected != null && current != expected) changed = true;
+    if (!performSwapsStillApply(
+      before: before,
+      after: after,
+      onto: current.slots,
+    )) {
+      return PerformAdjustmentWrite(
+        base: current,
+        stored: current,
+        changedUnderneath: true,
+        swapRefused: true,
+      );
+    }
     final stored = await programs.replaceIfUnchangedAndReadBack(
       expected: current,
       replacement: current.copyWith(

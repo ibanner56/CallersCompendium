@@ -13851,6 +13851,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get performSwapResultsHeading => 'Danses correspondantes';
 
   @override
+  String get performSwapRefused =>
+      'Ce programme a été modifié sur un autre appareil, la danse n’a donc pas été échangée. Échangez-la à nouveau.';
+
+  @override
   String get settingsPerformSwapTitle => 'Échanger une danse';
 
   @override
@@ -13872,7 +13876,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsPerformSwapNewerVersion =>
-      'Ces choix ont été enregistrés par une version plus récente de l’application et ne peuvent pas être modifiés ici. Mettez l’application à jour pour les modifier.';
+      'Ces choix ont été enregistrés par une version plus récente de l’application. Cette version utilise ses choix de départ, tous activés, et n’écrasera pas les vôtres. Mettez l’application à jour pour les modifier.';
 
   @override
   String get settingsPerformSwapReadError =>
