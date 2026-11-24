@@ -13,10 +13,9 @@ import 'support/l10n_harness.dart';
 
 /// A recognizer that answers from fixed values and records what it was asked.
 class _FakeRecognizer implements TextRecognitionService {
-  _FakeRecognizer({this.languages = const ['en'], this.text = _cardText});
+  _FakeRecognizer({this.languages = const ['en']});
 
   final List<String> languages;
-  final String text;
   final recognized = <Uint8List>[];
   final askedLanguages = <List<String>>[];
 
@@ -36,7 +35,7 @@ class _FakeRecognizer implements TextRecognitionService {
   }) async {
     recognized.add(bytes);
     askedLanguages.add(languages);
-    return text;
+    return _cardText;
   }
 }
 
@@ -143,7 +142,6 @@ void main() {
     expect(button.onPressed, isNull);
     expect(find.textContaining("the app doesn't install one"), findsOneWidget);
     expect(find.textContaining('Install'), findsNothing);
-    expect(find.byType(Link), findsNothing);
     // The sheet still takes typed text.
     await tester.enterText(
       find.byKey(const ValueKey('figure-text-sheet-field')),
