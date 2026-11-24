@@ -94,8 +94,8 @@
 > number; a flagged trade is its own progression and spends two of the
 > distance count, and the Caller's Box bridge places an unflagged Becket
 > progression on it (all the agent's calls, not yet ratified). Against
-> `rubric` at `58b6d4e4`: 3,938 of 5,149 to 4,026 of 5,260 compiled in scope
-> (76.5%), the core set from 528 to 529. 88 refused dances now compile and 5
+> `rubric` at `f33421f4`: 3,962 of 5,149 to 4,050 of 5,260 compiled in scope
+> (77.0%), the core set from 530 to 531. 88 refused dances now compile and 5
 > now mismatch; no previously compiling dance was lost.
 >
 > **N3 and N4 place later progressions (2026-11-23)**: on the N2 retry, a
