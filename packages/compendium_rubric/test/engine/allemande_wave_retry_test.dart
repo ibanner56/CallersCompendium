@@ -128,7 +128,11 @@ const Map<String, Object?> _topSpin = {
       "move": "do_si_do",
       "params": {"who": "nextNeighbors", "travel": 1.25, "beats": 8},
     },
-    {"move": "form_short_waves", "params": <String, Object?>{}, "progression": true},
+    {
+      "move": "form_short_waves",
+      "params": <String, Object?>{},
+      "progression": true,
+    },
   ],
 };
 
