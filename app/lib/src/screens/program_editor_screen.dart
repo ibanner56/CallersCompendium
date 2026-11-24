@@ -2405,10 +2405,29 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       ruleIds: _eventRuleIds,
       slots: List.unmodifiable(_renumber(_slots)),
       readContext: _readRuleSearchContext,
+      contextKey: _ruleSearchContextKey(),
       dialect: _dialect,
       enrichment: _enrichment,
     );
   }
+
+  /// What [_readRuleSearchContext] reads besides the tables the controller
+  /// watches: when this changes, the kept context is read again.
+  Object _ruleSearchContextKey() => Object.hashAll([
+    _existing?.id,
+    _data?.callerFilter,
+    _data?.taxonomy,
+    _dialect,
+    _enrichment,
+    context
+        .getInheritedWidgetOfExactType<UserFiguresScope>()
+        ?.notifier
+        ?.catalog,
+    RequirePerformedForHistoryScope.of(context),
+    RequireEventDateForHistoryScope.of(context),
+    callingHistoryTrackingOf(context),
+    const SearchClock().today(),
+  ]);
 
   /// The context a rule's saved search resolves against: the live data, the
   /// Calling history settings in force now, and this program, which never

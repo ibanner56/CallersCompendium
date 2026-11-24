@@ -11,6 +11,7 @@ import 'package:compendium_app/src/data/event_rules_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/settings/event_rules_screen.dart';
+import 'package:compendium_app/src/widgets/program_event_rules.dart';
 
 import 'support/dropdown.dart';
 import 'support/l10n_harness.dart';
@@ -429,5 +430,86 @@ void main() {
       seeded.oneBecket.id,
       seeded.noBecketFirstHalf.id,
     ]);
+  });
+
+  testWidgets('editing the saved search a rule uses updates the strip, with '
+      'no edit to the program', (tester) async {
+    final seeded = await _seed();
+    await _pump(tester, seeded.repos, enabled: true);
+    await pumpUntilFound(tester, _strip);
+
+    // Becket now means the improper dances: nothing before the break matches,
+    // and only one dance in the program does.
+    await seeded.repos.savedSearches.save(
+      SavedSearch(
+        id: seeded.becket.id,
+        name: 'Becket',
+        spec: _spec((f) => f.formations.add(FormationShape.dupleImproper)),
+      ),
+    );
+    await pumpUntil(
+      tester,
+      () => _strip.evaluate().isEmpty,
+      description: 'the strip to go once no rule is broken',
+    );
+    expect(find.byKey(const ValueKey('slot-s1-rule-marker')), findsNothing);
+  });
+
+  testWidgets('the search context is read once and kept across program '
+      'changes; a change to what it reads reads it again', (tester) async {
+    final seeded = await _seed();
+    final repos = seeded.repos;
+    final program = (await repos.programs.getById('p1'))!;
+    final controller = ProgramEventRulesController(repos: repos);
+    addTearDown(controller.dispose);
+    var checks = 0;
+    controller.addListener(() => checks++);
+    var reads = 0;
+    Future<SavedSearchContext> read() async {
+      reads++;
+      return SavedSearchContext(
+        today: DateTime.utc(2026, 1, 1),
+        taxonomy: contraTaxonomy,
+      );
+    }
+
+    Future<void> checked(int n) => pumpUntil(
+      tester,
+      () => checks >= n,
+      description: 'check $n',
+    );
+    void update(List<ProgramSlot> slots, {Object? key}) => controller.update(
+      enabled: true,
+      ruleIds: program.eventRuleIds,
+      slots: slots,
+      readContext: read,
+      contextKey: key,
+    );
+
+    update(program.slots);
+    await checked(1);
+    expect(controller.check.broken, isNotEmpty);
+    expect(reads, 1);
+
+    // A slot edit re-checks without reading the context again.
+    update(program.slots.take(2).toList());
+    await checked(2);
+    expect(reads, 1);
+
+    // A new tag changes what a search can name: read again.
+    await repos.tags.upsert(Tag(id: 't-new', name: 'Family'));
+    await checked(3);
+    expect(reads, 2);
+
+    // A dance edit re-checks with the context kept.
+    final dance = (await repos.dances.getById('d-c'))!;
+    await repos.dances.update(dance.copyWith(title: 'Chorus Jig Too'));
+    await checked(4);
+    expect(reads, 2);
+
+    // The host's own inputs to the context changed: read again.
+    update(program.slots.take(2).toList(), key: 'another program id');
+    await checked(5);
+    expect(reads, 3);
   });
 }

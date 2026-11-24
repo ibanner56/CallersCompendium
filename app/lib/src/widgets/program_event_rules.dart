@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart'
+    show ResultSetImplementation, TableUpdate, TableUpdateQuery;
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -16,10 +18,17 @@ import 'program_slot_list_editor.dart' show SlotRuleMarker;
 /// Checks a program's applied event rules whenever the program or the rules
 /// change (#2340), for the builder's Rules strip and slot markers.
 ///
+/// It also re-checks when what a check reads changes with no edit to the
+/// program: a saved search (a `settings` row), the dances and what a search
+/// matches on them, the calling history a Called filter counts, or what a
+/// search resolves against. The search context ([SavedSearchContext], about
+/// eight table reads) is read once and kept until a table it reads, or the
+/// host's [update] `contextKey`, changes; a slot edit reuses it.
+///
 /// It does nothing while the feature is off: [update] with `enabled` false
-/// clears the result, drops its watch on the rules and never calls the
-/// evaluator or reads a rule. It never notifies during the call that changed
-/// it, so a host may call [update] from `build`.
+/// clears the result, drops its watches and never calls the evaluator or
+/// reads a rule. It never notifies during the call that changed it, so a host
+/// may call [update] from `build`.
 class ProgramEventRulesController extends ChangeNotifier {
   ProgramEventRulesController({
     required this.repos,
@@ -33,7 +42,17 @@ class ProgramEventRulesController extends ChangeNotifier {
   EventRuleCheck get check => _check;
 
   StreamSubscription<List<EventRule>>? _rulesWatch;
+  StreamSubscription<Set<TableUpdate>>? _tablesWatch;
   int _rulesGeneration = 0;
+
+  /// Bumped by a write to a table a check reads ([_tablesWatch]).
+  int _dataGeneration = 0;
+
+  /// The search context, read at most once per [_contextKey] and dropped
+  /// when a table it reads changes.
+  Future<SavedSearchContext>? _context;
+  Object? _contextKey;
+  bool _runScheduled = false;
   int? _lastKey;
   int _seq = 0;
   _Inputs? _inputs;
@@ -45,6 +64,7 @@ class ProgramEventRulesController extends ChangeNotifier {
     required List<String> ruleIds,
     required List<ProgramSlot> slots,
     required Future<SavedSearchContext> Function() readContext,
+    Object? contextKey,
     Dialect? dialect,
     SearchEnrichment? enrichment,
   }) {
@@ -54,11 +74,20 @@ class ProgramEventRulesController extends ChangeNotifier {
       _seq++;
       unawaited(_rulesWatch?.cancel());
       _rulesWatch = null;
+      unawaited(_tablesWatch?.cancel());
+      _tablesWatch = null;
+      _context = null;
       if (!identical(_check, EventRuleCheck.empty)) {
         _check = EventRuleCheck.empty;
         _notifyLater();
       }
       return;
+    }
+    // The host's own inputs to the context (the program's id, the Calling
+    // history settings, the day) changed: read it again.
+    if (contextKey != _contextKey) {
+      _contextKey = contextKey;
+      _context = null;
     }
     _inputs = _Inputs(ruleIds, slots, readContext, dialect, enrichment);
     // A rule edited in the manager (or by sync) changes what it says.
@@ -66,7 +95,57 @@ class ProgramEventRulesController extends ChangeNotifier {
       _rulesGeneration++;
       _run();
     });
+    _tablesWatch ??= _watchTables();
     _run();
+  }
+
+  /// Watches every table a check reads besides the rules. A write to one the
+  /// search context reads drops the kept context too.
+  StreamSubscription<Set<TableUpdate>> _watchTables() {
+    final db = repos.db;
+    // What the context reads (`readSavedSearchContext`), and `settings`: the
+    // saved searches, and the Calling history settings a Called filter uses.
+    final contextTables = <ResultSetImplementation<dynamic, dynamic>>{
+      db.settings,
+      db.tags,
+      db.choreographers,
+      db.publishedSources,
+      db.difficultyLevels,
+      db.venues,
+      db.userGlossaryEntries,
+      db.customFieldDefs,
+      db.idAliases,
+    };
+    // What a search matches on a dance, and the calling history it counts.
+    final dataTables = <ResultSetImplementation<dynamic, dynamic>>{
+      db.dances,
+      db.danceTags,
+      db.danceAuthors,
+      db.danceInterpreters,
+      db.danceFigures,
+      db.danceSources,
+      db.customFieldValues,
+      db.programs,
+      db.programSlots,
+    };
+    final contextNames = {for (final t in contextTables) t.entityName};
+    return db
+        .tableUpdates(
+          TableUpdateQuery.onAllTables({...contextTables, ...dataTables}),
+        )
+        .listen((updates) {
+          if (updates.any((u) => contextNames.contains(u.table))) {
+            _context = null;
+          }
+          _dataGeneration++;
+          // One re-check for a burst of writes in the same turn.
+          if (_runScheduled) return;
+          _runScheduled = true;
+          scheduleMicrotask(() {
+            _runScheduled = false;
+            if (!_disposed) _run();
+          });
+        });
   }
 
   void _run() {
@@ -76,6 +155,8 @@ class ProgramEventRulesController extends ChangeNotifier {
       Object.hashAll(inputs.ruleIds),
       Object.hashAll(inputs.slots),
       _rulesGeneration,
+      _dataGeneration,
+      _contextKey,
     );
     if (key == _lastKey) return;
     _lastKey = key;
@@ -93,7 +174,7 @@ class ProgramEventRulesController extends ChangeNotifier {
           repos: repos,
           ruleIds: inputs.ruleIds,
           slots: inputs.slots,
-          readContext: inputs.readContext,
+          readContext: () => _context ??= inputs.readContext(),
           dialect: inputs.dialect,
           enrichment: inputs.enrichment,
           evaluate: evaluate,
@@ -102,7 +183,9 @@ class ProgramEventRulesController extends ChangeNotifier {
         _check = result;
         notifyListeners();
       } catch (error, stackTrace) {
-        // A rule that cannot be checked never blocks the builder.
+        // A rule that cannot be checked never blocks the builder. A context
+        // that failed to read is read again next time, not kept.
+        _context = null;
         logCaughtError(error, stackTrace, source: 'program_event_rules.check');
       }
     }());
@@ -116,6 +199,7 @@ class ProgramEventRulesController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     unawaited(_rulesWatch?.cancel());
+    unawaited(_tablesWatch?.cancel());
     super.dispose();
   }
 }
