@@ -1,0 +1,15 @@
+{
+  "id": "2326-add-figures-from-text",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Add several figures at once: in the dance editor, Add figure ▸ Add figures from text… lets you type or paste a dance's figures, one per line. Each line is read as the Move box reads a typed line with Free-text entry on, with your shorthands and dialect, even if that setting is off, and a contra line's A1 or B2 label is left out. A preview shows what each line gives before anything is added."
+    ]
+  },
+  "core": {
+    "added": [
+      "splitFigureTextLines, maxFigureTextLines, maxFigureTextLength and FigureTextRefusal: split pasted text into figure lines for free-text parsing, under line-count, total-length and per-line caps, skipping label-only lines and optionally dropping a leading A1–C2 phrase label.",
+      "splitPhraseLabel: the leading A1–C2 phrase-label splitter, shared with the Caller's Companion text adapter."
+    ]
+  }
+}

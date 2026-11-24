@@ -9779,6 +9779,109 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorAddSequence => 'Add sequence';
 
   @override
+  String get danceEditorAddFiguresFromText => 'Add figures from text…';
+
+  @override
+  String get figureTextSheetTitle => 'Add figures from text';
+
+  @override
+  String get figureTextSheetHelp =>
+      'Type or paste one figure per line, such as \"(8) neighbor balance & swing\". Each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.';
+
+  @override
+  String get figureTextSheetHelpDropsLabels =>
+      'Type or paste one figure per line, such as \"A1 (8) neighbor balance & swing\". A phrase label such as A1 at the start of a line is left out, and each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.';
+
+  @override
+  String get figureTextSheetFieldLabel => 'Figures, one per line';
+
+  @override
+  String figureTextSheetSummary(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString figures to add',
+      one: '1 figure to add',
+      zero: 'No figures to add yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String figureTextSheetUnrecognizedSummary(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$countString lines aren\'t recognized. They will be added as unrecognized figures with their text, for you to fix.',
+      one:
+          '1 line isn\'t recognized. It will be added as an unrecognized figure with its text, for you to fix.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String figureTextSheetLineFigures(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString figures',
+      one: '1 figure',
+      zero: 'No figure',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get figureTextSheetLineUnrecognized =>
+      'Not recognized: added as an unrecognized figure';
+
+  @override
+  String figureTextSheetTooLong(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'This is more than $maxString characters, more than can be read at once. Nothing will be added. Add it in parts.';
+  }
+
+  @override
+  String figureTextSheetTooManyLines(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'This is more than $maxString lines, more than can be read at once. Nothing will be added. Add it in parts.';
+  }
+
+  @override
+  String figureTextSheetLineTooLong(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'A line is longer than $maxString characters, more than can be read as one figure line. Nothing will be added. Break it into lines.';
+  }
+
+  @override
+  String get figureTextSheetAdd => 'Add figures';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList => 'Paste at end of figure list';
 
   @override

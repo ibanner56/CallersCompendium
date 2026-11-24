@@ -9610,6 +9610,58 @@
   "@danceEditorAddSequence": {
     "x-sourceSha256": "03eceea4c67a68c21df3c37e508ebcb7953259ba78fcf81694c9e9680b075ff1"
   },
+  "danceEditorAddFiguresFromText": "テキストからフィギュアを追加…",
+  "@danceEditorAddFiguresFromText": {
+    "x-sourceSha256": "f840eaad641ce0221ff1bcd48e035bde5406dc6076eacf3467fe88612c0c2380"
+  },
+  "figureTextSheetTitle": "テキストからフィギュアを追加",
+  "@figureTextSheetTitle": {
+    "x-sourceSha256": "16fe82c061e1e702e837551405086ab2837909dd63cca58d58f9203a4325a493"
+  },
+  "figureTextSheetHelp": "「(8) neighbor balance & swing」のように、1行に1つのフィギュアを入力または貼り付けてください。フリーテキスト入力がオフでも、各行はオンのときにムーブ欄に入力した行と同じように読み取られます。ダンスを保存するまで何も保存されません。",
+  "@figureTextSheetHelp": {
+    "x-sourceSha256": "b70b8b6217d32cf7ede39377160bdf83e8c8bdc955157327c679396a147589ac"
+  },
+  "figureTextSheetHelpDropsLabels": "「A1 (8) neighbor balance & swing」のように、1行に1つのフィギュアを入力または貼り付けてください。行頭のA1のようなフレーズラベルは省かれます。フリーテキスト入力がオフでも、各行はオンのときにムーブ欄に入力した行と同じように読み取られます。ダンスを保存するまで何も保存されません。",
+  "@figureTextSheetHelpDropsLabels": {
+    "x-sourceSha256": "b7c9b5a463322917bfc2bc008a83faba9c4b6e26fe2ec7f5853b365d025d033e"
+  },
+  "figureTextSheetFieldLabel": "フィギュア(1行に1つ)",
+  "@figureTextSheetFieldLabel": {
+    "x-sourceSha256": "cd213fb222337413dbd6b8cf0c55a645a877803a9d514338d72e276d2b8fbf39"
+  },
+  "figureTextSheetSummary": "{count, plural, =0{追加するフィギュアはまだありません} other{追加するフィギュア:{count}件}}",
+  "@figureTextSheetSummary": {
+    "x-sourceSha256": "8d628e840de30c093887423e7f1d919896e3bb934d2e8856bdf02ba9d3673733"
+  },
+  "figureTextSheetUnrecognizedSummary": "{count, plural, other{{count}行が認識できません。テキストを保持した認識できないフィギュアとして追加されるので、後で修正してください。}}",
+  "@figureTextSheetUnrecognizedSummary": {
+    "x-sourceSha256": "c8437f40374bbc82b0a64d4ff94ab7ce5f2748c5d770c23cdbf0dc43431520ac"
+  },
+  "figureTextSheetLineFigures": "{count, plural, =0{フィギュアなし} other{フィギュア{count}件}}",
+  "@figureTextSheetLineFigures": {
+    "x-sourceSha256": "3ec133f2233551118a818c5261143fa56975820a7f6ab52e3ee33ceac9fd3b27"
+  },
+  "figureTextSheetLineUnrecognized": "認識できません:認識できないフィギュアとして追加されます",
+  "@figureTextSheetLineUnrecognized": {
+    "x-sourceSha256": "bc1388947433658b1995ad75b92db5183b3fcedb17225879f503b202423529e6"
+  },
+  "figureTextSheetTooLong": "{max}文字を超えており、一度に読み取れる量を超えています。何も追加されません。分けて追加してください。",
+  "@figureTextSheetTooLong": {
+    "x-sourceSha256": "7fa1be36660f7294a0e3098d01851077618d38453897a1c033bf072b2b93c5d7"
+  },
+  "figureTextSheetTooManyLines": "{max}行を超えており、一度に読み取れる量を超えています。何も追加されません。分けて追加してください。",
+  "@figureTextSheetTooManyLines": {
+    "x-sourceSha256": "7905bde0cab940e87a1c4f3d237e0642b7d323190936e1280a368ecf679835cf"
+  },
+  "figureTextSheetLineTooLong": "{max}文字を超える行があり、1行のフィギュアとして読み取れる長さを超えています。何も追加されません。複数の行に分けてください。",
+  "@figureTextSheetLineTooLong": {
+    "x-sourceSha256": "788a83f3a7ef068c39e41cd604a9ce2936d1f2332e956c9d27d823ba1f93a847"
+  },
+  "figureTextSheetAdd": "フィギュアを追加",
+  "@figureTextSheetAdd": {
+    "x-sourceSha256": "5b26f322f63864bc8538081ffb00549cd3359633df43ad71178bdd627f0bd9b7"
+  },
   "danceEditorPasteAtEndOfFigureList": "フィギュアリストの末尾にペースト",
   "@danceEditorPasteAtEndOfFigureList": {
     "x-sourceSha256": "5fb0b2b7335edd026fe96ab368850eb36c66826ba99ec38674181575aa24c07c"

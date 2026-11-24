@@ -226,8 +226,8 @@ typed it. A count that is shorter but more than the 64 beats a figure can take
 (`circle left (100)`) keeps the whole line as an unrecognized figure too.
 
 Pasting several lines into the box keeps them as one line, with a space where
-each line break was; type or paste one figure line at a time to get one figure
-per line.
+each line break was. To add several lines at once, one figure line each, use
+[Add several figures at once](#add-several-figures-at-once).
 
 A `;` between figures makes a list, and each part is read as its own figure:
 `circle left 3/4; turn alone` gives two figures, in order. A count stays with
@@ -241,6 +241,40 @@ circle and the swing.
 
 As always, anything it cannot parse is kept as an unrecognized figure rather than
 dropped.
+
+### Add several figures at once
+
+To bring in a dance you have as text, from an email, a web page or a typed
+document, open **Add figure** ▸ **Add figures from text…** under the figure
+list. Type or paste the figures into the box, one figure per line:
+
+```
+A1 (8) Neighbor balance & swing
+   (8) Long lines forward and back
+A2 (8) Ladies chain
+```
+
+Each line is read as the Move box reads a line you type with
+[Free-text entry](#free-text-entry) on, with your
+[shorthands](#figure-shorthands) and your dialect, whether Free-text entry is
+on or not. Blank lines are skipped, and so is a line that is only a phrase
+label, such as an `A1` heading. In a contra dance a phrase label such as `A1` or
+`B2` at the start of a line is left out, so `A1 (8) Ladies chain` reads as
+`(8) Ladies chain`. English and square dances keep it: an English line such as
+`A1 1-8 lead up` is read with its label, because the label comes before a bar
+range; other English lines that start with a label may not be recognized, so
+leave the label off them.
+
+As you type, the sheet shows how many figures each line gives and marks the
+lines it does not recognize. Those are still added, each as an
+[unrecognized figure](#unrecognized-figure) that keeps its text, for you to
+fix. **Add figures** adds them all at the end of the figure list as one step,
+so a single Undo takes them out again. **Cancel** adds nothing. Nothing is
+saved until you save the dance.
+
+The sheet reads up to 200 lines and 20,000 characters at a time, and up to
+2,000 characters on one line. Longer text is refused, and nothing from it is
+added: add it in parts.
 
 ### Figure shorthands
 

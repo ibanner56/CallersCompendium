@@ -17,6 +17,7 @@ import '../../theme/destructive_button_style.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/bar_timing.dart';
 import '../../widgets/figure_list_editor.dart';
+import '../../widgets/figure_text_sheet.dart';
 import '../../widgets/section_header.dart';
 import '../../widgets/warnings_card.dart';
 import 'custom_field_editor.dart';
@@ -223,22 +224,41 @@ class DanceEditorForm extends StatelessWidget {
   /// shorthand nor a figure the parser structures leaves the line to the
   /// ordinary path. Returns the rows inserted, 0 when nothing was.
   int _insertShorthandClauses(String line, FigureDraft? replacing) {
+    final timing = _barTimingForBars;
+    final drafts = _shorthandClauseDrafts(
+      line,
+      timing: timing,
+      lineStart: timing == null
+          ? 0
+          : figureStartBeat(
+              replacing == null
+                  ? controller.figureDrafts
+                  : controller.figureDrafts.takeWhile((d) => d != replacing),
+            ),
+    );
+    if (drafts == null) return 0;
+    return controller.placeShorthandDrafts(drafts, replacing: replacing)
+        ? drafts.length
+        : 0;
+  }
+
+  /// The rows for a `;` line some of whose clauses are compound or own-figure
+  /// shorthands (#1866), built but not placed; null when the line is not one
+  /// ([_insertShorthandClauses]). [lineStart] is the beat the line starts on,
+  /// which a bar range counts from where the dance's [timing] needs it.
+  List<FigureDraft>? _shorthandClauseDrafts(
+    String line, {
+    required BarTiming? timing,
+    required int lineStart,
+  }) {
     final clauses = splitShorthandClauses(line);
-    if (clauses == null || clauses.length < 2) return 0;
+    if (clauses == null || clauses.length < 2) return null;
     final drafts = <FigureDraft>[];
     var anyOfOurs = false;
     // Each clause is placed after the ones before it, so a bar range counts
     // from where it will start: the figures before the line, then the rows its
     // earlier clauses become (not the beats the parser gave, which leave out
     // the count a row takes by default).
-    final timing = _barTimingForBars;
-    final lineStart = timing == null
-        ? 0
-        : figureStartBeat(
-            replacing == null
-                ? controller.figureDrafts
-                : controller.figureDrafts.takeWhile((d) => d != replacing),
-          );
     for (final clause in clauses) {
       final draft = _shorthandDraft(clause);
       if (draft != null) {
@@ -261,14 +281,100 @@ class DanceEditorForm extends StatelessWidget {
       if (figures.isEmpty ||
           (!_isPlainShorthandClause(clause) &&
               figures.any((f) => f.isCustom))) {
-        return 0;
+        return null;
       }
       drafts.addAll(controller.draftsForFreeTextFigures(figures));
     }
-    if (!anyOfOurs) return 0;
-    return controller.placeShorthandDrafts(drafts, replacing: replacing)
-        ? drafts.length
-        : 0;
+    return anyOfOurs ? drafts : null;
+  }
+
+  /// Reads the text of the **Add figures from text** sheet (#2326): each
+  /// figure line becomes the rows typing it in the Move box with Free-text
+  /// entry on would insert, in the same order of tries ([_shorthandSubmit],
+  /// then [parseFreeTextFigureEntry]), whether or not Free-text entry is on.
+  /// Builds rows without placing them, so the sheet can preview them on every
+  /// change and the dance changes only on **Add figures**. Each line is placed
+  /// after the lines before it, so a bar range counts from where it will
+  /// start. Contra dances drop a leading `A1`…`C2` phrase label first; English
+  /// dances keep it, because the parser reads `A1 1-8 lead up`.
+  FigureTextReading _readFigureText(BuildContext context, String text) {
+    final split = splitFigureTextLines(
+      text,
+      dropPhraseLabels: controller.form == DanceForm.contra,
+    );
+    final refusal = split.refusal;
+    if (refusal != null) return FigureTextReading.refused(refusal);
+    final ownShorthands =
+        (compoundShorthands != null || userFigureShorthands != null) &&
+        customFiguresShown(context);
+    final timing = _barTimingForBars;
+    var start = timing == null ? 0 : figureStartBeat(controller.figureDrafts);
+    final lines = <FigureTextLineReading>[];
+    for (final line in split.lines) {
+      final reading = _readFigureLine(
+        line,
+        ownShorthands: ownShorthands,
+        timing: timing,
+        lineStart: start,
+      );
+      lines.add(reading);
+      if (timing != null) start += figureStartBeat(reading.drafts);
+    }
+    return FigureTextReading(lines: lines);
+  }
+
+  /// One line of [_readFigureText].
+  FigureTextLineReading _readFigureLine(
+    FigureTextLine line, {
+    required bool ownShorthands,
+    required BarTiming? timing,
+    required int lineStart,
+  }) {
+    final text = line.text;
+    // As [_shorthandSubmit]: a plain shorthand that is the whole line wins
+    // before the compound and own-figure shorthands.
+    if (ownShorthands && shorthandMappings?.resolve(text) == null) {
+      final draft = _shorthandDraft(text);
+      final drafts = draft != null
+          ? [draft]
+          : _shorthandClauseDrafts(text, timing: timing, lineStart: lineStart);
+      if (drafts != null) {
+        return FigureTextLineReading(
+          line: line,
+          drafts: drafts,
+          unrecognized: false,
+        );
+      }
+    }
+    final figures = parseFreeTextFigureEntry(
+      text,
+      taxonomy: taxonomy,
+      shorthands: shorthandMappings,
+      dialect: dialect,
+      formationShape: controller.formationShape,
+      meter: _meterForBars,
+      timing: timing,
+      startBeat: timing == null ? 0 : lineStart,
+    );
+    return FigureTextLineReading(
+      line: line,
+      drafts: controller.draftsForFreeTextFigures(figures),
+      unrecognized: figures.any(
+        (f) => f.isCustom && f.customOrigin == CustomOrigin.importGap,
+      ),
+    );
+  }
+
+  /// Opens the **Add figures from text** sheet (#2326) and appends the rows
+  /// it returns, as one undo step. Returns how many rows were added.
+  Future<int> _addFromText(BuildContext context) async {
+    final drafts = await FigureTextSheet.show(
+      context,
+      read: (text) => _readFigureText(context, text),
+      dropsPhraseLabels: controller.form == DanceForm.contra,
+    );
+    if (drafts == null || drafts.isEmpty) return 0;
+    return controller.appendFigureDrafts(drafts) ? drafts.length : 0;
   }
 
   /// Whether [clause] is a plain shorthand, counted or not, whose figures may
@@ -584,6 +690,7 @@ class DanceEditorForm extends StatelessWidget {
                     canonicalizeDiscouragedTerms:
                         CanonicalDiscouragedTermsScope.of(context),
                     onAddFreeText: controller.insertFreeTextFigures,
+                    onAddFromText: () => _addFromText(context),
                     freeTextComposerController: controller.freeTextComposer,
                     pendingMoveTextController: controller.pendingMoveText,
                     onReplaceWithFreeText:

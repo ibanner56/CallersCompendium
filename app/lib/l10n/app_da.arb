@@ -9610,6 +9610,58 @@
   "@danceEditorAddSequence": {
     "x-sourceSha256": "03eceea4c67a68c21df3c37e508ebcb7953259ba78fcf81694c9e9680b075ff1"
   },
+  "danceEditorAddFiguresFromText": "Tilføj figurer fra tekst…",
+  "@danceEditorAddFiguresFromText": {
+    "x-sourceSha256": "f840eaad641ce0221ff1bcd48e035bde5406dc6076eacf3467fe88612c0c2380"
+  },
+  "figureTextSheetTitle": "Tilføj figurer fra tekst",
+  "@figureTextSheetTitle": {
+    "x-sourceSha256": "16fe82c061e1e702e837551405086ab2837909dd63cca58d58f9203a4325a493"
+  },
+  "figureTextSheetHelp": "Skriv eller indsæt én figur pr. linje, f.eks. \"(8) neighbor balance & swing\". Hver linje læses, som bevægelsesfeltet læser en skrevet linje med fri tekstindtastning slået til, også når den er slået fra. Intet gemmes, før du gemmer dansen.",
+  "@figureTextSheetHelp": {
+    "x-sourceSha256": "b70b8b6217d32cf7ede39377160bdf83e8c8bdc955157327c679396a147589ac"
+  },
+  "figureTextSheetHelpDropsLabels": "Skriv eller indsæt én figur pr. linje, f.eks. \"A1 (8) neighbor balance & swing\". En frasebetegnelse som A1 i starten af en linje udelades, og hver linje læses, som bevægelsesfeltet læser en skrevet linje med fri tekstindtastning slået til, også når den er slået fra. Intet gemmes, før du gemmer dansen.",
+  "@figureTextSheetHelpDropsLabels": {
+    "x-sourceSha256": "b7c9b5a463322917bfc2bc008a83faba9c4b6e26fe2ec7f5853b365d025d033e"
+  },
+  "figureTextSheetFieldLabel": "Figurer, én pr. linje",
+  "@figureTextSheetFieldLabel": {
+    "x-sourceSha256": "cd213fb222337413dbd6b8cf0c55a645a877803a9d514338d72e276d2b8fbf39"
+  },
+  "figureTextSheetSummary": "{count, plural, =0{Ingen figurer at tilføje endnu} =1{1 figur at tilføje} other{{count} figurer at tilføje}}",
+  "@figureTextSheetSummary": {
+    "x-sourceSha256": "8d628e840de30c093887423e7f1d919896e3bb934d2e8856bdf02ba9d3673733"
+  },
+  "figureTextSheetUnrecognizedSummary": "{count, plural, =1{1 linje genkendes ikke. Den tilføjes som en ukendt figur med sin tekst, så du kan rette den.} other{{count} linjer genkendes ikke. De tilføjes som ukendte figurer med deres tekst, så du kan rette dem.}}",
+  "@figureTextSheetUnrecognizedSummary": {
+    "x-sourceSha256": "c8437f40374bbc82b0a64d4ff94ab7ce5f2748c5d770c23cdbf0dc43431520ac"
+  },
+  "figureTextSheetLineFigures": "{count, plural, =0{Ingen figur} =1{1 figur} other{{count} figurer}}",
+  "@figureTextSheetLineFigures": {
+    "x-sourceSha256": "3ec133f2233551118a818c5261143fa56975820a7f6ab52e3ee33ceac9fd3b27"
+  },
+  "figureTextSheetLineUnrecognized": "Ikke genkendt: tilføjes som en ukendt figur",
+  "@figureTextSheetLineUnrecognized": {
+    "x-sourceSha256": "bc1388947433658b1995ad75b92db5183b3fcedb17225879f503b202423529e6"
+  },
+  "figureTextSheetTooLong": "Det er mere end {max} tegn, mere end der kan læses på én gang. Intet tilføjes. Tilføj det i dele.",
+  "@figureTextSheetTooLong": {
+    "x-sourceSha256": "7fa1be36660f7294a0e3098d01851077618d38453897a1c033bf072b2b93c5d7"
+  },
+  "figureTextSheetTooManyLines": "Det er mere end {max} linjer, mere end der kan læses på én gang. Intet tilføjes. Tilføj det i dele.",
+  "@figureTextSheetTooManyLines": {
+    "x-sourceSha256": "7905bde0cab940e87a1c4f3d237e0642b7d323190936e1280a368ecf679835cf"
+  },
+  "figureTextSheetLineTooLong": "En linje er længere end {max} tegn, mere end der kan læses som én figurlinje. Intet tilføjes. Del den op i flere linjer.",
+  "@figureTextSheetLineTooLong": {
+    "x-sourceSha256": "788a83f3a7ef068c39e41cd604a9ce2936d1f2332e956c9d27d823ba1f93a847"
+  },
+  "figureTextSheetAdd": "Tilføj figurer",
+  "@figureTextSheetAdd": {
+    "x-sourceSha256": "5b26f322f63864bc8538081ffb00549cd3359633df43ad71178bdd627f0bd9b7"
+  },
   "danceEditorPasteAtEndOfFigureList": "Indsæt i slutningen af figurlisten",
   "@danceEditorPasteAtEndOfFigureList": {
     "x-sourceSha256": "5fb0b2b7335edd026fe96ab368850eb36c66826ba99ec38674181575aa24c07c"
