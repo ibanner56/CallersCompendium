@@ -2438,8 +2438,9 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
     `slide_along_set`, where every couple moves. The author proposed the
     shape below from a census of the 1,427 public dances whose figures mention
     a shift (fetched 2026-11-24), and the maintainer ratified the direction
-    vocabulary, the exclusion of `everyone`, the defaults, and joining v40
-    rather than bumping (2026-11-24). The reader's details are the author's:
+    vocabulary, the exclusion of `everyone`, the `who` and `beats` defaults,
+    and joining v40 rather than bumping (2026-11-24). The rest, including the
+    `direction` default, is the author's:
     - Only a line whose dancers lead and whose verb is "shift" reads as one
       (`_shift` in `figure_parser.dart`). Bare "Shift/Slide left/right" stays
       `slide_along_set`: 780 `slide_along_set` figures before the change and
@@ -2448,8 +2449,8 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       name no dancers, which this reading never takes.)
     - `direction` is `left`, `right`, `up` or `down` (default `left`), since
       the source writes "Twos shift up" (20 lines, 19 of them in Four Facing
-      Four dances); the maintainer's ruling. Like `cast.direction` it takes
-      no opposite.
+      Four dances). The four values are the maintainer's ruling; the default
+      `left` is the author's. Like `cast.direction` it takes no opposite.
     - `who` (default `role1s`, and `beats` 4, the commonest count in the
       census; both the maintainer's ruling) offers every dancer set but
       `everyone`, also the maintainer's ruling: a shift by everyone is the
