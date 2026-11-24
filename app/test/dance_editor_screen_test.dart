@@ -26,6 +26,7 @@ import 'package:compendium_app/src/widgets/section_header.dart';
 import 'support/dropdown.dart';
 import 'support/test_repositories.dart';
 import 'support/new_dance_draft.dart';
+import 'support/dance_editor_setup.dart';
 import 'support/l10n_harness.dart';
 import 'figures_support.dart';
 
@@ -67,6 +68,7 @@ Future<void> _pumpEditor(
   WidgetTester tester,
   CompendiumRepositories repos, {
   String? danceId,
+  bool openSetup = true,
   ThemeData? theme,
   Size surfaceSize = const Size(1200, 3600),
   Dialect? activeDialect,
@@ -113,7 +115,9 @@ Future<void> _pumpEditor(
     ),
   );
   await tester.tap(find.byKey(const ValueKey('open-editor')));
-  await tester.pumpAndSettle();
+  await tester.pumpAndSettle();  // Most tests reach the setup panel's fields; the panel's own folding is
+  // tested with [openSetup] false.
+  if (openSetup) await openDanceEditorSetup(tester);
 }
 
 /// Types [typed] into figure [index]'s move field and taps the [optionId]
