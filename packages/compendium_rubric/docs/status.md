@@ -133,6 +133,19 @@
 > Tulsa (4959) now compiles; nothing else changed outcome. Heather's Hop
 > Redux and its alternate still mismatch, at their final half figure eight.
 >
+> **An arch and dive from a line of four bends it first (2026-11-24)**: "in
+> a line of four, go up the hall; ones arch, twos dive" bends the line into a
+> ring before the couples trade, and the Caller's Box bridge takes an arch and
+> dive straight after a hall figure as the progression (both user-ruled). The
+> bridge also reads a hall figure noted "backwards" as a line backing along the
+> hall. The bend geometry, that reading and the progression rule's scope are
+> the agent's calls. Against `rubric` at `fd3447ef`: 4,073 to 4,090 of 5,257
+> compiled in scope (77.5% to 77.8%), the core set unchanged at 532, no
+> previously compiling dance lost. 17 dances now compile, among them Peekaboo
+> Street (14834) and Ends Turn in Contra (11511). Contra Madness (1013) still
+> refuses, at its N3 swing: it needs a second progression. Three refused
+> dances now mismatch (2012, 5397, 16963).
+>
 > **N3 and N4 place later progressions (2026-11-23)**: on the N2 retry, a
 > Double dance flags its second progression by the first N3 mention and a
 > Triple its third by the first N4 (user-ruled). Against `rubric` at

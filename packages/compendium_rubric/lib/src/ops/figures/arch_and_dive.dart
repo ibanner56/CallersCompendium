@@ -79,7 +79,8 @@ final class ArchAndDive extends Operation {
   /// the same way along the hall; otherwise `null`, and it cannot bend.
   static Facing? _bendFacing(Formation formation, int row) {
     final facings = {
-      for (final id in formation.dancersInRow(row)) formation.stateOf(id).facing,
+      for (final id in formation.dancersInRow(row))
+        formation.stateOf(id).facing,
     };
     if (facings.length != 1) return null;
     final facing = facings.single;

@@ -799,6 +799,33 @@ void main() {
       }
     });
 
+    test('a hall figure noted "backwards" backs along the hall', () {
+      // Caller's Box "go up the hall (backwards)" arrives as a note.
+      // Agent's call 2026-11-24.
+      core.Figure hall(
+        String? note, [
+        Map<String, Object?> params = const {},
+      ]) =>
+          core_test.testFigure(move: 'up_the_hall', params: params, note: note);
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleImproper,
+        figures: [
+          hall('backwards'),
+          hall('backwards; with nextNeighbors'),
+          hall('backwards', {'facing': 'forward'}),
+          hall(null),
+          hall('ones follow twos'),
+        ],
+      );
+      final facings = [
+        for (final record
+            in bridgeCoreDance(dance).record['figures']! as List<Object?>)
+          ((record! as Map<String, Object?>)['params']!
+              as Map<String, Object?>)['facing'],
+      ];
+      expect(facings, ['backward', 'backward', 'forward', null, null]);
+    });
+
     test('a modifier carries a container child to the record as a figure', () {
       final dance = _shapedLike(
         shape: core.FormationShape.dupleImproper,
@@ -903,6 +930,32 @@ void main() {
           figure('pass_through', {'where': 'along'}),
           figure('swing'),
         ],
+      );
+      expect(assumedProgressionIndex(dance), 2);
+    });
+
+    test('an arch and dive straight after a hall figure progresses', () {
+      // User-ruled 2026-11-24: the line bends into a ring and the arch and
+      // dive carries the couples on.
+      for (final hall in ['up_the_hall', 'down_the_hall']) {
+        final dance = _shapedLike(
+          shape: core.FormationShape.dupleImproper,
+          figures: [
+            figure('down_the_hall'),
+            figure(hall),
+            figure('arch_and_dive', {'who': 'ones'}),
+            figure('swing'),
+            figure('long_lines'),
+          ],
+        );
+        expect(assumedProgressionIndex(dance), 2, reason: hall);
+      }
+    });
+
+    test('an arch and dive after anything else does not', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleImproper,
+        figures: [figure('circle'), figure('arch_and_dive'), figure('swing')],
       );
       expect(assumedProgressionIndex(dance), 2);
     });

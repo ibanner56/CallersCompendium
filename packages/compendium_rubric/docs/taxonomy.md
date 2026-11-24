@@ -189,7 +189,7 @@ Precondition/error kinds accumulated as figures are defined:
 | `hallFacingConflict` | a hall figure is danced from a line of four that is already facing *against* the figure's travel facing, so the line turns around on the spot before travelling. The figure still runs and `facing` still wins; the warning reports the uncalled turn. **State-dependent**, so unlike `oneSidedHall` it is raised by the operation against the formation it is handed, and stamped with its index by the engine. |
 | `facingPrecondition` | a figure is danced by dancers facing the wrong way for it (e.g. `pass_through dir:along` from dancers left facing across the set). The figure runs as though they had turned to it first; the warning reports the turn nobody called. Dancers whose facing is `Flexible` are skipped entirely — this figure is what resolves them, so there is nothing to report. **State-dependent**, raised by the operation and stamped by the engine. |
 | `unstatedPairing` | a `form_short_waves` or `pass_the_ocean` whose record states no `sides` or `center` forms its wave with whoever is in position, and they are not the default pairing (`neighbors` sides, `role2s` centre). A stated pairing that does not hold is still `whoMismatch`. *(User-ruled 2026-11-23.)* **State-dependent**, raised by the operation and stamped by the engine. |
-| `archFromLine` | `arch_and_dive` is called on a hands four standing as a **line of four**, typically left by a hall figure. Its unconditional row swap then moves the whole line to the band's other row, usually back along the set, instead of trading two facing couples. The figure still runs as ruled; the warning says the order of figures probably needs a look. **State-dependent**, raised by the operation and stamped by the engine. *(User-ruled, 2026-11-23.)* |
+| `archFromLine` | `arch_and_dive` is called on a hands four standing as a **line of four** that cannot bend into a ring, because its dancers do not all face one way along the hall. Its unconditional row swap then moves the whole line to the band's other row, usually back along the set, instead of trading two facing couples. The figure still runs as ruled; the warning says the order of figures probably needs a look. A line that does face one way bends first and raises nothing (see `arch_and_dive`). **State-dependent**, raised by the operation and stamped by the engine. *(User-ruled, 2026-11-23; narrowed to lines that cannot bend by the 2026-11-24 ruling, agent's call.)* |
 | `anchorMismatch` | a **descriptive anchor** contradicts the arrangement the figure produced — `form_long_waves` naming a `whom`/`hand` hold the wave it forms cannot offer. An anchor states a fact the figure does not need in order to run, so the figure runs unchanged and only the description is at fault. Anchors are still worth carrying: they **disambiguate** (a record naming the hold but not the pair has said everything needed) and they **corroborate** (a claim about the arrangement can be checked rather than trusted). **State-dependent**, raised by the operation and stamped by the engine. *(User-ruled.)* |
 | `unrecognizedFormation` | a record declares a starting formation shape this compiler does not model (`"other"` is already in the corpus). Read as **Duple Improper** rather than refused: the shape vocabulary is owned upstream and grows, and the declared type does less work than its name suggests — it fixes the starting matrix and never tracks where the dancers stand (`architecture.md` §3.2), so a dance whose own opening figures establish its arrangement is fully determined regardless. **Raised at parse time**, not by any figure, and carried on the `Dance` so the compile it belongs to reports it — the first diagnostic that is not an observation about a formation at all. *(User-ruled.)* |
 | `assumedProgression` | an **import bridge** (the Caller's Box) assumed which figure progresses, because the source has nowhere to say. Raised whenever the assumption is made, including when the dance compiles. *(User-ruled.)* |
@@ -1682,11 +1682,23 @@ To be defined later with worked examples.
 - **effect:** the **row swap** of every hands four, `(r0,c) ↔ (r1,c)`. **User-ruled:** the
   prior verifier's unconditional row swap is correct, the one place its reading governs over
   ours (§1.1 waived by explicit confirmation).
+- **from a line of four (user-ruled 2026-11-24):** the line **bends into a ring first**, then
+  the couples trade. Callers often leave the bend unwritten ("in a line of four, go up the
+  hall; ones arch, twos dive"). The two ends step forward into the row the line faces and turn
+  to face the centres; the centres stay in the other row, facing the way the line did; the
+  western half of the line takes the western column and the eastern half the eastern one
+  *(that geometry is the agent's call)*. A line backing along the hall ("go up the hall
+  (backwards)") faces the other way, so its ends step the other way; either way the swap
+  then sends each couple on in the direction it faces. A line whose dancers do not all face
+  one way along the hall cannot bend: it is swapped as it stands and raises `archFromLine`.
 - **progression:** **user-ruled (2026-11-22): nothing is baked in.** Unlike the prior verifier,
   the figure carries the dance's progression only when the record flags it, or when the
-  Caller's Box bridge assumes it there by its ordinary last-figure rule. Assuming the
-  progression on the arch itself was measured on the corpus before the ruling, and it did
-  worse (2 dances gained, 4 lost).
+  Caller's Box bridge assumes it there. The bridge assumes it by its ordinary last-figure rule,
+  and, outside Becket, on an arch and dive **straight after a hall figure** (user-ruled
+  2026-11-24: the bent line's arch and dive progresses; reading every hall figure, with or
+  without a stated bend, is the agent's call). Assuming the progression on every arch was
+  measured on the corpus before the 2026-11-22 ruling, and it did worse (2 dances gained,
+  4 lost).
 - **normalization:** none of its own.
 - **facing (output):** preserved; both couples walk forward through.
 - **interaction scope:** within the hands four.
@@ -1695,15 +1707,14 @@ To be defined later with worked examples.
   end-normalization).
 - **known limit and lint (user-ruled 2026-11-23: keep the plain swap, warn):** the swap is
   unconditional, so after a figure that has already moved the couples along the set it can
-  move them back. The usual case is a line of four left by a hall figure: the arch moves the
-  whole line to the band's other row, and the next neighbour swing then refuses. That case
-  raises the **`archFromLine` warning**. A ring left out of step with the bands (seen after a
-  `circle` in the corpus) is not covered by the lint. On the corpus at `rubric` `11b1860a`,
-  115 dances stopped at this figure before it was built: 34 now compile, 20 compile to the
-  wrong progression (16 of those with the bridge assuming the arch is the progression), 59
-  refuse at a later figure and 2 still name another unbuilt figure.
+  move them back. A line of four left by a hall figure now bends first (above), so the lint
+  is raised only for a line that cannot bend. A ring left out of step with the bands (seen
+  after a `circle` in the corpus) is not covered by the lint. On the corpus at `rubric`
+  `11b1860a`, 115 dances stopped at this figure before it was built: 34 then compiled, 20
+  compiled to the wrong progression (16 of those with the bridge assuming the arch is the
+  progression), 59 refused at a later figure and 2 still named another unbuilt figure.
 - **sources:** user rulings (row swap; 2026-11-22 on `who` and progression; 2026-11-23 on
-  the lint); ContraDanceVerifier row swap; CallersCompendium taxonomy `arch_and_dive` MoveDef (`who` default `twos`).
+  the lint; 2026-11-24 on the bend and its progression); ContraDanceVerifier row swap; CallersCompendium taxonomy `arch_and_dive` MoveDef (`who` default `twos`).
 
 ### `contra_corners`
 
@@ -2560,6 +2571,9 @@ To be defined later with worked examples.
     leave part of the line behind, producing a shape that is not a line of four.
   - `facing` — choice `{forward, forwardThenBackward, backward}`, default `forward`. Sets the
     **ending facing** (below); does not affect position, since travel is inert.
+    Caller's Box writes a line backing along the hall as "go up the hall (backwards)", which
+    the import keeps only as the note `backwards`; the bridge reads a note with that clause,
+    on a figure stating no `facing`, as `backward` *(agent's call, 2026-11-24)*.
   - `ender` — choice, default `turnCouple`. 6 of 10 values implemented (below).
   - `beats` — int, default 8 (baseline good=[8]).
 - **preconditions:** the h4 must be **complete** (four dancers). When the input is not already a

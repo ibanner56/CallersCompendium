@@ -420,7 +420,7 @@ index.
 | `hallFacingConflict` | figure lint | the line was already facing the other way along the hall; it turns around before travelling |
 | `facingPrecondition` | figure lint | dancers are not facing the way the figure assumes |
 | `unstatedPairing` | figure lint | a `form_short_waves` / `pass_the_ocean` with no stated `sides` or `center` formed with dancers who are not the default pairing *(user-ruled 2026-11-23)* |
-| `archFromLine` | figure lint | `arch_and_dive` was called on a line of four; the row swap moves the whole line *(user-ruled 2026-11-23)* |
+| `archFromLine` | figure lint | `arch_and_dive` was called on a line of four that cannot bend into a ring (it does not face one way along the hall); the row swap moves the whole line *(user-ruled 2026-11-23; a line that can bend bends first, user-ruled 2026-11-24)* |
 | `anchorMismatch` | figure lint | a descriptive param contradicts the derived arrangement |
 | `unrecognizedFormation` | **the parser** | unknown shape; falls back to `dupleImproper` |
 | `assumedProgression` | **an import bridge** | the source flagged no progression, so one was assumed (§10.1) |
@@ -643,7 +643,10 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > `chain` or `pass_through` along the set** does (user-ruled 2026-11-23: a
 > Becket progression is the obvious move), or a diagonal `right_left_through`
 > (agent's call 2026-11-24, by analogy with the diagonal chain), and only a
-> Becket dance with none of these falls back to the last figure. A `modifier` is read by its main
+> Becket dance with none of these falls back to the last figure. Outside Becket,
+> an `arch_and_dive` straight after a hall figure progresses before the last
+> figure does (user-ruled 2026-11-24: the line bends into a ring and the arch
+> and dive carries the couples on). A `modifier` is read by its main
 > figure for both Becket rules, so "slice left while partner roll away"
 > opening the dance progresses there (user-ruled 2026-11-23: a modifier's
 > progression is its main figure's). (Core's `slide_along_set.slide` and
@@ -885,7 +888,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,508 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,514 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

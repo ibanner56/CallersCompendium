@@ -183,21 +183,25 @@ enum WarningKind {
         'default one',
   ),
 
-  /// `arch_and_dive` was called on a **line of four**.
+  /// `arch_and_dive` was called on a **line of four** that cannot bend into a
+  /// ring.
   ///
   /// The figure is the unconditional row swap of every hands four
   /// *(user-ruled)*, which trades two couples facing each other along the set.
-  /// From a line of four, typically left by a hall figure, the same swap moves
-  /// the whole line to the band's other row: usually back along the set, past
-  /// where the dancers just travelled. The figure still runs as ruled; the
-  /// warning says the order of figures probably needs a look. *(User-ruled,
-  /// 2026-11-23: keep the plain swap and warn.)*
+  /// A line of four facing one way along the hall bends into a ring first
+  /// *(user-ruled 2026-11-24)* and raises nothing. A line whose dancers do not
+  /// all face one way cannot bend, so the same swap moves the whole line to
+  /// the band's other row: usually back along the set, past where the dancers
+  /// just travelled. The figure still runs as ruled; the warning says the
+  /// order of figures probably needs a look. *(User-ruled, 2026-11-23: keep
+  /// the plain swap and warn.)*
   ///
   /// **State-dependent**, raised by the operation and stamped by the engine.
   archFromLine(
     'archFromLine',
-    'arch_and_dive was called on a line of four; its row swap moves the whole '
-        'line along the set instead of trading two facing couples',
+    'arch_and_dive was called on a line of four that cannot bend into a ring; '
+        'its row swap moves the whole line along the set instead of trading two '
+        'facing couples',
   ),
 
   /// A **descriptive anchor** contradicts the arrangement the figure produced.
