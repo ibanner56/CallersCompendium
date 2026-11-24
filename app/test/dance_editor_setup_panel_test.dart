@@ -116,7 +116,7 @@ void main() {
     await tester.enterText(find.byKey(const ValueKey('phrase-field')), 'x*y');
     await tester.pumpAndSettle();
     // Fold it again, error unseen.
-    await tester.tap(find.byKey(const ValueKey('setup-tile')).first);
+    await tester.tap(find.text('Credits, formation and music'));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('phrase-field')), findsNothing);
 
@@ -124,12 +124,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('phrase-field')), findsOneWidget);
     final field = tester.state<FormFieldState<String>>(
-      find
-          .descendant(
-            of: find.byKey(const ValueKey('phrase-field')),
-            matching: find.byType(FormField<String>),
-          )
-          .first,
+      find.byKey(const ValueKey('phrase-field')),
     );
     expect(field.hasError, isTrue);
     expect((await repos.dances.getById('d1'))!.title, 'Contra');
