@@ -92,6 +92,42 @@ void main() {
       expect(first[4], hasLength(2));
     });
 
+    test(r'tags and tunes honour \, and \\, and read an old export, or a '
+        'hand-typed sheet with no backslash, as they always did', () async {
+      const cols = [
+        CsvColumnMapping(CsvColumnTarget.title),
+        CsvColumnMapping(CsvColumnTarget.tags),
+        CsvColumnMapping(CsvColumnTarget.tunes),
+      ];
+      final batch = await plan(
+        'Title,Tags,Tunes\r\n'
+        '"Old","Jig, Favourite","Reel, Hornpipe; Strathspey"\r\n'
+        r'"New","Hey\, Ho, Back\\slash","Say\, What, C:\temp"'
+        '\r\n',
+        mapping(',', cols: cols),
+      );
+      expect(batch.errors, isEmpty);
+      final old = batch.records[0].draft.dance;
+      expect(old.tagIds, [
+        '${kCsvTagPlaceholderPrefix}Jig',
+        '${kCsvTagPlaceholderPrefix}Favourite',
+      ]);
+      expect((old.tunesSource as DecodedTunes).tunes, [
+        'Reel',
+        'Hornpipe',
+        'Strathspey',
+      ]);
+      final escaped = batch.records[1].draft.dance;
+      expect(escaped.tagIds, [
+        '${kCsvTagPlaceholderPrefix}Hey, Ho',
+        '${kCsvTagPlaceholderPrefix}Back\\slash',
+      ]);
+      expect((escaped.tunesSource as DecodedTunes).tunes, [
+        'Say, What',
+        r'C:\temp',
+      ]);
+    });
+
     test('a figures cell, a ;-separated cell and per-phrase columns give '
         'the figures the fan-out gives for the same lines', () async {
       const lines = ['neighbors balance and swing', 'partners swing'];

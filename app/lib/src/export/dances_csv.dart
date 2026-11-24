@@ -225,11 +225,11 @@ List<List<String>> buildDancesCsvRows(
       yesNo(dance.mixer),
       danceStatusLabel(l10n, dance.status),
       dance.rating?.toString() ?? '',
-      [
+      joinNameList([
         for (final id in dance.tagIds)
           if (lookups.tagsById[id] case final tag?) tag.name,
-      ].join(', '),
-      content.tuneNames.join(', '),
+      ]),
+      joinNameList(content.tuneNames),
       dance.meter.trim(),
       dance.musicalKey.trim(),
       formHasBarnesReference(dance.form) ? dance.barnesReference.trim() : '',

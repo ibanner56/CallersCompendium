@@ -13,6 +13,7 @@ export 'src/analysis/repertoire_stats.dart';
 export 'src/analysis/suggestion_settings.dart';
 export 'src/analysis/suggestions.dart';
 export 'src/analysis/suggestion_worker.dart';
+export 'src/csv/csv_name_list.dart';
 export 'src/csv/csv_reader.dart';
 export 'src/csv/csv_writer.dart';
 export 'src/diagnostics/crash_log_record.dart';

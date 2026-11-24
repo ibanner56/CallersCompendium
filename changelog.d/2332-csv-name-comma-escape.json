@@ -1,0 +1,17 @@
+{
+  "id": "2332-csv-name-comma-escape",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "A tag or tune whose name has a comma (like \"Hey, Ho\") no longer splits in two when you import the dances spreadsheet the app exported. The export writes that comma as \\, and the import reads it back."
+    ]
+  },
+  "core": {
+    "added": [
+      "joinNameList, splitNameList, escapeNameListItem and csvNameListSeparator write and read a comma-separated list of names in which a comma inside a name is written \\, and a backslash \\\\."
+    ],
+    "changed": [
+      "The CSV import reads the tags and tunes cells through splitNameList, so \\, is a comma and \\\\ a backslash inside a name; a cell with no backslash splits as before."
+    ]
+  }
+}

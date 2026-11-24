@@ -116,6 +116,96 @@ void main() {
     lookups: lookups,
   );
 
+  group('names with a comma or backslash', () {
+    test('survive a round trip through the export and the import', () async {
+      final tags = {
+        't1': Tag(id: 't1', name: 'Hey, Ho'),
+        't2': Tag(id: 't2', name: r'Back\slash'),
+        't3': Tag(id: 't3', name: 'Plain'),
+      };
+      final tricky = dance().copyWith(
+        tagIds: const ['t1', 't2', 't3'],
+        tunes: const ['Say, What', r'C:\temp, and\', 'Reel'],
+      );
+      final csv = buildDancesCsv(
+        [tricky],
+        l10n: en,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        renderer: plainRenderer,
+        lookups: DancesCsvLookups(
+          choreographersById: lookups.choreographersById,
+          tagsById: tags,
+          sourcesById: lookups.sourcesById,
+        ),
+      );
+      final rows = readCsv(csv);
+      final header = rows.first;
+      final cells = rows[1];
+      expect(
+        cells[header.indexOf(en.csvColumnTags)],
+        r'Hey\, Ho, Back\\slash, Plain',
+      );
+      expect(
+        cells[header.indexOf(en.csvColumnTunes)],
+        r'Say\, What, C:\\temp\, and\\, Reel',
+      );
+
+      final adapter = CsvAdapter();
+      final found = await adapter.discover(
+        ImportRequest(
+          payload: csv,
+          options: {
+            CsvAdapter.mappingOption: CsvImportMapping(
+              separator: ',',
+              hasHeader: true,
+              columns: autoMapCsvColumns(header, header.length, [en], const []),
+              existingFields: const {},
+            ),
+          },
+        ),
+      );
+      final back = adapter.parse(await adapter.fetch(found.single)).dance;
+      expect(back.tagIds, [
+        for (final n in ['Hey, Ho', r'Back\slash', 'Plain'])
+          '$kCsvTagPlaceholderPrefix$n',
+      ]);
+      expect((back.tunesSource as DecodedTunes).tunes, [
+        'Say, What',
+        r'C:\temp, and\',
+        'Reel',
+      ]);
+    });
+
+    test('a name with neither is written exactly as before', () {
+      final csv = buildDancesCsv(
+        [
+          dance().copyWith(
+            tagIds: const ['t1', 't3'],
+            tunes: const ['Reel', "Rory O'More"],
+          ),
+        ],
+        l10n: en,
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        renderer: plainRenderer,
+        lookups: DancesCsvLookups(
+          tagsById: {
+            't1': Tag(id: 't1', name: 'Favourite'),
+            't3': Tag(id: 't3', name: 'Hey Ho'),
+          },
+        ),
+      );
+      final rows = readCsv(csv);
+      expect(
+        rows[1][rows.first.indexOf(en.csvColumnTags)],
+        'Favourite, Hey Ho',
+      );
+      expect(
+        rows[1][rows.first.indexOf(en.csvColumnTunes)],
+        "Reel, Rory O'More",
+      );
+    });
+  });
+
   group('custom field headers', () {
     CustomFieldDef field(String id, String label, {bool shareable = true}) =>
         CustomFieldDef(
