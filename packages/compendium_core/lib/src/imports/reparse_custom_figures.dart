@@ -3,6 +3,7 @@ import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/phrase_structure.dart';
 import '../storage/figure_reparse.dart';
+import '../taxonomy/form_figures.dart';
 import '../taxonomy/taxonomy.dart';
 import 'beat_implied_balance.dart';
 import 'ecd_bars.dart';
@@ -35,8 +36,10 @@ const int maxReparseTextLength = 2000;
 ///   ever considered. [CustomOrigin.userEntered] customs and structured figures
 ///   pass through byte-identical — this is the whole point of the #398 flag.
 /// - A figure is replaced ONLY when its re-parse yields a non-null, non-custom
-///   figure. If the re-parse still degrades to custom (no confident match), the
-///   original figure is kept unchanged (still import-gap). This makes the
+///   figure of the dance's own form ([figureFitsForm] for [taxonomy]'s form):
+///   a square's line is never upgraded to a contra call. If the re-parse
+///   still degrades to custom (no confident match), the original figure is
+///   kept unchanged (still import-gap). This makes the
 ///   operation idempotent: a second run finds nothing further to upgrade.
 /// - Untrusted stored text is guarded before parsing (must be a non-empty
 ///   String no longer than [maxReparseTextLength]; beats coerced to a safe
@@ -276,6 +279,10 @@ Figure? _tryUpgrade(
   // Keep the original when the re-parse is empty or still custom: an import-gap
   // figure that re-parses to custom stays exactly as it was (idempotent).
   if (parsed == null || parsed.isCustom) return null;
+  // Only the dance's own form's calls (Hudson, 24 November 2026): contra's
+  // grammar reads a square's line into contra's calls, so until squares have
+  // a grammar of their own such a line stays as it is.
+  if (taxonomy != null && !figureFitsForm(parsed, taxonomy.form)) return null;
 
   // Carry the authored per-figure walkthrough snippet across the upgrade: the
   // editor persists one for a custom figure, and an "upgrade" must not discard
