@@ -2,8 +2,14 @@ import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart'
-    show ResultSetImplementation, TableUpdate, TableUpdateQuery;
+    show
+        OrderingTerm,
+        ResultSetImplementation,
+        StringExpressionOperators,
+        TableUpdate,
+        TableUpdateQuery;
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
@@ -19,11 +25,21 @@ import 'program_slot_list_editor.dart' show SlotRuleMarker;
 /// change (#2340), for the builder's Rules strip and slot markers.
 ///
 /// It also re-checks when what a check reads changes with no edit to the
-/// program: a saved search (a `settings` row), the dances and what a search
-/// matches on them, the calling history a Called filter counts, or what a
-/// search resolves against. The search context ([SavedSearchContext], about
-/// eight table reads) is read once and kept until a table it reads, or the
-/// host's [update] `contextKey`, changes; a slot edit reuses it.
+/// program: a saved search, the dances and what a search matches on them, the
+/// calling history a Called filter counts, or what a search resolves against.
+///
+/// - **The search context** ([SavedSearchContext], about eight table reads)
+///   is read once and kept until a table it reads, or the host's [update]
+///   `contextKey`, changes; a slot edit reuses it. It reads nothing from
+///   `settings`: the Calling history settings reach it through `contextKey`.
+/// - **Settings.** Drift reports a write to `settings` without its key, and
+///   that table also takes the builder's draft autosaves, window sizes and
+///   sync state. So a `settings` write re-checks only when the saved-search
+///   rows (`saved_search:*`, read by every check) differ from the last
+///   check's, and never drops the context.
+/// - **Bursts.** Changes are gathered until the next frame, and a check never
+///   starts while another runs: the latest inputs are checked once it ends,
+///   so a sync's stream of writes does not pile checks up.
 ///
 /// It does nothing while the feature is off: [update] with `enabled` false
 /// clears the result, drops its watches and never calls the evaluator or
@@ -41,15 +57,18 @@ class ProgramEventRulesController extends ChangeNotifier {
   EventRuleCheck _check = EventRuleCheck.empty;
   EventRuleCheck get check => _check;
 
-  /// The ids of the rules still here (not deleted), once read.
-  Set<String>? _liveRuleIds;
+  /// The ids of the rules this device holds deleted (tombstones), once read.
+  Set<String>? _deletedRuleIds;
 
-  /// How many of [ids] are rules still here: what the Rules button counts.
-  /// A deleted rule's id, kept on the program for its Undo, does not count.
-  /// Before the rules are first read, every id counts.
-  int liveCount(List<String> ids) {
-    final live = _liveRuleIds;
-    return live == null ? ids.length : ids.where(live.contains).length;
+  /// What of [ids] the Rules button counts: every id but those of rules this
+  /// device holds deleted (kept on the program for their Undo). A rule
+  /// another device added that has not arrived here yet still counts: it is
+  /// applied, only not yet here.
+  int countedRules(List<String> ids) {
+    final deleted = _deletedRuleIds;
+    return deleted == null
+        ? ids.length
+        : ids.where((id) => !deleted.contains(id)).length;
   }
 
   StreamSubscription<List<EventRule>>? _rulesWatch;
@@ -59,11 +78,22 @@ class ProgramEventRulesController extends ChangeNotifier {
   /// Bumped by a write to a table a check reads ([_tablesWatch]).
   int _dataGeneration = 0;
 
+  /// The saved-search rows as the last look found them, to tell a write that
+  /// changed one from any other `settings` write.
+  String? _savedSearchRows;
+
   /// The search context, read at most once per [_contextKey] and dropped
   /// when a table it reads changes.
   Future<SavedSearchContext>? _context;
   Object? _contextKey;
-  bool _runScheduled = false;
+
+  /// Context reads started: a test seam for the cache.
+  @visibleForTesting
+  int contextReads = 0;
+
+  bool _frameScheduled = false;
+  bool _running = false;
+  bool _rerun = false;
   int? _lastKey;
   int _seq = 0;
   _Inputs? _inputs;
@@ -85,10 +115,11 @@ class ProgramEventRulesController extends ChangeNotifier {
       _seq++;
       unawaited(_rulesWatch?.cancel());
       _rulesWatch = null;
-      _liveRuleIds = null;
+      _deletedRuleIds = null;
       unawaited(_tablesWatch?.cancel());
       _tablesWatch = null;
       _context = null;
+      _savedSearchRows = null;
       if (!identical(_check, EventRuleCheck.empty)) {
         _check = EventRuleCheck.empty;
         _notifyLater();
@@ -104,18 +135,24 @@ class ProgramEventRulesController extends ChangeNotifier {
     _inputs = _Inputs(ruleIds, slots, readContext, dialect, enrichment);
     // A rule edited in the manager (or by sync) changes what it says. The
     // first list only says which rules are here.
-    _rulesWatch ??= repos.eventRules.watchAll().listen((rules) {
-      final first = _liveRuleIds == null;
-      _liveRuleIds = {for (final r in rules) r.id};
-      if (first) {
-        _notifyLater();
-        return;
+    _rulesWatch ??= repos.eventRules.watchAll().listen((live) async {
+      final first = _deletedRuleIds == null;
+      final liveIds = {for (final r in live) r.id};
+      final all = await repos.eventRules.listAll(includeDeleted: true);
+      if (_disposed || _rulesWatch == null) return;
+      _deletedRuleIds = {
+        for (final r in all)
+          if (!liveIds.contains(r.id)) r.id,
+      };
+      if (!first) {
+        _rulesGeneration++;
+        _schedule();
       }
-      _rulesGeneration++;
-      _run();
       _notifyLater();
     });
     _tablesWatch ??= _watchTables();
+    // At once, not at the next frame: a host calls this from `build`, and a
+    // frame asked for here would ask for the next.
     _run();
   }
 
@@ -123,10 +160,8 @@ class ProgramEventRulesController extends ChangeNotifier {
   /// search context reads drops the kept context too.
   StreamSubscription<Set<TableUpdate>> _watchTables() {
     final db = repos.db;
-    // What the context reads (`readSavedSearchContext`), and `settings`: the
-    // saved searches, and the Calling history settings a Called filter uses.
+    // What the context reads (`readSavedSearchContext`).
     final contextTables = <ResultSetImplementation<dynamic, dynamic>>{
-      db.settings,
       db.tags,
       db.choreographers,
       db.publishedSources,
@@ -149,28 +184,77 @@ class ProgramEventRulesController extends ChangeNotifier {
       db.programSlots,
     };
     final contextNames = {for (final t in contextTables) t.entityName};
+    final dataNames = {for (final t in dataTables) t.entityName};
+    final settingsName = db.settings.entityName;
     return db
         .tableUpdates(
-          TableUpdateQuery.onAllTables({...contextTables, ...dataTables}),
+          TableUpdateQuery.onAllTables({
+            ...contextTables,
+            ...dataTables,
+            db.settings,
+          }),
         )
-        .listen((updates) {
-          if (updates.any((u) => contextNames.contains(u.table))) {
-            _context = null;
+        .listen((updates) async {
+          final tables = {for (final u in updates) u.table};
+          if (tables.any(contextNames.contains)) _context = null;
+          var changed =
+              tables.any(contextNames.contains) ||
+              tables.any(dataNames.contains);
+          if (!changed && tables.contains(settingsName)) {
+            changed = await _savedSearchesChanged();
           }
+          if (!changed || _disposed) return;
           _dataGeneration++;
-          // One re-check for a burst of writes in the same turn.
-          if (_runScheduled) return;
-          _runScheduled = true;
-          scheduleMicrotask(() {
-            _runScheduled = false;
-            if (!_disposed) _run();
-          });
+          _schedule();
         });
+  }
+
+  /// Whether the saved-search rows differ from the last look: one query over
+  /// their keys, values and deletion stamps. The values, not the edit stamps:
+  /// the store keeps whole seconds, so an edit in the same second as the last
+  /// look can carry the same stamp.
+  Future<bool> _savedSearchesChanged() async {
+    final db = repos.db;
+    final key = db.settings.key;
+    final value = db.settings.valueJson;
+    final deletedAt = db.settings.deletedAt;
+    final rows =
+        await (db.selectOnly(db.settings)
+              ..addColumns([key, value, deletedAt])
+              ..where(key.like('$savedSearchKeyPrefix%'))
+              ..orderBy([OrderingTerm.asc(key)]))
+            .get();
+    final seen = [
+      for (final row in rows)
+        if (row.read(key) case final k? when k.startsWith(savedSearchKeyPrefix))
+          '$k ${row.read(deletedAt)} ${row.read(value)}',
+    ].join('\n');
+    final before = _savedSearchRows;
+    _savedSearchRows = seen;
+    return before != null && before != seen;
+  }
+
+  /// Runs a check at the next frame, once for every change before it.
+  void _schedule() {
+    if (_frameScheduled || _disposed) return;
+    _frameScheduled = true;
+    final binding = SchedulerBinding.instance;
+    binding.addPostFrameCallback((_) {
+      _frameScheduled = false;
+      if (!_disposed) _run();
+    });
+    binding.ensureVisualUpdate();
   }
 
   void _run() {
     final inputs = _inputs;
     if (inputs == null) return;
+    // One check at a time: a change while one runs is checked after it, with
+    // the inputs as they are then.
+    if (_running) {
+      _rerun = true;
+      return;
+    }
     final key = Object.hash(
       Object.hashAll(inputs.ruleIds),
       Object.hashAll(inputs.slots),
@@ -188,13 +272,20 @@ class ProgramEventRulesController extends ChangeNotifier {
       }
       return;
     }
+    _running = true;
     unawaited(() async {
       try {
+        // The rows this check reads, so a later `settings` write can be told
+        // apart from one that changed none of them.
+        if (_savedSearchRows == null) await _savedSearchesChanged();
         final result = await checkEventRules(
           repos: repos,
           ruleIds: inputs.ruleIds,
           slots: inputs.slots,
-          readContext: () => _context ??= inputs.readContext(),
+          readContext: () => _context ??= () {
+            contextReads++;
+            return inputs.readContext();
+          }(),
           dialect: inputs.dialect,
           enrichment: inputs.enrichment,
           evaluate: evaluate,
@@ -207,6 +298,12 @@ class ProgramEventRulesController extends ChangeNotifier {
         // that failed to read is read again next time, not kept.
         _context = null;
         logCaughtError(error, stackTrace, source: 'program_event_rules.check');
+      } finally {
+        _running = false;
+        if (_rerun && !_disposed) {
+          _rerun = false;
+          _run();
+        }
       }
     }());
   }

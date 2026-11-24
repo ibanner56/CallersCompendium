@@ -4598,7 +4598,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   icon: const Icon(Icons.rule),
                   label: Text(
                     l10n.programsRulesButton(
-                      _eventRules?.liveCount(_eventRuleIds) ??
+                      _eventRules?.countedRules(_eventRuleIds) ??
                           _eventRuleIds.length,
                     ),
                   ),

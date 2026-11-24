@@ -458,59 +458,81 @@ void main() {
     expect(find.byKey(const ValueKey('slot-s1-rule-marker')), findsNothing);
   });
 
+  /// A controller over [seeded]'s program, counting each check it delivers
+  /// (a new [ProgramEventRulesController.check], not every notification: the
+  /// first rules list notifies too) and each search-context read.
+  Future<_Harness> harness(WidgetTester tester, _Seeded seeded) async {
+    final program = (await seeded.repos.programs.getById('p1'))!;
+    final h = _Harness(
+      tester,
+      ProgramEventRulesController(repos: seeded.repos),
+      program,
+    );
+    addTearDown(h.controller.dispose);
+    return h;
+  }
+
   testWidgets('the search context is read once and kept across program '
       'changes; a change to what it reads reads it again', (tester) async {
     final seeded = await _seed();
     final repos = seeded.repos;
-    final program = (await repos.programs.getById('p1'))!;
-    final controller = ProgramEventRulesController(repos: repos);
-    addTearDown(controller.dispose);
-    var checks = 0;
-    controller.addListener(() => checks++);
-    var reads = 0;
-    Future<SavedSearchContext> read() async {
-      reads++;
-      return SavedSearchContext(
-        today: DateTime.utc(2026, 1, 1),
-        taxonomy: contraTaxonomy,
-      );
-    }
+    final h = await harness(tester, seeded);
 
-    Future<void> checked(int n) =>
-        pumpUntil(tester, () => checks >= n, description: 'check $n');
-    void update(List<ProgramSlot> slots, {Object? key}) => controller.update(
-      enabled: true,
-      ruleIds: program.eventRuleIds,
-      slots: slots,
-      readContext: read,
-      contextKey: key,
-    );
-
-    update(program.slots);
-    await checked(1);
-    expect(controller.check.broken, isNotEmpty);
-    expect(reads, 1);
+    h.update(h.program.slots);
+    await h.checked(1);
+    expect(h.controller.check.broken, isNotEmpty);
+    expect(h.reads, 1);
 
     // A slot edit re-checks without reading the context again.
-    update(program.slots.take(2).toList());
-    await checked(2);
-    expect(reads, 1);
+    h.update(h.program.slots.take(2).toList());
+    await h.checked(2);
+    expect(h.reads, 1);
 
     // A new tag changes what a search can name: read again.
     final _ = await repos.tags.upsert(Tag(id: 't-new', name: 'Family'));
-    await checked(3);
-    expect(reads, 2);
+    await h.checked(3);
+    expect(h.reads, 2);
 
     // A dance edit re-checks with the context kept.
     final dance = (await repos.dances.getById('d-c'))!;
     await repos.dances.update(dance.copyWith(title: 'Chorus Jig Too'));
-    await checked(4);
-    expect(reads, 2);
+    await h.checked(4);
+    expect(h.reads, 2);
 
     // The host's own inputs to the context changed: read again.
-    update(program.slots.take(2).toList(), key: 'another program id');
-    await checked(5);
-    expect(reads, 3);
+    h.update(h.program.slots.take(2).toList(), key: 'another program id');
+    await h.checked(5);
+    expect(h.reads, 3);
+  });
+
+  testWidgets('a settings write that changes no saved search (a draft '
+      'autosave, a window size) neither re-checks nor reads the context; a '
+      'saved-search edit re-checks', (tester) async {
+    final seeded = await _seed();
+    final repos = seeded.repos;
+    final h = await harness(tester, seeded);
+    h.update(h.program.slots);
+    await h.checked(1);
+    expect(h.reads, 1);
+
+    await repos.settings.set('program_draft:p1', {'title': 'Night, drafted'});
+    await repos.settings.set('window_size', {'width': 900, 'height': 700});
+    await h.settle();
+    expect(h.checks, 1, reason: 'nothing a check reads changed');
+    expect(h.reads, 1);
+
+    // The saved search itself: checked again. It is read by the check, not
+    // kept in the context, so the context stands.
+    await repos.savedSearches.save(
+      SavedSearch(
+        id: seeded.becket.id,
+        name: 'Becket',
+        spec: _spec((f) => f.formations.add(FormationShape.dupleImproper)),
+      ),
+    );
+    await h.checked(2);
+    expect(h.controller.check.broken, isEmpty);
+    expect(h.reads, 1);
   });
 
   testWidgets('rules applied while a save is in flight survive the save', (
@@ -653,4 +675,54 @@ void main() {
     stored = (await repos.programs.getById('p1'))!;
     expect(stored.eventRuleIds, [...live, last.id]);
   });
+}
+
+/// Drives a [ProgramEventRulesController] directly, counting the checks it
+/// delivers and its search-context reads.
+class _Harness {
+  _Harness(this.tester, this.controller, this.program) {
+    var last = controller.check;
+    controller.addListener(() {
+      if (identical(controller.check, last)) return;
+      last = controller.check;
+      checks++;
+    });
+  }
+
+  final WidgetTester tester;
+  final ProgramEventRulesController controller;
+  final Program program;
+  int checks = 0;
+  int reads = 0;
+
+  Future<SavedSearchContext> _read() async {
+    reads++;
+    return SavedSearchContext(
+      today: DateTime.utc(2026, 1, 1),
+      taxonomy: contraTaxonomy,
+    );
+  }
+
+  void update(List<ProgramSlot> slots, {Object? key}) => controller.update(
+    enabled: true,
+    ruleIds: program.eventRuleIds,
+    slots: slots,
+    readContext: _read,
+    contextKey: key,
+  );
+
+  /// Waits until exactly [n] checks have been delivered.
+  Future<void> checked(int n) async {
+    await pumpUntil(tester, () => checks >= n, description: 'check $n');
+    expect(checks, n, reason: 'one check, not more');
+  }
+
+  /// Gives any pending write notification, frame and check every chance to
+  /// run: frames and event-loop turns, not a wait for time to pass.
+  Future<void> settle() async {
+    for (var i = 0; i < 10; i++) {
+      await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+      await tester.pump();
+    }
+  }
 }
