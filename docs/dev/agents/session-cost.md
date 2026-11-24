@@ -8,7 +8,8 @@ before adding anything to the resident instructions.
 
 Every model call re-sends the whole conversation so far: the resident prompt,
 everything the session has read, and every earlier turn. (In this chapter a
-"turn" is one model call; each tool call is one.) So a session's input cost is
+"turn" is one model call. A response that makes several independent tool calls
+at once is still one turn, so batch independent reads.) So a session's input cost is
 roughly `context_size × turns`, and `context_size` grows for as long as the
 session lives. There are three levers on the number of tokens: **shrink what
 is resident**, **take fewer turns**, and **keep long-lived sessions small**. A
