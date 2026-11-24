@@ -2534,7 +2534,10 @@ custom bucket. There is **no `balance_the_wave` move and none was added**: the
 taxonomy expresses "a wave exists and is balanced" as the wave-FORMATION move
 carrying its `balance` flag, so such a line maps onto that move. It is a
 **1 line → 1 figure** mapping — the line keeps its own beats and no extra 0-beat
-form figure is ever emitted.
+form figure is ever emitted. One line is the exception: a role's `balance long
+wave in center` that nothing claimed becomes a plain `balance` (see **Role
+balances in a centre wave** below), because `form_a_long_wave` would assert the
+role stepping in.
 
 **Where it happens, and why nothing is stolen.** The line still parses to
 `custom`; the mapping is a FINAL pass of the CallersBox cross-line merge
@@ -2621,6 +2624,26 @@ in`, and `Balance long wave for all in center`. The singular
 `form_a_long_wave` sense (ONE long wave in the centre formed by a subset) is
 never guessed at either — a line meaning that reaches it through Fold 4 from the
 preceding `form long wave in center` line.
+
+**Role balances in a centre wave.** A `<role> balance long wave in center` line
+that no fold or promotion claimed becomes `balance` with that role and the note
+`long wave in center`: the role balances where it stands, and a balance moves
+nobody, so no forming is asserted. The free-text dialect already reads the line
+this way. The pass runs over the whole dance, after the per-phrase merge, so
+the figure before a phrase's first line is the previous phrase's last. The line
+stays custom straight after a `form_a_long_wave` (Fold 4 refused it there: the
+role differs from the wave's, or the wave was already balanced) and after a
+wave-forming line the importer could not structure. Nothing checks that a wave
+is standing; a balance is a no-op in Rubric, so a line that comes before its
+wave compiles the same *(2026-11-24, Hudson: "try it and see"; the reading is
+the agent's call)*.
+
+**Two-line give and take.** `<role> go forward` followed by `<role> bring back
+partner` (or `neighbor`), the same role on both lines, folds into one
+`give_and_take` with that role as `who`, the brought-back dancers as `whom`,
+and both lines' beats *(2026-11-24, Hudson: "some of these are probably just
+give+take"; folding every such pair is the agent's call)*. Any other pairing
+stays as it was.
 
 **Supporting recognizer change.** `form (a) wave of four [with <dancer>]` — TCB's
 dominant forming wording (~1,000 clauses) — now structures as `form_short_waves`
