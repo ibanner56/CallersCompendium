@@ -78,6 +78,10 @@ import 'while_container.dart';
 final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
   preRecognizers: [
     _hey,
+    // `N2 Men allemande left 3/4` is `Men allemande left 3/4 [with N2]`. It
+    // reads the rest of the line through every other entry here.
+    _tcbNumberedRolePair,
+    _passTheOceanToWave,
     _circulate,
     _waveBalanceCirculate,
     _circulateCrossBracket,
@@ -1146,6 +1150,105 @@ FigureMatch? _tcbCast(String scrubbed) {
     assumedSubject: inner.assumedSubject,
   );
 }
+
+// --- `N2 Men allemande …`: a neighbour number before a same-role pair -------
+
+/// The Caller's Box's `N2 Men allemande left 3/4`: the two men (the larks)
+/// allemande, and `N2` says which two, the ones from neighbouring hands fours.
+/// It is the same line as `Men allemande left 3/4 [with N2]`, which this front
+/// end already reads (`who: role1s`, note `with nextNeighbors`), so it is read
+/// as that line. **`who` stays the role pair**: the allemande is still between
+/// the two larks, never between next neighbours *(user-ruled 2026-11-24)*.
+///
+/// Only a role pair (`role1s`, `role2s`) follows the number, and the number is
+/// one the notation resolves (`N0`–`N4`). `N2 same-role neighbor …` is not
+/// read here: it stays custom, as `callersbox_subject_vocabulary_test` already
+/// records (no ordinal same-role token). A line that already carries a square
+/// bracket is left alone, so two brackets never meet, and a remainder no entry
+/// or shared recognizer reads stays custom. *(Which numbers: agent's call.)*
+FigureMatch? _tcbNumberedRolePair(String scrubbed) {
+  final m = _numberedRolePairRe.firstMatch(scrubbed);
+  if (m == null || scrubbed.contains('[')) return null;
+  final number = m[1]!.toUpperCase();
+  if (resolveDancerSetPhrase(number) == null) return null;
+  final text = '${m[2]} ${m[3]!.trim()} [with $number]';
+  FigureMatch? inner;
+  for (final pre in tcbFigureFrontEnd.preRecognizers) {
+    if (identical(pre, _tcbNumberedRolePair)) continue;
+    inner = pre(text);
+    if (inner != null) break;
+  }
+  inner ??= recognizeSharedFigureLine(
+    text,
+    recognitionNormalize: _tcbRecognitionNormalize,
+  );
+  return inner;
+}
+
+/// `N2 role1s …`: the number (group 1), the pair (group 2) and the rest of
+/// the line (group 3).
+final RegExp _numberedRolePairRe = RegExp(
+  r'^\s*(n[0-4])\s+(role1s|role2s)\s+(\S.{0,200})$',
+  caseSensitive: false,
+);
+
+// --- `Pass the ocean (to wave of four (NR,WL))` -------------------------------
+
+/// The Caller's Box's `Pass the ocean (to wave of four (NR,WL))`: a pass the
+/// ocean whose wave is stated in a nested bracket. Read as the wave the inner
+/// codes name, as `Balance wave of four (NR,WL)` is read: the relationship
+/// code is the `sides`, the role or couple code the `center`, and its hand the
+/// `centerHand`. The two hands must differ (the shape of a wave of four).
+/// Anything else in or around the brackets leaves the line custom.
+FigureMatch? _passTheOceanToWave(String scrubbed) {
+  final m = _passTheOceanToWaveRe.firstMatch(scrubbed.trim());
+  if (m == null) return null;
+  final parts = m[1]!.split(',').map((p) => p.trim().toLowerCase()).toList();
+  if (parts.length != 2) return null;
+  ({String who, String hand})? code(String cell, bool role) {
+    if (cell.length < 2) return null;
+    final side = cell[cell.length - 1];
+    final hand = side == 'r'
+        ? 'right'
+        : side == 'l'
+        ? 'left'
+        : null;
+    if (hand == null) return null;
+    final people = cell.substring(0, cell.length - 1);
+    final isRole = _waveCentreCodes.containsKey(people);
+    if (isRole != role) return null;
+    final who = role ? _waveCentreCodes[people] : tcbPassPeople[people];
+    return who == null ? null : (who: who, hand: hand);
+  }
+
+  final sides = code(parts[0], false);
+  final center = code(parts[1], true);
+  if (sides == null || center == null || sides.hand == center.hand) {
+    return null;
+  }
+  return FigureMatch(
+    'pass_the_ocean',
+    params: {
+      'sides': sides.who,
+      'center': center.who,
+      'centerHand': center.hand,
+    },
+  );
+}
+
+final RegExp _passTheOceanToWaveRe = RegExp(
+  r'^pass\s+the\s+ocean\s*\(\s*to\s+(?:a\s+)?wave\s+of\s+four\s*\(([^()]{1,40})\)\s*\)$',
+  caseSensitive: false,
+);
+
+/// The people codes that name a wave's centre pair, as the adapter's
+/// balance-wave decoder reads them (`_waveRoleCodes` in `callersbox_adapter`).
+const Map<String, String> _waveCentreCodes = {
+  'm': 'role1s',
+  'w': 'role2s',
+  '1': 'ones',
+  '2': 'twos',
+};
 
 /// A cast's `(cw)`/`(ccw)` annotation (also spelled out): its shoulder.
 final RegExp _castSpinRe = RegExp(
@@ -3842,9 +3945,27 @@ FigureMatch? _circularHeyFromPasses({
 }
 
 FigureMatch? _hey(String scrubbed) {
-  final lower = scrubbed.toLowerCase();
+  var lower = scrubbed.toLowerCase();
   // dolphin_hey is a DIFFERENT move; never match it here.
   if (lower.contains('dolphin')) return null;
+
+  // One clause-final `[with …]` / `[around …]` bracket naming dancers the
+  // notation resolves (`Hey 1/2 (WL;PR;ML) [with N1]`) is commentary on the
+  // hey, read as [_bracketAnnotation] reads one on any other line: it becomes
+  // the figure's note (`with neighbors`) and the pass list still decodes. Any
+  // other bracket, or one that does not resolve, leaves the line as it read
+  // before (custom). *(User-ruled 2026-11-24.)*
+  String? bracketNote;
+  final bracket = _heyTrailingBracketRe.firstMatch(lower);
+  if (bracket != null) {
+    final body = bracket[2]!.trim();
+    final relation = _squareBracketRelationRe.firstMatch(body);
+    if (relation == null || resolveDancerSetPhrase(relation[2]!) == null) {
+      return null;
+    }
+    bracketNote = _canonicalSquareBracketNote(body);
+    lower = bracket[1]!.trim();
+  }
 
   // A hey is only structured when it carries a parenthetical pass list — that
   // is the sole source of pass1/shoulder. No pass list -> custom.
@@ -3883,6 +4004,19 @@ FigureMatch? _hey(String scrubbed) {
         outWords[i + 1] == 'diagonal') {
       dir = outWords[i] == 'left' ? 'leftDiagonal' : 'rightDiagonal';
       outWords.removeRange(0, i + 2);
+    }
+  }
+
+  // "Hey … with hands": the dancers take hands as they pass. It changes
+  // nothing about who passes whom, so it is the hey the pass list describes
+  // with the wording kept as a note. *(User-ruled 2026-11-24.)*
+  var withHands = false;
+  for (var i = 0; i + 1 < outWords.length; i++) {
+    if (outWords[i] == 'with' && outWords[i + 1] == 'hands') {
+      if (withHands) return null; // said twice -> not a shape we know.
+      withHands = true;
+      outWords.removeRange(i, i + 2);
+      i--;
     }
   }
 
@@ -3928,7 +4062,7 @@ FigureMatch? _hey(String scrubbed) {
 
     if (cell.endsWith('ricochet')) {
       final people = cell.substring(0, cell.length - 'ricochet'.length).trim();
-      final who = tcbPassPeople[people];
+      final who = _heyPassPeople(people);
       // Only center same-role dancers ricochet — never neighbor/partner/etc.
       if (who != 'role1s' && who != 'role2s') return null;
       // The same-role center passes are the odd pass-list positions; enumerate
@@ -3952,7 +4086,7 @@ FigureMatch? _hey(String scrubbed) {
         ? 'left'
         : null;
     if (shoulder == null) return null;
-    final who = tcbPassPeople[cell.substring(0, cell.length - 1)];
+    final who = _heyPassPeople(cell.substring(0, cell.length - 1));
     if (who == null) return null;
 
     // Shoulders alternate by position parity: odd positions share the base
@@ -3976,8 +4110,33 @@ FigureMatch? _hey(String scrubbed) {
   params['pass1'] = pass1;
   params['shoulder'] = shoulderBase;
   if (pass2 != null) params['pass2'] = pass2;
-  return FigureMatch('hey', params: params);
+  return FigureMatch(
+    'hey',
+    params: params,
+    note: combineFigureNotes(withHands ? 'with hands' : null, bracketNote),
+  );
 }
+
+/// The hey's whole line before one clause-final square bracket (group 1) and
+/// that bracket's body (group 2). Bounded like [_circulateTrailingBracketRe].
+final RegExp _heyTrailingBracketRe = RegExp(r'^(.*?)\s*\[([^\[\]]{1,120})\]$');
+
+/// A hey pass-list people code: [tcbPassPeople], plus the same-role neighbour
+/// codes only a hey uses.
+///
+/// `SRN` (and `SRN1`, the same dancer) is "same-role neighbours", so
+/// `Hey (1R;SRNL;2R;NL)` is "ones pass right, same-role neighbours pass left,
+/// twos pass right, neighbours pass left" *(user-ruled 2026-11-24)*. It is kept
+/// out of [tcbPassPeople] on purpose: that map also feeds the grand right and
+/// left and wave decoders, and nobody has said what the code means there.
+/// *(Agent's call.)*
+String? _heyPassPeople(String code) =>
+    tcbPassPeople[code] ?? _heyOnlyPassPeople[code];
+
+const Map<String, String> _heyOnlyPassPeople = {
+  'srn': 'sameRoles',
+  'srn1': 'sameRoles',
+};
 
 // --- Grand right and left (TCB pass-list) decomposition (#295) ---------------
 
