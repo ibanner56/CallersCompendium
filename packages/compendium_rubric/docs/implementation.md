@@ -693,7 +693,10 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > `unperformedProgression`. **The bridge assumes; the compiler never infers.**
 >
 > **One retry, and only one** *(user-ruled).* When the positional placement does
-> not compile, `runCoreDance` tries a second: the figure **immediately before the
+> not compile, or compiles only as a one-column near miss (`endedColumnOffset`,
+> in which case the retry replaces it only if it matches exactly; extending the
+> retry to near misses is the agent's call, 2026-11-24), `runCoreDance` tries a
+> second: the figure **immediately before the
 > first `nextNeighbors` reach**, in a param or (below) a note
 > (`nextNeighborsProgressionIndex`). A figure
 > reaching for the next couple is naming people this hands four has not met yet,
