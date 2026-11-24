@@ -480,8 +480,9 @@ it once and choose it from then on.
   shows up in it. The settings under Settings ▸ Calling history are the ones in
   force when you use it. Choosing one doesn't change the sort the Collection
   opens in. With a keyboard, the arrow keys move through the list and
-  **Enter** chooses the highlighted row; **Escape** closes the list (with the
-  list closed, Escape goes back as it always has).
+  **Enter** chooses the highlighted row; **Escape** closes the list. With the
+  list closed, Escape does what it always has: it goes back, or closes the
+  sheet the dance list is in.
 - **While a saved search is in use**, the ⋮ menu also offers **Update "…"**
   (once you've changed the search) to save the change into it, **Save as a new
   search…** to keep the changed search as another one, **Rename "…"…** and

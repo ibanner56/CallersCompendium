@@ -67,11 +67,16 @@ class _WhileOpen<T extends Intent> extends CallbackAction<T> {
 /// Enter searches as it always did; the first Down highlights the first saved
 /// search (Up, the last). The arrow keys move the highlight and Enter chooses
 /// the highlighted row; the highlighted row is announced, as in the command
-/// palette. While an input method is composing, the arrow keys are left to
-/// it. Escape closes the popover while it is open; with it closed, Escape is
-/// not handled here, so it leaves the page as it always did. No key is bound
-/// to Escape here: the app's Escape reaches this field's dismiss action
-/// through the field.
+/// palette.
+///
+/// Escape closes the popover while it is open. With it closed, Escape is not
+/// handled here at all, so it does what it did before there was a dropdown:
+/// the app's Escape leaves the page or closes the sheet the field is in. (No
+/// `DismissIntent` action is registered here: the app's Escape takes the
+/// nearest one, and a disabled one would stop it.) While an input method is
+/// composing, the arrow keys move nothing here, and Escape neither closes the
+/// popover nor reaches the app's Escape: the platform's input method still
+/// receives it.
 ///
 /// The popover's visibility is worked out on every build, from the focus, the
 /// list and [enabled], so a list that arrives after the field has focus, or
@@ -115,7 +120,8 @@ class SavedSearchField extends StatefulWidget {
   State<SavedSearchField> createState() => _SavedSearchFieldState();
 }
 
-class _SavedSearchFieldState extends State<SavedSearchField> {
+class _SavedSearchFieldState extends State<SavedSearchField>
+    with WidgetsBindingObserver {
   final _overlay = OverlayPortalController(debugLabel: 'saved-search-field');
   final _scroll = ScrollController();
   List<SavedSearch> _saved = const [];
@@ -151,15 +157,20 @@ class _SavedSearchFieldState extends State<SavedSearchField> {
 
   late final Map<Type, Action<Intent>> _actions = {
     _Move: _WhileOpen<_Move>(open: () => _open && !_composing, onInvoke: _move),
-    // Reached by the app's Escape through the field (no key is bound here).
-    DismissIntent: _WhileOpen<DismissIntent>(
-      open: () => _open && !_composing,
-      onInvoke: (_) {
-        setState(() => _dismissed = true);
-        return null;
-      },
-    ),
   };
+
+  /// Escape, seen on its way up from the field, before the app's shortcuts:
+  /// consumed only to close an open popover, and kept from the app (but not
+  /// from the input method, which has had it) while one is composing.
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event.logicalKey != LogicalKeyboardKey.escape) {
+      return KeyEventResult.ignored;
+    }
+    if (_composing) return KeyEventResult.skipRemainingHandlers;
+    if (!_open) return KeyEventResult.ignored;
+    if (event is KeyDownEvent) setState(() => _dismissed = true);
+    return KeyEventResult.handled;
+  }
 
   static const _shortcuts = <ShortcutActivator, Intent>{
     SingleActivator(LogicalKeyboardKey.arrowDown): _Move(1),
@@ -169,6 +180,7 @@ class _SavedSearchFieldState extends State<SavedSearchField> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     widget.focusNode.addListener(_onFocus);
     widget.controller.addListener(_onText);
     _lastText = widget.controller.text;
@@ -178,6 +190,13 @@ class _SavedSearchFieldState extends State<SavedSearchField> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_readSeq == 0) unawaited(_read());
+  }
+
+  /// The window changed (an on-screen keyboard came or went): lay the
+  /// popover out again against the room left under the field.
+  @override
+  void didChangeMetrics() {
+    if (mounted && _overlay.isShowing) setState(() {});
   }
 
   @override
@@ -196,6 +215,7 @@ class _SavedSearchFieldState extends State<SavedSearchField> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     widget.focusNode.removeListener(_onFocus);
     widget.controller.removeListener(_onText);
     _scroll.dispose();
@@ -263,10 +283,9 @@ class _SavedSearchFieldState extends State<SavedSearchField> {
     setState(() {
       final from = _highlight;
       // From no highlight, Down lands on the first row and Up on the last.
-      var next = from == null
+      final next = from == null
           ? (intent.by > 0 ? 0 : count - 1)
           : (from + intent.by) % count;
-      if (next < 0) next += count;
       _highlight = next;
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -356,6 +375,8 @@ class _SavedSearchFieldState extends State<SavedSearchField> {
         _announceOpen &&
         MediaQuery.supportsAnnounceOf(context)) {
       final found = WidgetsLocalizations.of(context).searchResultsFound;
+      // Once per opening by typing: not again when it reopens on a tap.
+      _announceOpen = false;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _send(found);
       });
@@ -388,11 +409,16 @@ class _SavedSearchFieldState extends State<SavedSearchField> {
             setState(() => _closedByTap = true);
           }
         },
-        child: Shortcuts(
-          shortcuts: _shortcuts,
-          child: Actions(
-            actions: _actions,
-            child: widget.fieldBuilder(context, _submit),
+        child: Focus(
+          canRequestFocus: false,
+          skipTraversal: true,
+          onKeyEvent: _onKey,
+          child: Shortcuts(
+            shortcuts: _shortcuts,
+            child: Actions(
+              actions: _actions,
+              child: widget.fieldBuilder(context, _submit),
+            ),
           ),
         ),
       ),

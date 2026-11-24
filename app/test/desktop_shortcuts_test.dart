@@ -372,6 +372,94 @@ void main() {
       expect(find.byType(ProgramEditorScreen), findsNothing);
     });
 
+    /// Opens Perform's Adjust ▸ Insert a dance: a dismissible bottom sheet
+    /// that hosts the collection picker, and focuses its search box.
+    Future<Finder> openInsertPicker(WidgetTester tester) async {
+      await _openPerform(tester);
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-insert-dance')));
+      await tester.pumpAndSettle();
+      final picker = find.byKey(const ValueKey('adjust-picker'));
+      expect(picker, findsOneWidget);
+      await tester.tap(
+        find.descendant(
+          of: picker,
+          matching: find.byKey(const ValueKey('picker-search')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return picker;
+    }
+
+    Future<SavedSearch> seedSaved(AppData appData) =>
+        appData.repositories.savedSearches.create(
+          name: 'Pet',
+          spec: SavedSearchSpec.fromPanelState(
+            CollectionPanelState(text: 'Petronella'),
+            today: DateTime.utc(2026, 11, 23),
+          ).value!,
+        );
+
+    testWidgets('Esc in the search box of a picker sheet closes the sheet, '
+        'as it did before saved searches (#2325)', (tester) async {
+      await _pump(tester, size: _wide);
+      final picker = await openInsertPicker(tester);
+
+      await _press(tester, LogicalKeyboardKey.escape);
+
+      expect(picker, findsNothing);
+      expect(find.byType(PerformProgramScreen), findsOneWidget);
+    });
+
+    testWidgets('Esc in the search box of a picker sheet closes its open '
+        'saved-search dropdown first, then the sheet (#2325)', (tester) async {
+      final appData = await _pump(tester, size: _wide);
+      final saved = await seedSaved(appData);
+      final picker = await openInsertPicker(tester);
+      final row = find.byKey(ValueKey('saved-search-row-${saved.id}'));
+      expect(row, findsOneWidget);
+
+      await _press(tester, LogicalKeyboardKey.escape);
+
+      expect(row, findsNothing);
+      expect(picker, findsOneWidget);
+
+      await _press(tester, LogicalKeyboardKey.escape);
+
+      expect(picker, findsNothing);
+      expect(find.byType(PerformProgramScreen), findsOneWidget);
+    });
+
+    testWidgets('Esc while an input method is composing in the picker\'s '
+        'search box neither closes the dropdown nor the sheet (#2325)', (
+      tester,
+    ) async {
+      final appData = await _pump(tester, size: _wide);
+      final saved = await seedSaved(appData);
+      final picker = await openInsertPicker(tester);
+      final field = find.descendant(
+        of: picker,
+        matching: find.byKey(const ValueKey('picker-search')),
+      );
+      tester
+          .widget<TextField>(field)
+          .controller!
+          .value = const TextEditingValue(
+        text: 'pe',
+        selection: TextSelection.collapsed(offset: 2),
+        composing: TextRange(start: 0, end: 2),
+      );
+      await tester.pumpAndSettle();
+      final row = find.byKey(ValueKey('saved-search-row-${saved.id}'));
+      expect(row, findsOneWidget);
+
+      await _press(tester, LogicalKeyboardKey.escape);
+
+      expect(row, findsOneWidget);
+      expect(picker, findsOneWidget);
+    });
+
     testWidgets('Esc closes an open menu and leaves the page under it', (
       tester,
     ) async {

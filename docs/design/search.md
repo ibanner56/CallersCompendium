@@ -1152,15 +1152,24 @@ instead, all through one set of UI-free actions, `SavedSearchActions`
     before. A tap outside, while the field has focus, closes the popover
     without taking focus, as a text field on a phone keeps it.
   - Up and Down move the highlight (from none, Down lands on the first row and
-    Up on the last) and Enter chooses it; they are left to an input method
-    while it is composing. A move is announced as the command palette does;
-    "results found" is announced when typing opens the popover, not on every
-    focus. No key is bound to Escape: the app's Escape reaches the dropdown's
-    dismiss action through the field, so Escape closes an open popover and,
-    with it closed, leaves the page as it did before.
+    Up on the last) and Enter chooses it. A move is announced as the command
+    palette does; "results found" is announced once each time typing opens
+    the popover, not on focus, nor when a tap reopens it.
+  - Escape is handled by a `Focus` key handler around the field, below the
+    app's shortcuts, and only to close an open popover. With the popover
+    closed it is ignored, so the app's Escape does exactly what it did before:
+    leave the page, or close a dismissible sheet the picker is in (Perform's
+    Insert a dance). No `DismissIntent` action is registered: the app's
+    Escape offers its dismiss to the nearest one, and a disabled one would
+    stop it there.
+  - While an input method is composing, the arrow keys move nothing here, and
+    Escape neither closes the popover nor reaches the app's Escape (the input
+    method has already received it); the composition is never touched.
   - Choosing a saved search takes focus from the field, so the popover does
     not reopen over the results the load shows. The popover's height is
-    bounded by the window's own keyboard inset.
+    bounded by the room above the window's own keyboard inset, and is worked
+    out again whenever the window's metrics change (a keyboard that appears
+    after the popover opened).
   - Disabled while Online search is on. A saved search this version cannot
     read is not listed there.
 - **The Collection's ⋮ menu**: **Save this search…** (while a query is set,

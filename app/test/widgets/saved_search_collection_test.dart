@@ -705,6 +705,77 @@ void main() {
       );
     });
 
+    testWidgets('a keyboard that appears after the dropdown opened shrinks '
+        'it to the room left', (tester) async {
+      final repos = await _library();
+      for (var i = 0; i < 20; i++) {
+        await _seed(repos, 'Search $i', CollectionPanelState(text: 's$i'));
+      }
+      await _pump(tester, repos);
+      await _focusField(tester);
+      final keyboardTop = tester.getRect(_field).bottom + 150;
+      expect(tester.getRect(_dropdown).bottom, greaterThan(keyboardTop));
+
+      tester.view.viewInsets = FakeViewPadding(
+        bottom: (3000 - keyboardTop) * tester.view.devicePixelRatio,
+      );
+      addTearDown(tester.view.resetViewInsets);
+      await tester.pumpAndSettle();
+
+      expect(tester.getRect(_dropdown).bottom, lessThanOrEqualTo(keyboardTop));
+    });
+
+    testWidgets('the first Up with nothing highlighted lands on the last row', (
+      tester,
+    ) async {
+      final repos = await _library();
+      await _seed(repos, 'Alpha', CollectionPanelState(text: 'a'));
+      await _seed(repos, 'Becket', CollectionPanelState(text: 'b'));
+      await _seed(repos, 'Chorus', CollectionPanelState(text: 'c'));
+      await _pump(tester, repos);
+      await _focusField(tester);
+      tester.takeAnnouncements();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pumpAndSettle();
+
+      final tiles = tester.widgetList<ListTile>(
+        find.descendant(of: _dropdown, matching: find.byType(ListTile)),
+      );
+      expect([for (final t in tiles) t.selected], [false, false, true]);
+      expect(
+        tester.takeAnnouncements().map((a) => a.message),
+        contains('Chorus, 3 of 3'),
+      );
+    });
+
+    testWidgets('results are announced once per opening by typing, not again '
+        'when a tap reopens the dropdown', (tester) async {
+      final repos = await _library();
+      await _seed(repos, 'Pet', CollectionPanelState(text: 'Petronella'));
+      await _pump(tester, repos);
+      await _focusField(tester);
+      await _tapOff(tester);
+      await tester.enterText(_field, 'p');
+      await tester.pump();
+      await tester.pump();
+      expect(
+        tester.takeAnnouncements().map((a) => a.message),
+        contains('Search results found'),
+      );
+
+      await _tapOff(tester);
+      expect(_dropdown, findsNothing);
+      await tester.tap(_field);
+      await tester.pumpAndSettle();
+
+      expect(_dropdown, findsOneWidget);
+      expect(
+        tester.takeAnnouncements().map((a) => a.message),
+        isNot(contains('Search results found')),
+      );
+    });
+
     testWidgets('the dropdown stays above the on-screen keyboard', (
       tester,
     ) async {
