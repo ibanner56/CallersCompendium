@@ -1326,7 +1326,11 @@ class CallersBoxAdapter implements SourceAdapter {
   /// does NOT already carry is folded in as well (#295) — otherwise the merge
   /// would silently discard detail the source stated. Only param sets with an
   /// identical meaning on both moves are transferred (see
-  /// [_compatibleFormParams]); an existing value is never overwritten.
+  /// [_compatibleFormParams]); an existing value is never overwritten. A wave
+  /// that already states its `center` or `centerHand` refuses a balance that
+  /// decodes to a different one (`null`): they describe different waves.
+  /// `sides` is not compared, because a balance writes the forming line's
+  /// `with N2` dancers as `N`.
   static Figure? _foldTrailingBalanceIntoWave(Figure wave, Figure balance) {
     if (wave.params['balance'] == true) return null;
     // Dancer-prefix mismatch guard (#872): if the balance line names a specific
@@ -1355,6 +1359,20 @@ class CallersBoxAdapter implements SourceAdapter {
     final extra = decoded == null
         ? const <String, Object?>{}
         : _compatibleFormParams(wave.move, decoded);
+    // A wave that already states who is in its centre and with which hand
+    // (`Pass the ocean (to wave of four (NR,WL))`), followed by a balance
+    // stating a different centre or hand, describes two different waves:
+    // folding would keep one and drop the other, so refuse. `sides` is not
+    // compared: a balance line writes the current neighbours as `N` after a
+    // forming line that said `with N2`, and the forming line wins there, as
+    // it always has.
+    for (final key in const ['center', 'centerHand']) {
+      if (wave.params.containsKey(key) &&
+          extra.containsKey(key) &&
+          wave.params[key] != extra[key]) {
+        return null;
+      }
+    }
     final balanceNote = decoded?.note ?? balance.note;
     return wave.copyWith(
       params: {

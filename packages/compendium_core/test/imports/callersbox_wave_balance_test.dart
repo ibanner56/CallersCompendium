@@ -657,4 +657,30 @@ void main() {
     expect(figures.single.params['sides'], 'opposites');
     expect(figures.single.params['balance'], isTrue);
   });
+
+  group('pass the ocean to a stated wave, then a balance (2026-11-24)', () {
+    test('an agreeing balance folds in', () async {
+      final figures = await _figuresFor([
+        '(4) Pass the ocean (to wave of four (NR,WL))',
+        '(4) Balance wave of four (NR,WL)',
+      ]);
+      expect(figures, hasLength(1));
+      expect(figures.single.move, 'pass_the_ocean');
+      expect(figures.single.params['balance'], isTrue);
+      expect(figures.single.params['centerHand'], 'left');
+      expect(figures.single.beats, 8);
+    });
+
+    test('a balance naming a different wave is not folded', () async {
+      final figures = await _figuresFor([
+        '(4) Pass the ocean (to wave of four (NR,WL))',
+        '(4) Balance wave of four (NL,WR)',
+      ]);
+      expect(figures, hasLength(2));
+      expect(figures.first.move, 'pass_the_ocean');
+      expect(figures.first.params['centerHand'], 'left');
+      expect(figures.first.params['balance'], isNot(true));
+      expect(figures.last.params['centerHand'], 'right');
+    });
+  });
 }
