@@ -16,7 +16,7 @@ to load it.
 | [verification.md](verification.md) | Proving a guard test can fail; any red-run that mutates the working tree |
 | [triage.md](triage.md) | Triaging or scoping an issue |
 | [releasing.md](releasing.md) | Cutting a release (hazards; the step-by-step is [../releasing.md](../releasing.md)) |
-| [session-cost.md](session-cost.md) | Scoping work for an agent, or adding to the resident instructions |
+| [session-cost.md](session-cost.md) | Scoping or orchestrating agent work, scheduling check-ins, or adding to the resident instructions |
 | [incidents.md](incidents.md) | You want the evidence behind a rule: the PR numbers, SHAs and reproductions |
 
 Path-scoped instructions live in [`.github/instructions/`](../../../.github/instructions/).

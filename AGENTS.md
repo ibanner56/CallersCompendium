@@ -17,7 +17,7 @@ which question, and [docs/dev/agents/](docs/dev/agents/) for the chapters below.
 | [docs/dev/agents/verification.md](docs/dev/agents/verification.md) | Proving a guard test can fail; any red run that mutates the tree |
 | [docs/dev/agents/triage.md](docs/dev/agents/triage.md) | Triaging or scoping an issue |
 | [docs/dev/agents/releasing.md](docs/dev/agents/releasing.md) | Cutting a release |
-| [docs/dev/agents/session-cost.md](docs/dev/agents/session-cost.md) | Scoping work for an agent, or adding to these instructions |
+| [docs/dev/agents/session-cost.md](docs/dev/agents/session-cost.md) | Scoping or orchestrating agents, or adding to these instructions |
 | [docs/dev/agents/incidents.md](docs/dev/agents/incidents.md) | You want the evidence behind a rule — PR numbers, SHAs, reproductions |
 
 Rules that apply to one area of the tree are attached to that area instead, in
