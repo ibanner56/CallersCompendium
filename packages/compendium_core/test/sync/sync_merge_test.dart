@@ -1155,6 +1155,7 @@ void main() {
           'squareKind': 'break',
           'newPartner': 'corner',
           'singing': true,
+          'freeForm': true,
         },
       ),
       _danceCandidate(
@@ -1166,7 +1167,7 @@ void main() {
     ]).merges.single.winner.blob.body;
     expect(body['repeatOrder'], 'other');
     expect(body['repeatOrderText'], 'Heads once');
-    for (final key in ['squareKind', 'newPartner', 'singing']) {
+    for (final key in ['squareKind', 'newPartner', 'singing', 'freeForm']) {
       expect(
         body.keys,
         isNot(contains(key)),

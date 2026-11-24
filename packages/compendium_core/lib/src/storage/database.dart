@@ -805,7 +805,8 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   /// (`'main'`), `repeat_order` and `new_partner` (`'unstated'`),
   /// `repeat_order_text` and `new_partner_text` (`''`) and `singing`
   /// (`false`), so every existing dance reads as a main part with nothing
-  /// stated. They joined v42 while v42 was unreleased.
+  /// stated. They joined v42 while v42 was unreleased. So, after them, did
+  /// `dances.free_form`, nullable, so every existing dance follows its kind.
   ///
   /// Also `programs.archived_at` (program archiving, #2218), nullable, so
   /// every existing program stays unarchived. It joined v42 while v42 was
@@ -841,6 +842,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       dances.newPartner,
       dances.newPartnerText,
       dances.singing,
+      dances.freeForm,
     ]) {
       if (!present.contains(column.name)) await m.addColumn(dances, column);
     }

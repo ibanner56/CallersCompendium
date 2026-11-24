@@ -179,6 +179,7 @@ class FakeSourceAdapter implements SourceAdapter {
       repeatOrder:
           SquareRepeatOrder.fromWireName(decoded['repeatOrder'] as String?) ??
           SquareRepeatOrder.unstated,
+      freeForm: decoded['freeForm'] as bool?,
       rating: decoded['rating'] as int?,
       authorIds: authorIds,
       figures: figures,

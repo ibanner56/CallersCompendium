@@ -9297,6 +9297,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceEditorSingingSubtitle => 'La chanson se saisit dans « Airs »';
 
   @override
+  String get danceEditorFreeFormLabel => 'Forme libre';
+
+  @override
+  String get danceEditorFreeFormSubtitle =>
+      'Ne suit aucun phrasé : ni étiquettes de phrase ni vérification des phrases';
+
+  @override
   String get danceEditorImproperLabel => 'Commence improper';
 
   @override
@@ -10322,6 +10329,17 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get danceEditorLingoStylingHelper =>
       'Les noms de mouvements sont soulignés en pointillés, les termes de rôles soulignés et les termes déconseillés barrés';
+
+  @override
+  String danceEditorBeatTotalFreeForm(int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: 'Total : $total temps',
+      one: 'Total : 1 temps',
+    );
+    return '$_temp0';
+  }
 
   @override
   String danceEditorBeatTotal(int total, int expected) {

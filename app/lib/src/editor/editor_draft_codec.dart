@@ -118,8 +118,9 @@ bool isNewDanceEditorDraftKey(String key) {
 ///   unreleased, so the same holds for them.
 /// - The square fields (ADR-007 §8.1): `squareKind`, `repeatOrder` and
 ///   `newPartner` as their wire names, `repeatOrderText`, `newPartnerText`
-///   and `singing`, each omitted at its default. They joined v42 the same
-///   way, and an unknown value decodes as the default.
+///   and `singing`, each omitted at its default, and `freeForm`, omitted
+///   while it follows the kind. They joined v42 the same way, and an unknown
+///   value decodes as the default.
 ///
 /// - `spanStated` (true, or omitted) on a sequence that states its own span
 ///   (ADR-006 §5.5). A sequence's `beatsTouched` is read from it alone, since
@@ -157,7 +158,7 @@ const _kDraftVersionWithoutCompounds = 13;
 ///   "alternateTitles": "Monymusk", "barnesReference": "BIII p. 92",
 ///   "squareKind": "break", "repeatOrder": "other",
 ///   "repeatOrderText": "Heads once", "newPartner": "corner",
-///   "newPartnerText": "", "singing": true,
+///   "newPartnerText": "", "singing": true, "freeForm": false,
 ///   "form": "contra", "formationShape": "dupleImproper", "improper": true,
 ///   "progression": "single", "status": "active",
 ///   "level": "intermediate", "mixedLevel": false, "mixer": false,
@@ -231,6 +232,7 @@ String encodeDraft(EditorSnapshot snapshot) {
     if (snapshot.newPartnerText.isNotEmpty)
       'newPartnerText': snapshot.newPartnerText,
     if (snapshot.singing) 'singing': true,
+    if (snapshot.freeForm != null) 'freeForm': snapshot.freeForm,
     'form': snapshot.form.name,
     'formationShape': snapshot.formationShape.name,
     if (snapshot.improper) 'improper': true,
@@ -350,6 +352,7 @@ EditorSnapshot decodeDraft(Object? value, {Iterable<DifficultyLevel>? levels}) {
         SquareNewPartner.unstated,
     newPartnerText: _str(json, 'newPartnerText'),
     singing: _bool(json, 'singing'),
+    freeForm: _boolOrNull(json, 'freeForm'),
     form: _parseEnum(DanceForm.values, _str(json, 'form')),
     formationShape: _parseEnum(
       FormationShape.values,
@@ -506,6 +509,13 @@ int? _parseNullableRating(Object? raw) {
     throw FormatException('draft rating must be null or 1..5: $raw');
   }
   return raw;
+}
+
+bool? _boolOrNull(Map<String, Object?> json, String key) {
+  final v = json[key];
+  if (v == null) return null;
+  if (v is! bool) throw FormatException('draft.$key must be a bool: $v');
+  return v;
 }
 
 bool _bool(Map<String, Object?> json, String key) {

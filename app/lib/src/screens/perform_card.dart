@@ -246,6 +246,7 @@ class PerformCard extends StatelessWidget {
                     UnreadableFigures() => const <Figure>[],
                   },
                   phraseStructure: dance.phraseStructure,
+                  freeForm: dance.isFreeForm,
                   renderer: renderer,
                   dialect: dialect,
                   chromeScale: chrome,
@@ -1157,10 +1158,15 @@ class _Figures extends StatelessWidget {
     required this.renderer,
     required this.dialect,
     this.chromeScale = 1.0,
+    this.freeForm = false,
   });
 
   final List<Figure> figures;
   final PhraseStructure phraseStructure;
+
+  /// Whether the dance is free form ([Dance.isFreeForm]): its figures have no
+  /// phrase headings.
+  final bool freeForm;
   final FigureRenderer renderer;
   final Dialect dialect;
 
@@ -1178,7 +1184,11 @@ class _Figures extends StatelessWidget {
       );
     }
 
-    final sectioned = deriveSections(figures, phraseStructure);
+    final sectioned = deriveSections(
+      figures,
+      phraseStructure,
+      freeForm: freeForm,
+    );
     final decimals = DecimalTurnsScope.of(context);
     final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
       context,
@@ -1186,7 +1196,8 @@ class _Figures extends StatelessWidget {
     final children = <Widget>[];
     String? lastLabel;
     for (final sf in sectioned) {
-      if (sf.label != lastLabel) {
+      // A free-form dance's figures have no label, so no heading.
+      if (sf.label != lastLabel && sf.label.isNotEmpty) {
         children.add(
           Padding(
             padding: EdgeInsets.only(

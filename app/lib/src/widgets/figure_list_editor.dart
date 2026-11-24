@@ -102,6 +102,7 @@ class FigureListEditor extends StatefulWidget {
     this.allowAdding = true,
     this.allowDuplicating = true,
     this.showPhraseStructure = true,
+    this.freeForm = false,
     this.allowModifierSelection = true,
     this.allowNestedContainerSelection = true,
     this.allowCustom = true,
@@ -321,6 +322,12 @@ class FigureListEditor extends StatefulWidget {
 
   /// Whether phrase labels and the beat summary are shown.
   final bool showPhraseStructure;
+
+  /// Whether the dance is free-form patter (ADR-007 §8.1): no phrase labels,
+  /// and a beat summary of the total alone, with nothing to measure it
+  /// against. [phraseStructure] is then [PhraseStructure.unphrased], so a
+  /// sequence has no phrase to fit.
+  final bool freeForm;
 
   /// Whether ordinary figure editors offer the structural `modifier` and
   /// `sequence` options. Settings lists whose persistence accepts ordinary
@@ -1048,9 +1055,11 @@ class _FigureListEditorState extends State<FigureListEditor>
           sectionStart[draft.id] = false;
           continue;
         }
-        final label = labelForFigure(beat, draft.beats, widget.phraseStructure);
+        final label = widget.freeForm
+            ? null
+            : labelForFigure(beat, draft.beats, widget.phraseStructure);
         labels[draft.id] = label;
-        sectionStart[draft.id] = label != lastLabel;
+        sectionStart[draft.id] = label != null && label != lastLabel;
         lastLabel = label;
         beat += draft.beats;
         totalBeats += draft.beats;
@@ -1315,7 +1324,9 @@ class _FigureListEditorState extends State<FigureListEditor>
         if (widget.showPhraseStructure && placedCount > 0)
           _BeatSummary(
             totalBeats: totalBeats,
-            expectedBeats: widget.phraseStructure.totalBeats,
+            expectedBeats: widget.freeForm
+                ? null
+                : widget.phraseStructure.totalBeats,
             keyPrefix: widget.keyPrefix,
           ),
       ],
@@ -5177,7 +5188,10 @@ class _BeatSummary extends StatelessWidget {
   });
 
   final int totalBeats;
-  final int expectedBeats;
+
+  /// The phrase structure's total, or null for a free-form dance, which has
+  /// none: then only the total shows, and never a warning.
+  final int? expectedBeats;
   final String keyPrefix;
 
   ValueKey<String> _key(String suffix) => ValueKey('$keyPrefix-$suffix');
@@ -5186,14 +5200,17 @@ class _BeatSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final mismatch = totalBeats != expectedBeats;
+    final expectedBeats = this.expectedBeats;
+    final mismatch = expectedBeats != null && totalBeats != expectedBeats;
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            l10n.danceEditorBeatTotal(totalBeats, expectedBeats),
+            expectedBeats == null
+                ? l10n.danceEditorBeatTotalFreeForm(totalBeats)
+                : l10n.danceEditorBeatTotal(totalBeats, expectedBeats),
             key: _key('beats-total'),
             style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w700,

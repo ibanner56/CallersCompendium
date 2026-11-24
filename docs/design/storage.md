@@ -109,7 +109,8 @@ dances(id PK, title, form, formation_shape, formation_detail,
        formation_improper, progression, phrase_structure, figures_json, hook,
        calling_notes, meter, musical_key, alternate_titles,
        barnes_reference, square_kind, repeat_order, repeat_order_text,
-       new_partner, new_partner_text, singing, status, level_id NULL,
+       new_partner, new_partner_text, singing, free_form NULL, status,
+       level_id NULL,
        tunes_json,
        created_at, updated_at, deleted_at, existence_at)
 difficulty_levels(id PK, label UNIQUE, position,
@@ -884,10 +885,17 @@ steps that can still fire are v40 onward.
   default); `repeat_order_text` and `new_partner_text` hold what `other`
   means, `''` unless the value is `other`; and `singing` is a flag, `false`
   by default. Every existing dance reads as a main part with nothing stated.
+  `free_form` (added after them, still before v42 shipped) holds
+  `Dance.freeForm`: the caller's free-form setting, or NULL to follow the
+  kind (on for patter, off for the others); every existing dance is NULL.
+  The figure index gives a free-form square's figures no section
+  (`dance_figures.section` is `''`), as `Dance.sectionedFigures` does.
   The values are plain text rather than an enum converter, so a value a newer
   build wrote reads as the default instead of failing the row. They are
   stored for every form, as ADR-007 §8.1 chose. Added in the `from < 42`
-  step, each only if absent. No derived index reads them.
+  step, each only if absent. No derived index reads them, except that
+  `free_form` and `square_kind` decide whether the figure index gives a
+  square's figures sections.
 
   Also in v42, before it shipped: program archiving (#2218). Adds the
   nullable `programs.archived_at` column

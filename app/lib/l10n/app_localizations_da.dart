@@ -9184,6 +9184,13 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorSingingSubtitle => 'Sangen skrives under Melodier';
 
   @override
+  String get danceEditorFreeFormLabel => 'Fri form';
+
+  @override
+  String get danceEditorFreeFormSubtitle =>
+      'Følger ingen frasering: ingen frasenavne og intet frasetjek';
+
+  @override
   String get danceEditorImproperLabel => 'Starter improper';
 
   @override
@@ -10199,6 +10206,17 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get danceEditorLingoStylingHelper =>
       'Bevægelsesnavne får en prikket understregning, rolleudtryk en understregning, og frarådte termer en gennemstregning';
+
+  @override
+  String danceEditorBeatTotalFreeForm(int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: 'Total: $total slag',
+      one: 'Total: 1 slag',
+    );
+    return '$_temp0';
+  }
 
   @override
   String danceEditorBeatTotal(int total, int expected) {

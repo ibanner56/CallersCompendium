@@ -8815,6 +8815,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorSingingSubtitle => '曲名はチューンに入力します';
 
   @override
+  String get danceEditorFreeFormLabel => 'フリーフォーム';
+
+  @override
+  String get danceEditorFreeFormSubtitle => 'フレーズに従わない：フレーズ名もフレーズの確認もなし';
+
+  @override
   String get danceEditorImproperLabel => 'インプロパーで始まる';
 
   @override
@@ -9801,6 +9807,16 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get danceEditorLingoStylingHelper =>
       'ムーブ名は点線の下線、ロール用語は下線、非推奨用語は取り消し線で表示されます';
+
+  @override
+  String danceEditorBeatTotalFreeForm(int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: '合計: $total拍',
+    );
+    return '$_temp0';
+  }
 
   @override
   String danceEditorBeatTotal(int total, int expected) {

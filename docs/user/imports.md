@@ -897,7 +897,8 @@ watches for matches:
   rating the file does carry replaces yours. The same goes for who
   interpreted the dance and when, its other titles and its Barnes reference
   (which stays only when the imported dance is an English dance), and a
-  square's kind, repeat order, new partner and singing call. The review warns
+  square's kind, repeat order, new partner, singing call and free-form
+  setting. The review warns
   how many existing dances will be overwritten before you commit.
 - **Same dance, written another way.** Archives spell and annotate titles
   differently: The Caller's Box has `A-1 Reel {variant}` where your collection
