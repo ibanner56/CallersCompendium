@@ -305,7 +305,10 @@ How the values come in:
 - **Figures** are read the way the app reads typed figures. A line it can't
   read comes in as an unrecognized figure with your words, never dropped.
 - **Authors** are matched to the authors you already have, or added.
-  Several in one cell can be separated by commas or "and".
+  Several in one cell can be separated by commas or "and". To keep a comma
+  inside one author's name, write `\,` (the app's own export does) and a
+  backslash `\\`; a backslash before anything else is read as it is. A name
+  that itself holds "and", "with", `&`, `/`, `+` or `;` is still split there.
 - **Tags** are separated by commas, matched to your tags by name, and added
   when new. Your **Import defaults** tags are added too. To keep a comma inside
   a tag, write `\,` (the app's own export does); a backslash is written `\\`,

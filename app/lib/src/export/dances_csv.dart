@@ -207,9 +207,9 @@ List<List<String>> buildDancesCsvRows(
         : renderer.renderFreeText(text, cardDialect);
     rows.add([
       dance.title.trim(),
-      authorNames.join(', '),
+      joinNameList(authorNames),
       dance.composedOn?.serialize() ?? '',
-      namesOf(dance.interpreterIds).join(', '),
+      joinNameList(namesOf(dance.interpreterIds)),
       dance.interpretedOn?.serialize() ?? '',
       danceFormLabel(l10n, dance.form),
       formationDisplayLabel(
