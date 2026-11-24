@@ -623,6 +623,11 @@ def check_runs_page(runs: list[dict[str, Any]], total: int | None = None) -> dic
     return {"total_count": len(runs) if total is None else total, "check_runs": runs}
 
 
+def merge_gate(conclusion: str = "success") -> dict[str, Any]:
+    """The `official` ruleset's one required check (ci.yml's `merge-gate` job)."""
+    return {"name": "Merge gate", "status": "completed", "conclusion": conclusion}
+
+
 def test_ci_reports_failures_on_head() -> None:
     fetcher = FakeFetcher(
         {
@@ -664,6 +669,7 @@ def test_ci_passes_when_green_and_skipped_counts_as_green() -> None:
                     [
                         {"name": "checks", "status": "completed", "conclusion": "success"},
                         {"name": "docs", "status": "completed", "conclusion": "skipped"},
+                        merge_gate(),
                     ]
                 )
             ],
@@ -682,18 +688,21 @@ def test_ci_reads_check_runs_across_pages() -> None:
             CHECK_RUNS_PATH: [
                 check_runs_page(
                     [{"name": "checks", "status": "completed", "conclusion": "success"}],
-                    total=2,
+                    total=3,
                 ),
                 check_runs_page(
-                    [{"name": "build", "status": "completed", "conclusion": "success"}],
-                    total=2,
+                    [
+                        {"name": "build", "status": "completed", "conclusion": "success"},
+                        merge_gate(),
+                    ],
+                    total=3,
                 ),
             ],
         }
     )
     ok, lines = gates.gate_ci(fetcher, 1)
     assert ok, lines
-    assert "2 check(s)" in lines[0], lines
+    assert "3 check(s)" in lines[0], lines
 
 
 def test_ci_fails_when_total_count_exceeds_fetched_runs() -> None:
@@ -728,6 +737,117 @@ def test_ci_requests_max_page_size_and_paginates() -> None:
     )
     gates.gate_ci(fetcher, 1)
     assert (CHECK_RUNS_PATH, True) in fetcher.rest_calls, fetcher.rest_calls
+
+
+# Bookkeeping checks only, as on a conflicted PR: GitHub builds no merge ref for
+# one, so no `pull_request` workflow (CI, "Claude Code Review") runs. #2421's
+# body records three such heads. What still reports is bookkeeping -- the
+# `status` job of "Claude review status" (`pull_request_target`) and the
+# `claude` job of "Claude Code", which skips unless summoned. Names are the
+# check-run (job) names GitHub reports, as read on #2421's merged head.
+BOOKKEEPING_ONLY = [
+    {"name": "status", "status": "completed", "conclusion": "success"},
+    {"name": "status", "status": "completed", "conclusion": "skipped"},
+    {"name": "claude", "status": "completed", "conclusion": "skipped"},
+    {"name": "claude", "status": "completed", "conclusion": "skipped"},
+]
+
+
+def test_ci_fails_when_only_non_ci_checks_are_green_on_head() -> None:
+    fetcher = FakeFetcher(
+        {"pulls/1": pull(), CHECK_RUNS_PATH: [check_runs_page(BOOKKEEPING_ONLY)]}
+    )
+    ok, lines = gates.gate_ci(fetcher, 1)
+    assert not ok, lines
+    assert "Merge gate" in lines[0], lines
+    assert "has not run" in lines[0], lines
+
+
+def test_ci_fails_when_the_required_check_did_not_succeed() -> None:
+    # `skipped` reads as green for any other check, but a skipped `Merge gate`
+    # means the job that reads every CI result never ran.
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            CHECK_RUNS_PATH: [
+                check_runs_page([*BOOKKEEPING_ONLY, merge_gate("skipped")])
+            ],
+        }
+    )
+    ok, lines = gates.gate_ci(fetcher, 1)
+    assert not ok, lines
+    assert "Merge gate" in lines[0] and "skipped" in lines[0], lines
+
+
+def test_ci_fails_when_the_required_check_is_neutral() -> None:
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": pull(),
+            CHECK_RUNS_PATH: [check_runs_page([*BOOKKEEPING_ONLY, merge_gate("neutral")])],
+        }
+    )
+    ok, lines = gates.gate_ci(fetcher, 1)
+    assert not ok, lines
+    assert "Merge gate" in lines[0] and "neutral" in lines[0], lines
+
+
+def test_ci_waits_for_a_running_required_check() -> None:
+    running = {"name": "Merge gate", "status": "in_progress", "conclusion": None}
+    fetcher = FakeFetcher(
+        {"pulls/1": pull(), CHECK_RUNS_PATH: [check_runs_page([*BOOKKEEPING_ONLY, running])]}
+    )
+    ok, lines = gates.gate_ci(fetcher, 1)
+    assert not ok, lines
+    assert "still running" in lines[0] and "Merge gate" in lines[0], lines
+
+
+def test_required_checks_name_jobs_that_exist_in_ci_yml() -> None:
+    # A renamed job would make the gate fail every PR with "has not run";
+    # catch the rename here instead.
+    workflow = (HERE.parent.parent / ".github" / "workflows" / "ci.yml").read_text()
+    names = {
+        line.split(":", 1)[1].strip()
+        for line in workflow.splitlines()
+        if line.startswith("    name:")
+    }
+    for required in gates.REQUIRED_CHECKS:
+        assert required in names, (required, sorted(names))
+
+
+def test_ci_fails_on_a_conflicted_pr_and_says_ci_cannot_run() -> None:
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": {**pull(), "mergeable": False, "mergeable_state": "dirty"},
+            CHECK_RUNS_PATH: [check_runs_page([*BOOKKEEPING_ONLY, merge_gate()])],
+        }
+    )
+    ok, lines = gates.gate_ci(fetcher, 1)
+    assert not ok, lines
+    assert "conflict" in lines[0], lines
+    assert "CI cannot run until the conflict is resolved" in lines[0], lines
+
+
+def test_ci_passes_while_mergeability_is_still_being_computed() -> None:
+    # GitHub answers `unknown` (and `mergeable: null`) until it has computed
+    # the merge; only a known conflict is a failure.
+    fetcher = FakeFetcher(
+        {
+            "pulls/1": {**pull(), "mergeable": None, "mergeable_state": "unknown"},
+            CHECK_RUNS_PATH: [check_runs_page([*BOOKKEEPING_ONLY, merge_gate()])],
+        }
+    )
+    ok, lines = gates.gate_ci(fetcher, 1)
+    assert ok, lines
+
+
+def test_run_gates_reports_the_ci_failure_on_bookkeeping_only_checks() -> None:
+    fetcher = FakeFetcher(
+        {"pulls/1": pull(), CHECK_RUNS_PATH: [check_runs_page(BOOKKEEPING_ONLY)]}
+    )
+    out: list[str] = []
+    code = gates.run_gates(fetcher, 1, ["ci"], [], out=out.append)
+    assert code == 1, (code, out)
+    assert out[0].startswith("FAIL ci: ") and "Merge gate" in out[0], out
 
 
 # --------------------------------------------------------------------------- #

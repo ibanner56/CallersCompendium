@@ -24,7 +24,10 @@ hand-rolled versions read as PASS when they should have failed:
 ``threads``     Unresolved review threads, asking for ``totalCount`` so a
                 page-size truncation is visible instead of reading as "none
                 unresolved".
-``ci``          Check runs on the commit being merged, not on a superseded one.
+``ci``          Check runs on the commit being merged, not on a superseded one:
+                none red or running, and the required ``Merge gate`` among
+                them with ``success`` -- bookkeeping checks alone are not CI.
+                FAILS on a merge conflict, which stops CI from running.
 ``closes``      ``closingIssuesReferences`` versus the issues you *intend* to
                 close -- a branch name or a sentence like "does not close #887"
                 can create a link on its own.
@@ -451,7 +454,10 @@ def gate_review(
 
 
 def _head_sha(fetcher: Any, pr: int) -> str:
-    payload = fetcher.rest(f"pulls/{pr}")
+    return _head_sha_from(fetcher.rest(f"pulls/{pr}"), pr)
+
+
+def _head_sha_from(payload: Any, pr: int) -> str:
     head = payload.get("head") if isinstance(payload, dict) else None
     sha = head.get("sha") if isinstance(head, dict) else None
     if not sha:
@@ -546,9 +552,30 @@ def _check_runs(fetcher: Any, head: str) -> tuple[list[dict[str, Any]], int | No
     return runs, total
 
 
+# The checks the `official` ruleset requires on `main`: only `Merge gate`, the
+# `merge-gate` job in .github/workflows/ci.yml, which reads every other CI job's
+# result (docs/dev/agents/merging.md#merging-as-an-agent). Without it, "every
+# check on the head is green" can be true of bookkeeping checks alone: a
+# `pull_request_target` workflow still reports on a conflicted PR, or on a
+# fresh head before CI has started. #2421's body records three heads on which,
+# while it conflicted with main, GitHub ran neither CI nor the Claude review.
+REQUIRED_CHECKS = ("Merge gate",)
+
+
 def gate_ci(fetcher: Any, pr: int) -> tuple[bool, list[str]]:
-    """Checks must be green on the head commit, not on a superseded one."""
-    head = _head_sha(fetcher, pr)
+    """The required check ran and passed on the head commit, nothing else on
+    the head is red, and the PR is not blocked by a merge conflict."""
+    payload = fetcher.rest(f"pulls/{pr}")
+    head = _head_sha_from(payload, pr)
+    # A conflicted PR has no merge ref, so GitHub starts no `pull_request`
+    # workflow on it: no CI and no Claude review. Only `dirty` is a known
+    # conflict; `unknown` (mergeable: null) means GitHub has not computed it yet.
+    if isinstance(payload, dict) and payload.get("mergeable_state") == "dirty":
+        return False, [
+            f"PR #{pr} has a merge conflict with its base (mergeable_state "
+            f"dirty) -- CI cannot run until the conflict is resolved; merge or "
+            f"rebase onto the base branch and push"
+        ]
     runs, total = _check_runs(fetcher, head)
     if total is not None and len(runs) < total:
         return False, [
@@ -570,7 +597,28 @@ def gate_ci(fetcher: Any, pr: int) -> tuple[bool, list[str]]:
     if failed:
         names = ", ".join(sorted(r.get("name", "?") for r in failed)[:5])
         return False, [f"{len(failed)} check(s) failing on {head[:8]}: {names}"]
-    return True, [f"{len(runs)} check(s) green on head {head[:8]}"]
+    for name in REQUIRED_CHECKS:
+        required = [r for r in runs if r.get("name") == name]
+        if not required:
+            return False, [
+                f"required check `{name}` has not run on head {head[:8]} "
+                f"({len(runs)} other check(s) on it) -- has CI started? A "
+                "conflicted PR, or a head CI has not reached yet, carries only "
+                "bookkeeping checks such as `pull_request_target` workflows"
+            ]
+        # `skipped` passes for any other check, but a skipped `Merge gate`
+        # means the job that reads every CI result never ran.
+        not_success = sorted({r.get("conclusion") or "?" for r in required} - {"success"})
+        if not_success:
+            return False, [
+                f"required check `{name}` finished {'/'.join(not_success)} on "
+                f"head {head[:8]}, not success"
+            ]
+    required_names = ", ".join(f"`{n}`" for n in REQUIRED_CHECKS)
+    return True, [
+        f"{len(runs)} check(s) green on head {head[:8]}, including required "
+        f"{required_names}"
+    ]
 
 
 CLOSES_QUERY = """
