@@ -368,7 +368,10 @@ grand right and left the third neighbours stand *one* grouping apart, not two.
 `shadows` has no distance: `Operation.apply` routes a figure naming it through
 `_applyWithShadows`, which dances it in whichever band phase has a shadow pair
 standing together in every hands four, and hands the original phase back.
-Neither phase is `whoMismatch`; both is `unresolvableDancerSet`. A figure
+Neither phase is `whoMismatch`; both is `unresolvableDancerSet`, unless the
+dancers' remembered shadows (`DancerState.shadow`, set by the first shadows
+figure each dancer dances) are kept together by exactly one phase, which is
+then used (user-ruled 2026-11-23; `_identityPicksCurrent`). A figure
 that also names a distance set is danced in the phase the distance picks, and
 the shadows pairing rule is not applied (the agent's call, following the
 user's ruling that nothing ties the two sets together). Only `dancerSets` choose the phase, so the
@@ -877,7 +880,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,480 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,486 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

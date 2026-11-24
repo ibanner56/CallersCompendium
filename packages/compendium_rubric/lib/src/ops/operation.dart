@@ -354,7 +354,9 @@ sealed class Operation {
   /// "Shadows"): the choices are the two **band phases**, the figure is danced
   /// in the one in which **every** hands four holds a shadow pair, and the
   /// phase it was given is handed back, as [_applyReaching] does. Neither
-  /// phase is `whoMismatch`; both is `unresolvableDancerSet`.
+  /// phase is `whoMismatch`; both is `unresolvableDancerSet`, unless the
+  /// shadows the dance has already named pick one ([_identityPicksCurrent]).
+  /// The pairs danced are remembered on each dancer that has no shadow yet.
   Result<Formation, OpError> _applyWithShadows(Formation formation) {
     final over = toggleBandPhase(formation);
     final here = _shadowsStandTogether(formation);
