@@ -39,6 +39,7 @@ import '../search/collection_query_labels.dart';
 import '../search/collection_selection.dart';
 import '../search/dance_detail_data.dart';
 import '../search/repertoire_drill_down.dart';
+import '../search/saved_search_context.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
@@ -69,6 +70,7 @@ import '../widgets/online_result_count.dart';
 import '../widgets/online_result_tile.dart';
 import '../widgets/online_search_toggle.dart';
 import '../widgets/pinned_while_room_sliver.dart';
+import '../widgets/saved_search_menu.dart';
 import '../widgets/search_panel_bar.dart';
 import '../widgets/skeleton.dart';
 import '../sync/sync_scope.dart';
@@ -128,6 +130,7 @@ class DanceListScreen extends StatefulWidget {
     this.callersBoxOnline,
     this.contraDbOnline,
     this.csvExportDelivery = const CsvExportDelivery(),
+    this.clock = const SearchClock(),
   });
 
   /// Called with the tapped dance's id when the split-pane shell needs to
@@ -173,6 +176,11 @@ class DanceListScreen extends StatefulWidget {
 
   /// Delivers the selection's **Export as CSV** file (#2332); a test seam.
   final CsvExportDelivery csvExportDelivery;
+
+  /// Where "today" comes from, for a calling-history window ("Within 3
+  /// months") and for saving one as a distance: the caller's own calendar day,
+  /// from one reading of the instant and the zone offset. A test seam.
+  final SearchClock clock;
 
   @override
   State<DanceListScreen> createState() => _DanceListScreenState();
@@ -268,8 +276,9 @@ abstract interface class DanceListCommands {
   /// direction, exactly. The list takes [state]'s objects as its own and
   /// edits them from then on.
   ///
-  /// Nothing in the app calls this yet; a saved search will
-  /// (`docs/design/search.md`).
+  /// The Saved menu loads a saved search through this
+  /// (`docs/design/search.md`, "The Saved menu"); applying any other state
+  /// forgets which saved search was on screen.
   void applyPanelState(CollectionPanelState state);
 }
 
@@ -338,6 +347,14 @@ class _DanceListScreenState extends State<DanceListScreen>
 
   /// Whether the panel state last applied came from a saved search.
   bool _panelFromSavedSearch = false;
+
+  /// The saved search on screen, if one was loaded or just saved (#2325):
+  /// what the Saved menu's Update, Rename and Delete act on. Kept here, not in
+  /// the menu, so Clear all forgets it.
+  SavedSearchLoad? _loadedSearch;
+
+  /// Whether the notice about [_loadedSearch]'s missing references was closed.
+  bool _savedSearchNoticeClosed = false;
 
   CollectionSort _sort = CollectionSort.title;
 
@@ -872,6 +889,13 @@ class _DanceListScreenState extends State<DanceListScreen>
   List<CollectionSort> get _availableSorts =>
       availableCollectionSorts(bareFullText: _isBareFullText);
 
+  /// The caller's calendar day now, from [DanceListScreen.clock]: the one
+  /// "today" a window is counted back from, here and when a search is saved.
+  DateTime _today() {
+    final reading = widget.clock.read();
+    return calendarDayAt(reading.instantUtc, reading.offset);
+  }
+
   Future<void> _runSearch() async {
     final data = _data;
     if (data == null) return;
@@ -901,6 +925,7 @@ class _DanceListScreenState extends State<DanceListScreen>
         performedOnly: _requirePerformedForHistory,
         requireEventDate: _requireEventDateForHistory,
         tracking: _tracking,
+        today: _today(),
       );
       final ids = await _repos.dances.search(
         filter,
@@ -1513,6 +1538,9 @@ class _DanceListScreenState extends State<DanceListScreen>
       _byPhrase = state.byPhrase;
       _advancedRoot = state.advanced;
       _panelFromSavedSearch = state.fromSavedSearch;
+      // Whatever was loaded is not on screen any more; the Saved menu says
+      // which saved search this is, once it has applied it.
+      _loadedSearch = null;
       final (:sort, :direction) = state.effectiveSort;
       _sort = sort;
       _sortDir = direction;
@@ -1520,6 +1548,47 @@ class _DanceListScreenState extends State<DanceListScreen>
       _sortUserSet = true;
     });
     _runSearch();
+  }
+
+  /// The search on screen, as a panel state for the Saved menu to save. The
+  /// list's own objects, read and not kept.
+  CollectionPanelState _currentPanelState() => CollectionPanelState(
+    text: _ftsController.text,
+    scope: _ftsScope,
+    facets: _facets,
+    byPhrase: _byPhrase,
+    advanced: _advancedRoot,
+    sort: _sort,
+    sortDirection: _sortDir,
+  );
+
+  /// One context to resolve a saved search against: the live data, and the
+  /// Calling history settings in force now.
+  Future<SavedSearchContext> _readSavedSearchContext(
+    SavedSearchTextCodec text,
+  ) {
+    final data = _data;
+    return readSavedSearchContext(
+      _repos,
+      today: _today(),
+      taxonomy: data?.taxonomy ?? shippedTaxonomies.anyForm,
+      text: text,
+      callerFilter: data?.callerFilter,
+      performedOnly: _requirePerformedForHistory,
+      requireEventDate: _requireEventDateForHistory,
+      tracking: _tracking,
+    );
+  }
+
+  void _onSavedSearchLoaded(SavedSearchLoad? load) {
+    if (!mounted) return;
+    setState(() {
+      if (load?.search.id != _loadedSearch?.search.id ||
+          !identical(load?.missing, _loadedSearch?.missing)) {
+        _savedSearchNoticeClosed = false;
+      }
+      _loadedSearch = load;
+    });
   }
 
   void _clearAll() {
@@ -1534,6 +1603,7 @@ class _DanceListScreenState extends State<DanceListScreen>
       _removedTags.clear();
       _advancedRoot.kind = GroupKind.all;
       _panelFromSavedSearch = false;
+      _loadedSearch = null;
       _onlineResults = const [];
       _onlineError = null;
       _onlineSearching = false;
@@ -3346,10 +3416,27 @@ class _DanceListScreenState extends State<DanceListScreen>
     final byPhraseActive = _byPhraseActiveCount();
     return SearchPanelBar(
       storageId: 'collection',
-      trailing: OnlineSearchToggle(
-        key: const ValueKey('online-search-enable'),
-        enabled: _onlineEnabled,
-        onChanged: _onOnlineToggled,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SavedSearchMenu(
+            enabled: !_onlineEnabled,
+            hasQuery: _hasActiveQuery,
+            clock: widget.clock,
+            dialect: _dialect,
+            enrichment: _enrichment,
+            current: _currentPanelState,
+            loaded: _loadedSearch,
+            onLoadedChanged: _onSavedSearchLoaded,
+            apply: applyPanelState,
+            readContext: _readSavedSearchContext,
+          ),
+          OnlineSearchToggle(
+            key: const ValueKey('online-search-enable'),
+            enabled: _onlineEnabled,
+            onChanged: _onOnlineToggled,
+          ),
+        ],
       ),
       panels: [
         if (!collectionEmpty)
@@ -3400,6 +3487,12 @@ class _DanceListScreenState extends State<DanceListScreen>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             toggles,
+            if (_loadedSearch case final load?
+                when load.missing.isNotEmpty && !_savedSearchNoticeClosed)
+              SavedSearchNotice(
+                load: load,
+                onClose: () => setState(() => _savedSearchNoticeClosed = true),
+              ),
             if (_onlineEnabled)
               Padding(
                 padding: const EdgeInsets.fromLTRB(

@@ -19027,5 +19027,327 @@
         "type": "String"
       }
     }
+  },
+  "savedSearchButton": "Saved",
+  "@savedSearchButton": {
+    "description": "Screen-reader name of the Saved button at the end of the Collection and picker search tools (#2325): opens the menu of saved searches."
+  },
+  "savedSearchTooltip": "Saved searches: save this search, or use one you saved",
+  "@savedSearchTooltip": {
+    "description": "Tooltip on the Saved button beside the search tools."
+  },
+  "savedSearchOnlineTooltip": "Saved searches are not available while Online search is on",
+  "@savedSearchOnlineTooltip": {
+    "description": "Tooltip and screen-reader hint on the Saved button while Online search is on, when it is disabled."
+  },
+  "savedSearchSaveThis": "Save this search…",
+  "@savedSearchSaveThis": {
+    "description": "First entry of the Saved menu: saves the search on screen under a name. Offered only while some text, filter, phrase row or Advanced row is set."
+  },
+  "savedSearchSaveAsNew": "Save as new…",
+  "@savedSearchSaveAsNew": {
+    "description": "Saved menu entry, in place of Save this search, once a loaded saved search has been changed: saves the changed search as a new one."
+  },
+  "savedSearchUpdate": "Update \"{name}\"",
+  "@savedSearchUpdate": {
+    "description": "Saved menu entry, shown once the loaded saved search has been changed: writes the change back to it.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Becket, not called lately"
+      }
+    }
+  },
+  "savedSearchRename": "Rename \"{name}\"…",
+  "@savedSearchRename": {
+    "description": "Saved menu entry: renames the loaded saved search.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Becket, not called lately"
+      }
+    }
+  },
+  "savedSearchDelete": "Delete \"{name}\"",
+  "@savedSearchDelete": {
+    "description": "Saved menu entry: deletes the loaded saved search (with Undo).",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Becket, not called lately"
+      }
+    }
+  },
+  "savedSearchNoneYet": "No saved searches yet",
+  "@savedSearchNoneYet": {
+    "description": "Disabled line in the Saved menu when there are no saved searches."
+  },
+  "savedSearchNeedsAttention": "Needs attention",
+  "@savedSearchNeedsAttention": {
+    "description": "Heading in the Saved menu over saved searches this version of the app cannot open."
+  },
+  "savedSearchUnreadableItem": "A saved search that can't be opened",
+  "@savedSearchUnreadableItem": {
+    "description": "Saved menu entry for a saved search this version cannot read, under Needs attention. Also names it in the Deleted snackbar."
+  },
+  "savedSearchUnreadableTitle": "Can't open this saved search",
+  "@savedSearchUnreadableTitle": {
+    "description": "Title of the dialog shown on choosing a saved search this version cannot read."
+  },
+  "savedSearchUnreadableBody": "It was saved by a newer version of the app, or it is damaged, so it is not used. You can delete it, and undo that.",
+  "@savedSearchUnreadableBody": {
+    "description": "Body of the dialog shown on choosing a saved search this version cannot read."
+  },
+  "savedSearchSaveDialogTitle": "Save this search",
+  "@savedSearchSaveDialogTitle": {
+    "description": "Title of the dialog that asks for a name for the search being saved."
+  },
+  "savedSearchRenameDialogTitle": "Rename saved search",
+  "@savedSearchRenameDialogTitle": {
+    "description": "Title of the dialog that asks for a new name for the loaded saved search."
+  },
+  "savedSearchNameLabel": "Name",
+  "@savedSearchNameLabel": {
+    "description": "Label of the name field in the save and rename dialogs for a saved search."
+  },
+  "savedSearchWindowNotCalled": "{count, plural, =1{Not called in the last month} other{Not called in the last {count} months}}",
+  "@savedSearchWindowNotCalled": {
+    "description": "Line in the save dialog: the calling-history window the search keeps, counted back from the day it runs. A chosen date is kept as whole months back.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "12"
+      }
+    }
+  },
+  "savedSearchWindowCalled": "{count, plural, =1{Called in the last month} other{Called in the last {count} months}}",
+  "@savedSearchWindowCalled": {
+    "description": "Line in the save dialog: the calling-history window the search keeps, for a Called search.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "savedSearchWindowInert": "{count, plural, =1{Calling history window kept: the last month} other{Calling history window kept: the last {count} months}}",
+  "@savedSearchWindowInert": {
+    "description": "Line in the save dialog: the calling-history window the search keeps, while neither or both of Called and Not called is chosen (so it does nothing yet).",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "6"
+      }
+    }
+  },
+  "savedSearchTooLargeTitle": "Search too large",
+  "@savedSearchTooLargeTitle": {
+    "description": "Title of the message shown when a search is too large to save."
+  },
+  "savedSearchTooLargeBody": "This search has too many filters or rows to save. Remove some, then save it again.",
+  "@savedSearchTooLargeBody": {
+    "description": "Body of the message shown when a search is too large to save."
+  },
+  "savedSearchLimitTitle": "Too many saved searches",
+  "@savedSearchLimitTitle": {
+    "description": "Title of the message shown when the most saved searches the app keeps has been reached."
+  },
+  "savedSearchLimitBody": "{count, plural, =1{You can keep 1 saved search. Delete it to save another.} other{You can keep up to {count} saved searches. Delete one to save another.}}",
+  "@savedSearchLimitBody": {
+    "description": "Body of the message shown when the most saved searches the app keeps has been reached.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "128"
+      }
+    }
+  },
+  "savedSearchNameRefused": "That name can't be used. Try another.",
+  "@savedSearchNameRefused": {
+    "description": "Snackbar when a saved-search name is made only of invisible characters."
+  },
+  "savedSearchFailed": "Couldn't do that with your saved searches. Try again.",
+  "@savedSearchFailed": {
+    "description": "Snackbar when reading or writing saved searches failed."
+  },
+  "savedSearchSavedSnack": "Saved \"{name}\"",
+  "@savedSearchSavedSnack": {
+    "description": "Snackbar after saving a search under a name.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Easy mixers"
+      }
+    }
+  },
+  "savedSearchUpdatedSnack": "Updated \"{name}\"",
+  "@savedSearchUpdatedSnack": {
+    "description": "Snackbar after writing a change back to a saved search.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Easy mixers"
+      }
+    }
+  },
+  "savedSearchDeletedSnack": "Deleted \"{name}\"",
+  "@savedSearchDeletedSnack": {
+    "description": "Snackbar after deleting a saved search, with an Undo action.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Easy mixers"
+      }
+    }
+  },
+  "savedSearchInUseTitle": "Can't delete \"{name}\"",
+  "@savedSearchInUseTitle": {
+    "description": "Title of the message when a saved search cannot be deleted because something uses it.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Easy mixers"
+      }
+    }
+  },
+  "savedSearchInUseBody": "It is still used by these. Change or remove them first, then delete it.",
+  "@savedSearchInUseBody": {
+    "description": "Body of the message when a saved search cannot be deleted; a list of what uses it follows."
+  },
+  "savedSearchNoticeTitle": "\"{name}\" uses things that are gone:",
+  "@savedSearchNoticeTitle": {
+    "description": "Heading of the notice shown after loading a saved search that refers to deleted things; each one is listed below it.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Easy mixers"
+      }
+    }
+  },
+  "savedSearchNoticeRest": "The rest of the search is shown. Remove these yourself to update it.",
+  "@savedSearchNoticeRest": {
+    "description": "Line at the end of the notice for a saved search that refers to deleted things."
+  },
+  "savedSearchNoticeFieldSkipped": "A filter on a deleted custom field is left out of the results.",
+  "@savedSearchNoticeFieldSkipped": {
+    "description": "Line in the notice when a loaded saved search filters on a custom field that was deleted: the search runs without that filter."
+  },
+  "savedSearchNoticeClose": "Close notice",
+  "@savedSearchNoticeClose": {
+    "description": "Tooltip on the button that closes the notice about a saved search that refers to deleted things."
+  },
+  "savedSearchMissingTag": "The tag {name}, which was deleted",
+  "@savedSearchMissingTag": {
+    "description": "Line in the notice for a loaded saved search: it uses this tag, which was deleted.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "savedSearchMissingTagUnnamed": "A tag that was deleted",
+  "@savedSearchMissingTagUnnamed": {
+    "description": "Line in the notice for a loaded saved search: it uses a tag that was deleted, whose name this device does not know."
+  },
+  "savedSearchMissingAuthor": "The author {name}, which was deleted",
+  "@savedSearchMissingAuthor": {
+    "description": "Line in the notice for a loaded saved search: it uses this author, which was deleted.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "savedSearchMissingAuthorUnnamed": "A author that was deleted",
+  "@savedSearchMissingAuthorUnnamed": {
+    "description": "Line in the notice for a loaded saved search: it uses a author that was deleted, whose name this device does not know."
+  },
+  "savedSearchMissingSource": "The source {name}, which was deleted",
+  "@savedSearchMissingSource": {
+    "description": "Line in the notice for a loaded saved search: it uses this source, which was deleted.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "savedSearchMissingSourceUnnamed": "A source that was deleted",
+  "@savedSearchMissingSourceUnnamed": {
+    "description": "Line in the notice for a loaded saved search: it uses a source that was deleted, whose name this device does not know."
+  },
+  "savedSearchMissingLevel": "The level {name}, which was deleted",
+  "@savedSearchMissingLevel": {
+    "description": "Line in the notice for a loaded saved search: it uses this level, which was deleted.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "savedSearchMissingLevelUnnamed": "A level that was deleted",
+  "@savedSearchMissingLevelUnnamed": {
+    "description": "Line in the notice for a loaded saved search: it uses a level that was deleted, whose name this device does not know."
+  },
+  "savedSearchMissingVenue": "The venue {name}, which was deleted",
+  "@savedSearchMissingVenue": {
+    "description": "Line in the notice for a loaded saved search: it uses this venue, which was deleted.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "savedSearchMissingVenueUnnamed": "A venue that was deleted",
+  "@savedSearchMissingVenueUnnamed": {
+    "description": "Line in the notice for a loaded saved search: it uses a venue that was deleted, whose name this device does not know."
+  },
+  "savedSearchMissingField": "The custom field {name}, which was deleted",
+  "@savedSearchMissingField": {
+    "description": "Line in the notice for a loaded saved search: it uses this custom field, which was deleted.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "savedSearchMissingFieldUnnamed": "A custom field that was deleted",
+  "@savedSearchMissingFieldUnnamed": {
+    "description": "Line in the notice for a loaded saved search: it uses a custom field that was deleted, whose name this device does not know."
+  },
+  "savedSearchMissingFieldType": "The custom field {name}, whose type changed",
+  "@savedSearchMissingFieldType": {
+    "description": "Line in the notice for a loaded saved search: it filters on this custom field as it was before its type changed.",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Tempo"
+      }
+    }
+  },
+  "savedSearchMissingFieldChoice": "The choice {choice} of {name}, which was removed",
+  "@savedSearchMissingFieldChoice": {
+    "description": "Line in the notice for a loaded saved search: it filters on a choice that this custom field no longer offers.",
+    "placeholders": {
+      "choice": {
+        "type": "String",
+        "example": "Fast"
+      },
+      "name": {
+        "type": "String",
+        "example": "Tempo"
+      }
+    }
+  },
+  "savedSearchMissingFigureDetail": "A figure detail in Advanced that can't be shown",
+  "@savedSearchMissingFigureDetail": {
+    "description": "Line in the notice for a loaded saved search: an Advanced figure row has a detail this version cannot show or clear."
+  },
+  "savedSearchMissingUserFigure": "A figure of your own that was deleted",
+  "@savedSearchMissingUserFigure": {
+    "description": "Line in the notice for a loaded saved search: an Advanced row uses one of your own figures that was deleted."
+  },
+  "savedSearchMissingInvalid": "Something this version can't read",
+  "@savedSearchMissingInvalid": {
+    "description": "Line in the notice for a loaded saved search that could not be read whole; not expected."
   }
 }

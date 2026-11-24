@@ -109,25 +109,39 @@ Future<void> _pump(
 double _top(WidgetTester tester, String key) =>
     tester.getRect(find.byKey(ValueKey(key))).top;
 
-/// The Online search icon is vertically centred on the chips and inside the
-/// screen, not wrapped onto a second line.
-void _expectOnlineIconInRow(WidgetTester tester) {
-  final icon = tester.getRect(
+/// The Saved menu (#2325) and the Online search icon sit side by side, Saved
+/// first, inside the screen, and come after the three tools: in their row
+/// when it has room ([inToolsRow]), else together on the line under it.
+///
+/// On a 390dp phone the row has no room: the three tools take 282dp of the
+/// 358dp inside the margins (304dp with "Filters · 3"), and the two compact
+/// icons need 80dp. So there they always take the second line, whether or not
+/// a filter is set, and the row never jumps as the first filter is chosen.
+void _expectTrailingIcons(WidgetTester tester, {required bool inToolsRow}) {
+  final saved = tester.getRect(find.byKey(const ValueKey('saved-search-menu')));
+  final online = tester.getRect(
     find.byKey(const ValueKey('online-search-enable')),
   );
   final advanced = tester.getRect(find.byKey(const ValueKey('advanced-panel')));
-  expect(icon.center.dy, closeTo(advanced.center.dy, 1));
-  expect(icon.left, greaterThanOrEqualTo(advanced.right));
-  expect(icon.right, lessThanOrEqualTo(390));
+  final width = tester.view.physicalSize.width / tester.view.devicePixelRatio;
+  expect(saved.center.dy, closeTo(online.center.dy, 1));
+  expect(online.left, greaterThanOrEqualTo(saved.right));
+  expect(online.right, lessThanOrEqualTo(width));
+  if (inToolsRow) {
+    expect(saved.center.dy, closeTo(advanced.center.dy, 1));
+    expect(saved.left, greaterThanOrEqualTo(advanced.right));
+  } else {
+    expect(saved.top, greaterThanOrEqualTo(advanced.bottom));
+    expect(saved.top, lessThan(advanced.bottom + 8));
+  }
 }
 
 void main() {
   setUpAll(_loadAppFonts);
 
-  testWidgets('on a phone, Search in sits beside the search box and the '
-      'three search tools and the Online search icon share one row', (
-    tester,
-  ) async {
+  testWidgets('on a phone, Search in sits beside the search box, the '
+      'three search tools share one row, and the Saved and Online search '
+      'icons sit together under it', (tester) async {
     await _pump(tester);
 
     expect(tester.takeException(), isNull);
@@ -138,12 +152,23 @@ void main() {
     final toolsTop = _top(tester, 'filters-panel');
     expect(_top(tester, 'by-phrase-panel'), toolsTop);
     expect(_top(tester, 'advanced-panel'), toolsTop);
-    _expectOnlineIconInRow(tester);
+    _expectTrailingIcons(tester, inToolsRow: false);
   });
 
-  testWidgets('with filters active, the three search tools and the Online '
-      'search icon still share one row on a phone', (tester) async {
+  testWidgets('on a wider screen the Saved and Online search icons end the '
+      'row of tools', (tester) async {
+    await _pump(tester, size: const Size(600, 844));
+
+    expect(tester.takeException(), isNull);
+    _expectTrailingIcons(tester, inToolsRow: true);
+  });
+
+  testWidgets('with filters active, the three search tools still share one '
+      'row on a phone, and nothing moves', (tester) async {
     await _pump(tester);
+    final savedBefore = tester.getRect(
+      find.byKey(const ValueKey('saved-search-menu')),
+    );
     await tester.tap(find.byKey(const ValueKey('filters-panel')));
     await tester.pumpAndSettle();
     for (final facet in ['Contra', 'Improper', 'Single']) {
@@ -157,7 +182,11 @@ void main() {
     final toolsTop = _top(tester, 'filters-panel');
     expect(_top(tester, 'by-phrase-panel'), toolsTop);
     expect(_top(tester, 'advanced-panel'), toolsTop);
-    _expectOnlineIconInRow(tester);
+    _expectTrailingIcons(tester, inToolsRow: false);
+    expect(
+      tester.getRect(find.byKey(const ValueKey('saved-search-menu'))),
+      savedBefore,
+    );
   });
 
   testWidgets('the results start high on a phone screen', (tester) async {
@@ -165,8 +194,10 @@ void main() {
 
     // Above the first dance there were Search in, the search box and three
     // stacked panel headers: the "2 dances" count sat at 358dp on this 844dp
-    // screen. One search row and one row of tools put it at 188dp.
-    expect(tester.getRect(find.text('2 dances')).top, lessThan(240));
+    // screen. One search row and one row of tools put it at 188dp; the line
+    // that holds the Saved and Online search icons on a phone (#2325) puts it
+    // at 240dp.
+    expect(tester.getRect(find.text('2 dances')).top, lessThanOrEqualTo(240));
   });
 
   testWidgets('at large text Search in stacks above the search box again', (
@@ -179,6 +210,10 @@ void main() {
       _top(tester, 'collection-search-scope'),
       lessThan(_top(tester, 'collection-search-field')),
     );
+    // The Saved menu is still there to reach, inside the screen.
+    final saved = find.byKey(const ValueKey('saved-search-menu'));
+    expect(saved.hitTestable(), findsOneWidget);
+    expect(tester.getRect(saved).right, lessThanOrEqualTo(390));
   });
 
   testWidgets('the search field keeps focus when the header switches between '
@@ -236,6 +271,10 @@ void main() {
         find.byKey(const ValueKey('online-search-enable')).hitTestable(),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const ValueKey('saved-search-menu')).hitTestable(),
+        findsOneWidget,
+      );
       expect(find.text('62 dances').hitTestable(), findsOneWidget);
     });
 
@@ -258,10 +297,14 @@ void main() {
         tester.getRect(find.byKey(const ValueKey('filters-panel'))),
         toolsRect,
       );
-      // The count has come up to sit just under the row of tools…
+      // The count has come up to sit just under the row of tools (and, on a
+      // phone, the line of Saved and Online search icons under it)…
+      final iconsBottom = tester
+          .getRect(find.byKey(const ValueKey('saved-search-menu')))
+          .bottom;
       final countTop = tester.getRect(find.text('62 dances')).top;
-      expect(countTop, greaterThanOrEqualTo(toolsRect.bottom));
-      expect(countTop, lessThan(toolsRect.bottom + 40));
+      expect(countTop, greaterThanOrEqualTo(iconsBottom));
+      expect(countTop, lessThan(iconsBottom + 40));
       // …and the Filters panel's choices are behind them.
       expect(find.text('Contra').hitTestable(), findsNothing);
 

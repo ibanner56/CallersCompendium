@@ -14243,4 +14243,234 @@ class AppLocalizationsDe extends AppLocalizations {
   String calendarLastResultError(String when) {
     return 'Import aus dem Kalender beim Start fehlgeschlagen ($when)';
   }
+
+  @override
+  String get savedSearchButton => 'Saved';
+
+  @override
+  String get savedSearchTooltip =>
+      'Saved searches: save this search, or use one you saved';
+
+  @override
+  String get savedSearchOnlineTooltip =>
+      'Saved searches are not available while Online search is on';
+
+  @override
+  String get savedSearchSaveThis => 'Save this search…';
+
+  @override
+  String get savedSearchSaveAsNew => 'Save as new…';
+
+  @override
+  String savedSearchUpdate(String name) {
+    return 'Update \"$name\"';
+  }
+
+  @override
+  String savedSearchRename(String name) {
+    return 'Rename \"$name\"…';
+  }
+
+  @override
+  String savedSearchDelete(String name) {
+    return 'Delete \"$name\"';
+  }
+
+  @override
+  String get savedSearchNoneYet => 'No saved searches yet';
+
+  @override
+  String get savedSearchNeedsAttention => 'Needs attention';
+
+  @override
+  String get savedSearchUnreadableItem =>
+      'A saved search that can\'t be opened';
+
+  @override
+  String get savedSearchUnreadableTitle => 'Can\'t open this saved search';
+
+  @override
+  String get savedSearchUnreadableBody =>
+      'It was saved by a newer version of the app, or it is damaged, so it is not used. You can delete it, and undo that.';
+
+  @override
+  String get savedSearchSaveDialogTitle => 'Save this search';
+
+  @override
+  String get savedSearchRenameDialogTitle => 'Rename saved search';
+
+  @override
+  String get savedSearchNameLabel => 'Name';
+
+  @override
+  String savedSearchWindowNotCalled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Not called in the last $count months',
+      one: 'Not called in the last month',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String savedSearchWindowCalled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Called in the last $count months',
+      one: 'Called in the last month',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String savedSearchWindowInert(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Calling history window kept: the last $count months',
+      one: 'Calling history window kept: the last month',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedSearchTooLargeTitle => 'Search too large';
+
+  @override
+  String get savedSearchTooLargeBody =>
+      'This search has too many filters or rows to save. Remove some, then save it again.';
+
+  @override
+  String get savedSearchLimitTitle => 'Too many saved searches';
+
+  @override
+  String savedSearchLimitBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'You can keep up to $count saved searches. Delete one to save another.',
+      one: 'You can keep 1 saved search. Delete it to save another.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedSearchNameRefused => 'That name can\'t be used. Try another.';
+
+  @override
+  String get savedSearchFailed =>
+      'Couldn\'t do that with your saved searches. Try again.';
+
+  @override
+  String savedSearchSavedSnack(String name) {
+    return 'Saved \"$name\"';
+  }
+
+  @override
+  String savedSearchUpdatedSnack(String name) {
+    return 'Updated \"$name\"';
+  }
+
+  @override
+  String savedSearchDeletedSnack(String name) {
+    return 'Deleted \"$name\"';
+  }
+
+  @override
+  String savedSearchInUseTitle(String name) {
+    return 'Can\'t delete \"$name\"';
+  }
+
+  @override
+  String get savedSearchInUseBody =>
+      'It is still used by these. Change or remove them first, then delete it.';
+
+  @override
+  String savedSearchNoticeTitle(String name) {
+    return '\"$name\" uses things that are gone:';
+  }
+
+  @override
+  String get savedSearchNoticeRest =>
+      'The rest of the search is shown. Remove these yourself to update it.';
+
+  @override
+  String get savedSearchNoticeFieldSkipped =>
+      'A filter on a deleted custom field is left out of the results.';
+
+  @override
+  String get savedSearchNoticeClose => 'Close notice';
+
+  @override
+  String savedSearchMissingTag(String name) {
+    return 'The tag $name, which was deleted';
+  }
+
+  @override
+  String get savedSearchMissingTagUnnamed => 'A tag that was deleted';
+
+  @override
+  String savedSearchMissingAuthor(String name) {
+    return 'The author $name, which was deleted';
+  }
+
+  @override
+  String get savedSearchMissingAuthorUnnamed => 'A author that was deleted';
+
+  @override
+  String savedSearchMissingSource(String name) {
+    return 'The source $name, which was deleted';
+  }
+
+  @override
+  String get savedSearchMissingSourceUnnamed => 'A source that was deleted';
+
+  @override
+  String savedSearchMissingLevel(String name) {
+    return 'The level $name, which was deleted';
+  }
+
+  @override
+  String get savedSearchMissingLevelUnnamed => 'A level that was deleted';
+
+  @override
+  String savedSearchMissingVenue(String name) {
+    return 'The venue $name, which was deleted';
+  }
+
+  @override
+  String get savedSearchMissingVenueUnnamed => 'A venue that was deleted';
+
+  @override
+  String savedSearchMissingField(String name) {
+    return 'The custom field $name, which was deleted';
+  }
+
+  @override
+  String get savedSearchMissingFieldUnnamed =>
+      'A custom field that was deleted';
+
+  @override
+  String savedSearchMissingFieldType(String name) {
+    return 'The custom field $name, whose type changed';
+  }
+
+  @override
+  String savedSearchMissingFieldChoice(String choice, String name) {
+    return 'The choice $choice of $name, which was removed';
+  }
+
+  @override
+  String get savedSearchMissingFigureDetail =>
+      'A figure detail in Advanced that can\'t be shown';
+
+  @override
+  String get savedSearchMissingUserFigure =>
+      'A figure of your own that was deleted';
+
+  @override
+  String get savedSearchMissingInvalid => 'Something this version can\'t read';
 }

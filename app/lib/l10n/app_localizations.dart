@@ -20602,6 +20602,312 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t import from the calendar at startup ({when})'**
   String calendarLastResultError(String when);
+
+  /// Screen-reader name of the Saved button at the end of the Collection and picker search tools (#2325): opens the menu of saved searches.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get savedSearchButton;
+
+  /// Tooltip on the Saved button beside the search tools.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved searches: save this search, or use one you saved'**
+  String get savedSearchTooltip;
+
+  /// Tooltip and screen-reader hint on the Saved button while Online search is on, when it is disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved searches are not available while Online search is on'**
+  String get savedSearchOnlineTooltip;
+
+  /// First entry of the Saved menu: saves the search on screen under a name. Offered only while some text, filter, phrase row or Advanced row is set.
+  ///
+  /// In en, this message translates to:
+  /// **'Save this search…'**
+  String get savedSearchSaveThis;
+
+  /// Saved menu entry, in place of Save this search, once a loaded saved search has been changed: saves the changed search as a new one.
+  ///
+  /// In en, this message translates to:
+  /// **'Save as new…'**
+  String get savedSearchSaveAsNew;
+
+  /// Saved menu entry, shown once the loaded saved search has been changed: writes the change back to it.
+  ///
+  /// In en, this message translates to:
+  /// **'Update \"{name}\"'**
+  String savedSearchUpdate(String name);
+
+  /// Saved menu entry: renames the loaded saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename \"{name}\"…'**
+  String savedSearchRename(String name);
+
+  /// Saved menu entry: deletes the loaded saved search (with Undo).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"'**
+  String savedSearchDelete(String name);
+
+  /// Disabled line in the Saved menu when there are no saved searches.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved searches yet'**
+  String get savedSearchNoneYet;
+
+  /// Heading in the Saved menu over saved searches this version of the app cannot open.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs attention'**
+  String get savedSearchNeedsAttention;
+
+  /// Saved menu entry for a saved search this version cannot read, under Needs attention. Also names it in the Deleted snackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'A saved search that can\'t be opened'**
+  String get savedSearchUnreadableItem;
+
+  /// Title of the dialog shown on choosing a saved search this version cannot read.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t open this saved search'**
+  String get savedSearchUnreadableTitle;
+
+  /// Body of the dialog shown on choosing a saved search this version cannot read.
+  ///
+  /// In en, this message translates to:
+  /// **'It was saved by a newer version of the app, or it is damaged, so it is not used. You can delete it, and undo that.'**
+  String get savedSearchUnreadableBody;
+
+  /// Title of the dialog that asks for a name for the search being saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Save this search'**
+  String get savedSearchSaveDialogTitle;
+
+  /// Title of the dialog that asks for a new name for the loaded saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename saved search'**
+  String get savedSearchRenameDialogTitle;
+
+  /// Label of the name field in the save and rename dialogs for a saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get savedSearchNameLabel;
+
+  /// Line in the save dialog: the calling-history window the search keeps, counted back from the day it runs. A chosen date is kept as whole months back.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Not called in the last month} other{Not called in the last {count} months}}'**
+  String savedSearchWindowNotCalled(int count);
+
+  /// Line in the save dialog: the calling-history window the search keeps, for a Called search.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Called in the last month} other{Called in the last {count} months}}'**
+  String savedSearchWindowCalled(int count);
+
+  /// Line in the save dialog: the calling-history window the search keeps, while neither or both of Called and Not called is chosen (so it does nothing yet).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Calling history window kept: the last month} other{Calling history window kept: the last {count} months}}'**
+  String savedSearchWindowInert(int count);
+
+  /// Title of the message shown when a search is too large to save.
+  ///
+  /// In en, this message translates to:
+  /// **'Search too large'**
+  String get savedSearchTooLargeTitle;
+
+  /// Body of the message shown when a search is too large to save.
+  ///
+  /// In en, this message translates to:
+  /// **'This search has too many filters or rows to save. Remove some, then save it again.'**
+  String get savedSearchTooLargeBody;
+
+  /// Title of the message shown when the most saved searches the app keeps has been reached.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many saved searches'**
+  String get savedSearchLimitTitle;
+
+  /// Body of the message shown when the most saved searches the app keeps has been reached.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{You can keep 1 saved search. Delete it to save another.} other{You can keep up to {count} saved searches. Delete one to save another.}}'**
+  String savedSearchLimitBody(int count);
+
+  /// Snackbar when a saved-search name is made only of invisible characters.
+  ///
+  /// In en, this message translates to:
+  /// **'That name can\'t be used. Try another.'**
+  String get savedSearchNameRefused;
+
+  /// Snackbar when reading or writing saved searches failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t do that with your saved searches. Try again.'**
+  String get savedSearchFailed;
+
+  /// Snackbar after saving a search under a name.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved \"{name}\"'**
+  String savedSearchSavedSnack(String name);
+
+  /// Snackbar after writing a change back to a saved search.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated \"{name}\"'**
+  String savedSearchUpdatedSnack(String name);
+
+  /// Snackbar after deleting a saved search, with an Undo action.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted \"{name}\"'**
+  String savedSearchDeletedSnack(String name);
+
+  /// Title of the message when a saved search cannot be deleted because something uses it.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t delete \"{name}\"'**
+  String savedSearchInUseTitle(String name);
+
+  /// Body of the message when a saved search cannot be deleted; a list of what uses it follows.
+  ///
+  /// In en, this message translates to:
+  /// **'It is still used by these. Change or remove them first, then delete it.'**
+  String get savedSearchInUseBody;
+
+  /// Heading of the notice shown after loading a saved search that refers to deleted things; each one is listed below it.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{name}\" uses things that are gone:'**
+  String savedSearchNoticeTitle(String name);
+
+  /// Line at the end of the notice for a saved search that refers to deleted things.
+  ///
+  /// In en, this message translates to:
+  /// **'The rest of the search is shown. Remove these yourself to update it.'**
+  String get savedSearchNoticeRest;
+
+  /// Line in the notice when a loaded saved search filters on a custom field that was deleted: the search runs without that filter.
+  ///
+  /// In en, this message translates to:
+  /// **'A filter on a deleted custom field is left out of the results.'**
+  String get savedSearchNoticeFieldSkipped;
+
+  /// Tooltip on the button that closes the notice about a saved search that refers to deleted things.
+  ///
+  /// In en, this message translates to:
+  /// **'Close notice'**
+  String get savedSearchNoticeClose;
+
+  /// Line in the notice for a loaded saved search: it uses this tag, which was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The tag {name}, which was deleted'**
+  String savedSearchMissingTag(String name);
+
+  /// Line in the notice for a loaded saved search: it uses a tag that was deleted, whose name this device does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'A tag that was deleted'**
+  String get savedSearchMissingTagUnnamed;
+
+  /// Line in the notice for a loaded saved search: it uses this author, which was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The author {name}, which was deleted'**
+  String savedSearchMissingAuthor(String name);
+
+  /// Line in the notice for a loaded saved search: it uses a author that was deleted, whose name this device does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'A author that was deleted'**
+  String get savedSearchMissingAuthorUnnamed;
+
+  /// Line in the notice for a loaded saved search: it uses this source, which was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The source {name}, which was deleted'**
+  String savedSearchMissingSource(String name);
+
+  /// Line in the notice for a loaded saved search: it uses a source that was deleted, whose name this device does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'A source that was deleted'**
+  String get savedSearchMissingSourceUnnamed;
+
+  /// Line in the notice for a loaded saved search: it uses this level, which was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The level {name}, which was deleted'**
+  String savedSearchMissingLevel(String name);
+
+  /// Line in the notice for a loaded saved search: it uses a level that was deleted, whose name this device does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'A level that was deleted'**
+  String get savedSearchMissingLevelUnnamed;
+
+  /// Line in the notice for a loaded saved search: it uses this venue, which was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The venue {name}, which was deleted'**
+  String savedSearchMissingVenue(String name);
+
+  /// Line in the notice for a loaded saved search: it uses a venue that was deleted, whose name this device does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'A venue that was deleted'**
+  String get savedSearchMissingVenueUnnamed;
+
+  /// Line in the notice for a loaded saved search: it uses this custom field, which was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The custom field {name}, which was deleted'**
+  String savedSearchMissingField(String name);
+
+  /// Line in the notice for a loaded saved search: it uses a custom field that was deleted, whose name this device does not know.
+  ///
+  /// In en, this message translates to:
+  /// **'A custom field that was deleted'**
+  String get savedSearchMissingFieldUnnamed;
+
+  /// Line in the notice for a loaded saved search: it filters on this custom field as it was before its type changed.
+  ///
+  /// In en, this message translates to:
+  /// **'The custom field {name}, whose type changed'**
+  String savedSearchMissingFieldType(String name);
+
+  /// Line in the notice for a loaded saved search: it filters on a choice that this custom field no longer offers.
+  ///
+  /// In en, this message translates to:
+  /// **'The choice {choice} of {name}, which was removed'**
+  String savedSearchMissingFieldChoice(String choice, String name);
+
+  /// Line in the notice for a loaded saved search: an Advanced figure row has a detail this version cannot show or clear.
+  ///
+  /// In en, this message translates to:
+  /// **'A figure detail in Advanced that can\'t be shown'**
+  String get savedSearchMissingFigureDetail;
+
+  /// Line in the notice for a loaded saved search: an Advanced row uses one of your own figures that was deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'A figure of your own that was deleted'**
+  String get savedSearchMissingUserFigure;
+
+  /// Line in the notice for a loaded saved search that could not be read whole; not expected.
+  ///
+  /// In en, this message translates to:
+  /// **'Something this version can\'t read'**
+  String get savedSearchMissingInvalid;
 }
 
 class _AppLocalizationsDelegate
