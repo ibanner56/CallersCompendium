@@ -26,12 +26,12 @@ const Set<String> roleTokens = {'role1', 'role2', 'role1s', 'role2s'};
 
 final RegExp _placeholder = RegExp(r'\{(\w+)\}');
 
-/// Placeholder syntax of a USER-authored wording template. A leading `!`
-/// (`{!hand}`) forces the slot to display even when it would otherwise be
-/// hidden; the captured key keeps the `!` so it is its own slot key.
 /// A run of whitespace, collapsed to one space.
 final RegExp _whitespaceRun = RegExp(r'\s+');
 
+/// Placeholder syntax of a USER-authored wording template. A leading `!`
+/// (`{!hand}`) forces the slot to display even when it would otherwise be
+/// hidden; the captured key keeps the `!` so it is its own slot key.
 final RegExp _wordingPlaceholder = RegExp(r'\{(!?\w+)\}');
 
 String _slotBase(String key) => key.startsWith('!') ? key.substring(1) : key;

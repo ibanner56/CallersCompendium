@@ -2428,8 +2428,9 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       route this way. Copying pass by into a figure of your own starts from
       `{who} {move} {where}` with `who` at neighbors, and a dialect's wording
       for it offers the `who` and `where` slots; one for pass through now
-      offers `who` too, so an existing wording without it is listed as
-      missing that slot when the dialect is next saved.
+      offers `who` too. So an existing wording for pass by without `{where}`,
+      or for pass through without `{who}`, is listed as missing that slot
+      when the dialect is next saved.
     - **`ParamSpec.requiredOnEntry`** (new; `who` and `where` here): the
       editor seeds them `unspecified` on picking either move
       (`Taxonomy.entryParams`), and a figure entered in that edit — picked, or
@@ -2445,7 +2446,10 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       as it is. `shoulder`, `beats` and the pass type always hold a value.
       Neither param can be cleared back to unstated by hand. Only the dance
       editor asks: the compound, shorthand and Settings default editors show
-      no message, as nothing there would refuse the save.
+      no message, as nothing there would refuse the save, and a pass picked or
+      typed there starts as it did before v40 (a pass by's neighbors, a pass
+      through's along), not with blanks. A shorthand placed into a dance
+      brings its figures as they were saved, without asking.
     - Stored params: `withoutListedAliasPins` now also drops a pass through's
       `passType: through` (its id says it) and a required param stated
       `unspecified` where omission already means that (a pass through's `who`,
@@ -2482,17 +2486,20 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       after pass through, where listed aliases follow their target.
     - Free text reads the new display lines back: a subject before `pass
       through` (`neighbor pass through across`) and a direction after a pass
-      by's shoulders. ContraDB writes neither, so its lines read as before.
+      by's shoulders. ContraDB's generated text writes neither, so it reads as
+      before; a line typed by hand that leads with a subject (`partners pass
+      through the center`) now reads as a pass through with that `who`, the
+      rest as its note, where it was custom text.
       The contra-to-English twin of a pass through carries its `who`.
     - Square and ECD calls are unchanged: `sq_pass_by`, `sq_pass_through` and
       `ecd_pass_through` remain separate moves (the session's call, as the
       request was about the contra figure picker).
     - Migration: none, and no rebuild. **Older devices (v39)** read a pass by
       or pass through that states only what v39 had exactly as before. That
-      will not be the common case for new data: every pass entered from now
-      on states both `who` and `where`, and every pass through imported from
-      The Caller's Box with a dancer code (about 2,048, by the count in
-      `imports.md`) states `who`. Checked
+      will not be the common case for new data: every pass entered in the
+      dance editor from now on states both `who` and `where`, and every pass
+      through imported from The Caller's Box with a dancer code (about 2,048,
+      by the count in `imports.md`) states `who`. Checked
       against the v0.10.0-beta code: one that states a new param renders
       without it (`neighbors pass through across` shows "pass through
       across"; a pass by's direction is not shown), and one holding an

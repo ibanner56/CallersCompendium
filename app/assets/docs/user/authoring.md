@@ -415,7 +415,7 @@ don't offer "other", because they have no amount to go with it.
 **Pass by** and **pass through** are one figure under two names, and both are
 in the move list. Each says who passes, in which direction, by which shoulder,
 and its beats; **Pass type** under **More options** switches between the two.
-When you add one, choose who passes and the direction before you save: until
+When you add one to a dance, choose who passes and the direction before you save: until
 you do, the figure says so under its fields and the dance doesn't save. A pass
 saved earlier, or imported, with either one unstated saves as it is.
 

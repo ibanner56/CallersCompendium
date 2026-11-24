@@ -555,6 +555,9 @@ void main() {
       await _pump(tester, drafts);
       await _selectMove(tester, 0, 'pass by', 'pass_by');
       expect(find.byKey(const ValueKey('figure-0-needs-values')), findsNothing);
+      // And it starts as a pass by always did, not with blanks to fill in.
+      expect(drafts.single.params['who'], 'neighbors');
+      expect(drafts.single.toFigure()!.params, isNot(contains('where')));
       expect(
         find.byKey(const ValueKey('figure-0-summary-needs-values')),
         findsNothing,

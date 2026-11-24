@@ -115,9 +115,16 @@ class FigureDraft {
     Figure figure,
     Taxonomy taxonomy, {
     Map<String, Map<String, Object?>>? moveParamDefaults,
+    bool requireStatedParams = false,
   }) {
     final draft = FigureDraft.fromFigure(figure);
-    _fillDerivedParams(draft, figure, taxonomy, moveParamDefaults);
+    _fillDerivedParams(
+      draft,
+      figure,
+      taxonomy,
+      moveParamDefaults,
+      requireStatedParams,
+    );
     return draft;
   }
 
@@ -167,6 +174,7 @@ class FigureDraft {
     Figure figure,
     Taxonomy taxonomy,
     Map<String, Map<String, Object?>>? moveParamDefaults,
+    bool requireStatedParams,
   ) {
     if (figure.isContainer) {
       final children = draft.containerChildren;
@@ -179,6 +187,7 @@ class FigureDraft {
           sources[i],
           taxonomy,
           moveParamDefaults,
+          requireStatedParams,
         );
       }
       if (span != null) {
@@ -215,10 +224,12 @@ class FigureDraft {
       taxonomy.dropUnstatedParams(figure.move, draft.params);
       draft.beatsTouched = defaults.containsKey('beats');
     }
-    // As picking the move does (taxonomy v40): a param a new figure must
-    // state starts unstated unless the line or a saved default states it, so
-    // a typed "pass by" asks who passes rather than assuming neighbors.
-    final def = taxonomy.resolve(figure.move);
+    // As picking the move does in the dance editor (taxonomy v40): with
+    // [requireStatedParams], a param a new figure must state starts unstated
+    // unless the line or a saved default states it, so a typed "pass by" asks
+    // who passes rather than assuming neighbors. Elsewhere (Settings'
+    // figure lists) the line keeps what leaving the param out means.
+    final def = requireStatedParams ? taxonomy.resolve(figure.move) : null;
     for (final MapEntry(:key, :value)
         in def?.params.entries ?? const <MapEntry<String, ParamSpec>>[]) {
       if (value.requiredOnEntry &&

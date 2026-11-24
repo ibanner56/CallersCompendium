@@ -1899,7 +1899,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     widget.draft.compound = null;
     widget.draft.params
       ..clear()
-      ..addAll(widget.taxonomy.entryParams(moveId));
+      ..addAll(
+        _entryParamsFor(widget.taxonomy, moveId, widget.requireStatedParams),
+      );
     // Picking a move is an explicit authorship action: any inherited
     // parser-assumed-subject marker (#460) no longer applies.
     widget.draft.assumedSubject = false;
@@ -4318,7 +4320,9 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     draft.enteredNew = true;
     draft.params
       ..clear()
-      ..addAll(widget.taxonomy.entryParams(moveId));
+      ..addAll(
+        _entryParamsFor(widget.taxonomy, moveId, widget.requireStatedParams),
+      );
     draft.assumedSubject = false;
     draft.customOrigin = CustomOrigin.userEntered;
     draft.wordingOverride = null;
@@ -5430,4 +5434,27 @@ bool _draftNeedsValues(
     ...?draft.modifierFigures,
     ...?draft.sequenceFigures,
   ].any((child) => _draftNeedsValues(child, taxonomy, orChildren: true));
+}
+
+/// The params a figure of [moveId] starts with when it is picked: the
+/// taxonomy's entry params ([Taxonomy.entryParams]). Where the editor does
+/// not require stated params (an editor other than the dance editor, which
+/// would never refuse the save), a param seeded unstated only because a new
+/// figure must state it ([ParamSpec.requiredOnEntry]) starts at what leaving
+/// it out means instead, as before taxonomy v40: a pass by's neighbors.
+Map<String, Object?> _entryParamsFor(
+  Taxonomy taxonomy,
+  String moveId,
+  bool requireStatedParams,
+) {
+  final params = taxonomy.entryParams(moveId);
+  if (requireStatedParams) return params;
+  final def = taxonomy.resolve(moveId);
+  for (final MapEntry(:key, :value)
+      in def?.params.entries ?? const <MapEntry<String, ParamSpec>>[]) {
+    if (value.requiredOnEntry && params[key] == ParamVocab.unspecified) {
+      params[key] = taxonomy.defaultParamValue(moveId, key);
+    }
+  }
+  return params;
 }

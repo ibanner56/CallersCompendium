@@ -2453,6 +2453,7 @@ class DanceEditorController extends ChangeNotifier {
           figure,
           taxonomy,
           moveParamDefaults: moveParamDefaults,
+          requireStatedParams: true,
         ),
     ];
     _markEnteredNew(inserted);
@@ -2481,6 +2482,7 @@ class DanceEditorController extends ChangeNotifier {
           figure,
           taxonomy,
           moveParamDefaults: moveParamDefaults,
+          requireStatedParams: true,
         ),
     ];
     _markEnteredNew(inserted);
@@ -2535,6 +2537,7 @@ class DanceEditorController extends ChangeNotifier {
           figure,
           taxonomy,
           moveParamDefaults: moveParamDefaults,
+          requireStatedParams: true,
         ),
     ];
     _markEnteredNew(drafts);

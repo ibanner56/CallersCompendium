@@ -21,10 +21,26 @@ void main() {
           'unspecified',
         ),
       ]) {
-        final draft = FigureDraft.fromFreeTextFigure(figure, contraTaxonomy);
+        final draft = FigureDraft.fromFreeTextFigure(
+          figure,
+          contraTaxonomy,
+          requireStatedParams: true,
+        );
         expect(draft.params['who'], who, reason: '${figure.params}');
         expect(draft.params['where'], where, reason: '${figure.params}');
       }
+    });
+
+    // Mutation caught: seeding unstated values where nothing enforces them
+    // (Settings' figure lists), which stores a pass by naming no one in place
+    // of the neighbors the line meant, and which a v39 build rejects.
+    test('outside the dance editor the line keeps what it meant', () {
+      final draft = FigureDraft.fromFreeTextFigure(
+        Figure(move: 'pass_by'),
+        contraTaxonomy,
+      );
+      expect(draft.params['who'], 'neighbors');
+      expect(draft.toFigure()!.params, isNot(contains('where')));
     });
 
     test('a saved default states it', () {
@@ -34,6 +50,7 @@ void main() {
         moveParamDefaults: const {
           'pass_through': {'who': 'neighbors'},
         },
+        requireStatedParams: true,
       );
       expect(draft.params['who'], 'neighbors');
       expect(draft.params['where'], 'unspecified');

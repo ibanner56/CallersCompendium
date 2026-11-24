@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
 
 /// Taxonomy v40: pass by and pass through are one figure, `pass_through`, told
@@ -8,7 +9,7 @@ void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
   Figure f(String move, [Map<String, Object?> params = const {}]) =>
-      Figure(move: move, params: params);
+      testFigure(move: move, params: params);
 
   group('the alias', () {
     test('pass_by pins passType: by, routes against pass_through, and is '
@@ -307,6 +308,95 @@ void main() {
         'pass_through',
       );
     });
+  });
+
+  group('wordings and copies', () {
+    // Mutation caught: treating pass by as long lines (its name alone), which
+    // copies it into a figure of your own with no subject and offers no
+    // `who` slot in a dialect wording.
+    test('pass by starts from its own line, without the pinned pass type', () {
+      expect(renderer.moveWordingTemplate('pass_by'), '{who} {move} {where}');
+      expect(renderer.moveWordingTemplate('long_lines'), '{move}');
+      final copy = userFigureSeedFromMove(tax, 'pass_by')!;
+      expect(copy.template, '{who} {move} {where}');
+      final who = copy.params.singleWhere((p) => p.key == 'who');
+      expect(who.defaultValue, 'neighbors');
+    });
+  });
+
+  test('a switch of your own figure to pass through routes each pass type '
+      'and keeps what was left out', () {
+    final mine = UserFigureDefinition(
+      template: '{type} {move}',
+      defaultBeats: 2,
+      params: [
+        UserFigureParam(
+          key: 'type',
+          kind: ParamKind.choice,
+          choices: [
+            UserFigureChoice(id: 'pb', label: 'by'),
+            UserFigureChoice(id: 'pt', label: 'through'),
+          ],
+        ),
+      ],
+    );
+    final catalog = UserFigureCatalog.fromEntries([
+      UserGlossaryEntry(
+        id: 'mine',
+        kindName: UserGlossaryEntryKind.customFigure.name,
+        name: 'my pass',
+        definition: 'Mine.',
+        description: 'Mine.',
+        payload: mine.toJson(),
+        createdAt: DateTime.utc(2026),
+      ),
+    ]);
+    final mineRenderer = FigureRenderer(tax, userFigures: catalog);
+    Figure use(String choice) {
+      final draft = userFigureUseFigure(
+        id: 'mine',
+        args: {'type': choice},
+        text: 'placeholder',
+      );
+      return userFigureUseFigure(
+        id: 'mine',
+        args: {'type': choice},
+        text: mineRenderer.renderUserFigureCanonical(draft)!,
+      );
+    }
+
+    final switched = switchUserFigureUsesIn(
+      [use('pb'), use('pt')],
+      'mine',
+      mine,
+      UserFigureSwitch(
+        target: 'pass_through',
+        params: {'type': 'passType'},
+        choices: {
+          'type': {'pb': 'by', 'pt': 'through'},
+        },
+      ),
+      tax,
+      mineRenderer,
+    );
+    expect(switched.map((f) => f.move), ['pass_by', 'pass_through']);
+    for (final f in switched) {
+      expect(f.params, isNot(contains('passType')), reason: f.move);
+    }
+    // The pass through it was switched to names no one and goes along; as a
+    // pass by it says so, where leaving them out would mean otherwise.
+    final effective = tax.effectiveParams(switched.first);
+    expect(effective['who'], ParamVocab.unspecified);
+    expect(effective['where'], 'along');
+  });
+
+  test('a pass through that names its dancers keeps them in English', () {
+    final twin = ecdTwinOfContraMove(
+      f('pass_through', {'who': 'neighbors', 'where': 'across'}),
+    );
+    expect(twin?.move, 'ecd_pass_through');
+    expect(twin?.params['who'], ['neighbors']);
+    expect(twin?.params['where'], 'across');
   });
 
   group('required on entry', () {
