@@ -1,0 +1,9 @@
+{
+  "id": "ensure-v42-schema-on-open",
+  "user_visible": false,
+  "core": {
+    "fixed": [
+      "Opening a database already stamped schema v42 now adds any v42 column it lacks, as v39 already did, so a file stamped by a pre-release build before later columns joined v42 no longer fails to read its dances."
+    ]
+  }
+}
