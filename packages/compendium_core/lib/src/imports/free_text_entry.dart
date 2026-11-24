@@ -554,7 +554,14 @@ List<Figure>? _expandShorthandClauses(
       clause: true,
       ringDancers: ringDancers,
     );
-    if (parsed.isEmpty || parsed.any((f) => f.isCustom)) return null;
+    // A clause read only as another form's call does not structure either
+    // (Hudson, 24 November 2026): the line falls through to stay custom.
+    if (parsed.isEmpty ||
+        parsed.any((f) => f.isCustom) ||
+        (taxonomy != null &&
+            !parsed.every((f) => figureFitsForm(f, taxonomy.form)))) {
+      return null;
+    }
     result.addAll(parsed);
   }
   return result;

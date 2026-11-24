@@ -83,6 +83,33 @@ void main() {
       expect(clauses.single.isCustom, isTrue);
     });
 
+    test("a `;` line's plain clause beside a shorthand stays custom too", () {
+      final shorthands = ShorthandMappings([
+        ShorthandMapping(
+          token: 'pbs',
+          figures: [
+            Figure(move: 'sq_swing', params: const {'whom': 'partners'}),
+          ],
+        ),
+      ]);
+      final read = parseFreeTextFigureEntry(
+        'pbs; hey',
+        taxonomy: _square,
+        shorthands: shorthands,
+      );
+      expect(read.single.isCustom, isTrue, reason: '$read');
+      expect(read.single.params['text'], 'pbs; hey');
+      // In a contra dance the same line expands and reads as ever.
+      expect(
+        parseFreeTextFigureEntry(
+          'pbs; hey',
+          taxonomy: _contra,
+          shorthands: shorthands,
+        ).map((f) => f.move),
+        ['sq_swing', 'hey'],
+      );
+    });
+
     test('contra reads the same line as ever', () {
       expect(
         parseFreeTextFigureEntry(
