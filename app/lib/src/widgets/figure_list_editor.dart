@@ -88,6 +88,7 @@ class FigureListEditor extends StatefulWidget {
     this.snippetLibraryDefaultFor,
     this.onSnippetCommitted,
     this.showWordingOverride = false,
+    this.requireStatedParams = false,
     this.canonicalizeDiscouragedTerms = false,
     this.onGroupWithNext,
     this.onGroupWithNextAsModifier,
@@ -276,6 +277,12 @@ class FigureListEditor extends StatefulWidget {
   /// wording override. Disabled for reusable defaults and shorthand mappings,
   /// where a per-dance value would be misleading.
   final bool showWordingOverride;
+
+  /// Whether a figure entered here must state every param that requires it
+  /// before its container saves (taxonomy v40: a pass by's or pass through's
+  /// who and where), so each such figure says so under its fields. Only the
+  /// dance editor refuses the save; elsewhere nothing would enforce it.
+  final bool requireStatedParams;
 
   /// Enables canonical discouraged-term wording only for read-only,
   /// dance-scoped summaries. Settings editors leave this disabled so their
@@ -1203,6 +1210,7 @@ class _FigureListEditorState extends State<FigureListEditor>
         snippetLibraryDefaultFor: widget.snippetLibraryDefaultFor,
         onSnippetCommitted: widget.onSnippetCommitted,
         showWordingOverride: widget.showWordingOverride,
+        requireStatedParams: widget.requireStatedParams,
         onGroupWithNext: groupWithNext(
           widget.onGroupWithNext,
           meanwhileMove,
@@ -1616,6 +1624,7 @@ class _FigureDraftCard extends StatefulWidget {
     this.snippetLibraryDefaultFor,
     this.onSnippetCommitted,
     this.showWordingOverride = false,
+    this.requireStatedParams = false,
     this.canonicalizeDiscouragedTerms = false,
     this.allowModifierSelection = true,
     this.allowNestedContainerSelection = true,
@@ -1718,6 +1727,7 @@ class _FigureDraftCard extends StatefulWidget {
   final void Function(FigureDraft draft)? onSnippetCommitted;
 
   final bool showWordingOverride;
+  final bool requireStatedParams;
   final bool allowModifierSelection;
   final bool allowNestedContainerSelection;
 
@@ -2220,6 +2230,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // A group not complete enough to save, said on its row as the Warnings
     // card says it (AUTH-2), so the row is not mistaken for part of the dance.
     final incomplete = draft.isIncomplete;
+    // A figure entered in this edit that must still state a value, said on
+    // its row too, so it can be found with the row closed (taxonomy v40).
+    final needsValues =
+        widget.requireStatedParams &&
+        _draftNeedsValues(draft, widget.taxonomy, orChildren: true);
     final compound = draft.compound;
     final resolve = widget.resolveCompound;
     // A placeholder that cannot expand is saved as its name alone (#709).
@@ -2287,9 +2302,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       widget.index + 1,
       widget.totalCount,
     );
-    final withIncomplete = incomplete
-        ? '$summarySemantic ${l10n.danceEditorIncompleteFigure}'
-        : summarySemantic;
+    final withIncomplete = [
+      summarySemantic,
+      if (incomplete) l10n.danceEditorIncompleteFigure,
+      if (needsValues) l10n.danceEditorFigureNeedsValues,
+    ].join(' ');
     final composite = widget.isCut
         ? '$withIncomplete ${l10n.danceEditorFigureCutState}'
         : withIncomplete;
@@ -2415,6 +2432,14 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                             Text(
                               l10n.danceEditorIncompleteFigure,
                               key: _key('incomplete'),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.error,
+                              ),
+                            ),
+                          if (needsValues)
+                            Text(
+                              l10n.danceEditorFigureNeedsValues,
+                              key: _key('summary-needs-values'),
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.error,
                               ),
@@ -3447,6 +3472,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                                           widget.moveParamDefaults,
                                       showWordingOverride:
                                           widget.showWordingOverride,
+                                      requireStatedParams:
+                                          widget.requireStatedParams,
                                       onChanged: _onSideChanged,
                                       onAdd: () {},
                                       onDelete: (_) => _removeSide(i),
@@ -3500,6 +3527,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                                 mixer: widget.mixer,
                                 moveParamDefaults: widget.moveParamDefaults,
                                 showWordingOverride: widget.showWordingOverride,
+                                requireStatedParams: widget.requireStatedParams,
                                 userFigureOptions: widget.userFigureOptions,
                                 onChanged: _onSideChanged,
                                 includeModifier:
@@ -3896,13 +3924,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
 
     // A figure entered in this edit states every required param before the
     // dance saves (taxonomy v40); say so on the figure itself.
-    final move = draft.move;
-    final missing = draft.enteredNew && move != null
-        ? widget.taxonomy.unstatedRequiredParams(
-            Figure(move: move, params: draft.params),
-          )
-        : const <String>[];
-    final missingNotice = missing.isEmpty
+    final missingNotice =
+        !widget.requireStatedParams ||
+            !_draftNeedsValues(draft, widget.taxonomy)
         ? null
         : Padding(
             padding: const EdgeInsets.only(top: AppSpacing.xxs),
@@ -4226,6 +4250,7 @@ class _MeanwhileSideEditor extends StatefulWidget {
     this.mixer = false,
     this.moveParamDefaults,
     this.showWordingOverride = false,
+    this.requireStatedParams = false,
     this.includeModifier = false,
     this.includeSequence = false,
     this.userFigureOptions,
@@ -4251,6 +4276,7 @@ class _MeanwhileSideEditor extends StatefulWidget {
 
   final Map<String, Map<String, Object?>>? moveParamDefaults;
   final bool showWordingOverride;
+  final bool requireStatedParams;
   final bool includeModifier;
   final bool includeSequence;
 
@@ -4637,7 +4663,7 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
         .where((e) => !hidesFractionAmount(e.key, draft.params))
         .toList(growable: false);
     if (entries.isEmpty) return const SizedBox.shrink();
-    return Wrap(
+    final fields = Wrap(
       spacing: 12,
       runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
@@ -4703,6 +4729,25 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
               widget.onChanged();
             },
           ),
+      ],
+    );
+    // As on a top-level figure's card (taxonomy v40).
+    if (!widget.requireStatedParams ||
+        !_draftNeedsValues(draft, widget.taxonomy)) {
+      return fields;
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        fields,
+        Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.xxs),
+          child: Text(
+            AppLocalizations.of(context).danceEditorFigureNeedsValues,
+            key: ValueKey('${widget.keyPrefix}-needs-values'),
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+        ),
       ],
     );
   }
@@ -5361,3 +5406,28 @@ List<MoveOption> _userEntryPickerOptions(
       ],
     ),
 ];
+
+/// Whether [draft], entered in this edit ([FigureDraft.enteredNew]), leaves a
+/// param it must state unstated ([Taxonomy.unstatedRequiredParams]); with
+/// [orChildren], whether any figure of a group it is does.
+bool _draftNeedsValues(
+  FigureDraft draft,
+  Taxonomy taxonomy, {
+  bool orChildren = false,
+}) {
+  final move = draft.move;
+  if (draft.enteredNew &&
+      move != null &&
+      draft.compound == null &&
+      taxonomy
+          .unstatedRequiredParams(Figure(move: move, params: draft.params))
+          .isNotEmpty) {
+    return true;
+  }
+  if (!orChildren) return false;
+  return [
+    ...?draft.meanwhileSides,
+    ...?draft.modifierFigures,
+    ...?draft.sequenceFigures,
+  ].any((child) => _draftNeedsValues(child, taxonomy, orChildren: true));
+}

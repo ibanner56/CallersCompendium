@@ -198,7 +198,7 @@ void main() {
       expect(notes, hasLength(6));
     });
 
-    test('a stated subject declines the line (pass_through has no who)', () {
+    test('a stated subject declines the line (not read onto who)', () {
       expect(
         _parse('Women walk forward to N2', beats: 4).single.isCustom,
         isTrue,

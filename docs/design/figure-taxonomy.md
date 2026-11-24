@@ -2422,18 +2422,30 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       editor's fields). When a change re-routes a figure, `keepOmittedMeaning`
       writes each omitted param whose meaning differs between the two ids at
       its old value, so a pass by that left `who` out becomes a pass through
-      with `who: neighbors`.
+      with `who: neighbors`, and a pass through that left it out becomes a
+      pass by with `who: unspecified` stated. The editor's field, the dance
+      repository's write-time routing and switching a figure of your own all
+      route this way. Copying pass by into a figure of your own starts from
+      `{who} {move} {where}` with `who` at neighbors, and a dialect's wording
+      for it offers the `who` and `where` slots; one for pass through now
+      offers `who` too, so an existing wording without it is listed as
+      missing that slot when the dialect is next saved.
     - **`ParamSpec.requiredOnEntry`** (new; `who` and `where` here): the
       editor seeds them `unspecified` on picking either move
       (`Taxonomy.entryParams`), and a figure entered in that edit — picked, or
       typed in the free-text composer, a Move box or the Add figures from text
-      sheet (the session's call: all typed entry, none of it an import) —
-      shows a message and holds the save while one is unstated
+      sheet (the session's call: all typed entry, none of it an import; a
+      typed line starts them unstated too unless it, or a saved per-move
+      default, states them) — shows a message on its fields, on a group's
+      side and on its row while closed, and holds the save while one is
+      unstated
       (`Taxonomy.unstatedRequiredParams`; the draft's `enteredNew`, kept across
       undo and autosave but never stored on the figure). A figure that was
       loaded with the dance, an import, or one converted from before v40 saves
       as it is. `shoulder`, `beats` and the pass type always hold a value.
-      Neither param can be cleared back to unstated by hand.
+      Neither param can be cleared back to unstated by hand. Only the dance
+      editor asks: the compound, shorthand and Settings default editors show
+      no message, as nothing there would refuse the save.
     - Stored params: `withoutListedAliasPins` now also drops a pass through's
       `passType: through` (its id says it) and a required param stated
       `unspecified` where omission already means that (a pass through's `who`,
@@ -2462,14 +2474,25 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       forward lines with a subject (`Women walk forward to N2`) still decline
       to custom: nothing reads the subject onto `who` yet.
     - Search filters on the stored id and stored params, as before: a "pass
-      through" leaf matches pass throughs and not passes by. The built-in
-      matrix catalog now lists pass by right after pass through, where listed
-      aliases follow their target.
+      through" leaf matches pass throughs and not passes by, and neither leaf
+      offers the pass type, which is never stored. A matrix column saved on
+      pass through counts pass throughs only, as before: the target of a
+      listed alias's pair whose default is not the pin constrains that param
+      to its default. The built-in matrix catalog now lists pass by right
+      after pass through, where listed aliases follow their target.
+    - Free text reads the new display lines back: a subject before `pass
+      through` (`neighbor pass through across`) and a direction after a pass
+      by's shoulders. ContraDB writes neither, so its lines read as before.
+      The contra-to-English twin of a pass through carries its `who`.
     - Square and ECD calls are unchanged: `sq_pass_by`, `sq_pass_through` and
       `ecd_pass_through` remain separate moves (the session's call, as the
       request was about the contra figure picker).
     - Migration: none, and no rebuild. **Older devices (v39)** read a pass by
-      or pass through that states only what v39 had exactly as before. Checked
+      or pass through that states only what v39 had exactly as before. That
+      will not be the common case for new data: every pass entered from now
+      on states both `who` and `where`, and every pass through imported from
+      The Caller's Box with a dancer code (about 2,048, by the count in
+      `imports.md`) states `who`. Checked
       against the v0.10.0-beta code: one that states a new param renders
       without it (`neighbors pass through across` shows "pass through
       across"; a pass by's direction is not shown), and one holding an

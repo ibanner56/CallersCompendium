@@ -15240,7 +15240,7 @@ abstract class AppLocalizations {
   /// **'Choose a value for every field of this figure before saving.'**
   String get danceEditorFigureNeedsValues;
 
-  /// Snackbar shown when the user taps Save while a figure they added in this edit still has an empty field it must state (for a pass by or pass through, who and where). The dance is not saved; each such figure shows a message under its fields.
+  /// Snackbar shown when the user taps Save while a figure they added in this edit still has an empty field it must state (for a pass by or pass through, who and where). The dance is not saved; each such figure shows danceEditorFigureNeedsValues under its fields, and on its row while the row is closed.
   ///
   /// In en, this message translates to:
   /// **'Some figures you added still have empty fields. Fill them in to save.'**

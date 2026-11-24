@@ -68,6 +68,7 @@ class _Host extends StatefulWidget {
     this.showPhraseStructure = true,
     this.aggressiveBeatsUpdate = false,
     this.showWordingOverride = false,
+    this.requireStatedParams = false,
     this.dialect,
     this.barTiming,
   }) : taxonomy = taxonomy ?? contraTaxonomy;
@@ -96,6 +97,7 @@ class _Host extends StatefulWidget {
   /// behavior unchanged.
   final bool aggressiveBeatsUpdate;
   final bool showWordingOverride;
+  final bool requireStatedParams;
   final Dialect? dialect;
   final BarTiming? barTiming;
 
@@ -143,6 +145,7 @@ class _HostState extends State<_Host> {
               freeTextEntry: widget.freeTextEntry,
               dialect: widget.dialect,
               showWordingOverride: widget.showWordingOverride,
+              requireStatedParams: widget.requireStatedParams,
               allowAdding: widget.allowAdding,
               allowDuplicating: widget.allowDuplicating,
               allowModifierSelection: widget.allowModifierSelection,
@@ -277,6 +280,7 @@ Future<void> _pump(
   bool showPhraseStructure = true,
   bool aggressiveBeatsUpdate = false,
   bool showWordingOverride = false,
+  bool requireStatedParams = false,
   Dialect? dialect,
   BarTiming? barTiming,
   Taxonomy? taxonomy,
@@ -310,6 +314,7 @@ Future<void> _pump(
       showPhraseStructure: showPhraseStructure,
       aggressiveBeatsUpdate: aggressiveBeatsUpdate,
       showWordingOverride: showWordingOverride,
+      requireStatedParams: requireStatedParams,
       dialect: dialect,
       barTiming: barTiming,
     ),
@@ -424,7 +429,7 @@ void main() {
         ('pass through', 'pass_through'),
       ]) {
         final drafts = <FigureDraft>[FigureDraft()];
-        await _pump(tester, drafts);
+        await _pump(tester, drafts, requireStatedParams: true);
         await _selectMove(tester, 0, typed, id);
 
         final draft = drafts.single;
@@ -460,7 +465,7 @@ void main() {
       final drafts = <FigureDraft>[
         FigureDraft.fromFigure(Figure(move: 'pass_by')),
       ];
-      await _pump(tester, drafts);
+      await _pump(tester, drafts, requireStatedParams: true);
       await _openFigure(tester, 0);
 
       expect(find.byKey(const ValueKey('figure-0-needs-values')), findsNothing);
@@ -482,7 +487,7 @@ void main() {
           Figure(move: 'pass_by', params: const {'shoulder': 'left'}),
         ),
       ];
-      await _pump(tester, drafts);
+      await _pump(tester, drafts, requireStatedParams: true);
       await _openFigure(tester, 0);
       expect(find.byKey(const ValueKey('figure-0-passType')), findsNothing);
       await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
@@ -497,6 +502,63 @@ void main() {
       expect(effective['shoulder'], 'left');
       // Not a figure entered in this edit, so nothing is asked for.
       expect(find.byKey(const ValueKey('figure-0-needs-values')), findsNothing);
+    });
+
+    testWidgets('a closed row says it still needs values', (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFreeTextFigure(
+          Figure(move: 'pass_through'),
+          contraTaxonomy,
+        )..enteredNew = true,
+      ];
+      await _pump(tester, drafts, requireStatedParams: true);
+      expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('figure-0-summary-needs-values')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a group side entered without values says so on its side '
+        'and on the closed row', (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(
+          meanwhileSides: [
+            FigureDraft(
+              move: 'pass_through',
+              params: contraTaxonomy.entryParams('pass_through'),
+            )..enteredNew = true,
+            FigureDraft(move: 'swing', params: {'beats': 8, 'who': 'partners'}),
+          ],
+        )..params['beats'] = 8,
+      ];
+      await _pump(tester, drafts, requireStatedParams: true);
+      expect(
+        find.byKey(const ValueKey('figure-0-summary-needs-values')),
+        findsOneWidget,
+      );
+      await _openFigure(tester, 0);
+      expect(
+        find.byKey(const ValueKey('figure-0-side-0-needs-values')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('figure-0-side-1-needs-values')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('an editor that does not require values says nothing', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(tester, drafts);
+      await _selectMove(tester, 0, 'pass by', 'pass_by');
+      expect(find.byKey(const ValueKey('figure-0-needs-values')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('figure-0-summary-needs-values')),
+        findsNothing,
+      );
     });
   });
 

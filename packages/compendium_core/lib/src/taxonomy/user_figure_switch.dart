@@ -4,6 +4,7 @@ import '../dialect/renderer.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../validation/validation.dart';
+import 'param_change_rules.dart';
 import 'glossary_names.dart';
 import 'param_types.dart';
 import 'taxonomy.dart';
@@ -288,10 +289,26 @@ List<Figure> switchUserFigureUsesIn(
   // without the formation it pins (taxonomy v39): shorthands and default
   // lists are not routed on write the way dances are, and a build before
   // v39 reads neither `forward_and_back` nor `formation`.
+  // Likewise a switch to pass through with the pass type `by` is a pass by
+  // (v40), keeping what the params it leaves out meant
+  // ([keepOmittedMeaning]); and one that stays a pass through stores no
+  // `passType: through`, which a v39 build rejects.
   final stored = taxonomy.resolvedMoveId(switched);
-  if (!(taxonomy.aliases[stored]?.listedAsMove ?? false)) return switched;
+  if (!(taxonomy.aliases[stored]?.listedAsMove ?? false)) {
+    final kept = taxonomy.withoutListedAliasPins(
+      switched.move,
+      switched.params,
+    );
+    return identical(kept, switched.params)
+        ? switched
+        : switched.copyWith(params: kept);
+  }
+  final routed = Map<String, Object?>.of(switched.params);
+  if (stored != switched.move) {
+    keepOmittedMeaning(taxonomy, switched.move, stored, routed);
+  }
   return switched.copyWith(
     move: stored,
-    params: taxonomy.withoutListedAliasPins(stored, switched.params),
+    params: taxonomy.withoutListedAliasPins(stored, routed),
   );
 });

@@ -215,6 +215,18 @@ class FigureDraft {
       taxonomy.dropUnstatedParams(figure.move, draft.params);
       draft.beatsTouched = defaults.containsKey('beats');
     }
+    // As picking the move does (taxonomy v40): a param a new figure must
+    // state starts unstated unless the line or a saved default states it, so
+    // a typed "pass by" asks who passes rather than assuming neighbors.
+    final def = taxonomy.resolve(figure.move);
+    for (final MapEntry(:key, :value)
+        in def?.params.entries ?? const <MapEntry<String, ParamSpec>>[]) {
+      if (value.requiredOnEntry &&
+          !figure.params.containsKey(key) &&
+          !defaults.containsKey(key)) {
+        draft.params[key] = ParamVocab.unspecified;
+      }
+    }
     // A default `who` is the user's stated choice, as picking the move makes
     // it (#460), not one the parser assumed.
     if (defaults.containsKey('who')) draft.assumedSubject = false;

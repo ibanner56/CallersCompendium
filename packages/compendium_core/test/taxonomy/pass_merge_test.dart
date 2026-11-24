@@ -274,6 +274,41 @@ void main() {
     });
   });
 
+  group('matrix columns', () {
+    // Mutation caught: a column on `pass_through` matching by resolved id
+    // alone, which takes every pass by out of its own column into it.
+    test('a column on pass through counts pass throughs, not passes by', () {
+      final config = MatrixColumnConfig(
+        parameterized: [
+          ParameterizedColumn(
+            id: 'param:pt',
+            baseMove: 'pass_through',
+            params: const {},
+          ),
+        ],
+      );
+      expect(columnKeyForFigure(f('pass_through'), tax, config), 'param:pt');
+      expect(columnKeyForFigure(f('pass_by'), tax, config), 'pass_by');
+    });
+
+    test('a column on pass by counts passes by', () {
+      final config = MatrixColumnConfig(
+        parameterized: [
+          ParameterizedColumn(
+            id: 'param:pb',
+            baseMove: 'pass_by',
+            params: const {},
+          ),
+        ],
+      );
+      expect(columnKeyForFigure(f('pass_by'), tax, config), 'param:pb');
+      expect(
+        columnKeyForFigure(f('pass_through'), tax, config),
+        'pass_through',
+      );
+    });
+  });
+
   group('required on entry', () {
     test('a new pass starts with who and where unstated', () {
       for (final id in ['pass_by', 'pass_through']) {

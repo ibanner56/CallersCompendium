@@ -140,6 +140,26 @@ void main() {
     }
   });
 
+  group('pass by and pass through (taxonomy v40)', () {
+    // Mutation caught: offering the pass type on either, where `through` is
+    // never stored and `by` is a pass by, so the leaf could never match.
+    testWidgets('offers no pass type to narrow either by', (tester) async {
+      for (final move in ['pass_through', 'pass_by']) {
+        await _pump(
+          tester,
+          root: BuilderGroup(children: [BuilderFigure(move: move)]),
+        );
+        expect(find.text('Any pass type'), findsNothing, reason: move);
+      }
+      // Positive control: a pair param that is stored is still offered.
+      await _pump(
+        tester,
+        root: BuilderGroup(children: [BuilderFigure(move: 'forward_and_back')]),
+      );
+      expect(find.text('Any formation'), findsOneWidget);
+    });
+  });
+
   group('long lines, listed as a move (taxonomy v39)', () {
     testWidgets('offers no formation to narrow it by', (tester) async {
       await _pump(

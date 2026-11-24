@@ -510,6 +510,9 @@ class DanceEditorForm extends StatelessWidget {
                   FigureListEditor(
                     drafts: controller.figureDrafts,
                     taxonomy: taxonomy,
+                    // The dance editor refuses the save while a figure
+                    // entered here leaves a required param unstated.
+                    requireStatedParams: true,
                     phraseStructure: controller.figurePhraseStructure,
                     freeForm: controller.isFreeForm,
                     dialect: dialect,

@@ -29,6 +29,9 @@ final RegExp _placeholder = RegExp(r'\{(\w+)\}');
 /// Placeholder syntax of a USER-authored wording template. A leading `!`
 /// (`{!hand}`) forces the slot to display even when it would otherwise be
 /// hidden; the captured key keeps the `!` so it is its own slot key.
+/// A run of whitespace, collapsed to one space.
+final RegExp _whitespaceRun = RegExp(r'\s+');
+
 final RegExp _wordingPlaceholder = RegExp(r'\{(!?\w+)\}');
 
 String _slotBase(String key) => key.startsWith('!') ? key.substring(1) : key;
@@ -1878,13 +1881,24 @@ class FigureRenderer {
   String? moveWordingTemplate(String moveId) {
     final def = taxonomy.resolve(moveId);
     if (def == null) return null;
-    // An alias with its own dialect name starts from the line it shows, its
-    // name alone (`long lines`), not its target's. One that pins nothing
-    // (`hand cast`) shows every slot its target does, so it starts from the
-    // target's template, where `{move}` is its own name.
-    if (_listedAsMove(moveId) &&
-        (taxonomy.aliases[moveId]?.pinnedParams.isNotEmpty ?? true)) {
-      return '{move}';
+    // An alias with its own dialect name that pins params starts from the
+    // line it shows: its target's template without the pinned slots, which
+    // its name already says. So long lines starts from its name alone
+    // (`{move}`, the formation being pinned), and pass by (taxonomy v40) from
+    // `{who} {move} {where}`, the pinned pass type being in no template. One
+    // that pins nothing (`hand cast`) shows every slot its target does, so it
+    // starts from the target's template below, where `{move}` is its name.
+    final listedPins = _listedAsMove(moveId)
+        ? taxonomy.aliases[moveId]!.pinnedParams
+        : const <String, Object?>{};
+    if (listedPins.isNotEmpty) {
+      return def.renderTemplate
+          .replaceAllMapped(
+            _placeholder,
+            (m) => listedPins.containsKey(m[1]) ? '' : m[0]!,
+          )
+          .replaceAll(_whitespaceRun, ' ')
+          .trim();
     }
     final canonicalMoveId = def.id;
     final seed = _moveWordingSeedTemplates[canonicalMoveId];

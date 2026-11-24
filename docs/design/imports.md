@@ -2210,9 +2210,11 @@ has to be judged in its own context.
   was left open). Since v40, when pass by and pass through became one figure,
   the maintainer's direction is that The Caller's Box's dancer code on a pass
   through is imported as its `who`: `Pass through along (NR)` is neighbors
-  passing right shoulders. A dance imported before keeps its unstated `who`;
-  re-importing it offers each such pass through as a variation, because the
-  new import states a dancer the stored figure does not.
+  passing right shoulders. That is ~2,048 figures across 1,773 dances, as
+  measured when the code was first dropped. A dance imported before keeps its
+  unstated `who`; re-importing it offers each such pass through as a
+  variation, because the new import states a dancer the stored figure does
+  not.
   *Declines (→ the ordinary annotation-stripped reading):* any unmapped people
   code (`O`, `Ph`, `SRN`, `C4`+, out-of-range neighbours/shadows); a run
   whose sides do not alternate by position parity; a run stating more passes
