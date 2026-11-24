@@ -20,7 +20,7 @@
   - [Signed published collections (#862)](#signed-published-collections-862) — 22 lines
   - [5. A list of titles (#823)](#5-a-list-of-titles-823) — 72 lines
   - [6. A spreadsheet (CSV) (#2329)](#6-a-spreadsheet-csv-2329) — 71 lines
-  - [7. A text or Markdown file (#2330)](#7-a-text-or-markdown-file-2330) — 81 lines
+  - [7. A text or Markdown file (#2330)](#7-a-text-or-markdown-file-2330) — 85 lines
   - [Simultaneous-action fan-out (`meanwhile`) (#591/#572)](#simultaneous-action-fan-out-meanwhile-591572) — 59 lines
   - [Shared free-text figure parser (cross-cutting)](#shared-free-text-figure-parser-cross-cutting) — 299 lines
   - [Balance-a-wave lines (CallersBox, #295 / taxonomy v21)](#balance-a-wave-lines-callersbox-295--taxonomy-v21) — 86 lines
@@ -1630,16 +1630,20 @@ under a file title, even one with an `Author:` line). Otherwise `##` headings
 are the dances. A heading deeper than the dance level is a section of the
 dance, left out with its lines kept; a heading shallower than it with no
 figure under it is the file's title or a section of the file, and is
-dropped. Headings are scanned by hand (`_parseHeading`): a regular expression
+dropped, its details (as `Label: value`) and notes carried into the leading
+notes of the next dance (the last dance's notes at the end), so nothing
+is lost. Headings are scanned by hand (`_parseHeading`): a regular expression
 with an optional closing `#` sequence backtracked quadratically, about 70 s
 for one line at the cell cap, on the UI thread. At level 0, a dance
 starts at the first line, at any heading, and at each line after a blank
 line that does not start like a figure (a bare leading number does not, so
 `12 Days of Christmas` is a title) and is not a detail of the dance before it
 (a label line counts as a detail only before that dance's figures); a lone
-`#` block with no figure and no detail is dropped, and a block with neither
-after a lone `#` block that has one is folded into its notes (a one-dance
-file headed `#`). A Markdown thematic break (`---`, `***`, `___`) reads as a
+`#` block with no figure and no detail is dropped the same way, and in a file
+with one `#` block that has a detail or figure, a following non-heading
+block with neither whose text is prose (it has notes, or its one line ends
+like a sentence) is folded into that dance's notes (a one-dance file headed
+`#`; a list of titles still reads as dances). A Markdown thematic break (`---`, `***`, `___`) reads as a
 blank line. Text before the first
 dance becomes its own dance when the lines after its first hold a label or a
 figure, else it goes into the first dance's notes. A label line is

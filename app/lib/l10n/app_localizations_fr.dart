@@ -14343,7 +14343,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String importTextDanceStartHeading(String marks) {
-    return 'Un titre $marks';
+    return 'Un intertitre $marks';
   }
 
   @override

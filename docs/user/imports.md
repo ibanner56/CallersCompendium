@@ -396,17 +396,19 @@ How the file is read:
   and are their titles. A deeper heading (`## Figures`, `## Notes` under a `#`
   dance) is a part of the dance, and its lines come in with it. A shallower
   heading with no figures under it, such as `# My dances` at the top or
-  `# Squares` above a group, is a title for the file and is left out with the
-  text under it.
+  `# Squares` above a group, is a title for the file and is left out; any
+  details or text under it go into the calling notes of the dance after it.
 - **A file without headings**, or with **A title after a blank line** chosen:
   the first line, and each line after a blank line, is a dance's title, unless
   it starts like a figure (`-`, `1.`, `A1`, `(8)`) or is a detail line before
-  the dance's figures. A heading, or a line of `---`, also starts a new dance.
-  So a note after a blank line starts a new dance; keep notes straight under
-  the dance's lines. One exception: in a file with a single `#` heading whose
-  dance has details or figures, a paragraph after it with neither is that
-  dance's note. A single `#` heading at the top with nothing but text under
-  it is the file's title and is left out.
+  the dance's figures. A heading also starts a new dance, and a line of `---`
+  (or `***`, `___`) counts as a blank line. So a note after a blank line
+  starts a new dance; keep notes straight under the dance's lines. One
+  exception: in a file with a single `#` heading whose dance has details or
+  figures, a paragraph of prose after it (more than one line, or ending with
+  `.`, `!` or `?`) with neither is that dance's note. A single `#` heading at
+  the top with nothing but text under it is the file's title and is left out;
+  its text goes into the notes of the dance after it.
 - **Details** are `Label: value` lines, with a label of up to three words.
   `**Formation:** Improper` and a full-width colon (`：`) work too; a label
   needs a letter in it, so `10:30 start` is a note.

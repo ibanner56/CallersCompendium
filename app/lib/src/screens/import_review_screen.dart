@@ -1307,15 +1307,17 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// Reads the text file again with its dances starting at [level], chosen
   /// on the map-labels step. A file that reads past a cap from there is
   /// refused with its message, and the step keeps the last good reading.
-  void _rereadTextDocument(int level) {
+  bool _rereadTextDocument(int level) {
     final source = _textSource;
-    if (source == null || level == _textLevel) return;
+    if (source == null) return false;
+    if (level == _textLevel) return true;
     try {
       final text = _textDocumentAsCsv(source, level);
       setState(() {
         _csvText = text;
         _textLevel = level;
       });
+      return true;
     } on TextDocumentReadException catch (e, stackTrace) {
       logCaughtErrorTypeOnly(
         e,
@@ -1330,6 +1332,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           ),
         ),
       );
+      return false;
     }
   }
 

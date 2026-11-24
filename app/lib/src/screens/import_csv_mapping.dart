@@ -78,10 +78,11 @@ class CsvMappingStep extends StatefulWidget {
   /// For [textDocument], where its dances may start: heading levels (1 for
   /// `#`) and 0 for titles after blank lines. With more than one, the step
   /// offers them, starting at [danceLevel], and [onDanceLevel] reads the file
-  /// again into a new [text].
+  /// again into a new [text]; it answers false when the file was not read
+  /// again (a cap was passed), and the choice goes back to [danceLevel].
   final List<int> danceLevels;
   final int danceLevel;
-  final ValueChanged<int>? onDanceLevel;
+  final bool Function(int level)? onDanceLevel;
 
   final void Function(CsvImportMapping mapping) onContinue;
 
@@ -100,6 +101,10 @@ class _CsvMappingStepState extends State<CsvMappingStep> {
   List<CsvColumnMapping> _columns = const [];
   bool _started = false;
 
+  /// Bumped to rebuild the dance-start field from [CsvMappingStep.danceLevel]
+  /// after a refused choice, which the field already shows.
+  int _danceStartGeneration = 0;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -112,10 +117,24 @@ class _CsvMappingStepState extends State<CsvMappingStep> {
   @override
   void didUpdateWidget(CsvMappingStep oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // The text file was read again from another starting point: its labels
-    // may differ, so they are mapped afresh.
+    // The text file was read again from another starting point: a label
+    // the new reading still has keeps the caller's choice; others are mapped
+    // afresh.
     if (widget.text != oldWidget.text) {
+      final chosen = <String, CsvColumnMapping>{
+        if (_hasHeader && _rows.isNotEmpty)
+          for (final (i, name) in _rows.first.indexed)
+            if (i < _columns.length) name.trim(): _columns[i],
+      };
       _read(detectHeader: !widget.textDocument);
+      if (_hasHeader && _rows.isNotEmpty) {
+        _columns = [
+          for (final (i, column) in _columns.indexed)
+            i < _rows.first.length
+                ? chosen[_rows.first[i].trim()] ?? column
+                : column,
+        ];
+      }
     }
   }
 
@@ -211,22 +230,28 @@ class _CsvMappingStepState extends State<CsvMappingStep> {
         ),
         const SizedBox(height: AppSpacing.md),
         if (widget.textDocument && widget.danceLevels.length > 1)
-          AppDropdownField<int>(
-            key: const ValueKey('text-dance-start'),
-            value: widget.danceLevel,
-            decoration: InputDecoration(
-              labelText: l10n.importTextDanceStartLabel,
+          KeyedSubtree(
+            key: ValueKey(_danceStartGeneration),
+            child: AppDropdownField<int>(
+              key: const ValueKey('text-dance-start'),
+              value: widget.danceLevel,
+              decoration: InputDecoration(
+                labelText: l10n.importTextDanceStartLabel,
+              ),
+              entries: [
+                for (final level in widget.danceLevels)
+                  AppDropdownEntry(
+                    value: level,
+                    label: level == 0
+                        ? l10n.importTextDanceStartBlankLine
+                        : l10n.importTextDanceStartHeading('#' * level),
+                  ),
+              ],
+              onChanged: (value) {
+                if (widget.onDanceLevel?.call(value) ?? false) return;
+                setState(() => _danceStartGeneration++);
+              },
             ),
-            entries: [
-              for (final level in widget.danceLevels)
-                AppDropdownEntry(
-                  value: level,
-                  label: level == 0
-                      ? l10n.importTextDanceStartBlankLine
-                      : l10n.importTextDanceStartHeading('#' * level),
-                ),
-            ],
-            onChanged: (value) => widget.onDanceLevel?.call(value),
           ),
         if (!widget.textDocument) ...[
           AppDropdownField<String>(

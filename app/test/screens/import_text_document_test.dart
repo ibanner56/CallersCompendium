@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../figures_support.dart';
+import '../support/dropdown.dart';
 import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
 
@@ -144,8 +145,11 @@ void main() {
     expect(start().initialValue, 2);
     expect(find.text('A ## heading'), findsOneWidget);
 
-    start().onChanged!(1);
-    await tester.pumpAndSettle();
+    await pickDropdownEntry(
+      tester,
+      find.byKey(const ValueKey('text-dance-start')),
+      'A # heading',
+    );
     expect(start().initialValue, 1);
 
     await tester.tap(find.byKey(const ValueKey('csv-continue')));
@@ -155,6 +159,28 @@ void main() {
     final dance = (await tester.runAsync(repos.dances.listAll))!.single;
     expect(dance.title, "Rory's Reel");
     expect(figuresOf(dance), hasLength(2));
+  });
+
+  testWidgets('a label the caller mapped keeps its choice when the file is '
+      'read from another starting point', (tester) async {
+    const parts =
+        "# Rory's Reel\nMusic: Any reel\n\n## Figures\n(8) Swing\n\n"
+        '## Variations\nMusic: Any jig\n(8) Gypsy\n';
+    await pump(tester, Uint8List.fromList(utf8.encode(parts)));
+    // Title, Music, Calling notes, Figures.
+    expect(columnValue(tester, 1), CsvColumnMapping.labelledNotes);
+    await pickDropdownEntry(
+      tester,
+      find.byKey(const ValueKey('csv-column-1')),
+      'Ignore',
+    );
+    expect(columnValue(tester, 1), CsvColumnMapping.ignore);
+    await pickDropdownEntry(
+      tester,
+      find.byKey(const ValueKey('text-dance-start')),
+      'A # heading',
+    );
+    expect(columnValue(tester, 1), CsvColumnMapping.ignore);
   });
 
   testWidgets('a file with no headings offers no choice of where dances '
@@ -183,13 +209,20 @@ void main() {
       find.byKey(const ValueKey('text-dance-start')),
     );
     expect(start().initialValue, 1);
-    start().onChanged!(0);
-    await tester.pumpAndSettle();
+    await pickDropdownEntry(
+      tester,
+      find.byKey(const ValueKey('text-dance-start')),
+      'A title after a blank line',
+    );
     expect(
       find.byKey(const ValueKey('import-text-unreadable')),
       findsOneWidget,
     );
-    expect(start().initialValue, 1);
+    // The field shows the reading in use again, not the refused choice.
+    final field = tester.state<FormFieldState<int>>(
+      find.byKey(const ValueKey('text-dance-start')),
+    );
+    expect(field.value, 1);
     expect(find.byKey(const ValueKey('csv-mapping')), findsOneWidget);
   });
 

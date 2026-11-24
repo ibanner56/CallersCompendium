@@ -66,8 +66,12 @@ void main() {
       // List markers are removed; phrase labels and counts are kept.
       expect(md.first.figureLines.first, 'A1 (8) Neighbor balance & swing');
       expect(md.first.figureLines, hasLength(6));
-      // A paragraph after the list is a note, as written.
-      expect(md.first.notes, ['Watch the **chain** at the top.']);
+      // A paragraph after the list is a note, as written; the file title's
+      // own text, left out with the title, is kept ahead of it.
+      expect(md.first.notes, [
+        'These are the dances I call most.',
+        'Watch the **chain** at the top.',
+      ]);
     });
 
     test('a # heading with figures under it is a dance', () {
@@ -322,6 +326,37 @@ void main() {
         1,
       );
       expect(detectTextDocumentDanceLevel('# Mine\n\n## A\n(8) Swing\n'), 2);
+    });
+    test('a list of titles under a # heading with a detail stays a list of '
+        'dances', () {
+      expect(
+        titles(
+          "# My dances\nby Me\n\nPetronella\n\nHull's Victory\n\n"
+          'Chorus Jig\n',
+        ),
+        ['My dances', 'Petronella', "Hull's Victory", 'Chorus Jig'],
+      );
+    });
+
+    test('a phrase-labelled figure under ## parts is not a detail', () {
+      final dance = readTextDocument(
+        "# Rory's Reel\nFormation: Improper\n\n## Figures\n"
+        'A1: Neighbor balance and swing\nA2: Long lines\n\n'
+        '## Notes\nCredit: Pat\nTeach slowly\n',
+      ).single;
+      expect(dance.title, "Rory's Reel");
+      expect(dance.labels.first, ('Formation', 'Improper'));
+    });
+
+    test('text under a # section that is left out is kept in the next '
+        "dance's notes", () {
+      final dances = readTextDocument(
+        '# Contras\nNote: all improper unless marked\n\n'
+        '## Chorus Jig\n(8) Swing\n\n## Petronella\n(8) Balance\n\n'
+        '# Squares\n\n## Grand Square\n(16) Grand square\n',
+      );
+      expect(dances.first.title, 'Chorus Jig');
+      expect(dances.first.notes, ['Note: all improper unless marked']);
     });
   });
 

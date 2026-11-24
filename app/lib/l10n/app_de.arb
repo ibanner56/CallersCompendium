@@ -13630,15 +13630,15 @@
   "@importTextMapIntro": {
     "x-sourceSha256": "c164ccec57083360c7aeee87a0ad5beaeae0dc2c31076d3609876c69f715f269"
   },
-  "importTextDanceStartLabel": "Jeder Tanz beginnt bei",
+  "importTextDanceStartLabel": "Wo jeder Tanz beginnt",
   "@importTextDanceStartLabel": {
     "x-sourceSha256": "639a3248969fee5709ab292bec14051fee038813f5a12eb1e0f19b98978884c5"
   },
-  "importTextDanceStartHeading": "Einer {marks}-Überschrift",
+  "importTextDanceStartHeading": "Eine {marks}-Überschrift",
   "@importTextDanceStartHeading": {
     "x-sourceSha256": "878e3677a673deb6f113d8818d1d90f5ddaf6dc70c18d194e0a1ee9996d48333"
   },
-  "importTextDanceStartBlankLine": "Einem Titel nach einer Leerzeile",
+  "importTextDanceStartBlankLine": "Ein Titel nach einer Leerzeile",
   "@importTextDanceStartBlankLine": {
     "x-sourceSha256": "1e3d1952578a42f1adc62b109faae27dc63fea4d27ca663fcfb52e498917c26e"
   },

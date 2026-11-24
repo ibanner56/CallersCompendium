@@ -14306,16 +14306,15 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wählen Sie, was jede Bezeichnung in Ihrer Datei enthält. Eine Bezeichnung, die kein Feld übernimmt, bleibt mit ihrem Namen in den Calling-Notizen; wählen Sie Ignorieren, um sie wegzulassen. Nichts wird hinzugefügt, bevor Sie prüfen und bestätigen.';
 
   @override
-  String get importTextDanceStartLabel => 'Jeder Tanz beginnt bei';
+  String get importTextDanceStartLabel => 'Wo jeder Tanz beginnt';
 
   @override
   String importTextDanceStartHeading(String marks) {
-    return 'Einer $marks-Überschrift';
+    return 'Eine $marks-Überschrift';
   }
 
   @override
-  String get importTextDanceStartBlankLine =>
-      'Einem Titel nach einer Leerzeile';
+  String get importTextDanceStartBlankLine => 'Ein Titel nach einer Leerzeile';
 
   @override
   String get importTextTargetLabelledNotes =>

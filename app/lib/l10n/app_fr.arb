@@ -13634,7 +13634,7 @@
   "@importTextDanceStartLabel": {
     "x-sourceSha256": "639a3248969fee5709ab292bec14051fee038813f5a12eb1e0f19b98978884c5"
   },
-  "importTextDanceStartHeading": "Un titre {marks}",
+  "importTextDanceStartHeading": "Un intertitre {marks}",
   "@importTextDanceStartHeading": {
     "x-sourceSha256": "878e3677a673deb6f113d8818d1d90f5ddaf6dc70c18d194e0a1ee9996d48333"
   },
