@@ -304,15 +304,16 @@ from this table because the compiler never ran against them. **Pass rate** is
 
 - `pass_through` and the direction-selected form of `pull_by` support the
   along/across axes only.
-- `cross_trails`, `right_left_through`, and `form_short_waves` support across
-  only.
+- `cross_trails` and `form_short_waves` support across only;
+  `right_left_through` supports across and the diagonals, the diagonals only
+  with no couples waiting out.
 - `chain dir:along` is deferred as four-facing-four choreography.
 - `promenade` supports `where: across` for side-by-side pairs only. Single-file
   promenades, stated destinations, every other `where`, and a `direction`
   stated `unspecified` are deferred. (A Caller's Box promenade that imports
   with no `where` is not a deferral: see "Entirely deferred impact".)
-- Diagonal `hey` is deferred behind diagonal `right_left_through`, which it
-  must agree with.
+- Diagonal `hey` is deferred; it must agree with diagonal
+  `right_left_through`, which is now built.
 
 ### Dancer sets
 

@@ -625,7 +625,8 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > `slide_along_set` sliding left, or a `slice` left (which lands exactly like
 > one, user-ruled 2026-11-22), progresses; otherwise the **first diagonal
 > `chain` or `pass_through` along the set** does (user-ruled 2026-11-23: a
-> Becket progression is the obvious move), and only a Becket dance with
+> Becket progression is the obvious move), or a diagonal `right_left_through`
+> (agent's call 2026-11-24, by analogy with the diagonal chain), and only a Becket dance with
 > neither falls back to the last figure. A `modifier` is read by its main
 > figure for both Becket rules, so "slice left while partner roll away"
 > opening the dance progresses there (user-ruled 2026-11-23: a modifier's

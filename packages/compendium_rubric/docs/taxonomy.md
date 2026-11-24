@@ -1033,7 +1033,8 @@ To be defined later with worked examples.
 - **summary:** Two facing couples pass through and courtesy-turn, trading with the couple across
   — each dancer ends swapped with their **diagonally-opposite** dancer.
 - **params** (meets CallersCompendium baseline `{where, beats}`):
-  - `where` — direction, default `across`. (`along` / diagonals deferred — see note.)
+  - `where` — direction, default `across`; `leftDiagonal` / `rightDiagonal` below. (`along`
+    deferred — see note.)
   - `beats` — int, default 8.
 - **preconditions:** the two couples must be set up facing across (the standard R&L-through
   formation). Precise checks _PENDING_ (a same-side variant like the `with partner` column
@@ -1051,11 +1052,29 @@ To be defined later with worked examples.
   - **Do not pair with a separate `courtesy_turn` op** — the turn is internal to this figure.
 - **facing (output):** **into the set** (across) — dancers face back across after the courtesy
   turn.
-- **interaction scope:** within the hands four (for `across`).
-- **h4 contribution** (D7): 0 for `across`.
-- **progression-eligible:** no (baseline `right_left_through` is not progression-capable).
-- **`along` / diagonals:** deferred — the baseline `where` vocabulary allows them, but their
-  effect (and any h4 contribution for diagonals) is not yet defined here.
+- **effect (diagonals)** *(agent's call 2026-11-24, not yet ratified)*: the couple on the west
+  line (c0) of each hands four trades with the couple on the east line (c4) of the hands four
+  **above** (`leftDiagonal`) or **below** (`rightDiagonal`) — pairing by line, as the user-ruled
+  diagonal `chain` does. Each couple crosses as a unit and wheels, so it lands end for end (top
+  row to bottom) and faces into the set, as `across` does. The couple at each end with no one on
+  its diagonal stays where it stands and takes that end's number (§10.2, as end-normalization
+  assigns it) — it has, for that moment, stood out at the end. A line that is not one couple
+  keeps its numbers.
+  - Example (Becket CW, three hands fours, `leftDiagonal`) — rows
+    `L2-B…R1-A / R2-B…L1-A / L2-D…R1-C / R2-D…L1-C / L2-F…R1-E / R2-F…L1-E` →
+    `L1-B…R2-D / R1-B…L2-D / L1-A…R2-F / R1-A…L2-F / L1-C…R2-E / R1-C…L2-E`: D trades with A
+    and F with C; B at the top stays and becomes #1, E at the bottom stays and becomes #2.
+  - A side line without a couple to trade (a line of four) is `unresolvableDancerSet`. A set
+    with couples already waiting out is deferred (`unsupportedParam`): which line a waiting couple
+    would trade from is unruled.
+- **interaction scope:** within the hands four (for `across`); two neighbouring hands fours
+  (diagonals).
+- **h4 contribution** (D7): 0 for `across`, 1 for the diagonals.
+- **progression-eligible:** yes. A diagonal trade **is its own progression**, as
+  `slide_along_set` is: a flag on it names movement it has already made. A flagged `across` is
+  changed over like any other figure.
+- **`along`:** deferred — the baseline `where` vocabulary allows it, but its effect is not yet
+  defined here.
 - **sources:** ContraDanceVerifier `TryRightAndLeftThrough` (same-role swaps + courtesy-turn
   normalize); CallersCompendium taxonomy `right_left_through` MoveDef.
 
