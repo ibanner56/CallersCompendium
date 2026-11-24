@@ -198,12 +198,47 @@ void main() {
 
       expect(diagnosis.mismatchClass, isNotNull);
       expect(diagnosis.signature, 'mismatch: ${diagnosis.mismatchClass!.name}');
+
       expect(diagnosis.expected, isNot(diagnosis.actual));
       expect(diagnosis.offDancers, isNotEmpty);
 
       // The source lines come through exactly as written.
       expect(diagnosis.phrases.map((p) => p.$1), ['A1', 'A2', 'B1', 'B2']);
       expect(diagnosis.phrases.first.$2.first, '(4) Neighbor balance (RH)');
+
+      // The figure list is the bridged reading the compiler ran: the flag
+      // this reading put on figure 2 shows there, and nowhere else.
+      final flagged = [
+        for (var i = 0; i < diagnosis.figures.length; i++)
+          if (diagnosis.figures[i].endsWith(' [progression]')) i,
+      ];
+      expect(flagged, [1]);
+    });
+
+    test('describeRecordFigure formats a bridged record figure', () {
+      expect(
+        describeRecordFigure({
+          'move': 'rory_o_more',
+          'params': {'balance': false, 'slide': 'right', 'beats': 4},
+          'progression': true,
+        }),
+        'rory_o_more(balance: false, slide: right, beats: 4) [progression]',
+      );
+      expect(
+        describeRecordFigure({
+          'move': 'modifier',
+          'params': {
+            'figures': [
+              {'move': 'long_lines', 'params': <String, Object?>{}},
+              {
+                'move': 'roll_away',
+                'params': {'whom': 'shadows'},
+              },
+            ],
+          },
+        }),
+        'modifier(figures: [long_lines(); roll_away(whom: shadows)])',
+      );
     });
 
     test('a refusal is traced up to the refusing figure', () async {
