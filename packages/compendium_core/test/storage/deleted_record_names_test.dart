@@ -95,8 +95,14 @@ void main() {
       await repos.deletedRecordNames(SyncRecordKind.choreographer, ['t1']),
       isEmpty,
     );
-    expect(await repos.deletedRecordNames(SyncRecordKind.dance, ['t1']), {});
-    expect(await repos.deletedRecordNames(SyncRecordKind.tag, const []), {});
+    expect(
+      await repos.deletedRecordNames(SyncRecordKind.dance, ['t1']),
+      isEmpty,
+    );
+    expect(
+      await repos.deletedRecordNames(SyncRecordKind.tag, const []),
+      isEmpty,
+    );
   });
 
   test('a live record of every kind is not named', () async {
