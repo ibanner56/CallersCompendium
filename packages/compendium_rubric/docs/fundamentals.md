@@ -1002,8 +1002,9 @@ stood. Trading just before the refusing figure stands for a trade made at any po
 last figure that moved them, since nothing moves them in between. A swing naming a distance set
 does turn them in place: when it swaps their sides, they have moved, and no trade is read back
 across it. When they already stood on the spots it gives them, only their facing changes, and the
-retry, which compares positions only, may still trade them after it (the agent's call: facing is
-never part of the comparison, `architecture.md` §3.5).
+retry may still trade them after it (the agent's call: `endEffectCandidates` treats a dancer as
+having stood still when their position is unchanged, whatever their facing,
+`engine/end_effects.dart`).
 
 *Rejected (agent's call, measured 2026-11-24 on rubric `253f56db`):* trading the waiting pair
 **ahead of time** whenever every active couple crosses the set gained 10 dances and lost 687.
