@@ -237,8 +237,8 @@ final Taxonomy squareTaxonomy = Taxonomy(
         // promenade goes counter-clockwise unless the source says otherwise
         // (Hudson, 24 November 2026: "yes, defaulting to counter-clockwise"),
         // so the default is concrete, and the display names only clockwise.
-        // A wrong-way promenade is a clockwise one, so `variant` has no
-        // `wrongWay`, which a counter-clockwise default would contradict.
+        // A wrong-way promenade is a clockwise one, so there is no wrong-way
+        // variant for a counter-clockwise default to contradict.
         'direction': const ParamSpec(
           ParamKind.spinDirection,
           defaultValue: 'counterclockwise',
