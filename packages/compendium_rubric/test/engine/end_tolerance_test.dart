@@ -42,4 +42,47 @@ void main() {
   test('the exact match is within it too', () {
     expect(endsWithinOneColumn(expected, expected), isTrue);
   });
+
+  group('the end check compile makes', () {
+    // A waiting couple out at the end of the set is outside every hands
+    // four, so the wave settling leaves its offsets alone: the near miss is
+    // left for the tolerance to judge.
+    final withWaiting = set([
+      'L1-A . . . R1-A',
+      'L2-B . . . R2-B',
+      'L1-C . . . R1-C',
+    ]);
+
+    test('a near miss compiles, with one warning naming who is off', () {
+      final offset = set([
+        'L1-A . . . R1-A',
+        'L2-B . . . R2-B',
+        '. L1-C . . R1-C',
+      ]);
+      const carried = Warning(WarningKind.heldProgressionUnfinished);
+      final result = judgeEnd(offset, withWaiting, warnings: [carried]);
+      expect(result, isA<Compiled>());
+      expect(result.warnings.first, same(carried));
+      final added = result.warnings.skip(1).toList();
+      expect(added, hasLength(1));
+      expect(added.single.kind, WarningKind.endedColumnOffset);
+      final lark = offset.dancerAt(const Position(2, 1))!;
+      expect(added.single.detail, 'one column off: $lark');
+    });
+
+    test('an exact end compiles with no warning added', () {
+      final result = judgeEnd(withWaiting, withWaiting);
+      expect(result, isA<Compiled>());
+      expect(result.warnings, isEmpty);
+    });
+
+    test('an end two columns off is a mismatch', () {
+      final far = set([
+        'L1-A . . . R1-A',
+        'L2-B . . . R2-B',
+        '. . L1-C . R1-C',
+      ]);
+      expect(judgeEnd(far, withWaiting), isA<Mismatch>());
+    });
+  });
 }

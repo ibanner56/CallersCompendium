@@ -734,11 +734,12 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 >
 > **A last reading: the hey marked "~"** *(user-ruled 2026-11-24: a "~" on a
 > hey pass marks that last pass as the progression)*. When neither the
-> positional placement nor the N2 retry compiles, `runCoreDance` tries a third:
+> positional placement nor the N2 retry compiles exactly (a one-column near
+> miss counts as not exact), `runCoreDance` tries a third:
 > the last `hey` whose final pass Caller's Box marks partial ("~"), which the
 > core import keeps as the note clause `last pass partial`
 > (`partialPassProgressionIndex`). Trying it only after the other two, so it
-> never displaces a reading that compiles, and taking the **last** marked hey
+> never displaces a reading that compiles exactly, and taking the **last** marked hey
 > rather than the first, are the agent's calls; the second follows Hudson's
 > description of Haven't We Met Before?, whose two hey halves are both marked
 > and whose second progresses. It places one progression and no later ones.
@@ -932,7 +933,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,581 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,591 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across built.
 - **53 figures registered**, plus the three containers (`modifier`,

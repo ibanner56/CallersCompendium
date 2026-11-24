@@ -179,6 +179,23 @@ CompileResult compile(Dance dance) {
   //
   // The reported state is the **real** one, offsets and all. Settling is how
   // the two are compared, not a claim about where the dancers are standing.
+  return judgeEnd(state, expected, warnings: warnings);
+}
+
+/// The end check [compile] makes once every figure has run: [state], the
+/// dancers' real final positions, against [expected], the oracle's
+/// prediction from the input. [warnings] are those gathered so far, carried
+/// into the result.
+///
+/// An exact match after [normalizeWaveOffsets] is [Compiled]. So is a near
+/// miss [endsWithinOneColumn] accepts, with an added
+/// [WarningKind.endedColumnOffset] naming the dancers off their column.
+/// Anything else is a [Mismatch].
+CompileResult judgeEnd(
+  Formation state,
+  Formation expected, {
+  List<Warning> warnings = const [],
+}) {
   final settled = normalizeWaveOffsets(state);
   if (settled == expected) return Compiled(state, warnings: warnings);
   // A dance may also end with every dancer in the right row but up to one

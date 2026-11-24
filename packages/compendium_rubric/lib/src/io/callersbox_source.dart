@@ -14,6 +14,7 @@
 library;
 
 import 'package:compendium_core/compendium_core.dart' as core;
+import 'package:meta/meta.dart';
 
 import '../engine/compile_result.dart';
 import '../engine/compiler.dart';
@@ -368,15 +369,15 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
   // (agent's call).
   final positional = bridgeCoreDance(dance);
   var attempt = _attempt(positional);
-  final nearMiss = _isNearMiss(attempt);
-  if ((attempt.outcome != DanceOutcome.compiled || nearMiss) &&
-      attempt.outcome != DanceOutcome.crashed) {
+  if (triesAnotherReading(attempt.outcome, attempt.warnings)) {
     final fallback = bridgeCoreDance(dance, useNextNeighborsFallback: true);
     var crashed = false;
     if (retryPlacesDifferently(positional, fallback)) {
       final retry = _attempt(fallback);
-      if (retry.outcome == DanceOutcome.compiled &&
-          !(nearMiss && _isNearMiss(retry))) {
+      if (retryReplaces(
+        current: (attempt.outcome, attempt.warnings),
+        retry: (retry.outcome, retry.warnings),
+      )) {
         attempt = retry;
       }
       crashed = retry.outcome == DanceOutcome.crashed;
@@ -387,17 +388,17 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
     // exactly *(agent's call)*.
     // A crash on the N2 reading stops here too, so no later reading can bury
     // it, and a placement already tried is not compiled again.
-    if (!crashed &&
-        (attempt.outcome != DanceOutcome.compiled || _isNearMiss(attempt)) &&
-        attempt.outcome != DanceOutcome.crashed) {
+    if (!crashed && triesAnotherReading(attempt.outcome, attempt.warnings)) {
       final partialPass = bridgeCoreDance(dance, usePartialPassFallback: true);
       final at = partialPass.assumedProgressionAt;
       if (at != null &&
           at != positional.assumedProgressionAt &&
           at != fallback.assumedProgressionAt) {
         final retry = _attempt(partialPass);
-        if (retry.outcome == DanceOutcome.compiled &&
-            !(_isNearMiss(attempt) && _isNearMiss(retry))) {
+        if (retryReplaces(
+          current: (attempt.outcome, attempt.warnings),
+          retry: (retry.outcome, retry.warnings),
+        )) {
           attempt = retry;
         }
       }
@@ -421,10 +422,31 @@ typedef _Attempt = ({
   bool deferred,
 });
 
-/// Whether [attempt] compiled only as a near miss, one column off.
-bool _isNearMiss(_Attempt attempt) =>
-    attempt.outcome == DanceOutcome.compiled &&
-    attempt.warnings.any((w) => w.kind == WarningKind.endedColumnOffset);
+/// Whether a reading that ended in [outcome], with [warnings], compiled only
+/// as a near miss, one column off ([WarningKind.endedColumnOffset]).
+bool _isNearMiss(DanceOutcome outcome, List<Warning> warnings) =>
+    outcome == DanceOutcome.compiled &&
+    warnings.any((w) => w.kind == WarningKind.endedColumnOffset);
+
+/// Whether [runCoreDance] tries the record's next placement after a reading
+/// that ended in [outcome], with [warnings]: when it did not compile, or
+/// compiled only as a near miss, and did not crash.
+@visibleForTesting
+bool triesAnotherReading(DanceOutcome outcome, List<Warning> warnings) =>
+    (outcome != DanceOutcome.compiled || _isNearMiss(outcome, warnings)) &&
+    outcome != DanceOutcome.crashed;
+
+/// Whether a [retry] reading replaces the [current] best one in
+/// [runCoreDance]: the retry must compile, and a near miss never replaces
+/// another near miss, so the earlier reading is kept (agent's call). Only
+/// asked when [triesAnotherReading] held for [current].
+@visibleForTesting
+bool retryReplaces({
+  required (DanceOutcome, List<Warning>) current,
+  required (DanceOutcome, List<Warning>) retry,
+}) =>
+    retry.$1 == DanceOutcome.compiled &&
+    !(_isNearMiss(current.$1, current.$2) && _isNearMiss(retry.$1, retry.$2));
 
 _Attempt _attempt(BridgedDance bridged) {
   _Attempt done(
