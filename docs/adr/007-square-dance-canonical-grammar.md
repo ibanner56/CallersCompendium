@@ -1401,6 +1401,28 @@ it into contra's calls (`figureFitsForm`). A stand still stays a square's
 placeholder. The importers' reading of squares is left to the square
 parser.
 
+### 12.4 Forward only and the promenade's direction
+
+The maintainer answered two questions from the held-squares archive work on
+24 November 2026, and taxonomy v1 was amended before it shipped:
+
+1. "Forward again and ..." (Q10): "forward and back in the contra taxonomy
+   already has a toggle for "and back" we should be able to mirror that". So
+   `forward_and_back` takes contra's `goBack` flag, on by default. Off, the
+   call is a forward only, 4 beats by default, and reads "forward". There is
+   no separate `forward` call.
+2. The promenade's `direction`, which §7.1 lists and the pilot left out:
+   "yes, defaulting to counter-clockwise". Its values are contra's spin
+   tokens, `counterclockwise` and `clockwise` (this ADR author's call, as
+   contra's courtesy turn uses them, rather than §6.1's `left` and `right`,
+   which say less once dancers face out). The default is concrete, not
+   `unspecified`, and the display names only a clockwise promenade.
+   "Turn right in single file" (Appendix A.2) is stored as the way the
+   dancers actually travel round the set. A wrong-way promenade is stored as
+   `direction: clockwise`, so `variant` drops §7.1's `wrongWay`, which the
+   counter-clockwise default would contradict (this ADR author's call; no
+   held square uses it).
+
 ---
 
 ## Appendix A: worked examples
