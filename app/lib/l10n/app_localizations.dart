@@ -21941,6 +21941,48 @@ abstract class AppLocalizations {
   /// **'This program uses {max} rules, the most it can. Untick one to add another.'**
   String programsRulesPickerFull(int max);
 
+  /// Title of the Rules row in the program template editor (#2342): the event rules a program made from this template starts with.
+  ///
+  /// In en, this message translates to:
+  /// **'Rules'**
+  String get programTemplateRulesLabel;
+
+  /// Shown under the template editor's Rules row when the template carries no event rules (#2342).
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get programTemplateRulesNone;
+
+  /// Last line under the template editor's Rules row (#2342): the template's rules are added to a program when it is made from the template; existing programs are not changed.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to each new program made from this template.'**
+  String get programTemplateRulesHelp;
+
+  /// A rule on a program template that has been deleted (#2342). It is not added to new programs; an Undo of its delete brings it back. {rule} is the rule's nickname or sentence.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed: {rule}'**
+  String programTemplateRuleRemoved(String rule);
+
+  /// A rule on a program template that this device does not hold, deleted for good or not synced yet (#2342). It is not added to new programs.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed: a rule that isn\'t on this device'**
+  String get programTemplateRuleRemovedUnknown;
+
+  /// Title of the rule picker opened from a program template's Rules row (#2342).
+  ///
+  /// In en, this message translates to:
+  /// **'Rules for this template'**
+  String get programTemplateRulesPickerTitle;
+
+  /// Shown in a program template's rule picker when it already lists as many rules as a program can apply (#2342).
+  ///
+  /// In en, this message translates to:
+  /// **'This template uses {max} rules, the most it can. Untick one to add another.'**
+  String programTemplateRulesPickerFull(int max);
+
   /// Help under the rule editor's number field when the rule counts any two neighboring dances, which is why the number is limited (#2340).
   ///
   /// In en, this message translates to:

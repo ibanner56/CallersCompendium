@@ -15202,6 +15202,33 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get programTemplateRulesLabel => 'Regler';
+
+  @override
+  String get programTemplateRulesNone => 'Ingen';
+
+  @override
+  String get programTemplateRulesHelp =>
+      'Tilføjes til hvert nyt program, der laves ud fra denne skabelon.';
+
+  @override
+  String programTemplateRuleRemoved(String rule) {
+    return 'Fjernet: $rule';
+  }
+
+  @override
+  String get programTemplateRuleRemovedUnknown =>
+      'Fjernet: en regel, der ikke er på denne enhed';
+
+  @override
+  String get programTemplateRulesPickerTitle => 'Regler for denne skabelon';
+
+  @override
+  String programTemplateRulesPickerFull(int max) {
+    return 'Denne skabelon bruger $max regler, det højeste antal. Fjern fluebenet ved en for at tilføje en anden.';
+  }
+
+  @override
   String get eventRuleCountNeighbouringHelp =>
       'To nabodanse rummer højst 2 matchende danse.';
 

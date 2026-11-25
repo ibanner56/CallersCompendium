@@ -15332,6 +15332,33 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get programTemplateRulesLabel => 'Regeln';
+
+  @override
+  String get programTemplateRulesNone => 'Keine';
+
+  @override
+  String get programTemplateRulesHelp =>
+      'Wird jedem neuen Programm hinzugefügt, das aus dieser Vorlage erstellt wird.';
+
+  @override
+  String programTemplateRuleRemoved(String rule) {
+    return 'Entfernt: $rule';
+  }
+
+  @override
+  String get programTemplateRuleRemovedUnknown =>
+      'Entfernt: eine Regel, die nicht auf diesem Gerät ist';
+
+  @override
+  String get programTemplateRulesPickerTitle => 'Regeln für diese Vorlage';
+
+  @override
+  String programTemplateRulesPickerFull(int max) {
+    return 'Diese Vorlage nutzt $max Regeln, mehr geht nicht. Entferne einen Haken, um eine andere hinzuzufügen.';
+  }
+
+  @override
   String get eventRuleCountNeighbouringHelp =>
       'Zwei benachbarte Tänze enthalten höchstens 2 passende Tänze.';
 

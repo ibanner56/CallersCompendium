@@ -14598,6 +14598,31 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get programTemplateRulesLabel => 'ルール';
+
+  @override
+  String get programTemplateRulesNone => 'なし';
+
+  @override
+  String get programTemplateRulesHelp => 'このテンプレートから作る新しいプログラムそれぞれに追加されます。';
+
+  @override
+  String programTemplateRuleRemoved(String rule) {
+    return '削除済み: $rule';
+  }
+
+  @override
+  String get programTemplateRuleRemovedUnknown => '削除済み: このデバイスにないルール';
+
+  @override
+  String get programTemplateRulesPickerTitle => 'このテンプレートのルール';
+
+  @override
+  String programTemplateRulesPickerFull(int max) {
+    return 'このテンプレートはルールを上限の$max件使っています。別のルールを追加するには、どれかのチェックを外してください。';
+  }
+
+  @override
   String get eventRuleCountNeighbouringHelp => '隣接する2曲に含まれる該当ダンスは最大2曲です。';
 
   @override

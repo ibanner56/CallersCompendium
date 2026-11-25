@@ -1,7 +1,7 @@
 // Program templates (#2337): the Settings ▸ Defaults ▸ Program defaults rows,
 // the full-screen manager (add, rename, duplicate, reorder, delete with Undo)
-// and the editor for one template's slots. Storage lives in
-// `data/program_templates.dart`.
+// and the editor for one template's slots and, with Event rules on, its rules
+// (#2342). Storage lives in `data/program_templates.dart`.
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
 import '../../data/display_defaults.dart';
+import '../../data/event_rules_scope.dart';
 import '../../data/persisted_preference.dart';
 import '../../data/program_templates.dart';
 import '../../data/repositories_scope.dart';
@@ -24,7 +25,9 @@ import '../../widgets/app_dropdown_field.dart';
 import '../../widgets/collection_picker.dart';
 import '../../widgets/container_title_length_limit.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/event_rule_text.dart';
 import '../../widgets/load_error_view.dart';
+import '../../widgets/program_event_rules.dart';
 import '../../widgets/program_template_name.dart';
 import '../../widgets/reorder_move_buttons.dart';
 import '../../widgets/settings_dropdown_row.dart';
@@ -348,6 +351,7 @@ class _ProgramTemplatesScreenState extends State<ProgramTemplatesScreen> {
       id: uuidV4(),
       name: l10n.programTemplateCopyName(_displayName(l10n, template)),
       entries: template.entries,
+      eventRuleIds: template.eventRuleIds,
     );
     final ids = _ids;
     ids.insert(ids.indexOf(template.id) + 1, copy.id);
@@ -575,6 +579,22 @@ class _ProgramTemplateEditorScreenState
   );
   late final List<ProgramTemplateEntry> _entries = [...widget.template.entries];
 
+  /// The template's event rules (#2342), kept and saved whatever the Event
+  /// rules toggle says: with it off the Rules row is hidden, but a save still
+  /// writes this list, so turning the feature back on finds it unchanged.
+  late List<String> _eventRuleIds = [...widget.template.eventRuleIds];
+
+  /// Every event rule this device holds, tombstones included, by id, so the
+  /// Rules row can name a deleted rule as removed (`null` until read).
+  Map<String, EventRule>? _rulesById;
+
+  /// The ids of the live rules in [_rulesById].
+  Set<String> _liveRuleIds = const {};
+
+  /// Re-reads the rules on each change to them, so a rule deleted, or brought
+  /// back by Undo, while the editor is open shows as it now is.
+  StreamSubscription<List<EventRule>>? _rulesWatch;
+
   /// Dance titles for the slot list, from the titles-only projection (`null`
   /// until it resolves, and for good if it failed). The full [CollectionData]
   /// is loaded only when the picker opens.
@@ -599,7 +619,95 @@ class _ProgramTemplateEditorScreenState
       final repos = RepositoriesScope.of(context);
       unawaited(_loadDanceTitles(repos.dances));
       unawaited(_loadSavedSearchNames(repos.savedSearches));
+      _rulesWatch = repos.eventRules.watchAll().listen(
+        (_) => unawaited(_loadRules(repos.eventRules)),
+        onError: (Object error, StackTrace stackTrace) => logCaughtError(
+          error,
+          stackTrace,
+          source: 'program_templates_screen.rules_watch',
+        ),
+      );
     }
+  }
+
+  /// Reads every rule, tombstones included, for the Rules row (#2342).
+  Future<void> _loadRules(EventRuleRepository rules) async {
+    try {
+      final all = await rules.listAll(includeDeleted: true);
+      final live = await rules.listAll();
+      if (!mounted) return;
+      setState(() {
+        _rulesById = {for (final rule in all) rule.id: rule};
+        _liveRuleIds = {for (final rule in live) rule.id};
+      });
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'program_templates_screen.rules',
+      );
+    }
+  }
+
+  /// The Rules row (#2342): opens the program's rule picker, its ticks
+  /// changing this template's list. The picker lists only live rules, so a
+  /// deleted rule stays on the template, shown as removed, for its Undo.
+  Future<void> _openRules() async {
+    await showProgramRulesPicker(
+      context,
+      applied: _eventRuleIds,
+      forTemplate: true,
+      onChange: (change) async {
+        final next = change(_eventRuleIds);
+        if (next != null && mounted) {
+          _change(() => _eventRuleIds = normalizeEventRuleIds(next));
+        }
+        return _eventRuleIds;
+      },
+    );
+  }
+
+  /// What the Rules row says of rule [id]: its title, or that it is removed.
+  String _ruleLine(AppLocalizations l10n, String id) {
+    final rule = _rulesById?[id];
+    if (rule == null) return l10n.programTemplateRuleRemovedUnknown;
+    final title = eventRuleTitle(
+      l10n,
+      rule,
+      _savedSearchNames?[rule.savedSearchId],
+    );
+    return _liveRuleIds.contains(id)
+        ? title
+        : l10n.programTemplateRuleRemoved(title);
+  }
+
+  Widget _rulesRow(AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final known = _rulesById != null;
+    return ListTile(
+      key: const ValueKey('program-template-rules'),
+      leading: const Icon(Icons.rule),
+      title: Text(l10n.programTemplateRulesLabel),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (_eventRuleIds.isEmpty)
+            Text(l10n.programTemplateRulesNone)
+          else if (known)
+            for (final id in _eventRuleIds)
+              Text(
+                _ruleLine(l10n, id),
+                key: ValueKey('program-template-rule-$id'),
+                style: _liveRuleIds.contains(id)
+                    ? null
+                    : TextStyle(color: theme.colorScheme.onSurfaceVariant),
+              ),
+          Text(l10n.programTemplateRulesHelp, style: theme.textTheme.bodySmall),
+        ],
+      ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: _openRules,
+    );
   }
 
   /// Reads the saved searches a slot rule can name: the readable ones.
@@ -692,6 +800,7 @@ class _ProgramTemplateEditorScreenState
 
   @override
   void dispose() {
+    unawaited(_rulesWatch?.cancel());
     _nameController.dispose();
     super.dispose();
   }
@@ -718,6 +827,7 @@ class _ProgramTemplateEditorScreenState
       // A blank name keeps the last one rather than saving an unnamed template.
       name: name.isEmpty ? _template.name : name,
       entries: List.unmodifiable(_entries),
+      eventRuleIds: List.unmodifiable(_eventRuleIds),
     );
     try {
       await saveProgramTemplate(
@@ -843,6 +953,9 @@ class _ProgramTemplateEditorScreenState
                 onChanged: (_) => unawaited(_persist()),
               ),
             ),
+            // Only while Event rules is on (#2342); the list is kept and
+            // saved either way.
+            if (EventRulesEnabledScope.of(context)) _rulesRow(l10n),
             ProgramTemplateSlotsEditor(
               entries: _entries,
               danceTitles: _danceTitles ?? const {},
