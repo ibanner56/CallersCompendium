@@ -93,6 +93,14 @@ class ProgramEventRulesController extends ChangeNotifier {
   @visibleForTesting
   int contextReads = 0;
 
+  /// Table-change batches judged so far, and those judged to need a check:
+  /// a test seam, so a test can wait until a write has been looked at and
+  /// then tell that it asked for no check.
+  @visibleForTesting
+  int tableBatchesJudged = 0;
+  @visibleForTesting
+  int tableBatchesRechecked = 0;
+
   bool _frameScheduled = false;
   bool _running = false;
   bool _rerun = false;
@@ -137,21 +145,33 @@ class ProgramEventRulesController extends ChangeNotifier {
     _inputs = _Inputs(ruleIds, slots, readContext, dialect, enrichment);
     // A rule edited in the manager (or by sync) changes what it says. The
     // first list only says which rules are here.
-    _rulesWatch ??= repos.eventRules.watchAll().listen((live) async {
-      final first = _deletedRuleIds == null;
-      final liveIds = {for (final r in live) r.id};
-      final all = await repos.eventRules.listAll(includeDeleted: true);
-      if (_disposed || _rulesWatch == null) return;
-      _deletedRuleIds = {
-        for (final r in all)
-          if (!liveIds.contains(r.id)) r.id,
-      };
-      if (!first) {
-        _rulesGeneration++;
-        _schedule();
-      }
-      _notifyLater();
-    });
+    if (_rulesWatch == null) {
+      // Numbered as they arrive, before any await: emissions can overlap,
+      // and only the first is the list as it was (no re-check), while a
+      // slower read never overwrites a newer one's deleted ids.
+      var emissions = 0;
+      var applied = 0;
+      late final StreamSubscription<List<EventRule>> watch;
+      watch = repos.eventRules.watchAll().listen((live) async {
+        final seq = ++emissions;
+        final liveIds = {for (final r in live) r.id};
+        final all = await repos.eventRules.listAll(includeDeleted: true);
+        if (_disposed || !identical(_rulesWatch, watch)) return;
+        if (seq > applied) {
+          applied = seq;
+          _deletedRuleIds = {
+            for (final r in all)
+              if (!liveIds.contains(r.id)) r.id,
+          };
+        }
+        if (seq > 1) {
+          _rulesGeneration++;
+          _schedule();
+        }
+        _notifyLater();
+      });
+      _rulesWatch = watch;
+    }
     _tablesWatch ??= _watchTables();
     // At once, not at the next frame: a host calls this from `build`, and a
     // frame asked for here would ask for the next.
@@ -202,10 +222,16 @@ class ProgramEventRulesController extends ChangeNotifier {
           var changed =
               tables.any(contextNames.contains) ||
               tables.any(dataNames.contains);
-          if (!changed && tables.contains(settingsName)) {
-            changed = await _savedSearchesChanged();
+          // Looked at whenever `settings` is in the batch, so the baseline
+          // stays current even when another table already re-checks.
+          if (tables.contains(settingsName)) {
+            final searchesChanged = await _savedSearchesChanged();
+            changed = changed || searchesChanged;
           }
-          if (!changed || _disposed) return;
+          if (_disposed) return;
+          tableBatchesJudged++;
+          if (!changed) return;
+          tableBatchesRechecked++;
           _dataGeneration++;
           _schedule();
         });
@@ -551,28 +577,36 @@ class _RulesPicker extends StatefulWidget {
 class _RulesPickerState extends State<_RulesPicker> {
   late List<String> _applied = [...widget.applied];
 
-  /// The live rules in the order Rule order chose (#2341), as read when the
-  /// picker opened or last made a rule.
+  /// The live rules in the order Rule order chose (#2341), read again by
+  /// [_read] whenever a rule changes.
   List<EventRule>? _rules;
   Map<String, String> _names = const {};
 
   /// The ids of the rules this device holds deleted, kept for their Undo:
   /// the only applied ids that do not count toward the most, and the only
-  /// ones dropped to make room. A rule not on this device yet counts.
+  /// ones dropped to make room. A rule not on this device yet counts. Kept
+  /// current from [_rulesWatch], so a rule sync restores meanwhile is never
+  /// dropped as deleted.
   Set<String> _deleted = const {};
 
   /// The search (#2341): session-only, gone when the picker closes.
   final _search = TextEditingController();
   String _query = '';
 
+  /// Reads the rules again whenever one changes (here, or by sync).
+  StreamSubscription<List<EventRule>>? _rulesWatch;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_rules == null) unawaited(_read());
+    _rulesWatch ??= RepositoriesScope.of(
+      context,
+    ).eventRules.watchAll().listen((_) => unawaited(_read()));
   }
 
   @override
   void dispose() {
+    unawaited(_rulesWatch?.cancel());
     _search.dispose();
     super.dispose();
   }
@@ -625,21 +659,53 @@ class _RulesPickerState extends State<_RulesPicker> {
       _applied.where((id) => !_deleted.contains(id)).length >=
       maxProgramEventRules;
 
+  /// The applied ids of rules this device has neither live nor deleted: added
+  /// on another device and still on their way, or gone for good (a backup
+  /// from before #2340's fix, a rule another build could not store).
+  List<String> get _notHere {
+    final rules = _rules;
+    if (rules == null) return const [];
+    final live = {for (final r in rules) r.id};
+    return [
+      for (final id in _applied)
+        if (!live.contains(id) && !_deleted.contains(id)) id,
+    ];
+  }
+
   /// Ticks or unticks [id]: at once on screen, then on the list as stored
   /// when the write runs, and shows the list stored. A refused tick leaves
   /// the box unticked, and the picker says why.
-  Future<void> _toggle(String id, {required bool on}) async {
-    final deleted = _deleted;
-    List<String>? change(List<String> applied) =>
-        toggleEventRuleId(applied, id, on: on, deleted: deleted);
+  Future<void> _toggle(String id, {required bool on}) =>
+      // [_deleted] is read when the change runs, inside the write.
+      _apply(
+        (applied) => toggleEventRuleId(applied, id, on: on, deleted: _deleted),
+      );
+
+  /// Takes [_notHere] off the program.
+  Future<void> _removeNotHere() {
+    final gone = _notHere.toSet();
+    return _apply(
+      (applied) => [
+        for (final id in applied)
+          if (!gone.contains(id)) id,
+      ],
+    );
+  }
+
+  /// Applies [change] at once on screen, then to the list as stored when the
+  /// write runs, and shows the list stored. When nothing was stored (the
+  /// program went to Recently deleted, or the write failed, which the
+  /// builder reports), the screen goes back to what it showed before.
+  Future<void> _apply(EventRuleIdsChange change) async {
+    final before = _applied;
     final shown = change(_applied);
     setState(() {
       if (shown != null) _applied = shown;
     });
     if (shown == null) return;
     final stored = await widget.onChange(change);
-    if (!mounted || stored == null) return;
-    setState(() => _applied = stored);
+    if (!mounted) return;
+    setState(() => _applied = stored ?? before);
   }
 
   Future<void> _add(String id) => _toggle(id, on: true);
@@ -727,8 +793,9 @@ class _RulesPickerState extends State<_RulesPicker> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // The title, New rule… and, once the program is full, why a
-                // rule cannot be ticked: pinned above the search and the list,
+                // The title, New rule…, once the program is full why a rule
+                // cannot be ticked, and any applied rules not on this device:
+                // pinned above the search and the list,
                 // capped so a large text size cannot push them out of the
                 // sheet (the cap is a backstop once the title is dropped).
                 ConstrainedBox(
@@ -777,6 +844,22 @@ class _RulesPickerState extends State<_RulesPicker> {
                               l10n.programsRulesPickerFull(
                                 maxProgramEventRules,
                               ),
+                            ),
+                          ),
+                        if (_notHere case final notHere when notHere.isNotEmpty)
+                          ListTile(
+                            key: const ValueKey('program-rules-not-here'),
+                            leading: const Icon(Icons.cloud_off_outlined),
+                            title: Text(
+                              l10n.programsRulesPickerNotHere(notHere.length),
+                            ),
+                            subtitle: Text(l10n.programsRulesPickerNotHereHelp),
+                            trailing: TextButton(
+                              key: const ValueKey(
+                                'program-rules-remove-not-here',
+                              ),
+                              onPressed: _removeNotHere,
+                              child: Text(l10n.commonRemove),
                             ),
                           ),
                       ],

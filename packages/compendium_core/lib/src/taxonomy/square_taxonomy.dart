@@ -225,7 +225,7 @@ final Taxonomy squareTaxonomy = Taxonomy(
         'variant': const ParamSpec(
           ParamKind.choice,
           defaultValue: _u,
-          choices: ['singleFile', 'outside', 'wrongWay', 'star', _u],
+          choices: ['singleFile', 'outside', 'star', _u],
         ),
         'fraction': _fraction,
         'destination': const ParamSpec(
@@ -233,12 +233,23 @@ final Taxonomy squareTaxonomy = Taxonomy(
           defaultValue: _u,
           choices: ['home', 'role1Place', 'role2Place', _u],
         ),
+        // The way round the set, in the words contra's courtesy turn uses. A
+        // promenade goes counter-clockwise unless the source says otherwise
+        // (Hudson, 24 November 2026: "yes, defaulting to counter-clockwise"),
+        // so the default is concrete, and the display names only clockwise.
+        // A wrong-way promenade is a clockwise one, so there is no wrong-way
+        // variant for a counter-clockwise default to contradict.
+        'direction': const ParamSpec(
+          ParamKind.spinDirection,
+          defaultValue: 'counterclockwise',
+        ),
         'beats': _beats(16),
       },
       // No "single file" keyword: contra's own text says "single file" (a
       // single file promenade or circle), so a search over every form would
       // read it as a promenade.
-      renderTemplate: '{who} {variant} {move} {fraction} {destination}',
+      renderTemplate:
+          '{who} {variant} {move} {direction} {fraction} {destination}',
       goodBeats: const [4, 8, 12, 16],
       // Sources name a destination more often than a fraction (§7.1); one to
       // home is the full 16.
@@ -297,10 +308,24 @@ final Taxonomy squareTaxonomy = Taxonomy(
     MoveDef(
       id: '${_p}forward_and_back',
       displayName: 'forward and back',
-      params: {'who': _who, 'beats': _beats(8)},
+      params: {
+        'who': _who,
+        // "And back", as contra's forward and back has it. Off, the call is
+        // a forward only, as in "forward again and swing" (Hudson, 24
+        // November 2026: "we should be able to mirror that"), in half the
+        // count.
+        'goBack': const ParamSpec(ParamKind.flag, defaultValue: true),
+        'beats': _beats(8),
+      },
       renderTemplate: '{who} {move}',
-      // "Always a full eight beats in New England" (Parkes).
+      // "Always a full eight beats in New England" (Parkes). A forward
+      // only's 4 is typical through `paramBeats`, so a 4-beat forward and
+      // back still warns.
       goodBeats: const [8],
+      paramBeats: const ParamBeats(
+        param: 'goBack',
+        byValue: {true: 8, false: 4},
+      ),
     ),
     MoveDef(
       id: '${_p}pass_through',

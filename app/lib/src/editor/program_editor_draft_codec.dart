@@ -89,8 +89,15 @@ class ProgramEditorDraft {
     this.timesBaseline,
     this.venueIdBaseline,
     this.hasVenueIdBaseline = false,
+    this.eventRuleIds = const [],
     required this.slots,
   });
+
+  /// The event rules applied to a program not saved yet (#2340), in the
+  /// order they were applied; empty for a stored program, whose rules the
+  /// Rules picker writes straight to it. Absent in older drafts, which read
+  /// as none.
+  final List<String> eventRuleIds;
 
   /// The program title as typed; may be empty for an in-progress draft.
   final String title;
@@ -211,6 +218,8 @@ class ProgramEditorDraft {
 ///                           // omitted when not recorded
 ///   "venueIdBaseline": null, // the stored venue link the editor loaded; key
 ///                           // omitted when not recorded
+///   "eventRuleIds": ["..."], // a new program's applied rules; omitted when
+///                           // none (and in older drafts)
 ///   "slots": [
 ///     {"id":"...", "position":0, "danceId":"...", "isAlt":false},
 ///     {"id":"...", "position":1, "text":"Break", "isPurgedDance":false, "isAlt":false}
@@ -250,8 +259,19 @@ String encodeProgramDraft(ProgramEditorDraft draft) {
           field.name: ?baseline[field],
       },
     if (draft.hasVenueIdBaseline) 'venueIdBaseline': draft.venueIdBaseline,
+    if (draft.eventRuleIds.isNotEmpty) 'eventRuleIds': draft.eventRuleIds,
     'slots': [for (final s in draft.slots) _slotToJson(s)],
   });
+}
+
+/// A draft's `eventRuleIds`: absent (an older draft) is none; anything but a
+/// list of strings is a corrupt draft.
+List<String> _parseEventRuleIds(Object? raw) {
+  if (raw == null) return const [];
+  if (raw is! List || raw.any((id) => id is! String)) {
+    throw const FormatException('eventRuleIds must be a list of strings');
+  }
+  return normalizeEventRuleIds(raw);
 }
 
 Map<String, Object?> _slotToJson(ProgramSlot s) => {
@@ -335,6 +355,7 @@ ProgramEditorDraft decodeProgramDraft(Object? value) {
         : _parseTimes(json['timesBaseline'], key: 'timesBaseline'),
     venueIdBaseline: _strOrNull(json, 'venueIdBaseline'),
     hasVenueIdBaseline: json.containsKey('venueIdBaseline'),
+    eventRuleIds: _parseEventRuleIds(json['eventRuleIds']),
     slots: _parseSlots(json['slots']),
   );
 }

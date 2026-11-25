@@ -142,10 +142,14 @@ The other caller reads the code with their phone's own camera app: the iPhone
 Camera, or the Android camera or Google Lens. The camera offers a link; tapping it
 opens the dance in Caller's Compendium's import review, where they add it as
 they would a file you sent. Their phone needs no network, and Caller's
-Compendium doesn't ask them for camera access to do this. See
+Compendium doesn't ask them for camera access to do this. On a phone or tablet
+they can instead choose **Scan a dance code** in **Import…**, which takes a
+photo of the code in the app, and on any device **Dance code from a picture…**
+opens a photo or screenshot of it. See
 [Open a dance someone shows you as a code](./imports.md#open-a-dance-someone-shows-you-as-a-code).
-A computer has no camera app to do this; send a computer user the dance with
-**Share dance file**.
+A computer has no camera app to do this, but someone on a computer can open a
+screenshot of the code with **Dance code from a picture…**, or you can send
+them the dance with **Share dance file**.
 
 A short dance is drawn with the Caller's Compendium logo in the middle. A longer
 one is drawn without it, because the logo would cover too much of a code that

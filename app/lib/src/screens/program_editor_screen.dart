@@ -1401,6 +1401,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       timesBaseline: _existing == null ? null : _timesBaseline,
       venueIdBaseline: _venueIdBaseline,
       hasVenueIdBaseline: _existing != null,
+      // A stored program's rules are written to it as they are picked; only
+      // a new one's live here until its first save (#2340).
+      eventRuleIds: _existing == null ? _eventRuleIds : const [],
       slots: List.unmodifiable(_renumber(_slots)),
     );
   }
@@ -1856,6 +1859,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _dialectName = draft.hasDialectName
             ? draft.dialectName
             : _existing?.dialectName;
+        // A new program's rules come back with it; a stored program keeps
+        // the rules stored for it.
+        if (_existing == null) _eventRuleIds = draft.eventRuleIds;
         _slots = _renumber(draft.slots);
         _insertion = null;
         _dirty = true;
@@ -2548,6 +2554,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           stackTrace,
           source: 'program_editor_screen._openRulesPicker',
         );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              content: Text(
+                AppLocalizations.of(context).programsRulesChangeFailed,
+              ),
+            ),
+          );
+        }
         return null;
       }
     },
@@ -3481,6 +3497,33 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       return stored;
     }
     await _repos.programs.create(persisted);
+    // A rule ticked while the create was in flight went to [_eventRuleIds]
+    // only (no program was stored yet), and every later save keeps the
+    // stored list: so write what changed since the create read it, on the
+    // list as stored now (#2340).
+    var sentRules = persisted.eventRuleIds;
+    while (!listEquals(_eventRuleIds, sentRules)) {
+      final wanted = _eventRuleIds;
+      final dropped = {
+        for (final id in sentRules)
+          if (!wanted.contains(id)) id,
+      };
+      final added = [
+        for (final id in wanted)
+          if (!sentRules.contains(id)) id,
+      ];
+      final ids = await _repos.programs.updateEventRuleIds(
+        persisted.id,
+        (stored) => [
+          for (final id in stored)
+            if (!dropped.contains(id)) id,
+          for (final id in added)
+            if (!stored.contains(id)) id,
+        ],
+      );
+      if (ids == null) break;
+      sentRules = wanted;
+    }
     final stored = await _repos.programs.getById(persisted.id);
     if (stored == null) {
       throw StateError('program "${persisted.id}" vanished after its create');

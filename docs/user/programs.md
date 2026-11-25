@@ -473,10 +473,17 @@ with one of your [saved searches](./collection.md#save-a-search-and-use-it-again
   rules as they are saved at that moment, so a rule added on another device
   meanwhile stays. A program can use up to 64 rules; once it does, the list
   says so and another can't be ticked. To make room, only the rules you
-  deleted are let go.
+  deleted are let go. If the program uses rules that aren't on this device,
+  the list says how many, such as **1 rule not on this device**: added on
+  another device and still on the way, or gone for good. **Remove** beside it
+  takes them off this program. If a tick can't be saved, the box clears again
+  and the builder says so.
   **New rule…** at the top opens the rule editor and, once you save the rule,
   adds it to this program. A new program, a copy of a program, and a program
-  you import start with no rules: a rule is never added for you.
+  you import start with no rules: a rule is never added for you. The rules you
+  pick for a new program before its first save are kept with its unsaved
+  draft, so they come back if the builder closes unexpectedly. A backup keeps
+  the rules each program uses, but not a rule you deleted.
   A rule with a nickname shows it, with its sentence under it. The rules are
   listed in your **Rule order** — your own order from **Manage rules**, or
   the ones your programs use most first (see
@@ -509,7 +516,11 @@ with one of your [saved searches](./collection.md#save-a-search-and-use-it-again
   with the dances on either side of its primary. It is compared only with
   their planned dances, not with their alternates: one alternate is checked
   at a time, as if it alone were called. A pair holds two dances, so the
-  editor offers **At most** 1 or **At least** 1 or 2 here.
+  editor offers **At most** 1 or **At least** 1 or 2 here. A
+  [placeholder](#fill-a-placeholder) still to be filled stands for a dance:
+  the dances on either side of it are not next to each other, and a pair
+  with the placeholder isn't checked until you fill it. (The matrix, which
+  has no row for a placeholder, treats it like a note.)
 - **Before and after the first break** need a break: in a program without one,
   neither half exists, so *At most* is always met and *At least* never is.
 - **A rule that can't be checked** shows in the strip as needing attention,
