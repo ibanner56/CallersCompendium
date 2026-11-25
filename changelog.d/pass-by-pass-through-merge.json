@@ -10,7 +10,7 @@
   },
   "core": {
     "changed": [
-      "Contra taxonomy v40: `pass_by` is an alias of `pass_through` pinning the new `passType: by`, listed as a move. `pass_through` gains `who` (default `unspecified`) and `passType`; `where` keeps its `along` default, and the alias keeps `who: neighbors` and `where: unspecified` for an omitted param through the new `MoveAlias.defaultParams`. Adds `Taxonomy.defaultParamValue`, `ParamSpec.requiredOnEntry` with `Taxonomy.unstatedRequiredParams`, and `keepOmittedMeaning`, which `applyParamChange` runs when a change re-routes a figure."
+      "Contra taxonomy v40: `pass_by` is an alias of `pass_through` pinning the new `passType: by`, listed as a move. `pass_through` gains `who` (default `unspecified`) and `passType`; `where` keeps its `along` default, and the alias keeps `who: neighbors` and `where: unspecified` for an omitted param through the new `MoveAlias.defaultParams`. Adds `Taxonomy.defaultParamValue`, `ParamSpec.requiredOnEntry` with `Taxonomy.unstatedRequiredParams`, `keepOmittedMeaning`, which `applyParamChange` runs when a change re-routes a figure, and `Taxonomy.isParamNamedById`, the param a figure's id already says, which Settings' per-move defaults and Advanced search do not offer."
     ]
   }
 }
