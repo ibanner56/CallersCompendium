@@ -1,2 +1,2 @@
 "NSCameraUsageDescription" = "Caller's Compendium gebruikt de camera alleen wanneer je in de app een foto maakt, bijvoorbeeld van een danskaart om de figuren ervan te lezen. De foto wordt op je apparaat gelezen en daarna verwijderd. Hij wordt nooit ergens naartoe gestuurd.";
-"NSPhotoLibraryUsageDescription" = "Caller's Compendium gebruikt je fotobibliotheek niet. Van een foto die je in de app maakt, wordt de tekst op je apparaat gelezen, waarna de foto wordt verwijderd. Hij wordt nooit in je fotobibliotheek bewaard.";
+"NSPhotoLibraryUsageDescription" = "Caller's Compendium gebruikt je fotobibliotheek niet. Een foto die je in de app maakt, wordt op je apparaat gelezen en daarna verwijderd. Hij wordt nooit in je fotobibliotheek bewaard.";

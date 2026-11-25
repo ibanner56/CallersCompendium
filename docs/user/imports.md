@@ -485,6 +485,33 @@ collection:
 Opening a code this way doesn't use Caller's Compendium's camera access, and it
 needs no network.
 
+On a phone or tablet you can also scan the code from inside the app: open
+**Import…**, choose **Scan a dance code**, and photograph the code. On iPhone
+and iPad the system asks, the first time, whether the app may use the camera;
+on Android your phone's own camera app opens, and the app needs no camera
+permission. The code is read on your device and opens the same review; the
+photo is deleted as soon as the code has been read, or straight away if no code
+is found, and the app never adds it to your photo library. On Android, some
+phones' camera apps also keep their own copy in the gallery; the app can't stop
+that, so delete it from the gallery, or look in the camera app's settings, if
+you don't want it. If you said no to the
+camera on iPhone or iPad, turn it on again in the Settings app, under
+**Caller's Compendium**. If Android closes the app while the camera is open,
+that photo isn't read; the app deletes it the next time you scan a code or
+start the app. Scan the code again.
+
+On any device, including a computer, **Dance code from a picture…** opens a
+code from a picture you already have: a photo of it, or a screenshot someone
+sent you. On iPhone, iPad and Android the copy the picker makes for the app is
+deleted once read; your own picture is left as it is. On Android, if the app says
+the picture couldn't be read and the picture is kept only in the cloud (in a
+photo or file app that hasn't downloaded it yet), save it to your device
+first, then choose it again.
+
+Any QR code can be scanned or chosen, but only a dance code is opened: a code
+holding a web address or anything else is refused, and nothing is fetched. If
+no code is found, try again with the whole code in the picture and sharp.
+
 If your camera app shows the link but won't open it, copy the link, open
 **Import…**, and paste it into the URL field (then choose **Fetch**) or into the
 text field (then choose **Review import**). That works on a computer too, if

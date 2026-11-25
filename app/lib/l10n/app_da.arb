@@ -7842,6 +7842,34 @@
   "@danceLinkRefusedNoContent": {
     "x-sourceSha256": "12e1e0997cdbb1ae3cc25202f1823287ba7b1c8bd1985263e73edcbf668b7b0e"
   },
+  "importScanDanceCode": "Scan en dansekode",
+  "@importScanDanceCode": {
+    "x-sourceSha256": "6d0de32ac3ed5523e61de52943c3e9e755f341c1baf566dbbc97667ca15de7f7"
+  },
+  "importScanNoCode": "Der blev ikke fundet nogen dansekode i billedet. Sørg for, at hele koden er med og skarp.",
+  "@importScanNoCode": {
+    "x-sourceSha256": "1ae463d735b602f8bcc4152e17ddb801d51543b7f5600324a2b58b2d1fc9651b"
+  },
+  "importScanUnreadable": "Billedet kunne ikke læses.",
+  "@importScanUnreadable": {
+    "x-sourceSha256": "336ced48bcf977932a16abfbc6526b3d8601c3b8276e3ece458601eda3035af6"
+  },
+  "importDanceCodePicture": "Dansekode fra et billede…",
+  "@importDanceCodePicture": {
+    "x-sourceSha256": "be81c72bb0d507302ebe60ba264cb2761e661821bb7d098ec7c323bbbaca4e3c"
+  },
+  "importScanTooLarge": "Dette billede er større end {limit} MB, så det blev ikke læst. Vælg et mindre.",
+  "@importScanTooLarge": {
+    "x-sourceSha256": "1bb69766d216ed5cb9684a05e78700f2dbb36387e7357e871b9d03fec1dcb7ab"
+  },
+  "importScanNoCamera": "Denne enhed har ingen kameraapp til at tage billedet. Vælg i stedet »Dansekode fra et billede…«.",
+  "@importScanNoCamera": {
+    "x-sourceSha256": "e0a95d0123c05ffc934149ea728b928edb8fd4a60e3fb77831a9b7711cfa4766"
+  },
+  "importScanCameraOff": "Kameraadgang er slået fra for Caller's Compendium. Slå den til i appen Indstillinger for at scanne en kode.",
+  "@importScanCameraOff": {
+    "x-sourceSha256": "869f1f26a4aeb36d0d17ccd4cf21bbb313746189f5a00e0abdacd705a7decd6c"
+  },
   "archiveIntakeRejectedNotArchive": "Den fil er ikke en delefil fra Caller’s Compendium.",
   "@archiveIntakeRejectedNotArchive": {
     "x-sourceSha256": "80dd7dada7feaccdf4d83c86ca2567fad99deb5ad4b25ffc22cdd87c7d4de1d8"
@@ -12990,6 +13018,14 @@
   "@suggestionWhyLowers": {
     "x-sourceSha256": "4d30ec73dfb3cce121d9a0280961912b0763722e858621a128ea683c19df4a98"
   },
+  "suggestionWouldBreak": "{count, plural, =1{Ville bryde: {rules}} other{Ville bryde {count} regler: {rules}}}",
+  "@suggestionWouldBreak": {
+    "x-sourceSha256": "ba62c57b9608c6433d38ee478de902b732903ed135ddac282ce3e683624f19a1"
+  },
+  "suggestionWouldBreakSemantic": "{count, plural, =1{Ville bryde aftenreglen: {rules}} other{Ville bryde {count} aftenregler: {rules}}}",
+  "@suggestionWouldBreakSemantic": {
+    "x-sourceSha256": "41b1cbca46a0417e9dda3aa53fb5af03152a3bea932554d475d36d7d6c9a2041"
+  },
   "figureParamSearchDancersHint": "Søg i dansere",
   "@figureParamSearchDancersHint": {
     "x-sourceSha256": "1cdb21a9c736e3bc9e88c5bcc9a28a50c318e243475c3cc00b9e60e284d1c917"
@@ -14493,6 +14529,18 @@
   "programTemplateRulesPickerFull": "Denne skabelon bruger {max} regler, det højeste antal. Fjern fluebenet ved en for at tilføje en anden.",
   "@programTemplateRulesPickerFull": {
     "x-sourceSha256": "c936f81169534317cdce0fdb5bab9aafec0fb70b0c9fb047eb34bffe5ab8d6d2"
+  },
+  "programsRulesPickerNotHere": "{count, plural, =1{1 regel findes ikke på denne enhed} other{{count} regler findes ikke på denne enhed}}",
+  "@programsRulesPickerNotHere": {
+    "x-sourceSha256": "d1e47d6f22bef283a52643127816c87337c04d06523be6779f7a60039fb1db49"
+  },
+  "programsRulesPickerNotHereHelp": "Tilføjet på en anden enhed og stadig på vej, eller væk for altid. Fjern tager dem af dette program.",
+  "@programsRulesPickerNotHereHelp": {
+    "x-sourceSha256": "d712197bddacd3cb51a680b3db35e0f4eb3804b7975780c6faa3eeb40d6c5cd0"
+  },
+  "programsRulesChangeFailed": "Kunne ikke ændre dette programs regler. Prøv igen.",
+  "@programsRulesChangeFailed": {
+    "x-sourceSha256": "d3b5fef2b613bd78172f26b1ac69390974b0440fe7374212862ef0b0e561928e"
   },
   "eventRuleCountNeighbouringHelp": "To nabodanse rummer højst 2 matchende danse.",
   "@eventRuleCountNeighbouringHelp": {

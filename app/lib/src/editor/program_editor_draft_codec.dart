@@ -89,9 +89,15 @@ class ProgramEditorDraft {
     this.timesBaseline,
     this.venueIdBaseline,
     this.hasVenueIdBaseline = false,
-    this.eventRuleIds,
+    this.eventRuleIds = const [],
     required this.slots,
   });
+
+  /// The event rules applied to a program not saved yet (#2340), in the
+  /// order they were applied; empty for a stored program, whose rules the
+  /// Rules picker writes straight to it. Absent in older drafts, which read
+  /// as none.
+  final List<String> eventRuleIds;
 
   /// The program title as typed; may be empty for an in-progress draft.
   final String title;
@@ -181,13 +187,6 @@ class ProgramEditorDraft {
   /// presence, so it needs no draft version bump.
   final bool hasVenueIdBaseline;
 
-  /// The event rules applied to a program not yet saved (#2340), such as
-  /// those a template added (#2342), or `null` when the draft did not record
-  /// them: always for a stored program, whose rules the picker writes to
-  /// storage directly, and for a draft written before this was added.
-  /// Decoded from key presence, so it needs no draft version bump.
-  final List<String>? eventRuleIds;
-
   /// The in-progress slot list (position-ordered).
   final List<ProgramSlot> slots;
 }
@@ -219,8 +218,8 @@ class ProgramEditorDraft {
 ///                           // omitted when not recorded
 ///   "venueIdBaseline": null, // the stored venue link the editor loaded; key
 ///                           // omitted when not recorded
-///   "eventRuleIds": ["..."], // a new program's applied rules; omitted for a
-///                           // stored program and in older drafts
+///   "eventRuleIds": ["..."], // a new program's applied rules; omitted when
+///                           // none (and in older drafts)
 ///   "slots": [
 ///     {"id":"...", "position":0, "danceId":"...", "isAlt":false},
 ///     {"id":"...", "position":1, "text":"Break", "isPurgedDance":false, "isAlt":false}
@@ -260,17 +259,17 @@ String encodeProgramDraft(ProgramEditorDraft draft) {
           field.name: ?baseline[field],
       },
     if (draft.hasVenueIdBaseline) 'venueIdBaseline': draft.venueIdBaseline,
-    'eventRuleIds': ?draft.eventRuleIds,
+    if (draft.eventRuleIds.isNotEmpty) 'eventRuleIds': draft.eventRuleIds,
     'slots': [for (final s in draft.slots) _slotToJson(s)],
   });
 }
 
-/// A draft's `eventRuleIds`: `null` when absent, else a list of strings,
-/// normalized as a program keeps them.
-List<String>? _eventRuleIdsOrNull(Object? raw) {
-  if (raw == null) return null;
+/// A draft's `eventRuleIds`: absent (an older draft) is none; anything but a
+/// list of strings is a corrupt draft.
+List<String> _parseEventRuleIds(Object? raw) {
+  if (raw == null) return const [];
   if (raw is! List || raw.any((id) => id is! String)) {
-    throw const FormatException('program draft eventRuleIds must be strings');
+    throw const FormatException('eventRuleIds must be a list of strings');
   }
   return normalizeEventRuleIds(raw);
 }
@@ -356,7 +355,7 @@ ProgramEditorDraft decodeProgramDraft(Object? value) {
         : _parseTimes(json['timesBaseline'], key: 'timesBaseline'),
     venueIdBaseline: _strOrNull(json, 'venueIdBaseline'),
     hasVenueIdBaseline: json.containsKey('venueIdBaseline'),
-    eventRuleIds: _eventRuleIdsOrNull(json['eventRuleIds']),
+    eventRuleIds: _parseEventRuleIds(json['eventRuleIds']),
     slots: _parseSlots(json['slots']),
   );
 }

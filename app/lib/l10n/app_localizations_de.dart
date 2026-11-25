@@ -8062,6 +8062,32 @@ class AppLocalizationsDe extends AppLocalizations {
       'Dieser Tanzcode enthält keine Tänze oder Programme.';
 
   @override
+  String get importScanDanceCode => 'Tanzcode scannen';
+
+  @override
+  String get importScanNoCode =>
+      'Im Bild wurde kein Tanzcode gefunden. Achten Sie darauf, dass der ganze Code darauf und scharf ist.';
+
+  @override
+  String get importScanUnreadable => 'Das Bild konnte nicht gelesen werden.';
+
+  @override
+  String get importDanceCodePicture => 'Tanzcode aus einem Bild…';
+
+  @override
+  String importScanTooLarge(int limit) {
+    return 'Dieses Bild ist größer als $limit MB und wurde daher nicht gelesen. Wählen Sie ein kleineres.';
+  }
+
+  @override
+  String get importScanNoCamera =>
+      'Dieses Gerät hat keine Kamera-App für das Foto. Wählen Sie stattdessen „Tanzcode aus einem Bild…“.';
+
+  @override
+  String get importScanCameraOff =>
+      'Der Kamerazugriff ist für Caller\'s Compendium ausgeschaltet. Um einen Code zu scannen, schalten Sie ihn in der App „Einstellungen“ ein.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'Diese Datei ist keine Freigabedatei von Caller’s Compendium.';
 
@@ -13637,6 +13663,28 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String suggestionWouldBreak(int count, String rules) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Würde $count Regeln verletzen: $rules',
+      one: 'Würde verletzen: $rules',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String suggestionWouldBreakSemantic(int count, String rules) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Würde $count Abendregeln verletzen: $rules',
+      one: 'Würde die Abendregel verletzen: $rules',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get figureParamSearchDancersHint => 'Tänzer suchen';
 
   @override
@@ -15357,6 +15405,25 @@ class AppLocalizationsDe extends AppLocalizations {
   String programTemplateRulesPickerFull(int max) {
     return 'Diese Vorlage nutzt $max Regeln, mehr geht nicht. Entferne einen Haken, um eine andere hinzuzufügen.';
   }
+
+  @override
+  String programsRulesPickerNotHere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Regeln nicht auf diesem Gerät',
+      one: '1 Regel nicht auf diesem Gerät',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsRulesPickerNotHereHelp =>
+      'Auf einem anderen Gerät hinzugefügt und noch unterwegs, oder endgültig weg. Entfernen nimmt sie aus diesem Programm.';
+
+  @override
+  String get programsRulesChangeFailed =>
+      'Die Regeln dieses Programms konnten nicht geändert werden. Versuche es noch einmal.';
 
   @override
   String get eventRuleCountNeighbouringHelp =>

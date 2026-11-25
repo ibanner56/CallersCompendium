@@ -1,2 +1,2 @@
 "NSCameraUsageDescription" = "Caller's Compendium verwendet die Kamera nur, wenn Sie in der App ein Foto aufnehmen, zum Beispiel von einer Tanzkarte, um deren Figuren zu lesen. Das Foto wird auf Ihrem Gerät gelesen und danach gelöscht. Es wird nirgendwohin gesendet.";
-"NSPhotoLibraryUsageDescription" = "Caller's Compendium verwendet Ihre Fotomediathek nicht. Bei einem Foto, das Sie in der App aufnehmen, wird der Text auf Ihrem Gerät gelesen, danach wird das Foto gelöscht. Es wird nie in Ihrer Fotomediathek gespeichert.";
+"NSPhotoLibraryUsageDescription" = "Caller's Compendium verwendet Ihre Fotomediathek nicht. Ein Foto, das Sie in der App aufnehmen, wird auf Ihrem Gerät gelesen und danach gelöscht. Es wird nie in Ihrer Fotomediathek gespeichert.";

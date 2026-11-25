@@ -8038,6 +8038,32 @@ class AppLocalizationsNl extends AppLocalizations {
       'Deze danscode bevat geen dansen of programma\'s.';
 
   @override
+  String get importScanDanceCode => 'Danscode scannen';
+
+  @override
+  String get importScanNoCode =>
+      'Er is geen danscode in de afbeelding gevonden. Zorg dat de hele code erop staat en scherp is.';
+
+  @override
+  String get importScanUnreadable => 'De afbeelding kon niet worden gelezen.';
+
+  @override
+  String get importDanceCodePicture => 'Danscode uit een afbeelding…';
+
+  @override
+  String importScanTooLarge(int limit) {
+    return 'Deze afbeelding is groter dan $limit MB en is dus niet gelezen. Kies een kleinere.';
+  }
+
+  @override
+  String get importScanNoCamera =>
+      'Dit apparaat heeft geen camera-app om de foto te maken. Kies in plaats daarvan ‘Danscode uit een afbeelding…’.';
+
+  @override
+  String get importScanCameraOff =>
+      'Cameratoegang staat uit voor Caller\'s Compendium. Zet hem aan in de app Instellingen om een code te scannen.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'Dat bestand is geen deelbestand van Caller’s Compendium.';
 
@@ -13600,6 +13626,28 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String suggestionWouldBreak(int count, String rules) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Zou $count regels overtreden: $rules',
+      one: 'Zou overtreden: $rules',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String suggestionWouldBreakSemantic(int count, String rules) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Zou $count avondregels overtreden: $rules',
+      one: 'Zou de avondregel overtreden: $rules',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get figureParamSearchDancersHint => 'Dansers zoeken';
 
   @override
@@ -15318,6 +15366,25 @@ class AppLocalizationsNl extends AppLocalizations {
   String programTemplateRulesPickerFull(int max) {
     return 'Dit sjabloon gebruikt $max regels, het maximum. Vink er een uit om een andere toe te voegen.';
   }
+
+  @override
+  String programsRulesPickerNotHere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count regels niet op dit apparaat',
+      one: '1 regel niet op dit apparaat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsRulesPickerNotHereHelp =>
+      'Toegevoegd op een ander apparaat en nog onderweg, of voorgoed weg. Verwijderen haalt ze van dit programma.';
+
+  @override
+  String get programsRulesChangeFailed =>
+      'Kan de regels van dit programma niet wijzigen. Probeer het opnieuw.';
 
   @override
   String get eventRuleCountNeighbouringHelp =>

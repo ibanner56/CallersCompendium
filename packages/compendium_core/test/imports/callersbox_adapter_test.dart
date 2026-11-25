@@ -1541,6 +1541,83 @@ void main() {
         expect(ones.last.isCustom, isTrue);
       });
 
+      test('a formed wave, balanced and slid, is the wave then a Rory '
+          'O\'More (TCB #1206, #18142)', () async {
+        for (final (slide, twoPlaces, note) in [
+          ('(4) Slide right (past N)', null, 'past N'),
+          (
+            '(4) Slide right, men slide two places (W past N, M past (N;M))',
+            'role1s',
+            'W past N, M past (N;M)',
+          ),
+        ]) {
+          final figures = await figuresFor([
+            '(8) Neighbor do-si-do 1 & 1/4; form wave of four',
+            '(4) Balance wave of four (NR,WL)',
+            slide,
+          ]);
+          expect(figures.map((f) => f.move), [
+            'do_si_do',
+            'form_short_waves',
+            'rory_o_more',
+          ], reason: slide);
+          // The wave keeps what the balance line said about it, but not the
+          // balance, which the Rory O'More dances.
+          expect(figures[1].params, {
+            'sides': 'neighbors',
+            'center': 'role2s',
+            'centerHand': 'left',
+          }, reason: slide);
+          expect(figures[2].params, {
+            'balance': true,
+            'slide': 'right',
+            'twoPlaces': ?twoPlaces,
+            'beats': 8,
+          }, reason: slide);
+          expect(figures[2].note, note, reason: slide);
+        }
+      });
+
+      test('a pass the ocean, balanced and slid, is the ocean then a Rory '
+          'O\'More', () async {
+        final figures = await figuresFor([
+          '(4) Pass the ocean',
+          '(4) Balance wave of four (NR,WL)',
+          '(4) Slide right (past N)',
+        ]);
+        expect(figures.map((f) => f.move), ['pass_the_ocean', 'rory_o_more']);
+        expect(figures.first.params['balance'], isNot(isTrue));
+        expect(figures.first.params['beats'], 4);
+        expect(figures.last.params['balance'], isTrue);
+      });
+
+      test('a formed wave keeps its balance when no slide follows, or the '
+          'wave is long', () async {
+        final noSlide = await figuresFor([
+          '(8) Neighbor do-si-do 1 & 1/4; form wave of four',
+          '(4) Balance wave of four (NR,WL)',
+          '(8) Partner swing',
+        ]);
+        expect(noSlide.map((f) => f.move), [
+          'do_si_do',
+          'form_short_waves',
+          'swing',
+        ]);
+        expect(noSlide[1].params['balance'], isTrue);
+        // A long wave is not where a Rory O'More is read from, even when the
+        // balance names a wave of four (mutation caught: dropping the move
+        // check makes this a Rory O'More).
+        final long = await figuresFor([
+          '(4) Form long wave in center',
+          '(4) Balance wave of four (NR,WL)',
+          '(4) Slide right (past N)',
+        ]);
+        expect(long.map((f) => f.move), [
+          'form_a_long_wave',
+          'slide_along_set',
+        ]);
+      });
+
       test('a longer slide stays custom alone or with other dancers', () async {
         // Alone: nothing says the dancers are in a wave.
         final alone = await figuresFor([

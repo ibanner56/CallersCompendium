@@ -450,14 +450,45 @@ raising or lowering it.
 - Ordering takes a moment on a large collection. Meanwhile the list shows in
   its plain order with a spinner by the count, and you can add dances as usual.
 - English dances aren't covered yet. They are listed after the ordered
-  dances, in their usual order, and say so.
-- A dance already in the program stays in the list but goes to the very
-  bottom, after the English dances, marked *Already in this program*. Any
+  dances, in their usual order, and say so. They aren't checked against your
+  [rules](#check-your-program-against-your-rules) either.
+- A dance already in the program stays in the list but goes to the bottom,
+  after the English dances (and before any dance marked for breaking one of
+  your rules, below), marked *Already in this program*. Any
   type of dance goes there, English included. Dances there keep their usual
   order.
 - If the dances can't be ordered, the list stays in its usual order and says
   so above the first dance.
 - Nothing is saved by suggesting: it only changes the order of the list.
+
+**With your event rules.** If [Event rules](#check-your-program-against-your-rules)
+is on too and the program uses rules, Suggested also checks each dance
+against them, as if you added it where the dance will go: at the end, at the
+place you are adding before or after, or in the slot you are replacing. A
+dance that would break a rule there is marked with an icon and **Would
+break:** and the rule, such as *Would break: At most 1 dance matching
+"Petronella" in the whole program*, above its reason, and a screen reader
+reads which rules. Select the question mark to see the rule at the top of
+its reasons.
+
+- Marked dances are listed after every other dance, the ones already in the
+  program included, each group in the Suggested order. Nothing is hidden: you
+  can still add a marked dance if you mean to break your own rule.
+- A dance is marked when the builder would mark it once added: it is one of
+  the dances that break the rule, such as a second Petronella under *At most
+  1*. For neighboring dances that means the dance before or after the place,
+  as the rule sees its neighbors; an alternate is checked as if called
+  instead of its dance. *At least* over the whole program or half of it never
+  marks a dance you are adding, since adding one never takes a dance away.
+  With **Replace…** it does take one away: a dance is marked when the program
+  meets the rule now and wouldn't with that dance in the slot.
+- English dances are left where they are, unmarked (see above). An English
+  dance already in the program is checked with the other dances there.
+- The order without rules shows first; the marks, and the new order, follow
+  once the check is done. A rule that needs attention isn't checked.
+- With Event rules off, a program with no rules, or another sort, the picker
+  lists the dances exactly as it would without rules. There is nothing to
+  turn on: it works whenever both features are on.
 
 ### Check your program against your rules
 
@@ -475,12 +506,20 @@ with one of your [saved searches](./collection.md#save-a-search-and-use-it-again
   rules as they are saved at that moment, so a rule added on another device
   meanwhile stays. A program can use up to 64 rules; once it does, the list
   says so and another can't be ticked. To make room, only the rules you
-  deleted are let go.
+  deleted are let go. If the program uses rules that aren't on this device,
+  the list says how many, such as **1 rule not on this device**: added on
+  another device and still on the way, or gone for good. **Remove** beside it
+  takes them off this program. If a tick can't be saved, the box clears again
+  and the builder says so.
   **New rule…** at the top opens the rule editor and, once you save the rule,
   adds it to this program. A copy of a program, a program you import (other
   than a calendar import's draft, which takes your Default template's rules),
   and a new program made without a template start with no rules: a rule is
-  only added when you add it, or by a template that carries rules.
+  only added when you add it, or by a template that carries rules. The rules
+  a new program has before its first save, picked or from its template, are
+  kept with its unsaved draft, so they come back if the builder closes
+  unexpectedly. A backup keeps the rules each program uses, but not a rule you
+  deleted.
 - **Rules that come with a template.** A [program
   template](./settings.md#program-defaults) can carry rules. A program made
   from it — with **New program**, or as a draft a
@@ -522,7 +561,11 @@ with one of your [saved searches](./collection.md#save-a-search-and-use-it-again
   with the dances on either side of its primary. It is compared only with
   their planned dances, not with their alternates: one alternate is checked
   at a time, as if it alone were called. A pair holds two dances, so the
-  editor offers **At most** 1 or **At least** 1 or 2 here.
+  editor offers **At most** 1 or **At least** 1 or 2 here. A
+  [placeholder](#fill-a-placeholder) still to be filled stands for a dance:
+  the dances on either side of it are not next to each other, and a pair
+  with the placeholder isn't checked until you fill it. (The matrix, which
+  has no row for a placeholder, treats it like a note.)
 - **Before and after the first break** need a break: in a program without one,
   neither half exists, so *At most* is always met and *At least* never is.
 - **A rule that can't be checked** shows in the strip as needing attention,

@@ -370,7 +370,11 @@ class SavedSearchActions {
             : null;
         if (rule == null) {
           // Anything else (a template's slot rule, #2338) in its own words.
-          uses.add((Icons.link, savedSearchUseText(l10n, use), null));
+          // An unnamed event rule deleted since it was counted has neither a
+          // name nor a sentence left to show, and no longer uses the search.
+          final text = savedSearchUseText(l10n, use);
+          if (text.trim().isEmpty) continue;
+          uses.add((Icons.link, text, null));
         } else {
           usedByRules = true;
           final sentence = eventRuleSentence(l10n, rule, label);

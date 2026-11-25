@@ -314,7 +314,12 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   icon. Settings ▸ Experimental ▸ Suggestions holds the toggle and **What
   suggestions look for**: Off / A little / A lot per factor as segmented
   buttons, the curve shape and venue window as dropdowns, and Reset to
-  defaults; no numbers. See [suggestions.md](suggestions.md).
+  defaults; no numbers. With Event rules on too and rules applied (#2345), a
+  dance that would break one at that place carries a marker above its reason
+  line, rule icon plus "Would break: *rule sentence*" (screen-reader label
+  "Would break the event rule: …"), and is listed after every unmarked dance;
+  **Why?** lists the rule first. The ranking shows unmarked first and the
+  marks follow when the check finishes. See [suggestions.md](suggestions.md).
 - Event rules (#2340, Experimental, off by default): with Settings ▸
   Experimental ▸ Event rules on, the Build tab's button row (after Add note or
   break and Insert break) gains **Rules** ("Rules (2)" with two applied). It

@@ -7955,6 +7955,32 @@ class AppLocalizationsEn extends AppLocalizations {
       'This dance code doesn\'t contain any dances or programs.';
 
   @override
+  String get importScanDanceCode => 'Scan a dance code';
+
+  @override
+  String get importScanNoCode =>
+      'No dance code was found in the picture. Make sure the whole code is in it and sharp.';
+
+  @override
+  String get importScanUnreadable => 'The picture couldn\'t be read.';
+
+  @override
+  String get importDanceCodePicture => 'Dance code from a picture…';
+
+  @override
+  String importScanTooLarge(int limit) {
+    return 'This picture is larger than $limit MB, so it wasn\'t read. Choose a smaller one.';
+  }
+
+  @override
+  String get importScanNoCamera =>
+      'This device has no camera app to take the photo. Choose \"Dance code from a picture…\" instead.';
+
+  @override
+  String get importScanCameraOff =>
+      'Camera access is off for Caller\'s Compendium. To scan a code, turn it on in the Settings app.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'That file isn\'t a Caller\'s Compendium share file.';
 
@@ -13471,6 +13497,28 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String suggestionWouldBreak(int count, String rules) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Would break $count rules: $rules',
+      one: 'Would break: $rules',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String suggestionWouldBreakSemantic(int count, String rules) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Would break $count event rules: $rules',
+      one: 'Would break the event rule: $rules',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get figureParamSearchDancersHint => 'Search dancers';
 
   @override
@@ -15172,6 +15220,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String programTemplateRulesPickerFull(int max) {
     return 'This template uses $max rules, the most it can. Untick one to add another.';
   }
+
+  @override
+  String programsRulesPickerNotHere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count rules not on this device',
+      one: '1 rule not on this device',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsRulesPickerNotHereHelp =>
+      'Added on another device and still on the way, or gone for good. Remove takes them off this program.';
+
+  @override
+  String get programsRulesChangeFailed =>
+      'Couldn\'t change this program\'s rules. Try again.';
 
   @override
   String get eventRuleCountNeighbouringHelp =>

@@ -1,0 +1,14 @@
+{
+  "id": "2345-suggestions-mark-rule-breaks",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "With both Experimental features Suggestions and Event rules on, the program builder's picker in its Suggested order marks each dance that would break one of the program's rules where the dance will go (at the end, where you are adding before or after a slot, or in the slot you are replacing), with an icon and \"Would break:\" and the rule, and lists those dances after every other dance. Nothing is hidden, the order without rules shows first while the check runs, and Why? names the rule. With either feature off, no rules on the program, or another sort, the picker lists dances exactly as before."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add CandidateRuleCheck, which says which applied event rules a dance would break at a SuggestionPosition from per-rule match sets (one evaluation per combination of rules a candidate matches), and markRuleBreakingSuggestions, which marks those suggestions (RankedSuggestion.wouldBreak) and lists them last."
+    ]
+  }
+}

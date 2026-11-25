@@ -285,7 +285,12 @@ void main() {
       reason: 'held back from a peer without event rules',
     );
 
-    // The peer updates to a build with event rules.
+    // The peer updates to a build with event rules. Its capability record
+    // is rewritten then, stamped with the real clock at the store's
+    // one-second precision: let a second pass first, so the new record is
+    // newer than the one the peer wrote moments ago rather than tied with it
+    // (a tie can keep the old record, and the gate shut, on the other device).
+    await Future<void>.delayed(const Duration(milliseconds: 1100));
     older.dispose();
     older = InMemorySyncDevice(
       server,

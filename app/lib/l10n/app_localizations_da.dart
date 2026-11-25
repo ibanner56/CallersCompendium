@@ -7994,6 +7994,32 @@ class AppLocalizationsDa extends AppLocalizations {
       'Denne dansekode indeholder ingen danse eller programmer.';
 
   @override
+  String get importScanDanceCode => 'Scan en dansekode';
+
+  @override
+  String get importScanNoCode =>
+      'Der blev ikke fundet nogen dansekode i billedet. Sørg for, at hele koden er med og skarp.';
+
+  @override
+  String get importScanUnreadable => 'Billedet kunne ikke læses.';
+
+  @override
+  String get importDanceCodePicture => 'Dansekode fra et billede…';
+
+  @override
+  String importScanTooLarge(int limit) {
+    return 'Dette billede er større end $limit MB, så det blev ikke læst. Vælg et mindre.';
+  }
+
+  @override
+  String get importScanNoCamera =>
+      'Denne enhed har ingen kameraapp til at tage billedet. Vælg i stedet »Dansekode fra et billede…«.';
+
+  @override
+  String get importScanCameraOff =>
+      'Kameraadgang er slået fra for Caller\'s Compendium. Slå den til i appen Indstillinger for at scanne en kode.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'Den fil er ikke en delefil fra Caller’s Compendium.';
 
@@ -13524,6 +13550,28 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String suggestionWouldBreak(int count, String rules) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ville bryde $count regler: $rules',
+      one: 'Ville bryde: $rules',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String suggestionWouldBreakSemantic(int count, String rules) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Ville bryde $count aftenregler: $rules',
+      one: 'Ville bryde aftenreglen: $rules',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get figureParamSearchDancersHint => 'Søg i dansere';
 
   @override
@@ -15227,6 +15275,25 @@ class AppLocalizationsDa extends AppLocalizations {
   String programTemplateRulesPickerFull(int max) {
     return 'Denne skabelon bruger $max regler, det højeste antal. Fjern fluebenet ved en for at tilføje en anden.';
   }
+
+  @override
+  String programsRulesPickerNotHere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count regler findes ikke på denne enhed',
+      one: '1 regel findes ikke på denne enhed',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsRulesPickerNotHereHelp =>
+      'Tilføjet på en anden enhed og stadig på vej, eller væk for altid. Fjern tager dem af dette program.';
+
+  @override
+  String get programsRulesChangeFailed =>
+      'Kunne ikke ændre dette programs regler. Prøv igen.';
 
   @override
   String get eventRuleCountNeighbouringHelp =>
