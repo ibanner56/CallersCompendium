@@ -92,6 +92,14 @@ class ProgramEventRulesController extends ChangeNotifier {
   @visibleForTesting
   int contextReads = 0;
 
+  /// Table-change batches judged so far, and those judged to need a check:
+  /// a test seam, so a test can wait until a write has been looked at and
+  /// then tell that it asked for no check.
+  @visibleForTesting
+  int tableBatchesJudged = 0;
+  @visibleForTesting
+  int tableBatchesRechecked = 0;
+
   bool _frameScheduled = false;
   bool _running = false;
   bool _rerun = false;
@@ -136,21 +144,33 @@ class ProgramEventRulesController extends ChangeNotifier {
     _inputs = _Inputs(ruleIds, slots, readContext, dialect, enrichment);
     // A rule edited in the manager (or by sync) changes what it says. The
     // first list only says which rules are here.
-    _rulesWatch ??= repos.eventRules.watchAll().listen((live) async {
-      final first = _deletedRuleIds == null;
-      final liveIds = {for (final r in live) r.id};
-      final all = await repos.eventRules.listAll(includeDeleted: true);
-      if (_disposed || _rulesWatch == null) return;
-      _deletedRuleIds = {
-        for (final r in all)
-          if (!liveIds.contains(r.id)) r.id,
-      };
-      if (!first) {
-        _rulesGeneration++;
-        _schedule();
-      }
-      _notifyLater();
-    });
+    if (_rulesWatch == null) {
+      // Numbered as they arrive, before any await: emissions can overlap,
+      // and only the first is the list as it was (no re-check), while a
+      // slower read never overwrites a newer one's deleted ids.
+      var emissions = 0;
+      var applied = 0;
+      late final StreamSubscription<List<EventRule>> watch;
+      watch = repos.eventRules.watchAll().listen((live) async {
+        final seq = ++emissions;
+        final liveIds = {for (final r in live) r.id};
+        final all = await repos.eventRules.listAll(includeDeleted: true);
+        if (_disposed || !identical(_rulesWatch, watch)) return;
+        if (seq > applied) {
+          applied = seq;
+          _deletedRuleIds = {
+            for (final r in all)
+              if (!liveIds.contains(r.id)) r.id,
+          };
+        }
+        if (seq > 1) {
+          _rulesGeneration++;
+          _schedule();
+        }
+        _notifyLater();
+      });
+      _rulesWatch = watch;
+    }
     _tablesWatch ??= _watchTables();
     // At once, not at the next frame: a host calls this from `build`, and a
     // frame asked for here would ask for the next.
@@ -201,10 +221,16 @@ class ProgramEventRulesController extends ChangeNotifier {
           var changed =
               tables.any(contextNames.contains) ||
               tables.any(dataNames.contains);
-          if (!changed && tables.contains(settingsName)) {
-            changed = await _savedSearchesChanged();
+          // Looked at whenever `settings` is in the batch, so the baseline
+          // stays current even when another table already re-checks.
+          if (tables.contains(settingsName)) {
+            final searchesChanged = await _savedSearchesChanged();
+            changed = changed || searchesChanged;
           }
-          if (!changed || _disposed) return;
+          if (_disposed) return;
+          tableBatchesJudged++;
+          if (!changed) return;
+          tableBatchesRechecked++;
           _dataGeneration++;
           _schedule();
         });

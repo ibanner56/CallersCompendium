@@ -517,8 +517,17 @@ void main() {
     await h.checked(1);
     expect(h.reads, 1);
 
+    final judged = h.controller.tableBatchesJudged;
     await repos.settings.set('program_draft:p1', {'title': 'Night, drafted'});
     await repos.settings.set('window_size', {'width': 900, 'height': 700});
+    // Each write is one batch: wait until both have been looked at, so a
+    // check either asked for is already counted below.
+    await pumpUntil(
+      tester,
+      () => h.controller.tableBatchesJudged >= judged + 2,
+      description: 'both settings writes judged',
+    );
+    expect(h.controller.tableBatchesRechecked, 0, reason: 'no check asked');
     await h.settle();
     expect(h.checks, 1, reason: 'nothing a check reads changed');
     expect(h.reads, 1);
@@ -535,6 +544,42 @@ void main() {
     await h.checked(2);
     expect(h.controller.check.broken, isEmpty);
     expect(h.reads, 1);
+  });
+
+  testWidgets('a write that changes a saved search together with a dance '
+      'still moves the baseline, so the next settings write asks for no '
+      'check', (tester) async {
+    final seeded = await _seed();
+    final repos = seeded.repos;
+    final h = await harness(tester, seeded);
+    h.update(h.program.slots);
+    await h.checked(1);
+
+    // One batch: a dance and the saved search, in one transaction.
+    await repos.transaction(() async {
+      final dance = (await repos.dances.getById('d-c'))!;
+      await repos.dances.update(dance.copyWith(title: 'Chorus Jig Too'));
+      await repos.savedSearches.save(
+        SavedSearch(
+          id: seeded.becket.id,
+          name: 'Becket',
+          spec: _spec((f) => f.formations.add(FormationShape.dupleImproper)),
+        ),
+      );
+    });
+    await h.checked(2);
+
+    final judged = h.controller.tableBatchesJudged;
+    final rechecked = h.controller.tableBatchesRechecked;
+    await repos.settings.set('window_size', {'width': 900, 'height': 700});
+    await pumpUntil(
+      tester,
+      () => h.controller.tableBatchesJudged > judged,
+      description: 'the settings write judged',
+    );
+    expect(h.controller.tableBatchesRechecked, rechecked);
+    await h.settle();
+    expect(h.checks, 2);
   });
 
   testWidgets('rules applied while a save is in flight survive the save', (
