@@ -15134,6 +15134,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'Affiché au-dessus de la phrase de la règle, et trouvé par la recherche du sélecteur de règles.';
 
   @override
+  String eventRuleSpokenTitle(String nickname, String sentence) {
+    return '$nickname ($sentence)';
+  }
+
+  @override
   String get eventRulesOrderTitle => 'Ordre des règles';
 
   @override

@@ -263,7 +263,13 @@ void main() {
       find.descendant(of: primary, matching: find.byIcon(Icons.rule)),
       findsOneWidget,
     );
-    expect(tester.getSemantics(primary).label, 'Breaks the rule: Easy start');
+    // A nicknamed rule is read with its sentence too (#2535): a screen
+    // reader cannot glance at the Rules strip to recall what it requires.
+    expect(
+      tester.getSemantics(primary).label,
+      'Breaks the rule: Easy start (No dance matching "Becket" before the '
+      'first break)',
+    );
 
     final alternate = find.byKey(const ValueKey('slot-s2alt-rule-marker'));
     expect(

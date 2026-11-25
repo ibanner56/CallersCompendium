@@ -8,7 +8,8 @@ import '../search/event_rule_check.dart' show CandidateRuleMarks;
 import '../search/facet_labels.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
-import 'event_rule_text.dart' show eventRuleTitle, eventRuleWarningIcon;
+import 'event_rule_text.dart'
+    show EventRuleName, eventRuleName, eventRuleWarningIcon;
 
 /// The program a [CollectionPicker] adds to (history-filters Q3, extended for
 /// suggestions, #2343, #2344): its id, its venue, and where in it the chosen
@@ -136,39 +137,43 @@ class PickerEventRules {
   int get hashCode => Object.hash(revision, inEveryOrder);
 }
 
-/// The title of each rule [rules] lists, as the builder's Rules strip and the
-/// rule picker call it ([eventRuleTitle]): its nickname (#2341), else its
-/// sentence, the saved search names [marks] read.
-List<String> suggestionRuleTitles(
+/// The name of each rule [rules] lists ([eventRuleName]), with the saved
+/// search names [marks] read: its title as the builder's Rules strip and the
+/// rule picker call it (its nickname, #2341, else its sentence), and what a
+/// screen reader hears (its nickname and sentence, #2535, else its sentence).
+List<EventRuleName> suggestionRuleNames(
   AppLocalizations l10n,
   List<EventRule> rules,
   CandidateRuleMarks marks,
 ) => [
   for (final rule in rules)
-    eventRuleTitle(l10n, rule, marks.searchNames[rule.id]),
+    eventRuleName(l10n, rule, marks.searchNames[rule.id]),
 ];
 
 /// The marker on a suggested dance that would break the program's applied
 /// event rules where the suggestions are for (#2345): the rules icon with
-/// "Would break: …" and each rule's title ([rules]: its nickname, else its
-/// sentence, #2530), so it never relies on colour alone, and a screen-reader
-/// label that names the rules the same way.
+/// "Would break: …" and each rule's title (its nickname, else its sentence,
+/// #2530), so it never relies on colour alone, and a screen-reader label that
+/// names each rule by its nickname and its sentence, else its sentence
+/// (#2535), so a nickname never stands in for what the rule requires.
 class SuggestionRuleMarker extends StatelessWidget {
   const SuggestionRuleMarker({super.key, required this.rules});
 
-  /// Each rule's title ([eventRuleTitle]: its nickname, else its sentence), in
-  /// the order the program applies them. Not empty.
-  final List<String> rules;
+  /// Each rule's name ([eventRuleName]), in the order the program applies
+  /// them. Not empty.
+  final List<EventRuleName> rules;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final color = theme.colorScheme.error;
-    final joined = rules.join('; ');
     return Semantics(
       container: true,
-      label: l10n.suggestionWouldBreakSemantic(rules.length, joined),
+      label: l10n.suggestionWouldBreakSemantic(
+        rules.length,
+        rules.map((r) => r.spoken).join('; '),
+      ),
       child: ExcludeSemantics(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,7 +182,10 @@ class SuggestionRuleMarker extends StatelessWidget {
             const SizedBox(width: AppSpacing.xxs),
             Expanded(
               child: Text(
-                l10n.suggestionWouldBreak(rules.length, joined),
+                l10n.suggestionWouldBreak(
+                  rules.length,
+                  rules.map((r) => r.title).join('; '),
+                ),
                 style: theme.textTheme.bodySmall?.copyWith(color: color),
               ),
             ),
@@ -378,7 +386,7 @@ String suggestionFactorTitle(AppLocalizations l10n, SuggestionFactor factor) =>
     };
 
 /// The **Why?** dialog: first, each event rule [suggestion] would break
-/// there ([wouldBreak], its titles, #2345), then every reason that moved
+/// there ([wouldBreak], its names, #2345), then every reason that moved
 /// it, each marked as raising or lowering it, then its notes (a factor that
 /// was skipped).
 Future<void> showSuggestionWhyDialog(
@@ -386,7 +394,7 @@ Future<void> showSuggestionWhyDialog(
   required String title,
   required RankedSuggestion suggestion,
   required SuggestionReasonLabels labels,
-  List<String> wouldBreak = const [],
+  List<EventRuleName> wouldBreak = const [],
 }) {
   final l10n = AppLocalizations.of(context);
   return showDialog<void>(

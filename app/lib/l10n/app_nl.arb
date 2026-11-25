@@ -14338,6 +14338,10 @@
   "@eventRuleNicknameHelp": {
     "x-sourceSha256": "2b49a0d5c0f6ef016a7b079c043894c7f578f6b38b8bbee36b7dfaddc4e13c72"
   },
+  "eventRuleSpokenTitle": "{nickname} ({sentence})",
+  "@eventRuleSpokenTitle": {
+    "x-sourceSha256": "70ca0b7840f7e2ae5685fb42701895252e54418dd8380489019247f6b9a95f66"
+  },
   "eventRulesOrderTitle": "Volgorde van regels",
   "@eventRulesOrderTitle": {
     "x-sourceSha256": "40274c011d1919f9614435d995f2694731a5a1a15b42f8996bbf9078ba7e76fe"
