@@ -1,2 +1,2 @@
 "NSCameraUsageDescription" = "Caller's Compendium bruger kun kameraet, når du tager et billede i appen, f.eks. af et danskort for at læse dets figurer. Billedet læses på din enhed og slettes derefter. Det sendes aldrig nogen steder hen.";
-"NSPhotoLibraryUsageDescription" = "Caller's Compendium bruger ikke dit fotobibliotek. Teksten i et billede, du tager i appen, læses på din enhed, hvorefter billedet slettes. Det gemmes aldrig i dit fotobibliotek.";
+"NSPhotoLibraryUsageDescription" = "Caller's Compendium bruger ikke dit fotobibliotek. Et billede, du tager i appen, læses på din enhed og slettes derefter. Det gemmes aldrig i dit fotobibliotek.";
