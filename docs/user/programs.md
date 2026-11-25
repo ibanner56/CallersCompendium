@@ -469,8 +469,8 @@ dance that would break a rule there is marked with an icon and **Would
 break:** and the rule (its nickname if it has one, else its sentence), such
 as *Would break: At most 1 dance matching "Petronella" in the whole
 program*, above its reason. A screen reader reads which rules, and for a
-rule with a nickname reads its sentence too. Select the question mark to see the rule at the top of
-its reasons.
+rule with a nickname reads its sentence too. Select the question mark to see
+the rule at the top of its reasons.
 
 - Marked dances are listed after every other dance, the ones already in the
   program included, each group in the Suggested order. Nothing is hidden: you
