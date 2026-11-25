@@ -772,7 +772,11 @@ class _RulesPickerState extends State<_RulesPicker> {
     final rules = _rules;
     String sentence(EventRule r) =>
         eventRuleSentence(l10n, r, _names[r.savedSearchId]);
-    final query = _query.trim();
+    final showSearch =
+        rules != null && rules.length > kEventRulePickerSearchThreshold;
+    // The text filters only while its field is shown: if a rule deleted
+    // elsewhere hides the field, nothing on screen could clear it.
+    final query = showSearch ? _query.trim() : '';
     final shown = rules == null
         ? null
         : [
@@ -788,8 +792,6 @@ class _RulesPickerState extends State<_RulesPicker> {
     // rule's nickname (#2341).
     final offerTyped =
         query.isNotEmpty && shown != null && shown.isEmpty && rules!.isNotEmpty;
-    final showSearch =
-        rules != null && rules.length > kEventRulePickerSearchThreshold;
     // Laid out as the add-to-program sheet is (add-to-program-sheet.md §4.5):
     // the sheet takes the height above the keyboard, and with the keyboard up
     // it drops its title and holds New rule… to two lines, so the pinned line,

@@ -158,6 +158,31 @@ void main() {
     expect(_search, findsNothing);
   });
 
+  testWidgets('a search typed before a deletion hides the field stops '
+      'filtering', (tester) async {
+    final seeded = await _seed();
+    final rules = [
+      for (var i = 1; i <= kEventRulePickerSearchThreshold + 1; i++)
+        await seeded.rule(seeded.becket, count: i),
+    ];
+    await _openPicker(tester, seeded.repos);
+    await pumpUntilFound(tester, _search);
+    await tester.enterText(_search, 'xyz');
+    await tester.pumpAndSettle();
+    expect(_listed(tester), isEmpty);
+    // Another device deletes a rule: the count drops to the threshold, so
+    // the field goes; the list must not stay filtered by text no one can see.
+    await seeded.repos.eventRules.delete(rules.last.id, at: _now);
+    await pumpUntil(
+      tester,
+      () => _search.evaluate().isEmpty,
+      description: 'the search field to go',
+    );
+    await tester.pumpAndSettle();
+    expect(_listed(tester), hasLength(kEventRulePickerSearchThreshold));
+    expect(find.text('New rule…'), findsOneWidget);
+  });
+
   testWidgets('typing filters by nickname and sentence words, folding case '
       'and accents; New rule… stays pinned; with no match it offers the '
       'typed text as the new rule\'s nickname', (tester) async {
