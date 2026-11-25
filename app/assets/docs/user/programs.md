@@ -477,6 +477,17 @@ with one of your [saved searches](./collection.md#save-a-search-and-use-it-again
   **New rule…** at the top opens the rule editor and, once you save the rule,
   adds it to this program. A new program, a copy of a program, and a program
   you import start with no rules: a rule is never added for you.
+  A rule with a nickname shows it, with its sentence under it. The rules are
+  listed in your **Rule order** — your own order from **Manage rules**, or
+  the ones your programs use most first (see
+  [Event rules](./settings.md#event-rules)).
+  With more than eight rules, a **Search rules** field sits above the list.
+  Type to see only the rules whose nickname or sentence holds every word you
+  typed, in either; capitals and accents don't matter, so *petronella* finds
+  a rule whose sentence names your *Petronella* search, and *ecole* finds
+  *École*. **New rule…** stays at the top while you search. When no rule
+  matches, it becomes **New rule "*what you typed*"…**, which opens the rule
+  editor with what you typed as the new rule's nickname.
 - **Whenever the program changes**, each of its rules is checked, and again
   when something a rule reads changes while the program is open: a rule, its
   saved search, a dance, or a tag, author or other thing a search names. A broken
