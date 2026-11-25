@@ -273,6 +273,33 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   or elsewhere, hidden by Hide archived, or by the Show archived reset when
   Programs is left), including a selection handed over by a rotation. Restoring a program from Recently deleted
   unarchives it; a delete's Undo does not.
+- Select programs (#2349, Experimental, off by default): with Settings ▸
+  Experimental ▸ Weekends and series on, the list's ⋮ menu starts with
+  **Select programs**. Selection mode follows Collection's
+  ([bulk-selection.md](bulk-selection.md)): a checkbox leads each row (tapping
+  the row toggles it; no swipe, row ⋮ or chevron), New program is hidden, and
+  the selection bar has a close button, a live-region "{n} selected" title, one
+  action, **Combined view** (enabled from two programs; its tooltip says so
+  while disabled), and a ⋮ holding Show archived, so archived programs can be
+  added. The type chips stay. A checked program the chips or Hide archived stop
+  listing stays checked, and the count line adds "{n} selected ({m} not shown)"
+  with **Deselect those not shown** (N4-1); a deleted program is dropped. The
+  selection is session-only: it ends when another top-level destination is
+  chosen or the setting is turned off.
+- Combined view (#2349): a full-screen page, not a navigation destination,
+  with **Matrix** and **Repeats** tabs, worked out from the selected programs
+  and re-worked when one changes; nothing is stored and no callers are shown.
+  Matrix is the program matrix over every dance, programs in event-date order
+  (undated last, by title), each program a block under a heading row with its
+  title and date (a header to assistive technology; on the phone layout each
+  dance chip names its program instead). No row shows the 1st/2nd section badge.
+  Program boundaries separate dances as breaks do, so the adjacent-dance alert
+  never crosses programs; Introduced here is computed once across the set. The
+  hide-column, phrase-label and hide-alternates controls and the PDF export
+  are the program Matrix tab's, scoped to this page. Repeats lists every dance
+  in two or more selected programs with each program, date and position
+  ("dance 3", "alternate for dance 3"), and an "Only an alternate in some" chip
+  when the dance is only an alternate in at least one program.
 - New program (#2337): with two or more program templates, New program first
   opens a short bottom sheet titled "Start from a template", listing the
   templates in the user's order with the Default template first and marked

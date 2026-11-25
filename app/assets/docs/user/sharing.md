@@ -541,6 +541,12 @@ The matrix covers dances only, so if your program includes notes or breaks the
 PDF says how many were left out. Hiding a column on screen is a viewing
 convenience and does not narrow the export — every move column prints.
 
+The [combined view of a weekend or series](./programs.md#check-a-weekend-or-series)
+(*Experimental*) prints the same way from its **Matrix** tab. Its PDF is headed
+**Combined matrix**, and a row naming each program's title and date goes above
+that program's dances. It prints nothing a program's own matrix PDF doesn't,
+apart from those titles and dates.
+
 ## What stays private
 
 Exports are a privacy boundary, and the app treats them as one. Some things are

@@ -5316,6 +5316,18 @@ first client build that advertises `eventRules.v1` (§7.5). A rule's quantifier
 and scope are stored names, so a new quantifier or scope is kept by a build
 that does not know it (see §4.3) and does not bump the capability.
 
+**`weekendsAndSeries.v1`.** Gates the exact settings key
+`weekends_and_series_enabled`, the Experimental **Weekends and series** toggle
+(#2349), tombstones included. A build without it has no combined view of
+several programs and nothing that reads the key. Nothing else of the feature
+is stored or synced: the programs a caller selects and the combined view are
+session state. The reference client advertises it from the change that adds
+the combined view, so it is subject to *Rollout*: a device on a build that
+lists every other capability but this one holds it closed and is named for it,
+while what the others gate publishes past it. The server validates settings
+keys through the registry it is built from, so it MUST be deployed before the
+first client build that advertises `weekendsAndSeries.v1` (§7.5).
+
 **Server.** The server needs no code for the gate. It validates settings keys
 and record kinds through the registry it is built from, so it MUST be deployed
 before any client emits the capability prefix or a gated kind (§7.5).

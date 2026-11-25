@@ -219,6 +219,27 @@ void main() {
       expect(find.text('1 selected'), findsOneWidget);
     });
 
+    testWidgets('a checked program that is deleted is dropped, not counted as '
+        'not shown', (tester) async {
+      final repos = await seed();
+      await pumpList(tester, repos);
+      await startSelecting(tester);
+      await tester.tap(checkbox('sat'));
+      await tester.tap(checkbox('sun'));
+      await tester.pumpAndSettle();
+      expect(find.text('2 selected'), findsOneWidget);
+
+      await repos.programs.softDelete('sat', at: now);
+      await tester.pumpAndSettle();
+      expect(checkbox('sat'), findsNothing);
+      expect(find.text('1 selected'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('programs-selection-not-shown')),
+        findsNothing,
+      );
+      expect(combinedEnabled(tester), isFalse);
+    });
+
     testWidgets('turning the setting off ends the selection', (tester) async {
       final repos = await seed();
       final setting = await pumpList(tester, repos);
