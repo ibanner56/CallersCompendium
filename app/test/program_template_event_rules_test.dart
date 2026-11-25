@@ -222,6 +222,75 @@ void main() {
     ]);
   });
 
+  testWidgets('a nicknamed rule shows its sentence beneath its nickname, '
+      'removed or not; a rule without one shows its sentence once', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final facets = FacetSelections()..formations.add(FormationShape.becketCcw);
+    final becket = await repos.savedSearches.create(
+      name: 'Becket',
+      spec: SavedSearchSpec.fromPanelState(
+        CollectionPanelState(facets: facets),
+        today: DateTime.utc(2026, 1, 1),
+      ).value!,
+    );
+    final named = await repos.eventRules.create(
+      savedSearchId: becket.id,
+      quantifier: EventRuleQuantifier.atMost,
+      count: 1,
+      scope: EventRuleScope.wholeProgram,
+      nickname: 'One becket',
+    );
+    final plain = await repos.eventRules.create(
+      savedSearchId: becket.id,
+      quantifier: EventRuleQuantifier.none,
+      scope: EventRuleScope.beforeFirstBreak,
+    );
+    final template = ProgramTemplate(
+      id: 't',
+      name: 'Family dance',
+      eventRuleIds: [named.id, plain.id],
+    );
+    await saveProgramTemplate(repos.settings, template);
+    await _pump(
+      tester,
+      repos,
+      ProgramTemplateEditorScreen(template: template),
+      enabled: true,
+    );
+    Finder sentence(String id) =>
+        find.byKey(ValueKey('program-template-rule-$id-sentence'));
+    const namedSentence =
+        'At most 1 dance matching "Becket" in the whole program';
+    await pumpUntilFound(tester, find.text(namedSentence));
+
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(ValueKey('program-template-rule-${named.id}')),
+          )
+          .data,
+      'One becket',
+    );
+    expect(tester.widget<Text>(sentence(named.id)).data, namedSentence);
+    // Its line is its sentence already: not shown twice.
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(ValueKey('program-template-rule-${plain.id}')),
+          )
+          .data,
+      'No dance matching "Becket" before the first break',
+    );
+    expect(sentence(plain.id), findsNothing);
+
+    // A deleted rule, shown as removed, still says what it required.
+    await repos.eventRules.delete(named.id);
+    await pumpUntilFound(tester, find.text('Removed: One becket'));
+    expect(tester.widget<Text>(sentence(named.id)).data, namedSentence);
+  });
+
   testWidgets('Duplicate keeps the rules, and Rename leaves them alone', (
     tester,
   ) async {
