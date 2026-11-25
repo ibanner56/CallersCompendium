@@ -1,0 +1,10 @@
+{
+  "id": "2336-scan-a-dance-code",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Import ▸ Scan a dance code (iPhone, iPad and Android): photograph a dance's QR code from another caller's Show code screen, and the dance opens in the import review, the same as tapping the link in the Camera app. On Android the phone's own camera app takes the photo, so the app asks for no camera permission. The code is read on the device, the photo is deleted as soon as it has been read, and a code that isn't a dance code is refused, never fetched.",
+      "Import ▸ Dance code from a picture… (every platform): open a dance's QR code from a photo or screenshot you already have, read the same way."
+    ]
+  }
+}

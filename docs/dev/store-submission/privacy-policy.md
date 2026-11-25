@@ -140,10 +140,11 @@ a response. We do not use that information to identify or track you.
 ### 4. Permissions
 
 The app requests network (internet) access, used for the purposes in Section 3.
-On iPhone and iPad it can also ask to use your **camera**, and uses it only when
-you choose to take a photo in the app, such as of a dance card to read its
-figures. The photo is read on your device and deleted as soon as it has been
-read. It is never sent to us or anyone else, and it is not saved to your photo
+On iPhone and iPad it can also ask to use your **camera**, and on Android it
+can open your phone's own camera app, which needs no permission. Either is used
+only when you choose to take a photo in the app, such as of a dance card to read
+its figures or of a dance's QR code to import it. The photo is read on your
+device and deleted as soon as it has been read. It is never sent to us or anyone else, and it is not saved to your photo
 library. The app does **not** request access to your microphone, location,
 contacts, photos, or similar sensitive device data.
 

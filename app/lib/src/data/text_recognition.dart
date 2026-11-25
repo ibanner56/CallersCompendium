@@ -295,8 +295,7 @@ Future<PickedRecognitionImage?> pickRecognitionImage({
 /// Deletes [path] when it lies in an `…-Inbox` folder at the top of
 /// [temporaryDirectory] (on iOS, the app's tmp folder, where the
 /// document picker's import mode puts its copies), links resolved on both
-/// sides.
-@visibleForTesting
+/// sides. Shared with the dance-code picture picker (`dance_code_scanner.dart`).
 Future<void> deletePickerCopy(
   String path, {
   required Directory temporaryDirectory,
