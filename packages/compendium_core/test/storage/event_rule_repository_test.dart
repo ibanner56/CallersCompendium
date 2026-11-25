@@ -11,9 +11,17 @@ void main() {
   late CompendiumRepositories repos;
   final t0 = DateTime.utc(2026, 1, 2, 3, 4, 5);
 
-  setUp(() {
+  setUp(() async {
     db = openTestDatabase();
     repos = CompendiumRepositories(db, contraTaxonomy);
+    await storeSavedSearches(repos.settings, [
+      's',
+      's1',
+      's2',
+      's3',
+      'other',
+      'another-search',
+    ]);
   });
 
   tearDown(() => db.close());
@@ -95,6 +103,63 @@ void main() {
         throwsA(isA<EventRuleInvalid>()),
       );
       expect(await repos.eventRules.listAll(), isEmpty);
+    });
+
+    group('only names a saved search that is stored (#2529)', () {
+      test('create refuses one never stored, or deleted, writing '
+          'nothing', () async {
+        await expectLater(
+          addRule('never-stored'),
+          throwsA(
+            isA<SavedSearchGone>().having((e) => e.id, 'id', 'never-stored'),
+          ),
+        );
+        await repos.savedSearches.delete('s1');
+        await expectLater(addRule('s1'), throwsA(isA<SavedSearchGone>()));
+        expect(await repos.eventRules.listAll(includeDeleted: true), isEmpty);
+      });
+
+      test('an edit that moves a rule to a deleted search is refused, and '
+          'one that keeps a search deleted since is not', () async {
+        final rule = await addRule('s1', nickname: 'Before');
+        await repos.savedSearches.delete('s2');
+        await expectLater(
+          repos.eventRules.save(rule.copyWith(savedSearchId: 's2')),
+          throwsA(isA<SavedSearchGone>()),
+        );
+        expect((await repos.eventRules.get(rule.id))!.savedSearchId, 's1');
+
+        // Its own search deleted since (a peer's delete arriving by sync):
+        // the rule can still be renamed.
+        repos.savedSearches.usage.unregister(eventRuleUseKind);
+        await repos.savedSearches.delete('s1');
+        await repos.eventRules.save(rule.copyWith(nickname: 'After'));
+        expect((await repos.eventRules.get(rule.id))!.nickname, 'After');
+      });
+
+      test('a rule arriving by sync or a restore is not checked', () async {
+        const rule = EventRule(
+          id: 'r',
+          savedSearchId: 'not-here',
+          quantifierName: 'none',
+          count: 0,
+          scopeName: 'wholeProgram',
+        );
+        await repos.eventRules.writeFromSync(rule);
+        await repos.eventRules.upsertFromRestore(
+          const EventRule(
+            id: 'r2',
+            savedSearchId: 'not-here',
+            quantifierName: 'none',
+            count: 0,
+            scopeName: 'wholeProgram',
+          ),
+          backupCreatedAt: t0,
+        );
+        expect([
+          for (final r in await repos.eventRules.listAll()) r.id,
+        ], unorderedEquals(['r', 'r2']));
+      });
     });
 
     test('a rule a newer build wrote reads as one it cannot check', () async {

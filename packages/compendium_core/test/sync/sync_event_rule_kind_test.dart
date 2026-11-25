@@ -196,6 +196,7 @@ void main() {
     }
 
     test('a rule applies, and its deletion applies as a tombstone', () async {
+      await storeSavedSearches(a.settings, ['search-1']);
       await a.eventRules.save(rule(), at: edited);
       const address = (kind: SyncRecordKind.eventRule, recordId: 'r1');
       final live = await held(a, address);

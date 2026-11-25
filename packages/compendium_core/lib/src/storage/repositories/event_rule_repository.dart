@@ -5,7 +5,9 @@ import '../../util/uuid.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
-import 'saved_search_repository.dart' show SavedSearchUse;
+import 'saved_search_repository.dart'
+    show SavedSearchGone, SavedSearchUse, isSavedSearchStored;
+import 'settings_repository.dart';
 
 /// The [SavedSearchUse.kind] of an event rule (#2340), so a refused delete of
 /// a saved search can name each rule that uses it.
@@ -118,7 +120,8 @@ class EventRuleRepository {
 
   /// Adds a new rule under a fresh id, after every other rule. Throws
   /// [EventRuleInvalid] for a rule it cannot store, and with field `limit`
-  /// when this device already holds [maxEventRules].
+  /// when this device already holds [maxEventRules]; throws [SavedSearchGone]
+  /// when [savedSearchId] names no stored saved search (#2529).
   Future<EventRule> create({
     required String savedSearchId,
     required EventRuleQuantifier quantifier,
@@ -142,16 +145,26 @@ class EventRuleRepository {
       nickname: nickname,
       position: last + 1,
     );
+    // [save] checks the saved search inside this transaction.
     await save(rule, at: at);
     return (await get(rule.id))!;
   });
 
   /// Writes [rule] under its own id: an edit, or a new rule. Throws
-  /// [EventRuleInvalid] for one it cannot store.
+  /// [EventRuleInvalid] for one it cannot store, and [SavedSearchGone] when
+  /// the rule would start using a saved search that is not stored: a new
+  /// rule, or an edit that changes the search (#2529). An edit that keeps a
+  /// search deleted since is allowed, so the rule can still be renamed.
   Future<void> save(EventRule rule, {DateTime? at}) async {
     _check(rule);
     final now = resolveStamp(at);
     await _db.transaction(() async {
+      final stored = await (_db.select(
+        _db.eventRules,
+      )..where((t) => t.id.equals(rule.id))).getSingleOrNull();
+      if (stored?.savedSearchId != rule.savedSearchId) {
+        await _checkSearchStored(rule.savedSearchId);
+      }
       await _db
           .into(_db.eventRules)
           .insertOnConflictUpdate(_companion(rule, now));
@@ -318,6 +331,14 @@ class EventRuleRepository {
     if (rule.quantifier == null) throw const EventRuleInvalid('quantifier');
     if (rule.scope == null) throw const EventRuleInvalid('scope');
     if (!rule.isReadable) throw const EventRuleInvalid('count');
+  }
+
+  /// Throws [SavedSearchGone] unless the saved search [id] is stored. Run
+  /// inside the write's transaction, so a delete cannot land in between.
+  Future<void> _checkSearchStored(String id) async {
+    if (!await isSavedSearchStored(SettingsRepository(_db), id)) {
+      throw SavedSearchGone(id);
+    }
   }
 
   SimpleSelectStatement<$EventRulesTable, EventRuleRow> _live() =>

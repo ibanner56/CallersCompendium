@@ -228,6 +228,41 @@ void main() {
             'delete and the rule must not both succeed',
       );
     });
+
+    test('a rule the editor creates in that window is refused, not left '
+        'naming the deleted search (#2529)', () async {
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      final s = await repos.savedSearches.create(
+        name: 'Raced',
+        spec: specFor('a'),
+      );
+      // The real writer this time, with no check of its own, started in the
+      // same window outside the delete's zone.
+      Future<Object?>? racer;
+      repos.savedSearches.usage.register('racer', (id) async {
+        racer ??= Zone.root.run(
+          () => repos.eventRules
+              .create(
+                savedSearchId: id,
+                quantifier: EventRuleQuantifier.none,
+                scope: EventRuleScope.wholeProgram,
+              )
+              .then<Object?>((rule) => rule, onError: (Object e) => e),
+        );
+        return const [];
+      });
+
+      await repos.savedSearches.delete(s.id);
+      final outcome = await racer;
+
+      expect(await repos.savedSearches.get(s.id), isNull);
+      expect(
+        outcome,
+        isA<SavedSearchGone>().having((e) => e.id, 'id', s.id),
+        reason: 'the create lands after the delete and must see it',
+      );
+      expect(await repos.eventRules.usesOfSavedSearch(s.id), isEmpty);
+    });
   });
 
   group('what is stored but cannot be read', () {
