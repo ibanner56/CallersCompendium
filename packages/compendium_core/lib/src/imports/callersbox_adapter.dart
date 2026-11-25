@@ -937,13 +937,17 @@ class CallersBoxAdapter implements SourceAdapter {
   ///    `form_short_waves` / `form_a_long_wave` / `form_long_waves` folds into
   ///    that move as `balance: true` with the summed beats (#577 — the reverse
   ///    pattern of the leading-balance fold above);
+  ///    except that when a slide follows that balance on a `pass_the_ocean`
+  ///    or `form_short_waves`, the balance and slide become a balanced
+  ///    Rory O'More after the wave ([_foldFormedWaveIntoRory]);
   ///  - a `<role> go forward` line immediately followed by a
   ///    `<role> bring back partner|neighbor` line of the same role folds into
   ///    one `give_and_take`
   ///    ([_foldGoForwardIntoGiveAndTake]).
   ///
-  /// Adjacency-consume: a single left-to-right walk that advances by two on a
-  /// merge, so each line is consumed at most once, only immediately-adjacent
+  /// Adjacency-consume: a single left-to-right walk that advances past the
+  /// lines it merges (two, or three for a meltdown or a formed wave's Rory
+  /// O'More), so each line is consumed at most once, only immediately-adjacent
   /// lines fold, and a balance/bend line with no mergeable neighbour is kept as
   /// its own figure (choreography is never dropped). Merged beats are the SUM of
   /// the two consumed lines (source timing preserved). The caller passes one
@@ -1091,6 +1095,23 @@ class CallersBoxAdapter implements SourceAdapter {
           continue;
         }
         if (_isOceanWaveMove(current) && _isBalanceWaveLine(next)) {
+          // Forming line, balance and slide: the wave is formed, then
+          // balanced and slid as a Rory O'More, as the last two lines read
+          // without the forming line before them.
+          if (i + 2 < figures.length) {
+            final formed = _foldFormedWaveIntoRory(
+              current,
+              next,
+              figures[i + 2],
+            );
+            if (formed != null) {
+              merged
+                ..add(formed.wave)
+                ..add(formed.rory);
+              i += 3;
+              continue;
+            }
+          }
           final folded = _foldTrailingBalanceIntoWave(current, next);
           if (folded != null) {
             merged.add(folded);
@@ -1577,6 +1598,37 @@ class CallersBoxAdapter implements SourceAdapter {
     r'^(role1s|role2s)\s+bring\s+back\s+(partner|neighbor)$',
     caseSensitive: false,
   );
+
+  /// A short wave formed on its own line, then balanced and slid
+  /// (`Neighbor do si do 1 & 1/4; form wave of four` / `Balance wave of four
+  /// (NR,WL)` / `Slide right (past N)`, TCB #18142): the forming figure, with
+  /// what the balance line says about the wave, and a balanced Rory O'More
+  /// ([_foldBalanceWaveIntoRory]) for the last two lines. Without this the
+  /// balance folded into the wave ([_foldTrailingBalanceIntoWave]) and the
+  /// slide stood alone, so a two-place slide stayed custom. Only a short wave
+  /// or pass the ocean, the waves a Rory O'More is read from; both folds
+  /// must accept their lines, or this returns `null` and they run as before.
+  static ({Figure wave, Figure rory})? _foldFormedWaveIntoRory(
+    Figure wave,
+    Figure balance,
+    Figure slide,
+  ) {
+    if (wave.move != 'form_short_waves' && wave.move != 'pass_the_ocean') {
+      return null;
+    }
+    final balanced = _foldTrailingBalanceIntoWave(wave, balance);
+    if (balanced == null) return null;
+    final rory = _foldBalanceWaveIntoRory(balance, slide);
+    if (rory == null) return null;
+    final params = Map<String, Object?>.of(balanced.params)
+      ..remove('balance')
+      ..remove('beats');
+    final beats = wave.params['beats'];
+    return (
+      wave: wave.copyWith(params: {...params, 'beats': ?beats}),
+      rory: rory,
+    );
+  }
 
   /// Returns [wave] with the TRAILING [balance] wave line folded in as
   /// `balance: true` and the summed beats (#577), or `null` when [wave] already
