@@ -62,6 +62,12 @@ class SettingsRepository {
 
   final CompendiumDatabase _db;
 
+  /// Runs [action] in one transaction on this repository's database, so a
+  /// caller can make a read and the write that depends on it atomic: another
+  /// transaction lands wholly before or wholly after it.
+  Future<T> transaction<T>(Future<T> Function() action) =>
+      _db.transaction(action);
+
   /// Writes this repository has made since the last [takeWriteSummary], kept
   /// per database so a second repository over the same connection shares it.
   _WriteTally get _tally => _tallies[_db] ??= _WriteTally();
