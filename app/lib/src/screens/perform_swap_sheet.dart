@@ -2,9 +2,17 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/calling_history_tracking_scope.dart';
+import '../data/event_rules_scope.dart';
+import '../data/repositories_scope.dart';
+import '../data/require_event_date_for_history_scope.dart';
+import '../data/require_performed_for_history_scope.dart';
 import '../data/suggestions_scope.dart';
+import '../data/user_figures_scope.dart';
 import '../search/collection_data.dart';
+import '../search/event_rule_check.dart';
 import '../search/facet_labels.dart';
+import '../search/saved_search_context.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/collection_picker.dart';
 import '../widgets/move_autocomplete.dart' show moveLabelWithForm;
@@ -40,6 +48,19 @@ const double kPerformSwapMinTarget = 44;
 /// order until it finishes, and a tap swaps either way. With either off the
 /// sheet is as #2346 ships it, with no Suggested in the Sort menu.
 ///
+/// With Settings ▸ Experimental ▸ Event rules and its **Check Perform's Swap
+/// this dance** both on ([EventRulesCheckPerformSwapScope.activeOf], #2347)
+/// and rules applied to the program ([eventRuleIds]), each dance that would
+/// break one of them in the swapped slot is marked with the rule's sentence
+/// and listed after every unmarked dance, in any order
+/// ([CollectionPicker.eventRules], [PickerEventRules.inEveryOrder]); so is
+/// each of **Your alternates**, listed last among them. The check is at
+/// [rulePosition], the program as the swap stores it, the swapped-out dance
+/// kept as an alternate ([swapCandidatePosition]). The results show at once,
+/// unmarked, and the marks follow when the check is done. Nothing is hidden,
+/// and a tap swaps either way. With either off, or no rules applied, the
+/// sheet is as #2346 ships it.
+///
 /// Tapping a result calls [onPick] with its id. Online search is not offered:
 /// an import at the mic adds a network wait and a possible duplicate prompt.
 class PerformSwapSheet extends StatefulWidget {
@@ -61,6 +82,8 @@ class PerformSwapSheet extends StatefulWidget {
     this.danceOverrides = const {},
     this.authorNameOverrides = const {},
     this.rankSuggestions,
+    this.eventRuleIds = const [],
+    this.rulePosition,
   });
 
   /// The name of the dance being swapped, as the adjust sheet shows it.
@@ -101,6 +124,15 @@ class PerformSwapSheet extends StatefulWidget {
 
   /// Ranks for Suggested: [CollectionPicker.rankSuggestions], a test seam.
   final SuggestionRanker? rankSuggestions;
+
+  /// The rules applied to the program ([Program.eventRuleIds], #2347), in
+  /// the order applied. Empty checks nothing.
+  final List<String> eventRuleIds;
+
+  /// Where a replacement goes, for checking it against [eventRuleIds]: the
+  /// program as the swap stores it ([swapCandidatePosition]). Null checks
+  /// nothing.
+  final SuggestionPosition? rulePosition;
 
   @override
   State<PerformSwapSheet> createState() => _PerformSwapSheetState();
@@ -156,6 +188,76 @@ class _PerformSwapSheetState extends State<PerformSwapSheet> {
     );
   }
 
+  /// The search context the rules' saved searches resolve against, read
+  /// once for the sheet: what a rule matches does not change while the
+  /// caller picks a replacement.
+  Future<SavedSearchContext>? _ruleContext;
+
+  /// The program's event rules for the picker to check the results against
+  /// (#2347), or null when nothing is checked: **Check Perform's Swap this
+  /// dance** off, no rules applied, or no place to check. The picker itself
+  /// checks only while Event rules is on.
+  ///
+  /// The picker hands the check its own position, the one Suggested ranks
+  /// for ([SuggestionPosition.replacing]); the check is made at
+  /// [PerformSwapSheet.rulePosition] instead, the same slot with the
+  /// swapped-out dance kept as an alternate. Both are fixed while the sheet
+  /// is open.
+  PickerEventRules? _eventRules(BuildContext context) {
+    final ruleIds = widget.eventRuleIds;
+    final position = widget.rulePosition;
+    if (ruleIds.isEmpty ||
+        position == null ||
+        !EventRulesCheckPerformSwapScope.of(context)) {
+      return null;
+    }
+    final repos = RepositoriesScope.of(context);
+    final catalog =
+        context
+            .getInheritedWidgetOfExactType<UserFiguresScope>()
+            ?.notifier
+            ?.catalog ??
+        UserFigureCatalog.empty;
+    final dialect = widget.dialect;
+    final enrichment = widget.enrichment;
+    final performedOnly = RequirePerformedForHistoryScope.of(context);
+    final requireEventDate = RequireEventDateForHistoryScope.of(context);
+    final tracking = callingHistoryTrackingOf(context);
+    Future<SavedSearchContext> readContext() =>
+        _ruleContext ??= readSavedSearchContext(
+          repos,
+          today: const SearchClock().today(),
+          taxonomy: widget.data.taxonomy,
+          text: savedSearchTextCodec(
+            saveDialect: dialect,
+            showDialect: dialect,
+            enrichment: enrichment,
+            renderer: FigureRenderer(
+              shippedTaxonomies.anyForm,
+              userFigures: catalog,
+            ),
+          ),
+          callerFilter: widget.data.callerFilter,
+          performedOnly: performedOnly,
+          requireEventDate: requireEventDate,
+          tracking: tracking,
+          currentProgramId: widget.programContext?.programId,
+        );
+    return PickerEventRules(
+      check: (_, candidateIds) => checkCandidateEventRules(
+        repos: repos,
+        ruleIds: ruleIds,
+        position: position,
+        candidateIds: candidateIds,
+        readContext: readContext,
+        dialect: dialect,
+        enrichment: enrichment,
+      ),
+      revision: Object.hashAll(ruleIds),
+      inEveryOrder: true,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -193,6 +295,9 @@ class _PerformSwapSheetState extends State<PerformSwapSheet> {
             offerSuggested: ordered,
             openSuggested: ordered,
             rankSuggestions: widget.rankSuggestions,
+            // Marks by the program's event rules (#2347), behind its own
+            // setting.
+            eventRules: _eventRules(context),
             panelState: _request,
             onSortChanged: (sort, direction) =>
                 _sort = (sort: sort, direction: direction),

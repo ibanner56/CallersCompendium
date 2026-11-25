@@ -423,6 +423,13 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
                     ? null
                     : SuggestionPosition.replacing(program.slots, flatIndex),
               ),
+              // Event rules, when the swap sheet checks them (#2347): at the
+              // place of the slot being swapped, the swapped-out dance kept as
+              // an alternate, as the swap stores it.
+              eventRuleIds: program.eventRuleIds,
+              rulePosition: flatIndex < 0
+                  ? null
+                  : swapCandidatePosition(program.slots, flatIndex),
               onPick: (danceId) {
                 _swapDance(slotId, danceId);
                 Navigator.of(sheetContext).pop();
