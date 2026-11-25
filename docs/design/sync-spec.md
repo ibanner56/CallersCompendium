@@ -5085,7 +5085,10 @@ or lists something else, so an unchanged record is never re-stamped. A
 rewrite is stamped strictly after the stored record's `updatedAt` (the later of
 the clock and that stamp plus one second, the stored precision), because a peer
 that holds the old record and finds the new one at an equal `updatedAt` takes
-neither (§6.3) and would keep the capability closed (#2528). A build
+neither and queues a conflict for the user (§6.3), and the capability stays
+closed meanwhile (#2528). A stored stamp beyond the quarantine window (§6.9)
+is not stepped past: the rewrite takes the clock, as every device holds such a
+record out anyway. A build
 that advertises nothing writes none. The prefix is excluded from backups: only
 its own device may write the record, and a restore would delete the others' or
 re-stamp them over their owners'. A build since v0.7.0 that does not know the

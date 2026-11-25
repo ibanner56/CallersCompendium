@@ -470,8 +470,10 @@ abstract interface class SyncCapabilityRecordStore {
   ///
   /// A rewrite is stamped strictly after the record it replaces (#2528): a
   /// peer that holds the old record and finds the new one at the same
-  /// `updatedAt` neither takes it nor resolves the tie (sync-spec §6.3), so a
-  /// capability this device has just gained would stay closed on that peer.
+  /// `updatedAt` neither takes it nor resolves the tie (sync-spec §6.3, it
+  /// queues a conflict for the user), so a capability this device has just
+  /// gained would stay closed on that peer. The exception is a stored stamp
+  /// beyond the quarantine window, which the rewrite does not follow.
   Future<void> ensureCapabilityRecord(
     String deviceId,
     Set<String> capabilities,
@@ -581,24 +583,33 @@ final class CompendiumSyncCoordinatorStore
         stored.containsAll(capabilities)) {
       return;
     }
-    // The row's own stamp, deleted or not: a record removed with its device
-    // (§6.15) leaves a tombstone whose stamp the rewrite must also outrank.
+    // Read and written together, so nothing lands between them and stamps
+    // the row at or past the rewrite.
     final db = storage.repositories.db;
-    final row = await (db.select(
-      db.settings,
-    )..where((t) => t.key.equals(key))).getSingleOrNull();
-    final current = row?.updatedAt;
-    final clock = now();
-    // Stored at whole-second precision, so a tick is one second: a smaller
-    // step would round back down to the stamp it must exceed.
-    final superseding = current == null
-        ? clock
-        : current.toUtc().add(storedTimestampTick);
-    await settings.set(
-      key,
-      syncCapabilityRecordValue(capabilities),
-      at: superseding.isAfter(clock) ? superseding : clock,
-    );
+    await db.transaction(() async {
+      // The row's own stamp, deleted or not: a record removed with its device
+      // (§6.15) leaves a tombstone whose stamp the rewrite must also outrank.
+      // The fallback is the one the record's wire stamp takes.
+      final row = await (db.select(
+        db.settings,
+      )..where((t) => t.key.equals(key))).getSingleOrNull();
+      final current = row?.updatedAt ?? row?.existenceAt;
+      final clock = now().toUtc();
+      DateTime at = clock;
+      if (current != null) {
+        // Stored at whole-second precision, so a tick is one second: a smaller
+        // step would round back down to the stamp it must exceed.
+        final superseding = current.toUtc().add(storedTimestampTick);
+        // A stamp past the quarantine window is held out by every device,
+        // this one included, so stepping past it would never recover: take
+        // the clock, which is in the window and cannot tie with it.
+        if (superseding.isAfter(clock) &&
+            !superseding.isAfter(syncQuarantineWindowEnd(clock))) {
+          at = superseding;
+        }
+      }
+      await settings.set(key, syncCapabilityRecordValue(capabilities), at: at);
+    });
   }
 
   @override
