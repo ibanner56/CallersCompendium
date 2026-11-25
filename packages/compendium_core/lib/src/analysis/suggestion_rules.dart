@@ -7,8 +7,9 @@
 /// check is [evaluateEventRules] (#2340) on the program with the candidate
 /// in that place. One position serves every host: the builder's end of the
 /// program, an add before or after a slot, and **Replace…**
-/// ([SuggestionPosition.replacing]); a later host such as Perform's swap
-/// sheet (#2347) can give the place of the slot being swapped.
+/// ([SuggestionPosition.replacing]); and Perform's swap sheet (#2347) the
+/// place of the slot being swapped, with the swapped-out dance kept as an
+/// alternate ([swapCandidatePosition]).
 library;
 
 import '../model/event_rule.dart';
@@ -184,6 +185,58 @@ class CandidateRuleCheck {
   }
 }
 
+/// The place a Perform swap (#2346) puts its replacement, for checking a
+/// candidate against the program's event rules (#2347): the program as
+/// [Program.swapSlotDanceKeepingAlternate] stores it once the dance of the
+/// slot at [index] (in a position-ordered [slots]) is swapped, with the
+/// candidate in the swapped slot.
+///
+/// So the dance being swapped out is **kept as an alternate** right after
+/// the candidate, where the swap puts it, and counts as an alternate does
+/// (not as a planned dance); an alternate being swapped is promoted to lead
+/// its group and its group's old primary becomes an alternate, as the swap
+/// does. [SuggestionPosition.replaced] is the dance planned in that place
+/// now (the group's primary, for a promoted alternate), so
+/// [CandidateRuleCheck] compares with the program as it stands.
+///
+/// When the candidate is one of the group's own alternates, the swap trades
+/// the two dances' places instead of adding one; that differs only among
+/// the group's alternates, none of which a rule counts as planned, so one
+/// position serves every candidate. A slot with no dance cannot be swapped:
+/// its place is [SuggestionPosition.replacing]'s.
+///
+/// The ranking is not given this position: it ranks for
+/// [SuggestionPosition.replacing], with the swapped-out dance left out
+/// (#2348).
+SuggestionPosition swapCandidatePosition(List<ProgramSlot> slots, int index) {
+  RangeError.checkValidIndex(index, slots, 'index');
+  final slot = slots[index];
+  if (slot.danceId == null) return SuggestionPosition.replacing(slots, index);
+  final swapped = Program.swapSlotDanceKeepingAlternate(
+    slots,
+    index,
+    danceId: _swapCandidateDanceId,
+    alternateId: swappedOutSlotId,
+  );
+  final at = swapped.indexWhere((s) => s.id == slot.id);
+  return SuggestionPosition(
+    slotsBefore: List.unmodifiable(swapped.sublist(0, at)),
+    slotsAfter: List.unmodifiable(swapped.sublist(at + 1)),
+    isAlternate: swapped[at].isAlt,
+    // Promoted, the candidate takes its group's primary's place: that is
+    // the dance planned there now.
+    replaced: at == index ? slot : slots[at],
+  );
+}
+
+/// The id [swapCandidatePosition] gives the swapped-out dance's alternate
+/// slot. A real slot id is a UUID, so it never clashes.
+const String swappedOutSlotId = '\u0000swapped-out-slot';
+
+/// The placeholder dance [swapCandidatePosition] swaps in before taking its
+/// slot out: never a real dance id, so it never trades with an alternate.
+const String _swapCandidateDanceId = '\u0000swap-candidate-dance';
+
 /// [items] with every one [isMarked] says is marked moved after every one it
 /// does not, each group in its own order. Nothing is added or dropped.
 List<T> orderMarkedLast<T>(Iterable<T> items, bool Function(T item) isMarked) {
@@ -207,17 +260,22 @@ List<T> orderMarkedLast<T>(Iterable<T> items, bool Function(T item) isMarked) {
 /// lists it, never marked: the issue's decision is that English candidates
 /// are handled as #2343 handles them. An English dance already in the
 /// program is in that group with every other form, and is checked with it.
+/// With [includeEnglish], as Perform's swap sheet asks (#2347: every swap
+/// result that would break a rule is marked), English dances are checked
+/// and marked too, and a marked one is listed after every unmarked dance.
 ///
 /// [wouldBreak] is usually a [CandidateRuleCheck]'s [CandidateRuleCheck.brokenBy].
 SuggestionRanking markRuleBreakingSuggestions(
   SuggestionRanking ranking,
-  List<EventRule> Function(String danceId) wouldBreak,
-) {
+  List<EventRule> Function(String danceId) wouldBreak, {
+  bool includeEnglish = false,
+}) {
   final marked = [
     for (final suggestion in ranking.order)
-      if (suggestion.reasons.any(
-        (r) => r.kind == SuggestionReasonKind.englishNotCovered,
-      ))
+      if (!includeEnglish &&
+          suggestion.reasons.any(
+            (r) => r.kind == SuggestionReasonKind.englishNotCovered,
+          ))
         suggestion
       else
         switch (wouldBreak(suggestion.danceId)) {
