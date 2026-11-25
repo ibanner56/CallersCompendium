@@ -497,7 +497,11 @@ with one of your [saved searches](./collection.md#save-a-search-and-use-it-again
   with the dances on either side of its primary. It is compared only with
   their planned dances, not with their alternates: one alternate is checked
   at a time, as if it alone were called. A pair holds two dances, so the
-  editor offers **At most** 1 or **At least** 1 or 2 here.
+  editor offers **At most** 1 or **At least** 1 or 2 here. A
+  [placeholder](#fill-a-placeholder) still to be filled stands for a dance:
+  the dances on either side of it are not next to each other, and a pair
+  with the placeholder isn't checked until you fill it. (The matrix, which
+  has no row for a placeholder, treats it like a note.)
 - **Before and after the first break** need a break: in a program without one,
   neither half exists, so *At most* is always met and *At least* never is.
 - **A rule that can't be checked** shows in the strip as needing attention,
