@@ -15517,10 +15517,6 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsCombinedView => 'Gecombineerde weergave';
 
   @override
-  String get programsCombinedViewTooltip =>
-      'Eén matrix en de herhaalde dansen van de geselecteerde programma\'s bekijken';
-
-  @override
   String get programsCombinedViewNeedsTwo =>
       'Selecteer minstens twee programma\'s';
 

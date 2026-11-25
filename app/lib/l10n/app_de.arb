@@ -14670,10 +14670,6 @@
   "@programsCombinedView": {
     "x-sourceSha256": "8aa23ee8f8d7474d4ec27554622bcbc10a06072f5a8cb98222247b2894843588"
   },
-  "programsCombinedViewTooltip": "Eine Matrix und die wiederholten Tänze der ausgewählten Programme ansehen",
-  "@programsCombinedViewTooltip": {
-    "x-sourceSha256": "bbd11462af07db0ee5074378c93504fa7d9c0ea79d9f231df952249f2c1b6f68"
-  },
   "programsCombinedViewNeedsTwo": "Wähle mindestens zwei Programme aus",
   "@programsCombinedViewNeedsTwo": {
     "x-sourceSha256": "4c386c61c091333634e9d7a3cf9ccd33290cc8dfc2c1c082b3c36a3dff9358be"

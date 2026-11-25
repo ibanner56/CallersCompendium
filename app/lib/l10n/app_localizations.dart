@@ -22247,12 +22247,6 @@ abstract class AppLocalizations {
   /// **'Combined view'**
   String get programsCombinedView;
 
-  /// Tooltip of the Combined view action while two or more programs are selected (#2349).
-  ///
-  /// In en, this message translates to:
-  /// **'See one matrix and the repeated dances across the selected programs'**
-  String get programsCombinedViewTooltip;
-
   /// Tooltip of the Combined view action while fewer than two programs are selected, when it is disabled (#2349).
   ///
   /// In en, this message translates to:

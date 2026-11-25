@@ -1002,8 +1002,9 @@ programs that the same dancers hear. To check them together, turn on
 The combined view has two tabs:
 
 - **Matrix** — one [matrix](#check-your-evening-with-the-matrix) over every
-  dance of the selected programs, the programs in date order (programs with no
-  date last, by title). Each program's dances are a block headed by its title
+  dance of the selected programs, the programs in date order, and two on one
+  day by start time (a program with no start time after the timed ones that
+  day; programs with no date last, by title). Each program's dances are a block headed by its title
   and date; on a phone, each dance names its program instead. **Introduced
   here** marks the first time a move appears across the whole set. The
   adjacent-dance alert works within each program just as on its own matrix, and
@@ -1017,7 +1018,8 @@ The combined view has two tabs:
   with each program, its date and the dance's place in it, such as
   *dance 3* or *alternate for dance 3*. A dance that is a planned dance in one
   program and only an alternate in another is listed, marked **Only an
-  alternate in some**. A dance used twice in one program and in no other
+  alternate in some**; one that is an alternate in every program it is in is
+  marked **Only an alternate**. A dance used twice in one program and in no other
   isn't listed, and only the selected programs count: dances you called
   elsewhere, or at other events, don't.
 

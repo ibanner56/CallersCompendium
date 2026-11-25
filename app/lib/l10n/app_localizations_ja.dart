@@ -14810,9 +14810,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsCombinedView => 'まとめて表示';
 
   @override
-  String get programsCombinedViewTooltip => '選択したプログラム全体のマトリックスと繰り返されるダンスを表示';
-
-  @override
   String get programsCombinedViewNeedsTwo => 'プログラムを2つ以上選択してください';
 
   @override

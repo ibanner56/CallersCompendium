@@ -1119,7 +1119,7 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
         IconButton(
           key: const ValueKey('programs-combined-view'),
           tooltip: canCombine
-              ? l10n.programsCombinedViewTooltip
+              ? l10n.programsCombinedView
               : l10n.programsCombinedViewNeedsTwo,
           onPressed: canCombine ? _openCombinedView : null,
           icon: const Icon(Icons.table_chart_outlined),

@@ -15371,10 +15371,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsCombinedView => 'Combined view';
 
   @override
-  String get programsCombinedViewTooltip =>
-      'See one matrix and the repeated dances across the selected programs';
-
-  @override
   String get programsCombinedViewNeedsTwo => 'Select at least two programs';
 
   @override

@@ -20773,10 +20773,6 @@
   "@programsCombinedView": {
     "description": "The selection bar's action that opens one view of the selected programs, and that view's title (#2349)."
   },
-  "programsCombinedViewTooltip": "See one matrix and the repeated dances across the selected programs",
-  "@programsCombinedViewTooltip": {
-    "description": "Tooltip of the Combined view action while two or more programs are selected (#2349)."
-  },
   "programsCombinedViewNeedsTwo": "Select at least two programs",
   "@programsCombinedViewNeedsTwo": {
     "description": "Tooltip of the Combined view action while fewer than two programs are selected, when it is disabled (#2349)."

@@ -15597,10 +15597,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get programsCombinedView => 'Vue combinée';
 
   @override
-  String get programsCombinedViewTooltip =>
-      'Voir une seule matrice et les danses répétées des programmes sélectionnés';
-
-  @override
   String get programsCombinedViewNeedsTwo =>
       'Sélectionnez au moins deux programmes';
 

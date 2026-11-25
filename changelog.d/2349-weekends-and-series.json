@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "added": [
-      "Settings ▸ Experimental has Weekends and series, off by default. While it is on, the Programs list's More actions menu offers Select programs: select two or more programs, such as a weekend's dances, and choose Combined view. Its Matrix tab is one matrix across them, each program a block headed by its title and date, in date order; Introduced here marks a move's first appearance across the set, and the adjacent-dance alert never runs from one program into the next. It prints to PDF with the program headings. Its Repeats tab lists every dance in two or more of the selected programs, with where it appears, and marks a dance that is only an alternate in some. Nothing new is saved. The switch is in your backup, and syncs once every device in the store has a version of the app that knows it."
+      "Settings ▸ Experimental has Weekends and series, off by default. While it is on, the Programs list's More actions menu offers Select programs: select two or more programs, such as a weekend's dances, and choose Combined view. Its Matrix tab is one matrix across them, each program a block headed by its title and date, in date order (one day's by start time); Introduced here marks a move's first appearance across the set, and the adjacent-dance alert never runs from one program into the next. It prints to PDF with the program headings. Its Repeats tab lists every dance in two or more of the selected programs, with where it appears, and marks a dance that is only an alternate in some. Nothing new is saved. The switch is in your backup, and syncs once every device in the store has a version of the app that knows it."
     ]
   },
   "core": {

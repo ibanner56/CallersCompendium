@@ -15425,10 +15425,6 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsCombinedView => 'Samlet visning';
 
   @override
-  String get programsCombinedViewTooltip =>
-      'Se én matrix og de gentagne danse på tværs af de valgte programmer';
-
-  @override
   String get programsCombinedViewNeedsTwo => 'Vælg mindst to programmer';
 
   @override
