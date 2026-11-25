@@ -1988,7 +1988,12 @@ has to be judged in its own context.
   the pair the centre wave, `form_a_long_wave`, as `form long wave in center`
   reads; when that balance names a role (`Men balance long wave in center`),
   that role forms the centre wave and balances it, maintainer ruling
-  2026-11-24), diagonal chain /
+  2026-11-24; when a slide follows the balance of a `form_short_waves` or
+  `pass_the_ocean`, as in TCB #1206's `…; form wave of four` / `Balance wave
+  of four (NR,WL)` / `Slide right, men slide two places (…)`, the wave keeps
+  the balance line's holds but not the balance, and the balance and slide are
+  the balanced Rory O'More they read as without the forming line, two-place
+  slide included), diagonal chain /
   hey
   / right-&-left-through (→ `dir: left/rightDiagonal`), same-role right & left
   through (variant kept as a note), weave-the-line `with <dancer>`, relationship
