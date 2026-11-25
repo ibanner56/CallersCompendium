@@ -579,6 +579,14 @@ class _ProgramTemplateEditorScreenState
   /// until it resolves, and for good if it failed). The full [CollectionData]
   /// is loaded only when the picker opens.
   Map<String, String>? _danceTitles;
+
+  /// The names of the saved searches the slot rules can use (#2338), by id;
+  /// a rule whose id is not here names a saved search that is gone. `null`
+  /// until read.
+  Map<String, String>? _savedSearchNames;
+
+  /// Saved searches that are stored but cannot be read (Needs attention).
+  Set<String> _unreadableSearchIds = const {};
   bool _started = false;
   CollectionData? _collectionData;
   Future<CollectionData?>? _collectionDataLoad;
@@ -588,7 +596,97 @@ class _ProgramTemplateEditorScreenState
     super.didChangeDependencies();
     if (!_started) {
       _started = true;
-      unawaited(_loadDanceTitles(RepositoriesScope.of(context).dances));
+      final repos = RepositoriesScope.of(context);
+      unawaited(_loadDanceTitles(repos.dances));
+      unawaited(_loadSavedSearchNames(repos.savedSearches));
+    }
+  }
+
+  /// Reads the saved searches a slot rule can name: the readable ones.
+  Future<Map<String, String>?> _loadSavedSearchNames(
+    SavedSearchRepository savedSearches,
+  ) async {
+    try {
+      final stored = await savedSearches.list();
+      final names = {
+        for (final s in stored)
+          if (s.search case final search?) search.id: search.name,
+      };
+      final unreadable = {
+        for (final s in stored)
+          if (s.search == null) s.savedSearchId,
+      };
+      if (mounted) {
+        setState(() {
+          _savedSearchNames = names;
+          _unreadableSearchIds = unreadable;
+        });
+      }
+      return names;
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'program_templates_screen.saved_searches',
+      );
+      return null;
+    }
+  }
+
+  /// **Add slot rule** (#2338): a label and the saved search that says which
+  /// dances it means. Without a saved search there is nothing to choose, and
+  /// the dialog says where to make one.
+  Future<void> _addRule() async {
+    if (_ruleDialogBusy) return;
+    _ruleDialogBusy = true;
+    try {
+      final names = await _loadSavedSearchNames(
+        RepositoriesScope.of(context).savedSearches,
+      );
+      if (!mounted || names == null) return;
+      final rule = await showDialog<ProgramTemplateEntry>(
+        context: context,
+        animationStyle: AppMotion.styleFor(context),
+        builder: (_) => _SlotRuleDialog(savedSearches: names),
+      );
+      if (rule == null || !mounted) return;
+      _change(() => _entries.add(rule));
+    } finally {
+      _ruleDialogBusy = false;
+    }
+  }
+
+  /// Whether a slot rule dialog is opening or open, so a second tap on Add
+  /// slot rule or Edit opens no second dialog.
+  bool _ruleDialogBusy = false;
+
+  /// **Edit** on the slot rule at [index]: the same dialog, filled in with its
+  /// label and, while it can still be chosen, its saved search.
+  Future<void> _editRule(int index) async {
+    if (_ruleDialogBusy) return;
+    final entry = _entries.elementAtOrNull(index);
+    if (entry == null || !entry.isRule) return;
+    _ruleDialogBusy = true;
+    try {
+      final names = await _loadSavedSearchNames(
+        RepositoriesScope.of(context).savedSearches,
+      );
+      if (!mounted || names == null) return;
+      final rule = await showDialog<ProgramTemplateEntry>(
+        context: context,
+        animationStyle: AppMotion.styleFor(context),
+        builder: (_) => _SlotRuleDialog(savedSearches: names, initial: entry),
+      );
+      if (rule == null || !mounted) return;
+      // The dialog is modal; still, find the rule again rather than trust
+      // index.
+      final at = identical(_entries.elementAtOrNull(index), entry)
+          ? index
+          : _entries.indexWhere((e) => identical(e, entry));
+      if (at < 0) return;
+      _change(() => _entries[at] = rule);
+    } finally {
+      _ruleDialogBusy = false;
     }
   }
 
@@ -748,7 +846,11 @@ class _ProgramTemplateEditorScreenState
             ProgramTemplateSlotsEditor(
               entries: _entries,
               danceTitles: _danceTitles ?? const {},
+              savedSearchNames: _savedSearchNames,
+              unreadableSearchIds: _unreadableSearchIds,
               onAddDance: _addDance,
+              onAddRule: _addRule,
+              onEditRule: _editRule,
               onAddText: (text) =>
                   _change(() => _entries.add(ProgramTemplateEntry(text: text))),
               onUpdateText: (index, text) {
@@ -785,7 +887,11 @@ class ProgramTemplateSlotsEditor extends StatefulWidget {
     super.key,
     required this.entries,
     required this.danceTitles,
+    this.savedSearchNames,
+    this.unreadableSearchIds = const {},
     required this.onAddDance,
+    this.onAddRule,
+    this.onEditRule,
     required this.onAddText,
     required this.onUpdateText,
     required this.onAddBreak,
@@ -795,7 +901,21 @@ class ProgramTemplateSlotsEditor extends StatefulWidget {
 
   final List<ProgramTemplateEntry> entries;
   final Map<String, String> danceTitles;
+
+  /// Saved-search names by id, to say which search each slot rule uses; an id
+  /// missing from it is a search that is gone. `null` while unknown.
+  final Map<String, String>? savedSearchNames;
+
+  /// Saved searches that are stored but cannot be read, by id.
+  final Set<String> unreadableSearchIds;
   final VoidCallback onAddDance;
+
+  /// **Edit** on a slot rule (#2338); no Edit button when null.
+  final ValueChanged<int>? onEditRule;
+
+  /// **Add slot rule** (#2338), a secondary action after the two primary
+  /// ones; omitted when null.
+  final VoidCallback? onAddRule;
   final ValueChanged<String> onAddText;
   final void Function(int index, String text) onUpdateText;
   final VoidCallback onAddBreak;
@@ -839,6 +959,16 @@ class _ProgramTemplateSlotsEditorState
     super.dispose();
   }
 
+  String _ruleSubtitle(AppLocalizations l10n, String savedSearchId) {
+    final names = widget.savedSearchNames;
+    if (names == null) return l10n.programTemplateSlotRuleBadge;
+    final name = names[savedSearchId];
+    if (name != null) return l10n.programTemplateSlotRuleSubtitle(name);
+    return widget.unreadableSearchIds.contains(savedSearchId)
+        ? l10n.programTemplateSlotRuleSearchUnreadable
+        : l10n.programTemplateSlotRuleSearchGone;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -871,13 +1001,26 @@ class _ProgramTemplateSlotsEditorState
                   ),
                   dense: true,
                   contentPadding: EdgeInsets.zero,
+                  leading: entry.isRule
+                      ? Icon(
+                          Icons.manage_search,
+                          semanticLabel: l10n.programTemplateSlotRuleBadge,
+                        )
+                      : null,
                   title: Text(
                     entry.danceId == null
                         ? entry.text ?? ''
                         : widget.danceTitles[entry.danceId] ??
                               l10n.settingsDefaultsStartingProgramUnavailableDance,
                   ),
-                  subtitle: entry.danceId == null
+                  subtitle: entry.isRule
+                      ? Text(
+                          _ruleSubtitle(l10n, entry.savedSearchId!),
+                          key: ValueKey(
+                            'program-template-rule-subtitle-$index',
+                          ),
+                        )
+                      : entry.danceId == null
                       ? null
                       : TextFormField(
                           key: ValueKey(_entryKeys[index]),
@@ -892,6 +1035,13 @@ class _ProgramTemplateSlotsEditorState
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      if (entry.isRule && widget.onEditRule != null)
+                        IconButton(
+                          key: ValueKey('program-template-rule-edit-$index'),
+                          tooltip: l10n.commonEdit,
+                          icon: const Icon(Icons.edit_outlined),
+                          onPressed: () => widget.onEditRule!(index),
+                        ),
                       IconButton(
                         tooltip: l10n.settingsDefaultsStartingProgramMoveUp,
                         icon: const Icon(Icons.arrow_upward),
@@ -959,6 +1109,16 @@ class _ProgramTemplateSlotsEditorState
                 icon: const Icon(Icons.free_breakfast_outlined),
                 label: Text(l10n.programsInsertBreakButton),
               ),
+              // Secondary (#2338): a template of fixed dances and text is
+              // complete without one, so it is a text button after the
+              // primary actions, never the default kind of slot.
+              if (widget.onAddRule case final onAddRule?)
+                TextButton.icon(
+                  key: const ValueKey('program-template-add-rule'),
+                  onPressed: onAddRule,
+                  icon: const Icon(Icons.manage_search),
+                  label: Text(l10n.programTemplateAddSlotRule),
+                ),
             ],
           ),
           TextField(
@@ -970,6 +1130,166 @@ class _ProgramTemplateSlotsEditorState
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Asks for a slot rule (#2338): a label, and one of the user's saved searches
+/// ([savedSearches], names by id). Pops the rule, or nothing on Cancel. With no
+/// saved search it only says where to save one.
+class _SlotRuleDialog extends StatefulWidget {
+  const _SlotRuleDialog({required this.savedSearches, this.initial});
+
+  /// The rule being edited, or null for a new one.
+  final ProgramTemplateEntry? initial;
+
+  final Map<String, String> savedSearches;
+
+  @override
+  State<_SlotRuleDialog> createState() => _SlotRuleDialogState();
+}
+
+class _SlotRuleDialogState extends State<_SlotRuleDialog> {
+  final _label = TextEditingController();
+  String? _searchId;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initial;
+    if (initial != null) {
+      _label.text = initial.text ?? '';
+      // A search that is gone or unreadable cannot be chosen again: the
+      // field starts empty, and Save waits for one that can.
+      if (widget.savedSearches.containsKey(initial.savedSearchId)) {
+        _searchId = initial.savedSearchId;
+      }
+    }
+    _label.addListener(() => setState(() {}));
+  }
+
+  /// The label is the word that marks a break slot: refused, since a slot
+  /// with it would read as a break (as the slot edit dialog's break check).
+  bool get _labelIsBreak => isProgramTemplateBreakText(_label.text);
+
+  @override
+  void dispose() {
+    _label.dispose();
+    super.dispose();
+  }
+
+  bool get _canSave =>
+      _searchId != null && _label.text.trim().isNotEmpty && !_labelIsBreak;
+
+  void _save() {
+    if (!_canSave) return;
+    Navigator.of(context).pop(
+      ProgramTemplateEntry.rule(
+        savedSearchId: _searchId!,
+        label: _label.text.trim(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final searches = widget.savedSearches.entries.toList()
+      ..sort((a, b) {
+        final byName = a.value.toLowerCase().compareTo(b.value.toLowerCase());
+        return byName != 0 ? byName : a.key.compareTo(b.key);
+      });
+    // Adding needs a saved search to choose; editing still lets the label
+    // change, and says there is no search to choose.
+    if (searches.isEmpty && widget.initial == null) {
+      return AlertDialog(
+        key: const ValueKey('program-template-rule-no-searches'),
+        title: Text(l10n.programTemplateSlotRuleDialogTitle),
+        content: Text(l10n.programTemplateSlotRuleNoSearches),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonOk),
+          ),
+        ],
+      );
+    }
+    return AlertDialog(
+      key: const ValueKey('program-template-rule-dialog'),
+      title: Text(
+        widget.initial == null
+            ? l10n.programTemplateSlotRuleDialogTitle
+            : l10n.programTemplateSlotRuleEditTitle,
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.programTemplateSlotRuleDialogBody),
+            const SizedBox(height: AppSpacing.sm),
+            TextField(
+              key: const ValueKey('program-template-rule-label'),
+              controller: _label,
+              autofocus: true,
+              maxLength: kMaxProgramTemplateTextLength,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                labelText: l10n.programTemplateSlotRuleLabel,
+                hintText: l10n.programTemplateSlotRuleLabelHint,
+                counterText: '',
+                errorText: _labelIsBreak
+                    ? l10n.programTemplateSlotRuleLabelBreak
+                    : null,
+                errorMaxLines: 3,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            if (searches.isEmpty)
+              Text(
+                l10n.programTemplateSlotRuleNoSearches,
+                key: const ValueKey('program-template-rule-no-searches-note'),
+              )
+            else
+              AppDropdownField<String?>(
+                key: const ValueKey('program-template-rule-search'),
+                value: _searchId,
+                filterable: searches.length >= appDropdownFilterFrom,
+                decoration: InputDecoration(
+                  labelText: l10n.programTemplateSlotRuleSearch,
+                ),
+                entries: [
+                  for (final search in searches)
+                    AppDropdownEntry<String?>(
+                      value: search.key,
+                      label: search.value,
+                      key: ValueKey(
+                        'program-template-rule-search-${search.key}',
+                      ),
+                    ),
+                ],
+                onChanged: (id) => setState(() {
+                  _searchId = id;
+                  // A rule is often named after its search: start from that.
+                  if (_label.text.trim().isEmpty && id != null) {
+                    _label.text = widget.savedSearches[id] ?? '';
+                  }
+                }),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.commonCancel),
+        ),
+        FilledButton(
+          key: const ValueKey('program-template-rule-save'),
+          onPressed: _canSave ? _save : null,
+          child: Text(l10n.commonSave),
+        ),
+      ],
     );
   }
 }

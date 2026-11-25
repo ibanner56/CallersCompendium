@@ -15306,4 +15306,94 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get syncReviewKindEventRule => 'Abendregel';
+
+  @override
+  String get danceEditorFigureNeedsValues =>
+      'Wähle vor dem Speichern für jedes Feld dieser Figur einen Wert.';
+
+  @override
+  String get danceEditorSaveNeedsFigureValues =>
+      'Einige hinzugefügte Figuren haben noch leere Felder. Fülle sie aus, um zu speichern.';
+
+  @override
+  String get programTemplateAddSlotRule => 'Eintragsregel hinzufügen';
+
+  @override
+  String get programTemplateSlotRuleBadge => 'Eintragsregel';
+
+  @override
+  String programTemplateSlotRuleSubtitle(String name) {
+    return 'Gefüllt aus der gespeicherten Suche „$name“';
+  }
+
+  @override
+  String get programTemplateSlotRuleSearchGone =>
+      'Ihre gespeicherte Suche wurde gelöscht';
+
+  @override
+  String get programTemplateSlotRuleDialogTitle => 'Eintragsregel hinzufügen';
+
+  @override
+  String get programTemplateSlotRuleDialogBody =>
+      'Beschreibe eine Art von Tanz, statt einen zu nennen. Ein Programm aus dieser Vorlage zeigt sie als Platzhalter, den du aus der gespeicherten Suche füllst.';
+
+  @override
+  String get programTemplateSlotRuleLabel => 'Bezeichnung';
+
+  @override
+  String get programTemplateSlotRuleLabelHint => 'Leichter Improper-Auftakt';
+
+  @override
+  String get programTemplateSlotRuleSearch => 'Gespeicherte Suche';
+
+  @override
+  String get programTemplateSlotRuleNoSearches =>
+      'Eine Eintragsregel verwendet eine gespeicherte Suche. Speichere zuerst eine Suche in der Sammlung und wähle sie dann hier.';
+
+  @override
+  String get programsPlaceholderSubtitle => 'Platzhalter';
+
+  @override
+  String get programsFillPlaceholderButton => 'Füllen';
+
+  @override
+  String programsFillPlaceholderSemantics(String label) {
+    return '„$label“ mit einem Tanz füllen';
+  }
+
+  @override
+  String programsFillSheetTitle(String label) {
+    return '„$label“ füllen';
+  }
+
+  @override
+  String programsFillSearchGone(String label) {
+    return 'Die gespeicherte Suche für „$label“ wurde gelöscht, daher werden alle Tänze angezeigt.';
+  }
+
+  @override
+  String programsFillSearchUnresolvable(String label, String name) {
+    return '„$label“ kann seine gespeicherte Suche „$name“ nicht verwenden, da sie Dinge verwendet, die es nicht mehr gibt; daher werden alle Tänze angezeigt:';
+  }
+
+  @override
+  String savedSearchUsedBySlotRule(String rule, String template) {
+    return 'Die Eintragsregel „$rule“ in der Vorlage $template';
+  }
+
+  @override
+  String get programTemplateSlotRuleSearchUnreadable =>
+      'Ihre gespeicherte Suche lässt sich nicht öffnen';
+
+  @override
+  String get programTemplateSlotRuleEditTitle => 'Eintragsregel bearbeiten';
+
+  @override
+  String get programTemplateSlotRuleLabelBreak =>
+      '„Break“ markiert eine Pause im Programm, daher kann eine Eintragsregel es nicht als Bezeichnung verwenden.';
+
+  @override
+  String programsFillSearchUnreadable(String label) {
+    return 'Die gespeicherte Suche für „$label“ lässt sich nicht öffnen: Sie wurde von einer neueren Version der App gespeichert oder ist beschädigt. Alle Tänze werden angezeigt.';
+  }
 }

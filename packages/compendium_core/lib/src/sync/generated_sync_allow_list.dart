@@ -104,6 +104,7 @@ const Map<SyncRecordKind, Set<String>> generatedShareableWirePaths = {
     'slots.isAlt',
     'slots.isPurgedDance',
     'slots.performedAt',
+    'slots.placeholderSearchId',
     'slots.position',
     'slots.text',
     'slots.walkthroughMinutes',

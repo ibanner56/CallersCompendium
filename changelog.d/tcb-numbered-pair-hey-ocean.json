@@ -1,0 +1,14 @@
+{
+  "id": "tcb-numbered-pair-hey-ocean",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Dances you import from The Caller's Box read three more kinds of line as figures instead of text: \"N2 Men allemande left 3/4\" is the two men allemanding, noted as being with the next neighbors; a hey whose passes name same-role neighbors (SRN) is read as a hey, and \"with hands\" or a trailing \"[with N1]\" on a hey is kept as a note instead of leaving the line as text; and \"Pass the ocean (to wave of four (NR,WL))\" is a pass the ocean into that wave."
+    ]
+  },
+  "core": {
+    "changed": [
+      "The Caller's Box figure dialect reads a neighbour number before a role pair as that pair with a `with` note, decodes `SRN` (same-role neighbours) in hey pass lists and keeps `with hands` and a trailing `[with …]` as the hey's note, and reads a nested wave annotation on pass the ocean."
+    ]
+  }
+}

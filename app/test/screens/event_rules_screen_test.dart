@@ -236,8 +236,8 @@ void main() {
     await pumpUntilFound(tester, delete);
     const offText =
         'Event rules is off, but Manage rules can change your rules now. To '
-        'check programs against them, turn on “Check programs against your '
-        'rules” under Settings ▸ Experimental ▸ Event rules.';
+        'check programs against them, turn on "Check programs against your '
+        'rules" under Settings ▸ Experimental ▸ Event rules.';
     final manage = find.byKey(
       const ValueKey('saved-search-in-use-manage-rules'),
     );

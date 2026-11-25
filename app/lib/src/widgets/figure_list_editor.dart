@@ -12,6 +12,7 @@ import '../data/reduce_motion_scope.dart';
 import '../data/capitalize_figures_scope.dart';
 import '../data/decimal_turns_scope.dart';
 import '../editor/figure_draft.dart';
+import '../editor/figure_entry_controller.dart';
 import '../editor/free_text_composer_controller.dart';
 import '../editor/pending_move_text_controller.dart';
 import '../editor/user_figure_draft.dart';
@@ -35,7 +36,7 @@ import '../theme/app_shapes.dart';
 /// "stand still" text. Only the editing field is blanked — the stored draft
 /// keeps its move/params until a real move is chosen, so nothing is lost if
 /// the editor is collapsed as-is.
-const String _standStillMove = 'stand_still';
+const String _standStillMove = standStillMove;
 
 /// Replaces each run of line breaks, with the spaces around it, by one space.
 final TextInputFormatter _lineBreaksToSpaces = FilteringTextInputFormatter(
@@ -79,6 +80,7 @@ class FigureListEditor extends StatefulWidget {
     this.onAddFreeText,
     this.onAddFromText,
     this.freeTextComposerController,
+    this.figureEntryController,
     this.pendingMoveTextController,
     this.onReplaceWithFreeText,
     this.onSubmitCompoundShorthand,
@@ -88,6 +90,7 @@ class FigureListEditor extends StatefulWidget {
     this.snippetLibraryDefaultFor,
     this.onSnippetCommitted,
     this.showWordingOverride = false,
+    this.requireStatedParams = false,
     this.canonicalizeDiscouragedTerms = false,
     this.onGroupWithNext,
     this.onGroupWithNextAsModifier,
@@ -212,6 +215,11 @@ class FigureListEditor extends StatefulWidget {
   /// Save. Null (the default) leaves the composer to itself.
   final FreeTextComposerController? freeTextComposerController;
 
+  /// Asked by the screen to open a figure's Move box, or start a new figure,
+  /// as the caller moves on from the dance's Title. Null (the default) leaves
+  /// that to taps and the Add button.
+  final FigureEntryController? figureEntryController;
+
   /// Told whether a row's Move box holds text that leaving it would apply,
   /// and able to settle it (AUTH-1), so the screen can count that text as
   /// unsaved and apply it on Save. Null (the default) gives the list one of
@@ -276,6 +284,12 @@ class FigureListEditor extends StatefulWidget {
   /// wording override. Disabled for reusable defaults and shorthand mappings,
   /// where a per-dance value would be misleading.
   final bool showWordingOverride;
+
+  /// Whether a figure entered here must state every param that requires it
+  /// before its container saves (taxonomy v40: a pass by's or pass through's
+  /// who and where), so each such figure says so under its fields. Only the
+  /// dance editor refuses the save; elsewhere nothing would enforce it.
+  final bool requireStatedParams;
 
   /// Enables canonical discouraged-term wording only for read-only,
   /// dance-scoped summaries. Settings editors leave this disabled so their
@@ -458,6 +472,7 @@ class _FigureListEditorState extends State<FigureListEditor>
     super.initState();
     _freeTextController.addListener(_reportPendingLine);
     widget.freeTextComposerController?.attach(_submitPendingLine);
+    widget.figureEntryController?.attach(_startFigureEntry);
     // A fresh editor has no line; this clears a flag left by one it replaced.
     _reportPendingLine();
   }
@@ -469,6 +484,10 @@ class _FigureListEditorState extends State<FigureListEditor>
       old.freeTextComposerController?.detach(_submitPendingLine);
       widget.freeTextComposerController?.attach(_submitPendingLine);
       _reportPendingLine();
+    }
+    if (old.figureEntryController != widget.figureEntryController) {
+      old.figureEntryController?.detach(_startFigureEntry);
+      widget.figureEntryController?.attach(_startFigureEntry);
     }
     final ids = widget.drafts.map((d) => d.id).toSet();
 
@@ -513,6 +532,7 @@ class _FigureListEditorState extends State<FigureListEditor>
     _addButtonFocusNode.dispose();
     _addMenuFirstItemFocusNode.dispose();
     widget.freeTextComposerController?.detach(_submitPendingLine);
+    widget.figureEntryController?.detach(_startFigureEntry);
     _ownPendingMoveText?.dispose();
     _freeTextController.dispose();
     _freeTextFocusNode.dispose();
@@ -647,6 +667,32 @@ class _FigureListEditorState extends State<FigureListEditor>
     } else {
       _addFigure();
     }
+  }
+
+  /// Opens [draft]'s editor, whose Move box takes focus for a figure still to
+  /// fill, and brings it into view; with null, starts a new figure as Add
+  /// does ([FigureEntryController]). Returns whether it did.
+  bool _startFigureEntry(FigureDraft? draft) {
+    if (draft == null) {
+      if (!widget.allowAdding) return false;
+      _addFigure();
+      return true;
+    }
+    if (!widget.drafts.contains(draft)) return false;
+    _ensureVisibleSoon(draft.id);
+    if (_openDraftId == draft.id) {
+      // Already open, so its Move box, which takes focus only as its editor
+      // mounts, would not take it again: close the editor and open it anew
+      // on the next frame.
+      _pendingMoveText.settle();
+      setState(() => _openDraftId = null);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && widget.drafts.contains(draft)) _openDraft(draft.id);
+      });
+      return true;
+    }
+    _openDraft(draft.id);
+    return true;
   }
 
   void _addFigure() {
@@ -1203,6 +1249,7 @@ class _FigureListEditorState extends State<FigureListEditor>
         snippetLibraryDefaultFor: widget.snippetLibraryDefaultFor,
         onSnippetCommitted: widget.onSnippetCommitted,
         showWordingOverride: widget.showWordingOverride,
+        requireStatedParams: widget.requireStatedParams,
         onGroupWithNext: groupWithNext(
           widget.onGroupWithNext,
           meanwhileMove,
@@ -1616,6 +1663,7 @@ class _FigureDraftCard extends StatefulWidget {
     this.snippetLibraryDefaultFor,
     this.onSnippetCommitted,
     this.showWordingOverride = false,
+    this.requireStatedParams = false,
     this.canonicalizeDiscouragedTerms = false,
     this.allowModifierSelection = true,
     this.allowNestedContainerSelection = true,
@@ -1718,6 +1766,7 @@ class _FigureDraftCard extends StatefulWidget {
   final void Function(FigureDraft draft)? onSnippetCommitted;
 
   final bool showWordingOverride;
+  final bool requireStatedParams;
   final bool allowModifierSelection;
   final bool allowNestedContainerSelection;
 
@@ -1883,10 +1932,15 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     );
     if (widget.draft.move == moveId) return;
     widget.draft.move = moveId;
+    // Picking a move enters the figure: its required params must be stated
+    // before the dance saves (taxonomy v40).
+    widget.draft.enteredNew = true;
     widget.draft.compound = null;
     widget.draft.params
       ..clear()
-      ..addAll(widget.taxonomy.entryParams(moveId));
+      ..addAll(
+        _entryParamsFor(widget.taxonomy, moveId, widget.requireStatedParams),
+      );
     // Picking a move is an explicit authorship action: any inherited
     // parser-assumed-subject marker (#460) no longer applies.
     widget.draft.assumedSubject = false;
@@ -2048,6 +2102,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         }
       }
     }
+    // A default saved before Settings stopped recording them may hold a value
+    // kept only while stated (`double: false`, `twoPlaces: unspecified`).
+    widget.taxonomy.dropUnstatedParams(moveId, widget.draft.params);
   }
 
   void _clearMove() {
@@ -2217,6 +2274,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // A group not complete enough to save, said on its row as the Warnings
     // card says it (AUTH-2), so the row is not mistaken for part of the dance.
     final incomplete = draft.isIncomplete;
+    // A figure entered in this edit that must still state a value, said on
+    // its row too, so it can be found with the row closed (taxonomy v40).
+    final needsValues =
+        widget.requireStatedParams &&
+        _draftNeedsValues(draft, widget.taxonomy, orChildren: true);
     final compound = draft.compound;
     final resolve = widget.resolveCompound;
     // A placeholder that cannot expand is saved as its name alone (#709).
@@ -2284,9 +2346,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       widget.index + 1,
       widget.totalCount,
     );
-    final withIncomplete = incomplete
-        ? '$summarySemantic ${l10n.danceEditorIncompleteFigure}'
-        : summarySemantic;
+    final withIncomplete = [
+      summarySemantic,
+      if (incomplete) l10n.danceEditorIncompleteFigure,
+      if (needsValues) l10n.danceEditorFigureNeedsValues,
+    ].join(' ');
     final composite = widget.isCut
         ? '$withIncomplete ${l10n.danceEditorFigureCutState}'
         : withIncomplete;
@@ -2412,6 +2476,14 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                             Text(
                               l10n.danceEditorIncompleteFigure,
                               key: _key('incomplete'),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.error,
+                              ),
+                            ),
+                          if (needsValues)
+                            Text(
+                              l10n.danceEditorFigureNeedsValues,
+                              key: _key('summary-needs-values'),
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.error,
                               ),
@@ -3444,6 +3516,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                                           widget.moveParamDefaults,
                                       showWordingOverride:
                                           widget.showWordingOverride,
+                                      requireStatedParams:
+                                          widget.requireStatedParams,
                                       onChanged: _onSideChanged,
                                       onAdd: () {},
                                       onDelete: (_) => _removeSide(i),
@@ -3497,6 +3571,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                                 mixer: widget.mixer,
                                 moveParamDefaults: widget.moveParamDefaults,
                                 showWordingOverride: widget.showWordingOverride,
+                                requireStatedParams: widget.requireStatedParams,
                                 userFigureOptions: widget.userFigureOptions,
                                 onChanged: _onSideChanged,
                                 includeModifier:
@@ -3868,7 +3943,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             mixer: widget.mixer,
             moveId: draft.move,
             fractionAmountFollows: true,
-            value: draft.params[entry.key] ?? entry.value.defaultValue,
+            // An omitted param shows what the figure's own id means by it: a
+            // `pass_by`'s `who` is neighbors, its target's unstated (v40).
+            value:
+                draft.params[entry.key] ??
+                widget.taxonomy.defaultParamValue(draft.move!, entry.key),
             onChanged: (v) {
               if (entry.key == 'beats') {
                 draft.params['beats'] = v;
@@ -3887,12 +3966,34 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       ],
     );
 
-    if (!hasMore) return paramWrap(inline);
+    // A figure entered in this edit states every required param before the
+    // dance saves (taxonomy v40); say so on the figure itself.
+    final missingNotice =
+        !widget.requireStatedParams ||
+            !_draftNeedsValues(draft, widget.taxonomy)
+        ? null
+        : Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
+            child: Text(
+              l10n.danceEditorFigureNeedsValues,
+              key: _key('needs-values'),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          );
+
+    if (!hasMore) {
+      if (missingNotice == null) return paramWrap(inline);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [paramWrap(inline), missingNotice],
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         paramWrap(inline),
+        ?missingNotice,
         const SizedBox(height: 4),
         Align(
           alignment: Alignment.centerLeft,
@@ -4116,7 +4217,11 @@ void _rerouteInversePair(FigureDraft draft, Taxonomy taxonomy) {
   final resolved = taxonomy.resolvedMoveId(
     Figure(move: move, params: draft.params),
   );
-  if (resolved != move) draft.move = resolved;
+  if (resolved == move) return;
+  // A pass by turned into a pass through keeps the neighbors its omitted
+  // `who` meant (taxonomy v40), as [applyParamChange] does.
+  keepOmittedMeaning(taxonomy, move, resolved, draft.params);
+  draft.move = resolved;
 }
 
 // ---------------------------------------------------------------------------
@@ -4189,6 +4294,7 @@ class _MeanwhileSideEditor extends StatefulWidget {
     this.mixer = false,
     this.moveParamDefaults,
     this.showWordingOverride = false,
+    this.requireStatedParams = false,
     this.includeModifier = false,
     this.includeSequence = false,
     this.userFigureOptions,
@@ -4214,6 +4320,7 @@ class _MeanwhileSideEditor extends StatefulWidget {
 
   final Map<String, Map<String, Object?>>? moveParamDefaults;
   final bool showWordingOverride;
+  final bool requireStatedParams;
   final bool includeModifier;
   final bool includeSequence;
 
@@ -4252,9 +4359,12 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     final draft = widget.draft;
     if (draft.move == moveId) return;
     draft.move = moveId;
+    draft.enteredNew = true;
     draft.params
       ..clear()
-      ..addAll(widget.taxonomy.entryParams(moveId));
+      ..addAll(
+        _entryParamsFor(widget.taxonomy, moveId, widget.requireStatedParams),
+      );
     draft.assumedSubject = false;
     draft.customOrigin = CustomOrigin.userEntered;
     draft.wordingOverride = null;
@@ -4315,6 +4425,8 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
         if (entry.key == 'beats') draft.beatsTouched = true;
       }
     }
+    // As above: no saved default stores a value kept only while stated.
+    widget.taxonomy.dropUnstatedParams(moveId, draft.params);
   }
 
   void _clearMove() {
@@ -4599,7 +4711,7 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
         .where((e) => !hidesFractionAmount(e.key, draft.params))
         .toList(growable: false);
     if (entries.isEmpty) return const SizedBox.shrink();
-    return Wrap(
+    final fields = Wrap(
       spacing: 12,
       runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
@@ -4615,7 +4727,8 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
             fractionAmountFollows: true,
             value: isStep && entry.key == 'beats'
                 ? _shownStepBeats(context, entry.value)
-                : draft.params[entry.key] ?? entry.value.defaultValue,
+                : draft.params[entry.key] ??
+                      widget.taxonomy.defaultParamValue(draft.move!, entry.key),
             onChanged: (v) {
               if (entry.key == 'who') draft.assumedSubject = false;
               if (isStep) {
@@ -4664,6 +4777,25 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
               widget.onChanged();
             },
           ),
+      ],
+    );
+    // As on a top-level figure's card (taxonomy v40).
+    if (!widget.requireStatedParams ||
+        !_draftNeedsValues(draft, widget.taxonomy)) {
+      return fields;
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        fields,
+        Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.xxs),
+          child: Text(
+            AppLocalizations.of(context).danceEditorFigureNeedsValues,
+            key: ValueKey('${widget.keyPrefix}-needs-values'),
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+        ),
       ],
     );
   }
@@ -5322,3 +5454,51 @@ List<MoveOption> _userEntryPickerOptions(
       ],
     ),
 ];
+
+/// Whether [draft], entered in this edit ([FigureDraft.enteredNew]), leaves a
+/// param it must state unstated ([Taxonomy.unstatedRequiredParams]); with
+/// [orChildren], whether any figure of a group it is does.
+bool _draftNeedsValues(
+  FigureDraft draft,
+  Taxonomy taxonomy, {
+  bool orChildren = false,
+}) {
+  final move = draft.move;
+  if (draft.enteredNew &&
+      move != null &&
+      draft.compound == null &&
+      taxonomy
+          .unstatedRequiredParams(Figure(move: move, params: draft.params))
+          .isNotEmpty) {
+    return true;
+  }
+  if (!orChildren) return false;
+  return [
+    ...?draft.meanwhileSides,
+    ...?draft.modifierFigures,
+    ...?draft.sequenceFigures,
+  ].any((child) => _draftNeedsValues(child, taxonomy, orChildren: true));
+}
+
+/// The params a figure of [moveId] starts with when it is picked: the
+/// taxonomy's entry params ([Taxonomy.entryParams]). Where the editor does
+/// not require stated params (an editor other than the dance editor, which
+/// would never refuse the save), a param seeded unstated only because a new
+/// figure must state it ([ParamSpec.requiredOnEntry]) starts at what leaving
+/// it out means instead, as before taxonomy v40: a pass by's neighbors.
+Map<String, Object?> _entryParamsFor(
+  Taxonomy taxonomy,
+  String moveId,
+  bool requireStatedParams,
+) {
+  final params = taxonomy.entryParams(moveId);
+  if (requireStatedParams) return params;
+  final def = taxonomy.resolve(moveId);
+  for (final MapEntry(:key, :value)
+      in def?.params.entries ?? const <MapEntry<String, ParamSpec>>[]) {
+    if (value.requiredOnEntry && params[key] == ParamVocab.unspecified) {
+      params[key] = taxonomy.defaultParamValue(moveId, key);
+    }
+  }
+  return params;
+}

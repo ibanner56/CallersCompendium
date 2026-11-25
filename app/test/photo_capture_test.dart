@@ -506,5 +506,77 @@ void main() {
         expect(match!.group(1)!.trim(), isNotEmpty);
       });
     }
+
+    test('every other iOS language translates both purpose strings', () {
+      final plist = File('ios/Runner/Info.plist').readAsStringSync();
+      final languages = RegExp(r'<string>([^<]+)</string>')
+          .allMatches(
+            RegExp(
+              r'<key>CFBundleLocalizations</key>\s*<array>(.*?)</array>',
+              dotAll: true,
+            ).firstMatch(plist)!.group(1)!,
+          )
+          .map((m) => m.group(1)!)
+          .where((language) => language != 'en')
+          .toList();
+      expect(languages, containsAll(['da', 'de', 'fr', 'ja', 'nl']));
+
+      final project = File(
+        'ios/Runner.xcodeproj/project.pbxproj',
+      ).readAsStringSync();
+      final resources = RegExp(
+        r'97C146EC1CF9000F007C117D /\* Resources \*/ = \{.*?files = \((.*?)\);',
+        dotAll: true,
+      ).firstMatch(project)!.group(1)!;
+      final group = RegExp(
+        r'(\w+) /\* InfoPlist.strings \*/ = \{\s*isa = PBXVariantGroup;'
+        r'\s*children = \((.*?)\);',
+        dotAll: true,
+      ).firstMatch(project);
+      expect(group, isNotNull);
+      final buildFile = RegExp(
+        r'(\w+) /\* InfoPlist.strings in Resources \*/ = \{isa = PBXBuildFile; '
+        'fileRef = ${group!.group(1)} ',
+      ).firstMatch(project);
+      expect(buildFile, isNotNull);
+      expect(resources, contains('${buildFile!.group(1)} /*'));
+
+      for (final language in languages) {
+        final child = RegExp(
+          '(\\w+) /\\* $language \\*/,',
+        ).firstMatch(group.group(2)!);
+        expect(child, isNotNull, reason: language);
+        expect(
+          project,
+          contains(
+            '${child!.group(1)} /* $language */ = {isa = PBXFileReference; '
+            'lastKnownFileType = text.plist.strings; name = $language; '
+            'path = $language.lproj/InfoPlist.strings;',
+          ),
+          reason: language,
+        );
+        final strings = File(
+          'ios/Runner/$language.lproj/InfoPlist.strings',
+        ).readAsStringSync();
+        for (final key in [
+          'NSCameraUsageDescription',
+          'NSPhotoLibraryUsageDescription',
+        ]) {
+          final match = RegExp(
+            '^"$key" = "([^"\\n]+)";\$',
+            multiLine: true,
+          ).firstMatch(strings);
+          expect(match, isNotNull, reason: '$language $key');
+          final english = RegExp(
+            '<key>$key</key>\\s*<string>([^<]+)</string>',
+          ).firstMatch(plist)!.group(1);
+          expect(
+            match!.group(1),
+            isNot(english),
+            reason: '$language $key is still English',
+          );
+        }
+      }
+    });
   });
 }

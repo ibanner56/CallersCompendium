@@ -14571,4 +14571,91 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get syncReviewKindEventRule => 'イベントルール';
+
+  @override
+  String get danceEditorFigureNeedsValues => '保存する前に、このフィギュアのすべての項目で値を選んでください。';
+
+  @override
+  String get danceEditorSaveNeedsFigureValues =>
+      '追加したフィギュアに空欄の項目が残っています。入力すると保存できます。';
+
+  @override
+  String get programTemplateAddSlotRule => '枠のルールを追加';
+
+  @override
+  String get programTemplateSlotRuleBadge => '枠のルール';
+
+  @override
+  String programTemplateSlotRuleSubtitle(String name) {
+    return '保存した検索「$name」から埋めます';
+  }
+
+  @override
+  String get programTemplateSlotRuleSearchGone => '保存した検索は削除されました';
+
+  @override
+  String get programTemplateSlotRuleDialogTitle => '枠のルールを追加';
+
+  @override
+  String get programTemplateSlotRuleDialogBody =>
+      'ダンスを指定する代わりに、ダンスの種類を説明します。このテンプレートから作ったプログラムでは、保存した検索から埋めるプレースホルダーとして表示されます。';
+
+  @override
+  String get programTemplateSlotRuleLabel => 'ラベル';
+
+  @override
+  String get programTemplateSlotRuleLabelHint => 'やさしいインプロパーのオープナー';
+
+  @override
+  String get programTemplateSlotRuleSearch => '保存した検索';
+
+  @override
+  String get programTemplateSlotRuleNoSearches =>
+      '枠のルールは保存した検索を使います。まずコレクションで検索を保存してから、ここで選んでください。';
+
+  @override
+  String get programsPlaceholderSubtitle => 'プレースホルダー';
+
+  @override
+  String get programsFillPlaceholderButton => '埋める';
+
+  @override
+  String programsFillPlaceholderSemantics(String label) {
+    return '「$label」をダンスで埋める';
+  }
+
+  @override
+  String programsFillSheetTitle(String label) {
+    return '「$label」を埋める';
+  }
+
+  @override
+  String programsFillSearchGone(String label) {
+    return '「$label」の保存した検索は削除されたため、すべてのダンスを表示しています。';
+  }
+
+  @override
+  String programsFillSearchUnresolvable(String label, String name) {
+    return '「$label」の保存した検索「$name」は、なくなったものを使っているため使えません。すべてのダンスを表示しています：';
+  }
+
+  @override
+  String savedSearchUsedBySlotRule(String rule, String template) {
+    return 'テンプレート $template の枠のルール「$rule」';
+  }
+
+  @override
+  String get programTemplateSlotRuleSearchUnreadable => '保存した検索を開けません';
+
+  @override
+  String get programTemplateSlotRuleEditTitle => '枠のルールを編集';
+
+  @override
+  String get programTemplateSlotRuleLabelBreak =>
+      '「Break」はプログラムの休憩を表すため、枠のルールのラベルには使えません。';
+
+  @override
+  String programsFillSearchUnreadable(String label) {
+    return '「$label」の保存した検索を開けません。新しいバージョンのアプリで保存されたか、破損しています。すべてのダンスを表示しています。';
+  }
 }

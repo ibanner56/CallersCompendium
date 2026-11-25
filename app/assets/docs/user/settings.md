@@ -201,7 +201,9 @@ again](./collection.md#save-a-search-and-use-it-again)) is listed here by name.
   search and choose **Update** in the ⋮ menu.
 - **Delete** (the bin) deletes it at once (it asks first only when **Confirm
   before delete** is on) and shows an **Undo** in the message at the bottom of
-  the screen.
+  the screen. A saved search that a [program template's slot
+  rule](#program-defaults) uses can't be deleted; the message names the rule
+  and its template, so you can change or remove the rule first.
 - A saved search that this version of the app can't read (saved by a newer
   version, or damaged) is listed last, under **Needs attention**. It is never
   used. Tap it to read what that means and to delete it; you can undo that.
@@ -736,6 +738,20 @@ Select **Program defaults** to open this group.
   its move up and move down buttons, to change the order **New program** lists
   them in. Dances that are no longer in your collection are skipped when a
   program is made from a template.
+- **Slot rules** (optional) — in a template, **Add slot rule** adds a slot
+  that names a kind of dance instead of one dance: a label, such as "Easy
+  family opener", and one of your [saved
+  searches](./collection.md#save-a-search-and-use-it-again), such as "Family
+  dances". Below its label, the rule shows the saved search it uses. A program
+  made from the template gets a **placeholder** in that slot, showing the label,
+  and you choose the dance later with **Fill** (see [Build a
+  program](./programs.md#fill-a-placeholder)). A template without a slot rule
+  makes exactly the slots it always did. A rule's **Edit** button (the pencil)
+  changes its label or saved search; its label can't be "Break", which marks a
+  break. While a template has a rule that uses a saved search, that search
+  can't be deleted; the message names the template and the rule. If the saved
+  search is gone anyway (deleted on another device, say), or can't be opened,
+  the rule's row says so, and the placeholder still offers Fill.
 - **Default template** — the template a new program starts from when you are
   not asked to choose, or **Blank program**. The first template you add
   becomes the default unless you have chosen Blank program. With two or more

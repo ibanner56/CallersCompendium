@@ -175,7 +175,8 @@ bool _sameApartFromPosition(ProgramSlot a, ProgramSlot b) =>
     a.guestCaller == b.guestCaller &&
     a.walkthroughMinutes == b.walkthroughMinutes &&
     a.danceMinutes == b.danceMinutes &&
-    a.performedAt == b.performedAt;
+    a.performedAt == b.performedAt &&
+    a.placeholderSearchId == b.placeholderSearchId;
 
 /// Whether the alternate at [index] in [after] belongs to a group whose
 /// primary (the nearest slot before it that is not an alternate) is missing
@@ -244,6 +245,7 @@ ProgramSlot _mergeFields(ProgramSlot was, ProgramSlot now, ProgramSlot onto) {
       walkthroughMinutes: pick((s) => s.walkthroughMinutes),
       danceMinutes: pick((s) => s.danceMinutes),
       performedAt: pick((s) => s.performedAt),
+      placeholderSearchId: pick((s) => s.placeholderSearchId),
     );
   } on ArgumentError catch (error, stackTrace) {
     // The field-by-field mix broke a slot invariant (say, Perform cleared the
@@ -264,6 +266,7 @@ ProgramSlot _mergeFields(ProgramSlot was, ProgramSlot now, ProgramSlot onto) {
       walkthroughMinutes: now.walkthroughMinutes,
       danceMinutes: now.danceMinutes,
       performedAt: now.performedAt,
+      placeholderSearchId: now.placeholderSearchId,
     );
   }
 }

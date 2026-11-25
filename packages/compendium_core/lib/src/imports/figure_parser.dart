@@ -2309,8 +2309,9 @@ _Match? _passThrough(List<String> w) {
 ///
 /// Deliberately narrow (prefer-custom):
 /// - The line must LEAD with "walk forward to". A stated subject ("Women walk
-///   forward to N2") is DECLINED: `pass_through` has no `who` slot, so
-///   structuring it would silently drop the role.
+///   forward to N2") is DECLINED: structuring it would silently drop the
+///   role. `pass_through` has had a `who` since taxonomy v40, but this
+///   recognizer does not yet read a subject onto it.
 /// - `where` and `shoulder` are NEVER written. `pass_through` declares
 ///   `along`/`right` as its own taxonomy defaults; writing either here would
 ///   assert a direction and a shoulder the source did not state.
@@ -2487,15 +2488,128 @@ _Match? _promenade(List<String> w) {
 /// in a `(past …)` annotation, which `_normalize` strips (all 25 surveyed
 /// "Slide" lines are this Becket slide, never a progression/other sense). A
 /// direction is required — a bare "shift"/"slide" is too ambiguous → custom.
+///
+/// A line that names who shifts ("Men shift left", "Twos shift up") is the
+/// `shift` move (taxonomy v40): that group sidesteps, and nobody else. The
+/// dancers must lead, and only "shift" reads this way, never "slide". A line
+/// with no dancers stays `slide_along_set`, which is how TCB writes everyone
+/// sliding, so this reading never takes one of those lines. A leading
+/// `everyone` does not structure: `shift.who` does not offer it (everyone
+/// shifting is the slide), so the match fails validation and the line stays
+/// custom. A count of places ("Men shift left one place", "two places") is
+/// kept as the note, in the line's words; no param holds it. So is a
+/// destination, by the maintainer's ruling (2026-11-24): a group shift's tail
+/// ([_shiftTailStarts]) and a bare shift's `to <dancer>` or `with neighbor`
+/// ([_isSlideTail]).
 _Match? _shift(List<String> w) {
+  final who = _takeLeadingDancer(w);
+  if (who != null) return _groupShift(who, w);
   if (!_consumePhrase(w, ['shift']) && !_consumePhrase(w, ['slide'])) {
     return null;
   }
   final slide = _takeSide(w);
+  if (slide == null) return null;
+  final tail = _isSlideTail(w) ? _tailNote(w) : null;
+  if (tail != null) w.clear();
   _dropFiller(w);
-  if (slide == null || w.isNotEmpty) return null;
-  return _Match('slide_along_set', {'slide': slide});
+  if (w.isNotEmpty) return null;
+  return _Match('slide_along_set', {'slide': slide}, tail);
 }
+
+/// Whether [w], what is left of a slide line after its side, says where or
+/// with whom everyone slides: `to <dancer>` ("Shift left to N2") or `with
+/// neighbor [<dancer>]` ("Shift left with neighbor"). Such a tail is kept as
+/// the note, in the line's words. Anything else leaves the line custom.
+bool _isSlideTail(List<String> w) {
+  if (w.length == 2 && w[0] == 'to') return _isSlideTarget(w[1]);
+  if ((w.length == 2 || w.length == 3) &&
+      w[0] == 'with' &&
+      (w[1] == 'neighbor' || w[1] == 'neighbors')) {
+    return w.length == 2 || _dancerCodeRe.hasMatch(w[2]);
+  }
+  return false;
+}
+
+/// Who a bare slide goes to: a Caller's Box code (`N2`, `P1`, `S1`, `N`) or
+/// a neighbour, partner or shadow by name.
+bool _isSlideTarget(String word) =>
+    _dancerCodeRe.hasMatch(word) || _slideTargetWords.contains(word);
+
+const Set<String> _slideTargetWords = {
+  'neighbor', 'neighbors', 'partner', 'partners', 'shadow', 'shadows', //
+};
+
+/// The rest of a `<who> shift <direction> [<n> place(s)]` line, after [who];
+/// see [_shift].
+_Match? _groupShift(String who, List<String> w) {
+  if (w.length < 2 || w[0] != 'shift') return null;
+  final direction = w[1];
+  if (!_shiftDirectionWords.contains(direction)) return null;
+  final rest = w.sublist(2);
+  String? note;
+  final count = rest.length == 2 ? _castPlaceCount(rest[0]) : null;
+  if (count != null && rest[1] == (count == 1 ? 'place' : 'places')) {
+    note = rest.join(' ');
+  } else if (_isShiftDestination(rest)) {
+    note = _tailNote(rest);
+  } else if (rest.isNotEmpty) {
+    return null;
+  }
+  return _Match('shift', {'who': who, 'direction': direction}, note);
+}
+
+const Set<String> _shiftDirectionWords = {'left', 'right', 'up', 'down'};
+
+/// Whether [w], the rest of a group shift after its direction, only says
+/// where the group goes, which [_groupShift] keeps as the note: "Women shift
+/// right to next woman's position", "Men shift right behind neighbor",
+/// "Women shift left a step until across from N3 women", "one step".
+///
+/// It must open with `to`, `behind`, `until`, `one step` or `a step`, and
+/// every word must be a place or dancer word ([_destinationWords], a dancer
+/// code or name, or its possessive). Any other word, such as a move ("to
+/// swing"), a conjunction ("and allemande") or a `face …` clause, leaves the
+/// line custom: inside a `||` side a clause's `;` or `,` is already gone, so
+/// this is what keeps a second figure out of the note.
+bool _isShiftDestination(List<String> w) {
+  final opens =
+      (w.isNotEmpty && _shiftTailStarts.contains(w[0])) ||
+      (w.length >= 2 && (w[0] == 'one' || w[0] == 'a') && w[1] == 'step');
+  return opens && w.every(_isDestinationWord);
+}
+
+bool _isDestinationWord(String word) {
+  final stem = word.endsWith("'s") ? word.substring(0, word.length - 2) : word;
+  return _destinationWords.contains(stem) ||
+      _dancerCodeRe.hasMatch(stem) ||
+      _slideTargetWords.contains(stem);
+}
+
+const Set<String> _shiftTailStarts = {'to', 'behind', 'until'};
+
+const Set<String> _destinationWords = {
+  'to', 'behind', 'until', 'across', 'from', 'one', 'a', 'step', 'the', //
+  'next', 'new', 'original', 'place', 'position', 'ones', 'twos', //
+  'role1', 'role2', 'role1s', 'role2s', //
+};
+
+/// A shift or slide line's tail as its note. The words are lowercased by
+/// [_normalize], so a Caller's Box dancer code (`n2`, `p1`, `s1`, `n`, `w`),
+/// possessive or not, is put back in capitals ("to N2", "to N2's place"),
+/// as the source writes it.
+String _tailNote(List<String> w) =>
+    [for (final word in w) _restoreDancerCode(word)].join(' ');
+
+/// [word] with a dancer code, or the code a possessive is made from ("n2's"),
+/// in capitals; any other word as it is.
+String _restoreDancerCode(String word) {
+  final possessive = word.endsWith("'s");
+  final stem = possessive ? word.substring(0, word.length - 2) : word;
+  if (!_dancerCodeRe.hasMatch(stem)) return word;
+  return possessive ? "${stem.toUpperCase()}'s" : stem.toUpperCase();
+}
+
+final RegExp _dancerCodeRe = RegExp(r'^(?:[nps]\d?|n\d[mw]|[mw])$');
 
 /// Tier A: TCB writes "Men give-and-take partner" / "Men give-and-take
 /// neighbor" (hyphenated; TCB never spells the "give & take only" variant, so

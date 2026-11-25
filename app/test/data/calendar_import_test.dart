@@ -248,6 +248,42 @@ void main() {
       expect(p.venueId, 'v1');
     });
 
+    test('a slot rule in the Default template becomes a placeholder in each '
+        'draft, its label as text and its saved search kept (#2338)', () async {
+      final repos = openTestRepositories();
+      await saveProgramTemplate(
+        repos.settings,
+        ProgramTemplate(
+          id: 'family',
+          name: 'Family dance',
+          entries: [
+            const ProgramTemplateEntry(text: 'Waltz'),
+            ProgramTemplateEntry.rule(
+              savedSearchId: 'search-1',
+              label: 'Easy family opener',
+            ),
+          ],
+        ),
+      );
+      await saveProgramTemplateOrder(repos.settings, const ['family']);
+      await saveProgramTemplateDefault(repos.settings, 'family');
+      await _importAll(
+        repos,
+        await _preview(
+          repos,
+          _cal([
+            ['UID:a', 'DTSTART;VALUE=DATE:20300620', 'SUMMARY:Family dance'],
+          ]),
+        ),
+      );
+      final p = (await repos.programs.listAll()).single;
+      expect(p.slots.map((s) => (s.danceId, s.text, s.placeholderSearchId)), [
+        (null, 'Waltz', null),
+        (null, 'Easy family opener', 'search-1'),
+      ]);
+      expect(p.slots[1].isPlaceholder, isTrue);
+    });
+
     test('a timed event gives its draft a start and end; an all-day one gives '
         'none (#2423)', () async {
       final repos = openTestRepositories();

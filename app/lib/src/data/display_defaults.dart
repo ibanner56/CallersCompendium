@@ -214,21 +214,47 @@ const String kDefaultStartingProgramKey = 'default_starting_program';
 /// A dance entry may also carry [text] as its per-slot note. Text-only entries
 /// represent notes, waltzes, or the structural break token. Generated slot ids
 /// and positions are intentionally not part of a template.
+///
+/// A **slot rule** (#2338, [ProgramTemplateEntry.rule]) describes a kind of
+/// dance instead of naming one: a label, held in [text], and the id of the
+/// saved search (#2325) that says which dances it means, [savedSearchId]. It
+/// has no [danceId]. Only a program template holds rules; the legacy Starting
+/// program never did.
 class ProgramTemplateEntry {
-  const ProgramTemplateEntry({this.danceId, this.text});
+  const ProgramTemplateEntry({this.danceId, this.text}) : savedSearchId = null;
+
+  /// A slot rule: [label] and the saved search it is filled from.
+  const ProgramTemplateEntry.rule({
+    required String this.savedSearchId,
+    required String label,
+  }) : danceId = null,
+       text = label;
 
   final String? danceId;
+
+  /// A dance entry's caller note, a note's text, or a rule's label.
   final String? text;
+
+  /// A slot rule's saved search, or `null` for any other entry.
+  final String? savedSearchId;
+
+  /// Whether this entry is a slot rule.
+  bool get isRule => savedSearchId != null;
 
   @override
   bool operator ==(Object other) =>
       other is ProgramTemplateEntry &&
       other.danceId == danceId &&
-      other.text == text;
+      other.text == text &&
+      other.savedSearchId == savedSearchId;
 
   @override
-  int get hashCode => Object.hash(danceId, text);
+  int get hashCode => Object.hash(danceId, text, savedSearchId);
 }
+
+/// The longest saved-search id a slot rule holds: far over a UUID's 36, under
+/// the settings key's own limits.
+const int kMaxProgramTemplateSavedSearchIdLength = 128;
 
 const int _startingProgramTemplateVersion = 1;
 
@@ -245,7 +271,9 @@ const int kMaxProgramTemplateTextLength = 500;
 ///
 /// Blank entries are skipped, text is cut to [kMaxProgramTemplateTextLength]
 /// and the list to [kMaxProgramTemplateEntries], so the result always decodes
-/// with [tryDecodeProgramTemplateSlots].
+/// with [tryDecodeProgramTemplateSlots] (with `allowRules` when a rule is in
+/// it). A slot rule is written as `{"savedSearchId": …, "label": …}`, and is
+/// skipped when its id or label is blank.
 List<Map<String, Object?>> encodeProgramTemplateSlots(
   List<ProgramTemplateEntry> entries,
 ) {
@@ -259,6 +287,18 @@ List<Map<String, Object?>> encodeProgramTemplateSlots(
         : rawText.length > kMaxProgramTemplateTextLength
         ? rawText.substring(0, kMaxProgramTemplateTextLength)
         : rawText;
+    final savedSearchId = entry.savedSearchId?.trim();
+    // A rule labelled with the break token is written as the break it would
+    // read as (#2338): the decoder refuses such a rule.
+    if (savedSearchId != null && !isProgramTemplateBreakText(text)) {
+      if (savedSearchId.isEmpty ||
+          savedSearchId.length > kMaxProgramTemplateSavedSearchIdLength ||
+          text == null) {
+        continue;
+      }
+      slots.add({'savedSearchId': savedSearchId, 'label': text});
+      continue;
+    }
     if ((danceId == null || danceId.isEmpty) && text == null) continue;
     final slot = <String, Object?>{};
     if (danceId?.isNotEmpty ?? false) slot['danceId'] = danceId;
@@ -268,16 +308,35 @@ List<Map<String, Object?>> encodeProgramTemplateSlots(
   return slots;
 }
 
+/// Whether [text] is the break token, [Program.breakSlotText], in any case and
+/// spacing: what [ProgramSlot.isBreak] reads as a break. A slot rule may not
+/// carry it as its label (#2338).
+bool isProgramTemplateBreakText(String? text) =>
+    text != null &&
+    text.trim().toLowerCase() == Program.breakSlotText.toLowerCase();
+
 /// Decodes a template's `slots` list, returning `null` for any invalid
 /// payload: not a list, too long, or any entry that is not exactly a dance id
-/// and/or a non-blank text within the limits.
-List<ProgramTemplateEntry>? tryDecodeProgramTemplateSlots(Object? rawSlots) {
+/// and/or a non-blank text within the limits, or, when [allowRules], a slot
+/// rule: exactly a non-blank `savedSearchId` and a non-blank `label` within
+/// the limits that is not the break token (this build never writes one).
+List<ProgramTemplateEntry>? tryDecodeProgramTemplateSlots(
+  Object? rawSlots, {
+  bool allowRules = false,
+}) {
   if (rawSlots is! List || rawSlots.length > kMaxProgramTemplateEntries) {
     return null;
   }
   final entries = <ProgramTemplateEntry>[];
   for (final raw in rawSlots) {
     if (raw is! Map) return null;
+    if (raw.containsKey('savedSearchId') || raw.containsKey('label')) {
+      if (!allowRules) return null;
+      final rule = _tryDecodeSlotRule(raw);
+      if (rule == null) return null;
+      entries.add(rule);
+      continue;
+    }
     final allowed = raw.keys.every((key) => key == 'danceId' || key == 'text');
     if (!allowed) return null;
     final danceId = raw['danceId'];
@@ -295,6 +354,24 @@ List<ProgramTemplateEntry>? tryDecodeProgramTemplateSlots(Object? rawSlots) {
     );
   }
   return entries;
+}
+
+ProgramTemplateEntry? _tryDecodeSlotRule(Map<Object?, Object?> raw) {
+  if (raw.length != 2) return null;
+  final id = raw['savedSearchId'];
+  final label = raw['label'];
+  if (id is! String ||
+      id.trim().isEmpty ||
+      id.length > kMaxProgramTemplateSavedSearchIdLength) {
+    return null;
+  }
+  if (label is! String ||
+      label.trim().isEmpty ||
+      label.length > kMaxProgramTemplateTextLength ||
+      isProgramTemplateBreakText(label)) {
+    return null;
+  }
+  return ProgramTemplateEntry.rule(savedSearchId: id, label: label);
 }
 
 /// Encodes the legacy starting-program template as a versioned JSON string.

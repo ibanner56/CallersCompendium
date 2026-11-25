@@ -871,7 +871,10 @@ class _FigureEditor extends StatelessWidget {
     final paramSpecs = {
       for (final MapEntry(:key, :value)
           in (move?.params ?? const <String, ParamSpec>{}).entries)
-        if (!pinned.containsKey(key)) key: value,
+        if (!pinned.containsKey(key) &&
+            !(figure.move != null &&
+                taxonomy.isParamNamedById(figure.move!, key)))
+          key: value,
     };
     final any = figure.isAnyFigure;
     // A stored param with no dropdown at all (a param the move does not

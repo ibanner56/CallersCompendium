@@ -1,0 +1,14 @@
+{
+  "id": "tcb-give-and-take-centre-balance",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Dances you import from The Caller's Box read two more kinds of line as figures instead of text: \"Men go forward\" followed by \"Men bring back partner\" is one give and take, and \"Men balance long wave in center\" on its own line is a balance, noted as in a long wave in the center."
+    ]
+  },
+  "core": {
+    "changed": [
+      "The Caller's Box adapter folds a `<role> go forward` / `<role> bring back partner|neighbor` pair into `give_and_take`, and reads a `<role> balance long wave in center` line that nothing else claimed as `balance` with a `long wave in center` note."
+    ]
+  }
+}

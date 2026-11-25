@@ -255,8 +255,8 @@ void main() {
       // flag already renders the inbound travel). That removes the line from
       // the set where a leading clause FAILS; it does not weaken the rule.
       // `Women walk forward; form wave of four with N2` is the same shape and
-      // still exercises it exactly: #733 declines the fold because
-      // `pass_through` has no `who` slot to carry "women", so the leading
+      // still exercises it exactly: #733 declines the fold because nothing
+      // reads "women" onto the pass through's `who`, so the leading
       // clause still fails while the trailing `form wave of four with N2`
       // still structures — which is precisely the "note would have to hang on
       // a LATER figure" case.
@@ -560,6 +560,18 @@ void main() {
         frontEnd: tcbFigureFrontEnd,
       );
       expect(f!.move, 'hey');
+      // The `;` stays inside the pass list; the only note is the trailing
+      // `~`'s (Caller's Box "partial hey pass"), kept so the mark is not lost
+      // on import (agent's call 2026-11-24).
+      expect(f.note, 'last pass partial');
+    });
+
+    test('a hey whose last pass has no `~` carries no note', () {
+      final f = parseFigureLine(
+        'Hey 1/2 (WR;PL;MR;N2L)',
+        frontEnd: tcbFigureFrontEnd,
+      );
+      expect(f!.move, 'hey');
       expect(f.note, isNull);
     });
 
@@ -635,6 +647,41 @@ void main() {
       expect(only.params['return'], 'diagonal');
       expect(only.beats, 8);
       expect(only.note, contains('fall back to S2'));
+    });
+
+    test('a Double slice naming a neighbour and the next one maps too', () {
+      for (final pair in [
+        ['N1', 'N2'],
+        ['N2', 'N3'],
+      ]) {
+        final figures = _importFigures([
+          '(8) Double slice left:',
+          '     (4) On left diagonal, go forward to ${pair[0]}',
+          '     (4) On other diagonal, fall back to ${pair[1]}',
+        ]);
+        expect(figures, hasLength(1), reason: '$pair');
+        expect(figures.single.move, 'slice', reason: '$pair');
+        expect(figures.single.params['return'], 'diagonal', reason: '$pair');
+        expect(figures.single.note, contains('fall back to ${pair[1]}'));
+      }
+    });
+
+    test('a Double slice whose diagonals are not consecutive stays custom', () {
+      for (final pair in [
+        ['N2', 'N2'],
+        ['N1', 'N3'],
+        ['N1', 'S2'],
+        ['S1', 'N2'],
+        ['N3', 'N4'],
+      ]) {
+        final figures = _importFigures([
+          '(8) Double slice left:',
+          '     (4) On left diagonal, go forward to ${pair[0]}',
+          '     (4) On other diagonal, fall back to ${pair[1]}',
+        ]);
+        expect(figures, hasLength(1), reason: '$pair');
+        expect(figures.single.isCustom, isTrue, reason: '$pair');
+      }
     });
 
     test('a near-miss Double slice stays a custom atomic parent', () {

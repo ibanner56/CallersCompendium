@@ -13125,7 +13125,7 @@
   },
   "figureTextSheetFromImage": "From an image…",
   "@figureTextSheetFromImage": {
-    "description": "Button in the Add figures from text sheet that opens the system picker to choose a picture (a photo of an index card or a book page) whose text is read on the device and put in the text box. Shown only on iOS and macOS."
+    "description": "Button in the Add figures from text sheet that opens the system picker to choose a picture (a photo of an index card or a book page) whose text is read on the device and put in the text box. Shown only on iOS, macOS and Windows."
   },
   "figureTextSheetTakePhoto": "Take a photo",
   "@figureTextSheetTakePhoto": {
@@ -13145,7 +13145,7 @@
   },
   "figureTextSheetImageEnglishOnly": "This device reads pictures in English, not in the app's language.",
   "@figureTextSheetImageEnglishOnly": {
-    "description": "Note under the From an image… button when the device cannot read the app's language (for example Japanese on an older iOS or macOS) but can read English."
+    "description": "Note under the From an image… button when the device cannot read the app's language (for example Japanese on an older iOS or macOS, or on Windows without the Japanese language pack) but can read English."
   },
   "figureTextSheetImageTooLarge": "This picture is larger than {limit} MB, so it wasn't read. Choose a smaller one.",
   "@figureTextSheetImageTooLarge": {
@@ -20418,5 +20418,147 @@
   "syncReviewKindEventRule": "Event rule",
   "@syncReviewKindEventRule": {
     "description": "Device Sync: the kind of record that is an event rule (#2340)."
+  },
+  "danceEditorFigureNeedsValues": "Choose a value for every field of this figure before saving.",
+  "@danceEditorFigureNeedsValues": {
+    "description": "Shown under the fields of a figure the user has just added (picked or typed) while one of the fields it must state is still empty: for a pass by or pass through, who passes and where. The dance cannot be saved until they are chosen. A figure that was already saved with such a field empty is not flagged."
+  },
+  "danceEditorSaveNeedsFigureValues": "Some figures you added still have empty fields. Fill them in to save.",
+  "@danceEditorSaveNeedsFigureValues": {
+    "description": "Snackbar shown when the user taps Save while a figure they added in this edit still has an empty field it must state (for a pass by or pass through, who and where). The dance is not saved; each such figure shows danceEditorFigureNeedsValues under its fields, and on its row while the row is closed."
+  },
+  "programTemplateAddSlotRule": "Add slot rule",
+  "@programTemplateAddSlotRule": {
+    "description": "Secondary button in the program template editor that adds a slot rule: a slot that describes a kind of dance (with a saved search) instead of naming one (#2338)."
+  },
+  "programTemplateSlotRuleBadge": "Slot rule",
+  "@programTemplateSlotRuleBadge": {
+    "description": "Screen-reader label of the icon on a slot rule in the program template editor, and its subtitle while the saved searches load (#2338)."
+  },
+  "programTemplateSlotRuleSubtitle": "Filled from the saved search \"{name}\"",
+  "@programTemplateSlotRuleSubtitle": {
+    "description": "Subtitle of a slot rule in the program template editor: the saved search that says which dances it means (#2338).",
+    "placeholders": {
+      "name": {
+        "type": "String",
+        "example": "Easy improper"
+      }
+    }
+  },
+  "programTemplateSlotRuleSearchGone": "Its saved search was deleted",
+  "@programTemplateSlotRuleSearchGone": {
+    "description": "Subtitle of a slot rule in the program template editor whose saved search no longer exists (#2338)."
+  },
+  "programTemplateSlotRuleDialogTitle": "Add slot rule",
+  "@programTemplateSlotRuleDialogTitle": {
+    "description": "Title of the dialog that adds a slot rule to a program template (#2338)."
+  },
+  "programTemplateSlotRuleDialogBody": "Describe a kind of dance instead of naming one. A program made from this template shows it as a placeholder, which you fill from the saved search.",
+  "@programTemplateSlotRuleDialogBody": {
+    "description": "Explanation in the dialog that adds a slot rule to a program template (#2338)."
+  },
+  "programTemplateSlotRuleLabel": "Label",
+  "@programTemplateSlotRuleLabel": {
+    "description": "Label of the text field for a slot rule's label, the text the placeholder shows (#2338)."
+  },
+  "programTemplateSlotRuleLabelHint": "Easy improper opener",
+  "@programTemplateSlotRuleLabelHint": {
+    "description": "Example label shown in the empty label field when adding a slot rule (#2338)."
+  },
+  "programTemplateSlotRuleSearch": "Saved search",
+  "@programTemplateSlotRuleSearch": {
+    "description": "Label of the menu that chooses which saved search a slot rule uses (#2338)."
+  },
+  "programTemplateSlotRuleNoSearches": "A slot rule uses a saved search. Save a search in Collection first, then choose it here.",
+  "@programTemplateSlotRuleNoSearches": {
+    "description": "Shown instead of the slot rule form when the user has no saved searches (#2338)."
+  },
+  "programsPlaceholderSubtitle": "Placeholder",
+  "@programsPlaceholderSubtitle": {
+    "description": "Subtitle of an unfilled placeholder slot in the program builder: a slot from a template's slot rule, waiting for a dance (#2338)."
+  },
+  "programsFillPlaceholderButton": "Fill",
+  "@programsFillPlaceholderButton": {
+    "description": "Button on an unfilled placeholder slot in the program builder that opens the dance picker with its saved search loaded (#2338)."
+  },
+  "programsFillPlaceholderSemantics": "Fill \"{label}\" with a dance",
+  "@programsFillPlaceholderSemantics": {
+    "description": "Screen-reader label of the Fill button on a placeholder slot (#2338).",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "example": "Easy improper opener"
+      }
+    }
+  },
+  "programsFillSheetTitle": "Fill \"{label}\"",
+  "@programsFillSheetTitle": {
+    "description": "Title of the dance picker sheet opened by Fill on a placeholder slot (#2338).",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "example": "Easy improper opener"
+      }
+    }
+  },
+  "programsFillSearchGone": "The saved search for \"{label}\" was deleted, so every dance is shown.",
+  "@programsFillSearchGone": {
+    "description": "Notice above the dance picker opened by Fill when the placeholder's saved search no longer exists (#2338).",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "example": "Easy improper opener"
+      }
+    }
+  },
+  "programsFillSearchUnresolvable": "\"{label}\" can't use its saved search \"{name}\", which uses things that are gone, so every dance is shown:",
+  "@programsFillSearchUnresolvable": {
+    "description": "Notice above the dance picker opened by Fill when the placeholder's saved search names deleted things; each one is listed below it (#2338).",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "example": "Easy improper opener"
+      },
+      "name": {
+        "type": "String",
+        "example": "Easy improper"
+      }
+    }
+  },
+  "savedSearchUsedBySlotRule": "The slot rule \"{rule}\" in the template {template}",
+  "@savedSearchUsedBySlotRule": {
+    "description": "One line in the message that a saved search cannot be deleted: a program template's slot rule uses it (#2338).",
+    "placeholders": {
+      "rule": {
+        "type": "String",
+        "example": "Easy improper opener"
+      },
+      "template": {
+        "type": "String",
+        "example": "Contra night"
+      }
+    }
+  },
+  "programTemplateSlotRuleSearchUnreadable": "Its saved search can't be opened",
+  "@programTemplateSlotRuleSearchUnreadable": {
+    "description": "Subtitle of a slot rule in the program template editor whose saved search still exists but can't be read: it was saved by a newer version of the app, or it is damaged (#2338)."
+  },
+  "programTemplateSlotRuleEditTitle": "Edit slot rule",
+  "@programTemplateSlotRuleEditTitle": {
+    "description": "Title of the dialog that changes a program template's slot rule: its label and its saved search (#2338)."
+  },
+  "programTemplateSlotRuleLabelBreak": "\"Break\" marks a break in the program, so a slot rule can't use it as its label.",
+  "@programTemplateSlotRuleLabelBreak": {
+    "description": "Error under the label field of the slot rule dialog when the label is the word that marks a break slot (#2338)."
+  },
+  "programsFillSearchUnreadable": "The saved search for \"{label}\" can't be opened: it was saved by a newer version of the app, or it is damaged. Every dance is shown.",
+  "@programsFillSearchUnreadable": {
+    "description": "Notice above the dance picker opened by Fill when the placeholder's saved search still exists but can't be read (#2338).",
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "example": "Easy improper opener"
+      }
+    }
   }
 }

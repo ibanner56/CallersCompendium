@@ -43,7 +43,7 @@ they write immediately with Undo, and they create nothing.
 | Table | `tags` (`Tags` in `tables.dart`) | `choreographers` (`Choreographers` in `tables.dart`) | `published_sources` (`PublishedSources` in `tables.dart`) |
 | Natural key | `name`, `UNIQUE` | `name`, `UNIQUE` | none. `title` is not unique |
 | Join | `dance_tags` (`DanceTags`) | `dance_authors`, ordered (`DanceAuthors`) | `dance_sources`, ordered, with `page` and `number` (`DanceSources`) |
-| Rename in the app | nowhere | the author details dialog, refused on a collision (`dance_editor_screen.dart:744-779`) | the source details dialog (`dance_editor_screen.dart:837-842`) |
+| Rename in the app | nowhere | the author details dialog (`_editChoreographer` in `dance_editor_screen.dart`); a name another live author holds is offered as a merge (T3) | the source details dialog (`_editSource` in `dance_editor_screen.dart`) |
 | Delete in the app | only an Undo of batch tagging removes an *unused* tag it created (`dance_list_screen.dart`, the batch-tag Undo) | nowhere | nowhere |
 | Merge in the app | only the sync review queue (`settings.md:1200-1225`) | the same | nowhere |
 | Purge GC | erased with the last dance, unless it holds a detail (`_garbageCollectOrphanedRefs`) | the same | the same |

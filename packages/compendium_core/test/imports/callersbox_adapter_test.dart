@@ -1461,6 +1461,108 @@ void main() {
         expect(figures.single.params['beats'], 8);
       });
 
+      test('balance wave → longer slide folds into a Rory O\'More with '
+          'twoPlaces (TCB #1797)', () async {
+        final figures = await figuresFor([
+          '(4) Balance wave of four (NL,MR)',
+          '(4) Slide left, women slide two places (M past N, W past (N;W))',
+        ]);
+        expect(figures, hasLength(1));
+        expect(figures.single.move, 'rory_o_more');
+        expect(figures.single.params, {
+          'balance': true,
+          'slide': 'left',
+          'twoPlaces': 'role2s',
+          'beats': 8,
+        });
+        expect(figures.single.note, 'M past N, W past (N;W)');
+      });
+
+      test('the longer slide names ends and men too', () async {
+        for (final (line, who) in [
+          ('(4) Slide right, ends slide 2 places', 'ends'),
+          ('(4) Slide left, men two places', 'role1s'),
+        ]) {
+          final figures = await figuresFor([
+            '(4) Balance wave of four (NR,WL)',
+            line,
+          ]);
+          expect(figures, hasLength(1), reason: line);
+          expect(figures.single.move, 'rory_o_more', reason: line);
+          expect(figures.single.params['twoPlaces'], who, reason: line);
+          expect(figures.single.note, isNull, reason: line);
+        }
+      });
+
+      test('balance wave → one group\'s slide is that group sliding two '
+          'places (TCB #6185)', () async {
+        // The maintainer's ruling (2026-11-24): "Men slide right (past M)"
+        // after a balanced wave is a Rory O'More whose men slide two places.
+        for (final (wave, line, who, slide, note) in [
+          (
+            '(4) Balance wave of four (NL,MR)',
+            '(4) Men slide right (past M)',
+            'role1s',
+            'right',
+            'past M',
+          ),
+          (
+            '(4) Balance wave of four (NR,WL)',
+            '(4) Women slide left (past W)',
+            'role2s',
+            'left',
+            'past W',
+          ),
+        ]) {
+          final figures = await figuresFor([wave, line]);
+          expect(figures, hasLength(1), reason: line);
+          expect(figures.single.move, 'rory_o_more', reason: line);
+          expect(figures.single.params, {
+            'balance': true,
+            'slide': slide,
+            'twoPlaces': who,
+            'beats': 8,
+          }, reason: line);
+          expect(figures.single.note, note, reason: line);
+        }
+      });
+
+      test('one group\'s slide stays custom alone, or when the group is not '
+          'a twoPlaces choice', () async {
+        // Alone: nothing says the dancers are in a wave.
+        final alone = await figuresFor(['(4) Women slide right (past W)']);
+        expect(alone.single.isCustom, isTrue);
+        // Ones are not one of twoPlaces' choices.
+        final ones = await figuresFor([
+          '(4) Balance wave of four (NR,WL)',
+          '(4) Ones slide left (past P)',
+        ]);
+        expect(ones, hasLength(2));
+        expect(ones.last.isCustom, isTrue);
+      });
+
+      test('a longer slide stays custom alone or with other dancers', () async {
+        // Alone: nothing says the dancers are in a wave.
+        final alone = await figuresFor([
+          '(4) Slide left, women slide two places',
+        ]);
+        expect(alone.single.isCustom, isTrue);
+        // Centers are not one of twoPlaces' choices.
+        final centers = await figuresFor([
+          '(4) Balance wave of four (NL,MR)',
+          '(4) Slide left, centers slide two places',
+        ]);
+        expect(centers, hasLength(2));
+        expect(centers.last.isCustom, isTrue);
+        // Two brackets would read as one garbled note (`past N) (to P`).
+        final twoBrackets = await figuresFor([
+          '(4) Balance wave of four (NL,MR)',
+          '(4) Slide left, women slide two places (past N) (to P)',
+        ]);
+        expect(twoBrackets, hasLength(2));
+        expect(twoBrackets.last.isCustom, isTrue);
+      });
+
       test('down the hall → turn alone folds into a hall ender', () async {
         final figures = await figuresFor([
           '(8) Go down the hall',

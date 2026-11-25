@@ -1337,6 +1337,16 @@
             "default_dart": null,
             "default_client_dart": null,
             "dsl_features": []
+          },
+          {
+            "name": "placeholder_search_id",
+            "getter_name": "placeholderSearchId",
+            "moor_type": "string",
+            "nullable": true,
+            "customConstraints": "NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
           }
         ],
         "is_virtual": false,

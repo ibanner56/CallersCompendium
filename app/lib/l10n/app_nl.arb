@@ -14416,7 +14416,7 @@
   },
   "savedSearchInUseRulesOff": "Avondregels staat uit, maar met Regels beheren kun je je regels nu wijzigen. Zet “Programma's toetsen aan je regels” aan onder Instellingen ▸ Experimenteel ▸ Avondregels om programma's aan je regels te toetsen.",
   "@savedSearchInUseRulesOff": {
-    "x-sourceSha256": "952310ec486c4a1bc344759dae8bf00fb08a7505f0b19c23f64b37d689ee0cce"
+    "x-sourceSha256": "c4899dbdd0fc6556f1aff8895c4ea8e010c66d6e41e9241cfb19973686be077e"
   },
   "programsRulesPickerFull": "Dit programma gebruikt {max} regels, het maximum. Vink er een uit om een andere toe te voegen.",
   "@programsRulesPickerFull": {
@@ -14433,5 +14433,97 @@
   "syncReviewKindEventRule": "Avondregel",
   "@syncReviewKindEventRule": {
     "x-sourceSha256": "96fb57b9ffec4dfa2e5ec8c3fe6cf0221b2a4c2c69bc9bcfe40ba99a35f6c804"
+  },
+  "danceEditorFigureNeedsValues": "Kies een waarde voor elk veld van deze figuur voordat je opslaat.",
+  "@danceEditorFigureNeedsValues": {
+    "x-sourceSha256": "61017bcbb23d7350414081cf02df28c3b55cfeaa28b58390310d5828198ae1a8"
+  },
+  "danceEditorSaveNeedsFigureValues": "Sommige toegevoegde figuren hebben nog lege velden. Vul ze in om op te slaan.",
+  "@danceEditorSaveNeedsFigureValues": {
+    "x-sourceSha256": "899a2bb2764967487b319de39f17f242eb5d834d40066036fca864e6461c7e90"
+  },
+  "programTemplateAddSlotRule": "Plekregel toevoegen",
+  "@programTemplateAddSlotRule": {
+    "x-sourceSha256": "271cf5d437fa079717c43d95e491024ecb32f29091b5d0071b156726b9e92f91"
+  },
+  "programTemplateSlotRuleBadge": "Plekregel",
+  "@programTemplateSlotRuleBadge": {
+    "x-sourceSha256": "d3c802c982976b306a8676af4f5bc4811ecfbe9275f29e1ec1bab7a826d2f751"
+  },
+  "programTemplateSlotRuleSubtitle": "Gevuld uit de opgeslagen zoekopdracht \"{name}\"",
+  "@programTemplateSlotRuleSubtitle": {
+    "x-sourceSha256": "242a070d6c31dd6a7f66405773878eec37e63e53466dfa081736afea806a7ae7"
+  },
+  "programTemplateSlotRuleSearchGone": "De opgeslagen zoekopdracht is verwijderd",
+  "@programTemplateSlotRuleSearchGone": {
+    "x-sourceSha256": "1f35b0852f51aa2a31e190d22496980fd15f7d64f7475bee61c2adec35264436"
+  },
+  "programTemplateSlotRuleDialogTitle": "Plekregel toevoegen",
+  "@programTemplateSlotRuleDialogTitle": {
+    "x-sourceSha256": "271cf5d437fa079717c43d95e491024ecb32f29091b5d0071b156726b9e92f91"
+  },
+  "programTemplateSlotRuleDialogBody": "Beschrijf een soort dans in plaats van er een te noemen. Een programma dat met dit sjabloon is gemaakt, toont het als een tijdelijke plek die je vult uit de opgeslagen zoekopdracht.",
+  "@programTemplateSlotRuleDialogBody": {
+    "x-sourceSha256": "75cfaafdbc0353236fc0968bec9df0be031b847ad22591046aaba55256bbc8c9"
+  },
+  "programTemplateSlotRuleLabel": "Label",
+  "@programTemplateSlotRuleLabel": {
+    "x-sourceSha256": "0e66373f45dcf3dd656151e519f7ee5e3d558d9c22cb87df339bbdd2b6c6a3c1"
+  },
+  "programTemplateSlotRuleLabelHint": "Eenvoudige improper-opener",
+  "@programTemplateSlotRuleLabelHint": {
+    "x-sourceSha256": "a08274bf1e477b3d4df401b2da950cf76dd21dab663801dcdc73b15507bd77a5"
+  },
+  "programTemplateSlotRuleSearch": "Opgeslagen zoekopdracht",
+  "@programTemplateSlotRuleSearch": {
+    "x-sourceSha256": "b0e17e59d9f6e5bc3e78c1a3e9b9d40c3238a69046c0726a97282e9e03a14703"
+  },
+  "programTemplateSlotRuleNoSearches": "Een plekregel gebruikt een opgeslagen zoekopdracht. Sla eerst een zoekopdracht op in Collectie en kies die dan hier.",
+  "@programTemplateSlotRuleNoSearches": {
+    "x-sourceSha256": "593b11555624c9a3811478ab0af89b90ff566223d40fb4c0316632f47629bd61"
+  },
+  "programsPlaceholderSubtitle": "Tijdelijke plek",
+  "@programsPlaceholderSubtitle": {
+    "x-sourceSha256": "f4b24fed0274a31618ac1b665ee162af331b4b70fdff74f3f9ddedc94b4da745"
+  },
+  "programsFillPlaceholderButton": "Vullen",
+  "@programsFillPlaceholderButton": {
+    "x-sourceSha256": "033955d469b620d6612cb25b80a8d014acb633e4e0b14eb9e7618675f94e4a06"
+  },
+  "programsFillPlaceholderSemantics": "\"{label}\" met een dans vullen",
+  "@programsFillPlaceholderSemantics": {
+    "x-sourceSha256": "9a07631ee7a5c7fc7927c3d0fdec678e7804cf257e0c40372204c2b8f45218ac"
+  },
+  "programsFillSheetTitle": "\"{label}\" vullen",
+  "@programsFillSheetTitle": {
+    "x-sourceSha256": "08d36d6b18d80126e53cc8a6885a1f7fd49f97dbb4b18f70353a6df18885186d"
+  },
+  "programsFillSearchGone": "De opgeslagen zoekopdracht voor \"{label}\" is verwijderd, dus alle dansen worden getoond.",
+  "@programsFillSearchGone": {
+    "x-sourceSha256": "19cebbf995d48aad394623974322636b2ccda1c0a6c6485b74de2d830f796b58"
+  },
+  "programsFillSearchUnresolvable": "\"{label}\" kan de opgeslagen zoekopdracht \"{name}\" niet gebruiken, omdat die dingen gebruikt die er niet meer zijn, dus alle dansen worden getoond:",
+  "@programsFillSearchUnresolvable": {
+    "x-sourceSha256": "1e2220e52ab277618cea27a58361450b72bb87b18d1a44ec5186db48eea9a565"
+  },
+  "savedSearchUsedBySlotRule": "De plekregel \"{rule}\" in het sjabloon {template}",
+  "@savedSearchUsedBySlotRule": {
+    "x-sourceSha256": "f6abcf8a824f0c6964fb5e3090afcdddefa07ab6e162a7585f87f491c21b8d47"
+  },
+  "programTemplateSlotRuleSearchUnreadable": "De opgeslagen zoekopdracht kan niet worden geopend",
+  "@programTemplateSlotRuleSearchUnreadable": {
+    "x-sourceSha256": "87719e1e721958247eb5fe51c7cf2ad911163c3c04262db39ee0daee11e71814"
+  },
+  "programTemplateSlotRuleEditTitle": "Plekregel bewerken",
+  "@programTemplateSlotRuleEditTitle": {
+    "x-sourceSha256": "35c30e10ebe5cac90c10fca41bd916f0fcc6a4fa7cfdd58ddc485bb65f902421"
+  },
+  "programTemplateSlotRuleLabelBreak": "\"Break\" markeert een pauze in het programma, dus een plekregel kan het niet als label gebruiken.",
+  "@programTemplateSlotRuleLabelBreak": {
+    "x-sourceSha256": "16e76380d1c64fee5f8228fc7f778ef0d4a2f3c4b3e214a56f7c1a83ae1467bd"
+  },
+  "programsFillSearchUnreadable": "De opgeslagen zoekopdracht voor \"{label}\" kan niet worden geopend: die is opgeslagen door een nieuwere versie van de app, of is beschadigd. Alle dansen worden getoond.",
+  "@programsFillSearchUnreadable": {
+    "x-sourceSha256": "90942ead9afb4bb56bdb7a3465a963834a6e9441310d4284498d28e8b6162ec3"
   }
 }

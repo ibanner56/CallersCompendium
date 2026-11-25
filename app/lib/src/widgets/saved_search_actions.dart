@@ -6,6 +6,7 @@ import 'package:flutter/semantics.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/event_rules_scope.dart';
+import '../data/program_templates.dart' show kProgramTemplateSlotRuleUse;
 import '../data/repositories_scope.dart';
 import '../data/user_figures_scope.dart';
 import '../diagnostics/error_log.dart';
@@ -368,7 +369,8 @@ class SavedSearchActions {
             ? await repos.eventRules.get(use.id!)
             : null;
         if (rule == null) {
-          uses.add((Icons.link, use.label, null));
+          // Anything else (a template's slot rule, #2338) in its own words.
+          uses.add((Icons.link, savedSearchUseText(l10n, use), null));
         } else {
           usedByRules = true;
           final sentence = eventRuleSentence(l10n, rule, label);
@@ -850,4 +852,21 @@ class _SavedSearchNameDialogState extends State<_SavedSearchNameDialog> {
       ],
     );
   }
+}
+
+/// How the in-use message names [use]: a template's slot rule (#2338) by its
+/// label and its template, anything else by its own label.
+String savedSearchUseText(AppLocalizations l10n, SavedSearchUse use) {
+  if (use.kind == kProgramTemplateSlotRuleUse) {
+    final template = use.detail;
+    return l10n.savedSearchUsedBySlotRule(
+      use.label,
+      template == null
+          ? l10n.settingsProgramTemplatesMigratedName
+          : template.trim().isEmpty
+          ? l10n.programTemplateUntitled
+          : template,
+    );
+  }
+  return use.label;
 }

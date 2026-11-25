@@ -2236,6 +2236,58 @@ void main() {
       );
     });
 
+    // Mutation caught: hiding only an alias's own pin, which offers pass
+    // through a pass type default, and `by` would turn every pass through
+    // picked into a pass by.
+    testWidgets('pass through and pass by offer no pass type (taxonomy v40)', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+
+      for (final (typed, id) in [
+        ('pass through', 'pass_through'),
+        ('pass by', 'pass_by'),
+        ('forward and back', 'forward_and_back'),
+      ]) {
+        await tester.tap(find.byKey(const ValueKey('move-defaults-add')));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('move-defaults-add-picker-input')),
+          typed,
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(ValueKey('move-defaults-add-picker-option-$id')),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(ValueKey('move-default-card-$id')),
+          findsOneWidget,
+          reason: id,
+        );
+      }
+      for (final id in ['pass_through', 'pass_by']) {
+        expect(
+          find.byKey(ValueKey('move-default-$id-passType')),
+          findsNothing,
+          reason: id,
+        );
+        expect(
+          find.byKey(ValueKey('move-default-$id-shoulder')),
+          findsWidgets,
+          reason: '$id still offers its other params',
+        );
+      }
+      // Positive control: a pair param that is stored is still offered.
+      expect(
+        find.byKey(const ValueKey('move-default-forward_and_back-formation')),
+        findsWidgets,
+      );
+    });
+
     testWidgets('a figure 8 default offers no amount and no other (#2120)', (
       tester,
     ) async {
@@ -2458,6 +2510,71 @@ void main() {
         ),
         {
           'rory_o_more': {'slide': 'left', 'balance': false, 'beats': 4},
+        },
+      );
+    });
+
+    testWidgets('clearing a Rory O\'More\'s two places saves no key', (
+      tester,
+    ) async {
+      // `twoPlaces` (taxonomy v40) is kept only while it names dancers: a
+      // saved `unspecified` would be written into every new Rory O'More,
+      // where an older peer rejects the key.
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultMoveParamOverridesKey,
+        encodeMoveParamOverrides({
+          'rory_o_more': {'slide': 'left', 'twoPlaces': 'role2s'},
+        }),
+      );
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+      final clear = find.byKey(
+        const ValueKey('move-default-rory_o_more-twoPlaces-clear'),
+      );
+      await tester.ensureVisible(clear);
+      await tester.tap(clear);
+      await tester.pumpAndSettle();
+      expect(
+        moveParamOverridesFromStored(
+          await repos.settings.get(kDefaultMoveParamOverridesKey),
+        ),
+        {
+          'rory_o_more': {'slide': 'left'},
+        },
+      );
+    });
+
+    testWidgets('a figure 8 double turned on then off saves no key', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultMoveParamOverridesKey,
+        encodeMoveParamOverrides({
+          'figure_8': {'fraction': 'full'},
+        }),
+      );
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 6400));
+      await tester.pumpAndSettle();
+      final double = find.byWidgetPredicate(
+        (w) =>
+            w is Switch &&
+            w.key == const ValueKey('move-default-figure_8-double'),
+      );
+      await tester.ensureVisible(double);
+      await tester.tap(double);
+      await tester.pumpAndSettle();
+      await tester.tap(double);
+      await tester.pumpAndSettle();
+      expect(
+        moveParamOverridesFromStored(
+          await repos.settings.get(kDefaultMoveParamOverridesKey),
+        ),
+        {
+          'figure_8': {'fraction': 'full'},
         },
       );
     });

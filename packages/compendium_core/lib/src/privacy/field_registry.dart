@@ -813,6 +813,24 @@ final Map<String, DataClassification> fieldClassifications = {
   'program_slots.walkthrough_minutes': _choreography,
   'program_slots.dance_minutes': _choreography,
   'program_slots.performed_at': _choreography,
+  'program_slots.placeholder_search_id': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'The saved search an unfilled placeholder slot is to be filled from '
+        '(#2338, schema v42): the id of one of the caller\'s own saved '
+        'searches (a saved_search: settings value), NULL on every other slot. '
+        'The caller\'s own configuration, so the subject is the app user; an '
+        'id, not a person, so non-personal. Shareable so Device Sync carries '
+        'it and Fill works on the caller\'s other devices, and kept in their '
+        'backups. Dropped from a shared program file '
+        '(sanitizeProgramForShare) and absent from the set-list text and the '
+        'PDF, which carry only the slot\'s label, because the recipient '
+        'cannot hold the caller\'s saved searches. Classification proposed by '
+        'Claude and approved with the issue (maintainer, issue review, '
+        '2026-11-22).',
+  ),
 
   // ----------------------------------------------------- published_sources --
   'published_sources.id': _key,

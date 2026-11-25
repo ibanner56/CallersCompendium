@@ -273,6 +273,10 @@ Set<String>? syncUserVisibleFields(SyncRecordKind kind) => switch (kind) {
     'slots.walkthroughMinutes',
     'slots.danceMinutes',
     'slots.performedAt',
+    // An unfilled placeholder's saved search (#2338): the builder offers
+    // Fill on it, so a slot that has one differs visibly from one that does
+    // not.
+    'slots.placeholderSearchId',
     'hideAlternates',
     'dialectName',
     'payMinorUnits',

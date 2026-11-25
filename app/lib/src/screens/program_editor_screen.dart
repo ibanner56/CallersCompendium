@@ -67,6 +67,7 @@ import '../widgets/app_bar_text_action.dart';
 import '../widgets/app_shortcuts.dart';
 import '../widgets/collection_picker.dart';
 import '../widgets/picker_suggestions.dart' show PickerProgramContext;
+import '../widgets/placeholder_fill.dart';
 import '../widgets/confirm_discard_changes.dart';
 import '../widgets/dirty_dialog_guard.dart';
 import '../widgets/notice_card.dart';
@@ -234,6 +235,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// resolved to nothing (a purged dance). Cleared with each snapshot, which
   /// is when a trashed dance can have been restored, purged or newly trashed.
   final Set<String> _deletedSlotLookups = {};
+
+  /// Whether a **Fill** or **Replace…** dance picker is opening or open
+  /// (#2338): one at a time across the whole program, so a second tap, on
+  /// this slot or another, opens no second sheet.
+  bool _dancePickerBusy = false;
   int _deletedSlotLookupGeneration = 0;
   late DanceReimportCoordinator _reimport;
   late final TabController _tabController;
@@ -1926,6 +1932,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     performedAt: local.performedAt == atReadStart.performedAt
         ? live.performedAt
         : local.performedAt,
+    placeholderSearchId:
+        local.placeholderSearchId == atReadStart.placeholderSearchId
+        ? live.placeholderSearchId
+        : local.placeholderSearchId,
   );
 
   Program _mergeUndoProgram({
@@ -4667,6 +4677,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             onPickReplacementDance: _data == null
                 ? null
                 : _pickReplacementDance,
+            onFillPlaceholder: _data == null ? null : _fillPlaceholder,
             onAddDanceAt: _data == null
                 ? null
                 : (index, {required after}) =>
@@ -4903,7 +4914,26 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// resolves to that dance hands it back, which leaves the dialog as it
   /// was. A slot no longer in the program (it cannot leave while the modal
   /// dialog is open) gets no position, so no Suggested.
+  ///
+  /// With [fill] (#2338) it is **Fill**'s sheet: titled with the placeholder's
+  /// label, and opening with the placeholder's saved search in its panels or,
+  /// when that cannot be used whole, unfiltered under a notice saying why.
   Future<String?> _pickReplacementDance(ProgramSlot slot) async {
+    if (_dancePickerBusy) return null;
+    _dancePickerBusy = true;
+    try {
+      return await _showDancePickerSheet(slot);
+    } finally {
+      _dancePickerBusy = false;
+    }
+  }
+
+  /// The sheet behind [_pickReplacementDance] and [_fillPlaceholder]; callers
+  /// hold [_dancePickerBusy] around it.
+  Future<String?> _showDancePickerSheet(
+    ProgramSlot slot, {
+    PlaceholderFillStart? fill,
+  }) async {
     // The sheet route would hand focus back to a focused field on close.
     FocusManager.instance.primaryFocus?.unfocus();
     final data = _data;
@@ -4955,11 +4985,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                       Row(
                         children: [
                           const SizedBox(width: 16),
-                          Text(
-                            l10n.programsReplaceDanceSheetTitle,
-                            style: Theme.of(context).textTheme.titleMedium,
+                          Expanded(
+                            child: Text(
+                              fill == null
+                                  ? l10n.programsReplaceDanceSheetTitle
+                                  : l10n.programsFillSheetTitle(
+                                      slot.text ?? '',
+                                    ),
+                              key: const ValueKey('replace-picker-sheet-title'),
+                              style: Theme.of(context).textTheme.titleMedium,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                          const Spacer(),
                           IconButton(
                             key: const ValueKey('replace-picker-sheet-close'),
                             tooltip: l10n.commonClose,
@@ -4985,6 +5022,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                             programContext: programContext,
                             excludedDanceIds: {?slot.danceId},
                             rowAction: PickerRowAction.replace,
+                            // Held by the sheet, so the picker applies it once
+                            // however often it rebuilds.
+                            panelState: fill?.request,
+                            header: fill?.notice,
                             enableOnlineSearch: true,
                             onDanceImported: _rememberImportedDance,
                             onImportingChanged: onImportingChanged,
@@ -5020,6 +5061,55 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       importingDisposed = true;
       importing.dispose();
     }
+  }
+
+  /// **Fill** on the unfilled placeholder at [index] (#2338): opens the
+  /// one-pick picker sheet with the placeholder's saved search loaded
+  /// ([preparePlaceholderFill]), and turns the slot into an ordinary dance
+  /// slot with the dance chosen: its label (the slot's text) and its saved
+  /// search go, as a note's text goes when Replace… gives it a dance, and the
+  /// rest of the slot stays.
+  Future<void> _fillPlaceholder(int index) async {
+    final data = _data;
+    if (data == null || index < 0 || index >= _slots.length) return;
+    final slot = _slots[index];
+    if (!slot.isPlaceholder) return;
+    // One picker at a time: the saved search is read before the sheet opens,
+    // so a quick second tap would otherwise open a second sheet.
+    if (_dancePickerBusy) return;
+    _dancePickerBusy = true;
+    final String? danceId;
+    try {
+      final fill = await preparePlaceholderFill(
+        context,
+        slot: slot,
+        data: data,
+        dialect: _dialect,
+        enrichment: _enrichment,
+        programId: _existing?.id ?? widget.programId,
+      );
+      if (fill == null || !mounted) return;
+      danceId = await _showDancePickerSheet(slot, fill: fill);
+    } finally {
+      _dancePickerBusy = false;
+    }
+    if (danceId == null || !mounted) return;
+    // Find the slot again rather than trust [index], and fill it only while it
+    // is still an unfilled placeholder: if it was removed, or became a dance
+    // meanwhile (an edit, or a sync merge), the pick is dropped.
+    final at = _slots.indexWhere((s) => s.id == slot.id);
+    if (at < 0) return;
+    final filled = filledPlaceholderSlot(_slots[at], danceId);
+    if (filled == null) return;
+    _updateSlot(at, filled);
+    final l10n = AppLocalizations.of(context);
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      l10n.programsReplacedDanceAnnounce(
+        _danceById(danceId)?.title ?? l10n.programsDeletedDanceFallback,
+      ),
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
+    );
   }
 
   /// Builds the venue editor for the active venue entity mode.

@@ -86,7 +86,8 @@ B2: (8) Ladies chain to neighbor / (8) Star left 1
 - Operators: `;` then · `,`/`||` while (a literal `while` also appears in
   prose, e.g. `long lines … while N2 neighbor roll away (…)`; the importer reads
   the core+modifier pairings only, #1415) · `[]` who does it · `()` detail ·
-  `~` partial hey pass · `//` either-or · `&` in fractions (`1 & 1/2`) ·
+  `~` partial hey pass (on a hey's last pass the importer keeps it as the note
+  `last pass partial`) · `//` either-or · `&` in fractions (`1 & 1/2`) ·
   `" "` spoken vs `' '` literal-from-source.
 - Rotation amounts: allemandes in quarters (`allemande left 1 & 1/2`), circles/
   stars in full turns (`Circle left 3/4`), heys in fractions with pass lists
@@ -695,9 +696,12 @@ with the same dancer on the next line (`(4) Walk forward to N1` /
 `(12) N1 neighbor swing`) confirm the mapping rather than contradict it: a pass
 through is what puts you facing the dancer you then swing.
 
-**⚠️ The subject cannot ride on a pass through.** `pass_through` has no `who`
-param, so `Women walk forward to N2` / `Men walk forward; form wave of four
-with shadow` stay `custom` rather than silently dropping the role. `who` DOES
+**⚠️ The subject does not ride on a pass through.** Nothing reads a
+walk-forward subject onto a pass through, so `Women walk forward to N2` / `Men
+walk forward; form wave of four with shadow` stay `custom` rather than silently
+dropping the role. (`pass_through` had no `who` param when this was written;
+it has had one since taxonomy v40, when pass by and pass through became one
+figure, so these lines could now carry it.) `who` DOES
 transfer on group 1a, and it must: every subject-bearing line in that group
 states the role on the WALK clause and none on the wave clause, while
 `form_a_long_wave.who` defaults to `role2s` — absorbing without transferring

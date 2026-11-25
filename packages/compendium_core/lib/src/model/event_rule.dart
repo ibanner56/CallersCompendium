@@ -50,11 +50,12 @@ List<String>? toggleEventRuleId(
   required bool on,
   required Set<String> deleted,
 }) {
-  if (!on)
+  if (!on) {
     return [
       for (final id in applied)
         if (id != ruleId) id,
     ];
+  }
   if (applied.contains(ruleId)) return applied;
   final counted = applied.where((id) => !deleted.contains(id)).length;
   if (counted >= maxProgramEventRules) return null;

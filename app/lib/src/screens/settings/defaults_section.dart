@@ -702,8 +702,18 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         moveId,
         () => <String, Object?>{},
       );
+      // A value the move keeps only while stated (a Rory O'More's
+      // `twoPlaces` cleared to unstated, a figure 8's `double` turned off)
+      // is the entry state, not an override: saved, it would be written into
+      // every new figure, where an older peer rejects the key.
+      bool unstated(String key, Object? v) {
+        final probe = {key: v};
+        contraTaxonomy.dropUnstatedParams(moveId, probe);
+        return !probe.containsKey(key) && !entry.containsKey(key);
+      }
+
       void record(String key, Object? v) {
-        if (v == entry[key]) {
+        if (v == entry[key] || unstated(key, v)) {
           inner.remove(key);
         } else {
           inner[key] = v;
@@ -2567,9 +2577,12 @@ class _MoveDefaultsEditor extends StatelessWidget {
                     // A default has no amount beside its fraction, so neither
                     // the amount nor a fraction of `other` is offered (#2120).
                     // An alias listed as a move (`long lines`) has no default
-                    // for the param it pins: that value is what it names.
+                    // for the param it pins: that value is what it names. Nor
+                    // does its target where its id says it (a pass through's
+                    // pass type, taxonomy v40): a default `by` would turn every
+                    // pass through picked into a pass by.
                     if (entry.key != fractionAmountParam &&
-                        !_pinsAsListedMove(moveId, entry.key))
+                        !contraTaxonomy.isParamNamedById(moveId, entry.key))
                       FigureParamEditor(
                         key: ValueKey('move-default-$moveId-${entry.key}'),
                         keyPrefix: 'move-default-$moveId',
@@ -2695,13 +2708,4 @@ class _UserFigureDefaultsLinks extends StatelessWidget {
       ],
     );
   }
-}
-
-/// Whether [moveId] is an alias listed as a move ([MoveAlias.listedAsMove])
-/// that pins [param].
-bool _pinsAsListedMove(String moveId, String param) {
-  final alias = contraTaxonomy.aliases[moveId];
-  return alias != null &&
-      alias.listedAsMove &&
-      alias.pinnedParams.containsKey(param);
 }

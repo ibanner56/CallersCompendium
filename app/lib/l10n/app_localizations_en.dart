@@ -15121,4 +15121,94 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncReviewKindEventRule => 'Event rule';
+
+  @override
+  String get danceEditorFigureNeedsValues =>
+      'Choose a value for every field of this figure before saving.';
+
+  @override
+  String get danceEditorSaveNeedsFigureValues =>
+      'Some figures you added still have empty fields. Fill them in to save.';
+
+  @override
+  String get programTemplateAddSlotRule => 'Add slot rule';
+
+  @override
+  String get programTemplateSlotRuleBadge => 'Slot rule';
+
+  @override
+  String programTemplateSlotRuleSubtitle(String name) {
+    return 'Filled from the saved search \"$name\"';
+  }
+
+  @override
+  String get programTemplateSlotRuleSearchGone =>
+      'Its saved search was deleted';
+
+  @override
+  String get programTemplateSlotRuleDialogTitle => 'Add slot rule';
+
+  @override
+  String get programTemplateSlotRuleDialogBody =>
+      'Describe a kind of dance instead of naming one. A program made from this template shows it as a placeholder, which you fill from the saved search.';
+
+  @override
+  String get programTemplateSlotRuleLabel => 'Label';
+
+  @override
+  String get programTemplateSlotRuleLabelHint => 'Easy improper opener';
+
+  @override
+  String get programTemplateSlotRuleSearch => 'Saved search';
+
+  @override
+  String get programTemplateSlotRuleNoSearches =>
+      'A slot rule uses a saved search. Save a search in Collection first, then choose it here.';
+
+  @override
+  String get programsPlaceholderSubtitle => 'Placeholder';
+
+  @override
+  String get programsFillPlaceholderButton => 'Fill';
+
+  @override
+  String programsFillPlaceholderSemantics(String label) {
+    return 'Fill \"$label\" with a dance';
+  }
+
+  @override
+  String programsFillSheetTitle(String label) {
+    return 'Fill \"$label\"';
+  }
+
+  @override
+  String programsFillSearchGone(String label) {
+    return 'The saved search for \"$label\" was deleted, so every dance is shown.';
+  }
+
+  @override
+  String programsFillSearchUnresolvable(String label, String name) {
+    return '\"$label\" can\'t use its saved search \"$name\", which uses things that are gone, so every dance is shown:';
+  }
+
+  @override
+  String savedSearchUsedBySlotRule(String rule, String template) {
+    return 'The slot rule \"$rule\" in the template $template';
+  }
+
+  @override
+  String get programTemplateSlotRuleSearchUnreadable =>
+      'Its saved search can\'t be opened';
+
+  @override
+  String get programTemplateSlotRuleEditTitle => 'Edit slot rule';
+
+  @override
+  String get programTemplateSlotRuleLabelBreak =>
+      '\"Break\" marks a break in the program, so a slot rule can\'t use it as its label.';
+
+  @override
+  String programsFillSearchUnreadable(String label) {
+    return 'The saved search for \"$label\" can\'t be opened: it was saved by a newer version of the app, or it is damaged. Every dance is shown.';
+  }
 }

@@ -643,7 +643,10 @@ final Map<String, DataClassification> settingsPrefixClassifications = {
     note:
         'A user-authored program template (program_template:<id>): its name '
         'and an ordered list of slots — dance references, caller notes, '
-        'breaks and free text, which can contain whatever the caller types. '
+        'breaks and free text, which can contain whatever the caller types, '
+        'and slot rules (#2338), each a label the caller types and a '
+        'reference to one of their own saved searches (the id of a '
+        'saved_search: value). '
         'The user\'s own planning data; it syncs to their devices and travels '
         'in local backups, like the Starting program it replaces.',
   ),

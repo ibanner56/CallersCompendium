@@ -11,7 +11,7 @@
 //    The decode either fires on a run or it does not. This is byte-identical at
 //    both identity layers, which is asserted rather than assumed.
 // 2. **Dancer identity fills `who`/`who2` where the move declares them.**
-//    `pass_through` declares no `who`, so its dancer code is dropped.
+//    `pass_through` has declared a `who` since taxonomy v40.
 //
 // ## Why folding is tested through the ADAPTER
 //
@@ -174,19 +174,50 @@ void main() {
       expect(f.params['shoulder'], 'right');
     });
 
-    // `pass_through` declares NO `who`. The dancer therefore has nowhere to go
-    // and must not be forced somewhere it does not belong.
+    // Taxonomy v40 gave `pass_through` a `who` (it is one figure with pass
+    // by), so The Caller's Box's dancer code now lands there with the shoulder:
+    // `(NR)` is neighbors passing right shoulders.
     //
-    // Mutation caught: writing `who` unconditionally, which
-    // `Taxonomy.validateFigure` rejects as an unknown param — sending the whole
-    // line to the custom fallback and REGRESSING 2,136 corpus figures from
-    // structured to custom.
-    test('pass_through gains a shoulder but no `who`', () async {
-      final f = await _importTcbLine('(2) Pass through along (NR)');
-      expect(f.isCustom, isFalse);
-      expect(f.move, 'pass_through');
-      expect(f.params.containsKey('who'), isFalse);
-      expect(f.params['shoulder'], 'right');
+    // Mutation caught: a `pass_through` without `who` (the pre-v40 move), which
+    // drops the dancer the source states and keeps only the shoulder.
+    // The maintainer's example: The Caller's Box dance 1005, Gene Hubert's
+    // "Pass Thru Two", whose A2 passes through to each neighbor in turn.
+    test('Pass Thru Two keeps each neighbor its A2 passes through', () async {
+      final figures = await _importTcb(const [
+        '(2) Pass through along (N1R)',
+        '(2) Pass through along (N2R)',
+        '(4) N3 neighbor balance (RH)',
+        '(4) N3 neighbor box the gnat',
+        '(2) Pass through along (N3R)',
+        '(2) Pass through along (N2R)',
+      ]);
+      final passes = [
+        for (final f in figures)
+          if (f.move == 'pass_through') f,
+      ];
+      expect(passes.map((f) => f.params['who']), [
+        'neighbors',
+        'nextNeighbors',
+        'thirdNeighbors',
+        'nextNeighbors',
+      ]);
+      for (final f in passes) {
+        expect(f.params['where'], 'along');
+        expect(f.params['shoulder'], 'right');
+      }
+    });
+
+    test('pass_through takes the dancer and the shoulder', () async {
+      for (final (line, who, shoulder) in [
+        ('(2) Pass through along (NR)', 'neighbors', 'right'),
+        ('(2) Pass through across (PR)', 'partners', 'right'),
+        ('(2) Pass through along (N2L)', 'nextNeighbors', 'left'),
+      ]) {
+        final f = await _importTcbLine(line);
+        expect(f.move, 'pass_through', reason: line);
+        expect(f.params['who'], who, reason: line);
+        expect(f.params['shoulder'], shoulder, reason: line);
+      }
     });
   });
 

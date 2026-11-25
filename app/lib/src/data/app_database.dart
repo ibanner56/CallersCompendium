@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../diagnostics/error_log.dart';
+import 'program_templates.dart';
 
 /// Base file name (without extension) of the on-device database. drift_flutter
 /// stores the file as `$kDatabaseName.sqlite`; the migration preflight reuses
@@ -163,7 +164,11 @@ class AppData {
         db,
         shippedTaxonomies.anyForm,
         taxonomyForForm: shippedTaxonomies.forForm,
-      );
+      ) {
+    // A saved search that a template's slot rule names cannot be deleted
+    // (#2338).
+    registerProgramTemplateSavedSearchUses(repositories);
+  }
 
   final CompendiumDatabase db;
   final CompendiumRepositories repositories;
