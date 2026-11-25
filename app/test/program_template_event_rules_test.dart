@@ -17,16 +17,19 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'support/l10n_harness.dart';
 import 'support/pump_until.dart';
+import 'support/saved_searches.dart';
 import 'support/test_repositories.dart';
 
-Future<EventRule> _rule(CompendiumRepositories repos, String nickname) =>
-    repos.eventRules.create(
-      savedSearchId: 'search-1',
-      quantifier: EventRuleQuantifier.atMost,
-      count: 1,
-      scope: EventRuleScope.wholeProgram,
-      nickname: nickname,
-    );
+Future<EventRule> _rule(CompendiumRepositories repos, String nickname) async {
+  await storeSavedSearches(repos.settings, ['search-1']);
+  return repos.eventRules.create(
+    savedSearchId: 'search-1',
+    quantifier: EventRuleQuantifier.atMost,
+    count: 1,
+    scope: EventRuleScope.wholeProgram,
+    nickname: nickname,
+  );
+}
 
 Future<ValueNotifier<bool>> _pump(
   WidgetTester tester,

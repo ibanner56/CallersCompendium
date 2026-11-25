@@ -15057,6 +15057,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Speichere zuerst eine Suche in der Sammlung: Eine Regel verwendet eine gespeicherte Suche, um zu sagen, welche Tänze sie meint.';
 
   @override
+  String get eventRuleSavedSearchGone =>
+      'Diese gespeicherte Suche wurde gerade gelöscht, deshalb wurde die Regel nicht gespeichert. Wähle eine andere.';
+
+  @override
   String get eventRuleQuantifierLabel => 'Wie viele';
 
   @override
@@ -15397,6 +15401,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get programTemplateRulesNone => 'Keine';
+
+  @override
+  String get programTemplateSlotRuleNotSavedSearchGone =>
+      'Diese gespeicherte Suche wurde gerade gelöscht, deshalb wurde die Eintragsregel nicht gespeichert.';
 
   @override
   String get programTemplateRulesHelp =>

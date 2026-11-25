@@ -14282,6 +14282,10 @@
   "@eventRuleNoSavedSearches": {
     "x-sourceSha256": "61d83fee42e7b166e57b1b26e252fc9daa5a08ae8b40f6c81b50fd700379354a"
   },
+  "eventRuleSavedSearchGone": "その保存済み検索は削除されたため、ルールは保存されませんでした。別の検索を選んでください。",
+  "@eventRuleSavedSearchGone": {
+    "x-sourceSha256": "feec3c2b76bd8ac9a0924b28c9bae1e77a2eb88f8fe4ceeeafff4337baff3d5b"
+  },
   "eventRuleQuantifierLabel": "数",
   "@eventRuleQuantifierLabel": {
     "x-sourceSha256": "e2a6ff2c78fdb163d02c7b5c66431cab9b1b418470219eb4e342b0324dfab14f"
@@ -14521,6 +14525,10 @@
   "programTemplateRulesNone": "なし",
   "@programTemplateRulesNone": {
     "x-sourceSha256": "dc937b59892604f5a86ac96936cd7ff09e25f18ae6b758e8014a24c7fa039e91"
+  },
+  "programTemplateSlotRuleNotSavedSearchGone": "その保存済み検索は削除されたため、枠のルールは保存されませんでした。",
+  "@programTemplateSlotRuleNotSavedSearchGone": {
+    "x-sourceSha256": "6688d691e5716697612548cfe5d8de2887a3591418f7183f21ad7828ed53a456"
   },
   "programTemplateRulesHelp": "このテンプレートから作る新しいプログラムそれぞれに追加されます。",
   "@programTemplateRulesHelp": {

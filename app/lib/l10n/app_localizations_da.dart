@@ -14932,6 +14932,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Gem først en søgning i Samlingen: en regel bruger en gemt søgning til at sige, hvilke danse den gælder.';
 
   @override
+  String get eventRuleSavedSearchGone =>
+      'Den gemte søgning blev netop slettet, så reglen blev ikke gemt. Vælg en anden.';
+
+  @override
   String get eventRuleQuantifierLabel => 'Hvor mange';
 
   @override
@@ -15267,6 +15271,10 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programTemplateRulesNone => 'Ingen';
+
+  @override
+  String get programTemplateSlotRuleNotSavedSearchGone =>
+      'Den gemte søgning blev netop slettet, så pladsreglen blev ikke gemt.';
 
   @override
   String get programTemplateRulesHelp =>

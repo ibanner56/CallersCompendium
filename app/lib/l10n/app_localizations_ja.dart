@@ -14348,6 +14348,10 @@ class AppLocalizationsJa extends AppLocalizations {
       '先にコレクションで検索を保存してください。ルールは保存した検索を使って、対象のダンスを指定します。';
 
   @override
+  String get eventRuleSavedSearchGone =>
+      'その保存済み検索は削除されたため、ルールは保存されませんでした。別の検索を選んでください。';
+
+  @override
   String get eventRuleQuantifierLabel => '数';
 
   @override
@@ -14661,6 +14665,10 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programTemplateRulesNone => 'なし';
+
+  @override
+  String get programTemplateSlotRuleNotSavedSearchGone =>
+      'その保存済み検索は削除されたため、枠のルールは保存されませんでした。';
 
   @override
   String get programTemplateRulesHelp => 'このテンプレートから作る新しいプログラムそれぞれに追加されます。';

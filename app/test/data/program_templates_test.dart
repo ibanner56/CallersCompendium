@@ -7,6 +7,7 @@ import 'package:compendium_app/src/data/program_templates.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/saved_searches.dart';
 import '../support/test_repositories.dart';
 
 /// Records every settings key written, so a test can say which keys an edit
@@ -712,17 +713,98 @@ void main() {
       await repos.savedSearches.delete(unused.id);
       expect(await repos.savedSearches.get(unused.id), isNull);
     });
+
+    group('the editor\'s save only starts using a stored saved search '
+        '(#2529)', () {
+      ProgramTemplate withRules(List<String> searchIds, {String name = 'T'}) =>
+          ProgramTemplate(
+            id: 't',
+            name: name,
+            entries: [
+              for (final id in searchIds)
+                ProgramTemplateEntry.rule(savedSearchId: id, label: 'Slot $id'),
+            ],
+          );
+
+      Future<ProgramTemplate?> stored(SettingsRepository settings) async =>
+          tryDecodeProgramTemplate(
+            't',
+            await settings.get(programTemplateKey('t')),
+          );
+
+      test('a new slot rule naming a search that is not stored is refused, '
+          'writing nothing', () async {
+        final repos = openTestRepositories();
+        await storeSavedSearches(repos.settings, ['kept']);
+        await saveProgramTemplate(
+          repos.settings,
+          withRules(['kept']),
+          checkNewSlotRules: true,
+        );
+        await expectLater(
+          saveProgramTemplate(
+            repos.settings,
+            withRules(['kept', 'gone']),
+            checkNewSlotRules: true,
+          ),
+          throwsA(isA<SavedSearchGone>().having((e) => e.id, 'id', 'gone')),
+        );
+        expect(
+          [
+            for (final e in (await stored(repos.settings))!.entries)
+              e.savedSearchId,
+          ],
+          ['kept'],
+        );
+      });
+
+      test('a slot rule the stored template already has is not checked, so '
+          'a template whose search was deleted since can be renamed', () async {
+        final repos = openTestRepositories();
+        await storeSavedSearches(repos.settings, ['s']);
+        await saveProgramTemplate(
+          repos.settings,
+          withRules(['s']),
+          checkNewSlotRules: true,
+        );
+        await repos.savedSearches.delete('s');
+        await saveProgramTemplate(
+          repos.settings,
+          withRules(['s'], name: 'Renamed'),
+          checkNewSlotRules: true,
+        );
+        expect((await stored(repos.settings))!.name, 'Renamed');
+      });
+
+      test('without the check (a copy, an Undo) the slots are written as '
+          'they are', () async {
+        final repos = openTestRepositories();
+        await saveProgramTemplate(repos.settings, withRules(['gone']));
+        expect(
+          [
+            for (final e in (await stored(repos.settings))!.entries)
+              e.savedSearchId,
+          ],
+          ['gone'],
+        );
+      });
+    });
   });
 
   group('event rules on a template (#2342)', () {
-    Future<EventRule> rule(CompendiumRepositories repos, String nickname) =>
-        repos.eventRules.create(
-          savedSearchId: 'search-1',
-          quantifier: EventRuleQuantifier.atMost,
-          count: 1,
-          scope: EventRuleScope.wholeProgram,
-          nickname: nickname,
-        );
+    Future<EventRule> rule(
+      CompendiumRepositories repos,
+      String nickname,
+    ) async {
+      await storeSavedSearches(repos.settings, ['search-1']);
+      return repos.eventRules.create(
+        savedSearchId: 'search-1',
+        quantifier: EventRuleQuantifier.atMost,
+        count: 1,
+        scope: EventRuleScope.wholeProgram,
+        nickname: nickname,
+      );
+    }
 
     test('a template without event rules is written exactly as before, as v1 '
         'or v2', () {

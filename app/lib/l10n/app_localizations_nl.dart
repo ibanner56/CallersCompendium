@@ -15015,6 +15015,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Sla eerst een zoekopdracht op in de Collectie: een regel gebruikt een opgeslagen zoekopdracht om te zeggen welke dansen hij bedoelt.';
 
   @override
+  String get eventRuleSavedSearchGone =>
+      'Die opgeslagen zoekopdracht is net verwijderd, dus de regel is niet opgeslagen. Kies een andere.';
+
+  @override
   String get eventRuleQuantifierLabel => 'Hoeveel';
 
   @override
@@ -15358,6 +15362,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programTemplateRulesNone => 'Geen';
+
+  @override
+  String get programTemplateSlotRuleNotSavedSearchGone =>
+      'Die opgeslagen zoekopdracht is net verwijderd, dus de plekregel is niet opgeslagen.';
 
   @override
   String get programTemplateRulesHelp =>

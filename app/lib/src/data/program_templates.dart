@@ -478,15 +478,42 @@ Future<List<String>> newProgramEventRuleIds(
 /// Writes [template] under its own key, and only that key (after
 /// [materializeProgramTemplates], which writes nothing once the Starting
 /// program has been copied).
+///
+/// With [checkNewSlotRules] (the template editor's saves), a slot rule that
+/// starts using a saved search must name one that is stored (#2529): every
+/// slot rule's saved search that the stored copy of [template] does not
+/// already name is checked, in one transaction with the write, and
+/// [SavedSearchGone] is thrown, writing nothing, for one that is not. A slot
+/// rule the stored copy already has is never checked, so a template whose
+/// search was deleted since can still be renamed. Without it (a copy, an
+/// Undo), the slot rules are written as they are.
 Future<void> saveProgramTemplate(
   SettingsRepository settings,
-  ProgramTemplate template,
-) async {
+  ProgramTemplate template, {
+  bool checkNewSlotRules = false,
+}) async {
   await materializeProgramTemplates(settings);
-  await settings.set(
-    programTemplateKey(template.id),
-    encodeProgramTemplate(template),
-  );
+  final key = programTemplateKey(template.id);
+  if (!checkNewSlotRules) {
+    await settings.set(key, encodeProgramTemplate(template));
+    return;
+  }
+  await settings.transaction(() async {
+    final stored = tryDecodeProgramTemplate(
+      template.id,
+      await settings.get(key),
+    );
+    final named = {
+      for (final entry in stored?.entries ?? const <ProgramTemplateEntry>[])
+        ?entry.savedSearchId,
+    };
+    for (final entry in template.entries) {
+      final id = entry.savedSearchId;
+      if (id == null || named.contains(id)) continue;
+      if (!await isSavedSearchStored(settings, id)) throw SavedSearchGone(id);
+    }
+    await settings.set(key, encodeProgramTemplate(template));
+  });
 }
 
 /// Writes the templates' order, keeping at most

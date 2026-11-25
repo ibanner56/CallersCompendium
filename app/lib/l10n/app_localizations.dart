@@ -21665,6 +21665,12 @@ abstract class AppLocalizations {
   /// **'Save a search in the Collection first: a rule uses a saved search to say which dances it means.'**
   String get eventRuleNoSavedSearches;
 
+  /// Snackbar in the rule editor when saving fails because the chosen saved search was deleted after the editor opened (#2529). The search choice is then cleared.
+  ///
+  /// In en, this message translates to:
+  /// **'That saved search was just deleted, so the rule wasn\'t saved. Choose another.'**
+  String get eventRuleSavedSearchGone;
+
   /// Label of the rule editor choice between At most, At least and None (#2340).
   ///
   /// In en, this message translates to:
@@ -22024,6 +22030,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'None'**
   String get programTemplateRulesNone;
+
+  /// Snackbar in the program template editor when a new or changed slot rule names a saved search that was deleted while its dialog was open (#2529). The slots go back to how they were saved.
+  ///
+  /// In en, this message translates to:
+  /// **'That saved search was just deleted, so the slot rule wasn\'t saved.'**
+  String get programTemplateSlotRuleNotSavedSearchGone;
 
   /// Last line under the template editor's Rules row (#2342): the template's rules are added to a program when it is made from the template; existing programs are not changed.
   ///

@@ -845,7 +845,11 @@ class _ProgramTemplateEditorScreenState
       await saveProgramTemplate(
         RepositoriesScope.of(context).settings,
         _template,
+        checkNewSlotRules: true,
       );
+    } on SavedSearchGone {
+      // diagnostics: silent — expected, not a fault: a slot rule named a saved search deleted while its dialog was open (#2529); _slotRuleSearchGone says so.
+      await _slotRuleSearchGone();
     } catch (error, stackTrace) {
       logCaughtError(
         error,
@@ -853,6 +857,37 @@ class _ProgramTemplateEditorScreenState
         source: 'program_templates_screen.save',
       );
     }
+  }
+
+  /// A save was refused because a new or changed slot rule names a saved
+  /// search that is no longer stored (#2529): nothing was written. Says so,
+  /// puts the slots back as they are saved, and saves the rest (the name, the
+  /// rules) again.
+  Future<void> _slotRuleSearchGone() async {
+    if (!mounted) return;
+    final settings = RepositoriesScope.of(context).settings;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        key: const ValueKey('program-template-slot-rule-search-gone'),
+        content: Text(
+          AppLocalizations.of(context).programTemplateSlotRuleNotSavedSearchGone,
+        ),
+      ),
+    );
+    final templates = await loadProgramTemplates(settings);
+    final stored = templates.templates
+        .where((t) => t.id == _template.id)
+        .firstOrNull;
+    if (!mounted || stored == null) return;
+    setState(
+      () => _entries
+        ..clear()
+        ..addAll(stored.entries),
+    );
+    unawaited(
+      _loadSavedSearchNames(RepositoriesScope.of(context).savedSearches),
+    );
+    await _persist();
   }
 
   void _change(VoidCallback edit) {

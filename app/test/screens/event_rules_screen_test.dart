@@ -335,6 +335,50 @@ void main() {
     expect(await repos.savedSearches.get(search.id), isNotNull);
   });
 
+  testWidgets('a saved search deleted while the editor is open: Save says '
+      'so, adds no rule and clears the choice (#2529)', (tester) async {
+    final repos = openTestRepositories();
+    final search = await repos.savedSearches.create(
+      name: 'Becket',
+      spec: _spec(),
+    );
+    await _pump(tester, repos, const EventRulesScreen(), enabled: true);
+    await tester.tap(find.byKey(const ValueKey('event-rules-new')));
+    await tester.pumpAndSettle();
+    await pickDropdownEntry(
+      tester,
+      find.byKey(const ValueKey('event-rule-search')),
+      'Becket',
+    );
+    // Deleted elsewhere (the Collection, or a peer by sync) meanwhile.
+    await repos.savedSearches.delete(search.id);
+
+    await tester.tap(find.byKey(const ValueKey('event-rule-save')));
+    await tester.pumpAndSettle();
+
+    await pumpUntilFound(
+      tester,
+      find.byKey(const ValueKey('event-rule-saved-search-gone')),
+    );
+    expect(
+      find.text(
+        "That saved search was just deleted, so the rule wasn't saved. "
+        'Choose another.',
+      ),
+      findsOneWidget,
+    );
+    expect(await repos.eventRules.listAll(includeDeleted: true), isEmpty);
+    // Still in the editor, which now offers only what is left: nothing.
+    await pumpUntilFound(
+      tester,
+      find.text(
+        'Save a search in the Collection first: a rule uses a saved search '
+        'to say which dances it means.',
+      ),
+    );
+    expect(find.byKey(const ValueKey('event-rule-save')), findsOneWidget);
+  });
+
   testWidgets('for any two neighboring dances the number is what a pair can '
       'hold: at most 1, at least 1 or 2', (tester) async {
     final repos = openTestRepositories();
