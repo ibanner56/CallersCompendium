@@ -1986,7 +1986,9 @@ has to be judged in its own context.
   beats — a balance whose other words that wave cannot carry (`Men balance
   long wave`, `… for all`) stays custom, and one that says `in center` makes
   the pair the centre wave, `form_a_long_wave`, as `form long wave in center`
-  reads; when a slide follows the balance of a `form_short_waves` or
+  reads; when that balance names a role (`Men balance long wave in center`),
+  that role forms the centre wave and balances it, maintainer ruling
+  2026-11-24; when a slide follows the balance of a `form_short_waves` or
   `pass_the_ocean`, as in TCB #1206's `…; form wave of four` / `Balance wave
   of four (NR,WL)` / `Slide right, men slide two places (…)`, the wave keeps
   the balance line's holds but not the balance, and the balance and slide are
@@ -2924,10 +2926,15 @@ nobody, so no forming is asserted. The free-text dialect already reads the line
 this way. The pass runs over the whole dance, after the per-phrase merge, so
 the figure before a phrase's first line is the previous phrase's last. The line
 stays custom straight after a `form_a_long_wave` (Fold 4 refused it there: the
-role differs from the wave's, or the wave was already balanced) and after a
-wave-forming line the importer could not structure, or after the side-of-set
-long waves (`form_long_waves` from a bare `form long wave`), which a balance in
-a centre wave contradicts. Nothing checks that a wave is standing: a balance
+role differs from the wave's, or the wave was already balanced), after a
+wave-forming line the importer could not structure, and after a `form long
+wave` that states holds (`form_long_waves`): holds and a facing such as
+`(P2L,P3R, women face in)` name the long waves across the set, never a centre
+wave (maintainer ruling 2026-11-24), so a centre-wave balance after it
+contradicts it. After a bare `form long wave` the role's balance has already made the pair
+that role's centre wave, balanced (maintainer ruling 2026-11-24), except when
+the wave carries its own beats and ends the previous phrase: that pair is not
+folded across the boundary, so the balance stays custom. Nothing checks that a wave is standing: a balance
 moves nobody, so the reading asserts no formation *(2026-11-24, Hudson: "try it and see"; the reading is
 the agent's call)*.
 
