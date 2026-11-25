@@ -519,7 +519,9 @@ with one of your [saved searches](./collection.md#save-a-search-and-use-it-again
   a new program has before its first save, picked or from its template, are
   kept with its unsaved draft, so they come back if the builder closes
   unexpectedly. A backup keeps the rules each program uses, but not a rule you
-  deleted.
+  deleted. If a restore can't use one of the backup's rules, it skips it and
+  says a problem was skipped; the programs that use it then list it as not on
+  this device.
 - **Rules that come with a template.** A [program
   template](./settings.md#program-defaults) can carry rules. A program made
   from it — with **New program**, or as a draft a
