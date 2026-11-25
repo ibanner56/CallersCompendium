@@ -198,12 +198,14 @@
 > the core set 568 to 573, no previously compiling dance lost. Honeymoon
 > (10500) now compiles, with 16 others.
 >
-> **Synced with `main` (2026-11-24)**: `rubric` took `main` at `c1e6ecbb`,
-> with its amended taxonomy v40 and the Caller's Box importer readings ported
-> there in #2501 (each conflicting importer file taken from `main`, which
-> already held the port). Three v40 changes needed a reading here, all the
-> agent's calls: `pass_by` is now an alias of `pass_through` with `passType:
-> by` and is built as before, a pass by stating a direction is deferred; a
+> **Synced with `main` (2026-11-24)**: `rubric` took `main` at `75295d95`,
+> with its amended taxonomy v40 (`shift`, `rory_o_more.twoPlaces`, pass by
+> merged into pass through), the Caller's Box importer readings ported there
+> in #2501, and the shift and two-place Rory readings of #2512 (each
+> conflicting importer file taken from `main`, which already held the port).
+> Three v40 changes needed a reading here, all the agent's calls: `pass_by`
+> is now an alias of `pass_through` with `passType: by` and is built as
+> before, deferred when it states a direction or leaves `who` unstated; a
 > pass through's new `who` is kept as a description when it names a pairing
 > (it is not checked: checking it cost 19 compiling dances, mostly distance
 > sets naming whom the pass meets) and deferred when it names one role or
@@ -212,18 +214,17 @@
 > cost 76); and a single-file promenade around the set to the next
 > neighbours, which the import now writes with that `destination`, is
 > accepted (deferring it cost 16), and the bridge still finds it as the
-> dance's progression in the import's new shape. A pass by is deferred when
-> it states a direction or leaves `who` unstated. Against `rubric` at
-> `6527c9d7`: 4,532 of
-> 5,623 to 4,546 of 5,644 compiled in scope (80.6% to 80.5%), the core set
-> 577 to 576. 17 dances now compile and 3 no longer do: Spare Parts (12030,
-> core) and Bloomingfoods Reel Food (14488), whose pass through now names the
-> next or third neighbours and so moves the assumed progression, and Mrs.
-> Reilly's Daughter (3917), whose single-file circle now imports as a
-> promenade along the set. In the core set, 11 dances that were free text now
-> import: 7 stop at `shift`, which is not built yet, 2 at a `whom: shadows`
-> slot, and 3 refuse at a swing; Lost at Sea (18113) moved from refusing to a
-> `shadows` deferral. Pass Thru Two (1005) still refuses where it did.
+> dance's progression in the import's new shape. `shift` is not built yet.
+> Against `rubric` at `6527c9d7`: 4,532 of 5,623 to 4,558 of 5,695 compiled
+> in scope (80.6% to 80.0%), the core set 577 to 580. 29 dances now compile
+> and 3 no longer do: Spare Parts (12030, core) and Bloomingfoods Reel Food
+> (14488), whose pass through now names the next or third neighbours and so
+> moves the assumed progression, and Mrs. Reilly's Daughter (3917), whose
+> single-file circle now imports as a promenade along the set. In the core
+> set, 19 dances that were free text now import: 3 compile, 7 stop at
+> `shift`, 1 at a `whom: shadows` slot, and 8 refuse at a figure; Lost at Sea
+> (18113) moved from refusing to a `shadows` deferral. Pass Thru Two (1005)
+> still refuses where it did.
 >
 > **A dance can go on from the short waves an allemande leaves (2026-11-24)**:
 > when the figure straight after an allemande refuses, or the whole dance
