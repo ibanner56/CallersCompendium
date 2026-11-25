@@ -651,7 +651,15 @@ class _ProgramTemplateEditorScreenState
 
   /// The Rules row (#2342): opens the program's rule picker, its ticks
   /// changing this template's list. The picker lists only live rules, so a
-  /// deleted rule stays on the template, shown as removed, for its Undo.
+  /// deleted rule stays on the template, shown as removed, for its Undo;
+  /// only once the template lists [maxProgramEventRules] ids is a deleted
+  /// rule's let go to make room, as on a program ([toggleEventRuleId]).
+  ///
+  /// Unlike a program's picker, a tick applies to this editor's copy of the
+  /// list, not to the list as stored at that moment: the editor writes the
+  /// whole template, name and slots included, from its copy on every change,
+  /// so a template edit synced in while it is open is overwritten either way
+  /// (last writer wins, as for the template's other fields).
   Future<void> _openRules() async {
     await showProgramRulesPicker(
       context,
@@ -701,7 +709,11 @@ class _ProgramTemplateEditorScreenState
                 style: _liveRuleIds.contains(id)
                     ? null
                     : TextStyle(color: theme.colorScheme.onSurfaceVariant),
-              ),
+              )
+          else
+            // The rules are not read yet, or could not be: say how many the
+            // template lists rather than nothing.
+            Text(l10n.programsRulesButton(_eventRuleIds.length)),
           Text(l10n.programTemplateRulesHelp, style: theme.textTheme.bodySmall),
         ],
       ),

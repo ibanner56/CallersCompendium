@@ -331,6 +331,59 @@ void main() {
       final program = await makeProgram(tester, repos, enabled: false);
       expect(program.eventRuleIds, isEmpty);
     });
+
+    testWidgets("an unsaved program's autosaved draft keeps the template's "
+        'rules, and restoring it in another New program brings them, not that '
+        "program's template's", (tester) async {
+      final repos = openTestRepositories();
+      final (family, _) = await seed(repos);
+      final plainRule = await _rule(repos, 'Plain rule');
+      await saveProgramTemplate(
+        repos.settings,
+        ProgramTemplate(
+          id: 'plain',
+          name: 'Plain',
+          eventRuleIds: [plainRule.id],
+        ),
+      );
+      await _pump(
+        tester,
+        repos,
+        const ProgramEditorScreen(
+          templateChoice: ProgramTemplateChoice.template('family'),
+        ),
+        enabled: true,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Left behind',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      // A second New program, from the plain template, offers the draft.
+      String? savedId;
+      await tester.pumpWidget(const SizedBox());
+      await _pump(
+        tester,
+        repos,
+        ProgramEditorScreen(
+          key: UniqueKey(),
+          onSaved: (id) => savedId = id,
+          templateChoice: const ProgramTemplateChoice.template('plain'),
+        ),
+        enabled: true,
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-draft-restore')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      final program = (await repos.programs.getById(savedId!))!;
+      expect(program.title, 'Left behind');
+      expect(program.eventRuleIds, [family.id]);
+    });
   });
 
   test('a program made with no template gets no rules', () async {

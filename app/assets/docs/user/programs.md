@@ -477,9 +477,10 @@ with one of your [saved searches](./collection.md#save-a-search-and-use-it-again
   says so and another can't be ticked. To make room, only the rules you
   deleted are let go.
   **New rule…** at the top opens the rule editor and, once you save the rule,
-  adds it to this program. A copy of a program, a program you import, and a
-  new program made without a template start with no rules: a rule is only
-  added when you add it, or when you choose a template that carries rules.
+  adds it to this program. A copy of a program, a program you import (other
+  than a calendar import's draft, which takes your Default template's rules),
+  and a new program made without a template start with no rules: a rule is
+  only added when you add it, or by a template that carries rules.
 - **Rules that come with a template.** A [program
   template](./settings.md#program-defaults) can carry rules. A program made
   from it — with **New program**, or as a draft a

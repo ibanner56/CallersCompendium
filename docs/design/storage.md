@@ -984,7 +984,7 @@ steps that can still fire are v40 onward.
   rule stays version 1, byte for byte).
   The template side of event rules (#2342) needs no schema either: a template's
   rules are a top-level `eventRuleIds` (1 to 64 distinct rule ids, each at
-  most 128 units) at the end of its `program_template:` settings value, which
+  most 200 units, as a rule id may be on the wire) at the end of its `program_template:` settings value, which
   is then written at template `version` 3; a template without one stays
   version 1 or 2, byte for byte. The ids are copied into
   `programs.event_rule_ids` when a program is made from the template (New
@@ -1008,10 +1008,11 @@ steps that can still fire are v40 onward.
   `programs.event_rule_ids`, a JSON array of rule ids as TEXT, default
   `'[]'`, which every existing row gets: the rules applied to that program,
   in order, de-duplicated on write. An id with no live rule is ignored when
-  checking. It is never filled automatically: duplicate, archive import and
-  share-file import all leave it empty, and a program is created with it
-  empty unless it is made from a program template that carries rules (#2342,
-  below), and share files and the CSV drop it (`sanitizeProgramForShare`, `sanitizeProgramForCsv`). The
+  checking. Duplicate, archive import and share-file import all leave it
+  empty, and a program is created with it empty unless it is made from a
+  program template that carries rules (#2342, above: New program, or a
+  calendar import's draft from the Default template), and share files and the
+  CSV drop it (`sanitizeProgramForShare`, `sanitizeProgramForCsv`). The
   rules travel under their own gated record kind (`eventRule`, capability
   `eventRules.v1`); the program's ids travel as a top-level array on the
   `program` record, which older builds keep verbatim (sync-spec §6.7). An

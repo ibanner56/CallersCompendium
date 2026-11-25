@@ -89,6 +89,7 @@ class ProgramEditorDraft {
     this.timesBaseline,
     this.venueIdBaseline,
     this.hasVenueIdBaseline = false,
+    this.eventRuleIds,
     required this.slots,
   });
 
@@ -180,6 +181,13 @@ class ProgramEditorDraft {
   /// presence, so it needs no draft version bump.
   final bool hasVenueIdBaseline;
 
+  /// The event rules applied to a program not yet saved (#2340), such as
+  /// those a template added (#2342), or `null` when the draft did not record
+  /// them: always for a stored program, whose rules the picker writes to
+  /// storage directly, and for a draft written before this was added.
+  /// Decoded from key presence, so it needs no draft version bump.
+  final List<String>? eventRuleIds;
+
   /// The in-progress slot list (position-ordered).
   final List<ProgramSlot> slots;
 }
@@ -211,6 +219,8 @@ class ProgramEditorDraft {
 ///                           // omitted when not recorded
 ///   "venueIdBaseline": null, // the stored venue link the editor loaded; key
 ///                           // omitted when not recorded
+///   "eventRuleIds": ["..."], // a new program's applied rules; omitted for a
+///                           // stored program and in older drafts
 ///   "slots": [
 ///     {"id":"...", "position":0, "danceId":"...", "isAlt":false},
 ///     {"id":"...", "position":1, "text":"Break", "isPurgedDance":false, "isAlt":false}
@@ -250,8 +260,19 @@ String encodeProgramDraft(ProgramEditorDraft draft) {
           field.name: ?baseline[field],
       },
     if (draft.hasVenueIdBaseline) 'venueIdBaseline': draft.venueIdBaseline,
+    'eventRuleIds': ?draft.eventRuleIds,
     'slots': [for (final s in draft.slots) _slotToJson(s)],
   });
+}
+
+/// A draft's `eventRuleIds`: `null` when absent, else a list of strings,
+/// normalized as a program keeps them.
+List<String>? _eventRuleIdsOrNull(Object? raw) {
+  if (raw == null) return null;
+  if (raw is! List || raw.any((id) => id is! String)) {
+    throw const FormatException('program draft eventRuleIds must be strings');
+  }
+  return normalizeEventRuleIds(raw);
 }
 
 Map<String, Object?> _slotToJson(ProgramSlot s) => {
@@ -335,6 +356,7 @@ ProgramEditorDraft decodeProgramDraft(Object? value) {
         : _parseTimes(json['timesBaseline'], key: 'timesBaseline'),
     venueIdBaseline: _strOrNull(json, 'venueIdBaseline'),
     hasVenueIdBaseline: json.containsKey('venueIdBaseline'),
+    eventRuleIds: _eventRuleIdsOrNull(json['eventRuleIds']),
     slots: _parseSlots(json['slots']),
   );
 }

@@ -761,7 +761,9 @@ Select **Program defaults** to open this group.
   template](./programs.md#check-your-program-against-your-rules)); changing
   them later changes no program already made. A rule you delete stays on the
   template, shown as **Removed**, and isn't added to new programs; **Undo** of
-  the delete brings it back on the template too.
+  the delete brings it back on the template too. A template can carry up to
+  64 rules; once it does, only the rules you deleted are let go to make room
+  for another.
 - **Default template** — the template a new program starts from when you are
   not asked to choose, or **Blank program**. The first template you add
   becomes the default unless you have chosen Blank program. With two or more

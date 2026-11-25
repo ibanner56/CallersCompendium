@@ -1414,6 +1414,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       timesBaseline: _existing == null ? null : _timesBaseline,
       venueIdBaseline: _venueIdBaseline,
       hasVenueIdBaseline: _existing != null,
+      // A new program's rules, such as a template's (#2342): a stored
+      // program's are written to storage by the picker, not kept here.
+      eventRuleIds: _existing == null ? _eventRuleIds : null,
       slots: List.unmodifiable(_renumber(_slots)),
     );
   }
@@ -1870,6 +1873,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             ? draft.dialectName
             : _existing?.dialectName;
         _slots = _renumber(draft.slots);
+        // A program not yet saved takes the draft's rules, not those the
+        // template this editor opened with added (#2342); a draft without
+        // them restores none. A stored program keeps its stored rules.
+        if (_existing == null) {
+          _eventRuleIds = draft.eventRuleIds ?? const [];
+        }
         _insertion = null;
         _dirty = true;
       });

@@ -5226,20 +5226,25 @@ the glossary capabilities holds it closed and is named for it.
 Until a device's first change to its templates, it shows the legacy Starting
 program as the first template without writing anything, and copies it into
 `program_template:starting_program` (with the default and order keys) at that
-change, stamped like the change. A template that carries event rules (#2342:
-a non-empty `eventRuleIds` in its value, which is then template version 3)
-also waits for `eventRules.v1`, tombstones included while their body carries
-such a value. Its rule ids name `eventRule` records, which a peer without
-event rules could not hold, and a build without them reads a version 3 value
-as unreadable: it skips the template, and would drop it from a backup it
-restores. So such a peer keeps the template's previous value until it
-updates, and is named for `eventRules.v1` in the held-back notice, while
-templates without rules publish past it. The rule ids joined templates before
-either capability shipped, so the capability is not bumped for them (one
-capability per feature); that holds only while no release carries
-`eventRules.v1` without them. A device that has not yet synced therefore
+change, stamped like the change. A device that has not yet synced therefore
 writes nothing merely by opening a screen that could overwrite, or bring back,
 what a peer already did with the copy.
+
+A template that carries event rules (#2342: a non-empty `eventRuleIds` in its
+value, which is then template version 3) also waits for `eventRules.v1`,
+tombstones included while their body carries such a value. Its rule ids name
+`eventRule` records, which a peer without event rules could not hold, and a
+build without them reads a version 3 value as unreadable: it skips the
+template, and would drop it from a backup it restores. So such a peer keeps
+the template's previous value until it updates, and is named for
+`eventRules.v1` in the held-back notice, while templates without rules publish
+past it. The cost: if such a peer edits its older copy of the template
+meanwhile, that edit is the newer one and wins, as any settings edit does, so
+the rules are lost on every device, as an edit to the template's name or
+slots made on the device holding them back would be. The rule ids joined
+templates before either capability shipped, so the capability is not bumped
+for them (one capability per feature); that holds only while no release
+carries `eventRules.v1` without them.
 
 **`savedSearches.v1`.** Gates every settings key that starts with
 `saved_search:`, tombstones included: one saved search is one setting record

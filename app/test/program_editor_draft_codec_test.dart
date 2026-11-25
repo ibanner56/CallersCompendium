@@ -286,4 +286,49 @@ void main() {
       );
     });
   });
+
+  group("a new program's event rules (#2342)", () {
+    ProgramEditorDraft draft({List<String>? eventRuleIds}) =>
+        ProgramEditorDraft(
+          title: 'T',
+          notes: '',
+          status: ProgramStatus.draft,
+          hideAlternates: false,
+          eventRuleIds: eventRuleIds,
+          slots: const [],
+        );
+
+    test('round-trip, and are absent when not recorded', () {
+      expect(
+        decodeProgramDraft(
+          encodeProgramDraft(draft(eventRuleIds: ['r2', 'r1'])),
+        ).eventRuleIds,
+        ['r2', 'r1'],
+      );
+      final none = encodeProgramDraft(draft());
+      expect(none, isNot(contains('eventRuleIds')));
+      expect(decodeProgramDraft(none).eventRuleIds, isNull);
+      expect(
+        decodeProgramDraft(
+          encodeProgramDraft(draft(eventRuleIds: [])),
+        ).eventRuleIds,
+        isEmpty,
+      );
+    });
+
+    test('a list that is not of strings is refused', () {
+      expect(
+        () => decodeProgramDraft({
+          'v': 1,
+          'title': 'T',
+          'notes': '',
+          'status': 'draft',
+          'hideAlternates': false,
+          'eventRuleIds': [1],
+          'slots': <Object?>[],
+        }),
+        throwsFormatException,
+      );
+    });
+  });
 }

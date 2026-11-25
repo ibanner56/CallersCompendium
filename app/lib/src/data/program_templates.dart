@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
 
+import '../diagnostics/error_log.dart';
 import 'display_defaults.dart';
 import 'event_rules_scope.dart' show kEventRulesEnabledKey;
 
@@ -74,9 +75,10 @@ const int _programTemplateVersionWithEventRules = 3;
 /// `eventRules.v1`.
 const String kProgramTemplateEventRuleIdsField = 'eventRuleIds';
 
-/// The longest event-rule id a template keeps (#2342), as long as a slot
-/// rule's saved-search id may be.
-const int kMaxProgramTemplateEventRuleIdLength = 128;
+/// The longest event-rule id a template keeps (#2342): the longest an
+/// `eventRule` record's id may be in sync (`sync_event_rule_body.dart`), so
+/// a rule this device holds can be put on a template.
+const int kMaxProgramTemplateEventRuleIdLength = 200;
 
 /// The longest template name kept; a longer one is cut on encode and rejected
 /// on decode.
@@ -448,15 +450,29 @@ Future<List<ProgramTemplateEntry>> defaultProgramTemplateEntries(
 /// so they are copied onto the program as it is made; a later edit to the
 /// template changes no program. A rule that is deleted, or not on this device
 /// yet, is skipped, and the template keeps it.
+///
+/// Never throws: a failed read starts the program with no rules (and is
+/// logged), so it cannot cost the program the template's slots.
 Future<List<String>> newProgramEventRuleIds(
   CompendiumRepositories repos,
   ProgramTemplate? template,
 ) async {
   final ids = template?.eventRuleIds ?? const <String>[];
   if (ids.isEmpty) return const [];
-  if (await repos.settings.get(kEventRulesEnabledKey) != true) return const [];
-  final live = await repos.eventRules.getMany(ids);
-  return normalizeEventRuleIds([for (final rule in live) rule.id]);
+  try {
+    if (await repos.settings.get(kEventRulesEnabledKey) != true) {
+      return const [];
+    }
+    final live = await repos.eventRules.getMany(ids);
+    return normalizeEventRuleIds([for (final rule in live) rule.id]);
+  } catch (error, stackTrace) {
+    logCaughtError(
+      error,
+      stackTrace,
+      source: 'program_templates.new_program_rules',
+    );
+    return const [];
+  }
 }
 
 /// Writes [template] under its own key, and only that key (after
