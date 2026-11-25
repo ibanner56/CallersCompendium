@@ -108,9 +108,21 @@ class _Rules {
 }
 
 class _Harness {
-  _Harness(this.suggestions, this.rulesOn, this.withRules);
+  _Harness(
+    this.suggestions,
+    this.rulesOn,
+    this.withRules,
+    this.revision,
+    this.context,
+  );
   final ValueNotifier<bool> suggestions;
   final ValueNotifier<bool> rulesOn;
+
+  /// The host's [PickerEventRules.revision].
+  final ValueNotifier<int> revision;
+
+  /// The program context, as the builder sets it after an add.
+  final ValueNotifier<PickerProgramContext> context;
 
   /// Whether the picker is given the program's rules (a program that
   /// applies none passes none).
@@ -122,6 +134,7 @@ Future<_Harness> _pump(
   required _Rules? rules,
   bool suggestions = true,
   bool rulesOn = true,
+  bool inEveryOrder = false,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 3000));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -140,6 +153,10 @@ Future<_Harness> _pump(
   addTearDown(rulesEnabled.dispose);
   final withRules = ValueNotifier(rules != null);
   addTearDown(withRules.dispose);
+  final revision = ValueNotifier(0);
+  addTearDown(revision.dispose);
+  final programContext = ValueNotifier(_context);
+  addTearDown(programContext.dispose);
   final settings = ValueNotifier<SuggestionSettingsRead>((
     settings: const SuggestionSettings(),
     isNewer: false,
@@ -161,17 +178,25 @@ Future<_Harness> _pump(
               notifier: settings,
               child: EventRulesEnabledScope(
                 notifier: rulesEnabled,
-                child: ValueListenableBuilder(
-                  valueListenable: withRules,
-                  builder: (context, applied, _) => CollectionPicker(
+                child: ListenableBuilder(
+                  listenable: Listenable.merge([
+                    withRules,
+                    revision,
+                    programContext,
+                  ]),
+                  builder: (context, _) => CollectionPicker(
                     data: data,
                     dialect: Dialect.larksRobins,
                     enrichment: SearchEnrichment.empty,
                     onAddDance: (_) {},
-                    programContext: _context,
+                    programContext: programContext.value,
                     rankSuggestions: _reversed,
-                    eventRules: applied && rules != null
-                        ? PickerEventRules(check: rules.check, revision: 0)
+                    eventRules: withRules.value && rules != null
+                        ? PickerEventRules(
+                            check: rules.check,
+                            revision: revision.value,
+                            inEveryOrder: inEveryOrder,
+                          )
                         : null,
                     clock: const _FixedClock(),
                   ),
@@ -184,7 +209,13 @@ Future<_Harness> _pump(
     ),
   );
   await tester.pumpAndSettle();
-  return _Harness(suggestionsOn, rulesEnabled, withRules);
+  return _Harness(
+    suggestionsOn,
+    rulesEnabled,
+    withRules,
+    revision,
+    programContext,
+  );
 }
 
 List<String> _titles(WidgetTester tester) => tester
@@ -391,6 +422,56 @@ void main() {
       expect(_anyMarker, findsNothing);
       expect(rules.calls, hasLength(1));
     });
+  });
+
+  testWidgets('each new position or revision checks once; a rebuild with '
+      'neither checks nothing', (tester) async {
+    final rules = _Rules();
+    final harness = await _pump(tester, rules: rules);
+    await _chooseSuggested(tester);
+    expect(rules.calls, hasLength(1));
+
+    // A rebuild with the same revision and position (a new closure).
+    harness.withRules.value = false;
+    harness.withRules.value = true;
+    await tester.pumpAndSettle();
+    expect(rules.calls, hasLength(1));
+
+    // An add moves the position: the ranking and the check run once.
+    final moved = PickerProgramContext(
+      programId: 'prog',
+      position: SuggestionPosition.atEnd([
+        ProgramSlot(id: 's0', position: 0, danceId: 'p1'),
+        ProgramSlot(id: 's1', position: 1, danceId: 'b'),
+      ]),
+    );
+    harness.context.value = moved;
+    await tester.pumpAndSettle();
+    expect(rules.calls, hasLength(2));
+    expect(rules.calls.last.$1, moved.position);
+    expect(_titles(tester), _marked);
+
+    // The rules, or what they read, changed: checked again, once.
+    harness.revision.value = 1;
+    await tester.pumpAndSettle();
+    expect(rules.calls, hasLength(3));
+    expect(_titles(tester), _marked);
+  });
+
+  testWidgets('with inEveryOrder a plain sort is marked and ordered too, and '
+      'without it, it is not', (tester) async {
+    final rules = _Rules();
+    await _pump(tester, rules: rules, inEveryOrder: true);
+    // Alpha, Bravo unmarked; the petronellas last, in plain order.
+    expect(_titles(tester), [
+      'Alpha',
+      'Bravo',
+      'Apple Petronella',
+      'Petronella One',
+    ]);
+    expect(_marker('p2'), findsOneWidget);
+    expect(_marker('a'), findsNothing);
+    expect(rules.calls, hasLength(1));
   });
 
   testWidgets('a check that fails leaves the ranking unmarked', (tester) async {
