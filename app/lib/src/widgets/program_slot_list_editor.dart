@@ -1389,8 +1389,8 @@ class _ReplaceDanceRow extends StatelessWidget {
 }
 
 /// What a slot's event-rule marker says (#2340): whether the slot is an
-/// alternate that breaks a rule only if called, and the sentences of the
-/// rules it breaks.
+/// alternate that breaks a rule only if called, and the titles of the rules
+/// it breaks (nickname, else sentence, #2530).
 @immutable
 class SlotRuleMarker {
   const SlotRuleMarker({required this.ifCalled, required this.rules});

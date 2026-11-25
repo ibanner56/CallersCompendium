@@ -316,9 +316,9 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   buttons, the curve shape and venue window as dropdowns, and Reset to
   defaults; no numbers. With Event rules on too and rules applied (#2345), a
   dance that would break one at that place carries a marker above its reason
-  line, rule icon plus "Would break: *rule title*" (the rule's nickname, else its sentence,
-  #2530; screen-reader label "Would break the event rule: …"), and is listed
-  after every unmarked dance;
+  line, rule icon plus "Would break: *rule title*" (the rule's nickname, else
+  its sentence, #2530; screen-reader label "Would break the event rule: …"),
+  and is listed after every unmarked dance;
   **Why?** lists the rule first. The ranking shows unmarked first and the
   marks follow when the check finishes. See [suggestions.md](suggestions.md).
 - Event rules (#2340, Experimental, off by default): with Settings ▸

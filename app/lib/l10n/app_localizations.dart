@@ -19763,7 +19763,7 @@ abstract class AppLocalizations {
   /// **'Lowers it: {reason}'**
   String suggestionWhyLowers(String reason);
 
-  /// Marker under a dance in the picker's Suggested order that would break the program's applied event rules if added where the suggestions are for (#2345); shown with an icon. {rules} is each rule's sentence or name, joined by semicolons.
+  /// Marker under a dance in the picker's Suggested order that would break the program's applied event rules if added where the suggestions are for (#2345); shown with an icon. {rules} is each rule's nickname, or its sentence when it has none, joined by semicolons.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{Would break: {rules}} other{Would break {count} rules: {rules}}}'**

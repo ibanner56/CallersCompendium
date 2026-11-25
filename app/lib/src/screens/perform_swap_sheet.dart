@@ -52,10 +52,10 @@ const double kPerformSwapMinTarget = 44;
 /// this dance** both on ([EventRulesCheckPerformSwapScope.activeOf], #2347)
 /// and rules applied to the program ([eventRuleIds]), each dance that would
 /// break one of them in the swapped slot is marked with the rule's title
-/// (its nickname, else its sentence, #2530) and listed after every unmarked dance, in any order
-/// ([CollectionPicker.eventRules], [PickerEventRules.inEveryOrder]); so is
-/// each of **Your alternates**, listed last among them. The check is at
-/// [rulePosition], the program as the swap stores it, the swapped-out dance
+/// (its nickname, else its sentence, #2530) and listed after every unmarked
+/// dance, in any order ([CollectionPicker.eventRules],
+/// [PickerEventRules.inEveryOrder]); so is each of **Your alternates**, listed
+/// last among them. The check is at [rulePosition], the program as the swap stores it, the swapped-out dance
 /// kept as an alternate ([swapCandidatePosition]). The results show at once,
 /// unmarked, and the marks follow when the check is done. Nothing is hidden,
 /// and a tap swaps either way. With either off, or no rules applied, the
