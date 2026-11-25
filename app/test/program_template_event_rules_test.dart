@@ -1,8 +1,8 @@
 // Event rules on a program template (#2342): the template editor's Rules row
 // (only while Event rules is on), the list kept through a save with the
 // feature off, a deleted rule shown as removed and brought back by Undo, a
-// duplicate keeping the rules, and New program starting with exactly the
-// template's live rules.
+// nicknamed rule's sentence shown beneath it, a duplicate keeping the rules,
+// and New program starting with exactly the template's live rules.
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/confirm_before_delete_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';

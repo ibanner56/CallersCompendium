@@ -730,9 +730,9 @@ class _ProgramTemplateEditorScreenState
                 Text(
                   sentence,
                   key: ValueKey('program-template-rule-$id-sentence'),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  // The subtitle's own size, as the rule picker shows it, so
+                  // it never reads as the help line below.
+                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
                 ),
             ]
           else
