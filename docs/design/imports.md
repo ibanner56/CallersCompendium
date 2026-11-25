@@ -2928,8 +2928,10 @@ the figure before a phrase's first line is the previous phrase's last. The line
 stays custom straight after a `form_a_long_wave` (Fold 4 refused it there: the
 role differs from the wave's, or the wave was already balanced), after a
 wave-forming line the importer could not structure, and after a `form long
-wave` that states holds (`form_long_waves`), which the centre wave has no place
-for. After a bare `form long wave` the role's balance has already made the pair
+wave` that states holds (`form_long_waves`): holds and a facing such as
+`(P2L,P3R, women face in)` name the long waves across the set, never a centre
+wave (maintainer ruling 2026-11-24), so a centre-wave balance after it
+contradicts it. After a bare `form long wave` the role's balance has already made the pair
 that role's centre wave, balanced (maintainer ruling 2026-11-24), except when
 the wave carries its own beats and ends the previous phrase: that pair is not
 folded across the boundary, so the balance stays custom. Nothing checks that a wave is standing: a balance

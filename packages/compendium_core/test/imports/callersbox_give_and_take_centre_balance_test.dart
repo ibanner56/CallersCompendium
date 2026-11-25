@@ -205,8 +205,9 @@ void main() {
     });
 
     test('after held long waves, stays custom', () async {
-      // Holds name the side-of-set long waves (#2331); the centre wave has no
-      // place for them, so folding would drop what the line stated.
+      // Holds and a facing name the long waves across the set, never a centre
+      // wave (maintainer ruling 2026-11-24), so the centre-wave balance after
+      // them is not read as one.
       final figures = await _figuresFor([
         '(0) Form long wave (P2L,P3R, women face in)',
         '(4) Men balance long wave in center',

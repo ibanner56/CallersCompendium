@@ -2108,7 +2108,9 @@ class CallersBoxAdapter implements SourceAdapter {
   /// the role differs from the wave's, or the wave was already balanced),
   /// after a wave-forming line the importer could not structure, and after a
   /// `form long wave` that stayed the side-of-set long waves ([_isTcbLongWave]:
-  /// one that states holds, which the centre wave has no place for). After a
+  /// one that states holds is the long waves across the set, never a centre
+  /// wave, maintainer ruling 2026-11-24, so a centre-wave balance after it
+  /// contradicts it). After a
   /// bare `form long wave` in the same phrase, or one with no beats ending the
   /// previous phrase, the in-centre follower has already made the pair the
   /// role's centre wave, balanced ([_inCenterFollower]); a bare wave that
