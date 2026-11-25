@@ -233,4 +233,67 @@ void main() {
       expect(templates.templates, isEmpty, reason: device.deviceId);
     }
   });
+
+  test('a template that carries event rules reaches a peer only once it '
+      'advertises eventRules.v1, while one without rules reaches it at once '
+      '(#2342)', () async {
+    const build = SyncCapabilityPolicy.build;
+    // A build with templates and without event rules: it gates as this one
+    // does, but does not advertise eventRules.v1.
+    final withoutEventRules = SyncCapabilityPolicy(
+      advertised: {...build.advertised}..remove(SyncCapabilities.eventRulesV1),
+      gatedRecordKinds: build.gatedRecordKinds,
+      gatedSettingKeys: build.gatedSettingKeys,
+      gatedSettingKeyPrefixes: build.gatedSettingKeyPrefixes,
+      gatedGlossaryEntryKinds: build.gatedGlossaryEntryKinds,
+    );
+    final olderRepos = openTestRepositories();
+    var older = InMemorySyncDevice(
+      server,
+      deviceId: 'device-older',
+      repositories: olderRepos,
+      capabilityPolicy: withoutEventRules,
+    );
+    addTearDown(() => older.dispose());
+    Future<void> settleWith(InMemorySyncDevice peer) async {
+      for (var round = 0; round < 4; round++) {
+        await a.sync();
+        await peer.sync();
+      }
+    }
+
+    // Both attached first, so each is in the other's device list.
+    await settleWith(older);
+
+    // Written as the editor writes it: a v3 value.
+    await saveProgramTemplate(
+      a.repositories.settings,
+      const ProgramTemplate(id: 'family', name: 'Family', eventRuleIds: ['r1']),
+    );
+    await saveProgramTemplate(
+      a.repositories.settings,
+      const ProgramTemplate(id: 'contra', name: 'Contra'),
+    );
+    await settleWith(older);
+    expect(
+      await olderRepos.settings.get(programTemplateKey('contra')),
+      isNotNull,
+    );
+    expect(
+      await olderRepos.settings.get(programTemplateKey('family')),
+      isNull,
+      reason: 'held back from a peer without event rules',
+    );
+
+    // The peer updates to a build with event rules.
+    older.dispose();
+    older = InMemorySyncDevice(
+      server,
+      deviceId: 'device-older',
+      repositories: olderRepos,
+    );
+    await settleWith(older);
+    final family = (await templatesOf(older)).byId('family');
+    expect(family?.eventRuleIds, ['r1']);
+  });
 }

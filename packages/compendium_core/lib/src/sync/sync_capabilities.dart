@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../search/saved_search.dart' show savedSearchKeyPrefix;
 import 'sync_record_kind.dart';
 
@@ -63,7 +65,9 @@ abstract final class SyncCapabilities {
   /// using it; they wait so a peer never holds a rule it cannot show, edit or
   /// check. A program's applied rule ids (`eventRuleIds`) are not gated:
   /// they are a top-level field of the `program` record, which an older build
-  /// keeps as a kept part (sync-spec §6.7).
+  /// keeps as a kept part (sync-spec §6.7). A program template that carries
+  /// rules (#2342, a non-empty `eventRuleIds` in its value) waits for this as
+  /// well as [programTemplatesV1] ([SyncCapabilityPolicy.gatedSettingValueFields]).
   static const String eventRulesV1 = 'eventRules.v1';
 }
 
@@ -76,6 +80,7 @@ final class SyncCapabilityPolicy {
     this.gatedSettingKeys = const {},
     this.gatedSettingKeyPrefixes = const {},
     this.gatedGlossaryEntryKinds = const {},
+    this.gatedSettingValueFields = const {},
   });
 
   /// The capabilities this build advertises in its capability record. A
@@ -100,6 +105,19 @@ final class SyncCapabilityPolicy {
   /// of any other kind, one this build does not know included, waits for the
   /// record kind's capability in [gatedRecordKinds].
   final Map<String, String> gatedGlossaryEntryKinds;
+
+  /// Settings keys, by prefix, whose value waits for one more capability
+  /// while it holds a top-level field (#2342): a value that is a JSON object,
+  /// or a string holding one, whose [field] is present and not `null` or an
+  /// empty list. Such a record waits for that [capability] **and** for the
+  /// one its key is gated on ([gatedSettingKeys], [gatedSettingKeyPrefixes]),
+  /// tombstones included when their body still carries the value; the same
+  /// key without the field waits for its key's capability alone.
+  ///
+  /// A key matches the longest prefix it starts with, as
+  /// [gatedSettingKeyPrefixes] does.
+  final Map<String, ({String field, String capability})>
+  gatedSettingValueFields;
 
   /// This build's policy. Its gated entries are registered by the features
   /// that need them; a capability is advertised only once the whole feature
@@ -129,7 +147,11 @@ final class SyncCapabilityPolicy {
   /// [SyncCapabilities.programTemplatesV1] (#2337) gates every program
   /// template (by its key prefix), the templates' order and the default
   /// template, and this build advertises it. The legacy Starting program key
-  /// is not gated: older builds read it, and it is no longer written.
+  /// is not gated: older builds read it, and it is no longer written. A
+  /// template that carries event rules (#2342) also waits for
+  /// [SyncCapabilities.eventRulesV1] ([gatedSettingValueFields]): its rule ids
+  /// name `eventRule` records a peer without event rules could not hold, and
+  /// a build without them cannot read the template's version 3 value.
   ///
   /// [SyncCapabilities.suggestionsV1] (#2343) gates the Suggestions toggle
   /// and its settings, and this build advertises it.
@@ -178,6 +200,12 @@ final class SyncCapabilityPolicy {
       'term': SyncCapabilities.glossaryV2,
       'customFigure': SyncCapabilities.glossaryV2,
     },
+    gatedSettingValueFields: {
+      'program_template:': (
+        field: 'eventRuleIds',
+        capability: SyncCapabilities.eventRulesV1,
+      ),
+    },
   );
 
   /// The capability a record waits for, or null when it is not gated.
@@ -201,6 +229,36 @@ final class SyncCapabilityPolicy {
     return gatedRecordKinds[kind];
   }
 
+  /// Every capability a record waits for: [capabilityFor]'s, and for a
+  /// setting whose value holds a field named in [gatedSettingValueFields],
+  /// that field's (#2342). Empty when it is not gated. The record is held
+  /// back while any of them is closed.
+  Set<String> capabilitiesFor(
+    SyncRecordKind kind,
+    String recordId, {
+    Map<String, Object?>? body,
+  }) {
+    final byKind = capabilityFor(kind, recordId, body: body);
+    final byValue = kind == SyncRecordKind.setting
+        ? _settingValueCapability(recordId, body?['value'])
+        : null;
+    return {?byKind, ?byValue};
+  }
+
+  String? _settingValueCapability(String key, Object? value) {
+    String? best;
+    ({String field, String capability})? gate;
+    for (final entry in gatedSettingValueFields.entries) {
+      if (!key.startsWith(entry.key)) continue;
+      if (best == null || entry.key.length > best.length) {
+        best = entry.key;
+        gate = entry.value;
+      }
+    }
+    if (gate == null) return null;
+    return _valueHoldsField(value, gate.field) ? gate.capability : null;
+  }
+
   String? _settingCapability(String key) {
     final exact = gatedSettingKeys[key];
     if (exact != null) return exact;
@@ -222,7 +280,25 @@ final class SyncCapabilityPolicy {
     ...gatedSettingKeys.values,
     ...gatedSettingKeyPrefixes.values,
     ...gatedGlossaryEntryKinds.values,
+    for (final gate in gatedSettingValueFields.values) gate.capability,
   };
+}
+
+/// Whether a setting's [value] — a JSON object, or a string holding one, as a
+/// program template's is — has [field] present and not `null` or an empty
+/// list. Anything it cannot read as an object has no field.
+bool _valueHoldsField(Object? value, String field) {
+  var decoded = value;
+  if (decoded is String) {
+    try {
+      decoded = jsonDecode(decoded);
+    } on FormatException {
+      return false;
+    }
+  }
+  if (decoded is! Map) return false;
+  final held = decoded[field];
+  return held != null && !(held is List && held.isEmpty);
 }
 
 /// The value a capability record stores for [capabilities]: sorted, so the

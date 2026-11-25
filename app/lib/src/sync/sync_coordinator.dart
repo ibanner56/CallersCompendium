@@ -3069,15 +3069,20 @@ class SyncCoordinator {
     final heldBack = <SyncRecordAddress>{};
     final heldCapabilities = <String>{};
     for (final address in publication.keys.toList()) {
-      final capability = capabilityPolicy.capabilityFor(
-        address.kind,
-        address.recordId,
-        body: publication[address]?.blob.body,
-      );
-      if (capability == null || !closed.containsKey(capability)) continue;
+      // A record can wait for more than one capability: a program template
+      // that carries event rules waits for both features' (#2342).
+      final waiting = capabilityPolicy
+          .capabilitiesFor(
+            address.kind,
+            address.recordId,
+            body: publication[address]?.blob.body,
+          )
+          .where(closed.containsKey)
+          .toList();
+      if (waiting.isEmpty) continue;
       if (publication[address] != null) {
         heldBack.add(address);
-        heldCapabilities.add(capability);
+        heldCapabilities.addAll(waiting);
       }
       publication[address] = null;
     }
