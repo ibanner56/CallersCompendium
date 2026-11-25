@@ -230,6 +230,41 @@ Calls made in #2344 (not maintainer rulings):
   filters and its Last called sort now leave the program being built out of
   calling history (N1-6), as the add-dance pickers already did.
 
+## Event rules (#2345)
+
+With Event rules (#2340) on too, Suggested marks each candidate that would
+break one of the program's applied rules at the position it ranks for, and
+lists it after every unmarked candidate; each group keeps the ranking's order
+(`markRuleBreakingSuggestions`, `RankedSuggestion.wouldBreak`). Nothing is
+hidden, no score changes, and there is no setting: it applies whenever both
+features are on, Suggested shows and the program applies a rule.
+
+- **What "would break" means.** `CandidateRuleCheck` puts the candidate in the
+  `SuggestionPosition`'s place and runs `evaluateEventRules` on that program;
+  the candidate would break a rule when its slot is among the slots the
+  breach names (`slotIds`, or `alternateSlotIds` for a candidate taking an
+  alternate's place): the slot the builder's own marker would flag once the
+  dance is added. So *At least* over the whole program or a half never marks a
+  dance, and a pair that already breaks a neighbouring rule elsewhere marks no
+  candidate. *Rejected:* marking whenever the program with the candidate
+  breaks the rule, which would mark every candidate once the program already
+  breaks it.
+- **No search per candidate.** The app resolves each applied rule's saved
+  search once and runs it once, over the program's dances and every
+  candidate together (`checkCandidateEventRules`, `DanceRepository.matchingAmong`).
+  What a candidate would break depends only on which of those match sets
+  hold it, so the evaluator runs once per combination met (at most 2^n for n
+  rules), not once per candidate.
+- **Shown in two steps.** The check starts with the ranking and runs beside
+  it; the ranking shows as soon as it is ready, unmarked, and the marks and
+  the new order follow once the check is done. A failed check leaves the
+  ranking unmarked.
+- **English dances** are checked like any other: a rule is a saved search, and
+  nothing in it assumes contra's phrases.
+- **One position for every host.** The check takes the position Suggested
+  ranks for, so Perform's swap sheet (#2347) passes the slot being swapped
+  (`SuggestionPosition.replacing`) through `CollectionPicker.eventRules`.
+
 ## Stored settings
 
 Three `settings` keys, all `appUser`, non-personal and shareable in the privacy
