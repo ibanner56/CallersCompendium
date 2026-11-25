@@ -254,7 +254,8 @@ Caller's Compendium is an offline organizer/reference for contra dance callers.
   to the photo library. No other special
   device permissions are requested (no microphone, location, contacts, or
   photos). On Android, Scan a dance code opens the phone's own camera app, so
-  no camera permission is declared. Permissions are INTERNET and ACCESS_NETWORK_STATE (the
+  no camera permission is declared (some camera apps may keep their own gallery
+  copy; the app does not save one). Permissions are INTERNET and ACCESS_NETWORK_STATE (the
   latter added by the `connectivity_plus` plugin, used to honour the Wi-Fi-only
   sync setting), used for user-initiated imports, browsing or importing published collections, an opt-in (off by
   default) update check, an opt-in (off by default) calendar import at startup,

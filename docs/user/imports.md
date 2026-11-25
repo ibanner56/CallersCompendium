@@ -492,8 +492,9 @@ on Android your phone's own camera app opens, and the app needs no camera
 permission. The code is read on your device and opens the same review; the
 photo is deleted as soon as the code has been read, or straight away if no code
 is found, and the app never adds it to your photo library. On Android, some
-phones' camera apps also keep their own copy in the gallery; that's a setting
-in the camera app. If you said no to the
+phones' camera apps also keep their own copy in the gallery; the app can't stop
+that, so delete it from the gallery, or look in the camera app's settings, if
+you don't want it. If you said no to the
 camera on iPhone or iPad, turn it on again in the Settings app, under
 **Caller's Compendium**. If Android closes the app while the camera is open,
 that photo isn't read; the app deletes it the next time you scan a code or
@@ -502,8 +503,8 @@ start the app. Scan the code again.
 On any device, including a computer, **Dance code from a picture…** opens a
 code from a picture you already have: a photo of it, or a screenshot someone
 sent you. On iPhone, iPad and Android the copy the picker makes for the app is
-deleted once read; your own picture is left as it is. If the app says the
-picture couldn't be read and the picture is kept only in the cloud (in a
+deleted once read; your own picture is left as it is. On Android, if the app says
+the picture couldn't be read and the picture is kept only in the cloud (in a
 photo or file app that hasn't downloaded it yet), save it to your device
 first, then choose it again.
 

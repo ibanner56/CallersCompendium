@@ -1,9 +1,0 @@
-{
-  "id": "2336-photo-wording",
-  "user_visible": true,
-  "app": {
-    "changed": [
-      "The iPhone and iPad photo-library notice no longer says a photo is read only for its text, since dance-code photos are read too. The privacy policy now says that on Android some phones' camera apps keep their own copy of a photo in the gallery, which is a setting of that camera app."
-    ]
-  }
-}

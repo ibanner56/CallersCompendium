@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:compendium_app/l10n/app_localizations_en.dart';
 import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/dance_code_scanner.dart';
@@ -345,7 +343,7 @@ void main() {
         'taken for a cancel', (tester) async {
       // file_selector_android completes with an error when the provider
       // reports no size for the chosen file (a cloud file not yet on the
-      // phone), or gives no stream for it.
+      // phone), gives no stream for it, or fails partway through reading it.
       final decoder = _FakeDecoder(() async => goodDanceLink());
       await pumpImport(
         tester,
@@ -354,7 +352,9 @@ void main() {
           open: () => Future.error(
             PlatformException(
               code: 'Exception',
-              message: 'Failed to read file: content://cloud/picture',
+              message:
+                  'java.lang.Exception: Failed to read file: '
+                  'content://cloud/picture',
             ),
           ),
           platform: TargetPlatform.android,
