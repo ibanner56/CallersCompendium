@@ -130,7 +130,7 @@ Future<_Harness> _pump(
     ('a', 'Alpha'),
     ('b', 'Bravo'),
     ('p1', 'Petronella One'),
-    ('p2', 'Petronella Two'),
+    ('p2', 'Apple Petronella'),
   ]) {
     await repos.dances.create(_dance(id, title));
   }
@@ -211,12 +211,14 @@ Finder _marker(String id) => find.byKey(ValueKey('suggestion-rule-marker-$id'));
 final _anyMarker = find.byType(SuggestionRuleMarker);
 
 /// The plain order, and the ranking without rules (the reverse of it).
-const _plain = ['Alpha', 'Bravo', 'Petronella One', 'Petronella Two'];
-const _ranked = ['Petronella Two', 'Petronella One', 'Bravo', 'Alpha'];
+const _plain = ['Alpha', 'Apple Petronella', 'Bravo', 'Petronella One'];
+const _ranked = ['Petronella One', 'Bravo', 'Apple Petronella', 'Alpha'];
 
 /// The ranking with the petronellas marked and listed last, in ranking
-/// order: the one already in the program is marked too (a second one).
-const _marked = ['Bravo', 'Alpha', 'Petronella Two', 'Petronella One'];
+/// order: the one already in the program is marked too (a second one). A
+/// petronella comes before an unmarked dance in every other order, so
+/// marking moves it in each.
+const _marked = ['Bravo', 'Alpha', 'Petronella One', 'Apple Petronella'];
 
 void main() {
   testWidgets('a dance that would break a rule is marked with an icon and '
