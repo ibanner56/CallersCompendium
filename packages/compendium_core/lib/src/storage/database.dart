@@ -1004,7 +1004,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
       if (details.wasCreated) return;
-      // v42 is filling the same way while unreleased: a test build stamped it
+      // v42 filled in pieces while unreleased: a test build stamped it
       // before later pieces joined it (alternate titles, the square dance
       // fields, the program calendar and time columns, a slot's placeholder
       // search, the event rules), and no `onUpgrade`
