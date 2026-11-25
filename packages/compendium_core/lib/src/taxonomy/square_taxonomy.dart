@@ -74,11 +74,19 @@ const List<String> squareSelectors = [
 /// humanize the way other tokens do: "head role1s" would show the canonical
 /// role token. The canonical render keeps that token, as it does for
 /// `role1s` itself.
+///
+/// Not only a square's: contra's `prevRole1s`, `prevRole2s`, `nextRole1s` and
+/// `nextRole2s` (taxonomy v40) are here too, because the renderer reads this
+/// one map for any figure.
 const Map<String, String> squareRoleSelectorWords = {
   'headRole1s': 'head {role1s}',
   'headRole2s': 'head {role2s}',
   'sideRole1s': 'side {role1s}',
   'sideRole2s': 'side {role2s}',
+  'prevRole1s': 'prev {role1s}',
+  'prevRole2s': 'prev {role2s}',
+  'nextRole1s': 'next {role1s}',
+  'nextRole2s': 'next {role2s}',
   'rightHandRole2': 'right-hand {role2}',
   'leftHandRole2': 'left-hand {role2}',
   'role1Place': "{role1}'s place",

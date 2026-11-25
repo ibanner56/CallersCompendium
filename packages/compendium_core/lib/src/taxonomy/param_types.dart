@@ -92,8 +92,16 @@ abstract final class ParamVocab {
     'sameRoles',
     'shadows',
     'secondShadows',
+    // v40: the role1s and role2s among the previous and next neighbors, each
+    // straight after its neighbors entry. Stored role-neutral, like `role1s`;
+    // a dialect's role words show in them ([squareRoleSelectorWords]). The
+    // third and fourth neighbors have none yet: nobody has asked.
     'prevNeighbors',
+    'prevRole1s',
+    'prevRole2s',
     'nextNeighbors',
+    'nextRole1s',
+    'nextRole2s',
     'thirdNeighbors',
     'fourthNeighbors',
     // v38 (#1975, maintainer decisions): the corners and opposites sit below
