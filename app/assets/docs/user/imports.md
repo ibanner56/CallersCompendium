@@ -500,7 +500,10 @@ start the app. Scan the code again.
 On any device, including a computer, **Dance code from a picture…** opens a
 code from a picture you already have: a photo of it, or a screenshot someone
 sent you. On iPhone, iPad and Android the copy the picker makes for the app is
-deleted once read; your own picture is left as it is.
+deleted once read; your own picture is left as it is. If the app says the
+picture couldn't be read and the picture is kept only in the cloud (in a
+photo or file app that hasn't downloaded it yet), save it to your device
+first, then choose it again.
 
 Any QR code can be scanned or chosen, but only a dance code is opened: a code
 holding a web address or anything else is refused, and nothing is fetched. If

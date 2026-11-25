@@ -9,6 +9,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/dance_links.dart';
@@ -338,6 +339,31 @@ void main() {
       await tester.pumpAndSettle();
       expect(decoder.pictures, isEmpty);
       expect(find.text(l10n.importScanTooLarge(25)), findsOneWidget);
+    });
+
+    testWidgets('a cloud picture the picker cannot read is refused, not '
+        'taken for a cancel', (tester) async {
+      // file_selector_android completes with an error when the provider
+      // reports no size for the chosen file (a cloud file not yet on the
+      // phone), or gives no stream for it.
+      final decoder = _FakeDecoder(() async => goodDanceLink());
+      await pumpImport(
+        tester,
+        decoder: decoder,
+        pickPicture: () => pickDanceCodePicture(
+          open: () => Future.error(
+            PlatformException(
+              code: 'Exception',
+              message: 'Failed to read file: content://cloud/picture',
+            ),
+          ),
+          platform: TargetPlatform.android,
+        ),
+      );
+      await tester.tap(picture);
+      await tester.pumpAndSettle();
+      expect(decoder.pictures, isEmpty);
+      expect(find.text(l10n.importScanUnreadable), findsOneWidget);
     });
 
     testWidgets('a picture with no code says so', (tester) async {
