@@ -20898,5 +20898,9 @@
   "programsCombinedPositionAlternate": "alternate",
   "@programsCombinedPositionAlternate": {
     "description": "A repeated dance's position on the Repeats tab when it is an alternate with no numbered dance before it (#2349). Lower case: it follows a colon."
+  },
+  "programsCombinedRepeatAlternateEverywhereChip": "Only an alternate",
+  "@programsCombinedRepeatAlternateEverywhereChip": {
+    "description": "Chip on a repeated dance that is an alternate in every selected program it is in, planned in none (#2349)."
   }
 }

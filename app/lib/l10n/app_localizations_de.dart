@@ -15639,4 +15639,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get programsCombinedPositionAlternate => 'Alternative';
+
+  @override
+  String get programsCombinedRepeatAlternateEverywhereChip => 'Nur Alternative';
 }

@@ -15411,7 +15411,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsExperimentalSeriesSubtitle =>
-      'Vælg Vælg programmer under Flere handlinger på programlisten, vælg to eller flere, og se én matrix på tværs af dem og de danse, de gentager. Intet nyt gemmes.';
+      'Vælg »Vælg programmer« under Flere handlinger på programlisten, vælg to eller flere, og se én matrix på tværs af dem og de danse, de gentager. Intet nyt gemmes.';
 
   @override
   String get programsSelectPrograms => 'Vælg programmer';
@@ -15507,4 +15507,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsCombinedPositionAlternate => 'alternativ';
+
+  @override
+  String get programsCombinedRepeatAlternateEverywhereChip => 'Kun alternativ';
 }

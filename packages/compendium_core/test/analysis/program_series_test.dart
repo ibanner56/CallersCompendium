@@ -31,10 +31,16 @@ void main() {
 
   /// A program whose slots are [entries] in order: a dance id, `'|'` for a
   /// break, `'~'` for a free-text slot, or `'alt:<id>'` for an alternate.
-  Program program(String id, List<String> entries, {DateTime? date}) => Program(
+  Program program(
+    String id,
+    List<String> entries, {
+    DateTime? date,
+    int? start,
+  }) => Program(
     id: id,
     title: id,
     eventDate: date,
+    startMinute: start,
     createdAt: now,
     updatedAt: now,
     slots: [
@@ -67,13 +73,19 @@ void main() {
       );
     });
 
-    test('one date: by title', () {
-      final day = DateTime(2026, 8, 1);
+    test('one date: by start time, untimed after the timed, then by '
+        'title', () {
+      final day = DateTime.utc(2026, 8, 1);
       final ordered = orderProgramsForSeries([
-        program('Evening', const [], date: day),
-        program('Afternoon', const [], date: day),
+        program('Evening dance', const [], date: day, start: 20 * 60),
+        program('Workshop', const [], date: day, start: 14 * 60),
+        program('Contra jam', const [], date: day),
+        program('Afterparty', const [], date: day),
       ]);
-      expect([for (final p in ordered) p.id], ['Afternoon', 'Evening']);
+      expect(
+        [for (final p in ordered) p.id],
+        ['Workshop', 'Evening dance', 'Afterparty', 'Contra jam'],
+      );
     });
   });
 
@@ -143,8 +155,22 @@ void main() {
       );
       var row = 0;
       for (final p in [sat, sun]) {
-        final own = combineProgramsForMatrix([p], resolveDance: resolve);
-        final ownMatrix = matrixOf(own);
+        // The program's own matrix as its Matrix tab builds it: its own
+        // sections, null throughout when it has no break.
+        final slots = p.slots.where((s) => s.danceId != null).toList();
+        final ownMatrix = buildProgramMatrix(
+          [for (final s in slots) resolve(s.danceId!)],
+          sections: [
+            for (final (i, s) in Program.sectionsForSlots(p.slots).indexed)
+              if (p.slots[i].danceId != null) s,
+          ],
+          alternateGroups: [
+            for (final (i, g) in Program.alternateGroupsForSlots(
+              p.slots,
+            ).indexed)
+              if (p.slots[i].danceId != null) g,
+          ],
+        );
         for (var r = 0; r < ownMatrix.rows.length; r++, row++) {
           for (final c in ownMatrix.columns) {
             final ownCol = ownMatrix.columns.indexOf(c);
@@ -217,6 +243,22 @@ void main() {
         RepeatedDanceUse(programIndex: 1, danceNumber: 1, isAlternate: false),
       ]);
       expect(repeats[1].isAlternateSomewhere, isTrue);
+    });
+
+    test('a dance that is an alternate in every program is only an '
+        'alternate', () {
+      final repeats = findRepeatedDances([
+        program('Sat', const ['a', 'alt:b']),
+        program('Sun', const ['c', 'alt:b']),
+      ]);
+      expect(repeats.single.isOnlyAlternate, isTrue);
+      expect(repeats.single.isAlternateSomewhere, isTrue);
+      final mixed = findRepeatedDances([
+        program('Sat', const ['b']),
+        program('Sun', const ['c', 'alt:b']),
+      ]);
+      expect(mixed.single.isOnlyAlternate, isFalse);
+      expect(mixed.single.isAlternateSomewhere, isTrue);
     });
 
     test('a dance used twice in one program and in no other is not '

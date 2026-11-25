@@ -15600,4 +15600,8 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsCombinedPositionAlternate => 'alternatief';
+
+  @override
+  String get programsCombinedRepeatAlternateEverywhereChip =>
+      'Alleen alternatief';
 }

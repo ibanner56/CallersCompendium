@@ -296,8 +296,10 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Turning Weekends and series off ends a selection in progress; the build
-    // that follows shows the plain list.
-    if (_selectionMode && !WeekendsAndSeriesScope.of(context)) {
+    // that follows shows the plain list. Read whether or not a selection is
+    // in progress, so the dependency is always registered.
+    final seriesOn = WeekendsAndSeriesScope.of(context);
+    if (_selectionMode && !seriesOn) {
       _selectionMode = false;
       _selection.clear();
     }
@@ -1112,16 +1114,15 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
         child: Text(l10n.collectionSelectedCount(count)),
       ),
       actions: [
-        Tooltip(
-          message: canCombine
+        // An icon with a tooltip, like the Collection's batch actions, so the
+        // bar fits a narrow list pane in every language.
+        IconButton(
+          key: const ValueKey('programs-combined-view'),
+          tooltip: canCombine
               ? l10n.programsCombinedViewTooltip
               : l10n.programsCombinedViewNeedsTwo,
-          child: TextButton.icon(
-            key: const ValueKey('programs-combined-view'),
-            onPressed: canCombine ? _openCombinedView : null,
-            icon: const Icon(Icons.table_chart_outlined),
-            label: Text(l10n.programsCombinedView),
-          ),
+          onPressed: canCombine ? _openCombinedView : null,
+          icon: const Icon(Icons.table_chart_outlined),
         ),
         // Show archived stays reachable while selecting, so an archived
         // program can be added to the set (#2349), as the type chips stay.
@@ -1368,8 +1369,11 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       ignoreLeadingArticles: SortIgnoreArticlesScope.of(context),
     );
     if (sorted.isEmpty) {
-      // Every program is archived, and archived programs are hidden.
-      return EmptyState(
+      // Every program is archived, and archived programs are hidden. While
+      // selecting, the count line stays, so checked archived programs are
+      // still said to be selected but not shown (N4-1), and New program
+      // waits, as the floating one does.
+      final empty = EmptyState(
         key: const ValueKey('all-archived-state'),
         icon: EmptyState.glyph(context, Icons.archive_outlined),
         title: l10n.programsAllArchivedTitle,
@@ -1381,12 +1385,31 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
             icon: const Icon(Icons.visibility_outlined),
             label: Text(l10n.programsShowArchived),
           ),
-          FilledButton.icon(
-            key: const ValueKey('empty-new-program'),
-            onPressed: _openNewProgram,
-            icon: const Icon(Icons.add),
-            label: Text(l10n.programsNewProgram),
+          if (!_selectionMode)
+            FilledButton.icon(
+              key: const ValueKey('empty-new-program'),
+              onPressed: _openNewProgram,
+              icon: const Icon(Icons.add),
+              label: Text(l10n.programsNewProgram),
+            ),
+        ],
+      );
+      if (!_selectionMode) return empty;
+      return Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.xs,
+              AppSpacing.md,
+              AppSpacing.xs,
+            ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: _countLine(l10n, 0),
+            ),
           ),
+          Expanded(child: empty),
         ],
       );
     }

@@ -1,5 +1,6 @@
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/weekends_and_series_scope.dart';
+import 'package:compendium_app/src/screens/app_shell_search_scope.dart';
 import 'package:compendium_app/src/screens/combined_programs_screen.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
 import 'package:compendium_app/src/screens/settings/experimental_section.dart';
@@ -8,6 +9,8 @@ import 'package:compendium_core/testing.dart' show testFigure;
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pdf/pdf.dart' show PdfPageFormat;
+import 'package:printing/printing.dart' show LayoutCallback;
 
 import '../support/l10n_harness.dart';
 import '../support/test_repositories.dart';
@@ -94,6 +97,7 @@ void main() {
     CompendiumRepositories repos, {
     bool enabled = true,
     ValueNotifier<bool>? active,
+    bool phone = false,
   }) async {
     final notifier = ValueNotifier(enabled);
     addTearDown(notifier.dispose);
@@ -104,10 +108,17 @@ void main() {
       MaterialApp(
         localizationsDelegates: testLocalizationsDelegates,
         supportedLocales: testSupportedLocales,
-        builder: (context, child) => RepositoriesScope(
-          repositories: repos,
-          child: WeekendsAndSeriesScope(notifier: notifier, child: child!),
-        ),
+        builder: (context, child) {
+          final scoped = RepositoriesScope(
+            repositories: repos,
+            child: WeekendsAndSeriesScope(notifier: notifier, child: child!),
+          );
+          // The phone layout's app bar: a search action, and the import
+          // items in the ⋮ menu.
+          return phone
+              ? AppShellSearchScope(searchPrograms: () async {}, child: scoped)
+              : scoped;
+        },
         home: ValueListenableBuilder<bool>(
           valueListenable: isActive,
           builder: (context, value, _) => ProgramsListScreen(isActive: value),
@@ -124,7 +135,7 @@ void main() {
   Finder checkbox(String id) => find.byKey(ValueKey('program-select-$id'));
 
   bool combinedEnabled(WidgetTester tester) =>
-      tester.widget<ButtonStyleButton>(combined).onPressed != null;
+      tester.widget<IconButton>(combined).onPressed != null;
 
   Future<void> startSelecting(WidgetTester tester) async {
     await tester.tap(more);
@@ -217,6 +228,53 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('1 selected'), findsOneWidget);
+    });
+
+    testWidgets('the phone layout\'s menu offers Select programs too, only '
+        'while the setting is on', (tester) async {
+      final repos = await seed();
+      final setting = await pumpList(tester, repos, phone: true);
+      expect(find.byKey(const ValueKey('programs-search')), findsOneWidget);
+      await startSelecting(tester);
+      expect(combined, findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('programs-selection-exit')));
+      await tester.pumpAndSettle();
+      setting.value = false;
+      await tester.pumpAndSettle();
+      await tester.tap(more);
+      await tester.pumpAndSettle();
+      expect(selectItem, findsNothing);
+      expect(
+        find.byKey(const ValueKey('programs-recently-deleted')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('with every program archived and hidden, checked programs are '
+        'still counted as not shown, and New program waits', (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(program('a', 'Alpha', archived: true));
+      await repos.programs.create(program('b', 'Beta', archived: true));
+      await pumpList(tester, repos);
+      await startSelecting(tester);
+      await tester.tap(find.byKey(const ValueKey('empty-show-archived')));
+      await tester.pumpAndSettle();
+      await tester.tap(checkbox('a'));
+      await tester.tap(checkbox('b'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('programs-selection-more')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('programs-toggle-archived')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('all-archived-state')), findsOneWidget);
+      expect(find.text(' · 2 selected (2 not shown)'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('programs-deselect-not-shown')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('empty-new-program')), findsNothing);
     });
 
     testWidgets('a checked program that is deleted is dropped, not counted as '
@@ -376,6 +434,42 @@ void main() {
         findsOneWidget,
         reason: 'Butterfly stands in for Sunday\'s second dance',
       );
+    });
+
+    testWidgets('Export or print matrix as PDF hands over a PDF of the '
+        'combined matrix', (tester) async {
+      final repos = await seed();
+      String? jobName;
+      LayoutCallback? captured;
+      await tester.binding.setSurfaceSize(const Size(1200, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) =>
+              RepositoriesScope(repositories: repos, child: child!),
+          home: CombinedProgramsScreen(
+            programIds: const {'sat', 'sun'},
+            pdfLayouter: ({required name, required onLayout}) async {
+              jobName = name;
+              captured = onLayout;
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('combined-matrix-export-pdf')),
+      );
+      await tester.pumpAndSettle();
+      expect(jobName, 'Combined_matrix');
+      expect(captured, isNotNull);
+      final bytes = await tester.runAsync(
+        () async => captured!(PdfPageFormat.a4),
+      );
+      expect(bytes, isNotEmpty);
+      expect(find.byType(SnackBar), findsNothing, reason: 'no failure');
     });
 
     testWidgets('a program deleted while it is open drops out', (tester) async {

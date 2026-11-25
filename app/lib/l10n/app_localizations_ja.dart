@@ -14888,4 +14888,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsCombinedPositionAlternate => '代替';
+
+  @override
+  String get programsCombinedRepeatAlternateEverywhereChip => '代替のみ';
 }

@@ -15453,4 +15453,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programsCombinedPositionAlternate => 'alternate';
+
+  @override
+  String get programsCombinedRepeatAlternateEverywhereChip =>
+      'Only an alternate';
 }

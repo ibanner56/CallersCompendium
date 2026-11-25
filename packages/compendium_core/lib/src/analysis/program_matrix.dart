@@ -1713,9 +1713,12 @@ Iterable<int> _adjacentIndices(List<int?> groups, int index) sync* {
 }
 
 /// The order a weekend or series of [programs] reads in (#2349): by event
-/// date, earliest first; programs with no date after every dated one, by
-/// title. Ties (one date, or one title) fall back to title, then id, so the
-/// order never depends on the order the programs were selected in.
+/// date, earliest first, and on one date by start time
+/// ([Program.startMinute]), so an afternoon and an evening on one day read in
+/// the order they happen; a program with no start time comes after the timed
+/// ones that day. Programs with no date come after every dated one, by title.
+/// Remaining ties fall back to title, then id, so the order never depends on
+/// the order the programs were selected in.
 List<Program> orderProgramsForSeries(Iterable<Program> programs) {
   int byTitle(Program a, Program b) {
     final t = foldForTitleMatch(a.title).compareTo(foldForTitleMatch(b.title));
@@ -1729,7 +1732,15 @@ List<Program> orderProgramsForSeries(Iterable<Program> programs) {
     if (ad == null) return 1;
     if (bd == null) return -1;
     final d = ad.compareTo(bd);
-    return d != 0 ? d : byTitle(a, b);
+    if (d != 0) return d;
+    final aStart = a.startMinute;
+    final bStart = b.startMinute;
+    if (aStart != bStart) {
+      if (aStart == null) return 1;
+      if (bStart == null) return -1;
+      return aStart.compareTo(bStart);
+    }
+    return byTitle(a, b);
   });
 }
 
@@ -1895,8 +1906,12 @@ class RepeatedDance {
   /// How many different programs the dance is in.
   int get programCount => {for (final u in uses) u.programIndex}.length;
 
+  /// Whether every use is an alternate: the dance is planned in none of the
+  /// programs, only a standby in each.
+  bool get isOnlyAlternate => uses.every((u) => u.isAlternate);
+
   /// Whether every use in at least one program is an alternate: the dance
-  /// is only a standby there.
+  /// is only a standby there. True too when [isOnlyAlternate].
   bool get isAlternateSomewhere {
     final primaryIn = {
       for (final u in uses)

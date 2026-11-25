@@ -22354,6 +22354,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'alternate'**
   String get programsCombinedPositionAlternate;
+
+  /// Chip on a repeated dance that is an alternate in every selected program it is in, planned in none (#2349).
+  ///
+  /// In en, this message translates to:
+  /// **'Only an alternate'**
+  String get programsCombinedRepeatAlternateEverywhereChip;
 }
 
 class _AppLocalizationsDelegate

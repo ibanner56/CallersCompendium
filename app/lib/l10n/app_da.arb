@@ -14654,7 +14654,7 @@
   "@settingsExperimentalSeriesTitle": {
     "x-sourceSha256": "782668dfc16be3c22df49010f0cc41de806ba5a660dcea2fd5ee2eab4e5d4c30"
   },
-  "settingsExperimentalSeriesSubtitle": "Vælg Vælg programmer under Flere handlinger på programlisten, vælg to eller flere, og se én matrix på tværs af dem og de danse, de gentager. Intet nyt gemmes.",
+  "settingsExperimentalSeriesSubtitle": "Vælg »Vælg programmer« under Flere handlinger på programlisten, vælg to eller flere, og se én matrix på tværs af dem og de danse, de gentager. Intet nyt gemmes.",
   "@settingsExperimentalSeriesSubtitle": {
     "x-sourceSha256": "1e89c7664afc079ad5d2c9e249da837fe2c21c181b29f3718ca129aabf20cf93"
   },
@@ -14741,5 +14741,9 @@
   "programsCombinedPositionAlternate": "alternativ",
   "@programsCombinedPositionAlternate": {
     "x-sourceSha256": "3f251db73f53a7fba1944fa7823e4fe9a2b83a001723311507ada0cef0ce16bc"
+  },
+  "programsCombinedRepeatAlternateEverywhereChip": "Kun alternativ",
+  "@programsCombinedRepeatAlternateEverywhereChip": {
+    "x-sourceSha256": "8713ea0bc6805700f46835b47b4e5646d69bd4054f46d7bd11cab902d4d36782"
   }
 }

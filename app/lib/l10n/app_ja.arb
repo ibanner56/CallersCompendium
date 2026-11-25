@@ -14741,5 +14741,9 @@
   "programsCombinedPositionAlternate": "代替",
   "@programsCombinedPositionAlternate": {
     "x-sourceSha256": "3f251db73f53a7fba1944fa7823e4fe9a2b83a001723311507ada0cef0ce16bc"
+  },
+  "programsCombinedRepeatAlternateEverywhereChip": "代替のみ",
+  "@programsCombinedRepeatAlternateEverywhereChip": {
+    "x-sourceSha256": "8713ea0bc6805700f46835b47b4e5646d69bd4054f46d7bd11cab902d4d36782"
   }
 }

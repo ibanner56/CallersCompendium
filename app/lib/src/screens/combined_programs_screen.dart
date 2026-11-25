@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:printing/printing.dart';
 
@@ -79,7 +80,15 @@ class _CombinedProgramsScreenState extends State<CombinedProgramsScreen> {
     final repos = RepositoriesScope.of(context);
     _sub = repos.programs
         .watchAll()
-        .asyncMap((all) => _load(repos, all))
+        .map(
+          (all) => [
+            for (final p in all)
+              if (widget.programIds.contains(p.id)) p,
+          ],
+        )
+        // A write to a program that is not selected changes nothing here.
+        .distinct(_samePrograms)
+        .asyncMap((programs) => _load(repos, programs))
         .listen(
           (snapshot) {
             if (!mounted) return;
@@ -100,14 +109,15 @@ class _CombinedProgramsScreenState extends State<CombinedProgramsScreen> {
         );
   }
 
+  /// Whether two emits hold the same selected programs, unchanged
+  /// ([Program]'s value equality, its slots included).
+  static bool _samePrograms(List<Program> a, List<Program> b) =>
+      listEquals(a, b);
+
   Future<_Snapshot> _load(
     CompendiumRepositories repos,
-    List<Program> all,
+    List<Program> programs,
   ) async {
-    final programs = [
-      for (final p in all)
-        if (widget.programIds.contains(p.id)) p,
-    ];
     final danceIds = {
       for (final p in programs)
         for (final slot in p.slots) ?slot.danceId,
@@ -116,15 +126,15 @@ class _CombinedProgramsScreenState extends State<CombinedProgramsScreen> {
     // program's own matrix.
     final dances = await repos.dances.getByIds(danceIds, includeDeleted: true);
     final authorIds = {for (final d in dances) ...d.authorIds};
-    final authors = authorIds.isEmpty
-        ? const <Choreographer>[]
-        : await repos.choreographers.listAll(includeDeleted: true);
+    final authors = await Future.wait(
+      authorIds.map(repos.choreographers.getById),
+    );
     return (
       programs: programs,
       dancesById: {for (final d in dances) d.id: d},
       authorNames: {
         for (final c in authors)
-          if (authorIds.contains(c.id)) c.id: c.name,
+          if (c != null) c.id: c.name,
       },
     );
   }
@@ -523,7 +533,11 @@ class _CombinedProgramsScreenState extends State<CombinedProgramsScreen> {
                         'combined-repeat-alternate-${repeat.danceId}',
                       ),
                       avatar: const Icon(Icons.alt_route, size: 16),
-                      label: Text(l10n.programsCombinedRepeatAlternateChip),
+                      label: Text(
+                        repeat.isOnlyAlternate
+                            ? l10n.programsCombinedRepeatAlternateEverywhereChip
+                            : l10n.programsCombinedRepeatAlternateChip,
+                      ),
                       visualDensity: VisualDensity.compact,
                     ),
                 ],
