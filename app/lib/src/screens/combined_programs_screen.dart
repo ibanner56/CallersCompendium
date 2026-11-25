@@ -53,6 +53,12 @@ class CombinedProgramsScreen extends StatefulWidget {
   State<CombinedProgramsScreen> createState() => _CombinedProgramsScreenState();
 }
 
+/// Renders formation labels only (the matrix's formation column, on screen
+/// and in the PDF); the matrix never shows a dance's figure lines.
+final FigureRenderer _formationRenderer = FigureRenderer(
+  shippedTaxonomies.anyForm,
+);
+
 typedef _Snapshot = ({
   List<Program> programs,
   Map<String, Dance> dancesById,
@@ -321,7 +327,7 @@ class _CombinedProgramsScreenState extends State<CombinedProgramsScreen> {
     String formationOf(MatrixRow row) => formationDisplayLabel(
       l10n,
       row.formation,
-      FigureRenderer(shippedTaxonomies.anyForm),
+      _formationRenderer,
       dialects.rows[row.danceId] ?? fallback,
       canonicalizeDiscouragedTerms: canonicalize,
     );
@@ -454,7 +460,7 @@ class _CombinedProgramsScreenState extends State<CombinedProgramsScreen> {
           formatFormation: (row) => formationDisplayLabel(
             l10n,
             row.formation,
-            FigureRenderer(shippedTaxonomies.anyForm),
+            _formationRenderer,
             dialects.rows[row.danceId] ?? fallback,
             canonicalizeDiscouragedTerms: canonicalize,
           ),

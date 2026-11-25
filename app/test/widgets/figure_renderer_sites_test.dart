@@ -34,6 +34,8 @@ const Map<String, int> _allowed = {
   'lib/src/screens/dance_detail_screen.dart': 2,
   'lib/src/screens/program_summary_screen.dart': 2,
   'lib/src/screens/program_editor_screen.dart': 2,
+  // Formation labels in the combined matrix and its PDF (#2349).
+  'lib/src/screens/combined_programs_screen.dart': 1,
   'lib/src/screens/perform_adjust_sheet.dart': 1,
   'lib/src/screens/import_review_screen.dart': 1,
   'lib/src/widgets/dance_list_tile.dart': 2,
