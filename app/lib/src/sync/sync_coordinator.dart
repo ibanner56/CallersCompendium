@@ -467,6 +467,11 @@ abstract interface class SyncCapabilityRecordStore {
   /// Writes [deviceId]'s capability record as [capabilities] when the stored
   /// one is missing or lists something else; otherwise writes nothing, so an
   /// unchanged record is never re-stamped and republished.
+  ///
+  /// A rewrite is stamped strictly after the record it replaces (#2528): a
+  /// peer that holds the old record and finds the new one at the same
+  /// `updatedAt` neither takes it nor resolves the tie (sync-spec §6.3), so a
+  /// capability this device has just gained would stay closed on that peer.
   Future<void> ensureCapabilityRecord(
     String deviceId,
     Set<String> capabilities,
@@ -486,17 +491,22 @@ final class CompendiumSyncCoordinatorStore
         SyncCapabilityRecordStore {
   /// [memoizeSnapshots] is passed to [CompendiumSyncStorage]: only a store
   /// built for one pass and dropped after, as the sync worker's is, sets it.
+  ///
+  /// [now] is the clock the capability record is stamped from; tests pin it.
   CompendiumSyncCoordinatorStore(
     CompendiumRepositories repositories, {
     this.syncId,
     bool memoizeSnapshots = false,
-  }) : storage = CompendiumSyncStorage(
+    DateTime Function() now = _syncNowUtc,
+  }) : _now = now,
+       storage = CompendiumSyncStorage(
          repositories,
          memoizeSnapshots: memoizeSnapshots,
        );
 
   final CompendiumSyncStorage storage;
   final String? syncId;
+  final DateTime Function() _now;
 
   @override
   Future<SyncCoordinatorSnapshot> snapshot() async {
@@ -572,7 +582,24 @@ final class CompendiumSyncCoordinatorStore
         stored.containsAll(capabilities)) {
       return;
     }
-    await settings.set(key, syncCapabilityRecordValue(capabilities));
+    // The row's own stamp, deleted or not: a record removed with its device
+    // (§6.15) leaves a tombstone whose stamp the rewrite must also outrank.
+    final db = storage.repositories.db;
+    final row = await (db.select(
+      db.settings,
+    )..where((t) => t.key.equals(key))).getSingleOrNull();
+    final current = row?.updatedAt;
+    final now = _now();
+    // Stored at whole-second precision, so a tick is one second: a smaller
+    // step would round back down to the stamp it must exceed.
+    final superseding = current == null
+        ? now
+        : current.toUtc().add(storedTimestampTick);
+    await settings.set(
+      key,
+      syncCapabilityRecordValue(capabilities),
+      at: superseding.isAfter(now) ? superseding : now,
+    );
   }
 
   @override

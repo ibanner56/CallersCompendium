@@ -8922,6 +8922,77 @@ void main() {
       });
     });
 
+    test('a rewritten record is stamped strictly after the stored one '
+        '(#2528)', () async {
+      final repositories = openTestRepositories();
+      final store = CompendiumSyncCoordinatorStore(repositories);
+      final key = syncCapabilityRecordKey('device-a');
+      Future<DateTime?> stampOf() async => (await store.snapshot())
+          .local[(kind: SyncRecordKind.setting, recordId: key)]
+          ?.blob
+          .updatedAt;
+
+      // A stored record stamped ahead of the clock, as after the clock moved
+      // back: a rewrite stamped with the current time would be older than it.
+      final ahead = DateTime.utc(2099, 1, 1, 12);
+      await repositories.settings.set(
+        key,
+        syncCapabilityRecordValue({'a.v1'}),
+        at: ahead,
+      );
+      expect(await stampOf(), ahead);
+
+      await store.ensureCapabilityRecord('device-a', {'a.v1', 'b.v1'});
+      expect(
+        await stampOf(),
+        ahead.add(const Duration(seconds: 1)),
+        reason: 'one tick after the stored stamp, so a peer never ties with it',
+      );
+
+      // Rewrites in a row each move it on, whatever the clock says.
+      await store.ensureCapabilityRecord('device-a', {'b.v1'});
+      expect(await stampOf(), ahead.add(const Duration(seconds: 2)));
+    });
+
+    test('a rewrite in the same second as the stored record does not tie with '
+        'it (#2528)', () async {
+      final repositories = openTestRepositories();
+      final key = syncCapabilityRecordKey('device-a');
+      // A sub-second reading, so the clock's own value would round down to the
+      // stored stamp's second.
+      final clock = DateTime.utc(2026, 11, 25, 12, 0, 0, 900);
+      final store = CompendiumSyncCoordinatorStore(
+        repositories,
+        now: () => clock,
+      );
+      Future<DateTime?> stampOf() async => (await store.snapshot())
+          .local[(kind: SyncRecordKind.setting, recordId: key)]
+          ?.blob
+          .updatedAt;
+
+      await store.ensureCapabilityRecord('device-a', {'a.v1'});
+      final first = await stampOf();
+      expect(
+        first,
+        DateTime.utc(2026, 11, 25, 12),
+        reason: 'the clock, floored',
+      );
+
+      await store.ensureCapabilityRecord('device-a', {'a.v1', 'b.v1'});
+      final second = await stampOf();
+      expect(second!.isAfter(first!), isTrue, reason: 'strictly later');
+      expect(second, first.add(const Duration(seconds: 1)));
+
+      // Once the clock is past the stored stamp, the clock decides again.
+      final later = DateTime.utc(2026, 11, 25, 12, 5);
+      final laterStore = CompendiumSyncCoordinatorStore(
+        repositories,
+        now: () => later,
+      );
+      await laterStore.ensureCapabilityRecord('device-a', {'b.v1'});
+      expect(await stampOf(), later);
+    });
+
     group('saved searches (#2325)', () {
       const savedPolicy = SyncCapabilityPolicy(
         advertised: {SyncCapabilities.savedSearchesV1},
