@@ -790,9 +790,13 @@ class BackupService {
   /// archive. A rule a program names that the backup lacks is ignored there
   /// (the program's id list is a soft reference). So is one skipped here: its
   /// id stays on the programs, which list it as a rule not on this device,
-  /// rather than being cut (#2529). The id may name a rule a peer holds, one a
-  /// newer build's bounds allow, and cutting it would sync the cut to that
-  /// peer; the skip is already reported, and the Rules list offers Remove.
+  /// rather than being cut (#2529). That is the state [_withCarriedRuleIds]
+  /// avoids when a backup is made, and it is kept here on purpose: there the
+  /// rule is deleted everywhere, while a skipped rule may be one a peer holds
+  /// (a newer build's bounds allow it), so cutting its id would sync the cut
+  /// to that peer, and the rule can still arrive by sync. It counts toward
+  /// [maxProgramEventRules] meanwhile, as any rule not here yet does. The skip
+  /// is reported, and the program's Rules list offers Remove.
   ///
   /// A merge restore needs no cap on a program's rules of its own: the
   /// archive's list replaces the live one rather than joining it, and is

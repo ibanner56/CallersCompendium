@@ -285,10 +285,12 @@ class SavedSearchRepository {
   ///
   /// The use check and the removal run in one transaction (#2529), so a
   /// write elsewhere lands wholly before the check, which then sees it, or
-  /// wholly after the removal. A writer that adds a use only while the search
-  /// is live therefore cannot leave one pointing at a deleted search. One that
-  /// does not check (a peer's rule arriving by sync) still can, which is why
-  /// a dependent must handle a missing id.
+  /// wholly after the removal: the check never passes on a use that is
+  /// already there when the search is removed. A use written after the
+  /// removal is not prevented. No writer here checks that its saved search is
+  /// still live (the rule editor and the template editor write the search
+  /// they were opened with, and a peer's rule arrives by sync unchecked), so
+  /// a dependent must still handle a missing id.
   Future<void> delete(String id, {DateTime? at}) =>
       _settings.transaction(() async {
         final uses = await usage.usesOf(id);

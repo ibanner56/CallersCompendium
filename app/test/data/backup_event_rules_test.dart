@@ -266,6 +266,27 @@ void main() {
       );
     });
 
+    test('a merge restore replaces a program\'s rules rather than joining '
+        'them (#2529)', () async {
+      final (source, rule) = await seeded();
+      final target = openTestRepositories();
+      await BackupService(target).restoreFromJson(
+        encodeBackup(await BackupService(source).buildDocument()),
+      );
+      expect((await target.programs.getById('p1'))!.eventRuleIds, [rule.id]);
+
+      final payload = backupToJson(await BackupService(source).buildDocument());
+      (((payload['core']! as Map)['programs']! as List).single
+          as Map)['eventRuleIds'] = [
+        'b0',
+      ];
+      await BackupService(
+        target,
+      ).restoreFromJson(jsonEncode(payload), mode: RestoreMode.merge);
+
+      expect((await target.programs.getById('p1'))!.eventRuleIds, ['b0']);
+    });
+
     test('rules are bounded on decode', () {
       final read = decodeBackup(
         backupWith([

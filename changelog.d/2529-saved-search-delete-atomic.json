@@ -2,8 +2,11 @@
   "id": "2529-saved-search-delete-atomic",
   "user_visible": false,
   "core": {
+    "added": [
+      "SettingsRepository.transaction runs an action in one transaction on the settings database."
+    ],
     "fixed": [
-      "SavedSearchRepository.delete now runs its use check and the removal in one transaction (through the new SettingsRepository.transaction), so a writer that adds a use only while the search is live can no longer leave one pointing at a deleted search."
+      "SavedSearchRepository.delete now runs its use check and the removal in one transaction, so the check can no longer pass on a use written between the two. A use written after the removal is still possible, and dependents still handle a missing saved search."
     ]
   }
 }
