@@ -15442,6 +15442,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get programTemplateRulesNone => 'Aucune';
 
   @override
+  String programTemplateDuplicateSearchGone(String label) {
+    return 'Impossible de dupliquer : la recherche enregistrée de la règle d\'emplacement « $label » a été supprimée. Modifiez ou retirez cette règle, puis réessayez.';
+  }
+
+  @override
   String get programTemplateSlotRuleNotSavedSearchGone =>
       'Cette recherche enregistrée vient d\'être supprimée : la règle d\'emplacement n\'a donc pas été enregistrée.';
 

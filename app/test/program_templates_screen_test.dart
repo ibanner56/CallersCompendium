@@ -681,6 +681,104 @@ void main() {
       ]);
     });
 
+    testWidgets('an Edit to a saved search deleted before it is saved puts the '
+        'rule back as it was (#2529)', (tester) async {
+      final repos = openTestRepositories();
+      final family = await saveSearch(repos, 'Family dances');
+      final other = await saveSearch(repos, 'Other');
+      final template = ProgramTemplate(
+        id: 'a',
+        name: 'Family',
+        entries: [
+          const ProgramTemplateEntry(text: 'Waltz'),
+          ProgramTemplateEntry.rule(
+            savedSearchId: family.id,
+            label: 'Easy family opener',
+          ),
+        ],
+      );
+      await _seed(repos, [template]);
+      await _pump(
+        tester,
+        repos,
+        ProgramTemplateEditorScreen(template: template),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-rule-edit-1')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-rule-search')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(ValueKey('program-template-rule-search-${other.id}')).last,
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('program-template-rule-label')),
+        'Something else',
+      );
+      await tester.pumpAndSettle();
+      await repos.savedSearches.delete(other.id);
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-rule-save')),
+      );
+      await tester.pumpAndSettle();
+
+      await pumpUntilFound(
+        tester,
+        find.byKey(const ValueKey('program-template-slot-rule-search-gone')),
+      );
+      await pumpUntilFound(tester, find.text('Easy family opener'));
+      expect(find.text('Something else'), findsNothing);
+      expect((await _stored(repos)).byId('a')!.entries, template.entries);
+    });
+
+    testWidgets('Duplicate of a template whose slot rule names a deleted saved '
+        'search is refused, naming the rule (#2529)', (tester) async {
+      final repos = openTestRepositories();
+      await _seed(repos, [
+        ProgramTemplate(
+          id: 'a',
+          name: 'Family',
+          entries: [
+            ProgramTemplateEntry.rule(
+              savedSearchId: 'deleted-search',
+              label: 'Easy family opener',
+            ),
+          ],
+        ),
+      ]);
+      await _pump(tester, repos, const ProgramTemplatesScreen());
+
+      await tester.tap(find.byKey(const ValueKey('program-template-menu-a')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('program-template-duplicate')),
+      );
+      await tester.pumpAndSettle();
+
+      await pumpUntilFound(
+        tester,
+        find.byKey(const ValueKey('program-template-search-gone')),
+      );
+      expect(
+        find.text(
+          "Couldn't duplicate: the saved search of the slot rule "
+          '"Easy family opener" was deleted. Edit or remove that rule, then '
+          'try again.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        [for (final t in (await _stored(repos)).templates) t.id],
+        ['a'],
+        reason: 'no copy, and no order entry for one',
+      );
+    });
+
     testWidgets('Edit with no saved search left keeps the edit form: the label '
         'can change, no search is chosen, and a note says why', (tester) async {
       final repos = openTestRepositories();

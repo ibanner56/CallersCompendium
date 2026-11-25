@@ -15218,6 +15218,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programTemplateRulesNone => 'None';
 
   @override
+  String programTemplateDuplicateSearchGone(String label) {
+    return 'Couldn\'t duplicate: the saved search of the slot rule \"$label\" was deleted. Edit or remove that rule, then try again.';
+  }
+
+  @override
   String get programTemplateSlotRuleNotSavedSearchGone =>
       'That saved search was just deleted, so the slot rule wasn\'t saved.';
 

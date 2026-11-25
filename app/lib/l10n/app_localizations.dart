@@ -22031,6 +22031,12 @@ abstract class AppLocalizations {
   /// **'None'**
   String get programTemplateRulesNone;
 
+  /// Snackbar when Duplicate on a program template is refused because one of its slot rules names a saved search that is no longer stored (#2529). {label} is that slot rule's label.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t duplicate: the saved search of the slot rule \"{label}\" was deleted. Edit or remove that rule, then try again.'**
+  String programTemplateDuplicateSearchGone(String label);
+
   /// Snackbar in the program template editor when a new or changed slot rule names a saved search that was deleted while its dialog was open (#2529). The slots go back to how they were saved.
   ///
   /// In en, this message translates to:

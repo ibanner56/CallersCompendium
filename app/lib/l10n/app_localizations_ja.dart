@@ -14667,6 +14667,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programTemplateRulesNone => 'なし';
 
   @override
+  String programTemplateDuplicateSearchGone(String label) {
+    return '複製できませんでした。枠のルール「$label」の保存済み検索が削除されています。そのルールを編集または削除してから、もう一度お試しください。';
+  }
+
+  @override
   String get programTemplateSlotRuleNotSavedSearchGone =>
       'その保存済み検索は削除されたため、枠のルールは保存されませんでした。';
 

@@ -284,7 +284,15 @@ class _ProgramTemplatesScreenState extends State<ProgramTemplatesScreen> {
 
   /// Runs a settings write, and on failure logs it and says so, so a failed
   /// save never looks like a saved one. Returns whether it succeeded.
-  Future<bool> _write(String action, Future<void> Function() write) async {
+  ///
+  /// A write refused because a slot rule names a saved search that is no
+  /// longer stored ([SavedSearchGone], #2529) is not a fault: [goneMessage]
+  /// words it, and nothing is logged.
+  Future<bool> _write(
+    String action,
+    Future<void> Function() write, {
+    String Function(SavedSearchGone gone)? goneMessage,
+  }) async {
     final messenger = ScaffoldMessenger.of(context);
     final message = AppLocalizations.of(context).programTemplateSaveError;
     final repos = RepositoriesScope.of(context);
@@ -293,6 +301,17 @@ class _ProgramTemplatesScreenState extends State<ProgramTemplatesScreen> {
       await repos.transaction(write);
       return true;
     } catch (error, stackTrace) {
+      if (error is SavedSearchGone && goneMessage != null) {
+        // Expected, not a fault: a slot rule names a saved search that is no
+        // longer stored (#2529); the message says which rule to fix.
+        messenger.showSnackBar(
+          SnackBar(
+            key: const ValueKey('program-template-search-gone'),
+            content: Text(goneMessage(error)),
+          ),
+        );
+        return false;
+      }
       logCaughtError(
         error,
         stackTrace,
@@ -355,10 +374,28 @@ class _ProgramTemplatesScreenState extends State<ProgramTemplatesScreen> {
     );
     final ids = _ids;
     ids.insert(ids.indexOf(template.id) + 1, copy.id);
-    await _write('duplicate', () async {
-      await saveProgramTemplate(_settings, copy);
-      await saveProgramTemplateOrder(_settings, ids);
-    });
+    await _write(
+      'duplicate',
+      () async {
+        // Every slot rule of a copy is a new use of its saved search, so
+        // each must name one that is stored (#2529).
+        await saveProgramTemplate(
+          _settings,
+          copy,
+          checkSlotRules: SlotRuleSearchCheck.all,
+        );
+        await saveProgramTemplateOrder(_settings, ids);
+      },
+      goneMessage: (gone) => l10n.programTemplateDuplicateSearchGone(
+        copy.entries
+                .firstWhere(
+                  (e) => e.savedSearchId == gone.id,
+                  orElse: () => const ProgramTemplateEntry(),
+                )
+                .text ??
+            '',
+      ),
+    );
     if (mounted) await _reload();
   }
 
@@ -584,6 +621,12 @@ class _ProgramTemplateEditorScreenState
   /// writes this list, so turning the feature back on finds it unchanged.
   late List<String> _eventRuleIds = [...widget.template.eventRuleIds];
 
+  /// Each slot rule **Edit** put in place, mapped to the entry it replaced,
+  /// by identity (entries compare by value), so a save refused for the new
+  /// rule's saved search can put the old one back (#2529).
+  final Map<ProgramTemplateEntry, ProgramTemplateEntry> _editedFrom =
+      Map.identity();
+
   /// Every event rule this device holds, tombstones included, by id, so the
   /// Rules row can name a deleted rule as removed (`null` until read).
   Map<String, EventRule>? _rulesById;
@@ -804,6 +847,7 @@ class _ProgramTemplateEditorScreenState
           ? index
           : _entries.indexWhere((e) => identical(e, entry));
       if (at < 0) return;
+      _editedFrom[rule] = entry;
       _change(() => _entries[at] = rule);
     } finally {
       _ruleDialogBusy = false;
@@ -845,11 +889,11 @@ class _ProgramTemplateEditorScreenState
       await saveProgramTemplate(
         RepositoriesScope.of(context).settings,
         _template,
-        checkNewSlotRules: true,
+        checkSlotRules: SlotRuleSearchCheck.added,
       );
-    } on SavedSearchGone {
+    } on SavedSearchGone catch (gone) {
       // diagnostics: silent — expected, not a fault: a slot rule named a saved search deleted while its dialog was open (#2529); _slotRuleSearchGone says so.
-      await _slotRuleSearchGone();
+      await _slotRuleSearchGone(gone.id);
     } catch (error, stackTrace) {
       logCaughtError(
         error,
@@ -859,13 +903,35 @@ class _ProgramTemplateEditorScreenState
     }
   }
 
-  /// A save was refused because a new or changed slot rule names a saved
-  /// search that is no longer stored (#2529): nothing was written. Says so,
-  /// puts the slots back as they are saved, and saves the rest (the name, the
-  /// rules) again.
-  Future<void> _slotRuleSearchGone() async {
+  /// A save was refused because a slot rule added or changed here names the
+  /// saved search [goneId], which is no longer stored (#2529): nothing was
+  /// written. Undoes just those slot rules ([undoSlotRulesNaming]: an edit
+  /// goes back to the rule it changed, an added rule goes), says so, and
+  /// saves the rest again, keeping every other change made meanwhile.
+  Future<void> _slotRuleSearchGone(String goneId) async {
     if (!mounted) return;
     final settings = RepositoriesScope.of(context).settings;
+    final templates = await loadProgramTemplates(settings);
+    if (!mounted) return;
+    final stored = templates.templates
+        .where((t) => t.id == _template.id)
+        .firstOrNull;
+    final next = undoSlotRulesNaming(
+      _entries,
+      goneId,
+      storedSearchIds: {
+        for (final entry in stored?.entries ?? const <ProgramTemplateEntry>[])
+          ?entry.savedSearchId,
+      },
+      editedFrom: _editedFrom,
+    );
+    // Another refused save already undid them: nothing more to say.
+    if (next == null) return;
+    setState(
+      () => _entries
+        ..clear()
+        ..addAll(next),
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         key: const ValueKey('program-template-slot-rule-search-gone'),
@@ -875,16 +941,6 @@ class _ProgramTemplateEditorScreenState
           ).programTemplateSlotRuleNotSavedSearchGone,
         ),
       ),
-    );
-    final templates = await loadProgramTemplates(settings);
-    final stored = templates.templates
-        .where((t) => t.id == _template.id)
-        .firstOrNull;
-    if (!mounted || stored == null) return;
-    setState(
-      () => _entries
-        ..clear()
-        ..addAll(stored.entries),
     );
     unawaited(
       _loadSavedSearchNames(RepositoriesScope.of(context).savedSearches),
