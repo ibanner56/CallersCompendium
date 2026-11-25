@@ -61,6 +61,7 @@ class _Seeded {
 Future<_Seeded> _seed({
   List<String>? applied,
   CompendiumRepositories? into,
+  String? oneBecketNickname,
 }) async {
   final repos = into ?? openTestRepositories();
   await repos.dances.create(
@@ -81,6 +82,7 @@ Future<_Seeded> _seed({
     quantifier: EventRuleQuantifier.atMost,
     count: 1,
     scope: EventRuleScope.wholeProgram,
+    nickname: oneBecketNickname,
   );
   final noBecketFirstHalf = await repos.eventRules.create(
     savedSearchId: becket.id,
@@ -263,7 +265,13 @@ void main() {
       find.descendant(of: primary, matching: find.byIcon(Icons.rule)),
       findsOneWidget,
     );
-    expect(tester.getSemantics(primary).label, 'Breaks the rule: Easy start');
+    // A nicknamed rule is read with its sentence too (#2535): a screen
+    // reader cannot glance at the Rules strip to recall what it requires.
+    expect(
+      tester.getSemantics(primary).label,
+      'Breaks the rule: Easy start (No dance matching "Becket" before the '
+      'first break)',
+    );
 
     final alternate = find.byKey(const ValueKey('slot-s2alt-rule-marker'));
     expect(
@@ -280,6 +288,29 @@ void main() {
       'whole program',
     );
     expect(find.byKey(const ValueKey('slot-s2-rule-marker')), findsNothing);
+    semantics.dispose();
+  });
+
+  testWidgets("an alternate's marker reads a nicknamed rule with its "
+      'sentence too (#2535)', (tester) async {
+    final semantics = tester.ensureSemantics();
+    final seeded = await _seed(oneBecketNickname: 'One becket');
+    await _pump(tester, seeded.repos, enabled: true);
+    await pumpUntilFound(tester, _strip);
+
+    final alternate = find.byKey(const ValueKey('slot-s2alt-rule-marker'));
+    expect(
+      find.descendant(
+        of: alternate,
+        matching: find.text('Breaks a rule if called'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      tester.getSemantics(alternate).label,
+      'Breaks the rule if called: One becket (At most 1 dance matching '
+      '"Becket" in the whole program)',
+    );
     semantics.dispose();
   });
 

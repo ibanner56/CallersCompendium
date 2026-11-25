@@ -318,8 +318,9 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('a rule with a nickname is named by it, as the rule picker and '
-      'Manage rules title it, not by its sentence (#2530)', (tester) async {
+  testWidgets('a rule with a nickname is shown by it, as the rule picker and '
+      'Manage rules title it, not by its sentence (#2530), and read with its '
+      'sentence (#2535)', (tester) async {
     final semantics = tester.ensureSemantics();
     await _pump(tester, rules: _Rules(nickname: 'Family petronella'));
     await _chooseSuggested(tester);
@@ -342,7 +343,7 @@ void main() {
       expect(
         tester.getSemantics(marker),
         matchesSemantics(
-          label: 'Would break the event rule: Family petronella',
+          label: 'Would break the event rule: Family petronella ($_sentence)',
         ),
       );
     }
@@ -356,6 +357,17 @@ void main() {
         matching: find.text('Would break: Family petronella'),
       ),
       findsOneWidget,
+    );
+    expect(
+      tester.getSemantics(
+        find.descendant(
+          of: find.byKey(const ValueKey('suggestion-why-rule-0')),
+          matching: find.byType(SuggestionRuleMarker),
+        ),
+      ),
+      matchesSemantics(
+        label: 'Would break the event rule: Family petronella ($_sentence)',
+      ),
     );
     semantics.dispose();
   });

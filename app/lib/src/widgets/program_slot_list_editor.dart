@@ -12,6 +12,7 @@ import '../theme/app_spacing.dart';
 import '../theme/set_list_accents.dart';
 import 'dirty_dialog_guard.dart';
 import 'empty_state.dart';
+import 'event_rule_text.dart' show EventRuleName;
 import 'preview_hold_listener.dart';
 import '../theme/app_breakpoints.dart';
 
@@ -1389,14 +1390,15 @@ class _ReplaceDanceRow extends StatelessWidget {
 }
 
 /// What a slot's event-rule marker says (#2340): whether the slot is an
-/// alternate that breaks a rule only if called, and the titles of the rules
-/// it breaks (nickname, else sentence, #2530).
+/// alternate that breaks a rule only if called, and the names of the rules it
+/// breaks ([eventRuleName]); its screen-reader label reads each by its
+/// nickname and sentence, else its sentence (#2535).
 @immutable
 class SlotRuleMarker {
   const SlotRuleMarker({required this.ifCalled, required this.rules});
 
   final bool ifCalled;
-  final List<String> rules;
+  final List<EventRuleName> rules;
 }
 
 class _RuleMarker extends StatelessWidget {
@@ -1410,6 +1412,7 @@ class _RuleMarker extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final color = theme.colorScheme.error;
+    final spoken = marker.rules.map((r) => r.spoken).join('; ');
     return Semantics(
       key: ValueKey('slot-$slotId-rule-marker'),
       container: true,
@@ -1418,12 +1421,9 @@ class _RuleMarker extends StatelessWidget {
       label: marker.ifCalled
           ? l10n.programsSlotRuleMarkerAlternateSemantic(
               marker.rules.length,
-              marker.rules.join('; '),
+              spoken,
             )
-          : l10n.programsSlotRuleMarkerSemantic(
-              marker.rules.length,
-              marker.rules.join('; '),
-            ),
+          : l10n.programsSlotRuleMarkerSemantic(marker.rules.length, spoken),
       child: ExcludeSemantics(
         child: Padding(
           padding: const EdgeInsets.only(top: AppSpacing.xxs),
