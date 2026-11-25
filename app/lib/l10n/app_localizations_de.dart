@@ -15040,32 +15040,32 @@ class AppLocalizationsDe extends AppLocalizations {
   String get eventRuleScopeNeighbouring => 'Je zwei benachbarte Tänze';
 
   @override
-  String get eventRuleNicknameLabel => 'Name (optional)';
+  String get eventRuleNicknameLabel => 'Spitzname (optional)';
 
   @override
   String get eventRuleNicknameHelp =>
-      'Shown above the rule\'s sentence, and found by the rule picker\'s search.';
+      'Wird über dem Satz der Regel angezeigt und von der Suche der Regelauswahl gefunden.';
 
   @override
-  String get eventRulesOrderTitle => 'Rule order';
+  String get eventRulesOrderTitle => 'Reihenfolge der Regeln';
 
   @override
-  String get eventRulesOrderManual => 'My order';
+  String get eventRulesOrderManual => 'Meine Reihenfolge';
 
   @override
   String get eventRulesOrderManualSubtitle =>
-      'The rule picker lists your rules in the order you set in Manage rules.';
+      'Die Regelauswahl zeigt deine Regeln in der Reihenfolge, die du ihnen unter Regeln verwalten gegeben hast.';
 
   @override
-  String get eventRulesOrderMostUsed => 'Most used';
+  String get eventRulesOrderMostUsed => 'Am häufigsten verwendet';
 
   @override
   String get eventRulesOrderMostUsedSubtitle =>
-      'The rule picker lists first the rules your programs use most, not counting programs in Recently deleted.';
+      'Die Regelauswahl zeigt zuerst die Regeln, die deine Programme am häufigsten verwenden; Programme unter Zuletzt gelöscht zählen nicht.';
 
   @override
   String eventRulesDragToReorder(String rule) {
-    return 'Drag to reorder $rule';
+    return 'Ziehen, um $rule neu anzuordnen';
   }
 
   @override
@@ -15223,19 +15223,19 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsRulesPickerEmpty => 'Du hast noch keine Regeln.';
 
   @override
-  String get programsRulesPickerSearchHint => 'Search rules';
+  String get programsRulesPickerSearchHint => 'Regeln durchsuchen';
 
   @override
-  String get programsRulesPickerSearchClear => 'Clear search';
+  String get programsRulesPickerSearchClear => 'Suche löschen';
 
   @override
   String programsRulesPickerNoMatches(String query) {
-    return 'No rule matches \"$query\".';
+    return 'Keine Regel passt zu „$query“.';
   }
 
   @override
   String programsRulesPickerNewNamed(String nickname) {
-    return 'New rule \"$nickname\"…';
+    return 'Neue Regel „$nickname“…';
   }
 
   @override

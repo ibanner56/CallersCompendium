@@ -14332,32 +14332,31 @@ class AppLocalizationsJa extends AppLocalizations {
   String get eventRuleScopeNeighbouring => '隣接する任意の2曲';
 
   @override
-  String get eventRuleNicknameLabel => '名前（任意）';
+  String get eventRuleNicknameLabel => 'ニックネーム（任意）';
 
   @override
-  String get eventRuleNicknameHelp =>
-      'Shown above the rule\'s sentence, and found by the rule picker\'s search.';
+  String get eventRuleNicknameHelp => 'ルールの文の上に表示され、ルール選択の検索で見つけられます。';
 
   @override
-  String get eventRulesOrderTitle => 'Rule order';
+  String get eventRulesOrderTitle => 'ルールの並び順';
 
   @override
-  String get eventRulesOrderManual => 'My order';
+  String get eventRulesOrderManual => '自分の順番';
 
   @override
   String get eventRulesOrderManualSubtitle =>
-      'The rule picker lists your rules in the order you set in Manage rules.';
+      'ルール選択では、「ルールを管理」で並べた順番でルールを表示します。';
 
   @override
-  String get eventRulesOrderMostUsed => 'Most used';
+  String get eventRulesOrderMostUsed => 'よく使う順';
 
   @override
   String get eventRulesOrderMostUsedSubtitle =>
-      'The rule picker lists first the rules your programs use most, not counting programs in Recently deleted.';
+      'ルール選択では、プログラムで最もよく使われているルールから表示します。「最近削除したアイテム」にあるプログラムは数えません。';
 
   @override
   String eventRulesDragToReorder(String rule) {
-    return 'Drag to reorder $rule';
+    return 'ドラッグして$ruleを並べ替え';
   }
 
   @override
@@ -14497,19 +14496,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsRulesPickerEmpty => 'ルールはまだありません。';
 
   @override
-  String get programsRulesPickerSearchHint => 'Search rules';
+  String get programsRulesPickerSearchHint => 'ルールを検索';
 
   @override
-  String get programsRulesPickerSearchClear => 'Clear search';
+  String get programsRulesPickerSearchClear => '検索をクリア';
 
   @override
   String programsRulesPickerNoMatches(String query) {
-    return 'No rule matches \"$query\".';
+    return '「$query」に一致するルールはありません。';
   }
 
   @override
   String programsRulesPickerNewNamed(String nickname) {
-    return 'New rule \"$nickname\"…';
+    return '新しいルール「$nickname」…';
   }
 
   @override

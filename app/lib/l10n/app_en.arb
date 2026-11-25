@@ -20109,7 +20109,7 @@
   "@eventRulesOrderManual": {
     "description": "Rule order choice (#2341): the rule picker lists rules in the order the caller set in Manage rules."
   },
-  "eventRulesOrderManualSubtitle": "The rule picker lists your rules in the order you set in Manage rules.",
+  "eventRulesOrderManualSubtitle": "The rule picker lists your rules in the order you gave them in Manage rules.",
   "@eventRulesOrderManualSubtitle": {
     "description": "Subtitle of the Rule order setting while My order is chosen (#2341). 'Manage rules' is the screen's title (eventRulesManageTitle)."
   },

@@ -14871,7 +14871,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get eventRulesOrderManualSubtitle =>
-      'The rule picker lists your rules in the order you set in Manage rules.';
+      'The rule picker lists your rules in the order you gave them in Manage rules.';
 
   @override
   String get eventRulesOrderMostUsed => 'Most used';

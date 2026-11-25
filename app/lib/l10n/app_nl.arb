@@ -14286,9 +14286,37 @@
   "@eventRuleScopeNeighbouring": {
     "x-sourceSha256": "d50cc2ccf014bb652fda876f4c9d7101674ed08bdfe9132f9705b722e91584d6"
   },
-  "eventRuleNicknameLabel": "Naam (optioneel)",
+  "eventRuleNicknameLabel": "Bijnaam (optioneel)",
   "@eventRuleNicknameLabel": {
-    "x-sourceSha256": "e09b37bcc4f301f48329f9e0c5ee747acf821d692e9aac10abea5970ba70b1b4"
+    "x-sourceSha256": "7cbcb92acd6f441ed5d93b9321e7594f45f3aca0ac2c9a2ee1ad9ac65757a7bf"
+  },
+  "eventRuleNicknameHelp": "Wordt boven de zin van de regel getoond en gevonden door de zoekfunctie van de regelkiezer.",
+  "@eventRuleNicknameHelp": {
+    "x-sourceSha256": "2b49a0d5c0f6ef016a7b079c043894c7f578f6b38b8bbee36b7dfaddc4e13c72"
+  },
+  "eventRulesOrderTitle": "Volgorde van regels",
+  "@eventRulesOrderTitle": {
+    "x-sourceSha256": "40274c011d1919f9614435d995f2694731a5a1a15b42f8996bbf9078ba7e76fe"
+  },
+  "eventRulesOrderManual": "Mijn volgorde",
+  "@eventRulesOrderManual": {
+    "x-sourceSha256": "94ae00f8fb08f5c7decfdc9c3bce35030178a8eb3999cc9bc93274b7c64cfffb"
+  },
+  "eventRulesOrderManualSubtitle": "De regelkiezer toont je regels in de volgorde die je ze in Regels beheren hebt gegeven.",
+  "@eventRulesOrderManualSubtitle": {
+    "x-sourceSha256": "18b81226dfdf90d61654f8ac8c88bcd90ced23af0334bd3e00515a5a2c92c827"
+  },
+  "eventRulesOrderMostUsed": "Meest gebruikt",
+  "@eventRulesOrderMostUsed": {
+    "x-sourceSha256": "d3365a6d0d4789d6c13da5d3219bde6bc4e71ce0a52cc07a3810235e70610a19"
+  },
+  "eventRulesOrderMostUsedSubtitle": "De regelkiezer toont eerst de regels die je programma's het meest gebruiken; programma's in Onlangs verwijderd tellen niet mee.",
+  "@eventRulesOrderMostUsedSubtitle": {
+    "x-sourceSha256": "408d26442398abcb048bd4b64fddf1a47983d0aee1596009349ceb0153a30a8e"
+  },
+  "eventRulesDragToReorder": "Sleep om {rule} te verplaatsen",
+  "@eventRulesDragToReorder": {
+    "x-sourceSha256": "1149182cc679bfb40fdcff708a77a340f1a2f16a612518040ef423e06ebd8985"
   },
   "eventRuleSentenceAtMostWhole": "{count, plural, =1{Hoogstens 1 dans die past bij \"{search}\" in het hele programma} other{Hoogstens {count} dansen die passen bij \"{search}\" in het hele programma}}",
   "@eventRuleSentenceAtMostWhole": {
@@ -14373,6 +14401,22 @@
   "programsRulesPickerEmpty": "Je hebt nog geen regels.",
   "@programsRulesPickerEmpty": {
     "x-sourceSha256": "4525b944ceb250381670b46f13d12d204cd01e1283e7ecfd40c8e38ff10032ef"
+  },
+  "programsRulesPickerSearchHint": "Regels zoeken",
+  "@programsRulesPickerSearchHint": {
+    "x-sourceSha256": "0cfd5dddcff3e92ead37239063ac175f4866e566de499bed124dcb67a7d6cadd"
+  },
+  "programsRulesPickerSearchClear": "Zoekopdracht wissen",
+  "@programsRulesPickerSearchClear": {
+    "x-sourceSha256": "3b7ea51793e9d906afa06afb86252abb48e1125cc96a7f5efabcfd8597ea183a"
+  },
+  "programsRulesPickerNoMatches": "Geen regel komt overeen met \"{query}\".",
+  "@programsRulesPickerNoMatches": {
+    "x-sourceSha256": "9ec29b76d8ad562c9e7f87b151fb5c1f78f79594aa738a7c31b11feb79a2730a"
+  },
+  "programsRulesPickerNewNamed": "Nieuwe regel \"{nickname}\"…",
+  "@programsRulesPickerNewNamed": {
+    "x-sourceSha256": "986f9d87beea6bcb67e36de5358f87b17c1c1b36e9abfded37e11c937a413ae1"
   },
   "programsRulesStripBroken": "{count, plural, =1{1 regel niet nageleefd} other{{count} regels niet nageleefd}}",
   "@programsRulesStripBroken": {

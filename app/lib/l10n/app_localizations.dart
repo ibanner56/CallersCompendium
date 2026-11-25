@@ -21698,7 +21698,7 @@ abstract class AppLocalizations {
   /// Subtitle of the Rule order setting while My order is chosen (#2341). 'Manage rules' is the screen's title (eventRulesManageTitle).
   ///
   /// In en, this message translates to:
-  /// **'The rule picker lists your rules in the order you set in Manage rules.'**
+  /// **'The rule picker lists your rules in the order you gave them in Manage rules.'**
   String get eventRulesOrderManualSubtitle;
 
   /// Rule order choice (#2341): the rule picker lists first the rules applied to the most programs.

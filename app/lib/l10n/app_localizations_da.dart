@@ -14915,32 +14915,32 @@ class AppLocalizationsDa extends AppLocalizations {
   String get eventRuleScopeNeighbouring => 'To vilkårlige nabodanse';
 
   @override
-  String get eventRuleNicknameLabel => 'Navn (valgfrit)';
+  String get eventRuleNicknameLabel => 'Kaldenavn (valgfrit)';
 
   @override
   String get eventRuleNicknameHelp =>
-      'Shown above the rule\'s sentence, and found by the rule picker\'s search.';
+      'Vises over reglens sætning og findes af regelvælgerens søgning.';
 
   @override
-  String get eventRulesOrderTitle => 'Rule order';
+  String get eventRulesOrderTitle => 'Rækkefølge af regler';
 
   @override
-  String get eventRulesOrderManual => 'My order';
+  String get eventRulesOrderManual => 'Min rækkefølge';
 
   @override
   String get eventRulesOrderManualSubtitle =>
-      'The rule picker lists your rules in the order you set in Manage rules.';
+      'Regelvælgeren viser dine regler i den rækkefølge, du har givet dem i Administrer regler.';
 
   @override
-  String get eventRulesOrderMostUsed => 'Most used';
+  String get eventRulesOrderMostUsed => 'Mest brugte';
 
   @override
   String get eventRulesOrderMostUsedSubtitle =>
-      'The rule picker lists first the rules your programs use most, not counting programs in Recently deleted.';
+      'Regelvælgeren viser først de regler, dine programmer bruger mest, uden at tælle programmer i For nylig slettet.';
 
   @override
   String eventRulesDragToReorder(String rule) {
-    return 'Drag to reorder $rule';
+    return 'Træk for at flytte $rule';
   }
 
   @override
@@ -15093,19 +15093,19 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsRulesPickerEmpty => 'Du har ingen regler endnu.';
 
   @override
-  String get programsRulesPickerSearchHint => 'Search rules';
+  String get programsRulesPickerSearchHint => 'Søg i regler';
 
   @override
-  String get programsRulesPickerSearchClear => 'Clear search';
+  String get programsRulesPickerSearchClear => 'Ryd søgning';
 
   @override
   String programsRulesPickerNoMatches(String query) {
-    return 'No rule matches \"$query\".';
+    return 'Ingen regel matcher \"$query\".';
   }
 
   @override
   String programsRulesPickerNewNamed(String nickname) {
-    return 'New rule \"$nickname\"…';
+    return 'Ny regel \"$nickname\"…';
   }
 
   @override
