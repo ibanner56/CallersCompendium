@@ -466,9 +466,9 @@ is on too and the program uses rules, Suggested also checks each dance
 against them, as if you added it where the dance will go: at the end, at the
 place you are adding before or after, or in the slot you are replacing. A
 dance that would break a rule there is marked with an icon and **Would
-break:** and the rule, such as *Would break: At most 1 dance matching
-"Petronella" in the whole program*, above its reason, and a screen reader
-reads which rules. Select the question mark to see the rule at the top of
+break:** and the rule (its nickname if it has one, else its sentence), such
+as *Would break: At most 1 dance matching "Petronella" in the whole
+program*, above its reason, and a screen reader reads which rules. Select the question mark to see the rule at the top of
 its reasons.
 
 - Marked dances are listed after every other dance, the ones already in the

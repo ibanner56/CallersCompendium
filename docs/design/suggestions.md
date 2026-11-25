@@ -280,7 +280,7 @@ With Event rules on, its **Check Perform's Swap this dance** on (the
 default) and rules applied to the program, Perform's swap sheet checks every
 dance it lists, in any order, through `CollectionPicker.eventRules` with
 `PickerEventRules.inEveryOrder`. A dance that would break a rule in the
-swapped slot is marked with the rule's sentence and listed after every
+swapped slot is marked with the rule's title (its nickname, else its sentence) and listed after every
 unmarked one. Nothing is hidden, and with either switch off or no rules
 applied the sheet is unchanged.
 

@@ -136,10 +136,10 @@ class PickerEventRules {
   int get hashCode => Object.hash(revision, inEveryOrder);
 }
 
-/// The sentence (or name) of each rule [rules] lists, as the builder's Rules
-/// strip calls it ([eventRuleTitle]), with the saved search names [marks]
-/// read.
-List<String> suggestionRuleSentences(
+/// The title of each rule [rules] lists, as the builder's Rules strip and the
+/// rule picker call it ([eventRuleTitle]): its nickname (#2341), else its
+/// sentence, the saved search names [marks] read.
+List<String> suggestionRuleTitles(
   AppLocalizations l10n,
   List<EventRule> rules,
   CandidateRuleMarks marks,
@@ -150,13 +150,14 @@ List<String> suggestionRuleSentences(
 
 /// The marker on a suggested dance that would break the program's applied
 /// event rules where the suggestions are for (#2345): the rules icon with
-/// "Would break: …" and each rule's sentence ([rules]), so it never relies
-/// on colour alone, and a screen-reader label that names the rules.
+/// "Would break: …" and each rule's title ([rules]: its nickname, else its
+/// sentence, #2530), so it never relies on colour alone, and a screen-reader
+/// label that names the rules the same way.
 class SuggestionRuleMarker extends StatelessWidget {
   const SuggestionRuleMarker({super.key, required this.rules});
 
-  /// Each rule's sentence or name, in the order the program applies them.
-  /// Not empty.
+  /// Each rule's title ([eventRuleTitle]: its nickname, else its sentence), in
+  /// the order the program applies them. Not empty.
   final List<String> rules;
 
   @override
@@ -377,7 +378,7 @@ String suggestionFactorTitle(AppLocalizations l10n, SuggestionFactor factor) =>
     };
 
 /// The **Why?** dialog: first, each event rule [suggestion] would break
-/// there ([wouldBreak], its sentences, #2345), then every reason that moved
+/// there ([wouldBreak], its titles, #2345), then every reason that moved
 /// it, each marked as raising or lowering it, then its notes (a factor that
 /// was skipped).
 Future<void> showSuggestionWhyDialog(
