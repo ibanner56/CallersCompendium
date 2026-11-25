@@ -417,14 +417,14 @@ Map<String, SlotRuleMarker> eventRuleSlotMarkers(
   final alternates = <String, List<String>>{};
   for (final status in check.broken) {
     final breach = status.breach!;
-    final sentence = eventRuleTitle(l10n, status.rule, status.searchName);
+    final title = eventRuleTitle(l10n, status.rule, status.searchName);
     if (breach.brokenAsPlanned) {
       for (final id in breach.slotIds) {
-        primaries.putIfAbsent(id, () => []).add(sentence);
+        primaries.putIfAbsent(id, () => []).add(title);
       }
     }
     for (final id in breach.alternateSlotIds) {
-      alternates.putIfAbsent(id, () => []).add(sentence);
+      alternates.putIfAbsent(id, () => []).add(title);
     }
   }
   return {
@@ -438,7 +438,8 @@ Map<String, SlotRuleMarker> eventRuleSlotMarkers(
 
 /// The Rules strip on the Build tab (#2340): how many applied rules the
 /// program does not meet, and how many need attention; expanded, each rule's
-/// sentence and the dances that break it. It never blocks anything.
+/// title (its nickname, else its sentence; a nickname has its sentence beneath
+/// it) and the dances that break it. It never blocks anything.
 class EventRulesStrip extends StatelessWidget {
   const EventRulesStrip({
     super.key,

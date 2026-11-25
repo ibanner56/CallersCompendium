@@ -1002,7 +1002,7 @@ useful thing you can send.
 ## Experimental
 
 The **Experimental** section holds features that are still in development —
-today, that's the **Glossary**, **Repertoire**, **Suggestions**, **Event rules**, **Calling cards**, **Device Sync** and **Developer options**. Anything here can change
+today, that's the **Glossary**, **Repertoire**, **Suggestions**, **Event rules**, **Weekends and series**, **Calling cards**, **Device Sync** and **Developer options**. Anything here can change
 before it becomes a regular setting. Each feature sits in its own section: select its heading to
 open or close it.
 
@@ -1367,6 +1367,23 @@ They are never in a program you share, print or export. A rule made by a newer
 version of the app, or whose saved search is gone, is marked **Needs
 attention** and is never checked. A rule from a newer version can't be edited
 here, but you can delete it.
+
+### Weekends and series
+
+**Check several programs together** is **off by default**, and the section
+starts closed while it is off. Turning it on adds **Select programs** to the
+**Programs** list's **More actions** (⋮) menu, so you can select two or more
+programs, such as a weekend's dances, and open their **Combined view**: one
+matrix across them and the dances they repeat. See
+[Check a weekend or series](./programs.md#check-a-weekend-or-series).
+
+Nothing new is saved: the programs you select and the combined view are
+forgotten when you leave them. The switch itself is in your
+[backup](#backup--restore), and syncs with [Device Sync](#device-sync) once
+every device connected to your store has a version of the app that knows it
+(see
+[New kinds of data wait for every device](#new-kinds-of-data-wait-for-every-device)).
+Turning it off ends a selection in progress.
 
 ### Calling cards
 
@@ -1857,8 +1874,9 @@ Some things this version syncs can't be read by earlier versions of the app:
 your [own figures and terms, and your notes on built-in
 figures](#glossary-and-custom-figures), the Custom Figures setting, your
 shorthands for your own figures, and your [saved
-searches](./collection.md#save-a-search-and-use-it-again), and your [event
-rules](#event-rules). They start syncing only once every device
+searches](./collection.md#save-a-search-and-use-it-again), your [event
+rules](#event-rules), and the [Weekends and series](#weekends-and-series)
+switch. They start syncing only once every device
 connected to your store has an up-to-date app. Until then changes to them
 aren't sent to your other devices, and nothing already on a device is removed;
 you can keep using and editing them on each device.

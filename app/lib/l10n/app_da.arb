@@ -14653,5 +14653,101 @@
   "programsFillSearchUnreadable": "Den gemte søgning for \"{label}\" kan ikke åbnes: den er gemt af en nyere version af appen, eller den er beskadiget. Alle danse vises.",
   "@programsFillSearchUnreadable": {
     "x-sourceSha256": "90942ead9afb4bb56bdb7a3465a963834a6e9441310d4284498d28e8b6162ec3"
+  },
+  "settingsExperimentalSeriesHeader": "Weekender og serier",
+  "@settingsExperimentalSeriesHeader": {
+    "x-sourceSha256": "4b09a915b20b96943823a501b35a123b3f387dbfa749db5a614845cbdae1a282"
+  },
+  "settingsExperimentalSeriesTitle": "Tjek flere programmer samlet",
+  "@settingsExperimentalSeriesTitle": {
+    "x-sourceSha256": "782668dfc16be3c22df49010f0cc41de806ba5a660dcea2fd5ee2eab4e5d4c30"
+  },
+  "settingsExperimentalSeriesSubtitle": "Vælg »Vælg programmer« under Flere handlinger på programlisten, vælg to eller flere, og se én matrix på tværs af dem og de danse, de gentager. Intet nyt gemmes.",
+  "@settingsExperimentalSeriesSubtitle": {
+    "x-sourceSha256": "1e89c7664afc079ad5d2c9e249da837fe2c21c181b29f3718ca129aabf20cf93"
+  },
+  "programsSelectPrograms": "Vælg programmer",
+  "@programsSelectPrograms": {
+    "x-sourceSha256": "cc993de8f4502ba8fb07059d40666e4b060e46420e3b55b05143a759d280f418"
+  },
+  "programsSelectProgramLabel": "Vælg {title}",
+  "@programsSelectProgramLabel": {
+    "x-sourceSha256": "feaae900731e9dded3fc892156f7b644d0e954bc7dc721a0e37174375281ee33"
+  },
+  "programsCombinedView": "Samlet visning",
+  "@programsCombinedView": {
+    "x-sourceSha256": "8aa23ee8f8d7474d4ec27554622bcbc10a06072f5a8cb98222247b2894843588"
+  },
+  "programsCombinedViewNeedsTwo": "Vælg mindst to programmer",
+  "@programsCombinedViewNeedsTwo": {
+    "x-sourceSha256": "4c386c61c091333634e9d7a3cf9ccd33290cc8dfc2c1c082b3c36a3dff9358be"
+  },
+  "programsCombinedRepeatsTab": "Gentagelser",
+  "@programsCombinedRepeatsTab": {
+    "x-sourceSha256": "92ee0233f01396ac4f4a0ebf81277a72915fde9837a042a70ad568c26f92ad15"
+  },
+  "programsCombinedLoadError": "Kunne ikke indlæse programmerne. Intet blev ændret. Prøv igen.",
+  "@programsCombinedLoadError": {
+    "x-sourceSha256": "fb01f3ef84510df918097f423ca8b28c0526eb72690a4094ae6e0f6c8caf95b3"
+  },
+  "programsCombinedGoneTitle": "Programmerne findes ikke længere",
+  "@programsCombinedGoneTitle": {
+    "x-sourceSha256": "601c2026e32aacfd5672cf27e06603c5f826797fb7bb42f8811060e43ce13893"
+  },
+  "programsCombinedGoneBody": "De programmer, du valgte, er blevet slettet. Gå tilbage til programlisten for at vælge andre.",
+  "@programsCombinedGoneBody": {
+    "x-sourceSha256": "42a34848b7d1ce9f94bc6a67b0c80c6dc4e785d3436abbd0f782003570fcca98"
+  },
+  "programsCombinedBlockLabel": "{title} · {date}",
+  "@programsCombinedBlockLabel": {
+    "x-sourceSha256": "cf942361556029f4bd6188f65544345bf472de131df983ebb1fd7a72fa8d99e2"
+  },
+  "programsCombinedRowInProgram": "{title}, i {program}",
+  "@programsCombinedRowInProgram": {
+    "x-sourceSha256": "24ed7620444d63cf09676032e6024df020b19d182b290f4e3ed56f3dd6705f6c"
+  },
+  "programsCombinedPdfTitle": "Samlet matrix",
+  "@programsCombinedPdfTitle": {
+    "x-sourceSha256": "e17683ee1fbf6d0fd3f7cff93edf5614fd39708bc63079fd379cdeab37f273c3"
+  },
+  "programsCombinedRepeatsEmptyTitle": "Ingen gentagne danse",
+  "@programsCombinedRepeatsEmptyTitle": {
+    "x-sourceSha256": "c3345487f9e0fb7985e9d4cc6aff342c8210c6318ecb8c81e91c9cc29a7bb84f"
+  },
+  "programsCombinedRepeatsEmptyBody": "Ingen dans optræder i mere end ét af disse programmer.",
+  "@programsCombinedRepeatsEmptyBody": {
+    "x-sourceSha256": "632883192f8e1827012fa822c15a552f7cb89fc3dcb26855dc4a171991100183"
+  },
+  "programsCombinedRepeatsCount": "{count, plural, =1{1 dans optræder i mere end ét program} other{{count} danse optræder i mere end ét program}}",
+  "@programsCombinedRepeatsCount": {
+    "x-sourceSha256": "23cfa3491652e4b203d50794540fd944691ff5c56075e9a5b06fd8c6fc938fd7"
+  },
+  "programsCombinedRepeatProgramCount": "{count, plural, =1{I 1 program} other{I {count} programmer}}",
+  "@programsCombinedRepeatProgramCount": {
+    "x-sourceSha256": "98c391ba4c69914a9d355dff7940bc66e8036796ac0e75d033af6eda80d9e9af"
+  },
+  "programsCombinedRepeatAlternateChip": "Kun alternativ i nogle",
+  "@programsCombinedRepeatAlternateChip": {
+    "x-sourceSha256": "74f39ada2bbcc6eda30287479ebef6dd577911c76d63dbb03b5b0495a0d739ab"
+  },
+  "programsCombinedRepeatUse": "{program}: {position}",
+  "@programsCombinedRepeatUse": {
+    "x-sourceSha256": "c2d98f5df687cbdddf4a88db38ab20681e79fdf1c77c9ff9f9a02e9ebeed2de4"
+  },
+  "programsCombinedPositionDance": "dans {number}",
+  "@programsCombinedPositionDance": {
+    "x-sourceSha256": "9e487cd0bdbc4b974e4007719fb14c102a35488f6908fb4d9ea4258514af9ee6"
+  },
+  "programsCombinedPositionAlternateFor": "alternativ til dans {number}",
+  "@programsCombinedPositionAlternateFor": {
+    "x-sourceSha256": "50b6bd81ab4d1f25a06dbc642584c7aad25f4d456f3b8703fc1a76aa25e68275"
+  },
+  "programsCombinedPositionAlternate": "alternativ",
+  "@programsCombinedPositionAlternate": {
+    "x-sourceSha256": "3f251db73f53a7fba1944fa7823e4fe9a2b83a001723311507ada0cef0ce16bc"
+  },
+  "programsCombinedRepeatAlternateEverywhereChip": "Kun alternativ",
+  "@programsCombinedRepeatAlternateEverywhereChip": {
+    "x-sourceSha256": "8713ea0bc6805700f46835b47b4e5646d69bd4054f46d7bd11cab902d4d36782"
   }
 }

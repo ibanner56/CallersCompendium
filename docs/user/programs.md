@@ -466,9 +466,9 @@ is on too and the program uses rules, Suggested also checks each dance
 against them, as if you added it where the dance will go: at the end, at the
 place you are adding before or after, or in the slot you are replacing. A
 dance that would break a rule there is marked with an icon and **Would
-break:** and the rule, such as *Would break: At most 1 dance matching
-"Petronella" in the whole program*, above its reason, and a screen reader
-reads which rules. Select the question mark to see the rule at the top of
+break:** and the rule (its nickname if it has one, else its sentence), such
+as *Would break: At most 1 dance matching "Petronella" in the whole
+program*, above its reason, and a screen reader reads which rules. Select the question mark to see the rule at the top of
 its reasons.
 
 - Marked dances are listed after every other dance, the ones already in the
@@ -983,6 +983,54 @@ and it never raises the alert marker. You can reorder, rename, remove, edit, or
 delete compound columns alongside the others, and they appear the same on
 screen and in the PDF. Deleting a compound or parameterized column offers
 **Undo**, which brings back its place, name and hiding too.
+
+## Check a weekend or series
+
+*Experimental.* A dance weekend, a festival or a season at one hall is several
+programs that the same dancers hear. To check them together, turn on
+**Settings ▸ Experimental ▸ Weekends and series** (see
+[Weekends and series](./settings.md#weekends-and-series)). It is off by default.
+
+1. On the **Programs** list, open **More actions** (⋮) and choose **Select
+   programs**. Each program gets a checkbox, and the top bar shows how many are
+   selected and a close button.
+2. Select the programs, by their checkbox or by selecting the row. The type
+   chips still filter the list, and **Show archived** is in the selection bar's
+   **More actions** (⋮) menu. A selected program the list stops showing stays
+   selected, and the count above the list says how many are not shown, with
+   **Deselect those not shown**. A program that is deleted is dropped.
+3. With two or more selected, choose **Combined view**.
+
+The combined view has two tabs:
+
+- **Matrix** — one [matrix](#check-your-evening-with-the-matrix) over every
+  dance of the selected programs, the programs in date order, and two on one
+  day by start time (a program with no start time after the timed ones that
+  day; programs with no date last, by title). Each program's dances are a block headed by its title
+  and date; on a phone, each dance names its program instead. **Introduced
+  here** marks the first time a move appears across the whole set. The
+  adjacent-dance alert works within each program just as on its own matrix, and
+  is never raised between the last dance of one program and the first dance of
+  the next. The dances aren't numbered into **1st** and **2nd** sections here.
+  The buttons to hide columns, show phrase labels, hide alternate rows and
+  **Export or print matrix as PDF** work as on a program's matrix (see
+  [Print the programming matrix](./sharing.md#print-the-programming-matrix)).
+  A program with no dances has no block.
+- **Repeats** — every dance that is in two or more of the selected programs,
+  with each program, its date and the dance's place in it, such as
+  *dance 3* or *alternate for dance 3*. A dance that is a planned dance in one
+  program and only an alternate in another is listed, marked **Only an
+  alternate in some**; one that is an alternate in every program it is in is
+  marked **Only an alternate**. A dance used twice in one program and in no other
+  isn't listed, and only the selected programs count: dances you called
+  elsewhere, or at other events, don't.
+
+A weekend shared by several callers needs nothing extra: repeats count across
+every selected program, whoever calls them. The combined view shows no callers.
+
+Nothing new is saved. The view is worked out from the programs when you open
+it, and follows changes to them while it is open; leaving it forgets it, and
+leaving **Programs** ends the selection.
 
 ## Print, export, and email a program
 

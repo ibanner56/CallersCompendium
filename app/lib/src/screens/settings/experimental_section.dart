@@ -16,6 +16,7 @@ import '../../data/repositories_scope.dart';
 import '../../data/show_custom_figures_scope.dart';
 import '../../data/show_glossary_scope.dart';
 import '../../data/show_repertoire_scope.dart';
+import '../../data/weekends_and_series_scope.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/collapsible_section.dart';
 import '../../widgets/section_header.dart';
@@ -49,6 +50,7 @@ class ExperimentalSection extends StatelessWidget {
         const _RepertoireSection(),
         const SuggestionsSection(),
         const EventRulesSection(),
+        const WeekendsAndSeriesSection(),
         const CallingCardSection(),
         DeviceSyncSection(backupSaver: backupSaver),
         const DeveloperOptionsSection(),
@@ -204,6 +206,41 @@ class EventRulesSection extends StatelessWidget {
             ),
           if (enabled) const _EventRuleOrderTile(),
         ],
+      ),
+    );
+  }
+}
+
+/// The Weekends and series section (#2349): one switch, off by default. While
+/// it is on, the Programs list's ⋮ menu offers **Select programs**, whose
+/// selection bar opens the combined view of several programs.
+class WeekendsAndSeriesSection extends StatelessWidget {
+  const WeekendsAndSeriesSection({super.key});
+
+  Future<void> _onChanged(BuildContext context, bool value) async {
+    // Flip the live notifier first so the Programs list updates at once, then
+    // persist.
+    WeekendsAndSeriesScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await persistSetting(repos.settings, kWeekendsAndSeriesEnabledKey, value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final enabled = WeekendsAndSeriesScope.of(context);
+    return CollapsibleSection(
+      sectionKey: const ValueKey('weekends-and-series-section'),
+      title: l10n.settingsExperimentalSeriesHeader,
+      expanded: enabled,
+      child: SwitchListTile(
+        key: const ValueKey('experimental-weekends-and-series'),
+        secondary: const Icon(Icons.table_chart_outlined),
+        value: enabled,
+        onChanged: (value) => _onChanged(context, value),
+        title: Text(l10n.settingsExperimentalSeriesTitle),
+        subtitle: Text(l10n.settingsExperimentalSeriesSubtitle),
+        isThreeLine: true,
       ),
     );
   }

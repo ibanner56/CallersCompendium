@@ -452,6 +452,17 @@ N4-5 builds the actions together, so there is no value order. Select all and
 the hidden-selection count (S1) still come first, because every action branch
 builds on its `CollectionSelection` class.
 
+## The Programs list (#2349)
+
+The Programs list has a selection mode too, behind Settings ▸ Experimental ▸
+Weekends and series: **Select programs** in its ⋮ menu. It follows this note
+where it applies: the bar layout (close, live-region count, actions), Q2's
+"keep and say so" rule for programs the type chips or Hide archived stop
+listing, with **Deselect those not shown**, and the prune of programs that are
+deleted. It has one action, **Combined view**, and no Select all. Batch
+archive, delete or status on programs are not designed; they would be added
+to this bar if they are.
+
 ## Selection bar layout
 
 With these additions the bar would carry up to twelve actions, counting Select

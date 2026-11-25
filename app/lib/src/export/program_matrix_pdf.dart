@@ -66,6 +66,11 @@ const String _presentMark = '✓';
 ///   `dance_list_tile.dart` use, keeping screen/PDF wording consistent. Text
 ///   only — no formation glyph — since an unlocalized/unbundled icon isn't
 ///   guaranteed to be in the marker font's fallback glyph set (#633).
+/// - [rowBlocks] and [blockLabels] print a matrix over several programs
+///   (#2349): [rowBlocks] gives each row's index in [blockLabels] (a
+///   program's title and date), aligned to the matrix rows, and a heading row
+///   goes above each program's first dance. Nothing else is printed for a
+///   program than its matrix PDF prints, beyond that heading.
 Future<Uint8List> buildProgramMatrixPdf(
   ProgramMatrix matrix, {
   required Taxonomy taxonomy,
@@ -83,7 +88,16 @@ Future<Uint8List> buildProgramMatrixPdf(
   Dialect Function(MatrixColumn column)? dialectForColumn,
   MatrixColumnConfig config = MatrixColumnConfig.empty,
   PdfPageFormat pageFormat = PdfPageFormat.a4,
+  List<int>? rowBlocks,
+  List<String> blockLabels = const [],
 }) async {
+  if (rowBlocks != null && rowBlocks.length != matrix.rows.length) {
+    throw ArgumentError.value(
+      rowBlocks.length,
+      'rowBlocks',
+      'must be aligned to the matrix rows (${matrix.rows.length})',
+    );
+  }
   final fmtDate = formatDate ?? isoDate;
   final fmtFormation =
       formatFormation ?? (row) => _englishFormationLabel(row.formation);
@@ -132,6 +146,8 @@ Future<Uint8List> buildProgramMatrixPdf(
             fmtFormation,
             dialectForColumn,
             config,
+            rowBlocks,
+            blockLabels,
           ),
         ],
         if (omittedFreeTextCount > 0) ...[
@@ -157,6 +173,8 @@ pw.Widget _matrixTable(
   String Function(MatrixRow row) fmtFormation,
   Dialect Function(MatrixColumn column)? dialectForColumn,
   MatrixColumnConfig config,
+  List<int>? rowBlocks,
+  List<String> blockLabels,
 ) {
   final columnLabels = [
     for (final c in matrix.columns)
@@ -204,6 +222,25 @@ pw.Widget _matrixTable(
 
   final bodyRows = <pw.TableRow>[];
   for (var r = 0; r < matrix.rows.length; r++) {
+    if (rowBlocks != null && (r == 0 || rowBlocks[r] != rowBlocks[r - 1])) {
+      final block = rowBlocks[r];
+      bodyRows.add(
+        pw.TableRow(
+          decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+          children: [
+            pw.Padding(
+              padding: const pw.EdgeInsets.all(4),
+              child: pw.Text(
+                block < blockLabels.length ? blockLabels[block] : '',
+                style: headerStyle,
+              ),
+            ),
+            pw.SizedBox(),
+            for (var c = 0; c < matrix.columns.length; c++) pw.SizedBox(),
+          ],
+        ),
+      );
+    }
     bodyRows.add(
       pw.TableRow(
         children: [

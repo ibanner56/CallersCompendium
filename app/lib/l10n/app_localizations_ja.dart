@@ -14795,4 +14795,105 @@ class AppLocalizationsJa extends AppLocalizations {
   String programsFillSearchUnreadable(String label) {
     return '「$label」の保存した検索を開けません。新しいバージョンのアプリで保存されたか、破損しています。すべてのダンスを表示しています。';
   }
+
+  @override
+  String get settingsExperimentalSeriesHeader => '週末とシリーズ';
+
+  @override
+  String get settingsExperimentalSeriesTitle => '複数のプログラムをまとめて確認';
+
+  @override
+  String get settingsExperimentalSeriesSubtitle =>
+      'プログラム一覧の「その他のアクション」から「プログラムを選択」を選び、2つ以上を選ぶと、それらをまとめた1つのマトリックスと繰り返されるダンスを表示します。新しく保存されるものはありません。';
+
+  @override
+  String get programsSelectPrograms => 'プログラムを選択';
+
+  @override
+  String programsSelectProgramLabel(String title) {
+    return '$titleを選択';
+  }
+
+  @override
+  String get programsCombinedView => 'まとめて表示';
+
+  @override
+  String get programsCombinedViewNeedsTwo => 'プログラムを2つ以上選択してください';
+
+  @override
+  String get programsCombinedRepeatsTab => '繰り返し';
+
+  @override
+  String get programsCombinedLoadError =>
+      'プログラムを読み込めませんでした。何も変更されていません。もう一度お試しください。';
+
+  @override
+  String get programsCombinedGoneTitle => 'これらのプログラムはもうありません';
+
+  @override
+  String get programsCombinedGoneBody =>
+      '選択したプログラムは削除されました。プログラム一覧に戻って別のプログラムを選んでください。';
+
+  @override
+  String programsCombinedBlockLabel(String title, String date) {
+    return '$title · $date';
+  }
+
+  @override
+  String programsCombinedRowInProgram(String title, String program) {
+    return '$title（$program）';
+  }
+
+  @override
+  String get programsCombinedPdfTitle => 'まとめたマトリックス';
+
+  @override
+  String get programsCombinedRepeatsEmptyTitle => '繰り返されるダンスはありません';
+
+  @override
+  String get programsCombinedRepeatsEmptyBody => 'これらのプログラムの複数に含まれるダンスはありません。';
+
+  @override
+  String programsCombinedRepeatsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count曲のダンスが複数のプログラムに含まれています',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programsCombinedRepeatProgramCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countつのプログラムに含まれる',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsCombinedRepeatAlternateChip => '一部では代替のみ';
+
+  @override
+  String programsCombinedRepeatUse(String program, String position) {
+    return '$program：$position';
+  }
+
+  @override
+  String programsCombinedPositionDance(int number) {
+    return '$number曲目';
+  }
+
+  @override
+  String programsCombinedPositionAlternateFor(int number) {
+    return '$number曲目の代替';
+  }
+
+  @override
+  String get programsCombinedPositionAlternate => '代替';
+
+  @override
+  String get programsCombinedRepeatAlternateEverywhereChip => '代替のみ';
 }

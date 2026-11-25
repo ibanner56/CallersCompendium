@@ -1,0 +1,9 @@
+{
+  "id": "2528-capability-record-restamp",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "After you update one device and it syncs again right away, your other devices now pick up that it supports the newest sync features, so data that was being held back (event rules, for example) is no longer left waiting."
+    ]
+  }
+}

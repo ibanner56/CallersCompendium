@@ -5081,7 +5081,14 @@ features may ship or be backported in any order.
 `{"capabilities": [<sorted names>]}`. It is an ordinary `shareable` setting,
 classified by prefix, and it is never itself gated. A device writes only its
 own, before the snapshot of each pass, and only when the stored one is missing
-or lists something else, so an unchanged record is never re-stamped. A build
+or lists something else, so an unchanged record is never re-stamped. A
+rewrite is stamped strictly after the stored record's `updatedAt` (the later of
+the clock and that stamp plus one second, the stored precision), because a peer
+that holds the old record and finds the new one at an equal `updatedAt` takes
+neither and queues a conflict for the user (§6.3), and the capability stays
+closed meanwhile (#2528). A stored stamp beyond the quarantine window (§6.9)
+is not stepped past: the rewrite takes the clock, as every device holds such a
+record out anyway. A build
 that advertises nothing writes none. The prefix is excluded from backups: only
 its own device may write the record, and a restore would delete the others' or
 re-stamp them over their owners'. A build since v0.7.0 that does not know the
@@ -5318,6 +5325,18 @@ through the registry it is built from, the server MUST be deployed before the
 first client build that advertises `eventRules.v1` (§7.5). A rule's quantifier
 and scope are stored names, so a new quantifier or scope is kept by a build
 that does not know it (see §4.3) and does not bump the capability.
+
+**`weekendsAndSeries.v1`.** Gates the exact settings key
+`weekends_and_series_enabled`, the Experimental **Weekends and series** toggle
+(#2349), tombstones included. A build without it has no combined view of
+several programs and nothing that reads the key. Nothing else of the feature
+is stored or synced: the programs a caller selects and the combined view are
+session state. The reference client advertises it from the change that adds
+the combined view, so it is subject to *Rollout*: a device on a build that
+lists every other capability but this one holds it closed and is named for it,
+while what the others gate publishes past it. The server validates settings
+keys through the registry it is built from, so it MUST be deployed before the
+first client build that advertises `weekendsAndSeries.v1` (§7.5).
 
 **Server.** The server needs no code for the gate. It validates settings keys
 and record kinds through the registry it is built from, so it MUST be deployed
