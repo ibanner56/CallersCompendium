@@ -725,9 +725,10 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 >
 > **One retry by the next neighbours** *(user-ruled)*. When the positional placement does
 > not compile, or compiles only as a near miss (one column off,
-> `endedColumnOffset`, or only from an allemande's short waves,
-> `allemandeWaveRetry`; a retry then replaces it only if it matches exactly;
-> extending the retries to near misses is the agent's call, 2026-11-24),
+> `endedColumnOffset`; a retry then replaces it only if it matches exactly;
+> extending the retries to near misses is the agent's call, 2026-11-24; a
+> compile from an allemande's short waves is a plain pass, user-ruled
+> 2026-11-25),
 > `runCoreDance` tries a
 > second: the figure **immediately before the
 > first `nextNeighbors` reach**, in a param or (below) a note
@@ -966,7 +967,7 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,659 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,658 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across and single file along the set built.
 - **52 figures registered**, plus the three containers (`modifier`,

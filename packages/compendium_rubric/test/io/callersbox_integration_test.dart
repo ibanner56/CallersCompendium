@@ -1560,6 +1560,7 @@ void main() {
             'where': 'along',
             'singleFile': true,
             'direction': rotation,
+            'destination': 'nextNeighbors',
             'beats': 2,
           }, reason: direction);
         }
@@ -1625,137 +1626,88 @@ void main() {
                   as Map<String, Object?>;
           expect(record['move'], 'promenade');
           expect(record['progression'], isTrue);
-          // The bridge drops the destination from the promenade it takes,
-          // so only a promenade it left alone still states one.
-          expect(
-            (record['params']! as Map).containsKey('destination'),
-            isFalse,
-          );
+          // The destination says how far it travels (user-ruled 2026-11-25).
+          expect((record['params']! as Map)['destination'], 'nextNeighbors');
           final parsed =
               (parseDance(bridged.record) as Ok<Dance, DanceParseError>).value;
           expect(compile(parsed), isNot(isA<CompileError>()));
         },
       );
 
-      test(
-        'one the bridge leaves alone is deferred, not danced as a slide',
-        () async {
-          // The import writes the promenade itself since taxonomy v40, so a
-          // promenade the bridge leaves alone reaches the compiler with its
-          // destination: one whose annotation counts more than one place,
-          // and one in a dance where the source flagged another figure.
-          Future<core.Dance> imported(List<String> lines) async {
-            final payload = jsonEncode({
-              ...(jsonDecode(_payload()) as Map<String, Object?>),
-              'phrases': [
-                {'name': 'A1', 'figures': lines},
-              ],
-            });
-            final adapter = core.CallersBoxAdapter();
-            final discovered = await adapter.discover(
-              core.ImportRequest(payload: payload),
-            );
-            return adapter.parse(await adapter.fetch(discovered.single)).dance;
-          }
-
-          final twice = await imported([
-            '(8) Neighbor swing',
-            '(2) Single file promenade clockwise around the major set to N2 '
-                '(twice)',
-            '(6) Circle left 3/4',
-          ]);
-          final promenade = dancedFigures(twice)![1];
-          expect(promenade.move, 'promenade');
-          expect(promenade.params['destination'], 'nextNeighbors');
-          // Without "to N2" the import states no destination, and the
-          // bridge's ruling does not cover it.
-          final unnamed = await imported([
-            '(8) Neighbor swing',
-            '(2) Single file promenade clockwise around the major set',
-            '(6) Circle left 3/4',
-          ]);
-          final unnamedPromenade = dancedFigures(unnamed)![1];
-          expect(unnamedPromenade.move, 'promenade');
-          expect(unnamedPromenade.params['where'], 'along');
-          expect(unnamedPromenade.params.containsKey('destination'), isFalse);
-          final flagged = _shapedLike(
-            shape: core.FormationShape.dupleImproper,
-            figures: [
-              figure('star'),
-              core_test.testFigure(
-                move: 'promenade',
-                params: {
-                  'singleFile': true,
-                  'where': 'along',
-                  'direction': 'clockwise',
-                  'destination': 'nextNeighbors',
-                  'beats': 2,
-                },
-                note: 'around the major set',
-              ),
-              core_test.testFigure(move: 'swing', progression: true),
+      test('its destination says how far it travels, taken or not', () async {
+        // Hudson ruled (2026-11-25) that the destination informs how far the
+        // dancers travel. So a promenade the bridge leaves alone is still
+        // danced to its destination, and one with none is deferred (agent's
+        // call: its distance is unknown).
+        Future<core.Dance> imported(List<String> lines) async {
+          final payload = jsonEncode({
+            ...(jsonDecode(_payload()) as Map<String, Object?>),
+            'phrases': [
+              {'name': 'A1', 'figures': lines},
             ],
-          );
-          for (final (label, dance) in [
-            ('twice', twice),
-            ('unnamed', unnamed),
-            ('flagged', flagged),
-          ]) {
-            final bridged = bridgeCoreDance(dance);
-            final record =
-                (bridged.record['figures']! as List<Object?>)[1]!
-                    as Map<String, Object?>;
-            expect(record['progression'], isNot(isTrue), reason: label);
-            final parsed = parseDance(bridged.record);
-            expect(parsed, isA<Err<Dance, DanceParseError>>(), reason: label);
-            final error = (parsed as Err<Dance, DanceParseError>).error;
-            expect(error.deferred, isTrue, reason: label);
-            expect(error.path, 'figures[1].params.where', reason: label);
-            expect(error.message, contains('unless it is the progression'));
-          }
-        },
-      );
-
-      test(
-        'one the source flags itself is danced, its destination dropped',
-        () {
-          // The bridge takes no promenade in a flagged dance, but a flag on the
-          // promenade itself names the figure the ruling covers (agent's call).
-          final dance = _shapedLike(
-            shape: core.FormationShape.dupleImproper,
-            figures: [
-              figure('star'),
-              core_test.testFigure(
-                move: 'promenade',
-                params: {
-                  'singleFile': true,
-                  'where': 'along',
-                  'direction': 'clockwise',
-                  'destination': 'nextNeighbors',
-                  'beats': 2,
-                },
-                note: 'around the major set',
-                progression: true,
-              ),
-              figure('circle'),
-            ],
-          );
-          final bridged = bridgeCoreDance(dance);
-          final record =
-              (bridged.record['figures']! as List<Object?>)[1]!
-                  as Map<String, Object?>;
-          expect(record['progression'], isTrue);
-          expect(record['params'], {
-            'singleFile': true,
-            'where': 'along',
-            'direction': 'clockwise',
-            'beats': 2,
           });
-          final parsed =
-              (parseDance(bridged.record) as Ok<Dance, DanceParseError>).value;
-          expect(compile(parsed), isNot(isA<CompileError>()));
-        },
-      );
+          final adapter = core.CallersBoxAdapter();
+          final discovered = await adapter.discover(
+            core.ImportRequest(payload: payload),
+          );
+          return adapter.parse(await adapter.fetch(discovered.single)).dance;
+        }
+
+        CompileResult compiled(core.Dance dance) => compile(
+          (parseDance(bridgeCoreDance(dance).record)
+                  as Ok<Dance, DanceParseError>)
+              .value,
+        );
+
+        final twice = await imported([
+          '(8) Neighbor swing',
+          '(2) Single file promenade clockwise around the major set to N2 '
+              '(twice)',
+          '(6) Circle left 3/4',
+        ]);
+        expect(dancedFigures(twice)![1].params['destination'], 'nextNeighbors');
+        final flagged = _shapedLike(
+          shape: core.FormationShape.dupleImproper,
+          figures: [
+            figure('star'),
+            core_test.testFigure(
+              move: 'promenade',
+              params: {
+                'singleFile': true,
+                'where': 'along',
+                'direction': 'clockwise',
+                'destination': 'nextNeighbors',
+                'beats': 2,
+              },
+              note: 'around the major set',
+            ),
+            core_test.testFigure(move: 'swing', progression: true),
+          ],
+        );
+        for (final (label, dance) in [('twice', twice), ('flagged', flagged)]) {
+          final result = compiled(dance);
+          expect(
+            result is CompileError && result.opIndex == 1,
+            isFalse,
+            reason: '$label: $result',
+          );
+        }
+        // Without "to N2" the import states no destination.
+        final unnamed = await imported([
+          '(8) Neighbor swing',
+          '(2) Single file promenade clockwise around the major set',
+          '(6) Circle left 3/4',
+        ]);
+        expect(
+          dancedFigures(unnamed)![1].params.containsKey('destination'),
+          isFalse,
+        );
+        final refusal = compiled(unnamed);
+        expect(refusal, isA<CompileError>());
+        expect((refusal as CompileError).opIndex, 1);
+        expect(refusal.error.kind, ErrorKind.unsupportedParam);
+        expect(refusal.error.message, contains('no destination'));
+      });
 
       test('a counter-rotating one is left as the import read it', () {
         final dance = _shapedLike(
@@ -1799,6 +1751,7 @@ void main() {
               where: 'along',
               singleFile: true,
               direction: SpinDirection.clockwise,
+              destination: WhoSet.nextNeighbors,
             ),
           );
           expect(compile(parsed), isNot(isA<CompileError>()));
@@ -1863,8 +1816,8 @@ void main() {
       });
 
       test('only the first is rewritten, and only when nothing is flagged', () {
-        // Agent's call: the bridge rewrites the one promenade it takes as the
-        // progression, so no unflagged promenade moves the set.
+        // Agent's call: the bridge rewrites only the one promenade it takes
+        // as the progression; any other is left as the import read it.
         List<Object?> moves(core.Dance dance) => [
           for (final f in bridgeCoreDance(dance).record['figures']! as List)
             (f as Map<String, Object?>)['move'],

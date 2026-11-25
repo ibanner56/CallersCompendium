@@ -11,15 +11,17 @@ part of '../operation.dart';
 /// [_tradeDiagonallyFacingIn], shared with [RightLeftThrough].
 ///
 /// `where: across` with partnered pairs is modelled, and so is a single-file
-/// promenade `along` the set (user-ruled 2026-11-24): every dancer walks one
-/// place around the outside of the whole set, which lands exactly as a
+/// promenade `along` the set to the next neighbours (user-ruled 2026-11-24;
+/// its `destination` says how far it travels, user-ruled 2026-11-25): every
+/// dancer walks one place around the outside of the whole set, which lands
+/// exactly as a
 /// [SlideAlongSet] does, clockwise as a slide left and counterclockwise as a
 /// slide right, and like the slide is its own progression. It ends with every
 /// dancer facing across, toward the next neighbours, as the ruling says; the
 /// slide alone would keep their facing. Any other single file or `where`,
-/// and any stated `destination`, raise [ErrorKind.unsupportedParam]. The
-/// parser defers the along-the-set form unless it carries the progression
-/// flag (`io/dance_json.dart`). A Caller's Box promenade that states no
+/// an along-the-set promenade to anyone but the next neighbours or to no one
+/// stated, and any other stated `destination`, raise
+/// [ErrorKind.unsupportedParam]. A Caller's Box promenade that states no
 /// `where` (a whole-set or around-a-dancer promenade there) is stopped before
 /// it reaches this operation and reported as `unstructured`, an import
 /// problem, by `runCoreDance` (`io/callersbox_source.dart`).
@@ -50,10 +52,12 @@ final class Promenade extends Operation {
   final bool singleFile;
 
   /// Whom the pairs travel to, when the source says. `null` is the upstream
-  /// `unspecified` sentinel. A stated destination is deferred: it names travel
-  /// past the hands four, which this landing does not model. That includes
-  /// the import's `nextNeighbors` on a single-file promenade around the set:
-  /// the Caller's Box bridge drops it from the one it takes.
+  /// `unspecified` sentinel. On a single-file promenade along the set it says
+  /// how far the dancers travel *(user-ruled 2026-11-25)*: `nextNeighbors` is
+  /// one place. Any other destination is deferred, and so is a promenade
+  /// along the set that names none, whose distance is unknown. Elsewhere a
+  /// stated destination names travel past the hands four, which this landing
+  /// does not model, and is deferred.
   final WhoSet? destination;
 
   @override
@@ -84,14 +88,20 @@ final class Promenade extends Operation {
   @override
   OpError? checkPreconditions(Formation formation) {
     if (_aroundTheSet) {
-      // "Single file promenade … around the major set to N2": the import
-      // writes `destination: nextNeighbors`, and the Caller's Box bridge
-      // drops it from the promenade it reads as the progression, whether it
-      // took it or the source flagged it. A promenade that still states a
-      // destination is one the bridge left alone (a count or a rotation), or
-      // one from another source naming travel this landing does not model,
-      // so it is deferred (agent's call, 2026-11-25).
-      if (destination != null) {
+      // "Single file promenade … around the major set to N2": the
+      // destination says how far the dancers travel (user-ruled 2026-11-25),
+      // and the next neighbours are one place. Another destination ("two
+      // places", "to partner", N3) is deferred, and so is a promenade that
+      // names none, which may go all the way round or out and back (agent's
+      // call).
+      if (destination == null) {
+        return const OpError(
+          ErrorKind.unsupportedParam,
+          'a single-file promenade along the set with no destination is '
+          'deferred: how far it travels is unknown',
+        );
+      }
+      if (destination != WhoSet.nextNeighbors) {
         return OpError(
           ErrorKind.unsupportedParam,
           'a promenade to ${destination!.key} is deferred',

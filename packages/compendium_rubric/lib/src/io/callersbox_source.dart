@@ -363,11 +363,11 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
   // A crash is never retried. The compiler throwing is a defect here, and a
   // second placement that happens to land would bury it.
   //
-  // A near miss (compiled one column off, [WarningKind.endedColumnOffset], or
-  // only from an allemande's guessed short waves,
-  // [WarningKind.allemandeWaveRetry]) is retried too, and gives way to a
-  // retry that matches exactly: an exact match on the record's own
-  // alternative is the better reading (agent's call).
+  // A near miss (compiled one column off, [WarningKind.endedColumnOffset]) is
+  // retried too, and gives way to a retry that matches exactly: an exact
+  // match on the record's own alternative is the better reading (agent's
+  // call). A compile from an allemande's short waves is a plain pass
+  // *(user-ruled 2026-11-25)*.
   final positional = bridgeCoreDance(dance);
   var attempt = _attempt(positional);
   if (triesAnotherReading(attempt.outcome, attempt.warnings)) {
@@ -424,16 +424,13 @@ typedef _Attempt = ({
 });
 
 /// Whether a reading that ended in [outcome], with [warnings], compiled only
-/// as a near miss: one column off ([WarningKind.endedColumnOffset]), or only
-/// once the compiler read an allemande as leaving short waves
-/// ([WarningKind.allemandeWaveRetry], agent's call 2026-11-24).
+/// as a near miss: one column off ([WarningKind.endedColumnOffset]). A dance
+/// that compiles once an allemande is read as leaving short waves
+/// ([WarningKind.allemandeWaveRetry]) is a plain pass, not a near miss
+/// *(user-ruled 2026-11-25)*.
 bool _isNearMiss(DanceOutcome outcome, List<Warning> warnings) =>
     outcome == DanceOutcome.compiled &&
-    warnings.any(
-      (w) =>
-          w.kind == WarningKind.endedColumnOffset ||
-          w.kind == WarningKind.allemandeWaveRetry,
-    );
+    warnings.any((w) => w.kind == WarningKind.endedColumnOffset);
 
 /// Whether [runCoreDance] tries the record's next placement after a reading
 /// that ended in [outcome], with [warnings]: when it did not compile, or
@@ -575,9 +572,7 @@ bool retryPlacesDifferently(BridgedDance attempt, BridgedDance fallback) =>
 /// progression flag (see [assumedProgressionIndex]), it reads a slide
 /// after a balanced long wave as the Rory O'More it is (see
 /// [_slidesTheWave]), it reads a single-file circle around the major set to
-/// N2 as the promenade along the set it is, and drops the import's own
-/// promenade's `destination` (see [_promenadesAroundTheSet] and
-/// [_aroundTheSetParams]),
+/// N2 as the promenade along the set it is (see [_promenadesAroundTheSet]),
 /// it reads a hall figure noted "backwards" as a line backing along the hall
 /// (see [_hallBackwards]), it reads a swing noted "face up" or "finish
 /// proper" as finishing facing up (see [_swingNoteFacing]), and it reads a
@@ -691,7 +686,7 @@ BridgedDance bridgeCoreDance(
                 : figures[index].move,
             'params': _slidesTheWave(figures, index)
                 ? _roryParams(figures, index)
-                : index == aroundAt || _flaggedAroundTheSet(figures[index])
+                : index == aroundAt
                 ? _aroundTheSetParams(figures[index])
                 : {
                     ..._recordParams(figures[index].params),
@@ -750,7 +745,12 @@ bool _heyStopsAtNextNeighbours(core.Figure figure) {
 /// would drop, so such a circle is left as it is (agent's call). For the same
 /// reason an annotation that names a place in the set ("center", "inside",
 /// "ring"), a rotation ("cw", "ccw", "counter…") or a count ("twice", "2x",
-/// "all the way") leaves it alone too.
+/// "all the way") leaves it alone too. That keeps the count only for the
+/// circle the import wrote before v40; the import's own promenade
+/// ([_promenadeAroundTheSet]) left alone is not placed as the progression
+/// but is still danced to its stated destination, one place to the next
+/// neighbours, so its count is dropped (agent's call, 2026-11-25, from
+/// Hudson's ruling that the destination says how far it travels).
 ///
 /// Only a top-level figure is read this way, and only the first: the bridge
 /// rewrites that one figure, the one it takes as the progression, and leaves
@@ -771,7 +771,8 @@ bool _promenadesAroundTheSet(core.Figure figure) {
 /// The import's own shape for the same line since the taxonomy-v40 sync: a
 /// single-file promenade along the set to the next neighbours, noted "around
 /// the major set", after any annotation the line kept. The same annotations
-/// that leave the circle alone leave this one alone too (agent's call).
+/// that leave the circle alone leave this one unplaced too (agent's call);
+/// see [_promenadesAroundTheSet] for what then happens to it.
 bool _promenadeAroundTheSet(core.Figure figure) {
   final params = figure.params;
   if (params['singleFile'] != true ||
@@ -809,27 +810,13 @@ int? _aroundTheSetIndex(List<core.Figure> figures) {
   return null;
 }
 
-/// Whether [figure] is the import's own promenade around the major set to
-/// N2 ([_promenadeAroundTheSet]) and the source flagged it as the progression.
-/// The bridge takes no promenade in a flagged dance, but this one is the
-/// figure the ruling covers, so its destination is dropped all the same
-/// (agent's call).
-bool _flaggedAroundTheSet(core.Figure figure) =>
-    figure.progression &&
-    figure.move == 'promenade' &&
-    _promenadeAroundTheSet(figure);
-
-/// The promenade [figure] is danced as: the import's own promenade without
-/// its destination, or one built from the circle the import wrote before v40.
-///
-/// The destination is dropped here because the next neighbours are where
-/// the one-place promenade lands anyway, and because the compiler defers a
-/// promenade along the set that states one. The parser also defers one that
-/// is not flagged: only a flagged promenade is danced as a slide, and the one
-/// this bridge takes is the one it flags (agent's call).
+/// The promenade [figure] is danced as: the import's own promenade as it
+/// stands, or one built from the circle the import wrote before v40, which
+/// states the next neighbours its line names ("to N2"), since the destination
+/// says how far the promenade travels *(user-ruled 2026-11-25)*.
 Map<String, Object?> _aroundTheSetParams(core.Figure figure) =>
     figure.move == 'promenade'
-    ? (_recordParams(figure.params)..remove('destination'))
+    ? _recordParams(figure.params)
     : _circleAroundTheSetParams(figure);
 
 Map<String, Object?> _circleAroundTheSetParams(core.Figure figure) => {
@@ -838,6 +825,7 @@ Map<String, Object?> _circleAroundTheSetParams(core.Figure figure) => {
   'direction': (figure.params['direction'] ?? 'left') == 'right'
       ? 'counterclockwise'
       : 'clockwise',
+  'destination': 'nextNeighbors',
   'beats': ?figure.params['beats'],
 };
 
