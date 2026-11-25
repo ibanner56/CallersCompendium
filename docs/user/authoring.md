@@ -172,7 +172,8 @@ wrong beats or turn, with the rest hidden in its note. Use the leading
 Dancers can be named the way the figure list names them: `prev neighbor
 swing`, `third partner allemande left once`, `second shadow balance`, `same
 roles dosido once`, `centers two hand turn once`, or, in your dialect's role
-words, `first lark two hand turn once`.
+words, `first lark two hand turn once` and `next larks swing` (the larks among
+your next neighbors).
 
 It also reads figures the way Caller's Companion writes them, each as one
 figure: `Circle L`, `Neighbor alle R 1.5` and `R&L` (a right and left

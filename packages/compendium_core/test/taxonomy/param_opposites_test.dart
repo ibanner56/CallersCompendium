@@ -58,7 +58,13 @@ void main() {
           'shadows': null,
           'secondShadows': null,
           'prevNeighbors': 'partners',
+          // v40: the role1s and role2s among the previous and next neighbors
+          // name no other pair either.
+          'prevRole1s': null,
+          'prevRole2s': null,
           'nextNeighbors': 'partners',
+          'nextRole1s': null,
+          'nextRole2s': null,
           'thirdNeighbors': 'partners',
           'fourthNeighbors': 'partners',
           // v38 (#1975): no nameable inverse, like the other non-pairs.

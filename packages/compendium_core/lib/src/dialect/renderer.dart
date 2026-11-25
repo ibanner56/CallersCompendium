@@ -1729,10 +1729,11 @@ class FigureRenderer {
     final single = _singleDancerTerm(token, dialect);
     if (single != null) return WordingValueWords(token, single);
     final humanized = _humanize(token);
-    return WordingValueWords(token, dialect.dancers[token] ?? humanized, [
-      humanized,
-      ?_singularDancerSets[token],
-    ]);
+    return WordingValueWords(
+      token,
+      dialect.dancers[token] ?? _squareRoleWords(token, dialect) ?? humanized,
+      [humanized, ?_singularDancerSets[token]],
+    );
   }
 
   /// [values] with each word belonging to one value only: an other word two
@@ -2121,7 +2122,7 @@ class FigureRenderer {
     if (single != null) return single;
     final substitution = dialect.dancers[token];
     if (substitution != null) return substitution;
-    return _humanize(token);
+    return _squareRoleWords(token, dialect) ?? _humanize(token);
   }
 
   /// DISPLAY-ONLY: renders a dancer/role subject [value] of any type for the

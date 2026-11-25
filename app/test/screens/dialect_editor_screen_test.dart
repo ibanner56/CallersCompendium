@@ -1128,6 +1128,24 @@ void main() {
         // The group dancer sets are still there, still humanized.
         expect(menu.values, containsAll(['neighbors', 'nextNeighbors']));
         expect(menu.labels, contains('next neighbors'));
+        // The neighbors' role1s and role2s (v40) read in the dialect's role
+        // words, not as the raw `next role1s`.
+        expect(
+          menu.values,
+          containsAll(['prevRole1s', 'prevRole2s', 'nextRole1s', 'nextRole2s']),
+        );
+        expect(
+          menu.labels,
+          containsAll([
+            'prev larks',
+            'prev robins',
+            'next larks',
+            'next robins',
+          ]),
+        );
+        for (final raw in ['prev role1s', 'next role2s']) {
+          expect(menu.labels, isNot(contains(raw)), reason: raw);
+        }
         // Role-driven tokens stay excluded (role-term substitution owns them).
         expect(menu.values, isNot(contains('role1s')));
         expect(menu.values, isNot(contains('role2s')));

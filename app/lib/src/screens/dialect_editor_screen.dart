@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
 import '../data/validation_issue_labels.dart';
-import '../search/facet_labels.dart' show danceFormLabel, humanizeToken;
+import '../search/facet_labels.dart' show danceFormLabel;
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
@@ -1828,7 +1828,9 @@ class _DancerSubstitutionsEditor extends StatelessWidget {
 
   /// Human-readable label for a dancer token: the single-dancer identities read
   /// as their dialect-aware default (`twosRole2` -> "second robin"), everything
-  /// else humanizes its camelCase (`nextNeighbors` -> `next neighbors`).
+  /// else humanizes its camelCase (`nextNeighbors` -> `next neighbors`), except
+  /// a role selector, which reads in the dialect's role words (`nextRole1s` ->
+  /// `next larks`).
   ///
   /// The default, NOT [Dialect.dancers]-aware: the label names the token being
   /// overridden, so echoing the substitution the caller is typing into the
@@ -1837,7 +1839,10 @@ class _DancerSubstitutionsEditor extends StatelessWidget {
   /// issue #832 is about, in the very UI that fixes it.
   String _dancerLabel(String token) =>
       FigureRenderer.singleDancerDefaultTerm(token, dialect) ??
-      humanizeToken(token);
+      // No spec, so no `dancers` substitution is applied: the neighbors' role1s
+      // and role2s read "next larks", not the raw `next role1s`, and every
+      // other token humanizes as before.
+      FigureRenderer.displayToken(token, null, dialect);
 
   @override
   Widget build(BuildContext context) {

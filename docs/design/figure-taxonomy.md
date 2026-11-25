@@ -79,7 +79,8 @@ searchKeywords: [allemande, almond]
   `unspecified`; the editor's starting values are `entryDefault`s (everyone,
   a swing's partner, an allemande's corner). Its templates are contra-style.
   A selector that names a role (`headRole1s`, `rightHandRole2`) shows the
-  dialect's role term (`squareRoleSelectorWords`). `squareCallPrograms`
+  dialect's role term (`squareRoleSelectorWords`, which also holds contra's
+  `prevRole1s` … `nextRole2s`, v40). `squareCallPrograms`
   records which calls CALLERLAB also lists, for a glossary label (ADR-007
   §5.2) that nothing shows yet.
 - **Aliases** are entries that resolve to a canonical move with pinned params
@@ -123,7 +124,7 @@ to look, not a claim of drift.
 
 | Type | Values | Notes |
 |---|---|---|
-| dancerSet | everyone, larks*, robins*, ones, twos, threes, fours, partners, neighbors, sameRoles, shadows, secondShadows, prevNeighbors, nextNeighbors, thirdNeighbors, fourthNeighbors, firstCorners, secondCorners, thirdCorners, opposites, prevPartners, nextPartners, … | *canonical role IDs are `role1`/`role2` — see below. Positional/relational tokens (all except `role1s`/`role2s`) are also **dialect-substitutable** via the dialect `dancers` map. The five mixer partner-series tokens (`prevPartners`/`nextPartners`/`thirdPartners`/`fourthPartners`/`fifthPartners`) are offered in the **figure editor dropdown only when the dance is marked a mixer** — unless the figure already stores one of them, in which case it remains visible and selectable on that figure (see `offerableDancerSets`). The tokens are unrestricted everywhere else (dialect editor, search, etc.). |
+| dancerSet | everyone, larks*, robins*, ones, twos, threes, fours, partners, neighbors, sameRoles, shadows, secondShadows, prevNeighbors, prevRole1s, prevRole2s, nextNeighbors, nextRole1s, nextRole2s, thirdNeighbors, fourthNeighbors, firstCorners, secondCorners, thirdCorners, opposites, prevPartners, nextPartners, … | *canonical role IDs are `role1`/`role2` — see below. Positional/relational tokens (all except `role1s`/`role2s`) are also **dialect-substitutable** via the dialect `dancers` map. The four `prevRole1s`/`prevRole2s`/`nextRole1s`/`nextRole2s` (v40) read in the dialect's role words ("next larks") unless it rewords them. The five mixer partner-series tokens (`prevPartners`/`nextPartners`/`thirdPartners`/`fourthPartners`/`fifthPartners`) are offered in the **figure editor dropdown only when the dance is marked a mixer** — unless the figure already stores one of them, in which case it remains visible and selectable on that figure (see `offerableDancerSets`). The tokens are unrestricted everywhere else (dialect editor, search, etc.). |
 | dancerPair | subset of dancerSet valid for the move | |
 | handedness / shoulder | right, left | |
 | spinDirection | clockwise, counterclockwise | |
@@ -2610,6 +2611,51 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       (`unknown_param`, `invalid_param_value`), with the general limit the
       maintainer accepted on #2120 (recorded under v39): a compound template
       holding one is marked "needs repair" there.
+  - v40 also adds four `pairDancerSets` tokens, the role1s and role2s among
+    the previous and next neighbors: `prevRole1s`, `prevRole2s`, `nextRole1s`
+    and `nextRole2s`. Each sits straight after its neighbors entry, so the
+    picker reads ... `prevNeighbors`, `prevRole1s`, `prevRole2s`,
+    `nextNeighbors`, `nextRole1s`, `nextRole2s`, `thirdNeighbors`, ... The
+    maintainer asked for the four tokens and their place in the list, and to
+    leave out the third and fourth neighbors' until someone asks. The rest is
+    the author's call, with the alternative rejected:
+    - **Names.** The `prev`/`next` prefixes of `prevNeighbors` and
+      `nextNeighbors`, then the role token as `role1s` is written. Rejected:
+      `previousRole1s`, which spells the series two ways.
+    - **Words.** A role is never spelled out in stored data, so they read
+      through `squareRoleSelectorWords`, as a square's `headRole1s` does: "prev
+      larks" and "next robins" with larks and robins, and the canonical render
+      keeps `next role1s`. A dialect's `dancers` map can still reword each.
+      Rejected: humanizing the token, which would show "prev role1s" in every
+      dialect.
+    - **Scope.** Offered wherever `pairDancerSets` is the domain (most
+      `who` and `whom` params, and hey's `pass2`), and not added to hey's
+      `meetTarget`, which lists its own pairs. Neither ContraDB nor The
+      Caller's Box writes them, so no importer produces them; the figure
+      readers do read the display's own words (`next larks`, `prev robins`)
+      back, through `role1` and `role2` in `seriesDancerWords`, so a displayed
+      figure reads back to its token (`figure_round_trip_test.dart` caught
+      that gap). That changes how a few lines read that were custom text before:
+      `next lark swing` is now a swing by `nextRole1s`. One line that already
+      read as something else changes meaning, `next lark roll away neighbor`:
+      it was a roll away by `role1s` with `nextNeighbors`, and is now one by
+      `nextRole1s` with `neighbors`, because the new tokens are not in
+      `rollAwayRelationships`, so they read as who rolls and not as whom the
+      roll away is with (the author's call, found by a differential run of the
+      free-text reader over old and new code). Like v38's corners they have no pair inverse and no
+      opposite, so `invertPairDancerSet` and a compound's opposite slot
+      decline them.
+    - Purely additive for stored data: no figure's meaning or canonical text
+      changes, and the order of `pairDancerSets` is display order only. No
+      migration and no rebuild. **Older devices (v39)** do not know the
+      tokens: `validateFigure` reports `invalid_param_value` for a figure
+      holding one, and its line reads the token humanized ("next role1s
+      swing"), checked against the current code with an unknown token. Its
+      figure editor replaces a value it does not know with the param's
+      default when the figure is opened (the correcting branch of
+      `figure_param_editors.dart`, read in the current code, not run on a v39
+      build), so editing such a figure there loses it, as with v38's corners
+      and v24's partner series.
 
 ### ECD taxonomy versions
 
