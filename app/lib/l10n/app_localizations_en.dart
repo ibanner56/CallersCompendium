@@ -568,6 +568,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your default figures use it too, and switch the same way.';
 
   @override
+  String userFigureSwitchConfirmKeepsWording(String name) {
+    return 'Any use of a group of dancers that $name doesn\'t have keeps its wording instead.';
+  }
+
+  @override
   String userFigureSwitchConfirmShorthands(int count, String name) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -2141,6 +2146,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeScreenNoMatches => 'No themes match your search.';
 
   @override
+  String themeScreenResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count themes',
+      one: '1 theme',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get themeScreenNewCustomTheme => 'Custom theme';
 
   @override
@@ -2559,10 +2575,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDefaultsStartingProgramTitle => 'Starting program';
 
   @override
-  String get settingsDefaultsStartingProgramSubtitle =>
-      'Dance and note entries added to manually created programs.';
-
-  @override
   String get settingsDefaultsStartingProgramPickerTitle => 'Add a dance';
 
   @override
@@ -2722,6 +2734,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDefaultsShareFieldsSources => 'Sources';
+
+  @override
+  String get settingsDefaultsShareFieldsMusic => 'Meter, key and Barnes';
 
   @override
   String get settingsDefaultsCollectionFiltersHeader => 'Collection filters';
@@ -3143,7 +3158,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSharingDateVenueTitle =>
-      'Include date and venue when sharing a set list';
+      'Include date, times and venue when sharing a set list';
 
   @override
   String get settingsSharingSubtitle =>
@@ -3163,6 +3178,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsProgramAutoCommitSubtitle =>
       'When on, valid changes are saved as you work, so leaving the editor does not ask whether to discard them. Turn off to save programs explicitly.';
+
+  @override
+  String get settingsProgramShowPayTitle => 'Show pay';
+
+  @override
+  String get settingsProgramShowPaySubtitle =>
+      'When off, the editor, summary and programs spreadsheet hide pay. Pay already entered is kept, and shows again when you turn this back on.';
 
   @override
   String get settingsMatrixColumnsHeader => 'Matrix columns';
@@ -4169,6 +4191,70 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorMusicalKeyHint => 'e.g. G minor';
 
   @override
+  String get danceEditorAlternateTitlesLabel => 'Other titles';
+
+  @override
+  String get danceEditorAlternateTitlesHelper =>
+      'One per line. A title search finds the dance by any of them.';
+
+  @override
+  String get danceEditorBarnesReferenceLabel => 'Barnes reference';
+
+  @override
+  String get danceEditorBarnesReferenceHint => 'e.g. BIII p. 92, or NiB';
+
+  @override
+  String danceAlsoKnownAs(String titles) {
+    return 'Also known as $titles';
+  }
+
+  @override
+  String get danceAlsoKnownAsSeparator => '; ';
+
+  @override
+  String get danceSectionBarnes => 'Barnes books';
+
+  @override
+  String danceAuthorsWithYear(String names, String year) {
+    return '$names ($year)';
+  }
+
+  @override
+  String danceComposedYear(String year) {
+    return 'Composed $year';
+  }
+
+  @override
+  String danceInterpretedBy(String names) {
+    return 'Interpreted by $names';
+  }
+
+  @override
+  String danceInterpretedByWithYear(String names, String year) {
+    return 'Interpreted by $names ($year)';
+  }
+
+  @override
+  String danceInterpretedYear(String year) {
+    return 'Interpreted $year';
+  }
+
+  @override
+  String danceBarnesValue(String reference) {
+    return 'Barnes: $reference';
+  }
+
+  @override
+  String danceMeterValue(String meter) {
+    return 'Meter: $meter';
+  }
+
+  @override
+  String danceMusicalKeyValue(String key) {
+    return 'Key: $key';
+  }
+
+  @override
   String get commonMixedLevel => 'Mixed level';
 
   @override
@@ -4688,6 +4774,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String collectionFacetWithinMonthsSaved(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count months, saved',
+      one: '1 month, saved',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get collectionFacetWithinSince => 'Since a date…';
 
   @override
@@ -4748,6 +4845,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get collectionFacetAllHidden =>
       'All filters are hidden. You can show them again in Settings ▸ Defaults.';
+
+  @override
+  String get collectionFacetMissingValue => 'Not in your library';
 
   @override
   String get collectionFacetClear => 'Clear filters';
@@ -4955,6 +5055,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String collectionQueryParamNotOffered(String param, String value) {
+    return '$param: $value (not offered)';
+  }
+
+  @override
   String get collectionBatchLevelUnspecified => 'Unspecified (clear)';
 
   @override
@@ -5062,6 +5167,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String exportNamedPhrases(String order, String bars) {
+    return '$order ($bars)';
+  }
+
+  @override
+  String get exportNamedPhraseSeparator => ', ';
+
+  @override
+  String get exportLabelSeparator => ': ';
+
+  @override
   String danceFigureBars(String bars, int halfBars) {
     String _temp0 = intl.Intl.pluralLogic(
       halfBars,
@@ -5111,8 +5227,24 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get danceEditorSequenceSpanBeatsLabel => 'Beats for all';
+
+  @override
+  String get danceEditorSequenceSpanBeatsEmptyHelp =>
+      'Leave empty to add up the steps\' beats, or give the beats the whole sequence takes, as in \"forward again and swing (8)\".';
+
+  @override
+  String get danceEditorSequenceSpanBeatsHelp =>
+      'The steps share these beats, and each may leave its own beats empty.';
+
+  @override
+  String danceEditorSequenceSpanBeatsNoRoom(String steps, String span) {
+    return 'The steps with beats of their own take $steps of the sequence\'s $span, leaving none for the rest.';
+  }
+
+  @override
   String danceEditorSequenceOverPhraseTimed(String length, String limit) {
-    return 'This sequence is $length, longer than one phrase ($limit).';
+    return 'This sequence is $length, longer than its phrase ($limit).';
   }
 
   @override
@@ -5664,6 +5796,65 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsClearEventDate => 'Clear event date';
 
   @override
+  String get programsStartTimeLabel => 'Start time';
+
+  @override
+  String get programsEndTimeLabel => 'End time';
+
+  @override
+  String get programsLessonTimeLabel => 'Beginner lesson';
+
+  @override
+  String get programsArrivalTimeLabel => 'Arrive by';
+
+  @override
+  String get programsNoTimeSet => 'Not set';
+
+  @override
+  String get programsSetTime => 'Set';
+
+  @override
+  String get programsChangeTime => 'Change';
+
+  @override
+  String programsSetTimeFor(String field) {
+    return 'Set $field';
+  }
+
+  @override
+  String programsChangeTimeFor(String field) {
+    return 'Change $field';
+  }
+
+  @override
+  String programsClearTime(String field) {
+    return 'Clear $field';
+  }
+
+  @override
+  String get programsTimeNextDay => 'Ends the next day';
+
+  @override
+  String programsVenueUsualTimeHint(String time) {
+    return 'Venue\'s usual time: $time';
+  }
+
+  @override
+  String programsSummaryLessonTime(String time) {
+    return 'Lesson $time';
+  }
+
+  @override
+  String programsSummaryDanceTime(String times) {
+    return 'Dance $times';
+  }
+
+  @override
+  String programsSummaryArriveBy(String time) {
+    return 'Arrive by $time';
+  }
+
+  @override
   String get programsVenueLabel => 'Venue';
 
   @override
@@ -6006,6 +6197,46 @@ class AppLocalizationsEn extends AppLocalizations {
   String programsMoreActionsForSlot(String title) {
     return 'More actions for $title';
   }
+
+  @override
+  String get programsAddDanceBeforeMenu => 'Add a dance before';
+
+  @override
+  String get programsAddDanceAfterMenu => 'Add a dance after';
+
+  @override
+  String programsAddBeforeSheetTitle(String title) {
+    return 'Add before $title';
+  }
+
+  @override
+  String programsAddAfterSheetTitle(String title) {
+    return 'Add after $title';
+  }
+
+  @override
+  String programsAddingBeforeBanner(String title) {
+    return 'Adding before $title';
+  }
+
+  @override
+  String programsAddingAfterBanner(String title) {
+    return 'Adding after $title';
+  }
+
+  @override
+  String programsAddedDanceBeforeAnnounce(String title, String target) {
+    return 'Added $title before $target.';
+  }
+
+  @override
+  String programsAddedDanceAfterAnnounce(String title, String target) {
+    return 'Added $title after $target.';
+  }
+
+  @override
+  String get programsInsertionCancelledAnnounce =>
+      'Canceled. New dances go at the end.';
 
   @override
   String get programsEditSlotMenu => 'Edit slot';
@@ -6677,6 +6908,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportSaveDanceBundle => 'Save dance file…';
 
   @override
+  String get exportShowCode => 'Show code';
+
+  @override
+  String get exportShowCodeError =>
+      'Couldn\'t show the code. Your dance is unchanged. Try again.';
+
+  @override
+  String get danceCodeScreenTitle => 'Dance code';
+
+  @override
+  String danceCodeSemanticLabel(String title) {
+    return 'QR code for $title';
+  }
+
+  @override
+  String get danceCodeTooLong =>
+      'This dance is too long to share as a code. Share it as a file instead.';
+
+  @override
   String get exportCopyDance => 'Copy dance';
 
   @override
@@ -6873,6 +7123,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String exportPageOfPages(int page, int pages) {
     return 'Page $page of $pages';
+  }
+
+  @override
+  String get exportLabelLesson => 'Lesson';
+
+  @override
+  String exportTimeRange(String start, String end) {
+    return '$start–$end';
+  }
+
+  @override
+  String exportEndsAt(String end) {
+    return 'until $end';
+  }
+
+  @override
+  String exportNextDay(String times) {
+    return '$times (next day)';
   }
 
   @override
@@ -7671,6 +7939,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get archiveIntakeRejectedEmpty => 'That file is empty.';
 
   @override
+  String get danceLinkRefusedNewerVersion =>
+      'This dance code was made by a newer version of Caller\'s Compendium. Update the app to open it.';
+
+  @override
+  String get danceLinkRefusedDamaged =>
+      'This dance code is damaged or incomplete, so it can\'t be opened.';
+
+  @override
+  String get danceLinkRefusedNotADance =>
+      'This code isn\'t a Caller\'s Compendium dance code.';
+
+  @override
+  String get danceLinkRefusedNoContent =>
+      'This dance code doesn\'t contain any dances or programs.';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'That file isn\'t a Caller\'s Compendium share file.';
 
@@ -7901,7 +8185,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importIssueArchiveNewerSchema =>
-      'This file was made by a newer version of Caller\'s Compendium. Update the app before importing, or some details may be left out.';
+      'This was made by a newer version of Caller\'s Compendium. Update the app before importing, or some details may be left out.';
 
   @override
   String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
@@ -8002,6 +8286,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get importIssueBarsMeterUnstated =>
       'This dance counts in bars but states no meter, so each bar was counted as 2 beats. Check its counts.';
+
+  @override
+  String get importIssueBarsMeterMixed =>
+      'This dance counts in bars but names meters of different bar lengths, so each bar was counted as 2 beats. Check its counts.';
 
   @override
   String get importIssueUnmappedType =>
@@ -8559,14 +8847,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorPhrasesHelp =>
-      'Name each part of the tune A, B or C, give its bars, and say whether it plays once or twice. A phrase played twice is labeled A1 and A2.';
+      'Name each part of the tune A, B or C, give its bars and the beats in each bar, and say whether it plays once or twice. A phrase played twice is labeled A1 and A2.';
 
   @override
   String get danceEditorPhrasesAdd => 'Add phrase';
 
   @override
-  String danceEditorPhrasesInvalid(int max) {
-    return 'Give each phrase from 1 to $max bars. Until then the dance keeps its last valid phrases, and Save saves those.';
+  String danceEditorPhrasesInvalid(int maxBars, int maxBeats) {
+    return 'Give each phrase from 1 to $maxBars bars and from 1 to $maxBeats beats to the bar. Until then the dance keeps its last valid phrases, and Save saves those.';
   }
 
   @override
@@ -8576,6 +8864,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String danceEditorPhraseBarsRange(int max) {
+    return '1 to $max';
+  }
+
+  @override
+  String danceEditorPhraseBeatsPerBarLabel(String name) {
+    return 'Beats per bar in $name';
+  }
+
+  @override
+  String danceEditorPhraseBeatsPerBarRange(int max) {
     return '1 to $max';
   }
 
@@ -8597,6 +8895,52 @@ class AppLocalizationsEn extends AppLocalizations {
   String danceEditorPhraseRemove(String name) {
     return 'Remove phrase $name';
   }
+
+  @override
+  String get danceEditorPhraseRowsHelp =>
+      'Each row is a run of equal phrases: how many there are, the bars in each, and the beats in a bar. The phrase structure below changes with the rows.';
+
+  @override
+  String get danceEditorPhraseRowsPhrasesLabel => 'Phrases';
+
+  @override
+  String get danceEditorPhraseRowsBarsLabel => 'Bars per phrase';
+
+  @override
+  String get danceEditorPhraseRowsBeatsLabel => 'Beats per bar';
+
+  @override
+  String danceEditorPhraseRowsRange(int max) {
+    return '1 to $max';
+  }
+
+  @override
+  String get danceEditorPhraseRowsAdd => 'Add row';
+
+  @override
+  String danceEditorPhraseRowsRemove(int number) {
+    return 'Remove row $number';
+  }
+
+  @override
+  String danceEditorPhraseRowsInvalid(int max) {
+    return 'Give each field a whole number from 1 to $max, in a structure that is not too long. Until then the last valid phrase structure is kept.';
+  }
+
+  @override
+  String danceEditorPhraseRowsSummary(String labels, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats beats',
+      one: '1 beat',
+    );
+    return '$labels · $_temp0';
+  }
+
+  @override
+  String get danceEditorPhraseRowsDisabledNote =>
+      'These rows show the last valid phrase structure. Fix the phrase structure below to edit them again.';
 
   @override
   String get danceEditorFiguresSection => 'Figures';
@@ -8734,6 +9078,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsWalkthroughSnippetEditTitle => 'Edit snippet';
 
   @override
+  String get danceEditorSetupTitle => 'Credits, formation and music';
+
+  @override
   String get danceEditorMoreDetailsTitle => 'More details';
 
   @override
@@ -8747,11 +9094,90 @@ class AppLocalizationsEn extends AppLocalizations {
       'Dancers change partners each time through';
 
   @override
+  String danceDetailSquareField(String field, String value) {
+    return '$field: $value';
+  }
+
+  @override
+  String get danceEditorSquareKindLabel => 'Kind of square';
+
+  @override
+  String get squareKindMain => 'Main part';
+
+  @override
+  String get squareKindBreak => 'Break';
+
+  @override
+  String get squareKindPatter => 'Patter';
+
+  @override
+  String get danceEditorRepeatOrderLabel => 'Repeat order';
+
+  @override
+  String get squareRepeatOrderUnstated => 'Not stated';
+
+  @override
+  String get squareRepeatOrderHeadsHeadsSidesSides =>
+      'Heads twice, then sides twice';
+
+  @override
+  String get squareRepeatOrderHeadsSidesHeadsSides =>
+      'Heads and sides alternating';
+
+  @override
+  String get squareRepeatOrderAllFour => 'Four times, everyone active';
+
+  @override
+  String get squareRepeatOrderOther => 'Other';
+
+  @override
+  String get danceEditorRepeatOrderOtherLabel => 'Repeat order, in your words';
+
+  @override
+  String get danceEditorNewPartnerLabel => 'New partner';
+
+  @override
+  String get squareNewPartnerUnstated => 'Not stated';
+
+  @override
+  String get squareNewPartnerNone => 'Partners stay the same';
+
+  @override
+  String get squareNewPartnerCorner => 'Corner';
+
+  @override
+  String squareNewPartnerRightHand(String role) {
+    return 'Right-hand $role';
+  }
+
+  @override
+  String get squareNewPartnerOpposite => 'Opposite';
+
+  @override
+  String get squareNewPartnerOther => 'Other';
+
+  @override
+  String get danceEditorNewPartnerOtherLabel => 'New partner, in your words';
+
+  @override
+  String get danceEditorSingingLabel => 'Singing call';
+
+  @override
+  String get danceEditorSingingSubtitle => 'The song goes under Tunes';
+
+  @override
+  String get danceEditorFreeFormLabel => 'Free form';
+
+  @override
+  String get danceEditorFreeFormSubtitle =>
+      'Follows no phrasing: no phrase labels or phrase checks';
+
+  @override
   String get danceEditorImproperLabel => 'Starts improper';
 
   @override
   String get danceEditorImproperSubtitle =>
-      'Leave unchecked for a dance that starts proper.';
+      'Leave off for a dance that starts proper.';
 
   @override
   String get danceEditorComposedLabel => 'Composed';
@@ -8923,7 +9349,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String validationSequenceExceedsPhrase(int position, int actual, int limit) {
-    return 'A sequence in figure $position is $actual beats, longer than one phrase ($limit beats).';
+    return 'A sequence in figure $position is $actual beats, longer than its phrase ($limit beats).';
   }
 
   @override
@@ -8946,7 +9372,7 @@ class AppLocalizationsEn extends AppLocalizations {
     String actual,
     String limit,
   ) {
-    return 'A sequence in figure $position is $actual, longer than one phrase ($limit).';
+    return 'A sequence in figure $position is $actual, longer than its phrase ($limit).';
   }
 
   @override
@@ -8986,6 +9412,11 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '1 figure is',
     );
     return 'This dance is $danceForm, but $_temp0 from $figureForm. They are kept as they are, but the figure picker offers only $pickerForm figures.';
+  }
+
+  @override
+  String validationFigureCrossesPhrase(int position, String label) {
+    return 'Figure $position runs past the end of $label. In a square dance, the calls of each phrase should fill it exactly.';
   }
 
   @override
@@ -9095,6 +9526,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorTypeToAddOrCreateHint => 'Type to add or create…';
+
+  @override
+  String get danceEditorChooseHint => 'Choose…';
 
   @override
   String danceEditorCreateQuotedName(String name) {
@@ -9371,6 +9805,154 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorAddSequence => 'Add sequence';
 
   @override
+  String get danceEditorAddFiguresFromText => 'Add figures from text…';
+
+  @override
+  String get figureTextSheetTitle => 'Add figures from text';
+
+  @override
+  String get figureTextSheetHelp =>
+      'Type or paste one figure per line, such as \"(8) neighbor balance & swing\". Each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.';
+
+  @override
+  String get figureTextSheetHelpDropsLabels =>
+      'Type or paste one figure per line, such as \"A1 (8) neighbor balance & swing\". A phrase label such as A1 at the start of a line is left out, and each line is read as the Move box reads a typed line with Free-text entry on, even if it is off. Nothing is saved until you save the dance.';
+
+  @override
+  String get figureTextSheetFieldLabel => 'Figures, one per line';
+
+  @override
+  String figureTextSheetSummary(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString figures to add',
+      one: '1 figure to add',
+      zero: 'No figures to add yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String figureTextSheetUnrecognizedSummary(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$countString lines aren\'t recognized. They will be added as unrecognized figures with their text, for you to fix.',
+      one:
+          '1 line isn\'t recognized. It will be added as an unrecognized figure with its text, for you to fix.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String figureTextSheetLineFigures(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString figures',
+      one: '1 figure',
+      zero: 'No figure',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get figureTextSheetLineUnrecognized =>
+      'Not recognized: added as an unrecognized figure';
+
+  @override
+  String figureTextSheetTooLong(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'This is more than $maxString characters, more than can be read at once. Nothing will be added. Add it in parts.';
+  }
+
+  @override
+  String figureTextSheetTooManyLines(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'This is more than $maxString lines, more than can be read at once. Nothing will be added. Add it in parts.';
+  }
+
+  @override
+  String figureTextSheetLineTooLong(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return 'A line is longer than $maxString characters, more than can be read as one figure line. Nothing will be added. Break it into lines.';
+  }
+
+  @override
+  String get figureTextSheetAdd => 'Add figures';
+
+  @override
+  String get figureTextSheetFromImage => 'From an image…';
+
+  @override
+  String get figureTextSheetTakePhoto => 'Take a photo';
+
+  @override
+  String get figureTextSheetCameraOff =>
+      'Camera access is off for Caller\'s Compendium. To take a photo, turn it on in the Settings app.';
+
+  @override
+  String get figureTextSheetReadingImage => 'Reading the picture…';
+
+  @override
+  String get figureTextSheetImageUnavailable =>
+      'This device can\'t read text from pictures in the app\'s language or in English.';
+
+  @override
+  String get figureTextSheetImageEnglishOnly =>
+      'This device reads pictures in English, not in the app\'s language.';
+
+  @override
+  String figureTextSheetImageTooLarge(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'This picture is larger than $limitString MB, so it wasn\'t read. Choose a smaller one.';
+  }
+
+  @override
+  String get figureTextSheetImageTooManyPixels =>
+      'This picture has too many pixels to read. Choose a smaller one, or crop it.';
+
+  @override
+  String get figureTextSheetImageUnreadable =>
+      'This file isn\'t a picture this device can open.';
+
+  @override
+  String get figureTextSheetImageNoText => 'No text was found in this picture.';
+
+  @override
+  String get figureTextSheetImageFailed =>
+      'The picture\'s text couldn\'t be read.';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList => 'Paste at end of figure list';
 
   @override
@@ -9590,12 +10172,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String danceEditorSequenceOverPhrase(int beats, int limit) {
-    return 'This sequence is $beats beats, longer than one phrase ($limit beats).';
+    return 'This sequence is $beats beats, longer than its phrase ($limit beats).';
   }
 
   @override
   String danceEditorSequencePhraseFull(int limit) {
-    return 'These figures fill one phrase ($limit beats).';
+    return 'These figures fill their phrase ($limit beats).';
   }
 
   @override
@@ -9753,6 +10335,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Move names get a dotted underline, role terms an underline, and discouraged terms a strikethrough';
 
   @override
+  String danceEditorBeatTotalFreeForm(int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: 'Total: $total beats',
+      one: 'Total: 1 beat',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String danceEditorBeatTotal(int total, int expected) {
     return 'Total: $total / $expected beats';
   }
@@ -9769,6 +10362,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorLessTooltip => 'Less';
+
+  @override
+  String get danceEditorFigureNeedsValues =>
+      'Choose a value for every field of this figure before saving.';
+
+  @override
+  String get danceEditorSaveNeedsFigureValues =>
+      'Some figures you added still have empty fields. Fill them in to save.';
 
   @override
   String get danceEditorParamNotStated => 'not stated';
@@ -10163,6 +10764,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shorthandsUserFigureSyncLabel => 'Shorthands for new figures';
+
+  @override
+  String get syncSavedSearchLabel => 'Saved search';
 
   @override
   String get shorthandsCompoundIntro =>
@@ -12382,7 +12986,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get callingCardHelpBlockTitle => 'The dance\'s title.';
 
   @override
-  String get callingCardHelpBlockAuthors => 'Who wrote the dance.';
+  String get callingCardHelpBlockAuthors =>
+      'Who wrote the dance and when, then who interpreted it and when.';
 
   @override
   String get callingCardHelpBlockFormation =>
@@ -12394,6 +12999,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get callingCardHelpBlockMeta =>
       'Formation, level, mixer, status and phrase on one line, each with its label.';
+
+  @override
+  String get callingCardHelpBlockMusic =>
+      'The tune\'s meter and key, and its Barnes reference, on one line.';
 
   @override
   String get callingCardHelpBlockFigures =>
@@ -12525,4 +13134,1654 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exportCallingCardsBiggerThanPaper =>
       'These cards are bigger than the paper, so each was printed smaller, one to a page.';
+
+  @override
+  String get settingsProgramTemplatesTitle => 'Program templates';
+
+  @override
+  String settingsProgramTemplatesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count templates',
+      one: '1 template',
+      zero: 'No templates yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsProgramTemplateDefaultTitle => 'Default template';
+
+  @override
+  String get settingsProgramTemplateDefaultSubtitle =>
+      'What a new program starts from when you aren\'t asked to choose.';
+
+  @override
+  String get settingsProgramTemplatesMigratedName => 'Starting program';
+
+  @override
+  String get programTemplateBlankProgram => 'Blank program';
+
+  @override
+  String get programTemplateDefaultBadge => 'Default';
+
+  @override
+  String get programTemplateChooserTitle => 'Start from a template';
+
+  @override
+  String get programTemplateNew => 'New template';
+
+  @override
+  String get programTemplatesEmptyTitle => 'No templates yet';
+
+  @override
+  String get programTemplatesEmptyBody =>
+      'A template is a starting list of dances, notes and breaks for one kind of evening. With two or more, New program asks which to start from.';
+
+  @override
+  String get programTemplateNameLabel => 'Template name';
+
+  @override
+  String get programTemplateRename => 'Rename';
+
+  @override
+  String get programTemplateRenameTitle => 'Rename template';
+
+  @override
+  String programTemplateCopyName(String name) {
+    return '$name (copy)';
+  }
+
+  @override
+  String get programTemplateUntitled => 'Untitled template';
+
+  @override
+  String programTemplateSlotCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count slots',
+      one: '1 slot',
+      zero: 'Empty',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programTemplateDefaultWithSlots(String slots) {
+    return 'Default · $slots';
+  }
+
+  @override
+  String programTemplateActionsTooltip(String name) {
+    return 'Actions for $name';
+  }
+
+  @override
+  String get programTemplateEditorTitle => 'Edit template';
+
+  @override
+  String get programTemplateSlotsHeader => 'Slots';
+
+  @override
+  String get programTemplateSlotsSubtitle =>
+      'Dances, notes and breaks a program made from this template starts with.';
+
+  @override
+  String get programTemplatesLoadError =>
+      'Couldn\'t load your program templates.';
+
+  @override
+  String get programTemplateSaveError =>
+      'Couldn\'t save that change to your templates. Try again.';
+
+  @override
+  String get settingsSuggestionsHeader => 'Suggestions';
+
+  @override
+  String get settingsSuggestionsEnabledTitle => 'Suggest the next dance';
+
+  @override
+  String get settingsSuggestionsEnabledSubtitle =>
+      'Adds Suggested to the Sort menu of the program builder\'s dance lists. It orders the dances for where the new one will go and says why.';
+
+  @override
+  String get settingsSuggestionsInPerformSwapTitle =>
+      'Use in Perform\'s Swap this dance';
+
+  @override
+  String get settingsSuggestionsInPerformSwapSubtitle =>
+      'When you swap a dance in Perform, lists the dances below Your alternates in the order that best fits that place in the program, and says why. Nothing is left out.';
+
+  @override
+  String get settingsSuggestionsEditorTitle => 'What suggestions look for';
+
+  @override
+  String get settingsSuggestionsEditorSubtitle =>
+      'Choose how much each thing counts when dances are suggested.';
+
+  @override
+  String get suggestionFactorMatrixVarietyTitle => 'Variety on the matrix';
+
+  @override
+  String get suggestionFactorMatrixVarietyHelp =>
+      'Favor dances with moves the program hasn\'t used yet. Avoid moves on the same beats as the dance before.';
+
+  @override
+  String get suggestionFactorFormationBalanceTitle => 'Formation balance';
+
+  @override
+  String get suggestionFactorFormationBalanceHelp =>
+      'Avoid the formation of the dance before, and formations the program already has many of.';
+
+  @override
+  String get suggestionFactorDifficultyCurveTitle => 'Difficulty curve';
+
+  @override
+  String get suggestionFactorDifficultyCurveHelp =>
+      'Fit the difficulty of the evening to a shape.';
+
+  @override
+  String get suggestionFactorVenueRecencyTitle => 'Recent calls at this venue';
+
+  @override
+  String get suggestionFactorVenueRecencyHelp =>
+      'Avoid dances called recently at the program\'s venue. A program with no venue skips this.';
+
+  @override
+  String get suggestionWeightOff => 'Off';
+
+  @override
+  String get suggestionWeightALittle => 'A little';
+
+  @override
+  String get suggestionWeightALot => 'A lot';
+
+  @override
+  String suggestionWeightSemantic(String factor) {
+    return 'How much $factor counts';
+  }
+
+  @override
+  String get suggestionCurveShapeLabel => 'Shape';
+
+  @override
+  String get suggestionCurveBuildThenEase => 'Build up, then ease off';
+
+  @override
+  String get suggestionCurveEven => 'Even';
+
+  @override
+  String get suggestionsResetDefaults => 'Reset to defaults';
+
+  @override
+  String get suggestionsResetDone =>
+      'Suggestions look for the default things again.';
+
+  @override
+  String get suggestionsNewerVersion =>
+      'These choices were saved by a newer version of the app, so they can\'t be changed here. Update the app to change them.';
+
+  @override
+  String get collectionSortSuggested => 'Suggested';
+
+  @override
+  String suggestionReasonNewMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count new moves for tonight',
+      one: 'A new move for tonight',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapPrevious(String move) {
+    return 'Same $move beats as the previous dance';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapNext(String move) {
+    return 'Same $move beats as the next dance';
+  }
+
+  @override
+  String suggestionReasonSameFormationPrevious(String formation) {
+    return '$formation, like the previous dance';
+  }
+
+  @override
+  String suggestionReasonSameFormationNext(String formation) {
+    return '$formation, like the next dance';
+  }
+
+  @override
+  String suggestionReasonFormationCommon(int count, String formation) {
+    return 'Already $count $formation dances tonight';
+  }
+
+  @override
+  String suggestionReasonFirstFormation(String formation) {
+    return '$formation: the first tonight';
+  }
+
+  @override
+  String get suggestionReasonFitsCurve => 'Fits the difficulty curve here';
+
+  @override
+  String get suggestionReasonHarderThanCurve =>
+      'Harder than the difficulty curve wants here';
+
+  @override
+  String get suggestionReasonEasierThanCurve =>
+      'Easier than the difficulty curve wants here';
+
+  @override
+  String suggestionReasonCalledHereRecently(String venue, String date) {
+    return 'Called at $venue on $date';
+  }
+
+  @override
+  String suggestionReasonNotCalledHereSince(String venue, String date) {
+    return 'Not called at $venue since $date';
+  }
+
+  @override
+  String suggestionReasonNeverCalledHere(String venue) {
+    return 'Never called at $venue';
+  }
+
+  @override
+  String get suggestionReasonVenueSkipped =>
+      'Recent calls at this venue: skipped, because the program has no venue';
+
+  @override
+  String get suggestionReasonNoFactor =>
+      'Nothing it looks for moved this dance';
+
+  @override
+  String get suggestionReasonEnglishNotCovered =>
+      'Suggestions don\'t cover English dances yet';
+
+  @override
+  String suggestionReasonPhraseOverlapPrevious(String move) {
+    return '$move in the same phrase as the previous dance';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapNext(String move) {
+    return '$move in the same phrase as the next dance';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapAfterDance(String move, String dance) {
+    return 'Same $move beats as $dance, after it';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapBeforeDance(String move, String dance) {
+    return 'Same $move beats as $dance, before it';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapAfterDance(String move, String dance) {
+    return '$move in the same phrase as $dance, after it';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapBeforeDance(String move, String dance) {
+    return '$move in the same phrase as $dance, before it';
+  }
+
+  @override
+  String suggestionReasonSameFormationAfterDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation, like $dance, after it';
+  }
+
+  @override
+  String suggestionReasonSameFormationBeforeDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation, like $dance, before it';
+  }
+
+  @override
+  String get suggestionReasonAlreadyInProgram => 'Already in this program';
+
+  @override
+  String get suggestionRankingFailed =>
+      'Couldn\'t rank these dances, so they\'re in their usual order.';
+
+  @override
+  String suggestionWhyTooltip(String title) {
+    return 'Why $title is suggested here';
+  }
+
+  @override
+  String suggestionWhyTitle(String title) {
+    return 'Why $title';
+  }
+
+  @override
+  String suggestionWhyRaises(String reason) {
+    return 'Raises it: $reason';
+  }
+
+  @override
+  String suggestionWhyLowers(String reason) {
+    return 'Lowers it: $reason';
+  }
+
+  @override
+  String get figureParamSearchDancersHint => 'Search dancers';
+
+  @override
+  String get exportAddToCalendar => 'Add to calendar (.ics)';
+
+  @override
+  String get programsExportCalendar => 'Export calendar (.ics)';
+
+  @override
+  String get exportCalendarPickTitle => 'Export calendar';
+
+  @override
+  String get exportCalendarPickBody =>
+      'Choose the programs to put in the calendar file.';
+
+  @override
+  String get exportCalendarShowPast => 'Show past programs';
+
+  @override
+  String get exportCalendarNoUpcoming =>
+      'No upcoming programs to list. Archived programs aren\'t listed here. Turn on Show past programs to choose an earlier one.';
+
+  @override
+  String get exportCalendarNoDated =>
+      'No program has an event date yet. Give a program a date to add it to a calendar.';
+
+  @override
+  String get exportCalendarPickConfirm => 'Export';
+
+  @override
+  String get exportCalendarAddressTitle => 'Include the venue\'s address?';
+
+  @override
+  String get exportCalendarAddressBody =>
+      'The calendar file names the venue. Its street address is left out unless you include it. Calendars are often synced or shared with others.';
+
+  @override
+  String get exportCalendarAddressInclude => 'Include the venue\'s address';
+
+  @override
+  String get exportCalendarDialogTitle => 'Export calendar file';
+
+  @override
+  String get exportCalendarDialogMessage =>
+      'Choose how to deliver this calendar file.';
+
+  @override
+  String get exportCalendarSavedGeneric => 'Calendar file saved.';
+
+  @override
+  String get exportCalendarSaveError =>
+      'Couldn\'t save this calendar file. Try again.';
+
+  @override
+  String get exportCalendarShareError =>
+      'Couldn\'t share this calendar file. Try again.';
+
+  @override
+  String get importErrorNotACalendar =>
+      'That address didn\'t return a calendar. For a Google Calendar, use its address in iCal format (Settings and sharing ▸ Integrate calendar), not the ordinary link.';
+
+  @override
+  String get importFromCalendar => 'From calendar';
+
+  @override
+  String get importProgramFromCalendar => 'Import from calendar';
+
+  @override
+  String get calendarImportTitle => 'Import from calendar';
+
+  @override
+  String get calendarImportImport => 'Import';
+
+  @override
+  String get calendarAddressLabel => 'Calendar address';
+
+  @override
+  String get calendarAddressHelper =>
+      'The calendar\'s iCal address, starting https:// or webcal://. A private calendar\'s secret address works too; keep it to yourself.';
+
+  @override
+  String get calendarImportFetch => 'Fetch events';
+
+  @override
+  String get calendarImportFailed =>
+      'Couldn\'t import from the calendar. Try again.';
+
+  @override
+  String get calendarImportUntitled => 'Untitled event';
+
+  @override
+  String calendarImportCommitted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count draft programs added from your calendar.',
+      one: '1 draft program added from your calendar.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportNothingFound => 'No events in the date range.';
+
+  @override
+  String calendarImportSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count new events.',
+      one: '1 new event.',
+      zero: 'No new events.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportNewHeader => 'New in your calendar';
+
+  @override
+  String get calendarImportDeletedHeader => 'You deleted these programs';
+
+  @override
+  String get calendarImportDeletedNote =>
+      'You deleted the program made from this event. Tick it to import it again.';
+
+  @override
+  String get calendarImportAlreadyHeader => 'Already imported';
+
+  @override
+  String get calendarImportFromThisAppHeader => 'From this app';
+
+  @override
+  String get calendarImportUnreadableHeader =>
+      'Repeating events the app can\'t read';
+
+  @override
+  String get calendarImportUnreadableBody =>
+      'These repeat in a way the app doesn\'t understand, so they are not imported.';
+
+  @override
+  String calendarImportSkippedNoUid(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count events have no identifier and were skipped.',
+      one: '1 event has no identifier and was skipped.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarImportTruncated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'The calendar has more than $count events. Only the first $count were read.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarSettingsHeader => 'Calendar';
+
+  @override
+  String get calendarSettingsSaveError =>
+      'Couldn\'t save that setting. Try again.';
+
+  @override
+  String get calendarAddressSet => 'Set. Tap to change it.';
+
+  @override
+  String get calendarAddressNotSet => 'Not set';
+
+  @override
+  String get calendarWindowTitle => 'Which events';
+
+  @override
+  String get calendarWindowSubtitle =>
+      'Events from today up to this far ahead. Repeating events are read only 30 days ahead.';
+
+  @override
+  String calendarWindowOption(int months) {
+    String _temp0 = intl.Intl.pluralLogic(
+      months,
+      locale: localeName,
+      other: '$months months',
+      one: '1 month',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarTitleFilterTitle => 'Only events whose title contains';
+
+  @override
+  String get calendarTitleFilterHelper =>
+      'For a calendar that also holds other events. Leave empty for every event.';
+
+  @override
+  String get calendarTitleFilterNone => 'Every event';
+
+  @override
+  String calendarTitleFilterValue(String filter) {
+    return '\"$filter\"';
+  }
+
+  @override
+  String get calendarPullNowTitle => 'Pull now';
+
+  @override
+  String get calendarPullNowSubtitle =>
+      'Read the calendar and choose events to add as draft programs.';
+
+  @override
+  String get collectionExportCsv => 'Export as CSV';
+
+  @override
+  String get settingsExportDancesCsvTitle => 'Export dances as a spreadsheet';
+
+  @override
+  String get settingsExportDancesCsvSubtitle =>
+      'Every dance in your collection, as a CSV file for Excel, Numbers or Google Sheets. It follows the sharing rules, plus your star ratings. It is not a backup and can\'t be restored.';
+
+  @override
+  String get settingsExportDancesCsvAction => 'Export';
+
+  @override
+  String get exportCsvDialogTitle => 'Export a spreadsheet (CSV)';
+
+  @override
+  String get exportCsvDialogMessage =>
+      'Save the file, or share it with another app. It opens in Excel, Numbers, LibreOffice or Google Sheets.';
+
+  @override
+  String get exportCsvSavedGeneric => 'Spreadsheet saved.';
+
+  @override
+  String get exportCsvSaveError =>
+      'Couldn\'t save this spreadsheet. Try again.';
+
+  @override
+  String get exportCsvShareError =>
+      'Couldn\'t share this spreadsheet. Try again.';
+
+  @override
+  String get exportCsvError => 'Couldn\'t make this spreadsheet. Try again.';
+
+  @override
+  String get csvDancesFileStem => 'dances';
+
+  @override
+  String get csvColumnTitle => 'Title';
+
+  @override
+  String get csvColumnAuthors => 'Authors';
+
+  @override
+  String get csvColumnInterpreters => 'Interpreted by';
+
+  @override
+  String get csvColumnForm => 'Type';
+
+  @override
+  String get csvColumnFormation => 'Formation';
+
+  @override
+  String get csvColumnProgression => 'Progression';
+
+  @override
+  String get csvColumnLevel => 'Level';
+
+  @override
+  String get csvColumnMixedLevel => 'Mixed level';
+
+  @override
+  String get csvColumnMixer => 'Mixer';
+
+  @override
+  String get csvColumnStatus => 'Status';
+
+  @override
+  String get csvColumnRating => 'Rating';
+
+  @override
+  String get csvColumnTags => 'Tags';
+
+  @override
+  String get csvColumnTunes => 'Tunes';
+
+  @override
+  String get csvColumnMeter => 'Meter';
+
+  @override
+  String get csvColumnKey => 'Key';
+
+  @override
+  String get csvColumnSources => 'Published sources';
+
+  @override
+  String get csvColumnHook => 'Hook';
+
+  @override
+  String get csvColumnCallingNotes => 'Calling notes';
+
+  @override
+  String get csvColumnWalkthrough => 'Walkthrough';
+
+  @override
+  String get csvColumnFigures => 'Figures';
+
+  @override
+  String get csvColumnComposed => 'Composed';
+
+  @override
+  String get csvColumnInterpreted => 'Interpreted in';
+
+  @override
+  String get csvColumnBarnes => 'Barnes reference';
+
+  @override
+  String get programsExportCsv => 'Export programs as CSV';
+
+  @override
+  String get csvProgramsFileStem => 'programs';
+
+  @override
+  String get csvColumnEventDate => 'Event date';
+
+  @override
+  String get csvColumnVenue => 'Venue';
+
+  @override
+  String get csvColumnCaller => 'Caller';
+
+  @override
+  String get csvColumnBand => 'Band';
+
+  @override
+  String get csvColumnDancerLevel => 'Dancer level';
+
+  @override
+  String get csvColumnPayAmount => 'Pay';
+
+  @override
+  String get csvColumnPayCurrency => 'Currency';
+
+  @override
+  String get csvColumnNotes => 'Notes';
+
+  @override
+  String get csvColumnDanceCount => 'Number of dances';
+
+  @override
+  String get csvColumnDances => 'Dances';
+
+  @override
+  String get exportCsvPayHiddenNotice =>
+      'Pay is hidden in Settings, so it is left out. Turn on Show pay in Settings ▸ Program to include it.';
+
+  @override
+  String get performSwapThisDance => 'Swap this dance';
+
+  @override
+  String performSwapDanceNamed(String title) {
+    return 'Swap $title';
+  }
+
+  @override
+  String performSwappedAnnounce(String title) {
+    return 'Swapped in $title';
+  }
+
+  @override
+  String get performSwapKeepHeader => 'Keep';
+
+  @override
+  String performSwapKeepFormation(String formation) {
+    return 'Same formation: $formation';
+  }
+
+  @override
+  String performSwapKeepLevel(String level) {
+    return 'This level or easier: $level';
+  }
+
+  @override
+  String performSwapKeepType(String type) {
+    return 'Same type: $type';
+  }
+
+  @override
+  String get performSwapKeepNotInProgram => 'Not already in tonight\'s program';
+
+  @override
+  String get performSwapFiguresHeader => 'Figures to keep';
+
+  @override
+  String performSwapFigureInPhrase(String figure, String phrase) {
+    return '$figure in $phrase';
+  }
+
+  @override
+  String performSwapKeepFigureSemantic(String figure) {
+    return 'Keep $figure';
+  }
+
+  @override
+  String performSwapSamePhrase(String phrase) {
+    return 'In the same phrase ($phrase)';
+  }
+
+  @override
+  String performSwapSamePhraseSemantic(String figure, String phrase) {
+    return 'Keep $figure in the same phrase, $phrase';
+  }
+
+  @override
+  String performSwapWithBefore(String figure) {
+    return 'With what comes before it ($figure)';
+  }
+
+  @override
+  String performSwapWithBeforeSemantic(String figure, String before) {
+    return 'Keep $figure right after $before';
+  }
+
+  @override
+  String get performSwapMoreFilters => 'More filters';
+
+  @override
+  String get performSwapKeepInPanels =>
+      'The other Keep choices are now in Filters and Advanced.';
+
+  @override
+  String get performSwapEnglishNote =>
+      'For English dances, same formation and the figure refinements are not offered yet.';
+
+  @override
+  String get performSwapAlternatesHeading => 'Your alternates';
+
+  @override
+  String get performSwapResultsHeading => 'Matching dances';
+
+  @override
+  String get performSwapRefused =>
+      'This program changed on another device, so one of your changes wasn\'t saved. Check the program and make it again if you still want it.';
+
+  @override
+  String get settingsPerformSwapTitle => 'Swap a dance';
+
+  @override
+  String get settingsPerformSwapSubtitle =>
+      'Choose which Keep choices are on when you swap a dance in Perform.';
+
+  @override
+  String get settingsPerformSwapFormation => 'Same formation';
+
+  @override
+  String get settingsPerformSwapLevel => 'This level or easier';
+
+  @override
+  String get settingsPerformSwapType => 'Same type';
+
+  @override
+  String get settingsPerformSwapTypeSubtitle =>
+      'Offered only in a program that mixes types, such as contras and English dances.';
+
+  @override
+  String get settingsPerformSwapNewerVersion =>
+      'These choices were saved by a newer version of the app. This version uses its starting choices, with every one on, and won\'t overwrite yours. Update the app to change them.';
+
+  @override
+  String get settingsPerformSwapReadError =>
+      'Your Swap a dance choices couldn\'t be read, so they can\'t be changed now. Close this screen and try again.';
+
+  @override
+  String get collectionRepertoireMenuItem => 'Repertoire';
+
+  @override
+  String get repertoireTitle => 'Repertoire';
+
+  @override
+  String get repertoireLoadError => 'Couldn\'t work out your repertoire';
+
+  @override
+  String get repertoirePeriodLabel => 'Period';
+
+  @override
+  String get repertoirePeriodAllTime => 'All time';
+
+  @override
+  String repertoirePeriodMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Last $count months',
+      one: 'Last month',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get repertoirePeriodSinceDate => 'Since a date…';
+
+  @override
+  String repertoirePeriodSince(String date) {
+    return 'Since $date';
+  }
+
+  @override
+  String get repertoireTypeLabel => 'Dance type';
+
+  @override
+  String get repertoireTypeAll => 'All types';
+
+  @override
+  String repertoireSummary(int calls, int called, int total) {
+    return 'Calls in this period: $calls. Dances called: $called of $total.';
+  }
+
+  @override
+  String get repertoireMostCalledHeader => 'Most called';
+
+  @override
+  String get repertoireLeastCalledHeader =>
+      'Least called (of those you have called)';
+
+  @override
+  String get repertoireLeastCalledAllShown =>
+      'Every dance you called in this period is already listed under Most called.';
+
+  @override
+  String get repertoireNoCalls => 'No counted calls in this period.';
+
+  @override
+  String repertoireDanceCalls(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'called $count times',
+      one: 'called once',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireDanceSemantics(String title, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'called $count times',
+      one: 'called once',
+    );
+    return '$title: $_temp0';
+  }
+
+  @override
+  String get repertoireNeverCalledHeader => 'Never called';
+
+  @override
+  String get repertoireNeverCalledLabel => 'Never called';
+
+  @override
+  String repertoireOfDances(int count, int total) {
+    return '$count of $total dances';
+  }
+
+  @override
+  String repertoireNeverCalledSemantics(int count, int total) {
+    return 'Never called: $count of $total dances';
+  }
+
+  @override
+  String repertoireNeverCalledDanceSemantics(String title) {
+    return '$title: never called';
+  }
+
+  @override
+  String get repertoireNotCalledInPeriodLabel => 'Not called in this period';
+
+  @override
+  String repertoireNotCalledInPeriodSemantics(int count, int total) {
+    return 'Not called in this period: $count of $total dances';
+  }
+
+  @override
+  String get repertoireFigureHeader => 'Figure frequency';
+
+  @override
+  String get repertoireNoFigures => 'None of these dances has figures entered.';
+
+  @override
+  String repertoireFigureValue(int dances, int total, int percent, int calls) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls calls',
+      one: '1 call',
+    );
+    return 'in $dances of $total dances ($percent%) · $_temp0';
+  }
+
+  @override
+  String repertoireFigureSemantics(
+    String move,
+    int dances,
+    int total,
+    int percent,
+    int calls,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls calls',
+      one: '1 call',
+    );
+    return '$move: in $dances of $total dances, $percent percent; $_temp0 in this period';
+  }
+
+  @override
+  String repertoireShowAll(int count) {
+    return 'Show all $count';
+  }
+
+  @override
+  String get repertoireShowFewer => 'Show fewer';
+
+  @override
+  String get repertoireAuthorsHeader => 'Authors you call';
+
+  @override
+  String repertoireAuthorsSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count authors called in this period.',
+      one: '1 author called in this period.',
+      zero: 'No author called in this period.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireShareValue(int calls, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls calls',
+      one: '1 call',
+    );
+    return '$_temp0 ($percent%)';
+  }
+
+  @override
+  String repertoireShareSemantics(String label, int calls, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls calls',
+      one: '1 call',
+    );
+    return '$label: $_temp0, $percent percent of calls in this period';
+  }
+
+  @override
+  String get repertoireFormationHeader => 'Formation mix';
+
+  @override
+  String get repertoireVenuesHeader => 'Repeats per venue';
+
+  @override
+  String get repertoireNoRepeats =>
+      'No dance was called more than once at one venue in this period.';
+
+  @override
+  String get repertoireVenueUnnamed => 'Unnamed venue';
+
+  @override
+  String repertoireVenueRepeats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dances repeated',
+      one: '1 dance repeated',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireVenueSemantics(String venue, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count dances called more than once',
+      one: '1 dance called more than once',
+    );
+    return '$venue: $_temp0';
+  }
+
+  @override
+  String get settingsExperimentalRepertoireHeader => 'Repertoire';
+
+  @override
+  String get settingsExperimentalShowRepertoireTitle => 'Repertoire';
+
+  @override
+  String get settingsExperimentalShowRepertoireSubtitle =>
+      'Adds Repertoire to Collection\'s More actions menu: your most and least called dances, what you\'ve never called, figure frequency, authors, formations and repeats per venue.';
+
+  @override
+  String get importSourceLabelCsv => 'Your own spreadsheet (CSV)';
+
+  @override
+  String get importCsvPickFile => 'Choose a CSV file…';
+
+  @override
+  String get importSourceLabelTextDocument => 'Your own text or Markdown file';
+
+  @override
+  String get importTextHint =>
+      'Choose a .txt or .md file. Start each dance with a heading (## Title), or with its title after a blank line. Put details on \"Label: value\" lines (Formation: Improper) and one figure per line (A1 (8) Neighbor swing).';
+
+  @override
+  String get importTextPickFile => 'Choose a text or Markdown file…';
+
+  @override
+  String get importTextMapTitle => 'Map labels';
+
+  @override
+  String get importTextMapIntro =>
+      'Choose what each label in your file holds. A label no field takes is kept in the calling notes with its name; choose Ignore to leave it out. Nothing is added until you review and confirm.';
+
+  @override
+  String get importTextDanceStartLabel => 'Each dance starts at';
+
+  @override
+  String importTextDanceStartHeading(String marks) {
+    return 'A $marks heading';
+  }
+
+  @override
+  String get importTextDanceStartBlankLine => 'A title after a blank line';
+
+  @override
+  String get importTextTargetLabelledNotes => 'Calling notes, with the label';
+
+  @override
+  String get importTextNotUtf8 =>
+      'This file isn\'t saved as UTF-8 text, so accented letters would come in wrong. Save it again as UTF-8 text and choose that file.';
+
+  @override
+  String importTextTooManyDances(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'This file has more than $limitString dances. Split it into smaller files.';
+  }
+
+  @override
+  String importTextLineTooLong(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'A line in this file is longer than $limitString characters.';
+  }
+
+  @override
+  String importTextDanceTooLong(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'A dance in this file has more than $limitString characters of figures, notes or one detail.';
+  }
+
+  @override
+  String importTextTooManyLabels(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'This file uses more than $limitString different labels.';
+  }
+
+  @override
+  String get importCsvSaveAsHint =>
+      'In your spreadsheet, choose File ▸ Save As (or Download) and pick \"CSV UTF-8\", then choose that file here.';
+
+  @override
+  String get importCsvMapTitle => 'Map columns';
+
+  @override
+  String get importCsvMapIntro =>
+      'Choose what each column holds. Columns set to Ignore are left out. Nothing is added until you review and confirm.';
+
+  @override
+  String get importCsvSeparatorLabel => 'Separator';
+
+  @override
+  String get importCsvSeparatorComma => 'Comma (,)';
+
+  @override
+  String get importCsvSeparatorSemicolon => 'Semicolon (;)';
+
+  @override
+  String get importCsvSeparatorTab => 'Tab';
+
+  @override
+  String get importCsvFirstRowHeader => 'The first row names the columns';
+
+  @override
+  String importCsvColumnFallback(int number) {
+    return 'Column $number';
+  }
+
+  @override
+  String get importCsvTargetIgnore => 'Ignore';
+
+  @override
+  String importCsvTargetPhrase(String phrase) {
+    return 'Figures, $phrase';
+  }
+
+  @override
+  String importCsvTargetNewField(String type) {
+    return 'New custom field ($type)';
+  }
+
+  @override
+  String importCsvTargetExistingField(String name) {
+    return 'Custom field: $name';
+  }
+
+  @override
+  String get importCsvNeedsTitle =>
+      'Choose the column that holds each dance\'s title.';
+
+  @override
+  String get importCsvContinue => 'Continue';
+
+  @override
+  String get importCsvPreviewHeading => 'First rows';
+
+  @override
+  String get importCsvNotUtf8 =>
+      'This file isn\'t saved as UTF-8 text, so accented letters would come in wrong. In your spreadsheet, save it again as \"CSV UTF-8\" and choose that file.';
+
+  @override
+  String get importCsvTooLarge =>
+      'This file is too large to import. Split it into smaller files.';
+
+  @override
+  String importCsvTooManyRows(int limit) {
+    return 'This file has more than $limit rows. Split it into smaller files.';
+  }
+
+  @override
+  String importCsvTooManyColumns(int limit) {
+    return 'A row in this file has more than $limit columns.';
+  }
+
+  @override
+  String importCsvCellTooLong(int limit) {
+    return 'A cell in this file is longer than $limit characters.';
+  }
+
+  @override
+  String get importCsvUnterminatedQuote =>
+      'This file has a quoted cell that never ends, so it can\'t be read.';
+
+  @override
+  String importCsvLargeBatch(int count) {
+    return 'This file has $count rows. Reviewing them may take a while.';
+  }
+
+  @override
+  String get importCsvNoRows =>
+      'This file has no rows of dances, only the column names.';
+
+  @override
+  String calendarImportUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count programs updated from your calendar.',
+      one: '1 program updated from your calendar.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportReviewed =>
+      'Calendar checked. Nothing was added or changed.';
+
+  @override
+  String calendarChangeDate(String before, String after) {
+    return 'Date: $before → $after';
+  }
+
+  @override
+  String calendarChangeTitle(String before, String after) {
+    return 'Title: $before → $after';
+  }
+
+  @override
+  String calendarChangeTime(String before, String after) {
+    return 'Time: $before → $after';
+  }
+
+  @override
+  String calendarChangeVenue(String before, String after) {
+    return 'Venue: $before → $after';
+  }
+
+  @override
+  String get calendarImportUpdatedHeader => 'Updated in your calendar';
+
+  @override
+  String get calendarImportChangedHeader => 'Changed in your calendar';
+
+  @override
+  String get calendarImportChangedBody =>
+      'You\'ve worked on these programs, so nothing changes unless you tick it.';
+
+  @override
+  String get calendarImportFlaggedHeader =>
+      'Canceled or gone from your calendar';
+
+  @override
+  String get calendarImportFlaggedBody =>
+      'These programs are kept as they are and labeled. Archive or delete them yourself if you no longer need them.';
+
+  @override
+  String get calendarFlagCancelled => 'Canceled in your calendar';
+
+  @override
+  String get calendarFlagMissing => 'No longer in your calendar';
+
+  @override
+  String get calendarFlagOther => 'Flagged by your calendar';
+
+  @override
+  String get calendarFlagFieldLabel => 'Calendar flag';
+
+  @override
+  String get calendarClearFlag => 'Clear calendar flag';
+
+  @override
+  String get calendarClearFlagError =>
+      'Couldn\'t clear the calendar flag. Try again.';
+
+  @override
+  String get calendarOnStartupTitle => 'Import calendar when the app starts';
+
+  @override
+  String get calendarOnStartupSubtitle =>
+      'Off by default. When on, the app reads your calendar once each time it starts, and says nothing if it can\'t.';
+
+  @override
+  String get calendarStartupModeTitle => 'At startup';
+
+  @override
+  String get calendarStartupModeReport => 'Report new events';
+
+  @override
+  String get calendarStartupModeAdd => 'Add them as drafts';
+
+  @override
+  String get calendarStartupModeReportSubtitle =>
+      'Tells you about new events; nothing is added until you review them.';
+
+  @override
+  String get calendarStartupModeAddSubtitle =>
+      'Adds new events as draft programs, with Undo. Changed or canceled events are only reported.';
+
+  @override
+  String calendarLastResultFailed(String when) {
+    return 'Couldn\'t reach the calendar at startup ($when)';
+  }
+
+  @override
+  String calendarLastResultAdded(String when, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count drafts added',
+      one: '1 draft added',
+    );
+    return 'Checked at startup $when: $_temp0';
+  }
+
+  @override
+  String calendarLastResultNew(String when, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count new events',
+      one: '1 new event',
+      zero: 'no new events',
+    );
+    return 'Checked at startup $when: $_temp0';
+  }
+
+  @override
+  String calendarStartupFailureNotice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'The calendar couldn\'t be reached the last $count times the app started.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarStartupFailureHint =>
+      'Check the calendar address, or your connection.';
+
+  @override
+  String calendarStartupNewEvents(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count new events in your calendar.',
+      one: '1 new event in your calendar.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarStartupChanges(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count changes need you.',
+      one: '1 change needs you.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarStartupShow => 'Show';
+
+  @override
+  String get calendarStartupReview => 'Review';
+
+  @override
+  String calendarLastResultError(String when) {
+    return 'Couldn\'t import from the calendar at startup ($when)';
+  }
+
+  @override
+  String get savedSearchSaveThis => 'Save this search…';
+
+  @override
+  String savedSearchUpdate(String name) {
+    return 'Update \"$name\"';
+  }
+
+  @override
+  String savedSearchRename(String name) {
+    return 'Rename \"$name\"…';
+  }
+
+  @override
+  String savedSearchDelete(String name) {
+    return 'Delete \"$name\"';
+  }
+
+  @override
+  String get savedSearchNeedsAttention => 'Needs attention';
+
+  @override
+  String get savedSearchUnreadableItem =>
+      'A saved search that can\'t be opened';
+
+  @override
+  String get savedSearchUnreadableTitle => 'Can\'t open this saved search';
+
+  @override
+  String get savedSearchUnreadableBody =>
+      'It was saved by a newer version of the app, or it is damaged, so it is not used. You can delete it, and undo that.';
+
+  @override
+  String get savedSearchSaveDialogTitle => 'Save this search';
+
+  @override
+  String get savedSearchRenameDialogTitle => 'Rename saved search';
+
+  @override
+  String get savedSearchNameLabel => 'Name';
+
+  @override
+  String savedSearchWindowNotCalled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Not called in the last $count months',
+      one: 'Not called in the last month',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String savedSearchWindowCalled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Called in the last $count months',
+      one: 'Called in the last month',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String savedSearchWindowInert(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Calling history window kept: the last $count months',
+      one: 'Calling history window kept: the last month',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedSearchTooLargeTitle => 'Search too large';
+
+  @override
+  String get savedSearchTooLargeBody =>
+      'This search has too many filters or rows to save. Remove some, then save it again.';
+
+  @override
+  String get savedSearchLimitTitle => 'Too many saved searches';
+
+  @override
+  String savedSearchLimitBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          'You can keep up to $count saved searches. Delete one to save another.',
+      one: 'You can keep 1 saved search. Delete it to save another.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedSearchNameRefused => 'That name can\'t be used. Try another.';
+
+  @override
+  String get savedSearchFailed =>
+      'Couldn\'t do that with your saved searches. Try again.';
+
+  @override
+  String savedSearchSavedSnack(String name) {
+    return 'Saved \"$name\"';
+  }
+
+  @override
+  String savedSearchUpdatedSnack(String name) {
+    return 'Updated \"$name\"';
+  }
+
+  @override
+  String savedSearchDeletedSnack(String name) {
+    return 'Deleted \"$name\"';
+  }
+
+  @override
+  String savedSearchInUseTitle(String name) {
+    return 'Can\'t delete \"$name\"';
+  }
+
+  @override
+  String get savedSearchInUseBody =>
+      'It is still used by these. Change or remove them first, then delete it.';
+
+  @override
+  String savedSearchNoticeTitle(String name) {
+    return '\"$name\" uses things that are gone:';
+  }
+
+  @override
+  String get savedSearchNoticeRest =>
+      'The rest of the search is shown. Remove these yourself to update it.';
+
+  @override
+  String get savedSearchNoticeFieldSkipped =>
+      'A filter on a deleted custom field is left out of the results.';
+
+  @override
+  String get savedSearchNoticeClose => 'Close notice';
+
+  @override
+  String savedSearchMissingTag(String name) {
+    return 'The tag $name, which was deleted';
+  }
+
+  @override
+  String get savedSearchMissingTagUnnamed => 'A tag that was deleted';
+
+  @override
+  String savedSearchMissingAuthor(String name) {
+    return 'The author $name, which was deleted';
+  }
+
+  @override
+  String get savedSearchMissingAuthorUnnamed => 'An author that was deleted';
+
+  @override
+  String savedSearchMissingSource(String name) {
+    return 'The source $name, which was deleted';
+  }
+
+  @override
+  String get savedSearchMissingSourceUnnamed => 'A source that was deleted';
+
+  @override
+  String savedSearchMissingLevel(String name) {
+    return 'The level $name, which was deleted';
+  }
+
+  @override
+  String get savedSearchMissingLevelUnnamed => 'A level that was deleted';
+
+  @override
+  String savedSearchMissingVenue(String name) {
+    return 'The venue $name, which was deleted';
+  }
+
+  @override
+  String get savedSearchMissingVenueUnnamed => 'A venue that was deleted';
+
+  @override
+  String savedSearchMissingField(String name) {
+    return 'The custom field $name, which was deleted';
+  }
+
+  @override
+  String get savedSearchMissingFieldUnnamed =>
+      'A custom field that was deleted';
+
+  @override
+  String savedSearchMissingFieldType(String name) {
+    return 'The custom field $name, whose type changed';
+  }
+
+  @override
+  String savedSearchMissingFieldChoice(String choice, String name) {
+    return 'The choice $choice of $name, which was removed';
+  }
+
+  @override
+  String get savedSearchMissingFigureDetail =>
+      'A figure detail in Advanced that can\'t be shown';
+
+  @override
+  String get savedSearchMissingUserFigure =>
+      'One of your figures, which was deleted';
+
+  @override
+  String get savedSearchMissingInvalid => 'Something this version can\'t read';
+
+  @override
+  String savedSearchSearchFor(String text) {
+    return 'Search for \"$text\"';
+  }
+
+  @override
+  String savedSearchHighlightedRow(String name, int index, int count) {
+    return '$name, $index of $count';
+  }
+
+  @override
+  String get savedSearchSaveAsNewSearch => 'Save as a new search…';
+
+  @override
+  String get settingsCollectionTitle => 'Collection';
+
+  @override
+  String get settingsSavedSearchesHeader => 'Saved searches';
+
+  @override
+  String get settingsSavedSearchesEmpty =>
+      'No saved searches yet. Save one from the Collection: set up a search, then choose Save this search… in the More actions menu.';
+
+  @override
+  String settingsSavedSearchRenameTooltip(String name) {
+    return 'Rename \"$name\"';
+  }
+
+  @override
+  String settingsSavedSearchDeleteTooltip(String name) {
+    return 'Delete \"$name\"';
+  }
+
+  @override
+  String savedSearchGone(String name) {
+    return '\"$name\" was deleted, here or on another device, so nothing was changed.';
+  }
 }

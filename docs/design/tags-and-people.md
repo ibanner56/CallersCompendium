@@ -43,7 +43,7 @@ they write immediately with Undo, and they create nothing.
 | Table | `tags` (`Tags` in `tables.dart`) | `choreographers` (`Choreographers` in `tables.dart`) | `published_sources` (`PublishedSources` in `tables.dart`) |
 | Natural key | `name`, `UNIQUE` | `name`, `UNIQUE` | none. `title` is not unique |
 | Join | `dance_tags` (`DanceTags`) | `dance_authors`, ordered (`DanceAuthors`) | `dance_sources`, ordered, with `page` and `number` (`DanceSources`) |
-| Rename in the app | nowhere | the author details dialog, refused on a collision (`dance_editor_screen.dart:744-779`) | the source details dialog (`dance_editor_screen.dart:837-842`) |
+| Rename in the app | nowhere | the author details dialog (`_editChoreographer` in `dance_editor_screen.dart`); a name another live author holds is offered as a merge (T3) | the source details dialog (`_editSource` in `dance_editor_screen.dart`) |
 | Delete in the app | only an Undo of batch tagging removes an *unused* tag it created (`dance_list_screen.dart`, the batch-tag Undo) | nowhere | nowhere |
 | Merge in the app | only the sync review queue (`settings.md:1200-1225`) | the same | nowhere |
 | Purge GC | erased with the last dance, unless it holds a detail (`_garbageCollectOrphanedRefs`) | the same | the same |
@@ -260,6 +260,32 @@ The steps run in one transaction:
 7. **Rewrite `default_import_tag_names`** (tags only). The loser's name is
    replaced by the chosen name, then de-duplicated. See
    [The import-tags setting](#the-import-tags-setting).
+8. **Rewrite saved searches** (#2325). Every live saved search that names a
+   loser (the Tags, Authors or Sources filter, and for a tag the Advanced tag
+   rows) is rewritten to name the survivor, as an ordinary edit of its own
+   settings value (`SavedSearchRepository.moveReferences`, called from
+   `ReferenceEditRepository.merge` after the per-loser steps 2 to 6, so the
+   tag manager, the reference manager and the author flow all get it). This
+   is a **user's** merge only: a merge that sync's own reconciliation applies
+   (§6.6) rewrites the dances' joins but not this device's saved searches, so
+   such a search is read through the alias until it is retired.
+   - A concurrent edit of the same saved search on a peer (a rename, say)
+     meets the rewrite by the usual per-key stamp rule: the later write wins
+     the whole value.
+   - The id written is the **survivor's**: the smallest id, which is not
+     necessarily the entry the user merged into.
+   - An id set stays sorted and without duplicates. Nothing else in the search
+     changes, and a search naming no loser is not written.
+   - A saved search this build cannot read (a newer format, a damaged value) is
+     left byte for byte as it is, and the merge still succeeds. This build
+     cannot use the alias for it either (the alias is applied only to a value
+     that decodes); a build that can read the format reads it through the
+     alias (step 6) until the alias is retired, and after that it reports the
+     loser as missing, as it does for any reference that is gone
+     (`search.md`, "The resolver"). An upgrade does not rewrite it
+     retroactively.
+   - Sync needs nothing new for this: each rewritten search is one ordinary
+     settings edit, behind the `savedSearches.v1` gate like any other.
 
 **Undo** restores the transaction's before-image:
 
@@ -279,7 +305,11 @@ The steps run in one transaction:
      merge and the Undo may have published the survivor in its own right.
      Over-marking costs only that the purge GC never erases the survivor;
 5. the import-tags setting is restored;
-6. every touched dance is bumped again.
+6. each rewritten saved search goes back to naming the losers, **only while it
+   is exactly as the merge left it**. One that has been edited, deleted or
+   brought by a sync pass since stays as it is: an Undo must not overwrite a
+   later change;
+7. every touched dance is bumped again.
 
 If a sync pass ran in between, the revival stamps above the tombstone (§6.4,
 `sync-spec.md:3036-3040`), so peers converge on the undone state as ordinary
@@ -392,6 +422,11 @@ tombstones it. The steps run in one transaction:
 - bump each of those dances;
 - tombstone the tag (`TagRepository.delete`, default path);
 - drop its name from `default_import_tag_names`.
+
+A saved search that names the deleted tag is **not** rewritten, because there
+is no survivor to point it at. It keeps naming the tag and is reported as using
+a tag that no longer exists; it is never evaluated without that criterion, which
+would broaden it (and, inside **None of**, invert it).
 
 **Decided: strip the joins, rather than keep them as `TagRepository.delete`
 does today** (D-N2-7 = N2-7 (a), 2026-10-30, as recommended). The reason is sync:
@@ -704,8 +739,8 @@ should drop the name.
 
 - **Where.** The key is defined in the app (`kDefaultImportTagNamesKey` in `display_defaults.dart`), so
   the rewrite runs in the app's controller, inside the same
-  `repos.transaction` as the core operation, as `_undoBatchTag` does
-  (`dance_list_screen.dart:1520-1538`). Moving the key into core is the
+  `repos.transaction` as the core operation, as `_undoBatchTag` in
+  `dance_list_screen.dart` does. Moving the key into core is the
   rejected alternative: the setting would gain nothing, and two packages
   would gain a coupling.
 - **Delete drops the name.** Today a name with no live tag is ignored at
@@ -754,11 +789,13 @@ unchanged. The registry's note on `choreographers.email`
 | Operation | What peers receive | Spec text it rests on |
 | --- | --- | --- |
 | Rename | An edit of the row, plus a renamed tombstone when a tombstone held the name | §6.3; §6.6 step 1 if a peer independently holds the new name, or holds that tombstone's deletion pending |
-| Merge | The survivor's edit, the loser's renamed tombstone, and the bumped dances | §6.5 I1; §6.8 pending deletion; §6.6 survivor rule and "The remap" (amended) |
+| Merge | The survivor's edit, the loser's renamed tombstone, the bumped dances and each rewritten saved search (an ordinary settings edit) | §6.5 I1; §6.8 pending deletion; §6.6 survivor rule and "The remap" (amended); §6.15 (`savedSearches.v1`) |
 | Delete (tags) | The tombstone, plus the bumped dances | §6.5 I1; §6.8 |
 | Undo | A revival, plus the bumped dances | §6.4 |
 
-**No new record kind, no new key, no capability.** The commonly-applied
+**No new record kind, no new key, no capability.** (The saved searches a merge
+rewrites are ordinary values under a key and capability that already exist,
+`saved_search:` and `savedSearches.v1`.) The commonly-applied
 constraint "§6.6 aliases and §6.15" (`decided-work-plan.md:794`) is met by
 reusing §6.6's alias table and needing nothing from §6.15. The sync "Merge"
 choice (`settings.md:1212-1218`) keeps working as it does. Because the loser's

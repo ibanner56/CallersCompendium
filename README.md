@@ -74,7 +74,8 @@ stay up to date.
 - **Private by design** — Your library is stored on your device, and the app is
   fully usable offline. There is **no analytics, tracking, or telemetry**. The
   app goes online only for actions you start — an import, an update check, or
-  Device Sync — and automatic update checks are **off by default**. See the
+  Device Sync — and automatic update checks and the startup calendar import are
+  **off by default**. See the
   [privacy policy](https://ibanner56.github.io/CallersCompendium/privacy/).
 - **Verified updates** — The optional in-app update check reads a
   **cryptographically signed** manifest and only accepts downloads from

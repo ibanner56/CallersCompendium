@@ -16,7 +16,7 @@ rendering.
 | Where is a 2026-10 audit finding or maintainer decision recorded? | [`audits/2026-10-behavior/`](audits/2026-10-behavior/README.md) — the October 2026 behaviour audit, kept as a historical record (see [Citing a record](#citing-a-record)) |
 | How do I contribute / set up the toolchain? | [`CONTRIBUTING.md`](../../CONTRIBUTING.md) |
 | What is planned, and what is done? | [`docs/ROADMAP.md`](../ROADMAP.md) (open work), [`docs/ROADMAP-archive.md`](../ROADMAP-archive.md) (completed phases) |
-| Why is the stack what it is? | [`docs/adr/`](../adr/) — 001 stack, 002 distribution/update channels, 003 Linux packaging, 004 Device Sync and the Athenaeum server, 005 difficulty vocabulary, 006 English country dance grammar |
+| Why is the stack what it is? | [`docs/adr/`](../adr/) — 001 stack, 002 distribution/update channels, 003 Linux packaging, 004 Device Sync and the Athenaeum server, 005 difficulty vocabulary, 006 English country dance grammar, 007 square dance grammar, 008 Rubric choreography checking and assistance |
 | How does Device Sync work? | [`docs/design/sync.md`](../design/sync.md), [`sync-spec.md`](../design/sync-spec.md) (the wire contract), [`sync-implementation.md`](../design/sync-implementation.md); the server is [`server/README.md`](../../server/README.md) |
 | What does the data model look like? | [`docs/design/domain-model.md`](../design/domain-model.md), [`docs/design/storage.md`](../design/storage.md) |
 | How do imports work? | [`docs/design/imports.md`](../design/imports.md) (large; read the section index at its head) |

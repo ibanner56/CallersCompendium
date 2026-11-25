@@ -652,6 +652,42 @@ void main() {
     // is that something is not modelled yet -- never where the record is
     // malformed, because no amount of implementation work would fix that.
 
+    test('a single-file promenade along the set is deferred unless it is '
+        'the progression', () {
+      // It is danced as a one-place slide only where it is the progression,
+      // as the Caller's Box bridge flags the one it takes (agent's call).
+      const along =
+          '"move": "promenade", '
+          '"params": {"where": "along", "singleFile": true}';
+      final unflagged = _parseErr(_record('{$along}'));
+      expect(unflagged.path, 'figures[0].params.where');
+      expect(unflagged.deferred, isTrue);
+      final nested = _parseErr(
+        _record(
+          '{"move": "modifier", "params": {"figures": ['
+          '{"move": "swing"}, {$along}]}, "progression": true}',
+        ),
+      );
+      expect(nested.path, 'figures[0].params.figures[1].params.where');
+      expect(nested.deferred, isTrue);
+      // The refusal names the spelling on the page.
+      expect(
+        _parseErr(
+          _record(
+            '{"move": "promenade", '
+            '"params": {"dir": "along", "singleFile": true}}',
+          ),
+        ).path,
+        'figures[0].params.dir',
+      );
+      expect(
+        _parseOk(
+          _record('{$along, "progression": true}'),
+        ).figures.single.operation,
+        const Promenade(where: 'along', singleFile: true),
+      );
+    });
+
     test('an unimplemented move is deferred', () {
       final error = _parseErr(_record('{"move": "dolphin_hey"}'));
 

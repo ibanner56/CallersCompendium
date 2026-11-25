@@ -280,7 +280,6 @@ const Map<String, _FigureBuilder> _registry = {
   'meanwhile': _buildMeanwhile,
   'modifier': _buildModifier,
   'orbit': _buildOrbit,
-  'pass_by': _buildPassBy,
   'pass_the_ocean': _buildPassTheOcean,
   'pass_through': _buildPassThrough,
   'petronella': _buildPetronella,
@@ -636,11 +635,6 @@ Operation _buildPullBy(_Params p) {
   return PullByDirection(balance: balance, dir: where, hand: hand);
 }
 
-Operation _buildPassBy(_Params p) => PassBy(
-  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.neighbors),
-  shoulder: p.enumOr(['shoulder'], Hand.fromKey, Hand.right),
-);
-
 Operation _buildBoxTheGnat(_Params p) => BoxTheGnat(
   // Taxonomy v38: `partners` -> `neighbors` (and so `swat_the_flea`).
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.neighbors),
@@ -650,10 +644,78 @@ Operation _buildBoxTheGnat(_Params p) => BoxTheGnat(
 
 // --- Axis swaps ------------------------------------------------------------
 
-Operation _buildPassThrough(_Params p) => PassThrough(
-  dir: p.enumOr(['where', 'dir'], Direction.fromKey, Direction.along),
-  shoulder: p.enumOr(['shoulder'], Hand.fromKey, Hand.right),
-);
+/// `pass_through`, which since taxonomy v40 is also the pass by: `passType`
+/// tells the two apart, and the `pass_by` alias pins `passType: by` and means
+/// `who: neighbors`, `where: unspecified` by an omitted param
+/// ([MoveAlias.defaultParams], applied in [_parseFigure]).
+///
+/// - **A pass by** swaps the pair named by `who`, as it always did. v40 gave it
+///   a `where`; a stated direction is deferred rather than ignored, since a
+///   pass by never had one to read, and so is a `who` left unstated.
+/// - **A pass through** trades every pair facing along `where`. v40 also lets
+///   it name who passes (`who`): a pairing is kept as a description
+///   ([PassThrough.who]), and a role or couple-number set, where only some
+///   pass, is deferred. A `where` stated `unspecified` is deferred (the rule
+///   `core_taxonomy_alignment_test.dart` enforces).
+Operation _buildPassThrough(_Params p) {
+  final shoulder = p.enumOr(['shoulder'], Hand.fromKey, Hand.right);
+  final type = p.optionalString(['passType']) ?? 'through';
+  if (type == 'by') {
+    // Filed under `pass_by`, the alias's own meanings already fill both
+    // params. Filed under `pass_through`, an omitted one means what it does
+    // for a pass through (`who` unstated, `where: along`), as core reads it.
+    final whereKey = p._blameKey(const ['where', 'dir']);
+    final where = p._raw[whereKey] ?? 'along';
+    if (where != _Params._unspecified) {
+      p._fail(
+        whereKey,
+        'a pass by with a stated direction ($where) is deferred',
+        deferred: true,
+      );
+    }
+    final who = p._raw['who'];
+    if (who == null || who == _Params._unspecified) {
+      p._fail(
+        'who',
+        'a pass by that does not say who passes is deferred',
+        deferred: true,
+      );
+    }
+    return PassBy(
+      who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.neighbors),
+      shoulder: shoulder,
+    );
+  }
+  if (type != 'through') {
+    p._fail('passType', 'unknown passType "$type"');
+  }
+  final whereKey = p._blameKey(const ['where', 'dir']);
+  if (p._raw[whereKey] == _Params._unspecified) {
+    p._fail(
+      whereKey,
+      'a pass through with an unstated direction is deferred',
+      deferred: true,
+    );
+  }
+  final who = p.optionalEnum(['who'], WhoSet.fromKey);
+  if (const {
+    WhoSet.role1s,
+    WhoSet.role2s,
+    WhoSet.ones,
+    WhoSet.twos,
+  }.contains(who)) {
+    p._fail(
+      'who',
+      'a pass through by ${who!.key} only is deferred',
+      deferred: true,
+    );
+  }
+  return PassThrough(
+    dir: p.enumOr(['where', 'dir'], Direction.fromKey, Direction.along),
+    shoulder: shoulder,
+    who: who,
+  );
+}
 
 Operation _buildZigZag(_Params p) => ZigZag(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.partners),
@@ -776,7 +838,15 @@ Operation _buildPassTheOcean(_Params p) => PassTheOcean(
   sides: p.optionalEnum(['sides'], WhoSet.fromKey),
 );
 
-Operation _buildFormLongWaves(_Params p) => FormLongWaves(
+/// A `who` stated `unspecified` (taxonomy v40: The Caller's Box's bare "form
+/// long wave", which does not say who faces in) reads as the `role1s` default,
+/// as the same line did before v40 when it stated no `who` at all *(agent's
+/// call, 2026-11-24, at the taxonomy-v40 sync; deferring it instead cost 76
+/// compiling Caller's Box dances)*. `core_taxonomy_alignment_test.dart`
+/// exempts it.
+Operation _buildFormLongWaves(_Params p) => _formLongWaves(p);
+
+Operation _formLongWaves(_Params p) => FormLongWaves(
   // Core's stated default. The figure keeps `null` as a distinct state for
   // records that fix the geometry by naming the hold instead, but a record
   // parsed from core's schema never reaches it.
@@ -1098,10 +1168,39 @@ OperationInvocation _parseFigureAt(Object? raw, String path) {
       }
       figureParams.putIfAbsent(pin.key, () => pin.value);
     }
+    // What the alias means by an omitted param, where that differs from the
+    // target's default (taxonomy v40: a `pass_by` is `who: neighbors`,
+    // `where: unspecified`).
+    // Applied even when a stated value contradicts a pin and the figure is
+    // routed to the target move: `Taxonomy.effectiveParams` reads them the
+    // same way, and core's `keepOmittedMeaning` writes them when it re-routes
+    // a figure.
+    for (final fallback in alias.defaultParams.entries) {
+      figureParams.putIfAbsent(fallback.key, () => fallback.value);
+    }
   }
 
-  return OperationInvocation(
-    build(_Params(figureParams, '$path.params')),
-    progression: (progression as bool?) ?? false,
-  );
+  final flagged = (progression as bool?) ?? false;
+  final operation = build(_Params(figureParams, '$path.params'));
+  // A single-file promenade along the set is danced as a one-place slide only
+  // where it is the progression: that is the figure Hudson ruled on (2026-11-24,
+  // "around the major set to N2"), and the Caller's Box bridge flags the one it
+  // takes. Any other (a count or rotation the bridge left alone, no "to N2",
+  // one inside a container) would move the set by a reading nobody ruled on,
+  // so it is deferred (agent's call, 2026-11-25).
+  if (!flagged &&
+      operation is Promenade &&
+      operation.singleFile &&
+      operation.where == 'along') {
+    throw _ParseFailure(
+      DanceParseError(
+        'a single-file promenade along the set is deferred unless it is the '
+        'progression',
+        path:
+            '$path.params.${figureParams.containsKey('where') ? 'where' : 'dir'}',
+        deferred: true,
+      ),
+    );
+  }
+  return OperationInvocation(operation, progression: flagged);
 }

@@ -30,6 +30,7 @@ class RawRecord {
     this.contentType,
     this.permission,
     this.license,
+    this.recordsProvenance = true,
   });
 
   /// Which source this record came from.
@@ -68,6 +69,14 @@ class RawRecord {
   /// `provenance.license`.
   final String? license;
 
+  /// Whether committing this record writes a provenance row. `false` for a
+  /// dance from the caller's own spreadsheet (#2329): it is theirs, like a
+  /// hand-typed dance, so it records no provenance (maintainer decision on
+  /// #2329), and no [ProvenanceSource] value describes it. [source] is then an
+  /// in-memory label only: [ImportPipeline] neither persists it nor matches on
+  /// it, since such a record has no [externalId].
+  final bool recordsProvenance;
+
   RawRecord copyWith({
     ProvenanceSource? source,
     String? externalId,
@@ -77,6 +86,7 @@ class RawRecord {
     String? contentType,
     String? permission,
     String? license,
+    bool? recordsProvenance,
   }) => RawRecord(
     source: source ?? this.source,
     externalId: externalId ?? this.externalId,
@@ -86,6 +96,7 @@ class RawRecord {
     contentType: contentType ?? this.contentType,
     permission: permission ?? this.permission,
     license: license ?? this.license,
+    recordsProvenance: recordsProvenance ?? this.recordsProvenance,
   );
 
   @override
@@ -101,7 +112,8 @@ class RawRecord {
       other.payload == payload &&
       other.contentType == contentType &&
       other.permission == permission &&
-      other.license == license;
+      other.license == license &&
+      other.recordsProvenance == recordsProvenance;
 
   @override
   int get hashCode => Object.hash(
@@ -113,6 +125,7 @@ class RawRecord {
     contentType,
     permission,
     license,
+    recordsProvenance,
   );
 
   @override

@@ -18,6 +18,7 @@ class FigureDraftSnapshot {
     required this.schemaVersion,
     this.beatsTouched = false,
     this.assumedSubject = false,
+    this.enteredNew = false,
     this.customOrigin = CustomOrigin.userEntered,
     this.walkthroughOverride,
     this.wordingOverride,
@@ -37,6 +38,7 @@ class FigureDraftSnapshot {
         schemaVersion: draft.schemaVersion,
         beatsTouched: draft.beatsTouched,
         assumedSubject: draft.assumedSubject,
+        enteredNew: draft.enteredNew,
         customOrigin: draft.customOrigin,
         walkthroughOverride: draft.walkthroughOverride,
         wordingOverride: draft.wordingOverride,
@@ -75,6 +77,10 @@ class FigureDraftSnapshot {
   /// undo/redo and autosave so the non-authoritative marker never silently
   /// disappears while editing.
   final bool assumedSubject;
+
+  /// [FigureDraft.enteredNew], preserved across undo/redo and autosave so a
+  /// figure entered in this edit still has to state its required params.
+  final bool enteredNew;
 
   /// How the figure originated when it is a custom (see [CustomOrigin]);
   /// preserved across undo/redo and autosave so a free-text/import parser-gap
@@ -115,6 +121,7 @@ class FigureDraftSnapshot {
     schemaVersion: schemaVersion,
     beatsTouched: beatsTouched,
     assumedSubject: assumedSubject,
+    enteredNew: enteredNew,
     customOrigin: customOrigin,
     walkthroughOverride: walkthroughOverride,
     wordingOverride: wordingOverride,
@@ -182,6 +189,15 @@ class EditorSnapshot {
     required this.formationDetail,
     this.meter = '',
     this.musicalKey = '',
+    this.alternateTitles = '',
+    this.barnesReference = '',
+    this.squareKind = SquareKind.main,
+    this.repeatOrder = SquareRepeatOrder.unstated,
+    this.repeatOrderText = '',
+    this.newPartner = SquareNewPartner.unstated,
+    this.newPartnerText = '',
+    this.singing = false,
+    this.freeForm,
     required this.form,
     required this.formationShape,
     this.improper = false,
@@ -228,6 +244,15 @@ class EditorSnapshot {
     formationDetail: formationDetail,
     meter: meter,
     musicalKey: musicalKey,
+    alternateTitles: alternateTitles,
+    barnesReference: barnesReference,
+    squareKind: squareKind,
+    repeatOrder: repeatOrder,
+    repeatOrderText: repeatOrderText,
+    newPartner: newPartner,
+    newPartnerText: newPartnerText,
+    singing: singing,
+    freeForm: freeForm,
     form: form,
     formationShape: formationShape,
     improper: improper,
@@ -274,6 +299,27 @@ class EditorSnapshot {
   /// [Dance.musicalKey]).
   final String meter;
   final String musicalKey;
+
+  /// The other titles as typed, one per line ([Dance.alternateTitles]).
+  final String alternateTitles;
+
+  /// The Barnes book reference as typed ([Dance.barnesReference]).
+  final String barnesReference;
+
+  /// The square fields (ADR-007 §8.1; [Dance.squareKind], [Dance.repeatOrder],
+  /// [Dance.newPartner], [Dance.singing]). The texts are as typed, and kept
+  /// whatever the value, so moving a dropdown off `other` and back restores
+  /// them; only `other` saves them.
+  final SquareKind squareKind;
+  final SquareRepeatOrder repeatOrder;
+  final String repeatOrderText;
+  final SquareNewPartner newPartner;
+  final String newPartnerText;
+  final bool singing;
+
+  /// The free-form toggle as the caller set it ([Dance.freeForm]), or `null`
+  /// while it follows the kind.
+  final bool? freeForm;
 
   // ---- Enum fields ----
   final DanceForm form;

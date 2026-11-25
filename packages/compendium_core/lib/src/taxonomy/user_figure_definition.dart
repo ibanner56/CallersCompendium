@@ -6,6 +6,7 @@ import '../dialect/wording_conditions.dart';
 import '../model/enums.dart';
 import '../util/text_sanitizer.dart';
 import '../validation/validation.dart';
+import 'ecd_taxonomy.dart' show ecdSelectors;
 import 'param_opposites.dart';
 import 'param_types.dart';
 import 'user_figure_use.dart';
@@ -93,6 +94,15 @@ String newUserFigureChoiceId(Set<String> taken, {Random? random}) {
   }
 }
 
+/// The groups of dancers a [ParamKind.dancerSet] or [ParamKind.dancerPair]
+/// parameter of a figure made for [form] (a [DanceForm.name]) offers, or null for the shared vocabulary
+/// ([ParamVocab.dancerSets]). English country dance has groups of its own
+/// ([ecdSelectors]); every other form, including one this build does not
+/// know, keeps the shared vocabulary. The form is the figure's stored one,
+/// so no choices are stored on the parameter (#2294).
+List<String>? userFigureDancerChoices(String form) =>
+    form == DanceForm.ecd.name ? ecdSelectors : null;
+
 /// The template slot holding [key]'s opposite: for `hand`, other followed by
 /// Hand (#709's "other hand", offered and never declared). Empty for an
 /// empty key, which validation refuses.
@@ -146,13 +156,31 @@ final class UserFigureParam {
   /// with no label renders its key.
   final String? label;
 
-  /// The parameter as a taxonomy [ParamSpec]: what its values are validated
-  /// and rendered against. A choice's values are its ids.
-  ParamSpec get spec => ParamSpec(
+  /// The parameter as a taxonomy [ParamSpec] for a figure made for [form]
+  /// (a [DanceForm.name]): what its values are validated and rendered
+  /// against. A choice's values are its ids; a group of dancers takes the
+  /// groups the form offers ([userFigureDancerChoices]).
+  ///
+  /// There is no form-blind version: a figure's dancer groups depend on its
+  /// form, so every caller states which one it means.
+  ParamSpec specIn(String form) => ParamSpec(
     kind,
     defaultValue: defaultValue,
-    choices: kind == ParamKind.choice ? [for (final c in choices) c.id] : null,
+    choices: kind == ParamKind.choice
+        ? [for (final c in choices) c.id]
+        : _dancerChoices(form),
   );
+
+  /// [kind] with no default, over the same groups as [specIn]: what the
+  /// opposite slot's values are checked against, and what a value is picked
+  /// from.
+  ParamSpec bareSpecIn(String form) =>
+      ParamSpec(kind, defaultValue: null, choices: _dancerChoices(form));
+
+  List<String>? _dancerChoices(String form) =>
+      kind == ParamKind.dancerSet || kind == ParamKind.dancerPair
+      ? userFigureDancerChoices(form)
+      : null;
 
   /// The label of the choice [id], or null when there is none.
   String? choiceLabel(Object? id) {
@@ -247,10 +275,10 @@ final class UserFigureDefinition {
     userFigureMoveSlot: null,
     userFigureBeatsSlot: const ParamSpec(ParamKind.beats, defaultValue: null),
     for (final p in params) ...{
-      p.key: p.spec,
+      p.key: p.specIn(form),
       if (p.key.isNotEmpty &&
           ParamOpposites.coverage(p.kind) != OppositeCoverage.none)
-        userFigureOppositeSlot(p.key): ParamSpec(p.kind, defaultValue: null),
+        userFigureOppositeSlot(p.key): p.bareSpecIn(form),
     },
   };
 
@@ -311,6 +339,18 @@ String glossaryEntryForm(Object? payload) {
     if (form is String && form.isNotEmpty) return form;
   }
   return defaultGlossaryEntryForm;
+}
+
+/// The dance form a glossary entry's [payload] is for: the form it names
+/// ([glossaryEntryForm]), or contra for a payload that names none or a form
+/// this build does not know (#2294). What an entry is shown in: its own
+/// form's dialect, and what it is checked against: its own form's figures.
+DanceForm glossaryEntryDanceForm(Object? payload) {
+  final name = glossaryEntryForm(payload);
+  for (final form in DanceForm.values) {
+    if (form.name == name) return form;
+  }
+  return DanceForm.contra;
 }
 
 /// The payload key of a term's source citation (#1023): where the term comes
@@ -603,7 +643,8 @@ List<ValidationIssue> validateUserFigure(UserFigureDefinition definition) {
         'parameter "${p.key}" has a default over its length bound',
         data,
       );
-    } else if (defaultValue != null && !p.spec.validate(defaultValue)) {
+    } else if (defaultValue != null &&
+        !p.specIn(definition.form).validate(defaultValue)) {
       error(
         UserFigureIssueCodes.badDefault,
         'parameter "${p.key}" has a default outside its values',

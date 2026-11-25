@@ -333,6 +333,13 @@ const String taxonomyV39CanonicalRebuildDoneKey =
 const String ecdTaxonomyCanonicalRebuildDoneKey =
     '__ecd_taxonomy_canonical_rebuild_done__';
 
+/// Settings key for the one-time canonical/FTS rebuild owed when the square
+/// taxonomy first ships (ADR-007), for the reason
+/// [ecdTaxonomyCanonicalRebuildDoneKey] gives: a dance already holding `sq_`
+/// move IDs was indexed while they were unknown, as the bare ID.
+const String squareTaxonomyCanonicalRebuildDoneKey =
+    '__square_taxonomy_canonical_rebuild_done__';
+
 /// Settings key for the one-time canonical/FTS rebuild owed by the modifier
 /// container structural tokens. Existing figures gain searchable canonical
 /// container text without changing their source JSON.
@@ -789,9 +796,32 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   /// empty. No data is rewritten and no derived index reads them, so no
   /// rebuild is needed.
   ///
+  /// Also `dances.alternate_titles` and `dances.barnes_reference` (a dance's
+  /// other titles and its Barnes book reference), both `''` by default, so
+  /// every existing dance has neither. They joined v42 while v42 was
+  /// unreleased.
+  ///
+  /// Also the square dance fields (ADR-007 §8.1): `dances.square_kind`
+  /// (`'main'`), `repeat_order` and `new_partner` (`'unstated'`),
+  /// `repeat_order_text` and `new_partner_text` (`''`) and `singing`
+  /// (`false`), so every existing dance reads as a main part with nothing
+  /// stated. They joined v42 while v42 was unreleased. So, after them, did
+  /// `dances.free_form`, nullable, so every existing dance follows its kind.
+  ///
   /// Also `programs.archived_at` (program archiving, #2218), nullable, so
   /// every existing program stays unarchived. It joined v42 while v42 was
   /// unreleased (CONTRIBUTING.md, "Adding to an unreleased version").
+  ///
+  /// Also `programs.calendar_event_key` (calendar import, #2352), nullable, so
+  /// no existing program is taken for an imported one. It joined v42 while
+  /// v42 was unreleased, the same way.
+  ///
+  /// Also the program times (#2350): `programs.start_minute`, `end_minute`,
+  /// `lesson_minute` and `arrival_minute`, all nullable, so every existing
+  /// program has none. They joined v42 while v42 was unreleased, after
+  /// `calendar_event_key`. So, after them, did the calendar import's change
+  /// tracking (#2354): `calendar_event_fingerprint`, `calendar_written_at`
+  /// and `calendar_flag`, all nullable.
   ///
   /// The live-schema checks only keep the step idempotent.
   Future<void> _ensureV42Schema(Migrator m) async {
@@ -804,6 +834,15 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       dances.meter,
       dances.musicalKey,
       dances.interpretedOn,
+      dances.alternateTitles,
+      dances.barnesReference,
+      dances.squareKind,
+      dances.repeatOrder,
+      dances.repeatOrderText,
+      dances.newPartner,
+      dances.newPartnerText,
+      dances.singing,
+      dances.freeForm,
     ]) {
       if (!present.contains(column.name)) await m.addColumn(dances, column);
     }
@@ -816,10 +855,25 @@ class CompendiumDatabase extends _$CompendiumDatabase {
     final programColumns = await customSelect(
       "SELECT name FROM pragma_table_info('${programs.actualTableName}')",
     ).get();
-    if (!{
+    final presentProgramColumns = {
       for (final row in programColumns) row.read<String>('name'),
-    }.contains(programs.archivedAt.name)) {
-      await m.addColumn(programs, programs.archivedAt);
+    };
+    // In declaration order, so a migrated database's columns line up with a
+    // fresh one's.
+    for (final column in <GeneratedColumn<Object>>[
+      programs.archivedAt,
+      programs.calendarEventKey,
+      programs.startMinute,
+      programs.endMinute,
+      programs.lessonMinute,
+      programs.arrivalMinute,
+      programs.calendarEventFingerprint,
+      programs.calendarWrittenAt,
+      programs.calendarFlag,
+    ]) {
+      if (!presentProgramColumns.contains(column.name)) {
+        await m.addColumn(programs, column);
+      }
     }
   }
 
@@ -948,6 +1002,12 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       // upgrade step adds them; this is the only place they are ensured. The
       // step is idempotent; run it on every open.
       if (details.versionNow >= 39) await _ensureV39Schema(createMigrator());
+      // v42 is filling the same way while unreleased: a test build stamped it
+      // before later pieces joined it (alternate titles, the square dance
+      // fields, the program calendar and time columns), and no `onUpgrade`
+      // step runs for a file already at 42, so reading a dance then failed on
+      // a NULL from a missing column. Idempotent; run it on every open.
+      if (details.versionNow >= 42) await _ensureV42Schema(createMigrator());
       // Defensive: guards a hand-rolled DB (e.g. restored from an external
       // backup) that lacks either raw FTS5 table. Creating a missing index
       // alone would silently return incomplete results, so schedule a durable

@@ -1,11 +1,146 @@
 import 'package:compendium_app/src/editor/figure_draft.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  group('a typed pass (taxonomy v40)', () {
+    // Mutation caught: filling a typed pass from its effective params alone,
+    // which takes a pass by's neighbors or a pass through's along as stated.
+    test('starts who and where unstated unless the line states them', () {
+      for (final (figure, who, where) in [
+        (Figure(move: 'pass_by'), 'unspecified', 'unspecified'),
+        (Figure(move: 'pass_through'), 'unspecified', 'unspecified'),
+        (
+          Figure(move: 'pass_through', params: const {'where': 'across'}),
+          'unspecified',
+          'across',
+        ),
+        (
+          Figure(move: 'pass_by', params: const {'who': 'partners'}),
+          'partners',
+          'unspecified',
+        ),
+      ]) {
+        final draft = FigureDraft.fromFreeTextFigure(
+          figure,
+          contraTaxonomy,
+          requireStatedParams: true,
+        );
+        expect(draft.params['who'], who, reason: '${figure.params}');
+        expect(draft.params['where'], where, reason: '${figure.params}');
+      }
+    });
+
+    // Mutation caught: seeding unstated values where nothing enforces them
+    // (Settings' figure lists), which stores a pass by naming no one in place
+    // of the neighbors the line meant, and which a v39 build rejects.
+    test('outside the dance editor the line keeps what it meant', () {
+      final draft = FigureDraft.fromFreeTextFigure(
+        Figure(move: 'pass_by'),
+        contraTaxonomy,
+      );
+      expect(draft.params['who'], 'neighbors');
+      expect(draft.toFigure()!.params, isNot(contains('where')));
+    });
+
+    test('a saved default states it', () {
+      final draft = FigureDraft.fromFreeTextFigure(
+        Figure(move: 'pass_through'),
+        contraTaxonomy,
+        moveParamDefaults: const {
+          'pass_through': {'who': 'neighbors'},
+        },
+        requireStatedParams: true,
+      );
+      expect(draft.params['who'], 'neighbors');
+      expect(draft.params['where'], 'unspecified');
+    });
+  });
+
   // A custom figure never renders a wording override (renderer.dart:
   // `figure.isCustom ? null : _renderWordingOverride`) and the editor offers no
   // field for it, so toFigure must not persist one (#1394).
+  group('fromFreeTextFigure and a saved value kept only while stated', () {
+    // A Move default saved by a build whose Settings still recorded it: an
+    // unstated Rory O'More `twoPlaces` (taxonomy v40). An older peer rejects
+    // the key, so the typed figure must not carry it, with a count typed or
+    // without one.
+    const defaults = {
+      'rory_o_more': {'twoPlaces': 'unspecified', 'slide': 'left'},
+    };
+    for (final params in [
+      <String, Object?>{'beats': 8},
+      <String, Object?>{},
+    ]) {
+      test('typed params $params', () {
+        final draft = FigureDraft.fromFreeTextFigure(
+          testFigure(move: 'rory_o_more', params: params),
+          contraTaxonomy,
+          moveParamDefaults: defaults,
+        );
+        expect(draft.params['slide'], 'left');
+        expect(draft.params.containsKey('twoPlaces'), isFalse);
+      });
+    }
+  });
+
+  group('childStartBeatsOfDraft (#2303)', () {
+    FigureDraft step(int beats) =>
+        FigureDraft(move: 'ecd_lead', params: {'beats': beats});
+
+    test(
+      'a sequence\'s steps follow one another, an untimed one adding none',
+      () {
+        final sequence = FigureDraft(
+          sequenceFigures: [
+            step(6),
+            FigureDraft(move: 'ecd_set'),
+            step(4),
+          ],
+        );
+        expect(childStartBeatsOfDraft(sequence, 18), [18, 24, 24]);
+      },
+    );
+
+    test(
+      'a meanwhile\'s sides and a modifier\'s parts start with the group',
+      () {
+        expect(
+          childStartBeatsOfDraft(
+            FigureDraft(meanwhileSides: [step(6), step(6)]),
+            18,
+          ),
+          [18, 18],
+        );
+        expect(
+          childStartBeatsOfDraft(
+            FigureDraft(modifierFigures: [step(6), step(2)]),
+            18,
+          ),
+          [18, 18],
+        );
+      },
+    );
+
+    test('a figure that is no group has no children', () {
+      expect(childStartBeatsOfDraft(step(6), 18), isEmpty);
+    });
+  });
+
+  group('figureStartBeat (#2303)', () {
+    test('counts only the rows Save writes as figures', () {
+      final rows = [
+        FigureDraft(move: 'ecd_lead', params: {'beats': 6}),
+        FigureDraft()..params['beats'] = 8,
+        FigureDraft(move: 'ecd_set', params: {'beats': 4}),
+      ];
+      expect(figureStartBeat(rows), 10);
+      expect(figureStartBeat(rows.take(2)), 6);
+      expect(figureStartBeat(const []), 0);
+    });
+  });
+
   group('FigureDraft.toFigure wordingOverride on a custom figure', () {
     test('a custom leaf draft drops a stale override', () {
       final draft = FigureDraft(move: customMove, params: {'text': 'my call'})

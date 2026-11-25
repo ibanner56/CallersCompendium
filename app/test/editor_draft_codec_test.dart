@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/editor/editor_draft_codec.dart';
 import 'package:compendium_app/src/editor/editor_snapshot.dart';
+import 'package:compendium_app/src/editor/figure_draft.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -384,6 +385,32 @@ void main() {
       expect(stated.assumedSubject, isFalse);
     });
 
+    test('figure draft enteredNew round-trips through autosave and undo '
+        '(taxonomy v40)', () {
+      final entered = FigureDraft(
+        move: 'pass_by',
+        params: {'who': ParamVocab.unspecified},
+      )..enteredNew = true;
+      final loaded = FigureDraft(move: 'pass_through');
+      final snapshot = _minimalSnapshot(
+        figureDrafts: [
+          FigureDraftSnapshot.fromDraft(entered),
+          FigureDraftSnapshot.fromDraft(loaded),
+        ],
+      );
+
+      final encoded = encodeDraft(snapshot);
+      // Additive shape: written only for the entered draft.
+      expect('"enteredNew":true'.allMatches(encoded), hasLength(1));
+
+      final decoded = decodeDraft(encoded);
+      expect(decoded.figureDrafts[0].enteredNew, isTrue);
+      expect(decoded.figureDrafts[1].enteredNew, isFalse);
+      // Undo restores a draft from its snapshot.
+      expect(decoded.figureDrafts[0].toDraft().enteredNew, isTrue);
+      expect(entered.clone().enteredNew, isTrue);
+    });
+
     test('decoding a draft normalizes legacy figure identifiers', () {
       final snapshot = _minimalSnapshot(
         figureDrafts: const [
@@ -737,6 +764,112 @@ void main() {
       expect(decoded.improper, isFalse);
       expect(decoded.interpretedOn, isNull);
       expect(decoded.interpreterIds, isEmpty);
+    });
+
+    test('the square fields round-trip, texts as typed, and are omitted at '
+        'their defaults (ADR-007 §8.1)', () {
+      final encoded = encodeDraft(_minimalSnapshot());
+      for (final key in [
+        'squareKind',
+        'repeatOrder',
+        'repeatOrderText',
+        'newPartner',
+        'newPartnerText',
+        'singing',
+        'freeForm',
+      ]) {
+        expect(encoded, isNot(contains('"$key"')), reason: key);
+      }
+      final empty = decodeDraft(encoded);
+      expect(empty.squareKind, SquareKind.main);
+      expect(empty.repeatOrder, SquareRepeatOrder.unstated);
+      expect(empty.newPartner, SquareNewPartner.unstated);
+      expect(empty.singing, isFalse);
+      expect(empty.freeForm, isNull);
+
+      final snapshot = EditorSnapshot(
+        title: 'Circle Three Quarters',
+        hook: '',
+        notes: '',
+        phrase: '',
+        formationDetail: '',
+        squareKind: SquareKind.breakPart,
+        repeatOrder: SquareRepeatOrder.allFour,
+        // Kept as typed even off `other`, so moving the dropdown back
+        // restores it.
+        repeatOrderText: 'half typed ',
+        newPartner: SquareNewPartner.other,
+        newPartnerText: 'The original corner',
+        singing: true,
+        // Off for a break, which the kind would leave phrased anyway: a
+        // stated false still round-trips.
+        freeForm: false,
+        form: DanceForm.square,
+        formationShape: FormationShape.square,
+        progression: Progression.none,
+        status: DanceStatus.active,
+        authorIds: const [],
+        tagIds: const [],
+        tunes: const [],
+        links: const [],
+        sourceCitations: const [],
+        customValues: const {},
+        figureDrafts: const [],
+      );
+      final encodedSquare = encodeDraft(snapshot);
+      expect(encodedSquare, contains('"squareKind":"break"'));
+      expect(encodedSquare, contains('"repeatOrder":"allFour"'));
+      final decoded = decodeDraft(encodedSquare);
+      expect(decoded.squareKind, SquareKind.breakPart);
+      expect(decoded.repeatOrder, SquareRepeatOrder.allFour);
+      expect(decoded.repeatOrderText, 'half typed ');
+      expect(decoded.newPartner, SquareNewPartner.other);
+      expect(decoded.newPartnerText, 'The original corner');
+      expect(decoded.singing, isTrue);
+      expect(decoded.freeForm, isFalse);
+    });
+
+    test('an unknown square value decodes as the default', () {
+      final json = jsonDecode(encodeDraft(_minimalSnapshot())) as Map;
+      json['squareKind'] = 'medley';
+      json['newPartner'] = 'nextButOne';
+      final decoded = decodeDraft(jsonEncode(json));
+      expect(decoded.squareKind, SquareKind.main);
+      expect(decoded.newPartner, SquareNewPartner.unstated);
+    });
+
+    test('other titles and the Barnes reference round-trip as typed, and '
+        'are omitted when empty', () {
+      final encoded = encodeDraft(_minimalSnapshot());
+      expect(encoded, isNot(contains('"alternateTitles"')));
+      expect(encoded, isNot(contains('"barnesReference"')));
+      final empty = decodeDraft(encoded);
+      expect(empty.alternateTitles, '');
+      expect(empty.barnesReference, '');
+
+      final snapshot = EditorSnapshot(
+        title: 'Money Musk',
+        hook: '',
+        notes: '',
+        phrase: '',
+        formationDetail: '',
+        alternateTitles: 'Monymusk\n  half typed',
+        barnesReference: 'BIII p. 92',
+        form: DanceForm.ecd,
+        formationShape: FormationShape.tripleMinor,
+        progression: Progression.single,
+        status: DanceStatus.active,
+        authorIds: const [],
+        tagIds: const [],
+        tunes: const [],
+        links: const [],
+        sourceCitations: const [],
+        customValues: const {},
+        figureDrafts: const [],
+      );
+      final decoded = decodeDraft(encodeDraft(snapshot));
+      expect(decoded.alternateTitles, 'Monymusk\n  half typed');
+      expect(decoded.barnesReference, 'BIII p. 92');
     });
 
     test('rating round-trips', () {

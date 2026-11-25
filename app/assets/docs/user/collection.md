@@ -99,7 +99,7 @@ always have until you pick one, and the tag's name is always shown beside the
 color, so nothing depends on being able to tell the colors apart.
 
 Colors, and everything else about your tags, are in the **Tags** manager:
-**Settings ▸ General ▸ Dances ▸ Tags** (**Settings ▸ Appearance ▸ Tag
+**Settings ▸ Collection ▸ Dances ▸ Tags** (**Settings ▸ Appearance ▸ Tag
 colors** opens it too). It lists every tag with the number of dances that use
 it, and you can search, show only the tags no dance uses (**Not used**), and
 sort by name or by number of dances. Select a tag, or its **⋮** menu, to:
@@ -169,13 +169,16 @@ what is already there.
 
 Use **Search in**, beside the search bar (above it on a narrow screen or with
 large text), to choose where your words are looked for: **All fields**,
-**Title**, **Author**, or **Figure**. **All fields** looks at titles, authors,
-sources, custom field values, hooks and notes, and at each dance's meter, key
-and the people who interpreted it, and finds each word exactly as you typed
+**Title**, **Author**, or **Figure**. **Title** looks at each dance's title
+and its other titles, so `Monymusk` finds *Money Musk* if you gave it that
+other title. **All fields** looks at titles and other titles, authors,
+sources, custom field values, hooks and notes, and at each dance's meter, key,
+Barnes reference and the people who interpreted it, and finds each word exactly as you typed
 it: `3/2`, `D minor` or `Sharp` each find the dances that have them. A word of
 one or two letters must start a word, so `D` finds the key "D minor" but `in`
-does not. Accents and capitals don't matter in a meter, key or interpreter's
-name: `emile` finds Émile. **Author** looks at the people who wrote a dance and
+does not. Accents and capitals don't matter in an other title, a meter, key,
+Barnes reference or interpreter's name: `emile` finds Émile, and `nib` finds
+*NiB*. **Author** looks at the people who wrote a dance and
 the people who interpreted it. All fields skips yes/no fields, which you find with their filter, and
 any custom field with **Searchable** turned off (see
 [Make your own fields](#make-your-own-fields)).
@@ -211,6 +214,13 @@ applies to your own library. **By phrase** stays available for The Caller's Box,
 and **Advanced** for ContraDB; each is grayed out for the archive that cannot
 use it. A source selector appears under the row so you can choose which archive
 to search.
+
+The row of buttons (with the source selector, while it shows) and the count of
+matching dances above the list stay at the top of the list as you scroll, so
+you can always see how many dances match and change your search without
+scrolling back up. An open panel scrolls away between the two. On a short
+screen with very large text, either one that would leave less than half of the
+list showing scrolls with it instead.
 
 On ContraDB, **Advanced** searches the archive with the same **All of**,
 **Any of**, and **None of** groups of **Has figure** and **Sequence (then)**
@@ -271,10 +281,15 @@ the **Filters** panel. It lets you narrow by:
   text, and number fields you have defined
 
 A filter appears only when there is something to filter by — the **Source**
-filter, for example, appears once a dance cites a published source. If an
+filter, for example, appears once a dance cites a published source. A choice
+you have made stays on screen as a selected chip even after no dance has it
+any more (you deleted the last dance at that level, say), so a filter that is
+still narrowing the list can always be seen and removed; a level, author or
+source that has since been deleted reads **Not in your library**. Tags differ:
+a tag you picked is taken out of the filter once no dance has it. If an
 author or source shows up twice under slightly different names, fix it once in
 the **Authors** or **Sources** manager under
-[Settings ▸ General ▸ Dances](./settings.md#dances): renaming or merging there
+[Settings ▸ Collection ▸ Dances](./settings.md#dances): renaming or merging there
 changes every dance that credits it.
 
 Two simple rules govern how filters combine, and knowing them makes the panel
@@ -387,8 +402,11 @@ the moves — inside your dances. It works by stacking up rows and groups:
    pick long lines to find those). While **Custom Figures** is on, your own
    new figures are offered too, marked as yours and listed before the built-in
    moves unless you type a move's exact name, which comes first; picking one finds
-   the dances that use it. A use that shows its stored line instead of your
-   figure's wording is not found this way — one changed on another device, one
+   the dances that use it. Each is named, and found by typing, in the dialect of
+   the type it was made for, so one made for English reads in your English
+   dialect while the moves beside it read in your contra dialect; two figures of
+   different types that read alike are told apart by their type. A use that
+   shows its stored line instead of your figure's wording is not found this way — one changed on another device, one
    with a choice the figure no longer has, or one of a figure you have deleted
    — but its line is still found by the search bar.
 2. Optionally **pin the move to a section** (for example B2), so it only counts
@@ -414,7 +432,9 @@ dances that carry it — "this tag but not that one", which the **Tags** filter
 cannot say. Tag rows sit alongside figure
 rows in the same group, so "tagged *Smooth* and has a petronella" is one query.
 **Has tag** appears in the **Add** menu once at least one of your dances has a
-tag.
+tag. A row keeps its tag even after no dance has it any more, and shows it
+(**Not in your library** if the tag was deleted); remove the row or pick
+another tag to change it.
 
 ### Ask per phrase with By phrase search
 
@@ -434,6 +454,65 @@ a dance has to satisfy all of them to appear. As you narrow things down, the
 number of matching dances is announced to screen readers, so the result count is
 never hidden behind a visual-only cue.
 
+## Save a search and use it again
+
+When you ask the same question of your collection again and again, such as
+"Becket dances I haven't called lately" or "easy mixers tagged *family*", save
+it once and choose it from then on.
+
+- **Save it** with **Save this search…** in the Collection's ⋮ menu (**More
+  actions**). It asks for a name and keeps the whole search: the search text,
+  **Search in**, every filter (the calling-history venue and window included),
+  the By phrase rows, the Advanced rows and the sort. It's offered once you've
+  typed something or set a filter or row. Two searches may share a name.
+- **A calling-history window is kept as a distance.** "Since a date" is saved
+  as the whole number of months back from today, and the save dialog says what
+  is kept, for example "Not called in the last 12 months". Each time you use
+  the search, the window is counted back from that day, so the list stays up to
+  date. A window that isn't one of 1, 3 or 6 months shows as its own chip in
+  the **Within** row, such as "12 months, saved".
+- **Use it from the search box.** Tap the search box and your saved searches
+  drop down under it; type to narrow them by name. While you've typed
+  something, the first row is **Search for "…"**: that row, **Enter**, or
+  tapping elsewhere just searches for what you typed, as the box always has.
+  Choose a saved search to fill in the search box and the panels as they were
+  saved and run it against your collection as it is now: a dance you tag later
+  shows up in it. The settings under Settings ▸ Calling history are the ones in
+  force when you use it. Choosing one doesn't change the sort the Collection
+  opens in. With a keyboard, the arrow keys move through the list and
+  **Enter** chooses the highlighted row; **Escape** closes the list. With the
+  list closed, Escape does what it always has: it goes back, or closes the
+  sheet the dance list is in.
+- **While a saved search is in use**, the ⋮ menu also offers **Update "…"**
+  (once you've changed the search) to save the change into it, **Save as a new
+  search…** to keep the changed search as another one, **Rename "…"…** and
+  **Delete "…"**, with **Undo** (and a question first if you've turned on
+  **Confirm before delete**); if you undo a delete before changing the
+  search, it is the one in use again. **Clear search and filters** (the ✕ in the
+  search box) starts a new search, and those entries go away; the saved search
+  stays as it was.
+- **Something it uses is gone.** If a saved search uses a tag, author, source,
+  level, venue or custom field that has since been deleted, the rest of it is
+  still filled in and run, and a notice names what is missing ("The tag
+  *Bouncey*, which was deleted"). Nothing is left out quietly: remove that
+  criterion yourself, then **Update** the search. A filter on a deleted custom
+  field can't be run, so it is left out of the results until you remove it; the
+  notice says so.
+- **Manage them in Settings.** [Settings ▸ Collection ▸ Saved
+  searches](./settings.md#saved-searches) lists every saved search, to rename
+  or delete. One that this version of the app can't read (saved by a newer
+  version, or damaged) is listed there under **Needs attention**, and nowhere
+  else; it is never used, and you can delete it.
+- **Not with Online search.** A saved search searches your own collection, so
+  the list doesn't drop down, and saving isn't offered, while Online search is
+  on.
+- **In the program builder too.** Tap the search box of the dance list you add
+  dances from to choose a saved search there. Saving and managing them is done
+  from the Collection and Settings.
+- **On your other devices.** With [Device Sync](./settings.md) on, saved
+  searches travel to your other devices once every device connected to your
+  store has an up-to-date app (see "New kinds of data wait for every device").
+
 ## Read a dance in detail
 
 Selecting a dance opens its detail view — the full picture of a single dance.
@@ -452,14 +531,19 @@ your dialect and neutral wording.*
 
 The detail view brings together:
 
-- **A header** — title, authors, formation and progression (and **Mixer**, if
-  the dance is one), plus a status banner if the dance is flagged (for example,
-  deprecated or broken), a line saying where an imported dance came from, and
+- **A header** — title, authors with the year the dance was composed (such as
+  *Pat Shaw (1951)*), who interpreted it and when on a line of its own (such as
+  *Interpreted by Cecil Sharp (1916)*), formation and progression (and
+  **Mixer**, if the dance is one), the tune's **Meter** and **Key** on one line when either is
+  filled in (such as *Meter: 6/8 · Key: G minor*), plus a status banner if the
+  dance is flagged (for example, deprecated or broken), a line saying where an imported dance came from, and
   its **Hook**, the one line on why you would call it.
 - **The figures**, laid out by section (A1, A2, B1, B2), each with a beats column
   and a marker showing where the [progression](./glossary.md#progression) happens.
 - **Tags** — select one to add it to the Collection's **Tags** filter; see
   [Filter by tags](#filter-by-tags).
+- **Barnes books** — for an English dance, where the tune is printed in the
+  Barnes books, when you have filled that in.
 - **A Canonical switch** — flip between your dialect and the neutral, shared
   wording without changing the saved dance. It appears once you turn on
   **Canonical figure text** in
@@ -509,8 +593,8 @@ From the detail view you can:
   the dance, even only as an alternate, shows **In this program** (with ×N when
   it appears more than once); tapping it asks whether to add the dance again,
   and **Cancel** leaves the sheet open so you can pick another program.
-- **Export** it — share it as text or as a share file, copy it, or print it as a
-  PDF. The export follows your active dialect, so what you hand someone matches
+- **Export** it — share it as text or as a share file, show it as a code, copy it,
+  or print it as a PDF. The export follows your active dialect, so what you hand someone matches
   how they speak (except the role terms of a dance whose author asked for
   larks and robins) — see [Share, print & export](./sharing.md#which-words-a-dance-export-uses).
 - **Perform this dance** — open it in [Perform mode](./glossary.md#perform-mode),
@@ -645,8 +729,9 @@ To organize in bulk, enter selection mode: choose **Select dances** from the **M
 or long-press
 a row on a touchscreen. Tick as many dances as you like, then apply one change
 across all of them. Tags and level are on the toolbar; the rest are under
-**More batch actions**, grouped as details (rating, status) and other (tunes,
-custom field), with **Delete** on its own at the bottom.
+**More batch actions**, grouped as details (rating, status), other (tunes,
+custom field) and export (**Export as CSV**), with **Delete** on its own at the
+bottom.
 
 The bar at the top counts how many dances you have selected. **Select all**
 picks every dance in the list you are looking at — the current search, filters
@@ -682,6 +767,9 @@ The changes:
 - **Edit custom field** — set one of your fields to a value, or choose **Clear
   this field**. For a choice field, the **+** button beside the list adds a new
   option on the spot, just as it does when editing a single dance.
+- **Export as CSV** — saves or shares the selected dances, shown or not, as a
+  spreadsheet. It changes nothing, so selection mode stays open. See
+  [Export dances as a spreadsheet](./sharing.md#export-dances-as-a-spreadsheet-csv).
 - **Delete** — moves every selected dance, shown or not, to **Recently
   deleted**, all together or not at all. It asks first only when
   **Confirm before delete** is on in [Settings](./settings.md#accessibility), and then the
@@ -706,6 +794,52 @@ half-undone. Undoing **Edit custom field** puts back only the field you changed,
 so anything else you have edited in the meantime stays as it is. Selected rows are marked
 with a checkmark and a colored bar down the row's left edge — never color alone —
 so the selection is clear however you are reading the screen.
+
+## See your repertoire at a glance
+
+**Repertoire** is an experimental, read-only summary of what you call. Turn it
+on in [Settings ▸ Experimental ▸ Repertoire](./settings.md#repertoire); then
+choose **Repertoire** from the **More actions** (⋮) menu in the Collection
+toolbar. It opens as its own page, and **Back** returns to the Collection.
+
+At the top, choose a **Period**: **All time**, **Last month**, **Last 3
+months**, **Last 6 months**, or **Since a date…** for a longer season. These
+are the same windows as **Within** in
+[Filter by calling history](#filter-by-calling-history). If your collection has
+more than one type of dance, **Dance type** narrows the page to **Contra**,
+**English (ECD)** or **Square**. Neither choice is saved: the page opens on
+**All time** and every type each time.
+
+The page has these sections:
+
+- **Most called** and **Least called (of those you have called)**: the ten
+  dances called most, and the ten called least among those you called at all,
+  in the period. A dance is never in both lists.
+- **Never called**: how many dances you have never called at all, whatever the
+  period, with the first few titles. With a period chosen,
+  **Not called in this period** also counts the dances with no call in it,
+  never-called ones included.
+- **Figure frequency**: for each move, how many dances of that type contain it,
+  and how many calls in the period were of such a dance. A dance counts once
+  per move, however often the move appears in it. Each type is listed
+  separately, and **Show all** lists every move.
+- **Authors you call**: how many authors' dances you called in the
+  period, and each author's calls with their share of all calls. A dance with
+  two authors counts for both.
+- **Formation mix**: calls in the period by formation.
+- **Repeats per venue**: each venue where you called a dance more than once in
+  the period, and those dances.
+
+A call here is exactly what **called ×N** on a Collection row counts, under the
+[Calling history settings](./settings.md#calling-history): if a row says
+"called ×3", **All time** shows 3 for that dance. A period counts calls the way
+**Within** does.
+
+Select a dance to open it. Select any other row and the Collection shows the
+dances behind it, as a search you can change: **Never called** applies
+**Not called**; a move applies that type and a **Has figure** row in
+**Advanced**; an author, formation or venue applies that filter with
+**Called** and the period. Whatever you had searched for before is replaced.
 
 ## Jump straight to a dance or program
 

@@ -545,6 +545,11 @@ class AppLocalizationsJa extends AppLocalizations {
       '既定のフィギュアもこのフィギュアを使っており、同じように切り替わります。';
 
   @override
+  String userFigureSwitchConfirmKeepsWording(String name) {
+    return '$name にないダンサーのグループを使っている箇所は、切り替わらず現在の表現のまま残ります。';
+  }
+
+  @override
   String userFigureSwitchConfirmShorthands(int count, String name) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -2056,6 +2061,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get themeScreenNoMatches => '検索に一致するテーマがありません。';
 
   @override
+  String themeScreenResultCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のテーマ',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get themeScreenNewCustomTheme => 'カスタムテーマ';
 
   @override
@@ -2453,10 +2468,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDefaultsStartingProgramTitle => '開始プログラム';
 
   @override
-  String get settingsDefaultsStartingProgramSubtitle =>
-      '手動で作成したプログラムに追加するダンスとメモ。';
-
-  @override
   String get settingsDefaultsStartingProgramPickerTitle => 'ダンスを追加';
 
   @override
@@ -2611,6 +2622,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDefaultsShareFieldsSources => 'ソース';
+
+  @override
+  String get settingsDefaultsShareFieldsMusic => '拍子・調・Barnes';
 
   @override
   String get settingsDefaultsCollectionFiltersHeader => 'コレクションのフィルター';
@@ -3014,7 +3028,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsSharingCallerBandTitle => 'セットリストを共有するときにコーラーとバンドを含める';
 
   @override
-  String get settingsSharingDateVenueTitle => 'セットリストを共有するときに日付と会場を含める';
+  String get settingsSharingDateVenueTitle => 'セットリストを共有するときに日付、時刻、会場を含める';
 
   @override
   String get settingsSharingSubtitle =>
@@ -3033,6 +3047,13 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsProgramAutoCommitSubtitle =>
       'オンにすると、有効な変更が作業中に保存されるため、エディターを終了するときに破棄するかどうかを確認されません。オフにすると、プログラムを明示的に保存します。';
+
+  @override
+  String get settingsProgramShowPayTitle => '報酬を表示';
+
+  @override
+  String get settingsProgramShowPaySubtitle =>
+      'オフにすると、エディター・概要・プログラムの表計算ファイルで報酬が非表示になります。入力済みの報酬は保持され、再びオンにすると表示されます。';
 
   @override
   String get settingsMatrixColumnsHeader => 'マトリクスの列';
@@ -4005,6 +4026,70 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorMusicalKeyHint => '例: ト短調';
 
   @override
+  String get danceEditorAlternateTitlesLabel => '別名';
+
+  @override
+  String get danceEditorAlternateTitlesHelper =>
+      '1行に1つずつ。タイトル検索でどの名前からも見つかります。';
+
+  @override
+  String get danceEditorBarnesReferenceLabel => 'Barnes 掲載箇所';
+
+  @override
+  String get danceEditorBarnesReferenceHint => '例: BIII p. 92、NiB';
+
+  @override
+  String danceAlsoKnownAs(String titles) {
+    return '別名: $titles';
+  }
+
+  @override
+  String get danceAlsoKnownAsSeparator => '、';
+
+  @override
+  String get danceSectionBarnes => 'Barnes 曲集';
+
+  @override
+  String danceAuthorsWithYear(String names, String year) {
+    return '$names（$year年）';
+  }
+
+  @override
+  String danceComposedYear(String year) {
+    return '$year年振付';
+  }
+
+  @override
+  String danceInterpretedBy(String names) {
+    return '解釈：$names';
+  }
+
+  @override
+  String danceInterpretedByWithYear(String names, String year) {
+    return '解釈：$names（$year年）';
+  }
+
+  @override
+  String danceInterpretedYear(String year) {
+    return '$year年解釈';
+  }
+
+  @override
+  String danceBarnesValue(String reference) {
+    return 'Barnes：$reference';
+  }
+
+  @override
+  String danceMeterValue(String meter) {
+    return '拍子：$meter';
+  }
+
+  @override
+  String danceMusicalKeyValue(String key) {
+    return '調：$key';
+  }
+
+  @override
   String get commonMixedLevel => 'ミックスレベル';
 
   @override
@@ -4499,6 +4584,16 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String collectionFacetWithinMonthsSaved(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countか月(保存済み)',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get collectionFacetWithinSince => '日付以降…';
 
   @override
@@ -4555,6 +4650,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get collectionFacetAllHidden => 'すべてのフィルターが非表示です。設定 ▸ 既定値で再表示できます。';
+
+  @override
+  String get collectionFacetMissingValue => 'ライブラリにありません';
 
   @override
   String get collectionFacetClear => 'フィルターをクリア';
@@ -4762,6 +4860,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String collectionQueryParamNotOffered(String param, String value) {
+    return '$param: $value(選択肢にありません)';
+  }
+
+  @override
   String get collectionBatchLevelUnspecified => '未指定（クリア）';
 
   @override
@@ -4863,6 +4966,17 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String exportNamedPhrases(String order, String bars) {
+    return '$order（$bars）';
+  }
+
+  @override
+  String get exportNamedPhraseSeparator => '、';
+
+  @override
+  String get exportLabelSeparator => '：';
+
+  @override
   String danceFigureBars(String bars, int halfBars) {
     String _temp0 = intl.Intl.pluralLogic(
       halfBars,
@@ -4910,8 +5024,24 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get danceEditorSequenceSpanBeatsLabel => '全体の拍数';
+
+  @override
+  String get danceEditorSequenceSpanBeatsEmptyHelp =>
+      '空欄にするとステップの拍数を合計します。「forward again and swing (8)」のように、シーケンス全体の拍数を入力することもできます。';
+
+  @override
+  String get danceEditorSequenceSpanBeatsHelp =>
+      'ステップはこの拍数を共有し、各ステップは自分の拍数を空欄にできます。';
+
+  @override
+  String danceEditorSequenceSpanBeatsNoRoom(String steps, String span) {
+    return '拍数を持つステップがシーケンスの$spanのうち$stepsを使い、残りのステップの分がありません。';
+  }
+
+  @override
   String danceEditorSequenceOverPhraseTimed(String length, String limit) {
-    return 'このシーケンスは$lengthで、1フレーズ（$limit）より長くなっています。';
+    return 'このシーケンスは$lengthで、始まるフレーズ（$limit）より長くなっています。';
   }
 
   @override
@@ -5451,6 +5581,65 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsClearEventDate => 'イベント日をクリア';
 
   @override
+  String get programsStartTimeLabel => '開始時刻';
+
+  @override
+  String get programsEndTimeLabel => '終了時刻';
+
+  @override
+  String get programsLessonTimeLabel => '初心者レッスン';
+
+  @override
+  String get programsArrivalTimeLabel => '到着時刻';
+
+  @override
+  String get programsNoTimeSet => '未設定';
+
+  @override
+  String get programsSetTime => '設定';
+
+  @override
+  String get programsChangeTime => '変更';
+
+  @override
+  String programsSetTimeFor(String field) {
+    return '$fieldを設定';
+  }
+
+  @override
+  String programsChangeTimeFor(String field) {
+    return '$fieldを変更';
+  }
+
+  @override
+  String programsClearTime(String field) {
+    return '$fieldをクリア';
+  }
+
+  @override
+  String get programsTimeNextDay => '翌日に終了';
+
+  @override
+  String programsVenueUsualTimeHint(String time) {
+    return '会場の通常の時間：$time';
+  }
+
+  @override
+  String programsSummaryLessonTime(String time) {
+    return 'レッスン $time';
+  }
+
+  @override
+  String programsSummaryDanceTime(String times) {
+    return 'ダンス $times';
+  }
+
+  @override
+  String programsSummaryArriveBy(String time) {
+    return '到着 $time';
+  }
+
+  @override
   String get programsVenueLabel => '会場';
 
   @override
@@ -5786,6 +5975,46 @@ class AppLocalizationsJa extends AppLocalizations {
   String programsMoreActionsForSlot(String title) {
     return '$titleのその他のアクション';
   }
+
+  @override
+  String get programsAddDanceBeforeMenu => '前にダンスを追加';
+
+  @override
+  String get programsAddDanceAfterMenu => '後にダンスを追加';
+
+  @override
+  String programsAddBeforeSheetTitle(String title) {
+    return '$title の前に追加';
+  }
+
+  @override
+  String programsAddAfterSheetTitle(String title) {
+    return '$title の後に追加';
+  }
+
+  @override
+  String programsAddingBeforeBanner(String title) {
+    return '$title の前に追加中';
+  }
+
+  @override
+  String programsAddingAfterBanner(String title) {
+    return '$title の後に追加中';
+  }
+
+  @override
+  String programsAddedDanceBeforeAnnounce(String title, String target) {
+    return '$title を $target の前に追加しました。';
+  }
+
+  @override
+  String programsAddedDanceAfterAnnounce(String title, String target) {
+    return '$title を $target の後に追加しました。';
+  }
+
+  @override
+  String get programsInsertionCancelledAnnounce =>
+      'キャンセルしました。新しいダンスは最後に追加されます。';
 
   @override
   String get programsEditSlotMenu => 'スロットを編集';
@@ -6438,6 +6667,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportSaveDanceBundle => 'ダンスファイルを保存…';
 
   @override
+  String get exportShowCode => 'コードを表示';
+
+  @override
+  String get exportShowCodeError => 'コードを表示できませんでした。ダンスは変更されていません。もう一度お試しください。';
+
+  @override
+  String get danceCodeScreenTitle => 'ダンスのコード';
+
+  @override
+  String danceCodeSemanticLabel(String title) {
+    return '$titleのQRコード';
+  }
+
+  @override
+  String get danceCodeTooLong =>
+      'このダンスは長すぎて、コードとして共有できません。代わりにファイルとして共有してください。';
+
+  @override
   String get exportCopyDance => 'ダンスをコピー';
 
   @override
@@ -6584,7 +6831,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String exportSlotAuthorSuffix(String names) {
-    return '作: $names';
+    return '作：$names';
   }
 
   @override
@@ -6631,6 +6878,24 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String exportPageOfPages(int page, int pages) {
     return '$page / $pages ページ';
+  }
+
+  @override
+  String get exportLabelLesson => 'レッスン';
+
+  @override
+  String exportTimeRange(String start, String end) {
+    return '$start～$end';
+  }
+
+  @override
+  String exportEndsAt(String end) {
+    return '$endまで';
+  }
+
+  @override
+  String exportNextDay(String times) {
+    return '$times（翌日）';
   }
 
   @override
@@ -7389,6 +7654,20 @@ class AppLocalizationsJa extends AppLocalizations {
   String get archiveIntakeRejectedEmpty => 'そのファイルは空です。';
 
   @override
+  String get danceLinkRefusedNewerVersion =>
+      'このダンスのコードは、新しいバージョンのCaller’s Compendiumで作成されています。開くには、アプリをアップデートしてください。';
+
+  @override
+  String get danceLinkRefusedDamaged => 'このダンスのコードは破損しているか不完全なため、開けません。';
+
+  @override
+  String get danceLinkRefusedNotADance =>
+      'このコードは Caller\'s Compendium のダンスのコードではありません。';
+
+  @override
+  String get danceLinkRefusedNoContent => 'このダンスのコードにはダンスもプログラムも含まれていません。';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'そのファイルはCaller’s Compendiumの共有ファイルではありません。';
 
@@ -7610,7 +7889,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importIssueArchiveNewerSchema =>
-      'このファイルは新しいバージョンの Caller\'s Compendium で作成されました。インポートする前にアプリを更新してください。更新しないと、一部の詳細が含まれない場合があります。';
+      'これは新しいバージョンの Caller\'s Compendium で作成されました。インポートする前にアプリを更新してください。更新しないと、一部の詳細が含まれない場合があります。';
 
   @override
   String importIssueArchiveCustomFieldKeyConflict(String label, String key) {
@@ -7708,6 +7987,10 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get importIssueBarsMeterUnstated =>
       'このダンスは小節で数えていますが拍子の記載がないため、1小節を2拍として数えました。カウントを確認してください。';
+
+  @override
+  String get importIssueBarsMeterMixed =>
+      'このダンスは小節で数えていますが、小節の長さが異なる拍子が記載されているため、1小節を2拍として数えました。カウントを確認してください。';
 
   @override
   String get importIssueUnmappedType =>
@@ -8239,14 +8522,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorPhrasesHelp =>
-      '曲の各部分にA、B、Cの名前を付け、小節数と、1回演奏するか2回演奏するかを指定します。2回演奏するフレーズはA1、A2と表示されます。';
+      '曲の各部分にA、B、Cの名前を付け、小節数と1小節の拍数、そして1回演奏するか2回演奏するかを指定します。2回演奏するフレーズはA1、A2と表示されます。';
 
   @override
   String get danceEditorPhrasesAdd => 'フレーズを追加';
 
   @override
-  String danceEditorPhrasesInvalid(int max) {
-    return '各フレーズの小節数を1から$maxで入力してください。それまでは最後の有効なフレーズが保たれ、保存するとそれが保存されます。';
+  String danceEditorPhrasesInvalid(int maxBars, int maxBeats) {
+    return '各フレーズの小節数は1から$maxBars、1小節の拍数は1から$maxBeatsで入力してください。それまでは最後の有効なフレーズが保たれ、保存するとそれが保存されます。';
   }
 
   @override
@@ -8256,6 +8539,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String danceEditorPhraseBarsRange(int max) {
+    return '1〜$max';
+  }
+
+  @override
+  String danceEditorPhraseBeatsPerBarLabel(String name) {
+    return '$nameの1小節の拍数';
+  }
+
+  @override
+  String danceEditorPhraseBeatsPerBarRange(int max) {
     return '1〜$max';
   }
 
@@ -8277,6 +8570,52 @@ class AppLocalizationsJa extends AppLocalizations {
   String danceEditorPhraseRemove(String name) {
     return 'フレーズ$nameを削除';
   }
+
+  @override
+  String get danceEditorPhraseRowsHelp =>
+      '各行は、同じ長さのフレーズの並びです。フレーズの数、各フレーズの小節数、1小節の拍数を指定します。下のフレーズ構造は行に合わせて変わります。';
+
+  @override
+  String get danceEditorPhraseRowsPhrasesLabel => 'フレーズ数';
+
+  @override
+  String get danceEditorPhraseRowsBarsLabel => 'フレーズごとの小節数';
+
+  @override
+  String get danceEditorPhraseRowsBeatsLabel => '1小節の拍数';
+
+  @override
+  String danceEditorPhraseRowsRange(int max) {
+    return '1〜$max';
+  }
+
+  @override
+  String get danceEditorPhraseRowsAdd => '行を追加';
+
+  @override
+  String danceEditorPhraseRowsRemove(int number) {
+    return '$number行目を削除';
+  }
+
+  @override
+  String danceEditorPhraseRowsInvalid(int max) {
+    return '各欄に1から$maxまでの整数を入力してください。長すぎる構造にはできません。それまでは最後の有効なフレーズ構造が保たれます。';
+  }
+
+  @override
+  String danceEditorPhraseRowsSummary(String labels, int beats) {
+    String _temp0 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats拍',
+      one: '1拍',
+    );
+    return '$labels · $_temp0';
+  }
+
+  @override
+  String get danceEditorPhraseRowsDisabledNote =>
+      'これらの行には最後の有効なフレーズ構造が表示されています。再び編集するには、下のフレーズ構造を修正してください。';
 
   @override
   String get danceEditorFiguresSection => 'フィギュア';
@@ -8410,6 +8749,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsWalkthroughSnippetEditTitle => 'スニペットを編集';
 
   @override
+  String get danceEditorSetupTitle => 'クレジット・フォーメーション・音楽';
+
+  @override
   String get danceEditorMoreDetailsTitle => '詳細情報';
 
   @override
@@ -8422,10 +8764,86 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorMixerSubtitle => '踊るたびにパートナーが変わります';
 
   @override
+  String danceDetailSquareField(String field, String value) {
+    return '$field：$value';
+  }
+
+  @override
+  String get danceEditorSquareKindLabel => 'スクエアの種類';
+
+  @override
+  String get squareKindMain => 'メインパート';
+
+  @override
+  String get squareKindBreak => 'ブレイク';
+
+  @override
+  String get squareKindPatter => 'パター';
+
+  @override
+  String get danceEditorRepeatOrderLabel => '繰り返しの順序';
+
+  @override
+  String get squareRepeatOrderUnstated => '記載なし';
+
+  @override
+  String get squareRepeatOrderHeadsHeadsSidesSides => 'ヘッズ2回、続いてサイズ2回';
+
+  @override
+  String get squareRepeatOrderHeadsSidesHeadsSides => 'ヘッズとサイズを交互に';
+
+  @override
+  String get squareRepeatOrderAllFour => '4回、全員がアクティブ';
+
+  @override
+  String get squareRepeatOrderOther => 'その他';
+
+  @override
+  String get danceEditorRepeatOrderOtherLabel => '繰り返しの順序（自由記述）';
+
+  @override
+  String get danceEditorNewPartnerLabel => '新しいパートナー';
+
+  @override
+  String get squareNewPartnerUnstated => '記載なし';
+
+  @override
+  String get squareNewPartnerNone => 'パートナーは変わらない';
+
+  @override
+  String get squareNewPartnerCorner => 'コーナー';
+
+  @override
+  String squareNewPartnerRightHand(String role) {
+    return '右隣の$role';
+  }
+
+  @override
+  String get squareNewPartnerOpposite => 'オポジット';
+
+  @override
+  String get squareNewPartnerOther => 'その他';
+
+  @override
+  String get danceEditorNewPartnerOtherLabel => '新しいパートナー（自由記述）';
+
+  @override
+  String get danceEditorSingingLabel => 'シンギングコール';
+
+  @override
+  String get danceEditorSingingSubtitle => '曲名はチューンに入力します';
+
+  @override
+  String get danceEditorFreeFormLabel => 'フリーフォーム';
+
+  @override
+  String get danceEditorFreeFormSubtitle => 'フレーズに従わない：フレーズ名もフレーズの確認もなし';
+
+  @override
   String get danceEditorImproperLabel => 'インプロパーで始まる';
 
   @override
-  String get danceEditorImproperSubtitle => 'プロパーで始まるダンスではチェックを外したままにします。';
+  String get danceEditorImproperSubtitle => 'プロパーで始まるダンスではオフのままにします。';
 
   @override
   String get danceEditorComposedLabel => '振付年';
@@ -8594,7 +9012,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String validationSequenceExceedsPhrase(int position, int actual, int limit) {
-    return 'フィギュア$positionのシーケンスは$actual拍で、1フレーズ（$limit拍）より長くなっています。';
+    return 'フィギュア$positionのシーケンスは$actual拍で、始まるフレーズ（$limit拍）より長くなっています。';
   }
 
   @override
@@ -8617,7 +9035,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String actual,
     String limit,
   ) {
-    return 'フィギュア$positionのシーケンスは$actualで、1フレーズ（$limit）より長くなっています。';
+    return 'フィギュア$positionのシーケンスは$actualで、始まるフレーズ（$limit）より長くなっています。';
   }
 
   @override
@@ -8656,6 +9074,11 @@ class AppLocalizationsJa extends AppLocalizations {
       other: '$count個のフィギュア',
     );
     return 'これは$danceFormのダンスですが、$_temp0が$figureFormのものです。そのまま残りますが、フィギュアの選択肢には$pickerFormのフィギュアだけが表示されます。';
+  }
+
+  @override
+  String validationFigureCrossesPhrase(int position, String label) {
+    return 'フィギュア$positionが$labelの終わりを越えています。スクエアダンスでは、各フレーズのコールがそのフレーズをちょうど埋めるようにします。';
   }
 
   @override
@@ -8764,6 +9187,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorTypeToAddOrCreateHint => '追加または作成するには入力…';
+
+  @override
+  String get danceEditorChooseHint => '選択…';
 
   @override
   String danceEditorCreateQuotedName(String name) {
@@ -9029,6 +9455,146 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorAddSequence => 'シーケンスを追加';
 
   @override
+  String get danceEditorAddFiguresFromText => 'テキストからフィギュアを追加…';
+
+  @override
+  String get figureTextSheetTitle => 'テキストからフィギュアを追加';
+
+  @override
+  String get figureTextSheetHelp =>
+      '「(8) neighbor balance & swing」のように、1行に1つのフィギュアを入力または貼り付けてください。フリーテキスト入力がオフでも、各行はオンのときにムーブ欄に入力した行と同じように読み取られます。ダンスを保存するまで何も保存されません。';
+
+  @override
+  String get figureTextSheetHelpDropsLabels =>
+      '「A1 (8) neighbor balance & swing」のように、1行に1つのフィギュアを入力または貼り付けてください。行頭のA1のようなフレーズラベルは省かれます。フリーテキスト入力がオフでも、各行はオンのときにムーブ欄に入力した行と同じように読み取られます。ダンスを保存するまで何も保存されません。';
+
+  @override
+  String get figureTextSheetFieldLabel => 'フィギュア(1行に1つ)';
+
+  @override
+  String figureTextSheetSummary(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '追加するフィギュア:$countString件',
+      zero: '追加するフィギュアはまだありません',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String figureTextSheetUnrecognizedSummary(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString行が認識できません。テキストを保持した認識できないフィギュアとして追加されるので、後で修正してください。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String figureTextSheetLineFigures(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'フィギュア$countString件',
+      zero: 'フィギュアなし',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get figureTextSheetLineUnrecognized => '認識できません:認識できないフィギュアとして追加されます';
+
+  @override
+  String figureTextSheetTooLong(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return '$maxString文字を超えており、一度に読み取れる量を超えています。何も追加されません。分けて追加してください。';
+  }
+
+  @override
+  String figureTextSheetTooManyLines(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return '$maxString行を超えており、一度に読み取れる量を超えています。何も追加されません。分けて追加してください。';
+  }
+
+  @override
+  String figureTextSheetLineTooLong(int max) {
+    final intl.NumberFormat maxNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String maxString = maxNumberFormat.format(max);
+
+    return '$maxString文字を超える行があり、1行のフィギュアとして読み取れる長さを超えています。何も追加されません。複数の行に分けてください。';
+  }
+
+  @override
+  String get figureTextSheetAdd => 'フィギュアを追加';
+
+  @override
+  String get figureTextSheetFromImage => '画像から…';
+
+  @override
+  String get figureTextSheetTakePhoto => '写真を撮る';
+
+  @override
+  String get figureTextSheetCameraOff =>
+      'Caller\'s Compendium のカメラへのアクセスがオフになっています。写真を撮るには、「設定」アプリでオンにしてください。';
+
+  @override
+  String get figureTextSheetReadingImage => '画像を読み取り中…';
+
+  @override
+  String get figureTextSheetImageUnavailable =>
+      'このデバイスは、アプリの言語でも英語でも画像の文字を読み取れません。';
+
+  @override
+  String get figureTextSheetImageEnglishOnly =>
+      'このデバイスは画像を英語で読み取ります。アプリの言語では読み取れません。';
+
+  @override
+  String figureTextSheetImageTooLarge(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'この画像は$limitString MBを超えているため、読み取りませんでした。もっと小さい画像を選んでください。';
+  }
+
+  @override
+  String get figureTextSheetImageTooManyPixels =>
+      'この画像はピクセル数が多すぎて読み取れません。もっと小さい画像を選ぶか、トリミングしてください。';
+
+  @override
+  String get figureTextSheetImageUnreadable => 'このファイルは、このデバイスで開ける画像ではありません。';
+
+  @override
+  String get figureTextSheetImageNoText => 'この画像に文字は見つかりませんでした。';
+
+  @override
+  String get figureTextSheetImageFailed => '画像の文字を読み取れませんでした。';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList => 'フィギュアリストの末尾にペースト';
 
   @override
@@ -9242,12 +9808,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String danceEditorSequenceOverPhrase(int beats, int limit) {
-    return 'このシーケンスは$beats拍で、1フレーズ（$limit拍）より長くなっています。';
+    return 'このシーケンスは$beats拍で、始まるフレーズ（$limit拍）より長くなっています。';
   }
 
   @override
   String danceEditorSequencePhraseFull(int limit) {
-    return 'これらのフィギュアで1フレーズ（$limit拍）が埋まっています。';
+    return 'これらのフィギュアで、始まるフレーズ（$limit拍）が埋まっています。';
   }
 
   @override
@@ -9402,6 +9968,16 @@ class AppLocalizationsJa extends AppLocalizations {
       'ムーブ名は点線の下線、ロール用語は下線、非推奨用語は取り消し線で表示されます';
 
   @override
+  String danceEditorBeatTotalFreeForm(int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: '合計: $total拍',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String danceEditorBeatTotal(int total, int expected) {
     return '合計: $total / $expected拍';
   }
@@ -9418,6 +9994,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorLessTooltip => '少なく';
+
+  @override
+  String get danceEditorFigureNeedsValues => '保存する前に、このフィギュアのすべての項目で値を選んでください。';
+
+  @override
+  String get danceEditorSaveNeedsFigureValues =>
+      '追加したフィギュアに空欄の項目が残っています。入力すると保存できます。';
 
   @override
   String get danceEditorParamNotStated => '未指定';
@@ -9806,6 +10389,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get shorthandsUserFigureSyncLabel => '新しいフィギュア用のショートハンド';
+
+  @override
+  String get syncSavedSearchLabel => '保存した検索';
 
   @override
   String get shorthandsCompoundIntro =>
@@ -11940,7 +12526,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get callingCardHelpBlockTitle => 'ダンスのタイトル。';
 
   @override
-  String get callingCardHelpBlockAuthors => 'ダンスの作者。';
+  String get callingCardHelpBlockAuthors => 'ダンスの作者と作られた年、続いて解釈した人とその年。';
 
   @override
   String get callingCardHelpBlockFormation => 'フォーメーション（Improper、Becket など）。';
@@ -11951,6 +12537,9 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get callingCardHelpBlockMeta =>
       'フォーメーション、レベル、ミキサー、ステータス、フレーズを、それぞれのラベル付きで1行に。';
+
+  @override
+  String get callingCardHelpBlockMusic => '曲の拍子と調、Barnes の参照を1行に。';
 
   @override
   String get callingCardHelpBlockFigures =>
@@ -12076,4 +12665,1600 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get exportCallingCardsBiggerThanPaper =>
       'カードが用紙より大きいため、1ページに1枚ずつ縮小して印刷しました。';
+
+  @override
+  String get settingsProgramTemplatesTitle => 'プログラムのテンプレート';
+
+  @override
+  String settingsProgramTemplatesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'テンプレート $count 件',
+      zero: 'テンプレートはまだありません',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get settingsProgramTemplateDefaultTitle => '既定のテンプレート';
+
+  @override
+  String get settingsProgramTemplateDefaultSubtitle =>
+      '選択を求められないときに新しいプログラムの元になるもの。';
+
+  @override
+  String get settingsProgramTemplatesMigratedName => '開始プログラム';
+
+  @override
+  String get programTemplateBlankProgram => '空のプログラム';
+
+  @override
+  String get programTemplateDefaultBadge => '既定';
+
+  @override
+  String get programTemplateChooserTitle => 'テンプレートから始める';
+
+  @override
+  String get programTemplateNew => '新しいテンプレート';
+
+  @override
+  String get programTemplatesEmptyTitle => 'テンプレートはまだありません';
+
+  @override
+  String get programTemplatesEmptyBody =>
+      'テンプレートは、ある種類の夜のためのダンス・メモ・休憩の初期リストです。2 つ以上あると、新しいプログラムを作るときにどれから始めるかを尋ねます。';
+
+  @override
+  String get programTemplateNameLabel => 'テンプレート名';
+
+  @override
+  String get programTemplateRename => '名前を変更';
+
+  @override
+  String get programTemplateRenameTitle => 'テンプレート名を変更';
+
+  @override
+  String programTemplateCopyName(String name) {
+    return '$name（コピー）';
+  }
+
+  @override
+  String get programTemplateUntitled => '名前のないテンプレート';
+
+  @override
+  String programTemplateSlotCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 枠',
+      zero: '空',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String programTemplateDefaultWithSlots(String slots) {
+    return '既定 · $slots';
+  }
+
+  @override
+  String programTemplateActionsTooltip(String name) {
+    return '$name の操作';
+  }
+
+  @override
+  String get programTemplateEditorTitle => 'テンプレートを編集';
+
+  @override
+  String get programTemplateSlotsHeader => '枠';
+
+  @override
+  String get programTemplateSlotsSubtitle =>
+      'このテンプレートから作るプログラムに最初から入るダンス・メモ・休憩。';
+
+  @override
+  String get programTemplatesLoadError => 'プログラムのテンプレートを読み込めませんでした。';
+
+  @override
+  String get programTemplateSaveError => 'テンプレートへの変更を保存できませんでした。もう一度お試しください。';
+
+  @override
+  String get settingsSuggestionsHeader => '提案';
+
+  @override
+  String get settingsSuggestionsEnabledTitle => '次のダンスを提案';
+
+  @override
+  String get settingsSuggestionsEnabledSubtitle =>
+      'プログラム作成画面のダンス一覧の「並べ替え」メニューに「おすすめ順」を追加します。新しいダンスを入れる位置に合わせてダンスを並べ、その理由を示します。';
+
+  @override
+  String get settingsSuggestionsInPerformSwapTitle =>
+      'パフォームモードの「このダンスを入れ替え」で使う';
+
+  @override
+  String get settingsSuggestionsInPerformSwapSubtitle =>
+      'パフォームモードでダンスを入れ替えるとき、「あなたの代替」の下のダンスを、プログラム内のその位置に最も合う順に並べ、理由を示します。どのダンスも除外されません。';
+
+  @override
+  String get settingsSuggestionsEditorTitle => '提案で考慮すること';
+
+  @override
+  String get settingsSuggestionsEditorSubtitle =>
+      'ダンスを提案するときに、それぞれをどれだけ重視するかを選びます。';
+
+  @override
+  String get suggestionFactorMatrixVarietyTitle => 'マトリクスの多様さ';
+
+  @override
+  String get suggestionFactorMatrixVarietyHelp =>
+      'プログラムでまだ使っていない動きのあるダンスを優先します。前のダンスと同じ拍の動きは避けます。';
+
+  @override
+  String get suggestionFactorFormationBalanceTitle => '隊形のバランス';
+
+  @override
+  String get suggestionFactorFormationBalanceHelp =>
+      '前のダンスと同じ隊形や、プログラムにすでに多い隊形を避けます。';
+
+  @override
+  String get suggestionFactorDifficultyCurveTitle => '難易度の流れ';
+
+  @override
+  String get suggestionFactorDifficultyCurveHelp => '夜全体の難易度を選んだ形に合わせます。';
+
+  @override
+  String get suggestionFactorVenueRecencyTitle => 'この会場での最近のコール';
+
+  @override
+  String get suggestionFactorVenueRecencyHelp =>
+      'プログラムの会場で最近コールしたダンスを避けます。会場のないプログラムではこの項目を使いません。';
+
+  @override
+  String get suggestionWeightOff => 'オフ';
+
+  @override
+  String get suggestionWeightALittle => '少し';
+
+  @override
+  String get suggestionWeightALot => '強く';
+
+  @override
+  String suggestionWeightSemantic(String factor) {
+    return '$factorの重み';
+  }
+
+  @override
+  String get suggestionCurveShapeLabel => '形';
+
+  @override
+  String get suggestionCurveBuildThenEase => '徐々に上げて、最後は落ち着かせる';
+
+  @override
+  String get suggestionCurveEven => '一定';
+
+  @override
+  String get suggestionsResetDefaults => '既定に戻す';
+
+  @override
+  String get suggestionsResetDone => '提案で考慮することを既定に戻しました。';
+
+  @override
+  String get suggestionsNewerVersion =>
+      'この設定は新しいバージョンのアプリで保存されたため、ここでは変更できません。変更するにはアプリを更新してください。';
+
+  @override
+  String get collectionSortSuggested => 'おすすめ順';
+
+  @override
+  String suggestionReasonNewMoves(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '今夜初めての動きが$countつ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapPrevious(String move) {
+    return '$moveが前のダンスと同じ拍';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapNext(String move) {
+    return '$moveが次のダンスと同じ拍';
+  }
+
+  @override
+  String suggestionReasonSameFormationPrevious(String formation) {
+    return '$formation（前のダンスと同じ）';
+  }
+
+  @override
+  String suggestionReasonSameFormationNext(String formation) {
+    return '$formation（次のダンスと同じ）';
+  }
+
+  @override
+  String suggestionReasonFormationCommon(int count, String formation) {
+    return '今夜はすでに$formationが$count曲';
+  }
+
+  @override
+  String suggestionReasonFirstFormation(String formation) {
+    return '$formation：今夜初めて';
+  }
+
+  @override
+  String get suggestionReasonFitsCurve => 'ここでの難易度の流れに合う';
+
+  @override
+  String get suggestionReasonHarderThanCurve => 'ここでは難易度の流れより難しい';
+
+  @override
+  String get suggestionReasonEasierThanCurve => 'ここでは難易度の流れより易しい';
+
+  @override
+  String suggestionReasonCalledHereRecently(String venue, String date) {
+    return '$dateに$venueでコール済み';
+  }
+
+  @override
+  String suggestionReasonNotCalledHereSince(String venue, String date) {
+    return '$date以来$venueでコールしていない';
+  }
+
+  @override
+  String suggestionReasonNeverCalledHere(String venue) {
+    return '$venueでコールしたことがない';
+  }
+
+  @override
+  String get suggestionReasonVenueSkipped =>
+      'この会場での最近のコール：プログラムに会場がないため使っていません';
+
+  @override
+  String get suggestionReasonNoFactor => 'どの項目もこのダンスの順位を変えていません';
+
+  @override
+  String get suggestionReasonEnglishNotCovered => '提案はまだイングリッシュ・ダンスに対応していません';
+
+  @override
+  String suggestionReasonPhraseOverlapPrevious(String move) {
+    return '$moveが前のダンスと同じフレーズ';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapNext(String move) {
+    return '$moveが次のダンスと同じフレーズ';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapAfterDance(String move, String dance) {
+    return '$moveが直前の$danceと同じ拍';
+  }
+
+  @override
+  String suggestionReasonBeatOverlapBeforeDance(String move, String dance) {
+    return '$moveが直後の$danceと同じ拍';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapAfterDance(String move, String dance) {
+    return '$moveが直前の$danceと同じフレーズ';
+  }
+
+  @override
+  String suggestionReasonPhraseOverlapBeforeDance(String move, String dance) {
+    return '$moveが直後の$danceと同じフレーズ';
+  }
+
+  @override
+  String suggestionReasonSameFormationAfterDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation（直前の$danceと同じ）';
+  }
+
+  @override
+  String suggestionReasonSameFormationBeforeDance(
+    String formation,
+    String dance,
+  ) {
+    return '$formation（直後の$danceと同じ）';
+  }
+
+  @override
+  String get suggestionReasonAlreadyInProgram => 'すでにこのプログラムにあります';
+
+  @override
+  String get suggestionRankingFailed => 'ダンスを並べ替えられなかったため、通常の順序で表示しています。';
+
+  @override
+  String suggestionWhyTooltip(String title) {
+    return '$titleがここで提案される理由';
+  }
+
+  @override
+  String suggestionWhyTitle(String title) {
+    return '$titleの理由';
+  }
+
+  @override
+  String suggestionWhyRaises(String reason) {
+    return '順位を上げる：$reason';
+  }
+
+  @override
+  String suggestionWhyLowers(String reason) {
+    return '順位を下げる：$reason';
+  }
+
+  @override
+  String get figureParamSearchDancersHint => 'ダンサーを検索';
+
+  @override
+  String get exportAddToCalendar => 'カレンダーに追加（.ics）';
+
+  @override
+  String get programsExportCalendar => 'カレンダーを書き出す（.ics）';
+
+  @override
+  String get exportCalendarPickTitle => 'カレンダーを書き出す';
+
+  @override
+  String get exportCalendarPickBody => 'カレンダーファイルに入れるプログラムを選んでください。';
+
+  @override
+  String get exportCalendarShowPast => '過去のプログラムを表示';
+
+  @override
+  String get exportCalendarNoUpcoming =>
+      '表示できる今後のプログラムはありません。アーカイブ済みのプログラムはここには表示されません。以前のプログラムを選ぶには「過去のプログラムを表示」をオンにしてください。';
+
+  @override
+  String get exportCalendarNoDated =>
+      '日付のあるプログラムはまだありません。カレンダーに追加するには、プログラムに日付を設定してください。';
+
+  @override
+  String get exportCalendarPickConfirm => '書き出す';
+
+  @override
+  String get exportCalendarAddressTitle => '会場の住所を含めますか？';
+
+  @override
+  String get exportCalendarAddressBody =>
+      'カレンダーファイルには会場名が入ります。住所は、含めることを選ばない限り省かれます。カレンダーは同期されたり、他の人と共有されたりすることがよくあります。';
+
+  @override
+  String get exportCalendarAddressInclude => '会場の住所を含める';
+
+  @override
+  String get exportCalendarDialogTitle => 'カレンダーファイルを書き出す';
+
+  @override
+  String get exportCalendarDialogMessage => 'このカレンダーファイルの渡し方を選んでください。';
+
+  @override
+  String get exportCalendarSavedGeneric => 'カレンダーファイルを保存しました。';
+
+  @override
+  String get exportCalendarSaveError => 'このカレンダーファイルを保存できませんでした。もう一度お試しください。';
+
+  @override
+  String get exportCalendarShareError => 'このカレンダーファイルを共有できませんでした。もう一度お試しください。';
+
+  @override
+  String get importErrorNotACalendar =>
+      'そのアドレスからはカレンダーが返されませんでした。Google カレンダーの場合は、通常のリンクではなく iCal 形式のアドレス（設定と共有 ▸ カレンダーの統合）を使ってください。';
+
+  @override
+  String get importFromCalendar => 'カレンダーから';
+
+  @override
+  String get importProgramFromCalendar => 'カレンダーからインポート';
+
+  @override
+  String get calendarImportTitle => 'カレンダーからインポート';
+
+  @override
+  String get calendarImportImport => 'インポート';
+
+  @override
+  String get calendarAddressLabel => 'カレンダーのアドレス';
+
+  @override
+  String get calendarAddressHelper =>
+      'カレンダーの iCal アドレス（https:// または webcal:// で始まるもの）。非公開カレンダーの秘密のアドレスも使えます。他の人には教えないでください。';
+
+  @override
+  String get calendarImportFetch => '予定を取得';
+
+  @override
+  String get calendarImportFailed => 'カレンダーからインポートできませんでした。もう一度お試しください。';
+
+  @override
+  String get calendarImportUntitled => '無題の予定';
+
+  @override
+  String calendarImportCommitted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'カレンダーから下書きプログラムを$count件追加しました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportNothingFound => '期間内に予定はありません。';
+
+  @override
+  String calendarImportSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '新しい予定が$count件あります。',
+      zero: '新しい予定はありません。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportNewHeader => 'カレンダーの新しい予定';
+
+  @override
+  String get calendarImportDeletedHeader => '削除したプログラム';
+
+  @override
+  String get calendarImportDeletedNote =>
+      'この予定から作ったプログラムは削除済みです。もう一度インポートするにはチェックを入れてください。';
+
+  @override
+  String get calendarImportAlreadyHeader => 'インポート済み';
+
+  @override
+  String get calendarImportFromThisAppHeader => 'このアプリから';
+
+  @override
+  String get calendarImportUnreadableHeader => 'アプリが読み取れない繰り返しの予定';
+
+  @override
+  String get calendarImportUnreadableBody =>
+      'アプリが理解できない方法で繰り返しているため、インポートされません。';
+
+  @override
+  String calendarImportSkippedNoUid(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件の予定には識別子がないため、スキップしました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarImportTruncated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'カレンダーに$count件を超える予定があります。最初の$count件だけを読み取りました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarSettingsHeader => 'カレンダー';
+
+  @override
+  String get calendarSettingsSaveError => '設定を保存できませんでした。もう一度お試しください。';
+
+  @override
+  String get calendarAddressSet => '設定済み。タップして変更します。';
+
+  @override
+  String get calendarAddressNotSet => '未設定';
+
+  @override
+  String get calendarWindowTitle => '対象の予定';
+
+  @override
+  String get calendarWindowSubtitle =>
+      '今日からこの期間先までの予定。繰り返しの予定は30日先までしか読み取りません。';
+
+  @override
+  String calendarWindowOption(int months) {
+    String _temp0 = intl.Intl.pluralLogic(
+      months,
+      locale: localeName,
+      other: '$monthsか月',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarTitleFilterTitle => 'タイトルにこの語を含む予定のみ';
+
+  @override
+  String get calendarTitleFilterHelper =>
+      'ほかの予定も入っているカレンダー向けです。すべての予定を対象にするには空欄のままにします。';
+
+  @override
+  String get calendarTitleFilterNone => 'すべての予定';
+
+  @override
+  String calendarTitleFilterValue(String filter) {
+    return '「$filter」';
+  }
+
+  @override
+  String get calendarPullNowTitle => '今すぐ取得';
+
+  @override
+  String get calendarPullNowSubtitle => 'カレンダーを読み取り、下書きプログラムとして追加する予定を選びます。';
+
+  @override
+  String get collectionExportCsv => 'CSVでエクスポート';
+
+  @override
+  String get settingsExportDancesCsvTitle => 'ダンスを表計算ファイルでエクスポート';
+
+  @override
+  String get settingsExportDancesCsvSubtitle =>
+      'コレクションのすべてのダンスを、Excel、Numbers、Googleスプレッドシート用のCSVファイルにします。共有と同じルールが適用され、星の評価も含まれます。バックアップではないため、復元はできません。';
+
+  @override
+  String get settingsExportDancesCsvAction => 'エクスポート';
+
+  @override
+  String get exportCsvDialogTitle => '表計算ファイル（CSV）をエクスポート';
+
+  @override
+  String get exportCsvDialogMessage =>
+      'ファイルを保存するか、ほかのアプリと共有します。Excel、Numbers、LibreOffice、Googleスプレッドシートで開けます。';
+
+  @override
+  String get exportCsvSavedGeneric => '表計算ファイルを保存しました。';
+
+  @override
+  String get exportCsvSaveError => 'この表計算ファイルを保存できませんでした。もう一度お試しください。';
+
+  @override
+  String get exportCsvShareError => 'この表計算ファイルを共有できませんでした。もう一度お試しください。';
+
+  @override
+  String get exportCsvError => 'この表計算ファイルを作成できませんでした。もう一度お試しください。';
+
+  @override
+  String get csvDancesFileStem => 'ダンス';
+
+  @override
+  String get csvColumnTitle => 'タイトル';
+
+  @override
+  String get csvColumnAuthors => '作者';
+
+  @override
+  String get csvColumnInterpreters => '解釈者';
+
+  @override
+  String get csvColumnForm => 'タイプ';
+
+  @override
+  String get csvColumnFormation => 'フォーメーション';
+
+  @override
+  String get csvColumnProgression => 'プログレッション';
+
+  @override
+  String get csvColumnLevel => 'レベル';
+
+  @override
+  String get csvColumnMixedLevel => 'ミックスレベル';
+
+  @override
+  String get csvColumnMixer => 'ミキサー';
+
+  @override
+  String get csvColumnStatus => 'ステータス';
+
+  @override
+  String get csvColumnRating => '評価';
+
+  @override
+  String get csvColumnTags => 'タグ';
+
+  @override
+  String get csvColumnTunes => 'チューン';
+
+  @override
+  String get csvColumnMeter => '拍子';
+
+  @override
+  String get csvColumnKey => '調';
+
+  @override
+  String get csvColumnSources => '公開ソース';
+
+  @override
+  String get csvColumnHook => 'フック';
+
+  @override
+  String get csvColumnCallingNotes => 'コーリングノート';
+
+  @override
+  String get csvColumnWalkthrough => 'ウォークスルー';
+
+  @override
+  String get csvColumnFigures => 'フィギュア';
+
+  @override
+  String get csvColumnComposed => '振付年';
+
+  @override
+  String get csvColumnInterpreted => '解釈年';
+
+  @override
+  String get csvColumnBarnes => 'Barnes 掲載箇所';
+
+  @override
+  String get programsExportCsv => 'プログラムをCSVでエクスポート';
+
+  @override
+  String get csvProgramsFileStem => 'プログラム';
+
+  @override
+  String get csvColumnEventDate => 'イベント日';
+
+  @override
+  String get csvColumnVenue => '会場';
+
+  @override
+  String get csvColumnCaller => 'コーラー';
+
+  @override
+  String get csvColumnBand => 'バンド';
+
+  @override
+  String get csvColumnDancerLevel => 'ダンサーレベル';
+
+  @override
+  String get csvColumnPayAmount => '報酬';
+
+  @override
+  String get csvColumnPayCurrency => '通貨';
+
+  @override
+  String get csvColumnNotes => 'ノート';
+
+  @override
+  String get csvColumnDanceCount => 'ダンス数';
+
+  @override
+  String get csvColumnDances => 'ダンス';
+
+  @override
+  String get exportCsvPayHiddenNotice =>
+      '報酬は設定で非表示になっているため、含まれません。含めるには、設定 ▸ プログラムで「報酬を表示」をオンにしてください。';
+
+  @override
+  String get performSwapThisDance => 'このダンスを入れ替え';
+
+  @override
+  String performSwapDanceNamed(String title) {
+    return '$titleを入れ替え';
+  }
+
+  @override
+  String performSwappedAnnounce(String title) {
+    return '$titleに入れ替えました';
+  }
+
+  @override
+  String get performSwapKeepHeader => '維持する条件';
+
+  @override
+  String performSwapKeepFormation(String formation) {
+    return '同じフォーメーション：$formation';
+  }
+
+  @override
+  String performSwapKeepLevel(String level) {
+    return 'このレベル以下：$level';
+  }
+
+  @override
+  String performSwapKeepType(String type) {
+    return '同じタイプ：$type';
+  }
+
+  @override
+  String get performSwapKeepNotInProgram => '今夜のプログラムにまだないもの';
+
+  @override
+  String get performSwapFiguresHeader => '維持するフィギュア';
+
+  @override
+  String performSwapFigureInPhrase(String figure, String phrase) {
+    return '$phraseの$figure';
+  }
+
+  @override
+  String performSwapKeepFigureSemantic(String figure) {
+    return '$figureを維持';
+  }
+
+  @override
+  String performSwapSamePhrase(String phrase) {
+    return '同じフレーズ（$phrase）';
+  }
+
+  @override
+  String performSwapSamePhraseSemantic(String figure, String phrase) {
+    return '$figureを同じフレーズ$phraseで維持';
+  }
+
+  @override
+  String performSwapWithBefore(String figure) {
+    return '直前のフィギュアも（$figure）';
+  }
+
+  @override
+  String performSwapWithBeforeSemantic(String figure, String before) {
+    return '$figureを$beforeの直後で維持';
+  }
+
+  @override
+  String get performSwapMoreFilters => 'その他のフィルター';
+
+  @override
+  String get performSwapKeepInPanels => 'ほかの維持する条件は、フィルターと詳細検索に移りました。';
+
+  @override
+  String get performSwapEnglishNote =>
+      'イングリッシュダンスでは、同じフォーメーションとフィギュアの細かい条件はまだ使えません。';
+
+  @override
+  String get performSwapAlternatesHeading => 'あなたの代替';
+
+  @override
+  String get performSwapResultsHeading => '条件に合うダンス';
+
+  @override
+  String get performSwapRefused =>
+      'このプログラムは別のデバイスで変更されたため、変更の一部が保存されませんでした。プログラムを確認し、必要であればもう一度変更してください。';
+
+  @override
+  String get settingsPerformSwapTitle => 'ダンスの入れ替え';
+
+  @override
+  String get settingsPerformSwapSubtitle =>
+      'パフォームモードでダンスを入れ替えるときに、最初からオンにする維持条件を選びます。';
+
+  @override
+  String get settingsPerformSwapFormation => '同じフォーメーション';
+
+  @override
+  String get settingsPerformSwapLevel => 'このレベル以下';
+
+  @override
+  String get settingsPerformSwapType => '同じタイプ';
+
+  @override
+  String get settingsPerformSwapTypeSubtitle =>
+      'コントラとイングリッシュダンスのように、タイプが混在するプログラムでのみ表示されます。';
+
+  @override
+  String get settingsPerformSwapNewerVersion =>
+      'この設定は新しいバージョンのアプリで保存されました。このバージョンはすべてオンの初期設定を使い、保存された設定は上書きしません。変更するにはアプリを更新してください。';
+
+  @override
+  String get settingsPerformSwapReadError =>
+      '「ダンスの入れ替え」の設定を読み込めなかったため、今は変更できません。この画面を閉じて、もう一度お試しください。';
+
+  @override
+  String get collectionRepertoireMenuItem => 'レパートリー';
+
+  @override
+  String get repertoireTitle => 'レパートリー';
+
+  @override
+  String get repertoireLoadError => 'レパートリーを集計できませんでした';
+
+  @override
+  String get repertoirePeriodLabel => '期間';
+
+  @override
+  String get repertoirePeriodAllTime => '全期間';
+
+  @override
+  String repertoirePeriodMonths(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '過去$countか月',
+      one: '過去1か月',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get repertoirePeriodSinceDate => '日付以降…';
+
+  @override
+  String repertoirePeriodSince(String date) {
+    return '$date以降';
+  }
+
+  @override
+  String get repertoireTypeLabel => 'ダンスの種類';
+
+  @override
+  String get repertoireTypeAll => 'すべての種類';
+
+  @override
+  String repertoireSummary(int calls, int called, int total) {
+    return 'この期間のコール数：$calls。コールしたダンス：$total件中$called件。';
+  }
+
+  @override
+  String get repertoireMostCalledHeader => 'コール回数が多い';
+
+  @override
+  String get repertoireLeastCalledHeader => 'コール回数が少ない（コールしたダンスのうち）';
+
+  @override
+  String get repertoireLeastCalledAllShown =>
+      'この期間にコールしたダンスは、すべて「コール回数が多い」に表示されています。';
+
+  @override
+  String get repertoireNoCalls => 'この期間にカウントされたコールはありません。';
+
+  @override
+  String repertoireDanceCalls(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count回コール',
+      one: '1回コール',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireDanceSemantics(String title, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count回コール',
+      one: '1回コール',
+    );
+    return '$title：$_temp0';
+  }
+
+  @override
+  String get repertoireNeverCalledHeader => '一度もコールされていない';
+
+  @override
+  String get repertoireNeverCalledLabel => '一度もコールされていない';
+
+  @override
+  String repertoireOfDances(int count, int total) {
+    return '$total件中$count件のダンス';
+  }
+
+  @override
+  String repertoireNeverCalledSemantics(int count, int total) {
+    return '一度もコールされていない：$total件中$count件のダンス';
+  }
+
+  @override
+  String repertoireNeverCalledDanceSemantics(String title) {
+    return '$title：一度もコールされていない';
+  }
+
+  @override
+  String get repertoireNotCalledInPeriodLabel => 'この期間に未コール';
+
+  @override
+  String repertoireNotCalledInPeriodSemantics(int count, int total) {
+    return 'この期間に未コール：$total件中$count件のダンス';
+  }
+
+  @override
+  String get repertoireFigureHeader => 'フィギュアの出現頻度';
+
+  @override
+  String get repertoireNoFigures => 'これらのダンスにはフィギュアが入力されていません。';
+
+  @override
+  String repertoireFigureValue(int dances, int total, int percent, int calls) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls回コール',
+      one: '1回コール',
+    );
+    return '$total件中$dances件のダンス（$percent%）・$_temp0';
+  }
+
+  @override
+  String repertoireFigureSemantics(
+    String move,
+    int dances,
+    int total,
+    int percent,
+    int calls,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls回コール',
+      one: '1回コール',
+    );
+    return '$move：$total件中$dances件のダンス、$percentパーセント。この期間に$_temp0';
+  }
+
+  @override
+  String repertoireShowAll(int count) {
+    return 'すべて表示（$count件）';
+  }
+
+  @override
+  String get repertoireShowFewer => '表示を減らす';
+
+  @override
+  String get repertoireAuthorsHeader => 'コールしている作者';
+
+  @override
+  String repertoireAuthorsSummary(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'この期間に$count人の作者のダンスをコールしました。',
+      one: 'この期間に1人の作者のダンスをコールしました。',
+      zero: 'この期間にコールした作者はいません。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireShareValue(int calls, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls回コール',
+      one: '1回コール',
+    );
+    return '$_temp0（$percent%）';
+  }
+
+  @override
+  String repertoireShareSemantics(String label, int calls, int percent) {
+    String _temp0 = intl.Intl.pluralLogic(
+      calls,
+      locale: localeName,
+      other: '$calls回コール',
+      one: '1回コール',
+    );
+    return '$label：$_temp0、この期間のコールの$percentパーセント';
+  }
+
+  @override
+  String get repertoireFormationHeader => 'フォーメーションの内訳';
+
+  @override
+  String get repertoireVenuesHeader => '会場ごとの繰り返し';
+
+  @override
+  String get repertoireNoRepeats => 'この期間に同じ会場で2回以上コールされたダンスはありません。';
+
+  @override
+  String get repertoireVenueUnnamed => '名前のない会場';
+
+  @override
+  String repertoireVenueRepeats(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスを繰り返し',
+      one: '1件のダンスを繰り返し',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String repertoireVenueSemantics(String venue, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のダンスを2回以上コール',
+      one: '1件のダンスを2回以上コール',
+    );
+    return '$venue：$_temp0';
+  }
+
+  @override
+  String get settingsExperimentalRepertoireHeader => 'レパートリー';
+
+  @override
+  String get settingsExperimentalShowRepertoireTitle => 'レパートリー';
+
+  @override
+  String get settingsExperimentalShowRepertoireSubtitle =>
+      'コレクションの「その他のアクション」メニューに「レパートリー」を追加します。コール回数が多いダンスと少ないダンス、一度もコールしていないダンス、フィギュアの出現頻度、作者、フォーメーション、会場ごとの繰り返しを表示します。';
+
+  @override
+  String get importSourceLabelCsv => '自分の表計算ファイル（CSV）';
+
+  @override
+  String get importCsvPickFile => 'CSV ファイルを選択…';
+
+  @override
+  String get importSourceLabelTextDocument => '自分のテキストまたはMarkdownファイル';
+
+  @override
+  String get importTextHint =>
+      '.txtまたは.mdファイルを選んでください。各ダンスは見出し(## Title)か、空行の後のタイトルで始めます。詳細は「Label: value」の行(Formation: Improper)に、フィギュアは1行に1つ(A1 (8) Neighbor swing)書きます。';
+
+  @override
+  String get importTextPickFile => 'テキストまたはMarkdownファイルを選択…';
+
+  @override
+  String get importTextMapTitle => 'ラベルの割り当て';
+
+  @override
+  String get importTextMapIntro =>
+      'ファイル内の各ラベルが何を表すかを選んでください。どの項目にも割り当てられないラベルは、名前付きでコーリングノートに残ります。除外するには「無視」を選びます。確認して確定するまで何も追加されません。';
+
+  @override
+  String get importTextDanceStartLabel => '各ダンスの始まり';
+
+  @override
+  String importTextDanceStartHeading(String marks) {
+    return '$marks 見出し';
+  }
+
+  @override
+  String get importTextDanceStartBlankLine => '空行の後のタイトル';
+
+  @override
+  String get importTextTargetLabelledNotes => 'コーリングノート(ラベル付き)';
+
+  @override
+  String get importTextNotUtf8 =>
+      'このファイルはUTF-8テキストで保存されていないため、アクセント付きの文字が正しく取り込まれません。UTF-8テキストで保存し直し、そのファイルを選んでください。';
+
+  @override
+  String importTextTooManyDances(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'このファイルには$limitString件を超えるダンスがあります。小さなファイルに分けてください。';
+  }
+
+  @override
+  String importTextLineTooLong(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'このファイルに$limitString文字を超える行があります。';
+  }
+
+  @override
+  String importTextDanceTooLong(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'このファイルに、フィギュア、ノート、または1つの詳細が$limitString文字を超えるダンスがあります。';
+  }
+
+  @override
+  String importTextTooManyLabels(int limit) {
+    final intl.NumberFormat limitNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String limitString = limitNumberFormat.format(limit);
+
+    return 'このファイルは$limitString種類を超えるラベルを使っています。';
+  }
+
+  @override
+  String get importCsvSaveAsHint =>
+      '表計算アプリで［ファイル］▸［名前を付けて保存］（または［ダウンロード］）を選び、「CSV UTF-8」を選んでから、そのファイルをここで選択してください。';
+
+  @override
+  String get importCsvMapTitle => '列の割り当て';
+
+  @override
+  String get importCsvMapIntro =>
+      '各列の内容を選んでください。「無視」にした列は取り込まれません。確認して確定するまで何も追加されません。';
+
+  @override
+  String get importCsvSeparatorLabel => '区切り文字';
+
+  @override
+  String get importCsvSeparatorComma => 'カンマ（,）';
+
+  @override
+  String get importCsvSeparatorSemicolon => 'セミコロン（;）';
+
+  @override
+  String get importCsvSeparatorTab => 'タブ';
+
+  @override
+  String get importCsvFirstRowHeader => '1 行目は列名';
+
+  @override
+  String importCsvColumnFallback(int number) {
+    return '列 $number';
+  }
+
+  @override
+  String get importCsvTargetIgnore => '無視';
+
+  @override
+  String importCsvTargetPhrase(String phrase) {
+    return 'フィギュア、$phrase';
+  }
+
+  @override
+  String importCsvTargetNewField(String type) {
+    return '新しいカスタムフィールド（$type）';
+  }
+
+  @override
+  String importCsvTargetExistingField(String name) {
+    return 'カスタムフィールド：$name';
+  }
+
+  @override
+  String get importCsvNeedsTitle => '各ダンスのタイトルが入っている列を選んでください。';
+
+  @override
+  String get importCsvContinue => '続ける';
+
+  @override
+  String get importCsvPreviewHeading => '最初の行';
+
+  @override
+  String get importCsvNotUtf8 =>
+      'このファイルは UTF-8 テキストで保存されていないため、アクセント付きの文字が正しく取り込まれません。表計算アプリで「CSV UTF-8」として保存し直し、そのファイルを選択してください。';
+
+  @override
+  String get importCsvTooLarge => 'このファイルは大きすぎて取り込めません。小さなファイルに分けてください。';
+
+  @override
+  String importCsvTooManyRows(int limit) {
+    return 'このファイルには $limit 行を超える行があります。小さなファイルに分けてください。';
+  }
+
+  @override
+  String importCsvTooManyColumns(int limit) {
+    return 'このファイルのある行には $limit を超える列があります。';
+  }
+
+  @override
+  String importCsvCellTooLong(int limit) {
+    return 'このファイルのあるセルは $limit 文字を超えています。';
+  }
+
+  @override
+  String get importCsvUnterminatedQuote =>
+      'このファイルには終わりのない引用符付きのセルがあるため、読み込めません。';
+
+  @override
+  String importCsvLargeBatch(int count) {
+    return 'このファイルには $count 行あります。確認に時間がかかることがあります。';
+  }
+
+  @override
+  String get importCsvNoRows => 'このファイルには列名だけで、ダンスの行がありません。';
+
+  @override
+  String calendarImportUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'カレンダーからプログラムを$count件更新しました。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarImportReviewed => 'カレンダーを確認しました。追加や変更はありません。';
+
+  @override
+  String calendarChangeDate(String before, String after) {
+    return '日付: $before → $after';
+  }
+
+  @override
+  String calendarChangeTitle(String before, String after) {
+    return 'タイトル: $before → $after';
+  }
+
+  @override
+  String calendarChangeTime(String before, String after) {
+    return '時刻: $before → $after';
+  }
+
+  @override
+  String calendarChangeVenue(String before, String after) {
+    return '会場: $before → $after';
+  }
+
+  @override
+  String get calendarImportUpdatedHeader => 'カレンダーで更新された予定';
+
+  @override
+  String get calendarImportChangedHeader => 'カレンダーで変更された予定';
+
+  @override
+  String get calendarImportChangedBody =>
+      'これらのプログラムは編集済みのため、チェックを入れない限り何も変わりません。';
+
+  @override
+  String get calendarImportFlaggedHeader => 'カレンダーでキャンセルされた、または削除された予定';
+
+  @override
+  String get calendarImportFlaggedBody =>
+      'これらのプログラムはそのまま残り、ラベルが付きます。不要になったら自分でアーカイブまたは削除してください。';
+
+  @override
+  String get calendarFlagCancelled => 'カレンダーでキャンセル済み';
+
+  @override
+  String get calendarFlagMissing => 'カレンダーにもうありません';
+
+  @override
+  String get calendarFlagOther => 'カレンダーによるフラグ';
+
+  @override
+  String get calendarFlagFieldLabel => 'カレンダーのフラグ';
+
+  @override
+  String get calendarClearFlag => 'カレンダーのフラグを消す';
+
+  @override
+  String get calendarClearFlagError => 'カレンダーのフラグを消せませんでした。もう一度お試しください。';
+
+  @override
+  String get calendarOnStartupTitle => 'アプリ起動時にカレンダーをインポート';
+
+  @override
+  String get calendarOnStartupSubtitle =>
+      '初期設定はオフです。オンにすると、起動のたびにカレンダーを1回読み取ります。読み取れなくても何も表示しません。';
+
+  @override
+  String get calendarStartupModeTitle => '起動時';
+
+  @override
+  String get calendarStartupModeReport => '新しい予定を知らせる';
+
+  @override
+  String get calendarStartupModeAdd => '下書きとして追加';
+
+  @override
+  String get calendarStartupModeReportSubtitle =>
+      '新しい予定を知らせます。確認するまで何も追加されません。';
+
+  @override
+  String get calendarStartupModeAddSubtitle =>
+      '新しい予定を下書きプログラムとして追加します（元に戻せます）。変更・キャンセルされた予定は知らせるだけです。';
+
+  @override
+  String calendarLastResultFailed(String when) {
+    return '起動時にカレンダーに接続できませんでした（$when）';
+  }
+
+  @override
+  String calendarLastResultAdded(String when, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '下書きを$count件追加',
+    );
+    return '起動時に確認（$when）: $_temp0';
+  }
+
+  @override
+  String calendarLastResultNew(String when, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '新しい予定が$count件',
+      zero: '新しい予定はありません',
+    );
+    return '起動時に確認（$when）: $_temp0';
+  }
+
+  @override
+  String calendarStartupFailureNotice(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '直近$count回の起動でカレンダーに接続できませんでした。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarStartupFailureHint => 'カレンダーのアドレスか接続を確認してください。';
+
+  @override
+  String calendarStartupNewEvents(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'カレンダーに新しい予定が$count件あります。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String calendarStartupChanges(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '確認が必要な変更が$count件あります。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get calendarStartupShow => '表示';
+
+  @override
+  String get calendarStartupReview => '確認';
+
+  @override
+  String calendarLastResultError(String when) {
+    return '起動時にカレンダーからインポートできませんでした（$when）';
+  }
+
+  @override
+  String get savedSearchSaveThis => 'この検索を保存…';
+
+  @override
+  String savedSearchUpdate(String name) {
+    return '「$name」を更新';
+  }
+
+  @override
+  String savedSearchRename(String name) {
+    return '「$name」の名前を変更…';
+  }
+
+  @override
+  String savedSearchDelete(String name) {
+    return '「$name」を削除';
+  }
+
+  @override
+  String get savedSearchNeedsAttention => '確認が必要';
+
+  @override
+  String get savedSearchUnreadableItem => '開けない保存した検索';
+
+  @override
+  String get savedSearchUnreadableTitle => 'この保存した検索を開けません';
+
+  @override
+  String get savedSearchUnreadableBody =>
+      '新しいバージョンのアプリで保存されたか、壊れているため、使われません。削除でき、削除は元に戻せます。';
+
+  @override
+  String get savedSearchSaveDialogTitle => 'この検索を保存';
+
+  @override
+  String get savedSearchRenameDialogTitle => '保存した検索の名前を変更';
+
+  @override
+  String get savedSearchNameLabel => '名前';
+
+  @override
+  String savedSearchWindowNotCalled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '過去$countか月コールしていない',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String savedSearchWindowCalled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '過去$countか月にコールした',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String savedSearchWindowInert(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '保存するコール履歴の期間：過去$countか月',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedSearchTooLargeTitle => '検索が大きすぎます';
+
+  @override
+  String get savedSearchTooLargeBody =>
+      'この検索はフィルターや行が多すぎて保存できません。いくつか外してから、もう一度保存してください。';
+
+  @override
+  String get savedSearchLimitTitle => '保存した検索が多すぎます';
+
+  @override
+  String savedSearchLimitBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '保存した検索は$count件まで残せます。別の検索を保存するには、どれかを削除してください。',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get savedSearchNameRefused => 'その名前は使えません。別の名前を試してください。';
+
+  @override
+  String get savedSearchFailed => '保存した検索の操作ができませんでした。もう一度試してください。';
+
+  @override
+  String savedSearchSavedSnack(String name) {
+    return '「$name」を保存しました';
+  }
+
+  @override
+  String savedSearchUpdatedSnack(String name) {
+    return '「$name」を更新しました';
+  }
+
+  @override
+  String savedSearchDeletedSnack(String name) {
+    return '「$name」を削除しました';
+  }
+
+  @override
+  String savedSearchInUseTitle(String name) {
+    return '「$name」を削除できません';
+  }
+
+  @override
+  String get savedSearchInUseBody =>
+      '次のものでまだ使われています。先にそれらを変更するか外してから、削除してください。';
+
+  @override
+  String savedSearchNoticeTitle(String name) {
+    return '「$name」は、なくなったものを使っています：';
+  }
+
+  @override
+  String get savedSearchNoticeRest => '検索の残りは表示されています。更新するには、これらをご自分で外してください。';
+
+  @override
+  String get savedSearchNoticeFieldSkipped =>
+      '削除されたカスタムフィールドのフィルターは、結果に反映されません。';
+
+  @override
+  String get savedSearchNoticeClose => 'お知らせを閉じる';
+
+  @override
+  String savedSearchMissingTag(String name) {
+    return '削除されたタグ「$name」';
+  }
+
+  @override
+  String get savedSearchMissingTagUnnamed => '削除されたタグ';
+
+  @override
+  String savedSearchMissingAuthor(String name) {
+    return '削除された作者「$name」';
+  }
+
+  @override
+  String get savedSearchMissingAuthorUnnamed => '削除された作者';
+
+  @override
+  String savedSearchMissingSource(String name) {
+    return '削除された出典「$name」';
+  }
+
+  @override
+  String get savedSearchMissingSourceUnnamed => '削除された出典';
+
+  @override
+  String savedSearchMissingLevel(String name) {
+    return '削除されたレベル「$name」';
+  }
+
+  @override
+  String get savedSearchMissingLevelUnnamed => '削除されたレベル';
+
+  @override
+  String savedSearchMissingVenue(String name) {
+    return '削除された会場「$name」';
+  }
+
+  @override
+  String get savedSearchMissingVenueUnnamed => '削除された会場';
+
+  @override
+  String savedSearchMissingField(String name) {
+    return '削除されたカスタムフィールド「$name」';
+  }
+
+  @override
+  String get savedSearchMissingFieldUnnamed => '削除されたカスタムフィールド';
+
+  @override
+  String savedSearchMissingFieldType(String name) {
+    return '種類が変わったカスタムフィールド「$name」';
+  }
+
+  @override
+  String savedSearchMissingFieldChoice(String choice, String name) {
+    return '「$name」から外された選択肢「$choice」';
+  }
+
+  @override
+  String get savedSearchMissingFigureDetail => '表示できない詳細検索のフィギュアの詳細';
+
+  @override
+  String get savedSearchMissingUserFigure => '削除された自作のフィギュア';
+
+  @override
+  String get savedSearchMissingInvalid => 'このバージョンでは読めないもの';
+
+  @override
+  String savedSearchSearchFor(String text) {
+    return '「$text」を検索';
+  }
+
+  @override
+  String savedSearchHighlightedRow(String name, int index, int count) {
+    return '$name、$count件中$index件目';
+  }
+
+  @override
+  String get savedSearchSaveAsNewSearch => '新しい検索として保存…';
+
+  @override
+  String get settingsCollectionTitle => 'コレクション';
+
+  @override
+  String get settingsSavedSearchesHeader => '保存した検索';
+
+  @override
+  String get settingsSavedSearchesEmpty =>
+      '保存した検索はまだありません。コレクションで検索を設定してから、その他のアクションメニューで「この検索を保存…」を選んでください。';
+
+  @override
+  String settingsSavedSearchRenameTooltip(String name) {
+    return '「$name」の名前を変更';
+  }
+
+  @override
+  String settingsSavedSearchDeleteTooltip(String name) {
+    return '「$name」を削除';
+  }
+
+  @override
+  String savedSearchGone(String name) {
+    return '「$name」はこの端末か別の端末で削除されたため、何も変更されませんでした。';
+  }
 }

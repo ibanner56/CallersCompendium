@@ -175,7 +175,7 @@ void main() {
         // ContraDB's half_or_full stops at full, so an amount past it has
         // no ContraDB value (#2120); it has no double figure 8 either.
         'figure_8': ['amount', 'double', 'lead'],
-        'form_long_waves': ['balance', 'whom', 'whomHand'],
+        'form_long_waves': ['balance', 'whom', 'whom2', 'whomHand'],
         'gate': ['direction', 'pair', 'travel'],
         'hey': ['meetTarget', 'pass2'],
         // The alias pins it to long lines, the only formation ContraDB has
@@ -183,9 +183,16 @@ void main() {
         // does not define.
         'long_lines': ['formation'],
         'mad_robin': ['direction', 'whom'],
+        // One figure since taxonomy v40. ContraDB keeps pass by and pass
+        // through apart, each with the params it had: the figure name says
+        // the type, and neither has the other's `who` or `where`.
+        'pass_by': ['passType', 'where'],
+        'pass_through': ['passType', 'who'],
         'poussette': ['amount'],
         'promenade': ['destination', 'singleFile'],
         'roll_away': ['halfSashay'],
+        // ContraDB's Rory O'More has no longer slide (taxonomy v40).
+        'rory_o_more': ['twoPlaces'],
         'slice': ['by', 'return'],
         'swing': ['endFacing'],
         'turn_alone': ['custom'],

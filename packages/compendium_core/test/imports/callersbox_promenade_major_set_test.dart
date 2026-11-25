@@ -1,5 +1,10 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/testing.dart';
 import 'package:test/test.dart';
+
+import '../figures_support.dart';
 
 /// Caller's Box whole-set promenades: `around the major set` anywhere on the
 /// line, and the `to <dancer>` destination (`promenade.destination`, taxonomy
@@ -131,8 +136,225 @@ void main() {
       // Counter-rotating two-ring single-file figure.
       'Single file promenade around the major set to N3 '
           '(men cw in center, women ccw on outside)',
+      // Not corpus wording: a single-file whole-set line with no rotation
+      // word names no direction to travel, annotation or not (#2331).
+      'Single file promenade around the major set to N2',
     ]) {
       test(line, () => expect(_single(line).isCustom, isTrue));
     }
   });
+
+  group(
+    'a single-file promenade around the major set is a promenade (#2331)',
+    () {
+      // Maintainer ruling: `Single file promenade counterclockwise around the
+      // major set to N2` travels the whole set — a promenade around the major
+      // set, not a single-file circle (whose unstated `places` read as a
+      // three-place circle in the hands four). `where: along` and `who`
+      // unwritten follow ContraDB's whole-set single-file promenade and TCB's
+      // own unstated-subject rule; the spin word is the promenade's `direction`.
+      Map<String, Object?> sf(String direction, [String? destination]) => {
+        'singleFile': true,
+        'where': 'along',
+        'direction': direction,
+        'destination': ?destination,
+        'beats': 8,
+      };
+
+      final cases = <String, (Map<String, Object?>, String?)>{
+        // Dances 18240, 18241, 18428 (beats prefix removed).
+        'Single file promenade counterclockwise around the major set to N2': (
+          sf('counterclockwise', 'nextNeighbors'),
+          'around the major set',
+        ),
+        // Dance 7867.
+        'Single file promenade clockwise around the major set to N2': (
+          sf('clockwise', 'nextNeighbors'),
+          'around the major set',
+        ),
+        // Dances 2592, 14473, 11935, 3073.
+        'Single file promenade counterclockwise around the major set to partner':
+            (sf('counterclockwise', 'partners'), 'around the major set'),
+        'Single file promenade clockwise around the major set to N1': (
+          sf('clockwise', 'neighbors'),
+          'around the major set',
+        ),
+        'Single file promenade clockwise around the major set to N3': (
+          sf('clockwise', 'thirdNeighbors'),
+          'around the major set',
+        ),
+        'Single file promenade counterclockwise around the major set to shadow':
+            (sf('counterclockwise', 'shadows'), 'around the major set'),
+        // Dance 18433: no destination.
+        'Single file promenade counterclockwise around the major set': (
+          sf('counterclockwise'),
+          'around the major set',
+        ),
+        // Dances 12751, 71.
+        'Single file promenade clockwise around the major set (men behind '
+            'neighbor)': (
+          sf('clockwise'),
+          'role1s behind neighbor; around the major set',
+        ),
+        'Single file promenade clockwise around the major set to N2 (actually '
+            'more of a wide loop)': (
+          sf('clockwise', 'nextNeighbors'),
+          'actually more of a wide loop; around the major set',
+        ),
+      };
+      cases.forEach((line, expected) {
+        test(line, () {
+          final f = _single(line);
+          expect(f.move, 'promenade');
+          expect(f.params, expected.$1);
+          expect(f.note, expected.$2);
+        });
+      });
+
+      test('the destination renders, so its words are not in the note', () {
+        final f = _single(
+          'Single file promenade counterclockwise around the major set to N2',
+        );
+        expect(
+          FigureRenderer(contraTaxonomy).render(f, Dialect.canonical),
+          'single file promenade counterclockwise along to next neighbors',
+        );
+      });
+
+      test('with no destination the rotation is still shown', () {
+        // Maintainer ruling (2026-11-23, #2331 follow-up): a single-file
+        // promenade along the set always says which way it travels, even the
+        // default. Before, the display silenced it: `single file promenade
+        // along`.
+        final f = _single(
+          'Single file promenade counterclockwise around the major set',
+        );
+        expect(f.params['direction'], 'counterclockwise');
+        final shown = FigureRenderer(
+          contraTaxonomy,
+        ).render(f, Dialect.canonical);
+        expect(shown, 'single file promenade counterclockwise along');
+      });
+
+      group('the display reads back as the same promenade (#2121)', () {
+        // The app's display wording, typed back in. Before, any of these with
+        // a rotation read back as a single-file circle, the rotation as its
+        // direction and `along …` as its note.
+        for (final (params, text) in const [
+          (
+            {'direction': 'counterclockwise'},
+            'single file promenade counterclockwise along',
+          ),
+          ({'direction': 'clockwise'}, 'single file promenade clockwise along'),
+          (
+            {'direction': 'counterclockwise', 'destination': 'nextNeighbors'},
+            'single file promenade counterclockwise along to next neighbors',
+          ),
+          (
+            {'direction': 'clockwise', 'destination': 'partners'},
+            'single file promenade clockwise along to partners',
+          ),
+        ]) {
+          test(text, () {
+            final figure = testFigure(
+              move: 'promenade',
+              params: {'singleFile': true, 'where': 'along', ...params},
+            );
+            final shown = FigureRenderer(
+              contraTaxonomy,
+            ).render(figure, Dialect.canonical);
+            expect(shown, text);
+            final back = parseFreeTextFigureEntry(shown).single;
+            expect(back.move, 'promenade');
+            expect(back.params, {
+              'who': 'everyone',
+              'singleFile': true,
+              'where': 'along',
+              ...params,
+            });
+            expect(back.note, isNull);
+          });
+        }
+
+        test('a rotation with no direction after it is still the circle', () {
+          // TCB's single-file circle wording is unchanged.
+          final back = parseFreeTextFigureEntry(
+            'single file promenade clockwise',
+          ).single;
+          expect(back.move, 'circle');
+          expect(back.params['singleFile'], isTrue);
+        });
+      });
+
+      test(
+        '"; women turn around" stays a note on the promenade (dance 3266)',
+        () {
+          final figures = _parse(
+            'Single file promenade clockwise around the major set; women turn '
+            'around',
+          );
+          expect(figures, hasLength(1));
+          expect(figures.single.move, 'promenade');
+          expect(figures.single.note, contains('role2s turn around'));
+        },
+      );
+
+      for (final line in const [
+        // Dance 3208: a destination that names no dancer set.
+        'Single file promenade counterclockwise around the major set to shadow '
+            'S4; men turn around',
+        // Dances 11909, 17633: two rings turning opposite ways.
+        'Single file promenade clockwise around the major set (inner ring ccw, '
+            'outer ring cw)',
+        // Not corpus wording: a places amount, which a promenade cannot hold.
+        'Single file promenade clockwise 3 places around the major set',
+      ]) {
+        test('"$line" stays custom, never a single-file circle', () {
+          final figures = _parse(line);
+          expect(figures.any((f) => f.move == 'circle'), isFalse);
+          expect(figures.single.isCustom, isTrue);
+        });
+      }
+
+      test(
+        'a single-file promenade NOT around the major set is still a circle',
+        () {
+          final f = _single('Single file promenade clockwise 3/4');
+          expect(f.move, 'circle');
+          expect(f.params['places'], 3);
+        },
+      );
+
+      test('through the importer: dance 18240 A1', () async {
+        final payload = jsonEncode({
+          'ID': '18240',
+          'Name': 'Star Over Thar {Erik Erhardt version}',
+          'Permission': 'full',
+          'phrases': [
+            {
+              'name': 'A1',
+              'figures': [
+                '(8) In long lines, go forward and back',
+                '(2) Pass through across (NR)',
+                '(2) Single file promenade counterclockwise around the major '
+                    'set to N2',
+                '(4) Hands-across star left 1/2 [with N2]',
+              ],
+            },
+          ],
+        });
+        final adapter = CallersBoxAdapter();
+        final discovered = await adapter.discover(
+          ImportRequest(payload: payload),
+        );
+        final raw = await adapter.fetch(discovered.single);
+        final figures = figuresOf(adapter.parse(raw).dance);
+        final promenade = figures.singleWhere((f) => f.move == 'promenade');
+        expect(promenade.params['destination'], 'nextNeighbors');
+        expect(promenade.params['beats'], 2);
+        expect(figures.any((f) => f.move == 'circle'), isFalse);
+        expect(figures.fold<int>(0, (a, f) => a + f.beats), 16);
+      });
+    },
+  );
 }

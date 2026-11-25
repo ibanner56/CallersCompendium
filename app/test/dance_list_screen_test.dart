@@ -25,7 +25,6 @@ import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/screens/published_collection_catalog_screen.dart';
-import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/widgets/brand_mark.dart';
 import 'package:compendium_app/src/widgets/collection_search_controls.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
@@ -3733,6 +3732,7 @@ class _FailOnceSearchDances extends DanceRepository {
     bool performedOnly = false,
     bool requireEventDate = false,
     CallingHistoryTracking tracking = CallingHistoryTracking.defaults,
+    String? currentProgramId,
   }) {
     if (!fired) {
       fired = true;
@@ -3749,6 +3749,7 @@ class _FailOnceSearchDances extends DanceRepository {
       performedOnly: performedOnly,
       requireEventDate: requireEventDate,
       tracking: tracking,
+      currentProgramId: currentProgramId,
     );
   }
 }

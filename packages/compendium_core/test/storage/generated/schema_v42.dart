@@ -215,6 +215,86 @@ class Dances extends Table with TableInfo {
     $customConstraints: 'NOT NULL DEFAULT \'\'',
     defaultValue: const CustomExpression('\'\''),
   );
+  late final GeneratedColumn<String> alternateTitles = GeneratedColumn<String>(
+    'alternate_titles',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'\'',
+    defaultValue: const CustomExpression('\'\''),
+  );
+  late final GeneratedColumn<String> barnesReference = GeneratedColumn<String>(
+    'barnes_reference',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'\'',
+    defaultValue: const CustomExpression('\'\''),
+  );
+  late final GeneratedColumn<String> squareKind = GeneratedColumn<String>(
+    'square_kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'main\'',
+    defaultValue: const CustomExpression('\'main\''),
+  );
+  late final GeneratedColumn<String> repeatOrder = GeneratedColumn<String>(
+    'repeat_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'unstated\'',
+    defaultValue: const CustomExpression('\'unstated\''),
+  );
+  late final GeneratedColumn<String> repeatOrderText = GeneratedColumn<String>(
+    'repeat_order_text',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'\'',
+    defaultValue: const CustomExpression('\'\''),
+  );
+  late final GeneratedColumn<String> newPartner = GeneratedColumn<String>(
+    'new_partner',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'unstated\'',
+    defaultValue: const CustomExpression('\'unstated\''),
+  );
+  late final GeneratedColumn<String> newPartnerText = GeneratedColumn<String>(
+    'new_partner_text',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT \'\'',
+    defaultValue: const CustomExpression('\'\''),
+  );
+  late final GeneratedColumn<int> singing = GeneratedColumn<int>(
+    'singing',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL DEFAULT 0 CHECK (singing IN (0, 1))',
+    defaultValue: const CustomExpression('0'),
+  );
+  late final GeneratedColumn<int> freeForm = GeneratedColumn<int>(
+    'free_form',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL CHECK (free_form IN (0, 1))',
+  );
   late final GeneratedColumn<String> status = GeneratedColumn<String>(
     'status',
     aliasedName,
@@ -338,6 +418,15 @@ class Dances extends Table with TableInfo {
     walkthrough,
     meter,
     musicalKey,
+    alternateTitles,
+    barnesReference,
+    squareKind,
+    repeatOrder,
+    repeatOrderText,
+    newPartner,
+    newPartnerText,
+    singing,
+    freeForm,
     status,
     levelId,
     mixedLevel,
@@ -897,6 +986,71 @@ class Programs extends Table with TableInfo {
     requiredDuringInsert: false,
     $customConstraints: 'NULL',
   );
+  late final GeneratedColumn<String> calendarEventKey = GeneratedColumn<String>(
+    'calendar_event_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<int> startMinute = GeneratedColumn<int>(
+    'start_minute',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<int> endMinute = GeneratedColumn<int>(
+    'end_minute',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<int> lessonMinute = GeneratedColumn<int>(
+    'lesson_minute',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<int> arrivalMinute = GeneratedColumn<int>(
+    'arrival_minute',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<String> calendarEventFingerprint =
+      GeneratedColumn<String>(
+        'calendar_event_fingerprint',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        $customConstraints: 'NULL',
+      );
+  late final GeneratedColumn<int> calendarWrittenAt = GeneratedColumn<int>(
+    'calendar_written_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<String> calendarFlag = GeneratedColumn<String>(
+    'calendar_flag',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -918,6 +1072,14 @@ class Programs extends Table with TableInfo {
     deletedAt,
     existenceAt,
     archivedAt,
+    calendarEventKey,
+    startMinute,
+    endMinute,
+    lessonMinute,
+    arrivalMinute,
+    calendarEventFingerprint,
+    calendarWrittenAt,
+    calendarFlag,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;

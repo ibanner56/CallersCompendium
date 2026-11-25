@@ -56,6 +56,15 @@ import '../taxonomy/user_figure_use.dart';
 /// sharing flags.
 enum ArchiveSerializationMode { share, backup }
 
+/// Whether [field] and its values leave the device in [mode]: always in a
+/// backup, and in a share only when the field's **Include in sharing** is on
+/// ([CustomFieldDef.shareable], #780).
+///
+/// The one rule for custom fields in every export: the archive encoder and the
+/// dances CSV (#2332) both ask it, so they cannot keep two lists.
+bool customFieldLeavesIn(CustomFieldDef field, ArchiveSerializationMode mode) =>
+    mode == ArchiveSerializationMode.backup || field.shareable;
+
 /// Serializes [archive] to a canonical JSON string using [mode].
 String encodeArchive(
   CompendiumArchive archive, {
@@ -78,7 +87,7 @@ Map<String, Object?> archiveToJson(
   // for both the field-def list and each dance's value list.
   final excludedFieldIds = {
     for (final f in archive.customFields)
-      if (mode == ArchiveSerializationMode.share && !f.shareable) f.id,
+      if (!customFieldLeavesIn(f, mode)) f.id,
   };
   // Share mode never writes `deletedTags`, so they must not raise the stamp.
   final requiredVersion = requiredSchemaVersion(
@@ -127,7 +136,7 @@ Map<String, Object?> archiveToJson(
       ],
     'customFields': [
       for (final f in _sortedById(archive.customFields, (f) => f.id))
-        if (mode == ArchiveSerializationMode.backup || f.shareable)
+        if (customFieldLeavesIn(f, mode))
           archiveCustomFieldDefToJson(
             f,
             includeShareable: mode == ArchiveSerializationMode.backup,
@@ -660,9 +669,17 @@ List<String>? _clampChoices(List<String>? choices) {
   return out;
 }
 
+/// A dance's `alternateTitles`, bounded as untrusted input is by
+/// [normalizeAlternateTitles]: each title cut to [kMaxAlternateTitleLength],
+/// blanks and repeats dropped, the first [kMaxAlternateTitles] kept. A missing
+/// key holds none.
+List<String> _alternateTitlesFromJson(Map<String, Object?> m) =>
+    normalizeAlternateTitles(_stringList(m, 'alternateTitles'));
+
 Dance _danceFromJson(Map<String, Object?> m) => Dance(
   id: _str(m, 'id'),
   title: _str(m, 'title'),
+  alternateTitles: _alternateTitlesFromJson(m),
   authorIds: _stringList(m, 'authorIds'),
   form: _enumByNameOr(DanceForm.values, m['form'], DanceForm.contra, 'form'),
   formation: _formationFromJson(m['formation']),
@@ -696,6 +713,23 @@ Dance _danceFromJson(Map<String, Object?> m) => Dance(
   // Short untrusted labels: clamped like the walkthrough, never rejected.
   meter: _clampLength(_strOr(m, 'meter', ''), kMaxMusicLabelLength),
   musicalKey: _clampLength(_strOr(m, 'musicalKey', ''), kMaxMusicLabelLength),
+  // Bounded by the [Dance] constructor, as every dance is.
+  barnesReference: _strOr(m, 'barnesReference', ''),
+  // The square fields (ADR-007 §8.1). An unknown value (a newer build's)
+  // reads as the default rather than failing the dance; the texts are
+  // bounded by the [Dance] constructor.
+  squareKind:
+      SquareKind.fromWireName(_strOrNull(m, 'squareKind')) ?? SquareKind.main,
+  repeatOrder:
+      SquareRepeatOrder.fromWireName(_strOrNull(m, 'repeatOrder')) ??
+      SquareRepeatOrder.unstated,
+  repeatOrderText: _strOr(m, 'repeatOrderText', ''),
+  newPartner:
+      SquareNewPartner.fromWireName(_strOrNull(m, 'newPartner')) ??
+      SquareNewPartner.unstated,
+  newPartnerText: _strOr(m, 'newPartnerText', ''),
+  singing: _boolOr(m, 'singing', false),
+  freeForm: _boolOrNull(m, 'freeForm'),
   status: _enumByNameOr(
     DanceStatus.values,
     m['status'],
@@ -945,6 +979,10 @@ Program _programFromJson(Map<String, Object?> m) => Program(
   dialectName: _strOrNull(m, 'dialectName'),
   payMinorUnits: _payMinorUnitsOrNull(m),
   payCurrency: _payCurrencyOrNull(m),
+  startMinute: _minuteOfDayOrNull(m, 'startMinute'),
+  endMinute: _minuteOfDayOrNull(m, 'endMinute'),
+  lessonMinute: _minuteOfDayOrNull(m, 'lessonMinute'),
+  arrivalMinute: _minuteOfDayOrNull(m, 'arrivalMinute'),
   slots: _programSlotsFromJson(m['slots']),
   provenance: m['provenance'] == null
       ? null
@@ -953,7 +991,33 @@ Program _programFromJson(Map<String, Object?> m) => Program(
   updatedAt: _dt(m, 'updatedAt'),
   deletedAt: _dtOrNull(m, 'deletedAt'),
   archivedAt: _dtOrNull(m, 'archivedAt'),
+  calendarEventKey: _calendarEventKeyOrNull(m),
+  calendarEventFingerprint: _boundedStringOrNull(m, 'calendarEventFingerprint'),
+  calendarWrittenAt: _dtOrNull(m, 'calendarWrittenAt'),
+  calendarFlag: _boundedStringOrNull(m, 'calendarFlag'),
 );
+
+/// A short machine-written string (#2354), read leniently: anything that is
+/// not a string of at most 128 code units is dropped, never refusing the
+/// program. An unknown `calendarFlag` value survives, so a newer build's flag
+/// reads as a generic one here rather than failing the record.
+String? _boundedStringOrNull(Map<String, Object?> m, String key) {
+  final v = m[key];
+  if (v is! String || v.isEmpty || v.length > 128) return null;
+  return v;
+}
+
+/// A program's calendar event key (#2352): 64 lower-case hex digits, the
+/// SHA-256 digest `calendarEventKey` writes. Anything else is dropped rather
+/// than refusing the program: the key only stops a calendar import offering
+/// the event again, so losing a malformed one costs at most a repeat offer.
+String? _calendarEventKeyOrNull(Map<String, Object?> m) {
+  final v = m['calendarEventKey'];
+  if (v is! String || !_calendarEventKeyPattern.hasMatch(v)) return null;
+  return v;
+}
+
+final _calendarEventKeyPattern = RegExp(r'^[0-9a-f]{64}$');
 
 List<ProgramSlot> _programSlotsFromJson(Object? raw) {
   if (raw == null) return const [];
@@ -1083,6 +1147,17 @@ int? _payMinorUnitsOrNull(Map<String, Object?> m) {
     throw const FormatException(
       '"payMinorUnits" and "payCurrency" must appear together',
     );
+  }
+  return v;
+}
+
+/// A program time ([key]): minutes after midnight, an integer from 0 to 1439
+/// (the [Program] invariant), so a body that breaks it is rejected as
+/// malformed rather than reaching the constructor.
+int? _minuteOfDayOrNull(Map<String, Object?> m, String key) {
+  final v = _intOrNull(m, key);
+  if (v != null && !Program.isValidMinuteOfDay(v)) {
+    throw FormatException('"$key" must be 0-1439');
   }
   return v;
 }

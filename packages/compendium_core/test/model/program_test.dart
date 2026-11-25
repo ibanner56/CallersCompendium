@@ -401,6 +401,111 @@ void main() {
       });
     });
 
+    group('times (#2350)', () {
+      Program make({int? start, int? end, int? lesson, int? arrival}) =>
+          Program(
+            id: 'p1',
+            title: 'T',
+            startMinute: start,
+            endMinute: end,
+            lessonMinute: lesson,
+            arrivalMinute: arrival,
+            createdAt: now,
+            updatedAt: now,
+          );
+
+      test('default to none', () {
+        final p = make();
+        expect(p.startMinute, isNull);
+        expect(p.endMinute, isNull);
+        expect(p.lessonMinute, isNull);
+        expect(p.arrivalMinute, isNull);
+        expect(p.hasTimes, isFalse);
+      });
+
+      test('accept 0 and 1439 and reject values outside 0-1439, each on its '
+          'own', () {
+        final makers = <String, Program Function(int)>{
+          'start': (v) => make(start: v),
+          'end': (v) => make(end: v),
+          'lesson': (v) => make(lesson: v),
+          'arrival': (v) => make(arrival: v),
+        };
+        for (final MapEntry(key: name, value: build) in makers.entries) {
+          expect(build(0).hasTimes, isTrue, reason: name);
+          expect(build(1439).hasTimes, isTrue, reason: name);
+          expect(() => build(-1), throwsArgumentError, reason: name);
+          expect(() => build(1440), throwsArgumentError, reason: name);
+        }
+        expect(Program.isValidMinuteOfDay(1439), isTrue);
+        expect(Program.isValidMinuteOfDay(1440), isFalse);
+      });
+
+      test('an end before the start is the next day; an equal end is not', () {
+        expect(make(start: 1170, end: 60).endsNextDay, isTrue);
+        expect(make(start: 1170, end: 1350).endsNextDay, isFalse);
+        expect(make(start: 1170, end: 1170).endsNextDay, isFalse);
+        expect(make(end: 60).endsNextDay, isFalse);
+        expect(make(start: 1170).endsNextDay, isFalse);
+      });
+
+      test('copyWith sets, keeps and clears each time on its own', () {
+        final p = make(start: 1170, end: 1350, lesson: 1140, arrival: 1110);
+        expect(p.copyWith(title: 'U').startMinute, 1170);
+        expect(p.copyWith(endMinute: 1380).endMinute, 1380);
+        final cleared = p.copyWith(
+          clearStartMinute: true,
+          clearLessonMinute: true,
+        );
+        expect(cleared.startMinute, isNull);
+        expect(cleared.lessonMinute, isNull);
+        expect(cleared.endMinute, 1350);
+        expect(cleared.arrivalMinute, 1110);
+        expect(
+          p.copyWith(arrivalMinute: 1, clearArrivalMinute: true).arrivalMinute,
+          isNull,
+        );
+        expect(p.copyWith(clearEndMinute: true).endMinute, isNull);
+        expect(() => p.copyWith(startMinute: 1440), throwsArgumentError);
+      });
+
+      test('== tells apart programs that differ in one time only', () {
+        final p = make(start: 1170, end: 1350, lesson: 1140, arrival: 1110);
+        expect(p == p.copyWith(), isTrue);
+        expect(p == p.copyWith(startMinute: 1171), isFalse);
+        expect(p == p.copyWith(endMinute: 1351), isFalse);
+        expect(p == p.copyWith(lessonMinute: 1141), isFalse);
+        expect(p == p.copyWith(arrivalMinute: 1111), isFalse);
+      });
+
+      test('duplicate keeps every time, and still clears the date and pay', () {
+        final original = Program(
+          id: 'p1',
+          title: 'Night',
+          eventDate: DateTime.utc(2026, 5, 1),
+          payMinorUnits: 25000,
+          payCurrency: 'USD',
+          startMinute: 1170,
+          endMinute: 1350,
+          lessonMinute: 1140,
+          arrivalMinute: 1110,
+          createdAt: now,
+          updatedAt: now,
+        );
+        final copy = original.duplicate(
+          newId: 'p2',
+          newSlotId: () => 'ns1',
+          now: now,
+        );
+        expect(copy.startMinute, 1170);
+        expect(copy.endMinute, 1350);
+        expect(copy.lessonMinute, 1140);
+        expect(copy.arrivalMinute, 1110);
+        expect(copy.eventDate, isNull);
+        expect(copy.payMinorUnits, isNull);
+      });
+    });
+
     test('duplicate carries dialectName through', () {
       final original = Program(
         id: 'p1',
@@ -528,6 +633,343 @@ void main() {
       expect(withoutLast.map((s) => s.isAlt), [false, false, true, true]);
       expect(Program.alternatePromotedByRemoving(slots, 4), isNull);
       expect(Program.alternatePromotedByRemoving(slots, 0), isNull);
+    });
+  });
+
+  group('Program.swapSlotDanceKeepingAlternate (#2346)', () {
+    final played = DateTime.utc(2026, 7, 9, 20);
+    final slots = [
+      ProgramSlot(id: 'a', position: 0, danceId: 'd0', performedAt: played),
+      ProgramSlot(
+        id: 'b',
+        position: 1,
+        danceId: 'd1',
+        text: 'band: slow reel',
+        guestCaller: 'Sam',
+        walkthroughMinutes: 3,
+        danceMinutes: 9,
+      ),
+      ProgramSlot(id: 'b-alt', position: 2, danceId: 'd2', isAlt: true),
+      ProgramSlot(id: 'c', position: 3, danceId: 'd3'),
+    ];
+
+    test('keeps the slot and its fields, and the old dance as its first '
+        'alternate', () {
+      final next = Program.swapSlotDanceKeepingAlternate(
+        slots,
+        1,
+        danceId: 'new',
+        alternateId: 'kept',
+      );
+      expect(next.map((s) => s.id), ['a', 'b', 'kept', 'b-alt', 'c']);
+      final swapped = next[1];
+      expect(swapped.danceId, 'new');
+      expect(swapped.text, 'band: slow reel');
+      expect(swapped.guestCaller, 'Sam');
+      expect(swapped.walkthroughMinutes, 3);
+      expect(swapped.danceMinutes, 9);
+      expect(swapped.isAlt, isFalse);
+      final kept = next[2];
+      expect(kept.danceId, 'd1');
+      expect(kept.isAlt, isTrue);
+      expect(kept.text, isNull);
+      expect(kept.performedAt, isNull);
+      // One group: the old dance is an alternate of the new one.
+      expect(Program.alternateGroupsForSlots(next), [0, 1, 1, 1, 2]);
+    });
+
+    test('the swapped-out dance does not count toward calling history', () {
+      final next = Program.swapSlotDanceKeepingAlternate(
+        slots,
+        1,
+        danceId: 'new',
+        alternateId: 'kept',
+      );
+      final counted = {
+        for (final s in next)
+          if (s.countsTowardCallingHistory) s.danceId,
+      };
+      expect(counted, isNot(contains('d1')));
+      expect(counted, containsAll(['d0', 'new', 'd3']));
+    });
+
+    test('choosing one of the slot\'s alternates trades the two dances', () {
+      final next = Program.swapSlotDanceKeepingAlternate(
+        slots,
+        1,
+        danceId: 'd2',
+        alternateId: 'unused',
+      );
+      expect(next.map((s) => s.id), ['a', 'b', 'b-alt', 'c']);
+      expect(next[1].danceId, 'd2');
+      expect(next[1].text, 'band: slow reel');
+      expect(next[2].danceId, 'd1');
+      expect(next[2].isAlt, isTrue);
+    });
+
+    test('an alternate already marked performed is not traded', () {
+      final marked = [
+        ...slots.take(2),
+        slots[2].copyWith(performedAt: played),
+        slots[3],
+      ];
+      final next = Program.swapSlotDanceKeepingAlternate(
+        marked,
+        1,
+        danceId: 'd2',
+        alternateId: 'kept',
+      );
+      expect(next.map((s) => s.id), ['a', 'b', 'kept', 'b-alt', 'c']);
+      expect(next[3].danceId, 'd2');
+      expect(next[3].performedAt, played);
+    });
+
+    // Calling history counts the dance being called and never the one
+    // swapped out, in every trade and insert case.
+    Set<String?> counted(List<ProgramSlot> list) => {
+      for (final s in list)
+        if (s.countsTowardCallingHistory) s.danceId,
+    };
+    final group = [
+      ProgramSlot(id: 'p', position: 0, danceId: 'dp', text: 'plan'),
+      ProgramSlot(id: 'x', position: 1, danceId: 'dx', isAlt: true),
+      ProgramSlot(id: 'y', position: 2, danceId: 'dy', isAlt: true),
+      ProgramSlot(id: 'q', position: 3, danceId: 'dq'),
+    ];
+
+    test('on the primary, choosing another alternate trades with it', () {
+      final next = Program.swapSlotDanceKeepingAlternate(
+        group,
+        0,
+        danceId: 'dy',
+        alternateId: 'unused',
+      );
+      expect(next.map((s) => s.id), ['p', 'x', 'y', 'q']);
+      expect(next.map((s) => s.danceId), ['dy', 'dx', 'dp', 'dq']);
+      expect(counted(next), {'dy', 'dq'});
+    });
+
+    test('on an alternate, a new dance becomes the group\'s primary and the '
+        'old primary an alternate', () {
+      final next = Program.swapSlotDanceKeepingAlternate(
+        group,
+        1,
+        danceId: 'new',
+        alternateId: 'kept',
+      );
+      expect(next.map((s) => s.id), ['x', 'kept', 'p', 'y', 'q']);
+      expect(next.map((s) => s.danceId), ['new', 'dx', 'dp', 'dy', 'dq']);
+      expect(next.map((s) => s.isAlt), [false, true, true, true, false]);
+      expect(next[2].text, 'plan', reason: 'each slot keeps its own fields');
+      expect(counted(next), {'new', 'dq'});
+      expect(Program.alternateGroupsForSlots(next), [0, 0, 0, 0, 1]);
+    });
+
+    test('on an alternate, choosing the primary\'s dance puts the bailed-on '
+        'dance on an alternate, not the primary', () {
+      final next = Program.swapSlotDanceKeepingAlternate(
+        group,
+        1,
+        danceId: 'dp',
+        alternateId: 'unused',
+      );
+      expect(next.map((s) => s.id), ['x', 'p', 'y', 'q']);
+      expect(next.map((s) => s.danceId), ['dp', 'dx', 'dy', 'dq']);
+      expect(next.map((s) => s.isAlt), [false, true, true, false]);
+      expect(counted(next), {'dp', 'dq'});
+    });
+
+    test('on an alternate, choosing another alternate trades with it and '
+        'leads the group', () {
+      final next = Program.swapSlotDanceKeepingAlternate(
+        group,
+        2,
+        danceId: 'dx',
+        alternateId: 'unused',
+      );
+      expect(next.map((s) => s.id), ['y', 'p', 'x', 'q']);
+      expect(next.map((s) => s.danceId), ['dx', 'dp', 'dy', 'dq']);
+      expect(next.map((s) => s.isAlt), [false, true, true, false]);
+      expect(counted(next), {'dx', 'dq'});
+    });
+
+    test('on an alternate in a group led by a break, the slot is swapped in '
+        'place and the break never becomes an alternate', () {
+      final led = [
+        ProgramSlot(id: 'brk', position: 0, text: Program.breakSlotText),
+        ProgramSlot(id: 'x', position: 1, danceId: 'dx', isAlt: true),
+        ProgramSlot(id: 'y', position: 2, danceId: 'dy', isAlt: true),
+      ];
+      final next = Program.swapSlotDanceKeepingAlternate(
+        led,
+        1,
+        danceId: 'new',
+        alternateId: 'kept',
+      );
+      expect(next.map((s) => s.id), ['brk', 'x', 'kept', 'y']);
+      expect(next.map((s) => s.danceId), [null, 'new', 'dx', 'dy']);
+      expect(next.map((s) => s.isAlt), [false, true, true, true]);
+      expect(counted(next), isNot(contains('dx')));
+    });
+
+    test('a slot with no dance, or the same dance, is left alone', () {
+      final note = [ProgramSlot(id: 'n', position: 0, text: 'Waltz')];
+      expect(
+        Program.swapSlotDanceKeepingAlternate(
+          note,
+          0,
+          danceId: 'new',
+          alternateId: 'kept',
+        ),
+        note,
+      );
+      expect(
+        Program.swapSlotDanceKeepingAlternate(
+          slots,
+          1,
+          danceId: 'd1',
+          alternateId: 'kept',
+        ),
+        slots,
+      );
+    });
+  });
+
+  group('Program.insertSlotAtGroupBoundary (#2339)', () {
+    final slots = [
+      ProgramSlot(id: 'a', position: 0, danceId: 'd0'),
+      ProgramSlot(id: 'b', position: 1, danceId: 'd1'),
+      ProgramSlot(id: 'b-alt1', position: 2, danceId: 'd2', isAlt: true),
+      ProgramSlot(id: 'b-alt2', position: 3, danceId: 'd3', isAlt: true),
+      ProgramSlot(id: 'brk', position: 4, text: Program.breakSlotText),
+      ProgramSlot(id: 'c', position: 5, danceId: 'd4'),
+    ];
+    ProgramSlot fresh() => ProgramSlot(id: 'new', position: 0, danceId: 'dn');
+    List<String> ids(List<ProgramSlot> list) => [for (final s in list) s.id];
+
+    test('before a leading run of orphaned alternates keeps the run its own '
+        'group, as it is shown', () {
+      final orphans = [
+        ProgramSlot(id: 'o', position: 0, danceId: 'd0', isAlt: true),
+        ProgramSlot(id: 'o2', position: 1, danceId: 'd1', isAlt: true),
+        ProgramSlot(id: 'p', position: 2, danceId: 'd2'),
+      ];
+      final before = Program.alternateGroupsForSlots(orphans);
+      final next = Program.insertSlotAtGroupBoundary(
+        orphans,
+        1,
+        fresh(),
+        after: false,
+      );
+      expect(ids(next), ['new', 'o', 'o2', 'p']);
+      expect(next.first.isAlt, isFalse);
+      // o is promoted to a planned dance of its own: new, o and p.
+      expect(next[1].isAlt, isFalse);
+      expect(Program.plannedDanceCountOf(next), 3);
+      // The new dance is a group of its own; o and o2 still share theirs.
+      final groups = Program.alternateGroupsForSlots(next);
+      expect(groups[0], isNot(groups[1]));
+      expect(groups[1], groups[2]);
+      expect(before[0], before[1]);
+    });
+
+    test('before a primary with alternates goes ahead of the whole group', () {
+      final next = Program.insertSlotAtGroupBoundary(
+        slots,
+        1,
+        fresh(),
+        after: false,
+      );
+      expect(ids(next), ['a', 'new', 'b', 'b-alt1', 'b-alt2', 'brk', 'c']);
+      // The group is untouched: both alternates still belong to b.
+      expect(Program.alternateGroupsForSlots(next), [0, 1, 2, 2, 2, 3, 4]);
+    });
+
+    test('after a primary goes after its last alternate', () {
+      final next = Program.insertSlotAtGroupBoundary(
+        slots,
+        1,
+        fresh(),
+        after: true,
+      );
+      expect(ids(next), ['a', 'b', 'b-alt1', 'b-alt2', 'new', 'brk', 'c']);
+      expect(Program.alternateGroupsForSlots(next), [0, 1, 1, 1, 2, 3, 4]);
+    });
+
+    test("an alternate's positions are its primary's", () {
+      for (final altIndex in [2, 3]) {
+        for (final after in [false, true]) {
+          expect(
+            ids(
+              Program.insertSlotAtGroupBoundary(
+                slots,
+                altIndex,
+                fresh(),
+                after: after,
+              ),
+            ),
+            ids(
+              Program.insertSlotAtGroupBoundary(
+                slots,
+                1,
+                fresh(),
+                after: after,
+              ),
+            ),
+            reason: 'alternate at $altIndex, after: $after',
+          );
+        }
+      }
+    });
+
+    test('a break or a lone dance is a group of one', () {
+      expect(
+        ids(Program.insertSlotAtGroupBoundary(slots, 4, fresh(), after: false)),
+        ['a', 'b', 'b-alt1', 'b-alt2', 'new', 'brk', 'c'],
+      );
+      expect(
+        ids(Program.insertSlotAtGroupBoundary(slots, 4, fresh(), after: true)),
+        ['a', 'b', 'b-alt1', 'b-alt2', 'brk', 'new', 'c'],
+      );
+      expect(
+        ids(Program.insertSlotAtGroupBoundary(slots, 0, fresh(), after: false)),
+        ['new', 'a', 'b', 'b-alt1', 'b-alt2', 'brk', 'c'],
+      );
+      expect(
+        ids(Program.insertSlotAtGroupBoundary(slots, 5, fresh(), after: true)),
+        ['a', 'b', 'b-alt1', 'b-alt2', 'brk', 'c', 'new'],
+      );
+    });
+
+    test('the inserted slot is always a primary', () {
+      final altSlot = ProgramSlot(
+        id: 'new',
+        position: 0,
+        danceId: 'dn',
+        isAlt: true,
+      );
+      final next = Program.insertSlotAtGroupBoundary(
+        slots,
+        0,
+        altSlot,
+        after: true,
+      );
+      expect(next[1].id, 'new');
+      expect(next[1].isAlt, isFalse);
+    });
+
+    test('alternateGroupRange spans the primary and its alternates', () {
+      expect(Program.alternateGroupRange(slots, 1), (start: 1, end: 4));
+      expect(Program.alternateGroupRange(slots, 3), (start: 1, end: 4));
+      expect(Program.alternateGroupRange(slots, 4), (start: 4, end: 5));
+      // A leading alternate with no primary above starts its own group.
+      final orphan = [
+        ProgramSlot(id: 'o', position: 0, danceId: 'd0', isAlt: true),
+        ProgramSlot(id: 'o2', position: 1, danceId: 'd1', isAlt: true),
+        ProgramSlot(id: 'p', position: 2, danceId: 'd2'),
+      ];
+      expect(Program.alternateGroupRange(orphan, 1), (start: 0, end: 2));
+      expect(() => Program.alternateGroupRange(slots, 6), throwsRangeError);
     });
   });
 

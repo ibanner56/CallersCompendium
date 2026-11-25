@@ -1056,6 +1056,126 @@ void main() {
     expect((reversed['formation']! as Map)['improper'], isTrue);
   });
 
+  test('fresh attach keeps every copy\'s other titles, and the latest '
+      'copy\'s Barnes reference', () {
+    // Only an English dance holds a Barnes reference.
+    const ecd = {'form': 'ecd'};
+    final plain = planFreshAttachDedupe([
+      _danceCandidate('a-survivor', 'Shared', updatedSeconds: 1),
+      _danceCandidate('m-newest', 'Shared', updatedSeconds: 2),
+    ]).merges.single.winner.blob.body;
+    expect(plain.keys, isNot(contains('alternateTitles')));
+    expect(plain.keys, isNot(contains('barnesReference')));
+
+    final body = planFreshAttachDedupe([
+      _danceCandidate(
+        'a-survivor',
+        'Shared',
+        updatedSeconds: 1,
+        extra: const {
+          ...ecd,
+          'alternateTitles': ['Monymusk'],
+          'barnesReference': 'BIII p. 92',
+        },
+      ),
+      _danceCandidate(
+        'm-newest',
+        'Shared',
+        updatedSeconds: 2,
+        extra: const {
+          ...ecd,
+          'alternateTitles': ['Other', 'Monymusk'],
+        },
+      ),
+    ]).merges.single.winner.blob.body;
+    expect(body['alternateTitles'], ['Monymusk', 'Other']);
+    expect(
+      body.keys,
+      isNot(contains('barnesReference')),
+      reason: 'the newest copy has none, so the merged dance has none',
+    );
+
+    final newer = planFreshAttachDedupe([
+      _danceCandidate('a-survivor', 'Shared', updatedSeconds: 1, extra: ecd),
+      _danceCandidate(
+        'm-newest',
+        'Shared',
+        updatedSeconds: 2,
+        extra: const {...ecd, 'barnesReference': 'NiB'},
+      ),
+    ]).merges.single.winner.blob.body;
+    expect(newer['barnesReference'], 'NiB');
+
+    // The union keeps the bound every dance holds, so the merged body
+    // decodes to itself on every device.
+    final full = planFreshAttachDedupe([
+      _danceCandidate(
+        'a-survivor',
+        'Shared',
+        updatedSeconds: 1,
+        extra: {
+          'alternateTitles': [for (var i = 0; i < 15; i++) 'A$i'],
+        },
+      ),
+      _danceCandidate(
+        'm-newest',
+        'Shared',
+        updatedSeconds: 2,
+        extra: {
+          'alternateTitles': [for (var i = 0; i < 15; i++) 'B$i'],
+        },
+      ),
+    ]).merges.single.winner.blob.body;
+    expect(full['alternateTitles'], hasLength(kMaxAlternateTitles));
+  });
+
+  test('a merge the person chose across forms keeps the English survivor\'s '
+      'Barnes reference, which a newer contra copy cannot hold', () {
+    final merged = mergeDanceCandidates([
+      _danceCandidate(
+        'a-survivor',
+        'Shared',
+        updatedSeconds: 1,
+        extra: const {'form': 'ecd', 'barnesReference': 'BIII p. 92'},
+      ),
+      _danceCandidate('m-newest', 'Shared', updatedSeconds: 2),
+    ]).winner.blob.body;
+    expect(merged['form'], 'ecd');
+    expect(merged['barnesReference'], 'BIII p. 92');
+  });
+
+  test('fresh attach takes the latest copy\'s square fields, and a copy '
+      'that leaves one out has the default', () {
+    final body = planFreshAttachDedupe([
+      _danceCandidate(
+        'a-survivor',
+        'Shared',
+        updatedSeconds: 1,
+        extra: const {
+          'squareKind': 'break',
+          'newPartner': 'corner',
+          'singing': true,
+          'freeForm': true,
+        },
+      ),
+      _danceCandidate(
+        'm-newest',
+        'Shared',
+        updatedSeconds: 2,
+        extra: const {'repeatOrder': 'other', 'repeatOrderText': 'Heads once'},
+      ),
+    ]).merges.single.winner.blob.body;
+    expect(body['repeatOrder'], 'other');
+    expect(body['repeatOrderText'], 'Heads once');
+    for (final key in ['squareKind', 'newPartner', 'singing', 'freeForm']) {
+      expect(
+        body.keys,
+        isNot(contains(key)),
+        reason: 'the newest copy leaves $key at its default',
+      );
+    }
+  });
+
   test('fresh attach unions interpreters as it does authors, leaves the '
       'list out when nobody is credited, and takes the latest copy\'s '
       'interpretation date', () {

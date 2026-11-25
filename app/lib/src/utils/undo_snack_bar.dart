@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../data/undo_prompt_duration_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../theme/app_spacing.dart';
 
 /// Shows the app-wide "Undo" prompt as a **transient** SnackBar.
 ///
@@ -67,6 +68,7 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showUndoSnackBar(
   Key? key,
   Key? actionKey,
   Duration? duration,
+  List<Widget> extraActions = const [],
 }) {
   final chosen = duration ?? UndoPromptDurationScope.read(messenger.context);
   final timeout = accessibleNavigation ? null : chosen;
@@ -75,7 +77,11 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showUndoSnackBar(
   final controller = messenger.showSnackBar(
     SnackBar(
       key: key,
-      content: _UndoPromptContent(message: message, hold: hold),
+      content: _UndoPromptContent(
+        message: message,
+        hold: hold,
+        extraActions: extraActions,
+      ),
       behavior: SnackBarBehavior.floating,
       // Never read by the scaffold (persist is true); kept truthful for
       // anything that inspects the widget.
@@ -187,9 +193,17 @@ class _UndoPromptHold {
 /// through [FocusManager]. A copy on a route that is not showing
 /// ([TickerMode] off) never holds the prompt.
 class _UndoPromptContent extends StatefulWidget {
-  const _UndoPromptContent({required this.message, required this.hold});
+  const _UndoPromptContent({
+    required this.message,
+    required this.hold,
+    this.extraActions = const [],
+  });
 
   final String message;
+
+  /// Buttons shown after the message, for a prompt that needs more than its
+  /// one Undo action (the startup calendar message's Show and Review, #2353).
+  final List<Widget> extraActions;
   final _UndoPromptHold hold;
 
   @override
@@ -349,7 +363,21 @@ class _UndoPromptContentState extends State<_UndoPromptContent> {
         if (mounted) _report();
       });
     }
-    return Text(widget.message);
+    if (widget.extraActions.isEmpty) return Text(widget.message);
+    // Extra buttons sit on the snack bar's inverse surface: drawn in the
+    // color its own action uses there, or they would barely read.
+    return TextButtonTheme(
+      data: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: Theme.of(context).colorScheme.inversePrimary,
+        ),
+      ),
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: AppSpacing.xs,
+        children: [Text(widget.message), ...widget.extraActions],
+      ),
+    );
   }
 }
 

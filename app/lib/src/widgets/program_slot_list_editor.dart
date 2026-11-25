@@ -7,6 +7,7 @@ import '../data/formation_colors_scope.dart';
 import '../data/set_list_color_coding_scope.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_motion.dart';
+import '../theme/app_shapes.dart';
 import '../theme/app_spacing.dart';
 import '../theme/set_list_accents.dart';
 import 'dirty_dialog_guard.dart';
@@ -53,6 +54,8 @@ class ProgramSlotListEditor extends StatefulWidget {
     this.onPreviewDanceStarted,
     this.onPreviewDanceEnded,
     this.onViewDanceDetails,
+    this.onAddDanceAt,
+    this.insertionTargetSlotIds = const {},
   });
 
   /// Slots in position order.
@@ -132,15 +135,19 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// discouraged-term wording.
   final bool canonicalizeDiscouragedTerms;
 
-  /// Opens the host's dance picker and resolves to the id of the dance the
-  /// user picked, or `null` if they dismissed it without picking one
-  /// (issue #964). Passed straight through to the slot edit dialog, whose
-  /// "Replace…" **button** (not the whole dance row) is omitted when this is
-  /// `null` — a host with no picker to offer (e.g. a future embedding without
-  /// `CollectionData`) need not supply it. The pick is held in the dialog's
+  /// Opens the host's dance picker for the slot being edited (as it stands in
+  /// [slots], before the dialog's unsaved edits, except that its `danceId` is
+  /// the dance the dialog currently shows) and resolves to the id of the
+  /// dance the user picked, or `null` if they dismissed it without picking
+  /// one (issue #964). The host ranks Suggested for that slot's place
+  /// (#2344) and leaves the dance the dialog shows out of the list, since
+  /// picking it would change nothing. Passed straight through to the slot
+  /// edit dialog, whose "Replace…" **button** (not the whole dance row) is
+  /// omitted when this is `null` — a host with no picker to offer (e.g. a
+  /// future embedding without `CollectionData`) need not supply it. The pick is held in the dialog's
   /// own state and only committed if the dialog's Save is tapped afterward, so
   /// Cancel discards it like every other in-dialog edit.
-  final Future<String?> Function()? onPickReplacementDance;
+  final Future<String?> Function(ProgramSlot slot)? onPickReplacementDance;
 
   /// Optional Program-only lifecycle for a held preview of a resolvable dance.
   final void Function(String danceId)? onPreviewDanceStarted;
@@ -148,6 +155,18 @@ class ProgramSlotListEditor extends StatefulWidget {
 
   /// Opens a persistent details preview for keyboard and AT users.
   final void Function(String danceId)? onViewDanceDetails;
+
+  /// "Add a dance before" / "Add a dance after" on a slot's "…" menu (#2339):
+  /// the host picks a dance and inserts it at the boundary of the alternate
+  /// group ([Program.insertSlotAtGroupBoundary]). `index` is that group's
+  /// primary, whichever of the group's slots the menu was opened on, since the
+  /// dance lands next to the whole group. Both items are omitted when this is
+  /// null.
+  final void Function(int index, {required bool after})? onAddDanceAt;
+
+  /// Ids of the slots a pending "Add a dance before/after" will land next to,
+  /// highlighted until a dance is chosen or the insertion is cancelled.
+  final Set<String> insertionTargetSlotIds;
 
   /// List width below which rows use the compact layout even on a wide window.
   /// The builder's two-pane layout halves the window, so up to about 1100dp
@@ -204,25 +223,14 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     return '$message ${l10n.programsAlternatePromoted(name)}';
   }
 
-  String _slotTitle(AppLocalizations l10n, ProgramSlot slot) {
-    final danceId = slot.danceId;
-    if (danceId != null) {
-      final title = widget.danceTitles(danceId);
-      return title ?? l10n.programsDeletedDanceFallback;
-    }
-    final text = slot.text;
-    if (text == null || text.trim().isEmpty) {
-      return l10n.programsSlotNoteFallback;
-    }
-    if (!widget.canonicalizeDiscouragedTerms ||
-        widget.dialect == null ||
-        (slot.danceId == null && slot.isPurgedDance != false)) {
-      return text;
-    }
-    return FigureRenderer(
-      shippedTaxonomies.anyForm,
-    ).renderFreeTextWithCanonicalDiscouragedTerms(text, widget.dialect!);
-  }
+  String _slotTitle(AppLocalizations l10n, ProgramSlot slot) =>
+      programSlotTitle(
+        l10n,
+        slot,
+        danceTitles: widget.danceTitles,
+        dialect: widget.dialect,
+        canonicalizeDiscouragedTerms: widget.canonicalizeDiscouragedTerms,
+      );
 
   String? _slotNote(ProgramSlot slot) {
     final text = slot.text?.trim();
@@ -334,10 +342,24 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   widget.onViewDanceDetails == null || slots[i].danceId == null
                   ? null
                   : () => widget.onViewDanceDetails!(slots[i].danceId!),
+              onAddDanceBefore: widget.onAddDanceAt == null
+                  ? null
+                  : () => _addDanceAt(i, after: false),
+              onAddDanceAfter: widget.onAddDanceAt == null
+                  ? null
+                  : () => _addDanceAt(i, after: true),
+              insertionTarget: widget.insertionTargetSlotIds.contains(
+                slots[i].id,
+              ),
             ),
         ],
       ),
     );
+  }
+
+  void _addDanceAt(int i, {required bool after}) {
+    final primary = Program.alternateGroupRange(widget.slots, i).start;
+    widget.onAddDanceAt?.call(primary, after: after);
   }
 
   void _moveUp(int i) {
@@ -457,6 +479,36 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
   }
 }
 
+/// The name the slot list shows for [slot]: its dance's title, or its note
+/// (with discouraged terms canonicalized when [canonicalizeDiscouragedTerms]
+/// and a [dialect] are given). Shared with the program editor, which names
+/// an "Add a dance before/after" target the same way (#2339).
+String programSlotTitle(
+  AppLocalizations l10n,
+  ProgramSlot slot, {
+  required String? Function(String danceId) danceTitles,
+  required Dialect? dialect,
+  required bool canonicalizeDiscouragedTerms,
+}) {
+  final danceId = slot.danceId;
+  if (danceId != null) {
+    final title = danceTitles(danceId);
+    return title ?? l10n.programsDeletedDanceFallback;
+  }
+  final text = slot.text;
+  if (text == null || text.trim().isEmpty) {
+    return l10n.programsSlotNoteFallback;
+  }
+  if (!canonicalizeDiscouragedTerms ||
+      dialect == null ||
+      (slot.danceId == null && slot.isPurgedDance != false)) {
+    return text;
+  }
+  return FigureRenderer(
+    shippedTaxonomies.anyForm,
+  ).renderFreeTextWithCanonicalDiscouragedTerms(text, dialect);
+}
+
 /// A single slot row: drag handle + alt-indent + summary + controls (inline,
 /// or in the "…" menu when [compact]).
 class _SlotTile extends StatelessWidget {
@@ -488,6 +540,9 @@ class _SlotTile extends StatelessWidget {
     this.onPreviewDanceStarted,
     this.onPreviewDanceEnded,
     this.onViewDanceDetails,
+    this.onAddDanceBefore,
+    this.onAddDanceAfter,
+    this.insertionTarget = false,
   });
 
   /// Keep only the drag handle and the "…" menu on the row; View details,
@@ -541,6 +596,15 @@ class _SlotTile extends StatelessWidget {
   final VoidCallback? onPreviewDanceStarted;
   final VoidCallback? onPreviewDanceEnded;
   final VoidCallback? onViewDanceDetails;
+
+  /// "Add a dance before" / "Add a dance after" (#2339); both menu items are
+  /// omitted when null.
+  final VoidCallback? onAddDanceBefore;
+  final VoidCallback? onAddDanceAfter;
+
+  /// Whether a pending "Add a dance before/after" will land next to this slot:
+  /// the row is outlined and tinted until a dance is chosen or it is cancelled.
+  final bool insertionTarget;
 
   /// Whether to offer "create a dance from this" on the "…" menu: only for a
   /// note slot (no [ProgramSlot.danceId]) that isn't the structural break
@@ -605,7 +669,16 @@ class _SlotTile extends StatelessWidget {
         bottom: AppSpacing.xxs,
       ),
       child: Card(
+        key: insertionTarget
+            ? ValueKey('slot-${slot.id}-insertion-target')
+            : null,
         margin: EdgeInsets.zero,
+        color: insertionTarget ? theme.colorScheme.secondaryContainer : null,
+        shape: insertionTarget
+            ? AppShapes.cardShape.copyWith(
+                side: BorderSide(color: theme.colorScheme.primary, width: 2),
+              )
+            : null,
         child: Container(
           key: accent != null ? ValueKey('slot-${slot.id}-accent') : null,
           decoration: accent != null
@@ -773,6 +846,10 @@ class _SlotTile extends StatelessWidget {
                         onViewDanceDetails?.call();
                       case 'remove':
                         onRemove();
+                      case 'add_before':
+                        onAddDanceBefore?.call();
+                      case 'add_after':
+                        onAddDanceAfter?.call();
                       case 'edit':
                         onEdit();
                       case 'alt':
@@ -835,7 +912,32 @@ class _SlotTile extends StatelessWidget {
                       ),
                       const PopupMenuDivider(),
                     ],
+                    // After the compact row's inline actions (D-2's order
+                    // stays intact) and before Edit slot (#2339).
+                    if (onAddDanceBefore != null &&
+                        onAddDanceAfter != null) ...[
+                      PopupMenuItem(
+                        key: ValueKey('slot-$index-add-before'),
+                        value: 'add_before',
+                        child: ListTile(
+                          leading: const Icon(Icons.vertical_align_top),
+                          title: Text(l10n.programsAddDanceBeforeMenu),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      PopupMenuItem(
+                        key: ValueKey('slot-$index-add-after'),
+                        value: 'add_after',
+                        child: ListTile(
+                          leading: const Icon(Icons.vertical_align_bottom),
+                          title: Text(l10n.programsAddDanceAfterMenu),
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                      const PopupMenuDivider(),
+                    ],
                     PopupMenuItem(
+                      key: ValueKey('slot-$index-edit'),
                       value: 'edit',
                       child: ListTile(
                         leading: const Icon(Icons.edit_outlined),
@@ -919,7 +1021,7 @@ class _SlotEditDialog extends StatefulWidget {
   final String? Function(String danceId)? danceTitle;
 
   /// See [ProgramSlotListEditor.onPickReplacementDance].
-  final Future<String?> Function()? onPickReplacementDance;
+  final Future<String?> Function(ProgramSlot slot)? onPickReplacementDance;
 
   @override
   State<_SlotEditDialog> createState() => _SlotEditDialogState();
@@ -978,7 +1080,14 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
   Future<void> _pickReplacement() async {
     final pick = widget.onPickReplacementDance;
     if (pick == null) return;
-    final picked = await pick();
+    // The dance shown now, which may be an earlier pick in this dialog, so
+    // the host can leave it out of the list.
+    final shown = _danceId;
+    final picked = await pick(
+      shown == null || shown == widget.slot.danceId
+          ? widget.slot
+          : widget.slot.copyWith(danceId: shown),
+    );
     if (picked == null || !mounted) return;
     final wasNoteSlot = _danceId == null;
     setState(() {

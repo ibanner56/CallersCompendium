@@ -99,6 +99,16 @@ settings, your collection is part of your library.
 An online database of contra dances that the app can [import](#import) from,
 either by searching it online or by pasting a dance's link or ID number.
 
+## CSV file
+
+A plain table that every spreadsheet program opens, such as Excel, Numbers,
+LibreOffice and Google Sheets: one line per row, with commas between the
+columns. Caller's Compendium can export your
+[dances](./sharing.md#export-dances-as-a-spreadsheet-csv) or your
+[programs](./sharing.md#export-programs-as-a-spreadsheet-csv) as one, and
+import dances from one (see
+[Imports & migration](./imports.md#bring-in-your-own-spreadsheet)).
+
 ## Custom field
 
 An extra piece of information you define yourself and attach to dances — beyond
@@ -197,14 +207,23 @@ read at arm's length in dim light, one-handed, while you're on the floor.
 How a dance's [beats](#beats) are grouped — the familiar A1 A2 B1 B2 of most
 contras, or something else. The app assumes the standard structure unless you
 write your own in the dance editor, and it uses whatever you set to tell you
-whether a dance's beats add up. An English dance's phrases can be named A, B
-and C, each with its own bars and played once or twice.
+whether a dance's beats add up. A contra or square dance's phrases are set as
+rows of phrases, bars per phrase and beats per bar; an English dance's phrases
+can be named A, B and C, each with its own bars and beats per bar (a tune that
+changes meter has a different count in each) and played once or twice.
 
 ## Program
 
 An ordered set list for one event — a Saturday dance, a weekend, or a one-off
 gig. Its individual entries are [slots](#slot), and a backup choice on a slot is
 an [alt](#alt).
+
+## Program template
+
+A named starting shape for a new [program](#program): an ordered list of
+dances, notes and breaks for one kind of evening. **New program** asks which
+template to start from when you have two or more. Set them up in Settings ▸
+Defaults ▸ Program defaults.
 
 ## Progression
 
@@ -223,7 +242,7 @@ choose **Never**.
 
 Two to four [figures](#figure) danced one after another and written as one line,
 such as *ones balance and swing*. Its beats are the total of its figures', and
-must fit in one phrase. A sequence is most useful as one side of a
+must fit in the phrase it starts in. A sequence is most useful as one side of a
 [meanwhile](#meanwhile). See
 [Write & edit dances](./authoring.md#sequence-figures).
 
@@ -266,7 +285,7 @@ website. Like an [author](#author), a source is a shared record with its own
 details (its title, author and year among them), and each dance that cites it
 can add a page and number.
 You can filter your [collection](#collection) by source, and rename or merge
-sources in **Settings ▸ General ▸ Dances ▸ Sources**. See
+sources in **Settings ▸ Collection ▸ Dances ▸ Sources**. See
 [Write & edit dances](./authoring.md#author-and-source-details-are-shared).
 
 ## Tag
@@ -275,7 +294,7 @@ A label of your own that you give a [dance](#dance) — often its "vibe" or
 category, such as *smooth* or *easy*. A dance can carry any number of tags, and
 a tag can have a color. Use tags to filter and group your
 [collection](#collection), and rename, merge, color or delete them in the
-**Tags** manager under **Settings ▸ General ▸ Dances ▸ Tags**. See
+**Tags** manager under **Settings ▸ Collection ▸ Dances ▸ Tags**. See
 [Collection & search](./collection.md#group-by-category-a-dances-vibe).
 
 ## Unrecognized figure
@@ -297,8 +316,8 @@ place. A venue record holds a name, address, contacts, schedule, sponsor,
 website, price, and notes. Turn on **Use reusable venue records** in
 [Settings](./settings.md#venues) to link programs to saved venues; switching
 this on or off never discards your free-text label or a linked record. When you
-share a program, a venue's address is left out and its contact details are
-included only if you choose — see
+share a program, a venue's address is left out (a calendar file asks whether to
+include it) and its contact details are included only if you choose — see
 [What stays private](./sharing.md#what-stays-private).
 
 ## Walkthrough

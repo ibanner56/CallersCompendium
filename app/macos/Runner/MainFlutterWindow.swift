@@ -29,6 +29,10 @@ class MainFlutterWindow: NSWindow {
     BackupVolumeBridge.shared.register(
       messenger: flutterViewController.engine.binaryMessenger)
 
+    // #2327: From an image… reads a chosen picture's text with Apple Vision.
+    TextRecognitionBridge.shared.register(
+      messenger: flutterViewController.engine.binaryMessenger)
+
     // Brand surface behind the first frame, so the window doesn't flash the
     // system grey before Flutter draws: light #F4F6FA / dark #121A24 (the
     // app's light and dark scheme surfaces). FlutterView's own layer defaults

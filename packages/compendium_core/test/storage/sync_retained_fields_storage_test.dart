@@ -792,6 +792,89 @@ void main() {
     expect((await storage.snapshot()).local.containsKey(peer.address), isFalse);
   });
 
+  // The program times (#2350) reach a build from before them as four
+  // top-level integers it does not know. Spec §6.7 keeps such parts verbatim
+  // and shares them back, so the fields need no capability gate. The first
+  // test drives that path with integers this build does not know, standing in
+  // for the times on an older build; the second is the other half, this build
+  // reading what an older build kept.
+  group('program times through a build that does not know them', () {
+    test('top-level integers it does not know are kept and shared back '
+        'unchanged', () async {
+      final blob = syncRecordBlobForEntity(
+        SyncRecordKind.program,
+        program(),
+        updatedAt: _stamp,
+        existenceAt: _stamp,
+      )!;
+      final peer = SyncRecordBlob(
+        kind: SyncRecordKind.program,
+        id: blob.id,
+        updatedAt: blob.updatedAt,
+        deletedAt: null,
+        existenceAt: blob.existenceAt,
+        body: {
+          ...blob.body,
+          'futureStartMinute': 1170,
+          'futureArrivalMinute': 0,
+        },
+      );
+      await apply(peer);
+
+      final mine = await published(peer.address);
+      expect(mine.wireHash, SyncMergeCandidate(blob: peer).wireHash);
+      expect(mine.blob.body['futureStartMinute'], 1170);
+      expect(mine.blob.body['futureArrivalMinute'], 0);
+    });
+
+    test('times an older build kept are promoted into the program here, '
+        'and the record is not restamped', () async {
+      await repositories.programs.create(program());
+      // Exactly what an older build stores for a top-level part it keeps.
+      await repositories.syncLocal.setRetainedSyncFields(
+        kind: SyncRecordKind.program,
+        recordId: 'p1',
+        payload: canonicalJson({
+          'startMinute': {'v': 1170},
+          'endMinute': {'v': 60},
+          'lessonMinute': {'v': 1140},
+          'arrivalMinute': {'v': 0},
+        }),
+      );
+      const address = (kind: SyncRecordKind.program, recordId: 'p1');
+      final before = await published(address);
+
+      await storage.promoteRetainedSyncFields();
+
+      final stored = (await repositories.programs.getById('p1'))!;
+      expect(stored.startMinute, 1170);
+      expect(stored.endMinute, 60);
+      expect(stored.lessonMinute, 1140);
+      expect(stored.arrivalMinute, 0);
+      expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
+      final after = await published(address);
+      expect(after.blob.body['startMinute'], 1170);
+      expect(after.blob.body['arrivalMinute'], 0);
+      expect(after.blob.updatedAt, before.blob.updatedAt);
+    });
+
+    test('a kept time out of range is dropped rather than stopping the '
+        'open', () async {
+      await repositories.programs.create(program());
+      await repositories.syncLocal.setRetainedSyncFields(
+        kind: SyncRecordKind.program,
+        recordId: 'p1',
+        payload: canonicalJson({
+          'startMinute': {'v': 1440},
+        }),
+      );
+      await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
+      expect((await repositories.programs.getById('p1'))!.startMinute, isNull);
+      // Promotion ran and settled it: nothing is left kept to retry.
+      expect(await repositories.syncLocal.listRetainedSyncFields(), isEmpty);
+    });
+  });
+
   group('after an upgrade that starts syncing a kept field', () {
     // The kept rows below are what an older build stored for the program's
     // pay, before this build knew the field (#1714). This build knows it, so

@@ -382,4 +382,31 @@ void main() {
       expect(f.params.containsKey('beats'), isFalse);
     });
   });
+
+  group('a square dance never reads typed text into contra calls '
+      '(Hudson, 24 November 2026), nor into its own until squares have a '
+      'parser (ADR-007 §9)', () {
+    final square = shippedTaxonomies.forForm(DanceForm.square);
+    for (final line in ['hey.', 'hey', 'separate', 'backtrack', 'hand turn']) {
+      test(line, () {
+        final read = parseFreeTextFigureEntry(line, taxonomy: square);
+        expect(read, isNotEmpty);
+        for (final figure in read) {
+          expect(figure.move, isNot(startsWith('sq_')), reason: '$read');
+          expect(figureFitsForm(figure, DanceForm.square), isTrue);
+        }
+      });
+    }
+    test('"hey" is a contra call in a contra dance and a custom line in a '
+        'square', () {
+      expect(
+        parseFreeTextFigureEntry('hey', taxonomy: contraTaxonomy).single.move,
+        'hey',
+      );
+      expect(
+        parseFreeTextFigureEntry('hey', taxonomy: square).single.isCustom,
+        isTrue,
+      );
+    });
+  });
 }

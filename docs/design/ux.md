@@ -92,6 +92,11 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   petronella in B1", "chain **then** swing") built with a friendly query
   builder (ContraDB ez-query lesson: common cases one-tap, advanced tree
   behind "advanced").
+- The row of search tools (with the online source selector) and the result
+  count are pinned headers in the Collection's scroll view; the open tool's
+  panel scrolls between them. Each stays pinned only while the pinned headers
+  together cover at most half the list's viewport, so large text on a short
+  screen falls back to scrolling (`PinnedWhileRoomSliver`).
 - Search input is dialect-canonicalized; result counts announced politely to AT.
   The calling-history facet follows the active caller and performed-only scope;
   it is omitted when that scope has no qualifying calls.
@@ -119,12 +124,18 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   before adding it again (N3-A1; `docs/design/add-to-program-sheet.md`).
 
 ### 2. Dance detail / card
-- Header: title, authors, formation, hook, tags, status banner (deprecated/
-  broken), provenance line ("via The Caller's Box · CC-BY-NC").
+- Header: title, authors with the composed year ("Pat Shaw (1951)"),
+  interpreters with the interpreted year on their own line ("Interpreted by
+  Cecil Sharp (1916)"; either line shows a year alone, labelled, when there
+  are no names), formation, meter and key (one labelled line, only
+  when either is set), hook, tags, status banner (deprecated/broken),
+  provenance line ("via The Caller's Box · CC-BY-NC").
 - Figure table grouped by derived section (A1…), beats column, progression ¶
   marker; dialect applied. Toggle: canonical ⇄ dialect view. A `meanwhile`
   container (#590/#594) renders its concurrent sides joined by "while" on one
   row with a single shared beat count — never split, never double-counted.
+- Sections after the figures include tunes and, when set, the Barnes
+  reference ("Barnes books").
 - Side panel/tabs: calling notes, links (source/video/related), calling
   history (from every program the dance is in by default; only from programs
   with the slot marked performed when *Require "mark performed"* is on, and an
@@ -147,6 +158,21 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   beat count per section shown continuously (overflow = inline warning, not
   error). Full entry of a standard dance must be achievable in <1 min without
   the mouse.
+- **From Title to the figures**: on a new dance, the Title field's keyboard
+  action is Next, and it opens the first figure still to fill (a blank row
+  or the stand-still placeholder a new dance starts with) with its Move box
+  focused, or starts the first figure (the free-text composer with Free-text
+  entry on). What follows Title on the page takes no typing (the setup
+  panel's header, or a picker), so plain focus traversal would close a
+  phone's keyboard under a Next key. The figures need not be built yet (the
+  form is a lazy list, and the setup panel may be open above them): Next
+  scrolls toward them until they are, and an open figure is opened anew so
+  its Move box takes the focus. On an existing dance, or a new one whose
+  figures are all set, the action is Done, which moves focus on as plain
+  traversal does. Tab still walks the page in order. Known limit: a
+  keyboard already open keeps the key it opened with if the figures change
+  meanwhile (Flutter does not send a changed action to an open keyboard);
+  what the key does is still decided when it is pressed.
 - Unrecognized figure = just typing free text where no move matches; a beats field
   sets the figure's duration; lingo-line feedback (recognized terms underlined,
   discouraged struck) as you type.
@@ -178,10 +204,46 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   wording override. The row reads with the figure's current wording, and a save
   stores that line beside it. A row whose figure is gone says so and keeps its
   line.
-- Metadata form with author autocomplete (choreographer table), formation
+- Metadata form with author pickers (choreographer table), formation
   picker, custom fields.
+- **The setup panel** keeps the figures near the top of the page. Under the
+  Title, the rest of Details (credits, Type, Formation and its detail,
+  Progression, the improper and mixer flags, Rating, the phrase structure,
+  and an English dance's Meter, Key and Barnes reference) is one panel,
+  *Credits, formation and music*, that folds to a summary of at most two
+  lines: the authors, Type, Formation, the improper and mixer flags, the
+  phrase structure as typed, and an English dance's Meter and Key. It starts folded on an existing dance, and on a new dance where the
+  form is narrower than 600 px; a new dance on a wider form starts with it
+  open. Its fields stay mounted while folded, so a save validates them, and
+  a save that finds an error inside opens it, as it opens More details, and
+  without the opening animation, so the field is in its final place when it
+  is scrolled into view.
+  The decision is made once per editor: built again after a lazy list let
+  it go, the panel keeps the state the caller left it in. Inside, fields
+  share rows where they fit (Type, Formation, Formation detail and
+  Progression at 200 px each, Meter, Key and Barnes reference at 150 px,
+  scaled with the text), an English dance's two credit lines share one row, and the
+  improper and mixer flags are filter chips with their explanations as
+  tooltips, rather than two-line checkbox rows. Measured in a widget test of
+  an English dance with nothing yet entered, the Figures header was 1,088 px
+  from the top of a 1000 px wide window and 1,176 px on a 390 px phone; with
+  the panel it is 710 px on the wide window for a new dance (panel open) and
+  266 px for an existing one, and 266-286 px on the phone.
+- **Name pickers** (Authors, Interpreted by, Tags) are multi-select
+  dropdowns: the closed field reads the chosen names as text, and opens a
+  list of every name with a checkbox, a search box that narrows it, a row
+  that creates a typed name nobody has, and (for people) an edit button per
+  row. They replaced a row of removable chips over a type-ahead, which the
+  maintainer found cluttered and hard to use (22 November 2026). The list
+  drops down under the field on a wide window and is a bottom sheet on a
+  phone or short window, above the keyboard.
+- **A figure's Who list** (an English figure's `who`, a `dancerList`) is the
+  same dropdown, without the create row or edit buttons: its rows are the
+  selectors in the vocabulary's order, and the closed field reads the picked
+  ones in the order picked. It replaced a wall of over forty filter chips,
+  which the maintainer called "a disaster" (23 November 2026).
 - **Field labels**: a text field or dropdown carries a floating label inside
-  the field (Title, Type, Formation); a chip group (authors, tags) or a
+  the field (Title, Type, Formation); a name picker (authors, tags) or a
   repeating group of fields (tunes, links, sources, related dances, custom
   fields) keeps a heading above it, because a floating label belongs to one
   field, not a group.
@@ -211,6 +273,17 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   or elsewhere, hidden by Hide archived, or by the Show archived reset when
   Programs is left), including a selection handed over by a rotation. Restoring a program from Recently deleted
   unarchives it; a delete's Undo does not.
+- New program (#2337): with two or more program templates, New program first
+  opens a short bottom sheet titled "Start from a template", listing the
+  templates in the user's order with the Default template first and marked
+  "Default", and **Blank program** (first and marked when it is the default,
+  otherwise last). Dismissing the sheet cancels. With zero or one template
+  there is no sheet: the builder opens on the Default template, so the common
+  case costs no extra tap. The templates are managed in Settings ▸ Defaults ▸
+  Program defaults ▸ Program templates, a full-screen manager that floats
+  **New template** once it has a list (the empty state carries its own
+  button), reorders by drag or move up / move down, and offers Rename,
+  Duplicate and Delete (with Undo) from each row's ⋮ menu.
 - Builder: two-pane — program (ordered slots) | collection picker with the
   same filter panel as Collection, including caller-scoped Called / Not called
   history filtering, and Collection's Search in, sort (session-only, opening in
@@ -222,6 +295,26 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   also exposes a visible, keyboard-operable **View details** action that opens
   an explicitly closable, read-only preview; short taps keep their add/import
   behavior.
+- Suggested (#2343, #2344, Experimental, off by default): with Settings ▸
+  Experimental ▸ Suggestions on, the builder's pickers' Sort menu ends with
+  **Suggested** (never in Collection). It ranks the current results off the UI
+  thread for where the dance will go: the end of the program, the place a
+  pending add before/after a slot lands, or the slot Replace… fills (that
+  slot's dance left out). Until the ranking for the current place arrives the
+  plain order shows with the header spinner and rows stay tappable, also after
+  the place moves (an insertion started or cancelled), so a ranking is never
+  shown for a place it was not made for; if ranking fails, the plain order stays with an inline notice
+  (info icon and text) above the list. A dance already in the program sinks
+  to the bottom with the reason "Already in this program", never removed. It is never the opening sort, hides the direction arrow (a ranking
+  has no direction) and lasts until another sort or the picker closes. Each
+  ranked row carries a one-line reason (the top one or two, lightbulb icon,
+  text not colour; a neighbour reason names the dance and the side, "…as
+  *Chorus Jig*, after it") and a **Why?** icon button whose dialog (AppMotion
+  animation) lists every reason as "Raises it" / "Lowers it" with an arrow
+  icon. Settings ▸ Experimental ▸ Suggestions holds the toggle and **What
+  suggestions look for**: Off / A little / A lot per factor as segmented
+  buttons, the curve shape and venue window as dropdowns, and Reset to
+  defaults; no numbers. See [suggestions.md](suggestions.md).
 - Slots: dance slots + free-text slots (break, waltz, announcements); **ALT
   flag** renders as an indented alternate under its primary (color + icon +
   text, never color alone). A free-text slot's overflow menu offers **create a
@@ -231,6 +324,23 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   A dance slot's edit dialog offers **Replace…**, swapping its dance via the
   collection picker while preserving the slot's note/guest caller/planned
   minutes/mark-performed status (issue #964).
+- Insert: every slot's overflow menu offers **Add a dance before** and **Add a
+  dance after**, after the compact row's move up / move down / View details /
+  cut (D-2's order is unchanged) and before Edit slot (#2339). Below the
+  two-pane breakpoint it opens the collection picker sheet titled "Add before
+  *dance*" / "Add after *dance*", which closes on the first pick; in two-pane
+  the inline picker shows an "Adding before *dance*" banner with Cancel and
+  the target's alternate group is highlighted. The chosen dance, an online
+  import included, is inserted as a primary at a group boundary — before the
+  group's primary or after its last alternate, never inside it; an
+  alternate's menu targets its primary's group, and a break or note is a group
+  of one (`Program.insertSlotAtGroupBoundary`). The insertion is one-shot: the
+  next add goes to the end. The banner, sheet title and announcements name
+  the group's primary as it is at that moment; cutting that primary ends the
+  insertion, as does dropping below the two-pane breakpoint while the banner
+  is up, and either is announced. It is announced ("Added *X* before *Y*");
+  Cancel and the menu items meet the 24 px target minimum and are
+  keyboard-operable.
 - Reorder: drag + non-drag alternative; slot notes inline. Below the 600dp
   compact breakpoint (or in a program pane narrower than the full row), a slot
   row keeps only its drag handle and overflow menu; move up / move down lead
@@ -264,10 +374,14 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 
 ### 5. Performance mode
 - Full-screen card: current dance, huge type (user-set size/weight/spacing,
-  no upper bound), 7:1 contrast themes (dark-stage default), wake-lock on. A
-  `meanwhile` container (#590/#594) shows both concurrent sides on one card
-  row joined by "while", on their single shared beat span; the screen-reader
-  announcement reads the pair as one continuous "A while B" phrase.
+  no upper bound), 7:1 contrast themes (dark-stage default), wake-lock on.
+  The header adds the composed year to the authors line, the interpreters and
+  interpreted year on their own line, the dance's meter and key on one
+  labelled row when either is set, and its Barnes reference on a labelled row
+  of its own ("Barnes: BIII p. 92") when set. A `meanwhile` container
+  (#590/#594) shows both concurrent sides on one card row joined by "while",
+  on their single shared beat span; the screen-reader announcement reads the
+  pair as one continuous "A while B" phrase.
 - Full screen (PLAT-9): phones and tablets go immersive for the whole view.
   Desktop offers a toolbar toggle plus F11 (Ctrl-Cmd-F on macOS); Esc leaves
   full screen but never Perform. Ctrl/Cmd-W and mouse Back reach Perform's
@@ -287,7 +401,22 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
 - Zero destructive actions reachable; exit via deliberate gesture/button with
   confirm by default (Settings › Program › Performance). Optional: per-slot timer/clock display.
 - On-the-fly: reorder remaining slots, insert from quick-search, add ad-hoc
-  note — all in an "adjust" sheet, never disturbing the reading view.
+  note, swap the current or an upcoming dance — all in an "adjust" sheet,
+  never disturbing the reading view.
+- Swap a dance (#2346): the swap sheet opens already searched, with Keep chips
+  seeded from the dance (same formation, this level or easier, same type in a
+  mixed program, not already in the program, and figures with same-phrase and
+  with-what-comes-before refinements). Defaults are a setting; the slot's
+  alternates are listed first; two taps with the defaults; the swapped-in
+  dance takes the group's primary (an alternate being called is promoted)
+  and the swapped-out dance an unmarked alternate, so calling history counts
+  only the dance called; Undo restores the program exactly.
+- Swap ordered by suggestions (#2348, Experimental): with Suggestions and its
+  **Use in Perform's Swap this dance** both on, the swap sheet opens in
+  **Suggested** for the swapped slot's place, with no extra step: Your
+  alternates first and unranked, the results below with the builder's reason
+  line and **Why?**. Same dances either way; the plain order shows, tappable,
+  until the ranking arrives. With either off, as #2346.
 
 ### 6. Settings
 - **Dialect manager**: named dialects, preset picker, role/move term editor

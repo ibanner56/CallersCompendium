@@ -1,0 +1,14 @@
+{
+  "id": "adr-007-square-free-form",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "A square dance has a Free form switch for patter that follows no phrasing. With it on, the figures get no phrase labels or phrase checks, the phrase structure is hidden but kept, and the figure list shows only the total beats. Patter starts with it on and a main part or break with it off; the dance's page, perform view, prints and text export show a free-form square without phrase headings."
+    ]
+  },
+  "core": {
+    "added": [
+      "Dance.freeForm (ADR-007 §8.1): the caller's free-form setting, or null to follow the kind, with Dance.isFreeForm for the value that applies; deriveSections takes freeForm, and PhraseStructure.unphrased is what a free-form dance is measured against. It joins the unreleased schema v42 and archive v8, is kept for every form, and is omitted from archives and sync bodies while null."
+    ]
+  }
+}

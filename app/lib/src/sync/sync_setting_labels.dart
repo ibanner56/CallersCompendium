@@ -1,5 +1,5 @@
 import 'package:compendium_core/compendium_core.dart'
-    show shownDialectName, syncCapabilityKeyPrefix;
+    show savedSearchKeyPrefix, shownDialectName, syncCapabilityKeyPrefix;
 
 import '../../l10n/app_localizations.dart';
 
@@ -95,6 +95,8 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'perform_stage_mode' => l10n.syncSettingPerformStageTheme,
   'program_dance_share_fields' => l10n.settingsDefaultsShareFieldsHeader,
   'program_matrix_columns' => l10n.settingsMatrixColumnsHeader,
+  'program_template_default' => l10n.settingsProgramTemplateDefaultTitle,
+  'program_template_order' => l10n.settingsProgramTemplatesTitle,
   'reduce_motion' => l10n.settingsGeneralReduceMotionTitle,
   'recency_require_event_date' => l10n.settingsRecencyRequireEventDateTitle,
   'recency_require_performed' => l10n.settingsRecencyRequirePerformedTitle,
@@ -106,23 +108,31 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   'require_performed_for_history' =>
     l10n.settingsGeneralRequirePerformedForHistoryTitle,
   'show_performed_toggles' => l10n.settingsGeneralShowPerformedTogglesTitle,
+  'show_program_pay' => l10n.settingsProgramShowPayTitle,
   'set_list_color_coding' => l10n.settingsAppearanceSetListColorTitle,
   'shorthand_mappings' => l10n.settingsDefaultsFigureShorthandsTitle,
   'compound_shorthands' => l10n.shorthandsCompoundTitle,
   'user_figure_shorthands' => l10n.shorthandsUserFigureSyncLabel,
   'show_glossary' => l10n.settingsExperimentalShowGlossaryTitle,
   'show_custom_figures' => l10n.settingsExperimentalShowCustomFiguresTitle,
+  'show_repertoire_dashboard' => l10n.settingsExperimentalShowRepertoireTitle,
+  'suggestions_enabled' => l10n.settingsSuggestionsEnabledTitle,
+  'suggestion_settings' => l10n.settingsSuggestionsEditorTitle,
+  'suggestions_in_perform_swap' => l10n.settingsSuggestionsInPerformSwapTitle,
   'calling_card_print' => l10n.settingsCallingCardsHeader,
   'show_individual_perform_timer' =>
     l10n.settingsShowIndividualPerformTimerTitle,
   'show_program_slot_caller_notes' =>
     l10n.settingsShowProgramSlotCallerNotesTitle,
+  'perform_swap_defaults' => l10n.settingsPerformSwapTitle,
   'soft_delete_retention_days' => l10n.settingsGeneralSoftDeleteRetentionTitle,
   'sort_ignore_articles' => l10n.settingsGeneralSortIgnoreArticlesTitle,
   'theme_mode' => l10n.settingsAppearanceThemeHeader,
   'track_history_for_all_callers' =>
     l10n.settingsGeneralTrackHistoryForAllCallersTitle,
   'undo_prompt_seconds' => l10n.settingsGeneralUndoPromptTitle,
+  'calendar_import_window_months' => l10n.calendarWindowTitle,
+  'calendar_import_title_filter' => l10n.calendarTitleFilterTitle,
   'venue_call_count' => l10n.settingsProgramVenueCallCountTitle,
   'venue_entity_mode' => l10n.settingsGeneralVenueEntityModeTitle,
   'verbose_figure_rendering' => l10n.settingsGeneralVerboseFiguresTitle,
@@ -133,6 +143,13 @@ String? syncSettingLabel(AppLocalizations l10n, String key) => switch (key) {
   // list.
   final key when key.startsWith(syncCapabilityKeyPrefix) =>
     l10n.settingsSyncDevicesTitle,
+  // One saved search per key (#2325): the name of the setting, not the search's
+  // own name, which syncSettingValueText shows.
+  final key when key.startsWith(savedSearchKeyPrefix) =>
+    l10n.syncSavedSearchLabel,
+  // One program template per key (#2337), whatever its id.
+  final key when key.startsWith('program_template:') =>
+    l10n.settingsProgramTemplatesTitle,
   _ => null,
 };
 
@@ -149,6 +166,12 @@ String syncSettingValueText(
   // (ADR-006 §9.1, point 7).
   if (key != null && key.startsWith('active_dialect_ref') && value is String) {
     value = shownDialectName(value);
+  }
+  // A saved search is one object holding its name and its search; showing the
+  // name tells two versions apart, where a count of its parts would not.
+  if (key != null && key.startsWith(savedSearchKeyPrefix) && value is Map) {
+    final name = value['name'];
+    if (name is String && name.trim().isNotEmpty) return _clip(name);
   }
   switch (value) {
     case null:

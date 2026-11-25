@@ -30,6 +30,7 @@ import 'package:compendium_app/src/export/json_export.dart';
 import 'package:compendium_app/src/export/share_file.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
+import 'package:compendium_app/src/widgets/dance_code_view.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/widgets/dance_export_menu.dart'
@@ -37,6 +38,7 @@ import 'package:compendium_app/src/widgets/dance_export_menu.dart'
 import 'package:compendium_app/src/widgets/figure_table.dart';
 import 'package:compendium_app/src/widgets/program_status_chip.dart';
 
+import 'support/program_template_seed.dart';
 import 'support/dance_detail_actions.dart';
 import 'support/fake_url_launcher.dart';
 import 'support/pdf_probe.dart';
@@ -408,6 +410,226 @@ void main() {
 
     await _pumpDetail(tester, repos, 'plain');
     expect(find.text('Mixer'), findsNothing);
+  });
+
+  group('credits with years', () {
+    Future<CompendiumRepositories> withPeople() async {
+      final repos = openTestRepositories();
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'a1', name: 'Pat Shaw'),
+      );
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'i1', name: 'Cecil Sharp'),
+      );
+      return repos;
+    }
+
+    testWidgets('the authors carry the composed year and the interpreters '
+        'their own line with the interpreted year', (tester) async {
+      final repos = await withPeople();
+      await repos.dances.create(
+        _dance(id: 'credits', authorIds: ['a1']).copyWith(
+          composedOn: PartialDate(1951, 3, 4),
+          interpreterIds: ['i1'],
+          interpretedOn: PartialDate(1916),
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'credits');
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('dance-detail-authors')),
+          matching: find.text('Pat Shaw (1951)'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('dance-detail-interpreters')),
+          matching: find.text('Interpreted by Cecil Sharp (1916)'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a year with no names still shows, labelled', (tester) async {
+      final repos = await withPeople();
+      await repos.dances.create(
+        _dance(id: 'years-only').copyWith(
+          composedOn: PartialDate(1651),
+          interpretedOn: PartialDate(1916),
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'years-only');
+      expect(find.text('Composed 1651'), findsOneWidget);
+      expect(find.text('Interpreted 1916'), findsOneWidget);
+    });
+
+    testWidgets('names with no years show as before, and no interpreter line '
+        'without interpreters', (tester) async {
+      final repos = await withPeople();
+      await repos.dances.create(_dance(id: 'names-only', authorIds: ['a1']));
+
+      await _pumpDetail(tester, repos, 'names-only');
+      expect(find.text('Pat Shaw'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('dance-detail-interpreters')),
+        findsNothing,
+      );
+    });
+
+    Future<String?> copyFromDetail(
+      WidgetTester tester,
+      CompendiumRepositories repos,
+      String id, {
+      Set<DanceShareField> shareFields = DanceShareField.allExceptTunes,
+      bool narrow = false,
+    }) async {
+      String? clipboardText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboardText = (call.arguments as Map)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      await _pumpDetail(
+        tester,
+        repos,
+        id,
+        shareFields: shareFields,
+        surfaceSize: narrow ? const Size(360, 800) : const Size(1200, 2400),
+      );
+      if (narrow) {
+        // The phone layout's own overflow menu, a separate export path.
+        await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('overflow-copy-dance')));
+      } else {
+        await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Copy dance'));
+      }
+      await tester.pumpAndSettle();
+      return clipboardText;
+    }
+
+    Dance english() =>
+        _dance(
+          id: 'eng',
+          title: 'Hole in the Wall',
+          authorIds: ['a1'],
+        ).copyWith(
+          form: DanceForm.ecd,
+          formation: const Formation(FormationShape.dupleMinor),
+          composedOn: PartialDate(1951),
+          interpreterIds: ['i1'],
+          interpretedOn: PartialDate(1916),
+          meter: '3/2',
+          musicalKey: 'D minor',
+          barnesReference: 'BI p. 63',
+        );
+
+    for (final narrow in [false, true]) {
+      testWidgets('Copy dance carries the credit years, interpreters, meter, '
+          'key and Barnes (${narrow ? 'phone' : 'wide'} layout)', (
+        tester,
+      ) async {
+        final repos = await withPeople();
+        await repos.dances.create(english());
+
+        final text = await copyFromDetail(tester, repos, 'eng', narrow: narrow);
+        expect(text, isNotNull);
+        final lines = text!.split('\n');
+        expect(lines, contains('Pat Shaw (1951)'));
+        expect(lines, contains('Interpreted by Cecil Sharp (1916)'));
+        expect(lines, contains('Meter: 3/2 · Key: D minor'));
+        expect(lines, contains('Barnes: BI p. 63'));
+      });
+    }
+
+    testWidgets('Copy dance leaves meter, key and Barnes off with their '
+        'field', (tester) async {
+      final repos = await withPeople();
+      await repos.dances.create(english());
+
+      final text = await copyFromDetail(
+        tester,
+        repos,
+        'eng',
+        shareFields: {...DanceShareField.allExceptTunes}
+          ..remove(DanceShareField.music),
+      );
+      expect(text, contains('Pat Shaw (1951)'));
+      expect(text, isNot(contains('Meter')));
+      expect(text, isNot(contains('Barnes')));
+    });
+  });
+
+  testWidgets('shows the meter and key in the header when they are set', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: 'tune').copyWith(meter: '6/8', musicalKey: 'G minor'),
+    );
+
+    await _pumpDetail(tester, repos, 'tune');
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('dance-detail-tune-details')),
+        matching: find.text('Meter: 6/8 · Key: G minor'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('shows only the key when no meter is set', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: 'key-only').copyWith(meter: '  ', musicalKey: 'D'),
+    );
+
+    await _pumpDetail(tester, repos, 'key-only');
+    expect(find.text('Key: D'), findsOneWidget);
+    expect(find.textContaining('Meter:'), findsNothing);
+  });
+
+  testWidgets('renders a discouraged term in the meter or key canonically', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: 'gypsy-key').copyWith(musicalKey: 'Gypsy'),
+    );
+
+    await _pumpDetail(tester, repos, 'gypsy-key');
+    expect(find.text('Key: Shoulder round'), findsOneWidget);
+    expect(find.textContaining('Gypsy'), findsNothing);
+  });
+
+  testWidgets('has no tune details row when neither meter nor key is set', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'no-tune'));
+
+    await _pumpDetail(tester, repos, 'no-tune');
+    expect(
+      find.byKey(const ValueKey('dance-detail-tune-details')),
+      findsNothing,
+    );
   });
 
   testWidgets('renders a canonical hook under the active dialect (#613)', (
@@ -1156,8 +1378,9 @@ void main() {
       tester,
     ) async {
       // Characterisation test for the DanceExportActions extraction (CS-10b):
-      // passes before and after the move, pinning that all five compact items
-      // keep reaching the same seams. The bundle item runs the Linux Save-As
+      // passes before and after the move, pinning that the compact export items
+      // (all but Show code, which opens a screen and is tested below) keep
+      // reaching the same seams. The bundle item runs the Linux Save-As
       // branch so it is observable through `saveInvoker` without a temp dir.
       isBundleShareUnsupported = () => true;
       final repos = openTestRepositories();
@@ -1232,6 +1455,35 @@ void main() {
       expect(pdfNames, ['Narrow_Dance']);
 
       expect(shares, hasLength(1));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('the overflow Show code item opens that dance as a code', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+      final library = await buildLibrary(repos);
+      await _pumpDetail(
+        tester,
+        repos,
+        'd1',
+        surfaceSize: const Size(360, 800),
+        dialectLibrary: library,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('overflow-show-code')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DanceCodeScreen), findsOneWidget);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('dance-code-title')))
+            .data,
+        'Narrow Dance',
+      );
       expect(tester.takeException(), isNull);
     });
 
@@ -2551,6 +2803,23 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets('Create a new program with this dance keeps its one slot and '
+        'takes nothing from the Default template (#2337)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Zesty'));
+      await seedDefaultProgramTemplate(repos);
+
+      await _pumpDetail(tester, repos, 'd1');
+      await tester.tap(find.byKey(const ValueKey('add-dance-to-program')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('add-to-program-create')));
+      await tester.pumpAndSettle();
+
+      final program = (await repos.programs.listAll()).single;
+      expect(program.slots.single.danceId, 'd1');
+      expect(hasSeededTemplateSlot(program), isFalse);
+    });
   });
 
   // ── External-link launching ──────────────────────────────────────────────
@@ -3632,6 +3901,200 @@ void main() {
 
       expect(find.textContaining("can't be read"), findsNothing);
       expect(find.byType(FigureTable), findsOneWidget);
+    });
+  });
+  group("a square's own fields (ADR-007 §8.1)", () {
+    testWidgets('show for a square, each only when stated', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Circle Three Quarters').copyWith(
+          form: DanceForm.square,
+          squareKind: SquareKind.breakPart,
+          repeatOrder: SquareRepeatOrder.headsHeadsSidesSides,
+          newPartner: SquareNewPartner.other,
+          newPartnerText: 'The original corner',
+          singing: true,
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(find.text('Kind of square: Break'), findsOneWidget);
+      // Only a main part is sung, so a break's stray flag does not show.
+      expect(find.text('Singing call'), findsNothing);
+      expect(
+        find.text('Repeat order: Heads twice, then sides twice'),
+        findsOneWidget,
+      );
+      // The text an `other` stands for, not the word "Other".
+      expect(find.text('New partner: The original corner'), findsOneWidget);
+    });
+
+    testWidgets('a free-form square has no phrase headings or phrase '
+        'warning, and says it is free form', (tester) async {
+      final repos = openTestRepositories();
+      final figures = [
+        customFigure('Allemande left your corner', beats: 12),
+        customFigure('Grand right and left', beats: 8),
+      ];
+      await repos.dances.create(
+        _dance(
+          id: 'free',
+          title: 'Patter',
+          figures: figures,
+        ).copyWith(form: DanceForm.square, squareKind: SquareKind.patter),
+      );
+      await repos.dances.create(
+        _dance(
+          id: 'phrased',
+          title: 'Phrased',
+          figures: figures,
+        ).copyWith(form: DanceForm.square),
+      );
+
+      await _pumpDetail(tester, repos, 'phrased');
+      expect(find.text('A1'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('dance-detail-free-form')),
+        findsNothing,
+      );
+
+      await _pumpDetail(tester, repos, 'free');
+      expect(find.text('A1'), findsNothing);
+      expect(find.text('A2'), findsNothing);
+      expect(find.textContaining('beats'), findsWidgets);
+      expect(find.byKey(const ValueKey('warnings-card')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('dance-detail-free-form')),
+        findsOneWidget,
+      );
+      expect(find.text('Free form'), findsOneWidget);
+    });
+
+    testWidgets('a main part shows that it is a singing call', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Sung',
+        ).copyWith(form: DanceForm.square, singing: true),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(find.text('Singing call'), findsOneWidget);
+      expect(find.textContaining('Kind of square'), findsNothing);
+    });
+
+    testWidgets('a main part with nothing stated shows none', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Plain').copyWith(form: DanceForm.square),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      for (final key in [
+        'square-kind',
+        'singing',
+        'repeat-order',
+        'new-partner',
+      ]) {
+        expect(find.byKey(ValueKey('dance-detail-$key')), findsNothing);
+      }
+    });
+
+    testWidgets('another form keeps them but does not show them', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Contra',
+        ).copyWith(repeatOrder: SquareRepeatOrder.allFour, singing: true),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(
+        find.byKey(const ValueKey('dance-detail-repeat-order')),
+        findsNothing,
+      );
+      expect(find.text('Singing call'), findsNothing);
+    });
+
+    testWidgets('the right-hand partner reads in the role terms', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Shadrack').copyWith(
+          form: DanceForm.square,
+          newPartner: SquareNewPartner.rightHandRole2,
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(find.text('New partner: Right-hand robin'), findsOneWidget);
+    });
+  });
+
+  group('other titles and the Barnes reference', () {
+    testWidgets('show under the title and in their own section', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(id: 'd1', title: 'Money Musk').copyWith(
+          form: DanceForm.ecd,
+          alternateTitles: ['Monymusk', 'Sir Archibald Grant'],
+          barnesReference: 'BIII p. 92',
+        ),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(
+        find.text('Also known as Monymusk; Sir Archibald Grant'),
+        findsOneWidget,
+      );
+      expect(find.text('Barnes books'), findsOneWidget);
+      expect(find.text('BIII p. 92'), findsOneWidget);
+    });
+
+    testWidgets('a discouraged term in the Barnes reference reads '
+        'canonically', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Gypsy Dance',
+        ).copyWith(form: DanceForm.ecd, barnesReference: 'Gypsy p. 4'),
+      );
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(
+        tester
+            .widget<Text>(find.byKey(const ValueKey('dance-barnes-reference')))
+            .data,
+        'Shoulder round p. 4',
+      );
+    });
+
+    testWidgets('a dance without them shows neither', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Plain'));
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      expect(
+        find.byKey(const ValueKey('dance-alternate-titles')),
+        findsNothing,
+      );
+      expect(find.text('Barnes books'), findsNothing);
     });
   });
   group('the floating Edit', () {

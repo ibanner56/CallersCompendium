@@ -30,6 +30,14 @@ class PhraseStructure {
     PhraseComponent._(4, 8, 2),
   ], '');
 
+  /// What a free-form dance (ADR-007 §8.1) is measured against where a phrase
+  /// is needed, such as the most beats a sequence may hold: one phrase as
+  /// long as a component may be, which nothing a dance holds runs past. It
+  /// is never stored; the dance keeps its own structure, unused.
+  static const PhraseStructure unphrased = PhraseStructure._([
+    PhraseComponent._(1, maxComponentNumber, 4),
+  ], '1*$maxComponentNumber*4');
+
   /// Largest accepted value for any one of `phrases`, `bars` or `beatsPerBar`.
   static const int maxComponentNumber = 1000;
 
@@ -223,19 +231,12 @@ class PhraseStructure {
         : null;
   }
 
-  /// Beats in the longest phrase: [beatsPerPhrase] when the phrases are
-  /// uniform, and the largest component's phrase length when they are not.
-  ///
-  /// This is the "one phrase" a `sequence` container must fit in
-  /// ([sequenceExceedsPhrase]). An uneven structure takes its longest phrase
-  /// rather than its shortest, so a sequence that fits the phrase it is danced
-  /// in is never flagged; the cost is that one overrunning a shorter phrase is
-  /// not flagged either.
-  int get longestPhraseBeats => components.fold(
-    0,
-    (longest, component) =>
-        component.beatsPerPhrase > longest ? component.beatsPerPhrase : longest,
-  );
+  /// Whether the components differ in beats per bar, so that one count of
+  /// bars would mean different lengths in different parts of the tune.
+  bool get hasMixedMeter {
+    final first = components.first.beatsPerBar;
+    return components.any((component) => component.beatsPerBar != first);
+  }
 
   /// The persisted representation (`""` for standard).
   final String raw;
@@ -304,6 +305,26 @@ class PhraseStructure {
     throw StateError('could not find component for beat $beat');
   }
 
+  /// Beats in the phrase that plays at [beat], wrapping past the end as
+  /// [componentAtBeat] does: the most a `sequence` that starts at [beat] may
+  /// hold ([sequenceExceedsPhrase]).
+  int phraseBeatsAt(int beat) => componentAtBeat(beat).beatsPerPhrase;
+
+  /// The beat at which the phrase that plays at [beat] starts: [beat] less
+  /// how far into that phrase it falls. Wraps past the end as
+  /// [componentAtBeat] does, so the result is never after [beat].
+  int phraseStartAt(int beat) {
+    if (beat < 0) throw ArgumentError.value(beat, 'beat', 'must be >= 0');
+    var offset = beat % totalBeats;
+    for (final component in components) {
+      if (offset < component.totalBeats) {
+        return beat - offset % component.beatsPerPhrase;
+      }
+      offset -= component.totalBeats;
+    }
+    throw StateError('could not find phrase for beat $beat');
+  }
+
   /// Beats in [halfBars] half bars of the component that plays at [atBeat],
   /// or `null` when that is not a whole number of beats.
   ///
@@ -313,7 +334,8 @@ class PhraseStructure {
   /// numbers, so finer timing goes in a note instead. Whole bars are always
   /// accepted. Only the meter at [atBeat] is read: a span that starts in one
   /// part of the tune and runs into a part in another meter is judged by the
-  /// part it starts in.
+  /// part it starts in. ([BarTiming.beatsForHalfBars] counts each of a span's
+  /// bars by the part it starts in; this reads only the first.)
   int? beatsForHalfBars(int halfBars, {int atBeat = 0}) {
     if (halfBars < 0) {
       throw ArgumentError.value(halfBars, 'halfBars', 'must be >= 0');
@@ -491,18 +513,46 @@ class SectionedFigure {
 /// own beats can never leak into the cumulative total.
 ///
 /// Each `sequence` container, top-level or nested, whose count is longer than
-/// one phrase ([sequenceExceedsPhrase]) also adds a `sequence_exceeds_phrase`
-/// warning. The editor will not add a step or form a sequence past a phrase,
+/// the phrase it starts in ([sequenceExceedsPhrase]) also adds a
+/// `sequence_exceeds_phrase` warning. A nested one starts where
+/// [childStartBeats] puts it. The editor will not add a step or form a
+/// sequence past that phrase,
 /// but it does not block editing a step's move or beats, or the phrase
 /// structure, so this is what flags a sequence left too long.
+///
+/// With [checkPhraseFill], each top-level figure that runs past the end of a
+/// phrase also adds a [figureCrossesPhraseCode] warning: the calls of that
+/// phrase do not fill it exactly. Traditional squares are phrased call by
+/// call, so ADR-007 §5.3 asks for this check on square dances; contra and
+/// English dances leave it off, because a figure across a phrase line is
+/// ordinary there (a balance and swing that starts mid-phrase).
+///
+/// With [freeForm] (free-form patter, ADR-007 §8.1) the figures follow no
+/// phrasing: every label is `''`, [structure] is not read, and no phrase
+/// warning is added, whatever [checkPhraseFill] says. The start beats are
+/// still counted.
 List<SectionedFigure> deriveSections(
   List<Figure> figures,
   PhraseStructure structure, {
   List<ValidationIssue>? issues,
+  bool checkPhraseFill = false,
+  bool freeForm = false,
 }) {
+  if (freeForm) {
+    final unlabelled = <SectionedFigure>[];
+    var start = 0;
+    for (final (i, figure) in figures.indexed) {
+      unlabelled.add(
+        SectionedFigure(index: i, figure: figure, startBeat: start, label: ''),
+      );
+      start += figure.beats;
+    }
+    return unlabelled;
+  }
   final result = <SectionedFigure>[];
   var beat = 0;
   for (var i = 0; i < figures.length; i++) {
+    final startBeat = beat;
     result.add(
       SectionedFigure(
         index: i,
@@ -511,10 +561,15 @@ List<SectionedFigure> deriveSections(
         label: labelForFigure(beat, figures[i].beats, structure),
       ),
     );
+    if (issues != null && checkPhraseFill) {
+      _flagPhraseCrossing(figures[i], i, beat, structure, issues);
+    }
     // One list element → one beat advance. For a container this is the
     // shared count, counted once (no double-count from its children).
     beat += figures[i].beats;
-    if (issues != null) _flagLongSequences(figures[i], i, structure, issues);
+    if (issues != null) {
+      _flagLongSequences(figures[i], i, startBeat, structure, issues);
+    }
   }
   if (issues != null && figures.isNotEmpty && beat != structure.totalBeats) {
     issues.add(
@@ -533,36 +588,106 @@ List<SectionedFigure> deriveSections(
   return result;
 }
 
-/// Whether [sequence], a `sequence` container, is counted longer than one
-/// phrase of [structure] ([PhraseStructure.longestPhraseBeats]). False for any
-/// other figure.
-bool sequenceExceedsPhrase(Figure sequence, PhraseStructure structure) =>
-    sequence.isSequence && sequence.beats > structure.longestPhraseBeats;
+/// The beats at which each child of [container] starts, [containerStart] being
+/// the container's own start: a sequence's steps one after another, and a
+/// meanwhile's sides and a modifier's parts all with the container.
+List<int> childStartBeats(Figure container, int containerStart) {
+  var start = containerStart;
+  return [
+    for (final child in container.subFigures)
+      () {
+        final childStart = start;
+        if (container.isSequence) start += child.beats;
+        return childStart;
+      }(),
+  ];
+}
+
+/// The [ValidationIssue.code] of a figure that runs past the end of a phrase,
+/// so that phrase's calls do not fill it ([deriveSections] with
+/// `checkPhraseFill`). Its data holds the figure's 1-based `position` and the
+/// `label` of the phrase it runs past.
+const String figureCrossesPhraseCode = 'figure_crosses_phrase';
+
+/// Adds a [figureCrossesPhraseCode] warning when [figure], starting at
+/// [start], runs past the end of a phrase: one per figure, for the first
+/// phrase it crosses. A figure that ends exactly on a phrase line fills it,
+/// and so does one that starts and ends on phrase lines, however many phrases
+/// it takes (a 32-beat promenade from the top of A1 fills A1 and A2).
+void _flagPhraseCrossing(
+  Figure figure,
+  int index,
+  int start,
+  PhraseStructure structure,
+  List<ValidationIssue> issues,
+) {
+  final end = start + figure.beats;
+  if (structure.isPhraseBoundary(start) && structure.isPhraseBoundary(end)) {
+    return;
+  }
+  for (var b = start + 1; b < end; b++) {
+    if (!structure.isPhraseBoundary(b)) continue;
+    final label = structure.labelAtBeat(b - 1);
+    issues.add(
+      ValidationIssue(
+        severity: ValidationSeverity.warning,
+        code: figureCrossesPhraseCode,
+        message: 'figure ${index + 1} runs past the end of $label',
+        data: {'position': index + 1, 'label': label},
+      ),
+    );
+    return;
+  }
+}
+
+/// Whether [sequence], a `sequence` container that starts at [startBeat], is
+/// counted longer than the phrase of [structure] that plays there
+/// ([PhraseStructure.phraseBeatsAt]). False for any other figure.
+///
+/// The whole length of that phrase is the limit, not what is left of it from
+/// [startBeat]: a sequence may start partway through a phrase and run over its
+/// line, as a contra or English figure often does (maintainer, 23 November
+/// 2026; until then the limit was the dance's longest phrase, which let a
+/// sequence overrun a shorter phrase unflagged).
+bool sequenceExceedsPhrase(
+  Figure sequence,
+  PhraseStructure structure, {
+  required int startBeat,
+}) =>
+    sequence.isSequence && sequence.beats > structure.phraseBeatsAt(startBeat);
 
 void _flagLongSequences(
   Figure figure,
   int index,
+  int startBeat,
   PhraseStructure structure,
   List<ValidationIssue> issues,
 ) {
-  if (sequenceExceedsPhrase(figure, structure)) {
+  if (sequenceExceedsPhrase(figure, structure, startBeat: startBeat)) {
+    final limit = structure.phraseBeatsAt(startBeat);
     issues.add(
       ValidationIssue(
         severity: ValidationSeverity.warning,
         code: 'sequence_exceeds_phrase',
         message:
             'a sequence in figure ${index + 1} is ${figure.beats} beats; '
-            'one phrase is ${structure.longestPhraseBeats}',
+            'its phrase is $limit',
         data: {
           'position': index + 1,
           'actual': figure.beats,
-          'limit': structure.longestPhraseBeats,
+          'limit': limit,
+          // Where the sequence starts, and where the phrase it sits in does,
+          // so each reads in the bars of its own part of the tune.
+          'startBeat': startBeat,
+          'limitStart': structure.phraseStartAt(startBeat),
         },
       ),
     );
   }
   if (!figure.isContainer) return;
-  for (final child in figure.subFigures) {
-    _flagLongSequences(child, index, structure, issues);
+  final starts = childStartBeats(figure, startBeat);
+  final children = figure.subFigures;
+  for (var i = 0; i < children.length; i++) {
+    _flagLongSequences(children[i], index, starts[i], structure, issues);
   }
 }

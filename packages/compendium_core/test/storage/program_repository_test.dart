@@ -86,6 +86,38 @@ void main() {
         'contra': {DanceForm.contra},
       });
     });
+
+    test('is one statement however many programs there are', () async {
+      // The programs list re-reads it on every dance write (ADR-006), so it
+      // must not fan out per program as the library grows.
+      final counter = QueryCounter();
+      final countingDb = openCountingTestDatabase(counter);
+      addTearDown(countingDb.close);
+      final programs = ProgramRepository(countingDb);
+      final library = DanceRepository(countingDb, contraTaxonomy);
+      await library.create(dance('c', DanceForm.contra));
+      await library.create(dance('e', DanceForm.ecd));
+      Future<int> statementsFor(int count) async {
+        for (var i = 0; i < count; i++) {
+          await programs.create(
+            sampleProgram(
+              id: 'n$count-$i',
+              slots: [
+                ProgramSlot(id: 'n$count-$i-a', position: 0, danceId: 'c'),
+                ProgramSlot(id: 'n$count-$i-b', position: 1, danceId: 'e'),
+              ],
+            ),
+          );
+        }
+        counter.reset();
+        final forms = await programs.formsByProgram();
+        expect(forms.values.every((f) => f.length == 2), isTrue);
+        return counter.count;
+      }
+
+      expect(await statementsFor(3), 1);
+      expect(await statementsFor(200), 1);
+    });
   });
 
   group('create / getById', () {
@@ -365,6 +397,31 @@ void main() {
       final cleared = (await repo.getById(program.id))!;
       expect(cleared.payMinorUnits, isNull);
       expect(cleared.payCurrency, isNull);
+    });
+
+    test('round-trips each time, and clears it (#2350)', () async {
+      final program = sampleProgram().copyWith(
+        startMinute: 1170,
+        endMinute: 60,
+        lessonMinute: 0,
+        arrivalMinute: 1439,
+      );
+      await repo.create(program);
+      final loaded = (await repo.getById(program.id))!;
+      expect(loaded.startMinute, 1170);
+      expect(loaded.endMinute, 60);
+      expect(loaded.lessonMinute, 0);
+      expect(loaded.arrivalMinute, 1439);
+      expect(loaded, program);
+
+      await repo.update(
+        loaded.copyWith(clearStartMinute: true, clearArrivalMinute: true),
+      );
+      final cleared = (await repo.getById(program.id))!;
+      expect(cleared.startMinute, isNull);
+      expect(cleared.endMinute, 60);
+      expect(cleared.lessonMinute, 0);
+      expect(cleared.arrivalMinute, isNull);
     });
 
     test('pay defaults to null when unset', () async {

@@ -96,6 +96,49 @@ class Dances extends Table {
   /// Added in schema v42 (ADR-006 §12, F3). Not named `key`, which SQL
   /// reserves.
   TextColumn get musicalKey => text().withDefault(const Constant(''))();
+
+  /// The dance's other titles, `Dance.alternateTitles`, one per line in the
+  /// order entered; `''` when it has none. One line per title is safe because
+  /// a title never holds a line break (`normalizeAlternateTitles`), and it
+  /// keeps the value plain text that cannot fail to decode. Added in schema
+  /// v42 while v42 was unreleased.
+  TextColumn get alternateTitles => text().withDefault(const Constant(''))();
+
+  /// Where the tune is printed in the Barnes books, `Dance.barnesReference`,
+  /// as free text ("BIII p. 92", "NiB"); `''` when not given. Added in schema
+  /// v42 while v42 was unreleased.
+  TextColumn get barnesReference => text().withDefault(const Constant(''))();
+
+  /// What a square dance record holds, `Dance.squareKind`, as its wire name
+  /// (`main`, `break`, `patter`); `main` by default. Kept for every form
+  /// (ADR-007 §8.1). Plain text rather than an enum converter, so a value
+  /// this build does not know reads as the default instead of failing. Added
+  /// in schema v42 while v42 was unreleased, as are the square columns below.
+  TextColumn get squareKind => text().withDefault(const Constant('main'))();
+
+  /// How a square's main part is repeated, `Dance.repeatOrder`, as its wire
+  /// name (`HHSS`, `HSHS`, `allFour`, `other`); `unstated` by default.
+  TextColumn get repeatOrder =>
+      text().withDefault(const Constant('unstated'))();
+
+  /// What `other` means for [repeatOrder], `Dance.repeatOrderText`; `''`
+  /// unless the order is `other`.
+  TextColumn get repeatOrderText => text().withDefault(const Constant(''))();
+
+  /// Who the new partner is each time through a square, `Dance.newPartner`,
+  /// as its wire name; `unstated` by default.
+  TextColumn get newPartner => text().withDefault(const Constant('unstated'))();
+
+  /// What `other` means for [newPartner], `Dance.newPartnerText`; `''` unless
+  /// the new partner is `other`.
+  TextColumn get newPartnerText => text().withDefault(const Constant(''))();
+
+  /// Whether a square's main part is a singing call, `Dance.singing`.
+  BoolColumn get singing => boolean().withDefault(const Constant(false))();
+
+  /// Whether a square is free-form patter, `Dance.freeForm`; NULL follows its
+  /// kind.
+  BoolColumn get freeForm => boolean().nullable()();
   TextColumn get status =>
       text().map(const EnumNameConverter(DanceStatus.values))();
 
@@ -357,6 +400,41 @@ class Programs extends Table {
   /// counts it. Declared last because `ALTER TABLE ADD COLUMN` appends it there
   /// on a migrated database, so a fresh one gets the same column order.
   DateTimeColumn get archivedAt => dateTime().nullable()();
+
+  /// The calendar event the program was imported from (#2352, schema v42): a
+  /// SHA-256 hex digest of the event's `UID` and recurrence id, never the
+  /// `UID`. `null` for every program not imported from a calendar. Declared
+  /// last for the same column-order reason as [archivedAt].
+  TextColumn get calendarEventKey => text().nullable()();
+
+  /// When the dance starts, as minutes after midnight (`0`–`1439`), a
+  /// wall-clock time at the hall with no time zone (schema v42, #2350).
+  /// `null` (every program before v42) means not recorded. Like the three
+  /// times after it, declared after [calendarEventKey] so a migrated database and a
+  /// fresh one get the same column order.
+  IntColumn get startMinute => integer().nullable()();
+
+  /// When the dance ends, as minutes after midnight; earlier than
+  /// [startMinute] means the next day.
+  IntColumn get endMinute => integer().nullable()();
+
+  /// When the beginner lesson starts, as minutes after midnight.
+  IntColumn get lessonMinute => integer().nullable()();
+
+  /// When the caller needs to be at the hall, as minutes after midnight.
+  IntColumn get arrivalMinute => integer().nullable()();
+
+  /// What the calendar import last wrote from the event (#2354, schema v42):
+  /// a per-field hash of its title, date, first location segment, and start
+  /// and end times.
+  TextColumn get calendarEventFingerprint => text().nullable()();
+
+  /// The `updated_at` the calendar import last wrote (#2354, schema v42).
+  DateTimeColumn get calendarWrittenAt => dateTime().nullable()();
+
+  /// Why the calendar flags the program (#2354, schema v42): `cancelled`,
+  /// `missing`, or NULL. Free text, read leniently.
+  TextColumn get calendarFlag => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

@@ -142,6 +142,26 @@ void main() {
       );
     });
 
+    test('a stated destination is deferred, even the next neighbours', () {
+      // "… around the major set to N2": the import writes `destination:
+      // nextNeighbors` since the taxonomy-v40 sync. The Caller's Box bridge
+      // drops it from the promenade it takes as the progression, so a
+      // promenade that still states one is one the bridge left alone, and
+      // is deferred (agent's call).
+      for (final destination in [WhoSet.nextNeighbors, WhoSet.thirdNeighbors]) {
+        final op = Promenade(
+          where: 'along',
+          singleFile: true,
+          destination: destination,
+        );
+        expect(
+          applyErr(op, improper).kind,
+          ErrorKind.unsupportedParam,
+          reason: '$destination',
+        );
+      }
+    });
+
     test('is its own progression, like the slide', () {
       const op = Promenade(where: 'along', singleFile: true);
       expect(op.isItsOwnProgression, isTrue);
@@ -176,15 +196,6 @@ void main() {
       expect(op.dancerSets, isEmpty);
       expect(const Promenade().hands4Contribution, 0);
       expect(const Promenade().dancerSets, [WhoSet.partners]);
-    });
-
-    test('a stated destination is still deferred', () {
-      const op = Promenade(
-        where: 'along',
-        singleFile: true,
-        destination: WhoSet.nextNeighbors,
-      );
-      expect(applyErr(op, improper).kind, ErrorKind.unsupportedParam);
     });
   });
 

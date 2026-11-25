@@ -178,6 +178,39 @@ void main() {
     });
   }
 
+  for (final (reduce, instant) in [(true, true), (false, false)]) {
+    testWidgets('showAppTimePicker opens '
+        '${instant ? 'at once' : 'animated'} with Reduce motion '
+        '${reduce ? 'on' : 'off'}', (tester) async {
+      final notifier = ValueNotifier<bool?>(reduce);
+      addTearDown(notifier.dispose);
+      await tester.pumpWidget(
+        ReduceMotionScope(
+          notifier: notifier,
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => showAppTimePicker(
+                  context: context,
+                  initialTime: const TimeOfDay(hour: 19, minute: 30),
+                ),
+                child: const Text('pick'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('pick'));
+      await tester.pump();
+      await tester.pump();
+      final route = ModalRoute.of(
+        tester.element(find.byType(TimePickerDialog)),
+      )!;
+      expect(route.animation!.isCompleted, instant);
+      await tester.pumpAndSettle();
+    });
+  }
+
   // Flutter's picker helpers open their dialog with no AnimationStyle, so
   // the app opens the date picker through showAppDatePicker instead.
   test('no picker helper that ignores Reduce motion is called', () {

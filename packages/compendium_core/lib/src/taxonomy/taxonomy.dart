@@ -38,6 +38,15 @@ class Taxonomy {
           );
         }
       }
+      for (final MapEntry(:key, :value) in alias.defaultParams.entries) {
+        final spec = target.params[key];
+        if (spec == null || !spec.validate(value)) {
+          throw ArgumentError(
+            'alias "${alias.id}" defaults "$key" of "${alias.targetMove}" '
+            'to "$value", which that move does not accept',
+          );
+        }
+      }
     }
     // Build the inverse-pair lookup table from aliases that declare one.
     // Each alias with an inversePairId pins exactly ONE param; the lookup maps
@@ -165,6 +174,8 @@ class Taxonomy {
             ? normalized.params[entry.key]
             : (alias?.pinnedParams.containsKey(entry.key) ?? false)
             ? alias!.pinnedParams[entry.key]
+            : (alias?.defaultParams.containsKey(entry.key) ?? false)
+            ? alias!.defaultParams[entry.key]
             : entry.value.defaultValue,
     };
     final paramBeats = def.paramBeats;
@@ -177,6 +188,50 @@ class Taxonomy {
     return effective;
   }
 
+  /// What a figure of [moveId] means by leaving [param] out, as
+  /// [effectiveParams] reads it: the alias's pin, else its
+  /// [MoveAlias.defaultParams] entry, else the resolved move's
+  /// [ParamSpec.defaultValue]. Null for an unknown move or param.
+  ///
+  /// Use this, not `resolve(moveId).params[param].defaultValue`, wherever the
+  /// figure's own id is at hand: a `pass_by` leaves `who` as `neighbors`,
+  /// where its target, `pass_through`, leaves it unstated.
+  Object? defaultParamValue(String moveId, String param) {
+    final alias = aliases[moveId];
+    if (alias != null && alias.pinnedParams.containsKey(param)) {
+      return alias.pinnedParams[param];
+    }
+    if (alias != null && alias.defaultParams.containsKey(param)) {
+      return alias.defaultParams[param];
+    }
+    return resolve(moveId)?.params[param]?.defaultValue;
+  }
+
+  /// Whether a figure's id already says [param] on [moveId], so a picker of
+  /// values for it (Advanced search, Settings' per-move defaults) does not
+  /// offer it: the param an alias listed as a move pins (`long_lines`'
+  /// formation, `pass_by`'s pass type), or, on that alias's target, the same
+  /// param when the target's own default is not the pin. A pass through's
+  /// `passType` is `through` by its id and `by` only as a pass by, and
+  /// neither is stored (taxonomy v40). A forward and back's `formation` is
+  /// offered: its default is the pin, and its other values are stored.
+  bool isParamNamedById(String moveId, String param) {
+    final alias = aliases[moveId];
+    if (alias != null) {
+      return alias.listedAsMove && alias.pinnedParams.containsKey(param);
+    }
+    final own = moves[moveId]?.params[param]?.defaultValue;
+    return aliases.values.any(
+      (listed) =>
+          listed.listedAsMove &&
+          listed.targetMove == moveId &&
+          listed.inversePairId == moveId &&
+          listed.pinnedParams.length == 1 &&
+          listed.pinnedParams.containsKey(param) &&
+          own != listed.pinnedParams[param],
+    );
+  }
+
   /// The params the figure editor seeds when [moveId] is first picked: the
   /// move's [effectiveParams], with each spec's [ParamSpec.entryDefault]
   /// laid over its [ParamSpec.defaultValue]. Everything that reads a stored
@@ -186,20 +241,36 @@ class Taxonomy {
     final def = resolve(moveId);
     if (def == null) return params;
     for (final entry in def.params.entries) {
-      final seeded = entry.value.entryDefault;
+      final seeded = entry.value.requiredOnEntry
+          ? ParamVocab.unspecified
+          : entry.value.entryDefault;
       if (seeded != null) params[entry.key] = seeded;
     }
     dropUnstatedParams(moveId, params);
     return params;
   }
 
+  /// The [ParamSpec.requiredOnEntry] params [figure] leaves unstated, in the
+  /// move's param order: those its effective value holds as
+  /// [ParamVocab.unspecified]. Empty for an unknown move.
+  List<String> unstatedRequiredParams(Figure figure) {
+    final def = resolve(figure.move);
+    if (def == null) return const [];
+    final effective = effectiveParams(figure);
+    return [
+      for (final MapEntry(:key, :value) in def.params.entries)
+        if (value.requiredOnEntry && effective[key] == ParamVocab.unspecified)
+          key,
+    ];
+  }
+
   /// Removes the params a figure keeps only while they are stated, from
   /// [params] in place: a fraction's `amount` (#2120) unless an `other`
-  /// fraction states it, and a figure 8's `double` unless it is true. Neither
-  /// is an entry default, so a figure 8 or poussette that states neither stores
-  /// no such key, and a peer still on taxonomy v38 (whose `validateFigure`
-  /// rejects a param it does not know) only ever meets one on a figure that
-  /// states it. Every path that fills a figure's params from
+  /// fraction states it, a figure 8's `double` unless it is true, and a Rory
+  /// O'More's `twoPlaces` (v40) unless it names dancers. None is an entry
+  /// default, so a figure that states none stores no such key, and a peer on
+  /// an older taxonomy (whose `validateFigure` rejects a param it does not
+  /// know) only ever meets one on a figure that states it. Every path that fills a figure's params from
   /// [effectiveParams] (picking the move, and the free-text entry's draft)
   /// passes through here.
   void dropUnstatedParams(String moveId, Map<String, Object?> params) {
@@ -209,6 +280,10 @@ class Taxonomy {
     if (moveId == 'figure_8' && params[figure8DoubleParam] != true) {
       params.remove(figure8DoubleParam);
     }
+    if (moveId == 'rory_o_more' &&
+        params[roryTwoPlacesParam] == ParamVocab.unspecified) {
+      params.remove(roryTwoPlacesParam);
+    }
   }
 
   /// [params] as a figure of [move] stores them: without a value an alias
@@ -217,19 +292,50 @@ class Taxonomy {
   /// a build before taxonomy v39 knows no `formation`, and its
   /// [validateFigure] rejects the key, which drops, among others, a synced
   /// shorthand holding the figure. Every other alias keeps what it stores.
+  ///
+  /// Two more drops keep a `pass_through` or `pass_by` (one figure since
+  /// taxonomy v40) free of keys a v39 build rejects: the target of a listed
+  /// alias's inverse pair does not store that pair's param at its own default
+  /// (a pass through's `passType: through`; its id says it), and a
+  /// [ParamSpec.requiredOnEntry] param is not stored as
+  /// [ParamVocab.unspecified] where leaving it out already means that (a pass
+  /// through's `who`, a pass by's `where`).
   /// Returns [params] itself when nothing is dropped.
   Map<String, Object?> withoutListedAliasPins(
     String move,
     Map<String, Object?> params,
   ) {
     final alias = aliases[move];
-    if (alias == null || !alias.listedAsMove) return params;
-    bool pinned(String key, Object? value) =>
-        alias.pinnedParams.containsKey(key) && alias.pinnedParams[key] == value;
-    if (!params.entries.any((e) => pinned(e.key, e.value))) return params;
+    final def = resolve(move);
+    final pair = _inversePairs[move];
+    final pairAlias = alias == null && pair != null
+        ? aliases[pair.inversePairId]
+        : null;
+    bool dropped(String key, Object? value) {
+      if (alias != null &&
+          alias.listedAsMove &&
+          alias.pinnedParams.containsKey(key) &&
+          alias.pinnedParams[key] == value) {
+        return true;
+      }
+      if (pairAlias != null &&
+          pairAlias.listedAsMove &&
+          key == pair!.paramKey &&
+          // Never the alias's own pin: a `forward_and_back` left in long
+          // lines (its default) is a `long_lines` that has not been routed.
+          value != pair.pinnedValue &&
+          value == def?.params[key]?.defaultValue) {
+        return true;
+      }
+      return value == ParamVocab.unspecified &&
+          (def?.params[key]?.requiredOnEntry ?? false) &&
+          defaultParamValue(move, key) == ParamVocab.unspecified;
+    }
+
+    if (!params.entries.any((e) => dropped(e.key, e.value))) return params;
     return {
       for (final e in params.entries)
-        if (!pinned(e.key, e.value)) e.key: e.value,
+        if (!dropped(e.key, e.value)) e.key: e.value,
     };
   }
 

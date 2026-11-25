@@ -26,6 +26,7 @@ import '../data/calling_history_tracking_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/seed_service.dart' show kBabyRoseSeedDanceId;
+import '../data/show_repertoire_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
@@ -34,10 +35,11 @@ import '../models/dance_list_entry.dart';
 import '../search/called_venue_choices.dart';
 import '../search/collection_data.dart';
 import '../search/collection_opening_sort.dart';
-import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
 import '../search/collection_selection.dart';
 import '../search/dance_detail_data.dart';
+import '../search/repertoire_drill_down.dart';
+import '../search/saved_search_context.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 import '../theme/destructive_button_style.dart';
@@ -67,17 +69,23 @@ import '../widgets/online_more_footer.dart';
 import '../widgets/online_result_count.dart';
 import '../widgets/online_result_tile.dart';
 import '../widgets/online_search_toggle.dart';
+import '../widgets/pinned_while_room_sliver.dart';
+import '../widgets/saved_search_actions.dart';
+import '../widgets/saved_search_field.dart';
 import '../widgets/search_panel_bar.dart';
 import '../widgets/skeleton.dart';
 import '../sync/sync_scope.dart';
 import '../widgets/sync_now_action.dart';
 import '../screens/custom_fields_screen.dart';
 import '../screens/recently_deleted_screen.dart';
+import 'repertoire_screen.dart';
 import 'dance_detail_screen.dart';
 import 'dance_editor_screen.dart';
 import 'dance_reimport_flow.dart';
 import 'published_collection_navigation.dart';
+import '../export/csv_export.dart';
 import '../widgets/adaptive_fab.dart';
+import '../widgets/dances_csv_export_action.dart';
 
 /// Collection screen: browse and search the dance library
 /// (`docs/design/ux.md` §1). A unified full-text search bar, a one-tap facet
@@ -122,6 +130,9 @@ class DanceListScreen extends StatefulWidget {
     this.selectedOnlineId,
     this.callersBoxOnline,
     this.contraDbOnline,
+    this.csvExportDelivery = const CsvExportDelivery(),
+    this.clock = const SearchClock(),
+    this.isActive = true,
   });
 
   /// Called with the tapped dance's id when the split-pane shell needs to
@@ -164,6 +175,20 @@ class DanceListScreen extends StatefulWidget {
   /// The ContraDB online search + direct-import service. Injected in tests with
   /// a seam-backed instance; defaults to a network-backed [ContraDbOnline].
   final ContraDbOnline? contraDbOnline;
+
+  /// Delivers the selection's **Export as CSV** file (#2332); a test seam.
+  final CsvExportDelivery csvExportDelivery;
+
+  /// Where "today" comes from, for a calling-history window ("Within 3
+  /// months") and for saving one as a distance: the caller's own calendar day,
+  /// from one reading of the instant and the zone offset. A test seam.
+  final SearchClock clock;
+
+  /// Whether the Collection is the destination showing ([CollectionShell]
+  /// passes its own `isActive`; the app shell keeps every destination
+  /// mounted). When it becomes true again, the loaded saved search is read
+  /// again: it may have been renamed or deleted in Settings, or by sync.
+  final bool isActive;
 
   @override
   State<DanceListScreen> createState() => _DanceListScreenState();
@@ -216,6 +241,7 @@ enum _BatchMoreAction {
   addTunes,
   clearTunes,
   editCustomField,
+  exportCsv,
   delete,
 }
 
@@ -224,7 +250,12 @@ enum _CollectionCompactAction {
   batchSelect,
   manageCustomFields,
   recentlyDeleted,
+  repertoire,
   sortDirection,
+  saveSearch,
+  updateSavedSearch,
+  renameSavedSearch,
+  deleteSavedSearch,
 }
 
 /// The optional app-bar glyphs that give way to the ⋮ menu, as the bar narrows.
@@ -251,6 +282,16 @@ abstract interface class DanceListCommands {
   /// Moves the keyboard focus to the search box and selects its text. Returns
   /// false while the list is still loading and has no search box.
   bool focusSearch();
+
+  /// Shows [state] in place of the current search: its text, **Search in**,
+  /// every filter, the By phrase rows, the Advanced tree and the sort with its
+  /// direction, exactly. The list takes [state]'s objects as its own and
+  /// edits them from then on.
+  ///
+  /// The search field's saved-search dropdown loads one through this
+  /// (`docs/design/search.md`, "Using saved searches"); applying any other state
+  /// forgets which saved search was on screen.
+  void applyPanelState(CollectionPanelState state);
 }
 
 class _DanceListScreenState extends State<DanceListScreen>
@@ -271,7 +312,7 @@ class _DanceListScreenState extends State<DanceListScreen>
 
   /// Whether the title sort ignores a leading article — read from
   /// [SortIgnoreArticlesScope] in [didChangeDependencies] and updated live when
-  /// the user toggles the General setting.
+  /// the user toggles it in Settings ▸ Collection ▸ Dances.
   bool _sortIgnoreArticles = true;
 
   /// Whether calling history tracks all callers — read from
@@ -311,9 +352,25 @@ class _DanceListScreenState extends State<DanceListScreen>
   final _ftsFocusNode = FocusNode(debugLabel: 'collection-search-field');
   FullTextScope _ftsScope = FullTextScope.omni;
   FullTextScope _localFtsScope = FullTextScope.omni;
-  final _facets = FacetSelections();
-  final _byPhrase = ByPhraseSelections();
-  final _advancedRoot = BuilderGroup();
+  // Replaced, not edited, by [applyPanelState].
+  var _facets = FacetSelections();
+  var _byPhrase = ByPhraseSelections();
+  var _advancedRoot = BuilderGroup();
+
+  /// Whether the panel state last applied came from a saved search.
+  bool _panelFromSavedSearch = false;
+
+  /// The saved search on screen, if one was loaded or just saved (#2325):
+  /// what the ⋮ menu's Update, Rename and Delete act on. Kept here, not in
+  /// the menu, so Clear all forgets it.
+  SavedSearchLoad? _loadedSearch;
+
+  /// Whether the notice about [_loadedSearch]'s missing references was closed.
+  bool _savedSearchNoticeClosed = false;
+
+  /// Bumped after a saved search is saved, renamed or deleted here, so the
+  /// search field's dropdown reads the list again.
+  int _savedSearchRevision = 0;
 
   CollectionSort _sort = CollectionSort.title;
 
@@ -569,6 +626,9 @@ class _DanceListScreenState extends State<DanceListScreen>
   @override
   void didUpdateWidget(DanceListScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      unawaited(_refreshLoadedSearch());
+    }
     if (!identical(widget.callersBoxOnline, oldWidget.callersBoxOnline)) {
       // Sync when the injected service changes, including when it is removed
       // (non-null -> null) so we revert to the default network-backed instance
@@ -730,6 +790,7 @@ class _DanceListScreenState extends State<DanceListScreen>
     final previous = _data;
     // Every path that changes the offered tags also changes a dance today, so
     // `tagsDropped` is a safeguard: dropping a tag must never skip the search.
+    // A tag a panel state brought is kept, not dropped (see retainTags).
     final tagsDropped = _facets.retainTags([for (final t in data.tags) t.id]);
     final searchAffected =
         previous == null ||
@@ -847,6 +908,10 @@ class _DanceListScreenState extends State<DanceListScreen>
   List<CollectionSort> get _availableSorts =>
       availableCollectionSorts(bareFullText: _isBareFullText);
 
+  /// The caller's calendar day now, from [DanceListScreen.clock]: the one
+  /// "today" a window is counted back from, here and when a search is saved.
+  DateTime _today() => widget.clock.today();
+
   Future<void> _runSearch() async {
     final data = _data;
     if (data == null) return;
@@ -876,6 +941,7 @@ class _DanceListScreenState extends State<DanceListScreen>
         performedOnly: _requirePerformedForHistory,
         requireEventDate: _requireEventDateForHistory,
         tracking: _tracking,
+        today: _today(),
       );
       final ids = await _repos.dances.search(
         filter,
@@ -1454,6 +1520,204 @@ class _DanceListScreenState extends State<DanceListScreen>
     }
   }
 
+  /// Modelled on [_clearAll], but replaces **every** part of the search,
+  /// including what Clear all leaves alone: **Search in**, the sort and its
+  /// direction, and the tag rows a ContraDB search took out.
+  ///
+  /// The sort is set directly, never through [_selectSort], which would write
+  /// it over the user's last-used Collection sort; and a Best match the
+  /// state's own query no longer allows falls back to Title
+  /// ([CollectionPanelState.effectiveSort]). While online search is on, it is
+  /// turned off first, which returns ContraDB's taken tag rows to the old
+  /// tree, before those are forgotten and the tree replaced: see the
+  /// picker's `_applyPanelState`, which does the same.
+  @override
+  void applyPanelState(CollectionPanelState state) {
+    _debounceTimer?.cancel();
+    _searchSeq++;
+    _onlineSeq++;
+    setState(() {
+      if (_onlineEnabled) {
+        _onlineEnabled = false;
+        _syncAdvancedTagRows();
+        _onlineResults = const [];
+        _onlineError = null;
+        _onlineSearching = false;
+      }
+      _removedTags.clear();
+      _ftsController.text = state.text;
+      _ftsScope = state.scope;
+      _localFtsScope = state.scope;
+      // A tag the state names stays selected even if no dance carries it yet.
+      state.facets.keepSelectedTags();
+      _facets = state.facets;
+      _byPhrase = state.byPhrase;
+      _advancedRoot = state.advanced;
+      _panelFromSavedSearch = state.fromSavedSearch;
+      // Whatever was loaded is not on screen any more; the dropdown says
+      // which saved search this is, once it has applied it.
+      _loadedSearch = null;
+      final (:sort, :direction) = state.effectiveSort;
+      _sort = sort;
+      _sortDir = direction;
+      // A late default-sort seed must not replace the state's sort.
+      _sortUserSet = true;
+    });
+    _runSearch();
+  }
+
+  /// The search on screen, as a panel state for the ⋮ menu to save. The
+  /// list's own objects, read and not kept.
+  CollectionPanelState _currentPanelState() => CollectionPanelState(
+    text: _ftsController.text,
+    scope: _ftsScope,
+    facets: _facets,
+    byPhrase: _byPhrase,
+    advanced: _advancedRoot,
+    sort: _sort,
+    sortDirection: _sortDir,
+  );
+
+  /// One context to resolve a saved search against: the live data, and the
+  /// Calling history settings in force now.
+  Future<SavedSearchContext> _readSavedSearchContext(
+    SavedSearchTextCodec text,
+  ) {
+    final data = _data;
+    return readSavedSearchContext(
+      _repos,
+      today: _today(),
+      taxonomy: data?.taxonomy ?? shippedTaxonomies.anyForm,
+      text: text,
+      callerFilter: data?.callerFilter,
+      performedOnly: _requirePerformedForHistory,
+      requireEventDate: _requireEventDateForHistory,
+      tracking: _tracking,
+    );
+  }
+
+  /// The saved-search actions for this list: its clock, dialect and panel.
+  SavedSearchActions _savedSearchActions() => SavedSearchActions(
+    context,
+    clock: widget.clock,
+    dialect: _dialect,
+    enrichment: _enrichment,
+    current: _currentPanelState,
+    apply: applyPanelState,
+    readContext: _readSavedSearchContext,
+  );
+
+  /// The search field's dropdown chose [search]: show it and run it.
+  Future<void> _loadSavedSearch(SavedSearch search) async {
+    final load = await _savedSearchActions().load(search);
+    if (load != null) _onSavedSearchLoaded(load);
+  }
+
+  /// ⋮ ▸ Save this search… (or Save as a new search…).
+  Future<void> _saveSearch() async {
+    final load = await _savedSearchActions().saveNew();
+    if (load == null || !mounted) return;
+    _savedSearchRevision++;
+    _onSavedSearchLoaded(load);
+  }
+
+  /// ⋮ ▸ Update "…": writes the panel back into the loaded search.
+  Future<void> _updateSavedSearch() async {
+    final loaded = _loadedSearch;
+    if (loaded == null) return;
+    final load = await _savedSearchActions().update(
+      loaded,
+      onGone: _forgetDeletedSavedSearch,
+    );
+    if (load == null || !mounted) return;
+    _savedSearchRevision++;
+    _onSavedSearchLoaded(load);
+  }
+
+  /// ⋮ ▸ Rename "…": renames the loaded search as stored.
+  Future<void> _renameSavedSearch() async {
+    final loaded = _loadedSearch;
+    if (loaded == null) return;
+    final renamed = await _savedSearchActions().rename(
+      loaded.search,
+      onGone: _forgetDeletedSavedSearch,
+    );
+    if (renamed == null || !mounted) return;
+    _savedSearchRevision++;
+    _onSavedSearchLoaded(loaded.copyWith(search: renamed));
+  }
+
+  /// ⋮ ▸ Delete "…": deletes the loaded search, with Undo. The search on
+  /// screen stays; it is just no longer a saved one. Undo makes it the loaded
+  /// one again, if nothing else has been loaded and the panel still shows
+  /// what it saved.
+  Future<void> _deleteSavedSearch() async {
+    final loaded = _loadedSearch;
+    if (loaded == null) return;
+    // A notice the user closed stays closed if Undo brings this back.
+    final noticeClosed = _savedSearchNoticeClosed;
+    final deleted = await _savedSearchActions().delete(
+      loaded.search.id,
+      loaded.search.name,
+      onGone: _forgetDeletedSavedSearch,
+      onUndone: () {
+        if (!mounted) return;
+        setState(() => _savedSearchRevision++);
+        if (_loadedSearch == null && !_savedSearchActions().changed(loaded)) {
+          _onSavedSearchLoaded(loaded);
+          setState(() => _savedSearchNoticeClosed = noticeClosed);
+        }
+      },
+    );
+    if (!deleted || !mounted) return;
+    _savedSearchRevision++;
+    _onSavedSearchLoaded(null);
+  }
+
+  /// The loaded search was deleted elsewhere (Settings, or sync): the search
+  /// on screen stays, but it is no longer a saved one.
+  void _forgetDeletedSavedSearch() {
+    if (!mounted) return;
+    _savedSearchRevision++;
+    _onSavedSearchLoaded(null);
+  }
+
+  /// Reads the loaded search again when the Collection is shown again
+  /// ([DanceListScreen.isActive]; the app shell keeps every destination
+  /// mounted): a rename in Settings, or one
+  /// synced from another device, shows in the ⋮ menu, and one deleted there is
+  /// forgotten. What the panel shows, and its baseline, are unchanged.
+  Future<void> _refreshLoadedSearch() async {
+    final loaded = _loadedSearch;
+    if (loaded == null) return;
+    try {
+      final stored = await _repos.savedSearches.get(loaded.search.id);
+      if (!mounted || !identical(_loadedSearch, loaded)) return;
+      if (stored == null) {
+        _forgetDeletedSavedSearch();
+      } else if (stored.name != loaded.search.name) {
+        _onSavedSearchLoaded(loaded.copyWith(search: stored));
+      }
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._refreshLoadedSearch',
+      );
+    }
+  }
+
+  void _onSavedSearchLoaded(SavedSearchLoad? load) {
+    if (!mounted) return;
+    setState(() {
+      if (load?.search.id != _loadedSearch?.search.id ||
+          !identical(load?.missing, _loadedSearch?.missing)) {
+        _savedSearchNoticeClosed = false;
+      }
+      _loadedSearch = load;
+    });
+  }
+
   void _clearAll() {
     _debounceTimer?.cancel();
     _searchSeq++;
@@ -1465,6 +1729,8 @@ class _DanceListScreenState extends State<DanceListScreen>
       _advancedRoot.children.clear();
       _removedTags.clear();
       _advancedRoot.kind = GroupKind.all;
+      _panelFromSavedSearch = false;
+      _loadedSearch = null;
       _onlineResults = const [];
       _onlineError = null;
       _onlineSearching = false;
@@ -1917,6 +2183,19 @@ class _DanceListScreenState extends State<DanceListScreen>
       snackKey: const ValueKey('batch-delete-snackbar'),
       onUndo: () =>
           _repos.dances.restoreMany(deleted, at: DateTime.now().toUtc()),
+    );
+  }
+
+  /// Exports the selected dances as a CSV spreadsheet (#2332): exactly the
+  /// selection, including dances the current search hides. Selection mode
+  /// stays open, since nothing changed.
+  Future<void> _batchExportCsv() {
+    if (_selection.isEmpty) return Future.value();
+    return exportDancesCsv(
+      context,
+      danceIds: _selection.snapshot(),
+      delivery: widget.csvExportDelivery,
+      source: 'dance_list_screen._batchExportCsv',
     );
   }
 
@@ -2474,15 +2753,19 @@ class _DanceListScreenState extends State<DanceListScreen>
   }
 
   /// The ⋮ menu: always holds Select dances, Manage custom fields and Recently
-  /// deleted, plus whichever of the [_CollectionBarGlyph]s did not fit on the
-  /// bar ([onBar] is what did). Sorting is left out while [hasDances] is false,
-  /// as on the bar.
+  /// deleted, Repertoire while its Experimental switch is on (#2357), the
+  /// saved-search entries ([_savedSearchMenuItems]: Save this search…, and for
+  /// a loaded search Update, Save as a new search…, Rename and Delete), plus
+  /// whichever of the [_CollectionBarGlyph]s did not fit on the bar ([onBar]
+  /// is what did). Sorting is left out while [hasDances] is false, as on the
+  /// bar.
   Widget _buildMoreActions(
     AppLocalizations l10n,
     Set<_CollectionBarGlyph> onBar, {
     required bool hasDances,
   }) {
     final tags = _data?.tags ?? const <Tag>[];
+    final showRepertoire = ShowRepertoireScope.of(context);
     return PopupMenuButton<Object>(
       key: const ValueKey('collection-more-actions'),
       tooltip: l10n.danceMoreActions,
@@ -2502,6 +2785,16 @@ class _DanceListScreenState extends State<DanceListScreen>
           _openCustomFields();
         } else if (action == _CollectionCompactAction.recentlyDeleted) {
           _openRecentlyDeleted();
+        } else if (action == _CollectionCompactAction.repertoire) {
+          _openRepertoire();
+        } else if (action == _CollectionCompactAction.saveSearch) {
+          unawaited(_saveSearch());
+        } else if (action == _CollectionCompactAction.updateSavedSearch) {
+          unawaited(_updateSavedSearch());
+        } else if (action == _CollectionCompactAction.renameSavedSearch) {
+          unawaited(_renameSavedSearch());
+        } else if (action == _CollectionCompactAction.deleteSavedSearch) {
+          unawaited(_deleteSavedSearch());
         }
       },
       itemBuilder: (context) => [
@@ -2529,6 +2822,15 @@ class _DanceListScreenState extends State<DanceListScreen>
           value: _CollectionCompactAction.recentlyDeleted,
           child: Text(l10n.collectionRecentlyDeletedTooltip),
         ),
+        // Experimental (#2357): only while Settings ▸ Experimental ▸
+        // Repertoire is on. A pushed page, never a navigation destination.
+        if (showRepertoire)
+          PopupMenuItem<Object>(
+            key: const ValueKey('collection-repertoire'),
+            value: _CollectionCompactAction.repertoire,
+            child: Text(l10n.collectionRepertoireMenuItem),
+          ),
+        ..._savedSearchMenuItems(l10n),
         if (hasDances && !onBar.contains(_CollectionBarGlyph.sort)) ...[
           const PopupMenuDivider(),
           PopupMenuItem<Object>(
@@ -2571,6 +2873,50 @@ class _DanceListScreenState extends State<DanceListScreen>
         ],
       ],
     );
+  }
+
+  /// The ⋮ menu's saved-search entries (#2325): **Save this search…** while
+  /// nothing is loaded; for a loaded search, **Update "…"** (only once the
+  /// panel differs from it), **Save as a new search…** in place of Save this
+  /// search…, **Rename "…"…** and **Delete "…"**. A saved search is local
+  /// only, so none applies while online search is on.
+  List<PopupMenuEntry<Object>> _savedSearchMenuItems(AppLocalizations l10n) {
+    final loaded = _onlineEnabled ? null : _loadedSearch;
+    final changed = loaded != null && _savedSearchActions().changed(loaded);
+    return [
+      const PopupMenuDivider(),
+      if (loaded != null)
+        PopupMenuItem<Object>(
+          key: const ValueKey('saved-search-update'),
+          // Not for a panel with nothing set: Save refuses that, and Update
+          // would write the same empty search over the stored one.
+          enabled: changed && _hasActiveQuery,
+          value: _CollectionCompactAction.updateSavedSearch,
+          child: Text(l10n.savedSearchUpdate(loaded.search.name)),
+        ),
+      PopupMenuItem<Object>(
+        key: const ValueKey('saved-search-save'),
+        enabled: !_onlineEnabled && _hasActiveQuery,
+        value: _CollectionCompactAction.saveSearch,
+        child: Text(
+          loaded != null
+              ? l10n.savedSearchSaveAsNewSearch
+              : l10n.savedSearchSaveThis,
+        ),
+      ),
+      if (loaded != null) ...[
+        PopupMenuItem<Object>(
+          key: const ValueKey('saved-search-rename'),
+          value: _CollectionCompactAction.renameSavedSearch,
+          child: Text(l10n.savedSearchRename(loaded.search.name)),
+        ),
+        PopupMenuItem<Object>(
+          key: const ValueKey('saved-search-delete'),
+          value: _CollectionCompactAction.deleteSavedSearch,
+          child: Text(l10n.savedSearchDelete(loaded.search.name)),
+        ),
+      ],
+    ];
   }
 
   /// The group-by-category selector: picks a single tag ("category") to group
@@ -2731,6 +3077,8 @@ class _DanceListScreenState extends State<DanceListScreen>
                 _batchClearTunes();
               case _BatchMoreAction.editCustomField:
                 _batchCustomField();
+              case _BatchMoreAction.exportCsv:
+                _batchExportCsv();
               case _BatchMoreAction.delete:
                 _batchDelete();
             }
@@ -2777,6 +3125,15 @@ class _DanceListScreenState extends State<DanceListScreen>
               value: _BatchMoreAction.editCustomField,
               enabled: canAct,
               child: Text(l10n.collectionEditCustomField),
+            ),
+            // Export changes nothing, so it has its own group after the
+            // edits (`bulk-selection.md`, "Selection bar layout").
+            const PopupMenuDivider(),
+            PopupMenuItem(
+              key: const ValueKey('batch-export-csv'),
+              value: _BatchMoreAction.exportCsv,
+              enabled: canAct,
+              child: Text(l10n.collectionExportCsv),
             ),
             // Delete is last, in its own group and the error colour, so it
             // never sits beside an edit (`bulk-selection.md`, Q4 "Delete").
@@ -2834,6 +3191,44 @@ class _DanceListScreenState extends State<DanceListScreen>
     ).push(MaterialPageRoute<void>(builder: (_) => const CustomFieldsScreen()));
     // Reload so newly-created/edited fields show up as facets.
     if (mounted) await _boot();
+  }
+
+  /// Opens the Repertoire page (#2357). A row there that stands for a set of
+  /// dances comes back as a [RepertoireDrillDown], applied as this list's
+  /// search.
+  Future<void> _openRepertoire() async {
+    final drillDown = await Navigator.of(context).push<RepertoireDrillDown>(
+      MaterialPageRoute<RepertoireDrillDown>(
+        builder: (_) => const RepertoireScreen(),
+      ),
+    );
+    if (drillDown != null && mounted) _applyRepertoireDrillDown(drillDown);
+  }
+
+  /// Replaces the search with [drillDown] (#2357): clears the text, every
+  /// facet, By phrase and Advanced, as Clear all does, then applies the
+  /// drill-down's selections, so the list shows the dances the tapped number
+  /// counted. Online mode is left: the numbers are the local library's.
+  void _applyRepertoireDrillDown(RepertoireDrillDown drillDown) {
+    _debounceTimer?.cancel();
+    _searchSeq++;
+    _onlineSeq++;
+    setState(() {
+      _ftsScope = _localFtsScope;
+      _onlineEnabled = false;
+      _onlineResults = const [];
+      _onlineError = null;
+      _onlineSearching = false;
+      _ftsController.clear();
+      _facets.clear();
+      _byPhrase.clear();
+      _advancedRoot.children.clear();
+      _removedTags.clear();
+      _advancedRoot.kind = GroupKind.all;
+      _panelFromSavedSearch = false;
+      drillDown.applyTo(_facets, _advancedRoot);
+    });
+    _runSearch();
   }
 
   Future<void> _openRecentlyDeleted() async {
@@ -2961,31 +3356,15 @@ class _DanceListScreenState extends State<DanceListScreen>
     // now renders inside the results area rather than replacing the whole body.
     final collectionEmpty = data.dancesById.isEmpty;
 
-    final searchField = TextField(
-      key: const ValueKey('collection-search-field'),
+    final searchField = SavedSearchField(
       controller: _ftsController,
       focusNode: _ftsFocusNode,
-      onChanged: _onFtsChanged,
-      onSubmitted: _onFtsSubmitted,
-      textInputAction: TextInputAction.search,
-      decoration: InputDecoration(
-        labelText: _onlineEnabled
-            ? l10n.onlineSearchFieldLabel(_onlineSource.label)
-            : l10n.collectionSearchFieldLabel,
-        hintText: _onlineEnabled
-            ? l10n.collectionOnlineSearchFieldHint
-            : l10n.collectionSearchFieldHint,
-        // Dense, like Search in beside it, so the two line up in one row.
-        isDense: true,
-        prefixIcon: Icon(_onlineEnabled ? kOnlineSearchIcon : Icons.search),
-        suffixIcon: _hasActiveQuery
-            ? IconButton(
-                tooltip: l10n.collectionClearSearchTooltip,
-                icon: const Icon(Icons.clear),
-                onPressed: _clearAll,
-              )
-            : null,
-      ),
+      enabled: !_onlineEnabled,
+      onLoad: _loadSavedSearch,
+      onSubmitted: () => _onFtsSubmitted(_ftsController.text),
+      revision: _savedSearchRevision,
+      fieldBuilder: (context, onSubmitted) =>
+          _buildSearchTextField(l10n, onSubmitted),
     );
     final searchScope = SearchScopeField(
       fieldKey: const ValueKey('collection-search-scope'),
@@ -3021,44 +3400,68 @@ class _DanceListScreenState extends State<DanceListScreen>
                 onInvoke: _selectAllFromKeyboard,
               ),
             },
-            child: CustomScrollView(
-              keyboardDismissBehavior: textEntryKeyboardDismiss(),
-              slivers: [
-                SliverList(
-                  delegate: SliverChildListDelegate([
-                    // Which tools appear in which mode is documented on
-                    // [_buildSearchPanels]. By-phrase maps onto TCB's own "search
-                    // by phrase" fields, so it's offered for the Caller's Box
-                    // source even with an empty local collection; for sources
-                    // without by-phrase support (ContraDB) it is greyed out, or
-                    // absent when the collection is empty.
-                    _NotTheResultList(
-                      child: _buildSearchPanels(data, collectionEmpty),
-                    ),
-                    if (_onlineEnabled || !collectionEmpty) _buildResultCount(),
-                    const Divider(height: 1),
-                  ]),
-                ),
-                if (_onlineEnabled)
-                  _buildOnlineResultsSliver()
-                else if (collectionEmpty)
-                  _buildEmptyCollectionSliver()
-                else ...[
-                  if (_onlyTheSampleDance(data) && !_hasActiveQuery)
-                    _buildImportCardSliver(),
-                  _buildResultsSliver(),
+            // The search tools' state lives in the bar, which builds the whole
+            // scroll view so its row of toggles can be pinned in it.
+            child: _buildSearchPanels(
+              data,
+              collectionEmpty,
+              layout: (toggles, panel) => CustomScrollView(
+                keyboardDismissBehavior: textEntryKeyboardDismiss(),
+                slivers: [
+                  // The row of search tools and the result count stay pinned
+                  // while the list scrolls (each while there is room for it),
+                  // and the open tool's content scrolls between them. Which
+                  // tools appear in which mode is documented on
+                  // [_buildSearchPanels]. By-phrase maps onto TCB's own "search
+                  // by phrase" fields, so it's offered for the Caller's Box
+                  // source even with an empty local collection; for sources
+                  // without by-phrase support (ContraDB) it is greyed out, or
+                  // absent when the collection is empty.
+                  PinnedWhileRoomSliver(
+                    child: _pinnedBackground(_NotTheResultList(child: toggles)),
+                  ),
+                  SliverToBoxAdapter(child: _NotTheResultList(child: panel)),
+                  if (_onlineEnabled || !collectionEmpty)
+                    PinnedWhileRoomSliver(
+                      child: _pinnedBackground(
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildResultCount(),
+                            const Divider(height: 1),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    const SliverToBoxAdapter(child: Divider(height: 1)),
+                  if (_onlineEnabled)
+                    _buildOnlineResultsSliver()
+                  else if (collectionEmpty)
+                    _buildEmptyCollectionSliver()
+                  else ...[
+                    if (_onlyTheSampleDance(data) && !_hasActiveQuery)
+                      _buildImportCardSliver(),
+                    _buildResultsSliver(),
+                  ],
+                  // Lets the last row scroll clear of the floating New dance.
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: AppSpacing.fabClearance),
+                  ),
                 ],
-                // Lets the last row scroll clear of the floating New dance.
-                const SliverToBoxAdapter(
-                  child: SizedBox(height: AppSpacing.fabClearance),
-                ),
-              ],
+              ),
             ),
           ),
         ),
       ],
     );
   }
+
+  /// The page's own background behind a pinned header, so rows scrolling
+  /// under it do not show through. A [Material], so the chips' ink still
+  /// draws.
+  Widget _pinnedBackground(Widget child) =>
+      Material(color: Theme.of(context).scaffoldBackgroundColor, child: child);
 
   /// Whether the first-run sample is the only dance in the Collection. Judged
   /// from the dance's fixed seed id, so no marker is stored: deleting the
@@ -3154,6 +3557,40 @@ class _DanceListScreenState extends State<DanceListScreen>
     );
   }
 
+  /// The search box itself, under the saved-search dropdown
+  /// ([SavedSearchField]); [onSubmitted] is the dropdown's Enter.
+  Widget _buildSearchTextField(
+    AppLocalizations l10n,
+    VoidCallback onSubmitted,
+  ) {
+    return TextField(
+      key: const ValueKey('collection-search-field'),
+      controller: _ftsController,
+      focusNode: _ftsFocusNode,
+      onChanged: _onFtsChanged,
+      onSubmitted: (_) => onSubmitted(),
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        labelText: _onlineEnabled
+            ? l10n.onlineSearchFieldLabel(_onlineSource.label)
+            : l10n.collectionSearchFieldLabel,
+        hintText: _onlineEnabled
+            ? l10n.collectionOnlineSearchFieldHint
+            : l10n.collectionSearchFieldHint,
+        // Dense, like Search in beside it, so the two line up in one row.
+        isDense: true,
+        prefixIcon: Icon(_onlineEnabled ? kOnlineSearchIcon : Icons.search),
+        suffixIcon: _hasActiveQuery
+            ? IconButton(
+                tooltip: l10n.collectionClearSearchTooltip,
+                icon: const Icon(Icons.clear),
+                onPressed: _clearAll,
+              )
+            : null,
+      ),
+    );
+  }
+
   /// The search tools that apply to the current mode, as one compact row of
   /// toggles ([SearchPanelBar]). Local filters can't apply to online results,
   /// so while online Filters stays in the row greyed out (the row does not
@@ -3165,12 +3602,20 @@ class _DanceListScreenState extends State<DanceListScreen>
   ///
   /// The Online search icon ends the row in both modes: it is how a user
   /// enters and leaves online mode, so it must not depend on the mode. While
-  /// online, the source selector sits full-width under the row.
-  Widget _buildSearchPanels(CollectionData data, bool collectionEmpty) {
+  /// online, the source selector sits full-width under the row, and is pinned
+  /// with it.
+  ///
+  /// [layout] builds the scroll view from the row (`toggles`, with the source
+  /// selector) and the open tool's content (`panel`).
+  Widget _buildSearchPanels(
+    CollectionData data,
+    bool collectionEmpty, {
+    required Widget Function(Widget toggles, Widget panel) layout,
+  }) {
     final l10n = AppLocalizations.of(context);
     final filtersActive = _facets.activeCount;
     final byPhraseActive = _byPhraseActiveCount();
-    final panelBar = SearchPanelBar(
+    return SearchPanelBar(
       storageId: 'collection',
       trailing: OnlineSearchToggle(
         key: const ValueKey('online-search-enable'),
@@ -3218,39 +3663,49 @@ class _DanceListScreenState extends State<DanceListScreen>
           builder: (_) => _buildAdvancedPanel(data),
         ),
       ],
-    );
-    // The bar is always the Column's first child, so toggling online keeps its
-    // state (open tool, scroll and focus inside a panel) instead of rebuilding it.
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        panelBar,
-        if (_onlineEnabled)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md,
-              0,
-              AppSpacing.md,
-              AppSpacing.xs,
-            ),
-            child: SegmentedButton<OnlineSource>(
-              key: const ValueKey('online-source-selector'),
-              // Full width, so the sources read as the row's second line.
-              expandedInsets: EdgeInsets.zero,
-              segments: [
-                for (final source in OnlineSource.values)
-                  ButtonSegment<OnlineSource>(
-                    value: source,
-                    label: Text(source.label),
-                  ),
-              ],
-              selected: {_onlineSource},
-              showSelectedIcon: false,
-              onSelectionChanged: (selection) =>
-                  _onOnlineSourceChanged(selection.first),
-            ),
-          ),
-      ],
+      // The bar is built in every mode and holds the scroll view, so toggling
+      // online keeps its state (open tool, scroll and focus inside a panel)
+      // instead of rebuilding it.
+      layoutBuilder: (context, toggles, panel) => layout(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            toggles,
+            if (_loadedSearch case final load?
+                when load.missing.isNotEmpty && !_savedSearchNoticeClosed)
+              SavedSearchNotice(
+                load: load,
+                onClose: () => setState(() => _savedSearchNoticeClosed = true),
+              ),
+            if (_onlineEnabled)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  0,
+                  AppSpacing.md,
+                  AppSpacing.xs,
+                ),
+                child: SegmentedButton<OnlineSource>(
+                  key: const ValueKey('online-source-selector'),
+                  // Full width, so the sources read as the row's second line.
+                  expandedInsets: EdgeInsets.zero,
+                  segments: [
+                    for (final source in OnlineSource.values)
+                      ButtonSegment<OnlineSource>(
+                        value: source,
+                        label: Text(source.label),
+                      ),
+                  ],
+                  selected: {_onlineSource},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (selection) =>
+                      _onOnlineSourceChanged(selection.first),
+                ),
+              ),
+          ],
+        ),
+        panel,
+      ),
     );
   }
 
@@ -3289,6 +3744,12 @@ class _DanceListScreenState extends State<DanceListScreen>
       booleanFields: data.booleanFields,
       textFields: data.textFields,
       numberFields: data.numberFields,
+      allLevels: data.allLevels,
+      authorNames: data.choreographerNames,
+      allTagNames: data.allTagNames,
+      sourceTitles: data.sourceTitles,
+      allCustomFields: data.customFieldDefs,
+      historyFromSavedSearch: _panelFromSavedSearch,
       onChanged: _onFacetsChanged,
     );
   }
@@ -3319,8 +3780,12 @@ class _DanceListScreenState extends State<DanceListScreen>
       root: _advancedRoot,
       taxonomy: data.taxonomy,
       dialect: _dialect,
+      // Each figure of your own in its own form's dialect (#2294); the moves
+      // stay in the list's, contra's.
+      dialects: ActiveDialectScope.maybeOf(context),
       sectionLabels: data.sectionLabels,
       tags: data.tags,
+      allTagNames: data.allTagNames,
       tagsUnavailableFor: _onlineEnabled && _onlineSource.hidesAdvancedTags
           ? _onlineSource.label
           : null,

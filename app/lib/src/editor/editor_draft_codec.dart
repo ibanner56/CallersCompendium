@@ -113,6 +113,14 @@ bool isNewDanceEditorDraftKey(String key) {
 ///   writes that over the stored dance; such a draft predates v42, so the
 ///   dance can hold them only if sync has brought them since, which the
 ///   restore prompt reports as a change to the dance (AUTH-10).
+/// - `alternateTitles` (the other titles as typed, one per line) and
+///   `barnesReference`, each omitted when empty. They joined v42 while it was
+///   unreleased, so the same holds for them.
+/// - The square fields (ADR-007 §8.1): `squareKind`, `repeatOrder` and
+///   `newPartner` as their wire names, `repeatOrderText`, `newPartnerText`
+///   and `singing`, each omitted at its default, and `freeForm`, omitted
+///   while it follows the kind. They joined v42 the same way, and an unknown
+///   value decodes as the default.
 ///
 /// - `spanStated` (true, or omitted) on a sequence that states its own span
 ///   (ADR-006 §5.5). A sequence's `beatsTouched` is read from it alone, since
@@ -147,6 +155,10 @@ const _kDraftVersionWithoutCompounds = 13;
 ///   "walkthrough": "...",
 ///   "phrase": "...", "formationDetail": "...",
 ///   "meter": "3/2", "musicalKey": "G minor",
+///   "alternateTitles": "Monymusk", "barnesReference": "BIII p. 92",
+///   "squareKind": "break", "repeatOrder": "other",
+///   "repeatOrderText": "Heads once", "newPartner": "corner",
+///   "newPartnerText": "", "singing": true, "freeForm": false,
 ///   "form": "contra", "formationShape": "dupleImproper", "improper": true,
 ///   "progression": "single", "status": "active",
 ///   "level": "intermediate", "mixedLevel": false, "mixer": false,
@@ -205,6 +217,22 @@ String encodeDraft(EditorSnapshot snapshot) {
     'formationDetail': snapshot.formationDetail,
     if (snapshot.meter.isNotEmpty) 'meter': snapshot.meter,
     if (snapshot.musicalKey.isNotEmpty) 'musicalKey': snapshot.musicalKey,
+    if (snapshot.alternateTitles.isNotEmpty)
+      'alternateTitles': snapshot.alternateTitles,
+    if (snapshot.barnesReference.isNotEmpty)
+      'barnesReference': snapshot.barnesReference,
+    if (snapshot.squareKind != SquareKind.main)
+      'squareKind': snapshot.squareKind.wireName,
+    if (snapshot.repeatOrder != SquareRepeatOrder.unstated)
+      'repeatOrder': snapshot.repeatOrder.wireName,
+    if (snapshot.repeatOrderText.isNotEmpty)
+      'repeatOrderText': snapshot.repeatOrderText,
+    if (snapshot.newPartner != SquareNewPartner.unstated)
+      'newPartner': snapshot.newPartner.wireName,
+    if (snapshot.newPartnerText.isNotEmpty)
+      'newPartnerText': snapshot.newPartnerText,
+    if (snapshot.singing) 'singing': true,
+    if (snapshot.freeForm != null) 'freeForm': snapshot.freeForm,
     'form': snapshot.form.name,
     'formationShape': snapshot.formationShape.name,
     if (snapshot.improper) 'improper': true,
@@ -311,6 +339,20 @@ EditorSnapshot decodeDraft(Object? value, {Iterable<DifficultyLevel>? levels}) {
     formationDetail: _str(json, 'formationDetail'),
     meter: _str(json, 'meter'),
     musicalKey: _str(json, 'musicalKey'),
+    alternateTitles: _str(json, 'alternateTitles'),
+    barnesReference: _str(json, 'barnesReference'),
+    squareKind:
+        SquareKind.fromWireName(_str(json, 'squareKind')) ?? SquareKind.main,
+    repeatOrder:
+        SquareRepeatOrder.fromWireName(_str(json, 'repeatOrder')) ??
+        SquareRepeatOrder.unstated,
+    repeatOrderText: _str(json, 'repeatOrderText'),
+    newPartner:
+        SquareNewPartner.fromWireName(_str(json, 'newPartner')) ??
+        SquareNewPartner.unstated,
+    newPartnerText: _str(json, 'newPartnerText'),
+    singing: _bool(json, 'singing'),
+    freeForm: _boolOrNull(json, 'freeForm'),
     form: _parseEnum(DanceForm.values, _str(json, 'form')),
     formationShape: _parseEnum(
       FormationShape.values,
@@ -467,6 +509,13 @@ int? _parseNullableRating(Object? raw) {
     throw FormatException('draft rating must be null or 1..5: $raw');
   }
   return raw;
+}
+
+bool? _boolOrNull(Map<String, Object?> json, String key) {
+  final v = json[key];
+  if (v == null) return null;
+  if (v is! bool) throw FormatException('draft.$key must be a bool: $v');
+  return v;
 }
 
 bool _bool(Map<String, Object?> json, String key) {
@@ -662,6 +711,8 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
     },
     // Additive/tolerant (#460): absent or non-bool → not assumed.
     assumedSubject: m['assumedSubject'] == true,
+    // Additive/tolerant (taxonomy v40): absent or non-bool → loaded, not new.
+    enteredNew: m['enteredNew'] == true,
     // Additive/tolerant (#419): only the string 'importGap' flags a parser-gap
     // custom; any other/absent/garbage value decodes as the userEntered default.
     customOrigin: m['customOrigin'] == 'importGap'
@@ -727,6 +778,7 @@ Map<String, Object?> _figureDraftJson(FigureDraftSnapshot draft) {
         draft.params['beats'] is int)
       'spanStated': true,
     if (draft.assumedSubject) 'assumedSubject': true,
+    if (draft.enteredNew) 'enteredNew': true,
     if (draft.customOrigin == CustomOrigin.importGap)
       'customOrigin': 'importGap',
     if (draft.walkthroughOverride != null &&

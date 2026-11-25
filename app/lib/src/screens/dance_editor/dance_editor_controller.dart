@@ -17,6 +17,7 @@ import '../../editor/editor_draft_codec.dart';
 import '../../editor/editor_snapshot.dart';
 import '../../editor/editor_undo_stack.dart';
 import '../../editor/figure_draft.dart';
+import '../../editor/figure_entry_controller.dart';
 import '../../editor/free_text_composer_controller.dart';
 import '../../editor/pending_move_text_controller.dart';
 import '../../editor/user_figure_draft.dart';
@@ -58,6 +59,10 @@ class DanceEditorController extends ChangeNotifier {
        formationDetailController = _lingo(dialects),
        meterController = _lingo(dialects),
        musicalKeyController = _lingo(dialects),
+       alternateTitlesController = _lingo(dialects),
+       barnesReferenceController = _lingo(dialects),
+       repeatOrderTextController = _lingo(dialects),
+       newPartnerTextController = _lingo(dialects),
        tuneController = _lingo(dialects),
        _draftKey = danceId == null
            ? danceEditorDraftKey('$kNewDanceDraftIdPrefix${uuidV4()}')
@@ -243,6 +248,20 @@ class DanceEditorController extends ChangeNotifier {
   /// [Dance.musicalKey]): free text, ADR-006 §12.1 F3.
   final LingoTextEditingController meterController;
   final LingoTextEditingController musicalKeyController;
+
+  /// Editor for the dance's other titles ([Dance.alternateTitles]), one per
+  /// line; saving drops blank lines and repeats ([normalizeAlternateTitles]).
+  final LingoTextEditingController alternateTitlesController;
+
+  /// Editor for where the tune is printed in the Barnes books
+  /// ([Dance.barnesReference]), free text.
+  final LingoTextEditingController barnesReferenceController;
+
+  /// Editors for what `other` means for a square's repeat order and new
+  /// partner ([Dance.repeatOrderText], [Dance.newPartnerText]). Kept as typed
+  /// whatever the dropdown holds; only `other` saves them.
+  final LingoTextEditingController repeatOrderTextController;
+  final LingoTextEditingController newPartnerTextController;
   final LingoTextEditingController tuneController;
 
   /// The user's Move defaults (DD.3), by move id, which a typed line's rows
@@ -266,6 +285,10 @@ class DanceEditorController extends ChangeNotifier {
     formationDetailController,
     meterController,
     musicalKeyController,
+    alternateTitlesController,
+    barnesReferenceController,
+    repeatOrderTextController,
+    newPartnerTextController,
     tuneController,
     ...customTextControllers.values,
   ];
@@ -279,6 +302,11 @@ class DanceEditorController extends ChangeNotifier {
   List<DifficultyLevel> _difficultyLevels = DifficultyLevel.shipped;
   bool _mixedLevel = false;
   bool _mixer = false;
+  SquareKind _squareKind = SquareKind.main;
+  SquareRepeatOrder _repeatOrder = SquareRepeatOrder.unstated;
+  SquareNewPartner _newPartner = SquareNewPartner.unstated;
+  bool _singing = false;
+  bool? _freeForm;
   int? _rating;
   PartialDate? _composedOn;
   PartialDate? _revisedOn;
@@ -310,6 +338,25 @@ class DanceEditorController extends ChangeNotifier {
       List.unmodifiable(_difficultyLevels);
   bool get mixedLevel => _mixedLevel;
   bool get mixer => _mixer;
+
+  /// The square fields (ADR-007 §8.1). Kept whatever the form, as the dance
+  /// keeps them, so changing the form and back loses nothing.
+  SquareKind get squareKind => _squareKind;
+  SquareRepeatOrder get repeatOrder => _repeatOrder;
+  SquareNewPartner get newPartner => _newPartner;
+  bool get singing => _singing;
+
+  /// Whether the dance is free-form patter (ADR-007 §8.1), as
+  /// [Dance.isFreeForm] reads it: a square whose toggle is on, or left to its
+  /// kind and patter. Its figures then have no phrase labels, no phrase
+  /// checks and no phrase limit on a sequence, and the phrase structure is
+  /// kept but not shown.
+  bool get isFreeForm =>
+      _form == DanceForm.square &&
+      (_freeForm ?? _squareKind == SquareKind.patter);
+
+  /// What [setFreeForm] has set, or `null` while the toggle follows the kind.
+  bool? get freeForm => _freeForm;
   int? get rating => _rating;
   PartialDate? get composedOn => _composedOn;
   PartialDate? get revisedOn => _revisedOn;
@@ -319,7 +366,8 @@ class DanceEditorController extends ChangeNotifier {
   /// ([formHasImproperFlag]): ECD (ADR-006 §12.1, F2).
   bool get improper => _improper;
 
-  /// Whether this dance's form records proper or improper with a checkbox.
+  /// Whether this dance's form records proper or improper as a flag of its own,
+  /// which the editor shows as the Starts improper chip.
   bool get offersImproper => formHasImproperFlag(_form);
 
   /// When the dance was interpreted ([Dance.interpretedOn]).
@@ -334,11 +382,25 @@ class DanceEditorController extends ChangeNotifier {
     debugLabel: 'interpreted-on',
   );
 
+  /// Keys for the Authors and Interpreted by pickers, so a picker keeps its
+  /// state (an open list's link to it, its focus) when an English dance's
+  /// credit line flips between names beside the year and names above it (a
+  /// text size change), or moves when the form changes.
+  final GlobalKey authorsPickerKey = GlobalKey(debugLabel: 'authors-picker');
+  final GlobalKey interpretersPickerKey = GlobalKey(
+    debugLabel: 'interpreters-picker',
+  );
+
   /// Whether the interpretation credits (Interpreted by, Interpreted in) and
   /// the Composed date are shown up front, beside the authors, rather than
   /// in More details: for ECD, where most dances credit both an original and
   /// an interpreter (ADR-006 §9.2, point 7).
   bool get showsCreditsUpFront => _form == DanceForm.ecd;
+
+  /// Whether a square's own fields (ADR-007 §8.1) sit up front: for a square
+  /// dance. Other forms show them in More details, since the dance keeps
+  /// them whatever its form.
+  bool get showsSquareFieldsUpFront => _form == DanceForm.square;
 
   // ---- Multi-value draft lists ----
   final List<String> authorIds = [];
@@ -622,6 +684,9 @@ class DanceEditorController extends ChangeNotifier {
   /// counts as unsaved ([dirty]) and Save can add it first.
   final freeTextComposer = FreeTextComposerController();
 
+  /// The figure list's way in from the Title field ([FigureEntryController]).
+  final figureEntry = FigureEntryController();
+
   /// The figure list's Move boxes (AUTH-1), so a move name or shorthand typed
   /// into one and not yet applied counts as unsaved ([dirty]) and Save can
   /// apply it first.
@@ -677,12 +742,13 @@ class DanceEditorController extends ChangeNotifier {
   }
 
   /// Fits the sequences in [drafts] to this dance's form. Only an English
-  /// dance's sequence may state a span of its own, with steps that carry no
-  /// timing (ADR-006 §5.5); in any other form a sequence counts its steps,
-  /// so a span is dropped and an untimed step takes its move's default
-  /// count, as a step picked there would. Undo brings the span back.
+  /// dance's or a square's sequence may state a span of its own, with steps
+  /// that carry no timing ([formHasSequenceSpan]); in contra a sequence
+  /// counts its steps, so a span is dropped and an untimed step takes its
+  /// move's default count, as a step picked there would. Undo brings the
+  /// span back.
   void _fitSequenceTimingToForm(List<FigureDraft> drafts) {
-    if (_form == DanceForm.ecd) return;
+    if (formHasSequenceSpan(_form)) return;
     for (final draft in drafts) {
       final children = draft.containerChildren;
       if (children == null) continue;
@@ -846,7 +912,12 @@ class DanceEditorController extends ChangeNotifier {
       phraseController.text = dance.phraseStructure.raw;
       formationDetailController.text = dance.formation.detail ?? '';
       meterController.text = dance.meter;
+      _statedBeatsPerBarSeen = statedBeatsPerBar;
       musicalKeyController.text = dance.musicalKey;
+      alternateTitlesController.text = dance.alternateTitles.join('\n');
+      barnesReferenceController.text = dance.barnesReference;
+      repeatOrderTextController.text = dance.repeatOrderText;
+      newPartnerTextController.text = dance.newPartnerText;
       _improper = dance.formation.improper;
       _form = dance.form;
       _followForm();
@@ -862,6 +933,11 @@ class DanceEditorController extends ChangeNotifier {
       }
       _mixedLevel = dance.mixedLevel;
       _mixer = dance.mixer;
+      _squareKind = dance.squareKind;
+      _repeatOrder = dance.repeatOrder;
+      _newPartner = dance.newPartner;
+      _singing = dance.singing;
+      _freeForm = dance.freeForm;
       _rating = dance.rating;
       _composedOn = dance.composedOn;
       _revisedOn = dance.revisedOn;
@@ -1190,13 +1266,28 @@ class DanceEditorController extends ChangeNotifier {
   /// expand a compound into several, so its position is mapped back to the
   /// row that built the figure.
   void recomputeWarnings() {
+    // A free-form dance has no phrase warnings, whatever its hidden phrase
+    // text holds: clear them first, so a text that no longer parses cannot
+    // leave the last ones on screen.
+    if (isFreeForm) _phraseWarnings = const [];
     try {
       _phraseStructure = PhraseStructure.parse(phraseController.text);
       final issues = <ValidationIssue>[];
       final figures = _figures;
-      deriveSections(figures, _phraseStructure, issues: issues);
+      final sections = deriveSections(
+        figures,
+        _phraseStructure,
+        issues: issues,
+        checkPhraseFill: _form == DanceForm.square,
+        freeForm: isFreeForm,
+      );
       for (final (index, figure) in figures.indexed) {
-        _flagSequenceSpans(figure, index + 1, issues);
+        _flagSequenceSpans(
+          figure,
+          index + 1,
+          sections[index].startBeat,
+          issues,
+        );
       }
       final rowOfFigure = [
         for (final (row, draft) in figureDrafts.indexed)
@@ -1226,26 +1317,32 @@ class DanceEditorController extends ChangeNotifier {
     ];
   }
 
-  /// Adds an English sequence's span issue ([ecdSequenceSpanIssue]) for
-  /// [figure], the dance's figure at [position], and any sequence inside it.
+  /// Adds a sequence's span issue ([sequenceSpanIssue]) for
+  /// [figure], the dance's figure at [position] starting at [startBeat], and
+  /// any sequence inside it.
   void _flagSequenceSpans(
     Figure figure,
     int position,
+    int startBeat,
     List<ValidationIssue> issues,
   ) {
-    if (ecdSequenceSpanIssue(figure, _form) case final issue?) {
+    if (sequenceSpanIssue(figure, _form) case final issue?) {
       issues.add(
         ValidationIssue(
           severity: issue.severity,
           code: issue.code,
           message: issue.message,
-          data: {...issue.data, 'position': position},
+          // Where the sequence starts, so its counts read in the bars of the
+          // phrase it falls in.
+          data: {...issue.data, 'position': position, 'startBeat': startBeat},
         ),
       );
     }
     if (!figure.isContainer) return;
-    for (final child in figure.subFigures) {
-      _flagSequenceSpans(child, position, issues);
+    final children = figure.subFigures;
+    final starts = childStartBeats(figure, startBeat);
+    for (var i = 0; i < children.length; i++) {
+      _flagSequenceSpans(children[i], position, starts[i], issues);
     }
   }
 
@@ -1254,24 +1351,23 @@ class DanceEditorController extends ChangeNotifier {
   /// shown as they are, but this form's picker does not offer them, and the
   /// other form's checks do not apply. Null when every figure is the form's
   /// own (a form with no figures of its own uses contra's), or a custom or
-  /// structural one, which every form shares.
+  /// structural one, which every form shares, or a stand still in a square
+  /// dance.
   ValidationIssue? _otherFormFiguresWarning() {
-    final ownForm = shippedTaxonomies.ownTaxonomy(_form) == null
-        ? shippedTaxonomies.base.form
-        : _form;
     final counts = <DanceForm, int>{};
     void visit(Figure figure) {
       if (figure.isContainer) {
         figure.subFigures.forEach(visit);
         return;
       }
+      // A new dance's template rows and a new meanwhile's sides are contra's
+      // stand still in every form, which a square takes as its placeholder:
+      // [moveFitsForm] lets it be, so a new square dance opens without this
+      // warning.
       final move = figure.move;
-      if (move == customMove ||
-          shippedTaxonomies.anyForm.resolve(move) == null) {
-        return;
-      }
+      if (moveFitsForm(move, _form)) return;
       final form = shippedTaxonomies.formOfMoveId(move);
-      if (form != ownForm) counts[form] = (counts[form] ?? 0) + 1;
+      counts[form] = (counts[form] ?? 0) + 1;
     }
 
     _figures.forEach(visit);
@@ -1288,7 +1384,7 @@ class DanceEditorController extends ChangeNotifier {
         'count': count,
         'figureForm': form.name,
         'danceForm': _form.name,
-        'pickerForm': ownForm.name,
+        'pickerForm': ownFigureForm(_form).name,
       },
     );
   }
@@ -1328,6 +1424,15 @@ class DanceEditorController extends ChangeNotifier {
     formationDetail: formationDetailController.text,
     meter: meterController.text,
     musicalKey: musicalKeyController.text,
+    alternateTitles: alternateTitlesController.text,
+    barnesReference: barnesReferenceController.text,
+    squareKind: _squareKind,
+    repeatOrder: _repeatOrder,
+    repeatOrderText: repeatOrderTextController.text,
+    newPartner: _newPartner,
+    newPartnerText: newPartnerTextController.text,
+    singing: _singing,
+    freeForm: _freeForm,
     form: _form,
     formationShape: _formationShape,
     improper: _improper,
@@ -1408,9 +1513,24 @@ class DanceEditorController extends ChangeNotifier {
     if (formationDetailController.text != s.formationDetail) {
       formationDetailController.text = s.formationDetail;
     }
-    if (meterController.text != s.meter) meterController.text = s.meter;
+    if (meterController.text != s.meter) {
+      meterController.text = s.meter;
+      _statedBeatsPerBarSeen = statedBeatsPerBar;
+    }
     if (musicalKeyController.text != s.musicalKey) {
       musicalKeyController.text = s.musicalKey;
+    }
+    if (alternateTitlesController.text != s.alternateTitles) {
+      alternateTitlesController.text = s.alternateTitles;
+    }
+    if (barnesReferenceController.text != s.barnesReference) {
+      barnesReferenceController.text = s.barnesReference;
+    }
+    if (repeatOrderTextController.text != s.repeatOrderText) {
+      repeatOrderTextController.text = s.repeatOrderText;
+    }
+    if (newPartnerTextController.text != s.newPartnerText) {
+      newPartnerTextController.text = s.newPartnerText;
     }
 
     // Enum fields.
@@ -1422,6 +1542,11 @@ class DanceEditorController extends ChangeNotifier {
     _level = s.level;
     _mixedLevel = s.mixedLevel;
     _mixer = s.mixer;
+    _squareKind = s.squareKind;
+    _repeatOrder = s.repeatOrder;
+    _newPartner = s.newPartner;
+    _singing = s.singing;
+    _freeForm = s.freeForm;
     _rating = s.rating;
     _composedOn = s.composedOn;
     _revisedOn = s.revisedOn;
@@ -1732,6 +1857,12 @@ class DanceEditorController extends ChangeNotifier {
     );
     final meter = meterController.text.trim();
     final musicalKey = musicalKeyController.text.trim();
+    final alternateTitles = normalizeAlternateTitles(
+      alternateTitlesController.text.split('\n'),
+    );
+    final barnesReference = barnesReferenceController.text.trim();
+    final repeatOrderText = repeatOrderTextController.text.trim();
+    final newPartnerText = newPartnerTextController.text.trim();
     final linkList = [for (final l in links) ?l.toLink()];
     final citationList = [for (final c in sourceCitations) c.toCitation()];
     final customFields = collectCustomFields();
@@ -1739,16 +1870,25 @@ class DanceEditorController extends ChangeNotifier {
     if (_original case final original?) {
       return original.copyWith(
         title: titleController.text.trim(),
+        alternateTitles: alternateTitles,
         authorIds: List.of(authorIds),
         interpreterIds: List.of(interpreterIds),
         interpretedOn: _interpretedOn,
         clearInterpretedOn: _interpretedOn == null,
         meter: meter,
         musicalKey: musicalKey,
+        barnesReference: barnesReference,
+        squareKind: _squareKind,
+        repeatOrder: _repeatOrder,
+        repeatOrderText: repeatOrderText,
+        newPartner: _newPartner,
+        newPartnerText: newPartnerText,
+        singing: _singing,
+        freeForm: _freeForm,
         form: _form,
         formation: formation,
         progression: _progression,
-        phraseStructure: phraseController.text.trim(),
+        phraseStructure: _savedPhraseText,
         hook: hookController.text.trim(),
         callingNotes: notesController.text.trim(),
         walkthrough: walkthroughController.text.trim(),
@@ -1775,15 +1915,24 @@ class DanceEditorController extends ChangeNotifier {
     return Dance(
       id: uuidV4(),
       title: titleController.text.trim(),
+      alternateTitles: alternateTitles,
       authorIds: List.of(authorIds),
       interpreterIds: List.of(interpreterIds),
       interpretedOn: _interpretedOn,
       meter: meter,
       musicalKey: musicalKey,
+      barnesReference: barnesReference,
+      squareKind: _squareKind,
+      repeatOrder: _repeatOrder,
+      repeatOrderText: repeatOrderText,
+      newPartner: _newPartner,
+      newPartnerText: newPartnerText,
+      singing: _singing,
+      freeForm: _freeForm,
       form: _form,
       formation: formation,
       progression: _progression,
-      phraseStructure: phraseController.text.trim(),
+      phraseStructure: _savedPhraseText,
       hook: hookController.text.trim(),
       callingNotes: notesController.text.trim(),
       walkthrough: walkthroughController.text.trim(),
@@ -1810,6 +1959,7 @@ class DanceEditorController extends ChangeNotifier {
   // -------------------------------------------------------------------------
 
   void setForm(DanceForm value) {
+    _fitFormationToForm(from: _form, to: value);
     _form = value;
     _followForm();
     _fitSequenceTimingToForm(figureDrafts);
@@ -1818,6 +1968,27 @@ class DanceEditorController extends ChangeNotifier {
     pushUndoNow();
     scheduleAutosave();
     _notify();
+  }
+
+  /// Starts the formation over when the dance changes to a form that does not
+  /// offer its shape: the shape becomes that form's first
+  /// ([core.offeredFormationShapes], duple minor for ECD, duple improper for
+  /// contra and the square set for a square). A shape from the old form's
+  /// list, such as contra's "Improper", would otherwise stay selected and keep
+  /// showing in the new form's list ([offeredFormationShapes]). A shape the
+  /// new form offers is kept: triple minor, Sicilian circle and other are in
+  /// both the contra and ECD lists, circle, square and other in both the ECD
+  /// and square lists, and an English dance still on a contra shape
+  /// (converted or imported before ECD's shapes) keeps it when changed back
+  /// to contra. Choosing the form the dance already has changes
+  /// nothing. [improper] is left as it is: a new dance starts proper, and an
+  /// English dance changed to contra and back keeps its checkbox. Undo
+  /// restores the old shape.
+  void _fitFormationToForm({required DanceForm from, required DanceForm to}) {
+    if (from == to) return;
+    final offered = core.offeredFormationShapes(to);
+    if (offered.contains(_formationShape)) return;
+    _formationShape = offered.first;
   }
 
   void setImproper(bool value) {
@@ -1871,6 +2042,49 @@ class DanceEditorController extends ChangeNotifier {
 
   void setMixer(bool value) {
     _mixer = value;
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void setSquareKind(SquareKind value) {
+    _squareKind = value;
+    // Patter is free form unless the caller said otherwise, so the kind can
+    // turn the phrase checks on or off.
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void setRepeatOrder(SquareRepeatOrder value) {
+    _repeatOrder = value;
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void setNewPartner(SquareNewPartner value) {
+    _newPartner = value;
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void setSinging(bool value) {
+    _singing = value;
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  /// Turns free form on or off. A value the kind would give anyway (on for
+  /// patter, off otherwise) is stored as following the kind, so only a
+  /// choice that differs from it is kept, and a later change of kind carries
+  /// the toggle with it.
+  void setFreeForm(bool value) {
+    _freeForm = value == (_squareKind == SquareKind.patter) ? null : value;
+    recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();
     _notify();
@@ -2236,8 +2450,10 @@ class DanceEditorController extends ChangeNotifier {
           figure,
           taxonomy,
           moveParamDefaults: moveParamDefaults,
+          requireStatedParams: true,
         ),
     ];
+    _markEnteredNew(inserted);
     figureDrafts.addAll(inserted);
     _renderDraftTextRecursively(inserted);
     recomputeWarnings();
@@ -2263,8 +2479,10 @@ class DanceEditorController extends ChangeNotifier {
           figure,
           taxonomy,
           moveParamDefaults: moveParamDefaults,
+          requireStatedParams: true,
         ),
     ];
+    _markEnteredNew(inserted);
     figureDrafts.replaceRange(index, index + 1, inserted);
     _renderDraftTextRecursively(inserted);
     FigureDraft.carryRowExtras(draft, inserted);
@@ -2299,6 +2517,12 @@ class DanceEditorController extends ChangeNotifier {
     return true;
   }
 
+  /// Appends [drafts], already built (the **Add figures from text** sheet,
+  /// #2326), at the end of the figure list as one undo step. Returns false,
+  /// changing nothing, when [drafts] is empty.
+  bool appendFigureDrafts(List<FigureDraft> drafts) =>
+      placeShorthandDrafts(drafts);
+
   /// The rows for [figures] parsed from one `;` clause of a shorthand line
   /// (#1866), built as [insertFreeTextFigures] builds them but not inserted:
   /// the caller places them with the line's other clauses through
@@ -2310,10 +2534,50 @@ class DanceEditorController extends ChangeNotifier {
           figure,
           taxonomy,
           moveParamDefaults: moveParamDefaults,
+          requireStatedParams: true,
         ),
     ];
+    _markEnteredNew(drafts);
     _renderDraftTextRecursively(drafts);
     return drafts;
+  }
+
+  /// Marks [drafts], and every figure inside a group among them, as entered
+  /// in this edit ([FigureDraft.enteredNew]): a typed line is new entry, so
+  /// its figures must state their required params before the dance saves.
+  static void _markEnteredNew(Iterable<FigureDraft> drafts) {
+    for (final draft in drafts) {
+      draft.enteredNew = true;
+      _markEnteredNew(draft.meanwhileSides ?? const []);
+      _markEnteredNew(draft.modifierFigures ?? const []);
+      _markEnteredNew(draft.sequenceFigures ?? const []);
+    }
+  }
+
+  /// The figures entered in this edit ([FigureDraft.enteredNew]) that still
+  /// leave a required param unstated ([Taxonomy.unstatedRequiredParams]),
+  /// each with those params, in list order and groups' figures in theirs.
+  /// The dance does not save while any remains (taxonomy v40).
+  List<({FigureDraft draft, List<String> params})>
+  get figuresMissingRequiredParams {
+    final found = <({FigureDraft draft, List<String> params})>[];
+    void visit(Iterable<FigureDraft> drafts) {
+      for (final draft in drafts) {
+        final move = draft.move;
+        if (draft.enteredNew && move != null && draft.compound == null) {
+          final missing = taxonomy.unstatedRequiredParams(
+            Figure(move: move, params: draft.params),
+          );
+          if (missing.isNotEmpty) found.add((draft: draft, params: missing));
+        }
+        visit(draft.meanwhileSides ?? const []);
+        visit(draft.modifierFigures ?? const []);
+        visit(draft.sequenceFigures ?? const []);
+      }
+    }
+
+    visit(figureDrafts);
+    return found;
   }
 
   /// Appends a row for the compound [shorthand] stands for, with its values
@@ -2451,7 +2715,7 @@ class DanceEditorController extends ChangeNotifier {
       _groupWithNext(draft, modifierMove);
 
   /// Groups a top-level figure with the following row as a sequence, when
-  /// their counts together fit in one phrase. Existing meanwhile or modifier
+  /// their counts together fit in the phrase the first starts in. Existing meanwhile or modifier
   /// groups may be nested as steps when they contain no further container.
   void groupFigureWithNextAsSequence(FigureDraft draft) =>
       _groupWithNext(draft, sequenceMove);
@@ -2465,7 +2729,7 @@ class DanceEditorController extends ChangeNotifier {
       kind,
       first,
       second,
-      sequenceBeatLimit: sequenceBeatLimit,
+      sequenceBeatLimit: sequenceBeatLimitAt(index),
     )) {
       return;
     }
@@ -2479,9 +2743,38 @@ class DanceEditorController extends ChangeNotifier {
     _notify();
   }
 
-  /// The most beats a sequence may hold: one phrase of this dance
-  /// ([PhraseStructure.longestPhraseBeats]).
-  int get sequenceBeatLimit => _phraseStructure.longestPhraseBeats;
+  /// The most beats a sequence at row [index] may hold: the phrase of this
+  /// dance it starts in ([PhraseStructure.phraseBeatsAt]), counting the rows
+  /// before it as Save does ([figureStartBeat]).
+  int sequenceBeatLimitAt(int index) => figurePhraseStructure.phraseBeatsAt(
+    figureStartBeat(figureDrafts.take(index)),
+  );
+
+  /// The phrase text Save writes: the field as typed, unless the dance is
+  /// free form, which hides the field and its checks (ADR-007 §8.1). Then a
+  /// text that does not parse, or names its phrases where the form does not
+  /// offer that, would block Save from a field the caller cannot see, so the
+  /// last structure that parsed is kept instead, or the standard one.
+  String get _savedPhraseText {
+    final typed = phraseController.text.trim();
+    if (!isFreeForm) return typed;
+    try {
+      final structure = PhraseStructure.parse(typed);
+      if (!structure.isNamed || offersNamedPhrases) return typed;
+    } on FormatException {
+      // diagnostics: silent — the hidden field's text is replaced below, as
+      // the doc says.
+    }
+    return _phraseStructure.isNamed && !offersNamedPhrases
+        ? ''
+        : _phraseStructure.raw;
+  }
+
+  /// The structure the figure list measures phrases against: the dance's own,
+  /// or, for a free-form dance, one phrase that nothing runs past
+  /// ([PhraseStructure.unphrased]).
+  PhraseStructure get figurePhraseStructure =>
+      isFreeForm ? PhraseStructure.unphrased : _phraseStructure;
 
   void convertContainerToMeanwhile(FigureDraft draft) =>
       _convertContainer(draft, meanwhileMove);
@@ -2497,7 +2790,7 @@ class DanceEditorController extends ChangeNotifier {
     if (index == -1 ||
         !draft.canConvertContainerTo(
           kind,
-          sequenceBeatLimit: sequenceBeatLimit,
+          sequenceBeatLimit: sequenceBeatLimitAt(index),
         )) {
       return;
     }
@@ -2587,7 +2880,8 @@ class DanceEditorController extends ChangeNotifier {
     return perBar.stated ? perBar.beatsPerBar : null;
   }
 
-  /// Sets the phrase structure text, as the named phrases write it. A
+  /// Sets the phrase structure text, as the named phrases (English dances) or
+  /// the phrase rows (other forms) write it. A
   /// [typed] change (a bar count, or the meter) is debounced into one undo
   /// step with the typing around it; any other is its own undo step.
   void setPhraseStructureText(String raw, {bool typed = true}) {
@@ -2603,15 +2897,33 @@ class DanceEditorController extends ChangeNotifier {
     scheduleAutosave();
   }
 
+  /// The beats in a bar the Meter stated when it was last loaded or edited, so
+  /// that [onMeterChanged] can tell a Meter that now states other beats from
+  /// one that only has more words in it.
+  int? _statedBeatsPerBarSeen;
+
   /// The Meter field changed. Named phrases count their bars by it (Hudson,
-  /// 19 November 2026: "the meter is the rule"), so a meter that states its
-  /// beats in a bar rewrites them in each named phrase, keeping its bars.
+  /// 19 November 2026: "the meter is the rule"), so a Meter that now states
+  /// other beats in a bar than it did sets them in each named phrase, keeping
+  /// its bars.
+  ///
+  /// A Meter that states the same beats in a bar as before (a word added after
+  /// "3/4"), or none or several meters ("3/4 and 6/8"), leaves the phrases as
+  /// they are. So does any Meter when the phrases differ in beats to the bar
+  /// among themselves: a structure a caller set phrase by phrase (#2303) is
+  /// never flattened, whatever the Meter says, and typing the Meter a
+  /// character at a time cannot reach it. An unnamed structure is not
+  /// rewritten.
   void onMeterChanged() {
     final perBar = statedBeatsPerBar;
+    final changed = perBar != _statedBeatsPerBarSeen;
+    _statedBeatsPerBarSeen = perBar;
     final phrases = typedPhraseStructure?.namedPhrases;
     if (offersNamedPhrases &&
         perBar != null &&
+        changed &&
         phrases != null &&
+        phrases.every((p) => p.beatsPerBar == phrases.first.beatsPerBar) &&
         phrases.any((p) => p.beatsPerBar != perBar)) {
       try {
         setPhraseStructureText(
@@ -2667,6 +2979,10 @@ class DanceEditorController extends ChangeNotifier {
     formationDetailController.dispose();
     meterController.dispose();
     musicalKeyController.dispose();
+    alternateTitlesController.dispose();
+    barnesReferenceController.dispose();
+    repeatOrderTextController.dispose();
+    newPartnerTextController.dispose();
     tuneController.dispose();
     for (final c in customTextControllers.values) {
       c.dispose();

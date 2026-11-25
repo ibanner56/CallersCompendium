@@ -90,3 +90,36 @@ void scrollToFirstInvalidField(
     );
   });
 }
+
+/// Whether a field under the widget keyed by [key], inside the [Form] keyed by
+/// [formKey], shows a validation error. A page that folds fields away (an
+/// expansion panel kept mounted while collapsed) asks this after a failed
+/// `validate()` to open the panel holding the error, which
+/// [scrollToFirstInvalidField] cannot bring into view while it is folded.
+bool hasInvalidFieldUnder(GlobalKey<FormState> formKey, Key key) {
+  final formContext = formKey.currentContext;
+  if (formContext == null) return false;
+  var found = false;
+  void visitField(Element element) {
+    if (found) return;
+    if (element is StatefulElement &&
+        element.state is FormFieldState &&
+        (element.state as FormFieldState).hasError) {
+      found = true;
+      return;
+    }
+    element.visitChildren(visitField);
+  }
+
+  void visit(Element element) {
+    if (found) return;
+    if (element.widget.key == key) {
+      visitField(element);
+      return;
+    }
+    element.visitChildren(visit);
+  }
+
+  (formContext as Element).visitChildren(visit);
+  return found;
+}

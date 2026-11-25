@@ -93,6 +93,151 @@ void main() {
     });
   });
 
+  group('a bar range in a dance whose phrases differ in beats per bar', () {
+    // A1 and A2 are 4 bars of 3 beats (0-24), B is 8 bars of 2 (24-40).
+    final structure = PhraseStructure.parse('A:2*4*3 + B:1*8*2');
+    final timing = BarTiming.byPhrase(structure);
+    final ecd = shippedTaxonomies.forForm(DanceForm.ecd);
+
+    test('counts each range by the phrase it is danced in', () {
+      expect(ecdBarCount('1-4 circle left', timing: timing)!.beats, 12);
+      expect(
+        ecdBarCount('5-8 circle left', timing: timing, startBeat: 12)!.beats,
+        12,
+      );
+      expect(
+        ecdBarCount('9-12 circle left', timing: timing, startBeat: 24)!.beats,
+        8,
+      );
+    });
+
+    test('counts the bars from where the line sits, not by their numbers', () {
+      expect(ecdBarCount('9-12 circle left', timing: timing)!.beats, 12);
+    });
+
+    test('counts a line of several ranges across all of them', () {
+      // Bars 5-8 in A2 (12 beats), then bars 9-12 in B (8).
+      expect(
+        ecdBarCount(
+          '(5-8) circle left (9-12) circle right',
+          timing: timing,
+          startBeat: 12,
+        )!.beats,
+        20,
+      );
+    });
+
+    test('parseEcdFigureLine takes the count of the phrase it falls in', () {
+      final inA = parseEcdFigureLine('1-4 circle left', timing: timing)!;
+      expect(inA.params['beats'], 12);
+      final inB = parseEcdFigureLine(
+        '9-12 circle left',
+        timing: timing,
+        startBeat: 24,
+      )!;
+      expect(inB.params['beats'], 8);
+      // Bars at 18 (3), 21 (3), 24 (2), 26 (2).
+      final across = parseEcdFigureLine(
+        '1-4 circle left',
+        timing: timing,
+        startBeat: 18,
+      )!;
+      expect(across.params['beats'], 10);
+    });
+
+    test('a typed range takes the count of the phrase it falls in', () {
+      final figures = parseFreeTextFigureEntry(
+        '5-8 circle left',
+        taxonomy: ecd,
+        timing: timing,
+        startBeat: 12,
+      );
+      expect(figures.single.move, 'ecd_circle');
+      expect(figures.single.params['beats'], 12);
+      final inB = parseFreeTextFigureEntry(
+        '9-12 circle left',
+        taxonomy: ecd,
+        timing: timing,
+        startBeat: 24,
+      );
+      expect(inB.single.params['beats'], 8);
+    });
+
+    test('a dance in one meter counts exactly as it did', () {
+      expect(ecdBarCount('1-4 circle left', meter: '3/2')!.beats, 12);
+      expect(ecdBarCount('1-4 circle left')!.beats, 8);
+    });
+
+    test('re-check counts each custom line by where it falls', () {
+      final out = reparseImportGapFigures(
+        [
+          customFigure('1-4 circle left', origin: CustomOrigin.importGap),
+          customFigure('5-8 circle left', origin: CustomOrigin.importGap),
+          customFigure('9-12 circle left', origin: CustomOrigin.importGap),
+        ],
+        taxonomy: ecd,
+        meter: '',
+        phraseStructure: structure,
+      );
+      // The third line starts where the first two end, in B.
+      expect([for (final f in out.figures) f.params['beats']], [12, 12, 8]);
+    });
+
+    test('re-check starts every side of a meanwhile with the meanwhile', () {
+      // Both sides are danced together from the end of A2's bar at 18, so each
+      // counts its two bars from there (3 + 3), not the second after the first.
+      final meanwhile = Figure.meanwhile(
+        figures: [
+          customFigure('1-2 circle left', origin: CustomOrigin.importGap),
+          customFigure('1-2 circle right', origin: CustomOrigin.importGap),
+        ],
+        beats: 6,
+      );
+      final out = reparseImportGapFigures(
+        [customFigure('stand', beats: 18), meanwhile],
+        taxonomy: ecd,
+        meter: '',
+        phraseStructure: structure,
+      );
+      expect(
+        [for (final f in out.figures[1].subFigures) f.params['beats']],
+        [6, 6],
+      );
+    });
+
+    test('a stated Meter does not override phrases that differ', () {
+      final out = reparseImportGapFigures(
+        [customFigure('1-4 circle left', origin: CustomOrigin.importGap)],
+        taxonomy: ecd,
+        meter: '3/4',
+        phraseStructure: PhraseStructure.parse('A:1*4*2 + B:1*8*3'),
+      );
+      expect(out.figures.single.params['beats'], 8);
+    });
+
+    test('re-check starts each step after the steps before it, as re-read', () {
+      // 18 beats of other figures put the sequence at the end of A2: its first
+      // step runs 18-24 (two bars of 3), the next starts in B (two of 2).
+      final sequence = Figure.sequence(
+        figures: [
+          customFigure('1-2 circle left', origin: CustomOrigin.importGap),
+          customFigure('3-4 circle right', origin: CustomOrigin.importGap),
+        ],
+        beats: 10,
+      );
+      final out = reparseImportGapFigures(
+        [customFigure('stand', beats: 18), sequence],
+        taxonomy: ecd,
+        meter: '',
+        phraseStructure: structure,
+      );
+      expect(
+        [for (final f in out.figures[1].subFigures) f.params['beats']],
+        [6, 4],
+      );
+    });
+  });
+
   group('splitEcdBarRange', () {
     test('reads a leading range in its usual forms', () {
       for (final (line, bars, rest) in [
@@ -648,6 +793,96 @@ void main() {
           reason: music,
         );
       }
+    });
+
+    // #2365: a Music text naming meters of different bars states none, so
+    // its bars count 2 beats, as with no meter, and the review says why.
+    test('meters of different bars are kept as written and counted as 2 '
+        'beats, with a note', () {
+      for (final (music, meter) in [
+        ('Key: G, Meter: 3/4 and 6/8', '3/4 and 6/8'),
+        ('Key G Meter 2/4 and 3/4', '2/4 and 3/4'),
+        ('G 3/4, 6/8', '3/4, 6/8'),
+        ('Key: G, Meter: 3/2; later 6/8', '3/2; later 6/8'),
+      ]) {
+        final mapping = mapCallersCompanionDance(
+          CcDanceRecord(
+            name: 'Mixed',
+            type: 'Contra',
+            music: music,
+            fromUsrColumns: true,
+            body: [
+              CcBodySection(
+                label: 'A',
+                lines: const [
+                  '1-4 lead up a double and back',
+                  '5-8 partners set and turn single',
+                ],
+              ),
+              CcBodySection(
+                label: 'B',
+                lines: const [
+                  '9-12 circle left',
+                  '13-16 partners back to back',
+                ],
+              ),
+            ],
+          ),
+          englishDances: true,
+        );
+        final dance = mapping.dance;
+        expect(dance.meter, meter, reason: music);
+        expect(dance.musicalKey, 'G', reason: music);
+        expect(dance.phraseStructure.raw, 'A:1*8*2 + B:1*8*2', reason: music);
+        expect(
+          [
+            for (final f in (dance.figuresSource as DecodedFigures).figures)
+              f.params['beats'],
+          ],
+          [8, 8, 8, 8],
+          reason: music,
+        );
+        final codes = mapping.issues.map((i) => i.code);
+        expect(codes, contains('cc_bars_meter_mixed'), reason: music);
+        expect(codes, isNot(contains('cc_bars_meter_unstated')), reason: music);
+      }
+    });
+
+    test('meters of different bars too far apart to keep whole are none', () {
+      // Clipped, the text would keep only `3/4` and read as stating it.
+      final music = 'Meter: 3/4 ${'x' * kMaxMusicLabelLength} 6/8';
+      final mapping = mapCallersCompanionDance(
+        record(music: music),
+        englishDances: true,
+      );
+      expect(mapping.dance.meter, '');
+      final figure =
+          (mapping.dance.figuresSource as DecodedFigures).figures.single;
+      expect(figure.params['beats'], 8);
+      expect(
+        mapping.issues.map((i) => i.code),
+        contains('cc_bars_meter_unstated'),
+      );
+    });
+
+    test('meters of the same bar count as the first, with no note', () {
+      final mapping = mapCallersCompanionDance(
+        record(music: 'Meter: 2/2 or 6/8'),
+        englishDances: true,
+      );
+      expect(mapping.dance.meter, '2/2');
+      final figure =
+          (mapping.dance.figuresSource as DecodedFigures).figures.single;
+      expect(figure.params['beats'], 8);
+      expect(
+        mapping.issues.map((i) => i.code),
+        isNot(
+          anyOf(
+            contains('cc_bars_meter_mixed'),
+            contains('cc_bars_meter_unstated'),
+          ),
+        ),
+      );
     });
 
     test('bars after a beat prefix with no meter still raise the note', () {

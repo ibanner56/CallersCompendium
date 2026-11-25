@@ -107,7 +107,10 @@ the FTS and index DDL is `database.dart`.
 ```sql
 dances(id PK, title, form, formation_shape, formation_detail,
        formation_improper, progression, phrase_structure, figures_json, hook,
-       calling_notes, meter, musical_key, status, level_id NULL,
+       calling_notes, meter, musical_key, alternate_titles,
+       barnes_reference, square_kind, repeat_order, repeat_order_text,
+       new_partner, new_partner_text, singing, free_form NULL, status,
+       level_id NULL,
        tunes_json,
        created_at, updated_at, deleted_at, existence_at)
 difficulty_levels(id PK, label UNIQUE, position,
@@ -698,7 +701,8 @@ is no longer any code path that migrates from them.
   pay recorded. Shareable, so it syncs and is exported in archives and
   backups, but share files (program share file and Export JSON) omit it
   (`sanitizeProgramForShare`, maintainer decision R2-out2-export,
-  2026-10-30), and it is not part of the shared program text or PDF and
+  2026-10-30), and it is not part of the shared program text or PDF; the
+  programs CSV export carries it (`sanitizeProgramForCsv`, ruling 2, #2333), and
   `Program.duplicate` does not copy it. A backup holding pay or a v37 dialect name is written under backup
   envelope v2 (`backupSchemaVersionProgramPay`), so 0.5.2 to 0.5.4 refuse it
   instead of restoring it without them; the core archive version is unchanged,
@@ -826,7 +830,7 @@ steps that can still fire are v40 onward.
   added, no data rewritten, no derived rebuild.
 
 - v42 (ADR-006 §12, F2 and F3): adds three columns to `dances` for English
-  country dance. `formation_improper` is ECD's proper/improper checkbox
+  country dance. `formation_improper` is ECD's proper/improper flag
   (`Formation.improper`), stored apart from the shape because ECD's shapes
   name only the set; contra's shapes already say proper or improper, so a
   contra dance keeps it `0`. `meter` and `musical_key` are the tune's written
@@ -856,6 +860,43 @@ steps that can still fire are v40 onward.
   through the text index ([search.md](search.md), "Meter, key and
   interpreters").
 
+  Also in v42, before it shipped: a dance's other titles and its Barnes
+  reference (maintainer, 22 November 2026: "Alternate titles would be useful
+  generally", and a free-text field for "the book and page number for each
+  dance (in one field)"). `dances.alternate_titles` holds
+  `Dance.alternateTitles`, one title per line in the order entered, `''` for
+  none; a title never holds a line break (`normalizeAlternateTitles`), so the
+  value is plain text that cannot fail to decode. `dances.barnes_reference`
+  holds `Dance.barnesReference`, where the tune is printed in the Barnes books
+  ("BIII p. 92", or "NiB", Not in Barnes), `''` when not given and always
+  `''` for a form other than ECD (maintainer, 23 November 2026: "ECD only";
+  the `Dance` constructor clears it, `formHasBarnesReference`, and a dance
+  moved off ECD loses it when saved: "Clear it"). Both default
+  to `''`, so every existing dance has neither; other titles are stored for
+  every form. Added in the `from < 42` step, each only if absent. No derived index
+  reads them: the Title scope and All fields read the other titles, and All
+  fields the Barnes reference, from these rows with `LIKE`
+  ([search.md](search.md), "Meter, key and interpreters").
+
+  Also in v42, before it shipped: a square dance's own fields (ADR-007 §8.1).
+  `dances.square_kind` holds `Dance.squareKind` as its wire name (`main`,
+  `break`, `patter`; `main` by default); `repeat_order` and `new_partner`
+  hold `Dance.repeatOrder` and `Dance.newPartner` the same way (`unstated` by
+  default); `repeat_order_text` and `new_partner_text` hold what `other`
+  means, `''` unless the value is `other`; and `singing` is a flag, `false`
+  by default. Every existing dance reads as a main part with nothing stated.
+  `free_form` (added after them, still before v42 shipped) holds
+  `Dance.freeForm`: the caller's free-form setting, or NULL to follow the
+  kind (on for patter, off for the others); every existing dance is NULL.
+  The figure index gives a free-form square's figures no section
+  (`dance_figures.section` is `''`), as `Dance.sectionedFigures` does.
+  The values are plain text rather than an enum converter, so a value a newer
+  build wrote reads as the default instead of failing the row. They are
+  stored for every form, as ADR-007 §8.1 chose. Added in the `from < 42`
+  step, each only if absent. No derived index reads them, except that
+  `free_form` and `square_kind` decide whether the figure index gives a
+  square's figures sections.
+
   Also in v42, before it shipped: program archiving (#2218). Adds the
   nullable `programs.archived_at` column
   (`Program.archivedAt`); NULL, which every existing row gets, means not
@@ -877,6 +918,56 @@ steps that can still fire are v40 onward.
   `unarchive`); a delete's Undo does not. Added by the same `from < 42`
   step with `Migrator.addColumn`, guarded on `pragma_table_info`. No data
   rewritten, no derived rebuild.
+
+  Also in v42, before it shipped: the calendar import (#2352). Adds the
+  nullable `programs.calendar_event_key` column (`Program.calendarEventKey`):
+  a SHA-256 hex digest of the calendar event's `UID` and recurrence id that a
+  program was imported from, never the `UID` itself; NULL, which every
+  existing row gets, means not imported from a calendar. A later calendar
+  import matches on it (`ProgramRepository.calendarEventKeyStates`, which
+  counts Recently deleted programs and ignores permanently deleted ones).
+  Device Sync and backups carry it; share files drop it
+  (`sanitizeProgramForShare`); a duplicate does not copy it. The archive key
+  is written only when set, so other programs keep their wire hash; the codec
+  drops a value that is not 64 lower-case hex digits rather than refusing the
+  program. A backup holding one is written under envelope v3
+  (`backupSchemaVersionCalendarEventKeys`, the same number as archiving,
+  because v3 had not shipped). Added by the same `from < 42` step, guarded on
+  `pragma_table_info`. No data rewritten, no derived rebuild.
+
+  Also in v42, before it shipped: a program's times (#2350). Adds four
+  nullable integer columns, `programs.start_minute`, `end_minute`,
+  `lesson_minute` and `arrival_minute` (`Program.startMinute` and the others):
+  minutes after midnight, 0–1439, a wall-clock time at the hall with no time
+  zone. NULL, which every existing row gets, means not recorded. Device Sync,
+  backups and program share files carry all four; each key is written only
+  when set, so a program without times keeps its sync wire hash. They travel
+  as top-level integers, so a build that does not know them keeps them
+  verbatim (`retained_sync_fields`, sync-spec §6.7) and they need no
+  capability gate. An archive holding one is stamped core archive v8
+  (`archiveSchemaVersionProgramTimes`, the same number as the dance fields
+  above), so 0.10.0 and older warn on import and refuse a replace-restore
+  rather than drop them. A Caller's Companion re-import keeps a program's
+  times, since a `.USR` file has none. Added by the same `from < 42` step,
+  after `calendar_event_key`, each only if absent. No data rewritten, no derived rebuild.
+  Also in v42, before it shipped: the calendar import's change tracking
+  (#2354). Adds three nullable `programs` columns: `calendar_event_fingerprint`
+  (`Program.calendarEventFingerprint`, per-field truncated hashes of the
+  event's title, date, first location segment, and start and end times as
+  last imported, `v2:`; for a UTC event the date and times as written, the
+  date marked as UTC, so a reader in another time zone sees no change),
+  `calendar_written_at` (`Program.calendarWrittenAt`, the `updated_at` the
+  import last wrote; a Draft whose `updated_at` still equals it is
+  "untouched") and `calendar_flag` (`Program.calendarFlag`: `cancelled`,
+  `missing` or NULL, a free string decoded leniently so a later value never
+  refuses the program). All three sync, are kept in backups (envelope v3, as
+  for the key), and are stripped from share files; clearing the key clears
+  them. Added by the same step, after the times, each only if absent; no data
+  rewritten.
+
+  Because test builds stamped v42 before these later pieces joined it,
+  `beforeOpen` also ensures v42's pieces on every open of a file at v42 or
+  later, as it does for v39 (`v42_partial_stamp_repair_test.dart`).
 
 ## The delete model
 

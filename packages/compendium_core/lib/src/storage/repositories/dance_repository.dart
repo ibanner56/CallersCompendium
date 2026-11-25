@@ -27,7 +27,8 @@ import '../../search/fts_query.dart';
 import '../../serialization/figure_codec.dart';
 import '../figure_reparse.dart';
 import '../../sync/sync_record_kind.dart';
-import '../../taxonomy/ecd_sequence_span.dart';
+import '../../taxonomy/sequence_span.dart';
+import '../../taxonomy/param_change_rules.dart';
 import '../../taxonomy/param_types.dart';
 import '../../taxonomy/taxonomy.dart';
 import '../calling_history_scope.dart';
@@ -538,9 +539,17 @@ class DanceRepository {
       );
     }
     final resolvedId = _taxonomy.resolvedMoveId(figure);
+    // Routed to another id, it keeps what each param it leaves out meant
+    // under the id it came with (a pass through's unstated `who` stays
+    // unstated as a pass by, taxonomy v40).
+    var routed = figure.params;
+    if (resolvedId != figure.move) {
+      routed = Map<String, Object?>.of(figure.params);
+      keepOmittedMeaning(_taxonomy, figure.move, resolvedId, routed);
+    }
     // Under the id it is routed to, without the value an alias listed as a
     // move pins (a long lines stores no `formation`, taxonomy v39).
-    final params = _taxonomy.withoutListedAliasPins(resolvedId, figure.params);
+    final params = _taxonomy.withoutListedAliasPins(resolvedId, routed);
     return resolvedId != figure.move || !identical(params, figure.params)
         ? figure.copyWith(move: resolvedId, params: params)
         : figure;
@@ -701,6 +710,31 @@ class DanceRepository {
               musicalKey: Value(
                 normalizeShareableText(normalisedDance.musicalKey),
               ),
+              alternateTitles: Value(
+                normalizeShareableText(
+                  alternateTitlesColumnText(normalisedDance.alternateTitles),
+                ),
+              ),
+              barnesReference: Value(
+                normalizeShareableText(normalisedDance.barnesReference),
+              ),
+              squareKind: Value(
+                normalizeShareableText(normalisedDance.squareKind.wireName),
+              ),
+              repeatOrder: Value(
+                normalizeShareableText(normalisedDance.repeatOrder.wireName),
+              ),
+              repeatOrderText: Value(
+                normalizeShareableText(normalisedDance.repeatOrderText),
+              ),
+              newPartner: Value(
+                normalizeShareableText(normalisedDance.newPartner.wireName),
+              ),
+              newPartnerText: Value(
+                normalizeShareableText(normalisedDance.newPartnerText),
+              ),
+              singing: Value(normalisedDance.singing),
+              freeForm: Value(normalisedDance.freeForm),
               status: normalisedDance.status,
               levelId: Value(dance.difficultyLevelId),
               mixedLevel: Value(dance.mixedLevel),
@@ -1139,7 +1173,11 @@ class DanceRepository {
           final child = subFigures[s];
           groups.add((
             leaves: _leafFigures(child),
-            section: labelForFigure(beat, lengths[s], dance.phraseStructure),
+            // A free-form dance has no sections, as [Dance.sectionedFigures]
+            // gives it none.
+            section: dance.isFreeForm
+                ? ''
+                : labelForFigure(beat, lengths[s], dance.phraseStructure),
           ));
           beat += lengths[s];
         }
@@ -1205,9 +1243,9 @@ class DanceRepository {
 
   /// The beats each step of [sequence] takes, for placing it in a phrase.
   ///
-  /// A step that states its timing takes its own beats. In an English
-  /// sequence that states one span for steps with no timing of their own
-  /// ("A, B and C in bars 1–4", ADR-006 §5.5), those steps share what the
+  /// A step that states its timing takes its own beats. In an English or
+  /// square sequence that states one span for steps with no timing of their
+  /// own ([formHasSequenceSpan]), those steps share what the
   /// timed ones leave of the span, evenly and in order, so a step late in a
   /// span that crosses a phrase is placed in the later phrase rather than
   /// where the sequence starts. Where the order of the steps is all the
@@ -1216,7 +1254,7 @@ class DanceRepository {
   static List<int> _sequenceStepBeats(Figure sequence, DanceForm form) {
     final steps = sequence.subFigures;
     final untimed = steps.where((step) => !stepStatesTiming(step)).length;
-    if (form != DanceForm.ecd || untimed == 0) {
+    if (!formHasSequenceSpan(form) || untimed == 0) {
       return [for (final step in steps) step.beats];
     }
     final timed = steps
@@ -2995,6 +3033,15 @@ class DanceRepository {
       row.walkthrough.isEmpty &&
       row.meter.isEmpty &&
       row.musicalKey.isEmpty &&
+      row.alternateTitles.isEmpty &&
+      row.barnesReference.isEmpty &&
+      row.squareKind == SquareKind.main.wireName &&
+      row.repeatOrder == SquareRepeatOrder.unstated.wireName &&
+      row.repeatOrderText.isEmpty &&
+      row.newPartner == SquareNewPartner.unstated.wireName &&
+      row.newPartnerText.isEmpty &&
+      !row.singing &&
+      row.freeForm == null &&
       row.status == DanceStatus.active &&
       row.levelId == null &&
       !row.mixedLevel &&
@@ -3085,6 +3132,19 @@ class DanceRepository {
         walkthrough: Value(normalizeShareableText('')),
         meter: Value(normalizeShareableText('')),
         musicalKey: Value(normalizeShareableText('')),
+        alternateTitles: Value(normalizeShareableText('')),
+        barnesReference: Value(normalizeShareableText('')),
+        squareKind: Value(normalizeShareableText(SquareKind.main.wireName)),
+        repeatOrder: Value(
+          normalizeShareableText(SquareRepeatOrder.unstated.wireName),
+        ),
+        repeatOrderText: Value(normalizeShareableText('')),
+        newPartner: Value(
+          normalizeShareableText(SquareNewPartner.unstated.wireName),
+        ),
+        newPartnerText: Value(normalizeShareableText('')),
+        singing: const Value(false),
+        freeForm: const Value(null),
         status: const Value(DanceStatus.active),
         levelId: const Value(null),
         mixedLevel: const Value(false),
@@ -3832,7 +3892,9 @@ class DanceRepository {
   /// values. They have no effect on any other sort. [tracking]'s
   /// `orderIgnoreUndated` and `orderIgnoreUnperformed` drop a slot with no
   /// ordering date from [SearchSort.lastCalled] without changing which dances
-  /// count as called.
+  /// count as called. [currentProgramId] leaves that program's slots out of
+  /// [SearchSort.lastCalled], as it leaves them out of a [CalledFilter]
+  /// (N1-6): pass the same value.
   ///
   /// [SearchSort.title] and [SearchSort.author] compare accent-folded keys
   /// ([foldForTitleMatch]), so "École" files with **E**. When
@@ -3859,6 +3921,7 @@ class DanceRepository {
     bool performedOnly = false,
     bool requireEventDate = false,
     CallingHistoryTracking tracking = CallingHistoryTracking.defaults,
+    String? currentProgramId,
   }) async {
     final dir = direction ?? sort.defaultDirection;
     final descending = dir == SortDirection.descending;
@@ -3885,6 +3948,7 @@ class DanceRepository {
           performedOnly: performedOnly,
           requireEventDate: requireEventDate,
           tracking: tracking,
+          currentProgramId: currentProgramId,
         );
       case SearchSort.title:
         // SQL `COLLATE NOCASE` folds only ASCII case, so "École" would file
@@ -4028,6 +4092,7 @@ class DanceRepository {
     required bool performedOnly,
     required bool requireEventDate,
     required CallingHistoryTracking tracking,
+    String? currentProgramId,
   }) async {
     if (ids.isEmpty) return ids;
     // The aggregate is restricted to the incoming result `ids` (chunked
@@ -4051,10 +4116,12 @@ class DanceRepository {
             '${callingHistoryAlternateClause(slotTable: 'program_slots')}'
             '${callingHistoryEventDateClause(requireEventDate: requireEventDate, programTable: 'programs')}'
             '${callingHistoryCallerClause(caller, callerColumn: 'programs.caller')}'
+            '${currentProgramId == null ? '' : 'AND programs.id <> ? '}'
             'AND program_slots.dance_id IN ($placeholders) '
             'GROUP BY program_slots.dance_id',
             variables: [
               if (caller != null) Variable<String>(caller),
+              if (currentProgramId != null) Variable<String>(currentProgramId),
               for (final id in chunk) Variable(id),
             ],
           )
@@ -4240,6 +4307,7 @@ class DanceRepository {
     return Dance(
       id: row.id,
       title: row.title,
+      alternateTitles: alternateTitlesFromColumnText(row.alternateTitles),
       authorIds: authorIds,
       form: row.form,
       formation: Formation(
@@ -4257,6 +4325,21 @@ class DanceRepository {
       walkthrough: row.walkthrough,
       meter: row.meter,
       musicalKey: row.musicalKey,
+      barnesReference: row.barnesReference,
+      // Tolerant, like the phrase structure: a value this build does not
+      // know (a newer build's, or a hand-edited database) reads as the
+      // default rather than blocking the load.
+      squareKind: SquareKind.fromWireName(row.squareKind) ?? SquareKind.main,
+      repeatOrder:
+          SquareRepeatOrder.fromWireName(row.repeatOrder) ??
+          SquareRepeatOrder.unstated,
+      repeatOrderText: row.repeatOrderText,
+      newPartner:
+          SquareNewPartner.fromWireName(row.newPartner) ??
+          SquareNewPartner.unstated,
+      newPartnerText: row.newPartnerText,
+      singing: row.singing,
+      freeForm: row.freeForm,
       status: row.status,
       difficultyLevelId: row.levelId,
       mixedLevel: row.mixedLevel,

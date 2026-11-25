@@ -966,14 +966,15 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,643 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,659 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
   with `promenade` across and single file along the set built.
-- **53 figures registered**, plus the three containers (`modifier`,
+- **52 figures registered**, plus the three containers (`modifier`,
   `meanwhile`, and `sequence` when nested in one; `docs/taxonomy.md`,
-  "Containers"), plus 7 upstream aliases resolved to them
+  "Containers"), plus 8 upstream aliases resolved to them
   (`hand_cast` → `gate`, `long_lines` → `forward_and_back`, `meltdown_swing`,
-  `pull_by_dancers`, `pull_by_direction`, `see_saw`, `swat_the_flea`).
+  `pass_by` → `pass_through`, `pull_by_dancers`, `pull_by_direction`,
+  `see_saw`, `swat_the_flea`).
 - **Schema-aligned with `compendium_core`** (`test/io/core_taxonomy_alignment_test.dart`).
   Every move id resolves upstream, every advertised move parses, and every
   default matches the taxonomy's. The check is deliberately mapping-free: it

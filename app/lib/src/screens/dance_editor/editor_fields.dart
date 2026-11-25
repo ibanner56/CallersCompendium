@@ -178,6 +178,11 @@ class LevelDropdown extends StatelessWidget {
 /// via [onChanged] — `null` when the year is blank/invalid. A raw date picker
 /// is deliberately avoided: it would force full year/month/day, but composition
 /// dates are frequently known only to the year (or year+month).
+///
+/// With [yearOnly] it is just the Year box under its label, with no helper
+/// text, for an English dance's credits, which are years. A stored month and
+/// day are neither shown nor dropped until the year is edited: an edit emits
+/// the year alone.
 class PartialDateField extends StatefulWidget {
   const PartialDateField({
     super.key,
@@ -186,6 +191,7 @@ class PartialDateField extends StatefulWidget {
     required this.helperText,
     required this.value,
     required this.onChanged,
+    this.yearOnly = false,
   });
 
   final String fieldKey;
@@ -193,6 +199,7 @@ class PartialDateField extends StatefulWidget {
   final String helperText;
   final PartialDate? value;
   final ValueChanged<PartialDate?> onChanged;
+  final bool yearOnly;
 
   @override
   State<PartialDateField> createState() => _PartialDateFieldState();
@@ -263,6 +270,40 @@ class _PartialDateFieldState extends State<PartialDateField> {
     final showYearError = yearText.isNotEmpty && year == null;
     final dayEnabled = year != null && _month != null;
     final maxDay = dayEnabled ? _daysIn(year, _month!) : 31;
+
+    if (widget.yearOnly) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Styled as the people picker's label beside it, so the two line up.
+          ExcludeSemantics(child: FieldLabel(widget.label)),
+          Semantics(
+            label: widget.label,
+            child: TextField(
+              key: ValueKey('${widget.fieldKey}-year'),
+              controller: _yearController,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              decoration: InputDecoration(
+                labelText: l10n.danceEditorYearLabel,
+                hintText: l10n.danceEditorYearHint,
+                counterText: '',
+                errorText: showYearError
+                    ? l10n.danceEditorYearRangeError
+                    : null,
+              ),
+              onChanged: (_) => setState(() {
+                // The year is all this field offers, so an edit stores the
+                // year alone, dropping a month and day it never showed.
+                _month = null;
+                _day = null;
+                _emit();
+              }),
+            ),
+          ),
+        ],
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -439,6 +480,87 @@ class TuneEditor extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+/// Lays [children] out in rows of equal-width columns: as many columns as fit
+/// at [minChildWidth] each, up to one per child, and one child under another
+/// where only one fits. The width grows with the body text's scale, so large
+/// text stacks the fields sooner rather than squeezing them. A short last row
+/// keeps the columns' width. Children read, and take focus, row by row in
+/// their given order, which is the order they show in. Each child keeps its
+/// state, and a field its focus, when a resize moves it between rows.
+class FieldGrid extends StatefulWidget {
+  const FieldGrid({
+    super.key,
+    required this.children,
+    this.minChildWidth = 200,
+  });
+
+  final List<Widget> children;
+
+  /// The narrowest a child is laid out, at normal text size.
+  final double minChildWidth;
+
+  @override
+  State<FieldGrid> createState() => _FieldGridState();
+}
+
+class _FieldGridState extends State<FieldGrid> {
+  /// One per place in [FieldGrid.children], so a child moved from one row
+  /// (or from the stacked column) to another is moved, not built again.
+  final List<GlobalKey> _keys = [];
+
+  @override
+  Widget build(BuildContext context) {
+    final children = widget.children;
+    while (_keys.length < children.length) {
+      _keys.add(GlobalKey(debugLabel: 'field-grid-${_keys.length}'));
+    }
+    Widget child(int i) => KeyedSubtree(key: _keys[i], child: children[i]);
+    // As the credit lines measure: by the body text's scale, which Android
+    // 14's nonlinear scaling grows more than it would a width.
+    final textScale = MediaQuery.textScalerOf(context).scale(16) / 16;
+    final minWidth = widget.minChildWidth * textScale;
+    const gap = AppSpacing.sm;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final fit = ((constraints.maxWidth + gap) / (minWidth + gap)).floor();
+        final columns = fit.clamp(1, children.isEmpty ? 1 : children.length);
+        if (columns == 1) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < children.length; i++) ...[
+                if (i > 0) const SizedBox(height: AppSpacing.md),
+                child(i),
+              ],
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var start = 0; start < children.length; start += columns) ...[
+              if (start > 0) const SizedBox(height: AppSpacing.md),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var c = 0; c < columns; c++) ...[
+                    if (c > 0) const SizedBox(width: gap),
+                    Expanded(
+                      child: start + c < children.length
+                          ? child(start + c)
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }

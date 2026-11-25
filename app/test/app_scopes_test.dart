@@ -26,6 +26,8 @@ import 'package:compendium_app/src/data/date_format_scope.dart';
 import 'package:compendium_app/src/data/capitalize_figures_scope.dart';
 import 'package:compendium_app/src/data/calling_card_settings_scope.dart';
 import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
+import 'package:compendium_app/src/data/show_repertoire_scope.dart';
+import 'package:compendium_app/src/data/suggestions_scope.dart';
 import 'package:compendium_app/src/data/user_figures_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
 import 'package:compendium_app/src/data/decimal_turns_scope.dart';
@@ -46,6 +48,7 @@ import 'package:compendium_app/src/data/require_performed_for_history_scope.dart
 import 'package:compendium_app/src/data/set_list_color_coding_scope.dart';
 import 'package:compendium_app/src/data/mark_all_sets_status_scope.dart';
 import 'package:compendium_app/src/data/show_performed_toggles_scope.dart';
+import 'package:compendium_app/src/data/show_program_pay_scope.dart';
 import 'package:compendium_app/src/data/shorthand_mappings_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/data/sync_writer_lifecycle_scope.dart';
@@ -96,12 +99,17 @@ const _expectedAppScopeTypes = <Type>[
   CapitalizeFiguresScope,
   ShowGlossaryScope,
   ShowCustomFiguresScope,
+  ShowRepertoireScope,
+  SuggestionsEnabledScope,
+  SuggestionsInPerformSwapScope,
+  SuggestionSettingsScope,
   CallingCardSettingsScope,
   AggressiveBeatsUpdateScope,
   ConfirmBeforeDeleteScope,
   ColourDanceThemeScope,
   SetListColorCodingScope,
   ShowPerformedTogglesScope,
+  ShowProgramPayScope,
   MarkAllSetsStatusScope,
   ShareSetListTitleScope,
   ShareSetListCallerBandScope,

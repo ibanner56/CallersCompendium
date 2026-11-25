@@ -53,6 +53,7 @@ import 'package:compendium_app/src/data/undo_prompt_duration_scope.dart';
 import 'package:compendium_app/src/data/capitalize_figures_scope.dart';
 import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
+import 'package:compendium_app/src/data/suggestions_scope.dart';
 import 'package:compendium_app/src/data/decimal_turns_scope.dart';
 import 'package:compendium_app/src/data/default_program_caller_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart'
@@ -63,6 +64,7 @@ import 'package:compendium_app/src/data/reduce_motion_scope.dart';
 import 'package:compendium_app/src/data/set_list_color_coding_scope.dart';
 import 'package:compendium_app/src/data/mark_all_sets_status_scope.dart';
 import 'package:compendium_app/src/data/show_performed_toggles_scope.dart';
+import 'package:compendium_app/src/data/show_program_pay_scope.dart';
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
 import 'package:compendium_app/src/data/venue_entity_mode_scope.dart';
 import 'package:compendium_app/src/data/verbose_figure_rendering_scope.dart';
@@ -2471,6 +2473,16 @@ void main() {
             defaultValue: false,
           ),
           (
+            key: kSuggestionsEnabledKey,
+            read: SuggestionsEnabledScope.of,
+            defaultValue: false,
+          ),
+          (
+            key: kSuggestionsInPerformSwapKey,
+            read: SuggestionsInPerformSwapScope.of,
+            defaultValue: false,
+          ),
+          (
             key: kAggressiveBeatsUpdateKey,
             read: AggressiveBeatsUpdateScope.of,
             defaultValue: false,
@@ -2503,6 +2515,11 @@ void main() {
           (
             key: kShowPerformedTogglesKey,
             read: ShowPerformedTogglesScope.of,
+            defaultValue: true,
+          ),
+          (
+            key: kShowProgramPayKey,
+            read: ShowProgramPayScope.of,
             defaultValue: true,
           ),
           (

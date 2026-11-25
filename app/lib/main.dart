@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io' show Directory, File, Platform, exit;
 
+import 'package:clock/clock.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show TableUpdate;
 import 'package:flutter/foundation.dart';
@@ -19,6 +20,8 @@ import 'src/data/app_database.dart';
 import 'src/data/app_theme_scope.dart';
 import 'src/data/archive_intake_labels.dart';
 import 'src/data/archive_intake_service.dart';
+import 'src/data/dance_link_intake.dart';
+import 'src/export/dance_code.dart' show DanceLinkException;
 import 'src/data/backup_export_labels.dart';
 import 'src/data/backup_io.dart' show BackupSaver, saveBackupToFile;
 import 'src/data/backup_reminder.dart';
@@ -69,6 +72,7 @@ import 'src/data/program_matrix_column_config_scope.dart';
 import 'src/data/program_auto_commit_scope.dart';
 import 'src/data/set_list_color_coding_scope.dart';
 import 'src/data/show_performed_toggles_scope.dart';
+import 'src/data/show_program_pay_scope.dart';
 import 'src/data/shorthand_mappings_controller.dart';
 import 'src/data/shorthand_mappings_scope.dart';
 import 'src/data/single_instance_guard.dart';
@@ -79,6 +83,8 @@ import 'src/data/capitalize_figures_scope.dart';
 import 'src/data/show_custom_figures_scope.dart';
 import 'src/data/calling_card_settings_scope.dart';
 import 'src/data/show_glossary_scope.dart';
+import 'src/data/show_repertoire_scope.dart';
+import 'src/data/suggestions_scope.dart';
 import 'src/data/decimal_turns_scope.dart';
 import 'src/data/canonical_discouraged_terms_scope.dart';
 import 'src/data/display_defaults.dart'
@@ -93,7 +99,11 @@ import 'src/diagnostics/crash_reporter.dart';
 import 'src/diagnostics/error_log.dart';
 import 'src/licenses.dart';
 import 'src/search/dance_detail_data.dart';
+import 'src/data/calendar_startup.dart';
 import 'src/screens/app_shell.dart';
+import 'src/screens/calendar_import_screen.dart';
+import 'src/screens/calendar_startup_message.dart';
+import 'src/screens/program_summary_screen.dart';
 import 'src/screens/contradb_program_import_screen.dart';
 import 'src/screens/dance_detail_screen.dart';
 import 'src/screens/dance_reimport_flow.dart';
@@ -345,6 +355,7 @@ class CompendiumApp extends StatefulWidget {
     this.incomingFileReader,
     this.incomingFileDeleter,
     this.incomingUrlFetcher,
+    this.calendarStartupFetcher,
     this.nowOverride,
     this.appDataFactory = _defaultAppDataFactory,
     this.windowServiceFactory,
@@ -509,6 +520,12 @@ class CompendiumApp extends StatefulWidget {
   /// without real network in widget tests. Defaults to `null` in production,
   /// where the screen uses its own network-backed `fetchImportUrl`.
   final UrlFetcher? incomingUrlFetcher;
+
+  /// Fetches the feed for the startup calendar import (#2353). Defaults to
+  /// `null`, i.e. [fetchCalendarFeed]; injected in widget tests so the run
+  /// makes no network request.
+  @visibleForTesting
+  final CalendarFeedFetcher? calendarStartupFetcher;
 
   /// Test-only override for the wall clock used by the startup soft-delete
   /// sweep (see [_bootstrap]). Defaults to `null`, i.e. `DateTime.now()` in
@@ -697,6 +714,31 @@ class _CompendiumAppState extends State<CompendiumApp>
     decode: (Object? v) => v is bool ? v : false,
     encode: (v) => v,
   );
+  final _showRepertoireNotifier = PreferenceNotifier<bool>(
+    key: kShowRepertoireDashboardKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _suggestionsEnabledNotifier = PreferenceNotifier<bool>(
+    key: kSuggestionsEnabledKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _suggestionsInPerformSwapNotifier = PreferenceNotifier<bool>(
+    key: kSuggestionsInPerformSwapKey,
+    defaultValue: false,
+    decode: (Object? v) => v is bool ? v : false,
+    encode: (v) => v,
+  );
+  final _suggestionSettingsNotifier =
+      PreferenceNotifier<SuggestionSettingsRead>(
+        key: kSuggestionSettingsKey,
+        defaultValue: (settings: SuggestionSettings.defaults, isNewer: false),
+        decode: decodeSuggestionSettings,
+        encode: encodeSuggestionSettings,
+      );
   final _callingCardSettingsNotifier = PreferenceNotifier<CallingCardSettings>(
     key: kCallingCardSettingsKey,
     defaultValue: CallingCardSettings.defaults,
@@ -747,6 +789,12 @@ class _CompendiumAppState extends State<CompendiumApp>
   );
   final _showPerformedTogglesNotifier = PreferenceNotifier<bool>(
     key: kShowPerformedTogglesKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
+  );
+  final _showProgramPayNotifier = PreferenceNotifier<bool>(
+    key: kShowProgramPayKey,
     defaultValue: true,
     decode: (Object? v) => v is bool ? v : true,
     encode: (v) => v,
@@ -1382,6 +1430,10 @@ class _CompendiumAppState extends State<CompendiumApp>
     _capitalizeFiguresNotifier,
     _showGlossaryNotifier,
     _showCustomFiguresNotifier,
+    _showRepertoireNotifier,
+    _suggestionsEnabledNotifier,
+    _suggestionsInPerformSwapNotifier,
+    _suggestionSettingsNotifier,
     _callingCardSettingsNotifier,
     _aggressiveBeatsUpdateNotifier,
     _confirmBeforeDeleteNotifier,
@@ -1391,6 +1443,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _colourDanceThemeNotifier,
     _setListColorCodingNotifier,
     _showPerformedTogglesNotifier,
+    _showProgramPayNotifier,
     _markAllSetsStatusNotifier,
     _shareSetListTitleNotifier,
     _shareSetListCallerBandNotifier,
@@ -1518,7 +1571,14 @@ class _CompendiumAppState extends State<CompendiumApp>
     }
   }
 
-  void _showIncomingFileRejection(ArchiveIntakeRejectionReason reason) {
+  void _showIncomingFileRejection(ArchiveIntakeRejectionReason reason) =>
+      _showIncomingRejection(
+        (l10n) => archiveIntakeRejectionMessage(l10n, reason),
+      );
+
+  /// Shows an incoming share's refusal; [message] picks the wording, which
+  /// differs for a file and for a dance code (#2335).
+  void _showIncomingRejection(String Function(AppLocalizations l10n) message) {
     final messenger = _messengerKey.currentState;
     final messengerContext = _messengerKey.currentContext;
     if (messenger == null ||
@@ -1530,7 +1590,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     messenger.showSnackBar(
       SnackBar(
         key: const ValueKey('shared-import-error'),
-        content: Text(archiveIntakeRejectionMessage(l10n, reason)),
+        content: Text(message(l10n)),
       ),
     );
   }
@@ -1576,7 +1636,14 @@ class _CompendiumAppState extends State<CompendiumApp>
   /// source-allowlisted program or dance-page shape *before* it reaches an
   /// import pipeline. A bad share surfaces a generic snackbar (never echoing
   /// the raw input) and never navigates or writes.
+  ///
+  /// A `ccdance:` link (issue #2335) is routed first, to
+  /// [_handleIncomingDanceLink]: it carries a dance, not a page to fetch.
   Future<void> _handleIncomingUrl(String raw) async {
+    if (looksLikeDanceLink(raw)) {
+      await _handleIncomingDanceLink(raw);
+      return;
+    }
     String? programUrl;
     SharedDanceLink? danceLink;
     try {
@@ -1619,6 +1686,61 @@ class _CompendiumAppState extends State<CompendiumApp>
         builder: (_) => ContraDbProgramImportScreen(
           initialUrl: programUrl,
           programFetcher: widget.incomingUrlFetcher,
+        ),
+      ),
+    );
+  }
+
+  /// Opens a dance link (issue #2335) — the `ccdance://` link in a dance's QR
+  /// code, handed over by the phone's camera app — in the same import review
+  /// an opened share file gets ([_handleIncomingFile]). Nothing is written
+  /// until the user commits, and the result offers Undo.
+  ///
+  /// The link is **untrusted input**: any web page or app can open one.
+  /// [validateDanceLink] caps its length and inflated size before reading it,
+  /// then validates the archive as a file's bytes are. A link that cannot be
+  /// read, or an archive intake refuses, gets a snackbar that never echoes the
+  /// link. No network is involved.
+  Future<void> _handleIncomingDanceLink(String raw) async {
+    if (_incomingIntakeDisposed) return;
+    final ArchiveIntakeValidation validation;
+    try {
+      validation = await validateDanceLink(raw);
+    } on DanceLinkException catch (e, stackTrace) {
+      // Log-safe: the exception carries only its typed failure, never the link.
+      logCaughtError(e, stackTrace, source: 'main._handleIncomingDanceLink');
+      if (!mounted) return;
+      final messengerContext = _messengerKey.currentContext;
+      if (messengerContext == null || !messengerContext.mounted) return;
+      _messengerKey.currentState?.showSnackBar(
+        SnackBar(
+          key: const ValueKey('dance-link-error'),
+          content: Text(
+            danceLinkRefusalMessage(
+              AppLocalizations.of(messengerContext),
+              e.failure,
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+    if (!mounted) return;
+    if (validation.isRejected) {
+      _showIncomingRejection(
+        (l10n) => danceLinkIntakeRejectionMessage(l10n, validation.reason!),
+      );
+      return;
+    }
+    await _navigatorKey.currentState?.push(
+      MaterialPageRoute<void>(
+        builder: (_) => ImportReviewScreen(
+          sources: defaultImportSources(),
+          sharedBundle: SharedBundleImport(
+            json: validation.json!,
+            archive: validation.archive!,
+            entityCount: validation.entityCount,
+          ),
         ),
       ),
     );
@@ -1968,10 +2090,18 @@ class _CompendiumAppState extends State<CompendiumApp>
     }
     await _loadPreferences();
     await _configureSyncCoordinator();
+    // Read now: the pass the configure above started, if sync is on.
+    final launchSync = _syncStartPass;
     // Kick off the automatic background update check once per launch. It is a
     // no-op unless the user opted in (default off) and never blocks startup or
     // surfaces an error — fire-and-forget per the ADR-002 §5 privacy contract.
     unawaited(_updateController.maybeAutoCheck());
+    // The opt-in startup calendar import (#2353): off by default, at most
+    // once per launch (this tail runs once per successful bootstrap), silent
+    // on failure. A no-op, fetching nothing, unless the user turned it on and
+    // set an address. With Device Sync on, it waits (bounded) for that
+    // launch's pass, so drafts another device imported are known first.
+    unawaited(_runCalendarStartup(launchSync: launchSync));
     // Housekeeping, not part of the opt-in check: delete update-download temp
     // directories left from earlier runs (a successful download keeps its
     // installer on purpose, so they would otherwise pile up). Local, silent,
@@ -1982,6 +2112,87 @@ class _CompendiumAppState extends State<CompendiumApp>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       unawaited(_runDeferredIntegrityProbe());
+    });
+  }
+
+  /// The startup calendar import's once-per-launch gate (#2353): a failed
+  /// reset re-runs the bootstrap tail, which must not fetch again.
+  final CalendarStartupGate _calendarStartupGate = CalendarStartupGate();
+
+  /// Runs the startup calendar import (#2353), after the first frame so the
+  /// navigator and its localizations exist, and says what it found, if
+  /// anything: never a dialog, and nothing at all on failure (Settings ▸
+  /// Program ▸ Calendar records it). [launchSync] is this launch's Device
+  /// Sync pass, if any; see [awaitLaunchSyncForCalendarStartup].
+  Future<void> _runCalendarStartup({Future<void>? launchSync}) async {
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return;
+    await _calendarStartupGate.runOnce(() async {
+      final repositories = _appData.repositories;
+      // Before the clock, the language and the run's own settings reads, so
+      // all of them are as they are once the wait ends.
+      await awaitLaunchSyncForCalendarStartup(
+        repositories.settings,
+        launchSync,
+      );
+      // A reset, a writer boundary (restore, import) or a close can be what
+      // ended the wait, by disposing the coordinator: skip this launch's run
+      // rather than write beside it.
+      if (!mounted ||
+          _shutdownRequested ||
+          _syncWriterExclusive ||
+          !identical(repositories, _appData.repositories)) {
+        return;
+      }
+      final navContext = _navigatorKey.currentContext;
+      if (navContext == null || !navContext.mounted) return;
+      final l10n = AppLocalizations.of(navContext);
+      final CalendarStartupOutcome outcome;
+      try {
+        final now = clock.now();
+        outcome = await runCalendarStartup(
+          repositories,
+          fetcher: widget.calendarStartupFetcher ?? fetchCalendarFeed,
+          now: now.toUtc(),
+          today: DateTime(now.year, now.month, now.day),
+          untitledTitle: l10n.calendarImportUntitled,
+        );
+      } catch (error, stackTrace) {
+        logCaughtError(error, stackTrace, source: 'main._runCalendarStartup');
+        return;
+      }
+      final messenger = _messengerKey.currentState;
+      final shownContext = _navigatorKey.currentContext;
+      if (!mounted ||
+          messenger == null ||
+          shownContext == null ||
+          !shownContext.mounted) {
+        return;
+      }
+      presentCalendarStartupOutcome(
+        outcome: outcome,
+        messenger: messenger,
+        l10n: AppLocalizations.of(shownContext),
+        accessibleNavigation: MediaQuery.accessibleNavigationOf(shownContext),
+        repositories: repositories,
+        openReview: () => _navigatorKey.currentState?.push(
+          MaterialPageRoute<void>(
+            builder: (_) => CalendarImportScreen(
+              prefetchedBody: outcome is CalendarStartupFound
+                  ? outcome.body
+                  : null,
+              prefetchedUrl: outcome is CalendarStartupFound
+                  ? outcome.url
+                  : null,
+            ),
+          ),
+        ),
+        openProgram: (id) => _navigatorKey.currentState?.push(
+          MaterialPageRoute<void>(
+            builder: (_) => ProgramSummaryScreen(programId: id),
+          ),
+        ),
+      );
     });
   }
 
@@ -2049,7 +2260,12 @@ class _CompendiumAppState extends State<CompendiumApp>
     return run;
   }
 
+  /// The pass the latest configure started, or null when it started none.
+  /// The bootstrap tail reads it for the startup calendar import (#2353).
+  Future<void>? _syncStartPass;
+
   Future<void> _configureSyncCoordinatorNow({required bool startPass}) async {
+    _syncStartPass = null;
     await _disposeSyncCoordinator();
 
     final factory = widget.syncCoordinatorFactory;
@@ -2074,7 +2290,9 @@ class _CompendiumAppState extends State<CompendiumApp>
     _syncCoordinator = coordinator;
     _syncController.attachCoordinator(coordinator);
     if (coordinator == null || !startPass) return;
-    unawaited(_runSyncStart());
+    final pass = _runSyncStart();
+    _syncStartPass = pass;
+    unawaited(pass);
   }
 
   void _onAppResumed() {
@@ -2258,6 +2476,10 @@ class _CompendiumAppState extends State<CompendiumApp>
     _capitalizeFiguresNotifier.dispose();
     _showGlossaryNotifier.dispose();
     _showCustomFiguresNotifier.dispose();
+    _showRepertoireNotifier.dispose();
+    _suggestionsEnabledNotifier.dispose();
+    _suggestionsInPerformSwapNotifier.dispose();
+    _suggestionSettingsNotifier.dispose();
     _callingCardSettingsNotifier.dispose();
     _aggressiveBeatsUpdateNotifier.dispose();
     _confirmBeforeDeleteNotifier.dispose();
@@ -2267,6 +2489,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _colourDanceThemeNotifier.dispose();
     _setListColorCodingNotifier.dispose();
     _showPerformedTogglesNotifier.dispose();
+    _showProgramPayNotifier.dispose();
     _markAllSetsStatusNotifier.dispose();
     _shareSetListTitleNotifier.dispose();
     _shareSetListCallerBandNotifier.dispose();
@@ -2931,6 +3154,20 @@ class _CompendiumAppState extends State<CompendiumApp>
       notifier: _showCustomFiguresNotifier,
       child: child,
     ),
+    (child) =>
+        ShowRepertoireScope(notifier: _showRepertoireNotifier, child: child),
+    (child) => SuggestionsEnabledScope(
+      notifier: _suggestionsEnabledNotifier,
+      child: child,
+    ),
+    (child) => SuggestionsInPerformSwapScope(
+      notifier: _suggestionsInPerformSwapNotifier,
+      child: child,
+    ),
+    (child) => SuggestionSettingsScope(
+      notifier: _suggestionSettingsNotifier,
+      child: child,
+    ),
     (child) => CallingCardSettingsScope(
       notifier: _callingCardSettingsNotifier,
       child: child,
@@ -2955,6 +3192,8 @@ class _CompendiumAppState extends State<CompendiumApp>
       notifier: _showPerformedTogglesNotifier,
       child: child,
     ),
+    (child) =>
+        ShowProgramPayScope(notifier: _showProgramPayNotifier, child: child),
     (child) => MarkAllSetsStatusScope(
       notifier: _markAllSetsStatusNotifier,
       child: child,

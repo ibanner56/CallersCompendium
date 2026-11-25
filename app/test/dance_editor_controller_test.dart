@@ -66,6 +66,96 @@ void main() {
     return false;
   }
 
+  group("a square's own fields (ADR-007 §8.1)", () {
+    test(
+      'load, set, undo and save them; a text is saved only with `other`',
+      () async {
+        final repos = openTestRepositories();
+        final controller = DanceEditorController(
+          repositories: repos,
+          danceId: 'd1',
+          dialects: DialectsByForm.all(Dialect.larksRobins),
+          debounce: testDebounce,
+        );
+        addTearDown(controller.dispose);
+        await controller.load(
+          dance: sampleDance(id: 'd1', title: 'Square').copyWith(
+            form: DanceForm.square,
+            squareKind: SquareKind.patter,
+            repeatOrder: SquareRepeatOrder.other,
+            repeatOrderText: 'Heads once, sides once',
+            singing: true,
+          ),
+          fieldDefs: const [],
+        );
+        expect(controller.showsSquareFieldsUpFront, isTrue);
+        expect(controller.squareKind, SquareKind.patter);
+        expect(controller.repeatOrder, SquareRepeatOrder.other);
+        expect(
+          controller.repeatOrderTextController.text,
+          'Heads once, sides once',
+        );
+        expect(controller.singing, isTrue);
+
+        controller.setNewPartner(SquareNewPartner.other);
+        controller.newPartnerTextController.text = '  The original corner ';
+        controller.setRepeatOrder(SquareRepeatOrder.headsSidesHeadsSides);
+        controller.setSquareKind(SquareKind.main);
+        controller.setSinging(false);
+        var built = controller.buildDance();
+        expect(built.squareKind, SquareKind.main);
+        expect(built.repeatOrder, SquareRepeatOrder.headsSidesHeadsSides);
+        // Off `other`, the text is not saved, but the field still holds it.
+        expect(built.repeatOrderText, '');
+        expect(
+          controller.repeatOrderTextController.text,
+          'Heads once, sides once',
+        );
+        expect(built.newPartner, SquareNewPartner.other);
+        expect(built.newPartnerText, 'The original corner');
+        expect(built.singing, isFalse);
+
+        // Back on `other`, the text is saved again.
+        controller.setRepeatOrder(SquareRepeatOrder.other);
+        expect(
+          controller.buildDance().repeatOrderText,
+          'Heads once, sides once',
+        );
+
+        controller.undo();
+        expect(controller.repeatOrder, SquareRepeatOrder.headsSidesHeadsSides);
+
+        // Kept for another form, so a form changed and back loses nothing.
+        controller.setForm(DanceForm.contra);
+        expect(controller.showsSquareFieldsUpFront, isFalse);
+        built = controller.buildDance();
+        expect(built.repeatOrder, SquareRepeatOrder.headsSidesHeadsSides);
+        expect(built.newPartnerText, 'The original corner');
+      },
+    );
+
+    test('a snapshot round-trips them, as undo and drafts need', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+      controller
+        ..setForm(DanceForm.square)
+        ..setSquareKind(SquareKind.breakPart)
+        ..setNewPartner(SquareNewPartner.corner)
+        ..setSinging(true);
+      controller.repeatOrderTextController.text = 'typed';
+      final snapshot = controller.captureSnapshot();
+
+      final other = await newDanceController(repos);
+      addTearDown(other.dispose);
+      other.applySnapshot(snapshot);
+      expect(other.squareKind, SquareKind.breakPart);
+      expect(other.newPartner, SquareNewPartner.corner);
+      expect(other.singing, isTrue);
+      expect(other.repeatOrderTextController.text, 'typed');
+    });
+  });
+
   group('an undecodable transcription survives editing (#1347)', () {
     /// Loads a dance whose [column] holds text the decoder cannot read.
     /// Parameterised because the figures and tunes preservation rules are two
@@ -3043,6 +3133,28 @@ void main() {
       expect(long.data['position'], 2);
     });
 
+    test('grouping as a sequence follows the phrase the first row sits in '
+        '(23 November 2026)', () async {
+      FigureDraft step(int beats) => FigureDraft.fromFigure(
+        testFigure(move: 'swing', params: {'who': 'neighbors', 'beats': beats}),
+      );
+      final controller = await withRows([
+        step(4),
+        step(8),
+        step(4),
+        step(4),
+        step(8),
+      ]);
+      // A1 and A2 are 8 beats each, B is 16.
+      controller.setPhraseStructureText('2*4*2 + 1*8*2', typed: false);
+      controller.groupFigureWithNextAsSequence(controller.figureDrafts[0]);
+      expect(controller.figureDrafts, hasLength(5));
+      // The fourth row starts at 16, in B, where 4 + 8 fits.
+      controller.groupFigureWithNextAsSequence(controller.figureDrafts[3]);
+      expect(controller.figureDrafts, hasLength(4));
+      expect(controller.figureDrafts.last.isSequenceGroup, isTrue);
+    });
+
     test('not a blank row, which has nothing to lose', () async {
       final controller = await withRows([swing(), FigureDraft()]);
       expect(incompletePositions(controller), isEmpty);
@@ -3364,6 +3476,137 @@ void main() {
     });
   });
 
+  group('the formation follows a change of form', () {
+    test('a contra shape gives way to duple minor, proper, for ECD', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+      controller.titleController.text = 'New';
+      expect(controller.form, DanceForm.contra);
+      expect(controller.formationShape, FormationShape.dupleImproper);
+
+      controller.setForm(DanceForm.ecd);
+      expect(controller.formationShape, FormationShape.dupleMinor);
+      expect(controller.improper, isFalse);
+      // The contra shape is gone from the field's list, not kept beside it.
+      expect(
+        controller.offeredFormationShapes,
+        isNot(contains(FormationShape.dupleImproper)),
+      );
+      expect(
+        controller.buildDance().formation.shape,
+        FormationShape.dupleMinor,
+      );
+
+      controller.undo();
+      expect(controller.form, DanceForm.contra);
+      expect(controller.formationShape, FormationShape.dupleImproper);
+    });
+
+    test('a shape both forms offer is kept', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+      controller.setFormationShape(FormationShape.tripleMinor);
+
+      controller.setForm(DanceForm.ecd);
+      expect(controller.formationShape, FormationShape.tripleMinor);
+      controller.setForm(DanceForm.contra);
+      expect(controller.formationShape, FormationShape.tripleMinor);
+    });
+
+    test('an English dance still on a contra shape keeps it when changed '
+        'back to contra, or when English is chosen again', () async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Converted',
+          form: DanceForm.ecd,
+          formation: const Formation(FormationShape.becketCw),
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        debounce: testDebounce,
+      );
+      addTearDown(controller.dispose);
+      await controller.load(
+        dance: await repos.dances.getById('d1'),
+        fieldDefs: const [],
+      );
+      expect(controller.formationShape, FormationShape.becketCw);
+
+      controller.setForm(DanceForm.ecd);
+      expect(controller.formationShape, FormationShape.becketCw);
+      controller.setForm(DanceForm.contra);
+      expect(controller.formationShape, FormationShape.becketCw);
+    });
+
+    test('an English shape gives way to contra\'s first, and the checkbox '
+        'is kept for a change back', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+      controller.setForm(DanceForm.ecd);
+      controller.setFormationShape(FormationShape.threeCoupleLongways);
+      controller.setImproper(true);
+
+      controller.setForm(DanceForm.contra);
+      expect(controller.formationShape, FormationShape.dupleImproper);
+      expect(
+        controller.offeredFormationShapes,
+        isNot(contains(FormationShape.threeCoupleLongways)),
+      );
+
+      controller.setForm(DanceForm.ecd);
+      expect(controller.formationShape, FormationShape.dupleMinor);
+      expect(controller.improper, isTrue);
+    });
+
+    test('a contra shape gives way to the square set (ADR-007 §8.1)', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+      controller.setFormationShape(FormationShape.becketCw);
+
+      controller.setForm(DanceForm.square);
+      expect(controller.formationShape, FormationShape.square);
+      controller.setForm(DanceForm.contra);
+      expect(controller.formationShape, FormationShape.dupleImproper);
+    });
+
+    test('a circle is kept between English and square', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+      controller.setForm(DanceForm.ecd);
+      controller.setFormationShape(FormationShape.circle);
+
+      controller.setForm(DanceForm.square);
+      expect(controller.formationShape, FormationShape.circle);
+      controller.setForm(DanceForm.ecd);
+      expect(controller.formationShape, FormationShape.circle);
+    });
+
+    test('choosing the form the dance already has keeps its shape', () async {
+      final repos = openTestRepositories();
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+      controller.setForm(DanceForm.ecd);
+      controller.setFormationShape(FormationShape.sicilianCircle);
+      controller.setImproper(true);
+
+      controller.setForm(DanceForm.ecd);
+      expect(controller.formationShape, FormationShape.sicilianCircle);
+      expect(controller.improper, isTrue);
+    });
+  });
+
   group('timing by dance form (ADR-006 §5.5)', () {
     Future<DanceEditorController> openEcd(
       CompendiumRepositories repos,
@@ -3460,6 +3703,60 @@ void main() {
         expect(issue.data['expected'], 12);
       },
     );
+
+    test("a square's sequence keeps its span, its mismatch is warned "
+        'about, and contra counts its steps again (ADR-007 Q10)', () async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        Dance(
+          id: 'sq',
+          title: 'Square',
+          form: DanceForm.square,
+          freeForm: true,
+          figures: [
+            Figure.sequence(
+              figures: [
+                Figure(move: 'sq_forward_and_back', params: const {'beats': 8}),
+                Figure(move: 'sq_swing'),
+              ],
+              beats: 8,
+            ),
+          ],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'sq',
+        dialects: DialectsByForm.all(Dialect.larksRobins),
+        debounce: testDebounce,
+      );
+      addTearDown(controller.dispose);
+      await controller.load(
+        dance: await repos.dances.getById('sq'),
+        fieldDefs: const [],
+      );
+
+      expect(controller.figureDrafts.single.sequenceSpanStated, isTrue);
+      final issue = controller.warnings.singleWhere(
+        (w) => w.code == 'sequence_span_mismatch',
+      );
+      expect(issue.data['allTimed'], isFalse);
+      final saved = figuresOf(controller.buildDance()).single;
+      expect(saved.beats, 8);
+      expect(stepStatesTiming(saved.subFigures[1]), isFalse);
+
+      controller.setForm(DanceForm.contra);
+      final sequence = controller.figureDrafts.single;
+      expect(sequence.sequenceSpanStated, isFalse);
+      // The untimed swing takes its move's default count.
+      expect(sequence.sequenceFigures![1].untimed, isFalse);
+      expect(
+        controller.warnings.where((w) => w.code == 'sequence_span_mismatch'),
+        isEmpty,
+      );
+    });
 
     group('a typed English sequence', () {
       List<Figure> typed(String line) => parseFreeTextFigureEntry(
@@ -3564,18 +3861,40 @@ void main() {
           'pickerForm': 'contra',
         });
 
-        // A square dance uses contra's figures, so contra ones are its own.
+        // Squares have calls of their own (ADR-007 §5.1), so a contra move
+        // in a square dance is another form's, as it is in an ECD dance.
         final square = await openEcd(openTestRepositories(), [
           Figure(move: 'swing', params: const {'beats': 8}),
+          Figure(move: 'sq_swing', params: const {'beats': 8}),
         ]);
         addTearDown(square.dispose);
         square.setForm(DanceForm.square);
         expect(
-          square.warnings.where((w) => w.code == 'other_form_figures'),
+          square.warnings
+              .singleWhere((w) => w.code == 'other_form_figures')
+              .data,
+          {
+            'count': 1,
+            'figureForm': 'contra',
+            'danceForm': 'square',
+            'pickerForm': 'square',
+          },
+        );
+
+        // A stand still, the new-dance template's row, is not counted in a
+        // square dance until squares have a placeholder of their own.
+        final squareTemplate = await openEcd(openTestRepositories(), [
+          Figure(move: 'stand_still', params: const {'beats': 8}),
+          Figure(move: 'sq_swing', params: const {'beats': 8}),
+        ]);
+        addTearDown(squareTemplate.dispose);
+        squareTemplate.setForm(DanceForm.square);
+        expect(
+          squareTemplate.warnings.where((w) => w.code == 'other_form_figures'),
           isEmpty,
         );
 
-        // English figures in a square dance: its picker offers contra's.
+        // English figures in a square dance: its picker offers the squares'.
         final squareEcd = await openEcd(openTestRepositories(), [
           Figure(move: 'ecd_lead', params: const {'beats': 4}),
         ]);
@@ -3589,9 +3908,34 @@ void main() {
             'count': 1,
             'figureForm': 'ecd',
             'danceForm': 'square',
-            'pickerForm': 'contra',
+            'pickerForm': 'square',
           },
         );
+      },
+    );
+
+    test(
+      'a square dance warns of a figure across a phrase (ADR-007 §5.3)',
+      () async {
+        final controller = await openEcd(openTestRepositories(), [
+          Figure(move: 'ecd_honor', params: const {'beats': 12}),
+          Figure(move: 'ecd_lead', params: const {'beats': 8}),
+        ]);
+        addTearDown(controller.dispose);
+        bool crosses() =>
+            controller.warnings.any((w) => w.code == figureCrossesPhraseCode);
+        expect(crosses(), isFalse);
+
+        controller.setForm(DanceForm.square);
+        expect(
+          controller.warnings
+              .singleWhere((w) => w.code == figureCrossesPhraseCode)
+              .data,
+          {'position': 2, 'label': 'A1'},
+        );
+
+        controller.setForm(DanceForm.contra);
+        expect(crosses(), isFalse);
       },
     );
 

@@ -137,6 +137,25 @@ final Map<String, DataClassification> settingsClassifications = {
   'capitalize_figures': _preference,
   'show_glossary': _preference,
   'show_custom_figures': _preference,
+  'show_repertoire_dashboard': _preference,
+  // Experimental Suggestions (#2343): the toggle, and what the builder's
+  // Suggested sort looks for; and whether Perform's swap sheet orders by it
+  // (#2348).
+  'suggestions_enabled': _preference,
+  'suggestions_in_perform_swap': _preference,
+  'suggestion_settings': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'The user\'s chosen weights for the program builder\'s Suggested '
+        'sort (Off / A little / A lot per factor, the difficulty curve\'s '
+        'shape and the venue window), plus a reserved list of preferences '
+        'that will hold saved-search ids. How the user likes dances '
+        'suggested, the same on every device, so it travels like any '
+        'preference. Ranking reads calling history and venues locally and '
+        'stores nothing.',
+  ),
   'calling_card_print': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.appUser,
@@ -352,10 +371,19 @@ final Map<String, DataClassification> settingsClassifications = {
     subject: DataSubject.appUser,
     egress: EgressClass.shareable,
     note:
-        'User-authored semantic slot template for manually created programs. '
-        'It contains selected dance references and caller notes, so it travels '
-        'with the user preference in local backups.',
+        'Legacy user-authored semantic slot template for manually created '
+        'programs (the Starting program). No longer written: it is shown as '
+        'the first program template and copied into one at the user\'s first '
+        'change to their templates (#2337), and left in place so a device on '
+        'an older build keeps it. It contains selected dance '
+        'references and caller notes, so it travels with the user preference '
+        'in local backups.',
   ),
+  // Program templates (#2337): the templates' order (a list of template ids)
+  // and the default template's id (or `blank`). The templates themselves are
+  // the `program_template:` prefix below.
+  'program_template_order': _preference,
+  'program_template_default': _preference,
   'auto_size_perform_cards': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.appUser,
@@ -381,6 +409,8 @@ final Map<String, DataClassification> settingsClassifications = {
         'unlike auto_size_perform_cards it does not depend on screen size.',
   ),
   'show_program_slot_caller_notes': _preference,
+  // Which Keep items start on in Perform's swap sheet (#2346).
+  'perform_swap_defaults': _preference,
   'auto_commit_program_changes': _preference,
   'perform_canonical_view': DataClassification(
     term: DpvTerm.nonPersonal,
@@ -451,7 +481,8 @@ final Map<String, DataClassification> settingsClassifications = {
     egress: EgressClass.shareable,
     note:
         'A behaviour preference: whether a shared or copied set list (the text '
-        'export) includes the date and venue. It names no person and holds no content. It '
+        'export) includes the date, the program\'s start, end and lesson '
+        'times, and the venue. It names no person and holds no content. It '
         'never governs the .ccshare or JSON bundle, which always carries the '
         'whole program, and it follows the caller rather than the screen, so '
         'it travels like the other sharing preferences.',
@@ -463,6 +494,7 @@ final Map<String, DataClassification> settingsClassifications = {
   'history_order_ignore_undated': _preference,
   'history_order_ignore_unperformed': _preference,
   'show_performed_toggles': _preference,
+  'show_program_pay': _preference,
   'track_history_for_all_callers': _preference,
   'venue_call_count': _preference,
 
@@ -479,6 +511,30 @@ final Map<String, DataClassification> settingsClassifications = {
   // data), so it gets the same classification.
   'ecd_convert_prompt_dismissed': _backupLocalState,
   'update_auto_check': _backupLocalState,
+  'calendar_feed_url': const DataClassification(
+    term: DpvTerm.unclassifiedPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.deviceLocal,
+    note:
+        'The address of the online calendar the calendar import reads (#2352). '
+        'Withheld for what it contains: a private calendar\'s secret address '
+        'embeds an access token. deviceLocal, not deviceScoped: it means the '
+        'same on another device. Never synced, so each device configures its '
+        'own (one address per device, maintainer decision); kept out of backup '
+        'files too, by the maintainer\'s decision (issue draft review, '
+        '2026-11-22), so a restore asks for it again (kBackupSettingsDenylist); '
+        'redacted from diagnostics (collectSensitiveTerms) and never put into '
+        'a message.',
+  ),
+  'calendar_import_window_months': _preference,
+  // The startup calendar run (#2353): per-installation consent to a network
+  // fetch, like update_auto_check, and what it does, which goes with it.
+  'calendar_import_on_startup': _backupLocalState,
+  'calendar_startup_mode': _backupLocalState,
+  // This installation's runs: meaningless on another device.
+  'calendar_last_result': _installState,
+  'calendar_startup_failures': _installState,
+  'calendar_import_title_filter': _preference,
   'update_beta_channel': _backupLocalState,
   'update_dismissed_version': _backupLocalState,
   // The end-of-life date the update manifest announced for *this build*. It
@@ -523,6 +579,7 @@ final Map<String, DataClassification> settingsClassifications = {
   '__taxonomy_v38_canonical_rebuild_done__': _installState,
   '__taxonomy_v39_canonical_rebuild_done__': _installState,
   '__ecd_taxonomy_canonical_rebuild_done__': _installState,
+  '__square_taxonomy_canonical_rebuild_done__': _installState,
   '__taxonomy_v35_figure_normalization_done__': _installState,
   '__callersbox_roll_away_role_repair_done__': _installState,
   '__normalisation_derived_index_repair_done__': _installState,
@@ -576,6 +633,18 @@ final Map<String, DataClassification> settingsPrefixClassifications = {
         '(program_editor_draft:<id>, or program_editor_draft:new:<editor id> '
         'for a program not yet saved). Same rationale as editor_draft:.',
   ),
+  // One program template per key (#2337), keyed by the template's id.
+  'program_template:': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'A user-authored program template (program_template:<id>): its name '
+        'and an ordered list of slots — dance references, caller notes, '
+        'breaks and free text, which can contain whatever the caller types. '
+        'The user\'s own planning data; it syncs to their devices and travels '
+        'in local backups, like the Starting program it replaces.',
+  ),
   // Each sync device's capability record (#709): which sync capabilities its
   // build understands, so a device holds back data a peer could not read.
   'sync_capabilities:': const DataClassification(
@@ -594,6 +663,28 @@ final Map<String, DataClassification> settingsPrefixClassifications = {
         'removed from the store. Erased, not tombstoned, on detach '
         '(SyncLocalRepository.clearOnDetach), so the device ids of a store '
         'this device has left never reach the next one.',
+  ),
+  // One saved search per key (#2325): the user's own search, stored under a
+  // name. Shareable user configuration, like custom_dialects, behind the
+  // savedSearches.v1 sync capability.
+  'saved_search:': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'One saved search per key (saved_search:<id>): the user\'s own search '
+        'text, filters and sort under a name they chose, with the ids of '
+        'their tags, authors, sources, difficulty levels, venue records, '
+        'custom fields and figures of their own, and the folded text of a '
+        'venue typed by name (text:<venue>). Their own configuration, which '
+        'follows them to their other devices. The search text and custom-field '
+        'values are free text the user typed, so they can contain a name (an '
+        'Author search for a choreographer): the subject is the app user, '
+        'whose search it is, as the maintainer classified it, and nothing '
+        'else here names anyone. A '
+        'deletion is a tombstone that keeps the value until the record is '
+        'purged. Held back from peers until every device advertises '
+        'savedSearches.v1.',
   ),
 };
 

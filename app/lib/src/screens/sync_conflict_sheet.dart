@@ -816,7 +816,7 @@ class _ConflictGroupTile extends StatelessWidget {
     // One of the user's own figures is named in canonical role words (#709),
     // read in the active dialect as the Glossary shows it.
     return group.kind == SyncRecordKind.glossaryEntry
-        ? syncConflictFreeText(context, value)
+        ? syncConflictFreeText(context, syncConflictEntryForm(body), value)
         : value;
   }
 }

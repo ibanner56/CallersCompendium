@@ -21,6 +21,7 @@ class UserFigureArgumentEditor extends StatelessWidget {
     super.key,
     required this.keyPrefix,
     required this.param,
+    required this.form,
     required this.value,
     required this.onChanged,
     required this.dialect,
@@ -33,6 +34,10 @@ class UserFigureArgumentEditor extends StatelessWidget {
   /// Stem of the editor's key: it is `<keyPrefix>-<param key>`.
   final String keyPrefix;
   final UserFigureParam param;
+
+  /// The figure's form ([DanceForm.name]): the groups of dancers a dancer set
+  /// offers are its form's ([userFigureDancerChoices]).
+  final String form;
   final Object? value;
   final ValueChanged<Object?> onChanged;
   final Dialect dialect;
@@ -55,12 +60,32 @@ class UserFigureArgumentEditor extends StatelessWidget {
     false => l10n.userFigureEditorFlagOff,
     final String token => figureParamChoiceLabel(
       l10n,
-      ParamSpec(param.kind, defaultValue: null),
+      param.bareSpecIn(form),
       dialect,
       token,
     ),
     _ => '$value',
   };
+
+  /// [spec] without the "not stated" value, so a dance's argument offers no
+  /// Clear button that would store it (#2294): English's groups of dancers
+  /// include it, contra's never did, and a use of a figure of your own states
+  /// its group or leaves it to the figure's default. The value is still one
+  /// the figure accepts; the picker just never writes it.
+  static ParamSpec _withoutNotStated(ParamSpec spec) {
+    final choices = spec.choices;
+    if (choices == null || !choices.contains(ParamVocab.unspecified)) {
+      return spec;
+    }
+    return ParamSpec(
+      spec.kind,
+      defaultValue: spec.defaultValue,
+      choices: [
+        for (final c in choices)
+          if (c != ParamVocab.unspecified) c,
+      ],
+    );
+  }
 
   String get _key => '$keyPrefix-${param.key}';
 
@@ -104,8 +129,15 @@ class UserFigureArgumentEditor extends StatelessWidget {
           onChanged: (text) => onChanged(text.isEmpty ? null : text),
         );
       case _ when allowNone:
-        final domain = paramDomain(ParamSpec(param.kind, defaultValue: null));
-        final values = [...?domain];
+        final domain = paramDomain(param.bareSpecIn(form));
+        // "Not stated" is a value a parameter may hold but never one a picker
+        // offers (#741, as [figureParamSelectableChoices] does for text
+        // domains; this domain also holds numbers): "no default" already says
+        // it, and an English figure's groups include it.
+        final values = [
+          for (final v in domain ?? const <Object>{})
+            if (v != ParamVocab.unspecified) v,
+        ];
         return AppDropdownField<Object?>(
           key: ValueKey(_key),
           value: values.contains(value) ? value : null,
@@ -142,16 +174,16 @@ class UserFigureArgumentEditor extends StatelessWidget {
         return FigureParamEditor(
           keyPrefix: keyPrefix,
           paramKey: param.key,
-          spec: ParamSpec(
-            param.kind,
-            defaultValue: null,
-            choices: param.kind == ParamKind.fraction
-                ? [
+          spec: param.kind == ParamKind.fraction
+              ? ParamSpec(
+                  param.kind,
+                  defaultValue: null,
+                  choices: [
                     for (final v in ParamVocab.fractions)
                       if (offersFractionChoice(v, value)) v,
-                  ]
-                : null,
-          ),
+                  ],
+                )
+              : _withoutNotStated(param.bareSpecIn(form)),
           value: value,
           onChanged: onChanged,
           dialect: dialect,

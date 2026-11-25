@@ -10,13 +10,16 @@ import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/show_custom_figures_scope.dart';
+import '../glossary/custom_figures.dart';
 import '../glossary/cc_term_import.dart';
 import '../glossary/user_figure_import.dart';
 import '../theme/app_spacing.dart';
 import 'import_cc_terms_screen.dart';
 import 'import_user_figures_screen.dart';
 import '../data/callersbox_online.dart';
+import '../data/dance_link_intake.dart';
 import '../data/dance_reimport.dart';
+import '../export/dance_code.dart' show DanceLinkException;
 import '../data/import_diagnostic_labels.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
@@ -46,6 +49,7 @@ import '../published_collections/published_collection_manifest.dart';
 import '../published_collections/published_collection_service.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_shapes.dart';
+import 'import_csv_mapping.dart';
 import '../theme/destructive_button_style.dart';
 import '../widgets/app_dropdown_field.dart';
 
@@ -260,7 +264,9 @@ class ImportReviewScreen extends StatefulWidget {
 typedef ArchiveMapDecoder =
     ArchiveReadResult Function(Map<String, Object?> root);
 
-enum _Phase { input, planning, review, committing }
+/// [mapping] is the spreadsheet import's map-columns step (#2329), between
+/// [input] and [planning].
+enum _Phase { input, mapping, planning, review, committing }
 
 /// The action the user chose (or that was defaulted) for one record.
 enum _ActionKind { create, reimport, link, duplicate, skip, variation }
@@ -347,9 +353,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   bool _picking = false;
   bool _fetching = false;
 
-  /// The bytes of a picked binary payload for a byte source (Caller's Companion
-  /// `.USR`), or `null` when none is chosen / the source is text-based. Byte
-  /// sources plan/commit from these bytes instead of [_pasteController]'s text.
+  /// The bytes of a picked file for a byte source (Caller's Companion `.USR`,
+  /// or a spreadsheet), or `null` when none is chosen / the source is
+  /// text-based. Byte sources plan/commit from these bytes instead of
+  /// [_pasteController]'s text (a spreadsheet through its decoded text).
   Uint8List? _payloadBytes;
 
   /// The archive [_plan] read from a Caller's Companion `.USR` (without its
@@ -371,6 +378,17 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// **Never write directly** outside [_refreshPickedBundle] and the seed paths
   /// that reset it to null.
   SharedBundleImport? _cachedPickedBundle;
+
+  /// The bundle a dance link pasted into this screen carried (issue #2335),
+  /// decoded and validated by [_openDanceLink]. It stands in for
+  /// [ImportReviewScreen.sharedBundle], which a link pasted here cannot set,
+  /// and like it is authoritative only while the paste field still holds its
+  /// JSON.
+  SharedBundleImport? _linkBundle;
+
+  /// The shared bundle this screen was seeded with: the share target's, else a
+  /// pasted dance link's.
+  SharedBundleImport? get _seededBundle => widget.sharedBundle ?? _linkBundle;
 
   /// The text [_cachedPickedBundle] was computed from (null before the first
   /// plan). Lets a re-plan of unchanged text (e.g. the error screen's back
@@ -400,7 +418,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// original shared bundle (issue #880).
   SharedBundleImport? get _effectiveSharedBundle {
     if (_isPublishedImport) return null;
-    final sharedBundle = widget.sharedBundle;
+    final sharedBundle = _seededBundle;
     if (sharedBundle != null && _pasteController.text == sharedBundle.json) {
       return sharedBundle;
     }
@@ -457,6 +475,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// True when the selected source imports from a picked binary file rather than
   /// pasted/fetched text (governs the input UI and which plan path runs).
   bool get _isByteSource => _selected.bytePicker != null;
+
+  /// Whether the source is planned as a spreadsheet, through the map-columns
+  /// step: a CSV (#2329), or a text or Markdown file read into the same
+  /// columns (#2330).
+  bool get _isSpreadsheetSource =>
+      _selected.kind == ImportSourceKind.csv ||
+      _selected.kind == ImportSourceKind.textDocument;
 
   /// True when the selected source's payload is typed by the user rather than
   /// picked or fetched (the pasted title list, issue #823). Governs the input
@@ -527,6 +552,29 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   bool _payloadFromFile = false;
 
   _Phase _phase = _Phase.input;
+
+  /// A spreadsheet import's decoded text, once its file has been read
+  /// ([decodeCsvBytes]); the map-columns step reads it.
+  String? _csvText;
+
+  /// A text or Markdown file's decoded text (#2330), kept so the map-labels
+  /// step can read it again from another starting point.
+  String? _textSource;
+
+  /// Where each dance in [_textSource] starts ([readTextDocument]'s
+  /// `danceLevel`), and the choices the file offers.
+  int _textLevel = 0;
+  List<int> _textLevels = const [];
+
+  /// The caller's custom fields, offered as targets on the map-columns step.
+  List<CustomFieldDef> _csvFields = const [];
+
+  /// The caller's configured difficulty levels, for a Level column.
+  List<DifficultyLevel> _csvLevels = const [];
+
+  /// The column mapping the caller confirmed. Planning and committing a
+  /// spreadsheet use it; going back to the input step clears it.
+  CsvImportMapping? _csvMapping;
 
   ImportBatchResult? _batch;
   List<_RowChoice> _choices = const [];
@@ -767,6 +815,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         setState(() {
           _payloadBytes = usrBytes;
           _usrArchive = null;
+          // A new file is mapped afresh (#2329).
+          _csvMapping = null;
+          _csvText = null;
+          _textSource = null;
         });
         return;
       }
@@ -830,8 +882,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     });
   }
 
-  /// Picks the raw bytes of a binary payload for a byte source (Caller's
-  /// Companion `.USR`). Uses the screen-level [ImportReviewScreen.bytePicker]
+  /// Picks the raw bytes of a file for a byte source (Caller's Companion
+  /// `.USR`, or a spreadsheet). Uses the screen-level [ImportReviewScreen.bytePicker]
   /// test seam when provided, else the selected source's own
   /// [ImportSource.bytePicker].
   Future<void> _chooseUsrFile() async {
@@ -846,6 +898,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       setState(() {
         _payloadBytes = bytes;
         _usrArchive = null;
+        // A new file is mapped afresh (#2329).
+        _csvMapping = null;
+        _csvText = null;
+        _textSource = null;
       });
     } on ImportFileTooLargeException catch (e, stackTrace) {
       logCaughtError(
@@ -878,10 +934,77 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     }
   }
 
+  /// Reads a dance link (issue #2335) pasted into the link or text field and,
+  /// when it holds a dance, seeds its bundle and plans it: the same review an
+  /// opened share file gets, so nothing is written until the user commits.
+  /// The link is untrusted ([validateDanceLink] caps and validates it); one
+  /// that cannot be read leaves the input as it was and says why. No network.
+  Future<void> _openDanceLink(String link) async {
+    final l10n = AppLocalizations.of(context);
+    String? refusal;
+    SharedBundleImport? bundle;
+    try {
+      final validation = await validateDanceLink(link);
+      if (validation.isRejected) {
+        refusal = danceLinkIntakeRejectionMessage(l10n, validation.reason!);
+      } else {
+        bundle = SharedBundleImport(
+          json: validation.json!,
+          archive: validation.archive!,
+          entityCount: validation.entityCount,
+        );
+      }
+    } on DanceLinkException catch (e, stackTrace) {
+      // Log-safe: the exception carries only its typed failure, never the link.
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'import_review_screen._openDanceLink',
+      );
+      refusal = danceLinkRefusalMessage(l10n, e.failure);
+    }
+    if (!mounted) return;
+    if (bundle == null) {
+      setState(() {
+        _phase = _Phase.input;
+        if (_isPastedTextSource) {
+          _titleListError = refusal;
+        } else {
+          _fetchError = refusal;
+        }
+      });
+      return;
+    }
+    // A dance link is a share file in another form: it goes to the source a
+    // picked `.ccshare` goes to.
+    ImportSource? shareSource;
+    for (final source in widget.sources) {
+      if (source.kind == ImportSourceKind.genericJson) shareSource = source;
+    }
+    if (shareSource != null && shareSource != _selected) {
+      _switchSourceForPickedFile(shareSource);
+    }
+    final seeded = bundle;
+    setState(() {
+      _linkBundle = seeded;
+      _cachedPickedBundle = null;
+      _bundleMemoText = null;
+      _pasteController.text = seeded.json;
+      _urlController.clear();
+      _sourceUri = null;
+      _payloadFromFile = true;
+      _fetchError = null;
+      _titleListError = null;
+    });
+    await _plan();
+  }
+
   Future<void> _fetchFromUrl() async {
     final fetcher = widget.fetcher ?? fetchImportUrl;
     final l10n = AppLocalizations.of(context);
     final input = _urlController.text.trim();
+    // A dance link is read here, never fetched (issue #2335).
+    if (looksLikeDanceLink(input)) return _openDanceLink(input);
     // The source this request is for; the failure is worded for it. (The
     // dropdown is disabled while fetching, so this is request-local by intent
     // rather than because the selection can change mid-flight.)
@@ -974,10 +1097,23 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     } else if (payload.trim().isEmpty) {
       return;
     }
+    // A dance link pasted into the text field (issue #2335) is read here, with
+    // no network, before any source sees it: the title-list source would
+    // otherwise look it up online as a title.
+    if (!_isByteSource &&
+        publishedBytes == null &&
+        looksLikeDanceLink(payload)) {
+      return _openDanceLink(payload);
+    }
     if (_isPastedTextSource) {
       _cachedPickedBundle = null;
       _bundleMemoText = null;
       return _planTitleList(payload);
+    }
+    // A spreadsheet is mapped column by column before it is planned (#2329),
+    // and a text file label by label (#2330).
+    if (_isSpreadsheetSource && _csvMapping == null) {
+      return _openCsvMapping(bytes!);
     }
     // A Caller's Companion library often types its English dances "Contra", so
     // the person is asked once per file (ADR-006 W6, Hudson 2026-11-19).
@@ -1008,9 +1144,16 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         difficultyLevels: _repos.difficultyLevels,
       );
       final index = await pipeline.buildDedupeIndex();
-      // Byte sources (Caller's Companion `.USR`) carry the raw file on
+      // A spreadsheet carries its decoded text and its column mapping; the
+      // other byte source (Caller's Companion `.USR`) carries the raw file on
       // `options['bytes']`; text sources carry the pasted/fetched payload.
-      final request = _isByteSource
+      final csvMapping = _csvMapping;
+      final request = _isSpreadsheetSource
+          ? ImportRequest(
+              payload: _csvText,
+              options: {CsvAdapter.mappingOption: csvMapping!},
+            )
+          : _isByteSource
           ? ImportRequest(
               options: {
                 'bytes': bytes!,
@@ -1024,7 +1167,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       if (_isByteSource || _isPublishedImport) {
         _cachedPickedBundle = null;
         _bundleMemoText = null;
-      } else if (widget.sharedBundle?.json != payload) {
+      } else if (_seededBundle?.json != payload) {
         _refreshPickedBundle(payload);
       }
       final adapterFactory =
@@ -1097,6 +1240,113 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         _phase = _Phase.review;
       });
     }
+  }
+
+  /// Reads a picked spreadsheet and opens the map-columns step (#2329). A
+  /// file that is too large or not UTF-8 is refused here with its own message,
+  /// and nothing is planned.
+  Future<void> _openCsvMapping(Uint8List bytes) async {
+    final String text;
+    String? source;
+    var level = 0;
+    try {
+      if (_selected.kind == ImportSourceKind.textDocument) {
+        source = decodeTextDocumentBytes(bytes);
+        level = detectTextDocumentDanceLevel(source);
+        text = _textDocumentAsCsv(source, level);
+      } else {
+        text = decodeCsvBytes(bytes);
+      }
+    } on TextDocumentReadException catch (e, stackTrace) {
+      logCaughtErrorTypeOnly(
+        e,
+        stackTrace,
+        source: 'import_review_screen._openCsvMapping',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          key: const ValueKey('import-text-unreadable'),
+          content: Text(
+            textDocumentReadFailureMessage(AppLocalizations.of(context), e),
+          ),
+        ),
+      );
+      return;
+    } on CsvReadException catch (e, stackTrace) {
+      logCaughtErrorTypeOnly(
+        e,
+        stackTrace,
+        source: 'import_review_screen._openCsvMapping',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          key: const ValueKey('import-csv-unreadable'),
+          content: Text(csvReadFailureMessage(AppLocalizations.of(context), e)),
+        ),
+      );
+      return;
+    }
+    final fields = await _repos.customFieldDefs.listAll();
+    final levels = await _repos.difficultyLevels.listAll();
+    if (!mounted) return;
+    setState(() {
+      _csvText = text;
+      _textSource = source;
+      _textLevel = level;
+      _textLevels = source == null
+          ? const []
+          : [...textDocumentHeadingLevels(source), 0];
+      _csvFields = fields;
+      _csvLevels = levels;
+      _phase = _Phase.mapping;
+    });
+  }
+
+  /// Reads the text file again with its dances starting at [level], chosen
+  /// on the map-labels step. A file that reads past a cap from there is
+  /// refused with its message, and the step keeps the last good reading.
+  bool _rereadTextDocument(int level) {
+    final source = _textSource;
+    if (source == null) return false;
+    if (level == _textLevel) return true;
+    try {
+      final text = _textDocumentAsCsv(source, level);
+      setState(() {
+        _csvText = text;
+        _textLevel = level;
+      });
+      return true;
+    } on TextDocumentReadException catch (e, stackTrace) {
+      logCaughtErrorTypeOnly(
+        e,
+        stackTrace,
+        source: 'import_review_screen._rereadTextDocument',
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          key: const ValueKey('import-text-unreadable'),
+          content: Text(
+            textDocumentReadFailureMessage(AppLocalizations.of(context), e),
+          ),
+        ),
+      );
+      return false;
+    }
+  }
+
+  /// A text or Markdown file (#2330) as the spreadsheet the map-columns step
+  /// reads: its fixed columns named in the UI language, its dances starting
+  /// at [level].
+  String _textDocumentAsCsv(String source, int level) {
+    final l10n = AppLocalizations.of(context);
+    return textDocumentToCsv(
+      readTextDocument(source, danceLevel: level),
+      titleColumn: l10n.csvColumnTitle,
+      notesColumn: l10n.csvColumnCallingNotes,
+      figuresColumn: l10n.csvColumnFigures,
+    );
   }
 
   /// Plans a pasted list of dance titles (issue #823): each title is matched
@@ -1289,6 +1539,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _pasteController.clear();
     }
     _phase = _Phase.input;
+    _csvMapping = null;
+    _csvText = null;
+    _textSource = null;
     _batch = null;
     _titleList = null;
     _programLineOfRow = const [];
@@ -1383,11 +1636,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           UnreadableFigures() => const <Figure>[],
         },
         oldStructure: target.phraseStructure,
+        oldFreeForm: target.isFreeForm,
         newFigures: switch (draftDance.figuresSource) {
           DecodedFigures(:final figures) => figures,
           UnreadableFigures() => const <Figure>[],
         },
         newStructure: draftDance.phraseStructure,
+        newFreeForm: draftDance.isFreeForm,
         taxonomy: shippedTaxonomies.anyForm,
         renderer: renderer,
         // Lark and robin when the incoming dance's choreographer asked.
@@ -1750,6 +2005,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       difficultyLevels: _repos.difficultyLevels,
     );
     final isUsr = _selected.adapterFactory() is CallersCompanionUsrAdapter;
+    // A spreadsheet row carries placeholder tag and field ids that only the
+    // CSV importer resolves (#2329); a plain pipeline commit would be refused.
+    final csvMapping = _selected.adapterFactory() is CsvAdapter
+        ? _csvMapping
+        : null;
     try {
       final rowBatch = ImportBatchResult(records: [plan]);
       final now = DateTime.now().toUtc();
@@ -1772,6 +2032,20 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               resolutions: resolutions,
               defaultTagIds: defaultTagIds,
             )
+          : csvMapping != null
+          ? (await CsvImporter(
+                  pipeline,
+                  _repos.tags,
+                  _repos.customFieldDefs,
+                ).commit(
+                  rowBatch,
+                  mapping: csvMapping,
+                  now: now,
+                  newId: uuidV4,
+                  resolutions: resolutions,
+                  defaultTagIds: defaultTagIds,
+                ))
+                .session
           : await pipeline.commit(
               rowBatch,
               now: now,
@@ -1953,6 +2227,32 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             source: 'import_review_screen._maybeAddTerms',
           );
         }
+      } else if (adapter is CsvAdapter) {
+        final importer = CsvImporter(
+          pipeline,
+          _repos.tags,
+          _repos.customFieldDefs,
+        );
+        final mapping = _csvMapping;
+        if (mapping == null) {
+          throw StateError('Committing a spreadsheet that was never mapped.');
+        }
+        final result = await importer.commit(
+          commitBatch,
+          mapping: mapping,
+          now: DateTime.now().toUtc(),
+          newId: uuidV4,
+          resolutions: resolutions,
+          defaultTagIds: await resolveDefaultImportTagIds(_repos),
+          onProgress: _onCommitProgress,
+        );
+        if (!mounted) return;
+        setState(() => _phase = _Phase.review);
+        await _showResult(
+          session: result.session,
+          skipped: skipped,
+          onUndo: () => importer.undo(result),
+        );
       } else if (adapter is PublishedCollectionAdapter) {
         final metadata = adapter.metadata;
         final importer = PublishedCollectionImporter(pipeline);
@@ -2423,38 +2723,19 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       return null;
     }
     if (!mounted) return null;
-    final dialects = [
-      ?ActiveDialectScope.maybeOf(context)?.forForm(DanceForm.contra),
-      ...?DialectLibraryScope.maybeOf(context)?.allCustomDialects,
-    ];
+    // As the Glossary checks them: the user's own dialects, and each
+    // figure's own form's active dialect (#2294).
+    final byForm = ActiveDialectScope.maybeOf(context);
     final tokens = ShorthandMappingsScope.tokensOf(context);
-    final nameTaken = {
-      for (final item in items)
-        if (item.kind != UserFigureImportKind.same &&
-            glossaryNameCollisions(
-              item.incoming.name,
-              taxonomy: contraTaxonomy,
-              dialects: dialects,
-              shorthandTokens: tokens,
-              // Taking theirs replaces the figure with the same id, so its
-              // name is not a clash; a copy's id belongs to another entry.
-              userEntryNames: [
-                for (final entry in live)
-                  if (item.kind != UserFigureImportKind.differs ||
-                      entry.id != item.incoming.id)
-                    entry.name,
-                // Another figure this file brings may take the name too.
-                for (final other in items)
-                  if (other.kind != UserFigureImportKind.same &&
-                      !identical(other, item))
-                    other.incoming.name,
-              ],
-              exceptUserFigureId: item.kind == UserFigureImportKind.copy
-                  ? null
-                  : item.incoming.id,
-            ).isNotEmpty)
-          item.incoming.id,
-    };
+    final nameTaken = importedFiguresWithTakenNames(
+      items,
+      live: live,
+      dialects: [...?DialectLibraryScope.maybeOf(context)?.allCustomDialects],
+      dialectsFor: (payload) => [
+        ?byForm?.forForm(glossaryEntryDanceForm(payload)),
+      ],
+      shorthandTokens: tokens,
+    );
     final choices = await Navigator.of(context).push<UserFigureImportChoices>(
       MaterialPageRoute(
         builder: (_) =>
@@ -2840,6 +3121,20 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ),
         body: switch (_phase) {
           _Phase.input => _buildInput(context),
+          _Phase.mapping => CsvMappingStep(
+            text: _csvText!,
+            fields: _csvFields,
+            levels: _csvLevels,
+            textDocument: _selected.kind == ImportSourceKind.textDocument,
+            danceLevels: _textLevels,
+            danceLevel: _textLevel,
+            onDanceLevel: _rereadTextDocument,
+            onContinue: (mapping) {
+              _csvMapping = mapping;
+              _plan();
+            },
+            onBack: () => setState(_resetToInput),
+          ),
           _Phase.planning => _buildPlanning(context),
           _Phase.committing => _buildCommitting(context),
           _Phase.review => _buildReview(context),
@@ -3033,13 +3328,21 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 4),
-          Text(l10n.importReviewUsrSubtitle),
+          Text(switch (_selected.kind) {
+            ImportSourceKind.csv => l10n.importCsvSaveAsHint,
+            ImportSourceKind.textDocument => l10n.importTextHint,
+            _ => l10n.importReviewUsrSubtitle,
+          }),
           const SizedBox(height: 16),
           OutlinedButton.icon(
             key: const ValueKey('import-choose-usr-file'),
             onPressed: busy ? null : _chooseUsrFile,
             icon: const Icon(Icons.folder_open_outlined),
-            label: Text(l10n.importReviewChooseUsr),
+            label: Text(switch (_selected.kind) {
+              ImportSourceKind.csv => l10n.importCsvPickFile,
+              ImportSourceKind.textDocument => l10n.importTextPickFile,
+              _ => l10n.importReviewChooseUsr,
+            }),
           ),
           if (_payloadBytes != null)
             Padding(
@@ -4061,7 +4364,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
     details.add(
       l10n.importReviewMetadataSource(
-        provenanceSourceLabel(l10n, draft.raw.source),
+        // A spreadsheet row records no provenance (#2329); its in-memory
+        // source label would misname it, so name the spreadsheet instead.
+        draft.raw.recordsProvenance
+            ? provenanceSourceLabel(l10n, draft.raw.source)
+            : l10n.importSourceLabelCsv,
       ),
     );
     return Padding(

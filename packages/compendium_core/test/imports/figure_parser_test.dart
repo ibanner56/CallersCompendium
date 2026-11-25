@@ -1366,7 +1366,7 @@ void main() {
       // (`Walk forward; form long wave in center`) is now absorbed into
       // `form_a_long_wave`, so its leading clause no longer fails. This line
       // is the same shape and still fails at the leading clause — #733
-      // declines it because `pass_through` has no `who` slot for "women" —
+      // declines it because nothing reads "women" onto the pass through —
       // while its trailing clause still structures.
       final fs = _parseLines(
         'Women walk forward; form wave of four with N2',

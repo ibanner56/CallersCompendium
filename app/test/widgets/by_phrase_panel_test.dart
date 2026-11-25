@@ -2,7 +2,6 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/widgets/by_phrase_panel.dart';
 import '../support/l10n_harness.dart';
 import '../support/screen_size.dart';
@@ -183,4 +182,22 @@ void main() {
       expect(find.byKey(const ValueKey('match-A1-chip-swing')), findsOneWidget);
     },
   );
+
+  testWidgets('a phrase no dance has still shows its picks, removable '
+      '(#2325)', (tester) async {
+    // A saved search can ask for a figure in a phrase that no dance in the
+    // collection has (any more). The pick still narrows the search, so its
+    // row must be there to see and clear.
+    final selections = ByPhraseSelections();
+    selections.exclude['C1'] = ['swing'];
+    var changes = 0;
+    await _pump(tester, selections: selections, onChanged: () => changes++);
+    expect(find.byKey(const ValueKey('by-phrase-C1')), findsOneWidget);
+    final chip = find.byKey(const ValueKey('exclude-C1-chip-swing'));
+    expect(chip, findsOneWidget);
+    tester.widget<InputChip>(chip).onDeleted!();
+    await tester.pumpAndSettle();
+    expect(selections.isEmpty, isTrue);
+    expect(changes, 1);
+  });
 }

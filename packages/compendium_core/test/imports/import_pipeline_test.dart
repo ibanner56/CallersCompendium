@@ -49,6 +49,7 @@ void main() {
     List<String> authorIds = const [],
     String? difficultyLevelLabel,
     int? rating,
+    String? form,
   }) => {
     'id': id,
     'title': title,
@@ -59,6 +60,7 @@ void main() {
     'authorIds': authorIds,
     'difficultyLevelLabel': ?difficultyLevelLabel,
     'rating': ?rating,
+    'form': ?form,
     'figures': figures,
   };
 
@@ -804,6 +806,127 @@ void main() {
       expect(linked.title, 'Nice Combination');
       expect(linked.interpreterIds, [interpreterId]);
       expect(linked.interpretedOn, PartialDate.parse('1985'));
+    });
+
+    // Likewise a source that names no other title or Barnes reference.
+    test('resolution link keeps the existing other titles and Barnes '
+        'reference when the incoming record has none', () async {
+      final existingId = await seedExisting();
+      await dances.update(
+        (await dances.getById(existingId))!.copyWith(
+          form: DanceForm.ecd,
+          alternateTitles: ['Monymusk'],
+          barnesReference: 'BIII p. 92',
+        ),
+      );
+      final session = await pipeline.commit(
+        await pipeline.plan(
+          FakeSourceAdapter([
+            record('fake-2', 'Nice Combination', form: 'ecd'),
+          ]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.link(existingId)},
+      );
+      expect(session.records.single.action, CommitAction.link);
+      final linked = (await dances.getById(existingId))!;
+      expect(linked.title, 'Nice Combination');
+      expect(linked.alternateTitles, ['Monymusk']);
+      expect(linked.barnesReference, 'BIII p. 92');
+    });
+
+    // A link takes the record's form, and only an English dance keeps a
+    // Barnes reference, so linking a contra record clears it.
+    test('resolution link to a contra record keeps the other titles but not '
+        'the Barnes reference', () async {
+      final existingId = await seedExisting();
+      await dances.update(
+        (await dances.getById(existingId))!.copyWith(
+          form: DanceForm.ecd,
+          alternateTitles: ['Monymusk'],
+          barnesReference: 'BIII p. 92',
+        ),
+      );
+      await pipeline.commit(
+        await pipeline.plan(
+          FakeSourceAdapter([record('fake-2', 'Nice Combination')]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.link(existingId)},
+      );
+      final linked = (await dances.getById(existingId))!;
+      expect(linked.form, DanceForm.contra);
+      expect(linked.alternateTitles, ['Monymusk']);
+      expect(linked.barnesReference, '');
+    });
+
+    // Likewise a source that states no square fields (ADR-007 §8.1).
+    test('resolution link keeps the existing square fields when the incoming '
+        'record states none', () async {
+      final existingId = await seedExisting();
+      await dances.update(
+        (await dances.getById(existingId))!.copyWith(
+          form: DanceForm.square,
+          squareKind: SquareKind.breakPart,
+          repeatOrder: SquareRepeatOrder.other,
+          repeatOrderText: 'Heads once, sides once',
+          newPartner: SquareNewPartner.corner,
+          singing: true,
+          freeForm: false,
+        ),
+      );
+      final session = await pipeline.commit(
+        await pipeline.plan(
+          FakeSourceAdapter([record('fake-2', 'Nice Combination')]),
+          const ImportRequest(),
+        ),
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.link(existingId)},
+      );
+      expect(session.records.single.action, CommitAction.link);
+      final linked = (await dances.getById(existingId))!;
+      expect(linked.squareKind, SquareKind.breakPart);
+      expect(linked.repeatOrder, SquareRepeatOrder.other);
+      expect(linked.repeatOrderText, 'Heads once, sides once');
+      expect(linked.newPartner, SquareNewPartner.corner);
+      expect(linked.singing, isTrue);
+      expect(linked.freeForm, isFalse);
+    });
+
+    test('resolution link takes the square fields the incoming record '
+        'states, and drops a text that went with the old value', () async {
+      final existingId = await seedExisting();
+      await dances.update(
+        (await dances.getById(existingId))!.copyWith(
+          form: DanceForm.square,
+          squareKind: SquareKind.breakPart,
+          repeatOrder: SquareRepeatOrder.other,
+          repeatOrderText: 'Heads once, sides once',
+          freeForm: false,
+        ),
+      );
+      final incoming = FakeSourceAdapter([
+        record('fake-2', 'Nice Combination', form: 'square')
+          ..['squareKind'] = 'patter'
+          ..['repeatOrder'] = 'HSHS'
+          ..['freeForm'] = true,
+      ]);
+      await pipeline.commit(
+        await pipeline.plan(incoming, const ImportRequest()),
+        now: now,
+        newId: nextId,
+        resolutions: {0: DedupeResolution.link(existingId)},
+      );
+      final linked = (await dances.getById(existingId))!;
+      expect(linked.squareKind, SquareKind.patter);
+      expect(linked.repeatOrder, SquareRepeatOrder.headsSidesHeadsSides);
+      expect(linked.repeatOrderText, '');
+      expect(linked.freeForm, isTrue);
     });
 
     test('resolution duplicate imports a separate new dance', () async {

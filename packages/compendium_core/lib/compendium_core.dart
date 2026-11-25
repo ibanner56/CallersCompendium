@@ -7,7 +7,15 @@ library;
 
 export 'src/analysis/half_calling_stats.dart';
 export 'src/analysis/matrix_column_config.dart';
+export 'src/analysis/perform_swap_defaults.dart';
 export 'src/analysis/program_matrix.dart';
+export 'src/analysis/repertoire_stats.dart';
+export 'src/analysis/suggestion_settings.dart';
+export 'src/analysis/suggestions.dart';
+export 'src/analysis/suggestion_worker.dart';
+export 'src/csv/csv_name_list.dart';
+export 'src/csv/csv_reader.dart';
+export 'src/csv/csv_writer.dart';
 export 'src/diagnostics/crash_log_record.dart';
 export 'src/diagnostics/crash_redactor.dart';
 export 'src/dialect/author_role_terms.dart';
@@ -24,8 +32,12 @@ export 'src/export/dance_card_fields.dart';
 export 'src/export/dance_share_fields.dart';
 export 'src/export/dance_text.dart';
 export 'src/export/export_labels.dart';
+export 'src/export/program_calendar.dart';
 export 'src/export/program_text.dart';
 export 'src/imports/author_tokenizer.dart';
+export 'src/imports/csv_adapter.dart';
+export 'src/imports/csv_import.dart';
+export 'src/imports/ical_feed.dart';
 export 'src/imports/callers_companion_mapping.dart';
 export 'src/imports/callers_companion_programs.dart';
 export 'src/imports/callers_companion_related_dances.dart';
@@ -53,6 +65,7 @@ export 'src/imports/ecd_formation.dart';
 export 'src/imports/ecd_migration.dart';
 export 'src/imports/figure_parser.dart';
 export 'src/imports/figure_front_end_fan_out.dart';
+export 'src/imports/figure_text_lines.dart';
 export 'src/imports/figure_text_scrub.dart';
 export 'src/imports/free_text_entry.dart'
     show
@@ -65,7 +78,9 @@ export 'src/imports/fmp/fmp_reader.dart';
 export 'src/imports/generic_json_adapter.dart';
 export 'src/imports/import_error.dart';
 export 'src/imports/import_pipeline.dart';
+export 'src/imports/label_lines.dart';
 export 'src/imports/published_collection.dart';
+export 'src/imports/text_document_adapter.dart';
 export 'src/imports/insert_call_shorthands.dart';
 export 'src/imports/program_import_marker.dart';
 export 'src/imports/program_slot_note.dart';
@@ -83,6 +98,7 @@ export 'src/imports/title_punctuation.dart';
 export 'src/imports/venue_dedupe.dart';
 export 'src/imports/while_container.dart';
 export 'src/model/bar_count.dart';
+export 'src/model/bar_timing.dart';
 export 'src/model/choreographer.dart';
 export 'src/model/collection_import_event.dart';
 export 'src/model/custom_field.dart';
@@ -107,6 +123,17 @@ export 'src/privacy/data_classification.dart';
 export 'src/privacy/field_registry.dart';
 export 'src/privacy/settings_registry.dart';
 export 'src/search/search_sort.dart';
+export 'src/taxonomy/figure_param_domain.dart';
+export 'src/search/builder_nodes.dart';
+export 'src/search/collection_facet_ids.dart';
+export 'src/search/collection_search_state.dart';
+export 'src/search/collection_sort.dart';
+export 'src/search/collection_panel_state.dart';
+export 'src/search/saved_search.dart';
+export 'src/search/saved_search_resolver.dart';
+export 'src/search/saved_search_text.dart';
+export 'src/search/search_clock.dart';
+export 'src/search/swap_keep.dart';
 export 'src/search/title_match.dart';
 export 'src/search/title_sort_key.dart';
 export 'src/search/filter.dart';
@@ -181,6 +208,7 @@ export 'src/storage/database.dart'
         taxonomyV38CanonicalRebuildDoneKey,
         taxonomyV39CanonicalRebuildDoneKey,
         ecdTaxonomyCanonicalRebuildDoneKey,
+        squareTaxonomyCanonicalRebuildDoneKey,
         callersBoxRollAwayRoleRepairDoneKey,
         shareableTextNormalisationScopeKey,
         normalisationDerivedIndexRepairDoneKey,
@@ -222,7 +250,9 @@ export 'src/storage/repositories/user_glossary_repository.dart';
 export 'src/storage/repositories/program_repository.dart';
 export 'src/storage/repositories/published_source_repository.dart';
 export 'src/storage/repositories/reference_edit_repository.dart';
+export 'src/storage/repositories/repertoire_repository.dart';
 export 'src/storage/repositories/repositories.dart';
+export 'src/storage/repositories/saved_search_repository.dart';
 export 'src/storage/repositories/settings_repository.dart';
 export 'src/storage/repositories/sync_local_repository.dart';
 export 'src/storage/repositories/tag_repository.dart';
@@ -230,8 +260,10 @@ export 'src/storage/repositories/venue_repository.dart';
 export 'src/taxonomy/cast_vocabulary.dart';
 export 'src/taxonomy/compound_definition.dart';
 export 'src/taxonomy/contra_taxonomy.dart';
-export 'src/taxonomy/ecd_sequence_span.dart';
+export 'src/taxonomy/form_figures.dart';
+export 'src/taxonomy/sequence_span.dart';
 export 'src/taxonomy/ecd_taxonomy.dart';
+export 'src/taxonomy/square_taxonomy.dart';
 export 'src/taxonomy/figure_glossary.dart';
 export 'src/taxonomy/gate_facing.dart';
 export 'src/taxonomy/glossary_names.dart';

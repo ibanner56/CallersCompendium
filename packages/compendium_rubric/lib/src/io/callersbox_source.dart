@@ -575,7 +575,9 @@ bool retryPlacesDifferently(BridgedDance attempt, BridgedDance fallback) =>
 /// progression flag (see [assumedProgressionIndex]), it reads a slide
 /// after a balanced long wave as the Rory O'More it is (see
 /// [_slidesTheWave]), it reads a single-file circle around the major set to
-/// N2 as the promenade along the set it is (see [_promenadesAroundTheSet]),
+/// N2 as the promenade along the set it is, and drops the import's own
+/// promenade's `destination` (see [_promenadesAroundTheSet] and
+/// [_aroundTheSetParams]),
 /// it reads a hall figure noted "backwards" as a line backing along the hall
 /// (see [_hallBackwards]), it reads a swing noted "face up" or "finish
 /// proper" as finishing facing up (see [_swingNoteFacing]), and it reads a
@@ -689,7 +691,7 @@ BridgedDance bridgeCoreDance(
                 : figures[index].move,
             'params': _slidesTheWave(figures, index)
                 ? _roryParams(figures, index)
-                : index == aroundAt
+                : index == aroundAt || _flaggedAroundTheSet(figures[index])
                 ? _aroundTheSetParams(figures[index])
                 : {
                     ..._recordParams(figures[index].params),
@@ -733,7 +735,9 @@ bool _heyStopsAtNextNeighbours(core.Figure figure) {
 
 /// Whether [figure] is a single-file promenade around the major set to the
 /// next neighbours, which the Caller's Box import reads as a single-file
-/// circle noted "around the major set to N2".
+/// circle noted "around the major set to N2", or, since the taxonomy-v40
+/// sync, as a single-file `promenade` along the set with `destination:
+/// nextNeighbors` and the note "around the major set" ([_promenadeAroundTheSet]).
 ///
 /// Hudson ruled (2026-11-24) that it is a promenade along the set, single
 /// file, and the bridge writes it as one ([_aroundTheSetParams]). A note
@@ -753,6 +757,7 @@ bool _heyStopsAtNextNeighbours(core.Figure figure) {
 /// any other noted circle, one inside a `modifier` included, as the import
 /// read it.
 bool _promenadesAroundTheSet(core.Figure figure) {
+  if (figure.move == 'promenade') return _promenadeAroundTheSet(figure);
   if (figure.move != 'circle' ||
       figure.params['singleFile'] != true ||
       figure.params['places'] != null) {
@@ -761,6 +766,26 @@ bool _promenadesAroundTheSet(core.Figure figure) {
   final match = _aroundTheSetNote.firstMatch((figure.note ?? '').trim());
   if (match == null) return false;
   return !_otherAnnotation.hasMatch(match.group(1) ?? match.group(2) ?? '');
+}
+
+/// The import's own shape for the same line since the taxonomy-v40 sync: a
+/// single-file promenade along the set to the next neighbours, noted "around
+/// the major set", after any annotation the line kept. The same annotations
+/// that leave the circle alone leave this one alone too (agent's call).
+bool _promenadeAroundTheSet(core.Figure figure) {
+  final params = figure.params;
+  if (params['singleFile'] != true ||
+      params['where'] != 'along' ||
+      params['destination'] != 'nextNeighbors' ||
+      params['places'] != null) {
+    return false;
+  }
+  final clauses = [
+    for (final clause in (figure.note ?? '').split(';')) clause.trim(),
+  ];
+  if (clauses.last.toLowerCase() != 'around the major set') return false;
+  return clauses.length <= 2 &&
+      !clauses.take(clauses.length - 1).any(_otherAnnotation.hasMatch);
 }
 
 final _aroundTheSetNote = RegExp(
@@ -784,7 +809,30 @@ int? _aroundTheSetIndex(List<core.Figure> figures) {
   return null;
 }
 
-Map<String, Object?> _aroundTheSetParams(core.Figure figure) => {
+/// Whether [figure] is the import's own promenade around the major set to
+/// N2 ([_promenadeAroundTheSet]) and the source flagged it as the progression.
+/// The bridge takes no promenade in a flagged dance, but this one is the
+/// figure the ruling covers, so its destination is dropped all the same
+/// (agent's call).
+bool _flaggedAroundTheSet(core.Figure figure) =>
+    figure.progression &&
+    figure.move == 'promenade' &&
+    _promenadeAroundTheSet(figure);
+
+/// The promenade [figure] is danced as: the import's own promenade without
+/// its destination, or one built from the circle the import wrote before v40.
+///
+/// The destination is dropped here because the next neighbours are where
+/// the one-place promenade lands anyway, and because the compiler defers a
+/// promenade along the set that states one. The parser also defers one that
+/// is not flagged: only a flagged promenade is danced as a slide, and the one
+/// this bridge takes is the one it flags (agent's call).
+Map<String, Object?> _aroundTheSetParams(core.Figure figure) =>
+    figure.move == 'promenade'
+    ? (_recordParams(figure.params)..remove('destination'))
+    : _circleAroundTheSetParams(figure);
+
+Map<String, Object?> _circleAroundTheSetParams(core.Figure figure) => {
   'where': 'along',
   'singleFile': true,
   'direction': (figure.params['direction'] ?? 'left') == 'right'

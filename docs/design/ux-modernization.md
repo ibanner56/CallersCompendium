@@ -556,7 +556,10 @@ brightness, or a few hand-picked keywords — color and character words
 (`AppThemeKeyword`, assigned in `AppThemeSelection.keywords`), each resolved to
 localized synonyms by `appThemeKeywordTerms`. Every word of the query must match
 (a name anywhere inside, a keyword from its start), case- and accent-folded by
-`foldForSearch`; `data/theme_search.dart` holds the matcher.
+`foldForSearch`; `data/theme_search.dart` holds the matcher. The search box
+takes focus on arrival where `HardwareKeyboardPresence` says a keyboard is
+likely, and a live-region count above the results (and the no-match message)
+tells a screen reader how many themes match as the search changes.
 
 ### 4A.6 Attribution & licensing
 

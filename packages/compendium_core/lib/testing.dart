@@ -38,7 +38,8 @@ import 'src/taxonomy/taxonomy_registry.dart';
 import 'src/validation/validation.dart';
 
 /// Builds a [Figure] and asserts it is valid under the shipped taxonomies
-/// (`shippedTaxonomies.anyForm`): contra's, and ECD's `ecd_` moves.
+/// (`shippedTaxonomies.anyForm`): contra's, ECD's `ecd_` moves and the
+/// squares' `sq_` calls.
 ///
 /// The signature mirrors [Figure]'s constructor exactly, so routing an existing
 /// fixture through this is a rename and nothing else — no argument

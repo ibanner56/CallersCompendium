@@ -2177,6 +2177,43 @@ void main() {
         final f = Figure(move: 'rory_o_more', params: {'balance': false});
         expect(renderer.renderSummary(f, d), renderer.render(f, d));
       });
+      test('rory_o_more twoPlaces names who slides across (v40)', () {
+        final f = Figure(
+          move: 'rory_o_more',
+          params: {'slide': 'left', 'twoPlaces': 'role2s'},
+        );
+        expect(
+          renderer.renderSummary(f, d),
+          "balance & Rory O'More left, role2s 2 places",
+        );
+        expect(
+          renderer.renderSummary(f, Dialect.larksRobins),
+          "balance & Rory O'More left, robins 2 places",
+        );
+        expect(
+          renderer.renderSummary(
+            Figure(move: 'rory_o_more', params: {'twoPlaces': 'ends'}),
+            d,
+          ),
+          "balance & Rory O'More right, ends 2 places",
+        );
+        // Display-only: the canonical (search/dedupe) text is the line a
+        // figure without it has, so no stored canonical text changes.
+        expect(
+          renderer.renderCanonical(f),
+          renderer.renderCanonical(
+            Figure(move: 'rory_o_more', params: {'slide': 'left'}),
+          ),
+        );
+        // The unstated default adds nothing.
+        expect(
+          renderer.renderSummary(
+            Figure(move: 'rory_o_more', params: {'twoPlaces': 'unspecified'}),
+            d,
+          ),
+          "balance & Rory O'More right",
+        );
+      });
       test('box_circulate (leading) surfaces balance when set', () {
         final f = Figure(move: 'box_circulate', params: {'balance': true});
         expect(
@@ -3537,6 +3574,59 @@ void main() {
           renderer.render(Figure(move: 'form_long_waves'), larks),
           'form long waves - larks facing in, robins facing out',
         );
+      });
+
+      test(
+        'both hands: whom2 is held by the hand opposite whomHand (#2331)',
+        () {
+          expect(
+            renderer.render(
+              Figure(
+                move: 'form_long_waves',
+                params: {
+                  'who': 'role2s',
+                  'whom': 'nextNeighbors',
+                  'whomHand': 'right',
+                  'whom2': 'neighbors',
+                  'balance': true,
+                },
+              ),
+              larks,
+            ),
+            'form long waves - next neighbor by the right, neighbor by the '
+            'left, robins facing in, larks facing out - and balance',
+          );
+        },
+      );
+
+      test('whom2 is not shown without a stated whomHand', () {
+        expect(
+          renderer.render(
+            Figure(
+              move: 'form_long_waves',
+              params: {'who': 'role2s', 'whom2': 'neighbors'},
+            ),
+            larks,
+          ),
+          'form long waves - robins facing in, larks facing out',
+        );
+      });
+
+      test('an unstated who states no facing, and leaves no dangling dash', () {
+        Figure lw(Map<String, Object?> params) => testFigure(
+          move: 'form_long_waves',
+          params: {'who': ParamVocab.unspecified, ...params},
+        );
+        expect(renderer.render(lw({}), larks), 'form long waves');
+        expect(
+          renderer.render(lw({'balance': true}), larks),
+          'form long waves - and balance',
+        );
+        expect(
+          renderer.render(lw({'whom': 'neighbors', 'whomHand': 'left'}), larks),
+          'form long waves - neighbor by the left',
+        );
+        expect(renderer.renderCanonical(lw({})), 'form long waves');
       });
     });
 

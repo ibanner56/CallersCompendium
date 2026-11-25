@@ -32,7 +32,11 @@ class UserFigureImportChoices {
 /// - ones **already in your Glossary**, listed only.
 ///
 /// A figure whose name is taken here says so ([nameTaken]): it is added all
-/// the same, and the Glossary marks it Rename needed.
+/// the same, and the Glossary marks it Rename needed. [nameTaken] is checked
+/// the way the Glossary checks a figure: against the app's figures and the
+/// active dialect of the figure's own form, the user's own dialects, the
+/// shorthands, the user's other entries and the file's other figures
+/// (`importedFiguresWithTakenNames`).
 ///
 /// Pops a [UserFigureImportChoices]; empty when the user skips.
 class ImportUserFiguresScreen extends StatefulWidget {

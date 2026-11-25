@@ -947,7 +947,9 @@ class ImportPipeline {
               // in this library. No resolved credit keeps the dance's.
               plan.draft.dance.copyWith(authorIds: authorIds ?? const []),
               updatedAt: now,
-              provenance: prov,
+              // A record that records no provenance leaves the dance's own,
+              // as an edit by hand does.
+              provenance: prov ?? existing.provenance,
               alsoTitleAndCredit: plan.verdict.alsoTitleAndCredit,
             ),
           );
@@ -979,7 +981,7 @@ class ImportPipeline {
             interpreterIds: interpreterIds,
             createdAt: existing.createdAt,
             updatedAt: now,
-            provenance: prov,
+            provenance: prov ?? existing.provenance,
             keepFrom: existing,
           );
           await _dances.update(dance);
@@ -1500,8 +1502,11 @@ class ImportPipeline {
         choreographyFingerprintForDance(b),
       );
 
-  Provenance _provenanceFrom(StructuredDraft draft, DateTime now) {
+  /// The provenance row a commit writes for [draft], or `null` when its record
+  /// records none ([RawRecord.recordsProvenance], #2329).
+  Provenance? _provenanceFrom(StructuredDraft draft, DateTime now) {
     final raw = draft.raw;
+    if (!raw.recordsProvenance) return null;
     return Provenance(
       source: raw.source,
       externalId: raw.externalId,
@@ -1541,8 +1546,8 @@ class ImportPipeline {
   /// null to preserve them. [interpreterIds] are always the pipeline's
   /// resolved ids, never [src]'s. [keepFrom] is the dance being linked over:
   /// its custom-field values for fields [src] does not carry survive, and so
-  /// do its rating, interpreters and interpretation date when [src] carries
-  /// none.
+  /// do its rating, interpreters, interpretation date, other titles, Barnes
+  /// reference and square fields when [src] carries none.
   Dance _rebuildWithIdentity(
     Dance src, {
     required String id,
@@ -1555,6 +1560,12 @@ class ImportPipeline {
   }) => Dance(
     id: id,
     title: src.title,
+    // A source that names no other title, or no Barnes reference (every
+    // adapter but the native archive), must not erase the ones the
+    // linked-over dance holds, as for [rating].
+    alternateTitles: src.alternateTitles.isNotEmpty
+        ? src.alternateTitles
+        : keepFrom?.alternateTitles ?? const [],
     authorIds: authorIds ?? src.authorIds,
     form: src.form,
     formation: src.formation,
@@ -1568,6 +1579,31 @@ class ImportPipeline {
     walkthrough: src.walkthrough,
     meter: src.meter,
     musicalKey: src.musicalKey,
+    barnesReference: src.barnesReference.isNotEmpty
+        ? src.barnesReference
+        : keepFrom?.barnesReference ?? '',
+    // The square fields (ADR-007 §8.1) likewise: only the native archive and
+    // a Caller's Companion square's repeat order carry any, so a source left
+    // at the default keeps what the linked-over dance holds. The texts go
+    // with their values.
+    squareKind: src.squareKind != SquareKind.main
+        ? src.squareKind
+        : keepFrom?.squareKind ?? SquareKind.main,
+    repeatOrder: src.repeatOrder != SquareRepeatOrder.unstated
+        ? src.repeatOrder
+        : keepFrom?.repeatOrder ?? SquareRepeatOrder.unstated,
+    repeatOrderText: src.repeatOrder != SquareRepeatOrder.unstated
+        ? src.repeatOrderText
+        : keepFrom?.repeatOrderText ?? '',
+    newPartner: src.newPartner != SquareNewPartner.unstated
+        ? src.newPartner
+        : keepFrom?.newPartner ?? SquareNewPartner.unstated,
+    newPartnerText: src.newPartner != SquareNewPartner.unstated
+        ? src.newPartnerText
+        : keepFrom?.newPartnerText ?? '',
+    singing: src.singing || (keepFrom?.singing ?? false),
+    // A source that leaves it to the kind keeps the caller's own setting.
+    freeForm: src.freeForm ?? keepFrom?.freeForm,
     status: src.status,
     difficultyLevelId: src.difficultyLevelId,
     mixedLevel: src.mixedLevel,

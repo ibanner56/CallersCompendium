@@ -18,6 +18,7 @@ import '../data/set_list_share_scope.dart';
 import '../export/calling_card_pdf.dart';
 import '../export/dance_source_lines.dart';
 import '../export/export_labels_l10n.dart';
+import '../export/program_calendar_export.dart';
 import '../export/program_pdf.dart';
 import '../export/program_share_bundle.dart';
 import '../export/json_export.dart';
@@ -38,6 +39,7 @@ enum _ExportAction {
   copyText,
   shareJson,
   pdf,
+  calendar,
   callingCards,
 }
 
@@ -66,6 +68,9 @@ typedef PdfLayouter =
 ///   for a recipient without the app, an email attachment, or plain inspection.
 /// - **Export / print PDF** — hands a generated PDF to the OS print/save dialog
 ///   (`printing`, all platforms including Linux).
+/// - **Add to calendar (.ics)** — only when the program has an event date, past
+///   or upcoming: one `VEVENT` through [CalendarExportDelivery] (issue #2351),
+///   which asks before including the venue's address.
 /// - **Print calling cards** — only while Settings › Experimental › Calling
 ///   cards is on, and gated on [danceFor] like the file actions: one small
 ///   card per dance, in output order, each alternate after its primary, and
@@ -85,6 +90,7 @@ class ProgramExportMenu extends StatelessWidget {
     this.danceFor,
     this.choreographerFor,
     this.authorNamesOverrideFor,
+    this.interpreterNamesOverrideFor,
     this.tagFor,
     this.publishedSourceFor,
     this.customFieldFor,
@@ -93,6 +99,8 @@ class ProgramExportMenu extends StatelessWidget {
     this.bundleFileWriter,
     this.pdfLayouter,
     this.jsonExportDelivery,
+    this.calendarExportDelivery,
+    this.offerCalendarExport = true,
   });
 
   final Program program;
@@ -123,6 +131,11 @@ class ProgramExportMenu extends StatelessWidget {
   /// embeds author records, and a deleted author's record does not leave the
   /// device with a program (see [choreographerFor]).
   final List<String>? Function(String danceId)? authorNamesOverrideFor;
+
+  /// A dance's interpreter names when some of its interpreters are in
+  /// Recently deleted, as [authorNamesOverrideFor] is for its authors; null
+  /// when it has no such interpreter.
+  final List<String>? Function(String danceId)? interpreterNamesOverrideFor;
 
   /// Resolves the difficulty level of the dance with this id (dance-keyed, not
   /// level-keyed). Must cover every dance in the program, alternates included:
@@ -157,6 +170,18 @@ class ProgramExportMenu extends StatelessWidget {
   /// Its `saveInvoker` also receives the `.ccshare` bundle on platforms where
   /// [isBundleShareUnsupported] (Linux) turns the bundle action into Save As.
   final JsonExportDelivery? jsonExportDelivery;
+
+  /// Test seam for "Add to calendar (.ics)"; defaults to the production
+  /// dialogs and file delivery.
+  final CalendarExportDelivery? calendarExportDelivery;
+
+  /// Whether to offer "Add to calendar (.ics)" at all (it also needs an event
+  /// date). The builder passes `false` while its [program] is not the stored
+  /// one — never saved, or with unsaved edits — because the event's `UID`
+  /// comes from the program's id and its `SEQUENCE` from its last save: an
+  /// unsaved program has the placeholder id `draft`, so two new programs would
+  /// share one `UID`.
+  final bool offerCalendarExport;
 
   String _formatDate(BuildContext context, DateTime date) => formatEventDate(
     date,
@@ -203,6 +228,55 @@ class ProgramExportMenu extends StatelessWidget {
     ];
   }
 
+  /// Resolves [dance]'s interpreter names via [choreographerFor], names only,
+  /// as [_authorNamesFor] does, or [interpreterNamesOverrideFor] for a dance
+  /// with an interpreter in Recently deleted.
+  List<String> _interpreterNamesFor(Dance dance) =>
+      interpreterNamesOverrideFor?.call(dance.id) ??
+      [
+        for (final id in dance.interpreterIds)
+          if (choreographerFor?.call(id)?.name case final String name
+              when name.isNotEmpty)
+            name,
+      ];
+
+  /// Each slot's meter and key for the set list, such as
+  /// "Meter: 6/8 · Key: G minor", as the dance detail screen writes them, when
+  /// the Meter, key and Barnes share field is on; null, adding none, when it
+  /// is off or nothing resolves a dance. The values go through the
+  /// discouraged-term rendering, in each dance's own dialect.
+  String? Function(String danceId)? _tuneDetailsFor(BuildContext context) {
+    final resolveDance = danceFor;
+    if (resolveDance == null ||
+        !DanceShareFieldsScope.of(context).contains(DanceShareField.music)) {
+      return null;
+    }
+    final l10n = AppLocalizations.of(context);
+    final dialects = _dialects(context);
+    final renderer = UserFiguresScope.rendererOf(context);
+    final canonical = CanonicalDiscouragedTermsScope.of(context);
+    return (danceId) {
+      final dance = resolveDance(danceId);
+      if (dance == null) return null;
+      // The dialect the dance's own card uses (`dialectForDance`).
+      final dialect = dialectForDance(
+        dialects.forDance(dance),
+        title: dance.title,
+        authorNames: _authorNamesFor(danceId),
+      );
+      return meterAndKeyLabel(
+        l10n,
+        dance,
+        render: (value) => canonical
+            ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                value,
+                dialect,
+              )
+            : renderer.renderFreeText(value, dialect),
+      );
+    };
+  }
+
   /// Names each slot's dance form in the set list when the program mixes
   /// forms, as the program screens do (ADR-006 S5); null, naming none, when
   /// its dances share one form or none resolves. A dance in Recently deleted
@@ -241,6 +315,7 @@ class ProgramExportMenu extends StatelessWidget {
       titleFor: titleFor,
       venueNameFor: _venueNameFor,
       formatDate: (d) => _formatDate(context, d),
+      formatTime: (m) => formatTimeOfDay(m, AppLocalizations.of(context)),
       labels: programExportLabels(AppLocalizations.of(context)),
       renderer: FigureRenderer(shippedTaxonomies.anyForm),
       // The set list's own text (slot notes) has no dance form: contra's.
@@ -251,6 +326,7 @@ class ProgramExportMenu extends StatelessWidget {
           ? _authorNamesFor
           : null,
       formLabelFor: _formLabelFor(AppLocalizations.of(context)),
+      tuneDetailsFor: _tuneDetailsFor(context),
     );
   }
 
@@ -287,9 +363,10 @@ class ProgramExportMenu extends StatelessWidget {
     return ProgramFiguresPromptDialog.show(context);
   }
 
-  /// Resolves the same four display strings for [dance]'s card that both the
+  /// Resolves the display strings for [dance]'s card that both the
   /// text-path appended card and the PDF appendix card need (issue #1434):
-  /// author names (via [_authorNamesFor]), formation/level/status labels.
+  /// author names (via [_authorNamesFor]), interpreter names (via
+  /// [_interpreterNamesFor]), formation/level/status labels and source lines.
   /// Shared so the two rendering paths can't drift on how a label is derived
   /// — level label mirrors the dance_detail_screen pattern.
   DanceCardLabels _cardLabelsFor(
@@ -312,6 +389,7 @@ class ProgramExportMenu extends StatelessWidget {
     final authorNames = _authorNamesFor(dance.id);
     return (
       authorNames: authorNames,
+      interpreterNames: _interpreterNamesFor(dance),
       formationLabel: formationDisplayLabel(
         l10n,
         dance.formation,
@@ -368,6 +446,7 @@ class ProgramExportMenu extends StatelessWidget {
         danceToPlainText(
           dance,
           authorNames: cardLabels.authorNames,
+          interpreterNames: cardLabels.interpreterNames,
           formationLabel: cardLabels.formationLabel,
           levelLabel: cardLabels.levelLabel,
           statusLabel: cardLabels.statusLabel,
@@ -590,6 +669,7 @@ class ProgramExportMenu extends StatelessWidget {
         ? _authorNamesFor
         : null;
     final formLabelFor = _formLabelFor(l10n);
+    final tuneDetailsFor = _tuneDetailsFor(context);
     final cardLabelsById = <String, DanceCardLabels>{
       if (appendDances != null)
         for (final entry in appendDances)
@@ -614,6 +694,7 @@ class ProgramExportMenu extends StatelessWidget {
         venuesById: venuesById,
         includeVenueContact: includeVenueContact,
         formatDate: (d) => formatEventDate(d, dateSetting, localizations, l10n),
+        formatTime: (m) => formatTimeOfDay(m, l10n),
         labels: labels,
         appendDances: appendDances,
         danceLabels: includeFigures ? danceExportLabels(l10n) : null,
@@ -622,6 +703,7 @@ class ProgramExportMenu extends StatelessWidget {
         canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         authorNamesFor: resolvedAuthorNamesFor,
         formLabelFor: formLabelFor,
+        tuneDetailsFor: tuneDetailsFor,
         cardLabelsFor: appendDances == null
             ? null
             : (dance) => cardLabelsById[dance.id]!,
@@ -724,6 +806,21 @@ class ProgramExportMenu extends StatelessWidget {
           () => _exportPdf(context),
           source: 'program_export_menu._guard',
         );
+      case _ExportAction.calendar:
+        await guardExport(
+          messenger,
+          l10n.exportCalendarShareError,
+          () =>
+              (calendarExportDelivery ?? const CalendarExportDelivery()).export(
+                context,
+                programs: [program],
+                venuesById: venuesById,
+                fileName: programCalendarFileName(program),
+                subject: program.title,
+                sharePositionOrigin: origin,
+              ),
+          source: 'program_export_menu._guard',
+        );
       case _ExportAction.callingCards:
         await _printCallingCards(context, messenger);
     }
@@ -793,6 +890,17 @@ class ProgramExportMenu extends StatelessWidget {
             contentPadding: EdgeInsets.zero,
           ),
         ),
+        // A calendar event needs a day: no date, no item (#2351).
+        if (offerCalendarExport && program.eventDate != null)
+          PopupMenuItem<_ExportAction>(
+            key: const ValueKey('program-export-calendar'),
+            value: _ExportAction.calendar,
+            child: ListTile(
+              leading: const Icon(Icons.event_outlined),
+              title: Text(l10n.exportAddToCalendar),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
         if (callingCards)
           PopupMenuItem<_ExportAction>(
             key: const ValueKey('program-export-calling-cards'),

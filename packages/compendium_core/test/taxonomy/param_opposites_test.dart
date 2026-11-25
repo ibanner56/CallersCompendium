@@ -145,6 +145,66 @@ void main() {
     }
   });
 
+  group('English\'s own groups (#2294 follow-up)', () {
+    // The four pairs the maintainer chose; ADR-006 names none, so every other
+    // group only English has stays without an opposite.
+    const pairs = {
+      'top': 'bottom',
+      'bottom': 'top',
+      'ends': 'middles',
+      'middles': 'ends',
+      'leftFile': 'rightFile',
+      'rightFile': 'leftFile',
+      'firstDiagonals': 'secondDiagonals',
+      'secondDiagonals': 'firstDiagonals',
+    };
+
+    test('four pairs are each other\'s opposite', () {
+      for (final kind in [ParamKind.dancerSet, ParamKind.dancerPair]) {
+        for (final entry in pairs.entries) {
+          expect(
+            ParamOpposites.of(kind, entry.key),
+            entry.value,
+            reason: '${kind.name}: ${entry.key}',
+          );
+          // An involution: the opposite's opposite is the value itself.
+          expect(ParamOpposites.of(kind, entry.value), entry.key);
+        }
+      }
+    });
+
+    test('every other group only English has stays without one', () {
+      final onlyEnglish = [
+        for (final g in ecdSelectors)
+          if (!ParamVocab.dancerSets.contains(g) &&
+              g != u &&
+              !pairs.containsKey(g))
+            g,
+      ];
+      // A control: the groups this is meant to cover are really there.
+      expect(onlyEnglish, containsAll(['couples', 'actives', 'corners']));
+      for (final g in onlyEnglish) {
+        expect(ParamOpposites.of(ParamKind.dancerSet, g), isNull, reason: g);
+      }
+    });
+
+    test('an opposite of an English group is itself an English group', () {
+      for (final g in ecdSelectors) {
+        final opposite = ParamOpposites.of(ParamKind.dancerSet, g);
+        if (opposite != null) {
+          expect(ecdSelectors, contains(opposite), reason: g);
+        }
+      }
+    });
+
+    test('none of the eight is in contra\'s vocabulary, so no contra value '
+        'reaches them', () {
+      for (final token in pairs.keys) {
+        expect(ParamVocab.dancerSets, isNot(contains(token)), reason: token);
+      }
+    });
+  });
+
   test('opposites are an involution, except the neighbor series', () {
     // Every neighbor-series token is opposed by `partners`, which is opposed
     // by `neighbors` alone, so the series collapses by design.
@@ -224,6 +284,9 @@ void main() {
         // v40 (#770): left/right are shoulders and up/down directions along
         // the set, in one free-form slot like circle's, so it takes none.
         'cast.direction',
+        // v40: a shift's left/right and up/down in one slot, like cast's, so
+        // it takes none either.
+        'shift.direction',
       });
       expect(ParamOpposites.coverage(ParamKind.choice), OppositeCoverage.none);
     },

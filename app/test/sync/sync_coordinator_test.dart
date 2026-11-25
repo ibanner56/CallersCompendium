@@ -7902,6 +7902,13 @@ void main() {
       expect(SyncCapabilityPolicy.build.advertised, {
         SyncCapabilities.glossaryV1,
         SyncCapabilities.glossaryV2,
+        // Program templates (#2337), saved searches (#2325), suggestions
+        // (#2343) and the Swap a dance defaults (#2346) are covered by their
+        // own rollout tests.
+        SyncCapabilities.programTemplatesV1,
+        SyncCapabilities.savedSearchesV1,
+        SyncCapabilities.suggestionsV1,
+        SyncCapabilities.performSwapV1,
       });
       expect(SyncCapabilityPolicy.build.gatedRecordKinds, {
         SyncRecordKind.glossaryEntry: SyncCapabilities.glossaryV1,
@@ -7911,6 +7918,12 @@ void main() {
         'show_custom_figures': SyncCapabilities.glossaryV1,
         'compound_shorthands': SyncCapabilities.glossaryV1,
         'user_figure_shorthands': SyncCapabilities.glossaryV2,
+        'program_template_order': SyncCapabilities.programTemplatesV1,
+        'program_template_default': SyncCapabilities.programTemplatesV1,
+        'suggestions_enabled': SyncCapabilities.suggestionsV1,
+        'suggestion_settings': SyncCapabilities.suggestionsV1,
+        'suggestions_in_perform_swap': SyncCapabilities.suggestionsV1,
+        'perform_swap_defaults': SyncCapabilities.performSwapV1,
       });
       expect(SyncCapabilityPolicy.build.gatedGlossaryEntryKinds, {
         'term': SyncCapabilities.glossaryV2,
@@ -8156,6 +8169,277 @@ void main() {
       expect(awaiting(result), isEmpty);
     });
 
+    test('rollout: program templates (#2337) wait, by key prefix, beside '
+        'peers with no record and peers on the previous build, and publish '
+        'once every device advertises programTemplates.v1', () async {
+      const build = SyncCapabilityPolicy.build;
+      final templates = [
+        SyncMergeCandidate.fromBlob(
+          _setting(
+            'program_template:3f1c9a52-6a0f-4d7b-9a51-0b5e4f2d7c11',
+            '"{}"',
+          ),
+        ),
+        SyncMergeCandidate.fromBlob(
+          _setting('program_template_order', '["a"]'),
+        ),
+        SyncMergeCandidate.fromBlob(
+          _setting('program_template_default', '"a"'),
+        ),
+      ];
+      for (final candidate in templates) {
+        expect(
+          build.capabilityFor(candidate.blob.kind, candidate.blob.id),
+          SyncCapabilities.programTemplatesV1,
+          reason: '${candidate.blob.id} is gated by the shipped policy',
+        );
+      }
+      final templateKeys = {for (final c in templates) c.blob.id};
+      final everyDevice = ['p1', 'p2'];
+      // What the build before this one advertised.
+      const previous = {
+        SyncCapabilities.glossaryV1,
+        SyncCapabilities.glossaryV2,
+      };
+
+      Future<(SyncPassResult, _FakeTransport, _FakeStore)> pass(
+        Map<String, Set<String>> recorded,
+      ) async {
+        final records = [
+          for (final MapEntry(key: peer, value: advertised) in recorded.entries)
+            capabilityOf(peer, advertised),
+        ];
+        final local = {
+          for (final c in [...templates, plain, ...records]) c.address: c,
+        };
+        final store = _FakeStore(local: local);
+        final transport = transportFor(
+          everyDevice,
+          missing: {
+            for (final c in [...templates, plain]) c.wireHash,
+          },
+        );
+        final result = await coordinatorFor(
+          store,
+          transport,
+          capabilities: build,
+        ).syncNow();
+        expect(result.status, SyncPassStatus.completed);
+        expect(
+          uploaded(transport),
+          contains(plain.wireHash),
+          reason: 'an ungated record uploads, so the checks below can fail',
+        );
+        return (result, transport, store);
+      }
+
+      for (final recorded in [
+        const <String, Set<String>>{},
+        {for (final peer in everyDevice) peer: previous},
+      ]) {
+        final (result, transport, store) = await pass(recorded);
+        expect(publishedSettings(transport), contains('theme_mode'));
+        expect(
+          publishedSettings(transport).intersection(templateKeys),
+          isEmpty,
+        );
+        for (final c in templates) {
+          expect(uploaded(transport), isNot(contains(c.wireHash)));
+          expect(store.publishedRecords, contains(c.address));
+        }
+        expect(awaiting(result).map((r) => r.peerId).toSet(), {'p1', 'p2'});
+        expect(awaiting(result), hasLength(2), reason: 'one report per peer');
+        for (final report in awaiting(result)) {
+          expect(report.message, contains(SyncCapabilities.programTemplatesV1));
+        }
+      }
+
+      final (result, transport, _) = await pass({
+        for (final peer in everyDevice) peer: build.advertised,
+      });
+      expect(publishedSettings(transport), containsAll(templateKeys));
+      for (final c in templates) {
+        expect(uploaded(transport), contains(c.wireHash));
+      }
+      expect(awaiting(result), isEmpty);
+    });
+
+    test('rollout: the suggestion settings (#2343) wait beside peers with no '
+        'record and peers on the previous build, and publish once every '
+        'device advertises suggestions.v1', () async {
+      const build = SyncCapabilityPolicy.build;
+      final suggestions = [
+        SyncMergeCandidate.fromBlob(_setting('suggestions_enabled', 'true')),
+        SyncMergeCandidate.fromBlob(
+          _setting(
+            'suggestion_settings',
+            '{"version":1,"factors":{"venueRecency":{"weight":"off"}},'
+                '"preferences":[]}',
+          ),
+        ),
+      ];
+      for (final candidate in suggestions) {
+        expect(
+          build.capabilityFor(candidate.blob.kind, candidate.blob.id),
+          SyncCapabilities.suggestionsV1,
+          reason: '${candidate.blob.id} is gated by the shipped policy',
+        );
+      }
+      final suggestionKeys = {for (final c in suggestions) c.blob.id};
+      final everyDevice = ['p1', 'p2'];
+      // What the build before this one advertised.
+      const previous = {
+        SyncCapabilities.glossaryV1,
+        SyncCapabilities.glossaryV2,
+        SyncCapabilities.programTemplatesV1,
+      };
+
+      Future<(SyncPassResult, _FakeTransport)> pass(
+        Map<String, Set<String>> recorded,
+      ) async {
+        final records = [
+          for (final MapEntry(key: peer, value: advertised) in recorded.entries)
+            capabilityOf(peer, advertised),
+        ];
+        final local = {
+          for (final c in [...suggestions, plain, ...records]) c.address: c,
+        };
+        final store = _FakeStore(local: local);
+        final transport = transportFor(
+          everyDevice,
+          missing: {
+            for (final c in [...suggestions, plain]) c.wireHash,
+          },
+        );
+        final result = await coordinatorFor(
+          store,
+          transport,
+          capabilities: build,
+        ).syncNow();
+        expect(result.status, SyncPassStatus.completed);
+        expect(
+          uploaded(transport),
+          contains(plain.wireHash),
+          reason: 'an ungated record uploads, so the checks below can fail',
+        );
+        return (result, transport);
+      }
+
+      for (final recorded in [
+        const <String, Set<String>>{},
+        {for (final peer in everyDevice) peer: previous},
+      ]) {
+        final (result, transport) = await pass(recorded);
+        expect(publishedSettings(transport), contains('theme_mode'));
+        expect(
+          publishedSettings(transport).intersection(suggestionKeys),
+          isEmpty,
+        );
+        for (final c in suggestions) {
+          expect(uploaded(transport), isNot(contains(c.wireHash)));
+        }
+        expect(awaiting(result).map((r) => r.peerId).toSet(), {'p1', 'p2'});
+        for (final report in awaiting(result)) {
+          expect(report.message, contains(SyncCapabilities.suggestionsV1));
+        }
+      }
+
+      final (result, transport) = await pass({
+        for (final peer in everyDevice) peer: build.advertised,
+      });
+      expect(publishedSettings(transport), containsAll(suggestionKeys));
+      for (final c in suggestions) {
+        expect(uploaded(transport), contains(c.wireHash));
+      }
+      expect(awaiting(result), isEmpty);
+    });
+
+    test('rollout: the Swap a dance defaults (#2346) wait beside peers with '
+        'no record and peers on the previous build, and publish once every '
+        'device advertises performSwap.v1', () async {
+      const build = SyncCapabilityPolicy.build;
+      final swapDefaults = [
+        SyncMergeCandidate.fromBlob(
+          _setting(
+            'perform_swap_defaults',
+            '{"version":1,"keep":{"formation":false}}',
+          ),
+        ),
+      ];
+      for (final candidate in swapDefaults) {
+        expect(
+          build.capabilityFor(candidate.blob.kind, candidate.blob.id),
+          SyncCapabilities.performSwapV1,
+          reason: '${candidate.blob.id} is gated by the shipped policy',
+        );
+      }
+      final swapKeys = {for (final c in swapDefaults) c.blob.id};
+      final everyDevice = ['p1', 'p2'];
+      // What the build before this one advertised.
+      const previous = {
+        SyncCapabilities.glossaryV1,
+        SyncCapabilities.glossaryV2,
+        SyncCapabilities.programTemplatesV1,
+        SyncCapabilities.suggestionsV1,
+      };
+
+      Future<(SyncPassResult, _FakeTransport)> pass(
+        Map<String, Set<String>> recorded,
+      ) async {
+        final records = [
+          for (final MapEntry(key: peer, value: advertised) in recorded.entries)
+            capabilityOf(peer, advertised),
+        ];
+        final local = {
+          for (final c in [...swapDefaults, plain, ...records]) c.address: c,
+        };
+        final store = _FakeStore(local: local);
+        final transport = transportFor(
+          everyDevice,
+          missing: {
+            for (final c in [...swapDefaults, plain]) c.wireHash,
+          },
+        );
+        final result = await coordinatorFor(
+          store,
+          transport,
+          capabilities: build,
+        ).syncNow();
+        expect(result.status, SyncPassStatus.completed);
+        expect(
+          uploaded(transport),
+          contains(plain.wireHash),
+          reason: 'an ungated record uploads, so the checks below can fail',
+        );
+        return (result, transport);
+      }
+
+      for (final recorded in [
+        const <String, Set<String>>{},
+        {for (final peer in everyDevice) peer: previous},
+      ]) {
+        final (result, transport) = await pass(recorded);
+        expect(publishedSettings(transport), contains('theme_mode'));
+        expect(publishedSettings(transport).intersection(swapKeys), isEmpty);
+        for (final c in swapDefaults) {
+          expect(uploaded(transport), isNot(contains(c.wireHash)));
+        }
+        expect(awaiting(result).map((r) => r.peerId).toSet(), {'p1', 'p2'});
+        for (final report in awaiting(result)) {
+          expect(report.message, contains(SyncCapabilities.performSwapV1));
+        }
+      }
+
+      final (result, transport) = await pass({
+        for (final peer in everyDevice) peer: build.advertised,
+      });
+      expect(publishedSettings(transport), containsAll(swapKeys));
+      for (final c in swapDefaults) {
+        expect(uploaded(transport), contains(c.wireHash));
+      }
+      expect(awaiting(result), isEmpty);
+    });
+
     test('glossary entries wait on the capability of their own kind: terms '
         'and figures of your own on glossary.v2, compounds and unknown kinds '
         'on glossary.v1, tombstones included (#1023)', () async {
@@ -8341,6 +8625,10 @@ void main() {
         'capabilities': [
           SyncCapabilities.glossaryV1,
           SyncCapabilities.glossaryV2,
+          SyncCapabilities.performSwapV1,
+          SyncCapabilities.programTemplatesV1,
+          SyncCapabilities.savedSearchesV1,
+          SyncCapabilities.suggestionsV1,
         ],
       }, reason: 'this build advertises the capabilities');
 
@@ -8421,6 +8709,248 @@ void main() {
       await store.ensureCapabilityRecord('device-a', {'a.v1'});
       expect(await repositories.settings.get(key), {
         'capabilities': ['a.v1'],
+      });
+    });
+
+    group('saved searches (#2325)', () {
+      const savedPolicy = SyncCapabilityPolicy(
+        advertised: {SyncCapabilities.savedSearchesV1},
+        gatedSettingKeyPrefixes: {
+          savedSearchKeyPrefix: SyncCapabilities.savedSearchesV1,
+        },
+      );
+      final spec = SavedSearchSpec.fromPanelState(
+        CollectionPanelState(text: 'petronella'),
+        today: DateTime.utc(2026, 11, 22),
+      ).value!;
+      Map<String, Object?> valueOf(String id, String name) =>
+          SavedSearch(id: id, name: name, spec: spec).toJson();
+      SyncMergeCandidate savedSearch(String id, String name, {int at = 10}) {
+        final stamped = stamp.add(Duration(seconds: at));
+        return SyncMergeCandidate.fromBlob(
+          SyncRecordBlob(
+            kind: SyncRecordKind.setting,
+            id: '$savedSearchKeyPrefix$id',
+            updatedAt: stamped,
+            deletedAt: null,
+            existenceAt: stamped,
+            body: {'value': valueOf(id, name)},
+          ),
+        );
+      }
+
+      test('a device with no capability record holds a saved search back, and '
+          'only that', () async {
+        final mine = savedSearch('a', 'Easy mixers');
+        final store = _FakeStore(
+          local: {mine.address: mine, plain.address: plain},
+        );
+        final transport = transportFor(
+          ['peer'],
+          missing: {mine.wireHash, plain.wireHash},
+        );
+        final result = await coordinatorFor(
+          store,
+          transport,
+          capabilities: savedPolicy,
+        ).syncNow();
+
+        expect(publishedSettings(transport), {'theme_mode'});
+        expect(uploaded(transport), isNot(contains(mine.wireHash)));
+        expect(awaiting(result).map((r) => r.peerId), ['peer']);
+        expect(awaiting(result).single.message, contains('savedSearches.v1'));
+      });
+
+      test('a deleted saved search is held back as a live one is', () async {
+        final deleted = tombstoneOf(savedSearch('a', 'Gone'));
+        final store = _FakeStore(local: {deleted.address: deleted});
+        final transport = transportFor(['peer']);
+        final result = await coordinatorFor(
+          store,
+          transport,
+          capabilities: savedPolicy,
+        ).syncNow();
+
+        expect(publishedSettings(transport), isEmpty);
+        expect(awaiting(result).map((r) => r.peerId), ['peer']);
+      });
+
+      test('once every other device advertises it, the next pass publishes '
+          'every saved search, one record each', () async {
+        final a = savedSearch('a', 'Easy mixers');
+        final b = savedSearch('b', 'Becket');
+        final peerCaps = capabilityOf('peer', {
+          SyncCapabilities.savedSearchesV1,
+        });
+        final store = _FakeStore(
+          local: {a.address: a, b.address: b, peerCaps.address: peerCaps},
+        );
+        final transport = transportFor(['peer']);
+        final result = await coordinatorFor(
+          store,
+          transport,
+          capabilities: savedPolicy,
+        ).syncNow();
+
+        expect(awaiting(result), isEmpty);
+        expect(
+          publishedSettings(transport),
+          containsAll(['saved_search:a', 'saved_search:b']),
+        );
+      });
+
+      test('the shipped build advertises savedSearches.v1, and publishes a '
+          'saved search once every other device advertises it', () async {
+        expect(
+          SyncCapabilityPolicy.build.advertised,
+          contains(SyncCapabilities.savedSearchesV1),
+        );
+        final mine = savedSearch('a', 'Easy mixers');
+        final peerCaps = capabilityOf(
+          'peer',
+          SyncCapabilityPolicy.build.advertised,
+        );
+        final store = _FakeStore(
+          local: {
+            mine.address: mine,
+            plain.address: plain,
+            peerCaps.address: peerCaps,
+          },
+        );
+        final transport = transportFor(
+          ['peer'],
+          missing: {plain.wireHash, mine.wireHash},
+        );
+        final result = await coordinatorFor(
+          store,
+          transport,
+          capabilities: SyncCapabilityPolicy.build,
+        ).syncNow();
+
+        expect(result.status, SyncPassStatus.completed);
+        expect(awaiting(result), isEmpty);
+        expect(publishedSettings(transport), contains('saved_search:a'));
+        expect(uploaded(transport), contains(mine.wireHash));
+      });
+
+      test('the shipped build holds a saved search back from a device on the '
+          'build before this one, and names that device', () async {
+        final mine = savedSearch('a', 'Easy mixers');
+        // The build before this one: everything but saved searches.
+        final previous = {
+          for (final c in SyncCapabilityPolicy.build.advertised)
+            if (c != SyncCapabilities.savedSearchesV1) c,
+        };
+        final updated = capabilityOf(
+          'updated',
+          SyncCapabilityPolicy.build.advertised,
+        );
+        final older = capabilityOf('older', previous);
+        final store = _FakeStore(
+          local: {
+            mine.address: mine,
+            plain.address: plain,
+            updated.address: updated,
+            older.address: older,
+          },
+        );
+        final transport = transportFor(
+          ['updated', 'older'],
+          missing: {plain.wireHash, mine.wireHash},
+        );
+        final result = await coordinatorFor(
+          store,
+          transport,
+          capabilities: SyncCapabilityPolicy.build,
+        ).syncNow();
+
+        // The pass ran and published what is not gated, so the absence of the
+        // saved search is the gate's doing.
+        expect(result.status, SyncPassStatus.completed);
+        expect(publishedSettings(transport), contains('theme_mode'));
+        expect(publishedSettings(transport), isNot(contains('saved_search:a')));
+        expect(uploaded(transport), isNot(contains(mine.wireHash)));
+        expect(awaiting(result).map((r) => r.peerId), ['older']);
+        expect(awaiting(result).single.message, contains('savedSearches.v1'));
+      });
+
+      test('end to end on the real store: two devices that each add a search '
+          'offline keep both; a device that cannot read them holds them '
+          'back, deleting nothing', () async {
+        final repos = openTestRepositories();
+        final mine = await repos.savedSearches.create(
+          name: 'Easy mixers',
+          spec: spec,
+        );
+
+        // Device B added one of its own while offline.
+        final peerCaps = capabilityOf('peer', {
+          SyncCapabilities.savedSearchesV1,
+        });
+        final theirs = savedSearch('b-id', 'Becket dances', at: 20);
+        final transport = _FakeTransport(
+          devices: ['device-a', 'peer'],
+          peerManifests: {
+            'peer': _manifest(
+              deviceId: 'peer',
+              records: {
+                SyncRecordKind.setting: {
+                  peerCaps.address.recordId: peerCaps.wireHash,
+                  theirs.address.recordId: theirs.wireHash,
+                },
+              },
+            ),
+          },
+          blobResponses: {
+            for (final c in [peerCaps, theirs])
+              c.wireHash: _FakeTransport.response(
+                200,
+                body: utf8.encode(encodeSyncRecordBlob(c.blob)),
+              ),
+          },
+        );
+        await repos.syncLocal.resetEpoch(epoch: 'epoch-1');
+        final coordinator = SyncCoordinator(
+          syncId: 'configured',
+          deviceId: 'device-a',
+          store: CompendiumSyncCoordinatorStore(repos),
+          transport: transport,
+          capabilityPolicy: savedPolicy,
+        );
+        addTearDown(coordinator.dispose);
+        Set<String> published() =>
+            (decodeSyncManifest(
+                      utf8.decode(transport.manifestBodies.last),
+                    ).records[SyncRecordKind.setting] ??
+                    const <String, String>{})
+                .keys
+                .toSet();
+        Future<Set<String>> names() async => {
+          for (final s in await repos.savedSearches.list()) s.search!.name,
+        };
+
+        var result = await coordinator.syncNow();
+        expect(result.status, SyncPassStatus.completed);
+        expect(awaiting(result), isEmpty);
+        expect(await names(), {
+          'Easy mixers',
+          'Becket dances',
+        }, reason: 'both searches survive, and the peer\'s arrived');
+        expect(published(), contains('saved_search:${mine.id}'));
+
+        // A device on a build that cannot read them attaches.
+        transport.devices.add('older');
+        result = await coordinator.syncNow();
+        expect(result.status, SyncPassStatus.completed);
+        expect(awaiting(result).map((r) => r.peerId), ['older']);
+        expect(
+          published().where((k) => k.startsWith(savedSearchKeyPrefix)),
+          isEmpty,
+        );
+        expect(await names(), {
+          'Easy mixers',
+          'Becket dances',
+        }, reason: 'held back, not deleted');
       });
     });
   });

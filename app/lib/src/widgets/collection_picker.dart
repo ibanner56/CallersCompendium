@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 
+import '../data/active_dialect_scope.dart';
 import '../data/callersbox_online.dart';
 import '../data/collection_facets_scope.dart';
 import '../data/collection_tile_fields_scope.dart';
@@ -18,13 +20,18 @@ import '../data/calling_history_tracking_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
+import '../data/matrix_collision_mode_scope.dart';
+import '../data/program_matrix_column_config_scope.dart';
+import '../data/suggestions_scope.dart';
+import '../data/user_figures_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../models/dance_list_entry.dart';
 import '../search/called_venue_choices.dart';
 import '../search/collection_data.dart';
 import '../search/collection_opening_sort.dart';
-import '../search/collection_query.dart';
+import '../search/saved_search_context.dart';
 import '../theme/app_spacing.dart';
+import '../utils/slot_dance_title.dart';
 import 'advanced_query_builder.dart';
 import 'by_phrase_panel.dart';
 import 'collection_search_controls.dart';
@@ -35,7 +42,10 @@ import 'online_more_footer.dart';
 import 'online_result_count.dart';
 import 'online_result_tile.dart';
 import 'online_search_toggle.dart';
+import 'picker_suggestions.dart';
 import 'preview_hold_listener.dart';
+import 'saved_search_actions.dart';
+import 'saved_search_field.dart';
 import 'search_panel_bar.dart';
 
 /// A reusable dance picker that reuses the Collection search stack (full-text
@@ -50,6 +60,16 @@ import 'search_panel_bar.dart';
 /// The sort is the picker's own: it opens in the Collection's opening sort
 /// ([readCollectionOpeningSort]) and a change lasts as long as this picker,
 /// never written back to Settings.
+///
+/// With Settings ▸ Experimental ▸ Suggestions on and a [programContext] that
+/// carries a position, the Sort menu also offers **Suggested** (#2343): the
+/// current results, ranked off the UI thread for that position (the end of
+/// the program, the place an add before or after a slot lands, or the slot
+/// **Replace…** fills, #2344), each with a reason line and a **Why?**
+/// action. The picker opens in it only for a host that asks
+/// ([openSuggested], Perform's swap sheet, #2348), and ranking only reorders:
+/// until it finishes the results show in the plain order, and a tap adds a
+/// dance either way.
 ///
 /// Unlike [DanceListScreen] this is a plain embeddable widget (no [Scaffold]/
 /// app bar): it renders inline as the builder's right pane on wide layouts, or
@@ -78,6 +98,19 @@ class CollectionPicker extends StatefulWidget {
     this.onPreviewOnlineStarted,
     this.onPreviewOnlineEnded,
     this.onViewOnlineDetails,
+    this.programContext,
+    this.suggestionDialectForColumn,
+    this.excludedDanceIds = const {},
+    this.rankSuggestions,
+    this.clock = const SearchClock(),
+    this.showSearchControls = true,
+    this.initialPanel,
+    this.header,
+    this.pinned,
+    this.offerSuggested = true,
+    this.openSuggested = false,
+    this.panelState,
+    this.onSortChanged,
   });
 
   /// Preloaded collection vocabulary/dances (loaded once by the builder and
@@ -163,8 +196,131 @@ class CollectionPicker extends StatefulWidget {
   /// Opens a persistent online-dance preview for keyboard and AT users.
   final void Function(OnlineSearchResultRow result)? onViewOnlineDetails;
 
+  /// The program this picker adds to (history-filters Q3), or null for a
+  /// host with none (Perform, a template). Its id keeps the program's own
+  /// slots out of every calling-history filter here (N1-6), and its position,
+  /// when set, makes Suggested available and is what Suggested ranks for.
+  final PickerProgramContext? programContext;
+
+  /// The dialect a column a **Suggested** reason names is read in, where it is
+  /// not [dialect]: the program matrix's own per-column choice, so a reason
+  /// names a figure as its column does (#2294). Null reads every column in
+  /// [dialect].
+  final Dialect Function(MatrixColumn column)? suggestionDialectForColumn;
+
+  /// Dances this picker never lists, such as the dance a Replace… would
+  /// replace: choosing it would change nothing. Applied to the local results
+  /// before Suggested ranks them, so they are never ranked either.
+  final Set<String> excludedDanceIds;
+
+  /// Ranks for Suggested. A test seam: when null, as in the app, the picker
+  /// ranks on a [SuggestionWorker] of its own, which keeps the candidates it
+  /// was sent so a re-rank after an add sends only the program and ids.
+  final SuggestionRanker? rankSuggestions;
+
+  /// Where "today" comes from, for a calling-history window, Suggested and
+  /// saving a search: the caller's own calendar day. A test seam.
+  final SearchClock clock;
+
+  /// Whether the search field and the row of search tools show. A host whose
+  /// own controls set the query ([panelState]) can hide them until the
+  /// user asks for them; the results, their count and the sort show either
+  /// way.
+  final bool showSearchControls;
+
+  /// The search tool that is open when the tools first show, unless the user
+  /// already chose one on this route.
+  final PickerSearchPanel? initialPanel;
+
+  /// Scrolls with the results, above the search tools: the host's own
+  /// controls for the query, such as the swap sheet's **Keep** items.
+  final Widget? header;
+
+  /// Dances listed first under a heading of their own, whatever the query,
+  /// and left out of the results below (the swap sheet's **Your
+  /// alternates**). Rows act as result rows do.
+  final PickerPinnedDances? pinned;
+
+  /// Whether the Sort menu may offer **Suggested** at all. False keeps a host
+  /// that passes a [programContext] position for other reasons on the plain
+  /// orders.
+  final bool offerSuggested;
+
+  /// Whether the picker shows **Suggested** whenever it is offered, without
+  /// the user choosing it (#2348): from the start, after each [panelState]
+  /// request, and when Suggestions is turned on, until the user picks another
+  /// sort here, and again once they choose Suggested. Ranking still only
+  /// reorders, and the plain order shows until it finishes. False, as in the
+  /// program builder, the picker never opens in Suggested.
+  final bool openSuggested;
+
+  /// A search for the picker to show: its text, **Search in**, every filter,
+  /// the By phrase rows, the Advanced tree and the sort with its direction,
+  /// exactly ([CollectionPanelState]), in place of whatever it shows.
+  ///
+  /// Applied **once**: when the picker is built with it, or when a rebuild
+  /// passes a request it has not applied yet. A request is marked applied by
+  /// the first picker to take it ([CollectionPanelRequest.applied]), so a
+  /// rebuild of the same picker keeps what the user has since changed, and a
+  /// picker built again with the same request — remounted by a narrow/wide
+  /// layout change, a sheet opened again — is a new picker that starts blank,
+  /// as it would without a request: it does not put the search back. To show
+  /// the search in a new picker, pass a new request.
+  ///
+  /// The owner must therefore **hold the request in a field** and pass that
+  /// same object on every build. A request created inside `build()` is a new,
+  /// unapplied one on every rebuild, and each would put the search back over
+  /// the user's edits (a program editor rebuilds its picker on every change
+  /// to the program).
+  final CollectionPanelRequest? panelState;
+
+  /// Called when the user picks a sort or flips its direction here, so a
+  /// host that sends a later [panelState] can carry the sort being looked at
+  /// in it (a request replaces the sort too). Not called for a sort a
+  /// request or the opening-sort read sets.
+  final void Function(CollectionSort sort, SortDirection direction)?
+  onSortChanged;
+
   @override
   State<CollectionPicker> createState() => _CollectionPickerState();
+}
+
+/// The search tools a [CollectionPicker] can open with
+/// ([CollectionPicker.initialPanel]).
+enum PickerSearchPanel { filters, byPhrase, advanced }
+
+/// Dances a [CollectionPicker] lists first, under [heading], above the
+/// results, which then go under [resultsHeading].
+@immutable
+class PickerPinnedDances {
+  const PickerPinnedDances({
+    required this.heading,
+    required this.resultsHeading,
+    required this.danceIds,
+  });
+
+  final String heading;
+  final String resultsHeading;
+
+  /// In the order listed. An id the collection does not hold is skipped.
+  final List<String> danceIds;
+}
+
+/// A one-shot request to show [state] in a [CollectionPicker]; see
+/// [CollectionPicker.panelState].
+///
+/// The picker takes [state]'s objects as its own and edits them from then on,
+/// so a request is not reusable, and the owner should not keep editing
+/// [state] after passing it.
+class CollectionPanelRequest {
+  CollectionPanelRequest(this.state);
+
+  final CollectionPanelState state;
+
+  bool _applied = false;
+
+  /// Whether a picker has applied this request.
+  bool get applied => _applied;
 }
 
 /// What a [CollectionPicker] row's tap target does, driving its tooltip,
@@ -180,20 +336,40 @@ class _CollectionPickerState extends State<CollectionPicker> {
   static const Duration _addConfirmation = Duration(milliseconds: 1200);
 
   final _ftsController = TextEditingController();
+
+  /// The search box's focus, which opens the saved-search dropdown.
+  final _ftsFocusNode = FocusNode(debugLabel: 'picker-search-field');
   FullTextScope _ftsScope = FullTextScope.omni;
 
   /// The local Search in choice, restored when online search is turned off
   /// (online search maps All fields to Title).
   FullTextScope _localFtsScope = FullTextScope.omni;
-  final _facets = FacetSelections();
-  final _byPhrase = ByPhraseSelections();
-  final _advancedRoot = BuilderGroup();
+  // Replaced, not edited, when a panel state is applied ([_applyPanelState]).
+  var _facets = FacetSelections();
+  var _byPhrase = ByPhraseSelections();
+  var _advancedRoot = BuilderGroup();
+
+  /// Whether the panel state last applied came from a saved search.
+  bool _panelFromSavedSearch = false;
+
+  /// The saved search on screen, if one was loaded or just saved here
+  /// (#2325), for the notice about what it uses that is gone. Kept
+  /// here, not in the menu, so Clear all forgets it.
+  SavedSearchLoad? _loadedSearch;
+
+  /// Whether the notice about [_loadedSearch]'s missing references was closed.
+  bool _savedSearchNoticeClosed = false;
+
+  /// The request the saved-search dropdown last loaded a search through: the same
+  /// one-shot entry point as [CollectionPicker.panelState], held in a field
+  /// as that parameter asks, so nothing can apply it twice.
+  CollectionPanelRequest? _menuRequest;
 
   CollectionSort _sort = CollectionSort.title;
   SortDirection _sortDir = CollectionSort.title.searchSort.defaultDirection;
 
-  /// Whether the user picked a sort or direction in this picker, so the async
-  /// opening-sort read cannot overwrite it.
+  /// Whether the user picked a sort or direction in this picker, or a panel
+  /// state set one, so the async opening-sort read cannot overwrite it.
   bool _sortUserSet = false;
 
   late OnlineSearchService _callersBox;
@@ -241,11 +417,97 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   List<DanceListEntry> _results = const [];
 
+  // Suggested (#2343). [_suggested] is the chosen order; [_sort] and
+  // [_sortDir] stay the plain order underneath it, which the search runs in
+  // and which shows until [_ranking] is ready. [_rankedFor] is the result
+  // list [_ranking] orders and [_rankedAt] the position it ranks for: a new
+  // search, or a new position (#2344), shows plain again until re-ranked, so
+  // a ranking for one place never shows for another.
+  bool _suggested = false;
+  // The user picked a plain sort here since Suggested last showed, which
+  // [CollectionPicker.openSuggested] then leaves alone.
+  bool _plainSortChosen = false;
+  SuggestionRanking? _ranking;
+  Map<String, RankedSuggestion> _rankById = const {};
+  List<DanceListEntry>? _rankedFor;
+  SuggestionPosition? _rankedAt;
+  bool _rankPending = false;
+  // The last ranking failed: the plain order shows, with a notice.
+  bool _rankFailed = false;
+  int _rankSeq = 0;
+  SuggestionWorker? _worker;
+  bool _suggestionsEnabled = false;
+  SuggestionSettingsRead _suggestionSettings = (
+    settings: SuggestionSettings.defaults,
+    isNewer: false,
+  );
+  bool _exactBeatCollision = true;
+  MatrixColumnConfig _matrixConfig = MatrixColumnConfig.empty;
+  UserFigureCatalog _userFigures = UserFigureCatalog.empty;
+
   /// True from the start: the first search waits for the opening-sort read.
   bool _searching = true;
   Object? _searchError;
   int _searchSeq = 0;
   Timer? _debounceTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Before the first search: the opening-sort read that runs it leaves a
+    // sort set here alone (`_sortUserSet`).
+    _applyPanelState(widget.panelState);
+  }
+
+  /// Shows [request]'s state, if no picker has applied it yet; returns whether
+  /// it did. Every part is replaced, the sort included, never only the parts
+  /// [_clearAll] resets.
+  ///
+  /// The order matters while online search is on: online is turned off
+  /// **first**, which puts any tag rows a ContraDB search took out back into
+  /// the tree they came from — the old one — then those taken rows are
+  /// forgotten, and only then is the tree replaced, so none of them lands in
+  /// the new one. Online is left because an online source cannot search most
+  /// of what a panel state holds.
+  ///
+  /// Sets state directly: the caller is `initState` or `didUpdateWidget`,
+  /// both followed by a build.
+  bool _applyPanelState(CollectionPanelRequest? request) {
+    if (request == null || request._applied) return false;
+    request._applied = true;
+    final state = request.state;
+    if (_onlineEnabled) {
+      _onlineEnabled = false;
+      _syncAdvancedTagRows();
+      _onlineResults = const [];
+      _onlineError = null;
+      _onlineImportError = null;
+      _onlineSearching = false;
+    }
+    _removedTags.clear();
+    _ftsController.text = state.text;
+    _ftsScope = state.scope;
+    _localFtsScope = state.scope;
+    // A tag the state names stays selected even if no dance carries it yet.
+    state.facets.keepSelectedTags();
+    _facets = state.facets;
+    _byPhrase = state.byPhrase;
+    _advancedRoot = state.advanced;
+    _panelFromSavedSearch = state.fromSavedSearch;
+    // Whatever was loaded is not on screen any more; the dropdown says
+    // which saved search this is, once it has applied it.
+    _loadedSearch = null;
+    // A host that asks for Suggested gets it back in didUpdateWidget (or,
+    // for the first request, didChangeDependencies), and the search that
+    // follows ranks.
+    _leaveSuggested();
+    // Best match that is no longer offered falls back to Title.
+    final (:sort, :direction) = state.effectiveSort;
+    _sort = sort;
+    _sortDir = direction;
+    _sortUserSet = true;
+    return true;
+  }
 
   @override
   void didChangeDependencies() {
@@ -272,6 +534,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         _started &&
         _facets.clearFacets(newHiddenFacets.difference(_hiddenFacets));
     _hiddenFacets = newHiddenFacets;
+    final suggestionInputsChanged = _readSuggestionInputs();
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
@@ -285,7 +548,62 @@ class _CollectionPickerState extends State<CollectionPicker> {
             facetsCleared) &&
         !_onlineEnabled) {
       _runSearch();
+    } else if (suggestionInputsChanged && _suggested) {
+      unawaited(_rank());
     }
+  }
+
+  /// Reads what Suggested depends on from the tree; true when any of it
+  /// changed. Turning Suggestions off leaves Suggested for the plain order.
+  bool _readSuggestionInputs() {
+    final enabled = SuggestionsEnabledScope.of(context);
+    final settings = SuggestionSettingsScope.of(context);
+    final exact = MatrixCollisionModeScope.of(context);
+    final config = ProgramMatrixColumnConfigScope.of(context);
+    final userFigures = UserFiguresScope.shownCatalogOf(context);
+    final changed =
+        settings != _suggestionSettings ||
+        exact != _exactBeatCollision ||
+        config != _matrixConfig ||
+        userFigures != _userFigures;
+    _suggestionSettings = settings;
+    _exactBeatCollision = exact;
+    _matrixConfig = config;
+    _userFigures = userFigures;
+    _suggestionsEnabled = enabled;
+    if (!enabled && _suggested) _leaveSuggested();
+    // Turned on while the picker is open: the caller sees no search, so rank
+    // what shows (a first search, not started yet, ranks by itself).
+    if (_openSuggestedIfAsked() && _started && !_searching) unawaited(_rank());
+    return changed;
+  }
+
+  /// Shows Suggested if the host asks for it ([CollectionPicker.openSuggested])
+  /// and it is offered, unless the user picked a plain sort here. Returns
+  /// whether it changed to Suggested; the caller ranks, or a search does.
+  bool _openSuggestedIfAsked() {
+    if (!widget.openSuggested || _suggested || _plainSortChosen) return false;
+    if (!_suggestedAvailable) return false;
+    _suggested = true;
+    return true;
+  }
+
+  /// Whether the Sort menu offers Suggested.
+  bool get _suggestedAvailable =>
+      widget.offerSuggested &&
+      _suggestionsEnabled &&
+      widget.programContext?.position != null;
+
+  /// Back to the plain order, dropping any ranking in flight.
+  void _leaveSuggested() {
+    _suggested = false;
+    _ranking = null;
+    _rankById = const {};
+    _rankedFor = null;
+    _rankedAt = null;
+    _rankPending = false;
+    _rankFailed = false;
+    _rankSeq++;
   }
 
   @override
@@ -293,6 +611,14 @@ class _CollectionPickerState extends State<CollectionPicker> {
     super.didUpdateWidget(oldWidget);
     var dataChanged = false;
     var onlineDisabled = false;
+    // A request this picker (or another) has applied is left alone, so a
+    // rebuild never puts it back over the user's edits.
+    final panelApplied = _applyPanelState(widget.panelState);
+    if (panelApplied) {
+      _debounceTimer?.cancel();
+      _searchSeq++;
+      _onlineSeq++;
+    }
     if (oldWidget.enableOnlineSearch &&
         !widget.enableOnlineSearch &&
         _onlineEnabled) {
@@ -324,8 +650,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
               (dance) => dance.authorIds.contains(id),
             );
       });
-      // A tag no live dance carries has no chip left; see retainTags. The
-      // search below re-runs for any data change.
+      // A tag picked by hand that no live dance carries any more is dropped;
+      // one a panel state brought is kept (see retainTags). The search below
+      // re-runs for any data change.
       _facets.retainTags([for (final t in widget.data.tags) t.id]);
       dataChanged = true;
     }
@@ -347,11 +674,13 @@ class _CollectionPickerState extends State<CollectionPicker> {
     // picker is open (e.g. the user edits their dialect library).
     final searchInputsChanged =
         oldWidget.dialect != widget.dialect ||
-        oldWidget.enrichment != widget.enrichment;
+        oldWidget.enrichment != widget.enrichment ||
+        !setEquals(oldWidget.excludedDanceIds, widget.excludedDanceIds);
+    // One search for this update, however many of its inputs changed.
     if (searchInputsChanged && !_onlineEnabled) {
       _runSearch();
-    }
-    if (onlineDisabled ||
+    } else if (panelApplied ||
+        onlineDisabled ||
         ((dataChanged || hostOverrideAdvanced) &&
             !_onlineEnabled &&
             !searchInputsChanged)) {
@@ -360,6 +689,22 @@ class _CollectionPickerState extends State<CollectionPicker> {
     if (onlineServiceChanged && _onlineEnabled) {
       _onlineSeq++;
       _runOnlineSearch();
+    }
+    if (_suggested && !_suggestedAvailable) {
+      // No longer offered (the host turned it off): back to the plain order.
+      setState(_leaveSuggested);
+    } else if (_openSuggestedIfAsked() && !_searching) {
+      // Asked for again (after a new panel request, or newly asked for): a
+      // search still running ranks when it lands; with none, rank now.
+      unawaited(_rank());
+    } else if (oldWidget.programContext != widget.programContext &&
+        _suggested) {
+      if (widget.programContext?.position == null) {
+        setState(_leaveSuggested);
+      } else if (!dataChanged && !searchInputsChanged) {
+        // A data change re-runs the search above, which re-ranks.
+        unawaited(_rank());
+      }
     }
   }
 
@@ -371,6 +716,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
     }
     _confirmTimers.clear();
     _ftsController.dispose();
+    _ftsFocusNode.dispose();
+    _worker?.dispose();
     super.dispose();
   }
 
@@ -419,6 +766,11 @@ class _CollectionPickerState extends State<CollectionPicker> {
     advancedRoot: _advancedRoot,
   );
 
+  /// The caller's calendar day now, from [CollectionPicker.clock]: the one
+  /// "today" a window is counted back from, here, in Suggested and when a
+  /// search is saved.
+  DateTime _today() => widget.clock.today();
+
   Future<void> _runSearch() async {
     final data = widget.data;
     // Best match is only valid for a bare full-text search; fall back as the
@@ -444,6 +796,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
         performedOnly: _requirePerformedForHistory,
         requireEventDate: _requireEventDateForHistory,
         tracking: _tracking,
+        today: _today(),
+        currentProgramId: widget.programContext?.programId,
       );
       final ids = await _repos.dances.search(
         filter,
@@ -458,6 +812,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         performedOnly: _requirePerformedForHistory,
         requireEventDate: _requireEventDateForHistory,
         tracking: _tracking,
+        currentProgramId: widget.programContext?.programId,
       );
       if (!mounted || seq != _searchSeq) return;
       final choreographerNamesOverride = {
@@ -465,17 +820,21 @@ class _CollectionPickerState extends State<CollectionPicker> {
         for (final entry in _importedChoreographers.entries)
           entry.key: entry.value.name,
       };
+      final pinnedIds = {...?widget.pinned?.danceIds};
       setState(() {
         _results = [
           for (final id in ids)
-            if (_latestDanceFor(id, data) case final dance?)
-              data.entryFor(
-                dance,
-                choreographerNamesOverride: choreographerNamesOverride,
-              ),
+            if (!widget.excludedDanceIds.contains(id))
+              if (!pinnedIds.contains(id))
+                if (_latestDanceFor(id, data) case final dance?)
+                  data.entryFor(
+                    dance,
+                    choreographerNamesOverride: choreographerNamesOverride,
+                  ),
         ];
         _searching = false;
       });
+      if (_suggested) unawaited(_rank());
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'collection_picker._runSearch');
       if (!mounted || seq != _searchSeq) return;
@@ -530,11 +889,162 @@ class _CollectionPickerState extends State<CollectionPicker> {
   void _selectSort(CollectionSort value) {
     setState(() {
       _sortUserSet = true;
+      _plainSortChosen = true;
+      _leaveSuggested();
       _sort = value;
       _sortDir = value.searchSort.defaultDirection;
     });
+    widget.onSortChanged?.call(_sort, _sortDir);
     _runSearch();
   }
+
+  /// Chooses Suggested. The results stay as they are, in the plain order,
+  /// until the ranking arrives.
+  void _selectSuggested() {
+    if (_suggested) return;
+    setState(() {
+      _sortUserSet = true;
+      _plainSortChosen = false;
+      _suggested = true;
+    });
+    unawaited(_rank());
+  }
+
+  /// Ranks the current results for the context's position, off the UI
+  /// thread. A newer call, a new search, a new position or leaving Suggested
+  /// drops it.
+  Future<void> _rank() async {
+    final programContext = widget.programContext;
+    final position = programContext?.position;
+    if (!_suggested || programContext == null || position == null) return;
+    final seq = ++_rankSeq;
+    final results = _results;
+    final data = widget.data;
+    final settings = _suggestionSettings.settings;
+    setState(() => _rankPending = true);
+    try {
+      final venueKey = programContext.venueKey;
+      var calledHere = const <String, DateTime?>{};
+      if (venueKey != null && settings.venueRecency != SuggestionWeight.off) {
+        // "Called here" is the Called filter's own selection: the history
+        // settings, this venue, and never this program (N1-6).
+        calledHere = await _repos.programs.latestCallByDance(
+          CalledFilter(
+            called: true,
+            callerFilter: data.callerFilter,
+            performedOnly: _requirePerformedForHistory,
+            requireEventDate: _requireEventDateForHistory,
+            tracking: _tracking,
+            venue: venueKey,
+            currentProgramId: programContext.programId,
+          ),
+        );
+        if (!mounted || seq != _rankSeq) return;
+      }
+      final rank =
+          widget.rankSuggestions ?? (_worker ??= SuggestionWorker()).rank;
+      final ranking = await rank(
+        SuggestionRequest(
+          slotsBefore: position.slotsBefore,
+          slotsAfter: position.slotsAfter,
+          candidateIsAlternate: position.isAlternate,
+          programDances: {
+            for (final id in [
+              ...position.slotsBefore,
+              ...position.slotsAfter,
+            ].map((slot) => slot.danceId).nonNulls)
+              if (_latestDanceFor(id, data) case final dance?)
+                id: SuggestionCandidate.fromDance(dance),
+          },
+          candidates: [
+            for (final entry in results)
+              SuggestionCandidate.fromDance(entry.dance),
+          ],
+          settings: settings,
+          today: _today(),
+          collisionMode: _exactBeatCollision
+              ? MatrixCollisionMode.exactBeats
+              : MatrixCollisionMode.phrase,
+          taxonomy: data.taxonomy,
+          matrixConfig: _matrixConfig,
+          userFigures: _userFigures,
+          levels: data.levels,
+          hasVenue: venueKey != null,
+          calledHere: calledHere,
+        ),
+      );
+      if (!mounted || seq != _rankSeq) return;
+      setState(() {
+        _ranking = ranking;
+        _rankById = {for (final r in ranking.order) r.danceId: r};
+        _rankedFor = results;
+        _rankedAt = position;
+        _rankPending = false;
+        _rankFailed = false;
+      });
+    } on SuggestionRankSuperseded {
+      // diagnostics: silent — a newer ranking replaced this one and reports
+      // for both. Not a failure; only if none is running does the spinner
+      // stop.
+      if (mounted && seq == _rankSeq) setState(() => _rankPending = false);
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'collection_picker._rank');
+      if (!mounted || seq != _rankSeq) return;
+      // Back to the plain order, and say so. An earlier ranking of these same
+      // results (before a dance was added) is dropped too: it would no longer
+      // be the order the notice calls "usual".
+      setState(() {
+        _ranking = null;
+        _rankById = const {};
+        _rankedFor = null;
+        _rankedAt = null;
+        _rankPending = false;
+        _rankFailed = true;
+      });
+    }
+  }
+
+  /// Whether the ranking held is for exactly the results and the position
+  /// showing now.
+  bool get _rankingIsCurrent =>
+      _suggested &&
+      _ranking != null &&
+      identical(_rankedFor, _results) &&
+      _rankedAt == widget.programContext?.position;
+
+  /// The results as shown: ranked when Suggested has a ranking for exactly
+  /// these results at this position, else in the plain order.
+  List<DanceListEntry> get _shownResults {
+    final ranking = _ranking;
+    if (!_rankingIsCurrent || ranking == null) return _results;
+    final byId = {for (final entry in _results) entry.dance.id: entry};
+    return [for (final ranked in ranking.order) ?byId[ranked.danceId]];
+  }
+
+  /// [danceId]'s place in the ranking being shown, or null when none is.
+  RankedSuggestion? _shownRankFor(String danceId) =>
+      _rankingIsCurrent ? _rankById[danceId] : null;
+
+  SuggestionReasonLabels _reasonLabels(BuildContext context) =>
+      SuggestionReasonLabels.of(
+        context,
+        taxonomy: widget.data.taxonomy,
+        dialect: widget.dialect,
+        dialectForColumn: widget.suggestionDialectForColumn,
+        matrixConfig: _matrixConfig,
+        userFigures: _userFigures,
+        venueLabel: widget.programContext?.venueLabel,
+        danceTitle: (id) {
+          final dance = _latestDanceFor(id, widget.data);
+          return dance == null
+              ? null
+              : slotDanceTitle(
+                  AppLocalizations.of(context),
+                  dance,
+                  markDeleted: true,
+                );
+        },
+      );
 
   void _toggleSortDirection() {
     setState(() {
@@ -543,6 +1053,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
           ? SortDirection.descending
           : SortDirection.ascending;
     });
+    widget.onSortChanged?.call(_sort, _sortDir);
     _runSearch();
   }
 
@@ -592,6 +1103,73 @@ class _CollectionPickerState extends State<CollectionPicker> {
       !_byPhrase.isEmpty ||
       _advancedRoot.toFilter() != null;
 
+  /// The search on screen, as a panel state for the dropdown's baseline. The
+  /// picker's own objects, read and not kept.
+  CollectionPanelState _currentPanelState() => CollectionPanelState(
+    text: _ftsController.text,
+    scope: _ftsScope,
+    facets: _facets,
+    byPhrase: _byPhrase,
+    advanced: _advancedRoot,
+    sort: _sort,
+    sortDirection: _sortDir,
+  );
+
+  /// Shows a saved search the dropdown loaded, through the picker's one
+  /// entry point for a whole panel state ([_applyPanelState]), and runs it.
+  void _applyMenuState(CollectionPanelState state) {
+    final request = CollectionPanelRequest(state);
+    _menuRequest = request;
+    _debounceTimer?.cancel();
+    _searchSeq++;
+    _onlineSeq++;
+    setState(() => _applyPanelState(_menuRequest));
+    _runSearch();
+  }
+
+  /// One context to resolve a saved search against: the live data, the
+  /// Calling history settings in force now, and the program being built.
+  Future<SavedSearchContext> _readSavedSearchContext(
+    SavedSearchTextCodec text,
+  ) => readSavedSearchContext(
+    _repos,
+    today: _today(),
+    taxonomy: widget.data.taxonomy,
+    text: text,
+    callerFilter: widget.data.callerFilter,
+    performedOnly: _requirePerformedForHistory,
+    requireEventDate: _requireEventDateForHistory,
+    tracking: _tracking,
+    currentProgramId: widget.programContext?.programId,
+  );
+
+  /// The search field's dropdown chose [search]: show it and run it. The
+  /// picker only loads; saving and managing are the Collection's ⋮ menu and
+  /// Settings ▸ Collection.
+  Future<void> _loadSavedSearch(SavedSearch search) async {
+    final load = await SavedSearchActions(
+      context,
+      clock: widget.clock,
+      dialect: widget.dialect,
+      enrichment: widget.enrichment,
+      current: _currentPanelState,
+      apply: _applyMenuState,
+      readContext: _readSavedSearchContext,
+    ).load(search);
+    if (load != null) _onSavedSearchLoaded(load);
+  }
+
+  void _onSavedSearchLoaded(SavedSearchLoad? load) {
+    if (!mounted) return;
+    setState(() {
+      if (load?.search.id != _loadedSearch?.search.id ||
+          !identical(load?.missing, _loadedSearch?.missing)) {
+        _savedSearchNoticeClosed = false;
+      }
+      _loadedSearch = load;
+    });
+  }
+
   void _clearAll() {
     _debounceTimer?.cancel();
     _searchSeq++;
@@ -603,6 +1181,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _advancedRoot.children.clear();
       _removedTags.clear();
       _advancedRoot.kind = GroupKind.all;
+      _panelFromSavedSearch = false;
+      _loadedSearch = null;
       _onlineResults = const [];
       _onlineError = null;
       _onlineImportError = null;
@@ -931,10 +1511,78 @@ class _CollectionPickerState extends State<CollectionPicker> {
   Widget build(BuildContext context) {
     final data = widget.data;
     final l10n = AppLocalizations.of(context);
-    final searchField = TextField(
+    final searchField = SavedSearchField(
+      controller: _ftsController,
+      focusNode: _ftsFocusNode,
+      enabled: !_onlineEnabled,
+      onLoad: _loadSavedSearch,
+      // Enter only ever ended editing here; the search runs as it is typed.
+      onSubmitted: () {},
+      fieldBuilder: (context, onSubmitted) =>
+          _buildSearchTextField(l10n, onSubmitted),
+    );
+    return ExcludeFocus(
+      excluding: _onlineImporting,
+      child: IgnorePointer(
+        ignoring: _onlineImporting,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (widget.showSearchControls)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  AppSpacing.sm,
+                  AppSpacing.md,
+                  0,
+                ),
+                child: SearchFieldWithScope(
+                  searchField: searchField,
+                  scopeField: SearchScopeField(
+                    fieldKey: const ValueKey('picker-search-scope'),
+                    scope: _ftsScope,
+                    online: _onlineEnabled,
+                    onChanged: _onFtsScopeChanged,
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+              ),
+            Expanded(
+              child: CustomScrollView(
+                controller: widget.scrollController,
+                slivers: [
+                  SliverList(
+                    delegate: SliverChildListDelegate([
+                      ?widget.header,
+                      if (widget.showSearchControls) _buildSearchPanels(data),
+                      _buildResultCount(),
+                      const Divider(height: 1),
+                    ]),
+                  ),
+                  _onlineEnabled
+                      ? _buildOnlineResultsSliver()
+                      : _buildLocalResultsSliver(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The search box itself, under the saved-search dropdown
+  /// ([SavedSearchField]); [onSubmitted] is the dropdown's Enter.
+  Widget _buildSearchTextField(
+    AppLocalizations l10n,
+    VoidCallback onSubmitted,
+  ) {
+    return TextField(
       key: const ValueKey('picker-search'),
       controller: _ftsController,
+      focusNode: _ftsFocusNode,
       onChanged: _onFtsChanged,
+      onSubmitted: (_) => onSubmitted(),
       textInputAction: TextInputAction.search,
       decoration: InputDecoration(
         labelText: _onlineEnabled
@@ -956,52 +1604,6 @@ class _CollectionPickerState extends State<CollectionPicker> {
         border: const OutlineInputBorder(),
       ),
     );
-    return ExcludeFocus(
-      excluding: _onlineImporting,
-      child: IgnorePointer(
-        ignoring: _onlineImporting,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                AppSpacing.sm,
-                AppSpacing.md,
-                0,
-              ),
-              child: SearchFieldWithScope(
-                searchField: searchField,
-                scopeField: SearchScopeField(
-                  fieldKey: const ValueKey('picker-search-scope'),
-                  scope: _ftsScope,
-                  online: _onlineEnabled,
-                  onChanged: _onFtsScopeChanged,
-                  border: const OutlineInputBorder(),
-                ),
-              ),
-            ),
-            Expanded(
-              child: CustomScrollView(
-                controller: widget.scrollController,
-                slivers: [
-                  SliverList(
-                    delegate: SliverChildListDelegate([
-                      _buildSearchPanels(data),
-                      _buildResultCount(),
-                      const Divider(height: 1),
-                    ]),
-                  ),
-                  _onlineEnabled
-                      ? _buildOnlineResultsSliver()
-                      : _buildResultsSliver(),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   /// The same compact row of search tools as the Collection
@@ -1016,6 +1618,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final byPhraseActive = _byPhraseActiveCount();
     final panelBar = SearchPanelBar(
       storageId: 'picker',
+      initialOpen: switch (widget.initialPanel) {
+        null => null,
+        PickerSearchPanel.filters => const ValueKey('picker-filters-panel'),
+        PickerSearchPanel.byPhrase => const ValueKey('picker-by-phrase-panel'),
+        PickerSearchPanel.advanced => const ValueKey('picker-advanced-panel'),
+      },
       trailing: widget.enableOnlineSearch
           ? OnlineSearchToggle(
               key: const ValueKey('picker-online-search-enable'),
@@ -1068,6 +1676,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         panelBar,
+        if (_loadedSearch case final load?
+            when load.missing.isNotEmpty && !_savedSearchNoticeClosed)
+          SavedSearchNotice(
+            load: load,
+            onClose: () => setState(() => _savedSearchNoticeClosed = true),
+          ),
         if (_onlineEnabled)
           Padding(
             padding: const EdgeInsets.fromLTRB(
@@ -1132,6 +1746,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
       booleanFields: data.booleanFields,
       textFields: data.textFields,
       numberFields: data.numberFields,
+      allLevels: data.allLevels,
+      authorNames: data.choreographerNames,
+      allTagNames: data.allTagNames,
+      sourceTitles: data.sourceTitles,
+      allCustomFields: data.customFieldDefs,
+      historyFromSavedSearch: _panelFromSavedSearch,
       onChanged: _onFacetsChanged,
     );
   }
@@ -1162,8 +1782,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
       root: _advancedRoot,
       taxonomy: data.taxonomy,
       dialect: widget.dialect,
+      // Each figure of your own in its own form's dialect (#2294); the moves
+      // stay in the picker's.
+      dialects: ActiveDialectScope.maybeOf(context),
       sectionLabels: data.sectionLabels,
       tags: data.tags,
+      allTagNames: data.allTagNames,
       tagsUnavailableFor: _onlineEnabled && _onlineSource.hidesAdvancedTags
           ? _onlineSource.label
           : null,
@@ -1209,7 +1833,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
                     ),
                   ),
                 ),
-                if (searching || _onlineImporting) ...[
+                if (searching ||
+                    _onlineImporting ||
+                    (!_onlineEnabled && _suggested && _rankPending)) ...[
                   const SizedBox(width: 8),
                   const SizedBox(
                     width: 12,
@@ -1226,15 +1852,69 @@ class _CollectionPickerState extends State<CollectionPicker> {
               sort: _sort,
               sorts: availableCollectionSorts(bareFullText: _isBareFullText),
               onSelected: _selectSort,
+              suggested: _suggestedAvailable
+                  ? SuggestedSortChoice(
+                      selected: _suggested,
+                      onSelected: _selectSuggested,
+                    )
+                  : null,
             ),
-            SortDirectionButton(
-              buttonKey: const ValueKey('picker-sort-direction'),
-              direction: _sortDir,
-              onPressed: _toggleSortDirection,
-            ),
+            // A ranking has no direction.
+            if (!_suggested)
+              SortDirectionButton(
+                buttonKey: const ValueKey('picker-sort-direction'),
+                direction: _sortDir,
+                onPressed: _toggleSortDirection,
+              ),
           ],
         ],
       ),
+    );
+  }
+
+  /// The local results, after the [CollectionPicker.pinned] dances under
+  /// their own heading when there are any.
+  Widget _buildLocalResultsSliver() {
+    final pinned = widget.pinned;
+    final data = widget.data;
+    final pinnedEntries = pinned == null
+        ? const <DanceListEntry>[]
+        : [
+            for (final id in pinned.danceIds)
+              if (_latestDanceFor(id, data) case final dance?)
+                if (dance.deletedAt == null)
+                  data.entryFor(
+                    dance,
+                    choreographerNamesOverride:
+                        widget.choreographerNamesOverride,
+                  ),
+          ];
+    if (pinned == null || pinnedEntries.isEmpty) return _buildResultsSliver();
+    Widget heading(String text, Key key) => SliverToBoxAdapter(
+      child: Semantics(
+        header: true,
+        child: Padding(
+          key: key,
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.sm,
+            AppSpacing.md,
+            AppSpacing.xxs,
+          ),
+          child: Text(text, style: Theme.of(context).textTheme.titleSmall),
+        ),
+      ),
+    );
+    return SliverMainAxisGroup(
+      slivers: [
+        heading(pinned.heading, const ValueKey('picker-pinned-heading')),
+        _buildResultRows(pinnedEntries, null),
+        heading(
+          pinned.resultsHeading,
+          const ValueKey('picker-results-heading'),
+        ),
+        _buildResultsSliver(),
+      ],
     );
   }
 
@@ -1256,10 +1936,48 @@ class _CollectionPickerState extends State<CollectionPicker> {
         ),
       );
     }
+    final shown = _shownResults;
+    final labels = _rankById.isEmpty ? null : _reasonLabels(context);
+    final list = _buildResultRows(shown, labels);
+    if (!(_suggested && _rankFailed)) return list;
+    return SliverMainAxisGroup(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            key: const ValueKey('picker-suggested-failed'),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline, size: 18),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    l10n.suggestionRankingFailed,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        list,
+      ],
+    );
+  }
+
+  Widget _buildResultRows(
+    List<DanceListEntry> shown,
+    SuggestionReasonLabels? labels,
+  ) {
+    final l10n = AppLocalizations.of(context);
     return SliverList.builder(
-      itemCount: _results.length,
+      itemCount: shown.length,
       itemBuilder: (context, index) {
-        final entry = _results[index];
+        final entry = shown[index];
+        final ranked = _shownRankFor(entry.dance.id);
         final confirming = _confirmTimers.containsKey(entry.dance.id);
         final inProgramCount = widget.addedDanceCounts[entry.dance.id] ?? 0;
         // Tapping a row adds the dance — a keyboard/AT-accessible add
@@ -1295,6 +2013,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
                     visibleFields: CollectionTileFieldsScope.of(context),
                     onTap: () => _handleAdd(entry.dance.id),
                     showChevron: false,
+                    reasonLine: ranked == null ? null : labels?.line(ranked),
                   ),
                 ),
               ),
@@ -1327,6 +2046,18 @@ class _CollectionPickerState extends State<CollectionPicker> {
                         ),
                       const Icon(Icons.playlist_add_check, size: 20),
                     ],
+                  ),
+                ),
+              if (ranked != null && labels != null)
+                IconButton(
+                  key: ValueKey('picker-why-${entry.dance.id}'),
+                  tooltip: l10n.suggestionWhyTooltip(entry.dance.title),
+                  icon: const Icon(Icons.help_outline),
+                  onPressed: () => showSuggestionWhyDialog(
+                    context,
+                    title: entry.dance.title,
+                    suggestion: ranked,
+                    labels: labels,
                   ),
                 ),
               if (widget.onViewDanceDetails != null)

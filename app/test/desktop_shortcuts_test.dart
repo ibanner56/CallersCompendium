@@ -11,7 +11,6 @@ import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/widgets/app_shortcuts.dart';
-import 'package:compendium_app/src/widgets/search_panel_bar.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/gestures.dart';
@@ -320,11 +319,13 @@ void main() {
       expect(find.byType(DanceEditorScreen), findsOneWidget);
     }, variant: TargetPlatformVariant.only(TargetPlatform.linux));
 
-    testWidgets('Esc closes an autocomplete\'s options before the page', (
+    testWidgets('Esc closes a name picker\'s list before the page', (
       tester,
     ) async {
       await _pump(tester, size: _wide);
       await tester.tap(find.byKey(const ValueKey('new-dance')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('author-field')));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('author-input')),
@@ -339,6 +340,151 @@ void main() {
       expect(option, findsNothing);
       expect(find.byType(DanceEditorScreen), findsOneWidget);
       expect(find.byKey(const ValueKey('discard-cancel')), findsNothing);
+    });
+
+    testWidgets('Esc in the dance list search of the program builder closes '
+        'its saved-search dropdown first, then leaves the page (#2325)', (
+      tester,
+    ) async {
+      final appData = await _pump(tester, size: _wide);
+      final saved = await appData.repositories.savedSearches.create(
+        name: 'Pet',
+        spec: SavedSearchSpec.fromPanelState(
+          CollectionPanelState(text: 'Petronella'),
+          today: DateTime.utc(2026, 11, 23),
+        ).value!,
+      );
+      await _openProgramEditor(tester);
+      await tester.tap(find.byKey(const ValueKey('picker-search')));
+      await tester.pumpAndSettle();
+      final row = find.byKey(ValueKey('saved-search-row-${saved.id}'));
+      expect(row, findsOneWidget);
+
+      await _press(tester, LogicalKeyboardKey.escape);
+
+      expect(row, findsNothing);
+      expect(find.byType(ProgramEditorScreen), findsOneWidget);
+
+      // The dropdown is closed: Esc now leaves the page, as it did before
+      // there was a dropdown.
+      await _press(tester, LogicalKeyboardKey.escape);
+
+      expect(find.byType(ProgramEditorScreen), findsNothing);
+    });
+
+    /// Opens Perform's Adjust ▸ Insert a dance: a dismissible bottom sheet
+    /// that hosts the collection picker, and focuses its search box.
+    Future<Finder> openInsertPicker(WidgetTester tester) async {
+      await _openPerform(tester);
+      await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('adjust-insert-dance')));
+      await tester.pumpAndSettle();
+      final picker = find.byKey(const ValueKey('adjust-picker'));
+      expect(picker, findsOneWidget);
+      await tester.tap(
+        find.descendant(
+          of: picker,
+          matching: find.byKey(const ValueKey('picker-search')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return picker;
+    }
+
+    Future<SavedSearch> seedSaved(AppData appData) =>
+        appData.repositories.savedSearches.create(
+          name: 'Pet',
+          spec: SavedSearchSpec.fromPanelState(
+            CollectionPanelState(text: 'Petronella'),
+            today: DateTime.utc(2026, 11, 23),
+          ).value!,
+        );
+
+    testWidgets('Esc in the search box of a picker sheet closes the sheet, '
+        'as it did before saved searches (#2325)', (tester) async {
+      await _pump(tester, size: _wide);
+      final picker = await openInsertPicker(tester);
+
+      await _press(tester, LogicalKeyboardKey.escape);
+
+      expect(picker, findsNothing);
+      expect(find.byType(PerformProgramScreen), findsOneWidget);
+    });
+
+    testWidgets('Esc in the search box of a picker sheet closes its open '
+        'saved-search dropdown first, then the sheet (#2325)', (tester) async {
+      final appData = await _pump(tester, size: _wide);
+      final saved = await seedSaved(appData);
+      final picker = await openInsertPicker(tester);
+      final row = find.byKey(ValueKey('saved-search-row-${saved.id}'));
+      expect(row, findsOneWidget);
+
+      await _press(tester, LogicalKeyboardKey.escape);
+
+      expect(row, findsNothing);
+      expect(picker, findsOneWidget);
+
+      await _press(tester, LogicalKeyboardKey.escape);
+
+      expect(picker, findsNothing);
+      expect(find.byType(PerformProgramScreen), findsOneWidget);
+    });
+
+    testWidgets('Esc while an input method is composing in the picker\'s '
+        'search box neither closes the dropdown nor the sheet (#2325)', (
+      tester,
+    ) async {
+      final appData = await _pump(tester, size: _wide);
+      final saved = await seedSaved(appData);
+      final picker = await openInsertPicker(tester);
+      final field = find.descendant(
+        of: picker,
+        matching: find.byKey(const ValueKey('picker-search')),
+      );
+      tester
+          .widget<TextField>(field)
+          .controller!
+          .value = const TextEditingValue(
+        text: 'pe',
+        selection: TextSelection.collapsed(offset: 2),
+        composing: TextRange(start: 0, end: 2),
+      );
+      await tester.pumpAndSettle();
+      final row = find.byKey(ValueKey('saved-search-row-${saved.id}'));
+      expect(row, findsOneWidget);
+
+      await _press(tester, LogicalKeyboardKey.escape);
+
+      expect(row, findsOneWidget);
+      expect(picker, findsOneWidget);
+    });
+
+    testWidgets('Esc while an input method is composing in the program '
+        'builder\'s dance list search leaves neither the dropdown nor the '
+        'page (#2325)', (tester) async {
+      final appData = await _pump(tester, size: _wide);
+      final saved = await seedSaved(appData);
+      await _openProgramEditor(tester);
+      final field = find.byKey(const ValueKey('picker-search'));
+      await tester.tap(field);
+      await tester.pumpAndSettle();
+      tester
+          .widget<TextField>(field)
+          .controller!
+          .value = const TextEditingValue(
+        text: 'pe',
+        selection: TextSelection.collapsed(offset: 2),
+        composing: TextRange(start: 0, end: 2),
+      );
+      await tester.pumpAndSettle();
+      final row = find.byKey(ValueKey('saved-search-row-${saved.id}'));
+      expect(row, findsOneWidget);
+
+      await _press(tester, LogicalKeyboardKey.escape);
+
+      expect(row, findsOneWidget);
+      expect(find.byType(ProgramEditorScreen), findsOneWidget);
     });
 
     testWidgets('Esc closes an open menu and leaves the page under it', (
@@ -708,12 +854,12 @@ void main() {
 
     testWidgets('not when focus is on a search-panel control', (tester) async {
       await _pump(tester);
-      final control = find
-          .descendant(
-            of: find.byType(SearchPanelBar),
-            matching: find.byType(Icon),
-          )
-          .first;
+      // The Filters toggle's chevron: the bar now also holds the results, so
+      // it is scoped to a toggle rather than to the bar.
+      final control = find.descendant(
+        of: find.byKey(const ValueKey('filters-panel')),
+        matching: find.byType(Icon),
+      );
       Focus.of(tester.element(control)).requestFocus();
       await tester.pump();
 

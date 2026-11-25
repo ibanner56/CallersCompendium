@@ -124,6 +124,17 @@ void main() {
       expect(figures.single.params['balance'], isTrue);
     });
 
+    test('after the side-of-set long waves, stays custom', () async {
+      // A bare `form long wave` is the long waves along the sides (#2331), so
+      // a balance in a centre wave straight after it contradicts it.
+      final figures = await _figuresFor([
+        '(0) Form long wave (P2L,P3R, women face in)',
+        '(4) Men balance long wave in center',
+      ]);
+      expect(figures.first.move, 'form_long_waves');
+      expect(figures.last.isCustom, isTrue);
+    });
+
     test('a qualified wave balance stays custom', () async {
       final figures = await _figuresFor([
         '(4) Men allemande left 3/4',

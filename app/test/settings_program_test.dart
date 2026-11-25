@@ -15,6 +15,7 @@ import 'package:compendium_app/src/data/require_performed_for_history_scope.dart
 import 'package:compendium_app/src/data/mark_all_sets_status_scope.dart';
 import 'package:compendium_app/src/data/set_list_share_scope.dart';
 import 'package:compendium_app/src/data/show_performed_toggles_scope.dart';
+import 'package:compendium_app/src/data/show_program_pay_scope.dart';
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
 import 'package:compendium_app/src/data/venue_call_count_scope.dart';
 import 'package:compendium_app/src/data/venue_entity_mode_scope.dart';
@@ -54,6 +55,7 @@ Future<ValueNotifier<bool>> _pumpProgram(
   if (requireEventDate == null) addTearDown(eventDate.dispose);
   final trackAllCallers = ValueNotifier<bool>(false);
   final showPerformedToggles = ValueNotifier<bool>(true);
+  final showProgramPay = ValueNotifier<bool>(true);
   final markAllSetsStatus = ValueNotifier<bool>(true);
   final shareTitle = ValueNotifier<bool>(true);
   final shareCallerBand = ValueNotifier<bool>(true);
@@ -71,6 +73,7 @@ Future<ValueNotifier<bool>> _pumpProgram(
   addTearDown(requirePerformed.dispose);
   addTearDown(trackAllCallers.dispose);
   addTearDown(showPerformedToggles.dispose);
+  addTearDown(showProgramPay.dispose);
   addTearDown(markAllSetsStatus.dispose);
   addTearDown(shareTitle.dispose);
   addTearDown(shareCallerBand.dispose);
@@ -131,7 +134,10 @@ Future<ValueNotifier<bool>> _pumpProgram(
                 notifier: shareCallerBand,
                 child: ShareSetListDateVenueScope(
                   notifier: shareDateVenue,
-                  child: const SettingsScreen(),
+                  child: ShowProgramPayScope(
+                    notifier: showProgramPay,
+                    child: const SettingsScreen(),
+                  ),
                 ),
               ),
             ),
@@ -247,6 +253,49 @@ void main() {
     expect(await repos.settings.get(kShowPerformedTogglesKey), isFalse);
   });
 
+  testWidgets('"Show pay" defaults on, and flipping it persists without '
+      'writing any program (#2355)', (tester) async {
+    final repos = openTestRepositories();
+    final created = DateTime.utc(2026, 1, 1);
+    await repos.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Night',
+        payMinorUnits: 25000,
+        payCurrency: 'USD',
+        createdAt: created,
+        updatedAt: created,
+      ),
+    );
+    Future<List<(String, DateTime, int?, String?)>> programs() async => [
+      for (final p in await repos.programs.listAll(includeDeleted: true))
+        (p.id, p.updatedAt, p.payMinorUnits, p.payCurrency),
+    ];
+    final before = await programs();
+    expect(before, hasLength(1));
+    await _pumpProgram(tester, repos);
+
+    final tile = find.byKey(const ValueKey('settings-show-program-pay'));
+    await tester.scrollUntilVisible(
+      tile,
+      200,
+      scrollable: verticalScrollable(),
+    );
+    expect(tester.widget<SwitchListTile>(tile).value, isTrue);
+    expect(find.text('Show pay'), findsOneWidget);
+
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+    expect(tester.widget<SwitchListTile>(tile).value, isFalse);
+    expect(await repos.settings.get(kShowProgramPayKey), isFalse);
+    expect(await programs(), before);
+
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+    expect(await repos.settings.get(kShowProgramPayKey), isTrue);
+    expect(await programs(), before);
+  });
+
   testWidgets('the four tracking toggles show their defaults and persist', (
     tester,
   ) async {
@@ -332,7 +381,7 @@ void main() {
       ),
       (
         'settings-share-set-list-date-venue',
-        'Include date and venue when sharing a set list',
+        'Include date, times and venue when sharing a set list',
         kShareSetListIncludeDateVenueKey,
       ),
     ]) {

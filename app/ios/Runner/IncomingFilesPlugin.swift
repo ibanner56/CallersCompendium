@@ -2,13 +2,16 @@ import Flutter
 import UIKit
 
 /// Bridges the OS "open this file with the app" plumbing (AirDrop / "Open
-/// with…" / a share intent — issue #298) **and** a URL shared from the browser
-/// share sheet (issue #343) to Dart over the
+/// with…" / a share intent — issue #298), a URL shared from the browser
+/// share sheet (issue #343), **and** a `ccdance://` dance link opened from the
+/// Camera app's QR-code banner or any other app (issue #2335) to Dart over the
 /// `is.banner.callerscompendium/incoming_files` channel.
 ///
 /// The native side does exactly one thing per payload: hand Dart either an
 /// ownership-marked payload containing the **path** of a local copy of an
-/// incoming file (#298), or the **raw URL string** shared into the app (#343).
+/// incoming file (#298), or the **raw URL string** shared into the app (#343)
+/// or opened in it (#2335). A dance link travels the shared-URL path below:
+/// held for the cold-start `getInitialUrl` pull, pushed as `urlShared` after.
 /// It never parses, trusts, or interprets a payload — Dart owns every byte of
 /// validation and import (`ArchiveIntake` for files, and Dart's supported
 /// program/dance URL classifiers for URLs; both are untrusted input). Incoming
@@ -51,8 +54,9 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
   /// rejection never displaces a file that was staged successfully.
   private var pendingInitialTooLarge = false
 
-  /// Shared URLs drained from the App Group *before* Dart performed its
-  /// one-time cold-start `getInitialUrl` pull. The UI isn't ready yet, so they
+  /// Shared URLs drained from the App Group, and dance links the app was opened
+  /// with (#2335), that arrived *before* Dart performed its one-time cold-start
+  /// `getInitialUrl` pull. The UI isn't ready yet, so they
   /// wait here; the pull returns the first (opened over the app shell) and
   /// flushes any extras onto the warm `urlShared` stream.
   private var pendingInitialUrls: [String] = []
@@ -112,6 +116,9 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
     guard let contexts = connectionOptions?.urlContexts, !contexts.isEmpty else {
       return false
     }
+    if deliverDanceLinks(in: contexts) {
+      return true
+    }
     switch stagedCopy(forContexts: contexts) {
     case .copied(let path):
       if let previous = pendingInitialPath {
@@ -128,15 +135,19 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
     }
   }
 
-  /// Warm start: a file or a legacy Share Extension custom-scheme wake arrives
-  /// while the app is already running. A legacy wake drains the App Group
-  /// immediately; `sceneDidBecomeActive` remains the authoritative foreground
-  /// drain, and the take-and-clear makes that double-fire idempotent.
+  /// Warm start: a file, a dance link, or a legacy Share Extension
+  /// custom-scheme wake arrives while the app is already running. A legacy wake
+  /// drains the App Group immediately; `sceneDidBecomeActive` remains the
+  /// authoritative foreground drain, and the take-and-clear makes that
+  /// double-fire idempotent.
   @available(iOS 13.0, *)
   @objc public func scene(
     _ scene: UIScene,
     openURLContexts URLContexts: Set<UIOpenURLContext>
   ) -> Bool {
+    if deliverDanceLinks(in: URLContexts) {
+      return true
+    }
     if URLContexts.contains(where: { $0.url.scheme == Self.legacyHostScheme }) {
       drainSharedURLs()
       return true
@@ -162,6 +173,25 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
   }
 
   // MARK: - Shared-URL delivery
+
+  /// Hands every `ccdance://` link among [contexts] to Dart, verbatim, through
+  /// the shared-URL path: buffered for the cold-start pull until Dart has made
+  /// it, pushed on `urlShared` after. Returns whether there was one. Dart caps
+  /// the link's length before reading it and refuses anything it cannot read
+  /// (`decodeDanceLink`); this side checks only the scheme.
+  @available(iOS 13.0, *)
+  private func deliverDanceLinks(in contexts: Set<UIOpenURLContext>) -> Bool {
+    let links = DanceLinkRouting.danceLinks(in: contexts.map(\.url))
+    guard !links.isEmpty else { return false }
+    if initialUrlPulled {
+      for link in links {
+        channel?.invokeMethod("urlShared", arguments: link)
+      }
+    } else {
+      pendingInitialUrls.append(contentsOf: links)
+    }
+    return true
+  }
 
   /// Drains pending shared URLs and delivers each through the existing Dart
   /// path. Before Dart's cold-start pull the UI isn't ready, so they're buffered
@@ -271,6 +301,23 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
     let tempDir = FileManager.default.temporaryDirectory
       .appendingPathComponent("incoming_share", isDirectory: true)
     return IncomingFileStager.stage(url, into: tempDir)
+  }
+}
+
+/// Picks the dance links (issue #2335) out of the URLs the system opened the
+/// app with. `internal` so `RunnerTests` can exercise it.
+enum DanceLinkRouting {
+  /// The dance-link scheme. Must match `danceLinkPrefix` in
+  /// `lib/src/export/dance_code.dart` and `CFBundleURLSchemes` in Info.plist.
+  static let scheme = "ccdance"
+
+  /// The `ccdance:` URLs among [urls], as strings, in order. A URL scheme is
+  /// case-insensitive, so `CCDANCE:` counts; nothing else about the URL is
+  /// read here.
+  static func danceLinks(in urls: [URL]) -> [String] {
+    urls
+      .filter { $0.scheme?.lowercased() == scheme }
+      .map(\.absoluteString)
   }
 }
 

@@ -9,7 +9,6 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:http/http.dart' as http;
 
-import '../search/collection_query.dart' show ByPhraseSelections;
 import 'file_dialog_labels.dart';
 import 'picker_extensions.dart';
 import 'usr_archive_isolate.dart';
@@ -231,7 +230,9 @@ typedef ImportFilePicker = Future<PickedImportFile?> Function();
 /// extension says nothing about the source.
 ///
 /// Only the dedicated file types are recognized: `.ccshare` (a Caller's
-/// Compendium share bundle) and `.usr` (a Caller's Companion export). A plain
+/// Compendium share bundle), `.usr` (a Caller's Companion export), `.csv`
+/// (a spreadsheet, #2329) and `.txt` or `.md` (the caller's own notes,
+/// #2330). A plain
 /// `.json` is deliberately **not** claimed: The Caller's Box and others serve
 /// JSON too, so the extension does not say which source it came from. Matching
 /// is case-insensitive (`.USR` is how Caller's Companion names its export).
@@ -239,24 +240,38 @@ ImportSourceKind? importSourceKindForFileName(String fileName) {
   final lower = fileName.toLowerCase();
   if (lower.endsWith('.ccshare')) return ImportSourceKind.genericJson;
   if (lower.endsWith('.usr')) return ImportSourceKind.callersCompanionUsr;
+  if (lower.endsWith('.csv')) return ImportSourceKind.csv;
+  if (lower.endsWith('.txt') || lower.endsWith('.md')) {
+    return ImportSourceKind.textDocument;
+  }
   return null;
 }
 
 /// Default [ImportFilePicker]: opens the native open-file dialog restricted to
-/// the file types the import screen understands (`.ccshare`, `.json`, `.usr`)
-/// and reads the chosen file's bytes — under [kMaxImportUsrBytes] for a `.usr`,
-/// [kMaxImportFileBytes] otherwise. Returns `null` when the user cancels.
+/// the file types the import screen understands (`.ccshare`, `.json`, `.usr`,
+/// `.csv`, `.txt`, `.md`) and reads the chosen file's bytes — under
+/// [kMaxImportUsrBytes] for a `.usr`, [kMaxCsvImportBytes] for a `.csv`,
+/// `.txt` or `.md`, [kMaxImportFileBytes] otherwise. Returns `null` when the
+/// user cancels.
 Future<PickedImportFile?> pickImportAnyFile() async {
   final file = await openFile(
-    acceptedTypeGroups: [importJsonTypeGroup(), importUsrTypeGroup()],
+    acceptedTypeGroups: [
+      importJsonTypeGroup(),
+      importUsrTypeGroup(),
+      importCsvTypeGroup(),
+      importTextDocumentTypeGroup(),
+    ],
   );
   if (file == null) return null;
-  final isUsr =
-      importSourceKindForFileName(file.name) ==
-      ImportSourceKind.callersCompanionUsr;
+  final kind = importSourceKindForFileName(file.name);
   final bytes = await readImportBytesCapped(
     file,
-    maxBytes: isUsr ? kMaxImportUsrBytes : kMaxImportFileBytes,
+    maxBytes: switch (kind) {
+      ImportSourceKind.callersCompanionUsr => kMaxImportUsrBytes,
+      ImportSourceKind.csv ||
+      ImportSourceKind.textDocument => kMaxCsvImportBytes,
+      _ => kMaxImportFileBytes,
+    },
   );
   return PickedImportFile(name: file.name, bytes: bytes);
 }
@@ -285,6 +300,53 @@ Future<Uint8List?> pickImportUsrFile() async {
   if (file == null) return null;
   return readImportUsrBytesCapped(file);
 }
+
+/// Default [ImportBytePicker] for a spreadsheet (#2329): opens the native
+/// open-file dialog restricted to `.csv` and reads the chosen file's bytes,
+/// under [kMaxCsvImportBytes]. The bytes, not decoded text, go to the review
+/// screen, which refuses a file that is not UTF-8 ([decodeCsvBytes]) rather
+/// than importing mojibake. Returns `null` when the user cancels.
+Future<Uint8List?> pickImportCsvFile() async {
+  final file = await openFile(acceptedTypeGroups: [importCsvTypeGroup()]);
+  if (file == null) return null;
+  return readImportBytesCapped(file, maxBytes: kMaxCsvImportBytes);
+}
+
+/// The file-type filter behind [pickImportCsvFile]. Its label is the format
+/// name, not prose, so it stays a literal (as the JSON bundle filter's does).
+@visibleForTesting
+XTypeGroup importCsvTypeGroup({bool? isLinux}) => XTypeGroup(
+  label: 'CSV',
+  extensions: pickerExtensions(['csv'], isLinux),
+  uniformTypeIdentifiers: const ['public.comma-separated-values-text'],
+  mimeTypes: const ['text/csv', 'text/comma-separated-values'],
+);
+
+/// Default [ImportBytePicker] for a text or Markdown file of dances (#2330):
+/// opens the native open-file dialog restricted to `.txt` and `.md` and reads
+/// the chosen file's bytes, under [kMaxCsvImportBytes], as a spreadsheet's
+/// are. Returns `null` when the user cancels.
+Future<Uint8List?> pickImportTextDocumentFile() async {
+  final file = await openFile(
+    acceptedTypeGroups: [importTextDocumentTypeGroup()],
+  );
+  if (file == null) return null;
+  return readImportBytesCapped(file, maxBytes: kMaxCsvImportBytes);
+}
+
+/// The file-type filter behind [pickImportTextDocumentFile]: `.txt` and
+/// `.md` only (a Word file is not offered, #2330). Its label names the
+/// formats, so it stays a literal.
+@visibleForTesting
+XTypeGroup importTextDocumentTypeGroup({bool? isLinux}) => XTypeGroup(
+  label: 'TXT, MD',
+  extensions: pickerExtensions(['txt', 'md'], isLinux),
+  uniformTypeIdentifiers: const [
+    'public.plain-text',
+    'net.daringfireball.markdown',
+  ],
+  mimeTypes: const ['text/plain', 'text/markdown', 'text/x-markdown'],
+);
 
 /// The file-type filter behind [pickImportFile].
 ///
@@ -366,6 +428,11 @@ enum UrlFetchFailureReason {
   emptyResponse,
   // A URL shared through the operating system matched no supported import type.
   unsupportedSharedLink,
+
+  /// A calendar import (#2352) fetched something that is not an iCalendar
+  /// document — most often an HTML page, such as a private Google Calendar's
+  /// ordinary link instead of its iCal address.
+  notACalendar,
   // The Caller's Box.
   callersBoxEmptyInput,
   callersBoxInvalidUrl,
@@ -781,6 +848,109 @@ Future<String> fetchImportUrl(String url, {http.Client? client}) async {
   return body;
 }
 
+/// The address a calendar feed is fetched from: `webcal://` (and
+/// `webcals://`) rewritten to `https://`, anything else unchanged, so the
+/// usual address rules still apply (`https` only).
+String calendarFeedFetchUrl(String url) {
+  final trimmed = url.trim();
+  final lower = trimmed.toLowerCase();
+  for (final scheme in const ['webcals://', 'webcal://']) {
+    if (lower.startsWith(scheme)) {
+      return 'https://${trimmed.substring(scheme.length)}';
+    }
+  }
+  return trimmed;
+}
+
+/// Undoes RFC 5545 line folding (§3.1) on raw bytes: each line break (CRLF,
+/// or a bare LF) followed by one space or tab is removed. Done before UTF-8
+/// decoding because §3.1 warns that some generators fold in the middle of a
+/// multi-byte character, which decoding first would turn into U+FFFD.
+@visibleForTesting
+List<int> unfoldICalendarBytes(List<int> bytes) {
+  final out = <int>[];
+  var i = 0;
+  while (i < bytes.length) {
+    final b = bytes[i];
+    if (b == 0x0D &&
+        i + 2 < bytes.length &&
+        bytes[i + 1] == 0x0A &&
+        (bytes[i + 2] == 0x20 || bytes[i + 2] == 0x09)) {
+      i += 3;
+      continue;
+    }
+    if (b == 0x0A &&
+        i + 1 < bytes.length &&
+        (bytes[i + 1] == 0x20 || bytes[i + 1] == 0x09)) {
+      i += 2;
+      continue;
+    }
+    out.add(b);
+    i++;
+  }
+  return out;
+}
+
+/// Fetches a calendar feed (#2352) through the same guarded path as every
+/// other online import ([_sendGuarded]): `https` only, no redirect to `http`,
+/// the private-network guard ([isBlockedImportHost]) on every hop, at most
+/// [importMaxRedirects] redirects, [importFetchTimeout], and
+/// [importMaxResponseBytes].
+///
+/// `webcal://` is rewritten first ([calendarFeedFetchUrl]). The body is
+/// unfolded ([unfoldICalendarBytes]) and then decoded as UTF-8, iCalendar's
+/// default, whatever the response's charset says. A body with no `BEGIN:VCALENDAR` throws
+/// [UrlFetchFailureReason.notACalendar]. As in [fetchImportUrl], no failure
+/// carries the address.
+Future<String> fetchCalendarFeed(String url, {http.Client? client}) async {
+  final target = calendarFeedFetchUrl(url);
+  if (target.isEmpty) {
+    throw const UrlFetchException(UrlFetchFailureReason.emptyUrl);
+  }
+  final ownClient = client == null;
+  final effectiveClient = client ?? http.Client();
+  final http.Response response;
+  try {
+    response = await _sendGuarded(
+      target,
+      effectiveClient,
+    ).timeout(importFetchTimeout);
+  } on UrlFetchException {
+    // diagnostics: silent — rethrown as is; logged at the UI boundary
+    rethrow;
+  } on TimeoutException {
+    // diagnostics: silent — converts to UrlFetchException(timeout) and rethrows; logged at the UI boundary
+    throw UrlFetchException(
+      UrlFetchFailureReason.timeout,
+      timeoutSeconds: importFetchTimeout.inSeconds,
+    );
+  } on Object {
+    // diagnostics: silent — converts to UrlFetchException(unreachable) and rethrows;
+    // Never interpolate the error/URL here: a private calendar's address
+    // holds a secret token.
+    throw const UrlFetchException(UrlFetchFailureReason.unreachable);
+  } finally {
+    if (ownClient) effectiveClient.close();
+  }
+  if (response.statusCode < 200 || response.statusCode >= 300) {
+    throw UrlFetchException(
+      UrlFetchFailureReason.httpStatus,
+      statusCode: response.statusCode,
+    );
+  }
+  final body = utf8.decode(
+    unfoldICalendarBytes(response.bodyBytes),
+    allowMalformed: true,
+  );
+  if (body.trim().isEmpty) {
+    throw const UrlFetchException(UrlFetchFailureReason.emptyResponse);
+  }
+  if (!body.toUpperCase().contains('BEGIN:VCALENDAR')) {
+    throw const UrlFetchException(UrlFetchFailureReason.notACalendar);
+  }
+  return body;
+}
+
 /// Transforms the raw text a user typed in URL mode (a pasted link or a bare
 /// id) into the actual URL that should be fetched. Returns the fetch URL, or
 /// throws a [UrlFetchException] whose [UrlFetchException.message] is safe to
@@ -822,6 +992,17 @@ enum ImportSourceKind {
   /// catalog. Its payload and metadata are verified before this source enters
   /// review.
   publishedCollection,
+
+  /// The caller's own spreadsheet saved as CSV (#2329). A byte source: the
+  /// file is read as bytes, decoded as UTF-8 and mapped column by column
+  /// before it is planned.
+  csv,
+
+  /// The caller's own text or Markdown file of dances (#2330). A byte source:
+  /// decoded as UTF-8, read into the spreadsheet import's columns
+  /// ([textDocumentToCsv]) and mapped label by label in the same step, then
+  /// planned and committed as a spreadsheet is.
+  textDocument,
 }
 
 class ImportSource {
@@ -857,16 +1038,18 @@ class ImportSource {
   /// which a host-only match cannot express.
   final bool Function(Uri uri)? matchesUrl;
 
-  /// When non-null, this source imports from a **binary file** the user picks
-  /// (its bytes are handed to [adapterFactory]'s adapter via
-  /// `ImportRequest.options['bytes']`), rather than from pasted/fetched text.
+  /// When non-null, this source imports from a **file the user picks as
+  /// bytes**, rather than from pasted/fetched text. A Caller's Companion
+  /// `.USR`'s bytes are handed to its adapter via
+  /// `ImportRequest.options['bytes']`; a spreadsheet's are decoded as UTF-8
+  /// and mapped column by column first, then carried as the payload (#2329).
   /// This governs the **input** concern only — the picker shown and how the
   /// payload is carried. It deliberately does **not** decide how commit/undo is
   /// routed (that is gated on the concrete adapter type, so a future byte source
   /// can't accidentally inherit Caller's Companion program persistence).
   ///
-  /// The only byte source today is Caller's Companion `.USR` (see
-  /// [defaultImportSources]).
+  /// The byte sources today are Caller's Companion `.USR` and the spreadsheet
+  /// (CSV) (see [defaultImportSources]).
   final ImportBytePicker? bytePicker;
 
   /// When true this source's payload is **typed or pasted by the user**, not
@@ -2081,6 +2264,16 @@ List<ImportSource> defaultImportSources() => [
     adapterFactory: () =>
         CallersCompanionUsrAdapter(reader: readCcUsrArchiveInIsolate),
     bytePicker: pickImportUsrFile,
+  ),
+  ImportSource(
+    kind: ImportSourceKind.csv,
+    adapterFactory: CsvAdapter.new,
+    bytePicker: pickImportCsvFile,
+  ),
+  ImportSource(
+    kind: ImportSourceKind.textDocument,
+    adapterFactory: CsvAdapter.new,
+    bytePicker: pickImportTextDocumentFile,
   ),
 ];
 

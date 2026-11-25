@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:ui' show Rect;
 
+import 'package:compendium_core/compendium_core.dart'
+    show csvExtension, csvMimeType;
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
@@ -70,28 +72,46 @@ XTypeGroup bundleSaveTypeGroup(String extension, {bool? isLinux}) => XTypeGroup(
   mimeTypes: const ['application/json'],
 );
 
-/// Writes [json] to a path-safe [fileName] in the temporary directory.
+/// The file-type filter for a CSV spreadsheet export (#2332). Like
+/// [jsonBundleTypeGroup], its label is the format name and stays a literal.
+XTypeGroup csvTypeGroup({bool? isLinux}) => XTypeGroup(
+  label: 'CSV',
+  extensions: pickerExtensions([csvExtension], isLinux),
+  uniformTypeIdentifiers: const ['public.comma-separated-values-text'],
+  mimeTypes: const [csvMimeType],
+);
+
+/// Writes [json] to a path-safe [fileName] in the temporary directory, typed
+/// as [mimeType] for the share sheet.
 Future<XFile> writeBundleFile(
   String json,
   String fileName, {
   ShareTempDirProvider getDir = getTemporaryDirectory,
+  String mimeType = 'application/json',
 }) async {
   final dir = await getDir();
   await dir.create(recursive: true);
   final file = File('${dir.path}/$fileName');
   await file.writeAsString(json);
-  return XFile(file.path, mimeType: 'application/json');
+  return XFile(file.path, mimeType: mimeType);
 }
 
 /// Default [BundleFileWriter] used by export menus.
 Future<XFile> writeBundleTempFile(String json, String fileName) =>
     writeBundleFile(json, fileName);
 
+/// [BundleFileWriter] for a CSV export: the same staging as
+/// [writeBundleTempFile], typed as CSV so the share sheet offers spreadsheet
+/// apps.
+Future<XFile> writeCsvTempFile(String csv, String fileName) =>
+    writeBundleFile(csv, fileName, mimeType: csvMimeType);
+
 /// Saves a JSON export through a user-reachable native file destination.
 ///
 /// Desktop uses [file_selector]'s Save As panel. Android and iOS stage the
 /// exact JSON in a temporary file, then hand that file to the platform
-/// document-save dialog. A `null` result means the user cancelled.
+/// document-save dialog, filtered to [mobileMimeTypes]. A `null` result means
+/// the user cancelled.
 Future<JsonSaveResult?> saveJsonBundle(
   String json,
   String fileName, {
@@ -102,6 +122,7 @@ Future<JsonSaveResult?> saveJsonBundle(
   JsonMobileSaveFile? mobileSaveFile,
   BundleFileWriter? stageFile,
   List<XTypeGroup>? acceptedTypeGroups,
+  List<String> mobileMimeTypes = const ['application/json'],
 }) async {
   if ((isDesktop ?? isJsonExportDesktopPlatform)()) {
     final location = await (saveLocationPicker ?? _showSaveLocation)(
@@ -118,7 +139,9 @@ Future<JsonSaveResult?> saveJsonBundle(
 
   final staged = await (stageFile ?? writeBundleTempFile)(json, fileName);
   try {
-    final savedPath = await (mobileSaveFile ?? _saveMobileFile)(staged.path);
+    final savedPath =
+        await (mobileSaveFile ??
+            (path) => _saveMobileFile(path, mobileMimeTypes))(staged.path);
     if (savedPath == null) return null;
     return JsonSaveResult(
       path: savedPath,
@@ -198,13 +221,15 @@ Future<FileSaveLocation?> _showSaveLocation({
   canCreateDirectories: canCreateDirectories,
 );
 
-Future<String?> _saveMobileFile(String sourceFilePath) =>
-    FlutterFileDialog.saveFile(
-      params: SaveFileDialogParams(
-        sourceFilePath: sourceFilePath,
-        mimeTypesFilter: const ['application/json'],
-      ),
-    );
+Future<String?> _saveMobileFile(
+  String sourceFilePath,
+  List<String> mimeTypes,
+) => FlutterFileDialog.saveFile(
+  params: SaveFileDialogParams(
+    sourceFilePath: sourceFilePath,
+    mimeTypesFilter: mimeTypes,
+  ),
+);
 
 String _fileNameFromSavePath(String savedPath, String fallback) {
   final uriPath = Uri.tryParse(savedPath)?.path;

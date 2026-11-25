@@ -54,7 +54,14 @@ enum DanceShareField {
   /// The dance's published-source citations (title, author/year, page and
   /// number). Off until selected, like [tunes] (OUT-6). The app resolves each
   /// citation to a display line; this core only gates and lays them out.
-  sources;
+  sources,
+
+  /// The dance's tune details: its meter and key on one line, and its Barnes
+  /// reference (where the tune is printed in the Barnes books) on another.
+  /// On by default, unlike [tunes]: Hudson chose this when the field was
+  /// added. Only a fresh or untouched setting picks it up, since a saved
+  /// selection that predates it does not list it.
+  music;
 
   /// Every field, including [tunes], [hook] and [sources]. Not the default for
   /// a fresh install — see [allExceptTunes].
@@ -70,15 +77,16 @@ enum DanceShareField {
     DanceShareField.tunes,
     DanceShareField.hook,
     DanceShareField.sources,
+    DanceShareField.music,
   };
 
-  /// Every field the renderers emitted unconditionally before the picker
-  /// existed: all of them except the opt-in [tunes], [hook] and [sources].
-  /// This is the default for a fresh install / untouched setting, so a user who
-  /// never opens the Settings picker sees no change to their existing exports.
+  /// The default for a fresh install / untouched setting: every field the
+  /// renderers emitted unconditionally before the picker existed, plus
+  /// [music], which is on by default. The opt-in [tunes], [hook] and
+  /// [sources] are left out.
   ///
-  /// The name predates [hook] and [sources]; it is kept because renaming a
-  /// public constant would ripple through every call site.
+  /// The name predates [hook], [sources] and [music]; it is kept because
+  /// renaming a public constant would ripple through every call site.
   static const Set<DanceShareField> allExceptTunes = {
     DanceShareField.authors,
     DanceShareField.formation,
@@ -88,6 +96,7 @@ enum DanceShareField {
     DanceShareField.phraseStructure,
     DanceShareField.callingNotes,
     DanceShareField.walkthrough,
+    DanceShareField.music,
   };
 
   /// Encodes this field as a stable JSON string. Must not be renamed — the
@@ -103,3 +112,14 @@ enum DanceShareField {
     return null;
   }
 }
+
+/// The dance-card fields a dances spreadsheet (CSV) export builds its
+/// `DanceCardContent` with (#2332): every one. A spreadsheet has fixed
+/// columns, so it does not follow the caller's **Choose which dance fields
+/// appear** selection, which shapes cards, set lists and PDFs. The export takes
+/// the dialect-rendered text (hook, calling notes, walkthrough) and the tunes
+/// from that content; structured values the card combines into lines (meter,
+/// key, Barnes reference, the composed and interpreted dates) get columns of
+/// their own, read from the dance. Kept here, beside the other field sets, so
+/// the app's export code chooses no fields of its own.
+const Set<DanceShareField> spreadsheetDanceFields = DanceShareField.all;

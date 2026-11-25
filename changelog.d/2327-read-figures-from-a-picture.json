@@ -1,0 +1,9 @@
+{
+  "id": "2327-read-figures-from-a-picture",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Add figures from text ▸ From an image… (iPhone, iPad and Mac): choose a picture of an index card or book page, and its text is read on the device by the system's own text recognition and put in the box for you to check. Nothing is sent or downloaded, and the picture is not kept: only its text reaches the sheet."
+    ]
+  }
+}

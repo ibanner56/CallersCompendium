@@ -11,6 +11,7 @@ import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/show_glossary_scope.dart';
+import 'package:compendium_app/src/data/show_repertoire_scope.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
@@ -37,6 +38,7 @@ Future<void> _pump(
   required Size size,
   ImportPicker? reimportPicker,
   ValueNotifier<bool>? showGlossary,
+  ValueNotifier<bool>? showRepertoire,
   ThemeData? theme,
 }) async {
   await tester.binding.setSurfaceSize(size);
@@ -89,12 +91,15 @@ Future<void> _pump(
                 notifier: notifier,
                 child: RequirePerformedForHistoryScope(
                   notifier: requirePerformedNotifier,
-                  child: showGlossary == null
-                      ? child!
-                      : ShowGlossaryScope(
-                          notifier: showGlossary,
-                          child: child!,
-                        ),
+                  child: _maybeShowRepertoire(
+                    showRepertoire,
+                    showGlossary == null
+                        ? child!
+                        : ShowGlossaryScope(
+                            notifier: showGlossary,
+                            child: child!,
+                          ),
+                  ),
                 ),
               ),
             ),
@@ -106,6 +111,12 @@ Future<void> _pump(
   );
   await tester.pumpAndSettle();
 }
+
+/// Mounts [ShowRepertoireScope] only when a test supplies a notifier.
+Widget _maybeShowRepertoire(ValueNotifier<bool>? notifier, Widget child) =>
+    notifier == null
+    ? child
+    : ShowRepertoireScope(notifier: notifier, child: child);
 
 void main() {
   // The guide is now a kept-alive shell destination, so its doc FutureBuilder
@@ -511,9 +522,81 @@ void main() {
           .selected,
       isTrue,
     );
-    await tester.tap(find.text('Collection').last);
+    // The rail's destination: Settings has a Collection section too (#2325).
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.text('Collection'),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(searchText(), 'petro');
+  });
+
+  testWidgets('on a wide window, saved searches stay current between the '
+      'Collection and Settings ▸ Collection, though both stay mounted '
+      '(#2325)', (tester) async {
+    final repos = openTestRepositories();
+    final stamp = DateTime.utc(2026, 1, 1);
+    await repos.dances.create(
+      Dance(id: 'd1', title: 'Petronella', createdAt: stamp, updatedAt: stamp),
+    );
+    final pet = await repos.savedSearches.create(
+      name: 'Pet',
+      spec: SavedSearchSpec.fromPanelState(
+        CollectionPanelState(text: 'Petronella'),
+        today: DateTime.utc(2026, 11, 23),
+      ).value!,
+    );
+    await _pump(tester, repos, size: const Size(1000, 1200));
+    Finder rail(String label) => find.descendant(
+      of: find.byType(NavigationRail),
+      matching: find.text(label),
+    );
+    // Load it in the Collection.
+    await tester.tap(find.byKey(const ValueKey('collection-search-field')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('saved-search-row-${pet.id}')));
+    await tester.pumpAndSettle();
+
+    // Settings ▸ Collection lists it; rename it there.
+    await tester.tap(rail('Settings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-nav-collection')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(ValueKey('settings-saved-search-rename-${pet.id}')),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('saved-search-name-field')),
+      'Petronella only',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('saved-search-name-save')));
+    await tester.pumpAndSettle();
+
+    // Back in the Collection, the ⋮ menu names it as renamed.
+    await tester.tap(rail('Collection'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+    await tester.pumpAndSettle();
+    expect(find.text('Rename "Petronella only"…'), findsOneWidget);
+    await tester.tapAt(Offset.zero);
+    await tester.pumpAndSettle();
+
+    // A search saved meanwhile (here, by sync) is listed when Settings is
+    // shown again; its Collection section stayed mounted.
+    final becket = await repos.savedSearches.create(
+      name: 'Becket',
+      spec: pet.spec,
+    );
+    await tester.tap(rail('Settings'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(ValueKey('settings-saved-search-${becket.id}')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('exposes four destinations including Settings and Guide', (
@@ -947,6 +1030,54 @@ void main() {
     expect(find.byKey(const ValueKey('command-palette')), findsOneWidget);
   });
 
+  group('Repertoire (issue #2357)', () {
+    List<String> destinations(WidgetTester tester) => [
+      for (final d in tester.widgetList<NavigationDestination>(
+        find.byType(NavigationDestination),
+      ))
+        d.label,
+      if (find.byType(NavigationRail).evaluate().isNotEmpty)
+        for (final d
+            in tester
+                .widget<NavigationRail>(find.byType(NavigationRail))
+                .destinations)
+          (d.label as Text).data!,
+    ];
+
+    for (final size in [const Size(500, 900), const Size(1400, 900)]) {
+      testWidgets('adds no navigation destination at ${size.width} wide; '
+          'More actions offers it only while on', (tester) async {
+        final repos = openTestRepositories();
+        final show = ValueNotifier<bool>(false);
+        addTearDown(show.dispose);
+        await _pump(tester, repos, size: size, showRepertoire: show);
+        final off = destinations(tester);
+        expect(off, isNotEmpty);
+
+        await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('collection-repertoire')),
+          findsNothing,
+        );
+        await tester.tapAt(Offset.zero);
+        await tester.pumpAndSettle();
+
+        show.value = true;
+        await tester.pumpAndSettle();
+        expect(destinations(tester), off);
+        expect(find.text('Repertoire'), findsNothing);
+
+        await tester.tap(find.byKey(const ValueKey('collection-more-actions')));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('collection-repertoire')),
+          findsOneWidget,
+        );
+      });
+    }
+  });
+
   group('Glossary destination (issue #695)', () {
     List<String> barLabels(WidgetTester tester) => [
       for (final d in tester.widgetList<NavigationDestination>(
@@ -1168,7 +1299,7 @@ void main() {
     // shows the General section beside the sidebar.
     bool splitsSettings(WidgetTester tester) {
       final sideBySide = find
-          .byKey(const ValueKey('general-sort-ignore-articles'))
+          .byKey(const ValueKey('general-reduce-motion'))
           .evaluate()
           .isNotEmpty;
       final chevrons = find

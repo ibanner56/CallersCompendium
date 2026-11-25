@@ -3,6 +3,7 @@ import 'package:meta/meta.dart';
 import '../model/enums.dart';
 import 'contra_taxonomy.dart';
 import 'ecd_taxonomy.dart';
+import 'square_taxonomy.dart';
 import 'taxonomy.dart';
 
 /// The prefix every stored move ID of a dance form's own taxonomy carries
@@ -10,9 +11,12 @@ import 'taxonomy.dart';
 /// ID with no prefix is a contra move in a dance of any form.
 ///
 /// A form whose own taxonomy is registered must have an entry here. ECD's
-/// `ecd_` is decided in ADR-006 §5.1. Squares have no entry yet: ADR-007
-/// proposes `sq_`, and the entry is added when that ADR is accepted.
-const Map<DanceForm, String> danceFormMovePrefixes = {DanceForm.ecd: 'ecd_'};
+/// `ecd_` is decided in ADR-006 §5.1, and the squares' `sq_` in ADR-007 §5.1
+/// (accepted by the maintainer, 15 November 2026).
+const Map<DanceForm, String> danceFormMovePrefixes = {
+  DanceForm.ecd: 'ecd_',
+  DanceForm.square: 'sq_',
+};
 
 /// Every dance form's taxonomy, and which one resolves a move.
 ///
@@ -164,9 +168,9 @@ final class TaxonomyRegistry {
 }
 
 /// The taxonomies this build ships: contra's, which owns every unprefixed
-/// move ID, and English Country Dance's ([ecdTaxonomy], ADR-006). Squares
-/// have none yet, so a square dance uses contra's.
+/// move ID, English Country Dance's ([ecdTaxonomy], ADR-006), and the
+/// traditional squares' ([squareTaxonomy], ADR-007).
 final TaxonomyRegistry shippedTaxonomies = TaxonomyRegistry(
   base: contraTaxonomy,
-  forms: [ecdTaxonomy],
+  forms: [ecdTaxonomy, squareTaxonomy],
 );

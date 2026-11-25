@@ -24,6 +24,8 @@ import 'package:compendium_app/src/data/regional_formats.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/soft_delete_retention.dart'
     show kSoftDeleteRetentionDefaultDays, kSoftDeleteRetentionKey;
+import 'package:compendium_app/src/export/csv_export.dart';
+import 'package:compendium_app/src/export/share_file.dart' show JsonSaveResult;
 import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/sync/sync_coordinator.dart';
 import 'package:compendium_app/src/sync/sync_http_client.dart';
@@ -43,6 +45,7 @@ import 'package:path_provider_platform_interface/path_provider_platform_interfac
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:share_plus/share_plus.dart' show ShareResult, ShareResultStatus;
 
+import 'export/rfc4180_test_reader.dart';
 import 'support/finders.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
@@ -105,6 +108,7 @@ Future<void> _pumpGeneral(
   double textScale = 1,
   DateFormatSetting dateFormat = DateFormatSetting.system,
   SyncController? sync,
+  CsvExportDelivery csvExportDelivery = const CsvExportDelivery(),
 }) async {
   await setScreenSize(tester, surface);
   final dateFormatNotifier = ValueNotifier<DateFormatSetting>(dateFormat);
@@ -158,7 +162,11 @@ Future<void> _pumpGeneral(
       supportedLocales: testSupportedLocales,
       builder: (context, child) =>
           wrap(textScaleBuilder(textScale)?.call(context, child) ?? child!),
-      home: SettingsScreen(backupSaver: saver, backupPicker: picker),
+      home: SettingsScreen(
+        backupSaver: saver,
+        backupPicker: picker,
+        csvExportDelivery: csvExportDelivery,
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -1489,6 +1497,50 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(dialog), findsNothing);
     });
+  });
+  testWidgets('Export dances as a spreadsheet exports every live dance as CSV '
+      '(#2332)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance('d1', 'Alpha'));
+    await repos.dances.create(_dance('d2', 'Bravo'));
+    await repos.dances.create(_dance('d3', 'Deleted one'));
+    await repos.dances.softDelete('d3', at: DateTime.utc(2026, 2, 1));
+
+    String? csv;
+    String? fileName;
+    await _pumpGeneral(
+      tester,
+      repos,
+      csvExportDelivery: CsvExportDelivery(
+        choicePicker: (context, {notice}) async => CsvExportChoice.save,
+        saveInvoker: (content, name) async {
+          csv = content;
+          fileName = name;
+          return JsonSaveResult(path: '/tmp/$name', fileName: name);
+        },
+      ),
+    );
+
+    final button = find.byKey(const ValueKey('export-dances-csv-button'));
+    await tester.scrollUntilVisible(
+      button,
+      300,
+      scrollable: find
+          .ancestor(
+            of: find.byKey(const ValueKey('backup-export-button')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+
+    expect(csv, isNotNull);
+    expect(csv, startsWith('\uFEFF'));
+    expect(csvRecords(csv!).map((r) => r['Title']), ['Alpha', 'Bravo']);
+    expect(fileName, endsWith('.csv'));
+    expect(find.textContaining(fileName!), findsOneWidget);
   });
 }
 

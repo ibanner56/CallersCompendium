@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
+import '../widgets/calendar_flag_label.dart' show calendarFlagLabel;
 import '../../l10n/app_localizations.dart';
 import '../data/user_figures_scope.dart';
 import '../data/active_dialect_scope.dart';
@@ -36,6 +37,7 @@ class SyncConflictLookups {
     this.dances = const {},
     this.venues = const {},
     this.sources = const {},
+    this.glossaryForms = const {},
   });
 
   final Map<String, String> choreographers;
@@ -45,6 +47,10 @@ class SyncConflictLookups {
   final Map<String, String> dances;
   final Map<String, String> venues;
   final Map<String, String> sources;
+
+  /// The dance form each of the user's own glossary entries is for, by id: what
+  /// a shorthand for one reads in, as its target's form (#2294).
+  final Map<String, DanceForm> glossaryForms;
 
   static Future<SyncConflictLookups> load(CompendiumRepositories repos) async {
     return SyncConflictLookups(
@@ -64,6 +70,10 @@ class SyncConflictLookups {
       venues: {for (final v in await repos.venues.listAll()) v.id: v.name},
       sources: {
         for (final s in await repos.publishedSources.listAll()) s.id: s.title,
+      },
+      glossaryForms: {
+        for (final e in await repos.userGlossary.listAll())
+          e.id: glossaryEntryDanceForm(e.payload),
       },
     );
   }
@@ -87,17 +97,18 @@ String syncConflictColourText(int argb) {
 }
 
 typedef _FigureLine = ({
-  String section,
+  String? section,
   String text,
   String data,
   Figure figure,
 });
 
 /// Contra's active dialect, or the app default with no scope. What a
-/// conflict that is not about one dance or one built-in figure reads in: the
-/// user's own figures, shorthands and settings are still contra's (ADR-006
-/// implementation plan, W7). A walkthrough snippet reads in its figure's
-/// form's ([walkthroughSnippetForm]).
+/// conflict that is not about one dance, one built-in figure or one of the
+/// user's own entries reads in: plain shorthands and settings are contra's. A
+/// walkthrough snippet reads in its figure's form's ([walkthroughSnippetForm]);
+/// an entry of your own, and a shorthand for one, in its form's
+/// ([syncConflictFreeText], [SyncConflictLookups.glossaryForms]).
 Dialect _contraDialect(BuildContext context) =>
     _formDialect(context, DanceForm.contra);
 
@@ -111,13 +122,31 @@ Dialect _formDialect(BuildContext context, DanceForm form) =>
 DanceForm _figureForm(String figureId) =>
     glossaryFormFor(shippedTaxonomies.formOfMoveId(figureId));
 
-/// [text] stored in canonical role words, as the active dialect reads it: how
-/// the user's own figures and notes (#709) are shown everywhere else.
-String syncConflictFreeText(BuildContext context, String text) =>
-    SyncConflictComparison._renderer.renderFreeText(
-      text,
-      _contraDialect(context),
-    );
+/// The dance form the glossary entry version [body] is for: the form its
+/// stored payload (text) names, or contra's for one that names none, one this
+/// build does not know, or a payload it cannot read.
+DanceForm syncConflictEntryForm(Map<String, Object?>? body) {
+  final payload = body?['payload'];
+  if (payload is! String) return DanceForm.contra;
+  try {
+    return glossaryEntryDanceForm(jsonDecode(payload));
+  } on FormatException {
+    // diagnostics: silent: shown as needing repair, as the Glossary shows it.
+    return DanceForm.contra;
+  }
+}
+
+/// [text] stored in canonical role words, as the dialect of [form], the form
+/// an entry of the user's own is made for, reads it: how those entries and
+/// their notes (#709) are shown everywhere else.
+String syncConflictFreeText(
+  BuildContext context,
+  DanceForm form,
+  String text,
+) => SyncConflictComparison._renderer.renderFreeText(
+  text,
+  _formDialect(context, form),
+);
 
 /// A note on the built-in figure [figureId] (#709), stored in canonical role
 /// words, as the Glossary shows it: in the dialect of the figure's form.
@@ -190,6 +219,15 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'walkthrough': l10n.danceEditorWalkthroughLabel,
         'meter': l10n.danceEditorMeterLabel,
         'musicalKey': l10n.danceEditorMusicalKeyLabel,
+        'alternateTitles': l10n.danceEditorAlternateTitlesLabel,
+        'barnesReference': l10n.danceEditorBarnesReferenceLabel,
+        'squareKind': l10n.danceEditorSquareKindLabel,
+        'repeatOrder': l10n.danceEditorRepeatOrderLabel,
+        'repeatOrderText': l10n.danceEditorRepeatOrderOtherLabel,
+        'newPartner': l10n.danceEditorNewPartnerLabel,
+        'newPartnerText': l10n.danceEditorNewPartnerOtherLabel,
+        'singing': l10n.danceEditorSingingLabel,
+        'freeForm': l10n.danceEditorFreeFormLabel,
         'difficultyLevelId': l10n.danceEditorLevelLabel,
         'mixedLevel': l10n.commonMixedLevel,
         'mixer': l10n.commonMixer,
@@ -223,6 +261,11 @@ Map<String, String> _fieldLabels(AppLocalizations l10n, SyncRecordKind kind) =>
         'payMinorUnits': l10n.programsPayLabel,
         'payCurrency': l10n.programsPayCurrencyLabel,
         'archivedAt': l10n.programsArchivedLabel,
+        'startMinute': l10n.programsStartTimeLabel,
+        'endMinute': l10n.programsEndTimeLabel,
+        'lessonMinute': l10n.programsLessonTimeLabel,
+        'arrivalMinute': l10n.programsArrivalTimeLabel,
+        'calendarFlag': l10n.calendarFlagFieldLabel,
       },
       SyncRecordKind.choreographer => {
         'name': l10n.syncConflictFieldName,
@@ -514,7 +557,10 @@ class SyncConflictComparison extends StatelessWidget {
       context,
     )[key.substring(userFigureRefPrefix.length)];
     if (view == null) return l10n.dialectEditorUserFigureGone;
-    return _renderer.renderFreeText(view.name, _contraDialect(context));
+    return _renderer.renderFreeText(
+      view.name,
+      _formDialect(context, view.form),
+    );
   }
 
   /// The stored wording [stored] for the move or figure [key], as the dialect
@@ -719,8 +765,14 @@ class SyncConflictComparison extends StatelessWidget {
     AppLocalizations l10n,
     SyncCollectionEntry entry,
   ) {
-    final dialect = _contraDialect(context);
     final value = entry.value;
+    // A shorthand for one of the user's own entries reads in that entry's
+    // form's dialect, as the target it stands for is; a plain one in contra's.
+    Dialect targetDialect(Object? id) => _formDialect(
+      context,
+      (id is String ? lookups.glossaryForms[id] : null) ?? DanceForm.contra,
+    );
+    final dialect = _contraDialect(context);
     switch (group.recordId) {
       case 'walkthrough_snippets':
         // In the dialect of the snippet's figure's form, as Settings shows it.
@@ -733,7 +785,11 @@ class SyncConflictComparison extends StatelessWidget {
       case compoundShorthandsSettingKey:
         // One of the user's own figures, by the name the shorthand stored,
         // with the values it gives.
-        return compoundShorthandValueText(l10n, value, dialect) ??
+        return compoundShorthandValueText(
+              l10n,
+              value,
+              targetDialect(value is Map ? value['compound'] : null),
+            ) ??
             l10n.syncConflictValueNotSet;
       case userFigureShorthandsSettingKey:
         // A use of one of the user's new figures (#1023): the line it would
@@ -751,10 +807,11 @@ class SyncConflictComparison extends StatelessWidget {
           beats: shorthand.beats,
         );
         final renderer = UserFiguresScope.rendererOf(context);
+        final figureDialect = targetDialect(shorthand.figureId);
         final line = renderer.renderUserFigureCanonical(use) != null
-            ? renderFigureSummary(context, renderer, use, dialect)
-            : compoundShorthandValueText(l10n, value, dialect) ??
-                  renderFigureSummary(context, renderer, use, dialect);
+            ? renderFigureSummary(context, renderer, use, figureDialect)
+            : compoundShorthandValueText(l10n, value, figureDialect) ??
+                  renderFigureSummary(context, renderer, use, figureDialect);
         final beats = shorthand.beats;
         return beats == null ? line : '$line · ${l10n.danceFigureBeats(beats)}';
       default:
@@ -829,7 +886,6 @@ class SyncConflictComparison extends StatelessWidget {
     String label,
     Map<String, Object?>? other,
   ) {
-    final dialect = _contraDialect(context);
     String describe(Map<String, Object?>? body) {
       if (body == null) return l10n.syncConflictValueNotSet;
       final kind = body['kind'];
@@ -844,6 +900,9 @@ class SyncConflictComparison extends StatelessWidget {
           decoded = null;
         }
       }
+      // Each version reads in the dialect of the form it is made for, which
+      // the two versions may disagree on.
+      final dialect = _formDialect(context, glossaryEntryDanceForm(decoded));
       if (kind == UserGlossaryEntryKind.term.name) {
         return [
           l10n.glossaryEntryKindTerm,
@@ -941,14 +1000,23 @@ class SyncConflictComparison extends StatelessWidget {
       return null;
     }
     final phrase = body?['phraseStructure'];
+    // A free-form square (ADR-007 §8.1) is read from the copy's own fields,
+    // as [Dance.isFreeForm] reads them: its figures then have no section.
+    final freeForm =
+        body?['form'] == DanceForm.square.name &&
+        switch (body?['freeForm']) {
+          final bool stated => stated,
+          _ => body?['squareKind'] == SquareKind.patter.wireName,
+        };
     final sections = deriveSections(
       figures,
       PhraseStructure.parseOrStandard(phrase is String ? phrase : ''),
+      freeForm: freeForm,
     );
     return [
       for (final s in sections)
         (
-          section: s.label,
+          section: s.label.isEmpty ? null : s.label,
           text: renderer.renderSummary(s.figure, dialect),
           data: canonicalJson(figureToJson(s.figure)),
           figure: s.figure,
@@ -1095,6 +1163,27 @@ class SyncConflictComparison extends StatelessWidget {
           return lookups.venues[value] ?? l10n.syncConflictUnknownItem;
         case 'form':
           return danceFormLabel(l10n, DanceForm.values.byName(value as String));
+        // The square fields (ADR-007 §8.1), as their editor labels say
+        // them; an unknown value (a newer build's) falls through to the
+        // value as sent.
+        case 'squareKind':
+          if (SquareKind.fromWireName(value as String) case final kind?) {
+            return squareKindLabel(l10n, kind);
+          }
+        case 'repeatOrder':
+          if (SquareRepeatOrder.fromWireName(value as String)
+              case final order?) {
+            return squareRepeatOrderLabel(l10n, order);
+          }
+        case 'newPartner':
+          if (SquareNewPartner.fromWireName(value as String)
+              case final partner?) {
+            return squareNewPartnerLabel(
+              l10n,
+              partner,
+              _formDialect(context, DanceForm.square),
+            );
+          }
         case 'progression':
           return progressionLabel(
             l10n,
@@ -1149,6 +1238,8 @@ class SyncConflictComparison extends StatelessWidget {
             for (final link in value as List)
               if (link is Map) _linkText(l10n, link),
           ].join('; ');
+        case 'calendarFlag':
+          return calendarFlagLabel(l10n, value as String?);
         case 'eventDate':
           return formatEventDate(
             syncConflictCalendarDate(value as String),
@@ -1167,6 +1258,10 @@ class SyncConflictComparison extends StatelessWidget {
             MaterialLocalizations.of(context),
             l10n,
           );
+        case 'startMinute' || 'endMinute' || 'lessonMinute' || 'arrivalMinute':
+          // A program time: minutes after midnight, in the app language's
+          // clock (#2350). No time zone: it is the time on the hall's wall.
+          return formatTimeOfDay(value as int, l10n);
         case 'payMinorUnits':
           // The amount alone is ambiguous: show it with that version's own
           // currency, formatted by the currency's exponent.
@@ -1183,7 +1278,11 @@ class SyncConflictComparison extends StatelessWidget {
           // role words (#709).
           return [
             for (final keyword in value as List)
-              syncConflictFreeText(context, keyword as String),
+              syncConflictFreeText(
+                context,
+                syncConflictEntryForm(body),
+                keyword as String,
+              ),
           ].join(', ');
         case 'provenance':
           final map = value as Map;
@@ -1217,15 +1316,18 @@ class SyncConflictComparison extends StatelessWidget {
   }
 
   /// The dialect [body] reads in: a dance's own form's (ADR-006 §9.1,
-  /// point 1), and contra's for anything else or a form this build doesn't
+  /// point 1), one of the user's own entries' form's, the one it was made
+  /// for (#2294), and contra's for anything else or a form this build doesn't
   /// know.
   Dialect _bodyDialect(BuildContext context, Map<String, Object?>? body) {
-    final form = group.kind == SyncRecordKind.dance
-        ? DanceForm.values.firstWhere(
-            (f) => f.name == body?['form'],
-            orElse: () => DanceForm.contra,
-          )
-        : DanceForm.contra;
+    final form = switch (group.kind) {
+      SyncRecordKind.dance => DanceForm.values.firstWhere(
+        (f) => f.name == body?['form'],
+        orElse: () => DanceForm.contra,
+      ),
+      SyncRecordKind.glossaryEntry => syncConflictEntryForm(body),
+      _ => DanceForm.contra,
+    };
     return (ActiveDialectScope.maybeOf(context) ?? DialectsByForm.defaults)
         .forForm(form);
   }

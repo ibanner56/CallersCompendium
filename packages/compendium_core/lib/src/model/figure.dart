@@ -68,9 +68,9 @@ const int kMaxMeanwhileSides = 6;
 const int kMaxModifierFigures = kMaxMeanwhileSides;
 
 /// Maximum number of children a [sequenceMove] container may hold. Lower than
-/// the other containers' cap because a sequence must also fit in one phrase
-/// (`PhraseStructure.longestPhraseBeats`): four figures already divide 16
-/// beats into fours.
+/// the other containers' cap because a sequence must also fit in the phrase
+/// it starts in (`PhraseStructure.phraseBeatsAt`): four figures already divide
+/// 16 beats into fours.
 const int kMaxSequenceFigures = 4;
 
 /// The child cap for the container kind [move]: [kMaxSequenceFigures] for a
@@ -242,8 +242,8 @@ class Figure {
   /// Builds a **sequence** container: [figures] danced in order and shown on
   /// one line. [beats] is the shared count, as for the other containers; the
   /// editor keeps it equal to the sum of the children's own counts, except
-  /// for an English sequence that states its own span
-  /// (`ecdSequenceSpanIssue`). The model requires neither.
+  /// for an English or square sequence that states its own span
+  /// (`sequenceSpanIssue`). The model requires neither.
   ///
   /// Holds 2–[kMaxSequenceFigures] children. A sequence may contain ordinary
   /// figures or a meanwhile or modifier container, but not another sequence

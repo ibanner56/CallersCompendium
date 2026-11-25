@@ -1,0 +1,9 @@
+{
+  "id": "ecd-form-change-resets-formation",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Changing a dance's type to English (ECD) now starts its formation on Duple minor instead of keeping a contra formation such as Improper in the English list. Changing an English dance to contra starts it on Improper when its formation isn't one contra offers. A formation both lists have, such as triple minor, is kept, and Undo brings the old formation back."
+    ]
+  }
+}

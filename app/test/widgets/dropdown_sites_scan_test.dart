@@ -46,6 +46,12 @@ const _sites = <String, List<(String, String)>>{
   'lib/src/screens/import_review_screen.dart': [
     ("const ValueKey('import-source-select')", 'false'),
   ],
+  'lib/src/screens/import_csv_mapping.dart': [
+    ("const ValueKey('text-dance-start')", 'false'),
+    ("const ValueKey('csv-separator')", 'false'),
+    // Some thirty column targets plus the caller's custom fields.
+    (r"ValueKey('csv-column-$index')", 'true'),
+  ],
   'lib/src/screens/glossary/compound_editor_screen.dart': [
     ("const ValueKey('glossary-entry-form')", 'false'),
     (r"ValueKey('compound-param-$i-kind')", 'false'),
@@ -79,9 +85,16 @@ const _sites = <String, List<(String, String)>>{
     ("const ValueKey('general-soft-delete-retention')", 'false'),
     ("const ValueKey('backup-reminder-cadence')", 'false'),
   ],
+  'lib/src/screens/settings/calendar_settings_tiles.dart': [
+    ("const ValueKey('calendar-settings-window-field')", 'false'),
+    ("const ValueKey('calendar-settings-startup-mode-field')", 'false'),
+  ],
   'lib/src/screens/settings/matrix_column_editor.dart': [
     ("const ValueKey('matrix-parameterized-move')", 'true'),
     (r"ValueKey('matrix-compound-step-move-$index')", 'true'),
+  ],
+  'lib/src/screens/settings/program_templates_screen.dart': [
+    ("const ValueKey('defaults-program-template-default')", 'true'),
   ],
   'lib/src/screens/settings/program_section.dart': [
     ("const ValueKey('program-venue-call-count')", 'false'),
@@ -90,6 +103,11 @@ const _sites = <String, List<(String, String)>>{
     ("const ValueKey('regional-language')", 'false'),
     ("const ValueKey('regional-date-format')", 'false'),
     ("const ValueKey('regional-first-day-of-week-dropdown')", 'false'),
+  ],
+  'lib/src/screens/settings/suggestion_settings_screen.dart': [
+    // Three fixed choices each: select-only.
+    ("const ValueKey('suggestion-curve-shape')", 'false'),
+    ("const ValueKey('suggestion-venue-window')", 'false'),
   ],
   'lib/src/widgets/advanced_query_builder.dart': [
     (r"ValueKey('group-kind-${group.id}')", 'false'),

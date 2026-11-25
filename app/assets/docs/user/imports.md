@@ -3,7 +3,8 @@
 This guide is about getting dances *into* [Caller's Compendium](./glossary.md#callers-compendium)
 and moving your whole library between devices. It covers bringing in single
 dances from [The Caller's Box](./glossary.md#the-callers-box) and
-[ContraDB](./glossary.md#contradb), importing signed published collections and
+[ContraDB](./glossary.md#contradb), bringing in your own spreadsheet or typed
+notes, importing signed published collections and
 Caller's Compendium files, moving a whole library across from Caller's Companion,
 and backing up and restoring everything you own.
 
@@ -21,7 +22,10 @@ exporting are the doors your dances walk through — the ways you bring
 material in from the wider community and carry your own library from one machine
 to the next. Nothing leaves your device unless you ask for it (an online search
 or a single dance import reaches out once, when you tell it to), and nothing
-changes your collection until you say so.
+changes your collection until you say so. Turning on an automatic option —
+the [update check](./settings.md#updates), or the
+[calendar import at startup](./settings.md#calendar) set to add drafts — is
+saying so: it runs only once you switch it on.
 
 ## Nothing gets lost when a dance comes in
 
@@ -167,6 +171,10 @@ When you give the app a web address to fetch:
 Refusals never echo the address back at you, so a link that happened to contain
 something private does not end up on your screen or in a log.
 
+A [calendar address](./programs.md#import-programs-from-your-calendar) follows
+the same rules, except that it may be on any host — it is your calendar, not an
+archive. A `webcal://` address is fetched as `https://`.
+
 ## Import a published collection
 
 Published collections are curated dance collections delivered through the
@@ -261,6 +269,174 @@ A few honest notes:
 - Even if nothing turns out to be importable, you still get the answer to
   "which of these do I already have?" — that list is worth having on its own.
 
+## Bring in your own spreadsheet
+
+If you keep your dances in a spreadsheet — a title, an author, a formation, a
+column of figures, some notes — you can bring them in without retyping them.
+
+1. In Excel, Numbers, LibreOffice or Google Sheets, save the sheet as a
+   [CSV file](./glossary.md#csv-file): choose **File ▸ Save As** (or
+   **Download**) and pick **CSV UTF-8**.
+2. Open **Settings**, choose **General**, choose **Import…**, and set the source
+   to **Your own spreadsheet (CSV)**. Choosing a `.csv` file with **Import…**
+   switches to it for you.
+3. Choose the file with **Choose a CSV file…**, then **Continue**.
+4. **Map the columns.** The app shows each column with a few of its values and
+   asks what it holds:
+   - Title (needed: **Continue** waits until one column is the title);
+   - Authors, Type, Formation, Progression, Level, Status, Mixer, Tags, Tunes,
+     Meter, Key, Hook, Calling notes or Walkthrough;
+   - **Figures**, either one column with one figure per line (or several
+     separated by `;`), or one column per phrase (**Figures, A1**, **Figures,
+     A2** and so on);
+   - one of your [custom fields](./glossary.md#custom-field), or a **new custom
+     field** of the type you choose, named after the column;
+   - **Ignore**, to leave the column out.
+
+   A column whose first-row name matches a field, in the app's language or in
+   English, is chosen for you; you can change any of them. The app also works
+   out what separates the columns (a comma, or the semicolon Excel uses in
+   Danish, German, French and Dutch) and whether the first row names the
+   columns; change either if it guessed wrong.
+5. Review and commit, as for any import (see
+   [Review before anything changes](#review-before-anything-changes)).
+
+How the values come in:
+
+- **Figures** are read the way the app reads typed figures. A line it can't
+  read comes in as an unrecognized figure with your words, never dropped.
+- **Authors** are matched to the authors you already have, or added.
+  Several in one cell can be separated by commas or "and". To keep a comma
+  inside one author's name, write `\,` (the app's own export does) and a
+  backslash `\\`; a backslash before anything else is read as it is. A name
+  that itself holds "and", "with", `&`, `/`, `+` or `;` is still split there.
+- **Tags** are separated by commas, matched to your tags by name, and added
+  when new. Your **Import defaults** tags are added too. To keep a comma inside
+  a tag, write `\,` (the app's own export does); a backslash is written `\\`,
+  and a backslash before anything else is read as it is.
+- **Tunes** are separated by commas, semicolons or line breaks, and read the
+  same way: `\,` keeps a comma in a tune's name. There is no way to keep a
+  semicolon or a line break inside one tune name.
+- **Level** is matched to your difficulty levels by name.
+- **Numbers** are read as you would type them, with one exception: in a sheet
+  separated by semicolons (what Excel saves in Danish, German, French and Dutch)
+  a comma is the decimal mark and a dot or a space groups thousands, so `3,5` is
+  3.5 and `1.000` is one thousand. A number the app can't read either way, such
+  as `1,234.5` in such a sheet, goes into the calling notes rather than being
+  guessed. A number with a dot that doesn't fit that pattern, such as `1.5` or
+  `0.500` (a leading 0 is never a thousands group), is read as a decimal.
+- A choice field takes the option you already have whatever case, surrounding
+  space or accent form the cell uses (`café` typed as `e` plus an accent still
+  matches `café`). A cell with nothing visible in it adds no option.
+- A value that doesn't fit its field — a formation or level the app doesn't
+  know, or text in a number field — goes into the dance's **calling notes**,
+  with a note on the review row, so nothing is lost.
+- When two columns are set to the same field, the first value that fits fills
+  it and the other goes into the calling notes. A new custom field counts as
+  one of yours with the same name and type, and two new ones with the same
+  name and type are one field. Two columns for the same phrase of **Figures**
+  are both kept, one after the other.
+- A dance from your own spreadsheet records **no source**, just like one you
+  typed in. If you import the same file again, the dances you already have show
+  up as possible matches by title and author, and default to **Skip**.
+
+A spreadsheet the app exported (see
+[Export dances as a spreadsheet](./sharing.md#export-dances-as-a-spreadsheet-csv))
+comes back in with its columns already chosen.
+
+If the file can't be read, the app says why and nothing is imported: it isn't
+saved as UTF-8 (save it again as **CSV UTF-8**), it is too large, it has more
+than 20,000 rows or more than 200 columns, a cell is longer than 65,536
+characters, or a quoted cell never ends. A file with more than 500 rows is
+fine, but the app mentions that reviewing it may take a while.
+
+## Bring in dances you typed up
+
+If you keep your dances as notes in a text file, or in Markdown, you can bring
+them in without retyping them. Write each dance like this:
+
+```
+## Rory's Reel
+
+by Pat Example
+Formation: Improper
+Music: Any reel
+
+- A1 (8) Neighbor balance & swing
+- (8) Long lines forward and back
+- A2 (16) Partner swing
+
+Watch the chain at the top.
+```
+
+1. Save the notes as a `.txt` or `.md` file, as UTF-8 text (most editors do
+   this already).
+2. Open **Settings**, choose **General**, choose **Import…**, and set the source
+   to **Your own text or Markdown file**. Choosing a `.txt` or `.md` file with
+   **Import…** switches to it for you.
+3. Choose the file with **Choose a text or Markdown file…**, then **Continue**.
+4. **Map labels.** If your file has headings, **Each dance starts at** shows
+   where the app found each dance: at a heading level (**A # heading**,
+   **A ## heading**, …) or at **A title after a blank line**. If the dances
+   came out split or merged wrongly, choose another and the file is read again.
+   Each label your file uses (`Formation`, `Music`, …) is shown
+   with a few of its values, as a spreadsheet's columns are (see
+   [Bring in your own spreadsheet](#bring-in-your-own-spreadsheet)). A label
+   that names a field, in the app's language or in English, is chosen for you.
+   Any other label is set to **Calling notes, with the label**, so `Music: Any
+   reel` comes in as that line in the dance's calling notes. Choose **Ignore** to
+   leave a label out.
+5. Review and commit, as for any import (see
+   [Review before anything changes](#review-before-anything-changes)).
+
+How the file is read:
+
+- **Where a dance starts.** The app guesses, and you can change its guess in
+  **Each dance starts at** (step 4). Headings at the chosen level start dances
+  and are their titles. A deeper heading (`## Figures`, `## Notes` under a `#`
+  dance) is a part of the dance, and its lines come in with it. A shallower
+  heading with no figures under it, such as `# My dances` at the top or
+  `# Squares` above a group, is a title for the file and is left out; any
+  details or text under it go into the calling notes of the dance after it.
+- **A file without headings**, or with **A title after a blank line** chosen:
+  the first line, and each line after a blank line, is a dance's title, unless
+  it starts like a figure (`-`, `1.`, `A1`, `(8)`) or is a detail line before
+  the dance's figures. A heading also starts a new dance, and a line of `---`
+  (or `***`, `___`) counts as a blank line. So a note after a blank line
+  starts a new dance; keep notes straight under the dance's lines. One
+  exception: in a file with a single `#` heading whose dance has details or
+  figures, a paragraph of prose after it (more than one line, or ending with
+  `.`, `!` or `?`) with neither is that dance's note. A single `#` heading at
+  the top with nothing but text under it is the file's title and is left out;
+  its text goes into the notes of the dance after it.
+- **Details** are `Label: value` lines, with a label of up to three words.
+  `**Formation:** Improper` and a full-width colon (`：`) work too; a label
+  needs a letter in it, so `10:30 start` is a note.
+  `by Pat Example` and `Author: Pat Example` both fill **Authors**; a `by` line
+  counts only above the dance's figures and notes. A web address is not a
+  label.
+- **Figures** are lines that start with a list marker (`-`, `*`, `1.`), a phrase
+  (`A1`) or a count (`(8)`, or `8` within a dance), and any line straight after
+  one, so a figure that wraps onto a second line stays one figure, even with a
+  colon in it. A detail written as a list item (`- Formation: Improper`) is a
+  figure line too, so write details without a list marker. They are read the way the app reads
+  typed figures, phrase and count included. A line it can't read comes in as an
+  unrecognized figure with your words, never dropped.
+- **Anything else** goes into the dance's calling notes, as written.
+- Markdown is read as plain text apart from headings and list markers, so
+  `**bold**` and links come in as you typed them.
+- A value that doesn't fit its field, such as a formation the app doesn't know,
+  goes into the calling notes with its label, with a note on the review row. A
+  formation is matched by its name in the app (**Improper**, **Becket (CW)**).
+- As with a spreadsheet, a dance from your own file records **no source**, and
+  importing the file again shows the dances you already have as possible
+  matches, defaulting to **Skip**.
+
+If the file can't be read, the app says why and nothing is imported: it isn't
+saved as UTF-8 text, it is too large, it has more than 19,999 dances or more
+than 197 different labels, or a line, or one dance's figures, notes or details,
+is longer than 65,536 characters.
+
 ## Import a Caller's Compendium file
 
 Dances shared as a **Caller's Compendium** file (the app's own `.json` or
@@ -281,7 +457,7 @@ below.
 
 A file made by a **newer version** of Caller's Compendium can still be reviewed
 and imported, but this version only understands the details it already knows
-about. The review then shows one warning, *"This file was made by a newer version
+about. The review then shows one warning, *"This was made by a newer version
 of Caller's Compendium. Update the app before importing, or some details may be
 left out."* Update the app first if you want everything that file carries.
 
@@ -290,6 +466,38 @@ either the file isn't a share file or text the app can read (another app
 saved it as text in a different encoding: save it again as UTF-8), or the file
 can't be opened
 (another app is using it, or it is on a drive that isn't connected).
+
+### Open a dance someone shows you as a code
+
+Another caller can show you a dance as a QR code on their screen
+(**Show code**, described in
+[Share, print & export](./sharing.md#show-a-dance-as-a-code)). To add it to your
+collection:
+
+1. Point your phone's own camera app at the code: the iPhone **Camera**, or the
+   Android camera or **Google Lens**.
+2. Tap the link it offers. Caller's Compendium opens on the dance in the same
+   review as a file someone sends you (see
+   [Review before anything changes](#review-before-anything-changes)).
+3. Review and commit. Nothing is added until you do, and **Undo** removes it
+   afterwards.
+
+Opening a code this way doesn't use Caller's Compendium's camera access, and it
+needs no network.
+
+If your camera app shows the link but won't open it, copy the link, open
+**Import…**, and paste it into the URL field (then choose **Fetch**) or into the
+text field (then choose **Review import**). That works on a computer too, if
+someone sends you the link as text. The link is read on your device; nothing
+is fetched.
+
+If the app can't read a code, it says why and nothing is imported: a code made
+by a **newer version** of Caller's Compendium asks you to update the app, and a
+code that is damaged or was read only in part says so. So does a code that
+isn't a dance code, or one with no dances or programs in it. Ask for the code
+again, or for **Share dance file** instead. A code made by a newer version whose dance
+this version can read still opens, with the same newer-version warning as a
+file.
 
 ### Open a shared program someone sent you
 
@@ -497,7 +705,8 @@ Becket keeps its direction (clockwise or counterclockwise), four facing four,
 triplets, triple minors and longways keep their shape, squares come across as
 squares, circle and scatter mixers are marked as mixers, and your own
 description of the starting position ("Long Waves, R-hand to Neighbor") is kept
-as the formation's detail.
+as the formation's detail. A square's repeat order comes across too, when
+Caller's Companion gives it as "H H S S" or "H S H S".
 Alternates in your sets come across as alternates.
 
 A **title** that Caller's Companion filed with its article at the end, such as
@@ -522,7 +731,7 @@ others reads "Choreography: others, not named". A dance you imported before
 keeps its credit; if you re-import it with **Also update title and credit**,
 it is credited to the named people only, without the note, and an author
 called "Others" from the earlier import stays in your list. Fix it in
-**Settings ▸ General ▸ Dances ▸ Authors** (see
+**Settings ▸ Collection ▸ Dances ▸ Authors** (see
 [Settings](./settings.md#dances)): delete it once no dance credits it, or merge
 it into another author.
 
@@ -718,7 +927,9 @@ source you pick:
 
 1. **Choose a source and give it something to read** — pick the source, then add
    a file, paste text, or enter a URL or ID. (Paste a recognized web address and
-   the app selects the matching source for you.)
+   the app selects the matching source for you.) For your own spreadsheet you
+   then **map the columns**, saying what each one holds (see
+   [Bring in your own spreadsheet](#bring-in-your-own-spreadsheet)).
 2. **See the plan** — the app reads the material without changing anything and
    lists every dance it found, with a sense of how much of each dance it could
    turn into structured figures versus keep as plain text, plus any notes about
@@ -779,7 +990,11 @@ watches for matches:
   and source citations. Custom fields the import carries replace yours; the rest
   of your custom fields are kept. Your star rating is kept whenever the
   incoming file carries none, as share files and The Caller's Box never do; a
-  rating the file does carry replaces yours. The review warns
+  rating the file does carry replaces yours. The same goes for who
+  interpreted the dance and when, its other titles and its Barnes reference
+  (which stays only when the imported dance is an English dance), and a
+  square's kind, repeat order, new partner, singing call and free-form
+  setting. The review warns
   how many existing dances will be overwritten before you commit.
 - **Same dance, written another way.** Archives spell and annotate titles
   differently: The Caller's Box has `A-1 Reel {variant}` where your collection

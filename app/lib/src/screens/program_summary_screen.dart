@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
@@ -10,6 +11,7 @@ import '../data/active_dialect_scope.dart';
 import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/refresh_coalescer.dart';
+import '../data/program_times_text.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/callersbox_online.dart';
@@ -20,6 +22,7 @@ import '../data/formation_colors_scope.dart';
 import '../data/set_list_color_coding_scope.dart';
 import '../data/mark_all_sets_status_scope.dart';
 import '../data/show_performed_toggles_scope.dart';
+import '../data/show_program_pay_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
 import '../data/venue_label.dart';
@@ -36,6 +39,8 @@ import '../utils/confirm_delete.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/load_error_view.dart';
 import '../widgets/program_export_menu.dart';
+import '../data/calendar_import.dart' show clearCalendarFlag;
+import '../widgets/calendar_flag_label.dart';
 import '../widgets/program_status_chip.dart';
 import 'dance_detail_screen.dart';
 import 'dance_reimport_flow.dart';
@@ -242,6 +247,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// and [_dances] leave out. Only for the text and PDF exports, as Perform
   /// shows them (GIG-11).
   Map<String, List<String>> _authorNamesOverride = const {};
+
+  /// As [_authorNamesOverride], for a dance's interpreters.
+  Map<String, List<String>> _interpreterNamesOverride = const {};
   Map<String, Venue> _venuesById = const {};
   CollectionData? _collectionData;
   List<DifficultyLevel> _difficultyLevels = const [];
@@ -548,6 +556,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           _danceTitles = const {};
           _dances = const {};
           _authorNamesOverride = const {};
+          _interpreterNamesOverride = const {};
           _venuesById = const {};
           _collectionData = null;
           _loading = false;
@@ -586,6 +595,8 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       // can embed. A dance the collection lists is credited from the
       // collection, as before.
       final authorsToName = <String, List<String>>{};
+      // The same for the dance's interpreters, credited by name on its cards.
+      final interpretersToName = <String, List<String>>{};
       for (final dance in loaded) {
         if (dance != null) {
           titles[dance.id] = dance.title;
@@ -597,28 +608,37 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           if (!listed && live.length != dance.authorIds.length) {
             authorsToName[dance.id] = dance.authorIds;
           }
+          if (!listed &&
+              dance.interpreterIds.any(
+                (id) => !data.choreographersById.containsKey(id),
+              )) {
+            interpretersToName[dance.id] = dance.interpreterIds;
+          }
           dances[dance.id] = live.length == dance.authorIds.length
               ? dance
               : dance.copyWith(authorIds: live);
         }
       }
       final authorNames = <String, List<String>>{};
-      if (authorsToName.isNotEmpty) {
+      final interpreterNames = <String, List<String>>{};
+      if (authorsToName.isNotEmpty || interpretersToName.isNotEmpty) {
         final names = {
           for (final c in await _repos.choreographers.listAll(
             includeDeleted: true,
           ))
             c.id: c.name,
         };
-        authorNames.addAll({
-          for (final entry in authorsToName.entries)
+        Map<String, List<String>> named(Map<String, List<String>> ids) => {
+          for (final entry in ids.entries)
             entry.key: [
               for (final id in entry.value)
                 if ((data.choreographersById[id]?.name ?? names[id])
                     case final String name when name.isNotEmpty)
                   name,
             ],
-        });
+        };
+        authorNames.addAll(named(authorsToName));
+        interpreterNames.addAll(named(interpretersToName));
       }
       // Resolve only the linked venue (if any). The summary shows a single
       // program, so loading the whole catalogue just to look up one id is
@@ -636,6 +656,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         _danceTitles = titles;
         _dances = dances;
         _authorNamesOverride = authorNames;
+        _interpreterNamesOverride = interpreterNames;
         _venuesById = venuesById;
         _collectionData = data;
         _difficultyLevels = difficultyLevels;
@@ -678,6 +699,26 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     );
     // The copy carries the same dance slots, so every derived count moved.
     widget.onNavigateTo(copy.id);
+  }
+
+  /// "Clear calendar flag" (#2354): removes the label, edits nothing else.
+  /// The next calendar import sets it again if the event is still cancelled
+  /// or gone.
+  Future<void> _clearCalendarFlag(Program program) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    try {
+      await clearCalendarFlag(_repos, program, now: clock.now().toUtc());
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'program_summary_screen._clearCalendarFlag',
+      );
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.calendarClearFlagError)),
+      );
+    }
   }
 
   /// Archives the program and leaves this view, as Delete does, with an Undo.
@@ -893,13 +934,20 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               );
               return null;
             }
-            storedAfterWrite[updated] = write.stored;
+            // A refused adjustment wrote nothing: there is nothing to undo after
+            // leaving Perform.
+            if (!write.refused) storedAfterWrite[updated] = write.stored;
             // The write itself is what reloads this pane and every other view
             // of these slots — the coexisting program list, the Collection's
             // "called N times" badge, a mounted dance detail's calling history.
             // Calling `_load` here as well would load this pane twice for one
             // adjustment (issue #340).
-            return write.changedUnderneath ? write.stored : null;
+            if (write.refused) {
+              return PerformAdjustmentResult.refused(write.stored);
+            }
+            return write.changedUnderneath
+                ? PerformAdjustmentResult.newer(write.stored)
+                : null;
           },
           // The "Program adjusted" Undo after leaving Perform restores only
           // while the stored program still equals, field for field, what that
@@ -987,6 +1035,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         danceFor: (id) => _dances[id],
         choreographerFor: (id) => _collectionData?.choreographersById[id],
         authorNamesOverrideFor: (id) => _authorNamesOverride[id],
+        interpreterNamesOverrideFor: (id) => _interpreterNamesOverride[id],
         tagFor: (id) => _collectionData?.tagFor(id),
         publishedSourceFor: (id) => _collectionData?.publishedSourceFor(id),
         customFieldFor: (id) => _collectionData?.customFieldFor(id),
@@ -1095,6 +1144,22 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               child: ProgramArchivedChip(),
             ),
           ),
+        if (program.calendarFlag != null)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.xxs),
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: AppSpacing.xs,
+              children: [
+                CalendarFlagLabel(program: program),
+                TextButton(
+                  key: const ValueKey('clear-calendar-flag'),
+                  onPressed: () => _clearCalendarFlag(program),
+                  child: Text(AppLocalizations.of(context).calendarClearFlag),
+                ),
+              ],
+            ),
+          ),
         if (widget.prominentPerform) ...[
           const SizedBox(height: 16),
           _buildProminentPerform(program),
@@ -1107,6 +1172,12 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             child: _summaryRow(Icons.category_outlined, formsLabel),
           ),
         if (dateLabel != null) _summaryRow(Icons.event_outlined, dateLabel),
+        // The times line under the date (#2350); shown with no date too.
+        if (programTimesSummary(program, l10n) case final times?)
+          KeyedSubtree(
+            key: const ValueKey('program-summary-times'),
+            child: _summaryRow(Icons.schedule_outlined, times),
+          ),
         if (resolveVenueLabel(program, _venuesById) case final venueLabel?)
           _summaryRow(Icons.place_outlined, venueLabel),
         if (program.band != null)
@@ -1124,10 +1195,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
             Icons.signal_cellular_alt_outlined,
             l10n.programsSummaryLevel(_displayProse(program.dancerLevel!)),
           ),
+        // Hidden while Show pay is off (#2355); the stored pay is untouched.
         if ((program.payMinorUnits, program.payCurrency) case (
           final pay?,
           final currency?,
-        ))
+        ) when ShowProgramPayScope.of(context))
           _summaryRow(
             Icons.payments_outlined,
             l10n.programsSummaryPay(

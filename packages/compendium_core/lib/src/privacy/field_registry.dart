@@ -365,6 +365,15 @@ final Map<String, DataClassification> fieldClassifications = {
   'dances.walkthrough': _choreography,
   'dances.meter': _choreography,
   'dances.musical_key': _choreography,
+  'dances.alternate_titles': _choreography,
+  'dances.barnes_reference': _choreography,
+  'dances.square_kind': _choreography,
+  'dances.repeat_order': _choreography,
+  'dances.repeat_order_text': _choreography,
+  'dances.new_partner': _choreography,
+  'dances.new_partner_text': _choreography,
+  'dances.singing': _choreography,
+  'dances.free_form': _choreography,
   'dances.status': _choreography,
   'dances.level_id': _key,
   'dances.mixed_level': _choreography,
@@ -379,6 +388,8 @@ final Map<String, DataClassification> fieldClassifications = {
         'own devices and backups yes, share files no. The app omits it from '
         'every dance and program share file (maintainer decision '
         'R2-out2-export, 2026-10-30), but Device Sync and Backup keep it. '
+        'The one output the user sends on that carries it is the dances CSV '
+        'export, which includes it by maintainer decision (#2332). '
         'Kept shareable rather than deviceLocal because deviceLocal means '
         'never serialised and would stop sync, which the maintainer wants '
         'to keep; the share-file strip lives in the share bundle builders '
@@ -609,7 +620,11 @@ final Map<String, DataClassification> fieldClassifications = {
         'the app omits it from program share files and Export JSON '
         '(maintainer decision R2-out2-export, 2026-10-30; '
         'sanitizeProgramForShare). It is never part of the shared set-list '
-        'text or PDF. Kept shareable rather than deviceLocal because '
+        'text or PDF. Besides the backup, the one export that carries it is '
+        'the programs CSV export (#2333; sanitizeProgramForCsv), by ruling 2 '
+        '(maintainer, feature triage, 2026-11-22), and only while the caller '
+        'shows pay (show_program_pay, #2355). Kept shareable rather than '
+        'deviceLocal because '
         'deviceLocal means never serialised and would stop sync. Sync can '
         'still reach another person when a store is shared (ADR-004 '
         'storeAddress), so "travels in sync" is not "stays on my devices".',
@@ -621,7 +636,29 @@ final Map<String, DataClassification> fieldClassifications = {
     note:
         'ISO 4217 code that programs.pay_minor_units is denominated in; '
         'meaningless without it, so it carries the same classification, '
-        'including the share-file omission (sanitizeProgramForShare).',
+        'including the share-file omission (sanitizeProgramForShare) and '
+        'the programs CSV export that carries it (#2333).',
+  ),
+  // When the public event happens (#2350), like programs.event_date: the
+  // dance's start and end, and the beginner lesson before it.
+  'programs.start_minute': _choreography,
+  'programs.end_minute': _choreography,
+  'programs.lesson_minute': _choreography,
+  'programs.arrival_minute': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'When the caller needs to be at the hall for the program (#2350), as '
+        'minutes after midnight. Unlike the other three times it is about '
+        'the caller, not the public event, so the subject is the app user; '
+        'it is a time of day, not a location, so non-personal. Egress: '
+        'Device Sync and backups carry it, and so do program share files, '
+        'because a guest caller receiving the program needs it too (issue '
+        'drafting call, approved with #2350). The set-list text and the PDF '
+        'leave it out: they are made for other people, and the maintainer '
+        'ruled that Arrive by stays out of the PDF but in the caller\'s own '
+        'calendar export (2026-11-22, #2350), whose event notes carry it.',
   ),
   'programs.created_at': _recordStamp,
   'programs.updated_at': _recordStamp,
@@ -646,6 +683,61 @@ final Map<String, DataClassification> fieldClassifications = {
         'sanitizeProgramForShare), so a '
         'recipient always gets an unarchived program. Kept shareable because '
         'deviceLocal would stop sync.',
+  ),
+  'programs.calendar_event_key': const DataClassification(
+    term: DpvTerm.unclassifiedPersonal,
+    subject: DataSubject.thirdParty,
+    egress: EgressClass.shareable,
+    note:
+        'The calendar event a program was imported from (#2352, schema v42): '
+        'a SHA-256 digest of the event\'s UID and recurrence id, never the '
+        'UID itself; NULL for a program not imported from a calendar. Possibly '
+        'personal and third-party because UIDs are minted by whoever\'s '
+        'calendar software created the event: most are opaque, but some '
+        'generators build them from an email address or host name, and a '
+        'digest of such a value is pseudonymous, still personal data. Storing '
+        'the digest means the address itself is never stored. Shareable so '
+        'Device Sync carries it and the caller\'s other devices do not offer '
+        'the same event again; kept in the caller\'s own backups; stripped '
+        'from share files (sanitizeProgramForShare), like pay, since a '
+        'recipient has no use for it. Classification proposed by Claude and '
+        'approved with the issue (maintainer, issue review, 2026-11-22).',
+  ),
+  'programs.calendar_event_fingerprint': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
+    note:
+        'What the calendar import last wrote from an event (#2354, schema '
+        'v42): truncated hashes of its title, date, first location segment, '
+        'and start and end times, all of which are already stored on the '
+        'program. Shareable '
+        'so another device applies the same untouched test; stripped from '
+        'share files (sanitizeProgramForShare), since a recipient has no such '
+        'calendar. Classification proposed by Claude and approved with the '
+        'issue (maintainer, issue review, 2026-11-22).',
+  ),
+  'programs.calendar_written_at': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
+    note:
+        'The updated_at the calendar import last wrote (#2354, schema v42), '
+        'classified like the record stamps: it says when, not who. Shareable '
+        'so another device applies the same untouched test; stripped from '
+        'share files (sanitizeProgramForShare).',
+  ),
+  'programs.calendar_flag': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
+    note:
+        'Why the calendar flags the program (#2354, schema v42): cancelled, '
+        'missing, or NULL. A label about the program, not a person. Shareable '
+        'so the flag shows on every device; stripped from share files '
+        '(sanitizeProgramForShare), since a recipient has no such calendar. '
+        'Classified like choreography fields, as the issue proposed and the '
+        'maintainer approved (issue review, 2026-11-22).',
   ),
 
   // --------------------------------------------------------- program_slots --
@@ -938,11 +1030,17 @@ final Set<String> syncBookkeepingTables = {
 const _venueAddressNote =
     'A venue\'s postal address, classified third-party like the venue\'s '
     'contacts: the people it identifies never use this app and cannot consent '
-    'to a transfer. Never reaches a share, a PDF, Device Sync or other '
-    'project-operated infrastructure: a program share or PDF always clears it, '
-    'with no opt-in (sanitizeVenueForShare, after issue #853 found shares '
-    'carrying it), and Device Sync carries only fields classified shareable. '
-    'Only the owner\'s own full backup holds it.';
+    'to a transfer. Never reaches Device Sync or other project-operated '
+    'infrastructure, which carries only fields classified shareable. A program '
+    'share file, Export JSON or PDF always clears it, with no opt-in '
+    '(sanitizeVenueForShare, after issue #853 found shares carrying it). One '
+    'narrower exception, decided by the maintainer (issue draft review, '
+    '2026-11-22, #2351): in the calendar (.ics) export only, the address goes '
+    'into the event location when the user ticks "Include the venue\'s '
+    'address" for that one export. It is unticked by default and nothing is '
+    'remembered for the next export. The tick is the user\'s consent, not the '
+    'venue\'s, which is why the subject stays third-party. Otherwise only the '
+    'owner\'s own full backup holds it.';
 
 const _contactStreet = DataClassification(
   term: DpvTerm.street,
@@ -975,8 +1073,8 @@ const _contactPostal = DataClassification(
   note: _venueAddressNote,
 );
 
-/// Shared by the six `venues.contact*` columns: the one recorded exception to
-/// [EgressClass.deviceLocal], kept as a note rather than a new egress class
+/// Shared by the six `venues.contact*` columns: one of the two recorded
+/// exceptions to [EgressClass.deviceLocal], kept as a note rather than a new egress class
 /// (post-audit finding flows-9; the maintainer stated no preference, and the
 /// note was the sweep's call because it changes no behaviour).
 const _venueContactConsentNote =

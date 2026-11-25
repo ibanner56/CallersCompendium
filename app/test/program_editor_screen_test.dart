@@ -20,6 +20,7 @@ import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/program_templates.dart';
 import 'package:compendium_app/src/data/online_search.dart';
 import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
@@ -29,10 +30,12 @@ import 'package:compendium_app/src/widgets/app_bar_text_action.dart';
 import 'package:compendium_app/src/widgets/collection_picker.dart';
 import 'package:compendium_app/src/widgets/online_result_tile.dart';
 import 'package:compendium_app/src/widgets/online_search_toggle.dart';
+import 'package:compendium_app/src/widgets/picker_suggestions.dart';
 import 'package:compendium_app/src/widgets/program_export_menu.dart'
     show PdfLayouter, ProgramExportMenu;
 import 'package:compendium_app/src/widgets/program_slot_list_editor.dart';
 
+import 'support/program_template_seed.dart';
 import 'support/dropdown.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
@@ -342,6 +345,8 @@ Future<void> _pump(
   void Function(String)? onNavigateTo,
   DialectLibraryController? dialectLibrary,
   bool confirmBeforeDelete = false,
+  ProgramTemplateChoice templateChoice =
+      const ProgramTemplateChoice.useDefault(),
 }) async {
   await tester.binding.setSurfaceSize(const Size(800, 1400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -368,6 +373,7 @@ Future<void> _pump(
         onSaved: onSaved,
         onDeleted: onDeleted,
         onNavigateTo: onNavigateTo,
+        templateChoice: templateChoice,
       ),
     ),
   );
@@ -1118,9 +1124,17 @@ void main() {
     expect(updated.venue, isNull);
   });
 
-  testWidgets('duplicate creates a copy', (tester) async {
+  testWidgets('duplicate creates a copy, taking nothing from the Default '
+      'template (#2337)', (tester) async {
     final repos = openTestRepositories();
-    await repos.programs.create(_program(id: 'p1', title: 'Original'));
+    await seedDefaultProgramTemplate(repos);
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Original',
+        slots: [ProgramSlot(id: 's1', position: 0, text: 'Own note')],
+      ),
+    );
     String? navigatedTo;
     await _pump(
       tester,
@@ -1137,6 +1151,9 @@ void main() {
     final all = await repos.programs.listAll();
     expect(all, hasLength(2));
     expect(all.map((p) => p.title), contains('Original (copy)'));
+    final copy = all.singleWhere((p) => p.id == navigatedTo);
+    expect(copy.slots.map((slot) => slot.text), ['Own note']);
+    expect(hasSeededTemplateSlot(copy), isFalse);
   });
 
   testWidgets('delete with confirm ON names the dances that lose their calling '
@@ -2240,6 +2257,13 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('slot-edit-replace-dance')));
       await tester.pumpAndSettle();
+      Finder inReplacePicker(String key) => find.descendant(
+        of: find.byKey(const ValueKey('replace-picker')),
+        matching: find.byKey(ValueKey(key)),
+      );
+      // The dance being replaced is not offered: picking it changes nothing.
+      expect(inReplacePicker('picker-add-d1'), findsNothing);
+      expect(inReplacePicker('picker-add-d2'), findsOneWidget);
       // Scoped to the replacement sheet's own picker: the inline picker pane
       // underneath renders a same-keyed 'picker-add-d2' row too.
       await tester.tap(
@@ -2259,6 +2283,17 @@ void main() {
         ),
         findsOneWidget,
       );
+
+      // A second Replace… leaves out the dance the dialog now shows, and
+      // offers the slot's saved dance again.
+      await tester.tap(find.byKey(const ValueKey('slot-edit-replace-dance')));
+      await tester.pumpAndSettle();
+      expect(inReplacePicker('picker-add-d2'), findsNothing);
+      expect(inReplacePicker('picker-add-d1'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('replace-picker-sheet-close')),
+      );
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('slot-edit-save')));
       await tester.pumpAndSettle();
@@ -5318,6 +5353,9 @@ void main() {
     expect(body, isNot(contains('_dialect')));
     expect(body, isNot(contains('_matrixColumnConfig')));
     expect(body, isNot(contains('_eventDate')));
+    // The program's times reach the header (#2350), resolved before the
+    // callback like the date.
+    expect(body, contains('times: times,'));
   });
 
   testWidgets('Matrix export control is disabled for an empty matrix', (
@@ -5567,8 +5605,83 @@ void main() {
     );
   });
 
+  group('program templates (#2337)', () {
+    Future<void> seedTwoTemplates(CompendiumRepositories repos) async {
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Rory O More'));
+      await saveProgramTemplate(
+        repos.settings,
+        const ProgramTemplate(
+          id: 'family',
+          name: 'Family',
+          entries: [ProgramTemplateEntry(danceId: 'd1')],
+        ),
+      );
+      await saveProgramTemplate(
+        repos.settings,
+        const ProgramTemplate(
+          id: 'saturday',
+          name: 'Saturday',
+          entries: [
+            ProgramTemplateEntry(danceId: 'd2'),
+            ProgramTemplateEntry(text: 'Waltz'),
+          ],
+        ),
+      );
+      await saveProgramTemplateOrder(repos.settings, ['family', 'saturday']);
+      await saveProgramTemplateDefault(repos.settings, 'family');
+    }
+
+    testWidgets('a new program starts from the chosen template', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await seedTwoTemplates(repos);
+      await _pump(
+        tester,
+        repos,
+        templateChoice: const ProgramTemplateChoice.template('saturday'),
+      );
+      expect(find.text('Rory O More'), findsOneWidget);
+      expect(find.text('Waltz'), findsOneWidget);
+      expect(find.text('Chase the Squirrel'), findsNothing);
+    });
+
+    testWidgets('with no choice made, a new program starts from the default', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await seedTwoTemplates(repos);
+      await _pump(tester, repos);
+      expect(find.text('Chase the Squirrel'), findsOneWidget);
+      expect(find.text('Rory O More'), findsNothing);
+    });
+
+    testWidgets('Blank program starts with no slots', (tester) async {
+      final repos = openTestRepositories();
+      await seedTwoTemplates(repos);
+      await _pump(
+        tester,
+        repos,
+        templateChoice: const ProgramTemplateChoice.blank(),
+      );
+      expect(find.text('Chase the Squirrel'), findsNothing);
+      expect(find.text('Rory O More'), findsNothing);
+    });
+
+    testWidgets('opening an existing program never applies a template', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await seedTwoTemplates(repos);
+      await repos.programs.create(_program(id: 'p1', title: 'Existing'));
+      await _pump(tester, repos, programId: 'p1');
+      expect(find.text('Chase the Squirrel'), findsNothing);
+    });
+  });
+
   testWidgets(
-    'starting program template seeds valid entries with fresh slots',
+    'an upgraded Starting program seeds valid entries with fresh slots',
     (tester) async {
       final repos = openTestRepositories();
       String? savedId;
@@ -5576,12 +5689,9 @@ void main() {
       await repos.settings.set(
         kDefaultStartingProgramKey,
         encodeStartingProgramTemplate([
-          const StartingProgramTemplateEntry(
-            danceId: 'd1',
-            text: 'Guest caller',
-          ),
-          const StartingProgramTemplateEntry(danceId: 'missing'),
-          const StartingProgramTemplateEntry(text: Program.breakSlotText),
+          const ProgramTemplateEntry(danceId: 'd1', text: 'Guest caller'),
+          const ProgramTemplateEntry(danceId: 'missing'),
+          const ProgramTemplateEntry(text: Program.breakSlotText),
         ]),
       );
 
@@ -5740,6 +5850,84 @@ void main() {
       FocusManager.instance.primaryFocus?.context?.widget,
       isNot(isA<EditableText>()),
     );
+  });
+
+  // --- The picker's program context (#2343) ----------------------------------
+
+  PickerProgramContext? contextOf(WidgetTester tester, String pickerKey) =>
+      tester
+          .widget<CollectionPicker>(find.byKey(ValueKey(pickerKey)))
+          .programContext;
+
+  testWidgets('the add-dance pickers get the program, its venue and the end '
+      "of it; Replace dance gets the program and the slot's place (#2343, "
+      '#2344)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.dances.create(_dance(id: 'd2', title: 'Petronella Reel'));
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        venue: 'The Grange',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    var context = contextOf(tester, 'inline-picker');
+    expect(context?.programId, 'p1');
+    expect(context?.venue, 'The Grange');
+    expect(context?.venueLabel, 'The Grange');
+    expect(context?.position?.slotsBefore.map((s) => s.danceId), ['d1']);
+    expect(context?.position?.slotsAfter, isEmpty);
+
+    await tester.tap(find.byKey(const ValueKey('picker-add-d2')));
+    await tester.pumpAndSettle();
+    context = contextOf(tester, 'inline-picker');
+    expect(context?.position?.slotsBefore.map((s) => s.danceId), ['d1', 'd2']);
+
+    await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit slot'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('slot-edit-replace-dance')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('replace-picker')), findsOneWidget);
+    context = contextOf(tester, 'replace-picker');
+    expect(context?.programId, 'p1');
+    expect(context?.venue, 'The Grange');
+    // The first slot's place: nothing before it, d2 after, d1 left out.
+    expect(context?.position?.slotsBefore, isEmpty);
+    expect(context?.position?.slotsAfter.map((s) => s.danceId), ['d2']);
+  });
+
+  testWidgets('the sheet picker gets the program and its end (#2343)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      size: const Size(600, 2000),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('add-dance-slot')));
+    await tester.pumpAndSettle();
+    final context = contextOf(tester, 'sheet-picker');
+    expect(context?.programId, 'p1');
+    expect(context?.venue, isNull);
+    expect(context?.position?.slotsBefore.map((s) => s.danceId), ['d1']);
+    expect(context?.position?.slotsAfter, isEmpty);
   });
 
   testWidgets('free-text and break slots contribute no dance counts (#796)', (

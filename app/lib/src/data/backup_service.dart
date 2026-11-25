@@ -1,3 +1,6 @@
+import 'calendar_import_settings.dart' show kCalendarFeedUrlKey;
+import 'calendar_startup.dart'
+    show kCalendarLastResultKey, kCalendarStartupFailuresKey;
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 
@@ -74,6 +77,11 @@ const String kTaxonomyV39CanonicalRebuildDoneKey =
 const String kEcdTaxonomyCanonicalRebuildDoneKey =
     '__ecd_taxonomy_canonical_rebuild_done__';
 
+/// App-side name for the one-shot square taxonomy canonical/FTS rebuild
+/// marker's denylist entry, as [kEcdTaxonomyCanonicalRebuildDoneKey] is ECD's.
+const String kSquareTaxonomyCanonicalRebuildDoneKey =
+    '__square_taxonomy_canonical_rebuild_done__';
+
 /// App-side name for the storage-owned one-shot repair marker's denylist
 /// entry; the core constant remains the migration source of truth. See the
 /// note above [kTaxonomyV33CanonicalRebuildDoneKey] for why this duplicate
@@ -141,7 +149,15 @@ const String kNormalisationDerivedIndexRepairDoneKey =
 ///   consent on another, so a restore must leave sync off (spec §6.1):
 ///   [kSyncEnabledKey], [kSyncEndpointKey], [kSyncWifiOnlyKey],
 ///   [kSyncExcludeImportsKey], [kSyncLastSuccessAtKey].
+/// - **the calendar feed address** ([kCalendarFeedUrlKey], #2352) — a private
+///   calendar's secret address embeds an access token, so it is kept out of
+///   backup files (maintainer decision, issue draft review, 2026-11-22). After
+///   a restore the caller enters it again.
 const Set<String> kBackupSettingsDenylist = {
+  kCalendarFeedUrlKey,
+  // This installation's startup calendar runs (#2353): wrong on another.
+  kCalendarLastResultKey,
+  kCalendarStartupFailuresKey,
   kCustomDialectsKey,
   kActiveDialectRefKey,
   kActiveDialectKey,
@@ -158,6 +174,7 @@ const Set<String> kBackupSettingsDenylist = {
   kTaxonomyV38CanonicalRebuildDoneKey,
   kTaxonomyV39CanonicalRebuildDoneKey,
   kEcdTaxonomyCanonicalRebuildDoneKey,
+  kSquareTaxonomyCanonicalRebuildDoneKey,
   kCallersBoxRollAwayRoleRepairDoneKey,
   kNormalisationDerivedIndexRepairDoneKey,
   derivedRebuildRequiredKey,

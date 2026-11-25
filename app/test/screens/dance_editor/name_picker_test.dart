@@ -8,8 +8,8 @@ import '../../support/screen_size.dart';
 void main() {
   testWidgets(
     'narrow layout: creating a brand-new author from the sheet attaches it, '
-    'closes, and the re-opened sheet (from the refocus-to-add-another loop) '
-    'starts with an empty query, above a simulated keyboard',
+    'and the sheet stays open with an empty search, above a simulated '
+    'keyboard',
     (tester) async {
       final added = <String>[];
       final created = <String>[];
@@ -36,10 +36,7 @@ void main() {
         ),
       );
 
-      await tester.tap(
-        find.byKey(const ValueKey('author-input')),
-        warnIfMissed: false,
-      );
+      await tester.tap(find.byKey(const ValueKey('author-field')));
       await tester.pumpAndSettle();
       expect(find.byType(BottomSheet), findsOneWidget);
 
@@ -68,9 +65,8 @@ void main() {
 
       expect(created, ['Brand New Author']);
       expect(added, ['new-id']);
-      // The existing clear+refocus-on-select behavior (issue #402) reopens
-      // the sheet on narrow layouts too, so a second add can start straight
-      // away — and it must start from an empty query, not the previous
+      // The sheet stays open and its search clears (issue #402), so a second
+      // add can start straight away from an empty query, not the previous
       // typed text.
       expect(find.byType(BottomSheet), findsOneWidget);
       final reopenedField = tester.widget<TextField>(
@@ -81,8 +77,7 @@ void main() {
   );
 
   testWidgets(
-    'narrow layout: attaching an existing author closes the sheet without '
-    'creating',
+    'narrow layout: checking an existing author adds it without creating',
     (tester) async {
       final added = <String>[];
       final created = <String>[];
@@ -108,10 +103,7 @@ void main() {
         ),
       );
 
-      await tester.tap(
-        find.byKey(const ValueKey('author-input')),
-        warnIfMissed: false,
-      );
+      await tester.tap(find.byKey(const ValueKey('author-field')));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('author-input')),
@@ -128,9 +120,9 @@ void main() {
   );
 
   testWidgets(
-    'narrow layout: adding three tags in a row keeps the picker open each '
-    'time (#894 — the count matters, since a fix that only reopens once '
-    'passes a two-addition test for the wrong reason)',
+    'narrow layout: adding three tags in a row keeps the sheet open each '
+    'time (the count matters: the old picker closed after every second add, '
+    'issue #894)',
     (tester) async {
       final added = <String>[];
       await setScreenSize(tester, const Size(360, 720));
@@ -157,10 +149,7 @@ void main() {
         ),
       );
 
-      await tester.tap(
-        find.byKey(const ValueKey('tag-input')),
-        warnIfMissed: false,
-      );
+      await tester.tap(find.byKey(const ValueKey('tag-field')));
       await tester.pumpAndSettle();
 
       for (final tag in ['red', 'blue', 'green']) {
@@ -184,6 +173,7 @@ void main() {
     },
   );
 
+  group('multi-select dropdown', _dropDownGroup);
   group('canonical equivalence', _canonicalEquivalenceGroup);
   group('create declined', _createDeclinedGroup);
 }
@@ -240,10 +230,7 @@ void _canonicalEquivalenceGroup() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const ValueKey('author-input')),
-      warnIfMissed: false,
-    );
+    await tester.tap(find.byKey(const ValueKey('author-field')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('author-input')), typed);
     await tester.pumpAndSettle();
@@ -343,10 +330,7 @@ void _createDeclinedGroup() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const ValueKey('author-input')),
-      warnIfMissed: false,
-    );
+    await tester.tap(find.byKey(const ValueKey('author-field')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('author-input')), typed);
     await tester.pumpAndSettle();
@@ -389,5 +373,382 @@ void _createDeclinedGroup() {
       onCreate: (_) async => 'minted-id',
     );
     expect(added, ['minted-id']);
+  });
+}
+
+/// Hosts a [NamePicker] that owns its selection, as the editor does: a check
+/// adds, an uncheck removes, and the picker is rebuilt with the new list.
+class _Host extends StatefulWidget {
+  const _Host({
+    required this.options,
+    this.initial = const [],
+    this.onEdit,
+    this.show,
+  });
+
+  final List<NameOption> options;
+  final List<String> initial;
+  final ValueChanged<String>? onEdit;
+
+  /// When set, the picker is shown only while this is true.
+  final ValueNotifier<bool>? show;
+
+  @override
+  State<_Host> createState() => _HostState();
+}
+
+class _HostState extends State<_Host> {
+  late final List<String> selected = [...widget.initial];
+  late final Map<String, String> names = {
+    for (final o in widget.options) o.id: o.name,
+  };
+  late final List<NameOption> options = [...widget.options];
+
+  @override
+  Widget build(BuildContext context) {
+    final picker = NamePicker(
+      fieldKey: 'author',
+      selectedIds: List.of(selected),
+      namesById: Map.of(names),
+      options: List.of(options),
+      onAdd: (id) => setState(() => selected.add(id)),
+      onRemove: (id) => setState(() => selected.remove(id)),
+      onCreate: (name) async {
+        final id = 'new-$name';
+        setState(() {
+          names[id] = name;
+          options.add((id: id, name: name));
+        });
+        return id;
+      },
+      onEdit: widget.onEdit,
+      sheetSemanticLabel: 'Authors',
+    );
+    final show = widget.show;
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          if (show == null)
+            picker
+          else
+            ValueListenableBuilder<bool>(
+              valueListenable: show,
+              builder: (_, visible, _) =>
+                  visible ? picker : const SizedBox.shrink(),
+            ),
+          Text('chosen: ${selected.join('|')}', key: const ValueKey('chosen')),
+        ],
+      ),
+    );
+  }
+}
+
+void _dropDownGroup() {
+  const people = [
+    (id: 'zoe', name: 'Zoe Adams'),
+    (id: 'amy', name: 'Amy Brown'),
+    (id: 'max', name: 'Max Cole'),
+  ];
+
+  Future<void> pumpHost(
+    WidgetTester tester, {
+    List<String> initial = const [],
+    ValueChanged<String>? onEdit,
+    ValueNotifier<bool>? show,
+  }) async {
+    await setScreenSize(tester, const Size(1200, 900));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: _Host(
+            options: people,
+            initial: initial,
+            onEdit: onEdit,
+            show: show,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  String chosen(WidgetTester tester) =>
+      tester.widget<Text>(find.byKey(const ValueKey('chosen'))).data!;
+
+  String fieldText(WidgetTester tester) =>
+      tester.widget<Text>(find.byKey(const ValueKey('author-names'))).data!;
+
+  Future<void> open(WidgetTester tester) async {
+    await tester.tap(find.byKey(const ValueKey('author-field')));
+    await tester.pumpAndSettle();
+  }
+
+  bool checked(WidgetTester tester, String id) => tester
+      .widget<CheckboxListTile>(find.byKey(ValueKey('author-option-$id')))
+      .value!;
+
+  testWidgets('the closed field reads the chosen names, with no chips', (
+    tester,
+  ) async {
+    await pumpHost(tester, initial: ['max', 'zoe']);
+
+    expect(fieldText(tester), 'Max Cole, Zoe Adams');
+    expect(find.byType(Chip), findsNothing);
+    expect(find.byType(InputChip), findsNothing);
+    // Nothing is listed until the field is opened.
+    expect(find.byKey(const ValueKey('author-option-amy')), findsNothing);
+  });
+
+  testWidgets('an empty field shows the Choose hint', (tester) async {
+    await pumpHost(tester);
+    expect(fieldText(tester), isEmpty);
+    expect(find.text('Choose…'), findsOneWidget);
+  });
+
+  testWidgets('on a wide window the list drops down under the field, lists '
+      'the chosen names first then everyone by name, and checks the chosen', (
+    tester,
+  ) async {
+    await pumpHost(tester, initial: ['max']);
+    await open(tester);
+
+    expect(find.byType(BottomSheet), findsNothing);
+    final field = tester.getRect(find.byKey(const ValueKey('author-field')));
+    final search = tester.getRect(find.byKey(const ValueKey('author-input')));
+    expect(search.top, greaterThanOrEqualTo(field.bottom));
+
+    double top(String id) =>
+        tester.getRect(find.byKey(ValueKey('author-option-$id'))).top;
+    // The options arrive as Zoe, Amy, Max: the chosen Max comes first, then
+    // the rest by name.
+    expect(top('max'), lessThan(top('amy')));
+    expect(top('amy'), lessThan(top('zoe')));
+    expect(checked(tester, 'max'), isTrue);
+    expect(checked(tester, 'amy'), isFalse);
+  });
+
+  testWidgets('checking and unchecking rows adds and removes, the rows stay '
+      'put, and the field follows', (tester) async {
+    await pumpHost(tester);
+    await open(tester);
+    final before = tester
+        .getRect(find.byKey(const ValueKey('author-option-max')))
+        .top;
+
+    await tester.tap(find.byKey(const ValueKey('author-option-max')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('author-option-amy')));
+    await tester.pumpAndSettle();
+    expect(chosen(tester), 'chosen: max|amy');
+    expect(checked(tester, 'max'), isTrue);
+    expect(checked(tester, 'amy'), isTrue);
+    expect(
+      tester.getRect(find.byKey(const ValueKey('author-option-max'))).top,
+      before,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('author-option-max')));
+    await tester.pumpAndSettle();
+    expect(chosen(tester), 'chosen: amy');
+    expect(checked(tester, 'max'), isFalse);
+
+    await tester.tap(find.byKey(const ValueKey('author-done')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('author-input')), findsNothing);
+    expect(fieldText(tester), 'Amy Brown');
+  });
+
+  testWidgets('typing narrows the list, and Enter checks the first match '
+      'and clears the search', (tester) async {
+    await pumpHost(tester);
+    await open(tester);
+
+    await tester.enterText(find.byKey(const ValueKey('author-input')), 'co');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('author-option-max')), findsOneWidget);
+    expect(find.byKey(const ValueKey('author-option-zoe')), findsNothing);
+
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(chosen(tester), 'chosen: max');
+    final search = tester.widget<TextField>(
+      find.byKey(const ValueKey('author-input')),
+    );
+    expect(search.controller!.text, isEmpty);
+    expect(search.focusNode!.hasFocus, isTrue);
+  });
+
+  testWidgets('Enter on a name nobody has creates it and checks it', (
+    tester,
+  ) async {
+    await pumpHost(tester);
+    await open(tester);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('author-input')),
+      'Pat Shaw',
+    );
+    await tester.pumpAndSettle();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(chosen(tester), 'chosen: new-Pat Shaw');
+    expect(checked(tester, 'new-Pat Shaw'), isTrue);
+  });
+
+  testWidgets('Enter skips a match already chosen and checks the next', (
+    tester,
+  ) async {
+    await pumpHost(tester, initial: ['amy']);
+    await open(tester);
+
+    // "a" matches Amy (chosen, listed first), then Max Cole and Zoe Adams.
+    await tester.enterText(find.byKey(const ValueKey('author-input')), 'a');
+    await tester.pumpAndSettle();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(chosen(tester), 'chosen: amy|max');
+  });
+
+  testWidgets('Enter with only chosen matches adds nothing and keeps the '
+      'typed text', (tester) async {
+    await pumpHost(tester, initial: ['amy']);
+    await open(tester);
+
+    // The whole name, so no Create row is offered either.
+    await tester.enterText(
+      find.byKey(const ValueKey('author-input')),
+      'Amy Brown',
+    );
+    await tester.pumpAndSettle();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(chosen(tester), 'chosen: amy');
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('author-input')))
+          .controller!
+          .text,
+      'Amy Brown',
+    );
+  });
+
+  testWidgets('closing the list gives focus back to the field, not to a '
+      'text field that had it before', (tester) async {
+    await setScreenSize(tester, const Size(1200, 900));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: Column(
+            children: [
+              const TextField(key: ValueKey('other')),
+              const _Host(options: people),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('other')));
+    await tester.pumpAndSettle();
+    await open(tester);
+    await tester.tap(find.byKey(const ValueKey('author-done')));
+    await tester.pumpAndSettle();
+
+    final other = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(const ValueKey('other')),
+        matching: find.byType(EditableText),
+      ),
+    );
+    expect(other.focusNode.hasFocus, isFalse);
+  });
+
+  testWidgets('in a right-to-left language the list lines up with the '
+      "field's right edge", (tester) async {
+    await setScreenSize(tester, const Size(1200, 900));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: const Directionality(
+          textDirection: TextDirection.rtl,
+          child: Scaffold(
+            // A field narrower than the list, away from the window's edge,
+            // so only its alignment decides where the list goes.
+            body: Padding(
+              padding: EdgeInsets.only(right: 400),
+              child: Align(
+                alignment: Alignment.topRight,
+                child: SizedBox(width: 232, child: _Host(options: people)),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await open(tester);
+
+    final field = tester.getRect(find.byKey(const ValueKey('author-field')));
+    final list = tester.getRect(find.byKey(const ValueKey('author-input')));
+    // The search box sits inside the list's padding, at its right side.
+    expect(list.right, closeTo(field.right - 16, 1));
+  });
+
+  testWidgets('a tap outside closes the list', (tester) async {
+    await pumpHost(tester);
+    await open(tester);
+    await tester.tapAt(const Offset(1100, 850));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('author-input')), findsNothing);
+  });
+
+  testWidgets('the edit button closes the list and edits that person', (
+    tester,
+  ) async {
+    final edited = <String>[];
+    await pumpHost(tester, initial: ['amy'], onEdit: edited.add);
+    await open(tester);
+
+    await tester.tap(find.byKey(const ValueKey('author-edit-amy')));
+    await tester.pumpAndSettle();
+
+    expect(edited, ['amy']);
+    expect(find.byKey(const ValueKey('author-input')), findsNothing);
+  });
+
+  testWidgets('the list closes when its field goes away', (tester) async {
+    final show = ValueNotifier(true);
+    addTearDown(show.dispose);
+    await pumpHost(tester, show: show);
+    await open(tester);
+
+    show.value = false;
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('author-input')), findsNothing);
+  });
+
+  testWidgets('screen readers hear the field name and the chosen names', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    await pumpHost(tester, initial: ['amy']);
+    expect(
+      tester.getSemantics(find.byKey(const ValueKey('author-field'))),
+      matchesSemantics(
+        label: 'Authors',
+        value: 'Amy Brown',
+        isButton: true,
+        hasTapAction: true,
+        isFocusable: true,
+        hasFocusAction: true,
+      ),
+    );
+    handle.dispose();
   });
 }

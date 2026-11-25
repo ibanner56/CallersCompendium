@@ -6,6 +6,10 @@ import 'package:compendium_core/testing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/show_custom_figures_scope.dart';
+import 'package:compendium_app/src/data/show_glossary_scope.dart';
+import 'package:compendium_app/src/data/user_figures_scope.dart';
 import 'package:compendium_app/src/widgets/app_dropdown_field.dart';
 import 'package:compendium_app/src/data/collection_facets_scope.dart';
 import 'package:compendium_app/src/data/collection_tile_fields_scope.dart';
@@ -98,6 +102,7 @@ Future<void> _pumpPicker(
   Size surfaceSize = const Size(1200, 3000),
   double textScale = 1.0,
   Map<String, int> addedDanceCounts = const {},
+  Widget Function(Widget picker)? wrapPicker,
 }) async {
   enrichment ??= SearchEnrichment.empty;
   final ignoreArticles =
@@ -132,23 +137,25 @@ Future<void> _pumpPicker(
               hiddenFacets,
               _maybeTileFieldsScope(
                 tileFields,
-                CollectionPicker(
-                  data: data,
-                  dialect: Dialect.larksRobins,
-                  enrichment: enrichment,
-                  onAddDance: onAddDance,
-                  rowAction: rowAction,
-                  enableOnlineSearch: enableOnlineSearch,
-                  callersBoxOnline: callersBoxOnline,
-                  contraDbOnline: contraDbOnline,
-                  onDanceImported: onDanceImported,
-                  onPreviewDanceStarted: onPreviewDanceStarted,
-                  onPreviewDanceEnded: onPreviewDanceEnded,
-                  onViewDanceDetails: onViewDanceDetails,
-                  onPreviewOnlineStarted: onPreviewOnlineStarted,
-                  onPreviewOnlineEnded: onPreviewOnlineEnded,
-                  onViewOnlineDetails: onViewOnlineDetails,
-                  addedDanceCounts: addedDanceCounts,
+                (wrapPicker ?? (picker) => picker)(
+                  CollectionPicker(
+                    data: data,
+                    dialect: Dialect.larksRobins,
+                    enrichment: enrichment,
+                    onAddDance: onAddDance,
+                    rowAction: rowAction,
+                    enableOnlineSearch: enableOnlineSearch,
+                    callersBoxOnline: callersBoxOnline,
+                    contraDbOnline: contraDbOnline,
+                    onDanceImported: onDanceImported,
+                    onPreviewDanceStarted: onPreviewDanceStarted,
+                    onPreviewDanceEnded: onPreviewDanceEnded,
+                    onViewDanceDetails: onViewDanceDetails,
+                    onPreviewOnlineStarted: onPreviewOnlineStarted,
+                    onPreviewOnlineEnded: onPreviewOnlineEnded,
+                    onViewOnlineDetails: onViewOnlineDetails,
+                    addedDanceCounts: addedDanceCounts,
+                  ),
                 ),
               ),
             ),
@@ -426,6 +433,100 @@ class _PagedContraDb extends ContraDbOnline {
 }
 
 void main() {
+  // #2346: a host can leave dances out of the results, and a change to that
+  // set alone searches again.
+  testWidgets('excludedDanceIds leaves dances out, and a new set re-runs the '
+      'search', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'a', title: 'Alpha Reel'));
+    await repos.dances.create(_dance(id: 'b', title: 'Beta Reel'));
+    final data = await CollectionData.load(repos);
+    final excluded = ValueNotifier<Set<String>>({'a'});
+    addTearDown(excluded.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: RepositoriesScope(
+            repositories: repos,
+            child: ValueListenableBuilder<Set<String>>(
+              valueListenable: excluded,
+              builder: (context, ids, _) => CollectionPicker(
+                data: data,
+                dialect: Dialect.larksRobins,
+                enrichment: SearchEnrichment.empty,
+                excludedDanceIds: ids,
+                onAddDance: (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Alpha Reel'), findsNothing);
+    expect(find.text('Beta Reel'), findsOneWidget);
+
+    excluded.value = {'b'};
+    await tester.pumpAndSettle();
+    expect(find.text('Alpha Reel'), findsOneWidget);
+    expect(find.text('Beta Reel'), findsNothing);
+  });
+
+  // #2346: a host that changes panelState and excludedDanceIds in one rebuild
+  // (Perform's swap sheet does, for a Keep change) gets one search, not two.
+  testWidgets('a new panelState and a new excludedDanceIds together search '
+      'once', (tester) async {
+    final db = openWidgetTestDatabase();
+    final dances = _CountingSearchDances(db, contraTaxonomy);
+    final repos = CompendiumRepositories(db, contraTaxonomy, dances: dances);
+    await repos.dances.create(_dance(id: 'a', title: 'Alpha Reel'));
+    await repos.dances.create(_dance(id: 'b', title: 'Beta Reel'));
+    final data = await CollectionData.load(repos);
+    final inputs =
+        ValueNotifier<({Set<String> excluded, CollectionPanelRequest? panel})>((
+          excluded: {'a'},
+          panel: null,
+        ));
+    addTearDown(inputs.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: RepositoriesScope(
+            repositories: repos,
+            child: ValueListenableBuilder(
+              valueListenable: inputs,
+              builder: (context, value, _) => CollectionPicker(
+                data: data,
+                dialect: Dialect.larksRobins,
+                enrichment: SearchEnrichment.empty,
+                excludedDanceIds: value.excluded,
+                panelState: value.panel,
+                onAddDance: (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final before = dances.searches;
+    expect(before, greaterThan(0));
+
+    inputs.value = (
+      excluded: {'b'},
+      panel: CollectionPanelRequest(CollectionPanelState()),
+    );
+    await tester.pumpAndSettle();
+
+    expect(dances.searches - before, 1);
+    expect(find.text('Alpha Reel'), findsOneWidget);
+    expect(find.text('Beta Reel'), findsNothing);
+  });
+
   // Issue #1420: the picker builds its own FacetPanel, so the Tunes facet has
   // to be wired here separately from the Collection screen.
   testWidgets('the Tunes facet narrows the picker list (#1420)', (
@@ -1032,6 +1133,95 @@ void main() {
     expect(_titles(tester), ['A1 Petronella']);
     await _tapVisible(tester, find.byKey(const ValueKey('picker-add-a')));
     expect(added, ['a']);
+  });
+
+  testWidgets('the advanced panel names a figure of your own in the dialect of '
+      'its form, from the active dialects (#2294)', (tester) async {
+    final repos = openTestRepositories();
+    await tester.runAsync(
+      () => repos.userGlossary.upsert(
+        UserGlossaryEntry(
+          id: 'e',
+          kindName: UserGlossaryEntryKind.customFigure.name,
+          name: 'role1s swoop',
+          definition: 'A figure.',
+          description: 'Of your own.',
+          payload: const {
+            'form': 'ecd',
+            'template': '{move}',
+            'defaultBeats': 8,
+            'params': <Object?>[],
+          },
+          createdAt: DateTime.utc(2026, 10, 16),
+        ),
+      ),
+    );
+    final userFigures = UserFiguresController(repos.userGlossary);
+    addTearDown(userFigures.dispose);
+    unawaited(userFigures.start());
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    final glossary = ValueNotifier(true);
+    final custom = ValueNotifier(true);
+    // Contra words the first role "larks", English leaves it as it is.
+    final dialects = ValueNotifier(
+      DialectsByForm({
+        DanceForm.contra: Dialect.larksRobins,
+        DanceForm.ecd: Dialect.canonical,
+      }),
+    );
+    for (final n in <ChangeNotifier>[glossary, custom, dialects]) {
+      addTearDown(n.dispose);
+    }
+    final renderer = FigureRenderer(contraTaxonomy);
+    final inEnglish = renderer.renderFreeText(
+      'role1s swoop',
+      Dialect.canonical,
+    );
+    final inContra = renderer.renderFreeText(
+      'role1s swoop',
+      Dialect.larksRobins,
+    );
+    expect(inEnglish, isNot(inContra), reason: 'a control: they read apart');
+
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: (_) {},
+      wrapPicker: (picker) => ShowGlossaryScope(
+        notifier: glossary,
+        child: ShowCustomFiguresScope(
+          notifier: custom,
+          child: ActiveDialectScope.byForm(
+            dialects: dialects,
+            child: UserFiguresScope(controller: userFigures, child: picker),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-advanced-panel')),
+    );
+    await _tapVisible(tester, find.text('Add'));
+    await _tapVisible(tester, find.text('Has figure'));
+    final moveField = hasFigureMoveField();
+    await tester.ensureVisible(moveField);
+    await tester.enterText(moveField, 'swoop');
+    await tester.pumpAndSettle();
+
+    final option = find.byWidgetPredicate(
+      (w) =>
+          w.key is ValueKey<String> &&
+          (w.key! as ValueKey<String>).value.endsWith('-option-userFigure:e'),
+    );
+    expect(option, findsOneWidget);
+    // Named in English's dialect, though the picker's own is contra's.
+    expect(
+      find.descendant(of: option, matching: find.text(inEnglish)),
+      findsOneWidget,
+    );
+    expect(find.text(inContra), findsNothing);
   });
 
   testWidgets('advanced builder: add a figure row filters the picker results', (
@@ -1804,8 +1994,8 @@ void main() {
     ) async {
       final repos = await reposWithTwoDances();
       // Perform's insert sheet pops inside onAddDance
-      // (perform_adjust_sheet.dart:245), disposing the picker while the
-      // confirmation timer is still pending.
+      // (the `adjust-picker` in perform_adjust_sheet.dart), disposing the
+      // picker while the confirmation timer is still pending.
       await _pumpPicker(tester, repos, onAddDance: (_) {});
       await tester.pumpAndSettle();
 
@@ -2654,4 +2844,41 @@ void main() {
       });
     }
   });
+}
+
+/// Counts [search] calls, so a test can tell one search from two.
+class _CountingSearchDances extends DanceRepository {
+  _CountingSearchDances(super.db, super.taxonomy);
+
+  int searches = 0;
+
+  @override
+  Future<List<String>> search(
+    DanceFilter filter, {
+    SearchSort sort = SearchSort.title,
+    SortDirection? direction,
+    Dialect? dialect,
+    SearchEnrichment? enrichment,
+    bool ignoreLeadingArticles = false,
+    String? callerFilter,
+    bool performedOnly = false,
+    bool requireEventDate = false,
+    CallingHistoryTracking tracking = CallingHistoryTracking.defaults,
+    String? currentProgramId,
+  }) {
+    searches++;
+    return super.search(
+      filter,
+      sort: sort,
+      direction: direction,
+      dialect: dialect,
+      enrichment: enrichment,
+      ignoreLeadingArticles: ignoreLeadingArticles,
+      callerFilter: callerFilter,
+      performedOnly: performedOnly,
+      requireEventDate: requireEventDate,
+      tracking: tracking,
+      currentProgramId: currentProgramId,
+    );
+  }
 }

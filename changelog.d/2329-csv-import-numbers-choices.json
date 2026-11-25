@@ -1,0 +1,14 @@
+{
+  "id": "2329-csv-import-numbers-choices",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "In a spreadsheet saved with semicolons (what Excel writes in Danish, German, French and Dutch), a comma is the decimal mark and a dot or space groups thousands, so 3,5 imports as 3.5 and 1.000 as one thousand. A choice cell matches your option whatever accent form it is typed in, and a choice cell with nothing visible in it adds no option."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add `parseCsvNumber`: in a `;`-separated sheet `,` is the decimal mark and `.` or a space groups thousands, and a value that fits neither style is left for the calling notes. `CsvAdapter` reads number cells through it, and reads an existing choice field's cell through `normalizeShareableText`, writing the field's own option. `CsvImporter` trims a new choice option again after sanitizing and clamps it to the choice length after NFC, and a cell with nothing visible in it makes no option, no value and no field."
+    ]
+  }
+}

@@ -29,6 +29,7 @@ void main() {
     String name = 'swing',
     List<Map<String, Object?>>? params,
     String template = '{who} [{prefix}] {move}',
+    String? form,
   }) => UserGlossaryEntry(
     id: 'mine',
     kindName: UserGlossaryEntryKind.customFigure.name,
@@ -36,6 +37,7 @@ void main() {
     definition: 'Mine.',
     description: 'Of my own.',
     payload: {
+      'form': ?form,
       'template': template,
       'defaultBeats': 8,
       'params':
@@ -117,6 +119,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    // A figure of the user's is listed under its own form.
+    if (glossaryEntryForm((entry ?? mine()).payload) == DanceForm.ecd.name) {
+      await tester.tap(find.byKey(const ValueKey('glossary-form-ecd')));
+      await tester.pumpAndSettle();
+    }
     await tester.enterText(
       find.byKey(const ValueKey('glossary-search')),
       (entry ?? mine()).name,
@@ -177,6 +184,131 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('glossary-custom-rename-mine')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('compound-editor')), findsOneWidget);
+  });
+
+  testWidgets('an English figure named like a shipped figure is marked Rename '
+      'needed, not offered a switch to contra\'s', (tester) async {
+    // English has a swing too, so the name is taken in its own form; the
+    // switch maps onto contra's figures only.
+    await pump(tester, entry: mine(form: DanceForm.ecd.name));
+    expect(
+      find.byKey(const ValueKey('glossary-custom-rename-needed')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('glossary-custom-shipped-name')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('glossary-custom-switch-to-shipped')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('an English figure named like a figure both forms ship is '
+      'marked Rename needed, whichever id sorts first', (tester) async {
+    // Contra's `circle` sorts before `ecd_circle`, unlike `ecd_swing` and
+    // `swing`; English's own circle still takes the name.
+    await pump(
+      tester,
+      entry: mine(name: 'circle', form: DanceForm.ecd.name),
+    );
+    expect(
+      find.byKey(const ValueKey('glossary-custom-rename-needed')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('glossary-custom-switch-to-shipped')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('an English figure named like one of contra\'s figures is '
+      'offered the switch, since English dances use them too', (tester) async {
+    // English ships no allemande of its own, so the name matches contra's.
+    await pump(
+      tester,
+      entry: mine(name: 'allemande', form: DanceForm.ecd.name),
+    );
+    expect(
+      find.byKey(const ValueKey('glossary-custom-shipped-name')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('glossary-custom-switch-to-shipped')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('switching an English figure with a group of dancers says a use '
+      'of a group the app\'s figure lacks keeps its wording (#2294)', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      entry: mine(
+        name: 'allemande',
+        form: DanceForm.ecd.name,
+        template: '{who} {move}',
+        params: [
+          {'key': 'who', 'kind': 'dancerSet'},
+        ],
+      ),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('glossary-custom-switch-to-shipped')),
+    );
+    await tester.pumpAndSettle();
+    final save = find.byKey(const ValueKey('user-figure-switch-save'));
+    expect(tester.widget<AppBarTextAction>(save).onPressed, isNotNull);
+    await tester.tap(save);
+    await settle(tester);
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey('user-figure-switch-confirm-body')),
+          )
+          .data,
+      contains(
+        'Any use of a group of dancers that allemande doesn\'t have keeps its '
+        'wording instead.',
+      ),
+    );
+  });
+
+  testWidgets('switching an English figure with no group of dancers says '
+      'nothing about wording kept (#2294)', (tester) async {
+    await pump(
+      tester,
+      entry: mine(
+        name: 'allemande',
+        form: DanceForm.ecd.name,
+        template: '{hand} {move}',
+        params: [
+          {'key': 'hand', 'kind': 'handedness'},
+        ],
+      ),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('glossary-custom-switch-to-shipped')),
+    );
+    await tester.pumpAndSettle();
+    final save = find.byKey(const ValueKey('user-figure-switch-save'));
+    expect(tester.widget<AppBarTextAction>(save).onPressed, isNotNull);
+    await tester.tap(save);
+    await settle(tester);
+    final body = tester
+        .widget<Text>(
+          find.byKey(const ValueKey('user-figure-switch-confirm-body')),
+        )
+        .data!;
+    // Exactly the one sentence: no use or default holds a group of dancers,
+    // and the figure has none to keep.
+    expect(
+      body,
+      'No dance in your collection uses your figure. It\'s removed from your '
+      'Glossary.',
+    );
   });
 
   testWidgets('a figure no shipped figure is named is offered no switch', (
