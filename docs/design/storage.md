@@ -1019,7 +1019,8 @@ steps that can still fire are v40 onward.
   archive holding a program with rules is stamped core archive v8. Backups
   carry the rules under `app.eventRules` (envelope v3,
   `backupSchemaVersionEventRules`); a backup without the section leaves the
-  live rules alone. Both pieces are added by `_ensureV42EventRules`, run from
+  live rules alone. A rule the restore refuses is skipped and reported, and
+  its id stays on the programs (#2529). Both pieces are added by `_ensureV42EventRules`, run from
   the `from < 42` step and from the on-open v42 ensure below, each time right
   after `_ensureV42Schema` (so after the placeholder column and the other v42
   columns), each only if absent. No data rewritten, no derived rebuild.

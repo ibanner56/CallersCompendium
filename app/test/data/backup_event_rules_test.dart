@@ -202,6 +202,70 @@ void main() {
       ], unorderedEquals([rule.id, 'r2']));
     });
 
+    test('a rule the restore skips stays on the programs that apply it, as '
+        'a rule not on this device (#2529)', () async {
+      final (source, kept) = await seeded();
+      final payload = backupToJson(await BackupService(source).buildDocument());
+      final program =
+          ((payload['core']! as Map)['programs']! as List).single as Map;
+      program['eventRuleIds'] = [kept.id, 'r-bad'];
+      // Decodes, but the repository refuses it: the count is over the most.
+      (payload['app']! as Map)['eventRules'] = [
+        ...((payload['app']! as Map)['eventRules']! as List),
+        {...ruleJson('r-bad'), 'count': maxEventRuleCount + 1},
+      ];
+
+      final target = openTestRepositories();
+      final outcome = await BackupService(
+        target,
+      ).restoreFromJson(jsonEncode(payload));
+
+      expect(outcome.applied, isTrue);
+      expect(
+        [
+          for (final e in outcome.errors)
+            if (e.entityType == 'eventRule') e.entityId,
+        ],
+        ['r-bad'],
+        reason: 'the skip is reported',
+      );
+      expect(await target.eventRules.get('r-bad'), isNull);
+      // Kept, not dropped: the id may name a rule a peer holds (a newer
+      // build's bound), which sync can still deliver, and the Rules list
+      // offers Remove for it.
+      expect((await target.programs.getById('p1'))!.eventRuleIds, [
+        kept.id,
+        'r-bad',
+      ]);
+    });
+
+    test('a merge restore keeps a program to the most rules (#2529)', () async {
+      final (source, rule) = await seeded();
+      final payload = backupToJson(await BackupService(source).buildDocument());
+      final listed = [for (var i = 0; i < maxProgramEventRules + 6; i++) 'b$i'];
+      (((payload['core']! as Map)['programs']! as List).single
+              as Map)['eventRuleIds'] =
+          listed;
+
+      // The live program applies a rule the backup's copy does not.
+      final target = openTestRepositories();
+      await BackupService(target).restoreFromJson(
+        encodeBackup(await BackupService(source).buildDocument()),
+      );
+      expect((await target.programs.getById('p1'))!.eventRuleIds, [rule.id]);
+
+      final outcome = await BackupService(
+        target,
+      ).restoreFromJson(jsonEncode(payload), mode: RestoreMode.merge);
+
+      expect(outcome.applied, isTrue);
+      expect(
+        (await target.programs.getById('p1'))!.eventRuleIds,
+        listed.take(maxProgramEventRules).toList(),
+        reason: 'the backup\'s list replaces the live one, cut to the most',
+      );
+    });
+
     test('rules are bounded on decode', () {
       final read = decodeBackup(
         backupWith([

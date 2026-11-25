@@ -282,9 +282,17 @@ class SavedSearchRepository {
   /// Deletes the saved search [id] (a tombstone, so the deletion syncs).
   /// Throws [SavedSearchInUse], naming each user, while a registered
   /// dependent still uses it; nothing is written then.
-  Future<void> delete(String id, {DateTime? at}) async {
-    final uses = await usage.usesOf(id);
-    if (uses.isNotEmpty) throw SavedSearchInUse(id, uses);
-    await _settings.remove('$savedSearchKeyPrefix$id', at: at);
-  }
+  ///
+  /// The use check and the removal run in one transaction (#2529), so a
+  /// write elsewhere lands wholly before the check, which then sees it, or
+  /// wholly after the removal. A writer that adds a use only while the search
+  /// is live therefore cannot leave one pointing at a deleted search. One that
+  /// does not check (a peer's rule arriving by sync) still can, which is why
+  /// a dependent must handle a missing id.
+  Future<void> delete(String id, {DateTime? at}) =>
+      _settings.transaction(() async {
+        final uses = await usage.usesOf(id);
+        if (uses.isNotEmpty) throw SavedSearchInUse(id, uses);
+        await _settings.remove('$savedSearchKeyPrefix$id', at: at);
+      });
 }

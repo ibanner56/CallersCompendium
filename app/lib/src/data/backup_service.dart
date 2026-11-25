@@ -788,7 +788,15 @@ class BackupService {
   ///
   /// The rules a program applies come back with the program, in the core
   /// archive. A rule a program names that the backup lacks is ignored there
-  /// (the program's id list is a soft reference).
+  /// (the program's id list is a soft reference). So is one skipped here: its
+  /// id stays on the programs, which list it as a rule not on this device,
+  /// rather than being cut (#2529). The id may name a rule a peer holds, one a
+  /// newer build's bounds allow, and cutting it would sync the cut to that
+  /// peer; the skip is already reported, and the Rules list offers Remove.
+  ///
+  /// A merge restore needs no cap on a program's rules of its own: the
+  /// archive's list replaces the live one rather than joining it, and is
+  /// already cut to [maxProgramEventRules] when it is read.
   Future<void> _applyEventRules(
     BackupReadResult read,
     List<ArchiveError> errors, {
