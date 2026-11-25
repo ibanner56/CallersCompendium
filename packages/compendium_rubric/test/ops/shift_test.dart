@@ -95,6 +95,16 @@ void main() {
       expect(at(after, 3, 4).toString(), 'L-D');
     });
 
+    test('two shifting into each other\'s cells both stay', () {
+      // The Robins' centre long wave: R2-B (r1) faces west and R1-C (r2)
+      // east, so each one's left is the other's cell. Swapping would walk
+      // them through each other.
+      final before = robinsInTheCentre();
+      final after = applyOk(const Shift(who: WhoSet.role2s), before);
+      expect(after.dancerAt(const Position(1, 2)), at(before, 1, 2));
+      expect(after.dancerAt(const Position(2, 2)), at(before, 2, 2));
+    });
+
     test('two shifting into one cell both stay', () {
       final start = twoBands();
       // L1-A (r0) faces west and L1-C (r2) east, so both step to r1, c0 --

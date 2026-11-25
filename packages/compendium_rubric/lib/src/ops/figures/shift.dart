@@ -135,8 +135,8 @@ final class Shift extends Operation {
     }
   }
 
-  /// Drops every step into a cell someone stays in, or that two steps claim,
-  /// until none is left: two shifting into one cell both stay, so the result
+  /// Drops every step into a cell someone stays in, that two steps claim, or
+  /// whose stepper would swap cells with another, until none is left: two shifting into one cell both stay, so the result
   /// does not depend on who is looked at first, and a dancer who stays keeps
   /// their cell and may block another.
   static void _stopBlocked(
@@ -153,15 +153,34 @@ final class Shift extends Operation {
       for (final state in steps.values) {
         claims.update(state.position, (n) => n + 1, ifAbsent: () => 1);
       }
+      final startOf = {
+        for (final id in steps.keys) formation.stateOf(id).position: id,
+      };
       final stopped = [
         for (final entry in steps.entries)
           if (staying.contains(entry.value.position) ||
-              claims[entry.value.position]! > 1)
+              claims[entry.value.position]! > 1 ||
+              _swaps(formation, steps, entry.key, startOf))
             entry.key,
       ];
       stopped.forEach(steps.remove);
       blocked = stopped.isNotEmpty;
     }
+  }
+
+  /// Whether [id] steps into the cell of a shifter stepping into [id]'s own:
+  /// the two would walk through each other, so both stay. A longer cycle
+  /// cannot happen, since every step is one row along one column.
+  static bool _swaps(
+    Formation formation,
+    Map<DancerId, DancerState> steps,
+    DancerId id,
+    Map<Position, DancerId> startOf,
+  ) {
+    final other = startOf[steps[id]!.position];
+    return other != null &&
+        other != id &&
+        steps[other]?.position == formation.stateOf(id).position;
   }
 
   /// Whether the wave offsets of [formation] settle without two dancers

@@ -1094,8 +1094,8 @@ To be defined later with worked examples.
   - **half (0.5, 1.5, 2.5)** ⇒ the two `who` dancers **swap cells**, and each dancer's facing
     becomes the **opposite** (in↔out, up↔down), except along a side line, where it is set by the
     turn's direction (see **facing (output)**). Role/number/couple-identity travel with them.
-  - **quarter (0.25, 0.75, …)** ⇒ **along the set only**; forms a **wave of four** exactly as
-    `do_si_do`'s quarter does, with `hand` playing the role of `shoulder` — `hand: right`
+  - **quarter (0.25, 0.75, …)** ⇒ **along the set** (across the set: see below); forms a
+    **wave of four** exactly as `do_si_do`'s quarter does, with `hand` playing the role of `shoulder` — `hand: right`
     builds the canonical wave, `left` its mirror, and ¾ is a half turn followed by the same
     handed quarter (so the other role ends in the centre).
   - **quarter across the set** (fundamentals §8.5.6; agent's call 2026-11-25) ⇒ a pair standing
@@ -1404,7 +1404,8 @@ To be defined later with worked examples.
 - **effect:** every `who` dancer steps one row. **Travel is fuzzy** *(Hudson, 2026-11-24:
   shifting dancers must not run into each other)*: a dancer whose place is taken, or who would
   step off an end of the set, stays where they are, and two shifting into one cell both stay, so
-  the result does not depend on who is read first *(staying put is the agent's call,
+  the result does not depend on who is read first, and two who would step into each other's
+  cells (walking through each other) both stay too *(staying put is the agent's call,
   2026-11-25; the inside-column alternative tried first gained nothing and collided in the next
   figure)*. A dancer waiting out at an end does not shift *(agent's call)*. A shifter must also
   leave any wave beside them able to settle into the side lines before the next figure
