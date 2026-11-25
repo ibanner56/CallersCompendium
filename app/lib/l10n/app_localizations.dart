@@ -22037,7 +22037,7 @@ abstract class AppLocalizations {
   /// **'Couldn\'t duplicate: the saved search of the slot rule \"{label}\" was deleted. Edit or remove that rule, then try again.'**
   String programTemplateDuplicateSearchGone(String label);
 
-  /// Snackbar in the program template editor when a new or changed slot rule names a saved search that was deleted while its dialog was open (#2529). The slots go back to how they were saved.
+  /// Snackbar in the program template editor when a new or changed slot rule names a saved search that was deleted while its dialog was open (#2529). That rule is undone: a new one is removed, an edited one goes back to how it was.
   ///
   /// In en, this message translates to:
   /// **'That saved search was just deleted, so the slot rule wasn\'t saved.'**

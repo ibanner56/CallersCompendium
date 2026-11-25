@@ -697,7 +697,15 @@ void main() {
           ),
         ],
       );
-      await _seed(repos, [template]);
+      // The editor holds a note the stored copy does not have yet (as if
+      // added a moment before): undoing the refused rule must keep it.
+      await _seed(repos, [
+        ProgramTemplate(
+          id: 'a',
+          name: 'Family',
+          entries: [template.entries[1]],
+        ),
+      ]);
       await _pump(
         tester,
         repos,

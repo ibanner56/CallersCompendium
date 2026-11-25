@@ -302,8 +302,7 @@ class _ProgramTemplatesScreenState extends State<ProgramTemplatesScreen> {
       return true;
     } catch (error, stackTrace) {
       if (error is SavedSearchGone && goneMessage != null) {
-        // Expected, not a fault: a slot rule names a saved search that is no
-        // longer stored (#2529); the message says which rule to fix.
+        // diagnostics: silent — expected, not a fault: a slot rule names a saved search that is no longer stored (#2529); the message says which rule to fix.
         messenger.showSnackBar(
           SnackBar(
             key: const ValueKey('program-template-search-gone'),
@@ -885,11 +884,16 @@ class _ProgramTemplateEditorScreenState
       entries: List.unmodifiable(_entries),
       eventRuleIds: List.unmodifiable(_eventRuleIds),
     );
+    final saving = _template.entries;
     try {
       await saveProgramTemplate(
         RepositoriesScope.of(context).settings,
         _template,
         checkSlotRules: SlotRuleSearchCheck.added,
+      );
+      // Saved: an edit this save carried has nothing left to undo.
+      _editedFrom.removeWhere(
+        (edited, _) => saving.any((entry) => identical(entry, edited)),
       );
     } on SavedSearchGone catch (gone) {
       // diagnostics: silent — expected, not a fault: a slot rule named a saved search deleted while its dialog was open (#2529); _slotRuleSearchGone says so.
