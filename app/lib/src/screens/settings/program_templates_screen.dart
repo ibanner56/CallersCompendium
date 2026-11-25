@@ -870,7 +870,9 @@ class _ProgramTemplateEditorScreenState
       SnackBar(
         key: const ValueKey('program-template-slot-rule-search-gone'),
         content: Text(
-          AppLocalizations.of(context).programTemplateSlotRuleNotSavedSearchGone,
+          AppLocalizations.of(
+            context,
+          ).programTemplateSlotRuleNotSavedSearchGone,
         ),
       ),
     );

@@ -423,7 +423,12 @@ class _EventRuleEditorScreenState extends State<EventRuleEditorScreen> {
           content: Text(AppLocalizations.of(context).eventRuleSavedSearchGone),
         ),
       );
-      setState(() => _saving = false);
+      setState(() {
+        _saving = false;
+        // Cleared now, not only once the list is read again, so a second tap
+        // cannot try the same search.
+        _searchId = null;
+      });
       await _read();
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'event_rule_editor._save');

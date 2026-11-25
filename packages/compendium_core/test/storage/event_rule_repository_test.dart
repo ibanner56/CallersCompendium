@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' hide isNotNull, isNull;
+import 'package:drift/native.dart';
 import 'package:test/test.dart';
 
 import 'test_database.dart';
@@ -136,6 +140,46 @@ void main() {
         await repos.eventRules.save(rule.copyWith(nickname: 'After'));
         expect((await repos.eventRules.get(rule.id))!.nickname, 'After');
       });
+
+      test(
+        'the check is inside the write\'s transaction: a delete that '
+        'starts at the check waits for the rule, and is then refused',
+        () async {
+          final hook = _OnSelectOf('saved_search:raced');
+          final hooked = CompendiumDatabase(
+            NativeDatabase.memory(
+              setup: applyCompendiumSqliteSetup,
+            ).interceptWith(hook),
+          );
+          addTearDown(hooked.close);
+          final r = CompendiumRepositories(hooked, contraTaxonomy);
+          await storeSavedSearches(r.settings, ['raced']);
+          // The delete starts the moment the rule reads whether the search is
+          // stored, outside the rule's zone, as another writer would.
+          Future<Object?>? deleting;
+          hook.onSelect = () => deleting ??= Zone.root.run(
+            () => r.savedSearches
+                .delete('raced')
+                .then<Object?>((_) => 'deleted', onError: (Object e) => e),
+          );
+
+          final rule = await r.eventRules.create(
+            savedSearchId: 'raced',
+            quantifier: EventRuleQuantifier.none,
+            scope: EventRuleScope.wholeProgram,
+          );
+          final outcome = await deleting;
+
+          expect(deleting, isNotNull, reason: 'the delete was started');
+          expect(
+            outcome,
+            isA<SavedSearchInUse>(),
+            reason: 'it ran after the rule was written, and saw it',
+          );
+          expect(await r.savedSearches.get('raced'), isNotNull);
+          expect(await r.eventRules.get(rule.id), isNotNull);
+        },
+      );
 
       test('a rule arriving by sync or a restore is not checked', () async {
         const rule = EventRule(
@@ -433,4 +477,23 @@ void main() {
       expect(matched, {'d1', 'd2'});
     });
   });
+}
+
+/// Calls [onSelect] when a SELECT runs with [arg] among its arguments, so a
+/// test can start another write at that exact point.
+class _OnSelectOf extends QueryInterceptor {
+  _OnSelectOf(this.arg);
+
+  final String arg;
+  void Function()? onSelect;
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    if (args.contains(arg)) onSelect?.call();
+    return super.runSelect(executor, statement, args);
+  }
 }

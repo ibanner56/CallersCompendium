@@ -485,7 +485,9 @@ Future<List<String>> newProgramEventRuleIds(
 /// already name is checked, in one transaction with the write, and
 /// [SavedSearchGone] is thrown, writing nothing, for one that is not. A slot
 /// rule the stored copy already has is never checked, so a template whose
-/// search was deleted since can still be renamed. Without it (a copy, an
+/// search was deleted since can still be renamed. With no stored copy (the
+/// template was deleted elsewhere while its editor was open), nothing is
+/// checked and the template is written back. Without the flag (a copy, an
 /// Undo), the slot rules are written as they are.
 Future<void> saveProgramTemplate(
   SettingsRepository settings,
@@ -503,10 +505,14 @@ Future<void> saveProgramTemplate(
       template.id,
       await settings.get(key),
     );
-    final named = {
-      for (final entry in stored?.entries ?? const <ProgramTemplateEntry>[])
-        ?entry.savedSearchId,
-    };
+    if (stored == null) {
+      // Deleted elsewhere while the editor was open (or unreadable): there
+      // is no stored copy to tell a new slot rule from an old one, so the
+      // write goes through as it did before, bringing the template back.
+      await settings.set(key, encodeProgramTemplate(template));
+      return;
+    }
+    final named = {for (final entry in stored.entries) ?entry.savedSearchId};
     for (final entry in template.entries) {
       final id = entry.savedSearchId;
       if (id == null || named.contains(id)) continue;

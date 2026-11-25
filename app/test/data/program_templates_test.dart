@@ -776,6 +776,20 @@ void main() {
         expect((await stored(repos.settings))!.name, 'Renamed');
       });
 
+      test(
+        'with no stored copy (deleted elsewhere while its editor was '
+        'open) nothing is checked and the template is written back',
+        () async {
+          final repos = openTestRepositories();
+          await saveProgramTemplate(
+            repos.settings,
+            withRules(['gone'], name: 'Renamed'),
+            checkNewSlotRules: true,
+          );
+          expect((await stored(repos.settings))!.name, 'Renamed');
+        },
+      );
+
       test('without the check (a copy, an Undo) the slots are written as '
           'they are', () async {
         final repos = openTestRepositories();

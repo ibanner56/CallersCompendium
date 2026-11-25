@@ -1324,9 +1324,9 @@ A rule has:
 
 - **Which dances** — one of your
   [saved searches](./collection.md#save-a-search-and-use-it-again). Save a
-  search in the Collection first. If the search you chose is deleted while
-  the rule is open (in the Collection, or on another device), **Save** says
-  so and saves nothing, and you choose another.
+  search in the Collection first. If you choose a search and it is deleted
+  before you save (in the Collection, or on another device), **Save** says so
+  and doesn't save the rule, and you choose another.
 - **How many** — **At most** or **At least** a number of dances from 1 to 99,
   or **None**. For **Any two neighboring dances**, which holds two dances,
   it is **At most** 1 or **At least** 1 or 2: a larger number could never

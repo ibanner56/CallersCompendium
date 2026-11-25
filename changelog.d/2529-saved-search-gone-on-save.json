@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "If the saved search you chose for an event rule (Experimental) or a template's slot rule is deleted before you save, the editor now says so and saves nothing, instead of saving a rule that names a search that no longer exists. The rule editor then asks you to choose another search, and the template keeps its slots as they were."
+      "If the saved search you chose for an event rule (Experimental) or a template's slot rule is deleted before you save, the editor now says so and doesn't save that rule, instead of saving a rule that names a search that no longer exists. The rule editor then asks you to choose another search, and the template puts its slots back as they were saved."
     ]
   },
   "core": {
