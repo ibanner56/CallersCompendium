@@ -15105,6 +15105,25 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String programsRulesPickerNotHere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count rules not on this device',
+      one: '1 rule not on this device',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsRulesPickerNotHereHelp =>
+      'Added on another device and still on the way, or gone for good. Remove takes them off this program.';
+
+  @override
+  String get programsRulesChangeFailed =>
+      'Couldn\'t change this program\'s rules. Try again.';
+
+  @override
   String get eventRuleCountNeighbouringHelp =>
       'Two neighboring dances hold at most 2 matching dances.';
 

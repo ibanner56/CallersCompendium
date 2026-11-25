@@ -14422,6 +14422,18 @@
   "@programsRulesPickerFull": {
     "x-sourceSha256": "9d4ccf1254faeea96ac0569e98a59b80d292209766737f0dd0355ce05523bd6f"
   },
+  "programsRulesPickerNotHere": "{count, plural, =1{1 regel niet op dit apparaat} other{{count} regels niet op dit apparaat}}",
+  "@programsRulesPickerNotHere": {
+    "x-sourceSha256": "d1e47d6f22bef283a52643127816c87337c04d06523be6779f7a60039fb1db49"
+  },
+  "programsRulesPickerNotHereHelp": "Toegevoegd op een ander apparaat en nog onderweg, of voorgoed weg. Verwijderen haalt ze van dit programma.",
+  "@programsRulesPickerNotHereHelp": {
+    "x-sourceSha256": "d712197bddacd3cb51a680b3db35e0f4eb3804b7975780c6faa3eeb40d6c5cd0"
+  },
+  "programsRulesChangeFailed": "Kan de regels van dit programma niet wijzigen. Probeer het opnieuw.",
+  "@programsRulesChangeFailed": {
+    "x-sourceSha256": "d3b5fef2b613bd78172f26b1ac69390974b0440fe7374212862ef0b0e561928e"
+  },
   "eventRuleCountNeighbouringHelp": "Twee aangrenzende dansen bevatten hoogstens 2 passende dansen.",
   "@eventRuleCountNeighbouringHelp": {
     "x-sourceSha256": "b4cea3037e5e4a0c4df3fc07f5c73fc4308fd15d5b1b0dbc5945fdbbe576d36e"

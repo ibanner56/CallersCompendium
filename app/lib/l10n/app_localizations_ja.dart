@@ -14557,6 +14557,23 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String programsRulesPickerNotHere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'このデバイスにないルールが$count件あります',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsRulesPickerNotHereHelp =>
+      '別のデバイスで追加されてまだ届いていないか、すでに存在しません。「削除」でこのプログラムから外します。';
+
+  @override
+  String get programsRulesChangeFailed => 'このプログラムのルールを変更できませんでした。もう一度お試しください。';
+
+  @override
   String get eventRuleCountNeighbouringHelp => '隣接する2曲に含まれる該当ダンスは最大2曲です。';
 
   @override

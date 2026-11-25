@@ -21875,6 +21875,24 @@ abstract class AppLocalizations {
   /// **'This program uses {max} rules, the most it can. Untick one to add another.'**
   String programsRulesPickerFull(int max);
 
+  /// Line in a program's Rules picker (#2340) when the program applies rules this device does not have: added on another device and not synced here yet, or gone for good. 'Remove' (commonRemove) is beside it.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 rule not on this device} other{{count} rules not on this device}}'**
+  String programsRulesPickerNotHere(int count);
+
+  /// Under programsRulesPickerNotHere in a program's Rules picker (#2340): what those rules are, and what Remove beside it does.
+  ///
+  /// In en, this message translates to:
+  /// **'Added on another device and still on the way, or gone for good. Remove takes them off this program.'**
+  String get programsRulesPickerNotHereHelp;
+
+  /// Message at the bottom of the screen when ticking or unticking a rule in a program's Rules picker could not be saved (#2340).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t change this program\'s rules. Try again.'**
+  String get programsRulesChangeFailed;
+
   /// Help under the rule editor's number field when the rule counts any two neighboring dances, which is why the number is limited (#2340).
   ///
   /// In en, this message translates to:

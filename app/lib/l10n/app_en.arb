@@ -20401,6 +20401,24 @@
       }
     }
   },
+  "programsRulesPickerNotHere": "{count, plural, =1{1 rule not on this device} other{{count} rules not on this device}}",
+  "@programsRulesPickerNotHere": {
+    "description": "Line in a program's Rules picker (#2340) when the program applies rules this device does not have: added on another device and not synced here yet, or gone for good. 'Remove' (commonRemove) is beside it.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "programsRulesPickerNotHereHelp": "Added on another device and still on the way, or gone for good. Remove takes them off this program.",
+  "@programsRulesPickerNotHereHelp": {
+    "description": "Under programsRulesPickerNotHere in a program's Rules picker (#2340): what those rules are, and what Remove beside it does."
+  },
+  "programsRulesChangeFailed": "Couldn't change this program's rules. Try again.",
+  "@programsRulesChangeFailed": {
+    "description": "Message at the bottom of the screen when ticking or unticking a rule in a program's Rules picker could not be saved (#2340)."
+  },
   "eventRuleCountNeighbouringHelp": "Two neighboring dances hold at most 2 matching dances.",
   "@eventRuleCountNeighbouringHelp": {
     "description": "Help under the rule editor's number field when the rule counts any two neighboring dances, which is why the number is limited (#2340)."

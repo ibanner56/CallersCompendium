@@ -333,7 +333,11 @@ class BackupService {
   Future<BackupDocument> buildDocument({DateTime? createdAt}) async {
     // One stamp for the envelope and the nested archive, so they agree.
     final stamp = (createdAt ?? DateTime.now()).toUtc();
-    final core = await ArchiveExporter(_repos).export(exportedAt: stamp);
+    final eventRules = await _repos.eventRules.listAll();
+    final core = _withCarriedRuleIds(
+      await ArchiveExporter(_repos).export(exportedAt: stamp),
+      {for (final rule in eventRules) rule.id},
+    );
     final allSettings = await _repos.settings.all();
 
     final customDialects = _readDialects(allSettings[kCustomDialectsKey]);
@@ -356,7 +360,46 @@ class BackupService {
       settings: settings,
       glossaryEntries: await _repos.userGlossary.listAll(),
       figureNotes: await _repos.figureNotes.listAll(),
-      eventRules: await _repos.eventRules.listAll(),
+      eventRules: eventRules,
+    );
+  }
+
+  /// [core] with each program's applied rule ids cut to [carried], the rules
+  /// the backup writes (#2340). It carries only live rules, so a deleted
+  /// rule's id (kept on the program for its Undo) would come back on a fresh
+  /// device with no rule and no tombstone, and count there as a rule still on
+  /// its way for good.
+  static CompendiumArchive _withCarriedRuleIds(
+    CompendiumArchive core,
+    Set<String> carried,
+  ) {
+    if (core.programs.every((p) => p.eventRuleIds.every(carried.contains))) {
+      return core;
+    }
+    // Every field, so a field added to the archive is not dropped here.
+    return CompendiumArchive(
+      schemaVersion: core.schemaVersion,
+      exportedAt: core.exportedAt,
+      dances: core.dances,
+      programs: [
+        for (final program in core.programs)
+          program.eventRuleIds.every(carried.contains)
+              ? program
+              : program.copyWith(
+                  eventRuleIds: [
+                    for (final id in program.eventRuleIds)
+                      if (carried.contains(id)) id,
+                  ],
+                ),
+      ],
+      choreographers: core.choreographers,
+      publishedSources: core.publishedSources,
+      customFields: core.customFields,
+      tags: core.tags,
+      venues: core.venues,
+      difficultyLevels: core.difficultyLevels,
+      deletedTags: core.deletedTags,
+      userFigures: core.userFigures,
     );
   }
 

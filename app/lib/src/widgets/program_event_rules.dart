@@ -543,13 +543,26 @@ class _RulesPickerState extends State<_RulesPicker> {
 
   /// The ids of the rules this device holds deleted, kept for their Undo:
   /// the only applied ids that do not count toward the most, and the only
-  /// ones dropped to make room. A rule not on this device yet counts.
+  /// ones dropped to make room. A rule not on this device yet counts. Kept
+  /// current from [_rulesWatch], so a rule sync restores meanwhile is never
+  /// dropped as deleted.
   Set<String> _deleted = const {};
+
+  /// Reads the rules again whenever one changes (here, or by sync).
+  StreamSubscription<List<EventRule>>? _rulesWatch;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_rules == null) unawaited(_read());
+    _rulesWatch ??= RepositoriesScope.of(
+      context,
+    ).eventRules.watchAll().listen((_) => unawaited(_read()));
+  }
+
+  @override
+  void dispose() {
+    unawaited(_rulesWatch?.cancel());
+    super.dispose();
   }
 
   Future<void> _read() async {
@@ -578,21 +591,53 @@ class _RulesPickerState extends State<_RulesPicker> {
       _applied.where((id) => !_deleted.contains(id)).length >=
       maxProgramEventRules;
 
+  /// The applied ids of rules this device has neither live nor deleted: added
+  /// on another device and still on their way, or gone for good (a backup
+  /// from before #2340's fix, a rule another build could not store).
+  List<String> get _notHere {
+    final rules = _rules;
+    if (rules == null) return const [];
+    final live = {for (final r in rules) r.id};
+    return [
+      for (final id in _applied)
+        if (!live.contains(id) && !_deleted.contains(id)) id,
+    ];
+  }
+
   /// Ticks or unticks [id]: at once on screen, then on the list as stored
   /// when the write runs, and shows the list stored. A refused tick leaves
   /// the box unticked, and the picker says why.
-  Future<void> _toggle(String id, {required bool on}) async {
-    final deleted = _deleted;
-    List<String>? change(List<String> applied) =>
-        toggleEventRuleId(applied, id, on: on, deleted: deleted);
+  Future<void> _toggle(String id, {required bool on}) =>
+      // [_deleted] is read when the change runs, inside the write.
+      _apply(
+        (applied) => toggleEventRuleId(applied, id, on: on, deleted: _deleted),
+      );
+
+  /// Takes [_notHere] off the program.
+  Future<void> _removeNotHere() {
+    final gone = _notHere.toSet();
+    return _apply(
+      (applied) => [
+        for (final id in applied)
+          if (!gone.contains(id)) id,
+      ],
+    );
+  }
+
+  /// Applies [change] at once on screen, then to the list as stored when the
+  /// write runs, and shows the list stored. When nothing was stored (the
+  /// program went to Recently deleted, or the write failed, which the
+  /// builder reports), the screen goes back to what it showed before.
+  Future<void> _apply(EventRuleIdsChange change) async {
+    final before = _applied;
     final shown = change(_applied);
     setState(() {
       if (shown != null) _applied = shown;
     });
     if (shown == null) return;
     final stored = await widget.onChange(change);
-    if (!mounted || stored == null) return;
-    setState(() => _applied = stored);
+    if (!mounted) return;
+    setState(() => _applied = stored ?? before);
   }
 
   Future<void> _add(String id) => _toggle(id, on: true);
@@ -640,6 +685,18 @@ class _RulesPickerState extends State<_RulesPicker> {
                   vertical: AppSpacing.xs,
                 ),
                 child: Text(l10n.programsRulesPickerFull(maxProgramEventRules)),
+              ),
+            if (_notHere case final notHere when notHere.isNotEmpty)
+              ListTile(
+                key: const ValueKey('program-rules-not-here'),
+                leading: const Icon(Icons.cloud_off_outlined),
+                title: Text(l10n.programsRulesPickerNotHere(notHere.length)),
+                subtitle: Text(l10n.programsRulesPickerNotHereHelp),
+                trailing: TextButton(
+                  key: const ValueKey('program-rules-remove-not-here'),
+                  onPressed: _removeNotHere,
+                  child: Text(l10n.commonRemove),
+                ),
               ),
             const Divider(height: 1),
             Flexible(

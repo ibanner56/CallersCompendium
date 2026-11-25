@@ -14422,6 +14422,18 @@
   "@programsRulesPickerFull": {
     "x-sourceSha256": "9d4ccf1254faeea96ac0569e98a59b80d292209766737f0dd0355ce05523bd6f"
   },
+  "programsRulesPickerNotHere": "{count, plural, =1{1 Regel nicht auf diesem Gerät} other{{count} Regeln nicht auf diesem Gerät}}",
+  "@programsRulesPickerNotHere": {
+    "x-sourceSha256": "d1e47d6f22bef283a52643127816c87337c04d06523be6779f7a60039fb1db49"
+  },
+  "programsRulesPickerNotHereHelp": "Auf einem anderen Gerät hinzugefügt und noch unterwegs, oder endgültig weg. Entfernen nimmt sie aus diesem Programm.",
+  "@programsRulesPickerNotHereHelp": {
+    "x-sourceSha256": "d712197bddacd3cb51a680b3db35e0f4eb3804b7975780c6faa3eeb40d6c5cd0"
+  },
+  "programsRulesChangeFailed": "Die Regeln dieses Programms konnten nicht geändert werden. Versuche es noch einmal.",
+  "@programsRulesChangeFailed": {
+    "x-sourceSha256": "d3b5fef2b613bd78172f26b1ac69390974b0440fe7374212862ef0b0e561928e"
+  },
   "eventRuleCountNeighbouringHelp": "Zwei benachbarte Tänze enthalten höchstens 2 passende Tänze.",
   "@eventRuleCountNeighbouringHelp": {
     "x-sourceSha256": "b4cea3037e5e4a0c4df3fc07f5c73fc4308fd15d5b1b0dbc5945fdbbe576d36e"
