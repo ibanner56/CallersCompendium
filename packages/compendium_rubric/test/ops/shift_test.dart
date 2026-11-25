@@ -146,10 +146,12 @@ void main() {
       const Allemande(who: WhoSet.neighbors, turn: 0.25),
       twoBands(),
     );
+    var checked = 0;
     for (final who in [WhoSet.role1s, WhoSet.role2s]) {
       for (final direction in ['up', 'down']) {
         final result = Shift(who: who, direction: direction).apply(waves);
         if (result case Ok(:final value)) {
+          checked++;
           expect(
             () => const Swing(who: WhoSet.partners).apply(value),
             returnsNormally,
@@ -158,6 +160,7 @@ void main() {
         }
       }
     }
+    expect(checked, greaterThan(0));
   });
 
   test('a meanwhile refuses a dancer its shift and another part both move', () {

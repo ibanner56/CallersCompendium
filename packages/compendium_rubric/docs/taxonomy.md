@@ -1408,9 +1408,10 @@ To be defined later with worked examples.
   2026-11-25; the inside-column alternative tried first gained nothing and collided in the next
   figure)*. A dancer waiting out at an end does not shift *(agent's call)*. A shifter must also
   leave any wave beside them able to settle into the side lines before the next figure
-  (§8.5.4): one who lands in a row where a dancer stands off the side columns stays put instead
-  if settling would put two dancers in one cell, and if that is still not enough the shift is
-  refused (`unresolvableDancerSet`) *(agent's call)*.
+  (§8.5.4): if settling would put two dancers in one cell, every shifter who landed in a row
+  where a dancer stands off the side columns stays put instead (all of them, not only the one
+  whose cell collides), and if that is still not enough the shift is refused
+  (`unresolvableDancerSet`) *(agent's call)*.
 - **deferred:** `left` or `right` by a dancer facing up, down or Flexible (`unsupportedParam`):
   which way their left points along the set is not known.
 - **in a `meanwhile`:** a shift travels **around** the parts danced beside it: the other parts are

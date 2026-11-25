@@ -105,9 +105,9 @@ void main() {
 
     test('an across pair never lands where a held pair turns (no crash)', () {
       // The canonical right-hand short wave, partners A in the centre and
-      // partners B on the ends. Turning left 3/4, the A pair is not holding
-      // left hands and settles; asked of partners with a left hand, the
-      // centre pair B... either way no two dancers may meet in c2.
+      // partners B on the ends. Partners allemande left: the A pair turns
+      // from its hold into c2, so the B pair, across the set on the ends,
+      // must not be landed there too. It is refused, not thrown.
       final wave = di(['. L1-A . . R2-B', 'L2-B . . R1-A .']);
       final faced = wave.withUpdates({
         for (final MapEntry(key: id, value: state) in wave.dancers.entries)

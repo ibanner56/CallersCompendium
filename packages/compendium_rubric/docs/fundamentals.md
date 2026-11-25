@@ -463,7 +463,7 @@ cannot express. This is ruled for **`do_si_do`, `allemande` and `shoulder_round`
 turns that carry a usable direction token; every other member of the turn family still refuses
 a quarter, each for its own reason (see `taxonomy.md`).
 
-Four things define the short-wave landing of a pair facing each other along the set. An
+Five things define the short-wave landing of a pair facing each other along the set. An
 `allemande` pair across the set lands in the centre column instead, as the end of this section
 describes. A pair that is **already holding hands in a wave** is different again, and §8.5.7
 covers it: there an `allemande` turns the pair rigidly, so the rules below about columns, rows
