@@ -79,8 +79,8 @@ OpError? _requireAlongTheSet(
 /// long-wave pair turns the same way into the centre of a short wave, and the
 /// band's side dancers join it as the ends. *(Agent's call, 2026-11-24.)*
 ///
-/// A pair facing each other **across** the set turns a quarter or three
-/// quarters into the centre column instead, standing along the set as the
+/// A pair standing **across** the set turns a quarter or three quarters into
+/// the centre column instead, standing along the set as the
 /// centre long wave of §8.5.5 (§8.5.6; agent's call, 2026-11-25).
 final class Allemande extends Operation {
   const Allemande({
@@ -140,11 +140,16 @@ final class Allemande extends Operation {
     // Every other pair leaves the wave first, exactly as before, and is held
     // to the along-the-set rule from the settled cells.
     final settled = normalizeWaveOffsets(formation, alsoOutsideBands: true);
+    final pairs = whoPairsInSet(formation, who);
     final unheld = [
-      for (final pair in whoPairsInSet(formation, who))
+      for (final pair in pairs)
         if (!_heldFor(formation, pair)) pair,
     ];
-    final across = _acrossLandings(settled, unheld);
+    final across = _acrossLandings(
+      settled,
+      unheld,
+      reserved: _heldLandings(formation, pairs),
+    );
     return _requireAlongTheSet(
       settled,
       name,
@@ -163,10 +168,14 @@ final class Allemande extends Operation {
   /// landing shares a cell with another's: two couples of one hands four
   /// turning across at once would both claim its centre cells, and which
   /// way that resolves is not known, so it stays deferred *(agent's call)*.
+  /// So is every pair landing on a cell in [reserved], where a pair turning
+  /// from its hold in the same figure ends: the centre pair of a short wave
+  /// turns into the same centre cells as its ends would.
   Map<DancerPair, Map<DancerId, DancerState>> _acrossLandings(
     Formation settled,
-    Iterable<DancerPair> pairs,
-  ) {
+    Iterable<DancerPair> pairs, {
+    required Map<DancerId, DancerState> reserved,
+  }) {
     final landings = <DancerPair, Map<DancerId, DancerState>>{};
     for (final pair in pairs) {
       if (settled.stateOf(pair.a).col == settled.stateOf(pair.b).col) continue;
@@ -184,12 +193,29 @@ final class Allemande extends Operation {
         claims.update(state.position, (n) => n + 1, ifAbsent: () => 1);
       }
     }
+    final held = {for (final state in reserved.values) state.position};
     landings.removeWhere(
-      (_, landing) =>
-          landing.values.any((state) => claims[state.position]! > 1),
+      (_, landing) => landing.values.any(
+        (state) => claims[state.position]! > 1 || held.contains(state.position),
+      ),
     );
     return landings;
   }
+
+  /// Where the pairs of [pairs] already holding this [hand] in a wave land,
+  /// turning from the hold (§8.5.7).
+  Map<DancerId, DancerState> _heldLandings(
+    Formation formation,
+    List<DancerPair> pairs,
+  ) => quarterTurnFromWaveHold(
+    formation,
+    [
+      for (final pair in pairs)
+        if (_heldFor(formation, pair)) pair,
+    ],
+    hand: hand,
+    threeQuarters: rotationAmountOf(turn) == RotationAmount.threeQuarter,
+  );
 
   @override
   Result<Formation, OpError> perform(Formation formation) {
@@ -208,10 +234,11 @@ final class Allemande extends Operation {
         formation,
         alsoOutsideBands: true,
       );
+      final turnedFromHold = _heldLandings(formation, pairs);
       final across = _acrossLandings(normalized, [
         for (final pair in pairs)
           if (!held.contains(pair)) pair,
-      ]);
+      ], reserved: turnedFromHold);
       final settled = quarterTurnIntoWave(
         normalized,
         [
@@ -221,16 +248,7 @@ final class Allemande extends Operation {
         hand: hand,
         afterHalfTurn: threeQuarters,
       ).withUpdates({for (final landing in across.values) ...landing});
-      return Ok(
-        settled.withUpdates(
-          quarterTurnFromWaveHold(
-            formation,
-            held,
-            hand: hand,
-            threeQuarters: threeQuarters,
-          ),
-        ),
-      );
+      return Ok(settled.withUpdates(turnedFromHold));
     }
     return Ok(
       swapPairs(

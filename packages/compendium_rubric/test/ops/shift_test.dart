@@ -137,4 +137,61 @@ void main() {
     );
     expect(after, applyOk(const Shift(), robinsInTheCentre()));
   });
+
+  test('a shifter beside a wave never leaves it unable to settle', () {
+    // Neighbours ¼ into short waves, then the Larks shift up the hall: the
+    // next figure settles the waves into the side lines, which must find
+    // their cells free.
+    final waves = applyOk(
+      const Allemande(who: WhoSet.neighbors, turn: 0.25),
+      twoBands(),
+    );
+    for (final who in [WhoSet.role1s, WhoSet.role2s]) {
+      for (final direction in ['up', 'down']) {
+        final result = Shift(who: who, direction: direction).apply(waves);
+        if (result case Ok(:final value)) {
+          expect(
+            () => const Swing(who: WhoSet.partners).apply(value),
+            returnsNormally,
+            reason: '$who $direction',
+          );
+        }
+      }
+    }
+  });
+
+  test('a meanwhile refuses a dancer its shift and another part both move', () {
+    final error = applyErr(
+      const Meanwhile([
+        Allemande(who: WhoSet.role2s, turn: 0.75),
+        Shift(who: WhoSet.role2s, direction: 'down'),
+      ]),
+      // Room below, so the Robins' shift is not stopped by fuzzy travel.
+      di(['L1-A . . . R1-A', 'R2-B . . . L2-B', '. . . . .', '. . . . .']),
+    );
+    expect(error.kind, ErrorKind.unresolvableDancerSet);
+  });
+
+  test('two shift parts of a meanwhile step together, in either order', () {
+    // Two hands fours in lines with two empty rows below: stepping down one
+    // part at a time, the first part would be blocked by the second's dancers
+    // still standing where it steps.
+    final lines = di([
+      'L1-A . . . R1-A',
+      'R2-B . . . L2-B',
+      'L1-C . . . R1-C',
+      'R2-D . . . L2-D',
+      '. . . . .',
+      '. . . . .',
+    ]);
+    const larks = Shift(direction: 'down');
+    const robins = Shift(who: WhoSet.role2s, direction: 'down');
+    final together = applyOk(const Meanwhile([larks, robins]), lines);
+    expect(applyOk(const Meanwhile([robins, larks]), lines), together);
+    expect(
+      together,
+      applyOk(const Shift(who: WhoSet.everyone, direction: 'down'), lines),
+    );
+    expect(together.dancerAt(const Position(0, 0)), isNull);
+  });
 }

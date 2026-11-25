@@ -783,8 +783,8 @@ Formation mapBandFacing(
 
 /// Where an across-the-set quarter turn lands [pair], or `null` when it cannot.
 ///
-/// A pair facing each other across the set that turns a quarter (or three
-/// quarters) ends standing **along** it, in the centre column: the centre long
+/// A pair standing across the set (whichever way they face: the landing sets
+/// the facing) that turns a quarter (or three quarters) ends standing **along** it, in the centre column: the centre long
 /// wave of §8.5.5, the dancer the rotation carries north in the band's top row,
 /// both facing across and holding [hand]. The two must share one hands four's
 /// band, and its two centre cells must be free once [pair] has left its own.

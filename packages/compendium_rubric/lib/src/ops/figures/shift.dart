@@ -43,8 +43,12 @@ final class Shift extends Operation {
   };
 
   @override
-  Result<Formation, OpError> perform(Formation formation) {
-    final changes = <DancerId, DancerState>{};
+  Result<Formation, OpError> perform(Formation formation) =>
+      danceTogether(formation, [this]);
+
+  /// Where each of this shift's dancers would step, before fuzzy travel.
+  Result<Map<DancerId, DancerState>, OpError> _steps(Formation formation) {
+    final steps = <DancerId, DancerState>{};
     for (final entry in formation.dancers.entries) {
       if (!whoIncludes(formation, entry.key, who)) continue;
       final state = entry.value;
@@ -60,37 +64,116 @@ final class Shift extends Operation {
           ),
         );
       }
-      final row = state.row + step;
-      if (row < 0 || row > formation.lastRow) continue;
-      changes[entry.key] = state.copyWith(position: Position(row, state.col));
+      steps[entry.key] = state.copyWith(
+        position: Position(state.row + step, state.col),
+      );
+    }
+    return Ok(steps);
+  }
+
+  /// [shifts] danced at once, as the shift parts of one `meanwhile` are: every
+  /// step is gathered first and fuzzy travel settles them together, so the
+  /// result does not depend on the order the parts are written in. A dancer
+  /// two of them name is refused, as two parts of a meanwhile moving one
+  /// dancer are.
+  static Result<Formation, OpError> danceTogether(
+    Formation formation,
+    List<Shift> shifts,
+  ) {
+    final steps = <DancerId, DancerState>{};
+    for (final shift in shifts) {
+      switch (shift._steps(formation)) {
+        case Err(:final error):
+          return Err(error);
+        case Ok(:final value):
+          for (final MapEntry(key: id, value: state) in value.entries) {
+            if (steps.containsKey(id)) {
+              return Err(
+                OpError(
+                  ErrorKind.unresolvableDancerSet,
+                  'meanwhile: two shifts both move $id; the parts of a '
+                  'meanwhile are danced by different dancers',
+                ),
+              );
+            }
+            steps[id] = state;
+          }
+      }
     }
     // Fuzzy travel: a shift is a step toward the next place, not a claim on a
-    // cell, so a dancer whose place is taken goes no further than there is
-    // room for and stays where they are (user-asked 2026-11-24, that shifting
-    // dancers must not run into each other; staying put is the agent's call,
-    // 2026-11-25). Two shifting toward one cell both stay, so the result does
-    // not depend on who is looked at first, and a dancer who stays keeps their
-    // cell and may block another, so this repeats until nothing changes.
+    // cell, so a dancer whose place is taken, or who would step off an end of
+    // the set, goes no further than there is room for and stays where they
+    // are (user-asked 2026-11-24, that shifting dancers must not run into
+    // each other; staying put is the agent's call, 2026-11-25).
+    steps.removeWhere(
+      (_, state) => state.row < 0 || state.row > formation.lastRow,
+    );
+    while (true) {
+      _stopBlocked(formation, steps);
+      final shifted = formation.withUpdates(steps);
+      if (_settles(shifted)) return Ok(shifted);
+      // A wave the shifters stand beside settles into the side columns before
+      // the next figure, and must find its cells free. A shifter who landed
+      // in a row with a dancer off the side columns stays where they are.
+      final stopped = [
+        for (final MapEntry(key: id, value: state) in steps.entries)
+          if (shifted
+              .dancersInRow(state.row)
+              .any((other) => !shifted.stateOf(other).position.isSideColumn))
+            id,
+      ];
+      if (stopped.isEmpty) {
+        return Err(
+          OpError(
+            ErrorKind.unresolvableDancerSet,
+            'shift: the wave beside the shifting dancers could not settle '
+            'into the side lines afterwards',
+          ),
+        );
+      }
+      stopped.forEach(steps.remove);
+    }
+  }
+
+  /// Drops every step into a cell someone stays in, or that two steps claim,
+  /// until none is left: two shifting into one cell both stay, so the result
+  /// does not depend on who is looked at first, and a dancer who stays keeps
+  /// their cell and may block another.
+  static void _stopBlocked(
+    Formation formation,
+    Map<DancerId, DancerState> steps,
+  ) {
     var blocked = true;
     while (blocked) {
       final staying = <Position>{
         for (final entry in formation.dancers.entries)
-          if (!changes.containsKey(entry.key)) entry.value.position,
+          if (!steps.containsKey(entry.key)) entry.value.position,
       };
       final claims = <Position, int>{};
-      for (final state in changes.values) {
+      for (final state in steps.values) {
         claims.update(state.position, (n) => n + 1, ifAbsent: () => 1);
       }
       final stopped = [
-        for (final entry in changes.entries)
+        for (final entry in steps.entries)
           if (staying.contains(entry.value.position) ||
               claims[entry.value.position]! > 1)
             entry.key,
       ];
-      stopped.forEach(changes.remove);
+      stopped.forEach(steps.remove);
       blocked = stopped.isNotEmpty;
     }
-    return Ok(formation.withUpdates(changes));
+  }
+
+  /// Whether the wave offsets of [formation] settle without two dancers
+  /// meeting in one cell, as the next figure will settle them (§8.5.4).
+  static bool _settles(Formation formation) {
+    try {
+      normalizeWaveOffsets(formation);
+      normalizeWaveOffsets(formation, alsoOutsideBands: true);
+      return true;
+    } on FormationProjectionError {
+      return false;
+    }
   }
 
   @override

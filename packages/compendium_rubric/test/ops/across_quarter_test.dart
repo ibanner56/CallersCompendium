@@ -102,5 +102,25 @@ void main() {
       expect(error.kind, ErrorKind.unsupportedParam);
       expect(error.detail, contains('across-the-set quarter'));
     });
+
+    test('an across pair never lands where a held pair turns (no crash)', () {
+      // The canonical right-hand short wave, partners A in the centre and
+      // partners B on the ends. Turning left 3/4, the A pair is not holding
+      // left hands and settles; asked of partners with a left hand, the
+      // centre pair B... either way no two dancers may meet in c2.
+      final wave = di(['. L1-A . . R2-B', 'L2-B . . R1-A .']);
+      final faced = wave.withUpdates({
+        for (final MapEntry(key: id, value: state) in wave.dancers.entries)
+          id: state.copyWith(facing: state.row == 0 ? Facing.down : Facing.up),
+      });
+      for (final turn in [0.25, 0.75]) {
+        final result = Allemande(
+          who: WhoSet.partners,
+          hand: Hand.left,
+          turn: turn,
+        ).apply(faced);
+        expect(result, isA<Err<Formation, OpError>>(), reason: 'turn $turn');
+      }
+    });
   });
 }
