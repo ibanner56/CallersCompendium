@@ -124,9 +124,57 @@ void main() {
       expect(figures.single.params['balance'], isTrue);
     });
 
-    test('after the side-of-set long waves, stays custom', () async {
-      // A bare `form long wave` is the long waves along the sides (#2331), so
-      // a balance in a centre wave straight after it contradicts it.
+    test('after a bare form long wave, that role forms and balances the '
+        'centre wave', () async {
+      // Maintainer ruling 2026-11-24: the bare `form long wave` is the larks
+      // forming the single wave in the centre, and the balance is of it.
+      final figures = await _figuresFor([
+        '(0) Form long wave',
+        '(4) Men balance long wave in center',
+      ]);
+      expect(figures, hasLength(1));
+      final wave = figures.single;
+      expect(wave.move, 'form_a_long_wave');
+      expect(wave.params['who'], 'role1s');
+      expect(wave.params['balance'], isTrue);
+      expect(wave.beats, 4);
+      expect(wave.assumedSubject, isFalse);
+    });
+
+    test('the same across a phrase boundary', () async {
+      final payload = jsonEncode({
+        'ID': '42',
+        'Name': 'Test Dance',
+        'Permission': 'full',
+        'phrases': [
+          {
+            'name': 'A1',
+            'figures': [
+              '(4) Neighbor allemande left 3/4',
+              '(0) Form long wave',
+            ],
+          },
+          {
+            'name': 'A2',
+            'figures': ['(4) Men balance long wave in center'],
+          },
+        ],
+      });
+      final adapter = CallersBoxAdapter();
+      final discovered = await adapter.discover(
+        ImportRequest(payload: payload),
+      );
+      final figures = figuresOf(
+        adapter.parse(await adapter.fetch(discovered.single)).dance,
+      );
+      expect(figures.map((f) => f.move), ['allemande', 'form_a_long_wave']);
+      expect(figures.last.params['who'], 'role1s');
+      expect(figures.last.params['balance'], isTrue);
+    });
+
+    test('after held long waves, stays custom', () async {
+      // Holds name the side-of-set long waves (#2331); the centre wave has no
+      // place for them, so folding would drop what the line stated.
       final figures = await _figuresFor([
         '(0) Form long wave (P2L,P3R, women face in)',
         '(4) Men balance long wave in center',

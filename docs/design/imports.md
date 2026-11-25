@@ -1986,7 +1986,9 @@ has to be judged in its own context.
   beats — a balance whose other words that wave cannot carry (`Men balance
   long wave`, `… for all`) stays custom, and one that says `in center` makes
   the pair the centre wave, `form_a_long_wave`, as `form long wave in center`
-  reads), diagonal chain /
+  reads; when that balance names a role (`Men balance long wave in center`),
+  that role forms the centre wave and balances it, maintainer ruling
+  2026-11-24), diagonal chain /
   hey
   / right-&-left-through (→ `dir: left/rightDiagonal`), same-role right & left
   through (variant kept as a note), weave-the-line `with <dancer>`, relationship
@@ -2919,10 +2921,12 @@ nobody, so no forming is asserted. The free-text dialect already reads the line
 this way. The pass runs over the whole dance, after the per-phrase merge, so
 the figure before a phrase's first line is the previous phrase's last. The line
 stays custom straight after a `form_a_long_wave` (Fold 4 refused it there: the
-role differs from the wave's, or the wave was already balanced) and after a
-wave-forming line the importer could not structure, or after the side-of-set
-long waves (`form_long_waves` from a bare `form long wave`), which a balance in
-a centre wave contradicts. Nothing checks that a wave is standing: a balance
+role differs from the wave's, or the wave was already balanced), after a
+wave-forming line the importer could not structure, and after a `form long
+wave` that states holds (`form_long_waves`), which the centre wave has no place
+for. A bare `form long wave` never reaches this pass: the role's balance has
+already made it that role's centre wave, balanced (maintainer ruling
+2026-11-24). Nothing checks that a wave is standing: a balance
 moves nobody, so the reading asserts no formation *(2026-11-24, Hudson: "try it and see"; the reading is
 the agent's call)*.
 

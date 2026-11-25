@@ -1,0 +1,14 @@
+{
+  "id": "tcb-role-centre-wave-after-long-wave",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "In a dance imported from The Caller's Box, \"form long wave\" followed by \"Men balance long wave in center\" is now one figure: the men form a long wave in the center and balance it. Before, the balance stayed as text."
+    ]
+  },
+  "core": {
+    "changed": [
+      "The Caller's Box adapter's in-centre follower takes `who` from a role-prefixed balance (`<role> balance long wave in center`) after a bare `form long wave`, so the pair folds into `form_a_long_wave {who: <role>, balance: true}` instead of leaving the balance custom."
+    ]
+  }
+}
