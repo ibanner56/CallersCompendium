@@ -754,7 +754,8 @@ Select **Program defaults** to open this group.
   the rule's row says so, and the placeholder still offers Fill.
 - **Rules** (optional, *Experimental*) — while [Event rules](#event-rules) is
   on, a template has a **Rules** row under its name, listing the template's
-  rules. Select it to open the same rule picker a program has, with **New
+  rules: each by its nickname with its sentence beneath, or by its sentence
+  if it has no nickname. Select it to open the same rule picker a program has, with **New
   rule…** at the top: tick the rules a program made from this template should
   start with, and untick one to take it off. They are added to each new
   program made from the template (see [Rules that come with a
