@@ -118,7 +118,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Caller's Compendium uses the camera only when you take a photo in the app, such as of a dance card to read its figures. The photo is read on your device and then deleted. It is never sent anywhere.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Caller's Compendium doesn't use your photo library. A photo you take in the app is read for its text on your device and then deleted, and is never saved to your library.</string>
+	<string>Caller's Compendium doesn't use your photo library. A photo you take in the app is read on your device and then deleted, and is never saved to your library.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

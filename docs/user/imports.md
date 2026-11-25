@@ -491,7 +491,9 @@ and iPad the system asks, the first time, whether the app may use the camera;
 on Android your phone's own camera app opens, and the app needs no camera
 permission. The code is read on your device and opens the same review; the
 photo is deleted as soon as the code has been read, or straight away if no code
-is found, and the app never adds it to your photo library. If you said no to the
+is found, and the app never adds it to your photo library. On Android, some
+phones' camera apps also keep their own copy in the gallery; that's a setting
+in the camera app. If you said no to the
 camera on iPhone or iPad, turn it on again in the Settings app, under
 **Caller's Compendium**. If Android closes the app while the camera is open,
 that photo isn't read; the app deletes it the next time you scan a code or
