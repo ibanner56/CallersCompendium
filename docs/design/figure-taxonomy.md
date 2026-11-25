@@ -2577,7 +2577,10 @@ If the amended change needs that pass to re-run, it needs a marker of its own.
       to custom: nothing reads the subject onto `who` yet.
     - Search filters on the stored id and stored params, as before: a "pass
       through" leaf matches pass throughs and not passes by, and neither leaf
-      offers the pass type, which is never stored. A matrix column saved on
+      offers the pass type, which is never stored. Nor do Settings' per-move
+      defaults offer it for either: a default `by` on pass through would turn
+      every pass through picked into a pass by. Both ask
+      `Taxonomy.isParamNamedById`. A matrix column saved on
       pass through counts pass throughs only, as before: the target of a
       listed alias's pair whose default is not the pin constrains that param
       to its default. The built-in matrix catalog now lists pass by right
