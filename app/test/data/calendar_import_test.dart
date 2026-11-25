@@ -5,6 +5,7 @@ import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/calendar_import.dart';
 import 'package:compendium_app/src/data/calendar_import_settings.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/event_rules_scope.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/program_templates.dart';
 import 'package:compendium_app/src/diagnostics/sensitive_terms.dart';
@@ -282,6 +283,65 @@ void main() {
         (null, 'Easy family opener', 'search-1'),
       ]);
       expect(p.slots[1].isPlaceholder, isTrue);
+    });
+
+    test("drafts start with exactly the Default template's live event rules "
+        'while Event rules is on, and a later edit to the template changes '
+        'none of them (#2342)', () async {
+      final repos = openTestRepositories();
+      Future<EventRule> rule(String nickname) => repos.eventRules.create(
+        savedSearchId: 'search-1',
+        quantifier: EventRuleQuantifier.none,
+        scope: EventRuleScope.wholeProgram,
+        nickname: nickname,
+      );
+      final kept = await rule('kept');
+      final deleted = await rule('deleted');
+      final later = await rule('later');
+      await repos.eventRules.delete(deleted.id);
+      await saveProgramTemplate(
+        repos.settings,
+        ProgramTemplate(
+          id: 'family',
+          name: 'Family dance',
+          eventRuleIds: [deleted.id, kept.id],
+        ),
+      );
+      await saveProgramTemplateOrder(repos.settings, const ['family']);
+      await saveProgramTemplateDefault(repos.settings, 'family');
+      Future<Program> importOne(String uid) async {
+        final ids = await _importAll(
+          repos,
+          await _preview(
+            repos,
+            _cal([
+              ['UID:$uid', 'DTSTART;VALUE=DATE:20300620', 'SUMMARY:$uid'],
+            ]),
+          ),
+        );
+        return (await repos.programs.getById(ids.single))!;
+      }
+
+      expect(
+        (await importOne('off')).eventRuleIds,
+        isEmpty,
+        reason: 'Event rules is off',
+      );
+      await repos.settings.set(kEventRulesEnabledKey, true);
+      final on = await importOne('on');
+      expect(on.eventRuleIds, [kept.id]);
+
+      // Editing the template afterwards changes no program made from it.
+      await saveProgramTemplate(
+        repos.settings,
+        ProgramTemplate(
+          id: 'family',
+          name: 'Family dance',
+          eventRuleIds: [later.id],
+        ),
+      );
+      expect((await repos.programs.getById(on.id))!.eventRuleIds, [kept.id]);
+      expect((await importOne('next')).eventRuleIds, [later.id]);
     });
 
     test('a timed event gives its draft a start and end; an all-day one gives '

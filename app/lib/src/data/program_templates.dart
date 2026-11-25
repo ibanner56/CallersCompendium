@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:compendium_core/compendium_core.dart';
 
 import 'display_defaults.dart';
+import 'event_rules_scope.dart' show kEventRulesEnabledKey;
 
 /// Program templates (#2337): named starting shapes for a new program.
 ///
@@ -18,7 +19,10 @@ import 'display_defaults.dart';
 /// ([encodeProgramTemplateSlots]); its value is versioned so a later change can
 /// add a field. Version 2 (#2338) adds one entry kind, the slot rule
 /// ([ProgramTemplateEntry.rule]); a template without one is still written as
-/// version 1, byte for byte as before.
+/// version 1, byte for byte as before. Version 3 (#2342) adds one top-level
+/// field, `eventRuleIds`, the event rules a program made from the template
+/// starts with ([ProgramTemplate.eventRuleIds]); a template without one is
+/// still written as version 1 or 2, byte for byte as before.
 const String kProgramTemplateKeyPrefix = 'program_template:';
 
 /// The templates' order, as a JSON list of template ids.
@@ -51,6 +55,29 @@ const int _programTemplateVersion = 1;
 /// is ever sent one.
 const int _programTemplateVersionWithRules = 2;
 
+/// The value version of a template with at least one event rule (#2342), in
+/// its top-level `eventRuleIds`.
+///
+/// Every build that can be sent one reads it: a template holding event rules
+/// waits for `eventRules.v1` as well as `programTemplates.v1`
+/// (`SyncCapabilityPolicy.gatedSettingValueFields`), so no build without
+/// event rules is sent one, and event-rule ids joined templates before any
+/// release carried either capability. A build that cannot read it skips the
+/// template and never writes it, so it is kept whole rather than rewritten
+/// without the field.
+const int _programTemplateVersionWithEventRules = 3;
+
+/// The top-level field of a template value listing its event rules (#2342).
+///
+/// The sync capability gate names it too (`gatedSettingValueFields` in
+/// `SyncCapabilityPolicy.build`), so a template holding rules waits for
+/// `eventRules.v1`.
+const String kProgramTemplateEventRuleIdsField = 'eventRuleIds';
+
+/// The longest event-rule id a template keeps (#2342), as long as a slot
+/// rule's saved-search id may be.
+const int kMaxProgramTemplateEventRuleIdLength = 128;
+
 /// The longest template name kept; a longer one is cut on encode and rejected
 /// on decode.
 const int kMaxProgramTemplateNameLength = 100;
@@ -67,27 +94,52 @@ bool isValidProgramTemplateId(String id) => _templateIdPattern.hasMatch(id);
 /// The settings key holding template [id].
 String programTemplateKey(String id) => '$kProgramTemplateKeyPrefix$id';
 
-/// A named program template: an ordered list of slot entries.
+/// A named program template: an ordered list of slot entries, and the event
+/// rules a program made from it starts with.
 class ProgramTemplate {
   const ProgramTemplate({
     required this.id,
     required this.name,
     this.entries = const [],
+    this.eventRuleIds = const [],
   });
 
   final String id;
   final String name;
   final List<ProgramTemplateEntry> entries;
 
+  /// The ids of the event rules (#2340) a program made from this template
+  /// starts with applied (#2342), in order. Kept whatever the Experimental
+  /// Event rules toggle says, and whether or not each rule is still live: a
+  /// rule that is deleted or not on this device is skipped when a program is
+  /// made ([newProgramEventRuleIds]), and an Undo of its delete
+  /// brings it back here too. Written normalized ([normalizeEventRuleIds]).
+  final List<String> eventRuleIds;
+
+  /// A copy with the fields given replaced; every other field, the event
+  /// rules included, is kept, so a write that does not edit them (a rename,
+  /// or the editor while Event rules is off) never drops them.
   ProgramTemplate copyWith({
     String? name,
     List<ProgramTemplateEntry>? entries,
+    List<String>? eventRuleIds,
   }) => ProgramTemplate(
     id: id,
     name: name ?? this.name,
     entries: entries ?? this.entries,
+    eventRuleIds: eventRuleIds ?? this.eventRuleIds,
   );
 }
+
+/// [ids] as a template keeps them: [normalizeEventRuleIds], less any id longer
+/// than [kMaxProgramTemplateEventRuleIdLength], so the result always decodes.
+List<String> _normalizeTemplateEventRuleIds(List<String> ids) =>
+    normalizeEventRuleIds([
+      for (final id in ids)
+        if (id.trim().isNotEmpty &&
+            id.length <= kMaxProgramTemplateEventRuleIdLength)
+          id,
+    ]);
 
 /// Encodes [template]'s value (its id is the key, not part of the value).
 String encodeProgramTemplate(ProgramTemplate template) {
@@ -102,19 +154,28 @@ String encodeProgramTemplate(ProgramTemplate template) {
   final name = trimmed.substring(0, end);
   final slots = encodeProgramTemplateSlots(template.entries);
   final hasRule = slots.any((slot) => slot.containsKey('savedSearchId'));
+  final eventRuleIds = _normalizeTemplateEventRuleIds(template.eventRuleIds);
   return jsonEncode({
-    'version': hasRule
+    'version': eventRuleIds.isNotEmpty
+        ? _programTemplateVersionWithEventRules
+        : hasRule
         ? _programTemplateVersionWithRules
         : _programTemplateVersion,
     'name': name,
     'slots': slots,
+    // Last, and only when there is one, so a template without event rules is
+    // the version 1 or 2 value it always was.
+    if (eventRuleIds.isNotEmpty)
+      kProgramTemplateEventRuleIdsField: eventRuleIds,
   });
 }
 
 /// Decodes the value stored for template [id], or `null` when the id or the
 /// value is invalid. Strict, so it doubles as the backup validator: unknown
 /// fields, an unknown version or any bad slot reject the whole value. A slot
-/// rule is accepted only in a version 2 value.
+/// rule is accepted only in a version 2 or 3 value, and `eventRuleIds` only in
+/// a version 3 value, as a list of 1 to [maxProgramEventRules] distinct
+/// non-blank ids of at most [kMaxProgramTemplateEventRuleIdLength] units.
 ProgramTemplate? tryDecodeProgramTemplate(String id, Object? stored) {
   if (!isValidProgramTemplateId(id) || stored is! String) return null;
   try {
@@ -122,11 +183,17 @@ ProgramTemplate? tryDecodeProgramTemplate(String id, Object? stored) {
     if (decoded is! Map) return null;
     final version = decoded['version'];
     if (version != _programTemplateVersion &&
-        version != _programTemplateVersionWithRules) {
+        version != _programTemplateVersionWithRules &&
+        version != _programTemplateVersionWithEventRules) {
       return null;
     }
+    final withEventRules = version == _programTemplateVersionWithEventRules;
     if (!decoded.keys.every(
-      (key) => key == 'version' || key == 'name' || key == 'slots',
+      (key) =>
+          key == 'version' ||
+          key == 'name' ||
+          key == 'slots' ||
+          (withEventRules && key == kProgramTemplateEventRuleIdsField),
     )) {
       return null;
     }
@@ -136,14 +203,49 @@ ProgramTemplate? tryDecodeProgramTemplate(String id, Object? stored) {
     }
     final entries = tryDecodeProgramTemplateSlots(
       decoded['slots'],
-      allowRules: version == _programTemplateVersionWithRules,
+      allowRules: version != _programTemplateVersion,
     );
     if (entries == null) return null;
-    return ProgramTemplate(id: id, name: name, entries: entries);
+    var eventRuleIds = const <String>[];
+    if (withEventRules) {
+      final decodedIds = _tryDecodeTemplateEventRuleIds(
+        decoded[kProgramTemplateEventRuleIdsField],
+      );
+      if (decodedIds == null) return null;
+      eventRuleIds = decodedIds;
+    }
+    return ProgramTemplate(
+      id: id,
+      name: name,
+      entries: entries,
+      eventRuleIds: eventRuleIds,
+    );
   } catch (_) {
     // diagnostics: silent — malformed settings data returns null.
     return null;
   }
+}
+
+/// A version 3 template's `eventRuleIds`, or `null` unless it is a list of 1
+/// to [maxProgramEventRules] distinct non-blank strings of at most
+/// [kMaxProgramTemplateEventRuleIdLength] units: exactly what
+/// [encodeProgramTemplate] writes.
+List<String>? _tryDecodeTemplateEventRuleIds(Object? raw) {
+  if (raw is! List || raw.isEmpty || raw.length > maxProgramEventRules) {
+    return null;
+  }
+  final ids = <String>[];
+  final seen = <String>{};
+  for (final id in raw) {
+    if (id is! String ||
+        id.trim().isEmpty ||
+        id.length > kMaxProgramTemplateEventRuleIdLength ||
+        !seen.add(id)) {
+      return null;
+    }
+    ids.add(id);
+  }
+  return List.unmodifiable(ids);
 }
 
 /// Decodes the order key: a list of distinct valid template ids, or `null`.
@@ -320,14 +422,41 @@ Future<ProgramTemplates> loadProgramTemplates(
   );
 }
 
-/// The slot entries of the **Default template**, or none for Blank program:
-/// the one function a program created outside the New program flow (the
-/// calendar import, #2352) calls for its starting shape.
+/// The **Default template**, or `null` for Blank program: the one function a
+/// program created outside the New program flow (the calendar import, #2352)
+/// calls for its starting shape, its slots and ([newProgramEventRuleIds]) its
+/// event rules.
+Future<ProgramTemplate?> defaultProgramTemplate(
+  SettingsRepository settings,
+) async => (await loadProgramTemplates(settings)).defaultTemplate;
+
+/// The slot entries of the **Default template** ([defaultProgramTemplate]),
+/// or none for Blank program.
 Future<List<ProgramTemplateEntry>> defaultProgramTemplateEntries(
   SettingsRepository settings,
+) async => (await defaultProgramTemplate(settings))?.entries ?? const [];
+
+/// The event rules a new program made from [template] starts with applied
+/// (#2342): every rule [ProgramTemplate.eventRuleIds] lists that is live on
+/// this device, in the template's order; none for no template (Blank
+/// program), or while the Experimental Event rules toggle
+/// ([kEventRulesEnabledKey]) is off.
+///
+/// The one function both ways a program is made from a template call: **New
+/// program** and the Default template's use outside it (the calendar
+/// import). Choosing a template that carries rules is the caller adding them,
+/// so they are copied onto the program as it is made; a later edit to the
+/// template changes no program. A rule that is deleted, or not on this device
+/// yet, is skipped, and the template keeps it.
+Future<List<String>> newProgramEventRuleIds(
+  CompendiumRepositories repos,
+  ProgramTemplate? template,
 ) async {
-  final templates = await loadProgramTemplates(settings);
-  return templates.defaultTemplate?.entries ?? const [];
+  final ids = template?.eventRuleIds ?? const <String>[];
+  if (ids.isEmpty) return const [];
+  if (await repos.settings.get(kEventRulesEnabledKey) != true) return const [];
+  final live = await repos.eventRules.getMany(ids);
+  return normalizeEventRuleIds([for (final rule in live) rule.id]);
 }
 
 /// Writes [template] under its own key, and only that key (after
@@ -435,17 +564,23 @@ class ProgramTemplateChoice {
   int get hashCode => Object.hash(templateId, blank);
 }
 
-/// The entries [choice] resolves to in [templates]. A template that is no
-/// longer there gives none.
-List<ProgramTemplateEntry> programTemplateEntriesFor(
+/// The template [choice] resolves to in [templates], or `null` for Blank
+/// program or a template that is no longer there.
+ProgramTemplate? programTemplateFor(
   ProgramTemplates templates,
   ProgramTemplateChoice choice,
 ) {
-  if (choice.blank) return const [];
+  if (choice.blank) return null;
   final id = choice.templateId;
-  final template = id == null ? templates.defaultTemplate : templates.byId(id);
-  return template?.entries ?? const [];
+  return id == null ? templates.defaultTemplate : templates.byId(id);
 }
+
+/// The entries [choice] resolves to in [templates] ([programTemplateFor]). A
+/// template that is no longer there gives none.
+List<ProgramTemplateEntry> programTemplateEntriesFor(
+  ProgramTemplates templates,
+  ProgramTemplateChoice choice,
+) => programTemplateFor(templates, choice)?.entries ?? const [];
 
 /// Fresh program slots for template [entries]: a new id and position for each,
 /// skipping a dance no longer in the collection ([danceExists]) while the

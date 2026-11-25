@@ -498,9 +498,10 @@ Future<void> clearCalendarFlag(
 /// Each draft has the event's title ([untitledTitle] when it has none), its
 /// date, its start and end times when the event is timed (#2423), its venue
 /// label (and linked venue record when one matched), status
-/// Draft, the **Default template**'s slots (#2337,
-/// [defaultProgramTemplateEntries]; none for Blank program), the default
-/// caller and band, and the event's key.
+/// Draft, the **Default template**'s slots (#2337, [defaultProgramTemplate];
+/// none for Blank program) and its live event rules while Event rules is on
+/// (#2342, [newProgramEventRuleIds]), the default caller and band, and the
+/// event's key.
 /// Nothing from `DESCRIPTION`, `ORGANIZER`, `ATTENDEE` or `URL`: the parser
 /// never reads them.
 ///
@@ -514,7 +515,7 @@ Future<List<String>> commitCalendarImport(
 }) async {
   final caller = await _defaultText(repos, kDefaultProgramCallerKey);
   final band = await _defaultText(repos, kDefaultProgramBandKey);
-  final template = await _startingTemplate(repos);
+  final (template, eventRuleIds) = await _startingTemplate(repos);
   final created = <String>[];
   // At the store's precision, so the untouched test compares equal values.
   final stamp = calendarWriteStamp(now, DateTime.utc(1970));
@@ -541,6 +542,9 @@ Future<List<String>> commitCalendarImport(
             for (final (i, slot) in template.indexed)
               programSlotForTemplateEntry(slot, position: i),
           ],
+          // The Default template's rules, copied: choosing a template that
+          // carries rules adds them (#2342).
+          eventRuleIds: eventRuleIds,
           calendarEventKey: c.eventKey,
           calendarEventFingerprint: c.fingerprint,
           calendarWrittenAt: stamp,
@@ -569,18 +573,22 @@ Future<String?> _defaultText(CompendiumRepositories repos, String key) async {
   }
 }
 
-/// The Default template's entries whose dance is still live, as New program
-/// uses them (#2337).
-Future<List<ProgramTemplateEntry>> _startingTemplate(
+/// The Default template's entries whose dance is still live, and its live
+/// event rules ([newProgramEventRuleIds]), as New program uses them (#2337,
+/// #2342).
+Future<(List<ProgramTemplateEntry>, List<String>)> _startingTemplate(
   CompendiumRepositories repos,
 ) async {
-  final List<ProgramTemplateEntry> entries;
+  final ProgramTemplate? template;
+  final List<String> eventRuleIds;
   try {
-    entries = await defaultProgramTemplateEntries(repos.settings);
+    template = await defaultProgramTemplate(repos.settings);
+    eventRuleIds = await newProgramEventRuleIds(repos, template);
   } catch (error, stackTrace) {
     logCaughtError(error, stackTrace, source: 'calendar_import._template');
-    return const [];
+    return (const <ProgramTemplateEntry>[], const <String>[]);
   }
+  final entries = template?.entries ?? const <ProgramTemplateEntry>[];
   final out = <ProgramTemplateEntry>[];
   for (final entry in entries) {
     final danceId = entry.danceId;
@@ -589,7 +597,7 @@ Future<List<ProgramTemplateEntry>> _startingTemplate(
     }
     out.add(entry);
   }
-  return out;
+  return (out, eventRuleIds);
 }
 
 /// The typed-venue [VenueKey] fold of [name] (whitespace collapsed, case
