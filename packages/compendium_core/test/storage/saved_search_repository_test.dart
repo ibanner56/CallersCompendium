@@ -190,10 +190,11 @@ void main() {
         name: 'Raced',
         spec: specFor('a'),
       );
-      // Another writer (a sync pass, the rule editor) that adds a rule only
-      // while the search is live, started in the window after the event
-      // rules' lookup has answered "no uses". It runs outside the delete's
-      // zone, as a real one would.
+      // A writer that adds a rule only while the search is live, started in
+      // the window after the event rules' lookup has answered "no uses". No
+      // real writer checks this yet (see `delete`'s doc comment): the check
+      // is what gives the race an outcome to observe. It runs outside the
+      // delete's zone, as another writer would.
       Future<void>? racer;
       repos.savedSearches.usage.register('racer', (id) async {
         racer ??= Zone.root.run(
