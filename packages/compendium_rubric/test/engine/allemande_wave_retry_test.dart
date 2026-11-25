@@ -203,15 +203,36 @@ void main() {
       expect(waves.toRolesNotation(), ['. L2-B . . R2-B', 'R1-A . . L1-A .']);
     });
 
-    test('partners who finish in one row have no reading, not a box', () {
-      // Partners stand in one row in Duple Improper; stepping both pairs in
-      // would leave each row side by side facing the same way.
+    test('partners who finish in one row are read the same way', () {
+      // Partners stand in one row in Duple Improper. Hudson ruled
+      // (2026-11-25) that their allemande 1 1/2 gets the short-wave reading
+      // too: it is only a retry, kept when the dance compiles from it.
       const allemande = Allemande(
         who: WhoSet.partners,
         hand: Hand.right,
         turn: 1.5,
       );
       final handed = _di();
+      final after = _ok(allemande, handed);
+      final waves = allemandeWaveReading(handed, after, allemande)!;
+      expect(waves.toRolesNotation(), ['. L1-A . R1-A .', '. R2-B . L2-B .']);
+      for (final id in waves.dancersInRow(0)) {
+        expect(waves.stateOf(id).facing, Facing.down);
+      }
+      for (final id in waves.dancersInRow(1)) {
+        expect(waves.stateOf(id).facing, Facing.up);
+      }
+    });
+
+    test('a pair whose step in would land on another dancer has none', () {
+      // In a line of four the ones stand at the ends, c0 and c4, with the
+      // twos between them: stepping the ones in would put two dancers in
+      // one cell, so there is no reading (from review).
+      final handed = parseRolesNotation([
+        'R1-A L2-B . R2-B L1-A',
+        'R1-C L2-D . R2-D L1-C',
+      ], type: FormationType.dupleImproper);
+      const allemande = Allemande(who: WhoSet.ones, hand: Hand.right);
       final after = _ok(allemande, handed);
       expect(allemandeWaveReading(handed, after, allemande), isNull);
     });
@@ -302,9 +323,10 @@ void main() {
       expect(_retried(result), isFalse);
     });
 
-    test('an allemande with no reading is not retried', () {
-      // Partners' allemande 1 1/2 has no reading (they finish in one row),
-      // so the Larks' 3/4 across the set refuses exactly as it did before.
+    test('a reading the next figure refuses from too is not kept', () {
+      // Partners' allemande 1 1/2 is read in one row (user-ruled
+      // 2026-11-25), but the Larks' 3/4 across the set refuses from that
+      // reading too, so the refusal stands exactly as it did before.
       final record = {
         ..._jerryGoesToCamp,
         'figures': [

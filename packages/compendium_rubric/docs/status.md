@@ -219,7 +219,8 @@
 > no "to N2", a dance with another figure flagged) would otherwise be danced
 > as an unflagged one-place slide, so a single-file promenade along the set
 > is now deferred unless it carries the progression flag, and a stated
-> destination is deferred. `shift` is not built yet.
+> destination is deferred. `shift` is not built yet. (Replaced on 2026-11-25
+> by Hudson's ruling above: the destination says how far it travels.)
 > Against `rubric` at `6527c9d7`: 4,532 of 5,623 to 4,556 of 5,691 compiled
 > in scope (80.6% to 80.1%), the core set 577 to 580. 29 dances now compile
 > and 5 no longer do: Spare Parts (12030, core) and Bloomingfoods Reel Food
@@ -233,6 +234,20 @@
 > `shift`, 1 at a `whom: shadows` slot, and 8 refuse at a figure; Lost at Sea
 > (18113) moved from refusing to a `shadows` deferral. Pass Thru Two (1005)
 > still refuses where it did.
+>
+> **Hudson's rulings on the sync and the short waves (2026-11-25)**: a
+> single-file promenade along the set travels as far as its `destination`
+> says, whether or not it is the progression: to the next neighbours is one
+> place, and any other destination is deferred. One with no destination is
+> deferred too, its distance unknown (the agent's call). Partners after an
+> allemande 1½, who finish in one row, now get the short-wave reading like
+> any centre pair, and a dance that compiles from an allemande's short waves
+> is a plain pass, no longer a near miss that tries the record's next
+> progression placement. Against `rubric` at `71cda9a9`: 4,556 of 5,691
+> compiled in scope (80.1%) before and after, the core set unchanged at 580,
+> no dance gained or lost. Kaiser's Turnstyle (8017) now compiles on its
+> positional placement from the short waves rather than on the next
+> neighbours.
 >
 > **A dance can go on from the short waves an allemande leaves (2026-11-24)**:
 > when the figure straight after an allemande refuses, or the whole dance
@@ -673,10 +688,10 @@ from this table because the compiler never ran against them. **Pass rate** is
   with no couples waiting out.
 - `chain dir:along` is deferred as four-facing-four choreography.
 - `promenade` supports `where: across` for side-by-side pairs, and single file
-  `where: along` the set where it carries the progression flag. Other
-  single-file promenades (an unflagged one along the set included), stated
-  destinations, every other `where`, and a `direction` stated `unspecified`
-  are deferred. (A Caller's Box promenade that imports
+  `where: along` the set to the next neighbours. Other single-file
+  promenades (one along the set to anyone else, or to no one stated), other
+  stated destinations, every other `where`, and a `direction` stated
+  `unspecified` are deferred. (A Caller's Box promenade that imports
   with no `where` is not a deferral: see "Entirely deferred impact".)
 - Diagonal `hey` is deferred; it must agree with diagonal
   `right_left_through`, which is now built.

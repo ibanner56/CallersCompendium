@@ -17,11 +17,12 @@ import 'result.dart';
 /// left. Null when there is no wave reading to try:
 ///
 /// - an allemande **in the centre**, every turning pair having started one on
-///   each side of the set and finishing in the two rows of one band, moves
-///   each of those dancers one column in, so the pair stands as the centre
-///   of a short wave. A pair that finishes in one row has no reading (the
-///   two would stand side by side facing the same way, a box), and a pair a
-///   change-over sent out to an end is left where it is;
+///   each side of the set and finishing in one band, moves each of those
+///   dancers one column in, so the pair stands as the centre of a short
+///   wave. A pair that finishes in one row is read the same way (user-ruled
+///   2026-11-25), a pair whose step in would land on another dancer (a line
+///   of four) has no reading, and a pair a change-over sent out to an end is
+///   left where it is;
 /// - an allemande **on the side**, every turning pair having started on one
 ///   side line, sets every complete hands four's columns as
 ///   `form_short_waves` would with that outside hand, so a neighbour
@@ -61,21 +62,23 @@ Formation? allemandeWaveReading(
       final b = state.stateOf(pair.b).position;
       // A pair a change-over sent out to an end is waiting, not in a wave.
       if (!active.contains(a.row) || !active.contains(b.row)) continue;
-      // Two who finish in one row would step in to stand side by side
-      // facing the same way, a box rather than a wave (§8.5.1); two in
-      // different bands are no one wave's centre.
-      if (a.row == b.row ||
-          handsFourBandContaining(state, a.row) !=
-              handsFourBandContaining(state, b.row)) {
+      // Two in different bands are no one wave's centre. Two who finish in
+      // one row, such as partners after an allemande 1½, are read the same
+      // way: the reading is only a retry, kept when the dance compiles from
+      // it (user-ruled 2026-11-25).
+      if (handsFourBandContaining(state, a.row) !=
+          handsFourBandContaining(state, b.row)) {
         return null;
       }
       for (final id in [pair.a, pair.b]) {
         final dancer = state.stateOf(id);
         final at = dancer.position.col;
         if (at != 0 && at != east) return null;
-        changes[id] = dancer.copyWith(
-          position: Position(dancer.position.row, at == 0 ? 1 : east - 1),
-        );
+        final target = Position(dancer.position.row, at == 0 ? 1 : east - 1);
+        // A line of four already holds the cell the pair would step into, so
+        // the pair has nowhere to stand as a wave's centre (from review).
+        if (state.dancerAt(target) != null) return null;
+        changes[id] = dancer.copyWith(position: target);
       }
     }
     if (changes.isEmpty) return null;

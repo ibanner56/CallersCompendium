@@ -602,11 +602,10 @@ The **short-wave reading** of an allemande (`allemandeWaveReading`,
 - **in the centre** — every turning pair started one on each side of the set: each of those
   dancers moves one column in (c0 to c1, c4 to c3), so the pair is the centre of a short wave,
   and every band's top row faces Down and bottom row Up (§8.5.1). Nobody changes row. The pair
-  must finish in the two rows of one band: two who finish in one row, such as partners after
-  an allemande 1½, would step in side by side facing the same way, a box rather than a wave, so
-  that allemande has no reading. A pair that a progression's change-over sent out to an end is
-  waiting, and stays where it is. *(Both agent's calls, 2026-11-24, from review; neither changed
-  a corpus outcome.)*
+  must finish in one band. Two who finish in one row, such as partners after an allemande 1½,
+  are read the same way: the reading is only a retry, kept when the dance compiles from it
+  *(user-ruled 2026-11-25)*. A pair that a progression's change-over sent out to an end is
+  waiting, and stays where it is *(agent's call, 2026-11-24, from review)*.
 - **on the side** — every turning pair started on one side line: the set is placed as
   `form_short_waves` would place it with that **outside** hand, so the centre joins the other
   hand. A neighbour allemande right gives the wave whose `centerHand` is `left`.
@@ -631,11 +630,10 @@ a mismatch, so a mismatch is retried from one allemande's waves at most *(agent'
 refusal inside such a fold may still be. Unlike the end-effect retry (§10.7), this one does run on a dance that lands elsewhere:
 there is one reading per allemande, not one per figure, so the search stays small.
 
-The wave is a guess the source never states, so the Caller's Box bridge treats a dance that
-compiled only this way as a **near miss**, like one that ended a column off: it still tries the
-record's own alternative progression placement, and takes that if it matches exactly *(agent's
-call, from review)*. That keeps one dance (8017) on the next-neighbours placement it already
-compiled on exactly, rather than a guessed wave on its positional one.
+A dance that compiles this way **passes**: the Caller's Box bridge does not treat it as a near
+miss, and tries no other progression placement for it *(user-ruled 2026-11-25, replacing the
+agent's near-miss call of 2026-11-24)*. Kaiser's Turnstyle (8017) compiles on its positional
+placement this way, where the near-miss reading had moved it to the next-neighbours one.
 
 *Measured 2026-11-24 against `rubric` at `4cc6c406`, with the centre-pair turn above:* 4,484 of
 5,617 to 4,532 of 5,623 compiled in scope (79.8% to 80.6%), 48 dances gained (44 through the

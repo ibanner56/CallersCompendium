@@ -2,10 +2,11 @@ import 'package:compendium_rubric/compendium_rubric.dart';
 import 'package:test/test.dart';
 
 /// How the Caller's Box bridge treats a near miss, a reading that compiled
-/// only one column off ([WarningKind.endedColumnOffset]) or only from an
-/// allemande's short waves ([WarningKind.allemandeWaveRetry]): it tries the
+/// only one column off ([WarningKind.endedColumnOffset]): it tries the
 /// record's next placement, and takes that placement only if it compiles and
-/// is not a near miss too (agent's call).
+/// is not a near miss too (agent's call). A compile from an allemande's short
+/// waves ([WarningKind.allemandeWaveRetry]) is a plain pass *(user-ruled
+/// 2026-11-25)*.
 void main() {
   const offset = [Warning(WarningKind.endedColumnOffset, detail: 'x')];
   const none = <Warning>[];
@@ -19,9 +20,9 @@ void main() {
       expect(triesAnotherReading(DanceOutcome.compiled, none), isFalse);
     });
 
-    test('after a compile that needed an allemande\'s short waves', () {
+    test('not after a compile that needed an allemande\'s short waves', () {
       const waves = [Warning(WarningKind.allemandeWaveRetry, detail: 'x')];
-      expect(triesAnotherReading(DanceOutcome.compiled, waves), isTrue);
+      expect(triesAnotherReading(DanceOutcome.compiled, waves), isFalse);
     });
 
     test('after a mismatch, but never after a crash', () {

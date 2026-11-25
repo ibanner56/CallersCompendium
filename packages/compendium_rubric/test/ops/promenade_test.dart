@@ -119,7 +119,9 @@ void main() {
     // which every dancer walks one place clockwise around the outside of the
     // whole set. Clockwise from above, with the top of the set at row 0 and
     // the west column on the left, carries the west line up and the east
-    // line down: the same displacement as a slide left.
+    // line down: the same displacement as a slide left. Its destination
+    // says how far it travels (user-ruled 2026-11-25): to the next
+    // neighbours is one place.
     final improper = startingFormation(
       FormationType.dupleImproper,
       handsFour: 2,
@@ -130,25 +132,32 @@ void main() {
         where: 'along',
         singleFile: true,
         direction: SpinDirection.clockwise,
+        destination: WhoSet.nextNeighbors,
       );
       expect(applyOk(op, improper), applyOk(const SlideAlongSet(), improper));
     });
 
     test('counterclockwise lands where a slide right does', () {
-      const op = Promenade(where: 'along', singleFile: true);
+      const op = Promenade(
+        where: 'along',
+        singleFile: true,
+        destination: WhoSet.nextNeighbors,
+      );
       expect(
         applyOk(op, improper),
         applyOk(const SlideAlongSet(slide: SlideDirection.right), improper),
       );
     });
 
-    test('a stated destination is deferred, even the next neighbours', () {
-      // "… around the major set to N2": the import writes `destination:
-      // nextNeighbors` since the taxonomy-v40 sync. The Caller's Box bridge
-      // drops it from the promenade it takes as the progression, so a
-      // promenade that still states one is one the bridge left alone, and
-      // is deferred (agent's call).
-      for (final destination in [WhoSet.nextNeighbors, WhoSet.thirdNeighbors]) {
+    test('any other destination, or none, is deferred', () {
+      // Two places, the partner, N3: travel this landing does not model. With
+      // no destination the distance is unknown: the promenade may go all the
+      // way round, or out and back (agent's call, 2026-11-25).
+      for (final destination in [
+        null,
+        WhoSet.thirdNeighbors,
+        WhoSet.partners,
+      ]) {
         final op = Promenade(
           where: 'along',
           singleFile: true,
@@ -163,7 +172,11 @@ void main() {
     });
 
     test('is its own progression, like the slide', () {
-      const op = Promenade(where: 'along', singleFile: true);
+      const op = Promenade(
+        where: 'along',
+        singleFile: true,
+        destination: WhoSet.nextNeighbors,
+      );
       expect(op.isItsOwnProgression, isTrue);
       expect(op.progressionEligible, isTrue);
       expect(const Promenade().isItsOwnProgression, isFalse);
@@ -176,7 +189,11 @@ void main() {
         for (final MapEntry(:key, :value) in improper.dancers.entries)
           key: value.copyWith(facing: Facing.up),
       });
-      const op = Promenade(where: 'along', singleFile: true);
+      const op = Promenade(
+        where: 'along',
+        singleFile: true,
+        destination: WhoSet.nextNeighbors,
+      );
       final landed = applyOk(op, facingUp);
       for (final state in landed.dancers.values) {
         expect(
@@ -190,7 +207,11 @@ void main() {
     test('sizes and names its dancers like the slide', () {
       // It moves the whole set, so it names no dancer set and spans one
       // hands four, as the slide does; the across promenade spans none.
-      const op = Promenade(where: 'along', singleFile: true);
+      const op = Promenade(
+        where: 'along',
+        singleFile: true,
+        destination: WhoSet.nextNeighbors,
+      );
       expect(op.hands4Contribution, const SlideAlongSet().hands4Contribution);
       expect(op.hands4Contribution, 1);
       expect(op.dancerSets, isEmpty);
