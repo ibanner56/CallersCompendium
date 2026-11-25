@@ -159,12 +159,16 @@ any track (including testing) can go live. Answers are drafted in
   `AD_ID`; declare that the app does not use an advertising ID. (If a dependency
   pulls the `com.google.android.gms.permission.AD_ID` permission in, either
   remove it via manifest merge or declare its use — mismatches get flagged.)
-- [x] **[Confirm]** **No camera permission** — a dance's QR code is read by the
-  phone's camera app or Google Lens, which opens the app through a `BROWSABLE`
+- [x] **[Confirm]** **No camera permission** — a dance's QR code can be read by
+  the phone's camera app or Google Lens, which opens the app through a `BROWSABLE`
   `VIEW` filter on the `ccdance` scheme (#2335). It is a custom scheme, not an
   `https` app link, so there is no Digital Asset Links file to publish, and no
-  `CAMERA` permission to declare. **Take a photo** (#2328) is iOS only, so the
-  Android build offers no camera feature; `app/test/photo_capture_test.dart`
+  `CAMERA` permission to declare. **Scan a dance code** in **Import…** (#2336)
+  takes its photo through `image_picker`'s `ACTION_IMAGE_CAPTURE` intent: the
+  phone's own camera app takes it, so no `CAMERA` permission is needed (**Take a
+  photo**, #2328, is iOS only). The photo is written to the app's cache, read,
+  and deleted; a cancelled capture's empty file, and a photo left when Android
+  closed the app mid-photo, are deleted at the next capture or start. `app/test/photo_capture_test.dart`
   fails if the app's own Android manifests, or the manifest of any Android
   plugin it links (both are merged into the build), declare `CAMERA`. The
   `image_picker` plugin adds a file provider and a disabled photo-picker
