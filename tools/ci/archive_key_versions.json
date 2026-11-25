@@ -150,7 +150,8 @@
     "guestCaller": "baseline",
     "walkthroughMinutes": "baseline",
     "danceMinutes": "baseline",
-    "performedAt": "baseline"
+    "performedAt": "baseline",
+    "placeholderSearchId": "backupSchemaVersionPlaceholderSlots"
   },
   "archiveVenueToJson": {
     "id": "baseline",

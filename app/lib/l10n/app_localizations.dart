@@ -21538,6 +21538,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'\"{name}\" was deleted, here or on another device, so nothing was changed.'**
   String savedSearchGone(String name);
+
+  /// Secondary button in the program template editor that adds a slot rule: a slot that describes a kind of dance (with a saved search) instead of naming one (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'Add slot rule'**
+  String get programTemplateAddSlotRule;
+
+  /// Screen-reader label of the icon on a slot rule in the program template editor, and its subtitle while the saved searches load (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'Slot rule'**
+  String get programTemplateSlotRuleBadge;
+
+  /// Subtitle of a slot rule in the program template editor: the saved search that says which dances it means (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'Filled from the saved search \"{name}\"'**
+  String programTemplateSlotRuleSubtitle(String name);
+
+  /// Subtitle of a slot rule in the program template editor whose saved search no longer exists (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'Its saved search was deleted'**
+  String get programTemplateSlotRuleSearchGone;
+
+  /// Title of the dialog that adds a slot rule to a program template (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'Add slot rule'**
+  String get programTemplateSlotRuleDialogTitle;
+
+  /// Explanation in the dialog that adds a slot rule to a program template (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'Describe a kind of dance instead of naming one. A program made from this template shows it as a placeholder, which you fill from the saved search.'**
+  String get programTemplateSlotRuleDialogBody;
+
+  /// Label of the text field for a slot rule's label, the text the placeholder shows (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'Label'**
+  String get programTemplateSlotRuleLabel;
+
+  /// Example label shown in the empty label field when adding a slot rule (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'Easy improper opener'**
+  String get programTemplateSlotRuleLabelHint;
+
+  /// Label of the menu that chooses which saved search a slot rule uses (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'Saved search'**
+  String get programTemplateSlotRuleSearch;
+
+  /// Shown instead of the slot rule form when the user has no saved searches (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'A slot rule uses a saved search. Save a search in Collection first, then choose it here.'**
+  String get programTemplateSlotRuleNoSearches;
+
+  /// Subtitle of an unfilled placeholder slot in the program builder: a slot from a template's slot rule, waiting for a dance (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'Placeholder'**
+  String get programsPlaceholderSubtitle;
+
+  /// Button on an unfilled placeholder slot in the program builder that opens the dance picker with its saved search loaded (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'Fill'**
+  String get programsFillPlaceholderButton;
+
+  /// Screen-reader label of the Fill button on a placeholder slot (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'Fill \"{label}\" with a dance'**
+  String programsFillPlaceholderSemantics(String label);
+
+  /// Title of the dance picker sheet opened by Fill on a placeholder slot (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'Fill \"{label}\"'**
+  String programsFillSheetTitle(String label);
+
+  /// Notice above the dance picker opened by Fill when the placeholder's saved search no longer exists (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'The saved search for \"{label}\" was deleted, so every dance is shown.'**
+  String programsFillSearchGone(String label);
+
+  /// Notice above the dance picker opened by Fill when the placeholder's saved search names deleted things; each one is listed below it (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'\"{label}\" can\'t use its saved search \"{name}\", which uses things that are gone, so every dance is shown:'**
+  String programsFillSearchUnresolvable(String label, String name);
+
+  /// One line in the message that a saved search cannot be deleted: a program template's slot rule uses it (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'The slot rule \"{rule}\" in the template {template}'**
+  String savedSearchUsedBySlotRule(String rule, String template);
+
+  /// Subtitle of a slot rule in the program template editor whose saved search still exists but can't be read: it was saved by a newer version of the app, or it is damaged (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'Its saved search can\'t be opened'**
+  String get programTemplateSlotRuleSearchUnreadable;
+
+  /// Title of the dialog that changes a program template's slot rule: its label and its saved search (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'Edit slot rule'**
+  String get programTemplateSlotRuleEditTitle;
+
+  /// Error under the label field of the slot rule dialog when the label is the word that marks a break slot (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'\"Break\" marks a break in the program, so a slot rule can\'t use it as its label.'**
+  String get programTemplateSlotRuleLabelBreak;
+
+  /// Notice above the dance picker opened by Fill when the placeholder's saved search still exists but can't be read (#2338).
+  ///
+  /// In en, this message translates to:
+  /// **'The saved search for \"{label}\" can\'t be opened: it was saved by a newer version of the app, or it is damaged. Every dance is shown.'**
+  String programsFillSearchUnreadable(String label);
 }
 
 class _AppLocalizationsDelegate

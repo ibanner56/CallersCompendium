@@ -310,6 +310,7 @@ page does not give two answers to when the dance runs.
 | status: draft/finalized/performed | isAlt: bool (alternate dance, decided at event time) |
 | createdAt/updatedAt/deletedAt | guestCaller?, walkthroughMinutes?, danceMinutes? (structured, not folded into `text`) |
 | calendarEventKey? (calendar import, #2352) | performedAt? (set when marked performed → the "called" flag for dance calling history; its time dates the call only when the program has no eventDate) |
+| | placeholderSearchId? (an unfilled placeholder's saved search, #2338) |
 
 `band`, `caller` (primary/host caller), and `dancerLevel` are the CC-parity
 event-metadata fields (schema v3). `dancerLevel` is nullable free-text for now;
@@ -418,6 +419,18 @@ URLs. (Every settings key is classified in
   dance is attached, or the full slot content for free-text slots like breaks).
 - `ProgramSlot.walkthroughMinutes` and `ProgramSlot.danceMinutes`, when
   present, are each `>= 0` (structural, enforced at construction).
+- `ProgramSlot.placeholderSearchId` (schema v42, #2338) is the id of the
+  caller's saved search an unfilled **placeholder** is to be filled from
+  (`isPlaceholder`); the slot's `text` is the placeholder's label. It is set
+  only by a program template's slot rule, and the constructor drops it on any
+  slot with a `danceId`, on a break (`isBreak`'s text), or when blank, so
+  filling a placeholder clears it and a placeholder never becomes a break. A
+  placeholder whose search is gone, cannot be read, or names something deleted
+  stays a placeholder: it keeps the id, shows its label and offers Fill, which
+  then opens the picker unfiltered with a notice saying which of the three it
+  is. It syncs and is kept in backups (envelope v3), and
+  is stripped from share files and the programs CSV; the set-list text and PDF
+  show only the label.
 - **ALT association** (intended invariant, *warning* not error): an `isAlt`
   slot alternates for the nearest preceding non-alt slot in position order;
   `Program.grouped` renders that structure (alts under their primary, per

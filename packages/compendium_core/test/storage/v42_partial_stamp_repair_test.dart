@@ -51,6 +51,10 @@ void main() {
       for (final column in _programColumns) {
         raw.execute('ALTER TABLE programs DROP COLUMN $column');
       }
+      // A slot's placeholder search (#2338) joined v42 later still.
+      raw.execute(
+        'ALTER TABLE program_slots DROP COLUMN placeholder_search_id',
+      );
       raw.execute('PRAGMA user_version = 42');
 
       final reopened = CompendiumDatabase(
@@ -65,6 +69,7 @@ void main() {
           .toSet();
       expect(columnsOf('dances'), containsAll(_danceColumns));
       expect(columnsOf('programs'), containsAll(_programColumns));
+      expect(columnsOf('program_slots'), contains('placeholder_search_id'));
     },
   );
 }

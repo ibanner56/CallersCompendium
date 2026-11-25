@@ -1028,6 +1028,11 @@ class ProgramRepository {
                 walkthroughMinutes: Value(slot.walkthroughMinutes),
                 danceMinutes: Value(slot.danceMinutes),
                 performedAt: Value(slot.performedAt),
+                // A settings-key suffix (a UUID), so normalising changes
+                // nothing; done anyway, as for every shareable text column.
+                placeholderSearchId: Value(
+                  normalizeShareableTextOrNull(slot.placeholderSearchId),
+                ),
               ),
             );
       }
@@ -1406,6 +1411,7 @@ class ProgramRepository {
         walkthroughMinutes: r.walkthroughMinutes,
         danceMinutes: r.danceMinutes,
         performedAt: asUtcOrNull(r.performedAt),
+        placeholderSearchId: r.placeholderSearchId,
       );
     } on ArgumentError {
       return null;

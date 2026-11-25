@@ -127,6 +127,55 @@ void main() {
     });
   });
 
+  group('a placeholder slot (#2338)', () {
+    Map<String, Object?> placeholderBody() => _body(
+      SyncRecordKind.program,
+      Program(
+        id: 'p1',
+        title: 'Shared Program',
+        slots: [
+          ProgramSlot(
+            id: 's1',
+            position: 0,
+            text: 'Easy family opener',
+            placeholderSearchId: 'search-1',
+          ),
+          ProgramSlot(id: 's2', position: 1, text: 'Waltz'),
+        ],
+        createdAt: _stamp,
+        updatedAt: _stamp,
+      ),
+    );
+
+    test('syncs: this build keeps nothing aside and the second device reads '
+        'the placeholder back', () {
+      final body = placeholderBody();
+      final slots = body['slots']! as List;
+      expect((slots[0] as Map)['placeholderSearchId'], 'search-1');
+      expect((slots[1] as Map).containsKey('placeholderSearchId'), isFalse);
+      final split = partitionInboundRecordBody(SyncRecordKind.program, body);
+      expect(split.refusedPath, isNull);
+      expect(split.retained, isNull);
+      final program =
+          decodeSyncRecordEntity(SyncRecordKind.program, _copy(body))
+              as Program;
+      expect(program.slots[0].placeholderSearchId, 'search-1');
+      expect(program.slots[0].text, 'Easy family opener');
+      expect(program.slots[1].placeholderSearchId, isNull);
+    });
+
+    test('a slot key this build does not know, beside the placeholder, is '
+        'kept and put back exactly, as an older build keeps the placeholder '
+        'itself', () {
+      final body = placeholderBody();
+      body['slots'] = [
+        for (final item in body['slots']! as List)
+          {...(item as Map<String, Object?>), 'cue': 'x'},
+      ];
+      _expectRoundTrip(SyncRecordKind.program, body);
+    });
+  });
+
   group('a part with nowhere to go back is refused', () {
     test('a key a newer build added to a figure', () {
       final body = _danceBody();

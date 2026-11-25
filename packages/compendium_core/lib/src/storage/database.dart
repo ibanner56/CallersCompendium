@@ -823,8 +823,12 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   /// tracking (#2354): `calendar_event_fingerprint`, `calendar_written_at`
   /// and `calendar_flag`, all nullable.
   ///
+  /// Also `program_slots.placeholder_search_id` (#2338), added by
+  /// [_ensureV42PlaceholderSearchId].
+  ///
   /// The live-schema checks only keep the step idempotent.
   Future<void> _ensureV42Schema(Migrator m) async {
+    await _ensureV42PlaceholderSearchId(m);
     final columns = await customSelect(
       "SELECT name FROM pragma_table_info('${dances.actualTableName}')",
     ).get();
@@ -874,6 +878,22 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       if (!presentProgramColumns.contains(column.name)) {
         await m.addColumn(programs, column);
       }
+    }
+  }
+
+  /// The v42 addition for slot rules (#2338):
+  /// `program_slots.placeholder_search_id`, nullable, so every existing slot
+  /// is an ordinary slot rather than an unfilled placeholder. It joined v42 while v42 was
+  /// unreleased. Its own helper, so the step that adds it reads alone; it runs
+  /// wherever [_ensureV42Schema] does, the upgrade from v41 and every open of
+  /// a file already at 42. The live-schema check keeps it idempotent.
+  Future<void> _ensureV42PlaceholderSearchId(Migrator m) async {
+    final columns = await customSelect(
+      "SELECT name FROM pragma_table_info('${programSlots.actualTableName}')",
+    ).get();
+    final present = {for (final row in columns) row.read<String>('name')};
+    if (!present.contains(programSlots.placeholderSearchId.name)) {
+      await m.addColumn(programSlots, programSlots.placeholderSearchId);
     }
   }
 
@@ -1004,7 +1024,8 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       if (details.versionNow >= 39) await _ensureV39Schema(createMigrator());
       // v42 is filling the same way while unreleased: a test build stamped it
       // before later pieces joined it (alternate titles, the square dance
-      // fields, the program calendar and time columns), and no `onUpgrade`
+      // fields, the program calendar and time columns, a slot's placeholder
+      // search), and no `onUpgrade`
       // step runs for a file already at 42, so reading a dance then failed on
       // a NULL from a missing column. Idempotent; run it on every open.
       if (details.versionNow >= 42) await _ensureV42Schema(createMigrator());

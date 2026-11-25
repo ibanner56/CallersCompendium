@@ -380,6 +380,12 @@ Map<String, Object?> archiveProgramSlotToJson(
     'danceMinutes': s.danceMinutes,
   if (includeOptionalFields || s.performedAt != null)
     'performedAt': s.performedAt == null ? null : archiveIso(s.performedAt!),
+  // An unfilled placeholder's saved search (#2338): only when set, in every
+  // mode, so a slot without one keeps its wire hash. Stamped by the backup
+  // envelope (`requiredBackupVersion`); share files never carry it, because
+  // the share bundles strip it (`sanitizeProgramForShare`).
+  if (s.placeholderSearchId != null)
+    'placeholderSearchId': s.placeholderSearchId,
 };
 
 /// Builds the archive-shaped body for a venue.

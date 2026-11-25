@@ -14998,4 +14998,88 @@ class AppLocalizationsFr extends AppLocalizations {
   String savedSearchGone(String name) {
     return '« $name » a été supprimée, ici ou sur un autre appareil ; rien n’a donc été modifié.';
   }
+
+  @override
+  String get programTemplateAddSlotRule => 'Ajouter une règle d\'emplacement';
+
+  @override
+  String get programTemplateSlotRuleBadge => 'Règle d\'emplacement';
+
+  @override
+  String programTemplateSlotRuleSubtitle(String name) {
+    return 'Rempli à partir de la recherche enregistrée « $name »';
+  }
+
+  @override
+  String get programTemplateSlotRuleSearchGone =>
+      'Sa recherche enregistrée a été supprimée';
+
+  @override
+  String get programTemplateSlotRuleDialogTitle =>
+      'Ajouter une règle d\'emplacement';
+
+  @override
+  String get programTemplateSlotRuleDialogBody =>
+      'Décrivez un type de danse au lieu d\'en nommer une. Un programme créé à partir de ce modèle l\'affiche comme un espace réservé, que vous remplissez à partir de la recherche enregistrée.';
+
+  @override
+  String get programTemplateSlotRuleLabel => 'Libellé';
+
+  @override
+  String get programTemplateSlotRuleLabelHint => 'Ouverture improper facile';
+
+  @override
+  String get programTemplateSlotRuleSearch => 'Recherche enregistrée';
+
+  @override
+  String get programTemplateSlotRuleNoSearches =>
+      'Une règle d\'emplacement utilise une recherche enregistrée. Enregistrez d\'abord une recherche dans Collection, puis choisissez-la ici.';
+
+  @override
+  String get programsPlaceholderSubtitle => 'Espace réservé';
+
+  @override
+  String get programsFillPlaceholderButton => 'Remplir';
+
+  @override
+  String programsFillPlaceholderSemantics(String label) {
+    return 'Remplir « $label » avec une danse';
+  }
+
+  @override
+  String programsFillSheetTitle(String label) {
+    return 'Remplir « $label »';
+  }
+
+  @override
+  String programsFillSearchGone(String label) {
+    return 'La recherche enregistrée de « $label » a été supprimée ; toutes les danses sont donc affichées.';
+  }
+
+  @override
+  String programsFillSearchUnresolvable(String label, String name) {
+    return '« $label » ne peut pas utiliser sa recherche enregistrée « $name », qui utilise des éléments qui n\'existent plus ; toutes les danses sont donc affichées :';
+  }
+
+  @override
+  String savedSearchUsedBySlotRule(String rule, String template) {
+    return 'La règle d\'emplacement « $rule » du modèle $template';
+  }
+
+  @override
+  String get programTemplateSlotRuleSearchUnreadable =>
+      'Sa recherche enregistrée ne peut pas être ouverte';
+
+  @override
+  String get programTemplateSlotRuleEditTitle =>
+      'Modifier la règle d\'emplacement';
+
+  @override
+  String get programTemplateSlotRuleLabelBreak =>
+      '« Break » marque une pause dans le programme ; une règle d\'emplacement ne peut donc pas l\'utiliser comme libellé.';
+
+  @override
+  String programsFillSearchUnreadable(String label) {
+    return 'La recherche enregistrée de « $label » ne peut pas être ouverte : elle a été enregistrée par une version plus récente de l\'application, ou elle est endommagée. Toutes les danses sont affichées.';
+  }
 }

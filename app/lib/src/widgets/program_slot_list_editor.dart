@@ -56,6 +56,7 @@ class ProgramSlotListEditor extends StatefulWidget {
     this.onViewDanceDetails,
     this.onAddDanceAt,
     this.insertionTargetSlotIds = const {},
+    this.onFillPlaceholder,
   });
 
   /// Slots in position order.
@@ -167,6 +168,13 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// Ids of the slots a pending "Add a dance before/after" will land next to,
   /// highlighted until a dance is chosen or the insertion is cancelled.
   final Set<String> insertionTargetSlotIds;
+
+  /// **Fill** on an unfilled placeholder (#2338, [ProgramSlot.isPlaceholder]):
+  /// the host opens its picker with the placeholder's saved search loaded and
+  /// turns the slot into a dance slot with the dance chosen. A placeholder row
+  /// shows its label and this action on the row itself; with null it shows as
+  /// the note it is.
+  final void Function(int index)? onFillPlaceholder;
 
   /// List width below which rows use the compact layout even on a wide window.
   /// The builder's two-pane layout halves the window, so up to about 1100dp
@@ -351,6 +359,10 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
               insertionTarget: widget.insertionTargetSlotIds.contains(
                 slots[i].id,
               ),
+              onFill:
+                  widget.onFillPlaceholder == null || !slots[i].isPlaceholder
+                  ? null
+                  : () => widget.onFillPlaceholder!(i),
             ),
         ],
       ),
@@ -423,21 +435,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
         Directionality.maybeOf(context) ?? TextDirection.ltr,
       );
     } else {
-      // Rebuild without performedAt (copyWith can't clear it).
-      widget.onSlotChanged(
-        i,
-        ProgramSlot(
-          id: slot.id,
-          position: slot.position,
-          danceId: slot.danceId,
-          text: slot.text,
-          isPurgedDance: slot.isPurgedDance,
-          isAlt: slot.isAlt,
-          guestCaller: slot.guestCaller,
-          walkthroughMinutes: slot.walkthroughMinutes,
-          danceMinutes: slot.danceMinutes,
-        ),
-      );
+      widget.onSlotChanged(i, slot.copyWith(clearPerformedAt: true));
       SemanticsService.sendAnnouncement(
         View.of(context),
         l10n.programsPerformedCleared,
@@ -543,6 +541,7 @@ class _SlotTile extends StatelessWidget {
     this.onAddDanceBefore,
     this.onAddDanceAfter,
     this.insertionTarget = false,
+    this.onFill,
   });
 
   /// Keep only the drag handle and the "…" menu on the row; View details,
@@ -606,6 +605,11 @@ class _SlotTile extends StatelessWidget {
   /// the row is outlined and tinted until a dance is chosen or it is cancelled.
   final bool insertionTarget;
 
+  /// **Fill** for an unfilled placeholder (#2338); non-null only on one. The
+  /// row then shows the placeholder's icon and a Fill button, in both the
+  /// full and the compact layout, since filling it is what the row is for.
+  final VoidCallback? onFill;
+
   /// Whether to offer "create a dance from this" on the "…" menu: only for a
   /// note slot (no [ProgramSlot.danceId]) that isn't the structural break
   /// token and whose text isn't blank — a break has nothing to seed a title
@@ -659,6 +663,7 @@ class _SlotTile extends StatelessWidget {
         l10n.programsSummaryGuest(slot.guestCaller!),
       if (slot.plannedTotalMinutes != null)
         l10n.programsPlannedMinutes(slot.plannedTotalMinutes!),
+      if (onFill != null) l10n.programsPlaceholderSubtitle,
     ]..removeWhere((s) => s.isEmpty);
 
     return Padding(
@@ -741,6 +746,8 @@ class _SlotTile extends StatelessWidget {
                       ? (isTombstone
                             ? Icons.report_gmailerrorred_outlined
                             : Icons.music_note_outlined)
+                      : onFill != null
+                      ? Icons.manage_search
                       : Icons.notes_outlined,
                   size: 20,
                   color: theme.colorScheme.onSurfaceVariant,
@@ -804,6 +811,17 @@ class _SlotTile extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (onFill case final fill?)
+                  TextButton(
+                    key: ValueKey('slot-$index-fill'),
+                    onPressed: fill,
+                    child: Text(
+                      l10n.programsFillPlaceholderButton,
+                      semanticsLabel: l10n.programsFillPlaceholderSemantics(
+                        title,
+                      ),
+                    ),
+                  ),
                 if (!compact) ...[
                   if (canViewDetails)
                     IconButton(
@@ -1155,6 +1173,9 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
       walkthroughMinutes: walkthroughMinutes,
       danceMinutes: danceMinutes,
       performedAt: widget.slot.performedAt,
+      // An unfilled placeholder keeps its saved search while it stays a note;
+      // a dance picked with Replace… fills it, and the constructor drops it.
+      placeholderSearchId: widget.slot.placeholderSearchId,
     );
     if (_danceId != widget.slot.danceId && _danceId != null) {
       final title =

@@ -14197,5 +14197,89 @@
   "savedSearchGone": "「{name}」はこの端末か別の端末で削除されたため、何も変更されませんでした。",
   "@savedSearchGone": {
     "x-sourceSha256": "ab5406d87f7d19b06fc50656b460d0e08c5d025ccd9845b3cc7ba37c22f8a0ce"
+  },
+  "programTemplateAddSlotRule": "枠のルールを追加",
+  "@programTemplateAddSlotRule": {
+    "x-sourceSha256": "271cf5d437fa079717c43d95e491024ecb32f29091b5d0071b156726b9e92f91"
+  },
+  "programTemplateSlotRuleBadge": "枠のルール",
+  "@programTemplateSlotRuleBadge": {
+    "x-sourceSha256": "d3c802c982976b306a8676af4f5bc4811ecfbe9275f29e1ec1bab7a826d2f751"
+  },
+  "programTemplateSlotRuleSubtitle": "保存した検索「{name}」から埋めます",
+  "@programTemplateSlotRuleSubtitle": {
+    "x-sourceSha256": "242a070d6c31dd6a7f66405773878eec37e63e53466dfa081736afea806a7ae7"
+  },
+  "programTemplateSlotRuleSearchGone": "保存した検索は削除されました",
+  "@programTemplateSlotRuleSearchGone": {
+    "x-sourceSha256": "1f35b0852f51aa2a31e190d22496980fd15f7d64f7475bee61c2adec35264436"
+  },
+  "programTemplateSlotRuleDialogTitle": "枠のルールを追加",
+  "@programTemplateSlotRuleDialogTitle": {
+    "x-sourceSha256": "271cf5d437fa079717c43d95e491024ecb32f29091b5d0071b156726b9e92f91"
+  },
+  "programTemplateSlotRuleDialogBody": "ダンスを指定する代わりに、ダンスの種類を説明します。このテンプレートから作ったプログラムでは、保存した検索から埋めるプレースホルダーとして表示されます。",
+  "@programTemplateSlotRuleDialogBody": {
+    "x-sourceSha256": "75cfaafdbc0353236fc0968bec9df0be031b847ad22591046aaba55256bbc8c9"
+  },
+  "programTemplateSlotRuleLabel": "ラベル",
+  "@programTemplateSlotRuleLabel": {
+    "x-sourceSha256": "0e66373f45dcf3dd656151e519f7ee5e3d558d9c22cb87df339bbdd2b6c6a3c1"
+  },
+  "programTemplateSlotRuleLabelHint": "やさしいインプロパーのオープナー",
+  "@programTemplateSlotRuleLabelHint": {
+    "x-sourceSha256": "a08274bf1e477b3d4df401b2da950cf76dd21dab663801dcdc73b15507bd77a5"
+  },
+  "programTemplateSlotRuleSearch": "保存した検索",
+  "@programTemplateSlotRuleSearch": {
+    "x-sourceSha256": "b0e17e59d9f6e5bc3e78c1a3e9b9d40c3238a69046c0726a97282e9e03a14703"
+  },
+  "programTemplateSlotRuleNoSearches": "枠のルールは保存した検索を使います。まずコレクションで検索を保存してから、ここで選んでください。",
+  "@programTemplateSlotRuleNoSearches": {
+    "x-sourceSha256": "593b11555624c9a3811478ab0af89b90ff566223d40fb4c0316632f47629bd61"
+  },
+  "programsPlaceholderSubtitle": "プレースホルダー",
+  "@programsPlaceholderSubtitle": {
+    "x-sourceSha256": "f4b24fed0274a31618ac1b665ee162af331b4b70fdff74f3f9ddedc94b4da745"
+  },
+  "programsFillPlaceholderButton": "埋める",
+  "@programsFillPlaceholderButton": {
+    "x-sourceSha256": "033955d469b620d6612cb25b80a8d014acb633e4e0b14eb9e7618675f94e4a06"
+  },
+  "programsFillPlaceholderSemantics": "「{label}」をダンスで埋める",
+  "@programsFillPlaceholderSemantics": {
+    "x-sourceSha256": "9a07631ee7a5c7fc7927c3d0fdec678e7804cf257e0c40372204c2b8f45218ac"
+  },
+  "programsFillSheetTitle": "「{label}」を埋める",
+  "@programsFillSheetTitle": {
+    "x-sourceSha256": "08d36d6b18d80126e53cc8a6885a1f7fd49f97dbb4b18f70353a6df18885186d"
+  },
+  "programsFillSearchGone": "「{label}」の保存した検索は削除されたため、すべてのダンスを表示しています。",
+  "@programsFillSearchGone": {
+    "x-sourceSha256": "19cebbf995d48aad394623974322636b2ccda1c0a6c6485b74de2d830f796b58"
+  },
+  "programsFillSearchUnresolvable": "「{label}」の保存した検索「{name}」は、なくなったものを使っているため使えません。すべてのダンスを表示しています：",
+  "@programsFillSearchUnresolvable": {
+    "x-sourceSha256": "1e2220e52ab277618cea27a58361450b72bb87b18d1a44ec5186db48eea9a565"
+  },
+  "savedSearchUsedBySlotRule": "テンプレート {template} の枠のルール「{rule}」",
+  "@savedSearchUsedBySlotRule": {
+    "x-sourceSha256": "f6abcf8a824f0c6964fb5e3090afcdddefa07ab6e162a7585f87f491c21b8d47"
+  },
+  "programTemplateSlotRuleSearchUnreadable": "保存した検索を開けません",
+  "@programTemplateSlotRuleSearchUnreadable": {
+    "x-sourceSha256": "87719e1e721958247eb5fe51c7cf2ad911163c3c04262db39ee0daee11e71814"
+  },
+  "programTemplateSlotRuleEditTitle": "枠のルールを編集",
+  "@programTemplateSlotRuleEditTitle": {
+    "x-sourceSha256": "35c30e10ebe5cac90c10fca41bd916f0fcc6a4fa7cfdd58ddc485bb65f902421"
+  },
+  "programTemplateSlotRuleLabelBreak": "「Break」はプログラムの休憩を表すため、枠のルールのラベルには使えません。",
+  "@programTemplateSlotRuleLabelBreak": {
+    "x-sourceSha256": "16e76380d1c64fee5f8228fc7f778ef0d4a2f3c4b3e214a56f7c1a83ae1467bd"
+  },
+  "programsFillSearchUnreadable": "「{label}」の保存した検索を開けません。新しいバージョンのアプリで保存されたか、破損しています。すべてのダンスを表示しています。",
+  "@programsFillSearchUnreadable": {
+    "x-sourceSha256": "90942ead9afb4bb56bdb7a3465a963834a6e9441310d4284498d28e8b6162ec3"
   }
 }

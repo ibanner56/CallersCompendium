@@ -1046,6 +1046,10 @@ List<ProgramSlot> _programSlotsFromJson(Object? raw) {
           danceMinutes:
               _intOrNull(m, 'danceMinutes') ?? _intOrNull(m, 'plannedMinutes'),
           performedAt: _dtOrNull(m, 'performedAt'),
+          // Read leniently (#2338): a malformed reference costs only the
+          // Fill action, so it is dropped rather than refusing the program,
+          // and the slot keeps its label as text.
+          placeholderSearchId: _boundedStringOrNull(m, 'placeholderSearchId'),
         );
       }(),
   ];

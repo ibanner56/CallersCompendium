@@ -95,6 +95,11 @@ const _sites = <String, List<(String, String)>>{
   ],
   'lib/src/screens/settings/program_templates_screen.dart': [
     ("const ValueKey('defaults-program-template-default')", 'true'),
+    // The caller's own saved searches: typing filters once the list is long.
+    (
+      "const ValueKey('program-template-rule-search')",
+      'searches.length >= appDropdownFilterFrom',
+    ),
   ],
   'lib/src/screens/settings/program_section.dart': [
     ("const ValueKey('program-venue-call-count')", 'false'),
