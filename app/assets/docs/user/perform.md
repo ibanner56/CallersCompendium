@@ -357,8 +357,8 @@ dance you are swapping shows a marker with the rule's sentence, such as
 *Would break: At most 1 dance matching "Petronella" in the whole program*,
 and is listed after the dances that wouldn't, in any order, **Suggested**
 included. The check counts the program as the swap leaves it: the dance you
-swap out stays only as an alternate, which no rule counts, so a petronella
-can replace the program's one petronella without a marker. A rule about
+swap out stays only as an alternate, which a rule does not count as planned,
+so a petronella can replace the program's one petronella without a marker. A rule about
 neighboring dances checks the dances on either side. **Your alternates** are
 checked too: a marked one stays under **Your alternates**, after the ones
 that aren't marked. Nothing is hidden, and you can still tap a marked dance

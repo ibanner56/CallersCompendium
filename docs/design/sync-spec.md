@@ -5278,9 +5278,9 @@ field covers.
 **`eventRules.v1`.** Gates every `eventRule` record, tombstones included, and
 the exact settings keys `event_rules_enabled`, the Experimental toggle (#2340),
 and `event_rules_check_perform_swap`, whether Perform's swap sheet checks the
-rules (#2347). The second key adds no capability of its own (the
-maintainer's decision: one capability per feature), since `eventRules.v1` was
-not yet in a release when it was added.
+rules (#2347). The second key adds no capability of its own: #2347 asks for
+it to be gated with #2340's capability, and `eventRules.v1` was not yet in a
+release when it was added.
 A build without it has no `event_rules` table, so it could only keep such a
 record whole, without a manager to edit it or a builder to check it. A
 program's `eventRuleIds` are not gated: they are a top-level field of the

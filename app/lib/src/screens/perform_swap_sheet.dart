@@ -189,9 +189,26 @@ class _PerformSwapSheetState extends State<PerformSwapSheet> {
   }
 
   /// The search context the rules' saved searches resolve against, read
-  /// once for the sheet: what a rule matches does not change while the
-  /// caller picks a replacement.
+  /// once for the sheet. The rules are checked again only when the rules
+  /// applied change ([PickerEventRules.revision]), not when a rule or what
+  /// it reads is edited elsewhere while the sheet is open: the sheet is open
+  /// for one pick, and opening it again checks afresh.
   Future<SavedSearchContext>? _ruleContext;
+
+  /// [read], forgotten if it fails, so the next check reads again rather
+  /// than failing for as long as the sheet is open.
+  Future<SavedSearchContext> _forgetOnError(
+    Future<SavedSearchContext> read,
+  ) async {
+    try {
+      return await read;
+    } catch (_) {
+      // diagnostics: silent — rethrown to the picker's rule check, which
+      // logs it (collection_picker._checkRules).
+      _ruleContext = null;
+      rethrow;
+    }
+  }
 
   /// The program's event rules for the picker to check the results against
   /// (#2347), or null when nothing is checked: **Check Perform's Swap this
@@ -223,26 +240,28 @@ class _PerformSwapSheetState extends State<PerformSwapSheet> {
     final performedOnly = RequirePerformedForHistoryScope.of(context);
     final requireEventDate = RequireEventDateForHistoryScope.of(context);
     final tracking = callingHistoryTrackingOf(context);
-    Future<SavedSearchContext> readContext() =>
-        _ruleContext ??= readSavedSearchContext(
-          repos,
-          today: const SearchClock().today(),
-          taxonomy: widget.data.taxonomy,
-          text: savedSearchTextCodec(
-            saveDialect: dialect,
-            showDialect: dialect,
-            enrichment: enrichment,
-            renderer: FigureRenderer(
-              shippedTaxonomies.anyForm,
-              userFigures: catalog,
-            ),
+    // A read that fails is not kept: the next check reads again.
+    Future<SavedSearchContext> readContext() => _ruleContext ??= _forgetOnError(
+      readSavedSearchContext(
+        repos,
+        today: const SearchClock().today(),
+        taxonomy: widget.data.taxonomy,
+        text: savedSearchTextCodec(
+          saveDialect: dialect,
+          showDialect: dialect,
+          enrichment: enrichment,
+          renderer: FigureRenderer(
+            shippedTaxonomies.anyForm,
+            userFigures: catalog,
           ),
-          callerFilter: widget.data.callerFilter,
-          performedOnly: performedOnly,
-          requireEventDate: requireEventDate,
-          tracking: tracking,
-          currentProgramId: widget.programContext?.programId,
-        );
+        ),
+        callerFilter: widget.data.callerFilter,
+        performedOnly: performedOnly,
+        requireEventDate: requireEventDate,
+        tracking: tracking,
+        currentProgramId: widget.programContext?.programId,
+      ),
+    );
     return PickerEventRules(
       check: (_, candidateIds) => checkCandidateEventRules(
         repos: repos,

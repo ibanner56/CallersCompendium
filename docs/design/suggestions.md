@@ -296,8 +296,10 @@ applied the sheet is unchanged.
   and the sheet checks at its own instead, both fixed while the sheet is
   open. *Rejected:* checking at `SuggestionPosition.replacing`, which leaves
   the swapped-out dance out of the program entirely; it gives the same
-  answers today, because a rule counts planned dances only, but would drift
-  from what the swap stores if alternates ever counted.
+  answers today, because a rule counts planned dances and checks an
+  alternate only as if it were called instead of its primary, which never
+  marks the candidate, but would drift from what the swap stores if that
+  changed.
 - **Your alternates** (an implementation call, not a maintainer ruling):
   the pinned rows are checked with the results and marked the same way, and
   a marked alternate is listed after the unmarked ones, still under **Your

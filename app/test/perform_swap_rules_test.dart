@@ -123,6 +123,7 @@ Future<_Harness> _pump(
   bool checkSwap = true,
   bool applied = true,
   bool suggestions = false,
+  bool failRanking = false,
   List<String> alts = const ['alt'],
   String currentSlotId = 's1',
   List<Dance> extra = const [],
@@ -200,7 +201,9 @@ Future<_Harness> _pump(
           dialect: Dialect.larksRobins,
           enrichment: SearchEnrichment.empty,
           // The real scorer, on the test's own isolate.
-          rankSuggestions: (request) => Future.value(rankSuggestions(request)),
+          rankSuggestions: (request) => failRanking
+              ? Future.error(StateError('ranking failed'))
+              : Future.value(rankSuggestions(request)),
         ),
       ),
     ),
@@ -409,6 +412,18 @@ void main() {
       semantics.dispose();
     });
 
+    testWidgets('when the Suggested order fails, the plain order it falls '
+        'back to is marked', (tester) async {
+      await _pump(tester, suggestions: true, failRanking: true);
+      await _openSwap(tester, 'adjust-swap-current');
+      expect(
+        _inSwap(find.byKey(const ValueKey('picker-suggested-failed'))),
+        findsOneWidget,
+      );
+      expect(_results(tester, pinned: ['alt']), _markedLast);
+      expect(_marker('pa'), findsOneWidget);
+    });
+
     testWidgets('under Suggested too: marked dances, English ones included, '
         'are listed after the unmarked ones (#2348)', (tester) async {
       final english = _dance('pe', 'Petronella Bourrée', form: DanceForm.ecd);
@@ -451,6 +466,31 @@ void main() {
       expect(_marker('palt'), findsOneWidget);
       expect(_marker('alt'), findsNothing);
       expect(shown.skip(2).toSet(), _plainOrder.toSet());
+    });
+
+    testWidgets('a marked alternate keeps its marker and place while a new '
+        "search's check runs", (tester) async {
+      final h = await _pump(tester, alts: ['palt', 'alt']);
+      await _openSwap(tester, 'adjust-swap-current');
+      expect(_shown(tester).take(2), ['alt', 'palt']);
+      final hold = Completer<void>();
+      h.dances.hold = hold;
+      final keep = _inSwap(
+        find.byKey(const ValueKey('swap-keep-not-in-program')),
+      );
+      await tester.ensureVisible(keep);
+      await tester.tap(keep);
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(h.dances.calls, greaterThan(1), reason: 'a new check is held');
+      expect(_shown(tester).take(2), ['alt', 'palt']);
+      expect(_marker('palt'), findsOneWidget);
+
+      hold.complete();
+      await tester.pumpAndSettle();
+      expect(_shown(tester).take(2), ['alt', 'palt']);
+      expect(_marker('palt'), findsOneWidget);
     });
 
     testWidgets('with the setting off, an alternate is not marked', (

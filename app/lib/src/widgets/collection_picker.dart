@@ -1212,9 +1212,27 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   /// The marks for the plain order: [_currentRuleMarks] in a plain sort,
   /// which only [PickerEventRules.inEveryOrder] checks. Null under
-  /// Suggested, whose plain order shows unmarked until its ranking does.
-  CandidateRuleMarks? get _plainRuleMarks =>
-      _suggested ? null : _currentRuleMarks;
+  /// Suggested, whose plain order shows unmarked until its ranking does;
+  /// but when the ranking failed, a host that marks every order
+  /// ([PickerEventRules.inEveryOrder], #2347) has the plain order it falls
+  /// back to marked, since no ranking will come.
+  CandidateRuleMarks? get _plainRuleMarks {
+    if (!_suggested) return _currentRuleMarks;
+    final everyOrder = widget.eventRules?.inEveryOrder ?? false;
+    return everyOrder && _rankFailed ? _currentRuleMarks : null;
+  }
+
+  /// The marks for the [CollectionPicker.pinned] dances (#2347): the last
+  /// check's, while rules are checked at this position. Every check covers
+  /// the pinned dances whatever the query, so unlike [_currentRuleMarks]
+  /// they are kept while a new search's check runs: the pinned rows neither
+  /// lose their markers nor move meanwhile.
+  CandidateRuleMarks? get _pinnedRuleMarks {
+    final marks = _ruleMarks;
+    if (marks == null || !_checksRules || !marks.checksAnything) return null;
+    if (_ruleMarksAt != widget.programContext?.position) return null;
+    return marks;
+  }
 
   /// The results as shown: ranked when Suggested has a ranking for exactly
   /// these results at this position, else in the plain order, with any
@@ -2134,7 +2152,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       slivers: [
         heading(pinned.heading, const ValueKey('picker-pinned-heading')),
         _buildResultRows(
-          switch (_currentRuleMarks) {
+          switch (_pinnedRuleMarks) {
             null => pinnedEntries,
             final marks => orderMarkedLast(
               pinnedEntries,
@@ -2217,7 +2235,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       itemBuilder: (context, index) {
         final entry = shown[index];
         final ranked = _shownRankFor(entry.dance.id);
-        final ruleMarks = _currentRuleMarks;
+        final ruleMarks = pinned ? _pinnedRuleMarks : _currentRuleMarks;
         final plainMarks = _plainRuleMarks;
         final wouldBreak = ruleMarks == null
             ? const <String>[]
