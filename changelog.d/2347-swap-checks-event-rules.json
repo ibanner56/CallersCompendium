@@ -1,0 +1,14 @@
+{
+  "id": "2347-swap-checks-event-rules",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Settings ▸ Experimental ▸ Event rules has Check Perform's Swap this dance, shown while Event rules is on and on by default. With it on and rules on the program, Perform's swap sheet marks each dance that would break one of the program's rules if it took the place of the dance being swapped, with an icon and \"Would break:\" and the rule, and lists it after the dances that wouldn't, in any order. The dance swapped out counts as the alternate the swap keeps it as, so a petronella can replace the program's one petronella without a marker, and a rule about neighboring dances checks the dances on either side. Your alternates are checked too, and a marked one is listed last among them. Nothing is hidden, a marked dance still swaps in with one tap, and the dances show at once while the check runs. With Event rules or the setting off, or no rules on the program, the swap sheet is as before. The setting is in your backup, and syncs once every device in the store has a version of the app that knows event rules."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add swapCandidatePosition, the SuggestionPosition of a Perform swap's replacement with the swapped-out dance kept as an alternate, as Program.swapSlotDanceKeepingAlternate stores it, for CandidateRuleCheck; markRuleBreakingSuggestions takes includeEnglish to mark English dances too. Classify the event_rules_check_perform_swap settings key in the settings privacy registry and gate it on the eventRules.v1 sync capability."
+    ]
+  }
+}

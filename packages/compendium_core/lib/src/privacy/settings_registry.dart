@@ -146,6 +146,8 @@ final Map<String, DataClassification> settingsClassifications = {
   // order, My order or Most used (#2341).
   'event_rules_enabled': _preference,
   'event_rule_order': _preference,
+  // Whether Perform's swap sheet checks the program's event rules (#2347).
+  'event_rules_check_perform_swap': _preference,
   // Experimental Weekends and series (#2349): the toggle. The programs a
   // caller selects and the combined view are never stored.
   'weekends_and_series_enabled': _preference,

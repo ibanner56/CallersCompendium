@@ -1306,9 +1306,16 @@ such as *At most 1 dance matching "Becket" in any two neighboring dances*,
 and the program builder warns you when a program you added it to breaks it.
 See [Check your program against your rules](./programs.md#check-your-program-against-your-rules).
 
-Turning it on shows **Manage rules**, which lists your rules as sentences, or
-by their nicknames with the sentence under each. Use **New rule…** to add
-one, select a rule to edit it, and the bin to delete it, with **Undo** in the
+Turning it on shows **Check Perform's Swap this dance**, which is **on by
+default**: when you swap a dance in Perform, the swap sheet marks each dance
+that would break one of the program's rules if it took that dance's place,
+and lists it last. Nothing is left out, and you can still swap a marked dance
+in. Turn it off and the swap sheet lists its dances as usual, without
+checking them. See [Swap a dance](./perform.md#swap-a-dance).
+
+It also shows **Manage rules**, which lists your rules as sentences, or by
+their nicknames with the sentence under each. Use **New rule…** to add one,
+select a rule to edit it, and the bin to delete it, with **Undo** in the
 message at the bottom of the screen. To change the order of your rules, drag a
 rule by its handle, or use the **Move up** and **Move down** buttons beside it.
 A rule has:
@@ -1347,13 +1354,13 @@ has a **Rules** row whose rules are added to the programs made from it. With
 [Suggestions](#suggestions) on too, the builder's picker, in its **Suggested**
 order, marks the dances that would break a rule the program uses and lists
 them last. Turning it off hides the builder's **Rules** button, its warnings
-and its markers, and the templates' **Rules** rows, nothing is checked, and
-new programs get no rules from a template; your rules, the rules each program
-uses and the rules each template carries are kept for when you turn it on
-again.
+and its markers, the swap sheet's markers, and the templates' **Rules** rows,
+nothing is checked, and new programs get no rules from a template; your rules,
+the rules each program uses and the rules each template carries are kept for
+when you turn it on again.
 
 Your rules are in your [backup](#backup--restore), with the rules each program
-uses, and sync with [Device Sync](#device-sync) once every device connected to
+uses and **Check Perform's Swap this dance**, and sync with [Device Sync](#device-sync) once every device connected to
 your store has a version of the app that knows them (see
 [New kinds of data wait for every device](#new-kinds-of-data-wait-for-every-device)).
 They are never in a program you share, print or export. A rule made by a newer

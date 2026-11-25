@@ -15019,6 +15019,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Füge einem Programm Regeln hinzu, etwa keine zwei Becket-Tänze hintereinander, und der Editor warnt dich, wenn das Programm eine davon verletzt. Warnungen hindern dich nie am Speichern oder Ansagen.';
 
   @override
+  String get settingsEventRulesCheckPerformSwapTitle =>
+      '„Diesen Tanz tauschen“ im Perform-Modus prüfen';
+
+  @override
+  String get settingsEventRulesCheckPerformSwapSubtitle =>
+      'Wenn du im Perform-Modus einen Tanz tauschst, wird jeder Tanz markiert, der eine der Regeln des Programms brechen würde, und zuletzt aufgeführt. Nichts wird ausgelassen.';
+
+  @override
   String get eventRulesManageTitle => 'Regeln verwalten';
 
   @override

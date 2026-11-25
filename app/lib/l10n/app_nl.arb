@@ -14238,6 +14238,14 @@
   "@settingsExperimentalEventRulesSubtitle": {
     "x-sourceSha256": "cdf5099cd19f4ba2b15871f20cdf82395343a0d42cd8220c8668b575b3375b45"
   },
+  "settingsEventRulesCheckPerformSwapTitle": "Controleren bij Deze dans wisselen in Uitvoeren",
+  "@settingsEventRulesCheckPerformSwapTitle": {
+    "x-sourceSha256": "ade46fc57816e47da968e7d781bfeaa2c649ab62490f62c8777552e84b622956"
+  },
+  "settingsEventRulesCheckPerformSwapSubtitle": "Als je in Uitvoeren een dans wisselt, wordt elke dans die een van de regels van het programma zou breken gemarkeerd en als laatste getoond. Er valt niets weg.",
+  "@settingsEventRulesCheckPerformSwapSubtitle": {
+    "x-sourceSha256": "9d3ee1b97146a4b815f50022cf19bd18ea8688d004455c03e335d2cd92602343"
+  },
   "eventRulesManageTitle": "Regels beheren",
   "@eventRulesManageTitle": {
     "x-sourceSha256": "9e4a85c7c70164ccbaf362fdd644cb01d83fbdc59303828a507f12c83da1f8ef"

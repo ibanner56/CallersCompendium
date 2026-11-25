@@ -735,6 +735,12 @@ class _CompendiumAppState extends State<CompendiumApp>
     decode: (Object? v) => v is bool ? v : false,
     encode: (v) => v,
   );
+  final _eventRulesCheckPerformSwapNotifier = PreferenceNotifier<bool>(
+    key: kEventRulesCheckPerformSwapKey,
+    defaultValue: true,
+    decode: (Object? v) => v is bool ? v : true,
+    encode: (v) => v,
+  );
   final _weekendsAndSeriesNotifier = PreferenceNotifier<bool>(
     key: kWeekendsAndSeriesEnabledKey,
     defaultValue: false,
@@ -1448,6 +1454,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _showRepertoireNotifier,
     _suggestionsEnabledNotifier,
     _eventRulesEnabledNotifier,
+    _eventRulesCheckPerformSwapNotifier,
     _weekendsAndSeriesNotifier,
     _suggestionsInPerformSwapNotifier,
     _suggestionSettingsNotifier,
@@ -2502,6 +2509,7 @@ class _CompendiumAppState extends State<CompendiumApp>
     _showRepertoireNotifier.dispose();
     _suggestionsEnabledNotifier.dispose();
     _eventRulesEnabledNotifier.dispose();
+    _eventRulesCheckPerformSwapNotifier.dispose();
     _weekendsAndSeriesNotifier.dispose();
     _suggestionsInPerformSwapNotifier.dispose();
     _suggestionSettingsNotifier.dispose();
@@ -3187,6 +3195,10 @@ class _CompendiumAppState extends State<CompendiumApp>
     ),
     (child) => EventRulesEnabledScope(
       notifier: _eventRulesEnabledNotifier,
+      child: child,
+    ),
+    (child) => EventRulesCheckPerformSwapScope(
+      notifier: _eventRulesCheckPerformSwapNotifier,
       child: child,
     ),
     (child) => WeekendsAndSeriesScope(

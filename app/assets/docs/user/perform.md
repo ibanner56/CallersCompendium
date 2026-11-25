@@ -245,7 +245,9 @@ From it you can:
   buttons);
 - **insert a dance** with **Insert dance from search**;
 - **add an ad-hoc note or break**;
-- **swap a dance** for another that keeps what matters (see
+- **swap a dance** for another that keeps what matters, with a marker on any
+  dance that would break one of the program's
+  [event rules](./settings.md#event-rules) (see
   [Swap a dance](#swap-a-dance)); and
 - **mark the current slot performed** (choose it again to clear the mark).
 
@@ -343,6 +345,25 @@ not ranked yet: they come after the others and say so, and a dance already in
 tonight's program (with that Keep choice off) comes last. **Sort** offers the
 usual orders too, and **Suggested** there brings this order back. With either
 setting off, the swap sheet lists the dances in its usual order.
+
+If you have turned on
+[Event rules](./settings.md#event-rules) and the program uses
+[rules](./programs.md#check-your-program-against-your-rules), the swap sheet
+also checks each dance it lists against them, unless you have turned off
+**Check Perform's Swap this dance** in
+[Settings ▸ Experimental ▸ Event rules](./settings.md#event-rules) (it is on
+by default). A dance that would break a rule if it took the place of the
+dance you are swapping shows a marker with the rule's sentence, such as
+*Would break: At most 1 dance matching "Petronella" in the whole program*,
+and is listed after the dances that wouldn't, in any order, **Suggested**
+included. The check counts the program as the swap leaves it: the dance you
+swap out stays only as an alternate, which a rule does not count as planned,
+so a petronella can replace the program's one petronella without a marker. A rule about
+neighboring dances checks the dances on either side. **Your alternates** are
+checked too: a marked one stays under **Your alternates**, after the ones
+that aren't marked. Nothing is hidden, and you can still tap a marked dance
+to swap it in. The dances show at once, without markers, and the markers
+appear as soon as the check is done.
 
 Tap a dance to swap it in. The slot keeps its note, guest caller and planned
 times; only the dance changes. The dance you swap in is the one being called,

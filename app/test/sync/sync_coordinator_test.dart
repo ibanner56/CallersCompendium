@@ -7930,6 +7930,7 @@ void main() {
         'perform_swap_defaults': SyncCapabilities.performSwapV1,
         'event_rules_enabled': SyncCapabilities.eventRulesV1,
         'event_rule_order': SyncCapabilities.eventRulesV1,
+        'event_rules_check_perform_swap': SyncCapabilities.eventRulesV1,
         'weekends_and_series_enabled': SyncCapabilities.weekendsAndSeriesV1,
       });
       expect(SyncCapabilityPolicy.build.gatedGlossaryEntryKinds, {

@@ -14837,6 +14837,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Add rules to a program, such as no two Becket dances in a row, and the builder warns you when the program breaks one. Warnings never stop you saving or calling.';
 
   @override
+  String get settingsEventRulesCheckPerformSwapTitle =>
+      'Check Perform\'s Swap this dance';
+
+  @override
+  String get settingsEventRulesCheckPerformSwapSubtitle =>
+      'When you swap a dance in Perform, marks each dance that would break one of the program\'s rules and lists it last. Nothing is left out.';
+
+  @override
   String get eventRulesManageTitle => 'Manage rules';
 
   @override

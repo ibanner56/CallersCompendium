@@ -59,9 +59,11 @@ abstract final class SyncCapabilities {
   static const String performSwapV1 = 'performSwap.v1';
 
   /// Event rules (#2340): every `eventRule` record, the Experimental Event
-  /// rules toggle (`event_rules_enabled`) and the rule picker's order
-  /// (`event_rule_order`, #2341, which joined it while it was unreleased: one
-  /// capability per feature). An older build has no `event_rules` table, so it could only keep such a record whole without
+  /// rules toggle (`event_rules_enabled`), the rule picker's order
+  /// (`event_rule_order`, #2341) and whether Perform's swap sheet checks the
+  /// rules (`event_rules_check_perform_swap`, #2347); both joined it while it
+  /// was unreleased: one capability per feature. An older build has no
+  /// `event_rules` table, so it could only keep such a record whole without
   /// using it; they wait so a peer never holds a rule it cannot show, edit or
   /// check. A program's applied rule ids (`eventRuleIds`) are not gated:
   /// they are a top-level field of the `program` record, which an older build
@@ -166,8 +168,9 @@ final class SyncCapabilityPolicy {
   /// defaults, and this build advertises it.
   ///
   /// [SyncCapabilities.eventRulesV1] (#2340) gates the caller's event rules,
-  /// their toggle and the rule picker's order (#2341), and this build
-  /// advertises it. The sync server must
+  /// their toggle, the rule picker's order (#2341) and whether Perform's swap
+  /// sheet checks them (#2347), and this build advertises it. The sync
+  /// server must
   /// already accept the `eventRule` record kind: deploy it before the first
   /// build that advertises this (sync-spec §6.15).
   ///
@@ -201,6 +204,7 @@ final class SyncCapabilityPolicy {
       'perform_swap_defaults': SyncCapabilities.performSwapV1,
       'event_rules_enabled': SyncCapabilities.eventRulesV1,
       'event_rule_order': SyncCapabilities.eventRulesV1,
+      'event_rules_check_perform_swap': SyncCapabilities.eventRulesV1,
       'weekends_and_series_enabled': SyncCapabilities.weekendsAndSeriesV1,
     },
     gatedSettingKeyPrefixes: {
