@@ -824,8 +824,9 @@ bool _flaggedAroundTheSet(core.Figure figure) =>
 ///
 /// The destination is dropped here because the next neighbours are where
 /// the one-place promenade lands anyway, and because the compiler defers a
-/// promenade along the set that states one: only a promenade this bridge
-/// took may be danced as a slide, never one it left alone (agent's call).
+/// promenade along the set that states one. The parser also defers one that
+/// is not flagged: only a flagged promenade is danced as a slide, and the one
+/// this bridge takes is the one it flags (agent's call).
 Map<String, Object?> _aroundTheSetParams(core.Figure figure) =>
     figure.move == 'promenade'
     ? (_recordParams(figure.params)..remove('destination'))
