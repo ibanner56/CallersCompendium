@@ -399,7 +399,11 @@ a break separates, a note does not). A rule whose search is gone or cannot be
 fully resolved is reported as needing attention and skipped, never checked
 with criteria dropped. A broken rule is a warning: it never blocks saving,
 Perform or export. While a live rule uses a saved search, that search cannot
-be deleted (`SavedSearchInUse`, listing the rules).
+be deleted (`SavedSearchInUse`, listing the rules). The other way round, a
+rule cannot start using a saved search that is not stored: `create`, and a
+`save` that changes the search, check it in the write's transaction and throw
+`SavedSearchGone` (#2529). A rule from sync or a restore, an Undo, and an
+edit that keeps a search deleted since are not checked.
 
 ### CustomFieldDef / CustomFieldValue
 User-defined: `key, label, type (text|number|boolean|choice), choices?,

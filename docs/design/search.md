@@ -1204,7 +1204,10 @@ passed down from the app shell, which keeps every destination mounted).
 read before the delete (`SettingsRepository.set` on the tombstoned key, which
 revives it), so a value this version cannot read comes back byte for byte. A
 delete that a registered dependent refuses (`SavedSearchInUse`) shows a message
-listing each use and deletes nothing.
+listing each use and deletes nothing. The check and the removal run in one
+transaction (#2529); a dependent that starts using a saved search checks that
+it is stored (`isSavedSearchStored`) in its own write's transaction, and
+throws `SavedSearchGone` when it is not.
 
 **Loading** reads one `SavedSearchContext` (`readSavedSearchContext`,
 `app/lib/src/search/saved_search_context.dart`): one read each of the live tags,

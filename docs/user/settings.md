@@ -749,9 +749,11 @@ Select **Program defaults** to open this group.
   makes exactly the slots it always did. A rule's **Edit** button (the pencil)
   changes its label or saved search; its label can't be "Break", which marks a
   break. While a template has a rule that uses a saved search, that search
-  can't be deleted; the message names the template and the rule. If the saved
-  search is gone anyway (deleted on another device, say), or can't be opened,
-  the rule's row says so, and the placeholder still offers Fill.
+  can't be deleted; the message names the template and the rule. If the
+  saved search you choose for a rule is deleted before the rule is saved, the
+  template says so and keeps its slots as they were. If the saved search is
+  gone anyway (deleted on another device, say), or can't be opened, the rule's
+  row says so, and the placeholder still offers Fill.
 - **Rules** (optional, *Experimental*) — while [Event rules](#event-rules) is
   on, a template has a **Rules** row under its name, listing the template's
   rules. Select it to open the same rule picker a program has, with **New
@@ -1322,7 +1324,9 @@ A rule has:
 
 - **Which dances** — one of your
   [saved searches](./collection.md#save-a-search-and-use-it-again). Save a
-  search in the Collection first.
+  search in the Collection first. If the search you chose is deleted while
+  the rule is open (in the Collection, or on another device), **Save** says
+  so and saves nothing, and you choose another.
 - **How many** — **At most** or **At least** a number of dances from 1 to 99,
   or **None**. For **Any two neighboring dances**, which holds two dances,
   it is **At most** 1 or **At least** 1 or 2: a larger number could never

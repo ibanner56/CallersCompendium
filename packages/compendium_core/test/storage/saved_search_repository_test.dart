@@ -191,10 +191,10 @@ void main() {
         spec: specFor('a'),
       );
       // A writer that adds a rule only while the search is live, started in
-      // the window after the event rules' lookup has answered "no uses". No
-      // real writer checks this yet (see `delete`'s doc comment): the check
-      // is what gives the race an outcome to observe. It runs outside the
-      // delete's zone, as another writer would.
+      // the window after the event rules' lookup has answered "no uses". The
+      // test double checks for itself, so this pins the delete's atomicity
+      // alone; the next test races the real writer, which checks too. It
+      // runs outside the delete's zone, as another writer would.
       Future<void>? racer;
       repos.savedSearches.usage.register('racer', (id) async {
         racer ??= Zone.root.run(

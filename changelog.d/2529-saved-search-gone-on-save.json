@@ -1,0 +1,17 @@
+{
+  "id": "2529-saved-search-gone-on-save",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "If the saved search you chose for an event rule (Experimental) or a template's slot rule is deleted before you save, the editor now says so and saves nothing, instead of saving a rule that names a search that no longer exists. The rule editor then asks you to choose another search, and the template keeps its slots as they were."
+    ]
+  },
+  "core": {
+    "added": [
+      "SavedSearchGone, and isSavedSearchStored for a writer to check, in its own transaction, that a saved search it starts using is stored."
+    ],
+    "fixed": [
+      "EventRuleRepository.create, and save when it changes a rule's saved search, now throw SavedSearchGone, writing nothing, for a saved search that is not stored. A rule written by sync or a restore, an Undo, and an edit that keeps a search deleted since are not checked."
+    ]
+  }
+}
