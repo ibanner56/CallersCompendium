@@ -1423,6 +1423,19 @@ The maintainer answered two questions from the held-squares archive work on
    counter-clockwise default would contradict (this ADR author's call; no
    held square uses it).
 
+
+### 12.5 Allemande wording and the dialect editor's square samples
+
+The maintainer answered on 24 November 2026 that squares should show
+"allemande left" wording. A `hand_turn` with `hand` set to `left` or `right`
+is shown as its `allemande_left` or `allemande_right` alias would be ("everyone
+allemande left corners"). This is display only: the canonical text stays "left
+hand turn", and a figure with no hand stated still reads "hand turn". A
+dialect that names or words `hand_turn` keeps its own line (this ADR author's
+call, as a dialect's choice should win over a default wording). The dialect
+editor's preview shows square calls for a square dialect (§8.3): a left hand
+turn, a head robins' chain and a swing, with a line of prose.
+
 ---
 
 ## Appendix A: worked examples

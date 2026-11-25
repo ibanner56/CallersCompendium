@@ -739,6 +739,11 @@ turned off: it reads "forward", and on its own it counts 4 beats rather than
 to clockwise, which is the only way it then says. A wrong-way promenade is
 a clockwise one.
 
+A square's **hand turn** with its **Hand** set reads as the call: "allemande
+left" or "allemande right", the same as choosing **allemande left** from the
+picker. With no hand set it reads "hand turn". A dialect that gives hand turn
+a name or wording of its own keeps it.
+
 If a dance holds figures of another type than its own, for example English
 figures in a dance you have just changed to contra, **Warnings** says how
 many. They are kept and shown as they are, but the figure picker offers only

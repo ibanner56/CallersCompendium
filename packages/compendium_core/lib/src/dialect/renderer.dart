@@ -8,7 +8,8 @@ import '../taxonomy/gate_facing.dart';
 import '../taxonomy/move_def.dart';
 import '../taxonomy/param_opposites.dart';
 import '../taxonomy/param_types.dart';
-import '../taxonomy/square_taxonomy.dart' show squareRoleTokenWords;
+import '../taxonomy/square_taxonomy.dart'
+    show squareMovePrefix, squareRoleTokenWords;
 import '../taxonomy/taxonomy.dart';
 import '../taxonomy/user_figure_definition.dart';
 import '../taxonomy/user_figure_use.dart';
@@ -652,6 +653,19 @@ class FigureRenderer {
     if (def == null) {
       // Unknown move: fall back to the raw id so nothing is silently lost.
       return figure.move;
+    }
+
+    final allemande = forCanonical
+        ? null
+        : _squareAllemandeFor(figure, def, dialect);
+    if (allemande != null) {
+      return _renderUntitled(
+        allemande,
+        dialect,
+        verbose: verbose,
+        decimals: decimals,
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      );
     }
 
     final params = taxonomy.effectiveParams(figure);
@@ -1303,6 +1317,9 @@ class FigureRenderer {
       'long_lines': 'forming long lines',
       'forward_and_back': 'going forward and back',
       'sq_forward_and_back': 'going forward and back',
+      // The last word of the name is the hand, not the verb.
+      'sq_allemande_left': 'allemanding left',
+      'sq_allemande_right': 'allemanding right',
       'mad_robin': 'doing a mad robin',
       'pass_through': 'passing through',
       'pass_the_ocean': 'passing the ocean',
@@ -1356,6 +1373,7 @@ class FigureRenderer {
   }
 
   static final RegExp _forwardWord = RegExp(r'\bforward\b');
+  static final RegExp _allemandeWord = RegExp(r'\ballemande\b');
 
   String _gerundiveRenderedFallback(String moveId, String rendered) {
     // Its display line spells the name around the side ("slide left along
@@ -1367,6 +1385,11 @@ class FigureRenderer {
     // name "forward and back"; the direction takes the verb.
     if (moveId == 'forward_and_back' || moveId == 'sq_forward_and_back') {
       return rendered.replaceFirst(_forwardWord, 'going forward');
+    }
+    // A square's left or right hand turn reads "allemande left"
+    // ([_squareAllemandeFor]), not its name "hand turn".
+    if (moveId == 'sq_hand_turn') {
+      return rendered.replaceFirst(_allemandeWord, 'allemanding');
     }
     if (moveId != 'zig_zag') return rendered;
     final zigged = rendered.replaceFirst(RegExp(r'\bzig\b'), 'zigging');
@@ -2056,6 +2079,29 @@ class FigureRenderer {
 
   /// Whether [moveId] is an alias a dialect names on its own
   /// ([MoveAlias.listedAsMove]).
+  /// A square's left or right hand turn shown as the call callers use,
+  /// "allemande left" or "allemande right" (Hudson, 24 November 2026): the
+  /// figure as its allemande alias, without the hand the alias pins.
+  /// DISPLAY-ONLY, so the canonical text keeps "left hand turn". A dialect
+  /// that names the hand turn, or words it, keeps its own line.
+  Figure? _squareAllemandeFor(Figure figure, MoveDef def, Dialect dialect) {
+    if (figure.move != def.id || def.id != '${squareMovePrefix}hand_turn') {
+      return null;
+    }
+    final hand = figure.params['hand'];
+    if (hand != 'left' && hand != 'right') return null;
+    final aliasId = '${squareMovePrefix}allemande_$hand';
+    if (!taxonomy.aliases.containsKey(aliasId)) return null;
+    if (dialect.moves.containsKey(def.id) ||
+        _isUsableMoveWording(_resolvedMoveWording(figure, dialect, def.id))) {
+      return null;
+    }
+    return figure.copyWith(
+      move: aliasId,
+      params: {...figure.params}..remove('hand'),
+    );
+  }
+
   bool _listedAsMove(String moveId) =>
       taxonomy.aliases[moveId]?.listedAsMove ?? false;
 

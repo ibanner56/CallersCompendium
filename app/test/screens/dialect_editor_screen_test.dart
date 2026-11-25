@@ -125,6 +125,30 @@ void main() {
     expect(text, isNot(contains('do si do')));
   });
 
+  testWidgets('a square dialect previews square calls (ADR-007 §8.3)', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectEditorScreen(
+          form: DanceForm.square,
+          initial: Dialect.larksRobins,
+        ),
+      ),
+    );
+    await reveal(tester, preview());
+    final lines = previewText(tester).trim().split('\n');
+    // A left hand turn reads as the call (Hudson, 24 November 2026).
+    expect(lines, [
+      'everyone allemande left corners',
+      'head robins chain',
+      'larks swing corners',
+      'robins step in and larks swing home',
+    ]);
+  });
+
   testWidgets('the preview reflects role-term edits live', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

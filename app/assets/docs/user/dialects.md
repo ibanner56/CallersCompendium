@@ -127,7 +127,10 @@ When none of the built-in dialects match your community, make your own. From
 
 The editor has a section for each of the following. The **Preview** section shows
 sample figures reworded with your dialect and updates as you type, so you can see
-the effect immediately. Choose **Save** when you are done.
+the effect immediately. The samples are the dialect's own type's: contra
+figures for a contra dialect, English figures for an English one, and square
+calls, such as an allemande left and a chain, for a square one. Choose **Save**
+when you are done.
 
 ### Role names
 

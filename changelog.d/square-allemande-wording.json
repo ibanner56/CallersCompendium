@@ -1,0 +1,15 @@
+{
+  "id": "square-allemande-wording",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "A square's hand turn with its hand set now reads as the call, \"allemande left\" or \"allemande right\", unless your dialect names hand turn itself.",
+      "The dialect editor's preview shows square calls for a square dialect, rather than contra figures."
+    ]
+  },
+  "core": {
+    "changed": [
+      "The display render of sq_hand_turn with hand left or right is its sq_allemande_left or sq_allemande_right alias's line (canonical text unchanged); both aliases get the gerunds \"allemanding left\" and \"allemanding right\"."
+    ]
+  }
+}

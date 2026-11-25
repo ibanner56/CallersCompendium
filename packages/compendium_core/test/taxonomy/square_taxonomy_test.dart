@@ -397,6 +397,58 @@ void main() {
       );
     });
 
+    test('a left or right hand turn reads as the allemande', () {
+      Figure turn(Map<String, Object?> params) =>
+          testFigure(move: 'sq_hand_turn', params: params);
+      final left = turn({
+        'who': 'everyone',
+        'hand': 'left',
+        'whom': 'corners',
+        'travel': 1.5,
+      });
+      // Hudson, 24 November 2026: squares show "allemande left".
+      expect(_shown(left), 'everyone allemande left corners 1½');
+      expect(
+        _renderer.renderVerbose(left, Dialect.larksRobins),
+        'everyone allemande left corners one and a half times',
+      );
+      expect(
+        _shown(turn({'who': 'heads', 'hand': 'right'})),
+        'heads allemande right',
+      );
+      // The canonical text is the hand turn's own.
+      expect(_canonical(left), 'everyone left hand turn corners 1½');
+      // With no hand stated, it is a hand turn.
+      expect(_shown(turn({'who': 'heads'})), 'heads hand turn');
+      // A dialect that names the hand turn keeps its name.
+      expect(
+        _renderer.render(
+          left,
+          Dialect(name: 'D', moves: const {'sq_hand_turn': 'turn'}),
+        ),
+        'everyone left turn corners 1½',
+      );
+      // Among a modifier's gerunds it reads "allemanding left", as the
+      // alias does.
+      expect(
+        _renderer.renderSummary(
+          Figure.modifier(
+            figures: [
+              testFigure(move: 'sq_swing', params: {'who': 'heads'}),
+              turn({'who': 'everyone', 'hand': 'left'}),
+              testFigure(
+                move: 'sq_allemande_right',
+                params: {'who': 'partners'},
+              ),
+            ],
+            beats: 16,
+          ),
+          Dialect.larksRobins,
+        ),
+        'heads swing, everyone allemanding left and partner allemanding right',
+      );
+    });
+
     test('a promenade goes counter-clockwise unless it says otherwise', () {
       Figure promenade([Map<String, Object?> more = const {}]) => testFigure(
         move: 'sq_promenade',
