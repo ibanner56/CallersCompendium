@@ -16,10 +16,10 @@ part of '../operation.dart';
 /// [SlideAlongSet] does, clockwise as a slide left and counterclockwise as a
 /// slide right, and like the slide is its own progression. It ends with every
 /// dancer facing across, toward the next neighbours, as the ruling says; the
-/// slide alone would keep their facing. Any other single
-/// file or `where`, and a stated `destination` other than that promenade's
-/// own next neighbours, raise
-/// [ErrorKind.unsupportedParam]. A Caller's Box promenade that states no
+/// slide alone would keep their facing. Any other single file or `where`,
+/// and any stated `destination`, raise [ErrorKind.unsupportedParam]. The
+/// parser defers the along-the-set form unless it carries the progression
+/// flag (`io/dance_json.dart`). A Caller's Box promenade that states no
 /// `where` (a whole-set or around-a-dancer promenade there) is stopped before
 /// it reaches this operation and reported as `unstructured`, an import
 /// problem, by `runCoreDance` (`io/callersbox_source.dart`).
@@ -51,9 +51,9 @@ final class Promenade extends Operation {
 
   /// Whom the pairs travel to, when the source says. `null` is the upstream
   /// `unspecified` sentinel. A stated destination is deferred: it names travel
-  /// past the hands four, which this landing does not model. The one
-  /// exception is a single-file promenade around the set to the next
-  /// neighbours, which is the one place that figure already travels.
+  /// past the hands four, which this landing does not model. That includes
+  /// the import's `nextNeighbors` on a single-file promenade around the set:
+  /// the Caller's Box bridge drops it from the one it takes.
   final WhoSet? destination;
 
   @override
@@ -84,11 +84,14 @@ final class Promenade extends Operation {
   @override
   OpError? checkPreconditions(Formation formation) {
     if (_aroundTheSet) {
-      // "Single file promenade … around the major set to N2": the one place
-      // the slide travels is to the next neighbours, so naming them states
-      // that landing rather than another (agent's call, 2026-11-24, at the
-      // taxonomy-v40 sync, where the import began writing it).
-      if (destination != null && destination != WhoSet.nextNeighbors) {
+      // "Single file promenade … around the major set to N2": the import
+      // writes `destination: nextNeighbors`, and the Caller's Box bridge
+      // drops it from the promenade it reads as the progression, whether it
+      // took it or the source flagged it. A promenade that still states a
+      // destination is one the bridge left alone (a count or a rotation), or
+      // one from another source naming travel this landing does not model,
+      // so it is deferred (agent's call, 2026-11-25).
+      if (destination != null) {
         return OpError(
           ErrorKind.unsupportedParam,
           'a promenade to ${destination!.key} is deferred',

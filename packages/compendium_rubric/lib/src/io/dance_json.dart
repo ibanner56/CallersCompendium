@@ -1180,8 +1180,27 @@ OperationInvocation _parseFigureAt(Object? raw, String path) {
     }
   }
 
-  return OperationInvocation(
-    build(_Params(figureParams, '$path.params')),
-    progression: (progression as bool?) ?? false,
-  );
+  final flagged = (progression as bool?) ?? false;
+  final operation = build(_Params(figureParams, '$path.params'));
+  // A single-file promenade along the set is danced as a one-place slide only
+  // where it is the progression: that is the figure Hudson ruled on (2026-11-24,
+  // "around the major set to N2"), and the Caller's Box bridge flags the one it
+  // takes. Any other (a count or rotation the bridge left alone, no "to N2",
+  // one inside a container) would move the set by a reading nobody ruled on,
+  // so it is deferred (agent's call, 2026-11-25).
+  if (!flagged &&
+      operation is Promenade &&
+      operation.singleFile &&
+      operation.where == 'along') {
+    throw _ParseFailure(
+      DanceParseError(
+        'a single-file promenade along the set is deferred unless it is the '
+        'progression',
+        path:
+            '$path.params.${figureParams.containsKey('where') ? 'where' : 'dir'}',
+        deferred: true,
+      ),
+    );
+  }
+  return OperationInvocation(operation, progression: flagged);
 }

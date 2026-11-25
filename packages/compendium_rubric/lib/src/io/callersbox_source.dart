@@ -575,7 +575,9 @@ bool retryPlacesDifferently(BridgedDance attempt, BridgedDance fallback) =>
 /// progression flag (see [assumedProgressionIndex]), it reads a slide
 /// after a balanced long wave as the Rory O'More it is (see
 /// [_slidesTheWave]), it reads a single-file circle around the major set to
-/// N2 as the promenade along the set it is (see [_promenadesAroundTheSet]),
+/// N2 as the promenade along the set it is, and drops the import's own
+/// promenade's `destination` (see [_promenadesAroundTheSet] and
+/// [_aroundTheSetParams]),
 /// it reads a hall figure noted "backwards" as a line backing along the hall
 /// (see [_hallBackwards]), it reads a swing noted "face up" or "finish
 /// proper" as finishing facing up (see [_swingNoteFacing]), and it reads a
@@ -689,7 +691,7 @@ BridgedDance bridgeCoreDance(
                 : figures[index].move,
             'params': _slidesTheWave(figures, index)
                 ? _roryParams(figures, index)
-                : index == aroundAt
+                : index == aroundAt || _flaggedAroundTheSet(figures[index])
                 ? _aroundTheSetParams(figures[index])
                 : {
                     ..._recordParams(figures[index].params),
@@ -807,11 +809,26 @@ int? _aroundTheSetIndex(List<core.Figure> figures) {
   return null;
 }
 
-/// The promenade [figure] is danced as: the import's own promenade as it
-/// stands, or one built from the circle the import wrote before v40.
+/// Whether [figure] is the import's own promenade around the major set to
+/// N2 ([_promenadeAroundTheSet]) and the source flagged it as the progression.
+/// The bridge takes no promenade in a flagged dance, but this one is the
+/// figure the ruling covers, so its destination is dropped all the same
+/// (agent's call).
+bool _flaggedAroundTheSet(core.Figure figure) =>
+    figure.progression &&
+    figure.move == 'promenade' &&
+    _promenadeAroundTheSet(figure);
+
+/// The promenade [figure] is danced as: the import's own promenade without
+/// its destination, or one built from the circle the import wrote before v40.
+///
+/// The destination is dropped here because the next neighbours are where
+/// the one-place promenade lands anyway, and because the compiler defers a
+/// promenade along the set that states one: only a promenade this bridge
+/// took may be danced as a slide, never one it left alone (agent's call).
 Map<String, Object?> _aroundTheSetParams(core.Figure figure) =>
     figure.move == 'promenade'
-    ? _recordParams(figure.params)
+    ? (_recordParams(figure.params)..remove('destination'))
     : _circleAroundTheSetParams(figure);
 
 Map<String, Object?> _circleAroundTheSetParams(core.Figure figure) => {

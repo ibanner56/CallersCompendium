@@ -212,15 +212,23 @@
 > couple number; a bare "form long wave" now states `who: unspecified` and
 > reads as `role1s` facing in, as it did when it stated nothing (deferring it
 > cost 76); and a single-file promenade around the set to the next
-> neighbours, which the import now writes with that `destination`, is
-> accepted (deferring it cost 16), and the bridge still finds it as the
-> dance's progression in the import's new shape. `shift` is not built yet.
-> Against `rubric` at `6527c9d7`: 4,532 of 5,623 to 4,558 of 5,695 compiled
-> in scope (80.6% to 80.0%), the core set 577 to 580. 29 dances now compile
-> and 3 no longer do: Spare Parts (12030, core) and Bloomingfoods Reel Food
+> neighbours, which the import now writes with that `destination`, is still
+> found by the bridge as the dance's progression in the import's new shape,
+> and the bridge drops the destination from the promenade it takes. Since the
+> import writes this promenade itself, one the bridge leaves alone (a count,
+> no "to N2", a dance with another figure flagged) would otherwise be danced
+> as an unflagged one-place slide, so a single-file promenade along the set
+> is now deferred unless it carries the progression flag, and a stated
+> destination is deferred. `shift` is not built yet.
+> Against `rubric` at `6527c9d7`: 4,532 of 5,623 to 4,556 of 5,691 compiled
+> in scope (80.6% to 80.1%), the core set 577 to 580. 29 dances now compile
+> and 5 no longer do: Spare Parts (12030, core) and Bloomingfoods Reel Food
 > (14488), whose pass through now names the next or third neighbours and so
-> moves the assumed progression, and Mrs. Reilly's Daughter (3917), whose
-> single-file circle now imports as a promenade along the set. In the core
+> moves the assumed progression; Mrs. Reilly's Daughter (3917), whose
+> single-file circle now imports as a promenade along the set; and All of a
+> Sudden (11888) and Enid's Other Delight (959), whose single-file circles
+> "around the major set" and back, without "to N2", now import as unflagged
+> promenades along the set and are deferred. In the core
 > set, 19 dances that were free text now import: 3 compile, 7 stop at
 > `shift`, 1 at a `whom: shadows` slot, and 8 refuse at a figure; Lost at Sea
 > (18113) moved from refusing to a `shadows` deferral. Pass Thru Two (1005)
@@ -538,7 +546,7 @@
 > balance straight after a `form_a_long_wave`, even across a phrase boundary,
 > stays custom.
 
-The compiler implements 53 canonical figures. Twenty-eight have no deliberately
+The compiler implements 52 canonical figures. Twenty-seven have no deliberately
 deferred parameter values, 25 have an implemented core with explicit
 deferrals, and one of the figures this table has tracked since September
 remains entirely deferred (taxonomy v36 to v40 added five more, of which
@@ -563,13 +571,13 @@ the implementation may have a defect.
 
 | Status | Count | Figures |
 | --- | ---: | --- |
-| **Full parameter surface** | 28 | `arch_and_dive`, `balance`, `balance_the_ring`, `box_circulate`, `box_the_gnat`, `butterfly_whirl`, `california_twirl`, `circle`, `contra_corners`, `courtesy_turn`, `facing_star`, `form_a_long_wave`, `form_long_waves`, `give_and_take`*, `pass_by`, `pass_the_ocean`, `petronella`, `revolving_door`, `roll_away`, `rory_o_more`, `slide_along_set`, `square_through`, `stand_still`, `star`, `star_through`, `turn_alone`, `turn_as_couples`, `zig_zag` |
+| **Full parameter surface** | 27 | `arch_and_dive`, `balance`, `balance_the_ring`, `box_circulate`, `box_the_gnat`, `butterfly_whirl`, `california_twirl`, `circle`, `contra_corners`, `courtesy_turn`, `facing_star`, `form_a_long_wave`, `form_long_waves`, `give_and_take`*, `pass_the_ocean`, `petronella`, `revolving_door`, `roll_away`, `rory_o_more`, `slide_along_set`, `square_through`, `stand_still`, `star`, `star_through`, `turn_alone`, `turn_as_couples`, `zig_zag` |
 | **Implemented with explicit deferrals** | 25 | `allemande`, `cast`, `chain`, `circular_hey`, `cross_trails`, `do_si_do`, `down_the_hall`, `figure_8`, `form_short_waves`, `gate`, `hey`, `long_lines`, `mad_robin`, `orbit`, `pass_through`, `poussette`, `promenade`, `pull_by`, `right_left_through`, `shoulder_round`, `slice`, `star_promenade`, `swing`, `two_hand_turn`, `up_the_hall` |
 | **Entirely deferred canonical figures** | 1 | `dolphin_hey` |
 | **Structural containers** | 3 | `meanwhile` (simultaneous figures by different dancers), `modifier` (a main figure changed by ordered modifier figures) and a nested `sequence`; none is an ordinary taxonomy move. Built 2026-11-23 |
 
-The external vocabulary (`supportedMoves`) reports 63 supported names: the 53
-canonical implementations, the three containers, and seven aliases that resolve
+The external vocabulary (`supportedMoves`) reports 63 supported names: the 52
+canonical implementations, the three containers, and eight aliases that resolve
 onto the canonical figures:
 
 - `meltdown_swing` resolves to `swing`;
@@ -577,6 +585,8 @@ onto the canonical figures:
 - `see_saw` resolves to `do_si_do`;
 - `swat_the_flea` resolves to `box_the_gnat`;
 - `hand_cast` resolves to `gate`;
+- `pass_by` resolves to `pass_through` with `passType: by` (taxonomy v40); a
+  pass by that states a direction, or leaves `who` unstated, is deferred;
 - `long_lines` resolves to `forward_and_back`, which the table above lists as
   `long_lines` because only its long-lines formation is built.
 
@@ -621,7 +631,7 @@ from this table because the compiler never ran against them. **Pass rate** is
 | `long_lines` | Partial | 753 | 72 | 454 | 3 | 0 | 58.7% |
 | `mad_robin` | Partial | 128 | 11 | 54 | 0 | 11 | 66.3% |
 | `orbit` | Partial | 0 | 0 | 0 | 0 | 0 | - |
-| `pass_by` | Full | 137 | 20 | 77 | 0 | 0 | 58.5% |
+| `pass_by` | Partial | 137 | 20 | 77 | 0 | 0 | 58.5% |
 | `pass_the_ocean` | Full | 44 | 8 | 46 | 0 | 11 | 44.9% |
 | `pass_through` | Partial | 468 | 52 | 297 | 1 | 0 | 57.2% |
 | `petronella` | Full | 281 | 36 | 113 | 0 | 0 | 65.3% |
@@ -663,8 +673,10 @@ from this table because the compiler never ran against them. **Pass rate** is
   with no couples waiting out.
 - `chain dir:along` is deferred as four-facing-four choreography.
 - `promenade` supports `where: across` for side-by-side pairs, and single file
-  `where: along` the set. Other single-file promenades, stated destinations, every other `where`, and a `direction`
-  stated `unspecified` are deferred. (A Caller's Box promenade that imports
+  `where: along` the set where it carries the progression flag. Other
+  single-file promenades (an unflagged one along the set included), stated
+  destinations, every other `where`, and a `direction` stated `unspecified`
+  are deferred. (A Caller's Box promenade that imports
   with no `where` is not a deferral: see "Entirely deferred impact".)
 - Diagonal `hey` is deferred; it must agree with diagonal
   `right_left_through`, which is now built.
