@@ -7668,6 +7668,32 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceLinkRefusedNoContent => 'このダンスのコードにはダンスもプログラムも含まれていません。';
 
   @override
+  String get importScanDanceCode => 'ダンスのコードをスキャン';
+
+  @override
+  String get importScanNoCode =>
+      '画像にダンスのコードが見つかりませんでした。コード全体が写り、鮮明であることを確認してください。';
+
+  @override
+  String get importScanUnreadable => '画像を読み取れませんでした。';
+
+  @override
+  String get importDanceCodePicture => '画像からダンスのコード…';
+
+  @override
+  String importScanTooLarge(int limit) {
+    return 'この画像は $limit MB を超えているため、読み取りませんでした。小さい画像を選んでください。';
+  }
+
+  @override
+  String get importScanNoCamera =>
+      'この端末には写真を撮るカメラアプリがありません。代わりに「画像からダンスのコード…」を選んでください。';
+
+  @override
+  String get importScanCameraOff =>
+      'Caller\'s Compendium のカメラへのアクセスがオフになっています。コードをスキャンするには、「設定」アプリでオンにしてください。';
+
+  @override
   String get archiveIntakeRejectedNotArchive =>
       'そのファイルはCaller’s Compendiumの共有ファイルではありません。';
 
@@ -14575,6 +14601,23 @@ class AppLocalizationsJa extends AppLocalizations {
   String programsRulesPickerFull(int max) {
     return 'このプログラムはルールを上限の$max件使っています。別のルールを追加するには、どれかのチェックを外してください。';
   }
+
+  @override
+  String programsRulesPickerNotHere(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'このデバイスにないルールが$count件あります',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get programsRulesPickerNotHereHelp =>
+      '別のデバイスで追加されてまだ届いていないか、すでに存在しません。「削除」でこのプログラムから外します。';
+
+  @override
+  String get programsRulesChangeFailed => 'このプログラムのルールを変更できませんでした。もう一度お試しください。';
 
   @override
   String get eventRuleCountNeighbouringHelp => '隣接する2曲に含まれる該当ダンスは最大2曲です。';

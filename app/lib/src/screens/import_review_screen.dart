@@ -17,6 +17,7 @@ import '../theme/app_spacing.dart';
 import 'import_cc_terms_screen.dart';
 import 'import_user_figures_screen.dart';
 import '../data/callersbox_online.dart';
+import '../data/dance_code_scanner.dart';
 import '../data/dance_link_intake.dart';
 import '../data/dance_reimport.dart';
 import '../export/dance_code.dart' show DanceLinkException;
@@ -24,6 +25,7 @@ import '../data/import_diagnostic_labels.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
+import '../data/photo_capture.dart';
 import '../data/program_ambiguous_review.dart';
 import '../data/repositories_scope.dart';
 import '../data/active_dialect_scope.dart';
@@ -352,6 +354,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   final TextEditingController _urlController = TextEditingController();
   bool _picking = false;
   bool _fetching = false;
+
+  /// Where a dance code is being read from (#2336), while it is.
+  _CodeSource? _codeSource;
 
   /// The bytes of a picked file for a byte source (Caller's Companion `.USR`,
   /// or a spreadsheet), or `null` when none is chosen / the source is
@@ -997,6 +1002,77 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _titleListError = null;
     });
     await _plan();
+  }
+
+  /// **Scan a dance code** and **Dance code from a picture…** (#2336): takes
+  /// a photo with the shared camera service, or reads a chosen picture, finds
+  /// the QR code in it, and hands the code's text to [_openDanceLink], the
+  /// path a pasted dance link takes, so a scanned code and a pasted link open
+  /// the same review. The camera service deletes its photo file, and the
+  /// picker the copy it made, before the bytes reach here; the bytes are
+  /// dropped once searched. A cancel leaves the screen as it was.
+  Future<void> _readDanceCode(_CodeSource source) async {
+    final l10n = AppLocalizations.of(context);
+    final decoder = DanceCodeDecoderScope.of(context);
+    final camera = PhotoCaptureScope.of(context);
+    final pickPicture = DanceCodeDecoderScope.pickerOf(context);
+    setState(() {
+      _codeSource = source;
+      _fetchError = null;
+    });
+    String? text;
+    String? refusal;
+    try {
+      if (source == _CodeSource.camera) {
+        text = await scanDanceCode(camera: camera!, decoder: decoder);
+      } else {
+        final picture = await pickPicture();
+        if (picture != null) text = await decoder.decode(picture);
+      }
+    } on PhotoCaptureException catch (e) {
+      // diagnostics: silent — camera access that is off, or an oversized photo; both are shown inline
+      refusal = switch (e.reason) {
+        PhotoCaptureFailure.accessDenied => l10n.importScanCameraOff,
+        PhotoCaptureFailure.noCamera => l10n.importScanNoCamera,
+        PhotoCaptureFailure.tooLarge => l10n.importScanTooLarge(
+          kDanceCodePhotoMaxBytes ~/ (1024 * 1024),
+        ),
+      };
+    } on DanceCodePictureTooLarge {
+      // diagnostics: silent — an oversized picture, refused unread and shown inline
+      refusal = l10n.importScanTooLarge(
+        kDanceCodePhotoMaxBytes ~/ (1024 * 1024),
+      );
+    } on DanceCodeScanException catch (e) {
+      // diagnostics: silent — the picture held no readable code; the message says which
+      refusal = switch (e.failure) {
+        DanceCodeScanFailure.noCode => l10n.importScanNoCode,
+        DanceCodeScanFailure.damagedCode => l10n.danceLinkRefusedDamaged,
+        DanceCodeScanFailure.unreadablePicture => l10n.importScanUnreadable,
+      };
+    } catch (e, stackTrace) {
+      // The camera's, the picker's or the decoder's own failure: not known
+      // log-safe, so only its shape is recorded.
+      logCaughtErrorTypeOnly(
+        e,
+        stackTrace,
+        source: 'import_review_screen._readDanceCode',
+      );
+      refusal = l10n.importScanUnreadable;
+    }
+    if (!mounted) return;
+    setState(() => _codeSource = null);
+    if (refusal != null) {
+      setState(() => _fetchError = refusal);
+      return;
+    }
+    if (text == null) return;
+    // Any QR code can be read; only a dance link is opened, never fetched.
+    if (!looksLikeDanceLink(text)) {
+      setState(() => _fetchError = l10n.danceLinkRefusedNotADance);
+      return;
+    }
+    await _openDanceLink(text);
   }
 
   Future<void> _fetchFromUrl() async {
@@ -3223,6 +3299,27 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
+  /// A button that reads a dance code from [source], with a spinner while
+  /// it does.
+  Widget _codeButton(
+    _CodeSource source, {
+    required Key key,
+    required IconData icon,
+    required String label,
+    required bool busy,
+  }) => OutlinedButton.icon(
+    key: key,
+    onPressed: busy ? null : () => _readDanceCode(source),
+    icon: _codeSource == source
+        ? const SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : Icon(icon),
+    label: Text(label),
+  );
+
   Widget _buildInput(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final hasContent =
@@ -3233,7 +3330,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // While a file pick or URL fetch is in flight, lock every input so a
     // late-completing pick/fetch can't overwrite the payload or clobber
     // `_sourceUri` under the user, and so planning can't start on stale input.
-    final busy = _picking || _fetching;
+    final busy = _picking || _fetching || _codeSource != null;
+    final camera = PhotoCaptureScope.of(context);
     final isUrlSource = _selected.urlBuilder != null;
     final titlePreflight = _isPastedTextSource
         ? preflightTitleList(_pasteController.text)
@@ -3442,11 +3540,32 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           const SizedBox(height: 4),
           Text(l10n.importReviewGenericSubtitle),
           const SizedBox(height: 16),
-          OutlinedButton.icon(
-            key: const ValueKey('import-choose-file'),
-            onPressed: busy ? null : _chooseFile,
-            icon: const Icon(Icons.folder_open_outlined),
-            label: Text(l10n.importReviewChooseFile),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                key: const ValueKey('import-choose-file'),
+                onPressed: busy ? null : _chooseFile,
+                icon: const Icon(Icons.folder_open_outlined),
+                label: Text(l10n.importReviewChooseFile),
+              ),
+              if (camera != null)
+                _codeButton(
+                  _CodeSource.camera,
+                  key: const ValueKey('import-scan-dance-code'),
+                  icon: Icons.qr_code_scanner,
+                  label: l10n.importScanDanceCode,
+                  busy: busy,
+                ),
+              _codeButton(
+                _CodeSource.picture,
+                key: const ValueKey('import-dance-code-picture'),
+                icon: Icons.qr_code_2,
+                label: l10n.importDanceCodePicture,
+                busy: busy,
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           Row(
@@ -4837,3 +4956,6 @@ Future<void> undoShorthandSeed(
     if (index >= 0) await controller.removeAt(index);
   }
 }
+
+/// Where **Import** reads a dance code from (#2336).
+enum _CodeSource { camera, picture }

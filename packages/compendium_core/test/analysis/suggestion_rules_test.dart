@@ -259,6 +259,47 @@ void main() {
       );
     });
 
+    test('an unfilled placeholder (#2338) stands for a dance: it keeps the '
+        'candidate apart from the dance past it, and is replaced like a '
+        'dance', () {
+      final placeholder = ProgramSlot(
+        id: 'ph',
+        position: 0,
+        text: 'Becket',
+        placeholderSearchId: 'becket',
+      );
+      // After the placeholder: its neighbour is the dance still to be
+      // chosen, never judged until it is filled.
+      expect(
+        marked(SuggestionPosition.atEnd([slot('A'), slot('P1'), placeholder]), [
+          'P2',
+        ]),
+        isEmpty,
+      );
+      // Between a petronella and the placeholder: the petronella before it
+      // is still a neighbour.
+      expect(
+        marked(
+          SuggestionPosition.inserting(
+            [slot('P1'), placeholder, slot('A')],
+            0,
+            after: true,
+          ),
+          ['P2'],
+        ),
+        ['P2'],
+      );
+      // Filling the placeholder: the candidate takes its place, next to the
+      // dances either side.
+      expect(
+        marked(
+          SuggestionPosition.replacing([slot('P1'), placeholder, slot('A')], 1),
+          ['P2', 'B'],
+        ),
+        ['P2'],
+      );
+    });
+
     test('an alternate of the last dance is not the last dance', () {
       expect(
         marked(SuggestionPosition.atEnd([slot('A'), slot('P1', alt: true)]), [

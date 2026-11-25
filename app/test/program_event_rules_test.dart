@@ -7,8 +7,11 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/event_rules_scope.dart';
+import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/editor/program_editor_draft_codec.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/settings/event_rules_screen.dart';
 import 'package:compendium_app/src/widgets/program_event_rules.dart';
@@ -515,8 +518,17 @@ void main() {
     await h.checked(1);
     expect(h.reads, 1);
 
+    final judged = h.controller.tableBatchesJudged;
     await repos.settings.set('program_draft:p1', {'title': 'Night, drafted'});
     await repos.settings.set('window_size', {'width': 900, 'height': 700});
+    // Each write is one batch: wait until both have been looked at, so a
+    // check either asked for is already counted below.
+    await pumpUntil(
+      tester,
+      () => h.controller.tableBatchesJudged >= judged + 2,
+      description: 'both settings writes judged',
+    );
+    expect(h.controller.tableBatchesRechecked, 0, reason: 'no check asked');
     await h.settle();
     expect(h.checks, 1, reason: 'nothing a check reads changed');
     expect(h.reads, 1);
@@ -533,6 +545,42 @@ void main() {
     await h.checked(2);
     expect(h.controller.check.broken, isEmpty);
     expect(h.reads, 1);
+  });
+
+  testWidgets('a write that changes a saved search together with a dance '
+      'still moves the baseline, so the next settings write asks for no '
+      'check', (tester) async {
+    final seeded = await _seed();
+    final repos = seeded.repos;
+    final h = await harness(tester, seeded);
+    h.update(h.program.slots);
+    await h.checked(1);
+
+    // One batch: a dance and the saved search, in one transaction.
+    await repos.transaction(() async {
+      final dance = (await repos.dances.getById('d-c'))!;
+      await repos.dances.update(dance.copyWith(title: 'Chorus Jig Too'));
+      await repos.savedSearches.save(
+        SavedSearch(
+          id: seeded.becket.id,
+          name: 'Becket',
+          spec: _spec((f) => f.formations.add(FormationShape.dupleImproper)),
+        ),
+      );
+    });
+    await h.checked(2);
+
+    final judged = h.controller.tableBatchesJudged;
+    final rechecked = h.controller.tableBatchesRechecked;
+    await repos.settings.set('window_size', {'width': 900, 'height': 700});
+    await pumpUntil(
+      tester,
+      () => h.controller.tableBatchesJudged > judged,
+      description: 'the settings write judged',
+    );
+    expect(h.controller.tableBatchesRechecked, rechecked);
+    await h.settle();
+    expect(h.checks, 2);
   });
 
   testWidgets('rules applied while a save is in flight survive the save', (
@@ -644,6 +692,294 @@ void main() {
     await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
     expect(find.text('Rules (3)'), findsOneWidget);
+  });
+
+  testWidgets("a backup leaves out a deleted rule's id, so the restored "
+      'program counts only the rules it brings', (tester) async {
+    final seeded = await _seed();
+    final source = seeded.repos;
+    final gone = await source.eventRules.create(
+      savedSearchId: seeded.becket.id,
+      quantifier: EventRuleQuantifier.none,
+      scope: EventRuleScope.afterFirstBreak,
+    );
+    await source.programs.setEventRuleIds('p1', [
+      seeded.oneBecket.id,
+      gone.id,
+      seeded.noBecketFirstHalf.id,
+    ]);
+    // Deleted and kept on the program for its Undo; the backup carries only
+    // live rules, so on a fresh device this id would have no row at all.
+    await source.eventRules.delete(gone.id);
+    final target = openTestRepositories();
+    await tester.runAsync(() async {
+      final json = await BackupService(source).exportToJson();
+      final outcome = await BackupService(target).restoreFromJson(json);
+      expect(outcome.applied, isTrue);
+    });
+    expect((await target.programs.getById('p1'))!.eventRuleIds, [
+      seeded.oneBecket.id,
+      seeded.noBecketFirstHalf.id,
+    ]);
+
+    await _pump(tester, target, enabled: true);
+    await pumpUntilFound(tester, find.text('Rules (2)'));
+    expect(find.text('Rules (3)'), findsNothing);
+  });
+
+  testWidgets("rules ticked while a new program's first auto-save is in "
+      'flight are all kept', (tester) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    final seeded = await _seed(into: delayed.repos, applied: const []);
+    tester.view.physicalSize = const Size(900, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final on = ValueNotifier(true);
+    final autoCommit = ValueNotifier(true);
+    addTearDown(on.dispose);
+    addTearDown(autoCommit.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: delayed.repos,
+          child: EventRulesEnabledScope(
+            notifier: on,
+            child: ProgramAutoCommitScope(notifier: autoCommit, child: child!),
+          ),
+        ),
+        home: ProgramEditorScreen(
+          onSaved: (_) {},
+          eventRuleEvaluator: _Spy().call,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The first auto-save creates the program and is held mid-write.
+    delayed.programs.holdNextWrite();
+    await tester.enterText(
+      find.byKey(const ValueKey('program-title')),
+      'New night',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await delayed.programs.writeStarted;
+
+    // Two rules ticked while it is in flight.
+    await tester.tap(find.byKey(const ValueKey('program-rules')));
+    await tester.pumpAndSettle();
+    for (final rule in [seeded.oneBecket, seeded.noBecketFirstHalf]) {
+      final box = find.byKey(ValueKey('program-rule-${rule.id}'));
+      await pumpUntilFound(tester, box);
+      await tester.tap(box);
+      await tester.pump();
+    }
+    delayed.programs.releaseWrite();
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    final created = (await delayed.repos.programs.listAll()).where(
+      (p) => p.title == 'New night',
+    );
+    expect(created.single.eventRuleIds, [
+      seeded.oneBecket.id,
+      seeded.noBecketFirstHalf.id,
+    ]);
+  });
+
+  testWidgets('the picker lists rules not on this device, and Remove takes '
+      'them off the program', (tester) async {
+    final seeded = await _seed();
+    final repos = seeded.repos;
+    await repos.programs.setEventRuleIds('p1', [
+      'r-never-coming',
+      seeded.oneBecket.id,
+    ]);
+    await _pump(tester, repos, enabled: true);
+    await pumpUntilFound(tester, find.text('Rules (2)'));
+
+    await tester.tap(find.byKey(const ValueKey('program-rules')));
+    await tester.pumpAndSettle();
+    final line = find.byKey(const ValueKey('program-rules-not-here'));
+    await pumpUntilFound(tester, line);
+    expect(
+      find.descendant(
+        of: line,
+        matching: find.text('1 rule not on this device'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('program-rules-remove-not-here')),
+    );
+    await tester.pumpAndSettle();
+    expect(line, findsNothing);
+    expect((await repos.programs.getById('p1'))!.eventRuleIds, [
+      seeded.oneBecket.id,
+    ]);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    expect(find.text('Rules (1)'), findsOneWidget);
+  });
+
+  testWidgets("a tick the program couldn't store is taken back, and a failed "
+      'write says so', (tester) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    final seeded = await _seed(into: delayed.repos, applied: const []);
+    await _pump(tester, delayed.repos, enabled: true);
+    await tester.tap(find.byKey(const ValueKey('program-rules')));
+    await tester.pumpAndSettle();
+    final box = find.byKey(ValueKey('program-rule-${seeded.oneBecket.id}'));
+    await pumpUntilFound(tester, box);
+    bool ticked() => tester.widget<CheckboxListTile>(box).value ?? false;
+
+    delayed.programs.failWrites = true;
+    await tester.tap(box);
+    await tester.pumpAndSettle();
+    expect(ticked(), isFalse);
+    expect(
+      find.text("Couldn't change this program's rules. Try again."),
+      findsOneWidget,
+    );
+    expect((await delayed.repos.programs.getById('p1'))!.eventRuleIds, isEmpty);
+
+    // The program went to Recently deleted meanwhile: nothing is stored.
+    delayed.programs.failWrites = false;
+    await delayed.repos.programs.softDelete('p1', at: DateTime.now().toUtc());
+    await tester.tap(box);
+    await tester.pumpAndSettle();
+    expect(ticked(), isFalse);
+  });
+
+  testWidgets('a rule sync restores while the picker is open counts again, '
+      'and is not dropped to make room', (tester) async {
+    final seeded = await _seed(applied: const []);
+    final repos = seeded.repos;
+    final live = [seeded.oneBecket.id, seeded.noBecketFirstHalf.id];
+    while (live.length < maxProgramEventRules - 1) {
+      live.add(
+        (await repos.eventRules.create(
+          savedSearchId: seeded.becket.id,
+          quantifier: EventRuleQuantifier.atMost,
+          count: live.length + 1,
+          scope: EventRuleScope.wholeProgram,
+        )).id,
+      );
+    }
+    final back = await repos.eventRules.create(
+      savedSearchId: seeded.becket.id,
+      quantifier: EventRuleQuantifier.none,
+      scope: EventRuleScope.afterFirstBreak,
+    );
+    await repos.programs.setEventRuleIds('p1', [back.id, ...live]);
+    await repos.eventRules.delete(back.id);
+    final extra = await repos.eventRules.create(
+      savedSearchId: seeded.becket.id,
+      quantifier: EventRuleQuantifier.atLeast,
+      count: 1,
+      scope: EventRuleScope.wholeProgram,
+      name: 'Extra',
+    );
+    await _pump(tester, repos, enabled: true);
+    await tester.tap(find.byKey(const ValueKey('program-rules')));
+    await tester.pumpAndSettle();
+    final box = find.byKey(ValueKey('program-rule-${extra.id}'));
+    await pumpUntilFound(
+      tester,
+      find.byKey(ValueKey('program-rule-${seeded.oneBecket.id}')),
+    );
+
+    // Restored (by sync, or Undo elsewhere) after the picker read the rules.
+    await repos.eventRules.restore(back.id);
+    await pumpUntilFound(
+      tester,
+      find.byKey(const ValueKey('program-rules-full')),
+    );
+    await tester.scrollUntilVisible(
+      box,
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(BottomSheet),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.ensureVisible(box);
+    await tester.pumpAndSettle();
+    expect(box.hitTestable(), findsOneWidget, reason: 'on screen');
+    WidgetController.hitTestWarningShouldBeFatal = true;
+    addTearDown(() => WidgetController.hitTestWarningShouldBeFatal = false);
+    await tester.tap(box);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<CheckboxListTile>(box).value,
+      isFalse,
+      reason: 'refused: the program is full again',
+    );
+    expect((await repos.programs.getById('p1'))!.eventRuleIds, [
+      back.id,
+      ...live,
+    ]);
+  });
+
+  testWidgets("a new program's rules come back with its unsaved draft", (
+    tester,
+  ) async {
+    final seeded = await _seed(applied: const []);
+    final repos = seeded.repos;
+    // Left behind by a builder that closed before the first save.
+    await repos.settings.set(
+      programEditorDraftKey('${kNewProgramDraftIdPrefix}left'),
+      encodeProgramDraft(
+        ProgramEditorDraft(
+          title: 'Left behind',
+          notes: '',
+          status: ProgramStatus.draft,
+          hideAlternates: false,
+          eventRuleIds: [seeded.oneBecket.id],
+          slots: const [],
+        ),
+      ),
+    );
+    tester.view.physicalSize = const Size(900, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final on = ValueNotifier(true);
+    addTearDown(on.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: EventRulesEnabledScope(notifier: on, child: child!),
+        ),
+        home: ProgramEditorScreen(
+          onSaved: (_) {},
+          eventRuleEvaluator: _Spy().call,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-draft-restore')));
+    await tester.pumpAndSettle();
+    expect(find.text('Rules (1)'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+    final saved = (await repos.programs.listAll()).where(
+      (p) => p.title == 'Left behind',
+    );
+    expect(saved.single.eventRuleIds, [seeded.oneBecket.id]);
   });
 
   testWidgets('the Rules button counts a rule not on this device yet, but '

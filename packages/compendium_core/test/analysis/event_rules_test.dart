@@ -7,7 +7,8 @@ import 'package:test/test.dart';
 ///
 /// Slot specs: `M…` is a dance the search matches, any other bare word a dance
 /// it does not; `alt:X` an alternate holding dance X; `|` the break;
-/// `note:…` a free-text slot; `purged:…` a purged dance's caption.
+/// `note:…` a free-text slot; `purged:…` a purged dance's caption;
+/// `slot:…` an unfilled placeholder (#2338) labelled `…`.
 void main() {
   List<ProgramSlot> program(List<String> specs) => [
     for (var i = 0; i < specs.length; i++) _slot(i, specs[i]),
@@ -173,6 +174,29 @@ void main() {
       final b = breach(rule(atMost, neighbours, 1), ['M1', 'note:waltz', 'M2']);
       expect(b!.slotIds, ['s0', 's2']);
     });
+
+    test('an unfilled placeholder stands for a dance: it separates the '
+        'dances either side of it, and matches nothing itself', () {
+      expect(
+        breach(rule(atMost, neighbours, 1), ['M1', 'slot:Becket', 'M2']),
+        isNull,
+      );
+      expect(breach(rule(none, neighbours), ['a', 'slot:Becket', 'b']), isNull);
+      // A pair with the placeholder is not judged until it is filled.
+      expect(
+        breach(rule(atLeast, neighbours, 1), ['M1', 'slot:Becket', 'M2']),
+        isNull,
+      );
+      // The dances next to each other still pair up.
+      final b = breach(rule(atMost, neighbours, 1), [
+        'M1',
+        'M2',
+        'slot:Becket',
+        'M3',
+      ]);
+      expect(b!.slotIds, ['s0', 's1']);
+      expect(b.count, 1);
+    });
   });
 
   group('alternates', () {
@@ -288,6 +312,14 @@ ProgramSlot _slot(int i, String spec) {
   }
   if (spec.startsWith('note:')) {
     return ProgramSlot(id: id, position: i, text: spec.substring(5));
+  }
+  if (spec.startsWith('slot:')) {
+    return ProgramSlot(
+      id: id,
+      position: i,
+      text: spec.substring(5),
+      placeholderSearchId: 'search-${spec.substring(5)}',
+    );
   }
   if (spec.startsWith('purged:')) {
     return ProgramSlot(

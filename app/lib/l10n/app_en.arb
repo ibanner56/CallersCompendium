@@ -10513,6 +10513,40 @@
   "@danceLinkRefusedNoContent": {
     "description": "Shown when a dance's QR code link (ccdance://) reads correctly but carries neither dances nor programs. Nothing is imported."
   },
+  "importScanDanceCode": "Scan a dance code",
+  "@importScanDanceCode": {
+    "description": "Button in Import dances, on iPhone, iPad and Android, that opens the system camera to photograph a dance's QR code (shown by another device's Show code screen). The code is read on the device and opens the same import review as a pasted dance link."
+  },
+  "importScanNoCode": "No dance code was found in the picture. Make sure the whole code is in it and sharp.",
+  "@importScanNoCode": {
+    "description": "Shown under the Scan a dance code and Dance code from a picture buttons when the photo or chosen picture contains no QR code the app can find. Nothing is imported."
+  },
+  "importScanUnreadable": "The picture couldn't be read.",
+  "@importScanUnreadable": {
+    "description": "Shown under the Scan a dance code and Dance code from a picture buttons when the photo or chosen picture could not be opened or searched for a code. Nothing is imported."
+  },
+  "importDanceCodePicture": "Dance code from a picture…",
+  "@importDanceCodePicture": {
+    "description": "Button in Import dances, on every platform, that opens the system file picker to choose a picture holding a dance's QR code (a saved photo, or a screenshot of another device's Show code screen). The code is read on the device and opens the same import review as a pasted dance link. The ellipsis means a picker opens."
+  },
+  "importScanTooLarge": "This picture is larger than {limit} MB, so it wasn't read. Choose a smaller one.",
+  "@importScanTooLarge": {
+    "description": "Shown under the Scan a dance code and Dance code from a picture buttons when the photo or chosen file is over the size cap. Nothing is searched for a code or imported.",
+    "placeholders": {
+      "limit": {
+        "type": "int",
+        "example": "25"
+      }
+    }
+  },
+  "importScanNoCamera": "This device has no camera app to take the photo. Choose \"Dance code from a picture…\" instead.",
+  "@importScanNoCamera": {
+    "description": "Shown under the Scan a dance code button when the device has no camera app to take the photo (some Android tablets). Dance code from a picture… is the button beside it; keep its name as translated there."
+  },
+  "importScanCameraOff": "Camera access is off for Caller's Compendium. To scan a code, turn it on in the Settings app.",
+  "@importScanCameraOff": {
+    "description": "Shown under the Scan a dance code button when the user has turned off camera access for the app in iOS Settings, so the camera did not open. Settings is the iOS Settings app."
+  },
   "archiveIntakeRejectedNotArchive": "That file isn't a Caller's Compendium share file.",
   "@archiveIntakeRejectedNotArchive": {
     "description": "Rejection shown when a shared file is not a well-formed Caller's Compendium archive (bad text, non-archive JSON, or an unreadable envelope). Generic; never echoes parser detail."
@@ -20428,6 +20462,24 @@
         "example": "64"
       }
     }
+  },
+  "programsRulesPickerNotHere": "{count, plural, =1{1 rule not on this device} other{{count} rules not on this device}}",
+  "@programsRulesPickerNotHere": {
+    "description": "Line in a program's Rules picker (#2340) when the program applies rules this device does not have: added on another device and not synced here yet, or gone for good. 'Remove' (commonRemove) is beside it.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "programsRulesPickerNotHereHelp": "Added on another device and still on the way, or gone for good. Remove takes them off this program.",
+  "@programsRulesPickerNotHereHelp": {
+    "description": "Under programsRulesPickerNotHere in a program's Rules picker (#2340): what those rules are, and what Remove beside it does."
+  },
+  "programsRulesChangeFailed": "Couldn't change this program's rules. Try again.",
+  "@programsRulesChangeFailed": {
+    "description": "Message at the bottom of the screen when ticking or unticking a rule in a program's Rules picker could not be saved (#2340)."
   },
   "eventRuleCountNeighbouringHelp": "Two neighboring dances hold at most 2 matching dances.",
   "@eventRuleCountNeighbouringHelp": {

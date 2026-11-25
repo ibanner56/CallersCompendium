@@ -937,13 +937,17 @@ class CallersBoxAdapter implements SourceAdapter {
   ///    `form_short_waves` / `form_a_long_wave` / `form_long_waves` folds into
   ///    that move as `balance: true` with the summed beats (#577 — the reverse
   ///    pattern of the leading-balance fold above);
+  ///    except that when a slide follows that balance on a `pass_the_ocean`
+  ///    or `form_short_waves`, the balance and slide become a balanced
+  ///    Rory O'More after the wave ([_foldFormedWaveIntoRory]);
   ///  - a `<role> go forward` line immediately followed by a
   ///    `<role> bring back partner|neighbor` line of the same role folds into
   ///    one `give_and_take`
   ///    ([_foldGoForwardIntoGiveAndTake]).
   ///
-  /// Adjacency-consume: a single left-to-right walk that advances by two on a
-  /// merge, so each line is consumed at most once, only immediately-adjacent
+  /// Adjacency-consume: a single left-to-right walk that advances past the
+  /// lines it merges (two, or three for a meltdown or a formed wave's Rory
+  /// O'More), so each line is consumed at most once, only immediately-adjacent
   /// lines fold, and a balance/bend line with no mergeable neighbour is kept as
   /// its own figure (choreography is never dropped). Merged beats are the SUM of
   /// the two consumed lines (source timing preserved). The caller passes one
@@ -1091,6 +1095,23 @@ class CallersBoxAdapter implements SourceAdapter {
           continue;
         }
         if (_isOceanWaveMove(current) && _isBalanceWaveLine(next)) {
+          // Forming line, balance and slide: the wave is formed, then
+          // balanced and slid as a Rory O'More, as the last two lines read
+          // without the forming line before them.
+          if (i + 2 < figures.length) {
+            final formed = _foldFormedWaveIntoRory(
+              current,
+              next,
+              figures[i + 2],
+            );
+            if (formed != null) {
+              merged
+                ..add(formed.wave)
+                ..add(formed.rory);
+              i += 3;
+              continue;
+            }
+          }
           final folded = _foldTrailingBalanceIntoWave(current, next);
           if (folded != null) {
             merged.add(folded);
@@ -1578,6 +1599,37 @@ class CallersBoxAdapter implements SourceAdapter {
     caseSensitive: false,
   );
 
+  /// A short wave formed on its own line, then balanced and slid
+  /// (`Neighbor do si do 1 & 1/4; form wave of four` / `Balance wave of four
+  /// (NR,WL)` / `Slide right (past N)`, TCB #18142): the forming figure, with
+  /// what the balance line says about the wave, and a balanced Rory O'More
+  /// ([_foldBalanceWaveIntoRory]) for the last two lines. Without this the
+  /// balance folded into the wave ([_foldTrailingBalanceIntoWave]) and the
+  /// slide stood alone, so a two-place slide stayed custom. Only a short wave
+  /// or pass the ocean, the waves a Rory O'More is read from; both folds
+  /// must accept their lines, or this returns `null` and they run as before.
+  static ({Figure wave, Figure rory})? _foldFormedWaveIntoRory(
+    Figure wave,
+    Figure balance,
+    Figure slide,
+  ) {
+    if (wave.move != 'form_short_waves' && wave.move != 'pass_the_ocean') {
+      return null;
+    }
+    final balanced = _foldTrailingBalanceIntoWave(wave, balance);
+    if (balanced == null) return null;
+    final rory = _foldBalanceWaveIntoRory(balance, slide);
+    if (rory == null) return null;
+    final params = Map<String, Object?>.of(balanced.params)
+      ..remove('balance')
+      ..remove('beats');
+    final beats = wave.params['beats'];
+    return (
+      wave: wave.copyWith(params: {...params, 'beats': ?beats}),
+      rory: rory,
+    );
+  }
+
   /// Returns [wave] with the TRAILING [balance] wave line folded in as
   /// `balance: true` and the summed beats (#577), or `null` when [wave] already
   /// carries the balance (guarding against a double-fold of an ocean/wave figure
@@ -1795,7 +1847,10 @@ class CallersBoxAdapter implements SourceAdapter {
   /// Returns [wave] unchanged in every other case. The result carries no
   /// params but the wave's own beats (the centre wave's own defaults, as the
   /// shared recognizer gives `form long wave in center`), so today's
-  /// centre-wave fold then decides the pair.
+  /// centre-wave fold then decides the pair. The one exception is a balance
+  /// that names a role (`Men balance long wave in center`): that role forms
+  /// the centre wave, so it is the result's `who` and the fold then balances
+  /// it (maintainer ruling 2026-11-24).
   static Figure _inCenterFollower(Figure wave, Figure balance) {
     if (!_isBareLongWave(wave) || !_isBalanceWaveLine(balance)) return wave;
     // `for all … in center` is not the centre wave some dancers form; the wave
@@ -1809,16 +1864,32 @@ class CallersBoxAdapter implements SourceAdapter {
       if (j < words.length && words[j] == 'center') inCenter = true;
     }
     if (!inCenter) return wave;
+    // A role on the balance (`Men balance long wave in center`) is the role
+    // that forms the centre wave and balances it (maintainer ruling
+    // 2026-11-24: the bare `form long wave` before it is the same wave). Only
+    // a line with nothing else on it names the role here: one with more words
+    // or an annotation would lose them in the fold, so it is refused as before.
+    final roleMatch = balance.isCustom
+        ? _roleCentreWaveBalanceRe.firstMatch(_customText(balance))
+        : null;
+    final role = roleMatch?.group(1)?.toLowerCase();
     return Figure(
       move: 'form_a_long_wave',
-      params: {'beats': ?wave.params['beats']},
+      params: {'who': ?role, 'beats': ?wave.params['beats']},
       note: wave.note,
       progression: wave.progression,
-      assumedSubject: true,
+      assumedSubject: role == null,
       walkthroughOverride: wave.walkthroughOverride,
       wordingOverride: wave.wordingOverride,
     );
   }
+
+  /// `<role> balance [the] long wave[s] in [the] center` and nothing else;
+  /// group 1 is the role.
+  static final RegExp _roleCentreWaveBalanceRe = RegExp(
+    r'^(role1s|role2s)\s+balance\s+(?:the\s+)?long\s+waves?\s+in\s+(?:the\s+)?center[.]?$',
+    caseSensitive: false,
+  );
 
   /// A bare long wave followed by `Balance long wave for all …` (#2331
   /// follow-up, maintainer ruling 2026-11-23): both lines stay text. `for all`
@@ -2035,9 +2106,16 @@ class CallersBoxAdapter implements SourceAdapter {
   /// before a phrase's first line is the previous phrase's last. The line
   /// stays custom straight after a `form_a_long_wave` (Fold 4 refused it there:
   /// the role differs from the wave's, or the wave was already balanced),
-  /// after a wave-forming line the importer could not structure, and after the
-  /// side-of-set long waves a bare `form long wave` makes ([_isTcbLongWave]),
-  /// which a balance in a centre wave contradicts.
+  /// after a wave-forming line the importer could not structure, and after a
+  /// `form long wave` that stayed the side-of-set long waves ([_isTcbLongWave]:
+  /// one that states holds is the long waves across the set, never a centre
+  /// wave, maintainer ruling 2026-11-24, so a centre-wave balance after it
+  /// contradicts it). After a
+  /// bare `form long wave` in the same phrase, or one with no beats ending the
+  /// previous phrase, the in-centre follower has already made the pair the
+  /// role's centre wave, balanced ([_inCenterFollower]); a bare wave that
+  /// carries its own beats and ends the previous phrase is not folded across
+  /// the boundary, so its balance reaches here and stays custom.
   static List<Figure> _promoteRoleCentreWaveBalances(List<Figure> figures) {
     final out = <Figure>[];
     for (final f in figures) {
