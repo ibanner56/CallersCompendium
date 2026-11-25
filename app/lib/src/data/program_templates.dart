@@ -58,13 +58,13 @@ const int _programTemplateVersionWithRules = 2;
 /// The value version of a template with at least one event rule (#2342), in
 /// its top-level `eventRuleIds`.
 ///
-/// Every build that can be sent one reads it: a template holding event rules
-/// waits for `eventRules.v1` as well as `programTemplates.v1`
-/// (`SyncCapabilityPolicy.gatedSettingValueFields`), so no build without
-/// event rules is sent one, and event-rule ids joined templates before any
-/// release carried either capability. A build that cannot read it skips the
-/// template and never writes it, so it is kept whole rather than rewritten
-/// without the field.
+/// A template holding event rules waits for `eventRules.v1` as well as
+/// `programTemplates.v1` (`SyncCapabilityPolicy.gatedSettingValueFields`), so
+/// no build without event rules is sent one. Event-rule ids joined templates
+/// before any release carried either capability, so a build that advertises
+/// both reads it as long as no release carries event rules without this. A
+/// build that cannot read it skips the template and never writes it, so the
+/// value is kept whole rather than rewritten without the field.
 const int _programTemplateVersionWithEventRules = 3;
 
 /// The top-level field of a template value listing its event rules (#2342).

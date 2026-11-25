@@ -60,7 +60,9 @@ direction the list opens with, see
   creates. Templates don't apply to other imported or duplicated programs,
   programs someone shared with you, or **Create a new program with this
   dance**. A template's [slot rules](./settings.md#program-defaults) become
-  [placeholders](#fill-a-placeholder) for you to fill.
+  [placeholders](#fill-a-placeholder) for you to fill. With
+  [Event rules](./settings.md#event-rules) on, a template's
+  [rules](#check-your-program-against-your-rules) come with it too.
 - **Import one** from the **Import program** menu (the import icon in the
   **Programs** toolbar), which offers three sources — **From title list** (paste
   a set list you already have), **From ContraDB** (pull an event straight from
@@ -475,8 +477,18 @@ with one of your [saved searches](./collection.md#save-a-search-and-use-it-again
   says so and another can't be ticked. To make room, only the rules you
   deleted are let go.
   **New rule…** at the top opens the rule editor and, once you save the rule,
-  adds it to this program. A new program, a copy of a program, and a program
-  you import start with no rules: a rule is never added for you.
+  adds it to this program. A copy of a program, a program you import, and a
+  new program made without a template start with no rules: a rule is only
+  added when you add it, or when you choose a template that carries rules.
+- **Rules that come with a template.** A [program
+  template](./settings.md#program-defaults) can carry rules. A program made
+  from it — with **New program**, or as a draft a
+  [calendar import](#import-programs-from-your-calendar) makes from your
+  Default template — starts with the template's rules already ticked. A rule
+  you have deleted is left out. They are the program's own from then on: untick
+  one as you would any rule, and changing the template later changes no
+  program already made from it. While Event rules is off, new programs get no
+  rules from a template.
   A rule with a nickname shows it, with its sentence under it. The rules are
   listed in your **Rule order** — your own order from **Manage rules**, or
   the ones your programs use most first (see

@@ -499,8 +499,12 @@ class Program {
   final String? calendarFlag;
 
   /// The event rules applied to this program (#2340), by id, in the order the
-  /// caller added them. Only the caller adds one: creating, duplicating or
-  /// importing a program applies none, and [duplicate] does not copy them. An
+  /// caller added them. Only the caller adds one: duplicating or importing a
+  /// program applies none, and [duplicate] does not copy them. A program made
+  /// from a program template starts with that template's live rules while
+  /// Event rules is on (#2342): choosing the template is the caller adding
+  /// them, and they are copied, so a later edit to the template changes no
+  /// program. Creating a program any other way applies none. An
   /// id whose rule is gone is kept and ignored. It travels in Device Sync and
   /// the caller's own backups, but not in a shared program file or the PDF
   /// (`sanitizeProgramForShare`).

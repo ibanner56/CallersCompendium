@@ -648,7 +648,9 @@ final Map<String, DataClassification> settingsPrefixClassifications = {
         'breaks and free text, which can contain whatever the caller types, '
         'and slot rules (#2338), each a label the caller types and a '
         'reference to one of their own saved searches (the id of a '
-        'saved_search: value). '
+        'saved_search: value) — and the ids of the event rules (#2342) a '
+        'program made from it starts with, references to the caller\'s own '
+        'event_rules rows, which are classified there. '
         'The user\'s own planning data; it syncs to their devices and travels '
         'in local backups, like the Starting program it replaces.',
   ),
