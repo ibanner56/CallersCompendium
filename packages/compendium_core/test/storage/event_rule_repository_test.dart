@@ -241,6 +241,43 @@ void main() {
       expect(plain.eventRuleIds, isEmpty);
     });
 
+    // #2341: "Most used" counts the live programs applying each rule. Shown
+    // red against a count that included programs in Recently deleted.
+    test('usage counts live and archived programs, not trashed ones, and '
+        'each program once', () async {
+      final a = await addRule('s1');
+      final b = await addRule('s2');
+      final c = await addRule('s3');
+      await repos.programs.create(program('live', rules: [a.id, c.id]));
+      await repos.programs.create(program('archived', rules: [a.id]));
+      await repos.programs.archive('archived', at: t0);
+      // b is applied only by programs in Recently deleted: more of them than
+      // apply a, so counting them would put b first.
+      for (final id in ['trash1', 'trash2', 'trash3']) {
+        await repos.programs.create(program(id, rules: [b.id]));
+        await repos.programs.softDelete(id, at: t0);
+      }
+      // A stored list that repeats an id counts its program once.
+      await db.customStatement(
+        "UPDATE programs SET event_rule_ids = "
+        "'[\"${a.id}\",\"${c.id}\",\"${c.id}\"]' "
+        "WHERE id = 'live'",
+      );
+
+      final usage = await repos.eventRules.usageCounts();
+      expect(usage[a.id], 2, reason: 'a live and an archived program');
+      expect(usage[b.id] ?? 0, 0, reason: 'trashed programs do not count');
+      expect(usage[c.id], 1);
+
+      final ordered = orderEventRules(
+        await repos.eventRules.listAll(),
+        EventRuleOrder.mostUsed,
+        usage: usage,
+        title: (r) => r.savedSearchId,
+      );
+      expect([for (final r in ordered) r.id], [a.id, c.id, b.id]);
+    });
+
     test('creating a program applies none', () async {
       await addRule('s');
       await repos.programs.create(program('p'));

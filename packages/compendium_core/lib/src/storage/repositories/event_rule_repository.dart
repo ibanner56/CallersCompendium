@@ -75,6 +75,29 @@ class EventRuleRepository {
     return [for (final id in ids) ?byId[id]];
   }
 
+  /// How many live programs apply each rule, by rule id (#2341): the
+  /// picker's **Most used** order. A program in Recently deleted does not
+  /// count; an archived one does, as it still counts in calling history. Each
+  /// program counts a rule once, read as the builder reads its list
+  /// ([decodeEventRuleIds]), and an id no rule has (a deleted rule's, kept
+  /// for its Undo) is counted like any other. Derived on every call, never
+  /// stored, so nothing about it syncs.
+  Future<Map<String, int>> usageCounts() async {
+    final column = _db.programs.eventRuleIds;
+    final rows =
+        await (_db.selectOnly(_db.programs)
+              ..addColumns([column])
+              ..where(_db.programs.deletedAt.isNull()))
+            .get();
+    final counts = <String, int>{};
+    for (final row in rows) {
+      for (final id in decodeEventRuleIds(row.read(column))) {
+        counts[id] = (counts[id] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }
+
   /// The live rules that use the saved search [savedSearchId], for the
   /// saved-search delete guard. A rule in the trash does not count.
   Future<List<SavedSearchUse>> usesOfSavedSearch(String savedSearchId) async {
