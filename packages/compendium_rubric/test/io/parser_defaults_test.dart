@@ -97,6 +97,7 @@ const Map<String, Operation> defaults = {
   'swing': Swing(who: WhoSet.partners),
   'turn_alone': TurnAlone(),
   'turn_as_couples': TurnAsCouples(),
+  'shift': Shift(),
   'two_hand_turn': TwoHandTurn(),
   'up_the_hall': UpTheHall(),
   'zig_zag': ZigZag(),

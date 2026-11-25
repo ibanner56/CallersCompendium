@@ -280,11 +280,14 @@ void main() {
       expect(_retried(result), isTrue);
     });
 
-    test('when the next figure refuses: Top Spin', () {
+    test('Top Spin no longer needs the retry', () {
+      // The Larks' 3/4 after the neighbours' half (figure 3) is across the
+      // set. It used to refuse there and compile only from the retry; the
+      // across-the-set quarter (§8.5.6, agent's call 2026-11-25) now lands
+      // it in the centre line directly, and the dance still compiles.
       final result = compile(_parse(_topSpin));
       expect(result, isA<Compiled>(), reason: '$result');
-      // Figure 3 (index 2), the Larks' 3/4 after the neighbours' half.
-      expect(_retriedAt(result), [2]);
+      expect(_retriedAt(result), isEmpty);
     });
 
     test('the mismatch retry is warned at the figure after the allemande', () {
@@ -325,8 +328,9 @@ void main() {
 
     test('a reading the next figure refuses from too is not kept', () {
       // Partners' allemande 1 1/2 is read in one row (user-ruled
-      // 2026-11-25), but the Larks' 3/4 across the set refuses from that
-      // reading too, so the refusal stands exactly as it did before.
+      // 2026-11-25), but the Larks' shoulder round 3/4 across the set
+      // refuses from that reading too, so the refusal stands exactly as it
+      // did before.
       final record = {
         ..._jerryGoesToCamp,
         'figures': [
@@ -340,10 +344,10 @@ void main() {
             },
           },
           {
-            'move': 'allemande',
+            'move': 'shoulder_round',
             'params': {
               'who': 'role1s',
-              'hand': 'left',
+              'shoulder': 'left',
               'travel': 0.75,
               'beats': 8,
             },

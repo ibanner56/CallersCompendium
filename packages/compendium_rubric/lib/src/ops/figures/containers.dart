@@ -207,7 +207,12 @@ final class Meanwhile extends _Container {
     // remembers a shadow but leaves the dancer where and as they were looks
     // unchanged, and a later part's refacing would overwrite it.
     final remembered = <DancerId, DancerId>{};
+    final shifts = [
+      for (final figure in figures)
+        if (figure is Shift) figure,
+    ];
     for (final figure in figures) {
+      if (figure is Shift) continue;
       final result = figure.apply(start, progressions: progressions);
       final Formation danced;
       switch (result) {
@@ -258,13 +263,23 @@ final class Meanwhile extends _Container {
       }
       occupied[state.position] = entry.key;
     }
-    return Ok(
-      start.withUpdates({
-        ...merged,
-        for (final MapEntry(key: id, value: shadow) in remembered.entries)
-          id: (merged[id] ?? start.stateOf(id)).copyWith(shadow: shadow),
-      }),
-    );
+    final danced = start.withUpdates({
+      ...merged,
+      for (final MapEntry(key: id, value: shadow) in remembered.entries)
+        id: (merged[id] ?? start.stateOf(id)).copyWith(shadow: shadow),
+    });
+    // A shift travels around the parts danced beside it: it steps from where
+    // the others have left the set (agent's call, 2026-11-25).
+    var shifted = danced;
+    for (final shift in shifts) {
+      switch (shift.apply(shifted, progressions: progressions)) {
+        case Err() && final error:
+          return error;
+        case Ok(:final value):
+          shifted = value;
+      }
+    }
+    return Ok(shifted);
   }
 
   @override

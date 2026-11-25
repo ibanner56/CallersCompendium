@@ -133,16 +133,56 @@ final class Allemande extends Operation {
     // A pair already holding this hand in a wave turns from there (§8.5.7).
     // Every other pair leaves the wave first, exactly as before, and is held
     // to the along-the-set rule from the settled cells.
+    final settled = normalizeWaveOffsets(formation, alsoOutsideBands: true);
+    final unheld = [
+      for (final pair in whoPairsInSet(formation, who))
+        if (!_heldFor(formation, pair)) pair,
+    ];
+    final across = _acrossLandings(settled, unheld);
     return _requireAlongTheSet(
-      normalizeWaveOffsets(formation, alsoOutsideBands: true),
+      settled,
       name,
       'turn',
       turn,
       pairs: [
-        for (final pair in whoPairsInSet(formation, who))
-          if (!_heldFor(formation, pair)) pair,
+        for (final pair in unheld)
+          if (!across.containsKey(pair)) pair,
       ],
     );
+  }
+
+  /// Where each across-the-set pair of [pairs] lands in the centre column.
+  ///
+  /// A pair is left out when it has no landing, and so is every pair whose
+  /// landing shares a cell with another's: two couples of one hands four
+  /// turning across at once would both claim its centre cells, and which
+  /// way that resolves is not known, so it stays deferred *(agent's call)*.
+  Map<DancerPair, Map<DancerId, DancerState>> _acrossLandings(
+    Formation settled,
+    Iterable<DancerPair> pairs,
+  ) {
+    final landings = <DancerPair, Map<DancerId, DancerState>>{};
+    for (final pair in pairs) {
+      if (settled.stateOf(pair.a).col == settled.stateOf(pair.b).col) continue;
+      final landing = quarterTurnAcrossIntoCentre(
+        settled,
+        pair,
+        hand: hand,
+        threeQuarters: rotationAmountOf(turn) == RotationAmount.threeQuarter,
+      );
+      if (landing != null) landings[pair] = landing;
+    }
+    final claims = <Position, int>{};
+    for (final landing in landings.values) {
+      for (final state in landing.values) {
+        claims.update(state.position, (n) => n + 1, ifAbsent: () => 1);
+      }
+    }
+    landings.removeWhere(
+      (_, landing) =>
+          landing.values.any((state) => claims[state.position]! > 1),
+    );
+    return landings;
   }
 
   @override
@@ -158,15 +198,23 @@ final class Allemande extends Operation {
       ];
       // Everyone not turning from a hold leaves the wave as any other figure
       // would (§8.5.4); the held pairs are then turned from where they stood.
+      final normalized = normalizeWaveOffsets(
+        formation,
+        alsoOutsideBands: true,
+      );
+      final across = _acrossLandings(normalized, [
+        for (final pair in pairs)
+          if (!held.contains(pair)) pair,
+      ]);
       final settled = quarterTurnIntoWave(
-        normalizeWaveOffsets(formation, alsoOutsideBands: true),
+        normalized,
         [
           for (final pair in pairs)
-            if (!held.contains(pair)) pair,
+            if (!held.contains(pair) && !across.containsKey(pair)) pair,
         ],
         hand: hand,
         afterHalfTurn: threeQuarters,
-      );
+      ).withUpdates({for (final landing in across.values) ...landing});
       return Ok(
         settled.withUpdates(
           quarterTurnFromWaveHold(

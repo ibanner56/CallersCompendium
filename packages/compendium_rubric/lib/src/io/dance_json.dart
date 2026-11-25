@@ -293,6 +293,7 @@ const Map<String, _FigureBuilder> _registry = {
   'shoulder_round': _buildShoulderRound,
   'slice': _buildSlice,
   'sequence': _buildSequence,
+  'shift': _buildShift,
   'slide_along_set': _buildSlideAlongSet,
   'square_through': _buildSquareThrough,
   'stand_still': _buildStandStill,
@@ -802,6 +803,11 @@ Operation _buildForwardAndBack(_Params p) {
   }
   return LongLines(goBack: p.boolOr(['goBack'], true));
 }
+
+Operation _buildShift(_Params p) => Shift(
+  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.role1s),
+  direction: p.optionalString(['direction']) ?? 'left',
+);
 
 Operation _buildTurnAlone(_Params p) => TurnAlone(
   who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.everyone),
