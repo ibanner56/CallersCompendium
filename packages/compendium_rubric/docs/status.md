@@ -211,7 +211,10 @@
 > reads as `role1s` facing in, as it did when it stated nothing (deferring it
 > cost 76); and a single-file promenade around the set to the next
 > neighbours, which the import now writes with that `destination`, is
-> accepted (deferring it cost 16). Against `rubric` at `6527c9d7`: 4,532 of
+> accepted (deferring it cost 16), and the bridge still finds it as the
+> dance's progression in the import's new shape. A pass by is deferred when
+> it states a direction or leaves `who` unstated. Against `rubric` at
+> `6527c9d7`: 4,532 of
 > 5,623 to 4,546 of 5,644 compiled in scope (80.6% to 80.5%), the core set
 > 577 to 576. 17 dances now compile and 3 no longer do: Spare Parts (12030,
 > core) and Bloomingfoods Reel Food (14488), whose pass through now names the

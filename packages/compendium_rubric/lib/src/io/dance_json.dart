@@ -651,7 +651,7 @@ Operation _buildBoxTheGnat(_Params p) => BoxTheGnat(
 ///
 /// - **A pass by** swaps the pair named by `who`, as it always did. v40 gave it
 ///   a `where`; a stated direction is deferred rather than ignored, since a
-///   pass by never had one to read.
+///   pass by never had one to read, and so is a `who` left unstated.
 /// - **A pass through** trades every pair facing along `where`. v40 also lets
 ///   it name who passes (`who`): a pairing is kept as a description
 ///   ([PassThrough.who]), and a role or couple-number set, where only some
@@ -661,11 +661,23 @@ Operation _buildPassThrough(_Params p) {
   final shoulder = p.enumOr(['shoulder'], Hand.fromKey, Hand.right);
   final type = p.optionalString(['passType']) ?? 'through';
   if (type == 'by') {
-    final where = p._raw['where'];
-    if (where != null && where != _Params._unspecified) {
+    // Filed under `pass_by`, the alias's own meanings already fill both
+    // params. Filed under `pass_through`, an omitted one means what it does
+    // for a pass through (`who` unstated, `where: along`), as core reads it.
+    final whereKey = p._blameKey(const ['where', 'dir']);
+    final where = p._raw[whereKey] ?? 'along';
+    if (where != _Params._unspecified) {
       p._fail(
-        'where',
+        whereKey,
         'a pass by with a stated direction ($where) is deferred',
+        deferred: true,
+      );
+    }
+    final who = p._raw['who'];
+    if (who == null || who == _Params._unspecified) {
+      p._fail(
+        'who',
+        'a pass by that does not say who passes is deferred',
         deferred: true,
       );
     }
@@ -1158,16 +1170,13 @@ OperationInvocation _parseFigureAt(Object? raw, String path) {
     }
     // What the alias means by an omitted param, where that differs from the
     // target's default (taxonomy v40: a `pass_by` is `who: neighbors`,
-    // `where: unspecified`), read as `Taxonomy.effectiveParams` reads it.
-    // Only while the figure is still this alias: one whose stated value
-    // contradicts a pin is the target move, and means what it does.
-    final stillAlias = alias.pinnedParams.entries.every(
-      (pin) => figureParams[pin.key] == pin.value,
-    );
-    if (stillAlias) {
-      for (final fallback in alias.defaultParams.entries) {
-        figureParams.putIfAbsent(fallback.key, () => fallback.value);
-      }
+    // `where: unspecified`).
+    // Applied even when a stated value contradicts a pin and the figure is
+    // routed to the target move: `Taxonomy.effectiveParams` reads them the
+    // same way, and core's `keepOmittedMeaning` writes them when it re-routes
+    // a figure.
+    for (final fallback in alias.defaultParams.entries) {
+      figureParams.putIfAbsent(fallback.key, () => fallback.value);
     }
   }
 

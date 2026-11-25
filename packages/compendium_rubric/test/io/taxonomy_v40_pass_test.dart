@@ -35,9 +35,35 @@ void main() {
 
     test('a pass through stating passType by is a pass by', () {
       expect(
-        _figure('pass_through', const {'passType': 'by', 'who': 'partners'}),
+        _figure('pass_through', const {
+          'passType': 'by',
+          'who': 'partners',
+          'where': 'unspecified',
+        }),
         const PassBy(who: WhoSet.partners),
       );
+    });
+
+    test('a pass by that leaves who unstated is deferred', () {
+      // Core writes `who: unspecified` when it re-routes a pass through that
+      // left `who` out to a pass by.
+      expect(_error('pass_by', const {'who': 'unspecified'}).deferred, isTrue);
+      // Filed under pass through, an omitted who is unstated, and an omitted
+      // where is along.
+      expect(_error('pass_through', const {'passType': 'by'}).deferred, isTrue);
+      expect(
+        _error('pass_through', const {
+          'passType': 'by',
+          'who': 'neighbors',
+          'dir': 'across',
+        }).path,
+        endsWith('.dir'),
+      );
+    });
+
+    test('a pass by stating passType through keeps its unstated where', () {
+      // Routed to pass through, with the alias's where: unspecified.
+      expect(_error('pass_by', const {'passType': 'through'}).deferred, isTrue);
     });
 
     test('a pass by stating a direction is deferred, not ignored', () {

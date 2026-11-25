@@ -1241,16 +1241,19 @@ To be defined later with worked examples.
   - **Caller's Box bridge** (`io/callersbox_source.dart`): before the taxonomy-v40 sync, that
     source's "Single file promenade clockwise around the major set to N2" imported as a
     single-file `circle` noted "around the major set to N2"; since it, the import writes this
-    promenade itself, with `destination: nextNeighbors`. For a record still read the old way,
-    the bridge rewrites it to this promenade (circle `left` → `clockwise`,
-    `right` → `counterclockwise`), and assumes it is the dance's progression in any formation
-    *(the ruling's reading; the import rewrite and the placement are the agent's calls)*. The
+    promenade itself, with `destination: nextNeighbors` and the note "around the major set",
+    which the bridge takes as it stands. For a record still read the old way, the bridge
+    rewrites it to this promenade (circle `left` → `clockwise`,
+    `right` → `counterclockwise`). Either way the bridge assumes it is the dance's progression in
+    any formation *(the ruling's reading; the import rewrite and the placement are the agent's
+    calls)*. The
     placement holds on the N2 and "~" retries too, so no retry moves the progression off the
     promenade. The phrase is read in any letter case, alone or with one bracketed annotation;
     an annotation naming a place in the set, a rotation or a count ("women ccw in center, men cw
     on outside", "twice"), a note that goes on past the phrase, or a circle counting its places
-    is left as the import read it, since this reading would drop the rest. Only the first such
-    top-level circle is rewritten, and only in a dance with no figure flagged, so no unflagged
+    is left as the import read it, since this reading would drop the rest; the import's own
+    promenade is taken only with at most one annotation before "around the major set" that names
+    none of those. Only the first such top-level figure is taken, and only in a dance with no figure flagged, so no unflagged
     promenade moves the set *(agent's calls)*.
 - **still deferred:** single-file promenades other than along the set, whole-set and
   around-a-dancer promenades (above), stated destinations (but a single-file promenade along to
@@ -1613,8 +1616,19 @@ To be defined later with worked examples.
 
 - **summary:** Facing dancers walk forward and **pass by** (given shoulder) to exchange places,
   continuing to face their walking direction (end back-to-back / passed through).
-- **params** (meets CallersCompendium baseline `{where, shoulder, beats}`):
+- **params** (meets CallersCompendium baseline `{who, where, shoulder, beats, passType}`; taxonomy
+  v40 merged `pass_by` into this move, see `pass_by` below):
+  - `passType` — `through` (default) or `by`. A `by` figure is the pass by below, built as that
+    figure.
+  - `who` — dancer set, default `unspecified` (v40). **Descriptive**: a pairing (neighbours,
+    partners, shadows, a distance set) is kept on the figure and not checked or reached for, since
+    no pass through read it before v40 *(agent's call, 2026-11-24, at the taxonomy-v40 sync;
+    checking it cost 19 compiling Caller's Box dances, mostly distance sets naming whom the pass
+    meets)*. A role or couple number (`role1s`, `role2s`, `ones`, `twos`), where only some pass, is
+    **deferred** at parse time.
   - `where` — direction, default `along`. `across` = across the set; `along` = up/down the set.
+    Stated `unspecified` (v40 admits it), it is **deferred** at parse time rather than read as
+    `along`.
   - `shoulder` — enum {`left`, `right`}, default `right`. Which shoulder passes; **no end-position
     effect** (styling).
   - `beats` — int, default 2 (baseline good=[2]).
@@ -2369,6 +2383,12 @@ To be defined later with worked examples.
 
 ### `pass_by`
 
+- **taxonomy v40:** no longer a move of its own but an alias of `pass_through` pinning `passType:
+  by`, which means `who: neighbors` and `where: unspecified` by an omitted param
+  (`MoveAlias.defaultParams`, applied at parse time as core's `effectiveParams` applies it, also
+  when a stated value routes the figure to `pass_through`). It is built as below. A pass by
+  stating a direction, or with `who` unstated (as core writes when it re-routes a pass through
+  that left `who` out), is **deferred** *(agent's calls, 2026-11-24, at the sync)*.
 - **summary:** A shoulder pass — the `who` pair walk forward and **pass by (given shoulder),
   swapping positions**. The shoulder-named twin of `pull_by` (hand-named).
 - **params** (meets CallersCompendium baseline `{who, shoulder, beats}`):
@@ -3029,7 +3049,9 @@ To be defined later with worked examples.
   - `who` — dancer set, default `role1s` (the baseline's value). The pair who
     face **in**; everyone else faces out. The field stays nullable and the *anchors* below can
     still resolve it, but a parsed record never arrives absent, so from JSON the anchors only
-    ever corroborate.
+    ever corroborate. A `who` stated `unspecified` (v40: The Caller's Box's bare "form long wave")
+    reads as `role1s`, as the same line did when it stated nothing *(agent's call, 2026-11-24, at
+    the taxonomy-v40 sync; deferring it cost 76 compiling dances)*.
   - `whom` — dancer set, absent by default (the upstream `unspecified` sentinel). Whom you hold.
     An **anchor**: no end-state effect, but verified.
   - `whomHand` — handedness, absent by default (same sentinel). The hand you hold `whom` by. An

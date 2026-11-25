@@ -1584,6 +1584,50 @@ void main() {
         }
       });
 
+      test(
+        'the import\'s own promenade is found too, since taxonomy v40',
+        () async {
+          // The importer now writes the line as a single-file promenade along
+          // the set with destination nextNeighbors, noted "around the major
+          // set". Read through the real adapter, not a hand-built figure.
+          // The real fixture's envelope, with this one phrase in place of
+          // its own.
+          final payload = jsonEncode({
+            ...(jsonDecode(_payload()) as Map<String, Object?>),
+            'phrases': [
+              {
+                'name': 'A1',
+                'figures': [
+                  '(8) Neighbor swing',
+                  '(2) Single file promenade clockwise around the major set '
+                      'to N2',
+                  '(6) Circle left 3/4',
+                ],
+              },
+            ],
+          });
+          final adapter = core.CallersBoxAdapter();
+          final discovered = await adapter.discover(
+            core.ImportRequest(payload: payload),
+          );
+          final draft = adapter.parse(await adapter.fetch(discovered.single));
+          final imported = dancedFigures(draft.dance)![1];
+          expect(imported.move, 'promenade');
+          expect(imported.params['destination'], 'nextNeighbors');
+          final bridged = bridgeCoreDance(draft.dance);
+          expect(bridged.assumedProgressionAt, 1);
+          expect(
+            bridged.warnings.single.detail,
+            contains('single-file promenade'),
+          );
+          final record =
+              (bridged.record['figures']! as List<Object?>)[1]!
+                  as Map<String, Object?>;
+          expect(record['move'], 'promenade');
+          expect(record['progression'], isTrue);
+        },
+      );
+
       test('a counter-rotating one is left as the import read it', () {
         final dance = _shapedLike(
           shape: core.FormationShape.dupleImproper,

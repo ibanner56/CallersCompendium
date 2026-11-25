@@ -733,7 +733,9 @@ bool _heyStopsAtNextNeighbours(core.Figure figure) {
 
 /// Whether [figure] is a single-file promenade around the major set to the
 /// next neighbours, which the Caller's Box import reads as a single-file
-/// circle noted "around the major set to N2".
+/// circle noted "around the major set to N2", or, since the taxonomy-v40
+/// sync, as a single-file `promenade` along the set with `destination:
+/// nextNeighbors` and the note "around the major set" ([_promenadeAroundTheSet]).
 ///
 /// Hudson ruled (2026-11-24) that it is a promenade along the set, single
 /// file, and the bridge writes it as one ([_aroundTheSetParams]). A note
@@ -753,6 +755,7 @@ bool _heyStopsAtNextNeighbours(core.Figure figure) {
 /// any other noted circle, one inside a `modifier` included, as the import
 /// read it.
 bool _promenadesAroundTheSet(core.Figure figure) {
+  if (figure.move == 'promenade') return _promenadeAroundTheSet(figure);
   if (figure.move != 'circle' ||
       figure.params['singleFile'] != true ||
       figure.params['places'] != null) {
@@ -761,6 +764,26 @@ bool _promenadesAroundTheSet(core.Figure figure) {
   final match = _aroundTheSetNote.firstMatch((figure.note ?? '').trim());
   if (match == null) return false;
   return !_otherAnnotation.hasMatch(match.group(1) ?? match.group(2) ?? '');
+}
+
+/// The import's own shape for the same line since the taxonomy-v40 sync: a
+/// single-file promenade along the set to the next neighbours, noted "around
+/// the major set", after any annotation the line kept. The same annotations
+/// that leave the circle alone leave this one alone too (agent's call).
+bool _promenadeAroundTheSet(core.Figure figure) {
+  final params = figure.params;
+  if (params['singleFile'] != true ||
+      params['where'] != 'along' ||
+      params['destination'] != 'nextNeighbors' ||
+      params['places'] != null) {
+    return false;
+  }
+  final clauses = [
+    for (final clause in (figure.note ?? '').split(';')) clause.trim(),
+  ];
+  if (clauses.last.toLowerCase() != 'around the major set') return false;
+  return clauses.length <= 2 &&
+      !clauses.take(clauses.length - 1).any(_otherAnnotation.hasMatch);
 }
 
 final _aroundTheSetNote = RegExp(
@@ -784,7 +807,14 @@ int? _aroundTheSetIndex(List<core.Figure> figures) {
   return null;
 }
 
-Map<String, Object?> _aroundTheSetParams(core.Figure figure) => {
+/// The promenade [figure] is danced as: the import's own promenade as it
+/// stands, or one built from the circle the import wrote before v40.
+Map<String, Object?> _aroundTheSetParams(core.Figure figure) =>
+    figure.move == 'promenade'
+    ? _recordParams(figure.params)
+    : _circleAroundTheSetParams(figure);
+
+Map<String, Object?> _circleAroundTheSetParams(core.Figure figure) => {
   'where': 'along',
   'singleFile': true,
   'direction': (figure.params['direction'] ?? 'left') == 'right'

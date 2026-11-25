@@ -33,7 +33,7 @@ OpError? _requireTravelAxis(Direction dir, String moveName) {
 /// the source gave them (neighbours, partners, shadows, a distance set). It is
 /// not checked or used to reach along the set, as no pass through read it
 /// before v40 *(agent's call, 2026-11-24, at the taxonomy-v40 sync; checking
-/// it cost 39 compiling Caller's Box dances, mostly distance sets naming whom
+/// it cost 19 compiling Caller's Box dances, mostly distance sets naming whom
 /// the pass meets)*. A role or couple-number set, where only some dancers
 /// pass, is refused by the parser instead.
 final class PassThrough extends Operation {

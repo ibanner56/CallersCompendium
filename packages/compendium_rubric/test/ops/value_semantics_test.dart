@@ -67,6 +67,7 @@ void main() {
   checkValueSemantics(const PassThrough(), const PassThrough(), {
     'dir': const PassThrough(dir: Direction.across),
     'shoulder': const PassThrough(shoulder: Hand.left),
+    'who': const PassThrough(who: WhoSet.neighbors),
   });
 
   checkValueSemantics(const PullByDirection(), const PullByDirection(), {
