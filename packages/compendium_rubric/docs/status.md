@@ -249,6 +249,28 @@
 > positional placement from the short waves rather than on the next
 > neighbours.
 >
+> **`shift` and the across-the-set quarter allemande (2026-11-25)**:
+> `shift` (taxonomy v40) is built, with fuzzy travel as Hudson asked on
+> 2026-11-24: a dancer whose place is taken, or who would step off an end,
+> stays where they are, two shifting into one cell both stay, dancers
+> waiting out do not shift, and in a `meanwhile` the shift is danced after
+> the other parts, from where they leave the set (all the agent's calls;
+> stepping one column inside a taken cell was tried first and gained
+> nothing). Built alone it gained no dance, because nearly every shift sits
+> beside an allemande ¾ across the set, which was deferred. So an
+> allemande ¼ or ¾ across the set now turns into the centre column as a
+> centre long wave (`fundamentals.md` §8.5.6; the agent's call). Against
+> `rubric` at `4b0ee2e6`: 4,556 of 5,691 to 4,573 of 5,792 compiled in
+> scope (80.1% to 79.0%), the core set 580 to 581 (Snake in the Hey, 294),
+> no previously compiling dance lost. The rate falls because of the 48
+> dances that stopped at `shift`, 9 compile and 39 now run on to a figure
+> that refuses (most often a partner swing whose partners are not side by
+> side) or land elsewhere, and so join the denominator; 7 of those are in the core set, Mary Cay's Reel (10579)
+> among them, which still refuses at its partner swing because "N2 women
+> allemande left 3/4" is imported as each hands four's own women. Of the 17
+> gained, 8 come from the across quarter alone, and in 5 of the 9 shift
+> dances gained the shift moves nobody.
+>
 > **A dance can go on from the short waves an allemande leaves (2026-11-24)**:
 > when the figure straight after an allemande refuses, or the whole dance
 > lands somewhere other than its expected end, the compiler dances on again

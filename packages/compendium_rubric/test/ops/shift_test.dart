@@ -132,10 +132,7 @@ void main() {
 
   test('beside an allemande in a meanwhile, it steps around the turn', () {
     final after = applyOk(
-      const Meanwhile([
-        Allemande(who: WhoSet.role2s, turn: 0.75),
-        Shift(),
-      ]),
+      const Meanwhile([Allemande(who: WhoSet.role2s, turn: 0.75), Shift()]),
       twoBands(),
     );
     expect(after, applyOk(const Shift(), robinsInTheCentre()));

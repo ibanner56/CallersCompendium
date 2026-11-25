@@ -469,9 +469,31 @@ pair rigidly, so the rules below about columns, rows and facing do not apply.
 
 Four things define the landing:
 
-**Along the set only.** The offset is a sideways step, so the turning pair must be
-column-mates (facing each other along a line). An across-the-set quarter is refused
-(`unsupportedParam`) — its dancers already sit on the two grid edges with nowhere to step.
+**Along the set, for the wave.** The offset is a sideways step, so the turning pair must be
+column-mates (facing each other along a line). An across-the-set pair already sits on the two
+grid edges with nowhere to step, so `do_si_do` and `shoulder_round` refuse it
+(`unsupportedParam`). An `allemande` across the set has a landing of its own instead, below.
+
+**An allemande across the set turns into the centre column.** *(Agent's call, 2026-11-25; the
+women's "allemande right 3/4" of Mary Cay's Reel, Caller's Box 10579, is the example.)* A pair
+facing each other across the set that turns a quarter or three quarters ends standing **along**
+it, one above the other in c2: the centre long wave of §8.5.5. It is the §8.5.7 turn of a short
+wave's centre pair, taken from facing: the dancer the rotation carries north takes the band's
+top row, a right hand's quarter carrying the eastern dancer south and its three quarters
+carrying them north, and both face across holding `hand`, so a right-hand pair has its northern
+dancer facing east. The pair may stand straight across in one row or on a diagonal, as long as
+both are in one hands four's band. Two pairs of one band that would both need its centre cells
+(partners straight across in both couples), or a pair whose centre cells are taken, still refuse
+as an across-the-set quarter: which way that resolves is not known. Measured on the Caller's Box
+mirror, it gained 8 dances and lost none, and it settles three that compiled only from §8.5.8's
+retry before.
+
+```
+the Robins on a diagonal, after long lines:       Robins allemande right 3/4:
+
+L1-A  .    .    .   R1-A                          L1-A  .   R1-A  .    .    (R1-A faces →)
+R2-B  .    .    .   L2-B                           .    .   R2-B  .   L2-B  (R2-B faces ←)
+```
 
 **The direction token picks the wave.** `allemande`'s `hand` and the `shoulder` of `do_si_do`
 and `shoulder_round` play the same part: `right` builds the canonical wave of §8.5.1, `left`

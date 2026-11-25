@@ -29,8 +29,7 @@ Facing facingAt(Formation f, int row, int col) =>
 /// The Robins of one hands four on a diagonal across the set, as after long
 /// lines in Mary Cay's Reel (Caller's Box 10579): R1-A on the east side of
 /// the top row, R2-B on the west side of the bottom row.
-Formation robinsOnTheDiagonal() =>
-    di(['L1-A . . . R1-A', 'R2-B . . . L2-B']);
+Formation robinsOnTheDiagonal() => di(['L1-A . . . R1-A', 'R2-B . . . L2-B']);
 
 void main() {
   group('an across-the-set quarter lands in the centre column', () {
@@ -49,14 +48,17 @@ void main() {
       expect(hold?.hand, Hand.right);
     });
 
-    test('a right quarter turns the other way: the eastern Robin goes south', () {
-      final after = applyOk(
-        const Allemande(who: WhoSet.role2s, turn: 0.25),
-        robinsOnTheDiagonal(),
-      );
-      expect(after.toRolesNotation(), ['L1-A . R2-B . .', '. . R1-A . L2-B']);
-      expect(facingAt(after, 0, 2), Facing.acrossEast);
-    });
+    test(
+      'a right quarter turns the other way: the eastern Robin goes south',
+      () {
+        final after = applyOk(
+          const Allemande(who: WhoSet.role2s, turn: 0.25),
+          robinsOnTheDiagonal(),
+        );
+        expect(after.toRolesNotation(), ['L1-A . R2-B . .', '. . R1-A . L2-B']);
+        expect(facingAt(after, 0, 2), Facing.acrossEast);
+      },
+    );
 
     test('a left 3/4 is the mirror, holding left hands', () {
       final after = applyOk(

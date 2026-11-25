@@ -164,6 +164,12 @@ final class FiguresInOrder extends _Container {
 ///
 /// It is its own progression if any part is, since a part that carries dancers
 /// on to the next couple does so whatever the others do *(agent's call)*.
+///
+/// A [Shift] part is the exception to "from the same starting state": the
+/// shifting dancers step around the others, so it is danced after the other
+/// parts are merged, from where they leave the set *(agent's call,
+/// 2026-11-25)*. Danced from the start instead, the men of Mary Cay's Reel
+/// would be refused for stepping where the women's allemande begins.
 final class Meanwhile extends _Container {
   const Meanwhile(super.figures);
 

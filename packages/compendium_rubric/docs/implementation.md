@@ -524,8 +524,8 @@ authority. Implementation notes:
   they are not a separate grid state and there is **no stored wave flag**.
 - `Operation.apply` **settles offsets before every figure** except those with
   `preservesWaveOffsets` — which is exactly `balance`, `stand_still`,
-  `rory_o_more` and a quarter or three-quarter `allemande` (fundamentals
-  §8.5.7). The test is the figure's *premise* (is it danceable while
+  `rory_o_more`, `shift` and a quarter or three-quarter `allemande`
+  (fundamentals §8.5.7). The test is the figure's *premise* (is it danceable while
   standing in a wave?), **not** whether it happens to move anybody.
   `balance_the_ring` and `long_lines` move nobody and still settle, because
   neither shape is a wave.
@@ -967,10 +967,10 @@ The Carousel's half-hey substitution now asserts a `Mismatch` like Last Hey's.)*
 
 ## 15. Current state and known debt
 
-- **1,658 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
+- **1,675 tests green (one corpus sweep skipped without `RUBRIC_TCB_CORPUS`);
   `analyze` clean; `format` clean** — against `compendium_core` taxonomy v40,
-  with `promenade` across and single file along the set built.
-- **52 figures registered**, plus the three containers (`modifier`,
+  with `promenade` across and single file along the set, and `shift`, built.
+- **53 figures registered**, plus the three containers (`modifier`,
   `meanwhile`, and `sequence` when nested in one; `docs/taxonomy.md`,
   "Containers"), plus 8 upstream aliases resolved to them
   (`hand_cast` → `gate`, `long_lines` → `forward_and_back`, `meltdown_swing`,

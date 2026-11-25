@@ -7,7 +7,8 @@ part of '../operation.dart';
 /// whole turn returns the dancers to place, a half exchanges them, and a
 /// quarter or three-quarter lands the pair in a short wave (§8.5.6), except
 /// that an `allemande` pair already holding its hand in a wave turns from
-/// there instead (§8.5.7), a centre long-wave pair included.
+/// there instead (§8.5.7), a centre long-wave pair included, and an
+/// `allemande` pair across the set turns into the centre column.
 /// `allemande` and `shoulder_round` each carry a direction token that fixes
 /// that wave's handedness and so implement it; the rest of the family carries
 /// no usable direction token, or has no worked example, and refuses both
@@ -36,9 +37,10 @@ OpError? _requireWholeOrHalf(num amount, String moveName, String param) {
 /// Refuses a quarter-turn amount whose pair is standing **across** the set.
 ///
 /// The wave landing of §8.5.1 is defined over an along-the-set pair; an
-/// across-the-set quarter is a separate figure with its own geometry and is
-/// deferred. Shared by `do_si_do`, `allemande` and `shoulder_round` so they all
-/// refuse alike.
+/// across-the-set quarter is a separate figure with its own geometry. Only
+/// `allemande` has it (§8.5.6), and only where [quarterTurnAcrossIntoCentre]
+/// lands the pair; every other across pair is refused here. Shared by
+/// `do_si_do`, `allemande` and `shoulder_round` so they all refuse alike.
 OpError? _requireAlongTheSet(
   Formation formation,
   String moveName,
@@ -76,6 +78,10 @@ OpError? _requireAlongTheSet(
 /// and a long wave and ¾ in a short wave (§8.5.7). *(User-ruled.)* A centre
 /// long-wave pair turns the same way into the centre of a short wave, and the
 /// band's side dancers join it as the ends. *(Agent's call, 2026-11-24.)*
+///
+/// A pair facing each other **across** the set turns a quarter or three
+/// quarters into the centre column instead, standing along the set as the
+/// centre long wave of §8.5.5 (§8.5.6; agent's call, 2026-11-25).
 final class Allemande extends Operation {
   const Allemande({
     this.who = WhoSet.neighbors,

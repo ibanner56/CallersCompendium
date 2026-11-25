@@ -636,7 +636,9 @@ exactly as it would be on a line of its own. Implemented in `lib/src/ops/figures
   call)*. **Known limit:** a part that leaves its dancers in the cells they started in (an
   allemande once around) is not seen to move anyone, so a dancer named in it and in another part
   is not caught; catching it would need each figure to report who dances it. A `meanwhile` is
-  its own progression if any part is *(agent's call)*.
+  its own progression if any part is *(agent's call)*. A `shift` part is the exception to "from
+  the same starting state": it is danced after the others are merged, from where they leave
+  the set (see `shift`; agent's call 2026-11-25).
 - **`sequence`** — a top-level sequence is spliced into its children by the bridge
   (`implementation.md` §10.1). A sequence **inside** a container is one side of it, so it stays
   together and is danced in order, like a modifier. Having no main figure, it is its own
@@ -1095,8 +1097,14 @@ To be defined later with worked examples.
   - **quarter (0.25, 0.75, …)** ⇒ **along the set only**; forms a **wave of four** exactly as
     `do_si_do`'s quarter does, with `hand` playing the role of `shoulder` — `hand: right`
     builds the canonical wave, `left` its mirror, and ¾ is a half turn followed by the same
-    handed quarter (so the other role ends in the centre). Across-the-set quarters are
-    **deferred**.
+    handed quarter (so the other role ends in the centre).
+  - **quarter across the set** (fundamentals §8.5.6; agent's call 2026-11-25) ⇒ a pair facing
+    each other across the set, both in one band, turns into the **centre column**, one above
+    the other in the band's two rows, both facing across and holding `hand`: the dancer the
+    rotation carries north takes the top row (a right ¼ carries the eastern dancer south, a
+    right ¾ north). Two pairs of one band needing the same centre cells, or a pair whose centre
+    cells are taken, are still **deferred** (`unsupportedParam`), as is every across-the-set
+    quarter of `do_si_do` and `shoulder_round`.
   - **quarter from a wave** (fundamentals §8.5.7, user-ruled) ⇒ a pair already holding `hand`
     in a wave — a short-wave side pair, or a pair in a side long wave — turns **rigidly from
     where it stands**: a short wave and ¾ lands in a long wave, a long wave and ¾ in a short
@@ -1378,6 +1386,39 @@ To be defined later with worked examples.
 - **verified:** a `Becket CW` dance whose only figures are progression-flagged slides compiles
   clean against the independently derived §10.6 net-displacement oracle at both `count: 1` and
   `count: 2`, so **`slide:left` ↔ the CW sense** and `slide:right` ↔ CCW.
+
+### `shift`
+
+- **summary:** One named group sidesteps one place while the others stand or dance something
+  else, nearly always inside a `meanwhile`: "Women allemande right 3/4 **||** Men shift left"
+  (Mary Cay's Reel, Caller's Box 10579). Added to `compendium_core` in taxonomy v40; built here
+  2026-11-25.
+- **params** (core's `{who, direction, beats}`):
+  - `who` — dancer set, default `role1s`.
+  - `direction` — `left`, `right`, `up` or `down`, default `left`. `left` and `right` are the
+    dancer's own: a dancer facing across the set steps one row along it, the way a
+    `slide_along_set` moves them (facing east, left is up the hall). `up` and `down` are one row
+    toward the top or bottom of the hall.
+  - `beats` — int, default 4.
+- **effect:** every `who` dancer steps one row. **Travel is fuzzy** *(Hudson, 2026-11-24:
+  shifting dancers must not run into each other)*: a dancer whose place is taken, or who would
+  step off an end of the set, stays where they are, and two shifting into one cell both stay, so
+  the result does not depend on who is read first *(staying put is the agent's call,
+  2026-11-25; the inside-column alternative tried first gained nothing and collided in the next
+  figure)*. A dancer waiting out at an end does not shift *(agent's call)*.
+- **deferred:** `left` or `right` by a dancer facing up, down or Flexible (`unsupportedParam`):
+  which way their left points along the set is not known.
+- **in a `meanwhile`:** a shift travels **around** the parts danced beside it: the other parts are
+  danced and merged first, and the shift steps from where they left the set *(agent's call,
+  2026-11-25)*. So the men of Mary Cay's Reel step past the women's allemande into the room it
+  leaves, rather than being refused for meeting them in a cell.
+- **normalization:** `preservesWaveOffsets` — only the shifting dancers move, so a wave the
+  others stand in (usually one the meanwhile's other part has just formed) is kept.
+- **h4 contribution** (D7): 1, as for `slide_along_set`: a shift reaches into the next hands four.
+- **progression-eligible:** no (the default).
+- **Known limit:** Mary Cay's Reel itself still refuses, at its partner swing: its "N2 women
+  allemande left 3/4" is imported as `who: role2s`, which pairs each hands four's own women again
+  rather than the women of neighbouring hands fours, so the women never reach their partners.
 
 ### `slice`
 
